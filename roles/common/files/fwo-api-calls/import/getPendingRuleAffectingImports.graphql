@@ -1,0 +1,23 @@
+# Imports whose rule_owner mapping is still missing and that can affect rules at all.
+#
+# Deliberately separate from getPendingRuleOwnerImports: that query is the work list of the
+# mapping job and has to keep its own conditions. This one answers whether the mapping may be
+# trusted right now, which is a different question.
+#
+# A rule import (type 1) without policy changes cannot have changed a marker and therefore leaves
+# the mapping valid. An owner import (type 2) always can, and carries no mgm_id, so it affects
+# every management.
+query getPendingRuleAffectingImports {
+  import_control(where: {
+    successful_import: {_eq: true}
+    changes_found: {_eq: true}
+    rule_owner_mapping_done: {_eq: false}
+    _or: [
+      { import_type_id: {_eq: 1}, policy_changes_found: {_eq: true} }
+      { import_type_id: {_eq: 2} }
+    ]
+  } order_by: {control_id: asc}) {
+    control_id
+    mgm_id
+  }
+}

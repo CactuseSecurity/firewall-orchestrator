@@ -1,4 +1,5 @@
 using FWO.Basics.Exceptions;
+using FWO.Config.File;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Encryption;
@@ -6,6 +7,7 @@ using FWO.Logging;
 using Novell.Directory.Ldap;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace FWO.Middleware.Server
 {
@@ -16,7 +18,7 @@ namespace FWO.Middleware.Server
     {
         // The following properties are retrieved from the database api:
         // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles    
-        private const int timeOutInMs = 3000;
+        private static readonly char[] kInvalidLoginCharacters = { '*', '\\', '\0', '(', ')' };
 
         // some ldap keywords
         private readonly string UniqueMember = "uniqueMember";
@@ -40,33 +42,53 @@ namespace FWO.Middleware.Server
         { }
 
         /// <summary>
-        /// Builds a connection to the specified Ldap server.
+        /// Builds a connection and attempts an LDAP bind with the provided user.
         /// </summary>
-        /// <returns>Connection to the specified Ldap server.</returns>
-        private async Task<LdapConnection> Connect()
+        /// <param name="user">LDAP user name to bind with.</param>
+        /// <param name="password">LDAP password to bind with.</param>
+        /// <param name="followReferrals">Whether LDAP referrals should be followed.</param>
+        /// <param name="cancellationToken">Cancels authentication work when the request ends.</param>
+        /// <returns>Connected LDAP connection that has attempted the bind.</returns>
+        private async Task<ILdapClient> GetBoundConnection(string? user, string? password, bool followReferrals = false, CancellationToken cancellationToken = default)
         {
+            ILdapClient connection = await Connect(cancellationToken);
             try
             {
-                LdapConnectionOptions ldapOptions = new();
-                if (Tls) ldapOptions.ConfigureRemoteCertificateValidationCallback((object sen, X509Certificate? cer, X509Chain? cha, SslPolicyErrors err) => true); // todo: allow real cert validation     
-                LdapConnection connection = new(ldapOptions) { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
-                await connection.ConnectAsync(Address, Port);
-
+                await TryBind(connection, user, password, cancellationToken: cancellationToken);
+                if (followReferrals)
+                {
+                    EnableReferralFollowing(connection);
+                }
                 return connection;
             }
-
-            catch (Exception exception)
+            catch
             {
-                Log.WriteDebug($"Could not connect to LDAP server {Address}:{Port}: ", exception.Message);
-                throw new LdapConnectionException($"Error while trying to reach LDAP server {Address}:{Port}", exception);
+                connection.Dispose();
+                throw;
             }
+        }
+
+        /// <summary>
+        /// Enables LDAP referral following for the given connection.
+        /// </summary>
+        /// <param name="connection">LDAP connection to configure.</param>
+        private static void EnableReferralFollowing(ILdapClient connection)
+        {
+            LdapConstraints constraints = connection.SearchConstraints;
+            constraints.ReferralFollowing = true;
+            connection.Constraints = constraints;
         }
 
         /// <summary>
         /// try an ldap bind, decrypting pwd before bind; using pwd as is if it cannot be decrypted
         /// false if bind fails
         /// </summary>
-        private static async Task<bool> TryBind(LdapConnection connection, string? user, string? password)
+        /// <param name="connection">Connection to bind on.</param>
+        /// <param name="user">Distinguished name of the binding user.</param>
+        /// <param name="password">Password of the binding user.</param>
+        /// <param name="decryptPassword">False if the password is already clear text and must be used as it is.</param>
+        /// <param name="cancellationToken">Cancels the bind when the request ends.</param>
+        private static async Task<bool> TryBind(ILdapClient connection, string? user, string? password, bool decryptPassword = true, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(password))
             {
@@ -75,7 +97,7 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                await connection.BindAsync(user, AesEnc.TryDecrypt(password, true));
+                await connection.BindAsync(user, decryptPassword ? AesEnc.TryDecrypt(password, true) : password, cancellationToken);
             }
             return connection.Bound;
         }
@@ -84,37 +106,106 @@ namespace FWO.Middleware.Server
         /// Test a connection to the specified Ldap server.
         /// Throws exception if not successful
         /// </summary>
+        /// <remarks>
+        /// The passwords are used as they were handed over, they are never decrypted: this test
+        /// reaches a server chosen by the caller, so it must not be usable to turn a stored
+        /// credential back into its clear text form.
+        /// Every server of the connection is tested, as each of them has to be able to stand in for the others.
+        /// </remarks>
         public async Task TestConnection()
         {
-            using LdapConnection connection = await Connect();
-            if (!string.IsNullOrEmpty(SearchUser) && !string.IsNullOrEmpty(SearchUserPwd) && !await TryBind(connection, SearchUser, SearchUserPwd!))
+            if (Addresses.Count == 0)
             {
-                throw new LdapConnectionException("Binding failed for search user");
+                throw new LdapConnectionException("No LDAP server given");
             }
-            if (!string.IsNullOrEmpty(WriteUser) && !string.IsNullOrEmpty(WriteUserPwd) && !await TryBind(connection, WriteUser, WriteUserPwd!))
+            foreach (string address in Addresses)
             {
-                throw new LdapConnectionException("Binding failed for write user");
+                using ILdapClient connection = await ConnectToServer(address);
+                if (!string.IsNullOrEmpty(SearchUser) && !string.IsNullOrEmpty(SearchUserPwd) && !await TryBind(connection, SearchUser, SearchUserPwd, false))
+                {
+                    throw new LdapConnectionException($"Binding failed for search user on {address}:{Port}");
+                }
+                if (!string.IsNullOrEmpty(WriteUser) && !string.IsNullOrEmpty(WriteUserPwd) && !await TryBind(connection, WriteUser, WriteUserPwd, false))
+                {
+                    throw new LdapConnectionException($"Binding failed for write user on {address}:{Port}");
+                }
             }
+        }
+
+        /// <summary>
+        /// Escapes an LDAP assertion value according to RFC 4515.
+        /// </summary>
+        public static string EscapeFilterValue(string? value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return "";
+            }
+
+            StringBuilder escaped = new();
+            foreach (char character in value)
+            {
+                switch (character)
+                {
+                    case '\\':
+                        escaped.Append(@"\5c");
+                        break;
+                    case '*':
+                        escaped.Append(@"\2a");
+                        break;
+                    case '(':
+                        escaped.Append(@"\28");
+                        break;
+                    case ')':
+                        escaped.Append(@"\29");
+                        break;
+                    case '\0':
+                        escaped.Append(@"\00");
+                        break;
+                    default:
+                        escaped.Append(character);
+                        break;
+                }
+            }
+            return escaped.ToString();
+        }
+
+        /// <summary>
+        /// Escapes an LDAP search pattern according to RFC 4515 while preserving
+        /// '*' characters as substring wildcards. Each segment between wildcards is
+        /// escaped individually, so filter injection is prevented while the
+        /// user-supplied wildcards remain functional.
+        /// </summary>
+        /// <param name="pattern">The raw search pattern, may contain '*' wildcards.</param>
+        /// <returns>An escaped pattern safe to embed in an LDAP filter.</returns>
+        public static string EscapeSearchPattern(string? pattern)
+        {
+            if (string.IsNullOrEmpty(pattern))
+            {
+                return "";
+            }
+            return string.Join("*", Array.ConvertAll(pattern.Split('*'), EscapeFilterValue));
         }
 
         private string GetUserSearchFilter(string searchPattern)
         {
             string userFilter;
             string searchFilter;
+            string escapedSearchPattern = EscapeSearchPattern(searchPattern);
             if (Type == (int)LdapType.ActiveDirectory)
             {
                 userFilter = "(&(objectclass=user)(!(objectclass=computer)))";
-                searchFilter = $"(|(cn={searchPattern})(sAMAccountName={searchPattern}))";
+                searchFilter = $"(|(cn={escapedSearchPattern})(sAMAccountName={escapedSearchPattern}))";
             }
             else if (Type == (int)LdapType.OpenLdap)
             {
                 userFilter = "(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))";
-                searchFilter = $"(|(cn={searchPattern})(uid={searchPattern}))";
+                searchFilter = $"(|(cn={escapedSearchPattern})(uid={escapedSearchPattern}))";
             }
             else // LdapType.Default
             {
                 userFilter = "(&(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))(!(objectclass=computer)))";
-                searchFilter = $"(|(cn={searchPattern})(uid={searchPattern})(userPrincipalName={searchPattern})(mail={searchPattern}))";
+                searchFilter = $"(|(cn={escapedSearchPattern})(uid={escapedSearchPattern})(userPrincipalName={escapedSearchPattern})(mail={escapedSearchPattern}))";
             }
             return (searchPattern == null || searchPattern == "") ? userFilter : $"(&{userFilter}{searchFilter})";
         }
@@ -123,20 +214,21 @@ namespace FWO.Middleware.Server
         {
             string groupFilter;
             string searchFilter;
+            string escapedSearchPattern = EscapeSearchPattern(searchPattern);
             if (Type == (int)LdapType.ActiveDirectory)
             {
                 groupFilter = "(objectClass=group)";
-                searchFilter = $"(|(cn={searchPattern})(name={searchPattern}))";
+                searchFilter = $"(|(cn={escapedSearchPattern})(name={escapedSearchPattern}))";
             }
             else if (Type == (int)LdapType.OpenLdap)
             {
                 groupFilter = "(|(objectclass=group)(objectclass=groupofnames)(objectclass=groupofuniquenames))";
-                searchFilter = $"(cn={searchPattern})";
+                searchFilter = $"(cn={escapedSearchPattern})";
             }
             else // LdapType.Default
             {
                 groupFilter = "(|(objectclass=group)(objectclass=groupofnames)(objectclass=groupofuniquenames))";
-                searchFilter = $"(|(dc={searchPattern})(o={searchPattern})(ou={searchPattern})(cn={searchPattern})(uid={searchPattern})(mail={searchPattern}))";
+                searchFilter = $"(|(dc={escapedSearchPattern})(o={escapedSearchPattern})(ou={escapedSearchPattern})(cn={escapedSearchPattern})(uid={escapedSearchPattern})(mail={escapedSearchPattern}))";
             }
             return (searchPattern == null || searchPattern == "") ? groupFilter : $"(&{groupFilter}{searchFilter})";
         }
@@ -145,34 +237,22 @@ namespace FWO.Middleware.Server
         /// Get the LdapEntry for the given user with option to validate credentials
         /// </summary>
         /// <returns>LdapEntry for the given user if found</returns>
-        public async Task<LdapEntry?> GetLdapEntry(UiUser user, bool validateCredentials)
+        public async Task<LdapEntry?> GetLdapEntry(UiUser user, bool validateCredentials, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             Log.WriteDebug("User Validation", $"Validating User: \"{user.Name}\" ...");
+            if (validateCredentials && (string.IsNullOrWhiteSpace(user.Name)
+                || user.Name.IndexOfAny(kInvalidLoginCharacters) >= 0))
+            {
+                return null;
+            }
             try
             {
-                using LdapConnection connection = await Connect();
-                await TryBind(connection, SearchUser, SearchUserPwd);
+                using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true, cancellationToken: cancellationToken);
 
-                LdapSearchConstraints cons = connection.SearchConstraints;
-                cons.ReferralFollowing = true;
-                connection.Constraints = cons;
-
-                List<LdapEntry> possibleUserEntries = [];
-
-                // If dn was already provided
-                if (!string.IsNullOrEmpty(user.Dn))
-                {
-                    // Try to read user entry directly
-                    LdapEntry? userEntry = await connection.ReadAsync(user.Dn);
-                    if (userEntry != null)
-                    {
-                        possibleUserEntries.Add(userEntry);
-                    }
-                }
-                else // Dn was not provided, search for user name
-                {
-                    await SearchUserName(user.Name, possibleUserEntries, connection);
-                }
+                List<LdapEntry> possibleUserEntries = await FindUserEntries(user, connection, validateCredentials, cancellationToken);
+                // a cancelled login closes the connection, which ends the search without results instead of throwing
+                cancellationToken.ThrowIfCancellationRequested();
 
                 // If credentials are not checked return user that was found first
                 // It could happen that multiple users with the same name were found (impossible if dn was provided)
@@ -180,52 +260,100 @@ namespace FWO.Middleware.Server
                 {
                     return possibleUserEntries.Count > 0 ? possibleUserEntries[0] : null;
                 }
-                // If credentials should be checked
-                else
+                if (await IsUniqueValidLogin(connection, possibleUserEntries, user, cancellationToken))
                 {
-                    // Multiple users with the same name could have been found (impossible if dn was provided)
-                    foreach (LdapEntry possibleUserEntry in possibleUserEntries)
-                    {
-                        // Check credentials - if multiple users were found and the credentials are valid this is most definitely the correct user
-                        if (await CredentialsValid(connection, possibleUserEntry.Dn, user.Password))
-                        {
-                            return possibleUserEntry;
-                        }
-                    }
+                    return possibleUserEntries[0];
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (LdapException ldapException)
             {
-                Log.WriteInfo("Ldap entry exception", $"Ldap entry search at \"{Address}:{Port}\" lead to exception: {ldapException.Message}");
+                Log.WriteInfo("Ldap entry exception", $"Ldap entry search at \"{Host()}\" lead to exception: {ldapException.Message}");
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception \"{Address}:{Port}\"", "Unexpected error while trying to validate user", exception);
+                Log.WriteError($"Non-LDAP exception \"{Host()}\"", "Unexpected error while trying to validate user", exception);
             }
 
-            Log.WriteDebug("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{user.Name}\" on {Address}:{Port}.");
+            // the failure may stem from the connection closed by the cancellation: that is no invalid login
+            cancellationToken.ThrowIfCancellationRequested();
+            Log.WriteDebug("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{user.Name}\" on {Host()}.");
             return null;
         }
 
-        private async Task SearchUserName(string userName, List<LdapEntry> possibleUserEntries, LdapConnection connection)
+        /// <summary>
+        /// Reads the user entry by dn if given, otherwise searches for the user name.
+        /// </summary>
+        /// <returns>All candidate entries in search order.</returns>
+        private async Task<List<LdapEntry>> FindUserEntries(UiUser user, ILdapClient connection, bool exactLogin, CancellationToken cancellationToken)
         {
-            string[] attrList = ["*", MemberOfLowerCase];
-            string userSearchFilter = GetUserSearchFilter(userName);
+            List<LdapEntry> possibleUserEntries = [];
+            if (string.IsNullOrEmpty(user.Dn))
+            {
+                await SearchUserName(user.Name, possibleUserEntries, connection, exactLogin, cancellationToken);
+            }
+            else
+            {
+                LdapEntry? userEntry = await connection.ReadAsync(user.Dn, LdapDirectoryObjectId.BuildUserAttributeList(), cancellationToken);
+                if (userEntry != null)
+                {
+                    possibleUserEntries.Add(userEntry);
+                }
+            }
+            return possibleUserEntries;
+        }
+
+        /// <summary>
+        /// Checks the password only for a single candidate whose name equals the entered login name.
+        /// </summary>
+        /// <returns>True if exactly one matching entry was found and the password is valid for it.</returns>
+        private async Task<bool> IsUniqueValidLogin(ILdapClient connection, List<LdapEntry> possibleUserEntries, UiUser user, CancellationToken cancellationToken)
+        {
+            return possibleUserEntries.Count == 1
+                && string.Equals(GetName(possibleUserEntries[0]), user.Name.Trim(), StringComparison.OrdinalIgnoreCase)
+                && await CredentialsValid(connection, possibleUserEntries[0].Dn, user.Password, cancellationToken);
+        }
+
+        private async Task SearchUserName(string userName, List<LdapEntry> possibleUserEntries, ILdapClient connection, bool exactLogin, CancellationToken cancellationToken)
+        {
+            string[] attrList = LdapDirectoryObjectId.BuildUserAttributeList(MemberOfLowerCase);
+            string userSearchFilter = exactLogin ? GetLoginSearchFilter(userName.Trim()) : GetUserSearchFilter(userName);
 
             // Search for users in ldap with same name as user to validate
             ILdapSearchResults? searchResults = await connection.SearchAsync(
                 UserSearchPath,             // top-level path under which to search for user
-                LdapConnection.ScopeSub,    // search all levels beneath
+                Novell.Directory.Ldap.LdapConnection.ScopeSub,    // search all levels beneath
                 userSearchFilter,
                 attrList,
-                typesOnly: false
+                typesOnly: false,
+                cancellationToken
             );
 
-            while (await searchResults.HasMoreAsync())
+            if (searchResults != null)
             {
-                LdapEntry? result = await searchResults.NextAsync();
-                possibleUserEntries.Add(result);
+                while (await searchResults.HasMoreAsync(cancellationToken))
+                {
+                    LdapEntry? result = await searchResults.NextAsync(cancellationToken);
+                    possibleUserEntries.Add(result);
+                }
             }
+        }
+
+        /// <summary>
+        /// Builds an exact filter for the canonical login attribute.
+        /// </summary>
+        private string GetLoginSearchFilter(string userName)
+        {
+            string escapedName = EscapeFilterValue(userName);
+            return (LdapType)Type switch
+            {
+                LdapType.ActiveDirectory => $"(&(objectclass=user)(!(objectclass=computer))(sAMAccountName={escapedName}))",
+                LdapType.OpenLdap => $"(&(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))(uid={escapedName}))",
+                _ => $"(&(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))(!(objectclass=computer))(|(sAMAccountName={escapedName})(uid={escapedName})))"
+            };
         }
 
         /// <summary>
@@ -236,53 +364,71 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                using LdapConnection connection = await Connect();
-                await TryBind(connection, SearchUser, SearchUserPwd);
+                using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
 
-                LdapSearchConstraints cons = connection.SearchConstraints;
-                cons.ReferralFollowing = true;
-                connection.Constraints = cons;
-
-                // Try to read user entry directly
-                return await connection.ReadAsync(distinguishedName);
+                // Try to read user entry directly, including the immutable id that binds it to its local user
+                return await connection.ReadAsync(distinguishedName, LdapDirectoryObjectId.BuildUserAttributeList(), CancellationToken.None);
             }
             catch (LdapException ldapException)
             {
-                Log.WriteInfo("Ldap entry exception", $"Ldap entry search at \"{Address}:{Port}\" lead to exception: {ldapException.Message}");
+                Log.WriteInfo("Ldap entry exception", $"Ldap entry search at \"{Host()}\" lead to exception: {ldapException.Message}");
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception \"{Address}:{Port}\"", "Unexpected error while trying to validate user", exception);
+                Log.WriteError($"Non-LDAP exception \"{Host()}\"", "Unexpected error while trying to validate user", exception);
             }
             return null;
         }
 
-        private async Task<bool> CredentialsValid(LdapConnection connection, string dn, string password)
+        /// <summary>
+        /// Reads an entry by its distinguished name. Unlike GetUserDetailsFromLdap, a directory that cannot be asked
+        /// throws instead of being mistaken for a missing entry.
+        /// </summary>
+        /// <param name="distinguishedName">Distinguished name of the entry.</param>
+        /// <returns>The entry, or null if the directory has no entry with that name.</returns>
+        public async Task<LdapEntry?> ReadEntryIfExists(string distinguishedName)
+        {
+            using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
+            try
+            {
+                return await connection.ReadAsync(distinguishedName, LdapDirectoryObjectId.BuildUserAttributeList(), CancellationToken.None);
+            }
+            catch (LdapException ldapException) when (ldapException.ResultCode == LdapException.NoSuchObject)
+            {
+                return null;
+            }
+        }
+
+        private async Task<bool> CredentialsValid(ILdapClient connection, string dn, string password, CancellationToken cancellationToken)
         {
             try
             {
                 Log.WriteDebug("User Validation", $"Trying to validate user with distinguished name: \"{dn}\" ...");
 
                 // Try to authenticate as user with given password
-                if (await TryBind(connection, dn, password))
+                if (await TryBind(connection, dn, password, cancellationToken: cancellationToken))
                 {
                     // Return ldap dn
-                    Log.WriteDebug("User Validation", $"\"{dn}\" successfully authenticated in {Address}:{Port}.");
+                    Log.WriteDebug("User Validation", $"\"{dn}\" successfully authenticated in {Host()}.");
                     return true;
                 }
                 else
                 {
                     // this will probably never be reached as an error is thrown before
                     // Incorrect password - do nothing, assume its another user with the same username
-                    Log.WriteDebug($"User Validation {Address}:{Port}", $"Found user with matching uid but different pwd: \"{dn}\".");
+                    Log.WriteDebug($"User Validation {Host()}", $"Found user with matching uid but different pwd: \"{dn}\".");
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (LdapException exc)
             {
                 if (exc.ResultCode == 49)  // 49 = InvalidCredentials
-                    Log.WriteDebug($"Duplicate user {Address}:{Port}", $"Found user with matching uid but different pwd: \"{dn}\".");
+                    Log.WriteDebug($"Duplicate user {Host()}", $"Found user with matching uid but different pwd: \"{dn}\".");
                 else
-                    Log.WriteError($"Ldap exception {Address}:{Port}", $"Unexpected error while trying to validate user \"{dn}\".");
+                    Log.WriteError($"Ldap exception {Host()}", $"Unexpected error while trying to validate user \"{dn}\".");
             }
             return false;
         }
@@ -405,7 +551,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                using LdapConnection connection = await Connect();
+                using ILdapClient connection = await Connect();
                 // Try to authenticate as user with old password
                 if (await TryBind(connection, userDn, oldPassword))
                 {
@@ -414,7 +560,7 @@ namespace FWO.Middleware.Server
                     LdapModification[] mods = [new LdapModification(LdapModification.Replace, attribute)];
 
                     await connection.ModifyAsync(userDn, mods);
-                    Log.WriteDebug("Change password", $"Password for user {userDn} changed in {Address}:{Port}");
+                    Log.WriteDebug("Change password", $"Password for user {userDn} changed in {Host()}");
                 }
                 else
                 {
@@ -436,15 +582,15 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                using LdapConnection connection = await Connect();
-                if (await TryBind(connection, WriteUser, WriteUserPwd))
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
+                if (connection.Bound)
                 {
                     // authentication was successful: set new password
                     LdapAttribute attribute = new("userPassword", newPassword);
                     LdapModification[] mods = [new LdapModification(LdapModification.Replace, attribute)];
 
                     await connection.ModifyAsync(userDn, mods);
-                    Log.WriteDebug("Change password", $"Password for user {userDn} changed in {Address}:{Port}");
+                    Log.WriteDebug("Change password", $"Password for user {userDn} changed in {Host()}");
                 }
                 else
                 {
@@ -464,38 +610,35 @@ namespace FWO.Middleware.Server
         /// <returns>list of users</returns>
         public async Task<List<LdapUserGetReturnParameters>> GetAllUsers(string searchPattern)
         {
-            Log.WriteDebug("GetAllUsers", $"Looking for users with pattern {searchPattern} in {Address}:{Port}");
+            Log.WriteDebug("GetAllUsers", $"Looking for users with pattern {searchPattern} in {Host()}");
             List<LdapUserGetReturnParameters> allUsers = [];
 
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as search user
-                await TryBind(connection, SearchUser, SearchUserPwd);
+                using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
 
                 // Search for Ldap users in given directory          
-                int searchScope = LdapConnection.ScopeSub;
-
-                LdapSearchConstraints cons = connection.SearchConstraints;
-                cons.ReferralFollowing = true;
-                connection.Constraints = cons;
+                int searchScope = Novell.Directory.Ldap.LdapConnection.ScopeSub;
 
                 ILdapSearchResults? searchResults = await connection.SearchAsync(UserSearchPath, searchScope, GetUserSearchFilter(searchPattern), null, false);
 
-                while (await searchResults.HasMoreAsync())
+                if (searchResults != null)
                 {
-                    LdapEntry? entry = await searchResults.NextAsync();
-                    allUsers.Add(new LdapUserGetReturnParameters()
+                    while (await searchResults.HasMoreAsync())
                     {
-                        UserDn = entry.Dn,
-                        Email = entry.GetAttributeSet().ContainsKey("mail") ? entry.Get("mail").StringValue : null
-                        // add first and last name of user
-                    });
+                        LdapEntry? entry = await searchResults.NextAsync();
+                        allUsers.Add(new LdapUserGetReturnParameters()
+                        {
+                            UserDn = entry.Dn,
+                            Email = entry.GetAttributeSet().ContainsKey("mail") ? entry.Get("mail").StringValue : null
+                            // add first and last name of user
+                        });
+                    }
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get all users", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to get all users", exception);
             }
             return allUsers;
         }
@@ -510,9 +653,7 @@ namespace FWO.Middleware.Server
             bool userAdded = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 string userName = new DistName(userDn).UserName;
                 LdapAttributeSet attributeSet = new()
@@ -532,16 +673,16 @@ namespace FWO.Middleware.Server
                     //Add the entry to the directory
                     await connection.AddAsync(newEntry);
                     userAdded = true;
-                    Log.WriteDebug("Add user", $"User {userName} added in {Address}:{Port}");
+                    Log.WriteDebug("Add user", $"User {userName} added in {Host()}");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteInfo("Add User", $"couldn't add user to LDAP {Address}:{Port}: {exception}");
+                    Log.WriteInfo("Add User", $"couldn't add user to LDAP {Host()}: {exception}");
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to add user", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to add user", exception);
             }
             return userAdded;
         }
@@ -556,9 +697,7 @@ namespace FWO.Middleware.Server
             bool userUpdated = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
                 LdapAttribute attribute = new("mail", email);
                 LdapModification[] mods = [new(LdapModification.Replace, attribute)];
 
@@ -567,51 +706,82 @@ namespace FWO.Middleware.Server
                     //Add the entry to the directory
                     await connection.ModifyAsync(userDn, mods);
                     userUpdated = true;
-                    Log.WriteDebug("Update user", $"User {userDn} updated in {Address}:{Port}");
+                    Log.WriteDebug("Update user", $"User {userDn} updated in {Host()}");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteInfo("Update User", $"couldn't update user in LDAP {Address}:{Port}: {exception}");
+                    Log.WriteInfo("Update User", $"couldn't update user in LDAP {Host()}: {exception}");
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to update user", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to update user", exception);
             }
             return userUpdated;
         }
 
         /// <summary>
-        /// Delete user
+        /// Deletes the directory entry of a local user. A dn can be handed to another account after the original one was
+        /// deleted, so when the local user is bound to a directory object, the entry is only deleted while the dn still
+        /// names that object (GHSA-695m-f6mv-9g72).
         /// </summary>
-        /// <returns>true if user deleted</returns>
-        public async Task<bool> DeleteUser(string userDn)
+        /// <param name="userDn">Dn of the local user.</param>
+        /// <param name="directoryObjectId">Immutable id the local user is bound to, see <see cref="LdapDirectoryObjectId"/>;
+        /// null if it is not bound yet, then the entry named by the dn is deleted.</param>
+        /// <returns>Whether the entry was deleted, left untouched because it is not the bound object, or could not be deleted.</returns>
+        public async Task<LdapUserDeletion> DeleteUser(string userDn, string? directoryObjectId)
         {
             Log.WriteInfo("Delete User", $"Trying to delete User: \"{userDn}\"");
-            bool userDeleted = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
+                if (directoryObjectId != null && !await NamesDirectoryObject(connection, userDn, directoryObjectId))
+                {
+                    return LdapUserDeletion.NotBound;
+                }
                 try
                 {
                     //Delete the entry in the directory
                     await connection.DeleteAsync(userDn);
-                    userDeleted = true;
-                    Log.WriteDebug("Delete user", $"User {userDn} deleted in {Address}:{Port}");
+                    Log.WriteDebug("Delete user", $"User {userDn} deleted in {Host()}");
+                    return LdapUserDeletion.Deleted;
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteInfo("Delete User", $"couldn't delete user in LDAP {Address}:{Port}: {exception}");
+                    Log.WriteInfo("Delete User", $"couldn't delete user in LDAP {Host()}: {exception}");
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to delete user", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to delete user", exception);
             }
-            return userDeleted;
+            return LdapUserDeletion.Failed;
+        }
+
+        /// <summary>
+        /// Checks whether a dn still names the given directory object. Other read errors are thrown, so that an
+        /// unreachable directory is not mistaken for a missing entry.
+        /// </summary>
+        private async Task<bool> NamesDirectoryObject(ILdapClient connection, string userDn, string directoryObjectId)
+        {
+            LdapEntry? entry;
+            try
+            {
+                entry = await connection.ReadAsync(userDn, LdapDirectoryObjectId.BuildUserAttributeList(), CancellationToken.None);
+            }
+            catch (LdapException ldapException) when (ldapException.ResultCode == LdapException.NoSuchObject)
+            {
+                entry = null;
+            }
+            string? currentObjectId = entry == null ? null : LdapDirectoryObjectId.GetFrom(entry);
+            if (string.Equals(currentObjectId, directoryObjectId, StringComparison.Ordinal))
+            {
+                return true;
+            }
+            Log.WriteWarning("Delete User", $"The dn {userDn} in {Host()} no longer names directory object {directoryObjectId} " +
+                $"but {(entry == null ? "no entry" : currentObjectId ?? "an entry without object id")}. The directory entry is left untouched.");
+            return false;
         }
 
         private static bool IsFullyQualifiedDn(string name)
@@ -674,14 +844,20 @@ namespace FWO.Middleware.Server
             };
         }
 
+        /// <summary>
+        /// Normalizes a distinguished name for safe membership comparisons across equivalent escaped forms.
+        /// </summary>
+        public static string NormalizeDnForComparison(string? dn)
+        {
+            return DistName.NormalizeDnForComparison(dn);
+        }
+
         private async Task<bool> ModifyUserInEntry(string userDn, string entry, int ldapModification)
         {
             bool userModified = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 LdapEntry? entryData;
                 try
@@ -699,10 +875,14 @@ namespace FWO.Middleware.Server
                     return false;
                 }
 
-                bool memberExists = entryData.GetAttributeSet().ContainsKey(UniqueMemberLowerCase)
-                    && entryData.Get(UniqueMemberLowerCase)
-                             .StringValueArray
-                             .Any(m => m.Equals(userDn, StringComparison.OrdinalIgnoreCase));
+                string[] existingMembers = entryData.GetAttributeSet().ContainsKey(UniqueMemberLowerCase)
+                    ? entryData.Get(UniqueMemberLowerCase).StringValueArray
+                    : [];
+                string normalizedRequestedDn = NormalizeDnForComparison(userDn);
+                string? matchingStoredMemberDn = existingMembers.FirstOrDefault(memberDn =>
+                    NormalizeDnForComparison(memberDn).Equals(normalizedRequestedDn, StringComparison.Ordinal));
+                bool memberExists = !string.IsNullOrWhiteSpace(matchingStoredMemberDn);
+
                 if (!ShouldModifyMembership(memberExists, ldapModification))
                 {
                     if (ldapModification == LdapModification.Add)
@@ -713,20 +893,24 @@ namespace FWO.Middleware.Server
                     {
                         Log.WriteDebug("Modify Entry", $"User {userDn} not member of {entry}");
                     }
-                    return false;
+                    // Treat no-op membership changes as success so callers can use add/remove idempotently.
+                    return true;
                 }
 
-                LdapAttribute attribute = new(UniqueMemberLowerCase, userDn);
+                string memberDnForModification = ldapModification == LdapModification.Delete
+                    ? matchingStoredMemberDn ?? userDn
+                    : userDn;
+                LdapAttribute attribute = new(UniqueMemberLowerCase, memberDnForModification);
                 LdapModification[] mods = [new(ldapModification, attribute)];
 
                 await connection.ModifyAsync(entry, mods);
                 userModified = true;
 
-                Log.WriteDebug("Modify Entry", $"User {userDn} modified in {entry}");
+                Log.WriteDebug("Modify Entry", $"User {memberDnForModification} modified in {entry}");
             }
             catch (Exception ex)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", $"Unexpected error while modifying user {userDn}", ex);
+                Log.WriteError($"Non-LDAP exception {Host()}", $"Unexpected error while modifying user {userDn}", ex);
             }
             return userModified;
         }

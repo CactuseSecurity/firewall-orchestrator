@@ -1,0 +1,51 @@
+@page "/help/API/certificates"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+
+@section sidebar {
+    @{
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml");
+    }
+}
+
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("client_certificates")</h3>
+    @(Html.Raw(userConfig.GetText("H6321")))
+    <br><br>
+
+    <h4>@userConfig.GetText("cert_where")</h4>
+    @(Html.Raw(userConfig.GetText("H6322")))
+    <ul>
+        @(Html.Raw(userConfig.GetText("H6323")))
+    </ul>
+    <small class="small-helptext">
+        @(Html.Raw(userConfig.GetText("H6324")))
+    </small>
+    <br><br>
+
+    <h4>@userConfig.GetText("cert_own_scripts")</h4>
+    <pre class="code-block" data-lang="bash">
+<code>
+curl --request POST \
+    --cert /etc/fworch/secrets/client/client.crt \
+    --key /etc/fworch/secrets/client/client.key \
+    --cacert /etc/fworch/fworch-trust-bundle.crt \
+    --url https://localhost:9443/api/v1/graphql \
+    --header 'content-type: application/json' \
+    --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...' \
+    --data '{"query":"query { management {mgm_name} }"}'
+</code>
+    </pre>
+    <br>
+
+    <h4>@userConfig.GetText("cert_troubleshooting")</h4>
+    @(Html.Raw(userConfig.GetText("H6325")))
+    <ul>
+        @(Html.Raw(userConfig.GetText("H6326")))
+    </ul>
+</div>

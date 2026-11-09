@@ -1,5 +1,7 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @layout MainLayout
+
+@using FWO.Data.Modelling
 
 @inject UserConfig userConfig
 @implements IDisposable
@@ -7,7 +9,36 @@
 <Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
     <div class="me-2 ms-2 mt-4 mb-4">
         <ul class="navbar-nav navbar-dark flex-column">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
+            @* Temporary debug-only entry, see issue #5449 *@
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                @if (BuildConfiguration.IsDebug)
+                {
+                    <li class="nav-item px-2">
+                        <h5>@(userConfig.GetText("debug"))</h5>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="monitoring/fancy_table_preview">
+                            <span class="@Icons.Reporting"></span> @(userConfig.GetText("fancy_table_preview"))
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-2">
+                        <NavLink class="nav-link" href="monitoring/fancy_table_examples">
+                            <span class="@Icons.Matrix"></span> @(userConfig.GetText("fancy_table_examples"))
+                        </NavLink>
+                    </li>
+                    <hr />
+                }
+            </ExecutionModeAuthorizeView>
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+                <li class="nav-item px-2">
+                    <h5>@(userConfig.GetText("system"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/system_usage">
+                        <span class="@Icons.Monitoring"></span> @(userConfig.GetText("system_usage"))
+                    </NavLink>
+                </li>
+                <hr />
                 <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("alerts"))</h5>
                 </li>
@@ -38,6 +69,11 @@
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/scheduler">
                         <span class="@Icons.Schedule"></span> Scheduler
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/rule_owner_mapping">
+                        <span class="@Icons.Owner"></span> @(userConfig.GetText("rule_owner_mapping_runs"))
                     </NavLink>
                 </li>
                 <hr />
@@ -78,6 +114,16 @@
                         <span class="@Icons.Modelling"></span> @(userConfig.GetText("requested_interfaces"))
                     </NavLink>
                 </li>
+                @if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+                {
+                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+                        <li class="nav-item px-2">
+                            <NavLink class="nav-link" href="monitoring/modelling_requests">
+                                <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling_request_status"))
+                            </NavLink>
+                        </li>
+                    </ExecutionModeAuthorizeView>
+                }
                 <hr />
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5016"))">
                     <h5>@(userConfig.GetText("external_requests"))</h5>
@@ -93,7 +139,25 @@
                     </NavLink>
                 </li>
                 <hr />
-            </AuthorizeView>
+                <li class="nav-item px-2">
+                    <h5>@(userConfig.GetText("workflow"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/workflow">
+                        <span class="@Icons.Workflow"></span> @(userConfig.GetText("tickets"))
+                    </NavLink>
+                </li>
+                <hr />
+                <li class="nav-item px-2">
+                    <h5>@(userConfig.GetText("notifications"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/email_log">
+                        <span class="@Icons.Email"></span> @(userConfig.GetText("email_log"))
+                    </NavLink>
+                </li>
+                <hr />
+            </ExecutionModeAuthorizeView>
             <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5014"))">
                 <h5>@(userConfig.GetText("personal"))</h5>
             </li>
@@ -102,13 +166,13 @@
                     <span class="@Icons.UiMessages"></span> @(userConfig.GetText("ui_messages"))
                 </NavLink>
             </li>
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/monitor_all">
                         <span class="@Icons.Monitoring"></span> @(userConfig.GetText("all"))
                     </NavLink>
                 </li>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
         </ul>
     </div>
 </Sidebar>
@@ -120,6 +184,7 @@
 
 @code
 {
+
     private int sidebarWidth = 250;
 
     protected override void OnInitialized()

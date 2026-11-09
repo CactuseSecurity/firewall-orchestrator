@@ -74,6 +74,19 @@
                         }
                     </div>
                 </div>
+                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5672"))">
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("additional_info")):</label>
+                    <div class="col-sm-9">
+                        @if (Readonly)
+                        {
+                            <pre class="form-control-plaintext small mb-0">@AdditionalInfoJson</pre>
+                        }
+                        else
+                        {
+                            <textarea class="form-control form-control-sm font-monospace" rows="8" @bind="AdditionalInfoJson"></textarea>
+                        }
+                    </div>
+                </div>
                 @foreach (OwnerResponsibleType type in OwnerResponsibleTypes)
                 {
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(GetResponsibleTypeTooltip(type))">
@@ -253,14 +266,14 @@
         <div class="btn-group">
             @if(!Readonly || !userConfig.AllowManualOwnerAdmin)
             {
-                <AuthorizeView Roles="@Roles.Admin">
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-primary" @onclick="HandleSave">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                     </NotAuthorized>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="HandleCancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
@@ -294,6 +307,7 @@
     private HashSet<string> OriginalOwnedIpKeys = new(StringComparer.OrdinalIgnoreCase);
 
     private Dictionary<int, string> NewOwnerResponsibleDnByType = [];
+    private string AdditionalInfoJson = "";
     private Tenant? SelectedTenant;
     private OwnerLifeCycleState? SelectedOwnerLifeCycleState;
     private DayOfWeek? SelectedDayOfWeek;
@@ -340,6 +354,7 @@
         OriginalOwnerLifeCycleStateId = ActOwner.OwnerLifeCycleStateId;
 
         NewOwnerResponsibleDnByType = OwnerResponsibleTypes.ToDictionary(type => type.Id, _ => "");
+        AdditionalInfoJson = OwnerAdditionalInfoJson.Serialize(ActOwner.AdditionalInfo);
         SelectedTenant = Tenants.FirstOrDefault(x => x.Id == ActOwner.TenantId);
         SelectedOwnerLifeCycleState = OwnerLifeCycleStates.FirstOrDefault(x => x.Id == ActOwner.OwnerLifeCycleStateId);
         ActRecCheckParams = (ActOwner.RecertCheckParamString != null ? System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(ActOwner.RecertCheckParamString) ?? new RecertCheckParams() : new RecertCheckParams());
@@ -374,6 +389,10 @@
         try
         {
             PrepareOwnerForSave();
+            if (!TryParseAdditionalInfo())
+            {
+                return;
+            }
             if (ActOwner.Sanitize())
             {
                 DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("U0001"), true);
@@ -383,7 +402,7 @@
                 return;
             }
 
-            bool addOwnerMode = ActOwner.Id <= 0;
+            bool addOwnerMode = ActOwner.IsNew;
             if (addOwnerMode)
             {
                 await AddOwnerInDb();
@@ -393,7 +412,7 @@
                 await UpdateOwnerInDb();
             }
 
-            if (ActOwner.RecertActive && !RecertActiveBefore)
+            if (ActOwner.RecertActive && (addOwnerMode || !RecertActiveBefore))
             {
                 RecertHandler recertHandler = new(apiConnection, userConfig);
                 await recertHandler.InitOwnerRecert(ActOwner);
@@ -426,6 +445,19 @@
         }
         ActRecCheckParams.RecertCheckWeekday = (int?)SelectedDayOfWeek;
         ActOwner.RecertCheckParamString = System.Text.Json.JsonSerializer.Serialize(ActRecCheckParams);
+    }
+
+    private bool TryParseAdditionalInfo()
+    {
+        if (OwnerAdditionalInfoJson.TryDeserialize(AdditionalInfoJson, out Dictionary<string, string>? additionalInfo))
+        {
+            ActOwner.AdditionalInfo = additionalInfo;
+            AdditionalInfoJson = OwnerAdditionalInfoJson.Serialize(additionalInfo);
+            return true;
+        }
+
+        DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5296"), true);
+        return false;
     }
 
     private void SearchUser(int responsibleTypeId)
@@ -476,6 +508,16 @@
         return string.Join(", ", formatted);
     }
 
+    private static string NormalizeDnForRoleComparison(string? dn)
+    {
+        if (string.IsNullOrWhiteSpace(dn))
+        {
+            return "";
+        }
+
+        return DistName.NormalizeDnForComparison(dn);
+    }
+
     private string GetResponsibleTypeDisplayName(OwnerResponsibleType type)
     {
         string label = type.Name;
@@ -511,8 +553,7 @@
 
     private static bool IsRequiredResponsibleType(OwnerResponsibleType type)
     {
-        return type.Id == GlobalConst.kOwnerResponsibleTypeMain
-            || type.Id == GlobalConst.kOwnerResponsibleTypeSupporting;
+        return type.Id == GlobalConst.kOwnerResponsibleTypeMain;
     }
 
     private bool CheckValues()
@@ -522,7 +563,7 @@
             DisplayMessageInUi(null, userConfig.GetText("edit_owner"), userConfig.GetText("E5102"), true);
             return false;
         }
-        if (ActOwner.Id <= 0 && ExistingOwners.Exists(x => x.Name == ActOwner.Name))
+        if (ActOwner.IsNew && ExistingOwners.Exists(x => x.Name == ActOwner.Name))
         {
             DisplayMessageInUi(null, userConfig.GetText("add_owner"), userConfig.GetText("E5235"), true);
             return false;
@@ -544,6 +585,7 @@
             recertInterval = ActOwner.RecertInterval,
             appIdExternal = string.IsNullOrEmpty(ActOwner.ExtAppId) ? null : ActOwner.ExtAppId,
             recertCheckParams = ActOwner.RecertCheckParamString,
+            additionalInfo = ActOwner.AdditionalInfo,
             criticality = string.IsNullOrWhiteSpace(ActOwner.Criticality) ? null : ActOwner.Criticality,
             commSvcPossible = ActOwner.CommSvcPossible,
             recertActive = ActOwner.RecertActive,
@@ -582,6 +624,7 @@
             recertInterval = ActOwner.RecertInterval,
             appIdExternal = string.IsNullOrEmpty(ActOwner.ExtAppId) ? null : ActOwner.ExtAppId,
             recertCheckParams = ActOwner.RecertCheckParamString,
+            additionalInfo = ActOwner.AdditionalInfo,
             criticality = string.IsNullOrWhiteSpace(ActOwner.Criticality) ? null : ActOwner.Criticality,
             ownerLifeCycleStateId = ActOwner.OwnerLifeCycleStateId,
             commSvcPossible = ActOwner.CommSvcPossible,
@@ -641,7 +684,7 @@
             .ToDictionary(r => r.Name, r => r.Dn, StringComparer.OrdinalIgnoreCase);
         RoleUsersByName = roles.ToDictionary(
             r => r.Name,
-            r => new HashSet<string>(r.Users.Select(u => u.Dn), StringComparer.OrdinalIgnoreCase),
+            r => new HashSet<string>(r.Users.Select(u => NormalizeDnForRoleComparison(u.Dn)), DistName.DnComparer),
             StringComparer.OrdinalIgnoreCase);
     }
 
@@ -669,19 +712,30 @@
             }
             foreach (string roleName in filteredRoles)
             {
-                if (!RoleDnByName.TryGetValue(roleName, out string? roleDn))
+                if (CheckRoleExistence(roleName, responsible, out string roleDn))
                 {
-                    continue;
+                    await AddRoleToLdap(responsible.Dn, roleDn, roleName);
                 }
-                if (RoleUsersByName.TryGetValue(roleName, out HashSet<string>? users) && users.Contains(responsible.Dn))
-                {
-                    continue;
-                }
-                await AddRoleToLdap(responsible.Dn, roleDn, roleName);
             }
         }
     }
 
+    private bool CheckRoleExistence(string roleName, OwnerResponsible responsible, out string roleDn)
+    {
+        if (!RoleDnByName.TryGetValue(roleName, out string? roleDnTemp))
+        {
+            roleDn = string.Empty;
+            return false;
+        }
+        roleDn = roleDnTemp;
+        string normalizedDn = NormalizeDnForRoleComparison(responsible.Dn);
+        if (RoleUsersByName.TryGetValue(roleName, out HashSet<string>? users) && users.Contains(normalizedDn))
+        {
+            return false;
+        }
+        return true;
+    }
+    
     private async Task AddRoleToLdap(string dn, string roleDn, string roleName)
     {
         RoleAddDeleteUserParameters parameters = new() { Role = roleDn, UserDn = dn };
@@ -693,10 +747,10 @@
         }
         if (!RoleUsersByName.TryGetValue(roleName, out HashSet<string>? users))
         {
-            users = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            users = new HashSet<string>(DistName.DnComparer);
             RoleUsersByName[roleName] = users;
         }
-        users.Add(dn);
+        users.Add(NormalizeDnForRoleComparison(dn));
     }
 
     private static Dictionary<int, List<string>> ParseRolesWithImport(string rolesJson)
@@ -759,13 +813,17 @@
 
     private async Task AddNetworkOwners()
     {
+        ModellingNamingConvention namingConvention = ModellingNamingConvention.FromJson(userConfig.ModNamingConvention);
         foreach (var ipAdd in IpsToAdd)
         {
+            string? ip = ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.IpString : null;
+            string? ipEnd = ipAdd.IpEndString != null && ipAdd.Cidr != null && ipAdd.Cidr.Valid && ipAdd.IpEndString != "" ? ipAdd.IpEndString : null;
             var variables = new
             {
                 ownerId = ActOwner.Id,
-                ip = (ipAdd.Cidr != null && ipAdd.Cidr.Valid ? ipAdd.IpString : null),
-                ip_end = (ipAdd.IpEndString != null && ipAdd.Cidr != null && ipAdd.Cidr.Valid && ipAdd.IpEndString != "" ? ipAdd.IpEndString : null)
+                ip,
+                ip_end = ipEnd,
+                name = AppServerHelper.ConstructOwnedIpName(ipAdd.Name, ip ?? "", ipEnd, namingConvention)
             };
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(OwnerQueries.newNetworkOwnership, variables);
             ActIpAddresses.Add(ipAdd);
@@ -794,7 +852,12 @@
         }
 
         TaskCompletionSource<bool> tcs = new();
-        UpdateRuleOwnerMappingEventArgs args = new() { isFullReInitialize = true, Completion = tcs };
+
+        // HasRelevantOwnerMappingChanges above is true exactly when the rebuilt mapping will differ from the
+        // stored one, so without this flag the difference this rebuild produces on purpose is reported as
+        // drift of the incremental mapping - see IndicatesDrift. No Changes are passed: an owner edit has no
+        // scalar from/to the run history could name, and the page omits the cause row when the list is empty
+        UpdateRuleOwnerMappingEventArgs args = new() { isFullReInitialize = true, TriggeredByChange = true, Completion = tcs };
         EventMediator.Publish("UpdateOwnerRuleMappings", new UpdateRuleOwnerMappingEvent(args));
 
         bool success = await tcs.Task;

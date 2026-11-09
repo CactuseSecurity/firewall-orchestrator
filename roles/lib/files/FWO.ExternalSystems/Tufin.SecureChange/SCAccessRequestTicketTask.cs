@@ -39,12 +39,12 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
             ExtMgtData extMgt = ReqTask.OnManagement != null && ReqTask.OnManagement?.ExtMgtData != null ?
                 System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement?.ExtMgtData ?? "{}") : new();
             TaskText = template.TasksTemplate
-                .Replace(Placeholder.ORDERNAME, "AR" + ReqTask.TaskNumber.ToString())
-                .Replace(Placeholder.TASKCOMMENT, ReqTask.GetFirstCommentText())
-                .Replace(Placeholder.ACTION, MapActionType(ReqTask))
+                .ReplaceJsonStringPlaceholder(Placeholder.ORDERNAME, "AR" + ReqTask.TaskNumber.ToString())
+                .ReplaceJsonStringPlaceholder(Placeholder.TASKCOMMENT, ReqTask.GetFirstCommentText())
+                .ReplaceJsonStringPlaceholder(Placeholder.ACTION, MapActionType(ReqTask))
                 .Replace(Placeholder.SOURCES, ConvertNetworkElems(template, UseModelled() ? ElemFieldType.modelled_source : ElemFieldType.source, extMgt.ExtName))
                 .Replace(Placeholder.DESTINATIONS, ConvertNetworkElems(template, UseModelled() ? ElemFieldType.modelled_destination : ElemFieldType.destination, extMgt.ExtName))
-                .Replace(Placeholder.SERVICES, ConvertServiceElems(template));
+                .Replace(Placeholder.SERVICES, ConvertServiceElems(template, extMgt.ExtName));
         }
 
         private static string MapActionType(WfReqTask reqTask)
@@ -60,14 +60,18 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
 
         private string ConvertNetworkElems(ExternalTicketTemplate template, ElemFieldType fieldType, string? mgtName)
         {
-            List<NwObjectElement> nwObjects = ReqTask.GetNwObjectElements(fieldType);
+            List<NwObjectElement> nwObjects = ReqTask.GetNwObjectElements(fieldType)
+                .OrderBy(nwObj => ResolveSortName(nwObj), StringComparer.OrdinalIgnoreCase)
+                .ToList();
             List<string> convertedObjects = [];
+            List<string> convertedGroupNames = [];
             foreach (var nwObj in nwObjects)
             {
                 if (nwObj.GroupName != "")
                 {
-                    if (convertedObjects.FirstOrDefault(o => o == nwObj.GroupName) == null)
+                    if (!convertedGroupNames.Contains(nwObj.GroupName))
                     {
+                        convertedGroupNames.Add(nwObj.GroupName);
                         convertedObjects.Add(FillNwObjGroupTemplate(template, nwObj.GroupName, mgtName ?? ""));
                     }
                 }
@@ -79,30 +83,64 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
             return "[" + string.Join(",", convertedObjects) + "]";
         }
 
-        private string ConvertServiceElems(ExternalTicketTemplate template)
+        private static string ResolveSortName(NwObjectElement nwObj)
+        {
+            if (!string.IsNullOrWhiteSpace(nwObj.GroupName))
+            {
+                return nwObj.GroupName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(nwObj.Name))
+            {
+                return nwObj.Name;
+            }
+
+            return nwObj.IpString;
+        }
+
+        private string ConvertServiceElems(ExternalTicketTemplate template, string? mgtName)
         {
             List<NwServiceElement> nwServiceElements = ReqTask.GetServiceElements();
             List<string> convertedObjects = [];
             foreach (var svc in nwServiceElements)
             {
-                if (svc.ProtoId == 1) // ICMP
+                string convertedObject = ConvertServiceElem(template, svc, mgtName);
+                if (!convertedObjects.Contains(convertedObject))
                 {
-                    convertedObjects.Add(FillIcmpTemplate(template, svc.Name ?? ""));
-                }
-                else if (svc.ProtoId == 6 || svc.ProtoId == 17) // TCP, UDP
-                {
-                    convertedObjects.Add(FillServiceTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? ""));
-                }
-                else
-                {
-                    convertedObjects.Add(FillIpProtocolTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), svc.ProtoId.ToString(), svc.Name ?? ""));
+                    convertedObjects.Add(convertedObject);
                 }
             }
             return "[" + string.Join(",", convertedObjects) + "]";
         }
 
-        public static string DisplayPortRange(int port, int? portEnd)
+        private string ConvertServiceElem(ExternalTicketTemplate template, NwServiceElement svc, string? mgtName)
         {
+            if (!string.IsNullOrEmpty(svc.GroupName)) // service group existing on the device: reference by name
+            {
+                return FillNwObjGroupTemplate(template, svc.GroupName, mgtName ?? "");
+            }
+            if (!svc.HasProtocol || svc.ProtoId < 0) // no protocol (e.g. rule service "Any"): must not be resolved as ip protocol 0 (HOPOPT)
+            {
+                return SCConstants.SCAnyServiceJson;
+            }
+            if (svc.ProtoId == 1) // ICMP
+            {
+                return FillIcmpTemplate(template, svc.Name ?? "");
+            }
+            if ((svc.ProtoId == 6 || svc.ProtoId == 17) && svc.Port != null) // TCP, UDP with a port
+            {
+                return FillServiceTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? "");
+            }
+            return FillIpProtocolTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), svc.ProtoId.ToString(), svc.Name ?? "");
+        }
+
+        public static string DisplayPortRange(int? port, int? portEnd)
+        {
+            if (port == null)
+            {
+                return "";
+            }
+
             return portEnd == null || portEnd == 0 || port == portEnd ? $"{port}" : $"{port}-{portEnd}";
         }
 

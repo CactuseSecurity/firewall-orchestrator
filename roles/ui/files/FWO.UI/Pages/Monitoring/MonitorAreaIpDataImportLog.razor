@@ -2,7 +2,7 @@
 @inject UserConfig userConfig
 
 @page "/monitoring/area_ip_data_import_logs"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 <h3>@(userConfig.GetText("area_ip_data_import_logs"))</h3>
 @(userConfig.GetText("U7201"))

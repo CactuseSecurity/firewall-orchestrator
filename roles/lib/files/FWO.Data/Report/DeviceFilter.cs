@@ -19,6 +19,12 @@ namespace FWO.Data.Report
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public List<DeviceSelect> Devices { get; set; } = [];
 
+        [JsonProperty("managementByMultiDeviceManagerId"), JsonPropertyName("managementByMultiDeviceManagerId")]
+        public List<ManagementSelect> subManagers { get; set; } = [];
+
+        [JsonProperty("is_super_manager"), JsonPropertyName("is_super_manager")]
+        public bool IsSuperManager { get; set; }
+
         public ElementReference? UiReference { get; set; }
 
         public bool Visible { get; set; } = true;
@@ -171,6 +177,19 @@ namespace FWO.Data.Report
                     if (dev.Selected)
                         devs.Add(dev.Name ?? "");
             return string.Join(", ", devs);
+        }
+
+        public string ListAllSelectedManagements()
+        {
+            List<string> managements = [];
+            foreach (ManagementSelect mgmt in Managements)
+            {
+                if (IsSelectedManagement(mgmt))
+                {
+                    managements.Add(mgmt.Name ?? "");
+                }
+            }
+            return string.Join(", ", managements);
         }
 
         public static List<int> ExtractAllDevIds(Management[] managements)

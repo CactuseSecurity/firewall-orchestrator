@@ -58,6 +58,7 @@ Create table "report_schedule"
 	"report_schedule_active" Boolean Default TRUE,
 	"report_schedule_repetitions" Integer,
 	"report_schedule_counter" Integer Not NULL Default 0,
+	"archive" Boolean Not NULL Default FALSE,
  	primary key ("report_schedule_id")
 );
 

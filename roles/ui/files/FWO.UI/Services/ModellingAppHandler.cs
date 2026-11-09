@@ -1,4 +1,5 @@
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
@@ -83,17 +84,30 @@ namespace FWO.Ui.Services
                 conn.SyncState(dummyAppRoleId, userConfig.ModRolloutRemovedAppServers);
             }
 
-            if (userConfig.VarianceAnalysisSync)
+            if (userConfig.VarianceAnalysisSync && userConfig.ModIntegrationMode != ModIntegrationMode.WorkflowNotifications)
             {
                 await AnalyseStatus(connections);
             }
         }
 
+        /// <summary>
+        /// Cancels a wait for the rule_owner mapping run, set by the page so navigating away stops it.
+        /// </summary>
+        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+
+        /// <summary>
+        /// Determines the modelling state of the given connections. Waiting for a pending rule_owner
+        /// mapping run is allowed here because the user is looking at the page while it runs.
+        /// </summary>
+        /// <param name="connections">Connections to analyse.</param>
         public async Task AnalyseStatus(List<ModellingConnection> connections)
         {
             ExtStateHandler extStateHandler = new(apiConnection);
-            ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, Application, DisplayMessageInUi);
-            await varianceAnalysis.AnalyseConnsForStatus([.. connections.Where(x => !x.IsDocumentationOnly())]);
+            ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, Application, DisplayMessageInUi)
+            {
+                CancellationToken = CancellationToken
+            };
+            await varianceAnalysis.AnalyseConnsForStatus([.. connections.Where(x => !x.IsDocumentationOnly())], allowWait: true);
         }
 
         public static async Task<WfTicket?> GetLatestFWRequestTicket(FwoOwner application, ApiConnection apiConnection)
@@ -181,9 +195,12 @@ namespace FWO.Ui.Services
 
         public List<ModellingConnection> GetConnectionsToRequest()
         {
-            return [.. Connections.Where(x => x.IsRelevantForVarianceAnalysis(dummyAppRoleId,
-                userConfig.ModRolloutRemovedAppServers, userConfig.ModRequestOnlyOwnObjects))
-                .OrderByDescending(y => y.IsCommonService)];
+            if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+            {
+                return ModellingRequestConnectionSelector.ForWorkflowNotifications(Connections, userConfig, dummyAppRoleId);
+            }
+
+            return ModellingRequestConnectionSelector.ForRegularRequests(Connections, userConfig, dummyAppRoleId);
         }
 
         public bool HasModellingIssues(ModellingConnection conn)

@@ -1,4 +1,6 @@
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@using FWO.Services.PathAnalysis
+
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -51,7 +53,7 @@
         {
             if (Display)
             {
-                deviceList = await PathAnalysis.GetAllDevices(ReqTask.Elements, apiConnection);
+                deviceList = await RoutingBasedPathAnalyzer.GetAllDevices(ReqTask.Elements, apiConnection);
             }
         }
         catch (Exception exception)

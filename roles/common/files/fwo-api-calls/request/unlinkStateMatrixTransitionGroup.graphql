@@ -1,0 +1,10 @@
+mutation unlinkStateMatrixTransitionGroup($phaseMatrixId: Int!, $transitionGroupId: Int!) {
+  unlink_transition_group: delete_request_state_matrix_phase_transition_group(
+    where: {
+      phase_matrix_id: {_eq: $phaseMatrixId}
+      transition_group_id: {_eq: $transitionGroupId}
+    }
+  ) {
+    affected_rows
+  }
+}

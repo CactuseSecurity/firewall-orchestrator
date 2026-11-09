@@ -1,0 +1,18 @@
+query getFlowSyncSvcObjects($mgmId: Int!) {
+  flow_svcobject(order_by: { svcobj_id: asc }) {
+    svcobj_id
+    name
+    port_start
+    port_end
+    ip_proto_id
+    svcobj_hash
+    state
+    removed_date
+    show_in_request_module
+    services(where: { mgm_id: { _eq: $mgmId } }) {
+      svc_id
+      svc_uid
+      removed
+    }
+  }
+}

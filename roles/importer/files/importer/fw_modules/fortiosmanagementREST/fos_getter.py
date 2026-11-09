@@ -1,6 +1,6 @@
 # library for API get functions
 import json
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 import fwo_globals
 import requests
@@ -24,8 +24,10 @@ from fw_modules.fortiosmanagementREST.fos_models import (
     ZoneObject,
 )
 from fw_modules.fortiosmanagementREST.fos_zone import normalize_zone_name
+from fwo_const import FWO_HTTP_TIMEOUT
 from fwo_exceptions import FwApiCallFailedError
 from fwo_log import FWOLogger
+from fwo_redaction import redact_secret_in_text, redact_sensitive_values
 from pydantic import BaseModel, TypeAdapter
 
 T = TypeVar("T", bound=BaseModel)
@@ -33,7 +35,7 @@ T = TypeVar("T", bound=BaseModel)
 HTTP_OK = 200
 
 
-def fortios_api_call(api_url: str) -> list[dict[str, Any]]:
+def fortios_api_call(api_url: str, access_token: str) -> list[dict[str, Any]]:
     """
     Makes a GET request to the FortiOS REST API and returns the JSON response.
 
@@ -44,37 +46,41 @@ def fortios_api_call(api_url: str) -> list[dict[str, Any]]:
         list[dict[str, Any]]: The list of results from the API.
 
     """
-    request_headers = {"Content-Type": "application/json"}
+    # The token is sent as a header, never as a query parameter, so that it does not end up in the url that
+    # proxies, web server logs and error texts record.
+    request_headers = {"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"}
 
-    response = requests.get(api_url, headers=request_headers, verify=fwo_globals.verify_certs)
-    if response.status_code != HTTP_OK:
+    try:
+        response = requests.get(
+            api_url,
+            headers=request_headers,
+            verify=fwo_globals.verify_certs,
+            timeout=FWO_HTTP_TIMEOUT,
+        )
+    except requests.exceptions.RequestException as request_error:
+        # the text of a requests error names the full url; an older caller may still have put a token into it
         raise FwApiCallFailedError(
-            "error while sending api_call to url '"
-            + str(api_url)
-            + "' with headers: '"
-            + json.dumps(request_headers, indent=2)
-            + ", response code: "
-            + str(response.status_code)
-            + ", response text: "
-            + response.text
+            f"error while sending api_call to url '{api_url}' ({type(request_error).__name__})"
+        ) from None
+    # the firewall or a proxy in between may echo the requested url, including the access token, in its answer
+    if response.status_code != HTTP_OK:
+        response_text = redact_secret_in_text(response.text, access_token)
+        raise FwApiCallFailedError(
+            f"error while sending api_call to url '{api_url}', response code: {response.status_code}, "
+            f"response text: {response_text}"
         )
     result_json = response.json()
     if "results" not in result_json:
-        raise FwApiCallFailedError(
-            "error while sending api_call to url '"
-            + str(api_url)
-            + "' including headers: '"
-            + json.dumps(request_headers, indent=2)
-            + ", response json: "
-            + json.dumps(result_json, indent=2)
-        )
+        response_dump = json.dumps(redact_sensitive_values(result_json), indent=2)
+        response_dump = redact_secret_in_text(response_dump, access_token)
+        raise FwApiCallFailedError(f"error while sending api_call to url '{api_url}', response json: {response_dump}")
 
-    FWOLogger.debug("api_call to url '" + str(api_url) + "', headers: '" + json.dumps(request_headers, indent=2), 3)
+    FWOLogger.debug(f"api_call to url '{api_url}'", 3)
 
     return result_json["results"]
 
 
-def parse_api_results(model_class: type[T], data: list[dict[str, Any]]) -> list[T]:  # TODO: needs python 3.12
+def parse_api_results(model_class: type[T], data: list[dict[str, Any]]) -> list[T]:
     """
     Parse API results into Pydantic model instances.
 
@@ -86,7 +92,8 @@ def parse_api_results(model_class: type[T], data: list[dict[str, Any]]) -> list[
         List of parsed Pydantic model instances.
 
     """
-    adapter = TypeAdapter(list[model_class])
+    # TypeAdapter expects a static TypeForm; list[model_class] is built at runtime, so pin the type explicitly.
+    adapter: TypeAdapter[list[T]] = TypeAdapter(cast("Any", list[model_class]))
     return adapter.validate_python(data)
 
 
@@ -106,71 +113,59 @@ def get_native_config(fm_api_url: str, sid: str) -> FortiOSConfig:
 
     # Network objects
     native_config.nw_obj_address.extend(
-        parse_api_results(NwObjAddress, fortios_api_call(fm_api_url + "/cmdb/firewall/address?access_token=" + sid))
+        parse_api_results(NwObjAddress, fortios_api_call(fm_api_url + "/cmdb/firewall/address", sid))
     )
     native_config.nw_obj_address6.extend(
-        parse_api_results(NwObjAddress6, fortios_api_call(fm_api_url + "/cmdb/firewall/address6?access_token=" + sid))
+        parse_api_results(NwObjAddress6, fortios_api_call(fm_api_url + "/cmdb/firewall/address6", sid))
     )
     native_config.nw_obj_addrgrp.extend(
-        parse_api_results(NwObjAddrGrp, fortios_api_call(fm_api_url + "/cmdb/firewall/addrgrp?access_token=" + sid))
+        parse_api_results(NwObjAddrGrp, fortios_api_call(fm_api_url + "/cmdb/firewall/addrgrp", sid))
     )
     native_config.nw_obj_addrgrp6.extend(
-        parse_api_results(NwObjAddrGrp6, fortios_api_call(fm_api_url + "/cmdb/firewall/addrgrp6?access_token=" + sid))
+        parse_api_results(NwObjAddrGrp6, fortios_api_call(fm_api_url + "/cmdb/firewall/addrgrp6", sid))
     )
     native_config.nw_obj_ippool.extend(
-        parse_api_results(NwObjIpPool, fortios_api_call(fm_api_url + "/cmdb/firewall/ippool?access_token=" + sid))
+        parse_api_results(NwObjIpPool, fortios_api_call(fm_api_url + "/cmdb/firewall/ippool", sid))
     )
     native_config.nw_obj_vip.extend(
-        parse_api_results(NwObjVip, fortios_api_call(fm_api_url + "/cmdb/firewall/vip?access_token=" + sid))
+        parse_api_results(NwObjVip, fortios_api_call(fm_api_url + "/cmdb/firewall/vip", sid))
     )
     native_config.nw_obj_internet_service.extend(
-        parse_api_results(
-            NwObjInternetService, fortios_api_call(fm_api_url + "/cmdb/firewall/internet-service?access_token=" + sid)
-        )
+        parse_api_results(NwObjInternetService, fortios_api_call(fm_api_url + "/cmdb/firewall/internet-service", sid))
     )
     native_config.nw_obj_internet_service_group.extend(
         parse_api_results(
             NwObjInternetServiceGroup,
-            fortios_api_call(fm_api_url + "/cmdb/firewall/internet-service-group?access_token=" + sid),
+            fortios_api_call(fm_api_url + "/cmdb/firewall/internet-service-group", sid),
         )
     )
 
     # Service objects
     native_config.svc_obj_application_list.extend(
-        parse_api_results(
-            SvcObjApplicationList, fortios_api_call(fm_api_url + "/cmdb/application/list?access_token=" + sid)
-        )
+        parse_api_results(SvcObjApplicationList, fortios_api_call(fm_api_url + "/cmdb/application/list", sid))
     )
     native_config.svc_obj_application_group.extend(
-        parse_api_results(
-            SvcObjApplicationGroup, fortios_api_call(fm_api_url + "/cmdb/application/group?access_token=" + sid)
-        )
+        parse_api_results(SvcObjApplicationGroup, fortios_api_call(fm_api_url + "/cmdb/application/group", sid))
     )
     native_config.svc_obj_custom.extend(
-        parse_api_results(
-            SvcObjCustom, fortios_api_call(fm_api_url + "/cmdb/firewall.service/custom?access_token=" + sid)
-        )
+        parse_api_results(SvcObjCustom, fortios_api_call(fm_api_url + "/cmdb/firewall.service/custom", sid))
     )
     native_config.svc_obj_group.extend(
-        parse_api_results(
-            SvcObjGroup, fortios_api_call(fm_api_url + "/cmdb/firewall.service/group?access_token=" + sid)
-        )
+        parse_api_results(SvcObjGroup, fortios_api_call(fm_api_url + "/cmdb/firewall.service/group", sid))
     )
 
     # User objects
     native_config.user_obj_local.extend(
-        parse_api_results(UserObjLocal, fortios_api_call(fm_api_url + "/cmdb/user/local?access_token=" + sid))
+        parse_api_results(UserObjLocal, fortios_api_call(fm_api_url + "/cmdb/user/local", sid))
     )
     native_config.user_obj_group.extend(
-        parse_api_results(UserObjGroup, fortios_api_call(fm_api_url + "/cmdb/user/group?access_token=" + sid))
+        parse_api_results(UserObjGroup, fortios_api_call(fm_api_url + "/cmdb/user/group", sid))
     )
 
     add_zone_if_missing(native_config, "global")
 
     # Rules
-    native_config.rules.extend(
-        parse_api_results(Rule, fortios_api_call(fm_api_url + "/cmdb/firewall/policy?access_token=" + sid))
-    )
+    native_config.rules.extend(parse_api_results(Rule, fortios_api_call(fm_api_url + "/cmdb/firewall/policy", sid)))
 
     process_zones(native_config)
 

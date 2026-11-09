@@ -1,5 +1,6 @@
 ﻿@page "/compliance/policies"
 
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 @layout ComplianceLayout
 
 @inject ApiConnection apiConnection
@@ -38,9 +39,6 @@
 @code
 {
     [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
-    [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private CompliancePolicy SelectedPolicy = new();
@@ -55,7 +53,11 @@
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.FwAdmin, Roles.Auditor ]);
+            if (!userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor))
+            {
+                return;
+            }
+
             policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
         }
         catch (Exception exception)

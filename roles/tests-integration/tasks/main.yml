@@ -1,3 +1,14 @@
+# Negative tests run a production guard on bad input and expect it to fail; a block/rescue
+# (or ignore_errors) catches the failure and an assert checks it. Ansible prints such a
+# failure in red under the name of the production task, so every test task around an
+# expected failure starts with "expected to fail: ":
+# - the block and the task inside it that runs the guard (usually the include_tasks),
+#   whose name is printed right before the red output,
+# - the first rescue task (or, with ignore_errors, the next task), printed right after it.
+# Searching the run log for "expected to fail:" then finds exactly the intended failures.
+# Keep the prefix off positive tests, off rescues that only collect diagnostics, and off
+# the production tasks themselves - operators see those names, and some rescues compare
+# ansible_failed_task.name with them.
 
 - name: install packages necessary for testing
   package:
@@ -6,6 +17,31 @@
   loop: "{{ test_packages }}"
   become: true
   environment: "{{ proxy_env }}"
+
+- name: Read the configured middleware URI
+  ansible.builtin.slurp:
+    src: "{{ fworch_conf_file }}"
+  register: test_fwo_config_file
+  become: true
+
+- name: Parse the configured middleware URI
+  ansible.builtin.set_fact:
+    test_middleware_uri: >-
+      {{ (test_fwo_config_file.content | b64decode | from_json).middleware_uri }}
+
+- name: Derive the configured HTTPS middleware endpoint
+  ansible.builtin.set_fact:
+    test_middleware_host: "{{ test_middleware_uri | urlsplit('hostname') }}"
+    test_middleware_port: "{{ (test_middleware_uri | urlsplit('port')) | default(443, true) }}"
+
+- name: Require an HTTPS middleware endpoint in the FWO configuration
+  ansible.builtin.assert:
+    that:
+      - test_middleware_uri | urlsplit('scheme') == 'https'
+      - test_middleware_host | length > 0
+    fail_msg: >-
+      {{ fworch_conf_file }} must define middleware_uri as an HTTPS Apache
+      endpoint, but contains {{ test_middleware_uri }}.
 
 - name: randomize test names to avoid interference with production data
   set_fact:
@@ -63,6 +99,18 @@
   import_tasks: test-auth.yml
   when: "'middlewareserver' in group_names"
 
+- name: internal CA name testing
+  import_tasks: test-internal-ca-name.yml
+
+- name: certificate ownership testing
+  import_tasks: test-certificate-ownership.yml
+
+- name: internal CA reset testing
+  import_tasks: test-internal-ca-reset.yml
+  when:
+    - installation_mode == 'upgrade'
+    - internalca_reset_certificates | default(false) | bool
+
 - name: api testing
   import_tasks: test-api.yml
   when: "'apiserver' in group_names"
@@ -71,8 +119,100 @@
   import_tasks: test-importer.yml
   when: "'sampleserver' in group_names"
 
+# On a host with middleware, importer and database, because the test runs the middleware code, the importer
+# and local database queries.
+- name: app server ip change testing
+  import_tasks: test-app-server-ip-change.yml
+  when:
+    # only on test systems: the test creates a temporary app and firewall in the database
+    - "'sampleserver' in group_names"
+    - "['middlewareserver', 'importers', 'databaseserver'] | difference(group_names) | length == 0"
+
 - name: testing all exposed web services
   import_tasks: test-web.yml
+
+- name: systemd unit testing
+  import_tasks: test-systemd-units.yml
+
+- name: internal service listener testing
+  import_tasks: test-internal-service-listeners.yml
+
+- name: log permission testing
+  import_tasks: test-log-permissions.yml
+  when: "install_syslog | bool"
+
+- name: syslog receiver testing
+  import_tasks: test-syslog-receiver.yml
+  when: "install_syslog | bool"
+
+- name: Apache TLS key preflight testing
+  import_tasks: test-apache-tls-key-preflight.yml
+  when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
+
+- name: Maintenance certificate selection testing
+  import_tasks: test-maintenance-certificate-selection.yml
+  when: "'frontends' in group_names"
+
+- name: Maintenance certificate reconciliation testing
+  import_tasks: test-maintenance-certificate-reconciliation.yml
+  when: "'frontends' in group_names"
+
+- name: Dotnet repository migration testing
+  import_tasks: test-dotnet-repository-migration.yml
+  when:
+    - ansible_facts['distribution'] | lower == 'ubuntu'
+    - ansible_facts['distribution_major_version'] is version('22', '>=')
+
+- name: Apache intermediate chain configuration testing
+  import_tasks: test-apache-intermediate-chain.yml
+  when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
+
+- name: Apache endpoint name coverage testing
+  import_tasks: test-apache-endpoint-names.yml
+  when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
+
+- name: Retained certificate endpoint name preflight testing
+  import_tasks: test-retained-certificate-preflight.yml
+  when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
+
+# On the middleware host because that is where slapd and the system wide ldap.conf are.
+- name: LDAP client TLS policy and retained chain preflight testing
+  import_tasks: test-ldap-client-tls.yml
+  when: "'middlewareserver' in group_names"
+
+# On the middleware host because that is where slapd runs.
+- name: LDAP password access testing
+  import_tasks: test-ldap-password-acl.yml
+  when: "'middlewareserver' in group_names"
+
+# On the database host because that is the role whose migration files the guard protects.
+- name: Upgrade source version guard testing
+  import_tasks: test-upgrade-source-version-guard.yml
+  when: "'databaseserver' in group_names"
+
+# On the API host because that is where roles/common runs this guard.
+- name: Docker API guard testing
+  import_tasks: test-api-docker-guard.yml
+  when: "'apiserver' in group_names"
+
+# On the database host because that is where the database role reads the cluster layout.
+- name: PostgreSQL cluster guard testing
+  import_tasks: test-postgresql-cluster-guard.yml
+  when: "'databaseserver' in group_names"
+
+# On the hosts that build the importer and customizing venvs, which have their interpreter.
+- name: Python venv reset testing
+  import_tasks: test-python-venv-reset.yml
+  when: "['importers', 'middlewareserver'] | intersect(group_names) | length > 0"
+
+# On the hosts that install the browser for the PDF generation (roles/lib).
+- name: Browser migration testing
+  import_tasks: test-browser-migration.yml
+  when: "['frontends', 'middlewareserver'] | intersect(group_names) | length > 0"
+
+- name: OS platform guard testing
+  import_tasks: test-os-platform-guard.yml
+  run_once: true
 
 - name: finalize handler for deleting test data
   set_fact:

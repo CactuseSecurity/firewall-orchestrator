@@ -8,6 +8,10 @@ namespace FWO.Test
     [TestFixture]
     internal class WfTicketTest
     {
+        private const int kRequestingOwnerId = 7;
+        private static readonly List<long> kNoTicketIds = [];
+        private static readonly List<int> kRequestingOwnerIds = [kRequestingOwnerId];
+
         [Test]
         public void HighestTaskNumber_ReturnsMax()
         {
@@ -53,8 +57,8 @@ namespace FWO.Test
 
             ticket.UpdateIpStringsFromCidrInTaskElements();
 
-            Assert.That(element.IpString, Is.EqualTo(element.Cidr?.CidrString));
-            Assert.That(element.IpEnd, Is.EqualTo(element.CidrEnd?.CidrString));
+            Assert.That(element.IpString, Is.EqualTo("10.0.0.1"));
+            Assert.That(element.IpEnd, Is.EqualTo("10.0.0.2"));
         }
 
         [Test]
@@ -147,6 +151,30 @@ namespace FWO.Test
             Assert.That(visible, Is.True);
         }
 
+        [TestCase(false, false)]
+        [TestCase(true, true)]
+        public void IsEditableForOwner_IncludesRequestingOwnerOnlyWhenAsked(bool includeRequestingOwner, bool expected)
+        {
+            WfTicket ticket = new();
+            WfReqTask reqTask = new();
+            reqTask.SetAddInfo(AdditionalInfoKeys.ReqOwner, kRequestingOwnerId.ToString());
+            ticket.Tasks.Add(reqTask);
+
+            bool editable = ticket.IsEditableForOwner(kNoTicketIds, kRequestingOwnerIds, 99, includeRequestingOwner);
+
+            Assert.That(editable, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void GetAdditionalInfoValue_ReturnsEmptyForMalformedJson()
+        {
+            WfTicketBase ticket = new() { AdditionalInfo = "{malformed" };
+
+            string value = ticket.GetAdditionalInfoValue(AdditionalInfoKeys.RequestorName);
+
+            Assert.That(value, Is.Empty);
+        }
+
         [Test]
         public void Sanitize_RemovesInvalidCharacters_AndReturnsTrue()
         {
@@ -190,7 +218,8 @@ namespace FWO.Test
                 ExternalTicketId = "ext",
                 ExternalTicketSource = 3,
                 Deadline = new DateTime(2024, 4, 5),
-                Priority = 4
+                Priority = 4,
+                Locked = true
             };
             original.AssignedGroup = "cn=grp,dc=example,dc=com";
             original.SetOptComment("comment");
@@ -210,6 +239,7 @@ namespace FWO.Test
             Assert.That(copy.ExternalTicketSource, Is.EqualTo(original.ExternalTicketSource));
             Assert.That(copy.Deadline, Is.EqualTo(original.Deadline));
             Assert.That(copy.Priority, Is.EqualTo(original.Priority));
+            Assert.That(copy.Locked, Is.EqualTo(original.Locked));
             Assert.That(copy.AssignedGroup, Is.EqualTo(original.AssignedGroup));
             Assert.That(copy.OptComment(), Is.EqualTo(original.OptComment()));
         }

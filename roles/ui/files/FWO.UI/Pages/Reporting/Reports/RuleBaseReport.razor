@@ -214,7 +214,7 @@
     private bool RecertificationHistory { get; set; } = false;
     private ITable<Rule>? reportTable;
     private const int ColumnsCount = 14;
-    private bool[] EmptyColumns = new bool[ColumnsCount];
+    private readonly bool[] EmptyColumns = new bool[ColumnsCount];
 
     private NatRuleDisplayHtml? ruleDisplay;
     

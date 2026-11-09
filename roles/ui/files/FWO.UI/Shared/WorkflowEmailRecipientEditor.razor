@@ -1,0 +1,60 @@
+@using FWO.Basics
+@using FWO.Data
+
+@inject UserConfig userConfig
+
+<div class="@RowClass" data-toggle="tooltip" title="@TooltipText">
+    <label class="col-form-label col-sm-3">@LabelText:</label>
+    <div class="col-sm-9">
+        <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="SelectedRecipient"
+                  ElementToString="@(o => userConfig.GetText(o.ToString()))"
+                  Elements="EmailRecipientGroups.GetWorkflowOptions()">
+            <ElementTemplate Context="opt">
+                @(userConfig.GetText(opt.ToString()))
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+</div>
+@if(Recipient == EmailRecipientOption.OtherAddresses)
+{
+    <OtherEmailAddressesEditor AddressValue="@AddressValue"
+                               AddressValueChanged="@AddressValueChanged"
+                               TooltipText="@TooltipText" />
+}
+
+@code
+{
+    [Parameter]
+    public string LabelText { get; set; } = "";
+
+    [Parameter]
+    public EmailRecipientOption Recipient { get; set; } = EmailRecipientOption.None;
+
+    [Parameter]
+    public EventCallback<EmailRecipientOption> RecipientChanged { get; set; }
+
+    [Parameter]
+    public string AddressValue { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<string> AddressValueChanged { get; set; }
+
+    [Parameter]
+    public string TooltipText { get; set; } = "";
+
+    [Parameter]
+    public string RowClass { get; set; } = "form-group row";
+
+    private EmailRecipientOption SelectedRecipient
+    {
+        get => Recipient;
+        set
+        {
+            if (Recipient != value)
+            {
+                Recipient = value;
+                _ = RecipientChanged.InvokeAsync(value);
+            }
+        }
+    }
+}

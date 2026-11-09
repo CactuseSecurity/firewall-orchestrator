@@ -1,0 +1,144 @@
+using FWO.Basics;
+using FWO.Test.Mocks;
+using FWO.Ui.Services;
+using NUnit.Framework;
+using System.Reflection;
+
+namespace FWO.Test
+{
+    [TestFixture]
+    internal class ExecutionModeStorageTest
+    {
+        [Test]
+        public async Task GetExecutionModeReturnsStoredValue()
+        {
+            MockProtectedSessionStorage sessionStorage = new();
+            ExecutionModeStorage storage = new(sessionStorage);
+
+            await storage.SetExecutionMode(Roles.Admin);
+
+            string? result = await storage.GetExecutionMode();
+
+            Assert.That(result, Is.EqualTo(Roles.Admin));
+        }
+
+        [Test]
+        public async Task GetExecutionModeReturnsNullForWhitespaceAndMissingEntries()
+        {
+            MockProtectedSessionStorage sessionStorage = new();
+            ExecutionModeStorage storage = new(sessionStorage);
+
+            await sessionStorage.SetAsync("execution_mode", "   ");
+            string? whitespaceResult = await storage.GetExecutionMode();
+            await sessionStorage.DeleteAsync("execution_mode");
+            string? missingResult = await storage.GetExecutionMode();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(whitespaceResult, Is.Null);
+                Assert.That(missingResult, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task SetExecutionModeStoresUserRoleSelectionWhenInputIsEmpty()
+        {
+            MockProtectedSessionStorage sessionStorage = new();
+            ExecutionModeStorage storage = new(sessionStorage);
+
+            await storage.SetExecutionMode("");
+
+            string? result = await storage.GetExecutionMode();
+
+            Assert.That(result, Is.EqualTo(GlobalConst.kUserRolesSelection));
+        }
+
+        [Test]
+        public async Task GetExecutionModeReturnsNullWhenSessionStorageThrows()
+        {
+            ThrowingSessionStorage sessionStorage = new(getException: new InvalidOperationException("get failed"));
+            ExecutionModeStorage storage = new(sessionStorage);
+
+            string? result = await storage.GetExecutionMode();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.Null);
+                Assert.That(sessionStorage.DeleteCallCount, Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task GetExecutionMode_WhenProtectedPayloadIsUnreadable_ClearsStoredValue()
+        {
+            ThrowingSessionStorage sessionStorage = new(getException: new System.Security.Cryptography.CryptographicException("bad payload"));
+            ExecutionModeStorage storage = new(sessionStorage);
+
+            string? result = await storage.GetExecutionMode();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.Null);
+                Assert.That(sessionStorage.DeleteCallCount, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task ClearExecutionModeSwallowsDeleteFailures()
+        {
+            ThrowingSessionStorage sessionStorage = new(deleteException: new InvalidOperationException("delete failed"));
+            ExecutionModeStorage storage = new(sessionStorage);
+
+            Assert.DoesNotThrowAsync(async () => await storage.ClearExecutionMode());
+            Assert.That(sessionStorage.DeleteCallCount, Is.EqualTo(1));
+        }
+
+        private sealed class ThrowingSessionStorage : ISessionStorage
+        {
+            private readonly Exception? getException;
+            private readonly Exception? deleteException;
+
+            public int DeleteCallCount { get; private set; }
+
+            public ThrowingSessionStorage(Exception? getException = null, Exception? deleteException = null)
+            {
+                this.getException = getException;
+                this.deleteException = deleteException;
+            }
+
+            public Task<Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedBrowserStorageResult<TValue>> GetAsync<TValue>(string key)
+            {
+                if (getException != null)
+                {
+                    throw getException;
+                }
+
+                return Task.FromResult(CreateFailureResult<TValue>());
+            }
+
+            public Task SetAsync(string key, object value)
+            {
+                return Task.CompletedTask;
+            }
+
+            public Task DeleteAsync(string key)
+            {
+                DeleteCallCount++;
+                if (deleteException != null)
+                {
+                    throw deleteException;
+                }
+
+                return Task.CompletedTask;
+            }
+
+            private static Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedBrowserStorageResult<TValue> CreateFailureResult<TValue>()
+            {
+                var constructor = typeof(Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedBrowserStorageResult<TValue>).GetConstructors(
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)[0];
+
+                return (Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedBrowserStorageResult<TValue>)constructor.Invoke([false, default(TValue)]);
+            }
+        }
+    }
+}

@@ -11,9 +11,9 @@ namespace FWO.Compliance
         public ComplianceCriterion? Criterion { get; set; }
 
         public NetworkObject? Source { get; set; }
-        public ComplianceNetworkZone? SourceZone { get; set; }
+        public NetworkZone? SourceZone { get; set; }
         public NetworkObject? Destination { get; set; }
-        public ComplianceNetworkZone? DestinationZone { get; set; }
+        public NetworkZone? DestinationZone { get; set; }
         public NetworkService? Service { get; set; }
         public AssessabilityIssue? AssessabilityIssue { get; set; }
 

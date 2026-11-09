@@ -13,6 +13,7 @@ mutation newRequestTask(
   $additionalInfo: String
   $freeText: String
   $managementId: Int
+  $locked: Boolean
   ) {
   insert_request_reqtask(objects: {
     title: $title
@@ -29,6 +30,7 @@ mutation newRequestTask(
     additional_info: $additionalInfo
     free_text: $freeText
     mgm_id: $managementId
+    locked: $locked
   }) {
     returning {
       newIdLong: id

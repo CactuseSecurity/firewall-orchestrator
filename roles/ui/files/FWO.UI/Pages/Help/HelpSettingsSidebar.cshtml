@@ -1,5 +1,4 @@
-﻿@using FWO.Config.Api
-@using FWO.Data
+@using FWO.Config.Api
 @using FWO.Basics
 
 @inject UserConfig userConfig
@@ -11,13 +10,21 @@
                 <p></p>
                 <h5>@(userConfig.GetText("devices"))</h5>
                 <a class="nav-link" href="/help/settings/credentials/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Credential"></span> @(userConfig.GetText("import_credential"))
+                    <span class="@Icons.Credential"></span> @(userConfig.GetText("readonly_credential"))
                 </a>
                 <a class="nav-link" href="/help/settings/managements/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Management"></span> @(userConfig.GetText("managements"))
                 </a>
                 <a class="nav-link" href="/help/settings/gateways/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Gateway"></span> @(userConfig.GetText("gateways"))
+                </a>
+                <p></p>
+                <h5>@(userConfig.GetText("network_topology"))</h5>
+                <a class="nav-link" href="/help/settings/matrix/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Matrix"></span> @(userConfig.GetText("matrix"))
+                </a>
+                <a class="nav-link" href="/help/settings/internet/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Network"></span> @(userConfig.GetText("internet"))
                 </a>
                 <p></p>
                 <h5>@(userConfig.GetText("authorization"))</h5>
@@ -58,11 +65,19 @@
                 <a class="nav-link" href="/help/settings/recertificationgeneral/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
                 </a>
-                <a class="nav-link" href="/help/settings/modelling/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
-                </a>
                 <a class="nav-link" href="/help/settings/compliance/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
+                </a>
+                <p></p>
+                <h5>@(userConfig.GetText("modelling"))</h5>
+                <a class="nav-link" href="/help/settings/modelling/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling_general_settings"))
+                </a>
+                <a class="nav-link" href="/help/settings/modellingnotifications/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Email"></span> @(userConfig.GetText("notifications"))
+                </a>
+                <a class="nav-link" href="/help/settings/logging/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Import"></span> @(userConfig.GetText("logging"))
                 </a>
                 <p></p>
                 <h5>@(userConfig.GetText("workflow"))</h5>
@@ -77,6 +92,26 @@
                 </a>
                 <a class="nav-link" href="/help/settings/workflowcustomizing/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Settings"></span> @(userConfig.GetText("customizing"))
+                </a>
+                <p></p>
+                <h5>@(userConfig.GetText("flow"))</h5>
+                <a class="nav-link" href="/help/settings/flows/general/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("flow_general_settings"))
+                </a>
+                <a class="nav-link" href="/help/settings/flows/networkobjects/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("network_objects"))
+                </a>
+                <a class="nav-link" href="/help/settings/flows/networkgroups/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("network_groups"))
+                </a>
+                <a class="nav-link" href="/help/settings/flows/serviceobjects/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("service_objects"))
+                </a>
+                <a class="nav-link" href="/help/settings/flows/servicegroups/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("service_groups"))
+                </a>
+                <a class="nav-link" href="/help/settings/flows/timeobjects/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("time_objects"))
                 </a>
                 <p></p>
                 <h5>@(userConfig.GetText("defaults"))</h5>
@@ -95,9 +130,7 @@
                 <a class="nav-link" href="/help/settings/notifications/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Email"></span> @(userConfig.GetText("notifications"))
                 </a>
-                <a class="nav-link" href="/help/settings/extticketing/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Tickets"></span> @(userConfig.GetText("ext_ticketing"))
-                </a>
+
                 <a class="nav-link" href="/help/settings/passwordpolicy/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Policy"></span> @(userConfig.GetText("password_policy"))
                 </a>
@@ -105,21 +138,23 @@
                     <span class="@Icons.Text"></span> @(userConfig.GetText("customize_texts"))
                 </a>
                 <p></p>
+                <h5>@(userConfig.GetText("fwconfigchange"))</h5>
+                <a class="nav-link" href="/help/settings/fwconfigchangegeneral/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("fwconfigchangegeneral"))
+                </a>
+                <a class="nav-link" href="/help/settings/devicespecificsettings/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("dss_settings"))
+                </a>
+                <a class="nav-link" href="/help/settings/exttickettemplates/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Tickets"></span> @(userConfig.GetText("ext_ticket_templates"))
+                </a>
+                <p></p>
                 <h5>@(userConfig.GetText("personal"))</h5>
                 <a class="nav-link" href="/help/settings/password/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Login"></span> @(userConfig.GetText("password"))
                 </a>
-                <a class="nav-link" href="/help/settings/language/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Language"></span> @(userConfig.GetText("language"))
-                </a>
-                <a class="nav-link" href="/help/settings/report/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
-                </a>
-                <a class="nav-link" href="/help/settings/recertificationpersonal/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
-                </a>
-                <a class="nav-link" href="/help/settings/modellingpersonal/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
+                <a class="nav-link" href="/help/settings/personal/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("personal_settings"))
                 </a>
             </ul>
         </div>

@@ -11,6 +11,7 @@ fragment ownerDetails on owner {
   app_id_external
   recert_check_params
   last_recert_check
+  additional_info
   criticality
   owner_lifecycle_state_id
   active

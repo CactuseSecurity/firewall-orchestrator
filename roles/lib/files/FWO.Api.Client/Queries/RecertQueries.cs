@@ -17,7 +17,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string addRecertEntries;
         public static readonly string refreshViewRuleWithOwner;
         public static readonly string getOwnerRecerts;
-        public static readonly string getInitialOwnerRecert;
+        public static readonly string getOwnerRecert;
         public static readonly string updateRecertReportId;
 
 
@@ -29,6 +29,7 @@ namespace FWO.Api.Client.Queries
                     GetQueryText("networkObject/fragments/networkObjectOverview.graphql") +
                     GetQueryText("networkService/fragments/networkServiceOverview.graphql") +
                     GetQueryText("user/fragments/userOverview.graphql") +
+                    GetQueryText("rule/fragments/ruleEnforcedOnGateways.graphql") +
                     GetQueryText("rule/fragments/ruleOverview.graphql") +
                     GetQueryText("rule/fragments/rulebaseOverview.graphql");
                 ruleOpenRecertFragments = ruleOverviewFragments + GetQueryText("recertification/fragments/ruleOpenCertOverview.graphql");
@@ -42,7 +43,7 @@ namespace FWO.Api.Client.Queries
                 addRecertEntries = GetQueryText("recertification/addRecertEntries.graphql");
                 refreshViewRuleWithOwner = GetQueryText("recertification/refreshViewRuleWithOwner.graphql");
                 getOwnerRecerts = GetQueryText("recertification/getOwnerRecerts.graphql");
-                getInitialOwnerRecert = GetQueryText("recertification/getInitialOwnerRecert.graphql");
+                getOwnerRecert = GetQueryText("recertification/getOwnerRecert.graphql");
                 updateRecertReportId = GetQueryText("recertification/updateRecertReportId.graphql");
             }
             catch (Exception exception)

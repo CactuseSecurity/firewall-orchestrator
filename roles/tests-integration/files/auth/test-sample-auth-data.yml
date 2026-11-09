@@ -1,0 +1,88 @@
+---
+# Run via scripts/tests/test-sample-auth-data.sh; no live LDAP server is used.
+- name: Sample LDAP seeding regression tests
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    fwo_ldap_tls_opts: ""
+    ldap_cmd_url: ldap://localhost:389
+    openldap_superuser_dn: cn=Manager,dc=fworch,dc=internal
+    ldap_manager_pwd_file: /unused-test-password-file
+    openldap_path: dc=fworch,dc=internal
+    ldif_changetype: add
+    sample_postfix: _demo
+    sample_user1_pw: test-password-one
+    sample_user2_pw: test-password-two
+    integration_test_user_name: integration-test-user
+    ldap_tree_name: sample_tenants
+    ldap_existing_result_code: 68
+  tasks:
+    - name: Seed a fresh sample tree
+      include_role:
+        name: sample-auth-data
+        tasks_from: apply_ldap_entries.yml
+
+    - name: Assert both fresh records were created
+      assert:
+        that:
+          - ldap_entry_result.changed
+          - ldap_entry_result.results | length == 2
+          - ldap_entry_result.results | map(attribute='rc') | list == [0, 0]
+
+    - name: Rerun a fully populated sample tree
+      include_role:
+        name: sample-auth-data
+        tasks_from: apply_ldap_entries.yml
+
+    - name: Assert duplicates cause no changes
+      assert:
+        that:
+          - not ldap_entry_result.changed
+          - ldap_entry_result.results | map(attribute='rc') | list == [68, 68]
+
+    - name: Find the second tenant in the stub directory
+      find:
+        paths: "{{ test_directory }}/state"
+        contains: 'dn: ou=tenant2_demo,.*'
+      register: second_tenant
+
+    - name: Remove the second tenant to simulate a partial installation
+      file:
+        path: "{{ second_tenant.files[0].path }}"
+        state: absent
+
+    - name: Repair the partially populated sample tree
+      include_role:
+        name: sample-auth-data
+        tasks_from: apply_ldap_entries.yml
+
+    - name: Assert a duplicate first entry does not skip the missing second entry
+      assert:
+        that:
+          - ldap_entry_result.changed
+          - ldap_entry_result.results | map(attribute='rc') | list == [68, 0]
+
+    - name: Check the remaining sample trees and membership templates
+      include_tasks: test-sample-auth-data-tree.yml
+      loop:
+        - {tree: sample_operators, existing_rc: 68, record_count: 2}
+        - {tree: sample_groups, existing_rc: 68, record_count: 4}
+        - {tree: roles_for_sample_operators, existing_rc: 20, record_count: 6}
+        - {tree: groups_for_sample_operators, existing_rc: 20, record_count: 5}
+        - {tree: roles_for_integration_testuser, existing_rc: 20, record_count: 1}
+      loop_control:
+        loop_var: tree_case
+
+    - name: Check unexpected LDAP failures
+      include_tasks: test-sample-auth-data-failure.yml
+      loop:
+        - {tree: sample_tenants, existing_rc: 68, unexpected_rc: 49}
+        - {tree: sample_tenants, existing_rc: 68, unexpected_rc: 50}
+        - {tree: sample_tenants, existing_rc: 68, unexpected_rc: 65}
+        - {tree: sample_tenants, existing_rc: 68, unexpected_rc: 20}
+        - {tree: sample_operators, existing_rc: 68, unexpected_rc: 50}
+        - {tree: roles_for_sample_operators, existing_rc: 20, unexpected_rc: 68}
+        - {tree: groups_for_sample_operators, existing_rc: 20, unexpected_rc: 32}
+      loop_control:
+        loop_var: failure_case

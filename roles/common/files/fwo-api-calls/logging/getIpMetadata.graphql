@@ -1,0 +1,7 @@
+query getIpMetadata($addresses: [cidr!]!) {
+  logging_ip_metadata(where: {ip_address: {_in: $addresses}}) {
+    ip_address
+    dns
+    dns_lookup_completed
+  }
+}

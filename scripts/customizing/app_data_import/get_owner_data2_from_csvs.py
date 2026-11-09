@@ -22,19 +22,23 @@ sample config file /usr/local/orch/etc/secrets/customizingConfig.json
 }
 """
 
+from __future__ import annotations
+
 import argparse
 import csv
 import json
-import logging
 import sys
 from asyncio.log import logger
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import urllib3
 
 from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_custom_config
 from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo
+
+if TYPE_CHECKING:
+    import logging
 
 base_dir: str = "/usr/local/fworch/"
 base_dir_etc: str = base_dir + "etc/"
@@ -111,7 +115,7 @@ def _add_ip_from_line(
     app_server_ip: str = line[app_server_ip_column]
     if app_server_ip == "":
         return False
-    if app_server_ip in app_data[app_id]["app_servers"]:
+    if any(app_server.get("ip") == app_server_ip for app_server in app_data[app_id]["app_servers"]):
         return False
     app_data[app_id]["app_servers"].append(
         {"ip": app_server_ip, "ip_end": app_server_ip, "type": "host", "name": f"host_{app_server_ip}"}
@@ -155,7 +159,7 @@ def extract_app_data_from_csv_file(csv_file: str, app_data: dict[str, dict[str, 
     logger.info("%s: #total lines %s, skipped: %s", csv_file_name, len(app_data_from_csv), count_skips)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser(description="Read configuration from FW management via API calls")
     parser.add_argument(
         "-c", "--config", default=default_config_file_name, help="Filename of custom config file for modelling imports"

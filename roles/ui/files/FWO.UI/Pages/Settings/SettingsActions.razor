@@ -1,4 +1,6 @@
-﻿@using System.Text.Json
+@using System.Text.Json
+@using FWO.Config.Api.Data
+@using FWO.Data.Modelling
 @using FWO.Ui.Services
 @using FWO.Middleware.Client
 
@@ -16,23 +18,28 @@
         <h3>@(userConfig.GetText("state_actions"))</h3>
         <HelpLink Page="settings/stateactions"/>
     </div>
-    @(userConfig.GetText("U5317"))
+    @(userConfig.GetText("U5317"))<br>
+    @(userConfig.GetText("H5501"))
     <hr />
-    <button type="button" class="btn btn-sm btn-success" data-toggle="tooltip" title="@(userConfig.PureLine("H5501"))" 
-        @onclick="AddAction">@(userConfig.GetText("add_action"))</button>
+    <button type="button" class="btn btn-sm btn-success" @onclick="AddAction">@(DisplayService.DisplayButton(userConfig, "add_action", Icons.Add))</button>
     <br><br>
     <div class="m-2 vheight75">
         <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfStateAction" Items="actions" PageSize="0" ColumnReorder="true">
             <Column TableItem="WfStateAction" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditAction(context)">@(userConfig.GetText("edit"))</button>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteAction(context)">@(userConfig.GetText("delete"))</button>
+                        <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditAction(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteAction(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                     </div>
                 </Template>
             </Column>
             <Column TableItem="WfStateAction" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
             <Column TableItem="WfStateAction" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
+            <Column TableItem="WfStateAction" Title="@(userConfig.GetText("using_states"))" Field="@(x => x.StateCount)" Sortable="true" Filterable="true">
+                <Template>
+                    @(context.StateCount)
+                </Template>
+            </Column>
             <Column TableItem="WfStateAction" Title="@(userConfig.GetText("action_type"))" Field="@(x => x.ActionType)" Sortable="true" Filterable="true" >
                 <Template>
                     @(context.ActionType != "" ? userConfig.GetText(context.ActionType) : "")
@@ -63,242 +70,15 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_action"))" Show="@EditActionMode" Size=PopupSize.Large OnClose="() => EditActionMode = false">
-        <Body>
-            @if (EditActionMode)
-            {
-                <div class="form-group row col-sm-12">
-                    <div class="col-sm-2">
-                        <div class="form-group row">
-                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
-                            <label class="col-sm-6 col-form-label col-form-label-sm">@(actAction.Id)</label>
-                        </div>
-                    </div>
-                    <div class="col-sm-10">
-                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5512"))">
-                            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                            <input type="text" class="col-sm-9" @bind="actAction.Name" />
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group row col-sm-12 mt-2">
-                    <div class="col-sm-4">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action_type"))*:</label>
-                            <div class="col-sm-8">
-                                <Dropdown ElementType="string" @bind-SelectedElement="actAction.ActionType" ElementToString="@(a => userConfig.GetText(a))" Elements="Enum.GetNames(typeof(StateActionTypes))" >
-                                    <ElementTemplate Context="action">
-                                        @(userConfig.GetText(action))
-                                    </ElementTemplate>
-                                </Dropdown>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-4">
-                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5513"))">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("event")):</label>
-                            <div class="col-sm-8">
-                                <Dropdown ElementType="string" @bind-SelectedElement="actAction.Event" ElementToString="@(e => userConfig.GetText(e))" Elements="Enum.GetNames(typeof(StateActionEvents))" >
-                                    <ElementTemplate Context="eventt">
-                                        @(userConfig.GetText(eventt))
-                                    </ElementTemplate>
-                                </Dropdown>
-                            </div>
-                        </div>
-                    </div>
-                    @if(actAction.Event == StateActionEvents.OfferButton.ToString())
-                    {
-                        <div class="col-sm-4">
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("button_text")):</label>
-                                <input type="text" class="col-sm-8" @bind="actAction.ButtonText" />
-                            </div>
-                        </div>
-                    }
-                </div>
-                <div class="form-group row col-sm-12 mt-2">
-                    <div class="col-sm-4">
-                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5514"))">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("phase")):</label>
-                            <div class="col-sm-8">
-                                <Dropdown ElementType="string" @bind-SelectedElement="selectedPhase" ElementToString="@(p => userConfig.GetText(p))" 
-                                        Elements="Enum.GetNames(typeof(WorkflowPhases))" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))" >
-                                    <ElementTemplate Context="phase">
-                                        @(userConfig.GetText(phase))
-                                    </ElementTemplate>
-                                </Dropdown>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-4">
-                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5515"))">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("scope")):</label>
-                            <div class="col-sm-8">
-                                <Dropdown ElementType="string" @bind-SelectedElement="actAction.Scope" ElementToString="@(s => userConfig.GetText(s))" Elements="Enum.GetNames(typeof(WfObjectScopes))" >
-                                    <ElementTemplate Context="scope">
-                                        @(userConfig.GetText(scope))
-                                    </ElementTemplate>
-                                </Dropdown>
-                            </div>
-                        </div>
-                    </div>
-                    @if(actAction.Scope == WfObjectScopes.RequestTask.ToString() || actAction.Scope == WfObjectScopes.ImplementationTask.ToString())
-                    {
-                        <div class="col-sm-4">
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
-                                <div class="col-sm-8">
-                                    <Dropdown ElementType="WfTaskType?" @bind-SelectedElement="selectedTaskType" ElementToString="@(t => userConfig.GetText(t?.ToString() ?? "undefined"))" 
-                                            Elements="availableTaskTypes.Where(x => x != WfTaskType.master).Cast<WfTaskType?>()" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
-                                        <ElementTemplate Context="type">
-                                            @(userConfig.GetText(type?.ToString() ?? "undefined"))
-                                        </ElementTemplate>
-                                    </Dropdown>
-                            </div>
-                            </div>
-                        </div>
-                    }
-                </div>
-                <div class="form-group row col-sm-12 mt-2">
-                    @switch (actAction.ActionType)
-                    {
-                        case nameof(StateActionTypes.AutoPromote):
-                            <div class="col-sm-4">
-                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5522"))">
-                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("to_state")):</label>
-                                    <div class="col-sm-8">
-                                        <Dropdown ElementType="WfState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedToState" Elements="statesPlus">
-                                            <ElementTemplate Context="state">
-                                                @state.Name
-                                            </ElementTemplate>
-                                        </Dropdown>
-                                    </div>
-                                </div>
-                            </div>
-                            break;
-                        case nameof(StateActionTypes.AddApproval):
-                            <div class="col-sm-4">
-                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5523"))">
-                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state"))*:</label>
-                                    <div class="col-sm-8">
-                                        <Dropdown ElementType="WfState" ElementToString="@(s => s.Name)" @bind-SelectedElement="selectedState" Elements="states">
-                                            <ElementTemplate Context="state">
-                                                @state.Name
-                                            </ElementTemplate>
-                                        </Dropdown>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-4">
-                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5523"))">
-                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
-                                    <div class="col-sm-8">
-                                        <Dropdown ElementType="UiUser" @bind-SelectedElement="selectedUserGroup" ElementToString="@(g => g.Name)" Elements="userAndGroupList" Nullable="true">
-                                            <ElementTemplate Context="group">
-                                                @group.Name
-                                            </ElementTemplate>
-                                        </Dropdown>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-4">
-                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5523"))">
-                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("deadline")):</label>
-                                    <input type="number" class="col-sm-8" @bind="actApprovalParams.Deadline" />
-                                </div>
-                            </div>
-                            break;
-                        case nameof(StateActionTypes.SetAlert):
-                            <div class="col-sm-12">
-                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5524"))">
-                                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("message_text")):</label>
-                                    <input type="text" class="col-sm-10" @bind="message" />
-                                </div>
-                            </div>
-                            break;
-                        case nameof(StateActionTypes.TrafficPathAnalysis):
-                            <div class="col-sm-4">
-                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5526"))">
-                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("option")):</label>
-                                    <div class="col-sm-8">
-                                        <Dropdown ElementType="PathAnalysisOptions" @bind-SelectedElement="actPathAnalysisParams.Option" 
-                                                ElementToString="@(o => userConfig.GetText(o.ToString()))"
-                                                Elements="Enum.GetValues(typeof(PathAnalysisOptions)).Cast<PathAnalysisOptions>()">
-                                            <ElementTemplate Context="opt">
-                                                @(userConfig.GetText(opt.ToString()))
-                                            </ElementTemplate>
-                                        </Dropdown>
-                                    </div>
-                                </div>
-                            </div>
-                            break;
-                        case nameof(StateActionTypes.SendEmail):
-                            <div class="col-sm-4">
-                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
-                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("email_to"))*:</label>
-                                    <div class="col-sm-8">
-                                        <Dropdown ElementType="EmailRecipientOption" @bind-SelectedElement="actEmailActionParams.RecipientTo" 
-                                                ElementToString="@(o => userConfig.GetText(o.ToString()))"
-                                                Elements="Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption>()">
-                                            <ElementTemplate Context="opt">
-                                                @(userConfig.GetText(opt.ToString()))
-                                            </ElementTemplate>
-                                        </Dropdown>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-4">
-                                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
-                                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("email_cc")):</label>
-                                    <div class="col-sm-8">
-                                        <Dropdown ElementType="EmailRecipientOption?" @bind-SelectedElement="actEmailActionParams.RecipientCC" 
-                                                ElementToString="@(o => userConfig.GetText(o?.ToString() ?? " "))" Nullable="true"
-                                                Elements="Enum.GetValues(typeof(EmailRecipientOption)).Cast<EmailRecipientOption?>()">
-                                            <ElementTemplate Context="opt">
-                                                @(userConfig.GetText(opt?.ToString() ?? " "))
-                                            </ElementTemplate>
-                                        </Dropdown>
-                                    </div>
-                                </div>
-                            </div>
-                            break;
-                        default:
-                            break;
-                    }
-                </div>
-                @if(actAction.ActionType == nameof(StateActionTypes.SendEmail))
-                {
-                    <div class="form-group row col-sm-12 mt-2">
-                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("email_subject")):</label>
-                            <input type="text" class="col-sm-10" @bind="actEmailActionParams.Subject" />
-                        </div>
-                    </div>
-                    <div class="form-group row col-sm-12 mt-2">
-                        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
-                            <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("email_body")):</label>
-                            <textarea rows="4" name="text" class="col-sm-10" @bind="actEmailActionParams.Body" />
-                        </div>
-                    </div>
-                }
-            }
-        </Body>
-        <Footer>
-            <div class="btn-group">
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
-                    <Authorized>
-                        <button type="button" class="btn btn-sm btn-primary" @onclick="SaveAction">@(userConfig.GetText("save"))</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-                    </NotAuthorized> 
-                </AuthorizeView>
-                <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
-            </div>
-        </Footer>
-    </PopUp>
-
-    <ConfirmDelete @bind-Display="DeleteActionMode" PerformAction="DeleteAction" Title="@userConfig.GetText("delete_action")" DeleteMessage="@(userConfig.GetText("U5502") + actAction.Name + "?")"/>
+    <EditActionPopup @ref="editActionPopup"
+                     Actions="actions"
+                     States="states"
+                     Policies="policies"
+                     UserAndGroupList="userAndGroupList"
+                     AvailableTaskTypes="availableTaskTypes"
+                     AvailableModIntegrationStateNames="availableModIntegrationStateNames"
+                     OnChanged="RefreshActionsUi" />
+    <ConfirmDelete @bind-Display="DeleteActionMode" PerformAction="DeleteAction" Title="@userConfig.GetText("delete_action")" DeleteMessage="@(userConfig.GetText("U5502") + (deleteActionTarget?.Name ?? "") + "?")"/>
 }
 else
 {
@@ -312,25 +92,13 @@ else
 
     private List<WfStateAction> actions = [];
     private List<WfState> states = [];
-    private List<WfState> statesPlus = [];
+    private List<CompliancePolicy> policies = [];
     private List<UiUser> userAndGroupList = [];
     private List<WfTaskType> availableTaskTypes { get; set; } = [];
+    private List<string> availableModIntegrationStateNames = [];
+    private EditActionPopup? editActionPopup;
+    private WfStateAction? deleteActionTarget;
 
-    private WfStateAction actAction = new ();
-    private ApprovalParams actApprovalParams = new ();
-    private int toState = -1;
-    private string message = "";
-    private PathAnalysisActionParams actPathAnalysisParams = new ();
-    private EmailActionParams actEmailActionParams = new ();
-    private string? selectedPhase;
-    private WfTaskType? selectedTaskType;
-    private WfState selectedState = new ();
-    private static WfState AutomaticState = new (){ Id = -1, Name = "automatic" };
-    private WfState selectedToState = AutomaticState;
-    private UiUser? selectedUserGroup;
-
-    private bool EditActionMode = false;
-    private bool AddActionMode = false;
     private bool DeleteActionMode = false;
     private bool InitComplete = false;
 
@@ -346,9 +114,14 @@ else
         {
             actions = await apiConnection.SendQueryAsync<List<WfStateAction>>(RequestQueries.getActions);
             states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
-            statesPlus = new List<WfState>(states);
-            statesPlus.Add(AutomaticState);
+            policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
+            availableModIntegrationStateNames = ModIntegrationStateConfig.Parse(editableConfig.ModIntegrationStates)
+                .Select(state => state.Name)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct()
+                .ToList();
             userAndGroupList = await RoleAccess.GetRoleMembers(middlewareClient, Roles.Approver);
         }
         catch (Exception exception)
@@ -357,167 +130,85 @@ else
         }
     }
 
-    private void AddAction()
+    private async Task AddAction()
     {
-        AddActionMode = true;
-        EditAction(new WfStateAction());
-    }
-
-    private void EditAction(WfStateAction action)
-    {
-        actAction = action;
-        selectedPhase = actAction.Phase != "" ? actAction.Phase : null;
-        if(actAction.TaskType != "")
+        if (editActionPopup != null)
         {
-            WfTaskType tmpTaskType;
-            Enum.TryParse<WfTaskType>(actAction.TaskType, out tmpTaskType);
-            selectedTaskType = tmpTaskType;
-        }
-        else
-        {
-            selectedTaskType = null;
-        }
-        if(action.ExternalParams != "" && action.ExternalParams != "{}")
-        {
-            switch(action.ActionType)
-            {
-                case nameof(StateActionTypes.AutoPromote):
-                    toState = Convert.ToInt32(action.ExternalParams);
-                    break;
-                case nameof(StateActionTypes.AddApproval):
-                    actApprovalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
-                    break;
-                case nameof(StateActionTypes.SetAlert):
-                    message = actAction.ExternalParams;
-                    break;
-                case nameof(StateActionTypes.TrafficPathAnalysis):
-                    actPathAnalysisParams = System.Text.Json.JsonSerializer.Deserialize<PathAnalysisActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
-                    break;
-                case nameof(StateActionTypes.SendEmail):
-                    actEmailActionParams = System.Text.Json.JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
-                    break;
-                default:
-                    break;
-            }
-        }
-        selectedState = states.FirstOrDefault(x => x.Id == actApprovalParams.StateId) ?? new WfState();
-        selectedToState = statesPlus.FirstOrDefault(x => x.Id == toState) ?? AutomaticState;
-        selectedUserGroup = userAndGroupList.FirstOrDefault(x => x.Dn == actApprovalParams.ApproverGroup);
-        EditActionMode = true;
-    }
-
-    private async Task SaveAction()
-    {
-        try
-        {
-            actAction.Phase = selectedPhase != null ? selectedPhase : "";
-            actAction.TaskType = selectedTaskType?.ToString() ?? "";
-            actApprovalParams.StateId = selectedState.Id;
-            actApprovalParams.ApproverGroup = selectedUserGroup != null ? selectedUserGroup.Dn : "";
-            switch(actAction.ActionType)
-            {
-                case nameof(StateActionTypes.AutoPromote):
-                    actAction.ExternalParams = selectedToState.Id.ToString();
-                    break;
-                case nameof(StateActionTypes.AddApproval):
-                    actAction.ExternalParams = JsonSerializer.Serialize(actApprovalParams);
-                    break;
-                case nameof(StateActionTypes.SetAlert):
-                    actAction.ExternalParams = message;
-                    break;
-                case nameof(StateActionTypes.TrafficPathAnalysis):
-                    actAction.ExternalParams = JsonSerializer.Serialize(actPathAnalysisParams);
-                    break;
-                case nameof(StateActionTypes.SendEmail):
-                    actAction.ExternalParams = JsonSerializer.Serialize(actEmailActionParams);
-                    break;
-                default:
-                    break;
-            }
-
-            if(AddActionMode)
-            {
-                var Variables = new
-                {
-                    name = actAction.Name,
-                    actionType = actAction.ActionType,
-                    scope = actAction.Scope,
-                    taskType = actAction.TaskType,
-                    phase = actAction.Phase,
-                    eventt = actAction.Event,
-                    buttonText = actAction.ButtonText,
-                    externalParameters = actAction.ExternalParams
-                };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newAction, Variables)).ReturnIds;
-                if (returnIds == null)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
-                }
-                else
-                {
-                    actAction.Id = returnIds[0].NewId;
-                    actions.Add(actAction);
-                    EditActionMode = false;
-                    AddActionMode = false;
-                }
-            }
-            else
-            {
-                var Variables = new
-                {
-                    id = actAction.Id,
-                    name = actAction.Name,
-                    actionType = actAction.ActionType,
-                    scope = actAction.Scope,
-                    taskType = actAction.TaskType,
-                    phase = actAction.Phase,
-                    eventt = actAction.Event,
-                    buttonText = actAction.ButtonText,
-                    externalParameters = actAction.ExternalParams
-                };
-                int udId = (await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateAction, Variables)).UpdatedId;
-                if(udId != actAction.Id)
-                {
-                    DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
-                }
-                else
-                {
-                    actions[actions.FindIndex(x => x.Id == actAction.Id)] = actAction;
-                    EditActionMode = false;
-                }
-            }
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("save_action"), "", true);
+            await InvokeAsync(editActionPopup.OpenAddAsync);
         }
     }
 
-    private void Cancel()
+    private async Task EditAction(WfStateAction action)
     {
-        EditActionMode = false;
-        AddActionMode = false;
-        DeleteActionMode = false;
+        if (editActionPopup != null)
+        {
+            await InvokeAsync(() => editActionPopup.OpenEditAsync(action));
+        }
+    }
+
+    private Task RefreshActionsUi()
+    {
+        return InvokeAsync(StateHasChanged);
     }
 
     private void RequestDeleteAction(WfStateAction action)
     {
-        actAction = action;
+        deleteActionTarget = action;
         DeleteActionMode = true;
     }
 
     private async Task DeleteAction()
     {
+        if (deleteActionTarget == null)
+        {
+            return;
+        }
+
         try
         {
-            await apiConnection.SendQueryAsync<object>(RequestQueries.deleteAction, new { id = actAction.Id });
-            actions.Remove(actAction);
-            DeleteActionMode = false;
+            List<int> notificationIds = ActionNotificationIds(deleteActionTarget);
+            await apiConnection.SendQueryAsync<object>(RequestQueries.deleteAction, new { id = deleteActionTarget.Id });
+            actions.Remove(deleteActionTarget);
+            await DeleteActionNotifications(notificationIds);
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_action"), "", true);
         }
-        StateHasChanged();
+        finally
+        {
+            DeleteActionMode = false;
+            deleteActionTarget = null;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static List<int> ActionNotificationIds(WfStateAction action)
+    {
+        if (action.ActionType != nameof(StateActionTypes.SendEmail) || string.IsNullOrWhiteSpace(action.ExternalParams))
+        {
+            return [];
+        }
+
+        try
+        {
+            EmailActionParams? actionParams = JsonSerializer.Deserialize<EmailActionParams>(action.ExternalParams);
+            return actionParams == null
+                ? []
+                : [.. actionParams.NotificationIds.Where(id => id > 0).Distinct()];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private async Task DeleteActionNotifications(IEnumerable<int> notificationIds)
+    {
+        foreach (int notificationId in notificationIds.Where(id => id > 0).Distinct())
+        {
+            await NotificationMutationHelper.DeleteAsync(apiConnection, notificationId);
+        }
     }
 }

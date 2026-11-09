@@ -1,5 +1,5 @@
 query getMapOfName2Id($names: [String!], $mgmId: Int!) {
-  zone(where: {
+  firewall_zone(where: {
     zone_name: {_in: $names}, 
     _or: [
       {mgm_id: {_eq: $mgmId}},

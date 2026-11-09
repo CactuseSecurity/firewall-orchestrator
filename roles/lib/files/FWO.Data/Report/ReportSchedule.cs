@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Data;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 
@@ -13,8 +14,15 @@ namespace FWO.Data.Report
         [JsonProperty("report_schedule_name"), JsonPropertyName("report_schedule_name")]
         public string Name { get; set; } = "";
 
+        // the API returns null for a user outside the tenant of the caller (SEC-19)
+        private UiUser scheduleOwningUser = new();
+
         [JsonProperty("report_schedule_owner_user"), JsonPropertyName("report_schedule_owner_user")]
-        public UiUser ScheduleOwningUser { get; set; } = new();
+        public UiUser ScheduleOwningUser
+        {
+            get => scheduleOwningUser;
+            set => scheduleOwningUser = value ?? new UiUser();
+        }
 
         [JsonProperty("report_schedule_start_time"), JsonPropertyName("report_schedule_start_time")]
         public DateTime StartTime { get; set; } = DateTime.Now.AddSeconds(-DateTime.Now.Second);
@@ -36,6 +44,12 @@ namespace FWO.Data.Report
 
         [JsonProperty("report_schedule_counter"), JsonPropertyName("report_schedule_counter")]
         public int Counter { get; set; }
+
+        [JsonProperty("archive"), JsonPropertyName("archive")]
+        public bool Archive { get; set; }
+
+        [JsonProperty("notifications"), JsonPropertyName("notifications")]
+        public List<FwoNotification> Notifications { get; set; } = [];
 
         public bool Sanitize()
         {

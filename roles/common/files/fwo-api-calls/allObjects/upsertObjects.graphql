@@ -5,12 +5,12 @@ mutation upsertObjects(
   $removedSvcObjectUids: [String!]!
   $removedUserUids: [String!]!
   $removedZoneUids: [String!]!
-  $newNwObjects: [object_insert_input!]!
-  $newSvcObjects: [service_insert_input!]!
-  $newUsers: [usr_insert_input!]!
-  $newZones: [zone_insert_input!]!
+  $newNwObjects: [firewall_nw_object_insert_input!]!
+  $newSvcObjects: [firewall_nw_service_insert_input!]!
+  $newUsers: [firewall_nw_user_insert_input!]!
+  $newZones: [firewall_zone_insert_input!]!
 ) {
-  update_object(
+  update_firewall_nw_object(
     where: {
       mgm_id: { _eq: $mgmId }
       obj_uid: { _in: $removedNwObjectUids }
@@ -25,7 +25,7 @@ mutation upsertObjects(
       obj_typ_id
     }
   }
-  update_service(
+  update_firewall_nw_service(
     where: {
       mgm_id: { _eq: $mgmId }
       svc_uid: { _in: $removedSvcObjectUids }
@@ -39,7 +39,7 @@ mutation upsertObjects(
       svc_uid
     }
   }
-  update_usr(
+  update_firewall_nw_user(
     where: {
       mgm_id: { _eq: $mgmId }
       user_uid: { _in: $removedUserUids }
@@ -53,7 +53,7 @@ mutation upsertObjects(
       user_uid
     }
   }
-  update_zone(
+  update_firewall_zone(
     where: {
       mgm_id: { _eq: $mgmId }
       zone_name: { _in: $removedZoneUids }
@@ -67,7 +67,7 @@ mutation upsertObjects(
       zone_name
     }
   }
-  insert_object(objects: $newNwObjects) {
+  insert_firewall_nw_object(objects: $newNwObjects) {
     affected_rows
     returning {
       obj_id
@@ -75,21 +75,21 @@ mutation upsertObjects(
       obj_typ_id
     }
   }
-  insert_service(objects: $newSvcObjects) {
+  insert_firewall_nw_service(objects: $newSvcObjects) {
     affected_rows
     returning {
       svc_id
       svc_uid
     }
   }
-  insert_usr(objects: $newUsers) {
+  insert_firewall_nw_user(objects: $newUsers) {
     affected_rows
     returning {
       user_id
       user_uid
     }
   }
-  insert_zone(objects: $newZones) {
+  insert_firewall_zone(objects: $newZones) {
     affected_rows
     returning {
       zone_id

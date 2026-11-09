@@ -14,12 +14,18 @@ using Assert = NUnit.Framework.Assert;
 namespace FWO.Test
 {
     [TestFixture]
-    [Parallelizable]
     internal class ConfigFileTest
     {
         private const string configFileTestPath = "config_file.test";
         private const string privateKeyTestPath = "private_key.test";
         private const string publicKeyTestPath = "public_key.test";
+        private const int kTestFileCount = 11;
+        private const string kProductVersionEntry = @"""product_version"": ""500""";
+        private static readonly string[] kExpectedAllowedCustomizationRoots =
+        [
+            NormalizePath(Path.Combine("/usr/local/fworch", "scripts", "customizing")),
+            NormalizePath(Path.Combine("/usr/local/fworch", "etc"))
+        ];
 
         #region configFiles
         private const string correctConfigFile = @"{
@@ -29,6 +35,10 @@ namespace FWO.Test
           ""fworch_home"": ""/usr/local/fworch"",
           ""middleware_native_uri"": ""http://127.0.0.3:8880/"",
           ""middleware_uri"": ""http://127.0.0.1:8880/"",
+          ""tls_client_certificate"": ""/etc/fworch/secrets/client/client.crt"",
+          ""tls_client_private_key"": ""/etc/fworch/secrets/client/client.key"",
+          ""tls_ca_certificate"": ""/etc/fworch/fworch-internal-ca.crt"",
+          ""internal_ca_certificate"": ""/etc/fworch/fworch-internal-ca.crt"",
           ""product_version"": ""500""
         }";
 
@@ -113,7 +123,20 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
             ClassicAssert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
             ClassicAssert.AreEqual("http://127.0.0.1:8880/", ConfigFile.MiddlewareServerUri);
             ClassicAssert.AreEqual("https://127.0.0.1:9443/api/v1/graphqlo/", ConfigFile.ApiServerUri);
+            ClassicAssert.AreEqual("/etc/fworch/secrets/client/client.crt", ConfigFile.TlsClientCertificate);
+            ClassicAssert.AreEqual("/etc/fworch/secrets/client/client.key", ConfigFile.TlsClientPrivateKey);
+            ClassicAssert.AreEqual("/etc/fworch/fworch-internal-ca.crt", ConfigFile.TlsCaCertificate);
+            ClassicAssert.AreEqual("/etc/fworch/fworch-internal-ca.crt", ConfigFile.InternalCaCertificate);
             ClassicAssert.AreEqual("500", ConfigFile.ProductVersion);
+        }
+
+        [Test]
+        public void AllowedCustomizationRootsUseConfiguredFwoHome()
+        {
+            CreateAndReadConfigFile(7, correctConfigFile);
+
+            Assert.That(ConfigFile.FwoHome, Is.EqualTo("/usr/local/fworch"));
+            Assert.That(ConfigFile.AllowedCustomizationRoots, Is.EqualTo(kExpectedAllowedCustomizationRoots));
         }
 
         [Test]
@@ -127,9 +150,9 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         {
             CreateAndReadConfigFile(2, missingValueConfigFile);
             ClassicAssert.AreEqual("http://127.0.0.3:8880/", ConfigFile.MiddlewareServerNativeUri);
-            Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.MiddlewareServerUri; });
-            Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.ApiServerUri; });
             ClassicAssert.AreEqual("500", ConfigFile.ProductVersion);
+            Assert.Throws<InvalidOperationException>(() => { var _ = ConfigFile.MiddlewareServerUri; });
+            Assert.Throws<InvalidOperationException>(() => { var _ = ConfigFile.ApiServerUri; });
         }
 
         [Test]
@@ -150,20 +173,85 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         public void IncorrectPublicKey()
         {
             CreateAndReadConfigFile(5, correctConfigFile, "", incorrectPublicKey);
-            Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.JwtPublicKey; });
+            Assert.Throws<InvalidOperationException>(() => { var _ = ConfigFile.JwtPublicKey; });
         }
 
         [Test]
         public void IncorrectPrivateKey()
         {
             CreateAndReadConfigFile(6, correctConfigFile, incorrectPrivateKey, "");
-            Assert.Catch(typeof(ApplicationException), () => { var _ = ConfigFile.JwtPrivateKey; });
+            Assert.Throws<InvalidOperationException>(() => { var _ = ConfigFile.JwtPrivateKey; });
+        }
+
+        [Test]
+        public void LoginSettingsAcceptNumbersAndNumericStrings()
+        {
+            CreateAndReadConfigFile(8, WithEntries(@"""login_max_directories"": 8, ""login_client_attempts_per_minute"": "" 40 "", ""login_user_failures_per_minute"": ""12"""));
+
+            Assert.That(ConfigFile.LoginMaxDirectories, Is.EqualTo(8));
+            Assert.That(ConfigFile.LoginClientAttemptsPerMinute, Is.EqualTo(40));
+            Assert.That(ConfigFile.LoginUserFailuresPerMinute, Is.EqualTo(12));
+        }
+
+        [Test]
+        public void InvalidLoginSettingsAreIgnoredWithoutFailingTheFile()
+        {
+            CreateAndReadConfigFile(9, WithEntries(@"""login_max_directories"": ""many"", ""login_client_attempts_per_minute"": 2.5, ""login_user_failures_per_minute"": true, ""login_trusted_client_hosts"": 5"));
+
+            Assert.That(ConfigFile.LoginMaxDirectories, Is.Null);
+            Assert.That(ConfigFile.LoginClientAttemptsPerMinute, Is.Null);
+            Assert.That(ConfigFile.LoginUserFailuresPerMinute, Is.Null);
+            Assert.That(ConfigFile.LoginTrustedClientHosts, Is.Null);
+            Assert.That(ConfigFile.ApiServerUri, Is.EqualTo("https://127.0.0.1:9443/api/v1/graphqlo/"));
+        }
+
+        [Test]
+        public void RateLimitSettingsAcceptNumbersAndIgnoreInvalidValues()
+        {
+            CreateAndReadConfigFile(11, WithEntries(@"""rate_limit_requests_per_minute"": ""120"", ""rate_limit_concurrent_expensive_requests"": 3"));
+            int? requestsPerMinute = ConfigFile.RateLimitRequestsPerMinute;
+            int? concurrentExpensiveRequests = ConfigFile.RateLimitConcurrentExpensiveRequests;
+
+            CreateAndReadConfigFile(12, WithEntries(@"""rate_limit_requests_per_minute"": ""many"", ""rate_limit_concurrent_expensive_requests"": 1.5"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(requestsPerMinute, Is.EqualTo(120));
+                Assert.That(concurrentExpensiveRequests, Is.EqualTo(3));
+                Assert.That(ConfigFile.RateLimitRequestsPerMinute, Is.Null);
+                Assert.That(ConfigFile.RateLimitConcurrentExpensiveRequests, Is.Null);
+            });
+        }
+
+        [TestCase(@"[""ui1"", "" ui2 "", """", ""ui1""]", "ui1,ui2")]
+        [TestCase(@"""ui1, ui2,""", "ui1,ui2")]
+        [TestCase(@"""[\""ui1\"", \""ui2\""]""", "ui1,ui2")]
+        [TestCase(@"[""ui1"", 10, {""host"": ""ui2""}, null]", "ui1,10")]
+        [TestCase(@"[]", "")]
+        public void TrustedClientHostsAcceptListsAndStrings(string hostsValue, string expectedHosts)
+        {
+            CreateAndReadConfigFile(10, WithEntries($@"""login_trusted_client_hosts"": {hostsValue}"));
+
+            Assert.That(ConfigFile.LoginTrustedClientHosts, Is.EqualTo(expectedHosts.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList()));
+        }
+
+        [TestCase(@"""""")]
+        [TestCase(@"null")]
+        [TestCase(@"""[ui1, ui2""")]
+        [TestCase(@"""[\""ui1\""]x""")]
+        [TestCase(@"{""host"": ""ui1""}")]
+        public void TrustedClientHostsWithoutListAreNotConfigured(string hostsValue)
+        {
+            CreateAndReadConfigFile(10, WithEntries($@"""login_trusted_client_hosts"": {hostsValue}"));
+
+            Assert.That(ConfigFile.LoginTrustedClientHosts, Is.Null);
+            Assert.That(ConfigFile.ProductVersion, Is.EqualTo("500"));
         }
 
         [OneTimeTearDown]
         public void OnFinish()
         {
-            for (int uniqueId = 0; uniqueId < 7; uniqueId++)
+            for (int uniqueId = 0; uniqueId < kTestFileCount; uniqueId++)
             {
                 File.Delete(configFileTestPath + uniqueId);
                 File.Delete(privateKeyTestPath + uniqueId);
@@ -180,6 +268,19 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
             File.WriteAllText(uniquePrivateKeyTestPath, privateKey);
             File.WriteAllText(uniquepublicKeyTestPath, publicKey);
             TestHelper.InvokeMethod<ConfigFile, object?>("Read", new object[] { uniqueConfigFilePath, uniquePrivateKeyTestPath, uniquepublicKeyTestPath });
+        }
+
+        /// <summary>
+        /// Returns the correct config file with the given entries added.
+        /// </summary>
+        private static string WithEntries(string entries)
+        {
+            return correctConfigFile.Replace(kProductVersionEntry, kProductVersionEntry + ", " + entries);
+        }
+
+        private static string NormalizePath(string path)
+        {
+            return path.Replace('\\', '/');
         }
     }
 }

@@ -1,0 +1,34 @@
+query getServiceGroupMembersForRequest(
+  $mgmId: Int!
+  $groupId: Int!
+  $memberLimit: Int!
+) {
+  firewall_nw_service(
+    where: {
+      mgm_id: { _eq: $mgmId }
+      svc_id: { _eq: $groupId }
+      svc_typ_id: { _eq: 2 }
+      active: { _eq: true }
+      removed: { _is_null: true }
+    }
+    limit: 1
+  ) {
+    svc_id
+    svc_name
+    svc_member_names
+    svcgrps(
+      where: { active: { _eq: true }, removed: { _is_null: true } }
+      order_by: [{ svcgrp_member_id: asc }]
+      limit: $memberLimit
+    ) {
+      id: svcgrp_member_id
+      byId: serviceBySvcgrpMemberId {
+        svc_id
+        svc_name
+        svc_port
+        svc_port_end
+        ip_proto_id
+      }
+    }
+  }
+}

@@ -16,6 +16,14 @@ mutation updateRequestElement(
   $ruleUid: String
   $groupName: String
   $name: String
+  $flowNwObjId: bigint
+  $flowNwGrpId: bigint
+  $flowSvcObjId: bigint
+  $flowSvcGrpId: bigint
+  $startTime: timestamptz
+  $endTime: timestamptz
+  $timeObjId: bigint
+  $flowTimeObjId: bigint
   ) {
   update_request_reqelement_by_pk(
     pk_columns: { id: $id }
@@ -36,6 +44,14 @@ mutation updateRequestElement(
       rule_uid: $ruleUid
       group_name: $groupName
       name: $name
+      flow_nwobj_id: $flowNwObjId
+      flow_nwgrp_id: $flowNwGrpId
+      flow_svcobj_id: $flowSvcObjId
+      flow_svcgrp_id: $flowSvcGrpId
+      start_time: $startTime
+      end_time: $endTime
+      time_obj_id: $timeObjId
+      flow_timeobj_id: $flowTimeObjId
   }) {
     UpdatedIdLong: id
   }

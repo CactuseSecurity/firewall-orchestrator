@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using FWO.Basics;
+using FWO.Data.Flow;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -44,9 +46,6 @@ namespace FWO.Data
         [JsonProperty("svc_create_time"), JsonPropertyName("svc_create_time")]
         public TimeWrapper CreateTime { get; set; } = new();
 
-        [JsonProperty("svc_last_seen"), JsonPropertyName("svc_last_seen")]
-        public int LastSeen { get; set; }
-
         [JsonProperty("service_type"), JsonPropertyName("service_type")]
         public NetworkServiceType Type { get; set; } = new();
 
@@ -80,6 +79,24 @@ namespace FWO.Data
         [JsonProperty("svc_rpcnr"), JsonPropertyName("svc_rpcnr")]
         public long? RpcNumber { get; set; }
 
+        [JsonProperty("flow_svcobj_id"), JsonPropertyName("flow_svcobj_id")]
+        public long? FlowServiceObjectId { get; set; }
+
+        [JsonProperty("flow_svcobject"), JsonPropertyName("flow_svcobject")]
+        public FlowSvcObject? FlowSvcObject { get; set; }
+
+        [JsonProperty("flow_svcgrp_id"), JsonPropertyName("flow_svcgrp_id")]
+        public long? FlowServiceGroupId { get; set; }
+
+        [JsonProperty("flow_svcgroup"), JsonPropertyName("flow_svcgroup")]
+        public FlowSvcGroup? FlowSvcGroup { get; set; }
+
+        [JsonProperty("flow_active"), JsonPropertyName("flow_active")]
+        public bool FlowActive { get; set; }
+
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public long? Removed { get; set; }
+
         public long Number;
         public bool IsSurplus = false;
 
@@ -101,7 +118,6 @@ namespace FWO.Data
             Active = networkService.Active;
             Create = networkService.Create;
             CreateTime = networkService.CreateTime;
-            LastSeen = networkService.LastSeen;
             Type = networkService.Type;
             Comment = networkService.Comment;
             ColorId = networkService.ColorId;
@@ -127,6 +143,23 @@ namespace FWO.Data
         public override int GetHashCode()
         {
             return Id.GetHashCode();
+        }
+
+        /// <summary>
+        /// Flattens service groups into their leaf services and removes duplicate service entries.
+        /// </summary>
+        public static List<NetworkService> FlattenRuleServices(IEnumerable<NetworkService> services)
+        {
+            HashSet<long> flattenedServiceIds = [];
+
+            return services
+                .Where(service => service is not null)
+                .SelectMany(service => string.Equals(service!.Type?.Name, ServiceType.Group, StringComparison.OrdinalIgnoreCase)
+                    ? (service.ServiceGroupFlats ?? []).Select(groupFlat => groupFlat.Object).OfType<NetworkService>()
+                    : new[] { service })
+                .Where(service => !string.Equals(service.Type?.Name, ServiceType.Group, StringComparison.OrdinalIgnoreCase))
+                .Where(service => flattenedServiceIds.Add(service.Id))
+                .ToList();
         }
     }
 }

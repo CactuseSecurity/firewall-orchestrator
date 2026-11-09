@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 # main importer loop in python (also able to run distributed)
 # run import loop every x seconds (adjust sleep time per management depending on the change frequency )
-
 import argparse
+import json
 import sys
 import time
 import traceback
@@ -19,6 +21,7 @@ from fwo_exceptions import (
     FwLoginFailedError,
     FwoApiFailedLockImportError,
     FwoApiLoginFailedError,
+    ShutdownRequestedError,
 )
 from fwo_log import FWOLogger
 from model_controllers.import_state_controller import ImportStateController
@@ -45,12 +48,16 @@ def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> 
 
 
 def wait_with_shutdown_check(sleep_time: int):
-    counter = 0
-    while counter < sleep_time:
+    def exit_if_shutdown_requested():
         if fwo_globals.shutdown_requested:
             FWOLogger.info("import_main_loop - shutdown requested. Exiting...")
             raise SystemExit("import_main_loop - shutdown requested")
+
+    exit_if_shutdown_requested()
+    counter = 0
+    while counter < sleep_time:
         time.sleep(1)
+        exit_if_shutdown_requested()
         counter += 1
 
 
@@ -112,12 +119,12 @@ def import_single_management(
         import_management(
             mgm_id,
             fwo_api_call,
-            verify_certificates,
             api_fetch_limit,
             clear,
-            suppress_certificate_warnings,
             suppress_consistency_check=suppress_consistency_check,
         )
+    except (KeyboardInterrupt, ShutdownRequestedError) as e:
+        raise SystemExit("import_main_loop - shutdown requested") from e
     except (FwoApiFailedLockImportError, FwLoginFailedError):
         FWOLogger.info(f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")
         return  # minor errors for a single mgm, go to next one
@@ -147,17 +154,34 @@ def main_loop(
         FWOLogger.error("import_main_loop - error while reading importer pwd file")
         raise
 
-    jwt = get_fwo_jwt(importer_user_name, importer_pwd, user_management_api_base_url)
-    # check if login was successful - if not, wait and retry
-    if jwt is None:
+    json_raw = get_fwo_jwt(importer_user_name, importer_pwd, user_management_api_base_url)
+
+    # check if json could be retrieved - if not, wait and retry
+    if json_raw is None:
+        FWOLogger.error("cannot proceed without successful login - exiting")
         wait_with_shutdown_check(sleep_timer)
         return
 
-    fwo_api = FwoApi(fwo_api_base_url, jwt)
+    jwt: str
+    refresh_token: str | None
+
+    try:
+        json_data = json.loads(json_raw)
+        jwt = json_data["AccessToken"]
+        refresh_token = json_data.get("RefreshToken") or None
+    except Exception:
+        FWOLogger.error("JWT could not be parsed")
+        wait_with_shutdown_check(sleep_timer)
+        return
+
+    fwo_api = FwoApi(fwo_api_base_url, jwt, refresh_token, user_management_api_base_url)
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
-    verify_certificates = fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
+    # the command line can only force certificate checking on, never switch the configured value off
+    verify_certificates = (
+        fwo_globals.cli_verify_certs or fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
+    )
     suppress_certificate_warnings = fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
     if not suppress_certificate_warnings:
         warnings.resetwarnings()
@@ -207,6 +231,7 @@ def main(
     fwo_major_version = fwo_config["fwo_major_version"]
     user_management_api_base_url = fwo_config["user_management_api_base_url"]
     fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
+    fwo_globals.set_cli_verify_certs(verify_certificates)
     if suppress_certificate_warnings:
         urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
 

@@ -5,7 +5,9 @@
 - create a fork of the [Cactus eSecurity firewall orchestrator repo](https://github.com/CactuseSecurity/firewall-orchestrator)
 - make changes only within the "develop" branch
 - open pull request from your fork branch "develop" to the same branch in the Cactus eSecurity firewall orchestrator repo
+- follow the [versioning policy](versioning.md) when preparing and publishing a new version
 - do you for example want to know how to add an [import module for a new firewall type](importer/readme.md)?
+- see the [GitHub-specific developer docs](github/) for CI/workflow details
 
 
 ## Misc
@@ -100,5 +102,4 @@ Code blocks must contain language in first line. Either use three ~ or ` chars, 
   ```console
   [Link to whatever](https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/whatever/whatever.md)
   ```
-
 

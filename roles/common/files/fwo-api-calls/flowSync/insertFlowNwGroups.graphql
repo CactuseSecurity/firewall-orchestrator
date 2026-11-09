@@ -1,0 +1,9 @@
+mutation insertFlowNwGroups($objects: [flow_nwgroup_insert_input!]!) {
+  insert_flow_nwgroup(objects: $objects) {
+    affected_rows
+    returning {
+      nwgrp_id
+      nwgrp_hash
+    }
+  }
+}

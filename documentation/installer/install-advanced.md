@@ -2,6 +2,23 @@
 
 always change into the firewwall-orchestrator directory before starting the installation.
 
+On Ubuntu 26.04 or other systems with sudo 1.9.16+, use `./scripts/run-playbook-with-sudo.sh` instead of `ansible-playbook ... -K`. For example:
+
+```console
+./scripts/run-playbook-with-sudo.sh site.yml -e installation_mode=upgrade
+```
+
+Full sudoers rights are still required. If sudo already works without a password, the wrapper runs the playbook directly; otherwise it creates a temporary passwordless sudoers entry for the current user, runs the playbook without `-K`, and removes the entry again when the playbook exits.
+
+## Role duration summary
+
+At the end of an installer playbook run, `ROLE DURATIONS` lists the elapsed task time of each role in seconds,
+longest first. Repeated executions of the same role are combined, including its handlers. For multiple hosts,
+the duration measures the shared task interval rather than adding each host's time. Tasks outside roles and
+time between plays are excluded, so these durations do not equal the entire installer runtime.
+The controller callback is enabled by `callbacks_enabled = fwo_role_durations` in `ansible.cfg` and adds no
+timing lines during task execution.
+
 ## Install parameters
 
 ### Installation mode parameter
@@ -13,31 +30,32 @@ installation_mode options:
 
 #### Upgrading ####
 
-If you have an ansible version less than 2.13 on your machine, before doing an upgrade, switch into the virtual pyhton environment you created during installation before running the upgrade:
+Before doing an upgrade, (re-)create the installer Ansible environment so the upgrade runs with the pinned Ansible version and refreshed collections:
 
 ```console
 cd ~/firewall-orchestrator
-source ansible-venv/bin/activate
+source scripts/install-ansible-from-venv.sh
 ```
 
 Then for upgrading firewall orchestrator, use the following switch:
 
 ```console
 cd ~/firewall-orchestrator
-ansible-playbook -e installation_mode=upgrade site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e installation_mode=upgrade
 ```
 
 #### Uninstall ####
 If you want to drop the database and re-install from scratch, do the following:
 
 ```console
-ansible-playbook -e installation_mode=uninstall site.yml -K
-ansible-playbook site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e installation_mode=uninstall
+./scripts/run-playbook-with-sudo.sh site.yml
 ```
 
 ### Installation behind a proxy (no direct Internet connection)
 
 By default, during installation or upgrade the proxy settings are read from the OS environment of the installer host.
+The installer reads both lowercase and uppercase proxy variables. If both forms are set and non-empty, the lowercase value wins.
 For example you may either use /etc/environment or add a global system-wide config file /etc/profile.d/proxy.sh and add the following content:
 
 ```console
@@ -54,7 +72,7 @@ If instead you need to individually set a proxy before installation/upgrade, use
 export http_proxy=http://proxy.int:3128
 export https_proxy=http://proxy.int:3128
 export no_proxy=127.0.0.1,localhost
-ansible-playbook site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml
 ```
 
 Use the following syntax for authenticated proxy access:
@@ -82,6 +100,7 @@ Note that the following domains (and their sub-domains) must be reachable throug
     canonical.com
     github.com, api.github.com
     githubusercontent.com
+    galaxy.ansible.com (for downloading the pinned Ansible collections)
     docker.io (and subdomains)
     hasura.io, releases.hasura.io
     postgresql.org
@@ -105,46 +124,68 @@ Note that the following domains (and their sub-domains) must be reachable throug
 
 #### Pyhton proxy config
 
-Remember if your server resides behind a proxy that you will have to set the proxy for pip as follows before installing ansible:
-
-         pip config set global.proxy http://proxy:3128
+When using `scripts/install-ansible-from-venv.sh`, export the proxy variables described above. Pip automatically honors them; the script does not write a pip configuration file.
 
 
 In case of timeout issues (you might be behind a security proxy that does intensive scanning), try to install ansible using the command:
 
           pip --default-timeout=3600 install ansible
           
-##### issues with existing pip config
+##### Existing pip configuration
 
-In case of errors with existing pip config, do not use the script to create the venv but proceed as follows:
+The venv helper preserves any existing pip configuration, including an organization-provided package index. It sets only a command-local download timeout and does not create or change `$HOME/.config/pip/pip.conf`.
 
-remove any local pip config and install manually:
-    
-    rm -f $HOME/.config/pip/pip.conf
-    python3 -m venv installer-venv
-    source installer-venv/bin/activate
-    pip install -r requirements.txt
-    pip install ansible
+If that configuration cannot provide the required packages, have the package-index administrator correct the repository or use an approved index. Do not remove an existing user or OS-managed pip configuration as an installer workaround.
 
 ### Parameter "api_no_metadata" to prevent meta data import
 
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch:
 
 ```console
-ansible-playbook -e "api_no_metadata=yes" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "api_no_metadata=yes"
 ```
 ### Parameter "force_install" to force installation even though operating system packages are not up2date
 
 ```console
-ansible-playbook -e "force_install=yes" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "force_install=yes"
 ```
 
-### Parameter "docker_network" after the Podman migration
+### Parameter "allow_unsupported_os" to install on an unsupported operating system release
 
-This legacy parameter is ignored by the current installer because Hasura now runs with Podman host networking instead of a Docker bridge.
+The installer stops before changing anything on an operating system release it does not support (supported are Red Hat 9+, Rocky 9+, Debian 12+ including Debian testing, and Ubuntu 22.04+ LTS). For development or for testing a new release, install anyway with a warning instead:
 
 ```console
-ansible-playbook -e "docker_network=172.26.0.1/16" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "allow_unsupported_os=true"
+```
+
+The resulting installation is not supported. The supported releases are defined by `supported_os_minimum_major_versions` in `inventory/group_vars/all.yml`.
+
+### Parameter "internalca_reset_certificates" to rotate FWO-managed certificates
+
+Use this one-shot switch only with `installation_mode=upgrade` to generate a new
+internal CA and new FWO-managed client, Apache, and OpenLDAP identities:
+
+```console
+./scripts/run-playbook-with-sudo.sh site.yml -e "installation_mode=upgrade internalca_reset_certificates=true"
+```
+
+Customer-managed Apache and OpenLDAP certificate/key pairs are retained unchanged,
+while the self-signed identities installed by FWO before 9.5.0 are replaced. Run the
+full playbook against every host, and remove the switch after the run so a later
+upgrade does not rotate the CA again - the installer refuses a run that finds it in
+`/etc/fworch/fwo-install-settings.yml` rather than in `-e`. Internal TLS is unavailable
+between the trust-anchor replacement and the reissue of the leaves, so plan the run as
+a maintenance window. See `documentation/certificates.md` for the trust-store
+follow-up, the recovery from an interrupted reset, and the detailed ownership rules.
+
+### Parameter "allowRepoChangesForRedhat" to allow RedHat repository changes
+
+By default, the installer does not add or enable RedHat repositories. If required packages are not available from the already enabled repositories, prepare the OS repositories outside the installer.
+
+Set this parameter only if the installer is allowed to install EPEL and enable CodeReady Builder/CRB on RedHat-like systems:
+
+```console
+./scripts/run-playbook-with-sudo.sh site.yml -e "allowRepoChangesForRedhat=true"
 ```
 
 ### Parameter "install_syslog" allows disabling of separate syslog installation
@@ -153,10 +194,12 @@ Default value is install_syslog=yes but if you already have a syslog service run
 
 run installation without syslog installation:
 ```console
-ansible-playbook -e "install_syslog=no" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "install_syslog=no"
 ```
 
-Here is a sample config you can use for configuring your already running syslog:
+Here is a sample config you can use for configuring your already running syslog.
+All Firewall Orchestrator components log locally, so the installer opens no network syslog receiver (versions up to 9.8.2 opened one on TCP port 514; the installation now removes it).
+The routing rules select messages by program name and message text, which the sender chooses. If your syslog service receives messages from the network, keep the rules restricted to local inputs as below, otherwise anyone who can reach the receiver can forge entries in the audit log.
 
 variables (already set in inventory):
 ```console
@@ -179,16 +222,16 @@ rsyslog config
         local6.=info                   /var/log/{{ product_name }}/login_info.log
         local6.debug                   /var/log/{{ product_name }}/debug.log
 
-        if $programname == '{{ product_name }}-database' then /var/log/{{ product_name }}/database.log
-        if $programname == '{{ middleware_server_syslog_id }}' then /var/log/{{ product_name }}/middleware.log
-        if $programname == '{{ ui_syslog_id }}' then /var/log/{{ product_name }}/ui.log
-        if $programname == '{{ ldap_syslog_id }}' then /var/log/{{ product_name }}/ldap.log
-        if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
-        if $programname startswith '{{ product_name }}-import' then /var/log/{{ product_name }}/importer.log
-        if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
-        # only for devsrv:
-        if $programname == '{{ product_name }}-webhook' then /var/log/{{ product_name }}/webhook.log
-
+        # only route messages of local inputs, see the note below
+        if ($inputname == 'imuxsock' or $inputname == 'imjournal') then {
+          if $programname == '{{ product_name }}-database' then /var/log/{{ product_name }}/database.log
+          if $programname == '{{ middleware_server_syslog_id }}' then /var/log/{{ product_name }}/middleware.log
+          if $programname == '{{ ui_syslog_id }}' then /var/log/{{ product_name }}/ui.log
+          if $programname == '{{ ldap_syslog_id }}' then /var/log/{{ product_name }}/ldap.log
+          if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
+          if $programname startswith '{{ product_name }}-import' then /var/log/{{ product_name }}/importer.log
+          if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
+        }
   - name: edit logrotate
     blockinfile:
       path: "/etc/logrotate.d/{{ product_name }}"
@@ -211,7 +254,7 @@ Generating a full hasura (all tables, etc. tracked) API documentation  currently
 - a minimum of 8 GB RAM
 
 ```console
-ansible-playbook -e "api_docu=yes" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "api_docu=yes"
 ```
 
 api docu can then be accessed at <https://server/api_schema/index.html>
@@ -228,20 +271,112 @@ The following options exist for communication to the UI:
 
 Example:
 ```console
-ansible-playbook -e "ui_comm_mode=no_ws" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "ui_comm_mode=no_ws"
 ```
 
+## Host-wide installer settings
+
+`inventory/hosts.yml` and `inventory/group_vars/` are tracked files in the git repository
+the installer is run from, so anything changed there is lost by a fresh clone and
+conflicts on `git pull`. Settings that must outlive an upgrade belong in
+
+```
+/etc/fworch/fwo-install-settings.yml
+```
+
+which is the same file as `/usr/local/fworch/etc/fwo-install-settings.yml` - the installer
+keeps `/etc/fworch` as a symlink to it, on install and on upgrade alike. Either path works.
+
+`site.yml` reads that file in its first play, so it applies to **every** way of starting
+the installer - `./scripts/run-playbook-with-sudo.sh` and a plain `ansible-playbook
+site.yml` alike, and to a tag-limited run such as `--tags certificates`. It overrides
+`inventory/group_vars/`, and anything given on the command line still overrides the file.
+The run reports what it applied:
+
+```
+TASK [report the endpoints the installer settings put in force] ****************
+ok: [localhost] => {
+    "msg": "Applied installer settings from /etc/fworch/fwo-install-settings.yml - api: fwo.example.com, middleware: fwo.example.com, ui: fwo.example.com"
+}
+```
+
+If that task does not appear, the file was not found and nothing in it is in force.
+
+It is shared by every clone on the host by design: two administrators upgrading the same
+installation from their own repositories would otherwise write different endpoints into
+`fworch.json` and have the certificates reissued for different names.
+
+A commented reference copy is installed next to it as
+`/etc/fworch/fwo-install-settings.template.yml`, refreshed on every run. It is never read
+by the installer, so the quickest start is to copy it and edit:
+
+```console
+cd /etc/fworch
+sudo cp fwo-install-settings.template.yml fwo-install-settings.yml
+sudo chmod 644 fwo-install-settings.yml
+sudo editor fwo-install-settings.yml
+```
+
+Copied verbatim it changes nothing, so it is safe to put in place before deciding what to
+set. Keep at least one active setting in the file: a settings file that holds only
+comments is not a dictionary and Ansible rejects it.
+
+The most common use is giving the endpoints a DNS name instead of the inventory's
+`localhost` - one line covers the api, middleware and ui of a single-host installation:
+
+```yaml
+# /etc/fworch/fwo-install-settings.yml
+fwo_endpoint_hostname: fwo.example.com
+```
+
+Any other inventory variable may be set the same way, one per line. On a distributed
+installation `fwo_endpoint_hostname` is refused, because it would give every endpoint the
+same name; set `api_hostname`, `api_network_listening_ip_address`, `middleware_hostname`
+and `ui_hostname` there individually instead, or name the hosts in `inventory/hosts.yml`.
+
+Before the very first installation neither the directory nor the `/etc/fworch` symlink
+exists yet, so the bootstrap uses the real path. Creating it early is safe - the installer
+decides whether FWO is already installed by the presence of `fworch.json`, not of the
+directory:
+
+```console
+sudo mkdir -p /usr/local/fworch/etc
+sudo tee /usr/local/fworch/etc/fwo-install-settings.yml <<'EOF'
+fwo_endpoint_hostname: fwo.example.com
+EOF
+sudo chmod 644 /usr/local/fworch/etc/fwo-install-settings.yml
+```
+
+Two things to know about the file:
+
+- It must contain **no secrets**. The directory is world-readable so that every
+  administrator who may run the installer can read the file, and the installer fails with
+  a `chmod` hint if it cannot.
+- An **uninstall deletes it** along with the rest of `/usr/local/fworch`. Copy it out
+  first if the reinstall is meant to keep the same endpoint names - otherwise the
+  reinstall silently falls back to the inventory names and issues certificates for those.
+
+An installation that moved `fworch_parent_dir` away from `/usr/local` sets
+`FWORCH_LOCAL_SETTINGS` to the file's path instead; the launcher cannot read Ansible
+variables to find it. That variable also selects a different file for a single run, and
+the launcher fails rather than continuing silently if it points at a file that is missing.
+
 ### Specifying server name and aliases
+
+`ui_server_name` defaults to the name the UI host carries in `inventory/hosts.yml`, and
+that name is also the one the UI certificate is issued for, so naming the host there is
+normally all that is needed. The parameters below add further names on top of it - each
+one is added to the certificate as well.
 
 To make sure that firewall orchestrator UI webserver responds to the correct DNS name, you may add the following parameters:
 
 Example to set fwodemo.cactus.de as webserver name:
 ```console
-ansible-playbook -e "ui_server_name='fwodemo.cactus.de'" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "ui_server_name='fwodemo.cactus.de'"
 ```
 Example to set fwodemo.cactus.de and two additional aliases as websrver names:
 ```console
-ansible-playbook -e "ui_server_name=fwodemo.cactus.de ui_server_alias=' fwo1.cactus.de fwo2.cactus.de'" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "ui_server_name=fwodemo.cactus.de ui_server_alias=' fwo1.cactus.de fwo2.cactus.de'"
 ```
 
 ### Server Alias string
@@ -250,16 +385,32 @@ To be able to configure your webserver name, you may add the following parameter
 
 Example to set fwodemo.cactus.de as websrver name:
 ```console
-ansible-playbook -e "ui_server_alias='fwodemo.cactus.de'" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "ui_server_alias='fwodemo.cactus.de'"
 ```
 Example to set fwodemo.cactus.de and fwo2.cactus.de as websrver names:
 ```console
-ansible-playbook -e "ui_server_alias='fwodemo.cactus.de fwo2.cactus.de'" site.yml -K
+./scripts/run-playbook-with-sudo.sh site.yml -e "ui_server_alias='fwodemo.cactus.de fwo2.cactus.de'"
 ```
 
 ## Distributed setup with multiple servers
 
-You have to edit inventory/hosts.yml according to your needs
+Single-host installations are the default. They set `distributed_install: false`
+in `inventory/group_vars/all.yml`, which restricts PostgreSQL and internal LDAP
+to the IPv4 and IPv6 localhost interfaces. Hasura retains its existing IPv4
+localhost listener.
+
+Before placing FWO components on separate servers, enable their existing network
+listener behavior in `inventory/group_vars/all.yml`:
+
+```yaml
+distributed_install: true
+```
+
+You then have to edit inventory/hosts.yml according to your needs.
+
+In a distributed setup, all logins through the UI reach the middleware from the UI server's address. The installer
+therefore exempts the hosts of the `frontends` group from the middleware's per-client login limit, see
+[login limits](../auth/README.md#login-limits).
 
 install-srv is the local machine the installation is started from. By default FWO is installed on this server
 
@@ -280,6 +431,13 @@ all:
 ```
 
 The names you define (like ui-srv and test-srv) are abitrary and only relevant in the hosts.yml file.
+
+The installer connects to remote servers with `StrictHostKeyChecking=accept-new` (`ansible_ssh_common_args` in
+`inventory/group_vars/all.yml`): the host key of a server is recorded in the installing user's `known_hosts` on the
+first connection, and a different key on a later run aborts the installation instead of connecting to a possibly
+impersonated host. If a server was legitimately reinstalled, remove its old entry with `ssh-keygen -R <host>`. For
+strict checking from the first connection on, add the keys to `known_hosts` beforehand (verify the fingerprints
+out of band) and override the setting, for example with `-e "ansible_ssh_common_args='-o StrictHostKeyChecking=yes'"`.
 
 After you defined additional distributed servers you have to add them to the host groups in hosts.yml
 
@@ -310,6 +468,55 @@ After you defined additional distributed servers you have to add them to the hos
       hosts:
         install-srv:
 ```
+
+## Verified downloads
+
+The following downloaded artifacts are checked against a value pinned in the inventory, so an artifact that was
+changed after review fails the installation before it is executed or installed:
+
+| Artifact | Pin | Checked by |
+|----------|-----|------------|
+| Hasura container image | `api_hasura_image_digest` (multi-arch index digest) in `inventory/group_vars/apiserver.yml` | podman when pulling; after the start the installer compares the version the server reports with `api_hasura_version` |
+| Hasura CLI | `api_hasura_cli_sha256` per architecture in `inventory/group_vars/apiserver.yml` | `get_url` before the binary is used |
+| `dotnet-install.sh` (Debian >= 13/testing, Ubuntu fallback) | `dotnet_install_script_commit` and `dotnet_install_script_sha256` in `inventory/group_vars/all.yml` | `get_url` before the script runs |
+| Microsoft repository package `packages-microsoft-prod.deb` (Debian 12, Ubuntu fallback) | `dotnet_ms_repo_package_sha256` per `<distribution>/<release>` in `inventory/group_vars/all.yml` | `get_url` before it is installed; it is only downloaded when it is not installed yet |
+| Microsoft repository package `packages-microsoft-prod.rpm` (Red Hat / Rocky) | `dotnet_ms_signing_keys` per major version in `inventory/group_vars/all.yml` | the signing key is imported only with its pinned fingerprint, the package is installed only with a valid signature (`rpmkeys --checksig`) |
+| EPEL release package (Red Hat / Rocky, when not available from the configured repositories) | `epel_signing_key_fingerprints` per major version in `inventory/group_vars/all.yml` | as for the Microsoft `.rpm` |
+
+When `api_hasura_version` is raised, update its pins together with it: the index digest is returned as
+`Docker-Content-Digest` for the tag by the registry (or shown as the tag's digest on Docker Hub), the CLI checksums
+are the `digest` values of the release assets (`gh api repos/hasura/graphql-engine/releases/tags/<version>`). A digest
+that belongs to another version fails the installation at the version check after the start of Hasura.
+`dotnet-install.sh` is taken from a commit of `github.com/dotnet/install-scripts`; to move to a newer script, set the
+commit and the sha256 of `src/dotnet-install.sh` at that commit. When the Microsoft repository package needs to be
+installed, if a distribution release has no entry in
+`dotnet_ms_repo_package_sha256`, the installation stops with a message naming the missing entry. If Microsoft
+republishes `packages-microsoft-prod.deb` and its checksum differs from the pinned value, the `get_url` task fails
+with a checksum mismatch after its configured retries; this error does not identify the inventory entry to update.
+After reviewing the replacement package, update the corresponding `<distribution>/<release>` entry in
+`inventory/group_vars/all.yml` with the sha256 of
+`https://packages.microsoft.com/config/<distribution>/<release>/packages-microsoft-prod.deb`. Signed `.rpm` packages
+need no update as long as their signing keys stay the same.
+
+The policy tests in `scripts/ci` check the inventory, the role tasks and the playbooks in `scripts/`: container images
+in the inventory need a digest and the running Hasura version is checked, downloaded scripts and `.deb` packages need a
+checksum, downloaded `.rpm` packages need a signature check against a signing key imported with a pinned fingerprint,
+and neither the inventory nor `ansible.cfg` may disable SSH host key checking (`StrictHostKeyChecking no`,
+`UserKnownHostsFile=/dev/null`, `host_key_checking = False`).
+
+Packages installed through apt or dnf from the distribution and vendor repositories are verified through the package
+manager's repository or package signature checks. This does not cover packages fetched from PyPI or npm.
+The following downloads are outside the pinned checksum/signature checks described above:
+
+- Importer Python packages fetched from PyPI: direct requirements in
+  `roles/importer/files/importer/requirements.txt` have version pins, but no artifact hashes are required. Transitive
+  dependencies are not fully pinned, so version pins alone do not verify the downloaded artifacts or fix the entire
+  dependency set.
+- `@2fd/graphdoc`, installed globally from npm when optional API documentation generation (`api_docu`) is enabled:
+  neither its version nor its dependency set is pinned by the installer, and no reviewed artifact hash is pinned.
+- Chrome for Testing, which is downloaded for PDF generation when no system chromium package is available. It is
+  deliberately not pinned: it follows the current stable release, so that browser security fixes arrive without an
+  installer change.
 
 ## old
 

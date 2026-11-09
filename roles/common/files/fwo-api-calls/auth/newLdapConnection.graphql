@@ -1,6 +1,6 @@
 mutation newLdapConnection(
   $name: String!
-  $address: String!
+  $addresses: [String!]!
   $port: Int!
   $type: Int!
   $patternLength: Int!
@@ -21,7 +21,7 @@ mutation newLdapConnection(
   insert_ldap_connection(
     objects: {
       ldap_name: $name
-      ldap_server: $address
+      ldap_server: $addresses
       ldap_port: $port
       ldap_type: $type
       ldap_pattern_length: $patternLength

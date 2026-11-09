@@ -5,6 +5,7 @@ using MailKit.Security;
 using MimeKit;
 using Microsoft.AspNetCore.Http;
 using FWO.Encryption;
+using FWO.Logging;
 
 namespace FWO.Mail
 {
@@ -40,6 +41,57 @@ namespace FWO.Mail
 
     public static class MailKitMailer
     {
+        private const string kTlsLogCategory = "Email TLS";
+        private static readonly HashSet<string> uncheckedServersWarned = [];
+        private static readonly object uncheckedServerLock = new();
+
+        /// <summary>
+        /// Applies the certificate checking setting of the email connection to the SMTP client.
+        /// </summary>
+        /// <remarks>
+        /// With checking on, MailKit's default validation against the host trust store applies.
+        /// With checking off, any certificate is accepted and a warning is logged once per server,
+        /// because the authentication password then travels over an unverified channel.
+        /// The online revocation check (CRL/OCSP) MailKit enables by default stays off, like for the REST
+        /// clients: it would fail for internal CAs without revocation endpoints and on hosts without
+        /// access to them.
+        /// </remarks>
+        /// <param name="smtp">The SMTP client to configure.</param>
+        /// <param name="emailConn">The email connection holding the setting.</param>
+        public static void ConfigureCertificateValidation(SmtpClient smtp, EmailConnection emailConn)
+        {
+            smtp.CheckCertificateRevocation = false;
+            if (emailConn.CheckCertificates)
+            {
+                smtp.ServerCertificateValidationCallback = null;
+                return;
+            }
+            WarnUncheckedServer(emailConn);
+            smtp.ServerCertificateValidationCallback = (s, c, h, e) => true; // NOSONAR: explicit admin opt-out (emailCheckCertificates), default on, logged per server
+        }
+
+        /// <summary>
+        /// Says in the log that an email server is reached without certificate checking, once per server.
+        /// </summary>
+        /// <param name="emailConn">The email connection.</param>
+        /// <returns>True when the warning was written, false when it was already written before.</returns>
+        public static bool WarnUncheckedServer(EmailConnection emailConn)
+        {
+            string server = $"{emailConn.ServerAddress}:{emailConn.Port}";
+            lock (uncheckedServerLock)
+            {
+                if (!uncheckedServersWarned.Add(server))
+                {
+                    return false;
+                }
+            }
+            Log.WriteWarning(kTlsLogCategory,
+                $"Certificate checking is switched off for email server {server}: any server certificate is accepted, " +
+                "so the email credentials can be intercepted. Add the issuing CA to the host trust store and switch " +
+                "certificate checking on in the email settings.");
+            return true;
+        }
+
         public static async Task<bool> SendAsync(
             MailData mailData,
             EmailConnection emailConn,
@@ -47,15 +99,13 @@ namespace FWO.Mail
             CancellationToken ct = default
         )
         {
+            MailData pendingMail = CopyMailData(mailData);
+            RemoveUnparseableRecipients(pendingMail);
+            using var smtp = new SmtpClient();
+            smtp.Timeout = 5000;
+
             try
             {
-                var mail = new MimeMessage();
-                AddRecipients(emailConn, mailData, mail);
-                await AddContent(mailData, mail, mailFormatHtml);
-
-                using var smtp = new SmtpClient();
-                smtp.Timeout = 5000;
-
                 switch (emailConn.Encryption)
                 {
                     case EmailEncryptionMethod.None:
@@ -67,7 +117,7 @@ namespace FWO.Mail
                         );
                         break;
                     case EmailEncryptionMethod.StartTls:
-                        smtp.ServerCertificateValidationCallback = (s, c, h, e) => true; //accept all SSL certificates
+                        ConfigureCertificateValidation(smtp, emailConn);
                         await smtp.ConnectAsync(
                             emailConn.ServerAddress,
                             emailConn.Port,
@@ -76,7 +126,7 @@ namespace FWO.Mail
                         );
                         break;
                     case EmailEncryptionMethod.Tls:
-                        smtp.ServerCertificateValidationCallback = (s, c, h, e) => true; //accept all SSL certificates
+                        ConfigureCertificateValidation(smtp, emailConn);
                         await smtp.ConnectAsync(
                             emailConn.ServerAddress,
                             emailConn.Port,
@@ -89,15 +139,119 @@ namespace FWO.Mail
                 {
                     await smtp.AuthenticateAsync(emailConn.User, AesEnc.TryDecrypt(emailConn.Password ?? "", true), ct);
                 }
-                await smtp.SendAsync(mail, ct);
-                await smtp.DisconnectAsync(true, ct);
 
-                return true;
+                while (HasRecipients(pendingMail))
+                {
+                    var mail = new MimeMessage();
+                    AddRecipients(emailConn, pendingMail, mail);
+                    await AddContent(pendingMail, mail, mailFormatHtml);
+
+                    try
+                    {
+                        await smtp.SendAsync(mail, ct);
+                        await smtp.DisconnectAsync(true, ct);
+                        return true;
+                    }
+                    catch (SmtpCommandException exception) when (exception.Mailbox != null)
+                    {
+                        string rejectedAddress = exception.Mailbox.Address;
+                        if (!RemoveRecipient(pendingMail, rejectedAddress))
+                        {
+                            throw;
+                        }
+
+                        Log.WriteWarning(
+                            "Send Email",
+                            $"SMTP rejected recipient '{rejectedAddress}'. Retrying with the remaining recipients."
+                        );
+                    }
+                }
+
+                await smtp.DisconnectAsync(true, ct);
+                Log.WriteWarning("Send Email", "SMTP rejected all recipients. No email was sent.");
+                return false;
             }
-            catch (Exception)
+            catch (Exception exception)
+            {
+                Log.WriteError("Send Email", $"MailKit could not send email via {emailConn.ServerAddress}:{emailConn.Port}.", exception);
+                return false;
+            }
+        }
+
+        private static MailData CopyMailData(MailData source)
+        {
+            List<string> toRecipients = [.. source.To];
+            List<string> bccRecipients = [.. source.Bcc];
+            List<string> ccRecipients = [.. source.Cc];
+
+            return new MailData(toRecipients, source.Subject)
+            {
+                Bcc = bccRecipients,
+                Cc = ccRecipients,
+                From = source.From,
+                DisplayName = source.DisplayName,
+                ReplyTo = source.ReplyTo,
+                ReplyToName = source.ReplyToName,
+                Body = source.Body,
+                Attachments = source.Attachments
+            };
+        }
+
+        /// <summary>
+        /// Drops recipients that are no valid address, so that one bad entry does not stop the mail to all others,
+        /// just as a recipient the SMTP server rejects does not.
+        /// </summary>
+        /// <param name="mailData">Mail whose recipient lists are cleaned.</param>
+        private static void RemoveUnparseableRecipients(MailData mailData)
+        {
+            int removedCount = RemoveUnparseableRecipients(mailData.To)
+                + RemoveUnparseableRecipients(mailData.Cc)
+                + RemoveUnparseableRecipients(mailData.Bcc);
+            if (removedCount > 0)
+            {
+                // the addresses themselves are not logged: they are free text and may carry line breaks
+                Log.WriteWarning("Send Email", $"Ignored {removedCount} recipient(s) that are no valid email address.");
+            }
+        }
+
+        private static int RemoveUnparseableRecipients(List<string> recipients)
+        {
+            return recipients.RemoveAll(address => IsAddressPresent(address) && !MailboxAddress.TryParse(address.Trim(), out _));
+        }
+
+        private static bool HasRecipients(MailData mailData)
+        {
+            return mailData.To.Any(IsAddressPresent)
+                || mailData.Cc.Any(IsAddressPresent)
+                || mailData.Bcc.Any(IsAddressPresent);
+        }
+
+        private static bool IsAddressPresent(string address)
+        {
+            return !string.IsNullOrWhiteSpace(address);
+        }
+
+        private static bool RemoveRecipient(MailData mailData, string rejectedAddress)
+        {
+            return RemoveRecipient(mailData.To, rejectedAddress)
+                || RemoveRecipient(mailData.Cc, rejectedAddress)
+                || RemoveRecipient(mailData.Bcc, rejectedAddress);
+        }
+
+        private static bool RemoveRecipient(List<string> recipients, string rejectedAddress)
+        {
+            int index = recipients.FindIndex(address => string.Equals(
+                address.Trim(),
+                rejectedAddress,
+                StringComparison.OrdinalIgnoreCase
+            ));
+            if (index < 0)
             {
                 return false;
             }
+
+            recipients.RemoveAt(index);
+            return true;
         }
 
         private static void AddRecipients(EmailConnection emailConn, MailData mailData, MimeMessage mail)
@@ -115,7 +269,7 @@ namespace FWO.Mail
             // Receiver
             foreach (string mailAddress in mailData.To.Where(x => !string.IsNullOrWhiteSpace(x)))
             {
-                mail.To.Add(MailboxAddress.Parse(mailAddress));
+                mail.To.Add(MailboxAddress.Parse(mailAddress.Trim()));
             }
 
             // Set Reply to if specified in mail data
@@ -149,7 +303,8 @@ namespace FWO.Mail
         private static async Task AddContent(MailData mailData, MimeMessage mail, bool mailFormatHtml)
         {
             var body = new BodyBuilder();
-            mail.Subject = mailData.Subject;
+            // placeholder values in the subject are free text; a line break must not reach the header
+            mail.Subject = mailData.Subject.ReplaceLineEndings(" ");
             if (mailFormatHtml)
             {
                 body.HtmlBody = mailData.Body;

@@ -1,3 +1,5 @@
+@using FWO.Basics
+@using FWO.Compliance
 @using FWO.Ui.Display
 @using FWO.Middleware.Client
 @using FWO.Ui.Pages.Request
@@ -49,7 +51,7 @@
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(ConnHandler.ActConn.IsInterface ? userConfig.GetText("interface_description") : userConfig.GetText("func_reason"))*:</label>
                     @if(ConnHandler.ReadOnly)
                     {
-                        <label class="col-sm-9">@((MarkupString)(ConnHandler!.ActConn.Reason ?? ""))</label>
+                        <label class="col-sm-9">@((MarkupString)HtmlOutputEncoder.SanitizeRichText(ConnHandler!.ActConn.Reason))</label>
                     }
                     else
                     {
@@ -180,8 +182,8 @@
                         }
                         else 
                         {
-                            <div class="@SrcClass()" ondragover="event.preventDefault();"
-                                    ondragstart="event.dataTransfer.setData('', event.target.id);" @ondrop="HandleSrcDrop">
+                            <div class="@SrcClass()" @ondragover:preventDefault="true"
+                                    @ondrop="HandleSrcDrop">
                                 <EditList ElementType="ModellingNetworkArea" Elements="ModellingNetworkAreaWrapper.Resolve(ConnHandler.ActConn.SourceAreas)"
                                         ElementsToAdd="ConnHandler.SrcAreasToAdd" ElementsToDelete="ConnHandler.SrcAreasToDelete" StdLayout="false" 
                                         AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
@@ -256,8 +258,8 @@
                         }
                         else 
                         {
-                            <div class="@dropzoneClass" ondragover="event.preventDefault();"
-                                    ondragstart="event.dataTransfer.setData('', event.target.id);" @ondrop="HandleSvcDrop">
+                            <div class="@dropzoneClass" @ondragover:preventDefault="true"
+                                    @ondrop="HandleSvcDrop">
                                 <EditList ElementType="ModellingServiceGroup" Elements="ModellingServiceGroupWrapper.Resolve(ConnHandler.ActConn.ServiceGroups)"
                                         ElementsToAdd="ConnHandler.SvcGrpToAdd" ElementsToDelete="ConnHandler.SvcGrpToDelete" StdLayout="false" 
                                         AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
@@ -334,8 +336,8 @@
                         }
                         else
                         {
-                            <div class="@DestClass()" ondragover="event.preventDefault();"
-                                    ondragstart="event.dataTransfer.setData('', event.target.id);" @ondrop="HandleDstDrop">
+                            <div class="@DestClass()" @ondragover:preventDefault="true"
+                                    @ondrop="HandleDstDrop">
                                 <EditList ElementType="ModellingNwGroup" Elements="ModellingNwGroupWrapper.Resolve(ConnHandler.ActConn.DestinationOtherGroups)" 
                                         ElementsToAdd="ConnHandler.DstNwGroupsToAdd" ElementsToDelete="ConnHandler.DstNwGroupsToDelete" StdLayout="false"
                                         AfterRemoveAction="() => {ConnHandler.CalcVisibility(); StateHasChanged(); return true;}">
@@ -414,14 +416,14 @@
                     {
                         @if((ConnHandler.IsOwner || ConnHandler.ActConn.IsRequested) && !(ConnHandler.ActConn.GetBoolProperty(ConState.Rejected.ToString()) || ConnHandler.ActConn.GetBoolProperty(ConState.Decommissioned.ToString())))
                         {
-                            <AuthorizeView Roles="@Roles.Modeller">
+                            <ExecutionModeAuthorizeView Roles="@Roles.Modeller">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                                 </Authorized>
                                 <NotAuthorized>
                                     <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                                 </NotAuthorized> 
-                            </AuthorizeView>
+                            </ExecutionModeAuthorizeView>
                         }
                         else
                         {
@@ -439,6 +441,11 @@
                     }
                 }
             </div>
+            @* the popup shows the interface provider's connection, whose owner is not the one the user works on *@
+            @if(!PopupMode && userConfig.ShowLogDataInConnections && ConnHandler.Application.Id > 0)
+            {
+                <LogDataTable OwnerId="ConnHandler.Application.Id" />
+            }
         </div>
     }
     <InProgress Display="workInProgress"/>
@@ -483,8 +490,6 @@
     private int sidebarInitWidth = GlobalConst.kGlobLibraryWidth;
     private int sidebarLeftWidth;
 
-    private List<ModellingService> services = new();
-    private List<ModellingServiceGroup> serviceGroups = new();
 
     private static string dropzoneClass = "minheight-dropzone bg-secondary dropzone";
     private static string forbiddenDropzoneClass = "minheight-dropzone bg-white";
@@ -722,7 +727,7 @@
 
     private async Task ReplaceInterface()
     {
-        await ConnHandler!.ReplaceInterface(authenticationStateTask!, middlewareClient);
+        await ConnHandler!.ReplaceInterface(authenticationStateTask!, middlewareClient, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient));
         Close();
     }
 
@@ -737,7 +742,7 @@
         {
             try
             {
-                TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation);
+                TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient));
                 if(await ticketCreator.PromoteNewInterfaceImplTask((long)(ConnHandler!.ActConn.TicketId), ExtStates.Done))
                 {
                     DisplayMessageInUi(null, userConfig.GetText("publish"), userConfig.GetText("U9013"), false);

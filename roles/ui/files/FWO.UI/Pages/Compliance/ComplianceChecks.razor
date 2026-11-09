@@ -3,6 +3,7 @@
 
 @page "/compliance/checks"
 
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 @layout ComplianceLayout
 
 @inject UserConfig userConfig
@@ -46,7 +47,7 @@
                         <div class="card-body p-0">
                             <table class="table mb-0">
                                 <tbody>
-                                    @foreach ((ComplianceNetworkZone, ComplianceNetworkZone) forbiddenCommunication in forbiddenCommunicationsOutput)
+                                    @foreach ((NetworkZone, NetworkZone) forbiddenCommunication in forbiddenCommunicationsOutput)
                                     {
                                         <tr>
                                             <td class="py-1 w-25">@(forbiddenCommunication.Item1.Name)</td>
@@ -70,7 +71,7 @@
     IPAddressRange? destinationIpRange;
     bool displayOutput = false;
     bool compliant = false;
-    List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = [];
+    List<(NetworkZone, NetworkZone)> forbiddenCommunicationsOutput = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,7 +87,7 @@
                     int? matrixId = Policy.Criteria.FirstOrDefault(c => c.Content.CriterionType == CriterionType.Matrix.ToString())?.Content.Id;
                     if (matrixId != null)
                     {
-                        networkZoneService.NetworkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+                        networkZoneService.NetworkZones = await _apiConnection.SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
                     }
                 }
             }
@@ -103,7 +104,7 @@
         if (sourceIpRange != null && destinationIpRange != null)
         {
             displayOutput = true;
-            ComplianceCheck complianceCheck = new ComplianceCheck(userConfig, new GraphQlApiConnection(""));
+            ComplianceCheck complianceCheck = new ComplianceCheck(userConfig, _apiConnection);
             forbiddenCommunicationsOutput = complianceCheck.CheckIpRangeInputCompliance(sourceIpRange, destinationIpRange, networkZoneService.NetworkZones);
             compliant = forbiddenCommunicationsOutput.Count == 0;
         }

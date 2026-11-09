@@ -1,16 +1,16 @@
+from __future__ import annotations
+
 import hashlib
 import ipaddress
 import json
 import re
 import time
 import traceback
-from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 import fwo_config
 import fwo_const
 from fwo_const import IMPORT_TMP_PATH
-from fwo_enums import ConfFormat, ConfigAction
 
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
@@ -23,7 +23,7 @@ from services.service_provider import ServiceProvider
 from services.uid2id_mapper import Uid2IdMapper
 
 
-def sanitize(content: Any, lower: bool = False) -> None | str:
+def sanitize(content: Any, lower: bool = False) -> str | None:
     if content is None:
         return None
     result = str(content)
@@ -50,42 +50,6 @@ def extend_string_list(list_string: str | None, src_dict: dict[str, list[str]], 
 
 def string_is_uri(s: str) -> re.Match[str] | None:  # TODO: should return bool?
     return re.match("http://.+", s) or re.match("https://.+", s) or re.match("file://.+", s)
-
-
-def deserialize_class_to_dict_rec(
-    obj: Any, seen: set[int] | None = None
-) -> dict[str, Any] | list[Any] | Any | str | int | float | bool | None:  # TYPING: using model is forbidden?
-    if seen is None:
-        seen = set()
-
-    # Handle simple immutable types directly (int, float, bool, str) and None
-    if obj is None or isinstance(obj, (int, float, bool, str, ConfFormat, ConfigAction)):
-        return obj
-
-    # Check for circular references
-    if id(obj) in seen:
-        return f"<Circular reference to {obj.__class__.__name__}>"
-
-    seen.add(id(obj))
-
-    if isinstance(obj, list):
-        # If the object is a list, deserialize each item
-        return [deserialize_class_to_dict_rec(item, seen) for item in obj]  # type: ignore  # noqa: PGH003
-    if isinstance(obj, dict):
-        # If the object is a dictionary, deserialize each key-value pair
-        return {key: deserialize_class_to_dict_rec(value, seen) for key, value in obj.items()}  # type: ignore  # noqa: PGH003
-    if isinstance(obj, Enum):
-        # If the object is an Enum, convert it to its value
-        return obj.value
-    if hasattr(obj, "__dict__"):
-        # If the object is a class instance, deserialize its attributes
-        return {
-            key: deserialize_class_to_dict_rec(value, seen)
-            for key, value in obj.__dict__.items()
-            if not callable(value) and not key.startswith("__")
-        }
-    # For other types, return the value as is
-    return obj
 
 
 def cidr_to_range(
@@ -220,7 +184,7 @@ def compute_min_moves(source: list[Any], target: list[Any]) -> dict[str, Any]:
     }
 
 
-def write_native_config_to_file(import_state: "ImportState", config_native: dict[str, Any] | None) -> None:
+def write_native_config_to_file(import_state: ImportState, config_native: dict[str, Any] | None) -> None:
     if FWOLogger.is_debug_level(7):
         debug_start_time = int(time.time())
         try:
@@ -239,6 +203,24 @@ def write_native_config_to_file(import_state: "ImportState", config_native: dict
         FWOLogger.debug(f"import_management - writing debug config json files duration {time_write_debug_json!s}s")
 
 
+def ensure_device_name(import_state: ImportStateController) -> None:
+    mgm_details = import_state.state.mgm_details
+    gw_map = import_state.state.gateway_map.get(mgm_details.current_mgm_id, {})
+    gateway_uid = next(iter(gw_map.keys()), None)
+
+    if (
+        mgm_details.devices
+        and "name" in mgm_details.devices[0]
+        and (gateway_uid is None or mgm_details.devices[0]["name"] in gw_map)
+    ):
+        return
+
+    if gateway_uid is None:
+        gateway_uid = mgm_details.name or mgm_details.hostname
+
+    mgm_details.devices = [{"name": gateway_uid}]
+
+
 def init_service_provider() -> ServiceProvider:
     service_provider = ServiceProvider()
     service_provider.register(Services.FWO_CONFIG, fwo_config.read_config, Lifetime.SINGLETON)
@@ -248,7 +230,7 @@ def init_service_provider() -> ServiceProvider:
     return service_provider
 
 
-def register_global_state(import_state: "ImportStateController") -> None:
+def register_global_state(import_state: ImportStateController) -> None:
     service_provider = ServiceProvider()
     service_provider.register(Services.GLOBAL_STATE, lambda: GlobalState(import_state), Lifetime.SINGLETON)
 

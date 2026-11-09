@@ -1,65 +1,89 @@
 @using FWO.Ui.Services
+@using System.Runtime.CompilerServices
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
 @inject UserConfig userConfig
 
 @if(WfHandler.InitDone)
 {
-    @if (WfHandler.EditTicketMode)
+    @if (CanChangeReqTaskStructure())
     {
         <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="AddReqTask">@(DisplayService.DisplayButton(userConfig, "add_task", Icons.Add))</button>
     }
     @if (WfHandler.ActTicket.Tasks.Count > 0)
     {
         <div class="m-2">
-            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="WfHandler.ActTicket.Tasks.OrderBy(x => x.Id)" PageSize="0" ColumnReorder="true">
+            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="GetDisplayedTasks()" PageSize="0" ColumnReorder="true">
                 <Column TableItem="WfReqTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowReqTask(context)">
-                                    @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
-                            @if(WfHandler.StateMatrix(context.TaskType).PhaseActive[WorkflowPhases.approval])
-                            {
-                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(context)">
-                                    @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
-                            }
-                            @if(IsEditable(context))
-                            {
-                                @if (WfHandler.EditTicketMode && context.StateId < WfHandler.StateMatrix(context.TaskType).LowestStartedState)
+                        @{
+                            StateMatrix taskStateMatrix = WfHandler.StateMatrix(context.TaskType);
+                            bool canActOnTask = WfHandler.CanActOnReqTaskInCurrentPhase(context);
+                            bool showReadOnlyActions = WfHandler.MasterStateMatrix.VisibilityMode == PhaseVisibilityMode.AnyTask;
+                        }
+                        @if (canActOnTask || showReadOnlyActions)
+                        {
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => await ShowReqTask(context)">
+                                        @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
+                                @if (taskStateMatrix.PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalActive) && approvalActive)
                                 {
-                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => EditReqTask(context)">
-                                        @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                                    <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">
-                                        @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                    <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => await ShowApprovals(context)">
+                                        @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
                                 }
-                                @if (Phase > WorkflowPhases.request && !WfHandler.ReadOnlyMode)
+                                @if (canActOnTask && IsEditable(context))
                                 {
-                                    @if (context.StateId >= WfHandler.StateMatrix(context.TaskType).LowestInputState && context.StateId < WfHandler.StateMatrix(context.TaskType).LowestStartedState)
+                                    @if (CanEditReqTaskInPhase(context))
                                     {
-                                        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
-                                            <Authorized Context="ctx">
-                                                <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartPhase(context)">
-                                                    @(userConfig.GetText("start_" + Phase.ToString()))</button>
-                                            </Authorized>
-                                            <NotAuthorized Context="ctx">
-                                                <button type="button" class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
-                                            </NotAuthorized> 
-                                        </AuthorizeView>
+                                        <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await EditReqTask(context)">
+                                            @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                        @* deleting acts at once, so read-only users only see the button *@
+                                        <button type="button" class="btn btn-sm btn-danger" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="() => DeleteReqTask(context)">
+                                            @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                     }
-                                    else if (context.StateId < WfHandler.StateMatrix(context.TaskType).LowestEndState)
+                                    @if (Phase > WorkflowPhases.request && WfHandler.ReadOnlyMode)
                                     {
-                                        <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinuePhase(context)">
-                                            @(userConfig.GetText("continue_" + Phase.ToString()))</button>
-                                        @if(Phase == WorkflowPhases.planning)
+                                        @if (context.StateId < taskStateMatrix.LowestEndState)
                                         {
-                                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="() => AssignTask(context)">
-                                                @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                            @* read-only users follow the phase, starting or continuing would write the task state *@
+                                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ViewInPhase(context)">
+                                                @(userConfig.GetText("open_in_phase_view"))</button>
+                                            @if (Phase == WorkflowPhases.planning && context.StateId >= taskStateMatrix.LowestStartedState)
+                                            {
+                                                <button type="button" class="btn btn-sm btn-warning" disabled>
+                                                    @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                            }
+                                        }
+                                    }
+                                    else if (Phase > WorkflowPhases.request)
+                                    {
+                                        @if (context.StateId < taskStateMatrix.LowestStartedState)
+                                        {
+                                            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
+                                                <Authorized Context="ctx">
+                                                    <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartPhase(context)">
+                                                        @(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                                </Authorized>
+                                                <NotAuthorized Context="ctx">
+                                                    <button type="button" class="btn btn-sm btn-warning" disabled>@(userConfig.GetText("start_" + Phase.ToString()))</button>
+                                                </NotAuthorized>
+                                            </ExecutionModeAuthorizeView>
+                                        }
+                                        else if (context.StateId < taskStateMatrix.LowestEndState)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await ContinuePhase(context)">
+                                                @(userConfig.GetText("continue_" + Phase.ToString()))</button>
+                                            @if (Phase == WorkflowPhases.planning)
+                                            {
+                                                <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await AssignTask(context)">
+                                                    @(DisplayService.DisplayButton(userConfig, "assign1", Icons.Assign))</button>
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        </div>
+                            </div>
+                        }
                     </Template>
                 </Column>
                 <Column TableItem="WfReqTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
@@ -76,7 +100,7 @@
                 </Column>
                 <Column TableItem="WfReqTask" Title="@(userConfig.GetText("state"))" Field="@(x => x.StateId)" Sortable="true" Filterable="false" >
                     <Template>
-                        @(States.Name[context.StateId])
+                        @(States.GetName(context.StateId))
                     </Template>
                 </Column>
                 <Column TableItem="WfReqTask" Title="@(userConfig.GetText("current_handler"))" Field="@(x => x.CurrentHandler)" Sortable="true" Filterable="true">
@@ -102,15 +126,24 @@
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("start"))" Field="@(x => x.Start)" Sortable="true" Filterable="true" />
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("stop"))" Field="@(x => x.Stop)" Sortable="true" Filterable="true" />
                 }
+                @if (HasBundleIds())
+                {
+                    <Column TableItem="WfReqTask" Title="@(userConfig.GetText("flow_bundle_id"))" Field="@(x => x.Id)" Sortable="true" Filterable="false">
+                        <Template>
+                            <span id="req-task-bundle-id-@context.Id">@(context.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId))</span>
+                        </Template>
+                    </Column>
+                }
             </Table>
         </div>
     }
 }
 
-<DisplayRequestTask Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" StartImplPhase="StartImplPhase"/>
+@* Keep the editor instance while its draft is being validated. TaskType is mutable
+   form data and must not recreate the editor when SaveReqTask prepares the task. *@
+<DisplayRequestTask @key="@($"{WfHandler.DisplayReqTaskMode}-{WfHandler.ActReqTask.Id}")" Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" StartImplPhase="StartImplPhase"/>
 <AssignObject @bind-Display="WfHandler.DisplayAssignReqTaskMode" ResetParent="Reset" StatefulObject="WfHandler.ActReqTask" Assign="WfHandler.AssignReqTaskGroup" AssignBack="WfHandler.AssignReqTaskBack" ObjectName="@WfHandler.ActReqTask.Title" RoleList="validRoles"/>
 <DeleteObject @bind-Display="WfHandler.DisplayDeleteReqTaskMode" ResetParent="Reset" Delete="WfHandler.ConfDeleteReqTask" ObjectName="@WfHandler.ActReqTask.Title"/>
-<DisplayApprovals @bind-Display="WfHandler.DisplayApprovalReqMode" WfHandler="WfHandler" ResetParent="Reset" Approvals="WfHandler.ActReqTask.Approvals" States="States"/>
 
 
 @code
@@ -136,7 +169,7 @@
     [Parameter]
     public Func<WfImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
-    static List<string> validRoles = new (){Roles.Planner, Roles.FwAdmin};
+    static List<string> validRoles = new (){Roles.Planner};
 
 
     private async Task Reset()
@@ -146,9 +179,10 @@
         StateHasChanged();
     }
 
-    private void ShowReqTask(WfReqTask reqTask)
+    private async Task ShowReqTask(WfReqTask reqTask)
     {
-        WfHandler.SelectReqTask(reqTask, ObjAction.display);
+        WfHandler.ResetReqTaskActions();
+        await WfHandler.SelectReqTask(reqTask, ObjAction.display, true);
     }
 
     private void AddReqTask()
@@ -156,29 +190,39 @@
         WfHandler.SelectReqTask(new WfReqTask(){ RuleAction = 1, Tracking = 1, ManagementId = -1 }, ObjAction.add);
     }
 
-    private void EditReqTask(WfReqTask reqTask)
+    private async Task EditReqTask(WfReqTask reqTask)
     {
-        WfHandler.SelectReqTask(reqTask, ObjAction.edit);
+        WfHandler.ResetReqTaskActions();
+        await WfHandler.SelectReqTask(reqTask, ObjAction.edit, true);
     }
 
     private void DeleteReqTask(WfReqTask reqTask)
     {
+        if (WfHandler.ReadOnlyMode)
+        {
+            return;
+        }
         WfHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayDelete);
     }
 
-    private void ShowApprovals(WfReqTask reqTask)
+    private async Task ShowApprovals(WfReqTask reqTask)
     {
-        WfHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayApprovals);
+        await WfHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayApprovals, true);
     }
 
-    private void AssignTask(WfReqTask reqTask)
+    private async Task AssignTask(WfReqTask reqTask)
     {
-        WfHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayAssign);
+        await WfHandler.SelectReqTaskPopUp(reqTask, ObjAction.displayAssign, true);
     }
 
     private async Task ContinuePhase(WfReqTask reqTask)
     {
         await WfHandler.ContinuePhase(reqTask);
+    }
+
+    private async Task ViewInPhase(WfReqTask reqTask)
+    {
+        await WfHandler.ViewReqTaskInPhase(reqTask);
     }
 
     private bool IsEditable(WfReqTask implTreqTasksk)
@@ -188,5 +232,65 @@
             return WfHandler.ActTicket.Editable;
         }
         return true;
+    }
+
+    private bool CanEditReqTaskInPhase(WfReqTask reqTask)
+    {
+        if (reqTask.Locked)
+        {
+            return false;
+        }
+
+        if (!CanChangeReqTaskStructure())
+        {
+            return false;
+        }
+
+        StateMatrix taskStateMatrix = WfHandler.StateMatrix(reqTask.TaskType);
+        return reqTask.StateId < taskStateMatrix.LowestEndState;
+    }
+
+    private bool CanChangeReqTaskStructure()
+    {
+        return WfHandler.EditTicketMode && Phase == WorkflowPhases.request && !WfHandler.ActTicket.Locked;
+    }
+
+    private bool HasBundleIds()
+    {
+        return WfHandler.ActTicket.Tasks.Any(task => !string.IsNullOrWhiteSpace(task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId)));
+    }
+
+    private IEnumerable<WfReqTask> GetDisplayedTasks()
+    {
+        IEnumerable<WfReqTask> tasks = WfHandler.ActTicket.Tasks.OrderBy(task => task.Id);
+        if (!CanDisplayBundledTasks())
+        {
+            return tasks.ToList();
+        }
+
+        return tasks
+            .GroupBy(GetDisplayGroupKey)
+            .Select(group => group.First())
+            .ToList();
+    }
+
+    private bool CanDisplayBundledTasks()
+    {
+        return Phase != WorkflowPhases.request
+            && WfHandler.userConfig.ReqDisplayBundledTasksAsOne
+            && WfHandler.userConfig.ReqConsiderBundling;
+    }
+
+    private static string GetDisplayGroupKey(WfReqTask task)
+    {
+        string bundleId = task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
+        if (!string.IsNullOrWhiteSpace(bundleId))
+        {
+            return $"bundle:{bundleId}:state:{task.StateId}";
+        }
+
+        return task.Id > 0
+            ? $"task:{task.Id}"
+            : $"new-task:{RuntimeHelpers.GetHashCode(task)}";
     }
 }

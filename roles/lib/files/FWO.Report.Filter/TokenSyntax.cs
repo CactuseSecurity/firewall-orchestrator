@@ -2,6 +2,9 @@ namespace FWO.Report.Filter
 {
     class TokenSyntax
     {
+        private static readonly string[] kSourceTypeAliases = ["source_type", "source-type", "src_type", "src-type"];
+        private static readonly string[] kDestinationTypeAliases = ["destination_type", "destination-type", "dst_type", "dst-type", "dest_type", "dest-type"];
+
         public string[] WhiteSpaceRequiered { get; private set; }
         public string[] NoWhiteSpaceRequiered { get; private set; }
 
@@ -75,6 +78,18 @@ namespace FWO.Report.Filter
                     NoWhiteSpaceRequiered: []
                 ),
 
+                TokenKind.SourceType => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: kSourceTypeAliases,
+                    NoWhiteSpaceRequiered: []
+                ),
+
+                TokenKind.DestinationType => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: kDestinationTypeAliases,
+                    NoWhiteSpaceRequiered: []
+                ),
+
                 TokenKind.Action => new TokenSyntax
                 (
                     WhiteSpaceRequiered: ["action", "act", "enforce"],
@@ -132,6 +147,42 @@ namespace FWO.Report.Filter
                 TokenKind.ReportType => new TokenSyntax
                 (
                     WhiteSpaceRequiered: ["reporttype", "type", "report-type"],
+                    NoWhiteSpaceRequiered: []
+                ),
+
+                TokenKind.TaskType => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: ["tasktype", "task-type", "task_type"],
+                    NoWhiteSpaceRequiered: []
+                ),
+
+                TokenKind.Phase => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: ["phase"],
+                    NoWhiteSpaceRequiered: []
+                ),
+
+                TokenKind.States => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: ["states", "state", "state_ids", "state-ids"],
+                    NoWhiteSpaceRequiered: []
+                ),
+
+                TokenKind.OwnerState => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: ["ownerstate", "owner-state", "owner_state", "owner_lc_state", "owner-lc-state"],
+                    NoWhiteSpaceRequiered: []
+                ),
+
+                TokenKind.Criticality => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: ["criticality"],
+                    NoWhiteSpaceRequiered: []
+                ),
+
+                TokenKind.ReferenceDate => new TokenSyntax
+                (
+                    WhiteSpaceRequiered: ["reference_date", "reference-date", "referencedate"],
                     NoWhiteSpaceRequiered: []
                 ),
 

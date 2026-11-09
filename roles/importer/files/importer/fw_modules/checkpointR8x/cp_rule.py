@@ -1,15 +1,19 @@
+from __future__ import annotations
+
 import ast
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fwo_base import sanitize, sort_and_join_refs
 from fwo_const import DEFAULT_SECTION_HEADER_TEXT, LIST_DELIMITER
 from fwo_exceptions import FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
-from models.import_state import ImportState
 from models.rule import RuleNormalized
 from models.rule_enforced_on_gateway import RuleEnforcedOnGatewayNormalized
 from models.rulebase import Rulebase
+
+if TYPE_CHECKING:
+    from models.import_state import ImportState
 
 uid_to_name_map: dict[str, str] = {}
 
@@ -185,6 +189,10 @@ def parse_rulebase_chunk(
     policy_structure: list[dict[str, Any]],
 ):
     for chunk in rulebase_to_parse["chunks"]:
+        if "rulebase" not in chunk:
+            FWOLogger.debug("found unparsable rulebase chunk: " + str(chunk), 9)
+            continue
+
         for rule in chunk["rulebase"]:
             if "rule-number" in rule:
                 parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, gateway, policy_structure)
@@ -344,7 +352,7 @@ def parse_single_rule(
     parent_rule_uid = _parse_parent_rule_uid(parent_uid, native_rule=native_rule)
 
     # new in v5.5.1:
-    rule_type = native_rule.get("rule_type", "access")
+    rule_type = "nat" if native_rule.get("nat_rule") else "access"
 
     comments = native_rule.get("comments")
     if comments == "":
@@ -356,7 +364,6 @@ def parse_single_rule(
         last_hit = None
 
     rule: dict[str, Any] = {
-        "rule_num": 0,
         "rule_num_numeric": 0,
         "rulebase_name": sanitize(layer_name),
         "rule_disabled": not bool(native_rule["enabled"]),
@@ -381,9 +388,13 @@ def parse_single_rule(
         "last_change_admin": sanitize(last_change_admin),
         "parent_rule_uid": sanitize(parent_rule_uid),
         "last_hit": sanitize(last_hit),
+        "nat_rule": bool(native_rule.get("nat_rule", False)),
+        "access_rule": bool(native_rule.get("access_rule", True)),
     }
     if comments is not None:
         rule["rule_comment"] = sanitize(comments)
+    if native_rule.get("xlate_rule_uid") is not None:
+        rule["xlate_rule_uid"] = sanitize(native_rule["xlate_rule_uid"])
     rulebase.rules.update({rule["rule_uid"]: RuleNormalized(**rule)})
 
 
@@ -468,7 +479,7 @@ def check_and_add_section_header(
     src_rulebase: dict[str, Any],
     target_rulebase: Rulebase,
     layer_name: str,
-    import_id: str,
+    import_id: int,
     section_header_uids: set[str],
 ):
     # TODO: re-implement
@@ -479,7 +490,7 @@ def insert_section_header_rule(
     _target_rulebase: Rulebase,
     _section_name: str,
     _layer_name: str,
-    _import_id: str,
+    _import_id: int,
     _src_rulebase_uid: str,
     _section_header_uids: set[str],
     _parent_uid: str,

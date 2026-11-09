@@ -1,0 +1,13 @@
+mutation resetConnectionRequestState(
+  $id: Int!
+  $connProp: String
+  ) {
+  update_modelling_connection_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      requested_on_fw: false
+      conn_prop: $connProp
+  }) {
+    updatedId: id
+  }
+}

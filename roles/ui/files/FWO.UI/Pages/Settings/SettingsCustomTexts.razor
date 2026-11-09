@@ -1,4 +1,4 @@
-﻿@using FWO.Ui.Services
+@using FWO.Ui.Services
 
 @page "/settings/customtexts"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -69,14 +69,14 @@
     </div>
 }
 <hr />
-<AuthorizeView Roles="@Roles.Admin">
+<ExecutionModeAuthorizeView Roles="@Roles.Admin">
     <Authorized>
         <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault="true" @onclick="Save">@(userConfig.GetText("save"))</button>
     </Authorized>
     <NotAuthorized>
         <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
     </NotAuthorized> 
-</AuthorizeView>
+</ExecutionModeAuthorizeView>
 
 @code
 {

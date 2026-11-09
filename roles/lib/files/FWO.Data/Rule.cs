@@ -1,3 +1,6 @@
+using FWO.Basics;
+using FWO.Data.Flow;
+using System.Linq;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using SystemTextJsonIgnore = System.Text.Json.Serialization.JsonIgnoreAttribute;
@@ -16,7 +19,7 @@ namespace FWO.Data
         public int MgmtId { get; set; }
 
         [JsonProperty("rule_num_numeric"), JsonPropertyName("rule_num_numeric")]
-        public double OrderNumber { get; set; }
+        public double RuleNumNumeric { get; set; }
 
         [JsonProperty("rule_name"), JsonPropertyName("rule_name")]
         public string? Name { get; set; } = "";
@@ -48,6 +51,9 @@ namespace FWO.Data
         [JsonProperty("rule_src_refs"), JsonPropertyName("rule_src_refs")]
         public string SourceRefs { get; set; } = "";
 
+        [JsonProperty("rule_src_zone"), JsonPropertyName("rule_src_zone")]
+        public string SourceZone { get; set; } = "";
+
         [JsonProperty("rule_from_zones"), JsonPropertyName("rule_from_zones")]
         public ZoneWrapper[] RuleFromZones { get; set; } = [];
 
@@ -62,6 +68,9 @@ namespace FWO.Data
 
         [JsonProperty("rule_dst_refs"), JsonPropertyName("rule_dst_refs")]
         public string DestinationRefs { get; set; } = "";
+
+        [JsonProperty("rule_dst_zone"), JsonPropertyName("rule_dst_zone")]
+        public string DestinationZone { get; set; } = "";
 
         [JsonProperty("rule_to_zones"), JsonPropertyName("rule_to_zones")]
         public ZoneWrapper[] RuleToZones { get; set; } = [];
@@ -82,19 +91,15 @@ namespace FWO.Data
         public RuleMetadata Metadata { get; set; } = new();
 
         [SystemTextJsonIgnore]
-        [JsonProperty("rule_last_seen"), JsonPropertyName("rule_last_seen")]
-        public long? LastSeenImportId { get; set; }
-
-        [SystemTextJsonIgnore]
-        [JsonProperty("importControlByRuleLastSeen"), JsonPropertyName("importControlByRuleLastSeen")]
-        public ImportControl? LastSeenImport { get; set; }
+        [JsonProperty("importControlByRemoved"), JsonPropertyName("importControlByRemoved")]
+        public ImportControl? RemovedImport { get; set; }
 
         [SystemTextJsonIgnore]
         [JsonProperty("createdImport"), JsonPropertyName("createdImport")]
         public ImportControl? CreatedImport { get; set; }
 
         [SystemTextJsonIgnore]
-        public DateTime? LastModified => LastSeenImport?.StartTime ?? Metadata?.Created;
+        public DateTime? LastModified => RemovedImport?.StartTime ?? CreatedImport?.StartTime ?? Metadata?.Created;
 
         [JsonProperty("translate"), JsonPropertyName("translate")]
         public NatData NatData { get; set; } = new();
@@ -117,14 +122,22 @@ namespace FWO.Data
         [JsonProperty("nat_rule"), JsonPropertyName("nat_rule")]
         public bool NatRule { get; set; }
 
+        [JsonProperty("access_rule"), JsonPropertyName("access_rule")]
+        public bool AccessRule { get; set; } = true;
+
         [JsonProperty("rulebase_id"), JsonPropertyName("rulebase_id")]
         public int RulebaseId { get; set; }
 
-        [JsonProperty("rule_num"), JsonPropertyName("rule_num")]
-        public int RuleOrderNumber { get; set; }
+        private DeviceWrapper[] enforcingGateways = [];
 
         [JsonProperty("rule_enforced_on_gateways"), JsonPropertyName("rule_enforced_on_gateways")]
-        public DeviceWrapper[] EnforcingGateways { get; set; } = [];
+        public DeviceWrapper[] EnforcingGateways
+        {
+            get => enforcingGateways;
+            // a rule can have multiple (historic) enforced-on-gateway entries for the same gateway
+            // (e.g. across import versions), so deduplicate by device id when assigning
+            set => enforcingGateways = [.. value.DistinctBy(gw => gw.Content.Id)];
+        }
 
         [JsonProperty("rule_installon"), JsonPropertyName("rule_installon")]
         public string? InstallOn { get; set; }
@@ -147,8 +160,23 @@ namespace FWO.Data
         [JsonProperty("rule"), JsonPropertyName("rule")]
         public Rule? ParentRule { get; set; }
 
+        [JsonProperty("ruleByXlateRule"), JsonPropertyName("ruleByXlateRule")]
+        public Rule? TranslatedRule { get; set; }
+
         [JsonProperty("rule_owners"), JsonPropertyName("rule_owners")]
         public RuleOwner?[] RuleOwner { get; set; } = [];
+
+        [JsonProperty("xlate_rule"), JsonPropertyName("xlate_rule")]
+        public long? XlateRule { get; set; }
+
+        [JsonProperty("flow_access_id"), JsonPropertyName("flow_access_id")]
+        public long? FlowAccessId { get; set; }
+
+        [JsonProperty("flow_access"), JsonPropertyName("flow_access")]
+        public FlowAccess? FlowAccess { get; set; }
+
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public long? Removed { get; set; }
 
         public string ChangeID { get; set; } = "";
         public string AdoITID { get; set; } = "";
@@ -156,8 +184,24 @@ namespace FWO.Data
         public ComplianceViolationType Compliance { get; set; } = ComplianceViolationType.None;
         public string ViolationDetails { get; set; } = "";
 
+        /// <summary>
+        /// Gets or sets the report-specific dotted hierarchy number shown in tree-style rule reports.
+        /// Ordered layers and real rules receive a value, while section headers stay empty.
+        /// </summary>
         public string DisplayOrderNumberString { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the report-specific flat visible-row order in the built rule tree, including ordered-layer
+        /// and section header placeholder rows. UI report table sorting uses this field.
+        /// </summary>
         public int DisplayOrderNumber { get; set; }
+
+        /// <summary>
+        /// Gets or sets the report-specific compact sequential order of real rules only. Header placeholder rows
+        /// keep this value at 0. Exports and report-specific serialization use this field.
+        /// </summary>
+        public int OrderNumber { get; set; }
+
         public bool Certified { get; set; }
         public string ManagementName = "";
         public string DeviceName { get; set; } = "";
@@ -181,7 +225,7 @@ namespace FWO.Data
             Id = rule.Id;
             Uid = rule.Uid;
             MgmtId = rule.MgmtId;
-            OrderNumber = rule.OrderNumber;
+            RuleNumNumeric = rule.RuleNumNumeric;
             Name = rule.Name;
             Comment = rule.Comment;
             Disabled = rule.Disabled;
@@ -209,8 +253,8 @@ namespace FWO.Data
             CustomFields = rule.CustomFields;
             Implied = rule.Implied;
             NatRule = rule.NatRule;
+            AccessRule = rule.AccessRule;
             RulebaseId = rule.RulebaseId;
-            RuleOrderNumber = rule.RuleOrderNumber;
             EnforcingGateways = rule.EnforcingGateways;
             InstallOn = rule.InstallOn;
             Time = rule.Time;
@@ -219,8 +263,10 @@ namespace FWO.Data
             Rulebase = rule.Rulebase;
             LastChangeAdmin = rule.LastChangeAdmin;
             ParentRule = rule.ParentRule;
+            TranslatedRule = rule.TranslatedRule;
             DisplayOrderNumberString = rule.DisplayOrderNumberString;
             DisplayOrderNumber = rule.DisplayOrderNumber;
+            OrderNumber = rule.OrderNumber;
             Certified = rule.Certified;
             ManagementName = rule.ManagementName;
             DeviceName = rule.DeviceName;
@@ -235,11 +281,12 @@ namespace FWO.Data
             Detailed = rule.Detailed;
             UnusedSpecialUserObjects = rule.UnusedSpecialUserObjects;
             UnusedUpdatableObjects = rule.UnusedUpdatableObjects;
+            XlateRule = rule.XlateRule;
         }
 
         public bool IsDropRule()
         {
-            return Action == "drop" || Action == "reject" || Action == "deny";
+            return RuleActions.IsDropAction(Action);
         }
 
         /// <summary>

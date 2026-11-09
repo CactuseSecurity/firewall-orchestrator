@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import json
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from fw_modules.ciscoasa9.asa_acl_parser import AsaConfigParseError, parse_access_list_entry
 from fw_modules.ciscoasa9.asa_models import (
     AccessGroupBinding,
     AccessList,
@@ -25,9 +28,8 @@ from fw_modules.ciscoasa9.asa_models import (
     ServicePolicyBinding,
 )
 from fw_modules.ciscoasa9.asa_parser_functions import (
-    clean_lines,
+    clean_numbered_lines,
     consume_block,
-    parse_access_list_entry,
     parse_class_map_block,
     parse_dns_inspect_policy_map_block,
     parse_icmp_object_group_block,
@@ -40,16 +42,19 @@ from fw_modules.ciscoasa9.asa_parser_functions import (
     parse_service_object_group_block,
 )
 from fwo_log import FWOLogger
+from fwo_redaction import REDACTED_VALUE
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 
 def parse_asa_config(raw_config: str) -> Config:
-    lines = clean_lines(raw_config)
+    numbered_lines = clean_numbered_lines(raw_config)
+    lines = [line for _, line in numbered_lines]
 
     # Initialize state
     state = _ParserState()
+    state.source_line_numbers = [line_number for line_number, _ in numbered_lines]
 
     # Handler registry: (pattern, handler_function)
     handlers: list[tuple[re.Pattern[str], Callable[[re.Match[str], str, list[str], int, _ParserState], int]]] = [
@@ -75,7 +80,8 @@ def parse_asa_config(raw_config: str) -> Config:
         ),  # left intentionally without $
         (re.compile(r"^object-group\s+icmp-type\s+\S+$", re.IGNORECASE), _handle_icmp_object_group_block),
         (re.compile(r"^object-group\s+protocol\s+\S+$", re.IGNORECASE), _handle_protocol_object_group_block),
-        (re.compile(r"^access-list\s+\S+\s+extended\s+(permit|deny)\s+", re.IGNORECASE), _handle_access_list_entry),
+        # every extended entry goes to the strict parser, which fails the import on syntax it does not understand
+        (re.compile(r"^access-list\s+\S+\s+(?:line\s+\d+\s+)?extended\s+", re.IGNORECASE), _handle_access_list_entry),
         (re.compile(r"^access-group\s+(\S+)\s+(in|out)\s+interface\s+(\S+)$", re.IGNORECASE), _handle_access_group),
         (re.compile(r"^route\s+(\S+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s+(\d+))?$", re.IGNORECASE), _handle_route),
         (
@@ -136,6 +142,7 @@ class _ParserState:
         self.policy_maps: dict[str, PolicyMap] = {}
         self.service_policies: list[ServicePolicyBinding] = []
         self.protocol_groups: list[AsaProtocolGroup] = []
+        self.source_line_numbers: list[int] = []
 
 
 def _handle_asa_version(match: re.Match[str], _line: str, _lines: list[str], i: int, state: _ParserState) -> int:
@@ -149,7 +156,8 @@ def _handle_hostname(match: re.Match[str], _line: str, _lines: list[str], i: int
 
 
 def _handle_enable_password(match: re.Match[str], _line: str, _lines: list[str], i: int, state: _ParserState) -> int:
-    state.enable_password = AsaEnablePassword(password=match.group(1), encryption_function=match.group(2))
+    # The enable password hash is not needed for the import and would end up in the native config dump.
+    state.enable_password = AsaEnablePassword(password=REDACTED_VALUE, encryption_function=match.group(2))
     return i + 1
 
 
@@ -249,11 +257,15 @@ def _handle_protocol_object_group_block(
 
 
 def _handle_access_list_entry(_match: re.Match[str], line: str, _lines: list[str], i: int, state: _ParserState) -> int:
+    # an entry that cannot be parsed fails the import: skipping it (e.g. a deny) would widen the imported policy
     try:
         entry = parse_access_list_entry(line, state.protocol_groups, state.svc_objects, state.svc_obj_groups)
-        state.access_lists_map.setdefault(entry.acl_name, []).append(entry)
-    except Exception:
-        FWOLogger.warning(f"Failed to parse access-list entry: {line}")
+    except AsaConfigParseError as error:
+        line_number = state.source_line_numbers[i] if i < len(state.source_line_numbers) else None
+        located_error = error.at_line(line, line_number)
+        FWOLogger.error(str(located_error))
+        raise located_error from error
+    state.access_lists_map.setdefault(entry.acl_name, []).append(entry)
     return i + 1
 
 

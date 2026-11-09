@@ -2,8 +2,6 @@
   config(
     where: {
       _or: [
-        { config_key: { _eq: "importCheckCertificates" } }
-        { config_key: { _eq: "importSuppressCertificateWarnings" } }
         { config_key: { _eq: "complianceCheckInternetZoneObject" } }
         { config_key: { _eq: "complianceCheckMailBody" } }
         { config_key: { _eq: "complianceCheckMailRecipients" } }
@@ -16,6 +14,7 @@
         { config_key: { _eq: "complianceCheckStartAt" } }
         { config_key: { _eq: "autoCalculateInternetZone" } }
         { config_key: { _eq: "autoCalculateUndefinedInternalZone" } }
+        { config_key: { _eq: "designatedZoneMatrix" } }
         { config_key: { _eq: "internalZoneRange_10_0_0_0_8" } }
         { config_key: { _eq: "internalZoneRange_172_16_0_0_12" } }
         { config_key: { _eq: "internalZoneRange_192_168_0_0_16" } }
@@ -37,10 +36,11 @@
         { config_key: { _eq: "showShortColumnsInComplianceReports" } }
         { config_key: { _eq: "complianceCheckElementsPerFetch" } }
         { config_key: { _eq: "complianceCheckAvailableProcessors" } }
+        { config_key: { _eq: "CustomFieldChangeIdKey" } }
 
       ]
     }
-    limit: 35
+    limit: 37
   ) {
     config_key
     config_value

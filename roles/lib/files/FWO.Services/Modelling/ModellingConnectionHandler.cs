@@ -168,7 +168,7 @@ namespace FWO.Services.Modelling
             RefreshSelectableNwObjects();
         }
 
-        private async Task RefreshActConn()
+        public async Task RefreshActConn()
         {
             try
             {
@@ -300,6 +300,13 @@ namespace FWO.Services.Modelling
             if (ActConn.IsCommonService && ComSvcContainsOnlyCommonNetworkArea())
             {
                 DisplayMessageInUi(default, userConfig.GetText("edit_common_service"), userConfig.GetText("U9030"), true);
+                return false;
+            }
+
+            List<ModellingNetworkArea> remainingExcludedAreas = GetRemainingComSvcExcludedAreas();
+            if (remainingExcludedAreas.Count > 0)
+            {
+                DisplayMessageInUi(default, userConfig.GetText("edit_common_service"), GetComSvcExcludedAreaSaveMessage(remainingExcludedAreas), true);
                 return false;
             }
 

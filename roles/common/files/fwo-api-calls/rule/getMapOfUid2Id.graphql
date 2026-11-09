@@ -1,5 +1,5 @@
 query getMapOfUid2Id($uids: [String!], $mgmId: Int!) {
-  rule(where: {
+  firewall_rule(where: {
     rule_uid: {_in: $uids},
     _or: [
       {mgm_id: {_eq: $mgmId}},

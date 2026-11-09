@@ -1,0 +1,54 @@
+using FWO.Basics;
+using FWO.Middleware.Server.Controllers;
+using Microsoft.AspNetCore.Authorization;
+using NUnit.Framework;
+using System.Reflection;
+
+namespace FWO.Test;
+
+[TestFixture]
+internal class FlowControllerAuthorizationTest
+{
+    [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetAddressObjects))]
+    [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetAddressGroups))]
+    [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetServiceObjects))]
+    [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetServiceGroups))]
+    [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetTimeObjects))]
+    [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetServiceObjectId))]
+    [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetTimeObjectId))]
+    [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetAddressObjectId))]
+    [TestCase(typeof(FlowComplianceController), nameof(FlowComplianceController.GetFlowComplianceState))]
+    [TestCase(typeof(FlowComplianceController), nameof(FlowComplianceController.GetPolicyIds))]
+    [TestCase(typeof(WorkflowTicketController), nameof(WorkflowTicketController.GetTicketStatus))]
+    public void ReadOnlyFlowEndpoints_AllowAdminAndAuditor(Type controllerType, string methodName)
+    {
+        AuthorizeAttribute authorize = GetAuthorizeAttribute(controllerType, methodName);
+
+        Assert.That(authorize.Roles, Is.EqualTo($"{Roles.Admin}, {Roles.Auditor}"));
+    }
+
+    [Test]
+    public void GroupResolver_AllowsWorkflowRoles()
+    {
+        AuthorizeAttribute authorize = GetAuthorizeAttribute(typeof(FlowCatalogController), nameof(FlowCatalogController.ResolveGroupMembers));
+
+        Assert.That(authorize.Roles, Is.EqualTo($"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}"));
+    }
+
+    [TestCase(typeof(WorkflowTicketController), nameof(WorkflowTicketController.CreateTicket))]
+    public void WriteFlowEndpoints_RemainAdminOnly(Type controllerType, string methodName)
+    {
+        AuthorizeAttribute authorize = GetAuthorizeAttribute(controllerType, methodName);
+
+        Assert.That(authorize.Roles, Is.EqualTo($"{Roles.Admin}"));
+    }
+
+    private static AuthorizeAttribute GetAuthorizeAttribute(Type controllerType, string methodName)
+    {
+        MethodInfo method = controllerType.GetMethod(methodName)!;
+        AuthorizeAttribute? authorizeAttribute = method.GetCustomAttribute<AuthorizeAttribute>();
+
+        Assert.That(authorizeAttribute, Is.Not.Null, $"Expected [Authorize] on {controllerType.Name}.{methodName}.");
+        return authorizeAttribute!;
+    }
+}

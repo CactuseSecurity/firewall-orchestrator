@@ -1,0 +1,5 @@
+mutation insertFlowSvcGroupMembers($members: [flow_svcgroup_member_insert_input!]!) {
+  insert_flow_svcgroup_member(objects: $members) {
+    affected_rows
+  }
+}

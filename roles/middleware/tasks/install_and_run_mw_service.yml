@@ -1,8 +1,7 @@
 - name: copy middleware server systemd service script
   template:
     src: fworch-middleware.service.j2
-    dest: "/lib/systemd/system/{{ middleware_service_name }}.service"
-    backup: true
+    dest: "{{ fworch_systemd_unit_dir }}/{{ middleware_service_name }}.service"
     mode: "0644"
     owner: "root"
   register: mw_service_template
@@ -19,7 +18,7 @@
     chdir: "{{ middleware_server_start_dir }}"
   become: true
   become_user: "{{ fworch_user }}"
-  environment: "{{ proxy_env }}"
+  environment: "{{ dotnet_env }}"
   register: publish_result
   when: mw_deploy_changed | default(false)
 
@@ -28,11 +27,10 @@
     msg: "could not publish middleware server successfully: {{ publish_result }}"
   when: publish_result is defined and publish_result.rc != 0
 
+# The API is installed later in site.yml; finalize restarts middleware after API is ready.
 - name: make middleware service run at host startup
   systemd:
     name: "{{ middleware_service_name }}"
     enabled: true
+    daemon_reload: true
   become: true
-
-  # not starting the server as the api is not ready yet
-  # we will restart the middlewareserver later 

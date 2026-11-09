@@ -25,6 +25,9 @@ namespace FWO.Data
 
         [JsonProperty("owner_mapping_source_id"), JsonPropertyName("owner_mapping_source_id")]
         public int OwnerMappingSourceId { get; set; }
+
+        [JsonProperty("matched_objects"), JsonPropertyName("matched_objects")]
+        public string? MatchedObjects { get; set; } = null;
     }
 
 
@@ -41,6 +44,9 @@ namespace FWO.Data
     {
         [JsonProperty("affected_rows"), JsonPropertyName("affected_rows")]
         public int AffectedRows { get; set; }
+
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<RuleOwner> Returning { get; set; } = [];
     }
 
     public class InsertRuleOwnerResult

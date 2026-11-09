@@ -5,6 +5,8 @@ from fwo_api_call import FwoApiCall
 from fwo_exceptions import FwoImporterError
 from model_controllers.fwconfig_import_gateway import FwConfigImportGateway
 from model_controllers.import_state_controller import ImportStateController
+from model_controllers.import_statistics_controller import ImportStatisticsController
+from model_controllers.rulebase_link_controller import RulebaseLinkController
 from pytest_mock import MockerFixture
 from test.utils.test_utils import mock_get_graphql_code
 
@@ -24,7 +26,7 @@ def test_fwconfig_import_gateway_init(
     api_call.call = unittest.mock.Mock(
         return_value={
             "data": {
-                "rulebase_link": [
+                "firewall_rulebase_link": [
                     {
                         "gw_id": gateway_id,
                         "from_rule_id": from_rule_id,
@@ -62,7 +64,7 @@ def test_fwconfig_import_gateway_init_no_links(
     api_call: FwoApiCall,
     mocker: MockerFixture,
 ):
-    api_call.call = unittest.mock.Mock(return_value={"data": {"rulebase_link": []}})
+    api_call.call = unittest.mock.Mock(return_value={"data": {"firewall_rulebase_link": []}})
 
     get_graphql_code = mock_get_graphql_code(mocker, "lol")
 
@@ -81,7 +83,7 @@ def test_fwconfig_import_gateway_init_no_gateway_ids(
     api_call: FwoApiCall,
     mocker: MockerFixture,
 ):
-    api_call.call = unittest.mock.Mock(return_value={"data": {"rulebase_link": []}})
+    api_call.call = unittest.mock.Mock(return_value={"data": {"firewall_rulebase_link": []}})
 
     get_graphql_code = mock_get_graphql_code(mocker, "lol")
 
@@ -102,3 +104,35 @@ def test_fwconfig_import_gateway_update_rulebase_link_diffs_no_configs(
     with pytest.raises(FwoImporterError) as excinfo:
         fwconfig_import_gateway.update_rulebase_link_diffs()
     assert "normalized_config is None in update_rulebase_link_diffs" in str(excinfo.value)
+
+
+def test_insert_rulebase_links_uses_firewall_rulebase_link_result(
+    api_call: FwoApiCall,
+    mocker: MockerFixture,
+):
+    controller = RulebaseLinkController()
+    stats = ImportStatisticsController()
+    mock_get_graphql_code(mocker, "mutation")
+    api_call.call = mocker.Mock(
+        return_value={"data": {"insert_firewall_rulebase_link": {"affected_rows": 2}}},
+    )
+
+    controller.insert_rulebase_links(api_call, stats, [{"from_rulebase_id": 1}, {"from_rulebase_id": 2}])
+
+    assert stats.statistics.rulebase_link_add_count == 2
+
+
+def test_remove_rulebase_links_uses_firewall_rulebase_link_result(
+    api_call: FwoApiCall,
+    mocker: MockerFixture,
+):
+    controller = RulebaseLinkController()
+    stats = ImportStatisticsController()
+    mock_get_graphql_code(mocker, "mutation")
+    api_call.call = mocker.Mock(
+        return_value={"data": {"update_firewall_rulebase_link": {"affected_rows": 2}}},
+    )
+
+    controller.remove_rulebase_links(api_call, stats, import_id=11, removed_rb_links_ids=[1, 2])
+
+    assert stats.statistics.rulebase_link_delete_count == 2

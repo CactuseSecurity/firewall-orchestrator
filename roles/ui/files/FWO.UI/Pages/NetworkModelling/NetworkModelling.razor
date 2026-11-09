@@ -1,6 +1,8 @@
 @using FWO.Data.Workflow
 @using FWO.ExternalSystems
 @using FWO.Data
+@using FWO.Config.Api
+@using FWO.Config.Api.Data
 @using FWO.Ui.Display
 @using FWO.Services.Workflow
 @using RestSharp
@@ -27,8 +29,8 @@
         {
             <EditConnLeftSide @bind-Width="sidebarLeftWidth" @bind-ConnHandler="appHandler.OverviewConnHandler" OverviewMode="true"/>
             <RequestFwChangePopup @bind-Display="showFwChange" SelectedApp="@selectedApp" Connections="appHandler.GetConnectionsToRequest()"
-                RefreshParent="SubscribeAndSetStatusFromTicket" ChangeStatus="@ChangeStatus" LastRequestDate="@LastRequestDate"/>
-            <RequestRecertPopup @bind-Display="showRecert" AppHandler="@appHandler" RefreshParent="UpdateRecertStatus" CanRecertify="IsRecertificationAllowedForSelectedApp()"/>
+                RefreshParent="RefreshAfterRequestCreated" ChangeStatus="@ChangeStatus" LastRequestDate="@LastRequestDate"/>
+            <RequestRecertPopup @bind-Display="showRecert" AppHandler="@appHandler" RefreshParent="UpdateRecertStatus" CanRecertify="CanRecertifySelectedApp()"/>
         }
         <div style="margin-left: @($"{sidebarLeftWidth + 10}px");">
             <div class="input-group">
@@ -50,9 +52,9 @@
                         </button>
                         @if(userConfig.ModRolloutActive)
                         {
-                            <AuthorizeView Roles="@($"{Roles.Modeller}, {Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
+                            <ExecutionModeAuthorizeView Roles="@($"{Roles.Modeller}, {Roles.Requester}, {Roles.Implementer}, {Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
-                                    @if (IsModellingWriteAllowedForSelectedApp())
+                                    @if (IsModellingInteractionAllowedForSelectedApp())
                                     {
                                         <button type="button" class="btn btn-sm btn-primary" @onclick="RequestFwChange">
                                             @(DisplayService.DisplayButtonWithTooltip(userConfig, "request_fw_change", Icons.RequestFwChange, UserConfig.PureLineStat(ChangeStatus)))
@@ -72,11 +74,11 @@
                                         </button>
                                     </div>
                                 </NotAuthorized>
-                            </AuthorizeView>
+                            </ExecutionModeAuthorizeView>
                         }
                         @if(userConfig.ModRecertActive && appSelected && selectedApp.RecertActive && selectedApp.ConnectionCount.Aggregate.Count > 0)
                         {
-                            @if (HasRecertWriteAccess() && IsRecertificationAllowedForSelectedApp())
+                            @if (CanOpenRecertificationPopup())
                             {
                                 <button type="button" class="btn btn-sm btn-success" @onclick="Recertify">
                                     @(DisplayService.DisplayButtonWithTooltip(userConfig, "recertify", Icons.Recertify, UserConfig.PureLineStat(RecertStatus)))
@@ -84,7 +86,7 @@
                             }
                             else
                             {
-                                <div data-toggle="tooltip" title="@(userConfig.PureLine("C9012"))">
+                                <div data-toggle="tooltip" title="@GetRecertificationDisabledTooltip()">
                                     <button type="button" class="btn btn-sm btn-success" disabled>
                                         @(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))
                                     </button>
@@ -105,13 +107,13 @@
                             <button type="button" class="btn btn-sm btn-dark" @onclick="ShareLink">
                                 @(DisplayService.DisplayButton(userConfig, "share_link", Icons.Share))
                             </button>
-                            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+                            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                                 <Authorized>
                                     <button type="button" class="btn btn-sm btn-warning" @onclick="ManualAppServer">
                                         @(DisplayService.DisplayButton(userConfig, "edit_app_server", Icons.Edit, "", Icons.Host))
                                     </button>
                                 </Authorized>
-                            </AuthorizeView>
+                            </ExecutionModeAuthorizeView>
                             @if(userConfig.VarianceAnalysisRefresh)
                             {
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="RefreshState">
@@ -125,44 +127,44 @@
                     <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.Tabset">
                         <Tab Title="@(userConfig.GetText("connections"))" Position=0>
                             <div>
-                                <button type="button" class="btn btn-sm btn-success" @onclick="AddConnection" disabled="@(!IsModellingWriteAllowedForSelectedApp())">
+                                <button type="button" class="btn btn-sm btn-success" @onclick="AddConnection" disabled="@(!IsModellingInteractionAllowedForSelectedApp())">
                                     @(DisplayService.DisplayButton(userConfig, "add_connection", Icons.Add))
                                 </button>
                             </div>
                             <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()"
-                                @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())" />
+                                @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingInteractionAllowedForSelectedApp())" />
                         </Tab>
                         <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
                             <div class="d-flex justify-content-between">
                                 <div>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="AddInterface" disabled="@(!IsModellingWriteAllowedForSelectedApp())">
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="AddInterface" disabled="@(!IsModellingInteractionAllowedForSelectedApp())">
                                         @(DisplayService.DisplayButton(userConfig, "add_interface", Icons.Add))
                                     </button>
                                 </div>
-                                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+                                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                                     <Authorized>
                                         <div>
                                             <input id="cbx_show_rejected" type="checkbox" @bind="showRejected">
                                             <label for="cbx_show_rejected" class="col-form-label">@(userConfig.GetText("displayRejected"))</label>
                                         </div>
                                     </Authorized>
-                                </AuthorizeView>
+                                </ExecutionModeAuthorizeView>
                             </div>
                             <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)"
-                                @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" InterfacesPossible="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())"/>
+                                @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" InterfacesPossible="true" Readonly="@(!IsModellingInteractionAllowedForSelectedApp())"/>
                         </Tab>
                         @if (selectedApp.CommSvcPossible)
                         {
                             <Tab Title="@(userConfig.GetText("common_services"))" Position=2>
                                <div>
                                     <button type="button" class="btn btn-sm btn-success"
-                                            disabled="@(!IsModellingWriteAllowedForSelectedApp())"
+                                            disabled="@(!IsModellingInteractionAllowedForSelectedApp())"
                                             @onclick="AddCommonService">
                                         @(DisplayService.DisplayButton(userConfig, "add_common_service", Icons.Add))
                                     </button>
                                </div>
                                 <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetCommonServices()"
-                                    @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())" />
+                                    @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingInteractionAllowedForSelectedApp())" />
                             </Tab>
                         }
                     </TabSet>
@@ -217,6 +219,7 @@ else
     private bool showRejected = false;
 
     private bool appActive = false;
+    private readonly CancellationTokenSource varianceTokenSource = new();
     private bool showHistory = false;
     private bool shareLink = false;
     private bool showFwChange = false;
@@ -232,12 +235,12 @@ else
     private bool firstErrorMessage = true;
     private bool workInProgress = false;
     private bool InitDone = false;
+    private bool disposed = false;
 
 
     protected override async Task OnInitializedAsync()
     {
-        // if use has modeller role, choose it before all others for this menu
-        apiConnection.SetBestRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Admin, Roles.Auditor ]);
+        userConfig.OnChange += OnUserConfigChanged;
         extStateHandler = new(apiConnection);
         await states.Init(apiConnection);
         await InitAppList();
@@ -273,23 +276,8 @@ else
     {
         try
         {
-            bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
-            bool isAuditor = authenticationStateTask.Result.User.IsInRole(Roles.Auditor);
-            if (isAdmin)
-            {
-                apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi, true);
-                recertifiableOwnerIds = apps.Select(owner => owner.Id).ToHashSet();
-            }
-            else if (isAuditor)
-            {
-                apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi, true);
-                recertifiableOwnerIds = [];
-            }
-            else
-            {
-                apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi, true);
-                recertifiableOwnerIds = userConfig.User.RecertOwnerships.ToHashSet();
-            }
+            apps = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi, true);
+            recertifiableOwnerIds = userConfig.User.RecertOwnerships.ToHashSet();
 
             if (apps.Count == 0)
             {
@@ -342,10 +330,11 @@ else
         {
             appSelected = false;
             selectedApp = newApp;
-            appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, IsModellingWriteAllowedForApp(newApp))
+            appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, IsModellingInteractionAllowedForApp(newApp))
             {
                 ActWidth = sidebarLeftWidth,
-                StartCollapsed = firstInit
+                StartCollapsed = firstInit,
+                CancellationToken = varianceTokenSource.Token
             };
             firstInit = false;
             await appHandler.Init();
@@ -372,7 +361,7 @@ else
             {
                 tabSelected = true;
                 appHandler?.InitActiveTab(selectedConn);
-                if (IsModellingWriteAllowedForSelectedApp())
+                if (IsModellingInteractionAllowedForSelectedApp())
                 {
                     await appHandler!.EditConn(selectedConn);
                 }
@@ -406,7 +395,7 @@ else
 
     private void RequestFwChange()
     {
-        if (!IsModellingWriteAllowedForSelectedApp())
+        if (!IsModellingInteractionAllowedForSelectedApp())
         {
             DisplayMessageInUi(null, userConfig.GetText("request_fw_change"), userConfig.GetText("E9104"), true);
             return;
@@ -416,7 +405,7 @@ else
 
     private async Task AddConnection()
     {
-        if (!IsModellingWriteAllowedForSelectedApp() || appHandler == null)
+        if (!IsModellingInteractionAllowedForSelectedApp() || appHandler == null)
         {
             DisplayMessageInUi(null, userConfig.GetText("add_connection"), userConfig.GetText("E9104"), true);
             return;
@@ -438,7 +427,7 @@ else
 
     private async Task AddInterface()
     {
-        if (!IsModellingWriteAllowedForSelectedApp() || appHandler == null)
+        if (!IsModellingInteractionAllowedForSelectedApp() || appHandler == null)
         {
             DisplayMessageInUi(null, userConfig.GetText("add_interface"), userConfig.GetText("E9104"), true);
             return;
@@ -449,7 +438,7 @@ else
 
     private async Task AddCommonService()
     {
-        if (!IsModellingWriteAllowedForSelectedApp() || appHandler == null)
+        if (!IsModellingInteractionAllowedForSelectedApp() || appHandler == null)
         {
             DisplayMessageInUi(null, userConfig.GetText("add_common_service"), userConfig.GetText("E9104"), true);
             return;
@@ -460,7 +449,7 @@ else
 
     private void Recertify()
     {
-        if (!HasRecertWriteAccess() || !IsRecertificationAllowedForSelectedApp())
+        if (!CanOpenRecertificationPopup())
         {
             DisplayMessageInUi(null, userConfig.GetText("recertify"), userConfig.GetText("E9104"), true);
             return;
@@ -475,19 +464,43 @@ else
             return false;
         }
 
-        bool isAdmin = authenticationStateTask!.Result.User.IsInRole(Roles.Admin);
-        return isAdmin || recertifiableOwnerIds.Contains(selectedApp.Id);
+        return recertifiableOwnerIds.Contains(selectedApp.Id);
     }
 
     private bool HasRecertWriteAccess()
     {
-        return authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-            || authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
+        return userConfig.CanUseAnyRole(Roles.Recertifier);
     }
 
-    private bool IsModellingWriteAllowedForSelectedApp()
+    private bool CanRecertifySelectedApp()
     {
-        return IsModellingWriteAllowedForApp(selectedApp);
+        return HasRecertWriteAccess() && IsRecertificationAllowedForSelectedApp();
+    }
+
+    private bool CanOpenRecertificationPopup()
+    {
+        return userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor) || CanRecertifySelectedApp();
+    }
+
+    private string GetRecertificationDisabledTooltip()
+    {
+        return userConfig.PureLine(HasRecertWriteAccess() ? "C9032" : "C9031");
+    }
+
+    /// <summary>
+    /// Checks whether the selected application's modelling forms may be used without granting persistence rights.
+    /// </summary>
+    private bool IsModellingInteractionAllowedForSelectedApp()
+    {
+        return IsModellingInteractionAllowedForApp(selectedApp);
+    }
+
+    /// <summary>
+    /// Checks whether modelling forms may be used for the supplied application without granting persistence rights.
+    /// </summary>
+    private bool IsModellingInteractionAllowedForApp(FwoOwner owner)
+    {
+        return userConfig.CanUseAnyRole(Roles.Auditor) || IsModellingWriteAllowedForApp(owner);
     }
 
     private bool IsModellingWriteAllowedForApp(FwoOwner owner)
@@ -497,12 +510,12 @@ else
             return false;
         }
 
-        if (authenticationStateTask!.Result.User.IsInRole(Roles.Admin))
+        if (userConfig.CanUseAnyRole(Roles.Admin))
         {
             return true;
         }
 
-        if (!authenticationStateTask.Result.User.IsInRole(Roles.Modeller))
+        if (!userConfig.CanUseAnyRole(Roles.Modeller))
         {
             return false;
         }
@@ -521,12 +534,25 @@ else
             try
             {
                 workInProgress = true;
-                await appHandler.AnalyseStatus(appHandler.Connections);
-                workInProgress = false;
+                if (userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+                {
+                    await appHandler.ReInit();
+                    await SetChangeStatus();
+                    await InitConn();
+                }
+                else
+                {
+                    await appHandler.AnalyseStatus(appHandler.Connections);
+                }
+                await InvokeAsync(StateHasChanged);
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("refresh_state"), "", true);
+            }
+            finally
+            {
+                workInProgress = false;
             }
         }
     }
@@ -535,7 +561,6 @@ else
     {
         if(userConfig.ModRolloutActive)
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor ]);
             List<TicketId> ticketIds = await apiConnection.SendQueryAsync<List<TicketId>>(ExtRequestQueries.getLatestTicketId, new{ownerId = selectedApp.Id});
             if(ticketIds.Count == 0)
             {
@@ -545,7 +570,6 @@ else
             else
             {
                 WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketIds[0].Id });
-                apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor ]);
                 if(intTicket != null)
                 {
                     await SubscribeAndSetStatusFromTicket(intTicket);
@@ -558,6 +582,17 @@ else
     {
         await SetStatusFromTicket(intTicket);
         actTicketSubscription = apiConnection.GetSubscription<List<WfTicket>>(HandleSubscriptionError, OnTicketUpdate, RequestQueries.subscribeTicketStateChanges, new {intTicket.Id});
+    }
+
+    private async Task RefreshAfterRequestCreated(WfTicket intTicket)
+    {
+        await SubscribeAndSetStatusFromTicket(intTicket);
+        if (appHandler != null && userConfig.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
+        {
+            await appHandler.ReInit();
+            await InitConn();
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task SetStatusFromTicket(WfTicket intTicket)
@@ -639,12 +674,37 @@ else
 
     private async void HandleSubscriptionError(Exception exception)
     {
-        await InvokeAsync(() => DisplayMessageInUi(exception, userConfig.GetText("ticket"), userConfig.GetText("update_subscription_error"), true));
+        await InvokeAsync(() => GraphqlSubscriptionExceptionHandler.Handle(exception,
+            () => DisplayMessageInUi(exception, userConfig.GetText("ticket"), userConfig.GetText("update_subscription_error"), true)));
     }
 
     public void Dispose()
     {
+        disposed = true;
+        userConfig.OnChange -= OnUserConfigChanged;
         actTicketSubscription?.Dispose();
+        // stops a variance analysis that is waiting for the rule_owner mapping run
+        varianceTokenSource.Cancel();
+        varianceTokenSource.Dispose();
+    }
+
+    /// <summary>
+    /// Re-renders the page when user configuration changes.
+    /// </summary>
+    private void OnUserConfigChanged(Config config, ConfigItem[] configItems)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        _ = InvokeAsync(() =>
+        {
+            if (!disposed)
+            {
+                StateHasChanged();
+            }
+        });
     }
 
     private async void OnTicketUpdate(List<WfTicket> tickets)

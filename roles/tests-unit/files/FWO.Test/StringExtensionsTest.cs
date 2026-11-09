@@ -48,79 +48,79 @@ namespace FWO.Test
             bool shortened = false;
             string? nullString = null;
             ClassicAssert.AreEqual(null, nullString.SanitizeOpt(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(OkText, OkText.SanitizeOpt(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(OkText, OkText.SanitizeMand(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(ShortenedText, TextToShorten.SanitizeMand(ref shortened));
-            ClassicAssert.AreEqual(true, shortened);
+            ClassicAssert.IsTrue(shortened);
 
             shortened = false;
             ClassicAssert.AreEqual(null, nullString.SanitizeLdapNameOpt(ref shortened));
             ClassicAssert.AreEqual(OkLdapName, OkLdapName.SanitizeLdapNameOpt(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(OkLdapName, OkLdapName.SanitizeLdapNameMand(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(ShortenedLdapName, LdapNameToShorten.SanitizeLdapNameMand(ref shortened));
-            ClassicAssert.AreEqual(true, shortened);
+            ClassicAssert.IsTrue(shortened);
 
             shortened = false;
             ClassicAssert.AreEqual(null, nullString.SanitizeLdapPathOpt(ref shortened));
             ClassicAssert.AreEqual(OkLdapPath, OkLdapPath.SanitizeLdapPathOpt(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(OkLdapPath, OkLdapPath.SanitizeLdapPathMand(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(ShortenedLdapPath, LdapPathToShorten.SanitizeLdapPathMand(ref shortened));
-            ClassicAssert.AreEqual(true, shortened);
+            ClassicAssert.IsTrue(shortened);
 
             shortened = false;
             ClassicAssert.AreEqual(null, nullString.SanitizePasswOpt(ref shortened));
             ClassicAssert.AreEqual(OkPassw, OkPassw.SanitizePasswOpt(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(OkPassw, OkPassw.SanitizePasswMand(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(ShortenedPassw, PasswToShorten.SanitizePasswMand(ref shortened));
-            ClassicAssert.AreEqual(true, shortened);
+            ClassicAssert.IsTrue(shortened);
 
             shortened = false;
             ClassicAssert.AreEqual(null, nullString.SanitizeKeyOpt(ref shortened));
             ClassicAssert.AreEqual(OkKey, OkKey.SanitizeKeyOpt(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(OkKey, OkKey.SanitizeKeyMand(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(ShortenedKey, KeyToShorten.SanitizeKeyMand(ref shortened));
-            ClassicAssert.AreEqual(true, shortened);
+            ClassicAssert.IsTrue(shortened);
 
             shortened = false;
             ClassicAssert.AreEqual(null, nullString.SanitizeCommentOpt(ref shortened));
             ClassicAssert.AreEqual(OkComment, OkComment.SanitizeCommentOpt(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(OkComment, OkComment.SanitizeCommentMand(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(ShortenedComment, CommentToShorten.SanitizeCommentMand(ref shortened));
-            ClassicAssert.AreEqual(true, shortened);
+            ClassicAssert.IsTrue(shortened);
 
             shortened = false;
             ClassicAssert.AreEqual(null, nullString.SanitizeCidrOpt(ref shortened));
             ClassicAssert.AreEqual(OkCidr, OkCidr.SanitizeCidrOpt(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(OkCidr, OkCidr.SanitizeCidrMand(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(ShortenedCidr, CidrToShorten.SanitizeCidrMand(ref shortened));
-            ClassicAssert.AreEqual(true, shortened);
+            ClassicAssert.IsTrue(shortened);
 
             shortened = false;
             ClassicAssert.AreEqual(OkJson, OkJson.SanitizeJsonMand(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(ShortenedJson, JsonToShorten.SanitizeJsonMand(ref shortened));
-            ClassicAssert.AreEqual(true, shortened);
+            ClassicAssert.IsTrue(shortened);
 
             shortened = false;
             ClassicAssert.AreEqual(OkJsonField, OkJsonField.SanitizeJsonFieldMand(ref shortened));
-            ClassicAssert.AreEqual(false, shortened);
+            ClassicAssert.IsFalse(shortened);
             ClassicAssert.AreEqual(ShortenedJsonField, JsonFieldToShorten.SanitizeJsonFieldMand(ref shortened));
-            ClassicAssert.AreEqual(true, shortened);
+            ClassicAssert.IsTrue(shortened);
         }
 
 
@@ -252,6 +252,18 @@ namespace FWO.Test
         {
             bool shortened = false;
             string result = input.SanitizeCidrMand(ref shortened);
+            Assert.That(result, Is.EqualTo(expected));
+            Assert.That(shortened, Is.EqualTo(expectedShortened));
+        }
+
+        // --- SanitizeEmailAddressMand & Opt ---
+        [TestCase("user.name+tag@example.test", "user.name+tag@example.test", false)]
+        [TestCase(" user name@example.test ", "username@example.test", true)]
+        [TestCase("bad;addr@example.test\r\n", "badaddr@example.test", true)]
+        public void SanitizeEmailAddressMand_Works(string input, string expected, bool expectedShortened)
+        {
+            bool shortened = false;
+            string result = input.SanitizeEmailAddressMand(ref shortened);
             Assert.That(result, Is.EqualTo(expected));
             Assert.That(shortened, Is.EqualTo(expectedShortened));
         }
@@ -437,22 +449,6 @@ namespace FWO.Test
         public void StripHtmlTags_Works(string input, string expected)
         {
             string result = input.StripHtmlTags();
-            Assert.That(result, Is.EqualTo(expected));
-        }
-
-        // --- StripDangerousHtmlTags ---
-        [TestCase("<br>line<br>", "<br>line<br>")]
-        [TestCase("<script>alert(1)</script>", "alert(1)")]
-        [TestCase("<b>bold</b>", "<b>bold</b>")]
-        [TestCase("<i>italic</i>", "<i>italic</i>")]
-        [TestCase("<i><script>evil</script>text</i>", "<i>eviltext</i>")]
-        [TestCase("<BR/>line<br>", "line<br>")]
-        [TestCase("<b>bold</b><i>italic</i>", "<b>bold</b><i>italic</i>")]
-        [TestCase("<x>fictitious tag</x>", "fictitious tag")]
-        [TestCase("<x>fictitious tag<x>", "fictitious tag")]
-        public void StripDangerousHtmlTags_Works(string input, string expected)
-        {
-            string result = input.StripDangerousHtmlTags();
             Assert.That(result, Is.EqualTo(expected));
         }
 

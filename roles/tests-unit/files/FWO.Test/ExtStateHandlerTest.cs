@@ -25,8 +25,11 @@ namespace FWO.Test
                         QueryCalled = true;
                         List<WfExtState> extStates =
                         [
-                            new() { Id = 1, Name = "ExtReqInitialized", StateId = 1 },
-                            new() { Id = 2, Name = "ExtReqDone", StateId = 631 }
+                            new() { Id = 1, Name = "ExtReqInitialized", StateId = null },
+                            new() { Id = 2, Name = "ExtReqInitialized", StateId = 1 },
+                            new() { Id = 3, Name = "ExtReqDone", StateId = null },
+                            new() { Id = 4, Name = "ExtReqDone", StateId = 631 },
+                            new() { Id = 5, Name = "external_implementation", StateId = 7 }
                         ];
                         return (ApiResponse<QueryResponseType>)(object)new ApiResponse<List<WfExtState>>(extStates);
                     }
@@ -56,6 +59,7 @@ namespace FWO.Test
             ExtStateHandler handler = new(apiConn);
 
             Assert.That(handler.GetInternalStateId(ExtStates.ExtReqDone), Is.EqualTo(631));
+            Assert.That(handler.GetExternalStateName(7, true), Is.EqualTo("external_implementation"));
             Assert.That(apiConn.QueryCalled, Is.True);
         }
 

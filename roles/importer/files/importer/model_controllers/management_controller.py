@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 from dataclasses import dataclass
 from typing import Any
@@ -5,14 +7,19 @@ from typing import Any
 from fwo_api import FwoApi
 from fwo_base import replace_none_with_empty
 from fwo_const import GRAPHQL_QUERY_PATH
-from fwo_encrypt import decrypt, read_main_key
+from fwo_encrypt import decrypt, decrypt_aes_ciphertext, read_main_key
 from fwo_exceptions import (
     FwLoginFailedError,
     FwoApiFailureError,
     SecretDecryptionFailedError,
 )
+from models.credential import AdditionalCredential
 from models.gateway import Gateway
 from models.management import Management
+
+IMPORTER_SETTING_LEVELS: list[str] = ["management", "device_type", "global"]
+IMPORTER_HOST_NAME_SETTING_KEY: str = "importerHostName"
+SSH_LEGACY_KEY_EXCHANGE_SETTING_KEY: str = "sshLegacyKeyExchange"
 
 
 @dataclass
@@ -32,15 +39,14 @@ class ConnectionInfo:
 class CredentialInfo:
     secret: str = ""
     import_user: str = ""
-    cloud_client_id: str = ""
-    cloud_client_secret: str = ""
+    additional_credential: AdditionalCredential | None = None
 
 
 @dataclass
 class ManagerInfo:
     is_super_manager: bool = False
     sub_manager_ids: list[int] | None = None
-    sub_managers: list["Management"] | None = None
+    sub_managers: list[Management] | None = None
 
 
 @dataclass
@@ -62,7 +68,8 @@ class ManagementController(Management):
         manager_info: ManagerInfo,
         domain_info: DomainInfo,
         import_disabled: bool = False,
-    ):
+        ssh_legacy_key_exchange: bool = False,
+    ) -> None:
         super().__init__(
             mgm_id=mgm_id,
             uid=uid,
@@ -74,6 +81,7 @@ class ManagementController(Management):
             hostname=connection_info.hostname,
             port=connection_info.port,
             importer_hostname=importer_hostname,
+            ssh_legacy_key_exchange=ssh_legacy_key_exchange,
             import_user=credential_info.import_user,
             secret=credential_info.secret,
             is_super_manager=manager_info.is_super_manager,
@@ -83,12 +91,11 @@ class ManagementController(Management):
             current_mgm_is_super_manager=manager_info.is_super_manager,
             domain_name=domain_info.domain_name,
             domain_uid=domain_info.domain_uid,
-            cloud_client_id=credential_info.cloud_client_id,
-            cloud_client_secret=credential_info.cloud_client_secret,
+            additional_credential=credential_info.additional_credential,
         )
 
     @classmethod
-    def from_json(cls, json_dict: dict[str, Any]) -> "ManagementController":
+    def from_json(cls, json_dict: dict[str, Any]) -> ManagementController:
         device_info = DeviceInfo(
             name=json_dict["name"],
             type_name=json_dict["deviceType"]["name"],
@@ -103,8 +110,11 @@ class ManagementController(Management):
         credential_info = CredentialInfo(
             import_user=json_dict["import_credential"]["user"],
             secret=json_dict["import_credential"]["secret"],
-            cloud_client_id=json_dict["import_credential"]["cloud_client_id"],
-            cloud_client_secret=json_dict["import_credential"]["cloud_client_secret"],
+            additional_credential=(
+                AdditionalCredential(**json_dict["import_credential"]["additional_credential"])
+                if json_dict["import_credential"].get("additional_credential") is not None
+                else None
+            ),
         )
 
         manager_info = ManagerInfo(
@@ -114,18 +124,22 @@ class ManagementController(Management):
         )
         domain_info = DomainInfo(domain_name=json_dict.get("configPath"), domain_uid=json_dict.get("domainUid"))
 
-        return cls(
+        management = cls(
             mgm_id=json_dict["id"],
             uid=json_dict["uid"],
             devices=json_dict["devices"],
             device_info=device_info,
             connection_info=connection_info,
-            importer_hostname=json_dict["importerHostname"],
+            importer_hostname=json_dict.get("importerHostname", ""),
             credential_info=credential_info,
             manager_info=manager_info,
             domain_info=domain_info,
             import_disabled=json_dict["importDisabled"],
+            ssh_legacy_key_exchange=json_dict.get("sshLegacyKeyExchange", False) is True,
         )
+        management.cloud_tenant_id = json_dict.get("cloudTenantId")
+        management.cloud_subscription_id = json_dict.get("cloudSubscriptionId")
+        return management
 
     def __str__(self):
         return f"{self.hostname}({self.mgm_id})"
@@ -148,7 +162,7 @@ class ManagementController(Management):
         return self.domain_uid if self.domain_uid is not None else self.domain_name  # type: ignore #TODO: check if None check is needed if yes, change type  # noqa: PGH003
 
     @classmethod
-    def build_gateway_list(cls, mgm_details: "ManagementController") -> list["Gateway"]:
+    def build_gateway_list(cls, mgm_details: ManagementController) -> list[Gateway]:
         devs: list[Gateway] = []
         for dev in mgm_details.devices:
             # check if gateway import is enabled
@@ -207,4 +221,64 @@ class ManagementController(Management):
                     except Exception:
                         raise SecretDecryptionFailedError
                     sub_mgm["import_credential"]["secret"] = decrypted_secret
-        return api_call_result["data"]["management"][0]
+        management = api_call_result["data"]["management"][0]
+        self.decrypt_additional_credentials(management)
+        settings = self.get_importer_settings(api_conn, mgm_id, management["deviceType"]["id"])
+        host_name = settings.get(IMPORTER_HOST_NAME_SETTING_KEY)
+        management["importerHostname"] = host_name.strip() if isinstance(host_name, str) else ""
+        management["sshLegacyKeyExchange"] = settings.get(SSH_LEGACY_KEY_EXCHANGE_SETTING_KEY) is True
+        return management
+
+    @staticmethod
+    def get_importer_settings(api_conn: FwoApi, mgm_id: int, device_type_id: int) -> dict[str, Any]:
+        """
+        Resolve the device specific settings the importer needs for a management.
+
+        Each setting is inherited along Global > device type > management; the most specific level that sets it wins.
+        A setting that is set on no level is missing from the result.
+        """
+        query = FwoApi.get_graphql_code([GRAPHQL_QUERY_PATH + "deviceSpecificSettings/getImporterSettings.graphql"])
+        query_variables: dict[str, Any] = {"deviceTypeKey": str(device_type_id), "managementKey": str(mgm_id)}
+        api_call_result = api_conn.call(query, query_variables=query_variables)
+        nodes: list[dict[str, Any]] | None = api_call_result.get("data", {}).get("device_specific_config_node")
+        if nodes is None:
+            raise FwoApiFailureError("did not succeed in getting the importer settings from FWO API")
+
+        values_by_level: dict[str, dict[str, Any]] = {}
+        for node in nodes:
+            level_values = values_by_level.setdefault(node["node_type"], {})
+            node_values: list[dict[str, Any]] = node.get("values") or []
+            for value in node_values:
+                level_values[value["config_key"]] = value["config_value"]
+
+        settings: dict[str, Any] = {}
+        for level in reversed(IMPORTER_SETTING_LEVELS):
+            settings.update(values_by_level.get(level, {}))
+        return settings
+
+    @staticmethod
+    def get_importer_host_name(api_conn: FwoApi, mgm_id: int, device_type_id: int) -> str:
+        """
+        Resolve the device specific setting importerHostName of a management.
+
+        An empty result means that every importer is responsible for the management.
+        """
+        host_name = ManagementController.get_importer_settings(api_conn, mgm_id, device_type_id).get(
+            IMPORTER_HOST_NAME_SETTING_KEY
+        )
+        return host_name.strip() if isinstance(host_name, str) else ""
+
+    @staticmethod
+    def decrypt_additional_credentials(management: dict[str, Any]) -> None:
+        """Decrypt linked secrets for the management and its queried sub-managers, failing closed."""
+        for manager in [management, *management.get("subManagers", [])]:
+            credential: dict[str, Any] = manager.get("import_credential") or {}
+            additional_credential: dict[str, Any] | None = credential.get("additional_credential")
+            if additional_credential is None:
+                continue
+            try:
+                additional_credential["secret"] = decrypt_aes_ciphertext(
+                    additional_credential["secret"], read_main_key()
+                )
+            except Exception:
+                raise SecretDecryptionFailedError from None

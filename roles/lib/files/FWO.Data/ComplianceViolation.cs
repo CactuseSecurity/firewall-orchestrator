@@ -32,8 +32,26 @@ namespace FWO.Data
             PolicyId = baseObj.PolicyId;
             CriterionId = baseObj.CriterionId;
             Criterion = baseObj.Criterion;
+            ViolationType = baseObj.ViolationType;
         }
 
+
+        /// <summary>
+        /// Parses the persisted violation type. Returns None when nothing was persisted, in which case the
+        /// type has to be derived from the criterion.
+        /// </summary>
+        /// <param name="violationType">Persisted violation type name.</param>
+        public static ComplianceViolationType ParsePersistedViolationType(string? violationType)
+        {
+            if (string.IsNullOrWhiteSpace(violationType)
+                || !Enum.TryParse(violationType, out ComplianceViolationType parsedType)
+                || !Enum.IsDefined(parsedType))
+            {
+                return ComplianceViolationType.None;
+            }
+
+            return parsedType;
+        }
 
         public ComplianceViolationType ParseViolationType(ComplianceCriterion? criterion)
         {
@@ -53,7 +71,17 @@ namespace FWO.Data
                 case "ForbiddenService":
                     return ComplianceViolationType.ServiceViolation;
 
-                // TODO : implement for all criterion types
+                case "MinimumCIDRLength":
+                    return ComplianceViolationType.MinimumCIDRLengthViolation;
+
+                case "ForbidZonesAsSource":
+                    return ComplianceViolationType.ZoneObjectSourceViolation;
+
+                case "ForbidZonesAsDestination":
+                    return ComplianceViolationType.ZoneObjectDestinationViolation;
+
+                case "ForbidBidirectionalDuplicate":
+                    return ComplianceViolationType.BidirectionalDuplicateViolation;
 
                 default:
                     return ComplianceViolationType.None;
@@ -91,6 +119,14 @@ namespace FWO.Data
         [JsonProperty("is_initial"), JsonPropertyName("is_initial")]
         public bool IsInitial { get; set; }
 
+        /// <summary>
+        /// Name of the violation type as recorded by the compliance check. It is persisted because the type
+        /// cannot always be derived from the criterion: a criterion that could not be evaluated for an
+        /// address family is recorded as NotAssessable.
+        /// </summary>
+        [JsonProperty("violation_type"), JsonPropertyName("violation_type")]
+        public string? ViolationType { get; set; }
+
         public static ComplianceViolationBase CreateBase(ComplianceViolation violation, bool isInitial)
         {
             return new()
@@ -105,11 +141,11 @@ namespace FWO.Data
                 PolicyId = violation.PolicyId,
                 CriterionId = violation.CriterionId,
                 Criterion = violation.Criterion,
-                IsInitial = isInitial
+                IsInitial = isInitial,
+                ViolationType = violation.Type == ComplianceViolationType.None ? null : violation.Type.ToString()
             };
 
         }
     }
 }
-
 

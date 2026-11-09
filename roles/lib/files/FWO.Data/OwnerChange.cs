@@ -22,5 +22,17 @@ namespace FWO.Data
 
         [JsonProperty("source_id"), JsonPropertyName("source_id")]
         public string source_id { get; set; } = "";
+
+        public OwnerChange()
+        { }
+
+        public OwnerChange(OwnerChange change)
+        {
+            ChangeImport = new ChangeImport(change.ChangeImport);
+            ChangeAction = change.ChangeAction;
+            OldOwner = change.OldOwner;
+            NewOwner = change.NewOwner;
+            source_id = change.source_id;
+        }
     }
 }

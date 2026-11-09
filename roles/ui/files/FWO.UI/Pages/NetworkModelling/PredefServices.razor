@@ -1,4 +1,4 @@
-﻿@using FWO.Ui.Display
+@using FWO.Ui.Display
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
@@ -17,14 +17,14 @@
                         <Template>
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditServiceGroup(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                                <AuthorizeView Roles="@Roles.Admin" Context="ctx">
-                                    <Authorized>
+                                <ExecutionModeAuthorizeView Roles="@Roles.Admin" Context="ctx">
+                                    <Authorized Context="authState">
                                         <button type="button" class="btn btn-sm btn-danger" @onclick="async () => await RequestDeleteServiceGrp(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                     </Authorized>
-                                    <NotAuthorized>
+                                    <NotAuthorized Context="authState">
                                         <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                                     </NotAuthorized> 
-                                </AuthorizeView>
+                                </ExecutionModeAuthorizeView>
                             </div>
                         </Template>
                     </Column>
@@ -163,24 +163,25 @@
     {
         try
         {
-            apiConnection.SetRole(Roles.Admin);
-            if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteServiceGroup, new { id = ActServiceGroup.Id })).AffectedRows > 0)
+            await apiConnection.RunWithRole(Roles.Admin, async () =>
             {
-                await ModellingHandlerBase.LogChange(new LogChangeRequest
+                if((await apiConnection.SendQueryAsync<ReturnId>(ModellingQueries.deleteServiceGroup, new { id = ActServiceGroup.Id })).AffectedRows > 0)
                 {
-                    ChangeType = ModellingTypes.ChangeType.Delete,
-                    ObjectType = ModellingTypes.ModObjectType.ServiceGroup,
-                    ObjectId = ActServiceGroup.Id,
-                    Text = $"Deleted Predefined Service Group: {ActServiceGroup.Display()}",
-                    ApiConnection = apiConnection,
-                    UserConfig = userConfig,
-                    ApplicationId = null,
-                    DisplayMessageInUi = DisplayMessageInUi
-                });
-                PredefServiceGroups.Remove(ActServiceGroup);
-                DeleteSvcGrpMode = false;
-            }
-            apiConnection.SwitchBack();
+                    await ModellingHandlerBase.LogChange(new LogChangeRequest
+                    {
+                        ChangeType = ModellingTypes.ChangeType.Delete,
+                        ObjectType = ModellingTypes.ModObjectType.ServiceGroup,
+                        ObjectId = ActServiceGroup.Id,
+                        Text = $"Deleted Predefined Service Group: {ActServiceGroup.Display()}",
+                        ApiConnection = apiConnection,
+                        UserConfig = userConfig,
+                        ApplicationId = null,
+                        DisplayMessageInUi = DisplayMessageInUi
+                    });
+                    PredefServiceGroups.Remove(ActServiceGroup);
+                    DeleteSvcGrpMode = false;
+                }
+            });
         }
         catch (Exception exception)
         {

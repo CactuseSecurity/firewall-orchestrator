@@ -14,6 +14,8 @@ namespace FWO.Data.Workflow
         group_create = 5,
         group_modify = 6,
         group_delete = 7,
+        object_create = 8,
+        object_modify = 9,
         new_interface = 11
     }
 
@@ -94,6 +96,24 @@ namespace FWO.Data.Workflow
             Title = Title.SanitizeMand(ref shortened);
             FreeText = FreeText.SanitizeOpt(ref shortened);
             return shortened;
+        }
+
+        protected static void ApplyNetworkAddress(NwObjectElement element, Cidr? cidr, Cidr? cidrEnd, string? ipString, string? ipEnd)
+        {
+            if (cidr != null && cidr.Valid)
+            {
+                element.Cidr = new Cidr(cidr.CidrString);
+                element.CidrEnd = cidrEnd != null && cidrEnd.Valid ? new Cidr(cidrEnd.CidrString) : new Cidr();
+                return;
+            }
+            if (!string.IsNullOrWhiteSpace(ipString))
+            {
+                element.IpString = ipString;
+            }
+            if (!string.IsNullOrWhiteSpace(ipEnd))
+            {
+                element.IpEndString = ipEnd;
+            }
         }
     }
 }

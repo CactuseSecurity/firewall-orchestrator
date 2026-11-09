@@ -1,0 +1,27 @@
+query getConnectionForNotification($id: Int!) {
+  modelling_connection(where: { id: { _eq: $id } }) {
+    id
+    app_id
+    proposed_app_id
+    name
+    reason
+    conn_prop
+    is_interface
+    is_published
+    interface_permission
+    is_requested
+    ticket_id
+    creator
+    removed
+    owner {
+      id
+      name
+      app_id_external
+    }
+    ownerByProposedAppId {
+      id
+      name
+      app_id_external
+    }
+  }
+}

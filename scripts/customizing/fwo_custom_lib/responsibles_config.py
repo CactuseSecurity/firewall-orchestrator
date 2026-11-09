@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import argparse
-import logging
 import shlex
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from scripts.customizing.fwo_custom_lib.basic_helpers import read_custom_config_with_default
+
+if TYPE_CHECKING:
+    import logging
 
 
 def _parse_level_mapping(entry_value: str) -> tuple[str, str] | None:

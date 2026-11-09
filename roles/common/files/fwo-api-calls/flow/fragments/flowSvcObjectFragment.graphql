@@ -1,0 +1,11 @@
+fragment flowSvcObjectFragment on flow_svcobject {
+  svcobj_id
+  name
+  port_start
+  port_end
+  ip_proto_id
+  svcobj_hash
+  state
+  removed_date
+  show_in_request_module
+}

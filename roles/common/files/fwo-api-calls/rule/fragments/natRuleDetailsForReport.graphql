@@ -1,4 +1,4 @@
-﻿fragment natRuleDetails on rule {
+﻿fragment natRuleDetails on firewall_rule {
   ...ruleDetails
   translate: ruleByXlateRule {
     rule_src

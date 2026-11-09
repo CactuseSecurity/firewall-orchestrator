@@ -1,0 +1,225 @@
+using FWO.Data;
+using FWO.Logging;
+using FWO.Ui.Auth;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Routing;
+
+namespace FWO.Ui.Services
+{
+    /// <summary>
+    /// Coordinates the UI token refresh loop and keeps it stable across Blazor circuit restarts.
+    /// </summary>
+    public sealed class TokenRefreshCoordinator : ITokenRefreshCoordinator
+    {
+        private const string LogCategory = "Token Refresh Coordinator";
+        private static readonly TimeSpan TokenRefreshCheckInterval = TimeSpan.FromSeconds(30);
+
+        private readonly TokenService tokenService;
+        private readonly AuthenticationStateProvider authenticationProvider;
+        private readonly UiSessionRestorer sessionRestorer;
+        private readonly IPeriodicTaskRunnerFactory periodicTaskRunnerFactory;
+        private readonly NavigationManager navigationManager;
+        private readonly UiSessionTracker? sessionTracker;
+        private readonly SemaphoreSlim startStopLock = new(1, 1);
+
+        private IPeriodicTaskRunner? runner;
+        private bool started;
+
+        /// <summary>
+        /// Creates a new token refresh coordinator.
+        /// </summary>
+        public TokenRefreshCoordinator(
+            TokenService tokenService,
+            AuthenticationStateProvider authenticationProvider,
+            UiSessionRestorer sessionRestorer,
+            IPeriodicTaskRunnerFactory periodicTaskRunnerFactory,
+            NavigationManager navigationManager,
+            UiSessionTracker? sessionTracker = null)
+        {
+            this.tokenService = tokenService;
+            this.authenticationProvider = authenticationProvider;
+            this.sessionRestorer = sessionRestorer;
+            this.periodicTaskRunnerFactory = periodicTaskRunnerFactory;
+            this.navigationManager = navigationManager;
+            this.sessionTracker = sessionTracker;
+        }
+
+        /// <inheritdoc />
+        public async Task StartAsync()
+        {
+            await startStopLock.WaitAsync();
+            try
+            {
+                if (started)
+                {
+                    return;
+                }
+
+                started = true;
+                navigationManager.LocationChanged += OnLocationChanged;
+                if (sessionTracker != null)
+                {
+                    sessionTracker.SessionCheckRequested += OnSessionCheckRequested;
+                }
+                runner = periodicTaskRunnerFactory.Create(CheckTokenAndSessionAsync, TokenRefreshCheckInterval, nameof(TokenRefreshCoordinator));
+                runner.Start();
+            }
+            finally
+            {
+                startStopLock.Release();
+            }
+
+            await CheckAndRefreshTokenAsync();
+        }
+
+        /// <inheritdoc />
+        public async Task StopAsync()
+        {
+            IPeriodicTaskRunner? runnerToStop = await DetachRunnerAsync();
+            if (runnerToStop != null)
+            {
+                // shut down outside the lock: the runner may need arbitrarily long to end its loop and must
+                // not keep a concurrent Dispose waiting on the lock while it does
+                await runnerToStop.DisposeAsync();
+            }
+        }
+
+        /// <inheritdoc />
+        public async ValueTask DisposeAsync()
+        {
+            await StopAsync();
+        }
+
+        /// <summary>
+        /// Stops the refresh loop synchronously. Prefer <see cref="StopAsync"/> when running on a thread the
+        /// refresh callback depends on, because this method can only wait for a limited time.
+        /// </summary>
+        public void Dispose()
+        {
+            // detaching only takes the lock for the short bookkeeping below, so the bounded wait of the
+            // runner's synchronous shutdown stays the only thing this thread can block on for long
+            IPeriodicTaskRunner? runnerToStop;
+            startStopLock.Wait();
+            try
+            {
+                runnerToStop = DetachRunner();
+            }
+            finally
+            {
+                startStopLock.Release();
+            }
+
+            runnerToStop?.Dispose();
+        }
+
+        /// <summary>
+        /// Detaches the running refresh loop from this coordinator while holding <see cref="startStopLock"/>.
+        /// The caller has to shut the returned runner down.
+        /// </summary>
+        /// <returns>The runner to be shut down, or null if the coordinator was not started.</returns>
+        private async Task<IPeriodicTaskRunner?> DetachRunnerAsync()
+        {
+            await startStopLock.WaitAsync();
+            try
+            {
+                return DetachRunner();
+            }
+            finally
+            {
+                startStopLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// Detaches the running refresh loop from this coordinator. The caller has to shut the returned
+        /// runner down. Must only be called while <see cref="startStopLock"/> is held.
+        /// </summary>
+        /// <returns>The runner to be shut down, or null if the coordinator was not started.</returns>
+        private IPeriodicTaskRunner? DetachRunner()
+        {
+            if (!started)
+            {
+                return null;
+            }
+
+            started = false;
+            navigationManager.LocationChanged -= OnLocationChanged;
+            if (sessionTracker != null)
+            {
+                sessionTracker.SessionCheckRequested -= OnSessionCheckRequested;
+            }
+            IPeriodicTaskRunner? runnerToStop = runner;
+            runner = null;
+            return runnerToStop;
+        }
+
+        private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+        {
+            await CheckAndRefreshTokenAsync();
+        }
+
+        private void OnSessionCheckRequested()
+        {
+            // raised on the circuit of the user who made the change, which must not wait for the other sessions
+            _ = Task.Run(VerifySessionAsync);
+        }
+
+        /// <summary>
+        /// Periodic work: refreshes the access token when it is about to expire, then checks that the session has
+        /// not been revoked in the meantime.
+        /// </summary>
+        private async Task CheckTokenAndSessionAsync()
+        {
+            await CheckAndRefreshTokenAsync();
+            await VerifySessionAsync();
+        }
+
+        /// <summary>
+        /// Ends the session if the middleware reports it ended, e.g. because the permissions of its user were
+        /// reduced or the user was deleted (#5503). A session whose access token is about to expire is left to the
+        /// refresh, which ends it in that case as well.
+        /// </summary>
+        internal async Task VerifySessionAsync()
+        {
+            try
+            {
+                if (!await tokenService.HasRefreshToken() || await tokenService.IsAccessTokenExpired())
+                {
+                    return;
+                }
+
+                if (await tokenService.CheckSession() == SessionCheckOutcome.Ended && authenticationProvider is AuthStateProvider authStateProvider)
+                {
+                    await authStateProvider.EndRevokedSession();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(LogCategory, "Error during session check", ex);
+            }
+        }
+
+        private async Task CheckAndRefreshTokenAsync()
+        {
+            try
+            {
+                if (!await tokenService.HasAccessToken() || !await tokenService.HasRefreshToken())
+                {
+                    return;
+                }
+
+                if (await tokenService.IsAccessTokenExpired())
+                {
+                    Log.WriteDebug(LogCategory, "Access token expired, attempting refresh...");
+
+                    await sessionRestorer.RestoreAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(LogCategory, "Error during token check/refresh", ex);
+            }
+        }
+    }
+}

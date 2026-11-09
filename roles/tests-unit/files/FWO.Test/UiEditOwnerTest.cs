@@ -8,7 +8,9 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services.EventMediator;
+using FWO.Services.EventMediator.Events;
 using FWO.Services.EventMediator.Interfaces;
+using FWO.Test.Mocks;
 using FWO.Ui.Pages.Settings;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -58,23 +60,30 @@ namespace FWO.Test
             property.SetValue(component, value);
         }
 
+        private static string? GetStringVariable(object? variables, string name)
+        {
+            return variables?.GetType().GetProperty(name)?.GetValue(variables) as string;
+        }
+
         private static IRenderedComponent<EditOwner> RenderEditOwner(
-            Bunit.TestContext context,
+            BunitContext context,
             FwoOwner owner,
             bool readOnly,
             List<OwnerResponsibleType>? responsibleTypes = null,
             List<FwoOwner>? existingOwners = null,
-            List<OwnerLifeCycleState>? ownerLifeCycleStates = null)
+            List<OwnerLifeCycleState>? ownerLifeCycleStates = null,
+            EditOwnerTestApiConn? apiConn = null,
+            IEventMediator? eventMediator = null)
         {
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new UiEditOwnerAuthStateProvider());
-            context.Services.AddSingleton<ApiConnection>(new EditOwnerTestApiConn());
+            context.Services.AddSingleton<ApiConnection>(apiConn ?? new EditOwnerTestApiConn());
             context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<UserConfig>(new EditOwnerTestUserConfig());
             context.Services.AddSingleton<DomEventService>();
-            context.Services.AddSingleton<IEventMediator>(new EventMediator());
+            context.Services.AddSingleton<IEventMediator>(eventMediator ?? new EventMediator());
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<EditOwner>(child => child
@@ -92,7 +101,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_EditableMode_BindsCriticalityInput()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A", Criticality = "high" };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false);
 
@@ -106,18 +115,18 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_ReadonlyMode_ShowsCriticalityAsText()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A", Criticality = "high" };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: true);
 
-            Assert.That(editOwner.Markup, Does.Contain("criticality"));
+            Assert.That(editOwner.Markup, Does.Contain("Criticality"));
             Assert.That(editOwner.Markup, Does.Contain("high"));
         }
 
         [Test]
         public async Task EditOwner_AddOwnerResponsible_AddsDnAndClearsInput()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A" };
             List<OwnerResponsibleType> types =
             [
@@ -141,9 +150,46 @@ namespace FWO.Test
         }
 
         [Test]
+        public void EditOwner_MainResponsibleType_IsRequired()
+        {
+            OwnerResponsibleType type = new() { Id = GlobalConst.kOwnerResponsibleTypeMain, Name = "main", Active = true };
+            bool required = (bool)GetPrivateStaticMethod("IsRequiredResponsibleType").Invoke(null, [type])!;
+            Assert.That(required, Is.True);
+        }
+
+        [Test]
+        public void EditOwner_SupportingResponsibleType_IsNotRequired()
+        {
+            OwnerResponsibleType type = new() { Id = GlobalConst.kOwnerResponsibleTypeSupporting, Name = "supporting", Active = true };
+            bool required = (bool)GetPrivateStaticMethod("IsRequiredResponsibleType").Invoke(null, [type])!;
+            Assert.That(required, Is.False);
+        }
+
+        [Test]
+        public async Task EditOwner_SupportingResponsibleLabel_HasNoMandatoryMarker()
+        {
+            await using BunitContext context = new();
+            FwoOwner owner = new() { Id = 0, Name = "Owner A" };
+            List<OwnerResponsibleType> types =
+            [
+                new OwnerResponsibleType { Id = GlobalConst.kOwnerResponsibleTypeMain, Name = "main", Active = true },
+                new OwnerResponsibleType { Id = GlobalConst.kOwnerResponsibleTypeSupporting, Name = "supporting", Active = true }
+            ];
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, responsibleTypes: types);
+
+            string mainLabel = (string)GetPrivateMethod("GetResponsibleTypeEditLabel")
+                .Invoke(editOwner.Instance, [types[0]])!;
+            string supportingLabel = (string)GetPrivateMethod("GetResponsibleTypeEditLabel")
+                .Invoke(editOwner.Instance, [types[1]])!;
+
+            Assert.That(mainLabel, Does.EndWith("*"));
+            Assert.That(supportingLabel, Does.Not.Contain("*"));
+        }
+
+        [Test]
         public async Task EditOwner_AddOwnerResponsible_DoesNotDuplicateExistingDn()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A" };
             owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
             List<OwnerResponsibleType> types =
@@ -165,7 +211,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_AddOwnerResponsible_EmptyDn_DoesNothing()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A" };
             List<OwnerResponsibleType> types =
             [
@@ -186,7 +232,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_CheckValues_FailsWithoutAnyResponsibles()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A" };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false);
 
@@ -198,7 +244,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_CheckValues_FailsWithoutName()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "" };
             owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false);
@@ -211,7 +257,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_CheckValues_FailsForDuplicateOwnerNameInAddMode()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A" };
             owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
             List<FwoOwner> existing = [new() { Id = 42, Name = "Owner A" }];
@@ -226,7 +272,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_PrepareOwnerForSave_MapsSelectionsAndNormalizesRecertParams()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 0, Name = "Owner A" };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false);
 
@@ -253,9 +299,35 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task EditOwner_HasRelevantOwnerMappingChanges_ReturnsTrue_ForLifecycleActivityChange()
+        public async Task EditOwner_HandleSave_InitializesRecertForNewActiveOwner()
         {
             await using Bunit.TestContext context = new();
+            EditOwnerTestApiConn apiConn = new();
+            FwoOwner owner = new()
+            {
+                Id = 0,
+                Name = "Owner A",
+                RecertActive = true,
+                RecertInterval = 30
+            };
+            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
+
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, apiConn: apiConn);
+            SetPrivateField(editOwner.Instance, "RoleDnByName", new Dictionary<string, string> { ["dummy"] = "cn=dummy,dc=test" });
+            SetPrivateField(editOwner.Instance, "RoleUsersByName", new Dictionary<string, HashSet<string>> { ["dummy"] = [] });
+
+            await (Task)GetPrivateMethod("HandleSave").Invoke(editOwner.Instance, null)!;
+
+            Assert.That(owner.Id, Is.EqualTo(apiConn.CreatedOwnerId));
+            Assert.That(apiConn.GetOwnerRecertCalls, Is.EqualTo(1));
+            Assert.That(apiConn.RecertifyOwnerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.SetOwnerLastRecertCalls, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task EditOwner_HasRelevantOwnerMappingChanges_ReturnsTrue_ForLifecycleActivityChange()
+        {
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 5, Name = "Owner A", OwnerLifeCycleStateId = 1 };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, ownerLifeCycleStates:
             [
@@ -272,7 +344,7 @@ namespace FWO.Test
         [Test]
         public async Task EditOwner_HasRelevantOwnerMappingChanges_ReturnsTrue_ForOwnedIpChange()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 6, Name = "Owner B", OwnerLifeCycleStateId = 1 };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false);
 
@@ -287,9 +359,71 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task EditOwner_AddNetworkOwners_StoresNameForEveryIp()
+        {
+            await using BunitContext context = new();
+            EditOwnerTestApiConn apiConn = new();
+            FwoOwner owner = new() { Id = 9, Name = "Owner E" };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, apiConn: apiConn);
+
+            List<NwObjectElement> ipsToAdd = new()
+            {
+                new NwObjectElement("10.0.6.10/32", 0),
+                new NwObjectElement("10.0.1.128/32-10.0.1.255/32", 0)
+            };
+            SetPrivateField(editOwner.Instance, "IpsToAdd", ipsToAdd);
+
+            await (Task)GetPrivateMethod("AddNetworkOwners").Invoke(editOwner.Instance, null)!;
+
+            List<string?> names = apiConn.NetworkOwnershipVariables.ConvertAll(variables => GetStringVariable(variables, "name"));
+            Assert.That(names, Is.EqualTo(new List<string?> { "10.0.6.10", "10.0.1.128/25" }));
+        }
+
+        [Test]
+        public async Task EditOwner_ReinitializeRuleOwnerMapping_MarksTheRebuildAsTriggeredByChange()
+        {
+            await using BunitContext context = new();
+            RecordingEventMediator eventMediator = new();
+            FwoOwner owner = new() { Id = 7, Name = "Owner C", OwnerLifeCycleStateId = 1 };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, eventMediator: eventMediator);
+
+            List<NwObjectElement> currentIps = [new("10.0.0.2/32", 1)];
+            SetPrivateField(editOwner.Instance, "OriginalOwnedIpKeys", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "10.0.0.1/32|10.0.0.1/32" });
+            SetPrivateField(editOwner.Instance, "ActIpAddresses", currentIps);
+
+            Task reinitialize = (Task)GetPrivateMethod("ReinitializeRuleOwnerMappingIfNeeded").Invoke(editOwner.Instance, null)!;
+
+            // the publish is synchronous, so the event is recorded before the method awaits the rebuild
+            PublishedEventRecord published = eventMediator.PublishedEvents.Single();
+            UpdateRuleOwnerMappingEventArgs args = ((UpdateRuleOwnerMappingEvent)published.Event).EventArgs;
+            args.Completion!.SetResult(true);
+            await reinitialize;
+
+            Assert.That(published.Name, Is.EqualTo("UpdateOwnerRuleMappings"));
+            Assert.That(args.isFullReInitialize, Is.True);
+            // without this flag the rebuild the admin just asked for is reported as drift of the incremental
+            // mapping, because HasRelevantOwnerMappingChanges is true exactly when the rebuilt state will
+            // differ from the stored one - see IndicatesDrift in UpdateRuleOwnerMappingBase
+            Assert.That(args.TriggeredByChange, Is.True);
+        }
+
+        [Test]
+        public async Task EditOwner_ReinitializeRuleOwnerMapping_PublishesNothing_WhenNoMappingRelevantChange()
+        {
+            await using BunitContext context = new();
+            RecordingEventMediator eventMediator = new();
+            FwoOwner owner = new() { Id = 8, Name = "Owner D", OwnerLifeCycleStateId = 1 };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, eventMediator: eventMediator);
+
+            await (Task)GetPrivateMethod("ReinitializeRuleOwnerMappingIfNeeded").Invoke(editOwner.Instance, null)!;
+
+            Assert.That(eventMediator.PublishedEvents, Is.Empty);
+        }
+
+        [Test]
         public async Task EditOwner_GetDecommDateAfterLifecycleChange_SetsDateForDeactivateAndClearsForReactivate()
         {
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             FwoOwner owner = new() { Id = 7, Name = "Owner C", OwnerLifeCycleStateId = 1 };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, ownerLifeCycleStates:
             [
@@ -329,6 +463,36 @@ namespace FWO.Test
             string formatted = (string)GetPrivateStaticMethod("FormatOwnerResponsibles").Invoke(null, [new List<string> { "", "   " }])!;
 
             Assert.That(formatted, Is.EqualTo(""));
+        }
+
+        [Test]
+        public void EditOwner_FormatOwnerResponsibles_ShowsFullNameWhenCnContainsEscapedComma()
+        {
+            string dnUser = @"CN=Mustermann\, Max,OU=Users,DC=example,DC=com";
+
+            string formatted = (string)GetPrivateStaticMethod("FormatOwnerResponsibles").Invoke(null, [new List<string> { dnUser }])!;
+
+            Assert.That(formatted, Is.EqualTo("Mustermann, Max"));
+        }
+
+        [Test]
+        public void EditOwner_NormalizeDnForRoleComparison_NormalizesHexEscapedComma()
+        {
+            string dnUser = @"CN=Mustermann\2C\20Max,OU=Users,DC=example,DC=com";
+
+            string normalized = (string)GetPrivateStaticMethod("NormalizeDnForRoleComparison").Invoke(null, [dnUser])!;
+
+            Assert.That(normalized, Is.EqualTo("cn=mustermann, max,ou=users,dc=example,dc=com"));
+        }
+
+        [Test]
+        public void EditOwner_NormalizeDnForRoleComparison_LeavesBackslashEscapedCommaUntouched()
+        {
+            string dnUser = @"CN=Mustermann\, Max,OU=Users,DC=example,DC=com";
+
+            string normalized = (string)GetPrivateStaticMethod("NormalizeDnForRoleComparison").Invoke(null, [dnUser])!;
+
+            Assert.That(normalized, Is.EqualTo("cn=mustermann, max,ou=users,dc=example,dc=com"));
         }
 
         [Test]
@@ -384,7 +548,13 @@ namespace FWO.Test
 
     internal sealed class EditOwnerTestApiConn : SimulatedApiConnection
     {
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public int CreatedOwnerId { get; set; } = 77;
+        public int GetOwnerRecertCalls { get; private set; }
+        public int RecertifyOwnerCalls { get; private set; }
+        public int SetOwnerLastRecertCalls { get; private set; }
+        public List<object?> NetworkOwnershipVariables { get; } = [];
+
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             if (query == OwnerQueries.getNetworkOwnerships)
             {
@@ -396,7 +566,74 @@ namespace FWO.Test
                 return Task.FromResult(Activator.CreateInstance<QueryResponseType>());
             }
 
+            if (query == OwnerQueries.newOwner)
+            {
+                return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                {
+                    ReturnIds = [new ReturnId { NewId = CreatedOwnerId }]
+                });
+            }
+
+            if (query == OwnerQueries.updateOwner)
+            {
+                return Task.FromResult((QueryResponseType)(object)new ReturnId
+                {
+                    UpdatedId = GetIntVariable(variables, "id")
+                });
+            }
+
+            if (query == OwnerQueries.newNetworkOwnership)
+            {
+                NetworkOwnershipVariables.Add(variables);
+                return Task.FromResult(Activator.CreateInstance<QueryResponseType>());
+            }
+
+            if (query == OwnerQueries.deleteOwnerResponsibles
+                || query == OwnerQueries.newOwnerResponsibles
+                || query == OwnerQueries.newRuleOwnership
+                || query == OwnerQueries.deleteRuleOwnership
+                || query == OwnerQueries.deleteNetworkOwnership)
+            {
+                return Task.FromResult(Activator.CreateInstance<QueryResponseType>());
+            }
+
+            if (query == ConfigQueries.getConfigItemByKey)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<ConfigItem>());
+            }
+
+            if (query == RecertQueries.getOwnerRecert)
+            {
+                GetOwnerRecertCalls++;
+                return Task.FromResult((QueryResponseType)(object)new List<OwnerRecertification>());
+            }
+
+            if (query == RecertQueries.recertifyOwner)
+            {
+                RecertifyOwnerCalls++;
+                return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                {
+                    ReturnIds = [new ReturnId { NewIdLong = 1234 }]
+                });
+            }
+
+            if (query == OwnerQueries.setOwnerLastRecert)
+            {
+                SetOwnerLastRecertCalls++;
+                return Task.FromResult((QueryResponseType)(object)new ReturnId
+                {
+                    UpdatedId = GetIntVariable(variables, "id")
+                });
+            }
+
             throw new NotImplementedException();
+        }
+
+        private static int GetIntVariable(object? variables, string name)
+        {
+            PropertyInfo? property = variables?.GetType().GetProperty(name);
+            object? value = property?.GetValue(variables);
+            return Convert.ToInt32(value);
         }
     }
 }

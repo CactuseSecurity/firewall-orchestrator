@@ -1,0 +1,321 @@
+- block:
+
+    - set_fact: distribution_version="{{ ansible_facts['distribution_major_version'] }}"
+      when: ansible_facts['distribution']|lower == 'debian'
+
+    - set_fact: distribution_version="{{ ansible_facts['distribution_version'] }}"
+      when: ansible_facts['distribution']|lower == 'ubuntu'
+
+    - set_fact: distribution_version="{{ debian_testing_version }}"
+      when: ansible_facts['distribution_release']|lower == debian_testing_release_name
+
+    - name: set dotnet package name
+      set_fact:
+        dotnet_package_name: "dotnet-sdk-{{ dotnet_version }}"
+
+    - name: look up the pinned checksum of the microsoft repository package
+      set_fact:
+        dotnet_ms_repo_package_checksum: >-
+          {{ dotnet_ms_repo_package_sha256[ansible_facts['distribution'] | lower ~ '/' ~ distribution_version] | default('') }}
+
+    - name: decide whether dotnet script fallback is required
+      set_fact:
+        use_dotnet_install_script: "{{ ansible_facts['distribution']|lower == 'debian' and (ansible_facts['distribution_release']|lower == debian_testing_release_name or ansible_facts['distribution_major_version'] | int >= 13) }}"
+
+    # Ubuntu 22.04 and newer provide .NET packages through the distribution repositories.
+    # Add the Microsoft repository only when installing those packages fails.
+    - block:
+
+      - name: check ms package list status
+        command: dpkg-query -W -f='${Status}' packages-microsoft-prod
+        register: dotnet_ms_repo_pkg_status
+        changed_when: false
+        failed_when: false
+
+      - name: require a pinned checksum for the microsoft repository package
+        assert:
+          that: dotnet_ms_repo_package_checksum | length > 0
+          fail_msg: >-
+            No sha256 is pinned for {{ dotnet_deb_name }} on
+            {{ ansible_facts['distribution'] | lower }}/{{ distribution_version }}: add it to dotnet_ms_repo_package_sha256
+            in inventory/group_vars/all.yml (see documentation/installer/install-advanced.md, verified downloads).
+        when: "'install ok installed' not in dotnet_ms_repo_pkg_status.stdout"
+
+      - name: get package list from ms {{ dotnet_deb_name }}
+        get_url:
+          url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
+          dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+          checksum: "sha256:{{ dotnet_ms_repo_package_checksum }}"
+          mode: "0644"
+        register: dotnet_ms_repo_download
+        when: "'install ok installed' not in dotnet_ms_repo_pkg_status.stdout"
+        until: dotnet_ms_repo_download is succeeded
+        retries: 3
+        delay: 5
+
+      - name: install ms package list
+        apt:
+          deb: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+        when: "'install ok installed' not in dotnet_ms_repo_pkg_status.stdout"
+
+      - name: remove package list file
+        file:
+          dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+          state: absent
+
+      - name: apt update
+        apt:
+          update_cache: true
+
+      when:
+        - not use_dotnet_install_script
+        - ansible_facts['distribution']|lower != 'ubuntu' or
+          (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
+
+    # A host that took the Microsoft fallback on an earlier run reaches this point with
+    # the SDK already installed, so the primary install below succeeds and rescue never
+    # gets a chance to refresh its source. Detect both generations of FWO's pin before
+    # that check. The shared tasks narrow the old policy and migrate the repository line
+    # to the currently installed Ubuntu release.
+    - name: look for a superseded dotnet apt pin
+      stat:
+        path: /etc/apt/preferences.d/fworch-dotnet
+      register: dotnet_superseded_pin
+      when:
+        - not use_dotnet_install_script
+        - ansible_facts['distribution'] | lower == 'ubuntu'
+        - ansible_facts['distribution_major_version'] is version('22', '>=')
+
+    - name: look for an existing dotnet Microsoft fallback pin
+      stat:
+        path: /etc/apt/preferences.d/zz-fworch-dotnet
+      register: dotnet_fallback_pin
+      when:
+        - not use_dotnet_install_script
+        - ansible_facts['distribution'] | lower == 'ubuntu'
+        - ansible_facts['distribution_major_version'] is version('22', '>=')
+
+    - name: reconcile the dotnet Microsoft fallback pin
+      include_tasks: pin_dotnet_to_microsoft.Debian.yml
+      when:
+        - not use_dotnet_install_script
+        - >-
+          dotnet_superseded_pin.stat.exists | default(false)
+          or dotnet_fallback_pin.stat.exists | default(false)
+
+    - name: migrate an existing dotnet fallback repository to this Ubuntu release
+      include_tasks: configure_dotnet_microsoft_repository.Debian.yml
+      when:
+        - not use_dotnet_install_script
+        - >-
+          dotnet_superseded_pin.stat.exists | default(false)
+          or dotnet_fallback_pin.stat.exists | default(false)
+
+    - name: Install apt-transport-https
+      package: name=apt-transport-https state=present
+      when: not use_dotnet_install_script
+
+    - name: apt update
+      apt:
+        update_cache: true
+      when: not use_dotnet_install_script
+
+    - block:
+      - name: Install {{ dotnet_package_name }} from current apt sources
+        package:
+          name: "{{ dotnet_package_name }}"
+          state: present
+      rescue:
+        - name: check ms package list status (ubuntu fallback)
+          command: dpkg-query -W -f='${Status}' packages-microsoft-prod
+          register: dotnet_ms_repo_pkg_status_ubuntu_fallback
+          changed_when: false
+          failed_when: false
+
+        - name: require a pinned checksum for the microsoft repository package (ubuntu fallback)
+          assert:
+            that: dotnet_ms_repo_package_checksum | length > 0
+            fail_msg: >-
+              No sha256 is pinned for {{ dotnet_deb_name }} on
+              {{ ansible_facts['distribution'] | lower }}/{{ distribution_version }}: add it to dotnet_ms_repo_package_sha256
+              in inventory/group_vars/all.yml (see documentation/installer/install-advanced.md, verified downloads).
+          when: "'install ok installed' not in dotnet_ms_repo_pkg_status_ubuntu_fallback.stdout"
+
+        - name: get package list from ms {{ dotnet_deb_name }} (ubuntu fallback)
+          get_url:
+            url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
+            dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+            checksum: "sha256:{{ dotnet_ms_repo_package_checksum }}"
+            mode: "0644"
+          register: dotnet_ms_repo_download_ubuntu_fallback
+          when: "'install ok installed' not in dotnet_ms_repo_pkg_status_ubuntu_fallback.stdout"
+          until: dotnet_ms_repo_download_ubuntu_fallback is succeeded
+          retries: 3
+          delay: 5
+
+        - name: install ms package list (ubuntu fallback)
+          apt:
+            deb: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+          when: "'install ok installed' not in dotnet_ms_repo_pkg_status_ubuntu_fallback.stdout"
+
+        - name: configure microsoft apt repo for dotnet on ubuntu fallback
+          include_tasks: configure_dotnet_microsoft_repository.Debian.yml
+
+        - name: remove package list file (ubuntu fallback)
+          file:
+            dest: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
+            state: absent
+
+        - name: prefer microsoft packages for dotnet on ubuntu fallback
+          include_tasks: pin_dotnet_to_microsoft.Debian.yml
+
+        - name: apt update after microsoft repo fallback
+          apt:
+            update_cache: true
+
+        - block:
+            # The pin is the whole point of this fallback, and a pin that did not take
+            # effect leaves the distribution candidate in place - which is the mixed
+            # managed/native System.Security.Cryptography combination this path exists to
+            # get away from. Asked before installing, because apt reports nothing when two
+            # preferences files disagree about the same package, and because a wrong SDK
+            # installed and then worked around is harder to explain than a refusal here.
+            #
+            # LC_ALL because apt translates the labels this output is parsed for: a
+            # German host prints "Installationskandidat:" where the pattern below looks
+            # for "Candidate:". Unpinned, the version came back empty on every host whose
+            # locale is not English, the assert then failed with a message blaming a pin
+            # conflict that did not exist, and the rescue installed the SDK from
+            # dotnet-install.sh - outside apt, and without the pinned Microsoft origin
+            # this whole fallback exists to establish. madison prints no translated
+            # labels today, but its output is parsed just the same, so it is pinned with
+            # it rather than left to be discovered the same way.
+            - name: read the apt candidate version for {{ dotnet_package_name }}
+              command: "apt-cache policy {{ dotnet_package_name }}"
+              environment:
+                LC_ALL: C
+              register: dotnet_candidate_policy
+              changed_when: false
+
+            - name: read which repositories offer {{ dotnet_package_name }}
+              command: "apt-cache madison {{ dotnet_package_name }}"
+              environment:
+                LC_ALL: C
+              register: dotnet_candidate_repositories
+              changed_when: false
+
+            # madison prints "package | version | repository" per offer, so the candidate
+            # coming from Microsoft means the line carrying the candidate version names
+            # packages.microsoft.com. Comparing versions rather than looking for the host
+            # anywhere in the output, which the mere presence of the repo would satisfy.
+            - name: require the microsoft origin for the dotnet sdk candidate
+              assert:
+                that:
+                  - dotnet_candidate_version | length > 0
+                  - >-
+                    dotnet_candidate_repositories.stdout_lines
+                    | select('search', '\|\s*' ~ (dotnet_candidate_version | regex_escape) ~ '\s*\|')
+                    | select('search', 'packages\.microsoft\.com')
+                    | list | length > 0
+                fail_msg: >-
+                  The apt candidate for {{ dotnet_package_name }}
+                  ({{ dotnet_candidate_version | default('none', true) }}) does not come from
+                  packages.microsoft.com even though
+                  /etc/apt/preferences.d/zz-fworch-dotnet pins it there, so the
+                  distribution packages would be installed and can mix incompatible managed
+                  and native System.Security.Cryptography components. Check the other files
+                  in /etc/apt/preferences.d for a conflicting pin.
+              vars:
+                # regex_search returns None when nothing matches, and first would raise on
+                # that, so the empty list stands in before the lookup rather than after.
+                dotnet_candidate_version: >-
+                  {{ dotnet_candidate_policy.stdout
+                     | regex_search('Candidate:\s*(\S+)', '\1')
+                     | default([], true) | first | default('', true) }}
+
+            - name: Install {{ dotnet_package_name }} after microsoft repo fallback
+              package:
+                name: "{{ dotnet_package_name }}"
+                state: present
+          rescue:
+            - name: download dotnet-install script (ubuntu fallback)
+              get_url:
+                url: "{{ dotnet_install_script_url }}"
+                dest: "{{ lib_tmp_dir }}/dotnet-install.sh"
+                checksum: "sha256:{{ dotnet_install_script_sha256 }}"
+                mode: "0755"
+              register: dotnet_install_script_download
+              until: dotnet_install_script_download is succeeded
+              retries: 3
+              delay: 5
+
+            - name: install dotnet sdk {{ dotnet_version }} with dotnet-install script (ubuntu fallback)
+              command: "{{ lib_tmp_dir }}/dotnet-install.sh --channel {{ dotnet_version }} --quality ga --install-dir /usr/share/dotnet"
+
+            - name: ensure dotnet symlink exists (ubuntu fallback)
+              file:
+                src: /usr/share/dotnet/dotnet
+                dest: /usr/bin/dotnet
+                state: link
+                force: true
+
+            - name: verify dotnet sdk {{ dotnet_version }} is installed (ubuntu fallback)
+              command: /usr/share/dotnet/dotnet --list-sdks
+              register: dotnet_sdks_after_script_install
+              changed_when: false
+              failed_when: dotnet_version not in dotnet_sdks_after_script_install.stdout
+      when:
+        - ansible_facts['distribution']|lower == 'ubuntu'
+        - ansible_facts['distribution_major_version'] is version('22', '>=')
+        - ansible_facts['architecture'] == "x86_64"
+        - not use_dotnet_install_script
+
+    - name: Install dotnet-sdk-{{ dotnet_version }} from configured distro source
+      package:
+        name: "{{ dotnet_package_name }}"
+        state: present
+      when:
+        - ansible_facts['architecture'] == "x86_64"
+        - not use_dotnet_install_script
+        - ansible_facts['distribution']|lower != 'ubuntu' or
+          (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
+
+    - name: Install dotnet sdk {{ dotnet_version }} with dotnet-install script on Debian testing
+      block:
+        - name: download dotnet-install script for Debian testing
+          get_url:
+            url: "{{ dotnet_install_script_url }}"
+            dest: "{{ lib_tmp_dir }}/dotnet-install.sh"
+            checksum: "sha256:{{ dotnet_install_script_sha256 }}"
+            mode: "0755"
+          register: dotnet_install_script_download_debian
+          until: dotnet_install_script_download_debian is succeeded
+          retries: 3
+          delay: 5
+
+        - name: install dotnet sdk {{ dotnet_version }} with dotnet-install script on Debian testing
+          command: "{{ lib_tmp_dir }}/dotnet-install.sh --channel {{ dotnet_version }} --quality ga --install-dir /usr/share/dotnet"
+
+        - name: ensure dotnet symlink exists on Debian testing
+          file:
+            src: /usr/share/dotnet/dotnet
+            dest: /usr/bin/dotnet
+            state: link
+            force: true
+
+        - name: verify dotnet sdk {{ dotnet_version }} is installed on Debian testing
+          command: /usr/share/dotnet/dotnet --list-sdks
+          register: dotnet_sdks_after_script_install_debian
+          changed_when: false
+          failed_when: dotnet_version not in dotnet_sdks_after_script_install_debian.stdout
+      when:
+        - ansible_facts['architecture'] == "x86_64"
+        - use_dotnet_install_script
+
+    - debug:
+        msg:
+          - "NOTE: you need to install dotnet yourself for architectures other than x86_64 before running FWO installer"
+      when: ansible_facts['architecture'] != "x86_64"
+
+  become: true
+  environment: "{{ proxy_env }}"

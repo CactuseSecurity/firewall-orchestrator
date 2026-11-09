@@ -1,0 +1,10 @@
+.settings-search {
+    position: sticky;
+    top: 0;
+}
+
+/* A separator belongs to the heading below it. Drop it when role visibility or the
+   search filter left it as the first element of the navigation. */
+.settings-sidebar li:first-child hr {
+    display: none;
+}

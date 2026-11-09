@@ -50,6 +50,7 @@ Create table "management" -- contains an entry for each firewall management syst
 	"mgm_create" Timestamp NOT NULL Default now(),
 	"mgm_update" Timestamp NOT NULL Default now(),
 	"import_credential_id" Integer NOT NULL,
+	"export_credential_id" Integer,
 	"ssh_hostname" Varchar NOT NULL,
 	"ssh_port" Integer NOT NULL Default 22,
 	"last_import_md5_complete_config" Varchar Default 0,
@@ -61,7 +62,6 @@ Create table "management" -- contains an entry for each firewall management syst
 	"config_path" Varchar,
 	"domain_uid" Varchar,
 	"hide_in_gui" Boolean NOT NULL Default false,
-	"importer_hostname" Varchar,
 	"debug_level" Integer,
 	"multi_device_manager_id" integer,		-- if this manager belongs to another multi_device_manager, then this id points to it
 	"is_super_manager" BOOLEAN DEFAULT FALSE,
@@ -73,7 +73,7 @@ Create table "management" -- contains an entry for each firewall management syst
 );
 
 
-create table import_credential
+create table credential
 (
     id SERIAL PRIMARY KEY,
     credential_name varchar NOT NULL,
@@ -81,157 +81,7 @@ create table import_credential
     username varchar NOT NULL,
     secret text NOT NULL,
 	public_key Text,
-	cloud_client_id VARCHAR,
-	cloud_client_secret VARCHAR
-);
-
-Create table "object"
-(
-	"obj_id" BIGSERIAL,
-	"last_change_admin" Integer,
-	"zone_id" Integer,
-	"mgm_id" Integer NOT NULL,
-	"obj_name" Varchar,
-	"obj_comment" Varchar,
-	"obj_uid" Text,
-	"obj_typ_id" Integer NOT NULL,
-	"obj_location" Varchar,
-	"obj_member_names" Text,
-	"obj_member_refs" Text,
-	"initial_config" Boolean NOT NULL Default FALSE,
-	"obj_sw" Varchar,
-	"obj_ip" Cidr,
-	"obj_ip_end" Cidr,
-	"obj_nat" Boolean Default false,
-	"nattyp_id" Integer,
-	"obj_nat_ip" Cidr,
-	"obj_nat_ip_end" Cidr,
-	"obj_nat_install" Integer,
-	"obj_color_id" Integer Default 1,
-	"obj_sys_name" Varchar,
-	"obj_sys_location" Varchar,
-	"obj_sys_contact" Varchar,
-	"obj_sys_desc" Text,
-	"obj_sys_readcom" Varchar,
-	"obj_sys_writecom" Varchar,
-	"active" Boolean NOT NULL Default TRUE,
-	"obj_create" BIGINT NOT NULL,
-	"obj_last_seen" BIGINT NOT NULL,
-	"removed" BIGINT,
- primary key ("obj_id")
-);
-
-Create table "objgrp"
-(
-	"objgrp_id" BIGINT NOT NULL,
-	"objgrp_member_id" BIGINT NOT NULL,
-	"import_created" BIGINT NOT NULL,
-	"import_last_seen" BIGINT NOT NULL,
-	"active" Boolean NOT NULL Default TRUE,
-	"negated" Boolean NOT NULL Default FALSE,
-	"removed" BIGINT,
- primary key ("objgrp_id","objgrp_member_id")
-);
-
-Create table "service"
-(
-	"svc_id" BIGSERIAL,
-	"svc_uid" Text,
-	"svc_name" Varchar,
-	"svc_typ_id" Integer NOT NULL,
-	"mgm_id" Integer,
-	"svc_comment" Text,
-	"svc_prod_specific" Text,
-	"svc_member_names" Text,
-	"svc_member_refs" Text,
-	"svc_color_id" Integer Default 1,
-	"ip_proto_id" Integer,
-	"svc_port" Integer Check (svc_port is NULL OR (svc_port>=0 and svc_port<=65535)),
-	"svc_port_end" Integer Check (svc_port_end IS NULL OR (svc_port_end>=0 and svc_port_end<=65535)),
-	"initial_config" Boolean NOT NULL Default FALSE,
-	"srv_keeponinstall" Boolean Default false,
-	"svc_rpcnr" Varchar,
-	"svc_code" Varchar,
-	"svc_match" Text,
-	"svc_source_port" Integer Check (svc_source_port is NULL OR (svc_source_port>=0 and svc_source_port<=65535)),
-	"svc_source_port_end" Integer Check (svc_source_port_end is NULL OR (svc_source_port_end>=0 and svc_source_port_end<=65535)),
-	"svc_tcp_res" Boolean Default false,
-	"svc_accept_rep" Boolean Default false,
-	"svc_accept_rep_any" Boolean Default false,
-	"svc_mfa" Boolean Default false,
-	"svc_timeout_std" Boolean Default false,
-	"svc_timeout" Integer,
-	"svc_sync" Boolean Default false,
-	"svc_sync_delay" Boolean Default false,
-	"svc_sync_delay_start" Integer,
-	"active" Boolean NOT NULL Default TRUE,
-	"last_change_admin" Integer,
-	"svc_create" BIGINT NOT NULL,
-	"svc_last_seen" BIGINT NOT NULL,
-	"removed" BIGINT,
- primary key ("svc_id")
-);
-
-Create table "svcgrp"
-(
-	"svcgrp_id" BIGINT NOT NULL,
-	"svcgrp_member_id" BIGINT NOT NULL,
-	"import_created" BIGINT NOT NULL,
-	"import_last_seen" BIGINT NOT NULL,
-	"active" Boolean NOT NULL Default TRUE,
-	"negated" Boolean NOT NULL Default FALSE,
-	"removed" BIGINT,
- primary key ("svcgrp_id","svcgrp_member_id")
-);
-
-Create table "zone"
-(
-	"zone_id" SERIAL,
-	"zone_create" BIGINT NOT NULL,
-	"zone_last_seen" BIGINT NOT NULL,
-	"mgm_id" Integer NOT NULL,
-	"zone_name" Varchar NOT NULL,
-	"active" Boolean NOT NULL Default TRUE,
-	"removed" BIGINT,
- primary key ("zone_id")
-);
-
-Create table "usr"
-(
-	"user_id" BIGSERIAL PRIMARY KEY,
-	"usr_typ_id" Integer NOT NULL,
-	"user_color_id" Integer Default 1,
-	"mgm_id" Integer NOT NULL,
-	"user_name" Varchar NOT NULL,
-	"active" Boolean NOT NULL Default TRUE,
-	"user_member_names" Text,
-	"user_member_refs" Text,
-	"user_authmethod" Varchar,
-	"user_valid_from" Date Default '1900-01-01',
-	"user_valid_until" Date Default '9999-12-31',
-	"src_restrict" Text,
-	"dst_restrict" Text,
-	"time_restrict" Text,
-	"user_create" BIGINT NOT NULL,
-	"user_last_seen" BIGINT NOT NULL,
-	"user_comment" Text,
-	"user_uid" Text,
-	"user_firstname" Varchar,
-	"user_lastname" Varchar,
-	"last_change_admin" Integer,
-	"tenant_id" Integer,
-	"removed" BIGINT
-);
-
-Create table "usergrp"
-(
-	"usergrp_id" BIGINT,
-	"usergrp_member_id" BIGINT,
-	"import_created" BIGINT NOT NULL,
-	"import_last_seen" BIGINT NOT NULL,
-	"active" Boolean NOT NULL Default TRUE,
-	"removed" BIGINT,
- primary key ("usergrp_id","usergrp_member_id")
+	additional_credential_id integer
 );
 
 
@@ -241,7 +91,7 @@ Create table "uiuser"
 (
 	"uiuser_id" SERIAL NOT NULL,
 	"uiuser_username" Varchar,
-	"uuid" Varchar NOT NULL UNIQUE,
+	"uuid" Varchar NOT NULL,
 	"uiuser_first_name" Varchar,
 	"uiuser_last_name" Varchar,
 	"uiuser_start_date" Date Default now(),
@@ -254,6 +104,7 @@ Create table "uiuser"
 	"uiuser_last_password_change" Timestamp with time zone,
 	"uiuser_pwd_history" Text,
 	"ldap_connection_id" BIGINT,
+	"directory_object_id" Varchar,
  primary key ("uiuser_id")
 );
 
@@ -289,6 +140,12 @@ Create table "error"
 	"error_txt_ger" Text NOT NULL,
 	"error_txt_eng" Text NOT NULL,
  primary key ("error_id")
+);
+
+Create table "path_analysis_algorithm"
+(
+	"id" BIGSERIAL PRIMARY KEY,
+	"name" varchar NOT NULL UNIQUE
 );
 
 -- tenant -------------------------------------
@@ -350,6 +207,7 @@ Create table "import_control"
 	"notification_done" Boolean NOT NULL Default FALSE,
 	"rule_owner_mapping_done" Boolean NOT NULL Default FALSE,
 	"security_relevant_changes_counter" INTEGER NOT NULL Default 0,
+	"flow_sync_done" Boolean NOT NULL Default FALSE,
  primary key ("control_id")
 );
 
@@ -471,15 +329,42 @@ create table notification
 	initial_offset_after_deadline int,
 	repeat_offset_after_deadline int,
 	repetitions_after_deadline int,
-	last_sent Timestamp
-);
+	last_sent Timestamp,
+	email_body Varchar,
+	schedule_id Integer,
+	bundle_type Varchar,
+	bundle_id Varchar,
+	recipient_bcc Varchar,
+	email_address_bcc Varchar,
+	logging Varchar NOT NULL DEFAULT 'send_only',
+	active Boolean NOT NULL DEFAULT TRUE
+  );
+
+create table notification_log
+(
+    id SERIAL PRIMARY KEY,
+    "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    notification_id INTEGER NOT NULL,
+    notification_type Varchar NOT NULL,
+    "to" Varchar NOT NULL DEFAULT '',
+    cc Varchar NOT NULL DEFAULT '',
+    bcc Varchar NOT NULL DEFAULT '',
+    subject Varchar NOT NULL DEFAULT '',
+    deadline_type Varchar NOT NULL DEFAULT 'None',
+    deadline TIMESTAMP WITH TIME ZONE,
+    status Varchar NOT NULL DEFAULT 'Pending',
+    error Varchar NOT NULL DEFAULT ''
+ );
+
+create index if not exists notification_log_timestamp_id_idx
+    on notification_log ("timestamp" desc, id desc);
 
 -- configuration
 
 Create table "ldap_connection"
 (
 	"ldap_connection_id" BIGSERIAL,
-	"ldap_server" Varchar NOT NULL,
+	"ldap_server" Varchar[] NOT NULL,
 	"ldap_port" Integer NOT NULL Default 636,
 	"ldap_tls" Boolean NOT NULL Default TRUE,
 	"ldap_searchpath_for_users" Varchar NOT NULL,
@@ -508,6 +393,36 @@ Create table "config"
 	primary key ("config_key","config_user")
 );
 
+-- Upgrade snapshots contain restricted device specific settings data. Keep this archive
+-- outside Hasura metadata; administrators can inspect it through PostgreSQL.
+Create table "device_specific_config_backup"
+(
+    "version" Varchar PRIMARY KEY,
+    "config_values" Jsonb NOT NULL
+);
+
+Create table "device_specific_config_node"
+(
+	"id" BIGSERIAL,
+	"node_type" Varchar NOT NULL,
+	"object_key" Varchar NOT NULL,
+	"parent_id" BIGINT,
+	"display_name" Varchar NOT NULL Default '',
+	"sort_order" Integer,
+	primary key ("id"),
+	CONSTRAINT device_specific_config_node_node_type_object_key_key UNIQUE ("node_type", "object_key"),
+	CONSTRAINT device_specific_config_node_node_type_check CHECK ("node_type" IN ('global', 'device_type', 'management', 'gateway')),
+	CONSTRAINT device_specific_config_node_parent_check CHECK (("node_type" = 'global') = ("parent_id" IS NULL))
+);
+
+Create table "device_specific_config_value"
+(
+	"node_id" BIGINT NOT NULL,
+	"config_key" Varchar NOT NULL,
+	"config_value" Jsonb NOT NULL,
+	primary key ("node_id","config_key")
+);
+
 create table time_object
 (
     time_obj_id BIGSERIAL PRIMARY KEY,
@@ -517,6 +432,43 @@ create table time_object
     start_time TIMESTAMP WITH TIME ZONE,
     end_time TIMESTAMP WITH TIME ZONE,
     created BIGINT,
-    removed BIGINT
+    removed BIGINT,
+	flow_timeobj_id BIGINT,
+	flow_active BOOLEAN NOT NULL Default FALSE
 );
 
+-- central, append-only history for modelling and workflow changes
+CREATE TABLE change_history
+(
+    id BIGSERIAL PRIMARY KEY,
+    app_id INTEGER,
+    ticket_id BIGINT,
+    -- Names the subsystem that wrote the row. It is the discriminator for object_type
+    -- and the basis of the read permissions of the modelling roles, so it is set by the
+    -- API and never derived from imported data.
+    module VARCHAR NOT NULL DEFAULT 'modelling',
+    change_type INTEGER,
+    -- Holds two disjoint enums, selected by module:
+    -- FWO.Data.Modelling.ModellingTypes.ModObjectType (1-31) for module = 'modelling',
+    -- FWO.Data.ChangeHistoryObjectType (100 and above) for module = 'workflow'.
+    object_type INTEGER,
+    object_id BIGINT,
+    change_text TEXT,
+    -- Free text supplied by the client. changer_id is set by the API from the
+    -- authenticated session and is the trustworthy identity of the two. It stays null for rows
+    -- written outside a user session, because the middleware-server role carries no user id; in
+    -- that case changer names the automation, see FWO.Basics.Roles.MiddlewareServer.
+    changer VARCHAR,
+    changer_id INTEGER,
+    -- Kept timezone-naive for compatibility with migrated modelling history.
+    change_time TIMESTAMP DEFAULT NOW(),
+    -- Provenance within the module, e.g. manual, adjustAppServerNames or an import source
+    -- name configured by the customer. Never used to tell modules apart, see module.
+    change_source VARCHAR NOT NULL DEFAULT 'manual',
+    -- FWO.Data.Workflow.WorkflowPhases, null for modelling changes. Note that request = 0.
+    workflow_phase INTEGER,
+    old_data JSONB,
+    new_data JSONB,
+    audit_proof_critical BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT change_history_module_check CHECK (module IN ('modelling', 'workflow'))
+);

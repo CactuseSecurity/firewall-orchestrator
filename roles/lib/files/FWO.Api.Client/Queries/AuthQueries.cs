@@ -26,6 +26,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string getUserEmails;
         public static readonly string getUserByDn;
         public static readonly string getUserByDbId;
+        public static readonly string getUserByDirectoryObjectId;
+        public static readonly string bindUiUserDirectoryObject;
+        public static readonly string getOwnUser;
         public static readonly string upsertUiUser;
         public static readonly string updateUserEmail;
         public static readonly string updateUserLanguage;
@@ -35,12 +38,22 @@ namespace FWO.Api.Client.Queries
         public static readonly string assertUserExists;
 
         public static readonly string getLdapConnections;
+        public static readonly string getLdapConnectionsWithoutSecrets;
         public static readonly string getAllLdapConnections;
+        public static readonly string getAllLdapConnectionsWithoutSecrets;
+        public static readonly string getLdapConnectionSecrets;
         public static readonly string getLdapConnectionsSubscription;
         public static readonly string getLdapConnectionForUserSearchById;
         public static readonly string newLdapConnection;
         public static readonly string updateLdapConnection;
         public static readonly string deleteLdapConnection;
+
+        // Refresh Token Queries
+        public static readonly string storeRefreshToken;
+        public static readonly string getRefreshToken;
+        public static readonly string revokeRefreshToken;
+        public static readonly string revokeRefreshTokensOfUser;
+        public static readonly string revokeRefreshTokensOfUsers;
 
         static AuthQueries()
         {
@@ -66,6 +79,9 @@ namespace FWO.Api.Client.Queries
                 getUserEmails = GetQueryText("auth/getUserEmails.graphql");
                 getUserByDn = GetQueryText("auth/getUserByDn.graphql");
                 getUserByDbId = GetQueryText("auth/getUserByDbId.graphql");
+                getUserByDirectoryObjectId = GetQueryText("auth/getUserByDirectoryObjectId.graphql");
+                bindUiUserDirectoryObject = GetQueryText("auth/bindUiUserDirectoryObject.graphql");
+                getOwnUser = GetQueryText("auth/getOwnUser.graphql");
                 upsertUiUser = GetQueryText("auth/upsertUiUser.graphql");
                 updateUserEmail = GetQueryText("auth/updateUserEmail.graphql");
                 updateUserLanguage = GetQueryText("auth/updateUserLanguage.graphql");
@@ -75,12 +91,22 @@ namespace FWO.Api.Client.Queries
                 assertUserExists = GetQueryText("auth/assertUserExists.graphql");
 
                 getLdapConnections = GetQueryText("auth/getLdapConnections.graphql");
+                getLdapConnectionsWithoutSecrets = GetQueryText("auth/getLdapConnectionsWithoutSecrets.graphql");
                 getAllLdapConnections = GetQueryText("auth/getAllLdapConnections.graphql");
+                getAllLdapConnectionsWithoutSecrets = GetQueryText("auth/getAllLdapConnectionsWithoutSecrets.graphql");
+                getLdapConnectionSecrets = GetQueryText("auth/getLdapConnectionSecrets.graphql");
                 getLdapConnectionsSubscription = GetQueryText("auth/getLdapConnectionsSubscription.graphql");
                 getLdapConnectionForUserSearchById = GetQueryText("auth/getLdapConnectionForUserSearchById.graphql");
                 newLdapConnection = GetQueryText("auth/newLdapConnection.graphql");
                 updateLdapConnection = GetQueryText("auth/updateLdapConnection.graphql");
                 deleteLdapConnection = GetQueryText("auth/deleteLdapConnection.graphql");
+
+                // Refresh Token Queries
+                storeRefreshToken = GetQueryText(Path.Combine("auth", "storeRefreshToken.graphql"));
+                getRefreshToken = GetQueryText(Path.Combine("auth", "getRefreshToken.graphql"));
+                revokeRefreshToken = GetQueryText(Path.Combine("auth", "revokeRefreshToken.graphql"));
+                revokeRefreshTokensOfUser = GetQueryText(Path.Combine("auth", "revokeRefreshTokensOfUser.graphql"));
+                revokeRefreshTokensOfUsers = GetQueryText(Path.Combine("auth", "revokeRefreshTokensOfUsers.graphql"));
             }
             catch (Exception exception)
             {

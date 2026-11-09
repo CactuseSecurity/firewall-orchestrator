@@ -1,4 +1,4 @@
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
 @inject UserConfig userConfig
 
@@ -10,9 +10,9 @@
             <div class="form-group row">
                 <label for="promoteObject" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
                 <div class="col-sm-8">
-                    <Dropdown ElementType="int" @bind-SelectedElement="StatefulObject.StateId" ElementToString="@(s => States.Name[s])" Elements="possibleStates" >
+                    <Dropdown ElementType="int" @bind-SelectedElement="StatefulObject.StateId" ElementToString="@(s => States.GetName(s))" Elements="possibleStates" >
                         <ElementTemplate Context="state">
-                            @(States.Name[state])
+                            @(States.GetName(state))
                         </ElementTemplate>
                     </Dropdown>
                 </div>
@@ -30,14 +30,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="Perform">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </NotAuthorized> 
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick:preventDefault @onclick="Cancel">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
@@ -94,11 +94,10 @@
         if (Promote)
         {
             possibleStates = StateMatrix.getAllowedTransitions(StatefulObject.StateId);
-            if(possibleStates.Count == 1 && !authenticationStateTask!.Result.User.IsInRole(Roles.Auditor))
+            if(possibleStates.Count == 1 && !userConfig.CanUseAnyRole(Roles.Auditor))
             {
-                int oldState = StatefulObject.StateId;
                 StatefulObject.StateId = possibleStates[0];
-                if(WithComment && oldState >= StateMatrix.LowestStartedState)
+                if(WithComment)
                 {
                     Display = true;
                 }

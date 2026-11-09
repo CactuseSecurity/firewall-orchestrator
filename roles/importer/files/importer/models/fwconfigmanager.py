@@ -1,12 +1,17 @@
-from typing import Any
+from __future__ import annotations
 
-from models.fwconfig_normalized import FwConfigNormalized
+from importlib import import_module
+from typing import TYPE_CHECKING
+
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_pascal
 
+if TYPE_CHECKING:
+    from models.fwconfig_normalized import FwConfigNormalized
+
 
 class FwConfigManager(BaseModel):
-    model_config = ConfigDict(alias_generator=to_pascal, validate_by_name=True)
+    model_config = ConfigDict(alias_generator=to_pascal, validate_by_name=True, serialize_by_alias=True)
 
     manager_uid: str = Field(description="Unique identifier string of the management")
     manager_name: str = Field(description="Name of the management")
@@ -16,10 +21,7 @@ class FwConfigManager(BaseModel):
     sub_manager_ids: list[int] = Field(default=[], description="List of sub-manager IDs")
     configs: list[FwConfigNormalized] = Field(description="List of normalized firewall configurations")
 
-    def model_dump(self, **kwargs: Any) -> dict[str, Any]:
-        kwargs.setdefault("by_alias", True)
-        return super().model_dump(**kwargs)
 
-    def model_dump_json(self, **kwargs: Any) -> str:
-        kwargs.setdefault("by_alias", True)
-        return super().model_dump_json(**kwargs)
+FwConfigManager.model_rebuild(
+    _types_namespace={"FwConfigNormalized": import_module("models.fwconfig_normalized").FwConfigNormalized}
+)

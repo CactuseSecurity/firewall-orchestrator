@@ -17,9 +17,9 @@
         }
         else
         {
-            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(r => r.OrderNumber)" Sortable="true" Filterable="false" Hideable="true">
+            <Column TableItem="Rule" Context="rule" Title="@(userConfig.GetText("number"))" DefaultSortColumn="true" Field="@(r => r.DisplayOrderNumber)" Sortable="true" Filterable="false" Hideable="true">
                 <Template>
-                    @((MarkupString)RuleDisplayBase.DisplayNumber(rule))
+                    @((MarkupString)RuleDisplayBase.DisplayHierarchicalNumber(rule))
                 </Template>
             </Column>
         }

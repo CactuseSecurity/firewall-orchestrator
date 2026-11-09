@@ -41,6 +41,12 @@ namespace FWO.Services.Workflow
 
         public WorkflowPhases Phase = WorkflowPhases.request;
         public List<Device> Devices = [];
+
+        /// <summary>
+        /// Managements visible to the user, used to show the target management of implementation tasks. Only loaded
+        /// in the ui, as the middleware server does not display implementation tasks.
+        /// </summary>
+        public List<Management> Managements = [];
         public List<FwoOwner> AllOwners { get; set; } = [];
         public List<WfPriority> PrioList = [];
         public List<WfImplTask> AllTicketImplTasks = [];
@@ -54,12 +60,29 @@ namespace FWO.Services.Workflow
         public bool DisplayPromoteReqTaskMode = false;
         public bool DisplayPromoteImplTaskMode = false;
 
+        /// <summary>
+        /// Database id of the authenticated user this handler acts for, null when it acts for automation.
+        /// Handed to the change history writer so entries made outside the UI stay resolvable to a user record.
+        /// </summary>
+        public int? ChangerId { get; set; }
+
         public bool InitDone = false;
         private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         public UserConfig userConfig;
         public System.Security.Claims.ClaimsPrincipal? AuthUser;
+
+        /// <summary>
+        /// True when the workflow engine acts on its own behalf - background jobs and the external request
+        /// chain - instead of on behalf of a signed-in user. Visibility groups restrict what a user is shown,
+        /// so they must not narrow what the engine itself loads, promotes and derives ticket states from.
+        /// Stays false for every user-facing caller, the UI and the workflow REST controller included, where
+        /// visibility is an authorization boundary rather than a display rule.
+        /// </summary>
+        public bool SystemContext { get; init; }
         private readonly ApiConnection? apiConnection;
         public readonly MiddlewareClient? MiddlewareClient;
+        public readonly IRequestedRulePolicyChecker? RequestedRulePolicyChecker;
+        public readonly IWorkflowRecipientResolver? WorkflowRecipientResolver = null;
         private readonly StateMatrixDict stateMatrixDict = new();
         private WfDbAccess? dbAcc;
 
@@ -79,26 +102,32 @@ namespace FWO.Services.Workflow
         /// constructor for use in UI
         /// </summary>
         public WfHandler(Action<Exception?, string, string, bool> displayMessageInUi, UserConfig userConfig,
-            System.Security.Claims.ClaimsPrincipal authUser, ApiConnection apiConnection, MiddlewareClient middlewareClient, WorkflowPhases phase)
+            System.Security.Claims.ClaimsPrincipal authUser, ApiConnection apiConnection, MiddlewareClient middlewareClient, WorkflowPhases phase,
+            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null)
         {
             DisplayMessageInUi = displayMessageInUi;
             this.userConfig = userConfig;
             this.apiConnection = apiConnection;
             Phase = phase;
             MiddlewareClient = middlewareClient;
+            RequestedRulePolicyChecker = requestedRulePolicyChecker;
             AuthUser = authUser;
         }
 
         /// <summary>
         /// constructor for use in middleware server
         /// </summary>
-        public WfHandler(UserConfig userConfig, ApiConnection apiConnection, WorkflowPhases phase, List<UserGroup>? userGroups)
+        public WfHandler(UserConfig userConfig, ApiConnection apiConnection, WorkflowPhases phase, List<UserGroup>? userGroups,
+            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null, Action<Exception?, string, string, bool>? displayMessage = null,
+            IWorkflowRecipientResolver? workflowRecipientResolver = null)
         {
-            DisplayMessageInUi = LogMessage;
+            DisplayMessageInUi = displayMessage ?? LogMessage;
             this.userConfig = userConfig;
             this.apiConnection = apiConnection;
             Phase = phase;
             UserGroups = userGroups;
+            RequestedRulePolicyChecker = requestedRulePolicyChecker;
+            WorkflowRecipientResolver = workflowRecipientResolver;
             usedInMwServer = true;
         }
 
@@ -112,32 +141,18 @@ namespace FWO.Services.Workflow
                     InitOngoing = true;
                     if (usedInMwServer)
                     {
-                        apiConnection.SetRole(Roles.MiddlewareServer);
+                        await apiConnection.RunWithRole(Roles.MiddlewareServer, async () => await LoadInitialData(apiConnection, fetchData, ownerIds, allStates, fullTickets));
                     }
                     else if (AuthUser != null)
                     {
-                        apiConnection.SetProperRole(AuthUser, [Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Modeller, Roles.Auditor]);
+                        await apiConnection.RunWithBestRole(AuthUser, [Roles.Admin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Modeller, Roles.Auditor],
+                            async () => await LoadInitialData(apiConnection, fetchData, ownerIds, allStates, fullTickets));
                     }
                     else
                     {
                         throw new AuthenticationException("No AuthUser set");
                     }
-                    ActionHandler = new(apiConnection, this, UserGroups, usedInMwServer);
-                    await ActionHandler.Init();
-                    dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler, AuthUser == null || AuthUser.IsInRole(Roles.Admin) || AuthUser.IsInRole(Roles.Auditor)) { };
-                    Devices = await apiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
-                    AllOwners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-                    await stateMatrixDict.Init(Phase, apiConnection);
-                    MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
-                    if (fetchData)
-                    {
-                        TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, fullTickets);
-                    }
-                    ReloadTasks = !fullTickets;
-                    PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
-                    apiConnection.SwitchBack();
                     Log.WriteDebug("Init stop:   ", $"{DateTime.Now:hh:mm:ss,fff}");
-                    InitOngoing = false;
                     InitDone = true;
                     return true;
                 }
@@ -146,20 +161,95 @@ namespace FWO.Services.Workflow
             {
                 DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
             }
+            finally
+            {
+                InitOngoing = false;
+            }
             return false;
         }
 
-        public void FilterForRequester()
+        public async Task<bool> InitForActionExecution()
         {
-            List<WfTicket> filteredTicketList = [];
-            foreach (var ticket in TicketList)
+            try
             {
-                if (userConfig.User.DbId == ticket.Requester?.DbId)
+                if (!InitOngoing && apiConnection != null)
                 {
-                    filteredTicketList.Add(ticket);
+                    Log.WriteDebug("Init action start:  ", $"{DateTime.Now:hh:mm:ss,fff}");
+                    InitOngoing = true;
+                    if (usedInMwServer)
+                    {
+                        await apiConnection.RunWithRole(Roles.MiddlewareServer, async () =>
+                        {
+                            List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+                            ActionHandler = new(apiConnection, this, UserGroups, usedInMwServer, RequestedRulePolicyChecker, WorkflowRecipientResolver);
+                            await ActionHandler.Init(states);
+                            dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler, true, Phase, false) { ChangerId = ChangerId };
+                            await stateMatrixDict.Init(Phase, apiConnection, states);
+                            MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
+                        });
+                    }
+                    else
+                    {
+                        return await Init();
+                    }
+                    Log.WriteDebug("Init action stop:   ", $"{DateTime.Now:hh:mm:ss,fff}");
+                    InitDone = true;
+                    return true;
                 }
             }
-            TicketList = filteredTicketList;
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
+            }
+            finally
+            {
+                InitOngoing = false;
+            }
+            return false;
+        }
+
+        private async Task LoadInitialData(ApiConnection activeApiConnection, bool fetchData, List<int>? ownerIds, bool allStates, bool fullTickets)
+        {
+            List<WfState> states = await activeApiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
+            ActionHandler = new(activeApiConnection, this, UserGroups, usedInMwServer, RequestedRulePolicyChecker, WorkflowRecipientResolver);
+            await ActionHandler.Init(states);
+            // Init() also runs this path in the middleware server, so the UI context has to follow
+            // usedInMwServer: automated changes must never be classified as audit proof critical.
+            dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, activeApiConnection, ActionHandler,
+                AuthUser == null || userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor), Phase, !usedInMwServer)
+            { ChangerId = ChangerId };
+            Devices = await activeApiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
+            if (!usedInMwServer)
+            {
+                await LoadVisibleManagements(activeApiConnection);
+            }
+            AllOwners = await activeApiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
+            await stateMatrixDict.Init(Phase, activeApiConnection, states);
+            MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
+            await LoadOwnerScope(activeApiConnection, ownerIds);
+            if (fetchData)
+            {
+                TicketList = await FetchTicketList(ownerIds, allStates, fullTickets);
+            }
+            ReloadTasks = !fullTickets;
+            PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
+        }
+
+        /// <summary>
+        /// Loads the managements visible to the user. They are only displayed, so a failure must not stop the
+        /// workflow initialization; the implementation task views then show their management as not visible.
+        /// </summary>
+        private async Task LoadVisibleManagements(ApiConnection activeApiConnection)
+        {
+            try
+            {
+                Managements = await activeApiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementHierarchy) ?? [];
+            }
+            catch (Exception exception)
+            {
+                Managements = [];
+                Log.WriteError("Workflow", "Could not load the managements visible to the user.", exception);
+            }
         }
 
         public StateMatrix StateMatrix(string taskType)
@@ -173,6 +263,39 @@ namespace FWO.Services.Workflow
                 DisplayMessageInUi(exception, userConfig.GetText("state_matrix"), "", true);
                 return new();
             }
+        }
+
+        /// <summary>
+        /// Determines whether a request task is within the actionable state range of its current phase.
+        /// </summary>
+        /// <param name="reqTask">The request task to evaluate.</param>
+        /// <returns><c>true</c> when the task has reached the phase input state and has not reached the phase end state; otherwise, <c>false</c>.</returns>
+        public bool CanActOnReqTaskInCurrentPhase(WfReqTask reqTask)
+        {
+            StateMatrix taskStateMatrix = StateMatrix(reqTask.TaskType);
+            return reqTask.StateId >= taskStateMatrix.LowestInputState
+                && reqTask.StateId < taskStateMatrix.LowestEndState;
+        }
+
+        /// <summary>
+        /// Determines whether an implementation task is within the actionable state range of its current phase.
+        /// </summary>
+        /// <param name="implTask">The implementation task to evaluate.</param>
+        /// <returns><c>true</c> when the task has reached the phase input state and has not reached the phase end state; otherwise, <c>false</c>.</returns>
+        public bool CanActOnImplTaskInCurrentPhase(WfImplTask implTask)
+        {
+            StateMatrix taskStateMatrix = StateMatrix(implTask.TaskType);
+            return implTask.StateId >= taskStateMatrix.LowestInputState
+                && implTask.StateId < taskStateMatrix.LowestEndState;
+        }
+
+        public HashSet<int> GetWorkflowExclusiveVisibilityGroupIds()
+        {
+            HashSet<int> exclusiveVisibilityGroupIds = stateMatrixDict.Matrices.Values
+                .SelectMany(matrix => matrix.ExclusiveVisibilityGroupIds)
+                .ToHashSet();
+            exclusiveVisibilityGroupIds.UnionWith(MasterStateMatrix.ExclusiveVisibilityGroupIds);
+            return exclusiveVisibilityGroupIds;
         }
 
         public void SetContinueEnv(ObjAction action)
@@ -206,6 +329,14 @@ namespace FWO.Services.Workflow
             {
                 Log.WriteError(title, message, exception);
             }
+        }
+
+        /// <summary>
+        /// Displays a workflow message through the configured UI callback or middleware logger.
+        /// </summary>
+        public void DisplayMessage(Exception? exception = null, string title = "", string message = "", bool errorFlag = false)
+        {
+            DisplayMessageInUi(exception, title, message, errorFlag);
         }
     }
 }

@@ -1,0 +1,331 @@
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+@inject IJSRuntime jsRuntime
+@inject DomEventService eventService
+@implements IDisposable
+
+<h5 class="mt-3">@(LogDataTitle.Build(importPeriod, userConfig))</h5>
+@if (isLoading)
+{
+    <Loading />
+}
+else if (logEntries.Count == 0)
+{
+    <p>@(userConfig.GetText("U9043"))</p>
+}
+else
+{
+    @* the id lets the browser measure the rendered table of this instance, see logDataTable.js.
+       The click handler catches the paging of the table below, see OnTableClicked *@
+    <div id="@containerId" @onclick="OnTableClicked">
+        <Table @ref="logTable" TableClass="table table-bordered table-sm th-bg-secondary table-responsive sticky-header"
+               TableItem="OwnerFirewallLogEntry" Items="logEntries" PageSize="pageSize" ColumnReorder="true">
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.SourceDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source_app_ids"))" Field="@(x => x.SourceAppIdsDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source_network_areas"))" Field="@(x => x.SourceAreaIdsDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source_name"))" Field="@(x => x.SourceDnsDisplay)" Sortable="true" Filterable="true" />
+            @* protocol and port are separate columns, so the port sorts and filters as a number *@
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("protocol"))" Field="@(x => x.ProtocolDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("port"))" Field="@(x => x.ServicePort)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination"))" Field="@(x => x.DestinationDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination_app_ids"))" Field="@(x => x.DestinationAppIdsDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination_network_areas"))" Field="@(x => x.DestinationAreaIdsDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination_name"))" Field="@(x => x.DestinationDnsDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("action"))" Field="@(x => x.Allowed)" Sortable="true" Filterable="true">
+                <Template>
+                    @(userConfig.GetText(context.Allowed ? "allowed" : "denied"))
+                </Template>
+            </Column>
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_count"))" Field="@(x => x.LogCount)" Sortable="true" Filterable="true" DefaultSortColumn="true" DefaultSortDescending="true" />
+            @* the import file names the period the log counts were aggregated over, so the time of the
+               last occurrence often adds nothing and is hidden by default (hideLogTimeColumn) *@
+            @if (!userConfig.HideLogTimeColumn)
+            {
+                <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_time"))" Field="@(x => x.LogTimeLocal)" Sortable="true" Filterable="true">
+                    <Template>
+                        @context.LogTimeLocal.ToString(kLogTimeFormat)
+                    </Template>
+                </Column>
+            }
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("rule_name"))" Field="@(x => x.LoggingRuleName)" Sortable="true" Filterable="true" />
+            @if (importPeriod is null)
+            {
+                <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_aggregation_period"))" Field="@(x => x.LogTimeRangeInSeconds)" Sortable="true">
+                    <Template>
+                        @(context.LogTimeRangeInSeconds is > 0 ? LogDataTitle.FormatTimeRange(context.LogTimeRangeInSeconds.Value, userConfig) : userConfig.GetText("unknown"))
+                    </Template>
+                </Column>
+                <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_import_time"))" Field="@(x => x.ImportTime)" Sortable="true">
+                    <Template>
+                        @(context.ImportTime.HasValue ? LogDataTitle.FormatImportTime(context.ImportTime.Value, userConfig) : userConfig.GetText("unknown"))
+                    </Template>
+                </Column>
+            }
+            <Pager ShowPageNumber="true" ShowTotalCount="true" />
+        </Table>
+    </div>
+}
+
+@code
+{
+    private const string kLogTimeFormat = "yyyy-MM-dd HH:mm:ss";
+    // the loudest flows of an owner are enough for the display, an owner with more logged flows
+    // than this would only fill the browser memory of every session which opens a connection
+    private const int kMaxLoadedEntries = 500;
+    // only needed while the table has no rendered row to measure, every later measurement uses
+    // the height of a real row (see logDataTable.js)
+    private const int kFallbackRowHeight = 31;
+    // dragging a window edge fires resize without interruption, only the size the window comes to
+    // rest at is worth a measurement
+    private const int kResizeSettleMilliseconds = 200;
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    /// <summary>
+    /// Owner whose logged flows are displayed.
+    /// </summary>
+    [Parameter]
+    public int OwnerId { get; set; }
+
+    private List<OwnerFirewallLogEntry> logEntries = [];
+    private LogDataImportPeriod? importPeriod;
+    private bool isLoading = true;
+    private int? loadedOwnerId;
+
+    // the browser is asked to measure the table of this component, so the id must stay unique
+    // even if a page ever shows two of them
+    private readonly string containerId = $"logdatatable-{Guid.NewGuid():N}";
+    private BlazorTable.Table<OwnerFirewallLogEntry>? logTable;
+    // page size the table uses now
+    private int pageSize = LogDataTableLayout.kDefaultPageSize;
+    // page size the browser window allows. It is handed to the table only while the first page is
+    // shown, so it can differ from pageSize while the user has paged into the data.
+    private int measuredPageSize = LogDataTableLayout.kDefaultPageSize;
+    private bool pageSizeMeasured;
+    // counts the resizes seen so far, so a settling resize can tell whether a later one has
+    // taken it over. A counter needs no disposal and therefore no ownership between the calls.
+    private int resizeGeneration;
+    private bool disposed;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedOwnerId == OwnerId)
+        {
+            return;
+        }
+        await LoadLogEntries();
+    }
+
+    private async Task LoadLogEntries()
+    {
+        // the owner is remembered before the query, so a failed load is not repeated - with it its
+        // error message - on every re-render of the page the table is embedded in. It also marks
+        // this load as the current one: a load started earlier which answers later must not put
+        // the rows of the previous owner on screen.
+        int requestedOwnerId = OwnerId;
+        loadedOwnerId = requestedOwnerId;
+        try
+        {
+            isLoading = true;
+            List<OwnerFirewallLogEntry> loadedEntries = await apiConnection.SendQueryAsync<List<OwnerFirewallLogEntry>>(
+                LogDataQueries.getUnmodelledLogEntriesByOwner, new { ownerId = requestedOwnerId, limit = kMaxLoadedEntries });
+            LogDataImportPeriod? loadedPeriod = LogDataTitle.GetCommonPeriod(loadedEntries);
+            if (IsCurrentLoad(requestedOwnerId))
+            {
+                logEntries = loadedEntries;
+                importPeriod = loadedPeriod;
+                // the rows of another owner may be higher or lower, so the window is measured again
+                pageSizeMeasured = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            if (IsCurrentLoad(requestedOwnerId))
+            {
+                logEntries = [];
+                importPeriod = null;
+                DisplayMessageInUi(exception, userConfig.GetText("log_data"), "", true);
+            }
+        }
+        finally
+        {
+            if (IsCurrentLoad(requestedOwnerId))
+            {
+                isLoading = false;
+            }
+        }
+    }
+
+    private bool IsCurrentLoad(int requestedOwnerId)
+    {
+        return loadedOwnerId == requestedOwnerId;
+    }
+
+    /// <summary>
+    /// Measures the window once per set of rows and hands the result to the table while doing so
+    /// cannot move the user, see <see cref="ApplyMeasuredPageSize"/>.
+    /// </summary>
+    /// <param name="firstRender">True on the first render of this component.</param>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await SubscribeToWindowResize();
+        }
+        // only a new set of rows or a resized window needs a new measurement. Measuring on every
+        // render would cost a browser round trip per keystroke in a column filter.
+        if (!pageSizeMeasured)
+        {
+            await MeasurePageSize();
+        }
+        // cheap enough for every render: it reads the page number and touches no browser
+        await ApplyMeasuredPageSize();
+    }
+
+    /// <summary>
+    /// Measures the window and applies the result, used when the window was resized.
+    /// </summary>
+    private async Task AdjustPageSize()
+    {
+        await MeasurePageSize();
+        await ApplyMeasuredPageSize();
+    }
+
+    /// <summary>
+    /// Asks the browser how many rows fit into its window and remembers the answer.
+    /// </summary>
+    private async Task MeasurePageSize()
+    {
+        if (disposed || logEntries.Count == 0)
+        {
+            return;
+        }
+        int measuredRows = await MeasureFittingRows();
+        // a measurement which could not be taken is retried on the next render. A window measured
+        // as too short for a single row is a result, not a failure, and is not retried.
+        pageSizeMeasured = measuredRows != LogDataTableLayout.kCouldNotMeasure;
+        measuredPageSize = LogDataTableLayout.ResolvePageSize(measuredRows, pageSize);
+    }
+
+    /// <summary>
+    /// Hands the measured page size to the table, but only while the first page is shown. On any
+    /// other page the size is kept back until the user is on the first page again.
+    /// </summary>
+    private async Task ApplyMeasuredPageSize()
+    {
+        // the measurement does not depend on the number of rows on the page, so applying it
+        // settles after one round instead of re-rendering the table indefinitely
+        if (disposed || measuredPageSize == pageSize)
+        {
+            return;
+        }
+        // The page number survives a page size change, the rows behind it do not: page 2 of 10
+        // rows starts at row 20, page 2 of 20 rows starts at row 40. Resizing the window would
+        // therefore put a different part of the log on screen without the user asking for it.
+        // BlazorTable 1.17.0 offers neither a page change event nor a public page number setter,
+        // so the position cannot be carried over either and the size is kept back instead. It
+        // reaches the table as soon as the user is on the first page again, see OnTableClicked.
+        if (!LogDataTableLayout.MayApplyPageSize(logTable?.PageNumber))
+        {
+            return;
+        }
+        pageSize = measuredPageSize;
+        // the table keeps its own paging state, a new size only reaches it through this setter
+        if (logTable is not null)
+        {
+            await logTable.SetPageSizeAsync(pageSize);
+        }
+    }
+
+    /// <summary>
+    /// Hands over a page size kept back while the user had paged into the data, once a click has
+    /// brought them back to the first page. The pager belongs to the table, so paging re-renders
+    /// the table and not this component: without this handler a kept back size would wait for the
+    /// next window resize. Blazor dispatches a click from the clicked element outwards, so the
+    /// pager has already taken this click and the page number read here is the one it has moved
+    /// to.
+    /// </summary>
+    private async Task OnTableClicked()
+    {
+        await ApplyMeasuredPageSize();
+    }
+
+    /// <summary>
+    /// Rows the browser reports as fitting into its window,
+    /// <see cref="LogDataTableLayout.kCouldNotMeasure"/> if it could not be asked.
+    /// </summary>
+    private async Task<int> MeasureFittingRows()
+    {
+        try
+        {
+            return await jsRuntime.InvokeAsync<int>("measureLogDataTableRows", containerId, kFallbackRowHeight);
+        }
+        catch (Exception exception)
+        {
+            // a window which cannot be measured must not take the table with it, the page size
+            // then simply stays at the value it has
+            Log.WriteDebug("LogDataTable", $"measuring the window failed: {exception.Message}");
+            return LogDataTableLayout.kCouldNotMeasure;
+        }
+    }
+
+    /// <summary>
+    /// Starts listening for window resizes, so the page size can follow the window.
+    /// </summary>
+    private async Task SubscribeToWindowResize()
+    {
+        if (eventService is null)
+        {
+            return;
+        }
+        if (!eventService.Initialized)
+        {
+            await eventService.Initialize(jsRuntime);
+        }
+        eventService.OnGlobalResize += OnWindowResized;
+    }
+
+    /// <summary>
+    /// Re-measures after the window has come to rest. Resizing fires without interruption while a
+    /// window edge is dragged, so only the last of a run of resizes is measured.
+    /// </summary>
+    /// <param name="elementId">Element the resize was reported for, not used here.</param>
+    private async void OnWindowResized(string elementId)
+    {
+        int generation = Interlocked.Increment(ref resizeGeneration);
+        try
+        {
+            await Task.Delay(kResizeSettleMilliseconds);
+            // the window has come to rest only if no further resize arrived while this one waited.
+            // Reading the counter instead of cancelling the wait keeps every call to itself: there
+            // is no shared object a later resize could dispose while this one still uses it.
+            if (disposed || Volatile.Read(ref resizeGeneration) != generation)
+            {
+                return;
+            }
+            await InvokeAsync(AdjustPageSize);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug("LogDataTable", $"adjusting the page size after a resize failed: {exception.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Stops listening for window resizes, so a resize settling at this moment does nothing and
+    /// the browser event no longer reaches a component which has left the page.
+    /// </summary>
+    public void Dispose()
+    {
+        if (disposed)
+        {
+            return;
+        }
+        disposed = true;
+        if (eventService is not null)
+        {
+            eventService.OnGlobalResize -= OnWindowResized;
+        }
+    }
+}

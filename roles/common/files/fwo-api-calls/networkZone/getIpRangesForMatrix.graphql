@@ -1,0 +1,8 @@
+query getIpRangesForMatrix ($matrixId: Int!) {
+  network_zone_ip_range (where: { criterion_id: {_eq: $matrixId}, removed: {_is_null: true} }) {
+    id
+    network_zone_id
+    ip_range_start
+    ip_range_end
+  }
+}

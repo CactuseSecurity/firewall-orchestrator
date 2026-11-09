@@ -1,4 +1,11 @@
-﻿@using System.Text.Json
+@using System.Text.Json
+
+@using System.Text.Json.Serialization
+@using FWO.Api.Client.Queries
+@using FWO.Data.Report
+@using FWO.Middleware.Client
+@using FWO.Ui.Services
+@using FWO.Basics
 
 @page "/settings/reportgeneral"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -6,6 +13,7 @@
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
 
 <div class="input-group">
     <h3>@(userConfig.GetText("report_settings"))</h3>
@@ -16,7 +24,25 @@
 
 @if (configData != null)
 {
+    @if (!string.IsNullOrWhiteSpace(configData.ReportSchedulerConfig))
+    {
+        <div class="mt-2">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => ShowMigrateSchedulerConfigDialog = true">
+                        @(DisplayService.DisplayButton(userConfig, "migrate_scheduler_config", Icons.Migrate))
+                    </button>
+                </Authorized>
+            </ExecutionModeAuthorizeView>
+        </div>
+    }
     <form onsubmit="return false">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5460"))">
+            <label for="defaultRulesView" class="col-form-label col-sm-4">@(userConfig.GetText("default_rules_view")):</label>
+            <div class="col-sm-4">
+                <RulesViewSelect Id="defaultRulesView" @bind-ManagementRulebaseView="configData!.DefaultManagementRulebaseView" />
+            </div>
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
             <div class="col-sm-2">
@@ -71,7 +97,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5455"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("availableReportTypes")):</label>
             <div class="form-group row col-sm-9">
-                @foreach (ReportType type in ReportTypeGroups.AllReportTypes())
+                @foreach (ReportType type in ReportTypeGroups.ReportTypeSelection().Except(ExcludedReportTypesForSelection))
                 {
                     <div class="form-group col-sm-3">
                         <input id="cbx_@type.ToString()" type="checkbox" @bind="reportTypesActiveDict[type]" />
@@ -80,16 +106,72 @@
                 }
             </div>
         </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5463"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reportTypeVisibilityByRole")):</label>
+            <div class="col-sm-9">
+                @if (!rolesLoaded)
+                {
+                    <Loading />
+                }
+                else if (availableRoles.Count > 0)
+                {
+                    <div class="form-group row mb-2">
+                        <label class="col-form-label col-sm-2">@(userConfig.GetText("role")):</label>
+                        <div class="col-sm-4">
+                            <select class="form-select form-select-sm" @bind="selectedRole">
+                                <option value=""></option>
+                                @foreach (string role in availableRoles)
+                                {
+                                    <option value="@role">@role</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(selectedRole) && reportTypeVisibilityByRole.TryGetValue(selectedRole, out Dictionary<ReportType, ReportTypeVisibilityOption>? visibilityForRole))
+                    {
+                        @foreach (ReportType type in ReportTypeGroups.ReportTypeSelection().Except(ExcludedReportTypesForSelection))
+                        {
+                            <div class="form-group row col-sm-12 mt-1">
+                                <label class="col-form-label col-sm-4">@(userConfig.GetText(type.ToString()))</label>
+                                <div class="col-sm-4">
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="ReportTypeVisibility_@(type)">
+                                        <input type="radio" class="btn-check" name="reportTypeVisibility_@(type)" autocomplete="off"
+                                               id="rtv_@(type)_inherited" checked="@(visibilityForRole[type] == ReportTypeVisibilityOption.Inherited)"
+                                               @oninput="() => visibilityForRole[type] = ReportTypeVisibilityOption.Inherited">
+                                        <label class="btn btn-outline-primary three-state-button" for="rtv_@(type)_inherited">@(userConfig.GetText("inherited"))</label>
+
+                                        <input type="radio" class="btn-check" name="reportTypeVisibility_@(type)" autocomplete="off"
+                                               id="rtv_@(type)_visible" checked="@(visibilityForRole[type] == ReportTypeVisibilityOption.Visible)"
+                                               @oninput="() => visibilityForRole[type] = ReportTypeVisibilityOption.Visible">
+                                        <label class="btn btn-outline-primary three-state-button" for="rtv_@(type)_visible">@(userConfig.GetText("visible"))</label>
+
+                                        <input type="radio" class="btn-check" name="reportTypeVisibility_@(type)" autocomplete="off"
+                                               id="rtv_@(type)_notvisible" checked="@(visibilityForRole[type] == ReportTypeVisibilityOption.NotVisible)"
+                                               @oninput="() => visibilityForRole[type] = ReportTypeVisibilityOption.NotVisible">
+                                        <label class="btn btn-outline-primary three-state-button" for="rtv_@(type)_notvisible">@(userConfig.GetText("not_visible"))</label>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                }
+                else
+                {
+                    <span class="col-form-label">@(userConfig.GetText("E5251"))</span>
+                }
+            </div>
+        </div>
     </form>
     <hr />
-    <AuthorizeView Roles="@Roles.Admin">
+    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
         </Authorized>
         <NotAuthorized>
             <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
         </NotAuthorized> 
-    </AuthorizeView>
+    </ExecutionModeAuthorizeView>
     <br><br>
     <p>@(userConfig.GetText("U5303"))</p>
 }
@@ -97,6 +179,9 @@ else
 {
     <Loading/>
 }
+
+<Confirm @bind-Display="ShowMigrateSchedulerConfigDialog" PerformAction="MigrateSchedulerConfig"
+         Title="@userConfig.GetText("migrate_scheduler_config")" Message="@GetMigrateSchedulerConfigMessage()" AllowedRoles="@Roles.Admin" />
 
 
 
@@ -108,6 +193,23 @@ else
     private ConfigData? configData;
     private List<ReportType> availableReportTypes { get; set; } = [];
     private Dictionary<ReportType, bool> reportTypesActiveDict = [];
+    private List<LegacyReportSchedulerConfig> legacyReportSchedulerConfigs = [];
+    private bool ShowMigrateSchedulerConfigDialog;
+    private List<string> availableRoles = [];
+    private bool rolesLoaded = false;
+    private string selectedRole = "";
+    private Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> reportTypeVisibilityByRole = [];
+
+    /// <summary>
+    /// The visibility overrides as last read from the database, keyed by every role that had an
+    /// override saved - not just the roles currently returned by LDAP. <see cref="reportTypeVisibilityByRole"/>
+    /// only covers <see cref="availableRoles"/> (which is empty if the LDAP lookup failed), so <see cref="Save"/>
+    /// merges into this instead of serializing <see cref="reportTypeVisibilityByRole"/> directly - otherwise a
+    /// transient LDAP failure would wipe out all previously saved overrides on the next unrelated Save.
+    /// </summary>
+    private Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> savedReportTypeVisibilityByRole = [];
+
+    private static readonly ReportType[] ExcludedReportTypesForSelection = [ReportType.Undefined];
 
     protected override async Task OnInitializedAsync()
     {
@@ -115,16 +217,51 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             availableReportTypes = JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(configData.AvailableReportTypes) ? "[]" : configData.AvailableReportTypes) ?? throw new JsonException("Config data could not be parsed.");
+            legacyReportSchedulerConfigs = string.IsNullOrWhiteSpace(configData.ReportSchedulerConfig)
+                ? []
+                : JsonSerializer.Deserialize<List<LegacyReportSchedulerConfig>>(configData.ReportSchedulerConfig) ?? [];
             reportTypesActiveDict = [];
             foreach(ReportType type in ReportTypeGroups.AllReportTypes())
             {
                 reportTypesActiveDict.Add(type, availableReportTypes.Contains(type));
+            }
+
+            availableRoles = (await RoleAccess.GetRolesFromInternalLdap(middlewareClient)).Select(r => r.Name)
+                .Where(n => !RoleGroups.IsTechnicalOrAnonymous(n)).OrderBy(s => s).ToList();
+            selectedRole = "";
+            savedReportTypeVisibilityByRole = ReportTypeRoleVisibilityConfig.Parse(configData.ReportTypeVisibilityByRole);
+            reportTypeVisibilityByRole = BuildReportTypeVisibilityByRole(availableRoles, savedReportTypeVisibilityByRole);
+            if (availableRoles.Count == 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
             }
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
+        finally
+        {
+            rolesLoaded = true;
+        }
+    }
+
+    private static Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> BuildReportTypeVisibilityByRole(
+        List<string> roles, Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> saved)
+    {
+        Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> byRole = [];
+        foreach (string role in roles)
+        {
+            Dictionary<ReportType, ReportTypeVisibilityOption> byType = [];
+            saved.TryGetValue(role, out Dictionary<ReportType, ReportTypeVisibilityOption>? savedByType);
+            foreach (ReportType type in ReportTypeGroups.AllReportTypes())
+            {
+                byType[type] = savedByType != null && savedByType.TryGetValue(type, out ReportTypeVisibilityOption option)
+                    ? option : ReportTypeVisibilityOption.Inherited;
+            }
+            byRole[role] = byType;
+        }
+        return byRole;
     }
 
     private async Task Save()
@@ -142,6 +279,11 @@ else
                     }
                 }
                 configData.AvailableReportTypes = JsonSerializer.Serialize(availableReportTypes);
+                foreach (KeyValuePair<string, Dictionary<ReportType, ReportTypeVisibilityOption>> entry in reportTypeVisibilityByRole)
+                {
+                    savedReportTypeVisibilityByRole[entry.Key] = entry.Value;
+                }
+                configData.ReportTypeVisibilityByRole = ReportTypeRoleVisibilityConfig.Serialize(savedReportTypeVisibilityByRole);
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
@@ -155,5 +297,93 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
+    }
+
+    private async Task MigrateSchedulerConfig()
+    {
+        try
+        {
+            if (configData == null)
+            {
+                throw new ArgumentException("Data migrated before loaded. This should be impossible.");
+            }
+
+            int migratedConfigCount = legacyReportSchedulerConfigs.Count;
+            List<ReportSchedule> reportSchedules = await apiConnection.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules);
+
+            foreach (LegacyReportSchedulerConfig legacyConfig in legacyReportSchedulerConfigs)
+            {
+                ReportSchedule? reportSchedule = reportSchedules.FirstOrDefault(schedule => schedule.Id == legacyConfig.ReportScheduleId);
+                if (reportSchedule == null)
+                {
+                    continue;
+                }
+
+                reportSchedule.Archive = legacyConfig.ToArchive;
+                await apiConnection.SendQueryAsync<object>(ReportQueries.editReportSchedule, new
+                {
+                    report_schedule_id = reportSchedule.Id,
+                    report_schedule_name = reportSchedule.Name,
+                    report_schedule_owner_id = reportSchedule.ScheduleOwningUser.DbId,
+                    report_schedule_template_id = reportSchedule.Template.Id,
+                    report_schedule_start_time = reportSchedule.StartTime,
+                    report_schedule_repeat = reportSchedule.RepeatOffset,
+                    report_schedule_every = (int)reportSchedule.RepeatInterval,
+                    report_schedule_active = reportSchedule.Active,
+                    archive = reportSchedule.Archive,
+                    report_schedule_format_names = reportSchedule.OutputFormat.ConvertAll(format => format.Name),
+                    report_schedule_format_rel = reportSchedule.OutputFormat.ConvertAll(format =>
+                        new { report_schedule_format_name = format.Name, report_schedule_id = reportSchedule.Id })
+                });
+
+                if (reportSchedule.Notifications.Count == 0)
+                {
+                    reportSchedule.Notifications = await ReportScheduleNotificationHelper.SyncNotifications(apiConnection, reportSchedule,
+                        legacyConfig.ToEmail, legacyConfig.Recipients, legacyConfig.Subject, legacyConfig.Body);
+                }
+            }
+
+            configData.ReportSchedulerConfig = "";
+            legacyReportSchedulerConfigs = [];
+            await globalConfig.WriteToDatabase(configData, apiConnection);
+            ShowMigrateSchedulerConfigDialog = false;
+            DisplayMessageInUi(null, userConfig.GetText("migrate_scheduler_config"),
+                $"{migratedConfigCount} {userConfig.GetText("scheduler_config_migrated")}", false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("migrate_scheduler_config"), "", true);
+        }
+    }
+
+    private string GetMigrateSchedulerConfigMessage()
+    {
+        if (configData == null || string.IsNullOrWhiteSpace(configData.ReportSchedulerConfig))
+        {
+            return userConfig.GetText("confirm_migrate_scheduler_config");
+        }
+
+        return $"{legacyReportSchedulerConfigs.Count} {userConfig.GetText("confirm_migrate_scheduler_config")}";
+    }
+
+    private class LegacyReportSchedulerConfig
+    {
+        [JsonPropertyName("report_schedule_id")]
+        public int ReportScheduleId { get; set; }
+
+        [JsonPropertyName("to_email")]
+        public bool ToEmail { get; set; }
+
+        [JsonPropertyName("to_archive")]
+        public bool ToArchive { get; set; }
+
+        [JsonPropertyName("recipients")]
+        public string Recipients { get; set; } = "";
+
+        [JsonPropertyName("subject")]
+        public string Subject { get; set; } = "";
+
+        [JsonPropertyName("body")]
+        public string Body { get; set; } = "";
     }
 }

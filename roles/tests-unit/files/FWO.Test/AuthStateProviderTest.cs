@@ -1,0 +1,678 @@
+using System.Net;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Config.Api.Data;
+using FWO.Basics;
+using FWO.Config.Api;
+using FWO.Config.File;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Services.EventMediator;
+using FWO.Services.EventMediator.Events;
+using FWO.Test.Mocks;
+using FWO.Ui.Auth;
+using FWO.Ui.Services;
+using GraphQL;
+using GraphQL.Client.Http;
+using GraphQL.Client.Serializer.SystemTextJson;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.IdentityModel.Tokens;
+using NUnit.Framework;
+using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http;
+using System.Reflection;
+using System.Security.Authentication;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text.Json;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Routing;
+using System.Runtime.CompilerServices;
+
+namespace FWO.Test
+{
+    [TestFixture]
+    [NonParallelizable]
+    public class AuthStateProviderTest
+    {
+        private static readonly string[] kDefaultAllowedRoles = [Roles.Reporter];
+        private static readonly string[] kExpectedReporterRoles = [Roles.Reporter];
+        private static readonly int[] kExpectedOwnerships = [3, 7];
+        private static readonly int[] kExpectedRecertOwnerships = [9];
+        private static readonly int[] kExpectedWorkflowVisibilityGroupIds = [2, 4];
+
+        private static readonly FieldInfo JwtPublicKeyField = typeof(ConfigFile).GetField("jwtPublicKey", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
+
+        private static readonly FieldInfo JwtPrivateKeyField = typeof(ConfigFile).GetField("jwtPrivateKey", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPrivateKey");
+
+        private static readonly FieldInfo UserField = typeof(AuthStateProvider).GetField("user", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new MissingFieldException(typeof(AuthStateProvider).FullName, "user");
+
+        private static readonly MethodInfo ApplyTokenPairMethod = typeof(AuthStateProvider).GetMethod("ApplyTokenPair", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new MissingMethodException(typeof(AuthStateProvider).FullName, "ApplyTokenPair");
+
+        private RsaSecurityKey? originalJwtPublicKey;
+        private RsaSecurityKey? originalJwtPrivateKey;
+
+        [SetUp]
+        public void Setup()
+        {
+            originalJwtPublicKey = (RsaSecurityKey?)JwtPublicKeyField.GetValue(null);
+            originalJwtPrivateKey = (RsaSecurityKey?)JwtPrivateKeyField.GetValue(null);
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            JwtPublicKeyField.SetValue(null, originalJwtPublicKey);
+            JwtPrivateKeyField.SetValue(null, originalJwtPrivateKey);
+        }
+
+        [Test]
+        public async Task RefreshAuthenticationState_WhenNoSessionExists_ShouldNotPublishReloginRequiredEvent()
+        {
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+
+            int publishCount = 0;
+            eventMediator.Subscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent), _ => publishCount++);
+
+            bool refreshed = await authStateProvider.RestoreAuthenticationState(new MockApiConnection(), mockMiddlewareClient, new UserConfig());
+
+            Assert.That(refreshed, Is.False);
+            Assert.That(publishCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task RestoreAuthenticationState_WhenRefreshFails_ShouldClearStoredTokenPairAndKeepAuthenticatedUserForRelogin()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            MockMiddlewareClient mockMiddlewareClient = new()
+            {
+                ShouldRefreshSucceed = false
+            };
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = GenerateJwtToken(privateKey, Roles.Reporter, DateTime.UtcNow.AddMinutes(-5), BuildJwtClaims()),
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(-5),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+            SetAuthenticatedUser(authStateProvider, TestApiConnection.TestUserDn);
+
+            string? publishedUserDn = null;
+            int publishCount = 0;
+            eventMediator.Subscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent), _ =>
+            {
+                publishCount++;
+                publishedUserDn = _.EventArgs?.UserDn;
+            });
+
+            bool restored = await authStateProvider.RestoreAuthenticationState(new TestApiConnection(), mockMiddlewareClient, new UserConfig());
+            AuthenticationState authenticationState = await authStateProvider.GetAuthenticationStateAsync();
+
+            Assert.That(restored, Is.False);
+            Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.True);
+            Assert.That(mockMiddlewareClient.RefreshTokenCallCount, Is.EqualTo(1));
+            Assert.That(mockMiddlewareClient.RevokeRefreshTokenCallCount, Is.EqualTo(1));
+            Assert.That(publishCount, Is.EqualTo(1));
+            Assert.That(publishedUserDn, Is.EqualTo(TestApiConnection.TestUserDn));
+            Assert.That(await tokenService.GetTokenPair(), Is.Null);
+            Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.False);
+        }
+
+        /// <summary>
+        /// The counterpart of the test above. A 503 says the middleware could not reach the
+        /// API, which is no verdict on the refresh token: revoking it here would turn a
+        /// momentary outage into a forced re-login for every session, so the stored pair has
+        /// to survive and no relogin may be announced.
+        /// </summary>
+        [Test]
+        public async Task RestoreAuthenticationState_WhenTheApiIsUnreachable_ShouldKeepStoredTokenPair()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            MockMiddlewareClient mockMiddlewareClient = new()
+            {
+                ShouldRefreshSucceed = false,
+                RefreshFailureStatusCode = HttpStatusCode.ServiceUnavailable
+            };
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = GenerateJwtToken(privateKey, Roles.Reporter, DateTime.UtcNow.AddMinutes(-5), BuildJwtClaims()),
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(-5),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+            SetAuthenticatedUser(authStateProvider, TestApiConnection.TestUserDn);
+
+            int publishCount = 0;
+            eventMediator.Subscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent), _ => publishCount++);
+
+            bool restored = await authStateProvider.RestoreAuthenticationState(new TestApiConnection(), mockMiddlewareClient, new UserConfig());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(restored, Is.False, "the session could not be restored this time");
+                Assert.That(mockMiddlewareClient.RefreshTokenCallCount, Is.EqualTo(1));
+                Assert.That(mockMiddlewareClient.RevokeRefreshTokenCallCount, Is.EqualTo(0),
+                    "a refresh token that was never judged must not be revoked");
+                Assert.That(publishCount, Is.EqualTo(0), "no relogin may be announced for a retryable failure");
+                Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.True,
+                    "the stored pair has to survive so the next attempt can use it");
+            });
+        }
+
+        [Test]
+        public async Task RestoreAuthenticationState_WhenStoredAccessTokenIsInvalid_ShouldClearStoredTokenPairWithoutRefresh()
+        {
+            using RSA signingRsa = RSA.Create(2048);
+            using RSA validationRsa = RSA.Create(2048);
+            RsaSecurityKey signingPrivateKey = new(signingRsa.ExportParameters(true));
+            RsaSecurityKey validationPublicKey = new(validationRsa.ExportParameters(false));
+            JwtPrivateKeyField.SetValue(null, signingPrivateKey);
+            JwtPublicKeyField.SetValue(null, validationPublicKey);
+
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = GenerateJwtToken(signingPrivateKey, Roles.Reporter, DateTime.UtcNow.AddMinutes(10), BuildJwtClaims()),
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+
+            int publishCount = 0;
+            eventMediator.Subscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent), _ => publishCount++);
+
+            bool restored = await authStateProvider.RestoreAuthenticationState(new TestApiConnection(), mockMiddlewareClient, new UserConfig());
+            AuthenticationState authenticationState = await authStateProvider.GetAuthenticationStateAsync();
+
+            Assert.That(restored, Is.False);
+            Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.False);
+            Assert.That(mockMiddlewareClient.RefreshTokenCallCount, Is.EqualTo(0));
+            Assert.That(mockMiddlewareClient.RevokeRefreshTokenCallCount, Is.EqualTo(1));
+            Assert.That(await tokenService.GetTokenPair(), Is.Null);
+            Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.False);
+            Assert.That(publishCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task ApplyTokenPair_WhenJwtIsRejected_ShouldNotPersistTokenPair()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+
+            TokenPair rejectedTokenPair = new()
+            {
+                AccessToken = GenerateJwtToken(privateKey, Roles.Anonymous),
+                RefreshToken = "rejected-refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            };
+
+            AuthenticationException ex = Assert.ThrowsAsync<AuthenticationException>(async () =>
+                await InvokeApplyTokenPair(authStateProvider, rejectedTokenPair, new MockApiConnection(), mockMiddlewareClient, new UserConfig()))
+                ?? throw new AssertionException("Expected AuthenticationException.");
+
+            Assert.That(ex.Message, Is.EqualTo("not_authorized"));
+            Assert.That(await tokenService.GetAccessToken(), Is.Null);
+            Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.False);
+        }
+
+        [Test]
+        public async Task RestoreAuthenticationState_WhenStoredAccessTokenContainsImporterRole_ShouldDeauthenticateWithoutRefresh()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = GenerateJwtToken(privateKey, Roles.Importer, DateTime.UtcNow.AddMinutes(10), BuildJwtClaims()),
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+
+            bool restored = await authStateProvider.RestoreAuthenticationState(new TestApiConnection(), mockMiddlewareClient, new UserConfig());
+            AuthenticationState authenticationState = await authStateProvider.GetAuthenticationStateAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(restored, Is.False);
+                Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.False);
+                Assert.That(mockMiddlewareClient.RefreshTokenCallCount, Is.EqualTo(0));
+                Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task RestoreAuthenticationState_WhenAccessTokenExpired_ShouldRefreshAndAuthenticate()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+            UserConfig userConfig = new();
+            TestApiConnection apiConnection = new();
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = GenerateJwtToken(privateKey, Roles.Reporter, DateTime.UtcNow.AddMinutes(-5), BuildJwtClaims()),
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(-5),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+
+            string refreshedAccessToken = GenerateJwtToken(privateKey, Roles.Reporter, DateTime.UtcNow.AddMinutes(10), BuildJwtClaims());
+            TokenPair refreshedTokenPair = new()
+            {
+                AccessToken = refreshedAccessToken,
+                RefreshToken = "rotated-refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(2)
+            };
+
+            mockMiddlewareClient.NextRefreshTokenResponse = refreshedTokenPair;
+
+            bool restored = await authStateProvider.RestoreAuthenticationState(apiConnection, mockMiddlewareClient, userConfig);
+            AuthenticationState authenticationState = await authStateProvider.GetAuthenticationStateAsync();
+            TokenPair? storedTokenPair = await tokenService.GetTokenPair();
+
+            Assert.That(restored, Is.True);
+            Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.True);
+            Assert.That(mockMiddlewareClient.RefreshTokenCallCount, Is.EqualTo(1));
+            Assert.That(storedTokenPair?.AccessToken, Is.EqualTo(refreshedAccessToken));
+            Assert.That(storedTokenPair?.RefreshToken, Is.EqualTo("rotated-refresh-token"));
+            Assert.That(userConfig.User.Dn, Is.EqualTo(TestApiConnection.TestUserDn));
+            Assert.That(userConfig.User.Tenant?.Id, Is.EqualTo(TestApiConnection.TestTenantId));
+            Assert.That(userConfig.User.Roles, Is.EquivalentTo(kExpectedReporterRoles));
+            Assert.That(userConfig.User.Ownerships, Is.EquivalentTo(kExpectedOwnerships));
+            Assert.That(userConfig.User.RecertOwnerships, Is.EquivalentTo(kExpectedRecertOwnerships));
+            Assert.That(userConfig.User.WorkflowVisibilityGroupIds, Is.EquivalentTo(kExpectedWorkflowVisibilityGroupIds));
+        }
+
+        [Test]
+        public async Task RestoreAuthenticationState_WhenAccessTokenIsStillValid_ShouldNotRefresh()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+            UserConfig userConfig = new();
+
+            string validAccessToken = GenerateJwtToken(privateKey, Roles.Reporter, DateTime.UtcNow.AddMinutes(10), BuildJwtClaims());
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = validAccessToken,
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+
+            bool restored = await authStateProvider.RestoreAuthenticationState(new TestApiConnection(), mockMiddlewareClient, userConfig);
+            TokenPair? storedTokenPair = await tokenService.GetTokenPair();
+
+            Assert.That(restored, Is.True);
+            Assert.That(mockMiddlewareClient.RefreshTokenCallCount, Is.EqualTo(0));
+            Assert.That(storedTokenPair?.AccessToken, Is.EqualTo(validAccessToken));
+            Assert.That(userConfig.User.Dn, Is.EqualTo(TestApiConnection.TestUserDn));
+        }
+
+        /// <summary>
+        /// The session user is loaded by the local user id of the token. The dn of the token does not
+        /// name one local user, as the same dn may exist in several LDAP connections (SEC-11).
+        /// </summary>
+        [Test]
+        public async Task RestoreAuthenticationState_LoadsSessionUserByLocalUserId()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, new RsaSecurityKey(rsa.ExportParameters(false)));
+
+            MockMiddlewareClient mockMiddlewareClient = new();
+            TokenService tokenService = new(mockMiddlewareClient, new MockProtectedSessionStorage());
+            AuthStateProvider authStateProvider = new(tokenService, new EventMediator(), default!);
+            UserConfig userConfig = new();
+            TestApiConnection apiConnection = new();
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = GenerateJwtToken(privateKey, Roles.Reporter, DateTime.UtcNow.AddMinutes(10), BuildJwtClaims()),
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+
+            bool restored = await authStateProvider.RestoreAuthenticationState(apiConnection, mockMiddlewareClient, userConfig);
+
+            (string query, object? variables) = apiConnection.UserQueries.First();
+            Assert.Multiple(() =>
+            {
+                Assert.That(restored, Is.True);
+                Assert.That(query, Is.EqualTo(AuthQueries.getOwnUser));
+                Assert.That(variables?.GetType().GetProperty("userId")?.GetValue(variables), Is.EqualTo(TestApiConnection.TestUserDbId));
+                Assert.That(apiConnection.UserQueries.Select(userQuery => userQuery.Query), Does.Not.Contain(AuthQueries.getUserByDn));
+                Assert.That(userConfig.User.DbId, Is.EqualTo(TestApiConnection.TestUserDbId));
+            });
+        }
+
+        [Test]
+        public async Task RestoreAuthenticationState_RestoresStoredExecutionMode()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            ExecutionModeStorage executionModeStorage = new(mockSessionStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager, executionModeStorage);
+            UserConfig userConfig = new();
+            TestApiConnection apiConnection = new();
+
+            string accessToken = GenerateJwtToken(privateKey, Roles.Admin, DateTime.UtcNow.AddMinutes(10), BuildJwtClaims(Roles.Admin, Roles.Modeller));
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = accessToken,
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+            await executionModeStorage.SetExecutionMode(Roles.Admin);
+
+            bool restored = await authStateProvider.RestoreAuthenticationState(apiConnection, mockMiddlewareClient, userConfig);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(restored, Is.True);
+                Assert.That(apiConnection.SelectedExecutionMode, Is.EqualTo(Roles.Admin));
+                Assert.That(userConfig.ExecutionMode, Is.EqualTo(Roles.Admin));
+            });
+        }
+
+        [Test]
+        public async Task Deauthenticate_ClearsAuthenticationStateAndStoredTokens_WithoutNavigation()
+        {
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            TestNavigationManager navigationManager = new();
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = "access-token",
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+            SetAuthenticatedUser(authStateProvider, TestApiConnection.TestUserDn);
+
+            await authStateProvider.Deauthenticate(forceNavigation: false);
+            AuthenticationState authenticationState = await authStateProvider.GetAuthenticationStateAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.False);
+                Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.False);
+                Assert.That(navigationManager.Uri, Is.EqualTo("http://localhost/"));
+            });
+        }
+
+        [Test]
+        public async Task Deauthenticate_WhenTokenCleanupThrows_StillClearsAuthenticationState()
+        {
+            EventMediator eventMediator = new();
+            TestNavigationManager navigationManager = new();
+            TokenService brokenTokenService = (TokenService)RuntimeHelpers.GetUninitializedObject(typeof(TokenService));
+            AuthStateProvider authStateProvider = new(brokenTokenService, eventMediator, navigationManager);
+            SetAuthenticatedUser(authStateProvider, TestApiConnection.TestUserDn);
+
+            await authStateProvider.Deauthenticate(forceNavigation: false);
+            AuthenticationState authenticationState = await authStateProvider.GetAuthenticationStateAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(authenticationState.User.Identity?.IsAuthenticated, Is.False);
+                Assert.That(navigationManager.Uri, Is.EqualTo("http://localhost/"));
+            });
+        }
+
+        [Test]
+        public async Task ConfirmPasswordChanged_ReemitsAuthenticatedState()
+        {
+            MockMiddlewareClient mockMiddlewareClient = new();
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+            SetAuthenticatedUser(authStateProvider, TestApiConnection.TestUserDn);
+
+            AuthenticationState? publishedState = null;
+            TaskCompletionSource<bool> published = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            authStateProvider.AuthenticationStateChanged += async task =>
+            {
+                publishedState = await task;
+                published.TrySetResult(true);
+            };
+
+            authStateProvider.ConfirmPasswordChanged();
+            await published.Task;
+
+            Assert.That(publishedState?.User.FindFirstValue("x-hasura-uuid"), Is.EqualTo(TestApiConnection.TestUserDn));
+        }
+
+        private static void SetAuthenticatedUser(AuthStateProvider authStateProvider, string userDn)
+        {
+            ClaimsIdentity identity = new(
+            [
+                new Claim("x-hasura-uuid", userDn)
+            ], "Test");
+            ClaimsPrincipal principal = new(identity);
+            UserField.SetValue(authStateProvider, principal);
+        }
+
+        private static async Task InvokeApplyTokenPair(AuthStateProvider authStateProvider, TokenPair tokenPair, ApiConnection apiConnection, MockMiddlewareClient middlewareClient, UserConfig userConfig)
+        {
+            Task applyTask = (Task)(ApplyTokenPairMethod.Invoke(authStateProvider, new object[] { tokenPair, apiConnection, middlewareClient, userConfig })
+                ?? throw new InvalidOperationException("ApplyTokenPair returned null."));
+
+            await applyTask;
+        }
+
+        private static string GenerateJwtToken(RsaSecurityKey privateKey, string role, DateTime? expires = null, IEnumerable<Claim>? additionalClaims = null)
+        {
+            SigningCredentials credentials = new(privateKey, SecurityAlgorithms.RsaSha256);
+            List<Claim> claims = [new Claim("role", role)];
+
+            if (additionalClaims != null)
+            {
+                claims.AddRange(additionalClaims);
+            }
+
+            JwtSecurityToken token = new(
+                issuer: FWO.Basics.JwtConstants.Issuer,
+                audience: FWO.Basics.JwtConstants.Audience,
+                claims: claims,
+                expires: expires ?? DateTime.UtcNow.AddMinutes(10),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private static List<Claim> BuildJwtClaims(params string[] allowedRoles)
+        {
+            string[] roles = allowedRoles.Length > 0 ? allowedRoles : kDefaultAllowedRoles;
+            return
+            [
+                new Claim(JwtRegisteredClaimNames.UniqueName, "test-user"),
+                new Claim("x-hasura-user-id", TestApiConnection.TestUserDbId.ToString()),
+                new Claim("x-hasura-uuid", TestApiConnection.TestUserDn),
+                new Claim("x-hasura-tenant-id", TestApiConnection.TestTenantId.ToString()),
+                new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(roles)),
+                new Claim("x-hasura-editable-owners", "{ 3,7 }"),
+                new Claim("x-hasura-recertifiable-owners", "{ 9 }"),
+                new Claim("x-hasura-workflow-visibility-groups", "{ 2,4 }")
+            ];
+        }
+
+        private sealed class TestApiConnection : SimulatedApiConnection
+        {
+            internal const string TestUserDn = "cn=test-user,dc=example,dc=com";
+            internal const int TestUserDbId = 42;
+            internal const int TestTenantId = 7;
+            internal string SelectedExecutionMode { get; private set; } = "";
+            internal List<(string Query, object? Variables)> UserQueries { get; } = [];
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (typeof(QueryResponseType) == typeof(UiUser[]))
+                {
+                    UserQueries.Add((query, variables));
+                }
+                object response = typeof(QueryResponseType) switch
+                {
+                    var responseType when responseType == typeof(UiUser[]) => new[]
+                    {
+                        new UiUser
+                        {
+                            DbId = TestUserDbId,
+                            Dn = TestUserDn,
+                            Name = "test-user",
+                            Language = "English"
+                        }
+                    },
+                    var responseType when responseType == typeof(Tenant[]) => new[]
+                    {
+                        new Tenant
+                        {
+                            Id = TestTenantId,
+                            Name = "Test Tenant"
+                        }
+                    },
+                    _ => throw new NotImplementedException($"Unexpected query type {typeof(QueryResponseType).Name}. Query: {query}")
+                };
+
+                return Task.FromResult((QueryResponseType)response);
+            }
+
+            public override void SetAuthHeader(string jwt)
+            { }
+
+            public override void SetExecutionMode(ClaimsPrincipal user, string role)
+            {
+                SelectedExecutionMode = role;
+            }
+
+            public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
+            {
+                if (typeof(SubscriptionResponseType) == typeof(ConfigItem[]))
+                {
+                    subscriptionUpdateHandler((SubscriptionResponseType)(object)Array.Empty<ConfigItem>());
+                }
+
+                return new SimulatedApiSubscription<SubscriptionResponseType>(
+                    this,
+                    new GraphQLHttpClient(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient()),
+                    new GraphQLRequest(subscription, variables, operationName),
+                    exceptionHandler,
+                    subscriptionUpdateHandler);
+            }
+        }
+
+        private sealed class TestNavigationManager : NavigationManager
+        {
+            public TestNavigationManager()
+            {
+                Initialize("http://localhost/", "http://localhost/");
+            }
+
+            protected override void NavigateToCore(string uri, bool forceLoad)
+            {
+                Uri = ToAbsoluteUri(uri).ToString();
+            }
+
+            protected override void NavigateToCore(string uri, NavigationOptions options)
+            {
+                Uri = ToAbsoluteUri(uri).ToString();
+            }
+        }
+    }
+}

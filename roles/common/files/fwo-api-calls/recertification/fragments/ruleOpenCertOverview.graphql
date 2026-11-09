@@ -1,4 +1,4 @@
-fragment ruleOpenCertOverview on rule {
+fragment ruleOpenCertOverview on firewall_rule {
   rule_id
   rule_uid
   rule_action

@@ -75,8 +75,8 @@ namespace FWO.Config.Api
         {
             ProductVersion = "1.0";
             UiLanguages = [];
-            LangDict = [];
-            OverDict = [];
+            LangDict = new() { [GlobalConst.kEnglish] = [] };
+            OverDict = new() { [GlobalConst.kEnglish] = [] };
         }
 
         private GlobalConfig(ApiConnection apiConnection, string productVersion, Language[] uiLanguages, Dictionary<string, Dictionary<string, string>> langDict,
@@ -89,13 +89,80 @@ namespace FWO.Config.Api
             OverDict = overDict;
         }
 
+        /// <summary>
+        /// Returns a copy of this config whose config items are read freshly from the database, sharing the already
+        /// loaded language data. Used where a config loaded once without subscription, e.g. in the middleware, would
+        /// otherwise apply settings changed after its start. The caller disposes the copy.
+        /// </summary>
+        /// <param name="apiConnection">Connection to read the config items with; not disposed with the copy.</param>
+        public async Task<GlobalConfig> WithCurrentConfigItemsAsync(ApiConnection apiConnection)
+        {
+            ThrowIfDisposed();
+            GlobalConfig currentConfig = new(ProductVersion, UiLanguages, LangDict, OverDict);
+            try
+            {
+                await currentConfig.InitWithUserId(apiConnection, 0);
+            }
+            catch
+            {
+                currentConfig.Dispose();
+                throw;
+            }
+            return currentConfig;
+        }
+
+        /// <summary>
+        /// Creates a config sharing the given language data, whose config items are loaded afterwards.
+        /// </summary>
+        private GlobalConfig(string productVersion, Language[] uiLanguages, Dictionary<string, Dictionary<string, string>> langDict,
+            Dictionary<string, Dictionary<string, string>> overDict) : base()
+        {
+            ProductVersion = productVersion;
+            UiLanguages = uiLanguages;
+            LangDict = langDict;
+            OverDict = overDict;
+        }
+
         public override string GetText(string key)
         {
             ThrowIfDisposed();
-            if (LangDict.TryGetValue(DefaultLanguage, out Dictionary<string, string>? langDict) && langDict.TryGetValue(key, out string? value))
+            return GetTextInLanguage(key, DefaultLanguage);
+        }
+
+        public string GetNotificationLanguage()
+        {
+            ThrowIfDisposed();
+            return string.IsNullOrWhiteSpace(NotificationLanguage) ? DefaultLanguage : NotificationLanguage;
+        }
+
+        public string GetNotificationText(string key)
+        {
+            ThrowIfDisposed();
+            return GetTextInLanguage(key, GetNotificationLanguage());
+        }
+
+        public string GetTextInLanguage(string key, string? languageName)
+        {
+            ThrowIfDisposed();
+            string resolvedLanguage = string.IsNullOrWhiteSpace(languageName) ? DefaultLanguage : languageName;
+            if (LangDict.TryGetValue(resolvedLanguage, out Dictionary<string, string>? langDict) && langDict.TryGetValue(key, out string? value))
             {
                 return System.Web.HttpUtility.HtmlDecode(value);
             }
+
+            if (resolvedLanguage != DefaultLanguage && LangDict.TryGetValue(DefaultLanguage, out Dictionary<string, string>? defaultLangDict)
+                && defaultLangDict.TryGetValue(key, out string? defaultValue))
+            {
+                return System.Web.HttpUtility.HtmlDecode(defaultValue);
+            }
+
+            if (resolvedLanguage != GlobalConst.kEnglish && DefaultLanguage != GlobalConst.kEnglish
+                && LangDict.TryGetValue(GlobalConst.kEnglish, out Dictionary<string, string>? englishLangDict)
+                && englishLangDict.TryGetValue(key, out string? englishValue))
+            {
+                return System.Web.HttpUtility.HtmlDecode(englishValue);
+            }
+
             return GlobalConst.kUndefinedText;
         }
 

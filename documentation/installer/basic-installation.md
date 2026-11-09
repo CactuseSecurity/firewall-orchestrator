@@ -1,84 +1,34 @@
-# Installation instructions server
+# Basic server installation
 
-- use latest debian or ubuntu minimal server with ssh service running (need to install and configure sudo for debian)
-- recommended platforms are Ubuntu Server 22.04 LTS and Debian 12. See [system requirements](https://fwo.cactus.de/wp-content/uploads/2021/07/fwo-system-requirements-v5.pdf) for supported platforms
-- we will install various software components to your system. It is recommended to do so on a dedicated (test) system.
+Install Firewall Orchestrator on a dedicated Red Hat 9+, Rocky 9+, Debian 12+ or Ubuntu 22.04+ LTS server. The installer stops before changing anything on other operating systems or releases. Use an account that can run `sudo`. For proxy, upgrade, test, or other non-default setups, see the [advanced installation guide](install-advanced.md).
 
-1) prepare your target system (make sure your user has full sudo permissions)
+1. Install Git and clone the repository:
 
 ```console
-su -
-apt-get install git sudo ansible
-```
-if not already configured, add your current user to sudo group (**_make sure to activate this change by rebooting_**):
-
-```console
-usermod -a -G sudo <user>
-```
-
-To check if the user is in the sudoers file, you can check with following command:
-```console
-grep sudo /etc/group
-```
-
-**_Exit to normal user with:_**
-```console
-exit
-```
-
-Also make sure your packages are up to date before FWORCH installation using e.g.
-
-    sudo apt update && sudo apt upgrade
-
-possibly followed by a reboot.
-
-2) Getting Firewall Orchestrator
-
-with the following command:
-
-```console
+sudo apt update
+sudo apt install --yes git
 git clone https://github.com/CactuseSecurity/firewall-orchestrator.git
+cd firewall-orchestrator
 ```
 
-3) Ansible installation
-
-Make sure you have ansible version 2.13 or above installed on your system (check with "ansible --version"). 
-If this is not the case, install a newer ansible. One possible way is to run the following script:
-
-        cd firewall-orchestrator
-        source scripts/install-ansible-from-venv.sh
-
-Note that if your server is behind a proxy, you will have to set the proxy for pip as follows (to allow for ansible venv download):
-
-         pip config set global.proxy http://YOUR-PROXY-NAME:YOUR-PROXY-PORT
-
-4) Firewall Orchestrator installation
+2. Create and activate the installer Ansible environment:
 
 ```console
-cd firewall-orchestrator; ansible-playbook site.yml -K
+source scripts/install-ansible-from-venv.sh
 ```
 
-Enter sudo password when prompted "BECOME or SUDO password:"
+The script installs `python3-venv` if needed, installs the supported Ansible version and required collections, and leaves the virtual environment active. It preserves any existing pip configuration.
 
-That's it. Firewall-orchestrator is ready for usage. You will find the randomly generated login credentials printed out at the very end of the installation:
+3. Run the installer:
+
+```console
+./scripts/run-playbook-with-sudo.sh site.yml
 ```
-...
-TASK [display secrets for this installation] ***********************************
-ok: [install-srv] => {
-    "msg": [
-        "Your initial UI admin password is 'xxx'",
-        "Your api hasura admin secret is 'yyy'"
-    ]
-}
 
-PLAY RECAP *********************************************************************
-install-srv                 : ok=302  changed=171  unreachable=0    failed=0    skipped=127  rescued=0    ignored=0
+Enter your sudo password if prompted. At the end of the installation, record the generated UI administrator password and sign in at <https://localhost/> as `admin`.
+
+When finished, leave the installer virtual environment:
+
+```console
+deactivate
 ```
-Simply navigate to <https://localhost/> and login with user 'admin' and the UI admin password displayed by the install script (see above).
-
-The api hasura admin secret can be used to access the API at <https://localhost:9443/api/console>.
-
-
-If using the python venv method, you may now exit venv with:
-
-        deactivate

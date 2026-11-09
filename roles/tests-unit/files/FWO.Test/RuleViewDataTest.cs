@@ -16,6 +16,34 @@ namespace FWO.Test
     internal class RuleViewDataTest
     {
         [Test]
+        public void ExtractCustomFieldValue_NoMatchingKey_ReturnsDefault()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{'field-1':'abc'}"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"field-3\"]", out var errorMessage);
+
+            Assert.That(result, Is.Null);
+            Assert.That(errorMessage, Is.Null);
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_EmptyCustomFields_ReturnsDefault()
+        {
+            var rule = new Rule
+            {
+                CustomFields = ""
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\"]", out var errorMessage);
+
+            Assert.That(result, Is.Null);
+            Assert.That(errorMessage, Is.Null);
+        }
+
+        [Test]
         public void GetFromCustomField_KeyOne_ReturnsCorrectValue()
         {
             RuleViewData rvd = new RuleViewData();
@@ -24,7 +52,7 @@ namespace FWO.Test
                 CustomFields = "{'field-2':'Change123','field-3':'Ado456'}"
             };
 
-            string result = rvd.GetFromCustomField(rule, ["field-2", "Datum-Regelpruefung"]);
+            string result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out _) ?? "";
 
             Assert.That("Change123".Equals(result));
         }
@@ -35,10 +63,10 @@ namespace FWO.Test
             RuleViewData rvd = new RuleViewData();
             Rule rule = new Rule
             {
-                CustomFields = "{'Datum-Regelpruefung':'Change123','AdoIT':'Ado456'}"
+                CustomFields = "{'ChangeID':'Change123','AdoIT':'Ado456'}"
             };
 
-            string result = rvd.GetFromCustomField(rule, ["field-2", "Datum-Regelpruefung"]);
+            string result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"ChangeID\"]", out _) ?? "";
 
             Assert.That("Change123".Equals(result));
         }
@@ -52,19 +80,189 @@ namespace FWO.Test
                 CustomFields = "{'AdoIT': \"Infr-AdoIT:X\", 'Datum-Regelpruefung': 'dd.mm.yyyy'}"
             };
 
-            string resultDatumRegelpruefung = rvd.GetFromCustomField(rule, ["field-2", "Datum-Regelpruefung"]);
-            string resultAdoItId = rvd.GetFromCustomField(rule, ["field-3", "AdoIT"]);
+            string resultDatumRegelpruefung = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out _) ?? "";
+            string resultAdoItId = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-3\",\"AdoIT\"]", out _) ?? "";
 
             Assert.That("dd.mm.yyyy".Equals(resultDatumRegelpruefung));
             Assert.That("Infr-AdoIT:X".Equals(resultAdoItId));
         }
 
         [Test]
-        public void RuleViewData_LastModified_UsesImportStartTime()
+        public void RuleViewData_UsesConfiguredChangeIdCustomFieldKeys()
+        {
+            GlobalConfig globalConfig = new SimulatedGlobalConfig
+            {
+                CustomFieldChangeIdKey = "[\"ticket-id\",\"legacy-id\"]"
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
+            NatRuleDisplayHtml ruleDisplay = new(userConfig);
+            Rule rule = new()
+            {
+                CustomFields = "{'legacy-id':'CHG-42','field-2':'ignored'}"
+            };
+
+            RuleViewData viewData = new(rule, ruleDisplay, OutputLocation.report, true);
+
+            Assert.That(viewData.ChangeID, Is.EqualTo("CHG-42"));
+        }
+
+        [Test]
+        public void RuleViewData_UsesLegacyChangeIdKeyWithoutExposingOtherCustomFields()
+        {
+            GlobalConfig globalConfig = new SimulatedGlobalConfig
+            {
+                CustomFieldChangeIdKey = "Datum-Regelpruefung"
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
+            NatRuleDisplayHtml ruleDisplay = new(userConfig);
+            Rule rule = new()
+            {
+                CustomFields = "{'Datum-Regelpruefung':'CHG-7','secret-field':'internal-data'}"
+            };
+
+            RuleViewData viewData = new(rule, ruleDisplay, OutputLocation.report, true);
+
+            Assert.That(viewData.ChangeID, Is.EqualTo("CHG-7"));
+        }
+
+        [Test]
+        public void RuleViewData_ResolvesChangeIdRegardlessOfCustomFieldCasing()
+        {
+            GlobalConfig globalConfig = new SimulatedGlobalConfig
+            {
+                CustomFieldChangeIdKey = "[\"ChangeID\"]"
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
+            NatRuleDisplayHtml ruleDisplay = new(userConfig);
+            Rule rule = new()
+            {
+                CustomFields = "{'changeid':'CHG-77'}"
+            };
+
+            RuleViewData viewData = new(rule, ruleDisplay, OutputLocation.report, true);
+
+            Assert.That(viewData.ChangeID, Is.EqualTo("CHG-77"));
+        }
+
+        [Test]
+        public void RuleViewData_UsesDefaultChangeIdCustomFieldKeys()
+        {
+            UserConfig userConfig = new();
+            NatRuleDisplayHtml ruleDisplay = new(userConfig);
+            Rule rule = new()
+            {
+                CustomFields = "{'ChangeID':'CHG-99'}"
+            };
+
+            RuleViewData viewData = new(rule, ruleDisplay, OutputLocation.report, true);
+
+            Assert.That(viewData.ChangeID, Is.EqualTo("CHG-99"));
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_InvalidJson_ReturnsDefaultAndErrorMessage()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{ invalid json }"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\"]", out string? errorMessage);
+
+            Assert.That(result, Is.Null);
+            Assert.That(errorMessage, Is.Not.Null);
+            Assert.That(errorMessage, Does.Contain("Error"));
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_InvalidKeysJson_ReturnsDefaultWithoutExposingRuleData()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{'field-2':'abc','secret-field':'internal-data'}"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",]", out var errorMessage);
+
+            // an unreadable key setting is a config problem and must never surface rule data
+            Assert.That(result, Is.Null);
+            Assert.That(errorMessage, Is.Null);
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_InvalidValueType_SkipsKeyAndReturnsFallback()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{'field-2':'not-a-json-object'}"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<int>(rule, "[\"field-2\"]", out string? errorMessage);
+
+            Assert.That(result, Is.EqualTo(0));
+            Assert.That(errorMessage, Is.Not.Null);
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_InvalidPrimary_UsesFallback()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{'field-2':'invalid', 'Datum-Regelpruefung':'Change123'}"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out var errorMessage);
+
+            Assert.That(errorMessage, Is.Null);
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_NullPrimary_UsesFallback()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{'field-2':null, 'Datum-Regelpruefung':'Change123'}"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out var errorMessage);
+
+            Assert.That(errorMessage, Is.Null);
+            Assert.That("Change123".Equals(result));
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_EmptyPrimaryUsesFallback()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{'field-2':'', 'Datum-Regelpruefung':'Change123'}"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out _);
+
+            Assert.That(result, Is.EqualTo("Change123"));
+        }
+
+        [Test]
+        public void ExtractCustomFieldValue_NullPrimaryUsesFallback()
+        {
+            var rule = new Rule
+            {
+                CustomFields = "{'field-2':null, 'Datum-Regelpruefung':'Change123'}"
+            };
+
+            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out var errorMessage);
+            Assert.That(result, Is.EqualTo("Change123"));
+            Assert.That(errorMessage, Is.Null);
+        }
+
+
+        [Test]
+        public void RuleViewData_LastModified_UsesRemovedImportStartTime()
         {
             Rule rule = new Rule
             {
-                LastSeenImport = new ImportControl { StartTime = new DateTime(2023, 04, 05) }
+                RemovedImport = new ImportControl { StartTime = new DateTime(2023, 04, 05) }
             };
 
             UserConfig userConfig = new UserConfig();
@@ -75,7 +273,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void RuleViewData_LastModified_UsesCreatedWhenNoLastSeen()
+        public void RuleViewData_LastModified_UsesCreatedWhenNoRemovedImport()
         {
             Rule rule = new Rule
             {
@@ -90,6 +288,25 @@ namespace FWO.Test
             RuleViewData viewData = new RuleViewData(rule, ruleDisplay, OutputLocation.report, true);
 
             Assert.That(viewData.LastModified, Is.EqualTo("2023-01-10"));
+        }
+
+        [Test]
+        public void RuleViewData_LastModified_UsesRuleCreateWhenNoRemovedImport()
+        {
+            Rule rule = new Rule
+            {
+                CreatedImport = new ImportControl { StartTime = new DateTime(2023, 02, 15) },
+                Metadata = new RuleMetadata
+                {
+                    CreatedImport = new ImportControl { StartTime = new DateTime(2023, 01, 10) }
+                }
+            };
+
+            UserConfig userConfig = new UserConfig();
+            NatRuleDisplayHtml ruleDisplay = new NatRuleDisplayHtml(userConfig);
+            RuleViewData viewData = new RuleViewData(rule, ruleDisplay, OutputLocation.report, true);
+
+            Assert.That(viewData.LastModified, Is.EqualTo("2023-02-15"));
         }
 
         [Test]
@@ -146,6 +363,5 @@ namespace FWO.Test
 
             Assert.That(viewData.RuleTime, Is.EqualTo("2026-12-24 11:22:33"));
         }
-
     }
 }

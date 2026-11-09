@@ -3,7 +3,7 @@ from models.gateway import Gateway
 
 class GatewayController(Gateway):  # noqa: PLW1641
     def __init__(self, gw: Gateway):
-        self.Gateway = gw
+        super().__init__(**gw.model_dump())
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Gateway):

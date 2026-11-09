@@ -1,0 +1,9 @@
+mutation insertFlowNwObjects($objects: [flow_nwobject_insert_input!]!) {
+  insert_flow_nwobject(objects: $objects) {
+    affected_rows
+    returning {
+      nwobj_id
+      nwobj_hash
+    }
+  }
+}

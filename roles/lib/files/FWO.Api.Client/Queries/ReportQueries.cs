@@ -22,7 +22,6 @@ namespace FWO.Api.Client.Queries
         public static readonly string getReportsById;
         public static readonly string getRelevantImportIdsAtTime;
         public static readonly string getRelevantImportIdsInTimeRange;
-        public static readonly string statisticsReportCurrent;
 
         public static readonly string subscribeGeneratedReportsChanges;
         public static readonly string getGeneratedReport;
@@ -31,7 +30,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string addGeneratedReport;
 
         public static readonly string getUsageDataCount;
-        public static readonly string getImportsToNotify;
+        public static readonly string getImportsToNotifyForRuleChanges;
         public static readonly string getImportsToNotifyForAnyChanges;
         public static readonly string setImportsNotified;
 
@@ -54,8 +53,6 @@ namespace FWO.Api.Client.Queries
                 getReportTemplates = GetQueryText("report/getReportTemplates.graphql");
                 getRelevantImportIdsAtTime = GetQueryText("report/getRelevantImportIdsAtTime.graphql");
                 getRelevantImportIdsInTimeRange = GetQueryText("report/getRelevantImportIdsInTimeRange.graphql");
-                statisticsReportCurrent = GetQueryText("report/statisticsCurrent.graphql");
-                statisticsReportCurrent = GetQueryText("report/statisticsCurrentOverall.graphql");
                 updateReportTemplate = GetQueryText("report/updateReportTemplate.graphql");
                 deleteReportTemplate = GetQueryText("report/deleteReportTemplate.graphql");
                 subscribeReportScheduleChanges = GetQueryText("report/subscribeReportScheduleChanges.graphql");
@@ -66,7 +63,7 @@ namespace FWO.Api.Client.Queries
                 addGeneratedReport = GetQueryText("report/addGeneratedReport.graphql");
                 getUsageDataCount = GetQueryText("report/getUsageDataCount.graphql");
                 // note: currently we only check for rule changes, but this should be extended to other changes in the future
-                getImportsToNotify = GetQueryText("report/getImportsToNotifyForRuleChanges.graphql");
+                getImportsToNotifyForRuleChanges = GetQueryText("report/getImportsToNotifyForRuleChanges.graphql");
                 getImportsToNotifyForAnyChanges = GetQueryText("report/getImportsToNotifyForAnyChanges.graphql");
                 setImportsNotified = GetQueryText("report/setImportsNotified.graphql");
                 getManagementForNormalizedConfig = GetQueryText("report/getManagementForNormalizedConfig.graphql");

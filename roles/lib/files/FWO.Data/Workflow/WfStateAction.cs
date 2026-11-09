@@ -1,5 +1,8 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using FWO.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace FWO.Data.Workflow
 {
@@ -15,8 +18,13 @@ namespace FWO.Data.Workflow
         UpdateConnectionOwner = 21,
         UpdateConnectionRelease = 22,
         DisplayConnection = 23,
-        UpdateConnectionReject = 24
+        UpdateConnectionReject = 24,
+        UpdateModelling = 25,
         // CreateReport = 30
+
+        CreateFlow = 31,
+        BundleTasks = 32,
+        CreateImplTasks = 33
     }
 
     public enum StateActionEvents
@@ -30,8 +38,20 @@ namespace FWO.Data.Workflow
         OnAssignment = 15
     }
 
+    public enum ToBeCalled
+    {
+        PolicyCheck = 1
+    }
+
+    public enum BundleTaskType
+    {
+        TwoOutOfThree = 1
+    }
+
     public class WfStateAction
     {
+        public const int AutomaticStateId = -1;
+
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
@@ -59,9 +79,34 @@ namespace FWO.Data.Workflow
         [JsonProperty("external_parameters"), JsonPropertyName("external_parameters")]
         public string ExternalParams { get; set; } = "";
 
+        private List<WfStateActionStateHelper> _stateActions = [];
+
+        [JsonProperty("state_actions"), JsonPropertyName("state_actions")]
+        public List<WfStateActionStateHelper> StateActions
+        {
+            get => _stateActions;
+            set => _stateActions = value ?? [];
+        }
+
+        public int StateCount => StateActions.Count;
+
 
         public WfStateAction()
         { }
+
+        public WfStateAction(WfStateAction action)
+        {
+            Id = action.Id;
+            Name = action.Name;
+            ActionType = action.ActionType;
+            Scope = action.Scope;
+            TaskType = action.TaskType;
+            Phase = action.Phase;
+            Event = action.Event;
+            ButtonText = action.ButtonText;
+            ExternalParams = action.ExternalParams;
+            StateActions = [.. action.StateActions.Select(stateAction => new WfStateActionStateHelper(stateAction))];
+        }
 
         public static bool IsReadonlyType(string actionTypeString)
         {
@@ -76,11 +121,191 @@ namespace FWO.Data.Workflow
             }
             return false;
         }
+
+        public static bool TryParseAutoPromoteParams(string externalParams, out int? toStateId, out ConditionalAutoPromoteParams? conditionalParams)
+        {
+            toStateId = null;
+            conditionalParams = null;
+
+            if (string.IsNullOrWhiteSpace(externalParams))
+            {
+                return true;
+            }
+
+            if (int.TryParse(externalParams, out int parsedStateId))
+            {
+                toStateId = parsedStateId == AutomaticStateId ? null : parsedStateId;
+                return true;
+            }
+
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(externalParams);
+                if (document.RootElement.TryGetProperty("to_state_id", out JsonElement simpleState)
+                    && simpleState.TryGetInt32(out int parsedSimpleStateId))
+                {
+                    if (parsedSimpleStateId == AutomaticStateId)
+                    {
+                        return true;
+                    }
+                    if (parsedSimpleStateId > 0)
+                    {
+                        toStateId = parsedSimpleStateId;
+                        return true;
+                    }
+                }
+
+                conditionalParams = System.Text.Json.JsonSerializer.Deserialize<ConditionalAutoPromoteParams>(externalParams);
+                return conditionalParams != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Determines whether serialized action parameters request a confirmation message in the UI.
+        /// </summary>
+        /// <param name="externalParams">The serialized action parameters to inspect.</param>
+        /// <returns><see langword="true"/> when <c>confirm_ui_message</c> is explicitly enabled; otherwise, <see langword="false"/>.</returns>
+        public static bool HasConfirmUiMessage(string externalParams)
+        {
+            if (string.IsNullOrWhiteSpace(externalParams) || int.TryParse(externalParams, out _))
+            {
+                return false;
+            }
+
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(externalParams);
+                return document.RootElement.TryGetProperty("confirm_ui_message", out JsonElement value)
+                    && value.ValueKind == JsonValueKind.True;
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return false;
+            }
+        }
+    }
+
+    public class ConditionalAutoPromoteParams
+    {
+        [JsonProperty("confirm_ui_message"), JsonPropertyName("confirm_ui_message")]
+        public bool ConfirmUiMessage { get; set; }
+
+        [Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
+        [System.Text.Json.Serialization.JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonProperty("to_be_called"), JsonPropertyName("to_be_called")]
+        public ToBeCalled ToBeCalled { get; set; } = ToBeCalled.PolicyCheck;
+
+        [JsonProperty("policy_ids"), JsonPropertyName("policy_ids")]
+        public List<int> PolicyIds { get; set; } = [];
+
+        [JsonProperty("check_result_label"), JsonPropertyName("check_result_label")]
+        public string CheckResultLabel { get; set; } = "";
+
+        [JsonProperty("if_compliant_state"), JsonPropertyName("if_compliant_state")]
+        public int IfCompliantState { get; set; }
+
+        [JsonProperty("if_not_compliant_state"), JsonPropertyName("if_not_compliant_state")]
+        public int IfNotCompliantState { get; set; }
+    }
+
+    public class SimpleAutoPromoteParams
+    {
+        [JsonProperty("to_state_id"), JsonPropertyName("to_state_id")]
+        public int ToStateId { get; set; }
+
+        [JsonProperty("confirm_ui_message"), JsonPropertyName("confirm_ui_message")]
+        public bool ConfirmUiMessage { get; set; }
+    }
+
+    public class ActionResultStateParams
+    {
+        [JsonProperty("success_state"), JsonPropertyName("success_state")]
+        public int? SuccessState { get; set; }
+
+        [JsonProperty("error_state"), JsonPropertyName("error_state")]
+        public int? ErrorState { get; set; }
+
+        [JsonProperty("confirm_ui_message"), JsonPropertyName("confirm_ui_message")]
+        public bool ConfirmUiMessage { get; set; }
+    }
+
+    public class BundleTasksActionParams
+    {
+        [JsonPropertyName("bundle_type")]
+        public BundleTaskType BundleType { get; set; } = BundleTaskType.TwoOutOfThree;
+
+        [JsonPropertyName("clean_zones")]
+        public bool CleanZones { get; set; }
+
+        [JsonPropertyName("policy_id")]
+        public int? PolicyId { get; set; }
+
+        [JsonPropertyName("confirm_ui_message")]
+        public bool ConfirmUiMessage { get; set; }
+
+        private static readonly System.Text.Json.JsonSerializerOptions SerializerOptions = new()
+        {
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        public static BundleTasksActionParams FromExternalParams(string externalParams)
+        {
+            if (string.IsNullOrWhiteSpace(externalParams))
+            {
+                return new();
+            }
+
+            try
+            {
+                return System.Text.Json.JsonSerializer.Deserialize<BundleTasksActionParams>(externalParams, SerializerOptions) ?? new();
+            }
+            catch (System.Text.Json.JsonException exception)
+            {
+                Log.WriteWarning("Bundle Tasks", $"Configured bundle task parameters are invalid JSON. Falling back to defaults. {exception.Message}");
+                return new();
+            }
+        }
+
+        public string ToExternalParams()
+        {
+            return System.Text.Json.JsonSerializer.Serialize(this, SerializerOptions);
+        }
     }
 
     public class WfStateActionDataHelper
     {
+        [JsonProperty("sort_order"), JsonPropertyName("sort_order")]
+        public int SortOrder { get; set; }
+
         [JsonProperty("action"), JsonPropertyName("action")]
         public WfStateAction Action { get; set; } = new WfStateAction();
+    }
+
+    public class WfStateActionStateHelper
+    {
+        private WfState _state = new();
+
+        [JsonProperty("sort_order"), JsonPropertyName("sort_order")]
+        public int SortOrder { get; set; }
+
+        [JsonProperty("state"), JsonPropertyName("state")]
+        public WfState State
+        {
+            get => _state;
+            set => _state = value ?? new WfState();
+        }
+
+        public WfStateActionStateHelper()
+        { }
+
+        public WfStateActionStateHelper(WfStateActionStateHelper stateActionStateHelper)
+        {
+            SortOrder = stateActionStateHelper.SortOrder;
+            State = new WfState(stateActionStateHelper.State);
+        }
     }
 }

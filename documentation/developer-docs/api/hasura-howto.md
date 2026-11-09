@@ -18,8 +18,10 @@
   - hdb_catalog.hdb_permission contains the roles' permissions
   - hdb_catalog.view.hdb_role contains roles
 
-## debugging hasura using docker ps
-    docker logs c37388157052
+## debugging hasura
+    sudo podman ps --all
+    sudo podman logs fworch-api
+    sudo journalctl -u fworch-hasura-api
 
 ## Sending graphql queries
 

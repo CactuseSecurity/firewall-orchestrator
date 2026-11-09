@@ -10,6 +10,7 @@
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
+@inject UiSessionTracker SessionTracker
 
 <div class="input-group">
     <h3>@(userConfig.GetText("groups"))</h3>
@@ -111,14 +112,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@Roles.Admin">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="() => Save()">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized>
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
@@ -209,7 +210,7 @@
             group.Roles = new List<string>();
             foreach (var role in roles)
             {
-                if (role.Users != null && role.Users.Exists(x => x.Dn == group.Dn))
+                if (role.Users != null && role.Users.Exists(x => DistName.DnEquals(x.Dn, group.Dn)))
                 {
                     group.Roles.Add(role.Name);
                 }
@@ -288,7 +289,7 @@
                     else
                     {
                         string newDn = middlewareServerResponse.Data;
-                        int changedGroup = groups.FindIndex(x => x.Dn == actGroup.Dn);
+                        int changedGroup = groups.FindIndex(x => DistName.DnEquals(x.Dn, actGroup.Dn));
                         groups[changedGroup].Dn = newDn;
                         groups[changedGroup].Name = newGroupName;
                         EditGroupMode = false;
@@ -379,6 +380,7 @@
             {
                 groups.Remove(actGroup);
                 DeleteGroupMode = false;
+                SessionTracker.RequestSessionCheck();
 
                 Log.WriteAudit(
                     Title: $"Groups Settings",
@@ -465,6 +467,7 @@
                     actGroup.Users.Remove(selectedUserToDelete);
                     groups[groups.FindIndex(x => x.Name == actGroup.Name)] = actGroup;
                     RemoveUserMode = false;
+                    SessionTracker.RequestSessionCheck();
 
                     Log.WriteAudit(
                         Title: $"Groups Settings",

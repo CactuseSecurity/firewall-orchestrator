@@ -5,9 +5,6 @@ namespace FWO.Data
 {
     public class NormalizedRule
     {
-        [JsonProperty("rule_num"), JsonPropertyName("rule_num")]
-        public int RuleNum { get; set; }
-
         [JsonProperty("rule_num_numeric"), JsonPropertyName("rule_num_numeric")]
         public double RuleNumNumeric { get; set; }
 
@@ -89,6 +86,15 @@ namespace FWO.Data
         [JsonProperty("rule_head_text"), JsonPropertyName("rule_head_text")]
         public string? RuleHeadText { get; set; }
 
+        [JsonProperty("xlate_rule_uid"), JsonPropertyName("xlate_rule_uid")]
+        public string? XlateRule { get; set; }
+
+        [JsonProperty("nat_rule"), JsonPropertyName("nat_rule")]
+        public bool NatRule { get; set; }
+
+        [JsonProperty("access_rule"), JsonPropertyName("access_rule")]
+        public bool AccessRule { get; set; } = true;
+
         /// <summary>
         /// Creates a NormalizedRule from a Rule.
         /// </summary>
@@ -100,8 +106,7 @@ namespace FWO.Data
 
             return new NormalizedRule
             {
-                RuleNum = rule.RuleOrderNumber,
-                RuleNumNumeric = rule.OrderNumber,
+                RuleNumNumeric = rule.RuleNumNumeric,
                 RuleDisabled = rule.Disabled,
                 RuleSrcNeg = rule.SourceNegated,
                 RuleSrc = rule.Source,
@@ -123,11 +128,14 @@ namespace FWO.Data
                 RuleType = rule.NatRule ? "nat" : "access",
                 RuleLastChangeAdmin = rule.LastChangeAdmin?.Name,
                 ParentRuleUid = rule.ParentRule?.Uid,
-                LastHit = lastHit.HasValue ? NormalizedConfig.FormatDatetimeZ(lastHit.Value) : null,
+                LastHit = lastHit.HasValue ? NormalizedConfig.FormatDatetimeZ(lastHit.Value, convertToUtc: true) : null,
                 RuleComment = rule.Comment,
-                RuleSrcZone = rule.RuleFromZones?.Length > 0 ? string.Join("|", rule.RuleFromZones.Select(z => z.Content.Name).Order()) : null,
-                RuleDstZone = rule.RuleToZones?.Length > 0 ? string.Join("|", rule.RuleToZones.Select(z => z.Content.Name).Order()) : null,
-                RuleHeadText = rule.SectionHeader
+                RuleSrcZone = rule.SourceZone,
+                RuleDstZone = rule.DestinationZone,
+                RuleHeadText = rule.SectionHeader,
+                XlateRule = rule.TranslatedRule?.Uid,
+                NatRule = rule.NatRule,
+                AccessRule = rule.AccessRule
             };
         }
     }

@@ -51,7 +51,7 @@ namespace FWO.Services.Workflow
             ApprovalParams approvalParams = new();
             if (extParams != "")
             {
-                approvalParams = System.Text.Json.JsonSerializer.Deserialize<ApprovalParams>(extParams) ?? throw new JsonException("Extparams could not be parsed.");
+                approvalParams = JsonSerializer.Deserialize<ApprovalParams>(extParams) ?? throw new JsonException("Extparams could not be parsed.");
             }
 
             DateTime? deadline = null;
@@ -68,7 +68,7 @@ namespace FWO.Services.Workflow
             WfApproval approval = new()
             {
                 TaskId = ActReqTask.Id,
-                StateId = extParams != "" ? approvalParams.StateId : ActStateMatrix.LowestEndState,
+                StateId = extParams != "" ? approvalParams.StateId : ActStateMatrix.LowestInputState,
                 ApproverGroup = extParams != "" ? approvalParams.ApproverGroup : "", // todo: get from owner ???,
                 TenantId = ActTicket.TenantId, // ??
                 Deadline = deadline,
@@ -77,7 +77,7 @@ namespace FWO.Services.Workflow
             if (!approval.InitialApproval && dbAcc != null)
             {
                 // todo: checks if new approval allowed (only one open per group?, ...)
-                approval.Id = await dbAcc.AddApprovalToDb(approval);
+                approval.Id = await dbAcc.AddApprovalToDb(approval, ActTicket.Id, ActTicket.Requester);
                 DisplayMessageInUi(null, userConfig.GetText("add_approval"), userConfig.GetText("U8002"), false);
             }
             ActReqTask.Approvals.Add(approval);
@@ -91,7 +91,7 @@ namespace FWO.Services.Workflow
                 if (ActApproval.StateId >= ActStateMatrix.LowestEndState)
                 {
                     ActApproval.ApprovalDate = DateTime.Now;
-                    ActApproval.ApproverDn = userConfig.User.Dn;
+                    ActApproval.ApproverDn = CurrentUserDn();
                 }
                 if (approval.OptComment() != null && approval.OptComment() != "")
                 {
@@ -154,21 +154,21 @@ namespace FWO.Services.Workflow
             await UpdateActApproval();
             if (ActionHandler != null)
             {
-                await ActionHandler.DoOnAssignmentActions(statefulObject, ActApproval.AssignedGroup);
+                await ActionHandler.DoOnAssignmentActions(statefulObject, WfObjectScopes.Approval, ActApproval.AssignedGroup);
             }
             DisplayAssignApprovalMode = false;
         }
 
-        private async Task UpdateActApproval()
+        private async Task UpdateActApproval(bool triggerActions = true)
         {
             if (dbAcc != null)
             {
-                await dbAcc.UpdateApprovalInDb(ActApproval);
+                await dbAcc.UpdateApprovalInDb(ActApproval, ActTicket.Id, ActTicket.Requester, triggerActions);
             }
             ActReqTask.Approvals[ActReqTask.Approvals.FindIndex(x => x.Id == ActApproval.Id)] = ActApproval;
         }
 
-        private async Task UpdateActReqTaskStateFromApprovals()
+        private async Task UpdateActReqTaskStateFromApprovals(bool triggerActions = true)
         {
             if (ActReqTask.Approvals.Count > 0)
             {
@@ -177,17 +177,29 @@ namespace FWO.Services.Workflow
                 {
                     approvalStates.Add(approval.StateId);
                 }
-                ActReqTask.StateId = ActStateMatrix.getDerivedStateFromSubStates(approvalStates);
+                int derivedState = ActStateMatrix.getDerivedStateFromSubStates(approvalStates);
+                // An approval action must not downgrade a request task that
+                // has already entered a later workflow phase.
+                if (derivedState > ActReqTask.StateId)
+                {
+                    ActReqTask.StateId = derivedState;
+                }
             }
-            await UpdateActReqTaskState();
+            await UpdateActReqTaskState(triggerActions);
 
             // in the case impl tasks are already existing
+            // Read the stored ticket once instead of once per implementation task: UpdateImplTaskStateInDb
+            // loads the full ticket graph when it is not given one, which matters for request tasks
+            // spread over many devices.
+            WfTicket? storedTicket = dbAcc != null && ActReqTask.ImplementationTasks.Count > 0
+                ? await dbAcc.LoadPreviousTicket(ActReqTask.TicketId)
+                : null;
             foreach (var implTask in ActReqTask.ImplementationTasks)
             {
                 implTask.StateId = ActReqTask.StateId;
                 if (dbAcc != null)
                 {
-                    await dbAcc.UpdateImplTaskInDb(implTask, ActReqTask);
+                    await dbAcc.UpdateImplTaskStateInDb(implTask, triggerActions, storedTicket);
                 }
             }
         }

@@ -9,6 +9,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string addUiLogEntry;
         public static readonly string getUiLogEntrys;
         public static readonly string getAllUiLogEntrys;
+        public static readonly string getNotificationLogEntrys;
         public static readonly string getImportLogEntrys;
         public static readonly string addAlert;
         public static readonly string getOpenAlerts;
@@ -17,6 +18,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string acknowledgeAlert;
         public static readonly string acknowledgeAllOpenAlerts;
         public static readonly string subscribeAlertChanges;
+        public static readonly string subscribeOpenAlertsByCode;
         public static readonly string addAutodiscoveryLogEntry;
         public static readonly string getAutodiscoveryLogEntrys;
         public static readonly string getDailyCheckLogEntrys;
@@ -24,6 +26,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string getDataImportLogEntrys;
         public static readonly string getImportStatus;
         public static readonly string getOwnerTickets;
+        public static readonly string getLatestOwnerTickets;
+        public static readonly string deleteOwnerTickets;
 
 
         static MonitorQueries()
@@ -36,6 +40,7 @@ namespace FWO.Api.Client.Queries
                 addUiLogEntry = GetQueryText("monitor/addUiLogEntry.graphql");
                 getUiLogEntrys = GetQueryText("monitor/getUiLogEntrys.graphql");
                 getAllUiLogEntrys = GetQueryText("monitor/getAllUiLogEntrys.graphql");
+                getNotificationLogEntrys = GetQueryText("monitor/getNotificationLogEntrys.graphql");
 
                 getImportLogEntrys = GetQueryText("monitor/getImportLogEntrys.graphql");
 
@@ -46,6 +51,7 @@ namespace FWO.Api.Client.Queries
                 acknowledgeAlert = GetQueryText("monitor/acknowledgeAlert.graphql");
                 acknowledgeAllOpenAlerts = GetQueryText("monitor/acknowledgeAllOpenAlerts.graphql");
                 subscribeAlertChanges = GetQueryText("monitor/subscribeAlertChanges.graphql");
+                subscribeOpenAlertsByCode = GetQueryText("monitor/subscribeOpenAlertsByCode.graphql");
 
                 getImportStatus = GetQueryText("monitor/getImportStatus.graphql");
 
@@ -56,6 +62,8 @@ namespace FWO.Api.Client.Queries
                 getDataImportLogEntrys = GetQueryText("monitor/getDataImportLogEntrys.graphql");
 
                 getOwnerTickets = RequestQueries.ticketOverviewFragment + GetQueryText("monitor/getOwnerTickets.graphql");
+                getLatestOwnerTickets = RequestQueries.ticketOverviewFragment + GetQueryText("monitor/getLatestOwnerTickets.graphql");
+                deleteOwnerTickets = GetQueryText("monitor/deleteOwnerTickets.graphql");
             }
             catch (Exception exception)
             {

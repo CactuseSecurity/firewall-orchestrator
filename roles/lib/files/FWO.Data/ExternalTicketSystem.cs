@@ -3,27 +3,80 @@ using FWO.Data.Workflow;
 using Newtonsoft.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace FWO.Data
 {
-    public enum ExternalTicketSystemType
+    public class ExternalTicketSystemTypeDefinition
     {
-        Generic,
-        TufinSecureChange,
-        AlgoSec,
-        ServiceNow
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public int Id { get; set; }
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+        [JsonProperty("version"), JsonPropertyName("version")]
+        public string Version { get; set; } = "";
+        [JsonProperty("is_built_in"), JsonPropertyName("is_built_in")]
+        public bool IsBuiltIn { get; set; }
     }
 
-    public class ExternalTicketSystem
+    public static class BuiltInExternalTicketSystemTypes
     {
+        public const int GenericId = 1;
+        public const int TufinSecureChangeId = 2;
+        public const int AlgoSecId = 3;
+        public const int ServiceNowId = 4;
+
+        public static readonly IReadOnlyList<ExternalTicketSystemTypeDefinition> AllBuiltInTicketTypes =
+        [
+            new() { Id = GenericId, Name = "Generic", IsBuiltIn = true },
+            new() { Id = TufinSecureChangeId, Name = "Tufin SecureChange", IsBuiltIn = true },
+            new() { Id = AlgoSecId, Name = "AlgoSec", IsBuiltIn = true },
+            new() { Id = ServiceNowId, Name = "ServiceNow", IsBuiltIn = true }
+        ];
+
+        public static ExternalTicketSystemTypeDefinition GetById(int typeId)
+        {
+            return AllBuiltInTicketTypes.FirstOrDefault(type => type.Id == typeId) ?? new ExternalTicketSystemTypeDefinition
+            {
+                Id = typeId,
+                Name = typeId.ToString(),
+                IsBuiltIn = false
+            };
+        }
+    }
+
+
+
+    public partial class ExternalTicketSystem
+    {
+        private const string kRedactedAuthorization = "****";
+
         [JsonProperty(nameof(Id)), JsonPropertyName(nameof(Id))]
         public int Id { get; set; } = 0;
 
-        [JsonProperty(nameof(ExternalTicketSystemType)), JsonPropertyName(nameof(ExternalTicketSystemType))]
-        public ExternalTicketSystemType Type { get; set; } = ExternalTicketSystemType.Generic;
+        [JsonProperty(nameof(TypeId)), JsonPropertyName(nameof(TypeId))]
+        public int TypeId { get; set; } = BuiltInExternalTicketSystemTypes.GenericId;
 
-        [JsonProperty(nameof(Authorization)), JsonPropertyName(nameof(Authorization))]
-        public string Authorization { get; set; } = "Basic xyz"; // replace xyz with b64encode(username:password)
+        /// <summary>
+        /// Credential used to log into the ticket system (basic authentication)
+        /// </summary>
+        [JsonProperty(nameof(CredentialId)), JsonPropertyName(nameof(CredentialId))]
+        public int? CredentialId { get; set; }
+
+        /// <summary>
+        /// Legacy: Authorization header string, encrypted with the main key, of an external request created before the
+        /// ticket systems referenced credentials (kept by the upgrade only where no credential could be assigned).
+        /// Never set in the ticket system configuration or in new requests.
+        /// </summary>
+        [JsonProperty(nameof(Authorization), NullValueHandling = NullValueHandling.Ignore), JsonPropertyName(nameof(Authorization))]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Authorization { get; set; }
+
+        /// <summary>
+        /// Authorization header string in plain text, built right before calls to the ticket system. Never serialized.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public string AuthorizationHeader { get; set; } = "";
 
         [JsonProperty(nameof(Name)), JsonPropertyName(nameof(Name))]
         public string Name { get; set; } = "";
@@ -53,38 +106,97 @@ namespace FWO.Data
         [JsonProperty(nameof(CyclesBetweenAttempts)), JsonPropertyName(nameof(CyclesBetweenAttempts))]
         public int CyclesBetweenAttempts { get; set; } = 5;
 
+        /// <summary>
+        /// Lists the configured external ticket systems that log in with the given credential.
+        /// </summary>
+        /// <param name="extTicketSystems">The external ticket systems as stored in the config (JSON list).</param>
+        /// <param name="credentialId">The id of the credential.</param>
+        /// <returns>The external ticket systems referencing the credential.</returns>
+        public static List<ExternalTicketSystem> UsingCredential(string? extTicketSystems, int credentialId)
+        {
+            return [.. ParseConfigured(extTicketSystems).Where(system => system.CredentialId == credentialId)];
+        }
+
+        /// <summary>
+        /// Finds a configured external ticket system by its id.
+        /// </summary>
+        /// <param name="extTicketSystems">The external ticket systems as stored in the config (JSON list).</param>
+        /// <param name="id">The id of the ticket system.</param>
+        /// <returns>The configured ticket system, null if there is none with this id.</returns>
+        public static ExternalTicketSystem? FindConfigured(string? extTicketSystems, int id)
+        {
+            return ParseConfigured(extTicketSystems).FirstOrDefault(system => system.Id == id);
+        }
+
+        /// <summary>
+        /// Reads the configured external ticket systems.
+        /// </summary>
+        /// <param name="extTicketSystems">The external ticket systems as stored in the config (JSON list).</param>
+        /// <returns>The ticket systems, empty if none are configured.</returns>
+        public static List<ExternalTicketSystem> ParseConfigured(string? extTicketSystems)
+        {
+            return string.IsNullOrWhiteSpace(extTicketSystems) ? []
+                : System.Text.Json.JsonSerializer.Deserialize<List<ExternalTicketSystem>>(extTicketSystems) ?? [];
+        }
+
+        /// <summary>
+        /// Hides the (encrypted) authorization of a ticket system stored with an external request, for display.
+        /// </summary>
+        /// <param name="ticketSystem">The ticket system as stored with the external request (JSON).</param>
+        /// <returns>The ticket system with the value of the authorization replaced by "****".</returns>
+        public static string RedactAuthorization(string ticketSystem)
+        {
+            return AuthorizationValueRegex().Replace(ticketSystem, $"$1\"{kRedactedAuthorization}\"");
+        }
+
+        /// <summary>
+        /// Matches the non-empty string value of the "Authorization" key in a serialized ticket system.
+        /// </summary>
+        [GeneratedRegex(@"(""Authorization""\s*:\s*)""(?:[^""\\]|\\.)+""")]
+        private static partial Regex AuthorizationValueRegex();
+
         public int MaxBundledTasks()
         {
-            return Type switch
+            return TypeId switch
             {
-                ExternalTicketSystemType.TufinSecureChange => SCConstants.SCMaxBundledTasks,
+                BuiltInExternalTicketSystemTypes.TufinSecureChangeId => SCConstants.SCMaxBundledTasks,
                 _ => 1
             };
         }
 
         public bool BundleGateways()
         {
-            return Type switch
+            return TypeId switch
             {
-                ExternalTicketSystemType.TufinSecureChange => SCConstants.SCBundleGateways,
+                BuiltInExternalTicketSystemTypes.TufinSecureChangeId => SCConstants.SCBundleGateways,
                 _ => false
             };
         }
 
         public List<string> TaskTypesToBundleGateways()
         {
-            return Type switch
+            return TypeId switch
             {
-                ExternalTicketSystemType.TufinSecureChange => [WfTaskType.rule_modify.ToString(), WfTaskType.rule_delete.ToString()],
+                BuiltInExternalTicketSystemTypes.TufinSecureChangeId => [WfTaskType.rule_modify.ToString(), WfTaskType.rule_delete.ToString()],
                 _ => []
             };
+        }
+
+        public bool IsTufinSecureChange()
+        {
+            return TypeId == BuiltInExternalTicketSystemTypes.TufinSecureChangeId;
+        }
+
+        public bool IsCheckPoint()
+        {
+            return DeviceType.IsCheckPointManagerTypeId(TypeId);
         }
 
         public bool Sanitize()
         {
             bool shortened = false;
             Name = Name.SanitizeMand(ref shortened);
-            Url = Url.SanitizeMand(ref shortened);
+            Url = IsCheckPoint() ? Url.SanitizeOpt(ref shortened) ?? "" : Url.SanitizeMand(ref shortened);
             TicketTemplate = TicketTemplate.SanitizeJsonMand(ref shortened);
             TasksTemplate = TasksTemplate.SanitizeJsonMand(ref shortened);
             foreach (var template in Templates)

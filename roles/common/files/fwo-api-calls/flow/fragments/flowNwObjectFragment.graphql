@@ -1,0 +1,10 @@
+fragment flowNwObjectFragment on flow_nwobject {
+  nwobj_id
+  name
+  ip_start
+  ip_end
+  nwobj_hash
+  state
+  removed_date
+  show_in_request_module
+}

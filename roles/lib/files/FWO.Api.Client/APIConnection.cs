@@ -7,30 +7,103 @@ namespace FWO.Api.Client
         private bool disposed = false;
 
         public event EventHandler<string>? OnAuthHeaderChanged;
+        public event EventHandler<string>? OnExecutionModeChanged;
 
         public Basics.Interfaces.ILogger Logger = new Logger();
 
         protected List<ApiSubscription> subscriptions = [];
+        protected readonly object subscriptionsLock = new();
 
         protected void InvokeOnAuthHeaderChanged(object? sender, string newAuthHeader)
         {
             OnAuthHeaderChanged?.Invoke(sender, newAuthHeader);
         }
 
+        protected void InvokeOnExecutionModeChanged(object? sender, string executionMode)
+        {
+            OnExecutionModeChanged?.Invoke(sender, executionMode);
+        }
+
         public abstract void SetAuthHeader(string jwt);
+
+        public abstract Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct);
 
         public abstract void SetRole(string role);
 
+        public virtual void SetExecutionMode(System.Security.Claims.ClaimsPrincipal user, string role) { }
+
+        public virtual string GetExecutionMode()
+        {
+            return "";
+        }
+
+        public virtual string GetActRole()
+        {
+            return "";
+        }
+
+        public virtual void SetAmbientRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList) { }
+
         public abstract void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList);
 
-        public abstract void SetProperRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList);
-
         public abstract void SwitchBack();
+
+        public async Task RunWithRole(string role, Func<Task> action)
+        {
+            SetRole(role);
+            try
+            {
+                await action();
+            }
+            finally
+            {
+                SwitchBack();
+            }
+        }
+
+        public async Task<TResult> RunWithRole<TResult>(string role, Func<Task<TResult>> action)
+        {
+            SetRole(role);
+            try
+            {
+                return await action();
+            }
+            finally
+            {
+                SwitchBack();
+            }
+        }
+
+        public async Task RunWithBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList, Func<Task> action)
+        {
+            SetBestRole(user, targetRoleList);
+            try
+            {
+                await action();
+            }
+            finally
+            {
+                SwitchBack();
+            }
+        }
+
+        public async Task<TResult> RunWithBestRole<TResult>(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList, Func<Task<TResult>> action)
+        {
+            SetBestRole(user, targetRoleList);
+            try
+            {
+                return await action();
+            }
+            finally
+            {
+                SwitchBack();
+            }
+        }
 
         /// <summary>
         /// Sends an API call and returns the deserialized result or throws on errors.
         /// </summary>
-        public abstract Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null);
+        public abstract Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null);
 
         /// <summary>
         /// Sends an API call and returns a non-throwing response wrapper containing data or errors.

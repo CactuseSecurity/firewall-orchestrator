@@ -1,0 +1,12 @@
+query getFlowRequestTimeObjectCatalog {
+  timeobjects: flow_timeobject(order_by: [{ name: asc }, { timeobj_id: asc }]) {
+    timeobj_id
+    name
+    start_time
+    end_time
+    timeobj_hash
+    state
+    removed_date
+    show_in_request_module
+  }
+}

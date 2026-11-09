@@ -11,7 +11,7 @@
 @if(AppRoleHandler != null && Display)
 {
     <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AppRoleHandler.AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
-           Size="PopupSize.Auto" Show="@Display" OnClose="Close" FooterCssClass="d-flex justify-content-between">
+           Size="PopupSize.Auto" Show="@Display" OnClose="Close" FooterCssClass="@(AppRoleHandler.AddMode ? "d-flex justify-content-end" : "d-flex justify-content-between")">
         <Body>
             @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
             {
@@ -97,8 +97,7 @@
                             {
                                 <OrderByDropdown CssClass="bg-secondary" @ref="orderByDropdown" TCollectionItem="ModellingAppServer" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" CustomSort="true" />
                                 <div class="dropzone-scrollable dropzone bg-secondary @GetDynamicHeightScrollableAppserverClass()"
-                                     ondragover="event.preventDefault();"
-                                     ondragstart="event.dataTransfer.setData('', event.target.id);"
+                                     @ondragover:preventDefault="true"
                                      @ondrop="HandleServerDrop">
                                     <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false" ElementsRemoved="OnAppServerRemovedFromEditList">
                                         <Display>
@@ -130,14 +129,14 @@
                 {
                     @if(AppRoleHandler.IsOwner)
                     {
-                        <AuthorizeView Roles="@Roles.Modeller">
+                        <ExecutionModeAuthorizeView Roles="@Roles.Modeller">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                             </NotAuthorized> 
-                        </AuthorizeView>
+                        </ExecutionModeAuthorizeView>
                     }
                     else
                     {
@@ -154,9 +153,6 @@
 }
 @code
 {
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
@@ -200,9 +196,7 @@
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [Roles.Modeller, Roles.Admin, Roles.Auditor]);
-            areas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(FWO.Api.Client.Queries.ModellingQueries.getAreas);
-            apiConnection.SwitchBack();
+            areas = await apiConnection.SendQueryAsync<List<ModellingNetworkArea>>(ModellingQueries.getAreas);
             // todo: select relevant areas for owner?
         }
         catch(Exception exception)

@@ -1,36 +1,65 @@
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Data.Modelling;
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Logging;
 using System.Collections.Generic;
 
 namespace FWO.Services.Workflow
 {
-    public class WfDbAccess(Action<Exception?, string, string, bool> DisplayMessageInUi, UserConfig UserConfig, ApiConnection ApiConnection, ActionHandler ActionHandler, bool AsAdmin)
+    public partial class WfDbAccess(Action<Exception?, string, string, bool> DisplayMessageInUi, UserConfig UserConfig, ApiConnection ApiConnection, ActionHandler ActionHandler, bool AsAdmin, WorkflowPhases WorkflowPhase, bool IsUiContext = true)
     {
-        public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false)
+        /// <summary>
+        /// Database id of the user whose change history entries this instance writes, null for automated changes.
+        /// </summary>
+        /// <remarks>
+        /// Only used outside the UI context. There the api connection runs with the middleware-server role,
+        /// which has no changer_id insert preset, so the id has to be supplied by the entry point that knows
+        /// the authenticated caller. It is a property rather than a constructor parameter to keep the
+        /// constructor at the parameter limit of the coding guidelines.
+        /// </remarks>
+        public int? ChangerId { get; set; }
+
+        public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false,
+            Func<WfTicket, bool>? ticketFilter = null)
         {
             List<WfTicket> tickets = [];
             try
             {
-                // todo: filter own approvals, plannings...
                 int fromState = allStates ? 0 : stateMatrix.LowestInputState;
                 int toState = allStates ? 999 : stateMatrix.LowestEndState;
+                string ticketQuery;
+                if (fullTickets)
+                {
+                    if (stateMatrix.VisibilityMode == PhaseVisibilityMode.TicketState)
+                    {
+                        ticketQuery = RequestQueries.getFullTicketsByTicketState;
+                    }
+                    else
+                    {
+                        ticketQuery = RequestQueries.getFullTickets;
+                    }
+                }
+                else if (stateMatrix.VisibilityMode == PhaseVisibilityMode.TicketState)
+                {
+                    ticketQuery = RequestQueries.getTicketsByTicketState;
+                }
+                else
+                {
+                    ticketQuery = RequestQueries.getTickets;
+                }
 
-                var Variables = new { fromState, toState };
-                tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(fullTickets ? RequestQueries.getFullTickets : RequestQueries.getTickets, Variables);
+                tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(
+                    ticketQuery,
+                    new { fromState, toState });
                 if (UserConfig.ReqOwnerBased && !AsAdmin)
                 {
                     tickets = await FilterWrongOwnersOut(tickets, ownerIds);
                 }
-                if (fullTickets)
-                {
-                    foreach (var ticket in tickets)
-                    {
-                        ticket.UpdateCidrsInTaskElements();
-                    }
-                }
+                tickets = ApplyTicketFilter(tickets, ticketFilter);
+                FinalizeTickets(tickets, fullTickets);
             }
             catch (Exception exception)
             {
@@ -39,7 +68,7 @@ namespace FWO.Services.Workflow
             return tickets;
         }
 
-        public async Task<WfTicket?> FetchTicket(long ticketId, List<int>? ownerIds = null)
+        public async Task<WfTicket?> FetchTicket(long ticketId, List<int>? ownerIds = null, Func<WfTicket, bool>? ticketFilter = null)
         {
             WfTicket? ticket = null;
             try
@@ -48,6 +77,10 @@ namespace FWO.Services.Workflow
                 if (UserConfig.ReqOwnerBased && !AsAdmin)
                 {
                     ticket = (await FilterWrongOwnersOut([ticket], ownerIds)).FirstOrDefault();
+                }
+                if (ticket != null && ticketFilter != null && !ticketFilter(ticket))
+                {
+                    ticket = null;
                 }
             }
             catch (Exception exception)
@@ -64,7 +97,8 @@ namespace FWO.Services.Workflow
                 return [];
             }
             List<long> registeredTickets = (await ApiConnection.SendQueryAsync<List<TicketId>>(RequestQueries.getOwnerTicketIds, new { ownerIds })).ConvertAll(t => t.Id);
-            foreach (var ticket in ticketsIn.Where(ti => !ti.IsEditableForOwner(registeredTickets, ownerIds, UserConfig.UserId)))
+            bool requestingOwnerMayEdit = WorkflowPhase == WorkflowPhases.request;
+            foreach (var ticket in ticketsIn.Where(ti => !ti.IsEditableForOwner(registeredTickets, ownerIds, UserConfig.UserId, requestingOwnerMayEdit)))
             {
                 ticket.Editable = false;
             }
@@ -79,6 +113,7 @@ namespace FWO.Services.Workflow
                 var Variables = new { id };
                 ticket = await ApiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, Variables);
                 ticket.UpdateCidrsInTaskElements();
+                ticket.ResetStateChangeTracking();
             }
             catch (Exception exception)
             {
@@ -87,19 +122,32 @@ namespace FWO.Services.Workflow
             return ticket;
         }
 
-        public async Task<List<WfTicket>> GetTicketsByParameters(string taskType, int startState, int endState, DateTime cutOffDate)
+        /// <summary>
+        /// Loads tickets filtered by task type, state range and creation window.
+        /// </summary>
+        /// <param name="taskType">Workflow task type to query.</param>
+        /// <param name="startState">Lower state bound.</param>
+        /// <param name="endState">Upper state bound.</param>
+        /// <param name="createdFrom">Inclusive lower creation timestamp bound.</param>
+        /// <param name="createdUntil">Inclusive upper creation timestamp bound.</param>
+        /// <param name="ticketFilter">Optional in-memory filter applied after loading.</param>
+        /// <returns>Matching tickets.</returns>
+        public async Task<List<WfTicket>> GetTicketsByParameters(string taskType, int startState, int endState, DateTime? createdFrom, DateTime? createdUntil,
+            Func<WfTicket, bool>? ticketFilter = null)
         {
             List<WfTicket> tickets = [];
             try
             {
                 var Variables = new
                 {
-                    cutOffDate = cutOffDate,
+                    createdFrom = createdFrom,
+                    createdUntil = createdUntil,
                     taskType = taskType,
                     fromState = startState,
                     toState = endState
                 };
                 tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getTicketsByParameters, Variables);
+                tickets = ApplyTicketFilter(tickets, ticketFilter);
             }
             catch (Exception exception)
             {
@@ -108,296 +156,38 @@ namespace FWO.Services.Workflow
             return tickets;
         }
 
-
-        // Tickets
-
-        public async Task<WfTicket> AddTicketToDb(WfTicket ticket)
+        private static List<WfTicket> ApplyTicketFilter(List<WfTicket> tickets, Func<WfTicket, bool>? ticketFilter)
         {
-            try
+            if (ticketFilter == null)
             {
-                ticket.UpdateIpStringsFromCidrInTaskElements();
-                var Variables = BuildTicketVariables(ticket);
-                Variables["requesterId"] = ticket.Requester?.DbId;
-                Variables["requestTasks"] = new WfTicketWriter(ticket);
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newTicket, Variables)).ReturnIds;
-                if (returnIds == null)
+                return tickets;
+            }
+
+            List<WfTicket> filteredTickets = [];
+            foreach (WfTicket ticket in tickets)
+            {
+                if (ticketFilter(ticket))
                 {
-                    DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8001"), true);
-                }
-                else
-                {
-                    ticket = await GetTicket(returnIds[0].NewIdLong);
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, ticket.Requester?.Dn);
+                    filteredTickets.Add(ticket);
                 }
             }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
-            }
-            return ticket;
+            return filteredTickets;
         }
 
-        public async Task<WfTicket> UpdateTicketInDb(WfTicket ticket)
+        private static void FinalizeTickets(List<WfTicket> tickets, bool fullTickets)
         {
-            try
+            foreach (WfTicket ticket in tickets)
             {
-                var Variables = BuildTicketVariables(ticket);
-                Variables["id"] = ticket.Id;
-                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicket, Variables)).UpdatedIdLong;
-                if (udId != ticket.Id)
+                if (fullTickets)
                 {
-                    DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8002"), true);
+                    ticket.UpdateCidrsInTaskElements();
                 }
-                else
-                {
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, ticket.Requester?.Dn);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
-            }
-            return ticket;
-        }
-
-        private static Dictionary<string, object?> BuildTicketVariables(WfTicket ticket)
-        {
-            return new Dictionary<string, object?>
-            {
-                ["title"] = ticket.Title,
-                ["state"] = ticket.StateId,
-                ["reason"] = ticket.Reason,
-                ["deadline"] = ticket.Deadline,
-                ["priority"] = ticket.Priority
-            };
-        }
-
-
-        // Request Tasks
-
-        public async Task<long> AddReqTaskToDb(WfReqTask reqtask)
-        {
-            long returnId = 0;
-            try
-            {
-                var Variables = BuildReqTaskVariables(reqtask);
-                Variables["ticketId"] = reqtask.TicketId;
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newRequestTask, Variables)).ReturnIds;
-                if (returnIds == null)
-                {
-                    DisplayMessageInUi(null, UserConfig.GetText("add_task"), UserConfig.GetText("E8003"), true);
-                }
-                else
-                {
-                    returnId = returnIds[0].NewIdLong;
-                    reqtask.Id = returnId;
-                    foreach (var element in reqtask.Elements)
-                    {
-                        element.TaskId = returnId;
-                        element.Id = await AddReqElementToDb(element);
-                    }
-                    foreach (var approval in reqtask.Approvals)
-                    {
-                        approval.TaskId = returnId;
-                        await AddApprovalToDb(approval);
-                    }
-                    foreach (var owner in reqtask.Owners)
-                    {
-                        await AssignOwnerInDb(returnId, owner.Owner.Id);
-                    }
-                    await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("add_task"), "", true);
-            }
-            return returnId;
-        }
-
-        public async Task UpdateReqTaskInDb(WfReqTask reqtask)
-        {
-            try
-            {
-                var Variables = BuildReqTaskVariables(reqtask);
-                Variables["id"] = reqtask.Id;
-                Variables["devices"] = reqtask.SelectedDevices;
-                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestTask, Variables)).UpdatedIdLong;
-                if (udId != reqtask.Id)
-                {
-                    DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
-                }
-                else
-                {
-                    await UpdateReqElementsInDb(reqtask);
-                    await UpdateOwnersInDb(reqtask);
-                    await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
+                ticket.ResetStateChangeTracking();
             }
         }
-
-        public async Task UpdateReqTaskAdditionalInfo(WfReqTask reqtask)
-        {
-            try
-            {
-                var Variables = new
-                {
-                    id = reqtask.Id,
-                    additionalInfo = reqtask.AdditionalInfo
-                };
-                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestTaskAdditionalInfo, Variables)).UpdatedIdLong;
-                if (udId != reqtask.Id)
-                {
-                    DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
-            }
-        }
-
-        public async Task DeleteReqTaskFromDb(WfReqTask reqtask)
-        {
-            try
-            {
-                long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteRequestTask, new { id = reqtask.Id })).DeletedIdLong;
-                if (delId != reqtask.Id)
-                {
-                    DisplayMessageInUi(null, UserConfig.GetText("delete_task"), UserConfig.GetText("E8005"), true);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("delete_task"), "", true);
-            }
-        }
-
-        private static Dictionary<string, object?> BuildReqTaskVariables(WfReqTask reqtask)
-        {
-            return new Dictionary<string, object?>
-            {
-                ["title"] = reqtask.Title,
-                ["taskNumber"] = reqtask.TaskNumber,
-                ["state"] = reqtask.StateId,
-                ["taskType"] = reqtask.TaskType,
-                ["requestAction"] = reqtask.RequestAction,
-                ["ruleAction"] = reqtask.RuleAction,
-                ["tracking"] = reqtask.Tracking,
-                ["validFrom"] = reqtask.TargetBeginDate,
-                ["validTo"] = reqtask.TargetEndDate,
-                ["reason"] = reqtask.Reason,
-                ["additionalInfo"] = reqtask.AdditionalInfo,
-                ["freeText"] = reqtask.FreeText,
-                ["managementId"] = reqtask.ManagementId
-            };
-        }
-
-
-        // Request Elements
-
-        private async Task UpdateReqElementsInDb(WfReqTask reqtask)
-        {
-            try
-            {
-                foreach (var elem in reqtask.RemovedElements)
-                {
-                    await DeleteReqElementFromDb(elem.Id);
-                }
-                reqtask.RemovedElements = [];
-
-                foreach (var element in reqtask.Elements)
-                {
-                    if (element.Id == 0)
-                    {
-                        element.Id = await AddReqElementToDb(element);
-                    }
-                    else
-                    {
-                        await UpdateReqElementInDb(element);
-                    }
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("save_element"), "", true);
-            }
-        }
-
-        private async Task<long> AddReqElementToDb(WfReqElement element)
-        {
-            long returnId = 0;
-            try
-            {
-                var Variables = BuildReqElementVariables(element);
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newRequestElement, Variables)).ReturnIds;
-                if (returnIds == null)
-                {
-                    DisplayMessageInUi(null, UserConfig.GetText("add_element"), UserConfig.GetText("E8006"), true);
-                }
-                else
-                {
-                    returnId = returnIds[0].NewIdLong;
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("add_element"), "", true);
-            }
-            return returnId;
-        }
-
-        private async Task UpdateReqElementInDb(WfReqElement element)
-        {
-            try
-            {
-                var Variables = BuildReqElementVariables(element);
-                Variables["id"] = element.Id;
-                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateRequestElement, Variables)).UpdatedIdLong;
-                if (udId != element.Id)
-                {
-                    DisplayMessageInUi(null, UserConfig.GetText("save_element"), UserConfig.GetText("E8007"), true);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("save_element"), "", true);
-            }
-        }
-
-        private async Task DeleteReqElementFromDb(long elementId)
-        {
-            try
-            {
-                long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteRequestElement, new { id = elementId })).DeletedIdLong;
-                if (delId != elementId)
-                {
-                    DisplayMessageInUi(null, UserConfig.GetText("delete_element"), UserConfig.GetText("E8008"), true);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("delete_element"), "", true);
-            }
-        }
-
-        private static Dictionary<string, object?> BuildReqElementVariables(WfReqElement element)
-        {
-            var variables = BuildElementBaseVariables(element, element.Cidr, element.CidrEnd);
-            variables["requestAction"] = element.RequestAction;
-            variables["taskId"] = element.TaskId;
-            variables["deviceId"] = element.DeviceId;
-            return variables;
-        }
-
-
         // Approvals
 
-        public async Task<long> AddApprovalToDb(WfApproval approval)
+        public async Task<long> AddApprovalToDb(WfApproval approval, long ticketId, UiUser? requester)
         {
             long returnId = 0;
             try
@@ -418,8 +208,12 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    int newStateId = approval.StateId;
                     returnId = returnIds[0].NewIdLong;
                     approval.Id = returnId;
+                    await LogWorkflowChange(new(ticketId, ModellingTypes.ChangeType.Insert, ChangeHistoryObjectType.Approval, approval.Id),
+                        "Added workflow approval", null, ApprovalHistorySnapshot(approval), requester, false);
+                    approval.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
                 }
             }
@@ -430,8 +224,12 @@ namespace FWO.Services.Workflow
             return returnId;
         }
 
-        public async Task UpdateApprovalInDb(WfApproval approval)
+        public async Task UpdateApprovalInDb(WfApproval approval, long ticketId, UiUser? requester, bool triggerActions = true, WfTicket? previousTicket = null)
         {
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(ticketId);
+            WfApproval? previousApproval = storedTicket?.Tasks
+                .SelectMany(task => task.Approvals)
+                .FirstOrDefault(item => item.Id == approval.Id);
             try
             {
                 var Variables = new
@@ -449,7 +247,15 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
+                    if (previousApproval != null)
+                    {
+                        await LogWorkflowChange(new(ticketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Approval, approval.Id),
+                            "Updated workflow approval", ApprovalHistorySnapshot(previousApproval), ApprovalHistorySnapshot(approval), requester, false);
+                    }
+                    if (triggerActions)
+                    {
+                        await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
+                    }
                 }
             }
             catch (Exception exception)
@@ -459,211 +265,16 @@ namespace FWO.Services.Workflow
         }
 
 
-        // implementation tasks
-
-        public async Task<long> AddImplTaskToDb(WfImplTask impltask)
-        {
-            long returnId = 0;
-            try
-            {
-                var Variables = BuildImplTaskVariables(impltask);
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newImplementationTask, Variables)).ReturnIds;
-                if (returnIds == null)
-                {
-                    DisplayMessageInUi(null, UserConfig.GetText("add_task"), UserConfig.GetText("E8003"), true);
-                }
-                else
-                {
-                    returnId = returnIds[0].NewIdLong;
-                    impltask.Id = returnId;
-                    foreach (var element in impltask.ImplElements)
-                    {
-                        element.ImplTaskId = returnId;
-                        element.Id = await AddImplElementToDb(element);
-                    }
-                    foreach (var comment in impltask.Comments)
-                    {
-                        comment.Comment.Id = await AddCommentToDb(comment.Comment);
-                        if (comment.Comment.Id != 0)
-                        {
-                            await AssignCommentToImplTaskInDb(returnId, comment.Comment.Id);
-                        }
-                    }
-                    await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("add_task"), "", true);
-            }
-            return returnId;
-        }
-
-        public async Task UpdateImplTaskInDb(WfImplTask impltask, WfReqTask reqtask)
-        {
-            try
-            {
-                var Variables = BuildImplTaskVariables(impltask);
-                Variables["id"] = impltask.Id;
-                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateImplementationTask, Variables)).UpdatedIdLong;
-                if (udId != impltask.Id)
-                {
-                    DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
-                }
-                else
-                {
-                    await UpdateImplElementsInDb(impltask);
-                    await UpdateOwnersInDb(reqtask);
-                    await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("save_task"), "", true);
-            }
-        }
-
-        public async Task DeleteImplTaskFromDb(WfImplTask impltask)
-        {
-            try
-            {
-                long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteImplementationTask, new { id = impltask.Id })).DeletedIdLong;
-                if (delId != impltask.Id)
-                {
-                    DisplayMessageInUi(null, UserConfig.GetText("delete_task"), UserConfig.GetText("E8005"), true);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("delete_task"), "", true);
-            }
-        }
-
-        private static Dictionary<string, object?> BuildImplTaskVariables(WfImplTask impltask)
-        {
-            return new Dictionary<string, object?>
-            {
-                ["title"] = impltask.Title,
-                ["reqTaskId"] = impltask.ReqTaskId,
-                ["implIaskNumber"] = impltask.TaskNumber,
-                ["state"] = impltask.StateId,
-                ["taskType"] = impltask.TaskType,
-                ["device"] = impltask.DeviceId,
-                ["implAction"] = impltask.ImplAction,
-                ["ruleAction"] = impltask.RuleAction,
-                ["tracking"] = impltask.Tracking,
-                ["handler"] = impltask.CurrentHandler?.DbId,
-                ["validFrom"] = impltask.TargetBeginDate,
-                ["validTo"] = impltask.TargetEndDate,
-                ["freeText"] = impltask.FreeText
-            };
-        }
-
-
-        // implementation elements
-
-        private async Task UpdateImplElementsInDb(WfImplTask impltask)
-        {
-            try
-            {
-                foreach (var elem in impltask.RemovedElements)
-                {
-                    await DeleteImplElementFromDb(elem.Id);
-                }
-                impltask.RemovedElements = [];
-
-                foreach (var element in impltask.ImplElements)
-                {
-                    if (element.Id == 0)
-                    {
-                        element.Id = await AddImplElementToDb(element);
-                    }
-                    else
-                    {
-                        await UpdateImplElementInDb(element);
-                    }
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("save_element"), "", true);
-            }
-        }
-
-        private async Task<long> AddImplElementToDb(WfImplElement element)
-        {
-            long returnId = 0;
-            try
-            {
-                var Variables = BuildImplElementVariables(element);
-                ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newImplementationElement, Variables)).ReturnIds;
-                if (returnIds == null)
-                {
-                    DisplayMessageInUi(null, UserConfig.GetText("add_element"), UserConfig.GetText("E8006"), true);
-                }
-                else
-                {
-                    returnId = returnIds[0].NewIdLong;
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("add_element"), "", true);
-            }
-            return returnId;
-        }
-
-        private async Task UpdateImplElementInDb(WfImplElement element)
-        {
-            try
-            {
-                var Variables = BuildImplElementVariables(element);
-                Variables["id"] = element.Id;
-                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateImplementationElement, Variables)).UpdatedIdLong;
-                if (udId != element.Id)
-                {
-                    DisplayMessageInUi(null, UserConfig.GetText("save_element"), UserConfig.GetText("E8007"), true);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("save_element"), "", true);
-            }
-        }
-
-        private async Task DeleteImplElementFromDb(long elementId)
-        {
-            try
-            {
-                long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteImplementationElement, new { id = elementId })).DeletedIdLong;
-                if (delId != elementId)
-                {
-                    DisplayMessageInUi(null, UserConfig.GetText("delete_element"), UserConfig.GetText("E8008"), true);
-                }
-            }
-            catch (Exception exception)
-            {
-                DisplayMessageInUi(exception, UserConfig.GetText("delete_element"), "", true);
-            }
-        }
-
-        private static Dictionary<string, object?> BuildImplElementVariables(WfImplElement element)
-        {
-            var variables = BuildElementBaseVariables(element, element.Cidr, element.CidrEnd);
-            variables["implementationAction"] = element.ImplAction;
-            variables["implTaskId"] = element.ImplTaskId;
-            return variables;
-        }
-
         private static Dictionary<string, object?> BuildElementBaseVariables(WfElementBase element, Cidr? cidr, Cidr? cidrEnd)
         {
+            bool hasServiceReference = HasId(element.ServiceId) || HasId(element.FlowServiceObjectId) || HasId(element.FlowServiceGroupId);
             return new Dictionary<string, object?>
             {
                 ["ip"] = cidr != null && cidr.Valid ? cidr.CidrString : null,
                 ["ipEnd"] = cidrEnd != null && cidrEnd.Valid ? cidrEnd.CidrString : null,
-                ["port"] = element.Port,
-                ["portEnd"] = element.PortEnd,
-                ["proto"] = element.ProtoId,
+                ["port"] = hasServiceReference && !HasValidPort(element.Port) ? null : element.Port,
+                ["portEnd"] = hasServiceReference && !HasValidPort(element.PortEnd) ? null : element.PortEnd,
+                ["proto"] = hasServiceReference && !HasId(element.ProtoId) ? null : element.ProtoId,
                 ["networkObjId"] = element.NetworkId,
                 ["serviceId"] = element.ServiceId,
                 ["field"] = element.Field,
@@ -671,8 +282,26 @@ namespace FWO.Services.Workflow
                 ["originalNatId"] = element.OriginalNatId,
                 ["ruleUid"] = element.RuleUid,
                 ["groupName"] = element.GroupName,
-                ["name"] = element.Name
+                ["name"] = element.Name,
+                ["startTime"] = element.StartTime?.ToUniversalTime(),
+                ["endTime"] = element.EndTime?.ToUniversalTime(),
+                ["timeObjId"] = element.TimeObjId
             };
+        }
+
+        private static bool HasId(long? id)
+        {
+            return id.HasValue && id.Value != 0;
+        }
+
+        private static bool HasId(int? id)
+        {
+            return id.HasValue && id.Value != 0;
+        }
+
+        private static bool HasValidPort(int? port)
+        {
+            return port.HasValue && port.Value > 0;
         }
 
 
@@ -811,8 +440,10 @@ namespace FWO.Services.Workflow
 
         // State changes
 
-        public async Task UpdateTicketStateInDb(WfTicket ticket)
+        public async Task UpdateTicketStateInDb(WfTicket ticket, bool triggerActions = true, WfTicket? previousTicket = null,
+            NotificationPlaceholderData? placeholderData = null)
         {
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(ticket.Id);
             try
             {
                 var Variables = new
@@ -823,14 +454,25 @@ namespace FWO.Services.Workflow
                     deadline = ticket.Deadline,
                     priority = ticket.Priority
                 };
+                Log.WriteDebug("Workflow State",
+                    $"Persisting ticket {ticket.Id} with state {ticket.StateId}; stored state is {storedTicket?.StateId.ToString() ?? "unknown"}.");
                 long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicketState, Variables)).UpdatedIdLong;
+                Log.WriteDebug("Workflow State", $"Ticket {ticket.Id} state mutation returned id {udId}.");
                 if (udId != ticket.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8002"), true);
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, ticket.Requester?.Dn);
+                    if (storedTicket != null)
+                    {
+                        await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
+                            "Updated workflow ticket state", TicketStateSnapshot(storedTicket), TicketStateSnapshot(ticket), storedTicket.Requester, false);
+                    }
+                    if (triggerActions)
+                    {
+                        await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket), placeholderData);
+                    }
                 }
             }
             catch (Exception exception)
@@ -839,8 +481,11 @@ namespace FWO.Services.Workflow
             }
         }
 
-        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask)
+        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask, bool triggerActions = true, WfTicket? previousTicket = null,
+            NotificationPlaceholderData? placeholderData = null)
         {
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(reqtask.TicketId);
+            WfReqTask? previousTask = storedTicket?.Tasks.FirstOrDefault(task => task.Id == reqtask.Id);
             try
             {
                 var Variables = new
@@ -860,7 +505,16 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
+                    if (storedTicket != null && previousTask != null)
+                    {
+                        await LogWorkflowChange(new(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.RequestTask, reqtask.Id),
+                            "Updated workflow request task state", TaskStateSnapshot(previousTask), TaskStateSnapshot(reqtask), storedTicket.Requester, false);
+                    }
+                    if (triggerActions)
+                    {
+                        await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId,
+                            placeholderData: placeholderData);
+                    }
                 }
             }
             catch (Exception exception)
@@ -869,8 +523,18 @@ namespace FWO.Services.Workflow
             }
         }
 
-        public async Task UpdateImplTaskStateInDb(WfImplTask impltask)
+        private static string? GetRequesterDn(WfTicket ticket)
         {
+            return !string.IsNullOrWhiteSpace(ticket.Requester?.Dn) ? ticket.Requester.Dn : ticket.RequesterDn;
+        }
+
+        public async Task UpdateImplTaskStateInDb(WfImplTask impltask, bool triggerActions = true, WfTicket? previousTicket = null,
+            NotificationPlaceholderData? placeholderData = null)
+        {
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(impltask.TicketId);
+            WfImplTask? previousTask = storedTicket?.Tasks
+                .SelectMany(task => task.ImplementationTasks)
+                .FirstOrDefault(task => task.Id == impltask.Id);
             try
             {
                 var Variables = new
@@ -890,7 +554,15 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
+                    if (storedTicket != null && previousTask != null)
+                    {
+                        await LogWorkflowChange(new(impltask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.ImplementationTask, impltask.Id),
+                            "Updated workflow implementation task state", TaskStateSnapshot(previousTask), TaskStateSnapshot(impltask), storedTicket.Requester, false);
+                    }
+                    if (triggerActions)
+                    {
+                        await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask, placeholderData: placeholderData);
+                    }
                 }
             }
             catch (Exception exception)

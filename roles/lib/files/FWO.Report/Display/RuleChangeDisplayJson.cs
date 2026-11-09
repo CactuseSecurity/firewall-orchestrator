@@ -3,30 +3,39 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Report;
 using FWO.Report.Filter;
+using Newtonsoft.Json;
+using System.Globalization;
 using System.Text;
 
 namespace FWO.Ui.Display
 {
     public class RuleChangeDisplayJson : RuleDisplayJson
     {
+        private const string ChangeTimeFormat = "dd.MM.yyyy HH:mm:ss";
+
         public RuleChangeDisplayJson(UserConfig userConfig) : base(userConfig)
         { }
 
         public string DisplayChangeTime(RuleChange ruleChange)
         {
-            return DisplayJsonString("change time", ruleChange.ChangeImport.Time.ToString());
+            return DisplayJsonString("change time", FormatChangeTime(ruleChange.ChangeImport.Time));
         }
         public string DisplayChangeTime(ObjectChange objectChange)
         {
-            return DisplayJsonString("change time", objectChange.ChangeImport.Time.ToString());
+            return DisplayJsonString("change time", FormatChangeTime(objectChange.ChangeImport.Time));
         }
         public string DisplayChangeTime(ServiceChange serviceChange)
         {
-            return DisplayJsonString("change time", serviceChange.ChangeImport.Time.ToString());
+            return DisplayJsonString("change time", FormatChangeTime(serviceChange.ChangeImport.Time));
         }
         public string DisplayChangeTime(UserChange userChange)
         {
-            return DisplayJsonString("change time", userChange.ChangeImport.Time.ToString());
+            return DisplayJsonString("change time", FormatChangeTime(userChange.ChangeImport.Time));
+        }
+
+        private static string FormatChangeTime(DateTime changeTime)
+        {
+            return changeTime.ToString(ChangeTimeFormat, CultureInfo.InvariantCulture);
         }
 
         public string DisplayChangeAction(RuleChange ruleChange)
@@ -117,7 +126,7 @@ namespace FWO.Ui.Display
             {
                 case 'D': return DisplayRuleSourceZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray());
                 case 'I': return DisplayRuleSourceZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray());
-                case 'C': return DisplayJsonArray("source zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
+                case 'C': return DisplayJsonArray("source zones", DisplayArrayDiff(ListFirewallZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListFirewallZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
                 default: return "";
             }
         }
@@ -155,7 +164,7 @@ namespace FWO.Ui.Display
             {
                 case 'D': return DisplayRuleDestinationZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray());
                 case 'I': return DisplayRuleDestinationZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray());
-                case 'C': return DisplayJsonArray("destination zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray())));
+                case 'C': return DisplayJsonArray("destination zones", DisplayArrayDiff(ListFirewallZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()), ListFirewallZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray())));
                 default: return "";
             }
         }
@@ -371,9 +380,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return DisplayServiceProtocol(serviceChange.OldService.Protocol!.Name);
-                case 'I': return DisplayServiceProtocol(serviceChange.NewService.Protocol!.Name);
-                case 'C': return DisplayServiceProtocol(DisplayDiff(serviceChange.OldService.Protocol!.Name, serviceChange.NewService.Protocol!.Name));
+                case 'D': return DisplayServiceProtocol(serviceChange.OldService.Protocol?.Name ?? "");
+                case 'I': return DisplayServiceProtocol(serviceChange.NewService.Protocol?.Name ?? "");
+                case 'C': return DisplayServiceProtocol(DisplayDiff(serviceChange.OldService.Protocol?.Name ?? "", serviceChange.NewService.Protocol?.Name ?? ""));
                 default: return "";
             }
         }
@@ -409,21 +418,37 @@ namespace FWO.Ui.Display
             }
         }
 
-        private string? DisplayDiff(string? oldElement, string? newElement)
+        /// <summary>
+        /// Renders the difference between two element texts.
+        /// </summary>
+        /// <param name="oldElement">Text before the change, may be null for columns that are nullable in the database.</param>
+        /// <param name="newElement">Text after the change, may be null for columns that are nullable in the database.</param>
+        /// <returns>The rendered difference.</returns>
+        private string DisplayDiff(string? oldElement, string? newElement)
         {
+            oldElement ??= "";
+            newElement ??= "";
             if (oldElement == newElement)
             {
                 return oldElement;
             }
-            else
-            {
-                return (oldElement != null && oldElement.Length > 0 ? $"{userConfig.GetText("deleted")}: {oldElement}{(newElement != null && newElement.Length > 0 ? ", " : "")}" : "")
-                    + (newElement != null && newElement.Length > 0 ? $"{userConfig.GetText("added")}: {newElement}" : "");
-            }
+
+            string separator = oldElement.Length > 0 && newElement.Length > 0 ? ", " : "";
+            string deletedPart = oldElement.Length > 0 ? $"{userConfig.GetText("deleted")}: {oldElement}{separator}" : "";
+            string addedPart = newElement.Length > 0 ? $"{userConfig.GetText("added")}: {newElement}" : "";
+            return deletedPart + addedPart;
         }
 
-        private string DisplayArrayDiff(string oldElement, string newElement)
+        /// <summary>
+        /// Renders the difference between two element lists.
+        /// </summary>
+        /// <param name="oldElement">List before the change, may be null for columns that are nullable in the database.</param>
+        /// <param name="newElement">List after the change, may be null for columns that are nullable in the database.</param>
+        /// <returns>The rendered difference.</returns>
+        private string DisplayArrayDiff(string? oldElement, string? newElement)
         {
+            oldElement ??= "";
+            newElement ??= "";
             if (oldElement == newElement)
             {
                 return oldElement;
@@ -438,9 +463,9 @@ namespace FWO.Ui.Display
                 newElement = newElement.Replace("\"", "");
                 AnalyzeElements(oldElement, newElement, ref unchanged, ref deleted, ref added);
 
-                return string.Join(",", Array.ConvertAll(unchanged.ToArray(), elem => Quote(elem))) + (unchanged.Count > 0 && (deleted.Count > 0 || added.Count > 0) ? "," : "")
-                    + (deleted.Count > 0 ? string.Join(",", Array.ConvertAll(deleted.ToArray(), elem => Quote($"{userConfig.GetText("deleted")}: {elem}"))) : "") + (deleted.Count > 0 && added.Count > 0 ? "," : "")
-                    + (added.Count > 0 ? string.Join(",", Array.ConvertAll(added.ToArray(), elem => Quote($"{userConfig.GetText("added")}: {elem}"))) : "");
+                return string.Join(",", Array.ConvertAll(unchanged.ToArray(), elem => JsonConvert.ToString(elem))) + (unchanged.Count > 0 && (deleted.Count > 0 || added.Count > 0) ? "," : "")
+                    + (deleted.Count > 0 ? string.Join(",", Array.ConvertAll(deleted.ToArray(), elem => JsonConvert.ToString($"{userConfig.GetText("deleted")}: {elem}"))) : "") + (deleted.Count > 0 && added.Count > 0 ? "," : "")
+                    + (added.Count > 0 ? string.Join(",", Array.ConvertAll(added.ToArray(), elem => JsonConvert.ToString($"{userConfig.GetText("added")}: {elem}"))) : "");
             }
         }
     }

@@ -12,6 +12,10 @@
     #     LimitRequestBody 250M
     # </Location>
 
+	# the jwt is sent in the "Authorization" header and grows with the permissions of the user,
+	# so raise the per-header limit from the 8190 byte default to the kestrel default of 32KB
+	LimitRequestFieldSize {{ apache_limit_request_field_size }}
+
 	# set buffer to 128KB
 	ProxyIOBufferSize 131072
 	
@@ -35,8 +39,16 @@
 	SSLEngine on
 	{{ apache_ssl_protocol }}
 	{{ apache_ssl_cipher_suite }}
-	SSLCertificateFile /etc/{{ webserver_package_name }}/ssl/server.crt
-	SSLCertificateKeyFile /etc/{{ webserver_package_name }}/ssl/server.key
+	SSLCertificateFile {{ internalca_apache_certificate }}
+	SSLCertificateKeyFile {{ internalca_apache_private_key }}
+{% if internalca_apache_intermediate_certificates | length > 0 %}
+	SSLCertificateChainFile {{ internalca_apache_intermediate_certificates }}
+{% endif %}
+{% if graphql_api_requires_client_certificate | bool %}
+	SSLCACertificateFile {{ internalca_ca_certificate_local }}
+	SSLVerifyClient require
+	SSLVerifyDepth 1
+{% endif %}
 
     # --- Security Headers ---
 <IfModule mod_headers.c>

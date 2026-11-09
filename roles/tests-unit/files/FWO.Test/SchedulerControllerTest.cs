@@ -1,0 +1,198 @@
+using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Middleware.Server.Controllers;
+using FWO.Middleware.Server.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using NSubstitute;
+using NUnit.Framework;
+using Quartz;
+
+// Quartz 4 returns ValueTask from IScheduler/ISchedulerFactory. The NSubstitute arrange calls below
+// only record the invocation - the returned instance is never awaited, so CA2012 does not apply.
+#pragma warning disable CA2012
+
+namespace FWO.Test
+{
+    [TestFixture]
+    internal class SchedulerControllerTest
+    {
+        [Test]
+        public async Task GetJobs_ReturnsSortedJobsWithExecutionDetails()
+        {
+            JobKey alphaJob = new("alpha-job", "group-a");
+            JobKey betaJob = new("beta-job", "group-b");
+            DateTimeOffset alphaNextFire = new(2026, 7, 21, 12, 0, 0, TimeSpan.Zero);
+            DateTimeOffset alphaPreviousFire = new(2026, 7, 21, 10, 0, 0, TimeSpan.Zero);
+            DateTimeOffset betaNextFire = new(2026, 7, 21, 13, 0, 0, TimeSpan.Zero);
+            DateTimeOffset betaPreviousFire = new(2026, 7, 21, 9, 0, 0, TimeSpan.Zero);
+
+            JobExecutionTracker tracker = new();
+            await tracker.JobWasExecuted(CreateExecutionContext(alphaJob), null);
+            await tracker.JobWasExecuted(CreateExecutionContext(betaJob), new JobExecutionException(new InvalidOperationException("boom")));
+
+            ITrigger alphaTrigger = CreateSimpleTrigger();
+            ITrigger betaTrigger = CreateCronTrigger();
+            IScheduler scheduler = Substitute.For<IScheduler>();
+            scheduler.QueryJobs(Arg.Is<JobQuery>(query => query.Take == PagedQuery.All), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult([CreateJobHeader(betaJob), CreateJobHeader(alphaJob)])));
+            scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == alphaJob && query.Take == PagedQuery.All), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult([CreateTriggerHeader(alphaTrigger, alphaJob)])));
+            scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == betaJob && query.Take == PagedQuery.All), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult([CreateTriggerHeader(betaTrigger, betaJob)])));
+            scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.Count == 1 && keys.Contains(alphaTrigger.Key)), CancellationToken.None)
+                .Returns(ValueTask.FromResult<List<ITrigger>>([alphaTrigger]));
+            scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.Count == 1 && keys.Contains(betaTrigger.Key)), CancellationToken.None)
+                .Returns(ValueTask.FromResult<List<ITrigger>>([betaTrigger]));
+
+            SchedulerController controller = CreateController(scheduler, tracker);
+
+            List<SchedulerJobInfo> jobs = (await controller.GetJobs()).ToList();
+
+            Assert.That(jobs, Has.Count.EqualTo(2));
+            Assert.That(jobs[0].JobName, Is.EqualTo("alpha-job"));
+            Assert.That(jobs[0].Group, Is.EqualTo("group-a"));
+            Assert.That(jobs[0].IntervalDescription, Is.EqualTo("2h"));
+            Assert.That(jobs[0].LastFireTimeUtc, Is.EqualTo(tracker.GetLastResult("alpha-job")!.ExecutedAt));
+            Assert.That(jobs[0].LastExecutionStatus, Is.EqualTo(SchedulerJobExecutionStatus.Success));
+            Assert.That(jobs[0].LastExecutionError, Is.Empty);
+            Assert.That(jobs[1].JobName, Is.EqualTo("beta-job"));
+            Assert.That(jobs[1].Group, Is.EqualTo("group-b"));
+            Assert.That(jobs[1].IntervalDescription, Is.EqualTo("0 0 * * * ?"));
+            Assert.That(jobs[1].LastFireTimeUtc, Is.EqualTo(tracker.GetLastResult("beta-job")!.ExecutedAt));
+            Assert.That(jobs[1].LastExecutionStatus, Is.EqualTo(SchedulerJobExecutionStatus.Failed));
+            Assert.That(jobs[1].LastExecutionError, Is.EqualTo("boom"));
+        }
+
+        [Test]
+        public async Task Run_ReturnsBadRequestWhenJobNameIsMissing()
+        {
+            SchedulerController controller = CreateController(Substitute.For<IScheduler>(), new JobExecutionTracker());
+
+            ActionResult<bool> result = await controller.Run(new SchedulerJobTriggerParameters());
+
+            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result!).Value, Is.EqualTo("Job name missing."));
+        }
+
+        [Test]
+        public async Task Run_ReturnsNotFoundWhenJobDoesNotExist()
+        {
+            IScheduler scheduler = Substitute.For<IScheduler>();
+            scheduler.Exists(new JobKey("missing-job"), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(false));
+
+            SchedulerController controller = CreateController(scheduler, new JobExecutionTracker());
+
+            ActionResult<bool> result = await controller.Run(new SchedulerJobTriggerParameters { JobName = "missing-job" });
+
+            Assert.That(result.Result, Is.TypeOf<NotFoundObjectResult>());
+            Assert.That(((NotFoundObjectResult)result.Result!).Value, Is.EqualTo("Job not found."));
+        }
+
+        [Test]
+        public async Task Run_TriggersExistingJob()
+        {
+            IScheduler scheduler = Substitute.For<IScheduler>();
+            scheduler.Exists(new JobKey("trigger-job"), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(true));
+            scheduler.TriggerJob(new JobKey("trigger-job"), null, CancellationToken.None)
+                .Returns(_ => ValueTask.CompletedTask);
+
+            SchedulerController controller = CreateController(scheduler, new JobExecutionTracker());
+
+            ActionResult<bool> result = await controller.Run(new SchedulerJobTriggerParameters { JobName = "trigger-job" });
+
+            Assert.That(result.Value, Is.True);
+            await scheduler.Received(1).TriggerJob(new JobKey("trigger-job"), null, CancellationToken.None);
+        }
+
+        [Test]
+        public void GetJobs_IsReadableByAdminAndAuditor()
+        {
+            Assert.That(GetAuthorizedRoles(nameof(SchedulerController.GetJobs)), Is.EquivalentTo(kReadRoles));
+        }
+
+        [Test]
+        public void Run_IsAdminOnly()
+        {
+            Assert.That(GetAuthorizedRoles(nameof(SchedulerController.Run)), Is.EquivalentTo(kRunRoles));
+        }
+
+        private static readonly List<string> kReadRoles = [Roles.Admin, Roles.Auditor];
+        private static readonly List<string> kRunRoles = [Roles.Admin];
+
+        private static List<string> GetAuthorizedRoles(string actionName)
+        {
+            AuthorizeAttribute attribute = typeof(SchedulerController).GetMethod(actionName)!
+                .GetCustomAttributes(typeof(AuthorizeAttribute), false).Cast<AuthorizeAttribute>().Single();
+            return [.. (attribute.Roles ?? "").Split(',').Select(role => role.Trim())];
+        }
+
+        private static SchedulerController CreateController(IScheduler scheduler, JobExecutionTracker tracker)
+        {
+            ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
+            schedulerFactory.GetScheduler().Returns(_ => ValueTask.FromResult(scheduler));
+            return new SchedulerController(schedulerFactory, tracker);
+        }
+
+        private static IJobExecutionContext CreateExecutionContext(JobKey jobKey)
+        {
+            IJobDetail jobDetail = Substitute.For<IJobDetail>();
+            jobDetail.Key.Returns(jobKey);
+
+            IJobExecutionContext context = Substitute.For<IJobExecutionContext>();
+            context.JobDetail.Returns(jobDetail);
+            return context;
+        }
+
+        private static JobHeader CreateJobHeader(JobKey jobKey)
+        {
+            return new JobHeader(jobKey, "", nameof(IJob), false, false, false, false);
+        }
+
+        private static PagedResult<T> CreatePagedResult<T>(List<T> items)
+        {
+            return new PagedResult<T>(items, false, items.Count);
+        }
+
+        private static TriggerHeader CreateTriggerHeader(ITrigger trigger, JobKey jobKey)
+        {
+            return new TriggerHeader(
+                trigger.Key,
+                jobKey,
+                trigger.Description ?? "",
+                trigger.GetType().Name,
+                TriggerState.Normal,
+                trigger.StartTimeUtc,
+                trigger.EndTimeUtc,
+                trigger.NextFireTimeUtc,
+                trigger.PreviousFireTimeUtc,
+                trigger.CalendarName ?? "",
+                trigger.Priority,
+                "",
+                "",
+                0);
+        }
+
+        private static ITrigger CreateSimpleTrigger()
+        {
+            return TriggerBuilder.Create()
+                .WithIdentity("alpha-trigger")
+                .StartNow()
+                .WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromHours(2)).RepeatForever())
+                .Build();
+        }
+
+        private static ITrigger CreateCronTrigger()
+        {
+            return TriggerBuilder.Create()
+                .WithIdentity("beta-trigger")
+                .StartNow()
+                .WithCronSchedule("0 0 * * * ?")
+                .Build();
+        }
+    }
+}
+#pragma warning restore CA2012

@@ -7,11 +7,11 @@
 
 html,
 body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 .stdtext {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 a,
@@ -23,10 +23,6 @@ app {
     position: relative;
     display: flex;
     flex-direction: column;
-}
-
-.text-left {
-    text-align:left !important
 }
 
 header {
@@ -48,18 +44,17 @@ header {
     bottom: 10px;
 }
 
-.button-container.left {
-    left: 10px;
-}
+    .button-container.left {
+        left: 10px;
+    }
 
-.button-container.right {
-    right: 10px;
-}
+    .button-container.right {
+        right: 10px;
+    }
 
-.button-container.center {
-    right: 50%;
-}
-
+    .button-container.center {
+        right: 50%;
+    }
 
 .radioSpace {
     margin-right: 10px;
@@ -120,7 +115,7 @@ header {
 
 .bg-blue {
     z-index: 10;
-    background-image: linear-gradient(#054B8C, #03335E);
+    background-image: linear-gradient(var(--bg-color, #054B8C), var(--bg-color-2, #03335E));
 }
 
 .bg-gray {
@@ -133,7 +128,7 @@ header {
     background-image: linear-gradient(#e4e8ec, #e4e8ef);
 }
 
-.td-bg-light-grey td{
+.td-bg-light-grey td {
     background-image: linear-gradient(#e4e8ec, #b6b2b2);
 }
 
@@ -153,7 +148,7 @@ header {
 
 /* for collapsibles */
 .btn-width-icon {
-    width: 40px
+    width: 40px;
 }
 
 /* gray-out background when using pop-ups*/
@@ -173,7 +168,7 @@ h2,
 h3,
 h4,
 h5 {
-    color: #2FA5ED;
+    color: #2fa5ed;
     font-weight: bold;
 }
 
@@ -222,11 +217,6 @@ h5 {
     flex: 1;
 }
 
-
-.me-auto {
-    margin-right: auto !important;
-}
-
 .nav-main-left {
     float: left;
     margin-right: 40px;
@@ -244,16 +234,16 @@ h5 {
     justify-content: flex-end;
 }
 
-.main .top-row>a,
-.main .top-row .btn-link {
-    white-space: nowrap;
-    margin-left: 1.5rem;
-}
+    .main .top-row > a,
+    .main .top-row .btn-link {
+        white-space: nowrap;
+        margin-left: 1.5rem;
+    }
 
-.main .top-row a:first-child {
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+    .main .top-row a:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
 .navbar-height {
     min-height: 56px;
@@ -306,7 +296,7 @@ h5 {
     padding-top: 1.1rem;
 }
 
-.valid.modified:not([type=checkbox]) {
+.valid.modified:not([type="checkbox"]) {
     outline: 1px solid #26b050;
 }
 
@@ -321,11 +311,11 @@ h5 {
 .alert-warning-override {
     color: #732d00;
     background-color: #ffe494;
-    border-color: #f5d0b8
+    border-color: #f5d0b8;
 }
 
 .col-form-label-marg7 {
-    margin-left: 7px;    /* distance between checkbox and label */
+    margin-left: 7px; /* distance between checkbox and label */
 }
 
 #blazor-error-ui {
@@ -340,12 +330,12 @@ h5 {
     z-index: 1000;
 }
 
-#blazor-error-ui .dismiss {
-    cursor: pointer;
-    position: absolute;
-    right: 0.75rem;
-    top: 0.5rem;
-}
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }
 
 .footer {
     position: fixed;
@@ -395,7 +385,6 @@ thead {
     background-image: linear-gradient(#e4e8ec, #e4e8ef);
 }
 
-
 .sticky-header thead {
     position: sticky;
     top: -1px;
@@ -427,15 +416,16 @@ thead {
     z-index: 2;
 }
 
-.vheight75 div{
+.vheight75 div {
     max-height: calc(100vh - 300px);
 }
 
-.vheight60 div{
+.vheight60 div {
     max-height: calc(100svh - 450px);
 }
+
 .vheight100 {
-    height: 100vh
+    height: 100vh;
 }
 
 .minheight-dropzone {
@@ -443,11 +433,15 @@ thead {
 }
 
 .background-upcoming {
-    background-color: rgba(255, 255, 0, 0.25)
+    background-color: rgba(255, 255, 0, 0.25);
 }
 
 .background-overdue {
-    background-color: rgba(255, 0, 0, 0.25)
+    background-color: rgba(255, 0, 0, 0.25);
+}
+
+.background-disabled {
+    background-color: rgba(108, 117, 125, 0.18);
 }
 
 .fly-in-animation {
@@ -465,8 +459,8 @@ thead {
 }
 
 .radioSpace {
-    margin-right:10px;
-    margin-left:20px;
+    margin-right: 10px;
+    margin-left: 20px;
 }
 
 .draggable-item {
@@ -475,7 +469,7 @@ thead {
 }
 
 .draggable-selected {
-    color: black !important;
+    color: black;
     background-color: #a4d7f5;
 }
 
@@ -487,28 +481,22 @@ thead {
     overflow-x: visible;
 }
 
-.table-responsive:has(.popover, .bs-popover-bottom, .show) div {
-    overflow-x: visible;
-    inset: unset !important;
-    transform: none !important;
-}
+    .table-responsive:has(.popover, .bs-popover-bottom, .show) div {
+        overflow-x: visible;
+        inset: unset !important;
+        transform: none !important;
+    }
 
-.popover-transform:has(.popover, .bs-popover-bottom, .show) div[role=tooltip] {
+.popover-transform:has(.popover, .bs-popover-bottom, .show)
+div[role="tooltip"] {
     transform: translate(0px, 55px) !important;
 }
 
-.cursor-pointer{
+.cursor-pointer {
     cursor: pointer;
 }
 
-/* EditAppRoleLeftSide.razor */
-
-#app-role-library-ordered-draggable-list .border {
-    border: none !important;
-}
-
-
-.h-90{
+.h-90 {
     height: 90%;
 }
 /* Popups */
@@ -538,10 +526,99 @@ div.modal-body > * > div.table-responsive {
     overflow-x: inherit;
 }
 
-div.modal-body > div.table-responsive > table.sticky-header thead {
-    top: calc(var(--bs-custom-modal-margin-top) + 1em - 1px);
+/* The scroll container of a table in a popup is the .modal-content box itself. A sticky offset is
+    resolved against the content box of the scroll container, so a header pinned at the generic
+    top: -1px would come to rest below the top padding of the popup and the rows would scroll
+    through the gap above it. Compensating that padding pins the header to the top edge of the popup.
+    The fallback keeps the declaration valid (and the header sticky) if the variable ever goes away. */
+div.modal-content .sticky-header thead {
+    top: calc(-1px - var(--fwo-modal-content-padding-top, 0px));
 }
 
-div.modal-body > * > div.table-responsive > table.sticky-header thead {
-    top: calc(var(--bs-custom-modal-margin-top) + 1em - 1px);
+.small-helptext {
+    color: hsl(39, 100%, 50%);
+    font-weight: bold;
+    font-size: medium;
+    padding-left: 12px;
+    letter-spacing: 0.2px;
+}
+
+.small-subheader-warn {
+    color: hsl(19, 91%, 45%);
+    font-weight: normal;
+    font-size: 12pt;
+    padding-left: 8px;
+    letter-spacing: 0.2px;
+}
+
+
+.report-table th.minw-80,
+.report-table td.minw-80 {
+    min-width: 80px;
+}
+
+.report-table th.minw-200,
+.report-table td.minw-200 {
+    min-width: 200px;
+}
+
+/* system usage monitoring */
+.usage-sparkline {
+    width: 100%;
+    min-height: 60px;
+}
+
+.usage-sparkline-svg {
+    width: 100%;
+    height: 60px;
+}
+
+.usage-sparkline-line {
+    fill: none;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.usage-sparkline-area {
+    stroke: none;
+    opacity: 0.15;
+}
+
+.usage-sparkline-primary {
+    stroke: hsl(211, 100%, 43%);
+    fill: hsl(211, 100%, 43%);
+}
+
+.usage-sparkline-secondary {
+    stroke: hsl(145, 63%, 33%);
+    fill: hsl(145, 63%, 33%);
+}
+
+.usage-sparkline-empty {
+    color: hsl(0, 0%, 45%);
+    font-size: small;
+    padding-top: 20px;
+}
+
+.usage-tile-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.sticky-collapse {
+    padding-left: 0.5rem;
+    padding-bottom: 0.5rem;
+    position: sticky;
+    top: 6rem;
+    z-index: 14;
+}
+
+.device-specific-field {
+    transition: background-color 500ms linear, box-shadow 500ms linear;
+}
+
+.device-specific-field-highlight {
+    background-color: var(--bs-warning-bg-subtle);
+    box-shadow: 0 0 0 2px var(--bs-warning);
 }

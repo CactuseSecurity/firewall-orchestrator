@@ -1,0 +1,235 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Config.Api;
+using FWO.Data;
+using FWO.Data.Modelling;
+using FWO.Logging;
+using FWO.Services.EventMediator.Events;
+using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
+
+namespace FWO.Services
+{
+    public class UpdateRuleOwnerMappingNameField : UpdateRuleOwnerMappingBase
+    {
+        private static readonly ConcurrentDictionary<string, Regex> NameFieldRegexCache = new();
+
+        public override OwnerMappingSourceStm Source => OwnerMappingSourceStm.NameField;
+
+        public UpdateRuleOwnerMappingNameField(ApiConnection apiConnection, GlobalConfig globalConfig)
+            : base(apiConnection, globalConfig)
+        {
+        }
+
+        public override async Task<bool> RunAsync(UpdateRuleOwnerMappingEventArgs? eventArgs = null, CancellationToken cancellationToken = default)
+        {
+            return await UpdateRuleOwners(RunFullReinitialize, () => RunIncremental(cancellationToken), eventArgs, cancellationToken);
+        }
+
+        /// <summary>
+        /// Delegates incremental processing of pending imports to the shared base implementation for NameField mapping.
+        /// </summary>
+        private async Task<bool> RunIncremental(CancellationToken cancellationToken) => await RunIncremental(ProcessIncrementalImportNameField, RunFullReinitialize, cancellationToken);
+
+        /// <summary>
+        /// Delegates one incremental import to the shared base implementation using NameField-specific loaders and mapper.
+        /// </summary>
+        private async Task ProcessIncrementalImportNameField(ImportControl import) =>
+            await ProcessIncrementalImport(import, HandleRuleImportNameField, HandleOwnerImportNameField, BuildNewRuleOwnersNameField);
+
+        /// <summary>
+        /// Delegates loading of changed rules, modelling connections, and removable mappings for a NameField rule import.
+        /// </summary>
+        private async Task<(List<Rule> rulesToMap, List<ModellingConnection> owners, List<RuleOwner> RuleOwnersToRemove)> HandleRuleImportNameField(ImportControl import) =>
+            await HandleRuleImport(import, RuleQueries.getChangedRulesForRuleOwnerMappingNameField, () => apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getOwnersForRuleOwnerNameField));
+
+
+
+        private async Task<(List<Rule> RulesToMap, List<ModellingConnection> connectionOwners, List<RuleOwner> RuleOwnersToRemove)> HandleOwnerImportNameField(ImportControl import)
+        {
+            var changelogOwners = await apiConnection.SendQueryAsync<List<OwnerChange>>(OwnerQueries.getChangedOwnersForRuleOwnerMappingNameField, new { controlId = import.ControlId });
+            var ownersToAdd = new List<FwoOwner>();
+            var connectionOwnersToAdd = new List<ModellingConnection>();
+            var ownersToRemove = new List<FwoOwner>();
+            var rulesToMap = new List<Rule>();
+            var ruleOwnersToRemove = new List<RuleOwner>();
+
+            if (!ProcessOwnerChanges(changelogOwners, ownersToAdd, ownersToRemove))
+            {
+                return (new List<Rule>(), new List<ModellingConnection>(), new List<RuleOwner>());
+            }
+
+            if (ownersToAdd.Any())
+            {
+                rulesToMap = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwnerNameField);
+                connectionOwnersToAdd = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner, new { ownerIds = ownersToAdd.Select(o => o.Id).ToList() });
+            }
+
+            if (ownersToRemove.Any())
+            {
+                ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByOwner, new { ownerIds = ownersToRemove.Select(o => o.Id).ToList() });
+            }
+            return (rulesToMap, connectionOwnersToAdd, ruleOwnersToRemove);
+        }
+
+        /// <summary>
+        /// Delegates the full reinitialize flow to the shared base implementation using NameField rules and modelling connections.
+        /// </summary>
+        private async Task<bool> RunFullReinitialize() =>
+            await RunFullReinitialize(RuleQueries.getRulesForOwnerMappingNameField, () => apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getOwnersForRuleOwnerNameField), BuildNewRuleOwnersNameField);
+
+        private List<RuleOwner> BuildNewRuleOwnersNameField(List<Rule> rulesToMap, List<ModellingConnection> connectionOwnersToMap)
+        {
+            // create a dictionary for owner app_id to id mapping for faster lookup (id matching FWOC{ID} in NameField)
+            var connectionsToOwnerMap = connectionOwnersToMap.Where(c => c.AppId.HasValue)
+                                              .ToDictionary(c => c.Id, c => c.AppId!.Value);
+            var newRuleOwners = new List<RuleOwner>();
+            if (rulesToMap.Count > 0 && string.IsNullOrWhiteSpace(globalConfig.ModModelledMarker))
+            {
+                // reported once per run instead of once per rule, and only when there is something to map,
+                // so an idle scheduled run stays silent: without a marker no rule can be mapped at all
+                MappingLog.Error("No modelled marker is configured, so no rule can be mapped by name field.");
+            }
+            int rulesWithoutMarker = 0;
+            int rulesWithoutMatchingConnection = 0;
+            int invalidRules = 0;
+
+            // iterate through rules and create new mappings based on NameField
+            foreach (Rule rule in rulesToMap)
+            {
+                var nameFieldValue = ExtractNameFieldValue(rule, globalConfig.ModModelledMarker, out var errorMessage, out NameFieldExtractionStatus status);
+
+                if (nameFieldValue.HasValue && connectionsToOwnerMap.TryGetValue(nameFieldValue.Value, out var ownerId))
+                {
+                    newRuleOwners.Add(new RuleOwner
+                    {
+                        RuleId = rule.Id,
+                        OwnerId = ownerId,
+                        RuleMetadataId = rule.Metadata.Id,
+                        OwnerMappingSourceId = (int)OwnerMappingSourceStm.NameField
+                    });
+                    continue;
+                }
+
+                if (status == NameFieldExtractionStatus.NoMarker)
+                {
+                    // expected for every rule that was never modelled, so only on the most detailed level
+                    rulesWithoutMarker++;
+                    MappingLog.Debug($"Rule {rule.Id}: {errorMessage}");
+                }
+                else if (nameFieldValue.HasValue)
+                {
+                    // the marker is there but points nowhere, which usually is a real modelling problem
+                    rulesWithoutMatchingConnection++;
+                    MappingLog.Warning($"Rule {rule.Id}: marker points to connection {nameFieldValue.Value}, which has no active owner.");
+                }
+                else
+                {
+                    invalidRules++;
+                    LogUnreadableRule(status, rule.Id, errorMessage);
+                }
+            }
+
+            Log.WriteInfo(LogMessageTitle,
+                $"NameField rule_owner mapping checked {rulesToMap.Count} rules, created {newRuleOwners.Count} mappings, " +
+                $"skipped {rulesWithoutMarker} rules without marker, {rulesWithoutMatchingConnection} rules without matching connection/owner, " +
+                $"{invalidRules} invalid rules.");
+
+            return newRuleOwners;
+        }
+
+        /// <summary>
+        /// Logs a rule whose marker could not be read, at the level matching how much attention it needs.
+        /// </summary>
+        /// <param name="status">Why the marker could not be read.</param>
+        /// <param name="ruleId">Rule the marker was read from.</param>
+        /// <param name="errorMessage">Detail of the failed extraction.</param>
+        private void LogUnreadableRule(NameFieldExtractionStatus status, long ruleId, string? errorMessage)
+        {
+            if (status == NameFieldExtractionStatus.InvalidConnectionId || status == NameFieldExtractionStatus.Error)
+            {
+                // the marker is there but unusable, so the rule was modelled and still stays unmapped
+                MappingLog.Warning($"Rule {ruleId}: {errorMessage}");
+                return;
+            }
+            MappingLog.Info($"Rule {ruleId}: {errorMessage}");
+        }
+
+        public static int? ExtractNameFieldValue(Rule rule, string modelledMarker, out string? errorMessage)
+        {
+            return ExtractNameFieldValue(rule, modelledMarker, out errorMessage, out _);
+        }
+
+        private static int? ExtractNameFieldValue(Rule rule, string modelledMarker, out string? errorMessage, out NameFieldExtractionStatus status)
+        {
+            errorMessage = null;
+            status = NameFieldExtractionStatus.Success;
+
+            if (rule == null)
+            {
+                status = NameFieldExtractionStatus.InvalidRule;
+                errorMessage = "Rule is null";
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(rule.Name))
+            {
+                status = NameFieldExtractionStatus.InvalidRule;
+                errorMessage = $"rule.Name is null or empty for rule id {rule.Id}";
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(modelledMarker))
+            {
+                status = NameFieldExtractionStatus.EmptyMarker;
+                errorMessage = $"modelledMarker is null or empty for rule id {rule.Id}";
+                return null;
+            }
+
+            try
+            {
+                Match match = GetNameFieldRegex(modelledMarker).Match(rule.Name);
+                if (!match.Success)
+                {
+                    status = NameFieldExtractionStatus.NoMarker;
+                    errorMessage = $"No match for marker '{modelledMarker}' in '{rule.Name}'";
+                    return null;
+                }
+
+                if (!int.TryParse(match.Groups[1].Value, out int connectionId))
+                {
+                    status = NameFieldExtractionStatus.InvalidConnectionId;
+                    errorMessage = $"Extracted value is not a valid int: '{match.Groups[1].Value}'";
+                    return null;
+                }
+
+                return connectionId;
+            }
+            catch (Exception ex)
+            {
+                status = NameFieldExtractionStatus.Error;
+                errorMessage = ex.Message;
+                return null;
+            }
+        }
+
+        private enum NameFieldExtractionStatus
+        {
+            Success,
+            NoMarker,
+            InvalidRule,
+            EmptyMarker,
+            InvalidConnectionId,
+            Error
+        }
+
+        /// <summary>
+        /// Returns a compiled regex for the configured marker and reuses it across rule evaluations.
+        /// </summary>
+        private static Regex GetNameFieldRegex(string modelledMarker)
+        {
+            return NameFieldRegexCache.GetOrAdd(modelledMarker, static value => new Regex($@"{Regex.Escape(value)}(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled, TimeSpan.FromMilliseconds(50)));
+        }
+    }
+}

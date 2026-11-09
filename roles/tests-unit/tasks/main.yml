@@ -9,12 +9,31 @@
       become: true
 
     - name: sync test files to frontend target
-      synchronize:
+      ansible.posix.synchronize:
         src: FWO.Test
         dest: "{{ test_dir }}/csharp"
         rsync_opts:
           - "--chown={{ fworch_user }}:{{ fworch_group }}"
           - "--delete"
+      become: true
+
+    - name: provide api metadata for the report permission tests
+      copy:
+        src: roles/api/files/replace_metadata.json
+        dest: "{{ test_dir }}/csharp/replace_metadata.json"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0644"
+      become: true
+
+    # the lib role creates it as well, but the tests also run on their own (tag test)
+    - name: create the runtime directory for dotnet commands run as {{ fworch_user }}
+      file:
+        path: "{{ dotnet_xdg_runtime_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0700"
       become: true
 
     - name: run csharp tests
@@ -25,7 +44,7 @@
       become_user: "{{ fworch_user }}"
       register: csharp_tests
       ignore_errors: false
-      environment: "{{ proxy_env | default({}) | combine({'FW_SKIP_PDF_TEST': 'true'}) }}"
+      environment: "{{ dotnet_env | combine({'FW_SKIP_PDF_TEST': 'true'}) }}"
 
     - name: show csharp test results in case of errors
       debug:
@@ -43,6 +62,8 @@
         chdir: "/usr/local/fworch/importer"
       command: >
         {{ importer_venv_dir }}/bin/python3 -m pytest -s . -p no:cacheprovider -v
+      become: true
+      become_user: "{{ fworch_user }}"
       register: pytest_tests
       ignore_errors: false
 

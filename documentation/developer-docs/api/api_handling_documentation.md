@@ -20,14 +20,14 @@ from compact to pp:
 
 Display api container status
 
-    tim@fworch-comp:~$ sudo docker ps --all
-    CONTAINER ID   IMAGE                           COMMAND                  CREATED        STATUS        PORTS     NAMES
-    6a4941843351   hasura/graphql-engine:v2.0.10   "graphql-engine serve"   15 hours ago   Up 15 hours             fworch-api
+    tim@fworch-comp:~$ sudo podman ps --all
+    CONTAINER ID  IMAGE                                      COMMAND     CREATED       STATUS       PORTS       NAMES
+    6a4941843351  docker.io/hasura/graphql-engine:v2.50.3    serve       15 hours ago  Up 15 hours              fworch-api
     tim@fworch-comp:~$ 
 
-Restart FWORCH API
+Restart FWORCH API (the container is managed by its systemd service)
 
-    sudo docker restart fworch-api
+    sudo systemctl restart fworch-hasura-api
 
 Note that you need to restart at least the middlware server since its subscription will break:
 
@@ -35,7 +35,7 @@ Note that you need to restart at least the middlware server since its subscripti
 tim@fworch-comp:~$ sudo systemctl restart fworch-middleware
 tim@fworch-comp:~$ sudo systemctl status fworch-*
 ● fworch-importer-api.service - fworch importer pure python
-     Loaded: loaded (/lib/systemd/system/fworch-importer-api.service; enabled; vendor preset: enabled)
+     Loaded: loaded (/etc/systemd/system/fworch-importer-api.service; enabled; vendor preset: enabled)
      Active: active (running) since Thu 2021-12-09 20:07:28 CET; 14h ago
     Process: 340899 ExecStartPre=/bin/sleep 10 (code=exited, status=0/SUCCESS)
    Main PID: 341171 (import-main-loo)
@@ -48,7 +48,7 @@ Dez 09 20:07:18 fworch-comp systemd[1]: Starting fworch importer pure python...
 Dez 09 20:07:28 fworch-comp systemd[1]: Started fworch importer pure python.
 
 ● fworch-middleware.service - FWOrch Middleware Server
-     Loaded: loaded (/lib/systemd/system/fworch-middleware.service; enabled; vendor preset: enabled)
+     Loaded: loaded (/etc/systemd/system/fworch-middleware.service; enabled; vendor preset: enabled)
      Active: active (running) since Fri 2021-12-10 10:45:59 CET; 3s ago
     Process: 396234 ExecStartPre=/bin/sleep 10 (code=exited, status=0/SUCCESS)
    Main PID: 396568 (FWO.Middleware.)

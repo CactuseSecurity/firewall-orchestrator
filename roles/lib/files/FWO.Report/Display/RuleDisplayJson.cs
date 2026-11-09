@@ -3,7 +3,9 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Report;
 using FWO.Report.Filter;
+using Newtonsoft.Json;
 using System.Text;
+using System.Globalization;
 
 namespace FWO.Ui.Display
 {
@@ -16,7 +18,7 @@ namespace FWO.Ui.Display
 
         protected string DisplayJsonString(string tag, string? value)
         {
-            return (value != null ? $"\"{tag}\": \"{value}\"," : "");
+            return (value != null ? $"\"{tag}\": {JsonConvert.ToString(value)}," : "");
         }
 
         protected string DisplayJsonArray(string tag, string? value)
@@ -25,9 +27,9 @@ namespace FWO.Ui.Display
         }
 
 
-        private new string DisplayNumber(Rule rule)
+        private string DisplayNumber(Rule rule)
         {
-            return DisplayJsonPlain("number", rule.DisplayOrderNumber.ToString());
+            return DisplayJsonPlain("number", rule.OrderNumber.ToString(CultureInfo.InvariantCulture));
         }
 
         protected string DisplayName(string? name)
@@ -35,9 +37,9 @@ namespace FWO.Ui.Display
             return DisplayJsonString("name", name);
         }
 
-        protected string DisplayRuleSourceZones(NetworkZone[] networkZones)
+        protected string DisplayRuleSourceZones(FirewallZone[] firewallZones)
         {
-            return DisplayJsonArray("source zones", ListNetworkZones(networkZones));
+            return DisplayJsonArray("source zones", ListFirewallZones(firewallZones));
         }
 
         protected string DisplaySourceNegated(bool sourceNegated)
@@ -50,9 +52,9 @@ namespace FWO.Ui.Display
             return DisplayJsonArray("source", ListNetworkLocations(rule, reportType, true));
         }
 
-        protected string DisplayRuleDestinationZones(NetworkZone[] networkZones)
+        protected string DisplayRuleDestinationZones(FirewallZone[] firewallZones)
         {
-            return DisplayJsonArray("destination zones", ListNetworkZones(networkZones));
+            return DisplayJsonArray("destination zones", ListFirewallZones(firewallZones));
         }
 
         protected string DisplayDestinationNegated(bool destinationNegated)
@@ -174,7 +176,7 @@ namespace FWO.Ui.Display
             }
             else
             {
-                stringBuilder.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
+                stringBuilder.AppendLine("\"section header\": " + JsonConvert.ToString(rule.SectionHeader));
             }
             stringBuilder.Append("},");
             return stringBuilder.ToString();
@@ -187,7 +189,7 @@ namespace FWO.Ui.Display
                 List<string> displayedLocations = new List<string>();
                 foreach (NetworkLocation networkLocation in GetResolvedNetworkLocations(isSource ? rule.Froms : rule.Tos))
                 {
-                    displayedLocations.Add(Quote(DisplayNetworkLocation(networkLocation, reportType).ToString()));
+                    displayedLocations.Add(JsonConvert.ToString(DisplayNetworkLocation(networkLocation, reportType).ToString()));
                 }
                 return string.Join(",", displayedLocations);
             }
@@ -201,7 +203,7 @@ namespace FWO.Ui.Display
                 List<string> displayedServices = new List<string>();
                 foreach (NetworkService service in GetNetworkServices(rule.Services))
                 {
-                    displayedServices.Add(Quote(DisplayService(service, reportType).ToString()));
+                    displayedServices.Add(JsonConvert.ToString(DisplayService(service, reportType).ToString()));
                 }
                 return (string.Join(",", displayedServices));
             }
@@ -213,16 +215,16 @@ namespace FWO.Ui.Display
             return string.Join(",",
                     gateways
                         .Where(gw => gw?.Content?.Name != null)
-                        .Select(gw => Quote(gw.Content.Name))
+                        .Select(gw => JsonConvert.ToString(gw.Content.Name))
                 );
         }
 
-        protected string ListNetworkZones(NetworkZone[] networkZones)
+        protected static string ListFirewallZones(FirewallZone[] firewallZones)
         {
             List<string> displayedZones = new List<string>();
-            foreach (NetworkZone networkZone in networkZones)
+            foreach (FirewallZone networkZone in firewallZones)
             {
-                displayedZones.Add(Quote(networkZone.Name));
+                displayedZones.Add(JsonConvert.ToString(networkZone.Name));
             }
             return string.Join(",", displayedZones);
         }

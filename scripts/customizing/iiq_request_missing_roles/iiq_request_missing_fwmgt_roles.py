@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+from __future__ import annotations
+
 import argparse
 import json
 import logging
@@ -335,7 +337,7 @@ def write_stats_to_file(stats: dict[str, Any], log_dir: str) -> None:
     log_file.write_text(json.dumps(stats, indent=2))
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     ALLOWED_STAGE_VALUES: set[str] = {"prod", "test"}
     ALLOWED_RUN_VALUES: set[bool] = {True, False}
 

@@ -1,6 +1,9 @@
-﻿@using System.Text.Json
+@using System.Text.Json
+@using FWO.Data.Logging
+@using FWO.Services.Logging
+@using FWO.Services
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
@@ -17,14 +20,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(userConfig.GetText("add"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(userConfig.GetText("add"))</button>
                 </NotAuthorized> 
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
@@ -66,6 +69,15 @@
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addCriterion, new { name = MatrixName, criterionType = CriterionType.Matrix.ToString() })).ReturnIds;
                 if(returnIds != null && returnIds.Length > 0)
                 {
+                    await ChangeLogHelper.LogMatrixChange(new MatrixChangeLogRequest
+                    {
+                        Family = ChangeLogFamily.Manual,
+                        Operation = ChangeLogOperation.Create,
+                        MatrixId = returnIds[0].InsertedId,
+                        MatrixName = MatrixName,
+                        UserId = userConfig.User.DbId.ToString(),
+                        Origin = ChangeLogOrigin.UiSettings
+                    });
                     _ = RefreshParent(new(){ Id = returnIds[0].InsertedId, Name = MatrixName, CriterionType = CriterionType.Matrix.ToString() });
                 }
                 Close();

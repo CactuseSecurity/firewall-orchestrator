@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 # library for API get functions
+import copy
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_globals
 import requests
+from fwo_const import FWO_HTTP_TIMEOUT
 from fwo_exceptions import (
     FwApiCallFailedError,
     FwLoginFailedError,
@@ -12,11 +16,16 @@ from fwo_exceptions import (
     FwoUnknownDeviceForManagerError,
 )
 from fwo_log import FWOLogger
-from models.management import Management
+from fwo_redaction import redact_sensitive_values
+
+if TYPE_CHECKING:
+    from models.management import Management
 
 
 def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, method: str = "") -> dict[str, Any]:
     request_headers = {"Content-Type": "application/json"}
+    # work on a copy, so that the session id never lands in a dict the caller keeps and may put into an error text
+    json_payload = copy.deepcopy(json_payload)
     if sid != "":
         json_payload.update({"session": sid})
     if command != "":
@@ -26,31 +35,23 @@ def api_call(url: str, command: str, json_payload: dict[str, Any], sid: str, met
         method = "get"
     json_payload.update({"method": method})
 
-    r = requests.post(url, data=json.dumps(json_payload), headers=request_headers, verify=fwo_globals.verify_certs)
+    r = requests.post(
+        url,
+        data=json.dumps(json_payload),
+        headers=request_headers,
+        verify=fwo_globals.verify_certs,
+        timeout=FWO_HTTP_TIMEOUT,
+    )
     result_json = r.json()
-    if "result" not in result_json or len(result_json["result"]) == 0:
-        if "pass" in json.dumps(json_payload):
-            raise FwApiCallFailedError(f"error while sending api_call containing credential information to url {url!s}")
-        result_data = r.json()["result"][0]["status"] if "status" in r.json()["result"][0] else r.json()["result"][0]
-        exception_text = (
-            f"error while sending api_call to url {url!s} with payload {json.dumps(json_payload, indent=2)}"
+    # the payload carries the session token and, for the login, the password; both are redacted in every text,
+    # which ends up in alerts and logs
+    redacted_payload = json.dumps(redact_sensitive_values(json_payload), indent=2)
+    if len(result_json.get("result") or []) == 0:
+        raise FwApiCallFailedError(
+            f"error while sending api_call to url {url!s} with payload {redacted_payload}, "
+            f"response={json.dumps(redact_sensitive_values(result_json), indent=2)}"
         )
-        exception_text += (
-            f" and  headers: {json.dumps(request_headers, indent=2)}, result={json.dumps(result_data, indent=2)}"
-        )
-        raise FwApiCallFailedError(exception_text)
-    if "pass" in json.dumps(json_payload):
-        FWOLogger.debug("api_call containing credential information to url " + str(url) + " - not logging query", 3)
-    else:
-        FWOLogger.debug(
-            "api_call to url "
-            + str(url)
-            + " with payload "
-            + json.dumps(json_payload, indent=2)
-            + " and  headers: "
-            + json.dumps(request_headers, indent=2),
-            3,
-        )
+    FWOLogger.debug(f"api_call to url {url!s} with payload {redacted_payload}", 3)
 
     return result_json
 
@@ -84,7 +85,7 @@ def login(user: str, password: str, base_url: str) -> str | None:
     return response["session"]
 
 
-def logout(v_url: str, sid: str, method: str = "exec"):
+def logout(v_url: str, sid: str, method: str = "exec") -> None:
     payload: dict[str, Any] = {"params": [{}]}
 
     response = api_call(v_url, "sys/logout", payload, sid, method=method)
@@ -97,8 +98,7 @@ def logout(v_url: str, sid: str, method: str = "exec"):
         FWOLogger.debug("successfully logged out")
     else:
         raise FwLogoutFailedError(
-            "fmgr_getter ERROR: did not get status code 0 when logging out, "
-            "api call: url: " + str(v_url) + ",  + payload: " + str(payload)
+            "fmgr_getter ERROR: did not get status code 0 when logging out, api call: url: " + str(v_url)
         )
 
 

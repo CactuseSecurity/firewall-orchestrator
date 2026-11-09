@@ -1,4 +1,5 @@
-﻿@using FWO.Middleware.Client
+@using FWO.Basics
+@using FWO.Middleware.Client
 @using FWO.Data
 
 @inject UserConfig userConfig
@@ -33,7 +34,7 @@
                 @if(ProposeAlternative)
                 {
                     <div class="col-sm-8">
-                        <Dropdown ElementType="ModellingConnection" @bind-SelectedElement="ProposedInterface" ElementToString="@(i => i.Name)" 
+                        <Dropdown ElementType="ModellingConnection" @bind-SelectedElement="ProposedInterface" ElementToString="@(i => i.Name ?? string.Empty)" 
                             Elements="PossibleInterfaces.Where(i => i.Id != ConnHandler.ActConn.Id && i.IsPublished && i.InterfacePermission != InterfacePermissions.Private.ToString())">
                             <ElementTemplate Context="interf">
                                 @(interf.Name)
@@ -45,7 +46,7 @@
         }
     </Body>
     <Footer>
-        <AuthorizeView Roles="@Roles.Modeller">
+        <ExecutionModeAuthorizeView Roles="@Roles.Modeller">
             <Authorized>
                 @if(!WorkInProgress)
                 {
@@ -59,7 +60,7 @@
             <NotAuthorized>
                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "decommission", Icons.Delete))</button>
             </NotAuthorized> 
-        </AuthorizeView>
+        </ExecutionModeAuthorizeView>
         <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
     </Footer>
 </PopUp>
@@ -102,12 +103,16 @@
         if (Display && firstTry && ConnHandler != null)
         {
             firstTry = false;
-            Message = $"{userConfig.GetText("U9035")} {ConnHandler.ActConn.Name}?<br>{userConfig.GetText("U9032")}";
+            Message = $"{userConfig.GetText("U9035")} {HtmlOutputEncoder.EncodeText(ConnHandler.ActConn.Name)}?<br>{userConfig.GetText("U9032")}";
         }
     }
 
     private async Task Decommission()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         if(ConnHandler != null)
         {
             WorkInProgress = true;
@@ -121,7 +126,10 @@
             {
                 DisplayMessageInUi(exception, userConfig.GetText("decomm_interface"), "", true);
             }
-            WorkInProgress = false;
+            finally
+            {
+                WorkInProgress = false;
+            }
         }
     }
 

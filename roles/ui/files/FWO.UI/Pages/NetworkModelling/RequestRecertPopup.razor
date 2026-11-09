@@ -1,17 +1,12 @@
-@using FWO.Data.Middleware
 @using FWO.Data.Report
 @using FWO.Data.Workflow
-@using FWO.ExternalSystems.Tufin.SecureChange
 @using FWO.Middleware.Client
 @using FWO.Recert
 @using FWO.Report
 @using FWO.Services.RuleTreeBuilder
 @using FWO.Services.Workflow
 @using FWO.Ui.Pages.Reporting
-@using Newtonsoft.Json
 @using RestSharp
-@using System.Net
-@using System.Text.Json.Serialization
 
 
 @inject ApiConnection apiConnection
@@ -111,7 +106,7 @@
         <Footer>
             @if (!WorkInProgress && RecertPossible)
             {
-                <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}")">
+                <ExecutionModeAuthorizeView Roles="@Roles.Recertifier">
                     <Authorized>
                         @if (CanRecertify)
                         {
@@ -119,13 +114,17 @@
                         }
                         else
                         {
-                            <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                            <div data-toggle="tooltip" title="@(userConfig.PureLine("C9032"))">
+                                <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                            </div>
                         }
                     </Authorized>
                     <NotAuthorized>
-                        <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                        <div data-toggle="tooltip" title="@(userConfig.PureLine("C9031"))">
+                            <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "recertify", Icons.Recertify))</button>
+                        </div>
                     </NotAuthorized>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </Footer>
@@ -167,8 +166,8 @@
     private ModellingVarianceResult VarianceResult = new();
     private List<ModellingConnection> ModelledConnections = [];
     private List<ModellingConnection> ModellingErrors = [];
-    private List<ModellingAppRole> MissingAppRoles = [];
-    private List<ModellingAppRole> DifferingAppRoles = [];
+    private readonly List<ModellingAppRole> MissingAppRoles = [];
+    private readonly List<ModellingAppRole> DifferingAppRoles = [];
     private List<Rule> UnmodelledRules = [];
     private List<Rule> RulesFromDeletedConns = [];
     private bool AppZoneModelled;
@@ -235,14 +234,22 @@
     private async Task<bool> CheckImplementation()
     {
         ExtStateHandler extStateHandler = new(apiConnection);
-        ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, AppHandler!.Application, DisplayMessageInUi);
+        // the page's token, so navigating away also stops a wait for the rule_owner mapping run
+        ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, AppHandler!.Application, DisplayMessageInUi)
+        {
+            CancellationToken = AppHandler!.CancellationToken
+        };
         ModellingFilter modellingFilter = new()
         {
             SelectedOwner = AppHandler!.Application,
             AnalyseRemainingRules = userConfig.ModRecertExpectAllModelled,
-            RulesForDeletedConns = true
+            RulesForDeletedConns = true,
+            VerifyRuleOwnerPreFilterCompleteness = true,
+            AllowWaitForRuleOwnerMapping = true
         };
-        VarianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, true, true);
+        ModellingVarianceResult varianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, true, true);
+        (bool appZoneModelled, List<ModellingAppZone?> mgmIdsWithDifferingAZ) = await varianceAnalysis.CheckExistingAppZone();
+        (VarianceResult, AppZoneModelled, MgmIdsWithDifferingAZ) = (varianceResult, appZoneModelled, mgmIdsWithDifferingAZ);
         RulesFromDeletedConns = [];
         foreach(var mgt in VarianceResult.DeletedModelsRules.Keys)
         {
@@ -253,7 +260,6 @@
         {
             UnmodelledRules.AddRange(VarianceResult.UnModelledRules[mgt]);
         }
-        (AppZoneModelled, MgmIdsWithDifferingAZ) = await varianceAnalysis.CheckExistingAppZone();
 
         return MissingAppRoles.Count == 0 && DifferingAppRoles.Count == 0 && RulesFromDeletedConns.Count == 0 && UnmodelledRules.Count == 0
             && VarianceResult.ConnsNotImplemented.Count == 0 && VarianceResult.RuleDifferences.Count == 0
@@ -262,22 +268,28 @@
 
     private async Task StartRecert()
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
         if (!CanRecertify || !HasRecertWriteAccess())
         {
             DisplayMessageInUi(null, userConfig.GetText("recertify"), userConfig.GetText("E9104"), true);
             return;
         }
+        WorkInProgress = true;
         try
         {
-            WorkInProgress = true;
-            await DoRecertification();
-            WorkInProgress = false;
+            await apiConnection.RunWithRecertificationRole(authenticationStateTask!.Result.User, DoRecertification);
             Close();
         }
         catch (Exception exception)
         {
-            WorkInProgress = false;
             DisplayMessageInUi(exception, userConfig.GetText("recertify"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
         }
     }
 
@@ -318,8 +330,7 @@
 
     private bool HasRecertWriteAccess()
     {
-        return authenticationStateTask!.Result.User.IsInRole(Roles.Admin)
-            || authenticationStateTask.Result.User.IsInRole(Roles.Recertifier);
+        return userConfig.CanUseAnyRole(Roles.Recertifier);
     }
 
     private async Task GenerateAndSaveReport(FwoOwner owner)

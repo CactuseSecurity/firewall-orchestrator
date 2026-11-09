@@ -8,6 +8,9 @@ namespace FWO.Data
         [JsonProperty("control_id"), JsonPropertyName("control_id")]
         public long ControlId { get; set; }
 
+        [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
+        public int? MgmId { get; set; }
+
         [JsonProperty("start_time"), JsonPropertyName("start_time")]
         public DateTime? StartTime { get; set; }
 
@@ -28,6 +31,9 @@ namespace FWO.Data
 
         [JsonProperty("changes_found"), JsonPropertyName("changes_found")]
         public bool ChangesFound { get; set; }
+
+        [JsonProperty("flow_sync_done"), JsonPropertyName("flow_sync_done")]
+        public bool FlowSyncDone { get; set; }
     }
 
     public class ImportStatus
@@ -40,6 +46,9 @@ namespace FWO.Data
 
         [JsonProperty("importDisabled"), JsonPropertyName("importDisabled")]
         public bool ImportDisabled { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public bool ImportEnabled => !ImportDisabled;
 
         [JsonProperty("last_import_attempt"), JsonPropertyName("last_import_attempt")]
         public DateTime? LastImportAttempt { get; set; }

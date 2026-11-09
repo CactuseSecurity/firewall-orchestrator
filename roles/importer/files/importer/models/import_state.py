@@ -1,32 +1,36 @@
+from __future__ import annotations
+
 import time
+from typing import TYPE_CHECKING
 
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
-from model_controllers.fworch_config_controller import FworchConfigController
 from model_controllers.import_statistics_controller import ImportStatisticsController
-from model_controllers.management_controller import ManagementController
+
+if TYPE_CHECKING:
+    from model_controllers.fworch_config_controller import FworchConfigController
+    from model_controllers.management_controller import ManagementController
 
 """Used for storing state during import process per management"""
 
 
 class ImportState:
     debug_level: int
-    verify_certs: bool = False
+    verify_certs: bool | str = False  # value for requests' verify: False, True or a CA bundle path
     config_changed_since_last_import: bool
     fwo_config: FworchConfigController
     mgm_details: ManagementController
     import_id: int = -1
     import_file_name: str = ""
-    force_import: bool
+    force_import: bool = False
     import_version: int
-    data_retention_days: int
-    days_since_last_full_import: int
     last_full_import_id: int
     last_full_import_date: str | None = None
     last_successful_import: str | None = None
     is_initial_import: bool = False
     responsible_for_importing: bool = True
     is_clearing_import: bool = False
+    rollback_required: bool = False
 
     def __init__(self) -> None:
         self.stats: ImportStatisticsController = ImportStatisticsController()
@@ -42,7 +46,6 @@ class ImportState:
         self.service_obj_type_map: dict[str, int] = {}
         self.user_obj_type_map: dict[str, int] = {}
         self.protocol_map: dict[str, int] = {}
-        self.data_retention_days: int = 30
 
     def lookup_action(self, action_str: str) -> int:
         action_id = self.actions.get(action_str.lower(), None)

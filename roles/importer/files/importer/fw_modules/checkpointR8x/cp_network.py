@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import ipaddress
 import json
+from datetime import datetime, timezone
 from typing import Any
 
 import fwo_const
@@ -8,6 +11,7 @@ from fw_modules.fortiadom5ff.fmgr_network import add_member_names_for_nw_group
 from fwo_base import cidr_to_range
 from fwo_const import ANY_IP_END, ANY_IP_START, LIST_DELIMITER
 from fwo_log import FWOLogger
+from models.networkobject import NETWORK_OBJECT_TYPES_WITHOUT_STATIC_IP
 from models.time_object import TimeObject
 from services.service_provider import ServiceProvider
 
@@ -27,9 +31,6 @@ def normalize_network_objects(
             nw_obj.update({"control_id": import_id})
             if nw_obj["obj_typ"] == "interoperable-device":
                 nw_obj.update({"obj_typ": "external-gateway"})
-            if nw_obj["obj_typ"] == "CpmiVoipSipDomain":
-                FWOLogger.info("found VOIP object - tranforming to empty group")
-                nw_obj.update({"obj_typ": "group"})
             set_dummy_ip_for_object_without_ip(nw_obj)
 
     for idx in range(len(nw_objects) - 1):
@@ -40,7 +41,9 @@ def normalize_network_objects(
 
 
 def set_dummy_ip_for_object_without_ip(nw_obj: dict[str, Any]) -> None:
-    if nw_obj["obj_typ"] != "group" and (nw_obj["obj_ip"] is None or nw_obj["obj_ip"] == ""):
+    if nw_obj["obj_typ"] in NETWORK_OBJECT_TYPES_WITHOUT_STATIC_IP:
+        nw_obj.update({"obj_ip": None, "obj_ip_end": None})
+    elif nw_obj["obj_ip"] is None or nw_obj["obj_ip"] == "":
         FWOLogger.warning(
             "found object without IP :" + nw_obj["obj_name"] + " (type=" + nw_obj["obj_typ"] + ") - setting dummy IP"
         )
@@ -69,7 +72,8 @@ def collect_nw_objects(
     """
     Collect nw_objects from object tables and write them into global nw_objects dict
     """
-    if object_table["type"] not in cp_const.nw_obj_table_names:
+    table_type = object_table["type"]
+    if table_type not in cp_const.nw_obj_table_names and not cp_const.is_object_dictionary_only_obj_type(table_type):
         return
     for chunk in object_table["chunks"]:
         if "objects" in chunk:
@@ -159,8 +163,8 @@ def handle_object_type_and_ip(obj: dict[str, Any], ip_addr: str | None) -> tuple
         obj_type = obj["type"]
 
     if obj_type == "updatable-object":
-        first_ip = ANY_IP_START
-        last_ip = ANY_IP_END
+        first_ip = None
+        last_ip = None
         obj_type = "dynamic_net_obj"
 
     if obj_type in ["group-with-exclusion", "security-zone", "dynamic-object"]:
@@ -169,8 +173,8 @@ def handle_object_type_and_ip(obj: dict[str, Any], ip_addr: str | None) -> tuple
 
     if obj_type == "dns-domain":
         obj_type = "domain"
-        first_ip = ANY_IP_START
-        last_ip = ANY_IP_END
+        first_ip = None
+        last_ip = None
 
     if obj_type == "security-zone":
         first_ip = ANY_IP_START
@@ -188,7 +192,7 @@ def handle_object_type_and_ip(obj: dict[str, Any], ip_addr: str | None) -> tuple
                 + "' without hyphen: "
                 + ip_addr
             )
-    elif obj_type in cp_const.cp_specific_object_types:
+    elif obj_type in cp_const.cp_specific_object_types or cp_const.is_voip_domain_obj_type(obj_type):
         FWOLogger.debug(f"rewriting non-standard cp-host-type '{obj['name']}' with object type '{obj_type}' to host", 6)
         FWOLogger.debug("obj_dump:" + json.dumps(obj, indent=3), 6)
         obj_type = "host"
@@ -271,6 +275,22 @@ def make_host(ip_in: str) -> str | None:
     return None
 
 
+def convert_timestamp(timestamp: str) -> str:
+    """
+    In CP, time objects' time stamps are interpreted per-gateway for their local time zone. This means, the timestamps
+    we get from api, even though with explicit utc time zone, will not necessarily match the actual point-in-time used
+    after installation on gw. We assume the gw time zone is the same as the importer time zone and convert all timestamps
+    to utc based on that assumption.
+    """
+    try:
+        local_time = datetime.fromisoformat(timestamp)  # interpret timestamp in local timezone
+        utc_time = local_time.astimezone(timezone.utc)
+        return utc_time.isoformat()
+    except ValueError:
+        FWOLogger.warning(f"Failed to parse timestamp '{timestamp}', leaving it unchanged")
+        return timestamp
+
+
 def normalize_time_objects(full_config: dict[str, Any], config2import: dict[str, Any]):
     time_objects: list[dict[str, Any]] = []
 
@@ -282,8 +302,8 @@ def normalize_time_objects(full_config: dict[str, Any], config2import: dict[str,
                 TimeObject(
                     time_obj_uid=obj["uid"],
                     time_obj_name=obj["name"],
-                    start_time=None if obj["start-now"] else obj["start"]["iso-8601"],
-                    end_time=None if obj["end-never"] else obj["end"]["iso-8601"],
+                    start_time=None if obj["start-now"] else convert_timestamp(obj["start"]["iso-8601"]),
+                    end_time=None if obj["end-never"] else convert_timestamp(obj["end"]["iso-8601"]),
                 ).model_dump()  # TODO: rework dicts to models everywhere
                 for obj in chunk.get("objects", [])
             )

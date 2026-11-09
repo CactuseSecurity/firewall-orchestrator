@@ -1,0 +1,1030 @@
+using System.Text.Json;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Config.Api;
+using FWO.Config.Api.Data;
+using FWO.Data;
+using FWO.Data.Networking;
+using FWO.Middleware.Server.Controllers;
+using FWO.Test.Helpers;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
+
+namespace FWO.Test
+{
+    [TestFixture]
+    [Parallelizable]
+    internal class RuleControllerBranchingTest
+    {
+        private static readonly string[] kExpectedBothRuleNames = ["Source", "Destination"];
+        private static readonly string[] kExpectedZeroMinPrefixRuleNames = ["Source", "AnySource"];
+        private static readonly string[] kFirstPageRuleNames = ["Source"];
+        private static readonly string[] kSecondPageRuleNames = ["Destination"];
+        private static readonly string[] kBothPageRuleNames = ["Source", "Destination"];
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldWorkWithOwnerId()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-owner");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        OwnerId = 42
+                    }
+                }, "req-owner");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-owner", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual(1, response.Result.Rules[0].OwnerInformation.OwnerIds.Count);
+            ClassicAssert.AreEqual(42, response.Result.Rules[0].OwnerInformation.OwnerIds[0]);
+            ClassicAssert.AreEqual("owner-from-custom", response.Result.Rules[0].OwnerInformation.ExtAppId);
+            ClassicAssert.AreEqual("chg-4711", response.Result.Rules[0].AdditionalInformation.ChangeId);
+
+            string json = JsonSerializer.Serialize(response);
+            using JsonDocument document = JsonDocument.Parse(json);
+
+            JsonElement rule = document.RootElement.GetProperty("result").GetProperty("rules")[0];
+            JsonElement ownerInformation = rule.GetProperty("ownerInformation");
+            ClassicAssert.AreEqual("owner-from-custom", ownerInformation.GetProperty("extAppId").GetString());
+            ClassicAssert.AreEqual(1, ownerInformation.GetProperty("ownerIds").GetArrayLength());
+            ClassicAssert.AreEqual(42, ownerInformation.GetProperty("ownerIds")[0].GetInt32());
+            ClassicAssert.AreEqual("chg-4711", rule.GetProperty("additionalInformation").GetProperty("changeId").GetString());
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldWorkWithIpAddress()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(includeGroupRule: false), "req-ip");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 16,
+                            InField = "source"
+                        }
+                    }
+                }, "req-ip");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-ip", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual(1, response.Result.Rules[0].OwnerInformation.OwnerIds.Count);
+            ClassicAssert.AreEqual(42, response.Result.Rules[0].OwnerInformation.OwnerIds[0]);
+            ClassicAssert.AreEqual("owner-from-custom", response.Result.Rules[0].OwnerInformation.ExtAppId);
+            ClassicAssert.AreEqual("chg-4711", response.Result.Rules[0].AdditionalInformation.ChangeId);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldExcludeRuleWhenAnyFlattenedSourceObjectViolatesMinPrefix()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-group");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "source"
+                        }
+                    }
+                }, "req-group");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-group", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual("Source", response.Result.Rules[0].Name);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldApplyMinPrefixToDestinationWhenInFieldIsSource()
+        {
+            RuleController controller = CreateController(
+                new BranchingApiConnection(includeGroupRule: false, includeBroadDestinationRule: true),
+                "req-global-prefix");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "source"
+                        }
+                    }
+                }, "req-global-prefix");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-global-prefix", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual("Source", response.Result.Rules[0].Name);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldApplyMinPrefixToSourceWhenInFieldIsDestination()
+        {
+            RuleController controller = CreateController(
+                new BranchingApiConnection(includeGroupRule: false, includeBroadSourceRule: true),
+                "req-global-prefix-mirror");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "destination"
+                        }
+                    }
+                }, "req-global-prefix-mirror");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-global-prefix-mirror", response.RequestId);
+            ClassicAssert.AreEqual(0, response.Result.Count);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldTreatZeroMinPrefixAsNoPrefixRestriction()
+        {
+            RuleController controller = CreateController(
+                new BranchingApiConnection(includeGroupRule: false, includeAnyRule: true),
+                "req-zero-prefix");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 0,
+                            InField = "source"
+                        }
+                    }
+                }, "req-zero-prefix");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-zero-prefix", response.RequestId);
+            ClassicAssert.AreEqual(2, response.Result.Count);
+            CollectionAssert.AreEquivalent(kExpectedZeroMinPrefixRuleNames,
+                response.Result.Rules.Select(rule => rule.Name));
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldIncludeRuleWhenDestinationObjectMatches()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-destination");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "destination"
+                        }
+                    }
+                }, "req-destination");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-destination", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual("Destination", response.Result.Rules[0].Name);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldIncludeRuleWhenOnlyDestinationMatchesAndInFieldIsBoth()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-both");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "both"
+                        }
+                    }
+                }, "req-both");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-both", response.RequestId);
+            ClassicAssert.AreEqual(2, response.Result.Count);
+            CollectionAssert.AreEquivalent(kExpectedBothRuleNames, response.Result.Rules.Select(rule => rule.Name));
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldRejectSourcePrefixViolationWhenInFieldIsBoth()
+        {
+            RuleController controller = CreateController(
+                new BranchingApiConnection(includeGroupRule: false, includeBroadSourceRule: true),
+                "req-both-source-prefix");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "both"
+                        }
+                    }
+                }, "req-both-source-prefix");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-both-source-prefix", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual(0,
+                response.Result.Rules.Count(rule => rule.Name == "DestinationWithBroadSource"));
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldRejectDestinationPrefixViolationWhenInFieldIsBoth()
+        {
+            RuleController controller = CreateController(
+                new BranchingApiConnection(includeGroupRule: false, includeBroadDestinationRule: true),
+                "req-both-destination-prefix");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "both"
+                        }
+                    }
+                }, "req-both-destination-prefix");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-both-destination-prefix", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual(0,
+                response.Result.Rules.Count(rule => rule.Name == "SourceWithBroadDestination"));
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldLogSiemEntryWithOkResultAfterSuccess()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-siem-ok");
+            ActionResult<RulesByFilterResponse>? actionResult = null;
+
+            string output = await ConsoleOutput.CaptureAsync(async () =>
+            {
+                actionResult = await controller.GetRulesByFilter(
+                    new RulesByFilterRequest
+                    {
+                        RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                        Query = new RulesByFilterQuery { OwnerId = 42 }
+                    }, "req-siem-ok");
+            });
+
+            ClassicAssert.IsInstanceOf<OkObjectResult>(actionResult?.Result);
+            StringAssert.Contains("RequestId: \"req-siem-ok\",", output);
+            StringAssert.Contains("UserID: \"42\", UserName: \"debug\", OwnerId: 42, Result: ok", output);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldLogSiemEntryWithRejectedResultForInvalidIpFilter()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-siem-invalid-filter");
+            ActionResult<RulesByFilterResponse>? actionResult = null;
+
+            string output = await ConsoleOutput.CaptureAsync(async () =>
+            {
+                actionResult = await controller.GetRulesByFilter(
+                    new RulesByFilterRequest
+                    {
+                        RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                        Query = new RulesByFilterQuery { IpAddress = "10.1.2.3" }
+                    }, "req-siem-invalid-filter");
+            });
+
+            ClassicAssert.IsInstanceOf<BadRequestObjectResult>(actionResult?.Result);
+            StringAssert.Contains("RequestId: \"req-siem-invalid-filter\",", output);
+            StringAssert.Contains("UserName: \"debug\", IpAddress: \"10.1.2.3\", Result: rejected", output);
+        }
+
+        [Test]
+        public void GetRulesByFilter_OwnerLookupQuery_ShouldFilterRemovedRuleOwners()
+        {
+            StringAssert.Contains("removed: { _is_null: true }", RuleQueries.getRuleIdsByRuleOwner);
+        }
+
+        [Test]
+        public void GetRulesByFilter_RuleDetailsQuery_ShouldFilterRemovedRuleRelations()
+        {
+            AssertRelationFiltersActiveAndRemoved(RuleQueries.getRuleDetailsById, "rule_froms");
+            AssertRelationFiltersActiveAndRemoved(RuleQueries.getRuleDetailsById, "rule_tos");
+            AssertRelationFiltersActiveAndRemoved(RuleQueries.getRuleDetailsById, "rule_services");
+        }
+
+        [Test]
+        public void ActiveRulesByOwnerQuery_ShouldFilterRemovedRuleRelations()
+        {
+            AssertRelationFiltersActiveAndRemoved(RuleQueries.getActiveRulesByOwner, "rule_froms");
+            AssertRelationFiltersActiveAndRemoved(RuleQueries.getActiveRulesByOwner, "rule_tos");
+            AssertRelationFiltersActiveAndRemoved(RuleQueries.getActiveRulesByOwner, "rule_services");
+        }
+
+        [Test]
+        public void ActiveRulesByOwnerQuery_ShouldExcludeDisabledAndRemovedRules()
+        {
+            string ruleArguments = RemoveWhitespace(ExtractRelationArguments(RuleQueries.getActiveRulesByOwner, "firewall_rule"));
+            string ruleOwnerArguments = RemoveWhitespace(ExtractRuleOwnerFilter(RuleQueries.getActiveRulesByOwner));
+            string topLevelRuleArguments = ruleArguments.Replace(ruleOwnerArguments, "", StringComparison.Ordinal);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(topLevelRuleArguments, Does.Contain("rule_disabled:{_eq:false}"));
+                Assert.That(topLevelRuleArguments, Does.Contain("removed:{_is_null:true}"));
+                Assert.That(topLevelRuleArguments, Does.Contain("access_rule:{_eq:true}"));
+            });
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_PagesTheIpMatchesOrderedByRuleId()
+        {
+            RuleController firstPageController = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-page-1");
+            RuleController secondPageController = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-page-2");
+
+            RulesByFilterResponse firstPage = ExtractResponse(await firstPageController.GetRulesByFilter(BuildBothFieldsRequest(1, null), "req-page-1"));
+            RulesByFilterResponse secondPage = ExtractResponse(await secondPageController.GetRulesByFilter(BuildBothFieldsRequest(1, 1), "req-page-2"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstPage.Result.Rules.Select(rule => rule.Name), Is.EqualTo(kFirstPageRuleNames));
+                Assert.That(firstPage.Result.Count, Is.EqualTo(1));
+                Assert.That(HasMoreHeader(firstPageController), Is.EqualTo("true"));
+                Assert.That(secondPage.Result.Rules.Select(rule => rule.Name), Is.EqualTo(kSecondPageRuleNames));
+                Assert.That(HasMoreHeader(secondPageController), Is.EqualTo("false"));
+            });
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_TakesTheMaximumPageSizeFromTheConfiguration()
+        {
+            SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = GlobalConst.kMinRestResponseObjectLimit };
+            RuleController controller = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-config", globalConfig);
+            RuleController tooLargeController = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-config", globalConfig);
+
+            RulesByFilterResponse response = ExtractResponse(await controller.GetRulesByFilter(BuildBothFieldsRequest(null, null), "req-config"));
+            ActionResult<RulesByFilterResponse> tooLarge = await tooLargeController.GetRulesByFilter(
+                BuildBothFieldsRequest(GlobalConst.kMinRestResponseObjectLimit + 1, null), "req-config");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.Result.Rules.Select(rule => rule.Name), Is.EqualTo(kBothPageRuleNames));
+                Assert.That(HasMoreHeader(controller), Is.EqualTo("false"));
+                Assert.That(((BadRequestObjectResult)tooLarge.Result!).Value?.ToString(),
+                    Does.Contain($"between 1 and {GlobalConst.kMinRestResponseObjectLimit}"));
+            });
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_PagesTheOwnerRuleIdsBeforeFetchingDetails()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-owner-page");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    Query = new RulesByFilterQuery { OwnerId = 42 },
+                    Options = new RulesByFilterOptions { Offset = 1 }
+                }, "req-owner-page");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.Result.Count, Is.EqualTo(0));
+                Assert.That(response.Result.Rules, Is.Empty);
+                Assert.That(HasMoreHeader(controller), Is.EqualTo("false"));
+            });
+        }
+
+        [TestCase(0, null)]
+        [TestCase(GlobalConst.kDefaultMaxRestResponseObjectLimit + 1, null)]
+        [TestCase(null, -1)]
+        public async Task GetRulesByFilter_RejectsPagingOutOfRange(int? limit, int? offset)
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-invalid-paging");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(BuildBothFieldsRequest(limit, offset), "req-invalid-paging");
+
+            BadRequestObjectResult badRequest = actionResult.Result as BadRequestObjectResult
+                ?? throw new AssertionException("Expected a bad request.");
+            Assert.That(badRequest.Value?.ToString(), Does.StartWith("Invalid paging"));
+        }
+
+        [Test]
+        public void GetRulesByFilter_RequestDefaultsTheOptionsToAnEmptyObject()
+        {
+            RulesByFilterRequest request = JsonSerializer.Deserialize<RulesByFilterRequest>("{\"query\":{\"ownerId\":1}}", kWebJsonOptions)!;
+            RulesByFilterRequest pagedRequest = JsonSerializer.Deserialize<RulesByFilterRequest>("{\"options\":{\"limit\":3,\"offset\":6}}", kWebJsonOptions)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(request.Options, Is.Not.Null);
+                Assert.That(request.Options!.Limit, Is.Null);
+                Assert.That(request.Options.Offset, Is.Null);
+                Assert.That(pagedRequest.Options!.Limit, Is.EqualTo(3));
+                Assert.That(pagedRequest.Options.Offset, Is.EqualTo(6));
+            });
+        }
+
+        private static readonly JsonSerializerOptions kWebJsonOptions = new(JsonSerializerDefaults.Web);
+
+        private static RulesByFilterRequest BuildBothFieldsRequest(int? limit, int? offset)
+        {
+            return new RulesByFilterRequest
+            {
+                RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                Query = new RulesByFilterQuery
+                {
+                    IpAddress = "10.1.2.3",
+                    Filter = new RuleFilter { Action = "any", MinPrefixLength = 24, InField = "both" }
+                },
+                Options = new RulesByFilterOptions { Limit = limit, Offset = offset }
+            };
+        }
+
+        private static string HasMoreHeader(ControllerBase controller)
+        {
+            return controller.HttpContext.Response.Headers["X-Has-More"].ToString();
+        }
+
+        private static RuleController CreateController(ApiConnection apiConnection, string requestId, SimulatedGlobalConfig? globalConfig = null)
+        {
+            RuleController controller = new(apiConnection, globalConfig ?? new SimulatedGlobalConfig());
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            };
+            controller.ControllerContext.HttpContext.Request.Headers["X-Request-Id"] = requestId;
+            return controller;
+        }
+
+        private static RulesByFilterResponse ExtractResponse(ActionResult<RulesByFilterResponse> actionResult)
+        {
+            OkObjectResult okResult = actionResult.Result as OkObjectResult
+                ?? throw new AssertionException("Expected OK response.");
+            return okResult.Value as RulesByFilterResponse
+                ?? throw new AssertionException("Expected rules-by-filter payload.");
+        }
+
+        private static void AssertRelationFiltersActiveAndRemoved(string query, string relationName)
+        {
+            string arguments = ExtractRelationArguments(query, relationName);
+
+            StringAssert.Contains("where:", arguments);
+            StringAssert.Contains("active: { _eq: true }", arguments);
+            StringAssert.Contains("removed: { _is_null: true }", arguments);
+        }
+
+        private static string ExtractRelationArguments(string query, string relationName)
+        {
+            string marker = relationName + "(";
+            int startIndex = query.IndexOf(marker, StringComparison.Ordinal);
+            if (startIndex < 0)
+            {
+                Assert.Fail($"Could not find '{marker}' in the query.");
+            }
+
+            int argumentStart = startIndex + marker.Length;
+            int depth = 1;
+            for (int index = argumentStart; index < query.Length; ++index)
+            {
+                if (query[index] == '(')
+                {
+                    ++depth;
+                }
+                else if (query[index] == ')')
+                {
+                    --depth;
+                    if (depth == 0)
+                    {
+                        return query.Substring(argumentStart, index - argumentStart);
+                    }
+                }
+            }
+
+            Assert.Fail($"Could not find closing ')' for '{marker}' in the query.");
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Extracts the nested rule_owners filter object so top-level rule filters can be checked separately.
+        /// </summary>
+        private static string ExtractRuleOwnerFilter(string query)
+        {
+            const string marker = "rule_owners:";
+            int startIndex = query.IndexOf(marker, StringComparison.Ordinal);
+            int braceStart = startIndex < 0 ? -1 : query.IndexOf('{', startIndex);
+            if (braceStart < 0)
+            {
+                Assert.Fail($"Could not find '{marker}' filter in the query.");
+            }
+
+            int depth = 0;
+            for (int index = braceStart; index < query.Length; ++index)
+            {
+                if (query[index] == '{')
+                {
+                    ++depth;
+                }
+                else if (query[index] == '}')
+                {
+                    --depth;
+                    if (depth == 0)
+                    {
+                        return query.Substring(startIndex, index - startIndex + 1);
+                    }
+                }
+            }
+
+            Assert.Fail($"Could not find closing '}}' for '{marker}' in the query.");
+            return string.Empty;
+        }
+
+        private static string RemoveWhitespace(string text)
+        {
+            return string.Concat(text.Where(character => !char.IsWhiteSpace(character)));
+        }
+
+        private sealed class BranchingApiConnection : ApiConnection
+        {
+            private readonly bool _includeDestinationRule;
+            private readonly bool _includeGroupRule;
+            private readonly bool _includeBroadDestinationRule;
+            private readonly bool _includeBroadSourceRule;
+            private readonly bool _includeAnyRule;
+
+            public BranchingApiConnection(bool includeGroupRule = true, bool includeDestinationRule = false,
+                bool includeBroadDestinationRule = false, bool includeBroadSourceRule = false,
+                bool includeAnyRule = false)
+            {
+                _includeGroupRule = includeGroupRule;
+                _includeDestinationRule = includeDestinationRule;
+                _includeBroadDestinationRule = includeBroadDestinationRule;
+                _includeBroadSourceRule = includeBroadSourceRule;
+                _includeAnyRule = includeAnyRule;
+            }
+
+            public override void SetAuthHeader(string jwt)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void SetRole(string role)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void SwitchBack()
+            {
+                throw new NotImplementedException();
+            }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
+                string query,
+                object? variables = null,
+                string? operationName = null,
+                QueryChunkingOptions? options = null)
+            {
+                if (typeof(QueryResponseType) == typeof(ConfigItem[]) && query == ConfigQueries.getConfigItemsByUser)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new[]
+                    {
+                        new ConfigItem { Key = "CustomFieldOwnerKey", Value = @"[""owner_key""]", User = 0 },
+                        new ConfigItem { Key = "CustomFieldChangeIdKey", Value = @"[""change_key""]", User = 0 }
+                    });
+                }
+
+                if (typeof(QueryResponseType) == typeof(Language[]) && query == ConfigQueries.getLanguages)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new[]
+                    {
+                        new Language { Name = "English", CultureInfo = "en-US" }
+                    });
+                }
+
+                if (typeof(QueryResponseType) == typeof(List<UiText>) &&
+                    (query == ConfigQueries.getTextsPerLanguage || query == ConfigQueries.getCustomTextsPerLanguage))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<UiText>());
+                }
+
+                if (typeof(QueryResponseType) == typeof(List<RuleOwnerItem>) && query == RuleQueries.getRuleIdsByRuleOwner)
+                {
+                    int ownerId = GetIntVariable(variables, "ownerId");
+                    return Task.FromResult((QueryResponseType)(object)(ownerId == 42
+                        ? new List<RuleOwnerItem> { new() { RuleId = 101 } }
+                        : new List<RuleOwnerItem>()));
+                }
+
+                if (typeof(QueryResponseType) == typeof(List<Rule>) && query == RuleQueries.getRuleDetailsById)
+                {
+                    if (HasVariable(variables, "rule_ids"))
+                    {
+                        return Task.FromResult((QueryResponseType)(object)new List<Rule>
+                        {
+                            BuildMatchingRule(101)
+                        });
+                    }
+
+                    List<Rule> rules =
+                    [
+                        BuildMatchingRule(101),
+                        BuildNonMatchingRule(202)
+                    ];
+
+                    if (_includeGroupRule)
+                    {
+                        rules.Add(BuildGroupRule(303));
+                    }
+
+                    if (_includeDestinationRule)
+                    {
+                        rules.Add(BuildDestinationRule(404));
+                    }
+
+                    if (_includeBroadDestinationRule)
+                    {
+                        rules.Add(BuildSourceMatchWithBroadDestinationRule(505));
+                    }
+
+                    if (_includeBroadSourceRule)
+                    {
+                        rules.Add(BuildDestinationMatchWithBroadSourceRule(606));
+                    }
+
+                    if (_includeAnyRule)
+                    {
+                        rules.Add(BuildAnySourceRule(707));
+                    }
+
+                    return Task.FromResult((QueryResponseType)(object)rules);
+                }
+
+                throw new NotImplementedException($"Unexpected query: {query}");
+            }
+
+            public override Task<ApiResponse<QueryResponseType>> SendQuerySafeAsync<QueryResponseType>(
+                string query,
+                object? variables = null,
+                string? operationName = null)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(
+                Action<Exception> exceptionHandler,
+                GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler,
+                string subscription,
+                object? variables = null,
+                string? operationName = null)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void DisposeSubscriptions<T>()
+            {
+                throw new NotImplementedException();
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+            }
+
+            public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
+            {
+                throw new NotImplementedException();
+            }
+
+            private static bool HasVariable(object? variables, string name)
+            {
+                return variables?.GetType().GetProperty(name) is not null;
+            }
+
+            private static int GetIntVariable(object? variables, string name)
+            {
+                object? value = variables?.GetType().GetProperty(name)?.GetValue(variables);
+                return value is int intValue ? intValue : Convert.ToInt32(value);
+            }
+
+            private static Rule BuildMatchingRule(long ruleId)
+            {
+                return new Rule
+                {
+                    Id = ruleId,
+                    Name = "Source",
+                    RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
+                    Froms =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "source" },
+                            new NetworkObject
+                            {
+                                Id = 1,
+                                Name = "Source",
+                                IP = "10.1.2.3",
+                                IpEnd = "10.1.2.3",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    Tos =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "destination" },
+                            new NetworkObject
+                            {
+                                Id = 2,
+                                Name = "Destination",
+                                IP = "10.9.9.9",
+                                IpEnd = "10.9.9.9",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
+                };
+            }
+
+            private static Rule BuildNonMatchingRule(long ruleId)
+            {
+                return new Rule
+                {
+                    Id = ruleId,
+                    RuleOwner = [new RuleOwner { OwnerId = 999, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
+                    Froms =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "source" },
+                            new NetworkObject
+                            {
+                                Id = 3,
+                                Name = "Source",
+                                IP = "192.168.1.1",
+                                IpEnd = "192.168.1.1",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    Tos = [],
+                    CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
+                };
+            }
+
+            private static Rule BuildGroupRule(long ruleId)
+            {
+                NetworkObject matchingMember = new()
+                {
+                    Id = 31,
+                    Name = "MatchingMember",
+                    IP = "10.1.2.0",
+                    IpEnd = "10.1.2.255",
+                    Type = new NetworkObjectType { Name = ObjectType.Network }
+                };
+
+                NetworkObject broadMember = new()
+                {
+                    Id = 32,
+                    Name = "BroadMember",
+                    IP = "10.0.0.0",
+                    IpEnd = "10.255.255.255",
+                    Type = new NetworkObjectType { Name = ObjectType.Network }
+                };
+
+                NetworkObject unsupportedMember = new()
+                {
+                    Id = 33,
+                    Name = "Ipv6Member",
+                    IP = "2001:db8::",
+                    IpEnd = "2001:db8::ffff",
+                    Type = new NetworkObjectType { Name = ObjectType.Network }
+                };
+
+                NetworkObject group = new()
+                {
+                    Id = 30,
+                    Name = "MatchingGroup",
+                    Type = new NetworkObjectType { Name = ObjectType.Group },
+                    ObjectGroupFlats =
+                    [
+                        new GroupFlat<NetworkObject> { Object = matchingMember },
+                        new GroupFlat<NetworkObject> { Object = broadMember },
+                        new GroupFlat<NetworkObject> { Object = unsupportedMember }
+                    ]
+                };
+
+                return new Rule
+                {
+                    Id = ruleId,
+                    Name = "MatchingGroup",
+                    RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
+                    Froms =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "source" },
+                            group)
+                    ],
+                    Tos = [],
+                    CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
+                };
+            }
+
+            private static Rule BuildDestinationRule(long ruleId)
+            {
+                return new Rule
+                {
+                    Id = ruleId,
+                    Name = "Destination",
+                    RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
+                    Froms =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "source" },
+                            new NetworkObject
+                            {
+                                Id = 40,
+                                Name = "OtherSource",
+                                IP = "192.168.1.1",
+                                IpEnd = "192.168.1.1",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    Tos =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "destination" },
+                            new NetworkObject
+                            {
+                                Id = 41,
+                                Name = "MatchingDestination",
+                                IP = "10.1.2.0",
+                                IpEnd = "10.1.2.255",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
+                };
+            }
+
+            private static Rule BuildSourceMatchWithBroadDestinationRule(long ruleId)
+            {
+                return new Rule
+                {
+                    Id = ruleId,
+                    Name = "SourceWithBroadDestination",
+                    RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
+                    Froms =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "source" },
+                            new NetworkObject
+                            {
+                                Id = 50,
+                                Name = "MatchingSource",
+                                IP = "10.1.2.3",
+                                IpEnd = "10.1.2.3",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    Tos =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "destination" },
+                            new NetworkObject
+                            {
+                                Id = 51,
+                                Name = "BroadDestination",
+                                IP = "10.0.0.0",
+                                IpEnd = "10.255.255.255",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
+                };
+            }
+
+            private static Rule BuildDestinationMatchWithBroadSourceRule(long ruleId)
+            {
+                return new Rule
+                {
+                    Id = ruleId,
+                    Name = "DestinationWithBroadSource",
+                    RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
+                    Froms =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "source" },
+                            new NetworkObject
+                            {
+                                Id = 60,
+                                Name = "BroadSource",
+                                IP = "10.0.0.0",
+                                IpEnd = "10.255.255.255",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    Tos =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "destination" },
+                            new NetworkObject
+                            {
+                                Id = 61,
+                                Name = "MatchingDestination",
+                                IP = "10.1.2.3",
+                                IpEnd = "10.1.2.3",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
+                };
+            }
+
+            private static Rule BuildAnySourceRule(long ruleId)
+            {
+                return new Rule
+                {
+                    Id = ruleId,
+                    Name = "AnySource",
+                    RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
+                    Froms =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "source" },
+                            new NetworkObject
+                            {
+                                Id = 70,
+                                Name = "Any",
+                                IP = "0.0.0.0",
+                                IpEnd = "255.255.255.255",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    Tos = [],
+                    CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
+                };
+            }
+        }
+    }
+}

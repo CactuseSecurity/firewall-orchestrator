@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Report;
 using FWO.Report.Filter;
 using System.Text;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace FWO.Ui.Display
@@ -15,12 +16,12 @@ namespace FWO.Ui.Display
 
         public string OutputCsv(string? input)
         {
-            return $"\"{input ?? ""}\",";
+            return $"{CsvOutputEncoder.EncodeCell(input)},";
         }
 
         public string DisplayNumberCsv(Rule rule)
         {
-            return OutputCsv(DisplayNumber(rule));
+            return OutputCsv(rule.OrderNumber.ToString(CultureInfo.InvariantCulture));
         }
 
         public string DisplayNameCsv(Rule rule)
@@ -30,7 +31,7 @@ namespace FWO.Ui.Display
 
         public string DisplaySourceZoneCsv(Rule rule)
         {
-            return OutputCsv(ListNetworkZones(rule.RuleFromZones.Select(z => z.Content).ToArray()));
+            return OutputCsv(ListFirewallZones(rule.RuleFromZones.Select(z => z.Content).ToArray()));
         }
 
         public string DisplaySourceCsv(Rule rule, ReportType reportType)
@@ -40,7 +41,7 @@ namespace FWO.Ui.Display
 
         public string DisplayDestinationZoneCsv(Rule rule)
         {
-            return OutputCsv(ListNetworkZones(rule.RuleToZones.Select(z => z.Content).ToArray()));
+            return OutputCsv(ListFirewallZones(rule.RuleToZones.Select(z => z.Content).ToArray()));
         }
 
         public string DisplayDestinationCsv(Rule rule, ReportType reportType)
@@ -187,10 +188,10 @@ namespace FWO.Ui.Display
                 ?? Enumerable.Empty<string>());
         }
 
-        protected string ListNetworkZones(NetworkZone[] networkZones)
+        protected static string ListFirewallZones(FirewallZone[] firewallZones)
         {
             List<string> displayedZones = new List<string>();
-            foreach (NetworkZone networkZone in networkZones)
+            foreach (FirewallZone networkZone in firewallZones)
             {
                 displayedZones.Add(Quote(networkZone.Name));
             }

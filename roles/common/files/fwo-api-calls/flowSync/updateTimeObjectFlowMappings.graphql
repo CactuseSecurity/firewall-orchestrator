@@ -1,0 +1,5 @@
+mutation updateTimeObjectFlowMappings($updates: [time_object_updates!]!) {
+  update_time_object_many(updates: $updates) {
+    affected_rows
+  }
+}

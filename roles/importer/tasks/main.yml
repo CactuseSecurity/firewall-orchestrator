@@ -13,14 +13,14 @@
       register: importer_dir_check
 
     - name: backup importer dir
-      synchronize:
+      ansible.posix.synchronize:
         src: "{{ fworch_home }}/importer"
         dest: "{{ fworch_home }}/backup_importer"
       delegate_to: "{{ inventory_hostname }}"
       when: importer_dir_check.stat.exists and installation_mode == "upgrade"
 
     - name: copy importer files
-      synchronize:
+      ansible.posix.synchronize:
         src: "importer"
         dest: "{{ fworch_home }}"
         rsync_opts:
@@ -29,14 +29,35 @@
           - "--chown={{ fworch_user }}:{{ fworch_group }}"
       tags: ["test"]
 
-    - name: Install importer python3-venv package (for Ubuntu/Debian)
+    - name: Install importer venv package
       package:
-        name: python3-venv
+        name: "{{ python_venv_package_name }}"
         state: present
+
+    - name: Check importer Python version
+      command:
+        argv:
+          - "{{ importer_python_interpreter }}"
+          - -c
+          - "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"
+      register: importer_python_version_check
+      changed_when: false
+      failed_when: false
+
+    - name: Require Python 3.10 or newer for the importer
+      assert:
+        that: importer_python_version_check.rc == 0
+        fail_msg: "The importer requires Python 3.10 or newer ({{ importer_python_interpreter }} is older or not usable)."
+
+    - name: Remove an importer venv built for another Python version
+      include_tasks: "{{ role_path }}/../common/tasks/reset-outdated-python-venv.yml"
+      vars:
+        python_venv_dir: "{{ importer_venv_dir }}"
+        python_venv_interpreter: "{{ importer_python_interpreter }}"
 
     - name: Create Python virtual environment
       ansible.builtin.command:
-        cmd: python3 -m venv {{ importer_venv_dir }}
+        cmd: '{{ importer_python_interpreter }} -m venv {{ importer_venv_dir }}'
         creates: "{{ importer_venv_dir }}"
 
     - name: Install Python packages from requirements.txt
@@ -44,6 +65,16 @@
         requirements: "{{ fworch_home }}/importer/requirements.txt"
         virtualenv: "{{ importer_venv_dir }}"
       environment: "{{ proxy_env }}"
+
+    - name: Set importer venv ownership and readable permissions
+      file:
+        path: "{{ importer_venv_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "u=rwX,g=rX,o=rX"
+        follow: false
+        recurse: true
 
     - name: set x-flag for importer executables (top level only)
       file:
@@ -61,14 +92,31 @@
         mode: "0755"
       loop:
         - /var/{{ product_name }}
-        - /var/{{ product_name }}/tmp
         - /var/{{ product_name }}/import_archive
+
+    # the operator adds the verified host keys; an existing file is never overwritten
+    - name: create the SSH known hosts file for firewalls imported over SSH
+      copy:
+        content: ""
+        dest: "{{ importer_ssh_known_hosts_file }}"
+        force: false
+        owner: root
+        group: "{{ fworch_group }}"
+        mode: "0644"
+      become: true
+
+    - name: keep the SSH known hosts file writable by root only
+      file:
+        path: "{{ importer_ssh_known_hosts_file }}"
+        owner: root
+        group: "{{ fworch_group }}"
+        mode: "0644"
+      become: true
 
     - name: copy api-importer systemd service script
       template:
         src: "{{ product_name }}-importer-api.service.j2"
-        dest: "/lib/systemd/system/{{ product_name }}-importer-api.service"
-        backup: true
+        dest: "{{ fworch_systemd_unit_dir }}/{{ product_name }}-importer-api.service"
         mode: "0644"
         owner: "root"
       become: true
@@ -79,6 +127,17 @@
     - name: include upgrade script
       import_tasks: run-upgrades.yml
       when: "installation_mode == 'upgrade'"
+
+    # like the ui and middleware roles, the importer enables its own unit in its own role - it is
+    # only started by the last play in site.yml, so this is the task which makes it survive a
+    # reboot. it comes after the credentials and the upgrade scripts, so that a host which is
+    # rebooted before the installation finishes does not start an importer which cannot work yet
+    - name: make importer run at host startup
+      ansible.builtin.systemd:
+        name: "{{ product_name }}-importer-api"
+        enabled: true
+        daemon_reload: true
+      become: true
 
     - name: finalize handler for datarecovery
       set_fact:

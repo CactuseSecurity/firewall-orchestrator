@@ -1,0 +1,12 @@
+query getFlowRequestNwObjectCatalog {
+  nwobjects: flow_nwobject(order_by: [{ name: asc }, { nwobj_id: asc }]) {
+    nwobj_id
+    name
+    ip_start
+    ip_end
+    nwobj_hash
+    state
+    removed_date
+    show_in_request_module
+  }
+}

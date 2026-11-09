@@ -1,4 +1,4 @@
-fragment ruleOverview on rule {
+fragment ruleOverview on firewall_rule {
   rule_id
   rule_uid
   dev_id
@@ -28,7 +28,6 @@ fragment ruleOverview on rule {
   rule_dst
   rule_svc
   rule_num_numeric
-  rule_num
   rule_name
   rule_custom_fields
   rule_installon
@@ -96,10 +95,5 @@ fragment ruleOverview on rule {
       ...networkServiceOverview
     }
   }
-  rule_enforced_on_gateways(order_by:{ device: { dev_name: asc } }) {
-    device {
-      id: dev_id
-      name: dev_name
-    }
-  }
+  ...ruleEnforcedOnGateways
 }

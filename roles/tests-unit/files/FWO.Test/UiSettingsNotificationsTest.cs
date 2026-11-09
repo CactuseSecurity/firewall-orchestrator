@@ -1,5 +1,8 @@
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Data;
 using FWO.Ui.Pages.Settings;
 using NUnit.Framework;
 using System.Collections;
@@ -44,6 +47,16 @@ namespace FWO.Test
             return (T)field.GetValue(component)!;
         }
 
+        private static T GetPrivateProperty<T>(SettingsNotifications component, string propertyName)
+        {
+            PropertyInfo? property = typeof(SettingsNotifications).GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property == null)
+            {
+                throw new MissingMemberException(typeof(SettingsNotifications).FullName, propertyName);
+            }
+            return (T)property.GetValue(component)!;
+        }
+
         private static void SetInjectedGlobalConfig(SettingsNotifications component, GlobalConfig globalConfig)
         {
             PropertyInfo? prop = typeof(SettingsNotifications).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
@@ -53,6 +66,17 @@ namespace FWO.Test
                 throw new MissingMemberException(typeof(SettingsNotifications).FullName, "globalConfig");
             }
             prop.SetValue(component, globalConfig);
+        }
+
+        private static void SetInjectedService(SettingsNotifications component, Type serviceType, object service)
+        {
+            PropertyInfo? prop = typeof(SettingsNotifications).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .FirstOrDefault(p => p.PropertyType == serviceType);
+            if (prop == null)
+            {
+                throw new MissingMemberException(typeof(SettingsNotifications).FullName, serviceType.Name);
+            }
+            prop.SetValue(component, service);
         }
 
         private static IList CreateInitiatorList()
@@ -130,6 +154,82 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task OnInitializedAsync_UsesExplicitDefaultOption_WhenNotificationLanguageIsUnset()
+        {
+            SettingsNotifications component = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                DefaultLanguage = "German",
+                NotificationLanguage = "",
+                UiLanguages =
+                [
+                    new Language { Name = "German", CultureInfo = "de-DE" },
+                    new Language { Name = "English", CultureInfo = "en-US" }
+                ]
+            };
+            SetInjectedGlobalConfig(component, globalConfig);
+
+            Task initTask = (Task)GetPrivateMethod("OnInitializedAsync").Invoke(component, null)!;
+            await initTask;
+
+            Language defaultOption = GetPrivateField<Language>(component, "defaultNotificationLanguage");
+            Language selected = GetPrivateField<Language>(component, "selectedNotificationLanguage");
+            List<Language> options = GetPrivateProperty<IEnumerable<Language>>(component, "NotificationLanguageOptions").ToList();
+            Assert.That(selected, Is.SameAs(defaultOption));
+            Assert.That(options[0], Is.SameAs(defaultOption));
+            Assert.That(options.Count(option => ReferenceEquals(option, defaultOption)), Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task OnInitializedAsync_UsesConcreteSelection_WhenNotificationLanguageIsConfigured()
+        {
+            SettingsNotifications component = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                DefaultLanguage = "German",
+                NotificationLanguage = "English",
+                UiLanguages =
+                [
+                    new Language { Name = "German", CultureInfo = "de-DE" },
+                    new Language { Name = "English", CultureInfo = "en-US" }
+                ]
+            };
+            SetInjectedGlobalConfig(component, globalConfig);
+
+            Task initTask = (Task)GetPrivateMethod("OnInitializedAsync").Invoke(component, null)!;
+            await initTask;
+
+            Language selected = GetPrivateField<Language>(component, "selectedNotificationLanguage");
+            Assert.That(selected.Name, Is.EqualTo("English"));
+        }
+
+        [Test]
+        public async Task OnInitializedAsync_FlagsUnknownStoredNotificationLanguage()
+        {
+            SettingsNotifications component = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                DefaultLanguage = "German",
+                NotificationLanguage = "French",
+                UiLanguages =
+                [
+                    new Language { Name = "German", CultureInfo = "de-DE" },
+                    new Language { Name = "English", CultureInfo = "en-US" }
+                ]
+            };
+            SetInjectedGlobalConfig(component, globalConfig);
+
+            Task initTask = (Task)GetPrivateMethod("OnInitializedAsync").Invoke(component, null)!;
+            await initTask;
+
+            Language defaultOption = GetPrivateField<Language>(component, "defaultNotificationLanguage");
+            Language selected = GetPrivateField<Language>(component, "selectedNotificationLanguage");
+            bool hasUnknownSelection = GetPrivateField<bool>(component, "hasUnknownNotificationLanguageSelection");
+            Assert.That(selected, Is.SameAs(defaultOption));
+            Assert.That(hasUnknownSelection, Is.True);
+        }
+
+        [Test]
         public void AddInitiatorKey_AddsTrimmedValue_AndSkipsCaseInsensitiveDuplicates()
         {
             SettingsNotifications component = new();
@@ -184,6 +284,87 @@ namespace FWO.Test
             Assert.That(serializedMap!.ContainsKey("user"), Is.False);
             Assert.That(serializedMap["nsb"], Is.EqualTo("by nsb"));
             Assert.That(serializedMap["app"], Is.EqualTo("from app"));
+        }
+
+        [Test]
+        public void PrepareConfigData_PreservesUnknownStoredNotificationLanguage()
+        {
+            SettingsNotifications component = new();
+            ConfigData configData = new()
+            {
+                NotificationLanguage = "French"
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                UiLanguages =
+                [
+                    new Language { Name = "German", CultureInfo = "de-DE" },
+                    new Language { Name = "English", CultureInfo = "en-US" }
+                ]
+            };
+
+            SetInjectedGlobalConfig(component, globalConfig);
+            SetPrivateField(component, "configData", configData);
+            SetPrivateField(component, "selectedNotificationLanguage", new Language());
+            SetPrivateField(component, "hasUnknownNotificationLanguageSelection", true);
+            SetPrivateField(component, "initiatorKeys", CreateInitiatorList());
+            SetPrivateField(component, "initiatorKeysToDelete", CreateInitiatorList());
+            SetPrivateField(component, "initiatorKeysToAdd", CreateInitiatorList());
+
+            GetPrivateMethod("PrepareConfigData").Invoke(component, null);
+
+            Assert.That(configData.NotificationLanguage, Is.EqualTo("French"));
+        }
+
+        [Test]
+        public async Task Save_PersistsPreparedConfigAndClearsPendingInitiatorChanges()
+        {
+            SettingsNotifications component = new();
+            SimulatedGlobalConfig globalConfig = new();
+            SettingsNotificationsApiConnection apiConnection = new();
+            SetInjectedGlobalConfig(component, globalConfig);
+            SetInjectedService(component, typeof(ApiConnection), apiConnection);
+            SetInjectedService(component, typeof(UserConfig), new SimulatedUserConfig());
+
+            IList initiatorKeys = CreateInitiatorList();
+            IList initiatorKeysToAdd = CreateInitiatorList();
+            IList initiatorKeysToDelete = CreateInitiatorList();
+            initiatorKeysToAdd.Add(CreateInitiatorEntry("custom", "Custom text"));
+            SetPrivateField(component, "configData", new ConfigData { RuleExpiryEmailBody = "Updated body" });
+            SetPrivateField(component, "initiatorKeys", initiatorKeys);
+            SetPrivateField(component, "initiatorKeysToAdd", initiatorKeysToAdd);
+            SetPrivateField(component, "initiatorKeysToDelete", initiatorKeysToDelete);
+
+            await (Task)GetPrivateMethod("Save").Invoke(component, null)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.LastConfigItems.Any(item => item.Key == "ruleExpiryEmailBody" && item.Value == "Updated body"), Is.True);
+                Assert.That(GetPrivateField<IList>(component, "initiatorKeysToAdd"), Is.Empty);
+                Assert.That(GetPrivateField<IList>(component, "initiatorKeysToDelete"), Is.Empty);
+            });
+        }
+
+        private sealed class SettingsNotificationsApiConnection : SimulatedApiConnection
+        {
+            public int UpsertConfigCallCount { get; private set; }
+            public List<ConfigItem> LastConfigItems { get; private set; } = [];
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
+                string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == ConfigQueries.upsertConfigItems)
+                {
+                    UpsertConfigCallCount++;
+                    PropertyInfo configItemsProperty = variables?.GetType().GetProperty("config_items")
+                        ?? throw new ArgumentException("Missing config_items variable.");
+                    LastConfigItems = ((IEnumerable<ConfigItem>)configItemsProperty.GetValue(variables)!).ToList();
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
+
+                throw new NotImplementedException($"Unexpected query: {query}");
+            }
         }
     }
 }

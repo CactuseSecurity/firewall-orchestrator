@@ -1,0 +1,440 @@
+using FWO.Basics;
+using FWO.Data.Middleware;
+using FWO.Logging;
+using FWO.Middleware.Client;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using RestSharp;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
+
+namespace FWO.Ui.Services
+{
+    /// <summary>
+    /// Manages token pairs (access + refresh tokens) for the current user session.
+    /// </summary>
+    public class TokenService
+    {
+        private readonly MiddlewareClient middlewareClient;
+        private readonly ISessionStorage sessionStorage;
+        private TokenPair? currentTokenPair;
+        private readonly JwtSecurityTokenHandler jwtHandler = new();
+        private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
+        private readonly SemaphoreSlim initializationSemaphore = new(1, 1);
+        private const string TOKEN_PAIR_KEY = "token_pair";
+        private const int kServerErrorStatusFloor = 500;
+        private bool initialized;
+
+        /// <summary>
+        /// Initializes a new instance of the TokenService class.
+        /// </summary>
+        /// <param name="middlewareClient">The middleware client for token operations.</param>
+        /// <param name="sessionStorage">The session storage for persisting tokens.</param>
+        public TokenService(MiddlewareClient middlewareClient, ISessionStorage sessionStorage)
+        {
+            this.middlewareClient = middlewareClient;
+            this.sessionStorage = sessionStorage;
+        }
+
+        /// <summary>
+        /// Initializes the TokenService by trying to load any existing token pair from session storage.
+        /// </summary>
+        /// <returns></returns>
+        private async Task<bool> InitializeAsync()
+        {
+            try
+            {
+                ProtectedBrowserStorageResult<TokenPair> result = await sessionStorage.GetAsync<TokenPair>(TOKEN_PAIR_KEY)
+                    .WaitAsync(TimeSpan.FromSeconds(5));
+
+                if (result.Success && result.Value != null)
+                {
+                    currentTokenPair = result.Value;
+                }
+
+                return true;
+            }
+            catch (CryptographicException ex)
+            {
+                Log.WriteWarning("Token", $"Unreadable protected session token pair detected, trying to clear stored data: {ex.Message}");
+
+                await ClearStoredTokenPairCore();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteWarning("Token", $"Failed to initialize session storage: {ex.Message}. {GlobalConst.BrowserResourceSaving}.");
+                return false;
+            }
+        }
+
+        private async Task EnsureInitializedAsync()
+        {
+            if (initialized)
+            {
+                return;
+            }
+
+            await initializationSemaphore.WaitAsync();
+            try
+            {
+                if (initialized)
+                {
+                    return;
+                }
+
+                initialized = await InitializeAsync();
+            }
+            finally
+            {
+                initializationSemaphore.Release();
+            }
+        }
+
+        /// <summary>
+        /// Sets the current token pair and stores it in session storage.
+        /// </summary>
+        /// <param name="tokenPair">The <see cref="TokenPair"/> object to set and persist.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public async Task SetTokenPair(TokenPair tokenPair)
+        {
+            currentTokenPair = tokenPair;
+            initialized = true;
+
+            try
+            {
+                await sessionStorage.SetAsync(TOKEN_PAIR_KEY, tokenPair)
+                    .WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (Exception ex)
+            {
+                Log.WriteWarning("Token", $"Failed to write token pair to session storage: {ex.Message}. {GlobalConst.BrowserResourceSaving}.");
+            }
+        }
+
+        /// <summary>
+        /// Gets the current access token.
+        /// </summary>
+        /// <returns>The access token or null if not available.</returns>
+        public async Task<string?> GetAccessToken()
+        {
+            await EnsureInitializedAsync();
+
+            return currentTokenPair?.AccessToken;
+        }
+
+        /// <summary>
+        /// Gets the full <see cref="TokenPair"/> info
+        /// </summary>
+        /// <returns>Token Pair object</returns>
+        public async Task<TokenPair?> GetTokenPair()
+        {
+            await EnsureInitializedAsync();
+
+            return currentTokenPair;
+        }
+
+        /// <summary>
+        /// Checks whether a refresh token is available for the current session.
+        /// </summary>
+        /// <returns>True if a refresh token is available; otherwise false.</returns>
+        public async Task<bool> HasRefreshToken()
+        {
+            await EnsureInitializedAsync();
+
+            return currentTokenPair != null && !string.IsNullOrWhiteSpace(currentTokenPair.RefreshToken);
+        }
+
+        /// <summary>
+        /// Checks whether a access token is available for the current session.
+        /// </summary>
+        /// <returns>True if a access token is available; otherwise false.</returns>
+        public async Task<bool> HasAccessToken()
+        {
+            await EnsureInitializedAsync();
+
+            return currentTokenPair != null && !string.IsNullOrWhiteSpace(currentTokenPair.AccessToken);
+        }
+
+        /// <summary>
+        /// Gets the current access and refresh token expiration timestamps.
+        /// </summary>
+        /// <returns>The current access and refresh token expiration timestamps, or null values when no token pair is stored.</returns>
+        public async Task<(DateTime? AccessTokenExpiresAtUtc, DateTime? RefreshTokenExpiresAtUtc)> GetTokenExpirations()
+        {
+            await EnsureInitializedAsync();
+
+            if (currentTokenPair is null)
+            {
+                return (null, null);
+            }
+
+            return
+            (
+                NormalizeTokenExpiration(currentTokenPair.AccessTokenExpires),
+                NormalizeTokenExpiration(currentTokenPair.RefreshTokenExpires)
+            );
+        }
+
+        /// <summary>
+        /// Checks if the current access token is expired or about to expire within the next minute.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> IsAccessTokenExpired()
+        {
+            await EnsureInitializedAsync();
+
+            if (currentTokenPair is null || string.IsNullOrEmpty(currentTokenPair.AccessToken))
+            {
+                return true;
+            }
+
+            try
+            {
+                JwtSecurityToken token = jwtHandler.ReadJwtToken(currentTokenPair.AccessToken);
+
+                return token.ValidTo <= DateTime.UtcNow.AddMinutes(1);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteWarning("Token Check", $"Failed to read JWT: {ex.Message}");
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Refreshes the token pair using the current refresh token.
+        /// </summary>
+        /// <returns>The refreshed token pair, or the current pair if no refresh is required. Returns null on failure.</returns>
+        public async Task<TokenPair?> RefreshTokenPair(bool force = false)
+        {
+            return (await TryRefreshTokenPair(force)).Tokens;
+        }
+
+        /// <summary>
+        /// Refreshes the token pair and reports whether a failure settles the session.
+        /// </summary>
+        /// <param name="force">Refresh even when the current access token has not expired.</param>
+        /// <returns>
+        /// The refreshed pair, or a result whose <see cref="TokenRefreshResult.Retryable"/>
+        /// tells the caller whether the stored pair may still be good.
+        /// </returns>
+        public async Task<TokenRefreshResult> TryRefreshTokenPair(bool force = false)
+        {
+            await EnsureInitializedAsync();
+
+            if (currentTokenPair is null || !await HasRefreshToken())
+            {
+                Log.WriteWarning("Token Refresh", "No refresh token available");
+
+                return TokenRefreshResult.Settled;
+            }
+
+            await refreshSemaphore.WaitAsync();
+
+            try
+            {
+                if (!force && !await IsAccessTokenExpired())
+                {
+                    return new TokenRefreshResult(currentTokenPair, false);
+                }
+
+                RefreshTokenRequest refreshRequest = new()
+                {
+                    RefreshToken = currentTokenPair.RefreshToken
+                };
+
+                RestResponse<TokenPair> response = await middlewareClient.RefreshToken(refreshRequest);
+                TokenPair? refreshedTokenPair = TokenPairResponseParser.Parse(response, "Token Refresh");
+
+                if (response.IsSuccessful && refreshedTokenPair != null)
+                {
+                    await SetTokenPair(refreshedTokenPair);
+
+                    Log.WriteInfo("Token Refresh", "Successfully refreshed access token");
+
+                    return new TokenRefreshResult(refreshedTokenPair, false);
+                }
+
+                bool retryable = IsRetryable(response);
+
+                Log.WriteWarning("Token Refresh", $"Failed to refresh token{(retryable ? " (retryable)" : "")}: " +
+                    $"{response.ErrorMessage ?? response.Content}");
+
+                return new TokenRefreshResult(null, retryable);
+            }
+            catch (TaskCanceledException)
+            {
+                // Abandoned rather than answered, so nothing was learned about the token.
+                return TokenRefreshResult.Retry;
+            }
+            catch (OperationCanceledException)
+            {
+                return TokenRefreshResult.Retry;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError("Token Refresh", "Error refreshing access token", ex);
+
+                return TokenRefreshResult.Retry;
+            }
+            finally
+            {
+                refreshSemaphore.Release();
+            }
+        }
+
+        /// <summary>
+        /// Asks the middleware whether the session of the current token pair is still live. Runs under the refresh
+        /// lock, so that a concurrent rotation cannot make the check look at a refresh token it just consumed.
+        /// </summary>
+        /// <returns>Whether the session is live, has ended, or could not be checked this time.</returns>
+        public async Task<SessionCheckOutcome> CheckSession()
+        {
+            await EnsureInitializedAsync();
+
+            await refreshSemaphore.WaitAsync();
+            try
+            {
+                if (currentTokenPair is null || string.IsNullOrWhiteSpace(currentTokenPair.RefreshToken))
+                {
+                    return SessionCheckOutcome.Unknown;
+                }
+
+                RestResponse<bool> response = await middlewareClient.CheckSession(new SessionCheckParameters { RefreshToken = currentTokenPair.RefreshToken });
+                return ToSessionCheckOutcome(response);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning("Session Check", $"Could not check the session this time: {exception.Message}");
+                return SessionCheckOutcome.Unknown;
+            }
+            finally
+            {
+                refreshSemaphore.Release();
+            }
+        }
+
+        /// <summary>
+        /// Interprets the answer of a session check. Only an explicit verdict ends the session; an incomplete
+        /// attempt or a server error says nothing about it.
+        /// </summary>
+        private static SessionCheckOutcome ToSessionCheckOutcome(RestResponse<bool> response)
+        {
+            if (response.ResponseStatus != ResponseStatus.Completed)
+            {
+                return SessionCheckOutcome.Unknown;
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                // Read the content, not Data: Data is false for an unreadable answer, too.
+                if (!bool.TryParse(response.Content?.Trim(), out bool live))
+                {
+                    return SessionCheckOutcome.Unknown;
+                }
+
+                return live ? SessionCheckOutcome.Live : SessionCheckOutcome.Ended;
+            }
+
+            return response.StatusCode switch
+            {
+                System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden => SessionCheckOutcome.Ended,
+                _ => SessionCheckOutcome.Unknown
+            };
+        }
+
+        /// <summary>
+        /// Whether a failed refresh says nothing about the refresh token itself.
+        /// </summary>
+        /// <param name="response">Response the middleware returned.</param>
+        /// <returns>True when the attempt did not complete or the middleware could not carry it out.</returns>
+        private static bool IsRetryable(RestResponse response)
+        {
+            // ResponseStatus covers the cases where no HTTP answer arrived at all. A 5xx is
+            // an answer saying the middleware could not carry the request out - among them
+            // the 503 it returns when the API is unreachable. Anything else, 401 above all,
+            // is its verdict on this token and does settle the session.
+            return response.ResponseStatus != ResponseStatus.Completed
+                || (int)response.StatusCode >= kServerErrorStatusFloor;
+        }
+
+        private static DateTime? NormalizeTokenExpiration(DateTime expiration)
+        {
+            if (expiration == default)
+            {
+                return null;
+            }
+
+            return expiration.Kind switch
+            {
+                DateTimeKind.Unspecified => DateTime.SpecifyKind(expiration, DateTimeKind.Utc),
+                _ => expiration.ToUniversalTime()
+            };
+        }
+
+        /// <summary>
+        /// Revokes the current refresh token and clears the stored token pair.
+        /// </summary>
+        /// <returns></returns>
+        public async Task RevokeTokens()
+        {
+            await EnsureInitializedAsync();
+
+            try
+            {
+                if (!await HasRefreshToken())
+                {
+                    return;
+                }
+
+                RefreshTokenRequest revokeTokenRequest = new()
+                {
+                    RefreshToken = currentTokenPair?.RefreshToken!
+                };
+
+                RestResponse response = await middlewareClient.RevokeRefreshToken(revokeTokenRequest);
+
+                if (!response.IsSuccessful)
+                {
+                    Log.WriteWarning("Token Revoke", $"Server-side revoke failed during logout: {response.StatusCode} {response.ErrorMessage ?? response.Content}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteWarning("Token Revoke", $"Server-side revoke failed during logout: {ex.Message}");
+            }
+            finally
+            {
+                await ClearStoredTokenPair();
+            }
+        }
+
+        /// <summary>
+        /// Clears the stored token pair from memory and session storage without revoking it, e.g. for a session
+        /// the middleware has already ended.
+        /// </summary>
+        public async Task ClearStoredTokenPair()
+        {
+            await EnsureInitializedAsync();
+
+            await ClearStoredTokenPairCore();
+        }
+
+        private async Task ClearStoredTokenPairCore()
+        {
+            currentTokenPair = null;
+            initialized = true;
+
+            try
+            {
+                await sessionStorage.DeleteAsync(TOKEN_PAIR_KEY)
+                    .WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (Exception ex)
+            {
+                Log.WriteDebug("Token", $"Failed to clear stored token pair: {ex.Message}. {GlobalConst.BrowserResourceSaving}.");
+            }
+        }
+    }
+}

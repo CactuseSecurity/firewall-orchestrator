@@ -22,8 +22,10 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Run the Area IP Data Import
         /// </summary>
-        public async Task<List<string>> Run()
+        /// <param name="cancellationToken">Stops before the next file or area; nothing is saved or deleted when stopped while reading files.</param>
+        public async Task<List<string>> Run(CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportSubnetDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
             List<ModellingImportNwData> AllNwData = [];
             List<string> FailedImports = [];
@@ -31,15 +33,18 @@ namespace FWO.Middleware.Server
             // iterate over all files
             foreach (var importfilePathAndName in importfilePathAndNames)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 await ImportSingleFile(importfilePathAndName, AllNwData, FailedImports);
             }
 
+            // areas missing from the merged data get deleted, so only continue with the data of all files
+            cancellationToken.ThrowIfCancellationRequested();
             // merge all data into a single list of areas
             ModellingImportNwData mergedNwData = MergeNetworkData(AllNwData);
 
             if (mergedNwData.Areas.Count > 0)
             {
-                await SaveMergedNwData(mergedNwData);
+                await SaveMergedNwData(mergedNwData, cancellationToken);
             }
             else
             {
@@ -52,15 +57,18 @@ namespace FWO.Middleware.Server
 
         private async Task ImportSingleFile(string importfilePathAndName, List<ModellingImportNwData> allNwData, List<string> failedImports)
         {
-            if (!RunImportScript(importfilePathAndName + ".py", null))
+            string importSourcePath = ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
+            List<string> validatedImportFiles = ValidateConfiguredImportSource(importSourcePath);
+            string scriptPath = importSourcePath + ".py";
+            if (validatedImportFiles.Contains(scriptPath) && !RunImportScript(scriptPath, null))
             {
-                Log.WriteInfo(LogMessageTitle, $"Script {importfilePathAndName}.py failed but trying to import from existing file.");
+                Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying to import from existing file.");
             }
 
             try
             {
-                Log.WriteInfo(LogMessageTitle, $"Importing Area Network Data from file {importfilePathAndName}.json");
-                ReadFile(importfilePathAndName + ".json");
+                Log.WriteInfo(LogMessageTitle, $"Importing Area Network Data from file {importSourcePath}.json");
+                ReadFile(importSourcePath + ".json");
                 ModellingImportNwData nwData = JsonSerializer.Deserialize<ModellingImportNwData>(importFile) ?? throw new JsonException("File could not be parsed.");
                 if (nwData.Areas.Count > 0)
                 {
@@ -68,19 +76,19 @@ namespace FWO.Middleware.Server
                 }
                 else
                 {
-                    Log.WriteInfo(LogMessageTitle, $"Nothing found to import in file {importfilePathAndName}.json");
+                    Log.WriteInfo(LogMessageTitle, $"Nothing found to import in file {importSourcePath}.json");
                 }
             }
             catch (Exception ex)
             {
-                string errorText = $"Import from file {importfilePathAndName}.json could not be processed.";
+                string errorText = $"Import from file {importSourcePath}.json could not be processed.";
                 Log.WriteError(LogMessageTitle, errorText, ex);
                 await AddLogEntry(GlobalConst.kImportAreaSubnetData, 2, LevelFile, errorText);
-                failedImports.Add(importfilePathAndName);
+                failedImports.Add(importSourcePath);
             }
         }
 
-        private async Task SaveMergedNwData(ModellingImportNwData mergedNwData)
+        private async Task SaveMergedNwData(ModellingImportNwData mergedNwData, CancellationToken cancellationToken)
         {
             int successCounter = 0;
             int failCounter = 0;
@@ -91,6 +99,7 @@ namespace FWO.Middleware.Server
 
             foreach (ModellingImportAreaData incomingArea in mergedNwData.Areas)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (await SaveArea(incomingArea))
                 {
                     ++successCounter;
@@ -102,6 +111,7 @@ namespace FWO.Middleware.Server
             }
             foreach (ModellingNetworkArea existingArea in existingAreas)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (mergedNwData.Areas.FirstOrDefault(x => x.IdString == existingArea.IdString) == null)
                 {
                     if (await DeleteArea(existingArea))

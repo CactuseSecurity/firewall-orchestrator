@@ -1,11 +1,11 @@
 query getRulesByIdWithRefUids ($ruleIds:[bigint!]!) {
-    rule (where:{rule_id:{_in:$ruleIds}}) {
+    firewall_rule (where:{rule_id:{_in:$ruleIds} access_rule: { _eq: true }}) {
         rule_id
         rule_src_refs
         rule_dst_refs
         rule_svc_refs
-        rule_to_zone
-        rule_from_zone
+        rule_dst_zone
+        rule_src_zone
         rule_src_neg
         rule_dst_neg
         rule_svc_neg

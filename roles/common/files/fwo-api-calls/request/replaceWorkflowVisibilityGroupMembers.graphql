@@ -1,0 +1,14 @@
+mutation replaceWorkflowVisibilityGroupMembers(
+  $removedMembers: [request_workflow_visibility_group_member_bool_exp!]!
+  $members: [request_workflow_visibility_group_member_insert_input!]!
+) {
+  delete_members: delete_request_workflow_visibility_group_member(where: {_or: $removedMembers}) {
+    affected_rows
+  }
+  upsert_members: insert_request_workflow_visibility_group_member(
+    objects: $members
+    on_conflict: {constraint: workflow_visibility_group_member_pkey, update_columns: []}
+  ) {
+    affected_rows
+  }
+}

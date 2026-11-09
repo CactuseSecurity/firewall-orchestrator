@@ -31,16 +31,7 @@ namespace FWO.Test.Fixtures
             ApiConnection = new();
             Logger = new();
             GlobalConfig = new SimulatedGlobalConfig { AutoCalculateInternetZone = true, AutoCalculateUndefinedInternalZone = true, TreatDynamicAndDomainObjectsAsInternet = true };
-            UserConfig = new UserConfig(GlobalConfig, false);
-
-            SimulatedUserConfig.DummyTranslate["internet_local_zone"] = "Internet/Local";
-            SimulatedUserConfig.DummyTranslate["assess_broadcast"] = "Network objects in source or destination with 255.255.255.255/32";
-            SimulatedUserConfig.DummyTranslate["assess_host_address"] = "Network objects in source or destination with 0.0.0.0/32";
-            SimulatedUserConfig.DummyTranslate["assess_all_ips"] = "Network objects in source or destination with 0.0.0.0/0 or ::/0";
-            SimulatedUserConfig.DummyTranslate["assess_ip_null"] = "Network objects in source or destination without IP";
-            SimulatedUserConfig.DummyTranslate["H5839"] = "Matrix violation";
-            SimulatedUserConfig.DummyTranslate["H5840"] = "Restricted Service";
-            SimulatedUserConfig.DummyTranslate["H5841"] = "Assessability issue";
+            UserConfig = UserConfig.ForTextOnly(GlobalConfig, false);
 
             ComplianceCheck = new ComplianceCheck(UserConfig, ApiConnection, Logger.AsSub());
             ComplianceCheck.NetworkZones = CreateNetworkZones(true, true);
@@ -76,7 +67,7 @@ namespace FWO.Test.Fixtures
                     .Returns(Policy); // Policy with criteria
 
                 ApiConnection.AsSub()
-                    .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, Arg.Any<object>())
+                    .SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>())
                         .Returns(ComplianceCheck.NetworkZones);
             }
 
@@ -194,6 +185,48 @@ namespace FWO.Test.Fixtures
             return rule;
         }
 
+        protected virtual Rule CreateRuleWithService(string serviceUid, string serviceName, int protoId, string protocolName, int? port = null, int? portEnd = null)
+        {
+            Rule rule = CreateSimpleRule(1);
+            rule.Services =
+            [
+                new ServiceWrapper
+                {
+                    Content = CreateNetworkService(serviceUid, serviceName, protoId, protocolName, port, portEnd)
+                }
+            ];
+
+            return rule;
+        }
+
+        protected virtual Rule CreateRuleWithServiceGroup(NetworkService serviceGroup)
+        {
+            Rule rule = CreateSimpleRule(1);
+            rule.Services =
+            [
+                new ServiceWrapper
+                {
+                    Content = serviceGroup
+                }
+            ];
+
+            return rule;
+        }
+
+        protected virtual NetworkService CreateNetworkService(string serviceUid, string serviceName, int protoId, string protocolName, int? port = null, int? portEnd = null)
+        {
+            return new NetworkService
+            {
+                Uid = serviceUid,
+                Name = serviceName,
+                ProtoId = protoId,
+                Protocol = new NetworkProtocol { Id = protoId, Name = protocolName },
+                DestinationPort = port,
+                DestinationPortEnd = portEnd ?? port,
+                Type = new NetworkServiceType { Name = ServiceType.SimpleService }
+            };
+        }
+
         protected virtual NetworkObject CreateNetworkObject(int ruleId, string uidPrefix, string objectTypeName, bool? highIpRange = null)
         {
             NetworkObject networkObject = new();
@@ -230,6 +263,7 @@ namespace FWO.Test.Fixtures
             serviceCriterion.Content.CriterionType = nameof(CriterionType.ForbiddenService);
             serviceCriterion.Content.Content = forbiddenServiceUid;
             ComplianceCriterionWrapper matrixCriterion = new();
+            matrixCriterion.Content.Id = 1;
             matrixCriterion.Content.CriterionType = nameof(CriterionType.Matrix);
             ComplianceCriterionWrapper assessabilityCriterion = new();
             assessabilityCriterion.Content.CriterionType = nameof(CriterionType.Assessability);
@@ -237,14 +271,14 @@ namespace FWO.Test.Fixtures
             return policy;
         }
 
-        protected virtual List<ComplianceNetworkZone> CreateNetworkZones(bool createInternetZone, bool createUndefinedInternalZone)
+        protected virtual List<NetworkZone> CreateNetworkZones(bool createInternetZone, bool createUndefinedInternalZone, int criterionId = 1)
         {
-            List<ComplianceNetworkZone> networkZones = new()
+            List<NetworkZone> networkZones = new()
             {
                 new()
                 {
                     Id = 1,
-                    CriterionId = 1,
+                    CriterionId = criterionId,
                     Name = "128-168 Zone",
                     IdString = "zone_1",
                     IPRanges =
@@ -258,7 +292,7 @@ namespace FWO.Test.Fixtures
                 new()
                 {
                     Id = 2,
-                    CriterionId = 1,
+                    CriterionId = criterionId,
                     Name = "193-198 Zone",
                     IdString = "zone_2",
                     IPRanges =
@@ -277,7 +311,7 @@ namespace FWO.Test.Fixtures
                     new()
                     {
                         Id = 3,
-                        CriterionId = 1,
+                        CriterionId = criterionId,
                         Name = "Auto-calculated Internet Zone",
                         IdString = "AUTO_CALCULATED_ZONE_INTERNET",
                         IsAutoCalculatedInternetZone = true,
@@ -310,7 +344,7 @@ namespace FWO.Test.Fixtures
                     new()
                     {
                         Id = 4,
-                        CriterionId = 1,
+                        CriterionId = criterionId,
                         Name = "Auto-calculated Undefined-Interal Zone",
                         IdString = "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL",
                         IsAutoCalculatedUndefinedInternalZone = true,
@@ -325,7 +359,7 @@ namespace FWO.Test.Fixtures
                 );
             }
 
-            foreach (ComplianceNetworkZone zone in networkZones.Where(zone => !zone.IsAutoCalculatedUndefinedInternalZone).ToList())
+            foreach (NetworkZone zone in networkZones.Where(zone => !zone.IsAutoCalculatedUndefinedInternalZone).ToList())
             {
                 zone.AllowedCommunicationDestinations = [zone];
             }

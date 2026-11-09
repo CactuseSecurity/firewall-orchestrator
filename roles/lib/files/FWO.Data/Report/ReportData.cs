@@ -1,4 +1,5 @@
 using FWO.Basics.Interfaces;
+using FWO.Data.Workflow;
 
 namespace FWO.Data.Report
 {
@@ -8,21 +9,49 @@ namespace FWO.Data.Report
         public List<OwnerConnectionReport> OwnerData { get; set; } = [];
         public List<GlobalCommonSvcReport> GlobalComSvc { get; set; } = [];
         public ManagementReport GlobalStats { get; set; } = new();
+        /// <summary>
+        /// Gets or sets the workflow tickets contained in a workflow report.
+        /// </summary>
+        public List<WfTicket> Tickets { get; set; } = [];
+        public Dictionary<long, DateTime?> TicketReferenceDates { get; set; } = [];
+        public Dictionary<int, string> WorkflowStateNames { get; set; } = [];
+        public WorkflowFilter WorkflowFilter { get; set; } = new();
         public List<Rule> RulesFlat = [];
         public IEnumerable<IRuleViewData> RuleViewData = [];
         public int ElementsCount { get; set; }
         public int RecertificationDisplayPeriod { get; set; } = 0;
+        public bool MergeOwnerRecertTables { get; set; } = false;
+        public string OwnerAdditionalInfoKey { get; set; } = "";
+        public AddInfoFilter OwnerAddInfoFilter { get; set; } = new();
+        /// <summary>
+        /// Set when a report was generated with reduced accuracy, e.g. because an optional filter could not be applied.
+        /// The UI shows a localized warning banner when this is true.
+        /// </summary>
+        public bool ExistingViolationsFilterFailed { get; set; }
 
         public ReportData()
         { }
 
-        public ReportData(ReportData reportData)
+        public ReportData(ReportData? reportData)
         {
+            if (reportData == null)
+            {
+                return;
+            }
+
             ManagementData = reportData.ManagementData;
             OwnerData = reportData.OwnerData;
             GlobalComSvc = reportData.GlobalComSvc;
             GlobalStats = reportData.GlobalStats;
+            Tickets = reportData.Tickets;
+            TicketReferenceDates = reportData.TicketReferenceDates;
+            WorkflowStateNames = reportData.WorkflowStateNames;
+            WorkflowFilter = reportData.WorkflowFilter;
             RecertificationDisplayPeriod = reportData.RecertificationDisplayPeriod;
+            MergeOwnerRecertTables = reportData.MergeOwnerRecertTables;
+            OwnerAdditionalInfoKey = reportData.OwnerAdditionalInfoKey;
+            OwnerAddInfoFilter = new(reportData.OwnerAddInfoFilter);
+            ExistingViolationsFilterFailed = reportData.ExistingViolationsFilterFailed;
         }
     }
 }

@@ -1,26 +1,30 @@
+from __future__ import annotations
+
 import sys
 import time
 import traceback
 from pathlib import Path
 from socket import gethostname
 
+from fw_modules.azure2022ff.fwcommon import Azure2022ffCommon
 from fw_modules.checkpointR8x.fwcommon import CheckpointR8xCommon
 from fw_modules.ciscoasa9.fwcommon import CiscoAsa9Common
 from fw_modules.fortiadom5ff.fwcommon import FortiAdom5ffCommon
 from fw_modules.fortiosmanagementREST.fwcommon import FortiosManagementRESTCommon
+from fw_modules.generic.fwcommon import GenericFirewallCommon
+from fw_modules.opnsense25ff.fwcommon import OPNsense25common
 from fwo_const import IMPORTER_BASE_DIR
 from fwo_log import FWOLogger
 from model_controllers.fwconfig_import_rollback import FwConfigImportRollback
 from model_controllers.management_controller import ManagementController
-from models.fw_common import FwCommon
-from models.import_state import ImportState
 
 if IMPORTER_BASE_DIR not in sys.path:
     sys.path.append(IMPORTER_BASE_DIR)  # adding absolute path here once
+from typing import TYPE_CHECKING
+
 import fwo_file_import
 import fwo_globals
 import fwo_signalling
-from fwo_api_call import FwoApiCall
 from fwo_base import string_is_uri, write_native_config_to_file
 from fwo_const import IMPORT_TMP_PATH
 from fwo_exceptions import (
@@ -37,10 +41,15 @@ from model_controllers.fwconfig_import import FwConfigImport
 from model_controllers.fwconfigmanagerlist_controller import (
     FwConfigManagerListController,
 )
-from model_controllers.import_state_controller import ImportStateController
-from models.gateway import Gateway
 from services.enums import Services
 from services.service_provider import ServiceProvider
+
+if TYPE_CHECKING:
+    from fwo_api_call import FwoApiCall
+    from model_controllers.import_state_controller import ImportStateController
+    from models.fw_common import FwCommon
+    from models.gateway import Gateway
+    from models.import_state import ImportState
 
 """
     import_management: import a single management (if no import for it is running)
@@ -55,13 +64,16 @@ from services.service_provider import ServiceProvider
 """
 
 
+def is_responsible_importer(importer_host_name: str) -> bool:
+    """Return whether this host imports a management whose effective importer host name is given; empty means any."""
+    return importer_host_name in ("", gethostname())
+
+
 def import_management(
     mgm_id: int,
     api_call: FwoApiCall,
-    ssl_verification: bool,
     limit: int,
     clear_management_data: bool,
-    suppress_cert_warnings: bool,
     file: str | None = None,
     suppress_consistency_check: bool = False,
 ) -> None:
@@ -70,15 +82,14 @@ def import_management(
     import_state = service_provider.get_global_state().import_state
     config_importer = FwConfigImport()
     exception: BaseException | None = None
+    shutdown_exception: BaseException | None = None
 
     try:
         _import_management(
             mgm_id,
-            ssl_verification,
             file,
             limit,
             clear_management_data,
-            suppress_cert_warnings,
             suppress_consistency_check,
         )
     except FwLoginFailedError as e:
@@ -91,13 +102,22 @@ def import_management(
     ) as e:
         import_state.delete_import()  # delete whole import
         exception = e
-    except (KeyboardInterrupt, ImportInterruptionError, ShutdownRequestedError) as e:
-        roll_back_exception_handler(
-            import_state,
-            config_importer=config_importer,
-            exc=e,
-            error_text="shutdown requested",
-        )
+    except (KeyboardInterrupt, ShutdownRequestedError) as e:
+        shutdown_exception = e
+        handle_shutdown_exception(import_state, config_importer=config_importer, exc=e)
+        raise
+    except ImportInterruptionError as e:
+        if fwo_globals.shutdown_requested:
+            shutdown_exception = e
+            handle_shutdown_exception(import_state, config_importer=config_importer, exc=e)
+        else:
+            exception = e
+            roll_back_exception_handler(
+                import_state,
+                config_importer=config_importer,
+                exc=e,
+                error_text="",
+            )
         raise
     except (FwoApiWriteError, FwoImporterError) as e:
         exception = e
@@ -107,7 +127,8 @@ def import_management(
         handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)
     finally:
         try:
-            api_call.complete_import(import_state.state, exception)
+            if shutdown_exception is None:
+                api_call.complete_import(import_state.state, exception)
             ServiceProvider().dispose_service(Services.UID2ID_MAPPER, import_state.state.import_id)
         except Exception as e:
             FWOLogger.error(f"Error during import completion: {e!s}")
@@ -115,11 +136,9 @@ def import_management(
 
 def _import_management(
     mgm_id: int,
-    ssl_verification: bool,
     file: str | None,
     limit: int,
     clear_management_data: bool,
-    suppress_cert_warnings: bool,
     suppress_consistency_check: bool,
 ) -> None:
     config_normalized: FwConfigManagerListController
@@ -128,15 +147,16 @@ def _import_management(
     service_provider = ServiceProvider()
     import_state = service_provider.get_global_state().import_state
     config_importer = FwConfigImport()
-    FWOLogger.debug(f"import_management - ssl_verification: {ssl_verification}", 9)
-    FWOLogger.debug(f"import_management - suppress_cert_warnings_in: {suppress_cert_warnings}", 9)
     FWOLogger.debug(f"import_management - limit: {limit}", 9)
 
     if import_state.state.mgm_details.import_disabled and not import_state.state.force_import:
         FWOLogger.info(f"import_management - import disabled for mgm  {mgm_id!s} - skipping")
         return
 
-    if import_state.state.mgm_details.importer_hostname != gethostname() and not import_state.state.force_import:
+    if (
+        not is_responsible_importer(import_state.state.mgm_details.importer_hostname)
+        and not import_state.state.force_import
+    ):
         FWOLogger.info(
             f"import_management - this host ({gethostname()}) is not responsible for importing management {mgm_id!s}"
         )
@@ -174,14 +194,6 @@ def _import_management(
             FwConfigImportCheckConsistency(import_state.state).check_fwconfig_managerlist_consistency(config_normalized)
         config_importer.import_management_set(service_provider, config_normalized)
 
-    # delete data that has passed the retention time
-    # TODO: replace by deletion of old data with removed date > retention?
-    if (
-        not clear_management_data
-        and import_state.state.data_retention_days < import_state.state.days_since_last_full_import
-    ):
-        config_importer.delete_old_imports()  # delete all imports of the current management before the last but one full import
-
 
 def handle_unexpected_exception(
     import_state: ImportStateController | None = None,
@@ -190,6 +202,29 @@ def handle_unexpected_exception(
 ):
     if import_state is not None and config_importer is not None:
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e)
+
+
+def handle_shutdown_exception(
+    import_state: ImportStateController,
+    config_importer: FwConfigImport | None = None,
+    exc: BaseException | None = None,
+):
+    import_id = import_state.state.import_id
+    if import_id <= 0:
+        FWOLogger.warning("Shutdown requested before import lock was acquired.")
+        return
+
+    if import_state.state.rollback_required:
+        roll_back_exception_handler(
+            import_state,
+            config_importer=config_importer,
+            exc=exc,
+            error_text="shutdown requested",
+        )
+        return
+
+    FWOLogger.warning("Shutdown requested before import data changes. Removing import lock without rollback.")
+    import_state.delete_import()
 
 
 def roll_back_exception_handler(
@@ -256,17 +291,22 @@ def import_from_file(
 def get_module(import_state: ImportState) -> FwCommon:
     # pick product-specific importer:
     pkg_name = get_module_package_name(import_state)
-    match pkg_name:
-        case "ciscoasa9":
-            fw_module = CiscoAsa9Common()
-        case "fortiadom5ff":
-            fw_module = FortiAdom5ffCommon()
-        case "checkpointR8x":
-            fw_module = CheckpointR8xCommon()
-        case "fortiosmanagementREST":
-            fw_module = FortiosManagementRESTCommon()
-        case _:
-            raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")
+    if pkg_name == "ciscoasa9":
+        fw_module = CiscoAsa9Common()
+    elif pkg_name == "fortiadom5ff":
+        fw_module = FortiAdom5ffCommon()
+    elif pkg_name == "checkpointR8x":
+        fw_module = CheckpointR8xCommon()
+    elif pkg_name == "fortiosmanagementREST":
+        fw_module = FortiosManagementRESTCommon()
+    elif pkg_name == "opnsensestandalone25ff":
+        fw_module = OPNsense25common()
+    elif pkg_name == "genericfirewallmanagement1.0":
+        fw_module = GenericFirewallCommon()
+    elif pkg_name == "azure2022ff":
+        fw_module = Azure2022ffCommon()
+    else:
+        raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")
 
     return fw_module
 

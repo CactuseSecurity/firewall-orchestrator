@@ -1,0 +1,7 @@
+mutation addImportForLog($importTypeId: Int!) {
+  insert_import_control(objects: {import_type_id: $importTypeId, changes_found: true}) {
+    returning {
+      control_id
+    }
+  }
+}

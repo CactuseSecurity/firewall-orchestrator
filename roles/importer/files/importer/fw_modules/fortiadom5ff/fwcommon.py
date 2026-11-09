@@ -1,26 +1,31 @@
+from __future__ import annotations
+
 from copy import deepcopy
-from datetime import datetime, timezone
-from typing import Any, cast
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, cast
 
 import fwo_const
 from fw_modules.fortiadom5ff import fmgr_getter
 from fw_modules.fortiadom5ff.fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
 from fw_modules.fortiadom5ff.fmgr_network import normalize_network_objects
-from fw_modules.fortiadom5ff.fmgr_rule import get_access_policy, get_nat_policy, normalize_rulebases
+from fw_modules.fortiadom5ff.fmgr_rule import get_access_policy, normalize_rulebases
 from fw_modules.fortiadom5ff.fmgr_service import normalize_service_objects
 from fw_modules.fortiadom5ff.fmgr_zone import get_zones, normalize_zones
-from fwo_base import ConfigAction, write_native_config_to_file
-from fwo_exceptions import FwLoginFailedError, FwLogoutFailedError, ImportInterruptionError
+from fwo_base import write_native_config_to_file
+from fwo_enums import ConfigAction
+from fwo_exceptions import FwLoginFailedError, ImportInterruptionError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 from models.fw_common import FwCommon
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
-from models.import_state import ImportState
-from models.management import Management
 from models.time_object import TimeObject
 from utils.conversion_utils import convert_list_to_dict
+
+if TYPE_CHECKING:
+    from model_controllers.import_state_controller import ImportStateController
+    from models.import_state import ImportState
+    from models.management import Management
 
 
 class FortiAdom5ffCommon(FwCommon):
@@ -52,6 +57,31 @@ def get_config(
 
 def get_native_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> None:
     sid = get_sid(import_state.state)
+    fm_api_url = import_state.state.mgm_details.build_fw_api_string()
+    try:
+        _fetch_native_config(config_in, import_state, sid)
+    finally:
+        _logout_quietly(fm_api_url, sid)
+
+    write_native_config_to_file(import_state.state, config_in.native_config)
+
+
+def _logout_quietly(fm_api_url: str, sid: str) -> None:
+    """
+    Log out of the FortiManager API without letting a failure there decide the import.
+
+    The session times out on the manager anyway, so a failed logout must neither discard a completely fetched
+    configuration nor hide the error of a failed fetch.
+    """
+    try:
+        fmgr_getter.logout(fm_api_url, sid)
+    except Exception as logout_error:
+        FWOLogger.warning(f"logout from FortiManager failed ({type(logout_error).__name__}), ignoring it")
+
+
+def _fetch_native_config(
+    config_in: FwConfigManagerListController, import_state: ImportStateController, sid: str
+) -> None:
     limit = import_state.state.fwo_config.api_fetch_size
     fm_api_url = import_state.state.mgm_details.build_fw_api_string()
     native_config_global = initialize_native_config_domain(import_state.state.mgm_details)
@@ -122,22 +152,6 @@ def get_native_config(config_in: FwConfigManagerListController, import_state: Im
                 device_config,
                 limit,
             )
-            get_nat_policy(
-                sid,
-                fm_api_url,
-                native_config_adom,
-                adom_device_vdom_policy_package_structure,
-                adom_name,
-                mgm_details_device,
-                limit,
-            )
-
-    try:  # logout of fortimanager API
-        fmgr_getter.logout(fm_api_url, sid)
-    except Exception:
-        raise FwLogoutFailedError("logout exception probably due to timeout - irrelevant, so ignoring it")
-
-    write_native_config_to_file(import_state.state, config_in.native_config)
 
 
 def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
@@ -149,7 +163,6 @@ def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
         "management_uid": mgm_details.uid,
         "objects": [],
         "rulebases": [],
-        "nat_rulebases": [],
         "zones": [],
         "gateways": [],
         "time_objects": [],
@@ -192,8 +205,12 @@ def normalize_config(native_config: dict[str, Any]) -> FwConfigManagerListContro
             is_global_loop_iteration,
         )
 
-        normalized_time_objects = normalized_config_adom.get("time_objects", {})
-        if not isinstance(normalized_time_objects, dict):
+        raw_time_objects = normalized_config_adom.get("time_objects")
+
+        normalized_time_objects: dict[str, TimeObject]
+        if isinstance(raw_time_objects, dict):
+            normalized_time_objects = cast("dict[str, TimeObject]", raw_time_objects)
+        else:
             normalized_time_objects = {}
 
         normalized_config = FwConfigNormalized(
@@ -203,7 +220,7 @@ def normalize_config(native_config: dict[str, Any]) -> FwConfigManagerListContro
             zone_objects=convert_list_to_dict(normalized_config_adom.get("zone_objects", []), "zone_name"),
             rulebases=normalized_config_adom.get("policies", []),
             gateways=normalized_config_adom.get("gateways", []),
-            time_objects=cast("dict[str, TimeObject]", normalized_time_objects),
+            time_objects=normalized_time_objects,
         )
 
         # TODO: identify the correct manager
@@ -240,8 +257,8 @@ def rewrite_native_config_obj_type_as_key(native_config: dict[str, Any]):
 
 
 def normalize_single_manager_config(
-    native_config: "dict[str, Any]",
-    native_config_global: "dict[str, Any]",
+    native_config: dict[str, Any],
+    native_config_global: dict[str, Any],
     normalized_config_adom: dict[str, Any],
     normalized_config_global: dict[str, Any],
     is_global_loop_iteration: bool,
@@ -585,10 +602,11 @@ def to_time_object(d: dict[str, Any]) -> TimeObject:
             )
             return None
         time_part, date_part = value
-        # format needs to be 1970-01-01T00:00:00
+        # format needs to be like 1970-01-01T00:00:00+00:00 (including tz info)
         try:
-            dt = datetime.strptime(date_part + " " + time_part, "%Y/%m/%d %H:%M").replace(tzinfo=timezone.utc)
-            return dt.strftime("%Y-%m-%dT%H:%M:%S")
+            # we do not get tz info from fortimanager, so we assume firewall tz = system tz
+            dt = datetime.strptime(date_part + " " + time_part, "%Y/%m/%d %H:%M").astimezone()
+            return dt.isoformat(timespec="seconds")
         except ValueError as e:
             FWOLogger.warning(f"Error parsing date/time for {field_name} in time object {d.get('name', '')}: {e}")
             return None

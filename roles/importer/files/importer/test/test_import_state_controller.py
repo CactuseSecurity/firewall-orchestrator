@@ -7,6 +7,7 @@ from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import ManagementController
 from models.import_state import ImportState
 from pytest_mock import MockerFixture
+from services.uid2id_mapper import Uid2IdMapper
 
 
 @pytest.fixture
@@ -258,3 +259,46 @@ class TestFwConfigImportObjectLookupObjType:
 
         # Assert
         assert obj_type == expected_obj_type
+
+
+class TestUid2IdMapperFirewallSchemaMappings:
+    def test_update_object_mappings_use_firewall_schema_response_keys(
+        self,
+        uid2id_mapper: Uid2IdMapper,
+        api_connection: FwoApi,
+        mocker: MockerFixture,
+    ):
+        responses = [
+            {"data": {"firewall_nw_object": [{"obj_uid": "obj-uid", "obj_id": 101}]}},
+            {"data": {"firewall_nw_service": [{"svc_uid": "svc-uid", "svc_id": 102}]}},
+            {"data": {"firewall_nw_user": [{"user_uid": "user-uid", "user_id": 103}]}},
+            {"data": {"firewall_zone": [{"zone_name": "zone-name", "zone_id": 104}]}},
+        ]
+        api_connection.call = mocker.Mock(side_effect=responses)
+
+        uid2id_mapper.update_network_object_mapping(["obj-uid"])
+        uid2id_mapper.update_service_object_mapping(["svc-uid"])
+        uid2id_mapper.update_user_mapping(["user-uid"])
+        uid2id_mapper.update_zone_mapping(["zone-name"])
+
+        assert uid2id_mapper.get_network_object_id("obj-uid") == 101
+        assert uid2id_mapper.get_service_object_id("svc-uid") == 102
+        assert uid2id_mapper.get_user_id("user-uid") == 103
+        assert uid2id_mapper.get_zone_object_id("zone-name") == 104
+
+    def test_update_rulebase_mapping_uses_firewall_schema_response_key(
+        self,
+        uid2id_mapper: Uid2IdMapper,
+        api_connection: FwoApi,
+        mocker: MockerFixture,
+    ):
+        api_connection.call = mocker.Mock(
+            return_value={"data": {"firewall_rulebase": [{"uid": "rb-uid", "id": 201}]}},
+        )
+        uid2id_mapper.update_rulebase_mapping = Uid2IdMapper.update_rulebase_mapping.__get__(
+            uid2id_mapper, Uid2IdMapper
+        )
+
+        uid2id_mapper.update_rulebase_mapping(["rb-uid"])
+
+        assert uid2id_mapper.get_rulebase_id("rb-uid") == 201

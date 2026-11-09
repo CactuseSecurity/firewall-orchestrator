@@ -2,6 +2,7 @@ using NetTools;
 using System.Net;
 using FWO.Logging;
 using FWO.Basics;
+using FWO.Report.Filter.Exceptions;
 
 
 namespace FWO.Report.Filter.Ast
@@ -25,6 +26,12 @@ namespace FWO.Report.Filter.Ast
                 case TokenKind.Source:
                     ExtractSourceFilter(query);
                     break;
+                case TokenKind.DestinationType:
+                    ExtractObjectTypeFilter(query, reportType, "dst", "rule_tos");
+                    break;
+                case TokenKind.SourceType:
+                    ExtractObjectTypeFilter(query, reportType, "src", "rule_froms");
+                    break;
                 default:
                     break;
             }
@@ -39,7 +46,7 @@ namespace FWO.Report.Filter.Ast
             else // string search against dst obj name
             {
                 string QueryVarName = AddVariable<string>(query, "dst", Operator.Kind, Value.Text);
-                query.RuleWhereStatement += $"rule_tos: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
+                query.RuleWhereStatement += $"rule_tos: {{ object: {{ {DirectOrFlatObjectFilter($"obj_name: {{ {ExtractOperator()}: ${QueryVarName} }}")} }} }}";
                 query.ConnectionWhereStatement += ConnWhere(QueryVarName, 2);
             }
         }
@@ -54,9 +61,77 @@ namespace FWO.Report.Filter.Ast
             else // string search against src obj name
             {
                 string QueryVarName = AddVariable<string>(query, "src", Operator.Kind, Value.Text);
-                query.RuleWhereStatement += $"rule_froms: {{ object: {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ obj_name: {{ {ExtractOperator()}: ${QueryVarName} }} }} }} }} }}";
+                query.RuleWhereStatement += $"rule_froms: {{ object: {{ {DirectOrFlatObjectFilter($"obj_name: {{ {ExtractOperator()}: ${QueryVarName} }}")} }} }}";
                 query.ConnectionWhereStatement += ConnWhere(QueryVarName, 1);
             }
+        }
+
+        /// <summary>
+        /// Adds a source or destination network-object type predicate to a rule report query.
+        /// </summary>
+        /// <param name="query">Query to extend.</param>
+        /// <param name="reportType">Type of report for which the filter is requested.</param>
+        /// <param name="location">Object location prefix used for the query variable.</param>
+        /// <param name="locationTable">Rule relation to filter.</param>
+        private void ExtractObjectTypeFilter(DynGraphqlQuery query, ReportType? reportType, string location, string locationTable)
+        {
+            if (reportType is not null && !SupportsObjectTypeFilter(reportType.Value))
+            {
+                throw new SemanticException("Network object type filters are only supported for report queries that use firewall rule predicates.", Name.Position);
+            }
+
+            List<string> objectTypes = ExtractObjectTypes();
+            string queryVarName = AddObjectTypeVariable(query, location, objectTypes);
+            string typeFilter = $"stm_obj_typ: {{ obj_typ_name: {{ _in: ${queryVarName} }} }}";
+            string directOrFlatTypeFilter = DirectOrFlatObjectFilter(typeFilter);
+            string objectRelationFilter = $"{locationTable}: {{ object: {{ {directOrFlatTypeFilter} }} }}";
+
+            query.RuleWhereStatement += Operator.Kind == TokenKind.NEQ
+                ? $"_not: {{ {objectRelationFilter} }}"
+                : objectRelationFilter;
+        }
+
+        /// <summary>
+        /// Determines whether a report embeds firewall-rule predicates, which are required to apply an object type filter.
+        /// Rule, change, compliance, and statistics reports are supported because they consume those predicates.
+        /// </summary>
+        /// <param name="reportType">Report type to evaluate.</param>
+        /// <returns><c>true</c> when the report query consumes rule predicates; otherwise, <c>false</c>.</returns>
+        private static bool SupportsObjectTypeFilter(ReportType reportType)
+        {
+            return reportType.IsRuleReport()
+                || reportType.IsChangeReport()
+                || reportType.IsComplianceReport()
+                || reportType == ReportType.Statistics;
+        }
+
+        /// <summary>
+        /// Parses and normalizes the comma-separated object type names from the filter value.
+        /// </summary>
+        /// <returns>Normalized object type names.</returns>
+        private List<string> ExtractObjectTypes()
+        {
+            List<string> objectTypes = Value.Text.Split(',', StringSplitOptions.TrimEntries).ToList();
+            if (objectTypes.Count == 0 || objectTypes.Any(string.IsNullOrWhiteSpace))
+            {
+                throw new SemanticException("Network object type filter requires a comma-separated list of object types.", Value.Position);
+            }
+            return objectTypes.Select(objectType => objectType.ToLowerInvariant()).ToList();
+        }
+
+        /// <summary>
+        /// Adds an object type list variable to the GraphQL query.
+        /// </summary>
+        /// <param name="query">Query to extend.</param>
+        /// <param name="location">Object location prefix used for the variable name.</param>
+        /// <param name="objectTypes">Object type names assigned to the variable.</param>
+        /// <returns>Name of the added GraphQL variable.</returns>
+        private static string AddObjectTypeVariable(DynGraphqlQuery query, string location, List<string> objectTypes)
+        {
+            string queryVarName = $"{location}Type" + query.parameterCounter++;
+            query.QueryParameters.Add($"${queryVarName}: [String!]! ");
+            query.QueryVariables[queryVarName] = objectTypes;
+            return queryVarName;
         }
 
         private string ConnWhere(string QueryVarName, int field)
@@ -130,31 +205,38 @@ namespace FWO.Report.Filter.Ast
             string ipFilterString =
                     $@" obj_ip_end: {{ _gte: ${QueryVarNameFirst1} }} 
                         obj_ip: {{ _lte: ${QueryVarNameLast2} }}";
+            string objectIpFilterString = DirectOrFlatObjectFilter(ipFilterString);
             query.RuleWhereStatement +=
                 $@" _or: [
                       {{
                         rule_{location}_neg: {{_eq: false}},
                         {locationTable}: {{
-                        _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}]}},
-                              {{_and: [{{negated: {{_eq: true}}}}, {{object: {{_not: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}}}]}}
+                        _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{ {objectIpFilterString} }}}}]}},
+                              {{_and: [{{negated: {{_eq: true}}}}, {{object: {{_not: {{ {objectIpFilterString} }}}}}}]}}
                         ]}}
                       }},
                       {{
                         rule_{location}_neg: {{_eq: true}},
                         {locationTable}: {{
-                        _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{_not: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}}}]}},
-                              {{_and: [{{negated: {{_eq: true}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}]}}
+                        _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{_not: {{ {objectIpFilterString} }}}}}}]}},
+                              {{_and: [{{negated: {{_eq: true}}}}, {{object: {{ {objectIpFilterString} }}}}]}}
                         ]}}
                       }},
                     ]
                 ";
             query.NwObjWhereStatement +=
                 $@" {locationTable}: {{
-                    _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}]}},
-                          {{_and: [{{negated: {{_eq: true}}}}, {{object: {{_not: {{objgrp_flats: {{objectByObjgrpFlatMemberId: {{ {ipFilterString} }}}}}}}}}}]}}
+                    _or: [{{_and: [{{negated: {{_eq: false}}}}, {{object: {{ {objectIpFilterString} }}}}]}},
+                          {{_and: [{{negated: {{_eq: true}}}}, {{object: {{_not: {{ {objectIpFilterString} }}}}}}]}}
                     ]
                 }}";
             ExtractIpFilterForConn(query, location, QueryVarNameFirst1, QueryVarNameLast2);
+        }
+
+        private static string DirectOrFlatObjectFilter(string objectFilterString)
+        {
+            string filter = objectFilterString.Trim();
+            return $@"_or: [{{ {filter} }}, {{ objgrp_flats: {{ objectByObjgrpFlatMemberId: {{ {filter} }} }} }}]";
         }
 
         private static void ExtractIpFilterForConn(DynGraphqlQuery query, string location, string QueryVarNameFirst1, string QueryVarNameLast2)

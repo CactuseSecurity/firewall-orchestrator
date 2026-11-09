@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using FWO.Data.Flow;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -22,5 +23,17 @@ namespace FWO.Data
 
         [JsonProperty("created"), JsonPropertyName("created")]
         public long Created { get; set; }
+
+        [JsonProperty("flow_timeobj_id"), JsonPropertyName("flow_timeobj_id")]
+        public long? FlowTimeObjectId { get; set; }
+
+        [JsonProperty("flow_timeobj"), JsonPropertyName("flow_timeobj")]
+        public FlowTimeObject? FlowTimeObject { get; set; }
+
+        [JsonProperty("flow_active"), JsonPropertyName("flow_active")]
+        public bool FlowActive { get; set; }
+
+        [JsonProperty("removed"), JsonPropertyName("removed")]
+        public long? Removed { get; set; }
     }
 }

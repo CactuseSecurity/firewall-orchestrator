@@ -1,5 +1,7 @@
 using FWO.Data;
 using FWO.Data.Modelling;
+using FWO.Config.Api;
+using FWO.Basics;
 using FWO.Ui.Shared;
 using NUnit.Framework;
 using System.Collections.Generic;
@@ -290,6 +292,67 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DisplayImplState_ReturnsMarkerValue_InWorkflowNotificationMode()
+        {
+            ConnectionTable table = new();
+            SetPrivateMember(table, "userConfig", new SimulatedUserConfig
+            {
+                ModIntegrationMode = ModIntegrationMode.WorkflowNotifications,
+                ModIntegrationStateMarker = "ImplementationState"
+            });
+
+            ModellingConnection conn = new()
+            {
+                Props = new Dictionary<string, string>
+                {
+                    { "ImplementationState", "Implemented | 2026-05-08T09:00:00.0000000Z" },
+                    { nameof(ConState.Requested), "true" }
+                }
+            };
+
+            string result = table.DisplayImplState(conn);
+
+            Assert.That(result, Is.EqualTo("Implemented | 2026-05-08T09:00:00.0000000Z"));
+        }
+
+        [Test]
+        public void DisplayImplState_EncodesMarkerValue_InWorkflowNotificationMode()
+        {
+            ConnectionTable table = new();
+            SetPrivateMember(table, "userConfig", new SimulatedUserConfig
+            {
+                ModIntegrationMode = ModIntegrationMode.WorkflowNotifications,
+                ModIntegrationStateMarker = "ImplementationState"
+            });
+
+            ModellingConnection conn = new()
+            {
+                Props = new Dictionary<string, string>
+                {
+                    { "ImplementationState", "<done>" }
+                }
+            };
+
+            string result = table.DisplayImplState(conn);
+
+            Assert.That(result, Is.EqualTo("&lt;done&gt;"));
+        }
+
+        [Test]
+        public void ShowImplementationStateColumn_ReturnsTrue_InWorkflowNotificationMode()
+        {
+            ConnectionTable table = new();
+            SetPrivateMember(table, "userConfig", new SimulatedUserConfig
+            {
+                ModIntegrationMode = ModIntegrationMode.WorkflowNotifications
+            });
+
+            PropertyInfo showImplementationStateColumn = typeof(ConnectionTable).GetProperty("ShowImplementationStateColumn", BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+            Assert.That(showImplementationStateColumn.GetValue(table), Is.EqualTo(true));
+        }
+
+        [Test]
         public void CollectModellingProps_AddsInterfaceNoPermission_WhenAlone()
         {
             ConnectionTable table = new();
@@ -432,5 +495,24 @@ namespace FWO.Test
 
             Assert.That(result, Is.True);
         }
+
+        [Test]
+        public void IsVisibleToOwner_ReturnsFalse_WhenInterfaceOwnerIsMissing()
+        {
+            ConnectionTable table = new();
+            SetComponentParameter(table, nameof(ConnectionTable.Application), new FwoOwner { Id = 1 });
+
+            ModellingConnection conn = new()
+            {
+                InterfacePermission = InterfacePermissions.Restricted.ToString(),
+                App = null!
+            };
+
+            MethodInfo isVisibleToOwner = GetInstanceMethod("IsVisibleToOwner", typeof(ModellingConnection));
+            bool result = (bool)isVisibleToOwner.Invoke(table, [conn])!;
+
+            Assert.That(result, Is.False);
+        }
+
     }
 }

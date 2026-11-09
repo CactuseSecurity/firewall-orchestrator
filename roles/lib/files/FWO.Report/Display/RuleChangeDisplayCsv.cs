@@ -117,9 +117,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputCsv(ListNetworkZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()));
-                case 'I': return OutputCsv(ListNetworkZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray()));
-                case 'C': return OutputCsv(DisplayDiff(ListNetworkZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
+                case 'D': return OutputCsv(ListFirewallZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()));
+                case 'I': return OutputCsv(ListFirewallZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray()));
+                case 'C': return OutputCsv(DisplayDiff(ListFirewallZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListFirewallZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
                 default: return ",";
             }
         }
@@ -139,9 +139,9 @@ namespace FWO.Ui.Display
         {
             switch (ruleChange.ChangeAction)
             {
-                case 'D': return OutputCsv(ListNetworkZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()));
-                case 'I': return OutputCsv(ListNetworkZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray()));
-                case 'C': return OutputCsv(DisplayDiff(ListNetworkZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray())));
+                case 'D': return OutputCsv(ListFirewallZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()));
+                case 'I': return OutputCsv(ListFirewallZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray()));
+                case 'C': return OutputCsv(DisplayDiff(ListFirewallZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()), ListFirewallZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray())));
                 default: return ",";
             }
         }
@@ -344,9 +344,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputCsv(serviceChange.OldService.Protocol!.Name);
-                case 'I': return OutputCsv(serviceChange.NewService.Protocol!.Name);
-                case 'C': return OutputCsv(DisplayDiff(serviceChange.OldService.Protocol!.Name, serviceChange.NewService.Protocol!.Name));
+                case 'D': return OutputCsv(serviceChange.OldService.Protocol?.Name ?? "");
+                case 'I': return OutputCsv(serviceChange.NewService.Protocol?.Name ?? "");
+                case 'C': return OutputCsv(DisplayDiff(serviceChange.OldService.Protocol?.Name ?? "", serviceChange.NewService.Protocol?.Name ?? ""));
                 default: return "";
             }
         }
@@ -362,8 +362,16 @@ namespace FWO.Ui.Display
             }
         }
 
-        private string DisplayDiff(string oldElement, string newElement)
+        /// <summary>
+        /// Renders the difference between two element texts.
+        /// </summary>
+        /// <param name="oldElement">Text before the change, may be null for columns that are nullable in the database.</param>
+        /// <param name="newElement">Text after the change, may be null for columns that are nullable in the database.</param>
+        /// <returns>The rendered difference.</returns>
+        private string DisplayDiff(string? oldElement, string? newElement)
         {
+            oldElement ??= "";
+            newElement ??= "";
             if (oldElement == newElement)
             {
                 return oldElement;
@@ -375,8 +383,18 @@ namespace FWO.Ui.Display
             }
         }
 
-        private string DisplayArrayDiff(string oldElement, string newElement, bool oldNegated, bool newNegated)
+        /// <summary>
+        /// Renders the difference between two element lists.
+        /// </summary>
+        /// <param name="oldElement">List before the change, may be null for columns that are nullable in the database.</param>
+        /// <param name="newElement">List after the change, may be null for columns that are nullable in the database.</param>
+        /// <param name="oldNegated">Negation state before the change.</param>
+        /// <param name="newNegated">Negation state after the change.</param>
+        /// <returns>The rendered difference.</returns>
+        private string DisplayArrayDiff(string? oldElement, string? newElement, bool oldNegated, bool newNegated)
         {
+            oldElement ??= "";
+            newElement ??= "";
             if (oldElement == newElement)
             {
                 return oldElement;

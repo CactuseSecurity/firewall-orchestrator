@@ -1,0 +1,284 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+sudoers_file=""
+sudoers_dir="/etc/sudoers.d"
+
+# Host wide, operator owned installer settings, passed to every run as extra variables.
+# Shared across clones on purpose: two administrators upgrading the same installation from
+# their own git repositories would otherwise write different endpoints into fworch.json and
+# have the certificates reissued for different names. It lives outside the repository so
+# that a git pull or a fresh clone cannot touch it, which an edit to inventory/hosts.yml
+# does not survive. Must hold no secrets: the directory is world readable by design, so
+# every administrator who may run the installer can read the file.
+#
+# Hard coded rather than derived, because this script cannot read Ansible variables - keep
+# it in step with fwo_install_settings_file in inventory/group_vars/all.yml. The real path
+# rather than the friendlier /etc/fworch symlink, which the installer only creates during
+# its first run: a fresh installation must be able to read its settings before that. Both
+# resolve to the same file afterwards. An installation that relocated fworch_parent_dir
+# uses FWORCH_LOCAL_SETTINGS instead.
+install_settings_default_file="/usr/local/fworch/etc/fwo-install-settings.yml"
+install_settings_file=""
+
+# No existence test before removing: /etc/sudoers.d is not readable for the invoking user on
+# every distribution, so such a test would leave the NOPASSWD entry behind.
+cleanup() {
+    if [[ -n "$sudoers_file" ]]; then
+        sudo rm -f "$sudoers_file"
+    fi
+}
+
+# Installs the temporary NOPASSWD entry for Ansible. The entry is validated before it is
+# installed, so that a syntax error can never break sudo, and it is installed in one step with
+# its final owner and mode. visudo runs through sudo, because it is usually not on the PATH of
+# the invoking user; if it is missing, the entry is refused instead of installed unvalidated.
+install_temporary_sudoers() {
+    local candidate
+    candidate="$(mktemp)"
+    printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$(id -un)" >"$candidate"
+
+    if ! sudo visudo -cf "$candidate" >/dev/null; then
+        rm -f "$candidate"
+        echo "The temporary sudoers entry could not be validated with visudo; nothing was installed." >&2
+        return 1
+    fi
+
+    # set before installing, so that the cleanup also removes a partly installed entry
+    sudoers_file="$sudoers_dir/fworch-ansible-$$"
+    if ! sudo install -m 0440 -o root -g root "$candidate" "$sudoers_file"; then
+        rm -f "$candidate"
+        echo "The temporary sudoers entry could not be installed." >&2
+        return 1
+    fi
+    rm -f "$candidate"
+    return 0
+}
+
+trap cleanup EXIT
+trap 'exit 130' HUP INT TERM
+
+# Pinned collections need ansible-core >=2.16 (community.general 11.x); a distro
+# package can be older and would only fail later at playbook runtime.
+require_ansible_core() {
+    local min_core="2.16"
+    local core
+    # '|| true': a non-matching grep must not trip 'set -e' before the guidance.
+    core="$(ansible --version 2>/dev/null | grep -oE 'core [0-9]+\.[0-9]+' | head -1 | awk '{print $2}')" || true
+
+    if [[ -z "$core" ]]; then
+        echo "Could not determine the ansible-core version. Is Ansible installed and on PATH?" >&2
+        echo "Activate the installer environment first:" >&2
+        echo "    source scripts/install-ansible-from-venv.sh" >&2
+        exit 1
+    fi
+
+    if [[ "$(printf '%s\n%s\n' "$min_core" "$core" | sort -V | head -1)" != "$min_core" ]]; then
+        echo "ansible-core $core is too old; the pinned collections require >=$min_core." >&2
+        echo "Use the pinned installer Ansible instead of the distro package:" >&2
+        echo "    source scripts/install-ansible-from-venv.sh" >&2
+        exit 1
+    fi
+}
+
+# Return the configured collection search paths, with the environment override Ansible
+# itself honors taking precedence. The repository config supplies the standard fallback
+# paths when no override is present.
+get_collection_search_paths() {
+    local config_file configured_paths ansible_home
+
+    if [[ -n "${ANSIBLE_COLLECTIONS_PATH:-}" ]]; then
+        printf '%s\n' "$ANSIBLE_COLLECTIONS_PATH"
+        return 0
+    fi
+
+    if [[ -n "${ANSIBLE_COLLECTIONS_PATHS:-}" ]]; then
+        printf '%s\n' "$ANSIBLE_COLLECTIONS_PATHS"
+        return 0
+    fi
+
+    config_file="${ANSIBLE_CONFIG:-ansible.cfg}"
+    if [[ -f "$config_file" ]]; then
+        configured_paths="$(awk -F= '
+            /^[[:space:]]*collections_paths?[[:space:]]*=/ {
+                value=$2
+                sub(/^[[:space:]]+/, "", value)
+                sub(/[[:space:]]+$/, "", value)
+                print value
+                exit
+            }
+        ' "$config_file")"
+    fi
+
+    ansible_home="${ANSIBLE_HOME:-$HOME/.ansible}"
+    printf '%s\n' "${configured_paths:-$ansible_home/collections:/usr/share/ansible/collections}"
+}
+
+expand_collection_path() {
+    local collection_path="$1"
+
+    case "$collection_path" in
+        "~") printf '%s\n' "$HOME" ;;
+        \~/*) printf '%s/%s\n' "$HOME" "${collection_path#\~/}" ;;
+        *) printf '%s\n' "$collection_path" ;;
+    esac
+}
+
+collection_manifest_has_version() {
+    local manifest="$1" expected_version="$2" installed_version
+
+    [[ -f "$manifest" ]] || return 1
+    installed_version="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$manifest" | head -1)"
+    [[ "$installed_version" == "$expected_version" ]]
+}
+
+# ./collections is first in ansible.cfg's path. A stale collection there shadows
+# every fallback, so it must be refreshed. When the repository copy is absent, a
+# matching collection in an effective fallback path is safe to use offline.
+ensure_collections() {
+    local requirements_file="collections/requirements.yml"
+    local collections_dir="collections/ansible_collections"
+    local collection_search_paths repository_collections_path repository_path_is_effective=0
+
+    if [[ ! -f "$requirements_file" ]]; then
+        echo "Cannot find $requirements_file - run this script from the repository root." >&2
+        exit 1
+    fi
+
+    collection_search_paths="$(get_collection_search_paths)"
+    repository_collections_path="$(cd collections && pwd -P)"
+
+    local fqcn version namespace name manifest collection_path expanded_path fallback_manifest needs=0
+    local -a collection_path_list
+    IFS=: read -r -a collection_path_list <<< "$collection_search_paths"
+    for collection_path in "${collection_path_list[@]}"; do
+        [[ -n "$collection_path" ]] || continue
+        expanded_path="$(expand_collection_path "$collection_path")"
+        if [[ -d "$expanded_path" ]] && [[ "$(cd "$expanded_path" && pwd -P)" == "$repository_collections_path" ]]; then
+            repository_path_is_effective=1
+            break
+        fi
+    done
+
+    while read -r fqcn version; do
+        [[ -n "$fqcn" ]] || continue
+        namespace="${fqcn%%.*}"
+        name="${fqcn#*.}"
+        manifest="$collections_dir/$namespace/$name/MANIFEST.json"
+
+        if [[ "$repository_path_is_effective" -eq 1 ]] && [[ -d "$collections_dir/$namespace/$name" ]]; then
+            if ! collection_manifest_has_version "$manifest" "$version"; then
+                needs=1
+                break
+            fi
+            continue
+        fi
+
+        local found_in_fallback=0
+        for collection_path in "${collection_path_list[@]}"; do
+            [[ -n "$collection_path" ]] || continue
+            expanded_path="$(expand_collection_path "$collection_path")"
+            if [[ -d "$expanded_path" ]] && [[ "$(cd "$expanded_path" && pwd -P)" == "$repository_collections_path" ]]; then
+                continue
+            fi
+
+            fallback_manifest="$expanded_path/ansible_collections/$namespace/$name/MANIFEST.json"
+            if collection_manifest_has_version "$fallback_manifest" "$version"; then
+                found_in_fallback=1
+                break
+            fi
+        done
+
+        if [[ "$found_in_fallback" -eq 0 ]]; then
+            needs=1
+            break
+        fi
+    done < <(awk '/- name:/ {n=$3} /version:/ {print n, $2}' "$requirements_file")
+
+    if [[ "$needs" -eq 0 ]]; then
+        echo "Required Ansible collections available at pinned versions."
+        return 0
+    fi
+
+    echo "Refreshing required Ansible collections from $requirements_file ..."
+    if ! ansible-galaxy collection install -r "$requirements_file" -p collections --force; then
+        echo "Failed to install the required Ansible collections." >&2
+        echo "Install them manually before running the playbook:" >&2
+        echo "    ansible-galaxy collection install -r $requirements_file -p collections --force" >&2
+        exit 1
+    fi
+}
+
+# Resolve the settings file into install_settings_file, empty when there is none.
+# An absent default is the ordinary case and is silent; an absent or unreadable file that
+# was asked for explicitly is an error, because continuing would apply none of the settings
+# the operator believes are in force and quietly install under the wrong endpoint names.
+resolve_install_settings() {
+    local candidate requested_explicitly=0
+
+    install_settings_file=""
+    if [[ -n "${FWORCH_LOCAL_SETTINGS:-}" ]]; then
+        candidate="$FWORCH_LOCAL_SETTINGS"
+        requested_explicitly=1
+    else
+        candidate="$install_settings_default_file"
+    fi
+
+    if [[ ! -f "$candidate" ]]; then
+        if [[ "$requested_explicitly" -eq 1 ]]; then
+            echo "FWORCH_LOCAL_SETTINGS is set to $candidate, but there is no such file." >&2
+            return 1
+        fi
+        return 0
+    fi
+
+    if [[ ! -r "$candidate" ]]; then
+        echo "$candidate exists but is not readable by $(id -un)." >&2
+        echo "The installer settings must be readable by everyone who runs the installer:" >&2
+        echo "    sudo chmod 644 $candidate" >&2
+        return 1
+    fi
+
+    install_settings_file="$candidate"
+    return 0
+}
+
+main() {
+    local -a args=("$@")
+
+    if [[ "${#args[@]}" -eq 0 ]]; then
+        args=(site.yml)
+    fi
+
+    resolve_install_settings
+    if [[ -n "$install_settings_file" ]]; then
+        echo "Applying installer settings from $install_settings_file"
+        # Prepended, never appended: extra variables are last one wins, so appending would
+        # let this file silently override an --extra-vars given on the command line.
+        args=(--extra-vars "@$install_settings_file" "${args[@]}")
+    fi
+
+    require_ansible_core
+    ensure_collections
+
+    if [[ "$(id -u)" -ne 0 ]]; then
+        if ! command -v sudo >/dev/null 2>&1; then
+            echo "sudo is required to run the Firewall Orchestrator installer." >&2
+            exit 1
+        fi
+
+        if ! sudo -k -n true 2>/dev/null; then
+            echo "Enter sudo password to create a temporary sudoers entry for Ansible."
+            sudo -v
+
+            install_temporary_sudoers || exit 1
+        fi
+    fi
+
+    ansible-playbook "${args[@]}"
+}
+
+# Run the installer flow only when executed directly, not when sourced (tests).
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

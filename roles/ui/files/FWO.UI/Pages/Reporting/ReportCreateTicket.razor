@@ -1,4 +1,6 @@
-﻿@using FWO.Middleware.Client
+@using FWO.Basics
+@using FWO.Middleware.Client
+@using FWO.Compliance
 
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Requester}")]
 
@@ -24,14 +26,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="CreateTicket">@(DisplayService.DisplayButton(userConfig, "create_ticket", Icons.Confirm))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, "create_ticket", Icons.Confirm))</button>
                 </NotAuthorized> 
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
@@ -42,6 +44,9 @@
 {
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     [Parameter]
     public bool Display { get; set; } = false;
@@ -69,7 +74,7 @@
             Message = "";
             foreach(int rulebaseId in ruleUidsPerRulebase.Keys)
             {
-                Message += string.Join("<br>", ruleUidsPerRulebase[rulebaseId]);
+                Message += string.Join("<br>", ruleUidsPerRulebase[rulebaseId].Select(HtmlOutputEncoder.EncodeText));
             }
         }
     }
@@ -95,13 +100,15 @@
 
     private async Task CreateTicket()
     {
-        apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Requester, Roles.Admin ]);
-        TicketCreator ticketCreator = new (apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient);
-        foreach(int rulebaseId in ruleUidsPerRulebase.Keys)
+        await apiConnection.RunWithWorkflowRole(authenticationStateTask!.Result.User, async () =>
         {
-            await ticketCreator.CreateUnusedRuleDeleteTicket(rulebaseId, ruleUidsPerRulebase[rulebaseId], commentText, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
-        }
-        apiConnection.SwitchBack();
+            TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.request,
+                new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient), DisplayMessageInUi);
+            foreach(int rulebaseId in ruleUidsPerRulebase.Keys)
+            {
+                await ticketCreator.CreateUnusedRuleDeleteTicket(rulebaseId, ruleUidsPerRulebase[rulebaseId], commentText, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));
+            }
+        });
         Close();
     }
 }

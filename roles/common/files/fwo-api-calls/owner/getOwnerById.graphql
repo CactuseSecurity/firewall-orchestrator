@@ -3,5 +3,6 @@ query getOwnerById ($id: Int!){
     id
     name
     app_id_external
+    additional_info
   }
 }

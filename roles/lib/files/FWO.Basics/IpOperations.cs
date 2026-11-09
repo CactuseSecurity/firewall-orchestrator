@@ -1,6 +1,7 @@
 using System.Net;
-using System.Net.Sockets;
 using System.Numerics;
+using System.Net.Sockets;
+using System.Globalization;
 using DnsClient;
 using NetTools;
 
@@ -11,6 +12,12 @@ namespace FWO.Basics
     /// </summary>
     public static class IpOperations
     {
+        private const int kIpv4OctetCount = 4;
+        private const int kMaxIpv4OctetLength = 3;
+        private const int kIpv4CompatiblePrefixByteCount = 12;
+        private const int kBitsPerByte = 8;
+        private const uint kIpv6LoopbackSuffix = 1;
+
         // Reuse the client to avoid socket churn and disable client-side caching.
         private static readonly LookupClient ReverseLookupClient = new(new LookupClientOptions
         {
@@ -35,6 +42,43 @@ namespace FWO.Basics
                 return Array.Empty<string>();
             }
 
+            return ExtractPtrNames(response);
+        }
+
+        /// <summary>
+        /// Resolves all PTR records for an IP address and tells a definitive answer from a failed lookup,
+        /// so that a caller storing the result can retry the failed ones later.
+        /// </summary>
+        /// <returns>The PTR names, an empty list if the DNS server answered that the address has no name,
+        /// or null if no definitive answer was received (e.g. server failure or refused query).</returns>
+        /// <exception cref="DnsResponseException">If none of the name servers could be reached.</exception>
+        public static async Task<IReadOnlyList<string>?> TryDnsReverseLookUpAllAsync(
+            IPAddress address,
+            CancellationToken cancellationToken = default)
+        {
+            IDnsQueryResponse response = await ReverseLookupClient.QueryReverseAsync(address, cancellationToken)
+                .ConfigureAwait(false);
+            return SelectReverseLookupNames(response.Header.ResponseCode, ExtractPtrNames(response));
+        }
+
+        /// <summary>
+        /// Decides whether a reverse lookup response is definitive. Only a response without error and a
+        /// non-existent domain answer whether the address has a name; every other response code may change
+        /// with the next query.
+        /// </summary>
+        /// <returns>The PTR names, an empty list for a non-existent domain, or null for any other response code.</returns>
+        public static IReadOnlyList<string>? SelectReverseLookupNames(DnsHeaderResponseCode responseCode, IReadOnlyList<string> ptrNames)
+        {
+            return responseCode switch
+            {
+                DnsHeaderResponseCode.NoError => ptrNames,
+                DnsHeaderResponseCode.NotExistentDomain => Array.Empty<string>(),
+                _ => null
+            };
+        }
+
+        private static string[] ExtractPtrNames(IDnsQueryResponse response)
+        {
             return response.Answers
                 .PtrRecords()
                 .Select(ptr => ptr.PtrDomainName.Value.TrimEnd('.')) // Drop the trailing DNS root dot.
@@ -90,8 +134,16 @@ namespace FWO.Basics
         /// </summary>
         public static (string, string) SplitIpToRange(string ipString)
         {
-            if (ipString.TryGetNetmask(out _))
+            if (ipString.TryGetNetmask(out string netmask))
             {
+                if (netmask.Contains('.'))
+                {
+                    if (IPAddressRange.TryParse(ipString, out IPAddressRange dottedNetmaskRange))
+                    {
+                        return (dottedNetmaskRange.Begin.ToString(), dottedNetmaskRange.End.ToString());
+                    }
+                    throw new FormatException("Invalid IPv4 netmask format.");
+                }
                 return ipString.CidrToRangeString();
             }
 
@@ -149,10 +201,55 @@ namespace FWO.Basics
             return true;
         }
 
+        /// <summary>
+        /// Tries to parse a start address and an optional end address into one range, IPv4 or IPv6. Start and end may
+        /// each be a single IP, a CIDR or a range string; the range reaches from the first address of the start to the
+        /// last address of the end. So a network stored with netmask on both, e.g. "10.0.0.0/24" to "10.0.0.0/24", keeps
+        /// its size, and host notations such as "10.0.0.1/32" to "10.0.0.5/32" give the range between them. Fails for a
+        /// missing start, an unparsable address, a reversed range and a range mixing IPv4 and IPv6.
+        /// </summary>
+        /// <param name="start">Start address, CIDR or range.</param>
+        /// <param name="end">End address of a range; empty for a single address or network.</param>
+        /// <param name="range">The parsed range, or null if parsing failed.</param>
+        public static bool TryParseIPRange(string? start, string? end, out IPAddressRange? range)
+        {
+            range = null;
+            if (string.IsNullOrWhiteSpace(start) || !start.TryParseIPString(out IPAddressRange? startRange) || startRange == null)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(end))
+            {
+                range = startRange;
+                return true;
+            }
+            if (!end.TryParseIPString(out IPAddressRange? endRange) || endRange == null)
+            {
+                return false;
+            }
+            try
+            {
+                range = new IPAddressRange(startRange.Begin, endRange.End);
+                return true;
+            }
+            catch (ArgumentException)
+            {
+                // a reversed range or a range mixing IPv4 and IPv6
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks whether an IPv4 value uses four unambiguous decimal octets.
+        /// </summary>
         private static bool IsValidIPv4(string ipAddress)
         {
             string[] octets = ipAddress.Split('.');
-            return octets.Length == 4 && octets.All(octet => byte.TryParse(octet, out _));
+            // Leading zeros are rejected because .NET interprets them as octal while FWO uses decimal addresses.
+            return octets.Length == kIpv4OctetCount
+                && octets.All(octet => octet.Length is > 0 and <= kMaxIpv4OctetLength
+                    && octet.All(char.IsAsciiDigit)
+                    && (octet.Length == 1 || octet[0] != '0'));
         }
 
         /// <summary>
@@ -179,25 +276,7 @@ namespace FWO.Basics
 
         private static bool HasValidNetmask(IPAddressRange range)
         {
-            // Adapted from IPAddressRange.getPrefixLength() without exception handling.
-            byte[] addressBytes = range.Begin.GetAddressBytes();
-            if (range.Begin.Equals(range.End))
-            {
-                return true;
-            }
-
-            int num = addressBytes.Length * 8;
-            for (int i = 0; i < num; i++)
-            {
-                byte[] bitMask = Bits.GetBitMask(addressBytes.Length, i);
-                if (new IPAddress(Bits.And(addressBytes, bitMask)).Equals(range.Begin) &&
-                    new IPAddress(Bits.Or(addressBytes, Bits.Not(bitMask))).Equals(range.End))
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return TryGetCidrNotation(range.Begin, range.End, out _);
         }
 
         /// <summary>
@@ -208,7 +287,47 @@ namespace FWO.Basics
         /// <returns><c>true</c> when the ranges overlap, otherwise <c>false</c>.</returns>
         public static bool RangeOverlapExists(IPAddressRange a, IPAddressRange b)
         {
-            return IpToUint(a.Begin) <= IpToUint(b.End) && IpToUint(b.Begin) <= IpToUint(a.End);
+            if (a.Begin.AddressFamily != b.Begin.AddressFamily)
+            {
+                return false;
+            }
+
+            return CompareIpValues(a.Begin, b.End) <= 0 && CompareIpValues(b.Begin, a.End) <= 0;
+        }
+
+        /// <summary>
+        /// Calculates the intersection of two IP address ranges.
+        /// </summary>
+        /// <param name="a">The first IP address range.</param>
+        /// <param name="b">The second IP address range.</param>
+        /// <returns>
+        /// A new <see cref="IPAddressRange"/> representing the overlapping range,
+        /// or <c>null</c> if the ranges do not overlap.
+        /// </returns>
+        public static IPAddressRange? GetIntersection(IPAddressRange a, IPAddressRange b)
+        {
+            if (a.Begin.AddressFamily != b.Begin.AddressFamily)
+            {
+                return null;
+            }
+
+            BigInteger startA = ToBigInteger(a.Begin);
+            BigInteger endA = ToBigInteger(a.End);
+            BigInteger startB = ToBigInteger(b.Begin);
+            BigInteger endB = ToBigInteger(b.End);
+
+            BigInteger startOverlap = BigInteger.Max(startA, startB);
+            BigInteger endOverlap = BigInteger.Min(endA, endB);
+
+            if (startOverlap <= endOverlap)
+            {
+                return new IPAddressRange(
+                    IPNetwork2.ToIPAddress(startOverlap, a.Begin.AddressFamily),
+                    IPNetwork2.ToIPAddress(endOverlap, a.Begin.AddressFamily)
+                );
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -216,15 +335,7 @@ namespace FWO.Basics
         /// </summary>
         public static uint IpToUint(IPAddress ipAddress)
         {
-            byte[] bytes = ipAddress.GetAddressBytes();
-
-            // Convert from network byte order to host byte order.
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(bytes);
-            }
-
-            return BitConverter.ToUInt32(bytes, 0);
+            return (uint)IPNetwork2.ToBigInteger(ipAddress);
         }
 
         /// <summary>
@@ -232,15 +343,17 @@ namespace FWO.Basics
         /// </summary>
         public static IPAddress UintToIp(uint ipAddress)
         {
-            byte[] bytes = BitConverter.GetBytes(ipAddress);
+            return IPNetwork2.ToIPAddress(ipAddress, AddressFamily.InterNetwork);
+        }
 
-            // Convert from host byte order to network byte order.
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(bytes);
-            }
-
-            return new IPAddress(bytes);
+        /// <summary>
+        /// Converts a numeric address value back into an address of the given family.
+        /// </summary>
+        /// <param name="ipValue">Numeric address value.</param>
+        /// <param name="addressFamily">Address family the value belongs to.</param>
+        public static IPAddress FromBigInteger(BigInteger ipValue, AddressFamily addressFamily)
+        {
+            return IPNetwork2.ToIPAddress(ipValue, addressFamily);
         }
 
         /// <summary>
@@ -269,6 +382,55 @@ namespace FWO.Basics
         }
 
         /// <summary>
+        /// Converts start and end addresses to the shortest matching notation: a plain IP for a single address,
+        /// CIDR notation when the range spans exactly one network, and <c>start-end</c> for any other range.
+        /// </summary>
+        /// <param name="startIp">The first address of the range, with or without netmask.</param>
+        /// <param name="endIp">The last address of the range, with or without netmask. May be empty for a single address.</param>
+        /// <returns>The compact notation, or the unchanged <paramref name="startIp"/> when the input is not parsable.</returns>
+        public static string ToCompactNotation(string startIp, string endIp)
+        {
+            (string start, string end) = string.IsNullOrEmpty(endIp)
+                ? SplitIpToRange(startIp)
+                : (startIp.StripOffNetmask(), endIp.StripOffNetmask());
+
+            if (!IPAddress.TryParse(start, out IPAddress? startAddress)
+                || !IPAddress.TryParse(end, out IPAddress? endAddress)
+                || startAddress.AddressFamily != endAddress.AddressFamily)
+            {
+                return startIp;
+            }
+
+            if (startAddress.Equals(endAddress))
+            {
+                return startAddress.ToString();
+            }
+
+            return TryGetCidrNotation(startAddress, endAddress, out string cidrNotation)
+                ? cidrNotation
+                : $"{startAddress}-{endAddress}";
+        }
+
+        private static bool TryGetCidrNotation(IPAddress start, IPAddress end, out string cidrNotation)
+        {
+            try
+            {
+                cidrNotation = new IPAddressRange(start, end).ToCidrString();
+                return !string.IsNullOrEmpty(cidrNotation);
+            }
+            catch (ArgumentException)
+            {
+                cidrNotation = string.Empty;
+                return false;
+            }
+            catch (FormatException)
+            {
+                cidrNotation = string.Empty;
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Converts start and end addresses to dotted mask notation for the matching network.
         /// </summary>
         public static string ToDotNotation(string startIp, string endIp)
@@ -289,31 +451,11 @@ namespace FWO.Basics
                 throw new ArgumentException("Start and end IPs must be of the same address family.");
             }
 
-            // Walk from the most specific prefix down to the least specific prefix.
-            int maxPrefixLength = start.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
-
-            for (int prefixLength = maxPrefixLength; prefixLength >= 0; prefixLength--)
-            {
-                IPNetwork network = IPNetwork.Parse($"{start}/{prefixLength}");
-                if (network.Contains(start) && network.Contains(end))
-                {
-                    string subnetMask = start.AddressFamily == AddressFamily.InterNetwork
-                        ? GetIPv4SubnetMask(network.PrefixLength)
-                        : $"(IPv6) /{network.PrefixLength}";
-
-                    return $"{network.ToString().StripOffNetmask()}/{subnetMask}";
-                }
-            }
-
-            return "";
-        }
-
-        // Convert a prefix length to an IPv4 subnet mask.
-        private static string GetIPv4SubnetMask(int prefixLength)
-        {
-            uint mask = 0xffffffff << (32 - prefixLength);
-            uint[] bytes = [(mask >> 24) & 0xff, (mask >> 16) & 0xff, (mask >> 8) & 0xff, mask & 0xff];
-            return string.Join(".", bytes);
+            IPNetwork2 network = IPNetwork2.WideSubnet(start.ToString(), end.ToString());
+            string subnetMask = start.AddressFamily == AddressFamily.InterNetwork
+                ? network.Netmask.ToString()
+                : $"(IPv6) /{network.Cidr}";
+            return $"{network.Network}/{subnetMask}";
         }
 
         /// <summary>
@@ -398,7 +540,9 @@ namespace FWO.Basics
             List<(IPAddress start, IPAddress end)> intervals = networkList.Select(network =>
             {
                 IPAddress start = includeNetworkAndBroadcast ? network.Network : network.FirstUsable ?? network.Network;
-                IPAddress end = includeNetworkAndBroadcast ? network.Broadcast ?? start : network.LastUsable ?? start;
+                IPAddress end = includeNetworkAndBroadcast
+                    ? network.Broadcast ?? network.LastUsable ?? start
+                    : network.LastUsable ?? start;
                 return (start, end);
             }).ToList();
 
@@ -449,34 +593,18 @@ namespace FWO.Basics
                 value = max;
             }
 
-            return FromBigInteger(value, family);
+            return IPNetwork2.ToIPAddress(value, family);
         }
 
-        private static BigInteger ToBigInteger(IPAddress ip)
+        public static BigInteger ToBigInteger(IPAddress ip)
         {
-            byte[] bytes = ip.GetAddressBytes(); // Big-endian.
-            byte[] littleEndian = [.. bytes.Reverse(), 0]; // Little-endian plus unsigned padding.
-            return new BigInteger(littleEndian);
-        }
-
-        private static IPAddress FromBigInteger(BigInteger value, AddressFamily family)
-        {
-            int length = family == AddressFamily.InterNetwork ? 4 : 16;
-            byte[] bytesLittleEndian = value.ToByteArray(); // Little-endian.
-            byte[] bytesBigEndian = new byte[length];
-
-            for (int i = 0; i < length; i++)
-            {
-                bytesBigEndian[length - 1 - i] = i < bytesLittleEndian.Length ? bytesLittleEndian[i] : (byte)0;
-            }
-
-            return new IPAddress(bytesBigEndian);
+            return IPNetwork2.ToBigInteger(ip);
         }
 
         private static BigInteger MaxValue(AddressFamily family)
         {
             int bits = family == AddressFamily.InterNetwork ? 32 : 128;
-            return (BigInteger.One << bits) - 1;
+            return IPNetwork2.ToUint((byte)bits, family);
         }
 
         private static bool TryParseExplicitRange(string ipString, out IPAddressRange ipRange)
@@ -498,10 +626,14 @@ namespace FWO.Basics
 
             try
             {
+                if (strictv4Parse && !HasStrictIpParseFormat(ipString))
+                {
+                    return false;
+                }
+
                 (ipStart, ipEnd) = SplitIpToRange(ipString);
                 return IPAddress.TryParse(ipStart, out addressStart)
-                    && IPAddress.TryParse(ipEnd, out addressEnd)
-                    && !HasStrictIPv4ParseError(ipStart, ipEnd, addressStart, addressEnd, strictv4Parse);
+                    && IPAddress.TryParse(ipEnd, out addressEnd);
             }
             catch (Exception)
             {
@@ -509,17 +641,85 @@ namespace FWO.Basics
             }
         }
 
-        private static bool HasStrictIPv4ParseError(
-            string ipStart,
-            string ipEnd,
-            IPAddress addressStart,
-            IPAddress addressEnd,
-            bool strictv4Parse)
+        /// <summary>
+        /// Checks every address in a single address, CIDR, or explicit range for strict notation.
+        /// </summary>
+        private static bool HasStrictIpParseFormat(string ipString)
         {
-            return strictv4Parse
-                && addressStart.AddressFamily == AddressFamily.InterNetwork
-                && addressEnd.AddressFamily == AddressFamily.InterNetwork
-                && (!IsValidIPv4(ipStart) || !IsValidIPv4(ipEnd));
+            string[] rangeParts = ipString.Split('-');
+            return rangeParts.Length switch
+            {
+                1 => HasStrictAddressFormat(rangeParts[0]),
+                2 => rangeParts.All(part => HasStrictAddressFormat(part.Trim())),
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// Checks one address, with an optional CIDR prefix, without allowing framework-specific aliases.
+        /// </summary>
+        private static bool HasStrictAddressFormat(string value)
+        {
+            string[] parts = value.Split('/');
+            if (parts.Length > 2
+                || !IPAddress.TryParse(parts[0], out IPAddress? address)
+                || !HasStrictAddressNotation(parts[0], address))
+            {
+                return false;
+            }
+
+            if (parts.Length == 1)
+            {
+                return true;
+            }
+
+            int maxPrefixLength = address.GetAddressBytes().Length * kBitsPerByte;
+            return int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out int prefixLength)
+                && prefixLength <= maxPrefixLength;
+        }
+
+        /// <summary>
+        /// Checks that an address uses unambiguous dotted-decimal IPv4 or a supported IPv6 representation.
+        /// </summary>
+        private static bool HasStrictAddressNotation(string value, IPAddress address)
+        {
+            return address.AddressFamily switch
+            {
+                AddressFamily.InterNetwork => IsValidIPv4(value),
+                AddressFamily.InterNetworkV6 => value == value.Trim()
+                    && !value.Contains('%')
+                    && !value.Contains('[')
+                    && !value.Contains(']')
+                    && !value.Contains('.')
+                    && !IsIpv4EncodedAsIpv6(address),
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// Checks whether an IPv6 value represents an IPv4 address in mapped or compatible notation.
+        /// </summary>
+        private static bool IsIpv4EncodedAsIpv6(IPAddress address)
+        {
+            if (address.IsIPv4MappedToIPv6)
+            {
+                return true;
+            }
+
+            byte[] addressBytes = address.GetAddressBytes();
+            if (addressBytes.Take(kIpv4CompatiblePrefixByteCount).Any(addressByte => addressByte != 0))
+            {
+                return false;
+            }
+
+            uint embeddedIpv4 = 0;
+            foreach (byte addressByte in addressBytes.Skip(kIpv4CompatiblePrefixByteCount))
+            {
+                embeddedIpv4 = (embeddedIpv4 << kBitsPerByte) | addressByte;
+            }
+
+            // The unspecified address and loopback share the zero prefix but are native IPv6 addresses.
+            return embeddedIpv4 > kIpv6LoopbackSuffix;
         }
 
         private static List<IPNetwork2> ToNetworks(IEnumerable<IPAddressRange> ranges)

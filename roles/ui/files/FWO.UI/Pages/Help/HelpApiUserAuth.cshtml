@@ -15,7 +15,7 @@
 <div class="p-2">
     <h3>@userConfig.GetText("api_user_mgmt_head")</h3>
     @(Html.Raw(userConfig.GetText("umgmt_api_explain")))
-    <a target="_blank" href="@(ConfigFile.MiddlewareServerUri)swagger">@(ConfigFile.MiddlewareServerUri)swagger</a>
+    <a target="_blank" href="@(ConfigFile.MiddlewareServerUri)api-docs/v1.json">@(ConfigFile.MiddlewareServerUri)api-docs/v1.json</a>
     <br>
     @(Html.Raw(userConfig.GetText("umgmt_api_explain2")))
 </div>

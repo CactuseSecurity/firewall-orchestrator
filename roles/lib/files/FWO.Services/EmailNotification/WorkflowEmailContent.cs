@@ -1,0 +1,577 @@
+using FWO.Basics;
+using FWO.Config.Api;
+using FWO.Data.Workflow;
+using System.Net;
+using System.Text;
+using System.Text.Json;
+
+namespace FWO.Services
+{
+    /// <summary>
+    /// Builds workflow action email content from the workflow ticket data already in scope.
+    /// </summary>
+    public class WorkflowEmailContent : NotificationEmailLayoutContent
+    {
+        /// <summary>
+        /// Builds requested connection content from request tasks.
+        /// </summary>
+        public static WorkflowEmailContent FromRequestTasks(IEnumerable<WfReqTask> tasks, UserConfig userConfig)
+        {
+            return FromRequestTasks(tasks, userConfig, null);
+        }
+
+        /// <summary>
+        /// Builds requested connection content from request tasks.
+        /// </summary>
+        public static WorkflowEmailContent FromRequestTasks(IEnumerable<WfReqTask> tasks, UserConfig userConfig, Dictionary<int, string>? protocolNamesById)
+        {
+            List<WfReqTask> taskList = [.. tasks];
+            List<WorkflowEmailSection> sections = [];
+            List<WorkflowConnectionRow> accessRows = [.. taskList.Where(task => !IsGroupTask(task) && !WfObjectTaskHelper.IsObjectTask(task.TaskType))
+                .Select(task => BuildRequestRow(task, protocolNamesById)).Where(row => row.HasContent())];
+            if (accessRows.Count > 0)
+            {
+                sections.Add(BuildAccessSection(accessRows, userConfig));
+            }
+            List<WorkflowGroupRow> groupRows = [.. taskList.Where(IsGroupTask).Select(task => BuildGroupRequestRow(task, userConfig, protocolNamesById)).Where(row => row.HasContent())];
+            if (groupRows.Count > 0)
+            {
+                sections.Add(BuildGroupSection(groupRows, userConfig));
+            }
+            List<WorkflowObjectRow> objectRows = [.. taskList.Where(task => WfObjectTaskHelper.IsObjectTask(task.TaskType))
+                .Select(task => BuildObjectRequestRow(task, userConfig, protocolNamesById)).Where(row => row.HasContent())];
+            if (objectRows.Count > 0)
+            {
+                sections.Add(BuildObjectSection(objectRows, userConfig));
+            }
+            return FromSections(sections);
+        }
+
+        /// <summary>
+        /// Builds requested connection content from implementation tasks.
+        /// </summary>
+        public static WorkflowEmailContent FromImplementationTasks(IEnumerable<WfImplTask> tasks, UserConfig userConfig)
+        {
+            return FromImplementationTasks(tasks, userConfig, null);
+        }
+
+        /// <summary>
+        /// Builds requested connection content from implementation tasks.
+        /// </summary>
+        public static WorkflowEmailContent FromImplementationTasks(IEnumerable<WfImplTask> tasks, UserConfig userConfig, Dictionary<int, string>? protocolNamesById)
+        {
+            List<WfImplTask> taskList = [.. tasks];
+            List<WorkflowEmailSection> sections = [];
+            List<WorkflowConnectionRow> rows = [.. taskList.Where(task => !WfObjectTaskHelper.IsObjectTask(task.TaskType))
+                .Select(task => BuildImplementationRow(task, protocolNamesById)).Where(row => row.HasContent())];
+            if (rows.Count > 0)
+            {
+                sections.Add(BuildAccessSection(rows, userConfig));
+            }
+            List<WorkflowObjectRow> objectRows = [.. taskList.Where(task => WfObjectTaskHelper.IsObjectTask(task.TaskType))
+                .Select(task => BuildObjectImplementationRow(task, userConfig, protocolNamesById)).Where(row => row.HasContent())];
+            if (objectRows.Count > 0)
+            {
+                sections.Add(BuildObjectSection(objectRows, userConfig));
+            }
+            return FromSections(sections);
+        }
+
+        private static WorkflowEmailContent FromSections(List<WorkflowEmailSection> sections)
+        {
+            string plainText = string.Join("\n\n", sections.Select(section => $"{section.Title}\n{NotificationTableBodyBuilder.BuildTextTable(section.Headers, section.TableRows())}"));
+            string bodyHtml = string.Join("", sections.Select(section => $"<h2>{WebUtility.HtmlEncode(section.Title)}</h2>{NotificationTableBodyBuilder.BuildHtmlTable(section.Headers, section.TableRows())}"));
+
+            return new()
+            {
+                PlainText = plainText.Trim(),
+                Html = bodyHtml,
+                Csv = BuildCsv(sections),
+                Json = BuildJson(sections)
+            };
+        }
+
+        private static WorkflowEmailSection BuildAccessSection(List<WorkflowConnectionRow> rows, UserConfig userConfig)
+        {
+            return new()
+            {
+                Title = userConfig.GetText("requested_connections"),
+                Headers =
+                [
+                    userConfig.GetText("task"),
+                    userConfig.GetText("title"),
+                    userConfig.GetText("action"),
+                    userConfig.GetText("source"),
+                    userConfig.GetText("destination"),
+                    userConfig.GetText("services")
+                ],
+                Rows = [.. rows]
+            };
+        }
+
+        private static WorkflowEmailSection BuildGroupSection(List<WorkflowGroupRow> rows, UserConfig userConfig)
+        {
+            return new()
+            {
+                Title = userConfig.GetText("group_requests"),
+                Headers =
+                [
+                    userConfig.GetText("task"),
+                    userConfig.GetText("type"),
+                    userConfig.GetText("title"),
+                    userConfig.GetText("action"),
+                    userConfig.GetText("current_members"),
+                    userConfig.GetText("members_to_add"),
+                    userConfig.GetText("members_to_remove")
+                ],
+                Rows = [.. rows]
+            };
+        }
+
+        private static WorkflowEmailSection BuildObjectSection(List<WorkflowObjectRow> rows, UserConfig userConfig)
+        {
+            return new()
+            {
+                Title = userConfig.GetText("object_requests"),
+                Headers =
+                [
+                    userConfig.GetText("task"),
+                    userConfig.GetText("type"),
+                    userConfig.GetText("title"),
+                    userConfig.GetText("action"),
+                    userConfig.GetText("previous_state"),
+                    userConfig.GetText("requested_state")
+                ],
+                Rows = [.. rows]
+            };
+        }
+
+        private static WorkflowObjectRow BuildObjectRequestRow(WfReqTask task, UserConfig userConfig, Dictionary<int, string>? protocolNamesById)
+        {
+            WfReqElement? original = WfObjectTaskHelper.GetOriginalElement(task);
+            WfReqElement? requested = WfObjectTaskHelper.GetRequestedElement(task);
+            return new()
+            {
+                Task = BuildTaskReference(task.TaskNumber, task.Id),
+                Type = userConfig.GetText(task.TaskType),
+                Title = task.Title,
+                Action = task.RequestAction,
+                PreviousState = original != null ? BuildObjectStateText(original, protocolNamesById) : "",
+                RequestedState = requested != null ? BuildObjectStateText(requested, protocolNamesById) : ""
+            };
+        }
+
+        private static WorkflowObjectRow BuildObjectImplementationRow(WfImplTask task, UserConfig userConfig, Dictionary<int, string>? protocolNamesById)
+        {
+            WfImplElement? original = task.ImplElements.FirstOrDefault(element => element.ImplAction == RequestAction.unchanged.ToString());
+            WfImplElement? requested = task.ImplElements.FirstOrDefault(element => element.ImplAction == RequestAction.create.ToString()
+                || element.ImplAction == RequestAction.modify.ToString());
+            return new()
+            {
+                Task = BuildTaskReference(task.TaskNumber, task.Id),
+                Type = userConfig.GetText(task.TaskType),
+                Title = task.Title,
+                Action = task.ImplAction,
+                PreviousState = original != null ? BuildObjectStateText(original, protocolNamesById) : "",
+                RequestedState = requested != null ? BuildObjectStateText(requested, protocolNamesById) : ""
+            };
+        }
+
+        private static WorkflowConnectionRow BuildRequestRow(WfReqTask task, Dictionary<int, string>? protocolNamesById)
+        {
+            return new()
+            {
+                Task = BuildTaskReference(task.TaskNumber, task.Id),
+                Title = task.Title,
+                Action = task.RequestAction,
+                Source = BuildElementList(task.Elements, ElemFieldType.source, protocolNamesById),
+                Destination = BuildElementList(task.Elements, ElemFieldType.destination, protocolNamesById),
+                Services = BuildElementList(task.Elements, ElemFieldType.service, protocolNamesById)
+            };
+        }
+
+        private static WorkflowConnectionRow BuildImplementationRow(WfImplTask task, Dictionary<int, string>? protocolNamesById)
+        {
+            return new()
+            {
+                Task = BuildTaskReference(task.TaskNumber, task.Id),
+                Title = task.Title,
+                Action = task.ImplAction,
+                Source = BuildElementList(task.ImplElements, ElemFieldType.source, protocolNamesById),
+                Destination = BuildElementList(task.ImplElements, ElemFieldType.destination, protocolNamesById),
+                Services = BuildElementList(task.ImplElements, ElemFieldType.service, protocolNamesById)
+            };
+        }
+
+        private static WorkflowGroupRow BuildGroupRequestRow(WfReqTask task, UserConfig userConfig, Dictionary<int, string>? protocolNamesById)
+        {
+            WorkflowGroupMembers members = BuildGroupMembers(task, protocolNamesById);
+
+            return new()
+            {
+                Task = BuildTaskReference(task.TaskNumber, task.Id),
+                Type = userConfig.GetText(task.TaskType),
+                Title = task.Title,
+                Action = task.RequestAction,
+                CurrentMembers = members.CurrentMembers,
+                MembersToAdd = members.MembersToAdd,
+                MembersToRemove = members.MembersToRemove
+            };
+        }
+
+        private static WorkflowGroupMembers BuildGroupMembers(WfReqTask task, Dictionary<int, string>? protocolNamesById)
+        {
+            List<WfElementBase> currentMembers = [];
+            List<WfElementBase> membersToAdd = [];
+            List<WfElementBase> membersToRemove = [.. task.RemovedElements];
+
+            foreach (WfReqElement element in task.Elements)
+            {
+                if (element.IsMemberToRemove())
+                {
+                    membersToRemove.Add(element);
+                }
+                else if (element.IsMemberToAdd())
+                {
+                    membersToAdd.Add(element);
+                }
+                else
+                {
+                    currentMembers.Add(element);
+                }
+            }
+
+            return new()
+            {
+                CurrentMembers = BuildGroupMemberList(currentMembers, protocolNamesById),
+                MembersToAdd = BuildGroupMemberList(membersToAdd, protocolNamesById),
+                MembersToRemove = BuildGroupMemberList(membersToRemove, protocolNamesById)
+            };
+        }
+
+        private static string BuildGroupMemberList(IEnumerable<WfElementBase> elements, Dictionary<int, string>? protocolNamesById)
+        {
+            return string.Join(", ", elements
+                .Select(element => BuildGroupMemberText(element, protocolNamesById))
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .Distinct());
+        }
+
+        private static bool IsGroupTask(WfTaskBase task)
+        {
+            return task.TaskType == WfTaskType.group_create.ToString()
+                || task.TaskType == WfTaskType.group_modify.ToString()
+                || task.TaskType == WfTaskType.group_delete.ToString();
+        }
+
+        private static string BuildTaskReference(int taskNumber, long id)
+        {
+            return taskNumber > 0 ? taskNumber.ToString() : id.ToString();
+        }
+
+        private static string BuildElementList(IEnumerable<WfElementBase> elements, ElemFieldType field, Dictionary<int, string>? protocolNamesById)
+        {
+            return string.Join(", ", elements
+                .Where(element => element.Field == field.ToString())
+                .Select(element => BuildElementText(element, protocolNamesById))
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .Distinct());
+        }
+
+        private static string BuildGroupMemberText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
+        {
+            return element.Field == ElemFieldType.service.ToString()
+                ? BuildGroupServiceMemberText(element, protocolNamesById)
+                : BuildGroupObjectMemberText(element);
+        }
+
+        private static string BuildGroupObjectMemberText(WfElementBase element)
+        {
+            string displayName = FirstNonEmpty(element.Name, element.RuleUid, BuildIpRange(element), element.GroupName);
+            if (!string.IsNullOrWhiteSpace(element.RuleUid) && element.RuleUid != displayName)
+            {
+                return $"{displayName} ({element.RuleUid})";
+            }
+            return displayName;
+        }
+
+        private static string BuildGroupServiceMemberText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
+        {
+            string displayName = FirstNonEmpty(element.Name, BuildPortRange(element), element.GroupName);
+            if (element.ProtoId != null && string.IsNullOrWhiteSpace(element.Name))
+            {
+                return $"{displayName}/{GetProtocolLabel(element.ProtoId.Value, protocolNamesById)}";
+            }
+            return displayName;
+        }
+
+        /// <summary>
+        /// Describes the state of a single object of an object task by its name and its value, so that a change of
+        /// only the address or only the port is visible as well: "srv_web01 (10.1.1.5/32)", "https_alt (8443/TCP)".
+        /// </summary>
+        private static string BuildObjectStateText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
+        {
+            string value = WfObjectTaskHelper.GetKind(element) switch
+            {
+                ObjectTaskKind.Service => BuildServiceValueText(element, protocolNamesById),
+                ObjectTaskKind.Time => WfObjectTaskHelper.FormatTimeRange(element.StartTime, element.EndTime),
+                _ => BuildIpRange(element)
+            };
+            if (string.IsNullOrWhiteSpace(element.Name))
+            {
+                return value;
+            }
+            return string.IsNullOrWhiteSpace(value) ? element.Name : $"{element.Name} ({value})";
+        }
+
+        private static string BuildServiceValueText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
+        {
+            string protocol = element.ProtoId != null ? GetProtocolLabel(element.ProtoId.Value, protocolNamesById) : "";
+            string ports = BuildPortRange(element);
+            if (string.IsNullOrWhiteSpace(ports))
+            {
+                return protocol;
+            }
+            return string.IsNullOrWhiteSpace(protocol) ? ports : $"{ports}/{protocol}";
+        }
+
+        private static string BuildElementText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
+        {
+            return element.Field == ElemFieldType.service.ToString()
+                ? BuildServiceText(element, protocolNamesById)
+                : BuildObjectOrRuleText(element);
+        }
+
+        private static string BuildObjectOrRuleText(WfElementBase element)
+        {
+            string displayName = FirstNonEmpty(element.Name, element.GroupName, element.RuleUid, BuildIpRange(element));
+            if (!string.IsNullOrWhiteSpace(element.RuleUid) && element.RuleUid != displayName)
+            {
+                return $"{displayName} ({element.RuleUid})";
+            }
+            return displayName;
+        }
+
+        private static string BuildServiceText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
+        {
+            string displayName = FirstNonEmpty(element.Name, element.GroupName, BuildPortRange(element));
+            if (element.ProtoId != null && string.IsNullOrWhiteSpace(element.Name))
+            {
+                return $"{displayName}/{GetProtocolLabel(element.ProtoId.Value, protocolNamesById)}";
+            }
+            return displayName;
+        }
+
+        private static string GetProtocolLabel(int protocolId, Dictionary<int, string>? protocolNamesById)
+        {
+            return protocolNamesById != null && protocolNamesById.TryGetValue(protocolId, out string? protocolName) && !string.IsNullOrWhiteSpace(protocolName)
+                ? protocolName
+                : protocolId.ToString();
+        }
+
+        private static string BuildIpRange(WfElementBase element)
+        {
+            string start = FirstNonEmpty(element.IpString, GetCidrString(element, false));
+            string end = FirstNonEmpty(element.IpEnd, GetCidrString(element, true));
+            return !string.IsNullOrWhiteSpace(end) && end != start ? $"{start}-{end}" : start;
+        }
+
+        private static string GetCidrString(WfElementBase element, bool end)
+        {
+            return element switch
+            {
+                WfReqElement reqElement => end ? reqElement.CidrEnd?.CidrString ?? "" : reqElement.Cidr?.CidrString ?? "",
+                WfImplElement implElement => end ? implElement.CidrEnd?.CidrString ?? "" : implElement.Cidr?.CidrString ?? "",
+                _ => ""
+            };
+        }
+
+        private static string BuildPortRange(WfElementBase element)
+        {
+            if (element.Port == null)
+            {
+                return "";
+            }
+
+            return element.PortEnd != null && element.PortEnd != element.Port
+                ? $"{element.Port}-{element.PortEnd}"
+                : element.Port.ToString() ?? "";
+        }
+
+        private static string FirstNonEmpty(params string?[] values)
+        {
+            return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? "";
+        }
+
+        private static string BuildCsv(List<WorkflowEmailSection> sections)
+        {
+            StringBuilder csv = new();
+            foreach (WorkflowEmailSection section in sections)
+            {
+                if (csv.Length > 0)
+                {
+                    csv.AppendLine();
+                }
+                csv.AppendLine(CsvCell(section.Title));
+                csv.AppendLine(string.Join(",", section.Headers.Select(CsvCell)));
+                foreach (IWorkflowEmailRow row in section.Rows)
+                {
+                    csv.AppendLine(string.Join(",", row.ToCells().Select(CsvCell)));
+                }
+            }
+            return csv.ToString();
+        }
+
+        private static string BuildJson(List<WorkflowEmailSection> sections)
+        {
+            return JsonSerializer.Serialize(sections.Select(section => new
+            {
+                section.Title,
+                section.Headers,
+                Rows = section.Rows.Select(row => row.ToJsonObject()).ToList()
+            }));
+        }
+
+        private static string CsvCell(string value)
+        {
+            return CsvOutputEncoder.EncodeCell(value);
+        }
+    }
+
+    internal class WorkflowEmailSection
+    {
+        public string Title { get; set; } = "";
+        public List<string> Headers { get; set; } = [];
+        public List<IWorkflowEmailRow> Rows { get; set; } = [];
+
+        public List<NotificationTableRow> TableRows()
+        {
+            return [.. Rows.Select(row => row.ToTableRow())];
+        }
+    }
+
+    internal interface IWorkflowEmailRow
+    {
+        bool HasContent();
+        List<string> ToCells();
+        NotificationTableRow ToTableRow();
+        object ToJsonObject();
+    }
+
+    internal class WorkflowConnectionRow : IWorkflowEmailRow
+    {
+        public string Task { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Action { get; set; } = "";
+        public string Source { get; set; } = "";
+        public string Destination { get; set; } = "";
+        public string Services { get; set; } = "";
+
+        public bool HasContent()
+        {
+            return !string.IsNullOrWhiteSpace(Source)
+                || !string.IsNullOrWhiteSpace(Destination)
+                || !string.IsNullOrWhiteSpace(Services);
+        }
+
+        public NotificationTableRow ToTableRow()
+        {
+            List<string> cells = ToCells();
+            return new()
+            {
+                HtmlCells = [.. cells],
+                TextCells = cells
+            };
+        }
+
+        public List<string> ToCells()
+        {
+            return [Task, Title, Action, Source, Destination, Services];
+        }
+
+        public object ToJsonObject()
+        {
+            return this;
+        }
+    }
+
+    internal class WorkflowGroupRow : IWorkflowEmailRow
+    {
+        public string Task { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Action { get; set; } = "";
+        public string CurrentMembers { get; set; } = "";
+        public string MembersToAdd { get; set; } = "";
+        public string MembersToRemove { get; set; } = "";
+
+        public bool HasContent()
+        {
+            return !string.IsNullOrWhiteSpace(Title)
+                || !string.IsNullOrWhiteSpace(CurrentMembers)
+                || !string.IsNullOrWhiteSpace(MembersToAdd)
+                || !string.IsNullOrWhiteSpace(MembersToRemove);
+        }
+
+        public NotificationTableRow ToTableRow()
+        {
+            List<string> cells = ToCells();
+            return new()
+            {
+                HtmlCells = [.. cells],
+                TextCells = cells
+            };
+        }
+
+        public List<string> ToCells()
+        {
+            return [Task, Type, Title, Action, CurrentMembers, MembersToAdd, MembersToRemove];
+        }
+
+        public object ToJsonObject()
+        {
+            return this;
+        }
+    }
+    internal class WorkflowObjectRow : IWorkflowEmailRow
+    {
+        public string Task { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Action { get; set; } = "";
+        public string PreviousState { get; set; } = "";
+        public string RequestedState { get; set; } = "";
+
+        public bool HasContent()
+        {
+            return !string.IsNullOrWhiteSpace(RequestedState);
+        }
+
+        public NotificationTableRow ToTableRow()
+        {
+            List<string> cells = ToCells();
+            return new()
+            {
+                HtmlCells = [.. cells],
+                TextCells = cells
+            };
+        }
+
+        public List<string> ToCells()
+        {
+            return [Task, Type, Title, Action, PreviousState, RequestedState];
+        }
+
+        public object ToJsonObject()
+        {
+            return this;
+        }
+    }
+
+    internal class WorkflowGroupMembers
+    {
+        public string CurrentMembers { get; set; } = "";
+        public string MembersToAdd { get; set; } = "";
+        public string MembersToRemove { get; set; } = "";
+    }
+}

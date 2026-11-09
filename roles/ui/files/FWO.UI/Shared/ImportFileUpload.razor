@@ -12,7 +12,7 @@
 
 <div class="row">
     <div class="col-sm-8">
-        <AuthorizeView Roles="@AuthorizedRoles">
+        <ExecutionModeAuthorizeView Roles="@AuthorizedRoles">
             <Authorized>
                 <label class="btn btn-sm @(UploadDisabled ? "btn-primary" : "btn-success")" for="fileUpload">
                     @(DisplayService.DisplayButton(UserConfig, "select_file", Icons.Add, "select_file"))
@@ -40,7 +40,7 @@
                     @(DisplayService.DisplayButton(UserConfig, "import", Icons.Import, "import"))
                 </button>
             </NotAuthorized>
-        </AuthorizeView>
+        </ExecutionModeAuthorizeView>
     </div>
 </div>
 
@@ -117,8 +117,8 @@
             case FileUploadCase.ImportAppServerFromCSV:
                 await fileUploadService.ImportAppServersFromCSV(InputFileChangeEventArgs.File.Name ?? "noName");
                 break;
-            case FileUploadCase.ImportComplianceMatrix:
-                await fileUploadService.ImportComplianceMatrix(InputFileChangeEventArgs.File.Name ?? "noName");
+            case FileUploadCase.ImportMatrix:
+                await fileUploadService.ImportMatrix(InputFileChangeEventArgs.File.Name ?? "noName");
                 break;
             default:
                 break;

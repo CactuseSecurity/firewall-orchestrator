@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api.Data;
 using FWO.Logging;
@@ -25,6 +26,13 @@ namespace FWO.Config.Api
         public event Action<Config, ConfigItem[]>? OnChange;
 
         protected readonly SemaphoreSlim semaphoreSlim = new(1, 1);
+
+        private static readonly HashSet<string> ignoredLegacyConfigKeys =
+        [
+            "manageOwnerLdapGroups",
+            "ownerLdapId",
+            "ownerLdapGroupNames"
+        ];
 
         // To detect redundant dispose calls
         private bool _isDisposed;
@@ -57,7 +65,7 @@ namespace FWO.Config.Api
                 _configGraphQlSubscription = null;
 
                 List<string> ignoreKeys = []; // currently nothing ignored, may be used later
-                _configGraphQlSubscription = apiConnection.GetSubscription<ConfigItem[]>(SubscriptionExceptionHandler, SubscriptionUpdateHandler,
+                _configGraphQlSubscription = apiConnection.GetSubscription<ConfigItem[]>(GraphqlExceptionHandler.Handle, SubscriptionUpdateHandler,
                     ConfigQueries.subscribeConfigChangesByUser, new { UserId, ignoreKeys });
 
                 while (!Initialized)
@@ -67,7 +75,7 @@ namespace FWO.Config.Api
             }
             else // when only simple read is needed, e.g. during scheduled report in middleware server
             {
-                ConfigItem[] configItems = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { User = UserId });
+                ConfigItem[] configItems = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { user = UserId });
                 if (configItems.Length > 0)
                 {
                     Update(configItems);
@@ -85,11 +93,32 @@ namespace FWO.Config.Api
             {
                 Log.WriteDebug("Config subscription update", $"New {configItems.Length} config values received from config subscription");
                 RawConfigItems = configItems;
-                Update(configItems);
-                OnChange?.Invoke(this, configItems);
-                Initialized = true;
+                ApplySubscriptionUpdate(configItems);
             }
             finally { semaphoreSlim.Release(); }
+        }
+
+        /// <summary>
+        /// Merges a partial subscription update into the raw snapshot before applying it.
+        /// </summary>
+        public void MergeSubscriptionUpdateHandler(ConfigItem[] configItems)
+        {
+            if (_isDisposed) return;
+            semaphoreSlim.Wait();
+            try
+            {
+                Log.WriteDebug("Config subscription update", $"New {configItems.Length} config values received from config subscription");
+                MergeRawConfigItems(configItems);
+                ApplySubscriptionUpdate(configItems);
+            }
+            finally { semaphoreSlim.Release(); }
+        }
+
+        private void ApplySubscriptionUpdate(ConfigItem[] configItems)
+        {
+            Update(configItems);
+            OnChange?.Invoke(this, configItems);
+            Initialized = true;
         }
 
         protected void Update(ConfigItem[] configItems)
@@ -98,38 +127,77 @@ namespace FWO.Config.Api
             List<string> remainingConfigItemNames = Array.ConvertAll(configItems, c => c.Key).ToList();
             foreach (PropertyInfo property in GetType().GetProperties())
             {
-                // Is the property storing a config value (marked by JsonPropertyName Attribute)?
-                if (property.GetCustomAttribute<JsonPropertyNameAttribute>() != null)
+                if (TryGetConfigKey(property, out string? key))
                 {
-                    string key = property.GetCustomAttribute<JsonPropertyNameAttribute>()!.Name;
-                    ConfigItem? configItem = configItems.FirstOrDefault(configItem => configItem.Key == key);
-
-                    if (configItem != null)
-                    {
-                        try
-                        {
-                            remainingConfigItemNames.Remove(configItem.Key);
-                            TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
-                            property.SetValue(this, converter.ConvertFromString(configItem.Value
-                                ?? throw new ArgumentNullException($"Config value (with key: {configItem.Key}) is null."))
-                                ?? throw new ArgumentException($"Config value (with key: {configItem.Key}) is not convertible to {property.PropertyType}."));
-                        }
-                        catch (Exception exception)
-                        {
-                            Log.WriteError("Load Config Items", $"Config item with key \"{key}\" could not be loaded. Using default value.", exception);
-                        }
-                    }
+                    string resolvedKey = key!;
+                    ConfigItem? configItem = configItems.FirstOrDefault(item => item.Key == resolvedKey);
+                    ApplyConfigValue(property, resolvedKey, configItem, remainingConfigItemNames);
                 }
             }
-            foreach (var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix"))) // StateMatrix ConfigItems are handled separately
+            foreach (var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix") && !ignoredLegacyConfigKeys.Contains(n))) // StateMatrix and retired settings are handled separately
             {
                 Log.WriteDebug($"Load {(UserId == 0 ? "Global " : "")}Config Items", $"Config item with key \"{name}\" could not be found. {(UserId == 0 ? "" : "User might not have customized the setting. ")}Using default value.");
             }
         }
 
+        /// <summary>
+        /// Tries to resolve the config key from a property marked with <see cref="JsonPropertyNameAttribute"/>.
+        /// </summary>
+        private static bool TryGetConfigKey(PropertyInfo property, out string? key)
+        {
+            key = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name;
+            return key != null;
+        }
+
+        /// <summary>
+        /// Applies a config item value to the matching property and logs conversion issues.
+        /// </summary>
+        private void ApplyConfigValue(PropertyInfo property, string key, ConfigItem? configItem, List<string> remainingConfigItemNames)
+        {
+            if (configItem == null)
+            {
+                return;
+            }
+
+            try
+            {
+                remainingConfigItemNames.Remove(configItem.Key);
+                property.SetValue(this, ConvertConfigValue(property, configItem));
+            }
+            catch (ArgumentException exception) when (property.PropertyType.IsEnum)
+            {
+                Log.WriteWarning("Load Config Items", $"Config item with key \"{key}\" contains unsupported value \"{configItem.Value}\". Using default value.");
+                Log.WriteDebug("Load Config Items", $"Unsupported enum value ignored for key \"{key}\": {exception.Message}");
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Load Config Items", $"Config item with key \"{key}\" could not be loaded. Using default value.", exception);
+            }
+        }
+
+        private static object ConvertConfigValue(PropertyInfo property, ConfigItem configItem)
+        {
+            string rawValue = configItem.Value ?? throw new ArgumentNullException($"Config value (with key: {configItem.Key}) is null.");
+
+            if (property.PropertyType.IsEnum)
+            {
+                object parsedEnum = Enum.Parse(property.PropertyType, rawValue, ignoreCase: true);
+                if (!Enum.IsDefined(property.PropertyType, parsedEnum))
+                {
+                    throw new InvalidEnumArgumentException(property.Name, Convert.ToInt32(parsedEnum), property.PropertyType);
+                }
+                return parsedEnum;
+            }
+
+            TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
+            return converter.ConvertFromString(rawValue)
+                ?? throw new ArgumentException($"Config value (with key: {configItem.Key}) is not convertible to {property.PropertyType}.");
+        }
+
         public async Task WriteToDatabase(ConfigData editedData, ApiConnection apiConnection)
         {
             ThrowIfDisposed();
+            ConfigItem[] changedItems = [];
             await semaphoreSlim.WaitAsync();
             List<ConfigItem> configItemChanges = [];
             try
@@ -161,9 +229,49 @@ namespace FWO.Config.Api
                     }
                 }
                 // Update or insert all config item
-                await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItems, new { config_items = configItemChanges });
+                if (configItemChanges.Count > 0)
+                {
+                    await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItems, new { config_items = configItemChanges });
+                    changedItems = [.. configItemChanges];
+                    ApplyCommittedChanges(changedItems);
+                }
             }
             finally { semaphoreSlim.Release(); }
+
+            if (changedItems.Length > 0)
+            {
+                InvokeOnChange(this, changedItems);
+            }
+        }
+
+        /// <summary>
+        /// Applies successfully persisted configuration values to this in-memory config instance while the caller holds the semaphore.
+        /// </summary>
+        private void ApplyCommittedChanges(ConfigItem[] changedItems)
+        {
+            MergeRawConfigItems(changedItems);
+            Update(changedItems);
+        }
+
+        /// <summary>
+        /// Merges changed config items into the raw item cache while preserving existing entries.
+        /// </summary>
+        private void MergeRawConfigItems(ConfigItem[] changedItems)
+        {
+            List<ConfigItem> mergedItems = [.. RawConfigItems];
+            foreach (ConfigItem changedItem in changedItems)
+            {
+                int index = mergedItems.FindIndex(item => item.Key == changedItem.Key);
+                if (index >= 0)
+                {
+                    mergedItems[index] = changedItem;
+                }
+                else
+                {
+                    mergedItems.Add(changedItem);
+                }
+            }
+            RawConfigItems = [.. mergedItems];
         }
 
         public async Task<ConfigData> GetEditableConfig()
@@ -175,11 +283,6 @@ namespace FWO.Config.Api
                 return (ConfigData)CloneEditable();
             }
             finally { semaphoreSlim.Release(); }
-        }
-
-        protected static void SubscriptionExceptionHandler(Exception exception)
-        {
-            Log.WriteError("Config Subscription", "Config subscription lead to error.", exception);
         }
 
         protected void InvokeOnChange(Config config, ConfigItem[] configItems)

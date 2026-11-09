@@ -3,11 +3,13 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Logging;
 using FWO.DeviceAutoDiscovery;
 using FWO.Logging;
 using FWO.Services;
 using Quartz;
 using System.Linq;
+using FWO.Services.Logging;
 
 namespace FWO.Middleware.Server.Jobs
 {
@@ -34,24 +36,27 @@ namespace FWO.Middleware.Server.Jobs
         }
 
         /// <inheritdoc />
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
                 foreach (Management superManagement in managements.Where(x => x.DeviceType.CanBeSupermanager() || x.DeviceType.CanBeAutodiscovered(x)))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     try
                     {
-                        AutoDiscoveryBase autodiscovery = new(superManagement, apiConnection);
+                        AutoDiscoveryBase autodiscovery = new(superManagement, apiConnection, globalConfig.ImportCheckCertificates);
 
-                        List<Management> diffList = await autodiscovery.Run();
+                        List<Management> diffList = await autodiscovery.Run(cancellationToken);
                         List<ActionItem> actions = autodiscovery.ConvertToActions(diffList);
 
                         int changeCounter = 0;
 
                         foreach (ActionItem action in actions)
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             if (action.ActionType == ActionCode.AddGatewayToNewManagement.ToString())
                             {
                                 action.RefAlertId = lastMgmtAlertId;
@@ -62,6 +67,10 @@ namespace FWO.Middleware.Server.Jobs
                         await AlertHelper.AddLogEntry(apiConnection, 0, globalConfig.GetText("scheduled_autodiscovery"),
                             changeCounter > 0 ? changeCounter + globalConfig.GetText("changes_found") : globalConfig.GetText("found_no_changes"),
                             GlobalConst.kAutodiscovery, superManagement.Id);
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
                     }
                     catch (Exception excMgm)
                     {
@@ -81,6 +90,10 @@ namespace FWO.Middleware.Server.Jobs
                     }
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(AutoDiscoverJob)} stopped.");
+            }
             catch (Exception exc)
             {
                 await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitle, GlobalConst.kAutodiscovery, AlertCode.Autodiscovery, exc);
@@ -99,6 +112,24 @@ namespace FWO.Middleware.Server.Jobs
                     RefAlertId = action.RefAlertId,
                     CompareDesc = true
                 });
+            if (!AutodiscoveryLogMapper.TryMapPromptAction(action, out AutodiscoveryLogMapper.PromptLogData? logData))
+            {
+                Log.WriteWarning("Logging", $"Unmapped autodiscovery action type: {action.ActionType}");
+                return lastMgmtAlertId;
+            }
+            if (logData != null)
+            {
+                await PromptLogHelper.LogPrompt(new PromptLogRequest
+                {
+                    PromptEvent = PromptLogEvent.Created,
+                    Object = logData.Object,
+                    Operation = logData.Operation,
+                    UserId = "AutodiscoveryJob",
+                    Timestamp = DateTime.UtcNow,
+                    Origin = ChangeLogOrigin.Autodiscovery,
+                    Fields = logData.Fields
+                });
+            }
             return lastMgmtAlertId;
         }
     }

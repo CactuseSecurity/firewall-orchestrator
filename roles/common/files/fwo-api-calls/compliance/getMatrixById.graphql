@@ -1,0 +1,8 @@
+query getMatrixById ($criterionId: Int!){
+  compliance_criterion (where: { id: {_eq: $criterionId}, criterion_type: {_eq: "Matrix"}, removed: {_is_null: true} }) {
+    id
+    name
+    comment
+    import_source
+  }
+}

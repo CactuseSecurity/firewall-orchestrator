@@ -1,0 +1,24 @@
+query getWorkflowMatrixGroups {
+  visibility_groups: request_workflow_visibility_group(order_by: {name: asc}) {
+    id
+    name
+    description
+    workflow_visibility_group_members(order_by: {member_dn: asc}) {
+      visibility_group_id
+      member_dn
+    }
+  }
+  transition_groups: request_state_matrix_transition_group(order_by: {name: asc}) {
+    id
+    name
+    description
+    phase
+    visibility_group_id
+    exclusive
+    state_matrix_transitions(order_by: [{from_state_id: asc}, {sort_order: asc}]) {
+      from_state_id
+      to_state_id
+      sort_order
+    }
+  }
+}

@@ -14,7 +14,7 @@
     register: middleware_dir_check
 
   - name: backup middleware dir
-    synchronize:
+    ansible.posix.synchronize:
       src: "{{ fworch_home }}/middleware"
       dest: "{{ fworch_home }}/backup_middleware"
     delegate_to: "{{ inventory_hostname }}"
@@ -34,7 +34,7 @@
       group: "{{ fworch_group }}"
 
   - name: copy middleware module files to middlewareserver
-    synchronize:
+    ansible.posix.synchronize:
       src: "{{ middleware_path_rel }}"
       dest: "{{ middleware_server_base_dir }}"
       rsync_opts:
@@ -46,9 +46,7 @@
     package:
       name: "{{ item }}"
       state: present
-    loop:
-      - python3-cryptography
-      - python3-openssl
+    loop: "{{ middleware_crypto_packages }}"
 
   - name: track middleware deployment changes
     set_fact:
@@ -65,14 +63,7 @@
 
 - name: install python modules for ansible ldap module via package
   package:
-    name:
-      - python3-pip
-      - libsasl2-dev
-      - python3-dev
-      - libldap2-dev
-      - libssl-dev
-      - python3-setuptools
-      - python3-pyldap
+    name: "{{ middleware_ldap_packages }}"
   become: true
 
 - name: make sure {{ fworch_secrets_dir }} exists
@@ -88,11 +79,13 @@
   set_fact:
     admin_password: "{{ ui_admin_testonly_password }}"
   when: testkeys is defined and testkeys|bool
+  no_log: true
 
 - name: set UI admin password randomly
   set_fact:
     admin_password: "{{ randomly_generated_pwd }}"
   when: (testkeys is not defined or not testkeys|bool) and installation_mode == 'new'
+  no_log: true
 
 - name: write ui admin_password to secrets directory
   copy:
@@ -103,6 +96,7 @@
     group: "{{ fworch_group }}"
   become: true
   when: installation_mode == 'new'
+  no_log: true
 
 - name: Set admin password in ldap
   ldap_passwd:
@@ -111,9 +105,11 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
-    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
-    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+    validate_certs: "{{ ldap_verify_certs }}"
+    ca_path: "{{ ldap_module_ca_path }}"
+  become: true
   when: installation_mode == 'new'
+  no_log: true
 
 - name: read importer password from secrets directory
   slurp:
@@ -121,11 +117,13 @@
   register: importer_password_slurp
   become: true
   when: installation_mode == 'new'
+  no_log: true
 
 - name: set importer password fact from secrets directory
   set_fact:
     importer_password: "{{ importer_password_slurp.content | b64decode | trim }}"
   when: installation_mode == 'new'
+  no_log: true
 
 - name: Set importer password in ldap
   ldap_passwd:
@@ -134,9 +132,11 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
-    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
-    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+    validate_certs: "{{ ldap_verify_certs }}"
+    ca_path: "{{ ldap_module_ca_path }}"
+  become: true
   when: installation_mode == 'new'
+  no_log: true
 
 - name: Set {{ openldap_readonly_user_name }} password in ldap
   ldap_passwd:
@@ -145,9 +145,11 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
-    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
-    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+    validate_certs: "{{ ldap_verify_certs }}"
+    ca_path: "{{ ldap_module_ca_path }}"
+  become: true
   when: installation_mode == "new"
+  no_log: true
 
 - name: Set "{{ openldap_writer_name }}" password in ldap
   ldap_passwd:
@@ -156,20 +158,24 @@
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
-    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
-    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+    validate_certs: "{{ ldap_verify_certs }}"
+    ca_path: "{{ ldap_module_ca_path }}"
+  become: true
   when: installation_mode == "new"
+  no_log: true
 
-- name: Set {{ audit_user }} password in ldap
+- name: Set audit user password in ldap
   ldap_passwd:
     dn: "uid={{ audit_user }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
     passwd: "{{ auditor_initial_pwd }}"
     server_uri: "{{ openldap_url }}"
     bind_dn: "{{ openldap_superuser_dn }}"
     bind_pw: "{{ ldap_manager_pwd }}"
-    validate_certs: "{{ openldap_server_enable_ssl | ternary(false, omit) }}"
-    ca_path: "{{ openldap_server_enable_ssl | ternary(openldap_server_cert, omit) }}"
+    validate_certs: "{{ ldap_verify_certs }}"
+    ca_path: "{{ ldap_module_ca_path }}"
+  become: true
   when: audit_user is defined and auditor_initial_pwd is defined and installation_mode=='new'
+  no_log: true
 
 - name: insert admin tenant0 to database
   postgresql_query:
@@ -197,6 +203,7 @@
   become: true
   become_user: postgres
   when: installation_mode == "new"
+  no_log: true
 
 - name: insert admin tenant0 to device mapping - tenant0 can see all devices
   postgresql_query:
@@ -210,6 +217,9 @@
   become: true
   become_user: postgres
   when: installation_mode=="new"
+
+- name: install python venv for the customizing scripts
+  import_tasks: install_customizing_venv.yml
 
 - name: install and run mw service
   import_tasks: install_and_run_mw_service.yml

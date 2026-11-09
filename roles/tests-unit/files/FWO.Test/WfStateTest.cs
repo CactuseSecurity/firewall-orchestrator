@@ -30,6 +30,7 @@ namespace FWO.Test
             {
                 Id = 3,
                 Name = "state",
+                AutomaticOnly = true,
                 Actions =
                 [
                     new WfStateActionDataHelper { Action = new WfStateAction { Name = "A" } }
@@ -40,7 +41,57 @@ namespace FWO.Test
 
             Assert.That(copy.Id, Is.EqualTo(3));
             Assert.That(copy.Name, Is.EqualTo("state"));
+            Assert.That(copy.AutomaticOnly, Is.True);
             Assert.That(copy.Actions, Is.EqualTo(original.Actions));
+        }
+
+        [Test]
+        public void CopyConstructor_CopiesStateActionLinks()
+        {
+            WfStateAction originalAction = new()
+            {
+                Id = 11,
+                Name = "action",
+                StateActions =
+                [
+                    new WfStateActionStateHelper
+                    {
+                        SortOrder = 7,
+                        State = new WfState { Id = 8, Name = "linked-state" }
+                    }
+                ]
+            };
+
+            WfStateAction copy = new(originalAction);
+
+            Assert.That(copy.StateActions, Is.Not.SameAs(originalAction.StateActions));
+            Assert.That(copy.StateActions, Has.Count.EqualTo(1));
+            Assert.That(copy.StateActions[0].SortOrder, Is.EqualTo(7));
+            Assert.That(copy.StateActions[0].State.Id, Is.EqualTo(8));
+            Assert.That(copy.StateActions[0].State.Name, Is.EqualTo("linked-state"));
+        }
+
+        [Test]
+        public void StateCount_ReturnsNumberOfLinks()
+        {
+            WfStateAction action = new()
+            {
+                StateActions =
+                [
+                    new WfStateActionStateHelper(),
+                    new WfStateActionStateHelper()
+                ]
+            };
+
+            Assert.That(action.StateCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void Automatic_DefaultsToFalse()
+        {
+            WfState state = new();
+
+            Assert.That(state.AutomaticOnly, Is.False);
         }
 
         [Test]
@@ -55,6 +106,90 @@ namespace FWO.Test
         {
             Assert.That(WfStateAction.IsReadonlyType(StateActionTypes.SendEmail.ToString()), Is.False);
             Assert.That(WfStateAction.IsReadonlyType("NotAType"), Is.False);
+        }
+
+        [Test]
+        public void TryParseAutoPromoteParams_ParsesLegacyStateId()
+        {
+            bool parsed = WfStateAction.TryParseAutoPromoteParams("7", out int? toStateId, out ConditionalAutoPromoteParams? conditionalParams);
+
+            Assert.That(parsed, Is.True);
+            Assert.That(toStateId, Is.EqualTo(7));
+            Assert.That(conditionalParams, Is.Null);
+        }
+
+        [Test]
+        public void TryParseAutoPromoteParams_ParsesConditionalPayload()
+        {
+            string payload = "{\"to_be_called\":\"PolicyCheck\",\"policy_ids\":[1,2],\"check_result_label\":\"policy_check\",\"if_compliant_state\":3,\"if_not_compliant_state\":4}";
+
+            bool parsed = WfStateAction.TryParseAutoPromoteParams(payload, out int? toStateId, out ConditionalAutoPromoteParams? conditionalParams);
+
+            Assert.That(parsed, Is.True);
+            Assert.That(toStateId, Is.Null);
+            Assert.That(conditionalParams, Is.Not.Null);
+            Assert.That(conditionalParams?.ToBeCalled, Is.EqualTo(ToBeCalled.PolicyCheck));
+            Assert.That(conditionalParams?.PolicyIds, Is.EqualTo(new[] { 1, 2 }));
+            Assert.That(conditionalParams?.CheckResultLabel, Is.EqualTo("policy_check"));
+            Assert.That(conditionalParams?.IfCompliantState, Is.EqualTo(3));
+            Assert.That(conditionalParams?.IfNotCompliantState, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void TryParseAutoPromoteParams_ParsesSimpleJsonState()
+        {
+            bool parsed = WfStateAction.TryParseAutoPromoteParams("{\"to_state_id\":7}", out int? toStateId,
+                out ConditionalAutoPromoteParams? conditionalParams);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parsed, Is.True);
+                Assert.That(toStateId, Is.EqualTo(7));
+                Assert.That(conditionalParams, Is.Null);
+            });
+        }
+
+        [Test]
+        public void TryParseAutoPromoteParams_ParsesAutomaticStateWithConfirmation()
+        {
+            string payload = "{\"to_state_id\":-1,\"confirm_ui_message\":true}";
+
+            bool parsed = WfStateAction.TryParseAutoPromoteParams(payload, out int? toStateId,
+                out ConditionalAutoPromoteParams? conditionalParams);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parsed, Is.True);
+                Assert.That(toStateId, Is.Null);
+                Assert.That(conditionalParams, Is.Null);
+                Assert.That(WfStateAction.HasConfirmUiMessage(payload), Is.True);
+            });
+        }
+
+        [Test]
+        public void TryParseAutoPromoteParams_MapsLegacyAutomaticStateToFallback()
+        {
+            bool parsed = WfStateAction.TryParseAutoPromoteParams("-1", out int? toStateId,
+                out ConditionalAutoPromoteParams? conditionalParams);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parsed, Is.True);
+                Assert.That(toStateId, Is.Null);
+                Assert.That(conditionalParams, Is.Null);
+            });
+        }
+
+        [Test]
+        public void WfStateActionParsers_RejectInvalidOrUnsupportedValues()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(WfStateAction.TryParseAutoPromoteParams("not-json", out _, out _), Is.False);
+                Assert.That(WfStateAction.HasConfirmUiMessage("not-json"), Is.False);
+                Assert.That(WfStateAction.HasConfirmUiMessage("7"), Is.False);
+                Assert.That(WfStateAction.HasConfirmUiMessage("{\"confirm_ui_message\":false}"), Is.False);
+            });
         }
     }
 }

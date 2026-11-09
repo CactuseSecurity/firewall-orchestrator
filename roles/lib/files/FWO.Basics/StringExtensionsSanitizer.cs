@@ -1,9 +1,18 @@
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace FWO.Basics
 {
     public static partial class StringExtensions
     {
+        private const int kRegexTimeoutMilliseconds = 1000;
+
+        // escapes quotes, backslashes and control characters but keeps non-ASCII text readable in the external ticket
+        private static readonly JsonSerializerOptions kJsonStringContentOptions = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+        private const string kAtSign = "@";
+        private const string kJsonEscapedAtSign = "\\u0040";
+
         public static string SanitizeMand(this string text)
         {
             bool shortened = false;
@@ -145,6 +154,25 @@ namespace FWO.Basics
             else return null;
         }
 
+        public static string SanitizeEmailAddressMand(this string input, ref bool shortened)
+        {
+            string output = EmailAddressRegex().Replace(input, "").Trim();
+            if (output.Length < input.Length)
+            {
+                shortened = true;
+            }
+            return output;
+        }
+
+        public static string? SanitizeEmailAddressOpt(this string? input, ref bool shortened)
+        {
+            if (input != null)
+            {
+                return input.SanitizeEmailAddressMand(ref shortened);
+            }
+            else return null;
+        }
+
         public static string SanitizeJsonMand(this string input, ref bool shortened)
         {
             string output = JsonRegex().Replace(input, "").Trim();
@@ -163,6 +191,33 @@ namespace FWO.Basics
                 changed = true;
             }
             return output;
+        }
+
+        /// <summary>
+        /// Escapes a value for use inside a JSON string literal of a text template, e.g. <c>"text": "@@REASON@@"</c>.
+        /// Quotes, backslashes and control characters are escaped, so the value can neither end the string nor add
+        /// fields. The at sign is escaped as well, so that the value cannot carry a placeholder such as @@TASKS@@ into
+        /// a later replacement with raw JSON. Line breaks become blanks, as the rendered templates are sent as a single line.
+        /// </summary>
+        /// <param name="input">The value; null is treated as an empty string.</param>
+        /// <returns>The escaped value without surrounding quotes.</returns>
+        public static string ToJsonStringContent(this string? input)
+        {
+            string singleLineInput = EolRegex().Replace(input ?? "", " ");
+            string quotedValue = JsonSerializer.Serialize(singleLineInput, kJsonStringContentOptions);
+            return quotedValue[1..^1].Replace(kAtSign, kJsonEscapedAtSign);
+        }
+
+        /// <summary>
+        /// Replaces a placeholder that stands inside a JSON string literal of a template with the escaped value.
+        /// </summary>
+        /// <param name="template">The JSON template text.</param>
+        /// <param name="placeholder">The placeholder to replace.</param>
+        /// <param name="value">The value; null is treated as an empty string.</param>
+        /// <returns>The template with the escaped value inserted.</returns>
+        public static string ReplaceJsonStringPlaceholder(this string template, string placeholder, string? value)
+        {
+            return template.Replace(placeholder, value.ToJsonStringContent());
         }
 
         public static string SanitizeEolMand(this string input, ref bool shortened)
@@ -192,6 +247,9 @@ namespace FWO.Basics
 
         [GeneratedRegex(@"[^a-fA-F0-9\.\:/]")]
         private static partial Regex CidrRegex();
+
+        [GeneratedRegex(@"[^\w\.\%\+\-@]", RegexOptions.None, kRegexTimeoutMilliseconds)]
+        private static partial Regex EmailAddressRegex();
 
         [GeneratedRegex(@"[^\S ]")]
         private static partial Regex JsonRegex();

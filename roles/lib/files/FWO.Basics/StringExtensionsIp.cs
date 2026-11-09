@@ -102,22 +102,33 @@ namespace FWO.Basics
 
         public static string GetNetmask(this string ip)
         {
-            int pos = ip.LastIndexOf('/');
-            if (pos > -1 && ip.Length > pos + 1)
+            if (!string.IsNullOrWhiteSpace(ip))
             {
-                return ip[(pos + 1)..];
+                int pos = ip.LastIndexOf('/');
+                if (pos > -1 && ip.Length > pos + 1)
+                {
+                    return ip[(pos + 1)..];
+                }
             }
             return "";
         }
 
         public static bool IsV6Address(this string ip)
         {
-            return ip.Contains(':');
+            if (!string.IsNullOrWhiteSpace(ip))
+            {
+                return ip.Contains(':');
+            }
+            return false;
         }
 
         public static bool IsV4Address(this string ip)
         {
-            return ip.Contains('.');
+            if (!string.IsNullOrWhiteSpace(ip))
+            {
+                return ip.Contains('.');
+            }
+            return false;
         }
 
         public static string StripOffNetmask(this string ip)

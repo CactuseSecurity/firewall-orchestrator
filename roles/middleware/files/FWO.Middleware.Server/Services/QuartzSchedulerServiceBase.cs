@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Logging;
@@ -17,9 +18,14 @@ namespace FWO.Middleware.Server.Services
         /// Global configuration for scheduler settings.
         /// </summary>
         protected readonly GlobalConfig globalConfig;
+        /// <summary>
+        /// Clock used for schedule calculations.
+        /// </summary>
+        protected readonly TimeProvider timeProvider;
         private readonly QuartzSchedulerOptions options;
         private GraphQlApiSubscription<List<ConfigItem>>? configSubscription;
         private IScheduler? scheduler;
+        private ScheduleFingerprint? lastAppliedSchedule;
         private bool disposed;
 
         /// <summary>
@@ -30,17 +36,20 @@ namespace FWO.Middleware.Server.Services
         /// <param name="globalConfig">Global configuration.</param>
         /// <param name="appLifetime">Application lifetime for startup hook.</param>
         /// <param name="options">Options for scheduler identifiers and subscription.</param>
+        /// <param name="timeProvider">Clock used for schedule calculations.</param>
         protected QuartzSchedulerServiceBase(
             ISchedulerFactory schedulerFactory,
             ApiConnection apiConnection,
             GlobalConfig globalConfig,
             IHostApplicationLifetime appLifetime,
-            QuartzSchedulerOptions options)
+            QuartzSchedulerOptions options,
+            TimeProvider? timeProvider = null)
         {
             this.schedulerFactory = schedulerFactory;
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
             this.options = options;
+            this.timeProvider = timeProvider ?? TimeProvider.System;
 
             // Attach after application started
             appLifetime.ApplicationStarted.Register(OnStarted);
@@ -67,6 +76,11 @@ namespace FWO.Middleware.Server.Services
         protected virtual bool IsActive => true;
 
         /// <summary>
+        /// Configured start time value used to detect schedule changes.
+        /// </summary>
+        protected virtual DateTime? StartAtScheduleKey => StartAt;
+
+        /// <summary>
         /// Log suffix for the interval (e.g., "h", "m", "s").
         /// </summary>
         protected virtual string IntervalLogSuffix => "h";
@@ -88,7 +102,7 @@ namespace FWO.Middleware.Server.Services
             {
                 scheduler = await schedulerFactory.GetScheduler();
                 configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(
-                    ApiExceptionHandler,
+                    GraphqlExceptionHandler.Handle,
                     OnGlobalConfigChange,
                     options.ConfigSubscriptionQuery);
                 Log.WriteInfo(options.SchedulerName, "Listener started");
@@ -109,13 +123,26 @@ namespace FWO.Middleware.Server.Services
             try
             {
                 globalConfig.SubscriptionUpdateHandler([.. config]);
+                ScheduleFingerprint scheduleKey = GetScheduleFingerprint();
+                if (scheduleKey == lastAppliedSchedule)
+                {
+                    Log.WriteDebug(options.SchedulerName, "Config emission with unchanged schedule - skipping reschedule.");
+                    return;
+                }
+
                 await ScheduleJob();
+                lastAppliedSchedule = scheduleKey;
                 Log.WriteInfo(options.SchedulerName, "Job rescheduled due to config change");
             }
             catch (Exception ex)
             {
                 Log.WriteError(options.SchedulerName, "Failed to reschedule job", ex);
             }
+        }
+
+        private ScheduleFingerprint GetScheduleFingerprint()
+        {
+            return new ScheduleFingerprint(IsActive, SleepTime, StartAtScheduleKey, Interval);
         }
 
         private async Task ScheduleJob()
@@ -130,13 +157,13 @@ namespace FWO.Middleware.Server.Services
             var triggerKey = new TriggerKey(options.TriggerKeyName);
 
             // Ensure durable job exists for manual triggering
-            if (!await scheduler.CheckExists(jobKey))
+            if (!await scheduler.Exists(jobKey))
             {
                 IJobDetail durableJob = JobBuilder.Create<TJob>()
                     .WithIdentity(jobKey)
                     .StoreDurably()
                     .Build();
-                await scheduler.AddJob(durableJob, replace: true);
+                await scheduler.AddJob(durableJob, new AddJobOptions { Replace = true });
                 Log.WriteInfo(options.SchedulerName, "Added durable job for manual triggering");
             }
 
@@ -177,9 +204,9 @@ namespace FWO.Middleware.Server.Services
         /// <param name="configuredStartTime">Configured start time.</param>
         /// <param name="interval">Schedule interval.</param>
         /// <returns>Next start time in the future.</returns>
-        protected static DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval)
+        protected DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval)
         {
-            return CalculateStartTime(configuredStartTime, interval, DateTime.Now);
+            return CalculateStartTime(configuredStartTime, interval, timeProvider.GetUtcNow().LocalDateTime);
         }
 
         /// <summary>
@@ -202,11 +229,6 @@ namespace FWO.Middleware.Server.Services
                 startTime = startTime.Add(interval);
             }
             return new DateTimeOffset(startTime);
-        }
-
-        private void ApiExceptionHandler(Exception exception)
-        {
-            Log.WriteError(options.SchedulerName, "Config subscription lead to exception. Retry subscription.", exception);
         }
 
         private void FireAndForget(Task task, string failureMessage)
@@ -243,5 +265,7 @@ namespace FWO.Middleware.Server.Services
             }
             return ValueTask.CompletedTask;
         }
+
+        private readonly record struct ScheduleFingerprint(bool IsActive, int SleepTime, DateTime? StartAt, TimeSpan Interval);
     }
 }

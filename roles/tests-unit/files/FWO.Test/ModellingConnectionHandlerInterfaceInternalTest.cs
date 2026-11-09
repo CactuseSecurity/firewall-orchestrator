@@ -232,7 +232,7 @@ namespace FWO.Test
         public int SelectedAppId { get; private set; }
         public int SelectedConnectionId { get; private set; }
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             Type responseType = typeof(QueryResponseType);
             if (query == ModellingQueries.newConnection)

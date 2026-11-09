@@ -1,8 +1,8 @@
 query getUsageDataCount($devId: Int!) {
   device(where: {dev_id: {_eq: $devId}}) {
-    rulebase_on_gateways {
+    rulebase_links {
       rulebase {
-        rulesWithHits: rule_metadata_aggregate(where: {rule_last_hit: {_is_null: false}}) {
+        rulesWithHits: rules_aggregate(where: {rule_metadatum: {rule_last_hit: {_is_null: false}}}) {
           aggregate {
             count
           }

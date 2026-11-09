@@ -4,6 +4,7 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using FWO.Services;
+using FWO.ExternalSystems.CheckPoint;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using GraphQL;
 
@@ -14,12 +15,16 @@ namespace FWO.Test
         public List<string> UpdateExtRequestCreation = [];
         public List<string> UpdateExtRequestProcess = [];
         public int TriedToGetLdapsForHandleStateChange = 0;
+        public bool ManualRequestsOnly = false;
+        public bool CheckPointRequestsOnly = false;
+        public List<ExternalRequest>? OpenRequests { get; set; }
+        public Credential? Credential { get; set; }
+        public List<string> CredentialQueryVars { get; } = [];
 
         readonly ExternalTicketSystem ticketSystem = new()
         {
             Id = 1,
-            Type = ExternalTicketSystemType.TufinSecureChange,
-            Authorization = "xyz",
+            TypeId = BuiltInExternalTicketSystemTypes.TufinSecureChangeId,
             Name = "Tufin",
             Url = "https://tufin-test.xxx.de/securechangeworkflow/api/securechange/",
             Templates =
@@ -44,6 +49,29 @@ namespace FWO.Test
                 }
             ]
         };
+        readonly ExternalTicketSystem manualTicketSystem = new()
+        {
+            Id = 2,
+            TypeId = 99,
+            Name = "Custom",
+            Url = "https://custom-ticket-system.example/api/"
+        };
+        readonly ExternalTicketSystem checkPointTicketSystem = new()
+        {
+            Id = 3,
+            TypeId = 9,
+            Authorization = "X-chkp-sid: xyz",
+            Name = "CheckPoint",
+            Url = "https://checkpoint-test.xxx.de/web_api/",
+            Templates =
+            [
+                new()
+                {
+                    TaskType = CheckPointTaskTypes.Publish,
+                    TicketTemplate = "{}"
+                }
+            ]
+        };
 
         private readonly string TicketContent = "{ \"ticketText\": \"\" }";
         // private readonly string TicketContent = "{\"ticketText\": \"{ \"ticket\": { \"subject\": \"tick2\"} }\" }";
@@ -51,7 +79,7 @@ namespace FWO.Test
         // private readonly string TicketContent = "{\"ticketText\": {\"ticket\": { \"subject\": \"tick2\"} }, \"ticketId\": \"2\"}";
         // private readonly string TicketContent = "{\"ticketText\":\"{\u0022ticket\u0022:{\u0022subject\u0022:\u0022APP-3714: Create Group AZ03714 on checkpoint_demo(2)\u0022,\u0022priority\u0022:\u0022Low\u0022,\u0022requester\u0022:\u0022modeller\u0022,\u0022domain_name\u0022:\u0022\u0022,\u0022workflow\u0022:{\u0022name\u0022:\u0022Automatische Gruppenerstellung\u0022},\u0022steps\u0022:{\u0022step\u0022:[{\u0022name\u0022:\u0022Erfassung des Antrags\u0022,\u0022tasks\u0022:{\u0022task\u0022:{\u0022fields\u0022:{\u0022field\u0022:[{\u0022@xsi.type\u0022: \u0022multi_group_change\u0022,\u0022name\u0022: \u0022Modify network object group\u0022,\u0022group_change\u0022: {\u0022name\u0022: \u0022AZ03714\u0022,\u0022management_id\u0022: 1,\u0022management_name\u0022: \u0022ExtCP\u0022,\u0022members\u0022: {\u0022member\u0022: [{\u0022@type\u0022: \u0022host\u0022, \u0022name\u0022: \u0022d172-218-137-115.bchsia.telus.net\u0022, \u0022object_type\u0022: \u0022host\u0022, \u0022object_details\u0022: \u0022172.218.137.115/32\u0022, \u0022management_id\u0022: 1,\u0022status\u0022: \u0022ADDED\u0022, \u0022comment\u0022: \u0022\u0022, \u0022object_updated_status\u0022: \u0022NEW\u0022},{\u0022@type\u0022: \u0022host\u0022, \u0022name\u0022: \u0022d172-218-137-118.bchsia.telus.net\u0022, \u0022object_type\u0022: \u0022host\u0022, \u0022object_details\u0022: \u0022172.218.137.119/32\u0022, \u0022management_id\u0022: 1,\u0022status\u0022: \u0022ADDED\u0022, \u0022comment\u0022: \u0022\u0022, \u0022object_updated_status\u0022: \u0022NEW\u0022},{\u0022@type\u0022: \u0022host\u0022, \u0022name\u0022: \u0022tzhdfh-in-f165.1e100.net\u0022, \u0022object_type\u0022: \u0022host\u0022, \u0022object_details\u0022: \u0022172.217.67.165/32\u0022, \u0022management_id\u0022: 1,\u0022status\u0022: \u0022ADDED\u0022, \u0022comment\u0022: \u0022\u0022, \u0022object_updated_status\u0022: \u0022NEW\u0022},{\u0022@type\u0022: \u0022host\u0022, \u0022name\u0022: \u0022tzhdfh-in-f175.1e100.net\u0022, \u0022object_type\u0022: \u0022host\u0022, \u0022object_details\u0022: \u0022172.217.67.175/32\u0022, \u0022management_id\u0022: 1,\u0022status\u0022: \u0022ADDED\u0022, \u0022comment\u0022: \u0022\u0022, \u0022object_updated_status\u0022: \u0022NEW\u0022}]},\u0022change_action\u0022: \u0022CREATE\u0022}}]}}}}]}}}\",\"TicketId\":\"\"}";
 
-        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
             Type responseType = typeof(QueryResponseType);
@@ -69,7 +97,42 @@ namespace FWO.Test
             }
             else if (responseType == typeof(ExternalRequestDataHelper))
             {
+                if (OpenRequests != null)
+                {
+                    GraphQLResponse<dynamic> requestsResponse = new() { Data = new ExternalRequestDataHelper { ExternalRequests = OpenRequests } };
+                    return requestsResponse.Data;
+                }
                 string serializedTicketSystem = System.Text.Json.JsonSerializer.Serialize(ticketSystem);
+                if (ManualRequestsOnly)
+                {
+                    string serializedManualTicketSystem = System.Text.Json.JsonSerializer.Serialize(manualTicketSystem);
+                    ExternalRequestDataHelper manualRequests = new()
+                    {
+                        ExternalRequests =
+                        [
+                            new(){ Id = 6, TicketId = 6, ExtTicketSystem = serializedManualTicketSystem, ExtRequestState = ExtStates.ExtReqInitialized.ToString(),
+                                ExtRequestContent = TicketContent }
+                        ]
+                    };
+                    GraphQLResponse<dynamic> manualResponse = new() { Data = manualRequests };
+                    return manualResponse.Data;
+                }
+                if (CheckPointRequestsOnly)
+                {
+                    string serializedCheckPointTicketSystem = System.Text.Json.JsonSerializer.Serialize(checkPointTicketSystem);
+                    ExternalRequestDataHelper checkPointRequests = new()
+                    {
+                        ExternalRequests =
+                        [
+                            new(){ Id = 7, TicketId = 7, ExtTicketSystem = serializedCheckPointTicketSystem, ExtRequestState = ExtStates.ExtReqInitialized.ToString(),
+                                ExtRequestType = WfTaskType.access.ToString(), ExtRequestContent = "{\"source\":[\"src-group\"]}",
+                                ExtQueryVariables = ""
+                            }
+                        ]
+                    };
+                    GraphQLResponse<dynamic> checkPointResponse = new() { Data = checkPointRequests };
+                    return checkPointResponse.Data;
+                }
                 ExternalRequestDataHelper openRequests = new()
                 {
                     ExternalRequests =
@@ -98,6 +161,27 @@ namespace FWO.Test
                     new(){ Id = 3, Name = "ExtReqDone", StateId = 631 }
                 ];
                 GraphQLResponse<dynamic> response = new() { Data = extStates };
+                return response.Data;
+            }
+            else if (responseType == typeof(List<Management>) && query == DeviceQueries.getManagementById)
+            {
+                List<Management> managements =
+                [
+                    new()
+                    {
+                        Id = 1,
+                        Name = "ExtCP",
+                        ExtMgtData = "{\"id\":\"1\",\"name\":\"ExtCP\"}"
+                    }
+                ];
+
+                GraphQLResponse<dynamic> response = new() { Data = managements };
+                return response.Data;
+            }
+            else if (responseType == typeof(Credential) && query == DeviceQueries.getCredentialById)
+            {
+                CredentialQueryVars.Add(variables?.ToString() ?? "");
+                GraphQLResponse<dynamic> response = new() { Data = Credential! };
                 return response.Data;
             }
             else if (responseType == typeof(List<Ldap>))

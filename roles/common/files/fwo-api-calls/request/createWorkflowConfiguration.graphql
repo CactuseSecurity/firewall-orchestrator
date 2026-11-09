@@ -1,0 +1,14 @@
+mutation createWorkflowConfiguration(
+  $name: String!
+  $description: String
+  $phaseMappings: [request_workflow_configuration_phase_insert_input!]!
+) {
+  create_configuration: insert_request_workflow_configuration_one(object: {
+    name: $name
+    description: $description
+    is_active: false
+    workflow_configuration_phases: {data: $phaseMappings}
+  }) {
+    newId: id
+  }
+}

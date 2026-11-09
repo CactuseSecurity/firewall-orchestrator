@@ -1,6 +1,8 @@
 using FWO.Basics;
+using FWO.Services.PathAnalysis;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Logging;
 
 namespace FWO.Services.Workflow
 {
@@ -34,7 +36,7 @@ namespace FWO.Services.Workflow
         public void SetImplTaskEnv(WfImplTask implTask)
         {
             ActImplTask = new WfImplTask(implTask);
-            WfTicket? tick = TicketList.FirstOrDefault(x => x.Id == ActImplTask.TicketId);
+            WfTicket? tick = ActTicket.Id == ActImplTask.TicketId ? ActTicket : TicketList.FirstOrDefault(x => x.Id == ActImplTask.TicketId);
             if (tick != null)
             {
                 ActTicket = tick;
@@ -45,6 +47,17 @@ namespace FWO.Services.Workflow
                 }
             }
             ActStateMatrix = stateMatrixDict.Matrices[implTask.TaskType];
+        }
+
+        public bool TrySetImplTaskEnv(WfImplTask implTask)
+        {
+            if (!stateMatrixDict.Matrices.ContainsKey(implTask.TaskType))
+            {
+                return false;
+            }
+
+            SetImplTaskEnv(implTask);
+            return true;
         }
 
         public void SetImplTaskOpt(ObjAction action)
@@ -85,6 +98,12 @@ namespace FWO.Services.Workflow
 
         public async Task StartWorkOnImplTask(WfImplTask implTask, ObjAction action)
         {
+            if (ReadOnlyMode)
+            {
+                // read-only users follow the phase without starting work, so no state is written
+                SelectImplTask(implTask, action);
+                return;
+            }
             SetImplTaskEnv(implTask);
             ActImplTask.CurrentHandler = userConfig.User;
             List<int> actPossibleStates = ActStateMatrix.getAllowedTransitions(ActImplTask.StateId);
@@ -93,22 +112,33 @@ namespace FWO.Services.Workflow
                 ActImplTask.StateId = actPossibleStates[0];
             }
             await UpdateActImplTaskState();
-            if (!ActStateMatrix.PhaseActive[WorkflowPhases.planning] && ActReqTask.Start == null)
+            if (!IsPlanningPhaseActive(ActStateMatrix) && ActReqTask.Start == null)
             {
                 ActReqTask.Start = ActImplTask.Start;
             }
-            await UpdateActTicketStateFromImplTasks();
+            await UpdateReqTaskStatesFromActImplTask();
+            await UpdateActTicketStateFromReqTasks();
             SetImplTaskOpt(action);
         }
 
         public async Task ContinueImplPhase(WfImplTask implTask)
         {
-            SelectImplTask(implTask, contOption);
-            if (ActImplTask.CurrentHandler != userConfig.User)
+            ViewImplTaskInPhase(implTask);
+            if (!ReadOnlyMode && ActImplTask.CurrentHandler != userConfig.User)
             {
                 ActImplTask.CurrentHandler = userConfig.User;
                 await UpdateActImplTaskState();
             }
+        }
+
+        /// <summary>
+        /// Opens an implementation task in the view of the current phase without starting work on it or taking it over,
+        /// so that read-only users can see the phase dialog. No state is written.
+        /// </summary>
+        /// <param name="implTask">The implementation task to open.</param>
+        public void ViewImplTaskInPhase(WfImplTask implTask)
+        {
+            SelectImplTask(implTask, contOption);
         }
 
         public bool SelectOwnerImplTasks(FwoOwner selectedOwnerOpt)
@@ -159,7 +189,7 @@ namespace FWO.Services.Workflow
             if (ActionHandler != null)
             {
                 await UpdateActImplTaskState();
-                await ActionHandler.DoOnAssignmentActions(statefulObject, ActImplTask.AssignedGroup);
+                await ActionHandler.DoOnAssignmentActions(statefulObject, WfObjectScopes.ImplementationTask, ActImplTask.AssignedGroup);
             }
             DisplayAssignImplTaskMode = false;
         }
@@ -171,7 +201,7 @@ namespace FWO.Services.Workflow
             await UpdateActImplTaskState();
             if (ActionHandler != null)
             {
-                await ActionHandler.DoOnAssignmentActions(ActImplTask, ActImplTask.AssignedGroup);
+                await ActionHandler.DoOnAssignmentActions(ActImplTask, WfObjectScopes.ImplementationTask, ActImplTask.AssignedGroup);
             }
             DisplayAssignImplTaskMode = false;
         }
@@ -180,7 +210,7 @@ namespace FWO.Services.Workflow
         {
             if (dbAcc != null)
             {
-                ActImplTask.Id = await dbAcc.AddImplTaskToDb(ActImplTask);
+                ActImplTask.Id = await dbAcc.AddImplTaskToDb(ActImplTask, ActReqTask);
             }
             ActReqTask.ImplementationTasks.Add(ActImplTask);
         }
@@ -229,9 +259,11 @@ namespace FWO.Services.Workflow
         {
             if (dbAcc != null)
             {
+                // The stored ticket is read once and handed to every delete, instead of once per task.
+                WfTicket? storedTicket = ActReqTask.ImplementationTasks.Count > 0 ? await dbAcc.LoadPreviousTicket(ActReqTask.TicketId) : null;
                 foreach (var impltask in ActReqTask.ImplementationTasks)
                 {
-                    await dbAcc.DeleteImplTaskFromDb(impltask);
+                    await dbAcc.DeleteImplTaskFromDb(impltask, storedTicket);
                 }
             }
             ActReqTask.ImplementationTasks.Clear();
@@ -242,94 +274,341 @@ namespace FWO.Services.Workflow
         {
             if (apiConnection != null)
             {
-                foreach (var device in await PathAnalysis.GetAllDevices(reqTask.Elements, apiConnection))
+                List<Device> devices = await RoutingBasedPathAnalyzer.GetAllDevices(reqTask.Elements, apiConnection);
+                WfTicket? storedTicket = await LoadTicketForImplTaskCreation(reqTask, devices.Count);
+                foreach (var device in devices)
                 {
                     if (reqTask.ImplementationTasks.FirstOrDefault(x => x.DeviceId == device.Id) == null)
                     {
-                        await CreateAccessImplTask(reqTask, device.Id);
+                        await CreateAccessImplTask(reqTask, device.Id, true, storedTicket);
                     }
                 }
             }
         }
 
-        private async Task AutoCreateOrUpdateImplTasks()
+        /// <summary>
+        /// Reads the stored ticket once for a batch of implementation task creations.
+        /// </summary>
+        /// <param name="reqTask">Request task the implementation tasks belong to.</param>
+        /// <param name="taskCount">Number of implementation tasks about to be created.</param>
+        /// <returns>The stored ticket, or null when nothing will be created or no database access exists.</returns>
+        private async Task<WfTicket?> LoadTicketForImplTaskCreation(WfReqTask reqTask, int taskCount)
         {
-            if (Phase <= WorkflowPhases.approval && !MasterStateMatrix.PhaseActive[WorkflowPhases.planning]
+            return dbAcc != null && taskCount > 0 ? await dbAcc.LoadPreviousTicket(reqTask.TicketId) : null;
+        }
+
+        /// <summary>
+        /// Lets the existing implementation tasks follow their request tasks when the ticket leaves the approval phase
+        /// without planning phase. Implementation tasks are not created here: only the state action
+        /// "Create implementation tasks" creates them.
+        /// </summary>
+        private async Task SyncImplTaskStatesAfterApproval()
+        {
+            if (Phase <= WorkflowPhases.approval && !IsPlanningPhaseActive(MasterStateMatrix)
                 && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
             {
-                foreach (var reqTask in ActTicket.Tasks)
+                foreach (WfReqTask reqTask in ActTicket.Tasks)
                 {
-                    // Todo: further analysis how many impl tasks currently have to be there and create or update where needed
-                    if (reqTask.ImplementationTasks.Count == 0
-                        && reqTask.StateId >= stateMatrixDict.Matrices[reqTask.TaskType].MinImplTasksNeeded)
-                    {
-                        await AutoCreateImplTasks(reqTask);
-                    }
-                    else
-                    {
-                        await UpgradeImplTaskStatesToReqTask(reqTask);
-                    }
+                    await UpgradeImplTaskStatesToReqTask(reqTask);
                 }
             }
         }
 
+        /// <summary>
+        /// Returns the request tasks that should receive initially generated implementation tasks.
+        /// </summary>
+        private async Task<List<WfReqTask>> RequestTasksForInitialImplCreation(
+            List<WfReqTask> requestTasks, bool includeExistingImplementationTasks = false)
+        {
+            // every implementation task creation run starts here
+            ResetObjectTargetCache();
+            ResetAutoPlanCache();
+            List<WfReqTask> requestTasksWithDetails = [];
+            foreach (WfReqTask reqTask in requestTasks)
+            {
+                WfReqTask detailedReqTask = await LoadReqTaskDetailsForImplCreation(reqTask);
+                if ((includeExistingImplementationTasks || detailedReqTask.ImplementationTasks.Count == 0)
+                    && TaskHasRequiredContentForImplCreation(detailedReqTask))
+                {
+                    requestTasksWithDetails.Add(detailedReqTask);
+                }
+            }
+
+            if (!userConfig.ReqConsiderBundling)
+            {
+                return requestTasksWithDetails;
+            }
+
+            List<WfReqTask> effectiveRequestTasks = [];
+            foreach (var bundleGroup in requestTasksWithDetails.GroupBy(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId)))
+            {
+                List<WfReqTask> bundledTasks = [.. bundleGroup];
+                if (string.IsNullOrWhiteSpace(bundleGroup.Key))
+                {
+                    effectiveRequestTasks.AddRange(bundledTasks);
+                    continue;
+                }
+                if (BundleHasImplementationTasks(ActTicket, bundledTasks[0]))
+                {
+                    continue;
+                }
+                effectiveRequestTasks.Add(CreateMergedBundleRequestTask(bundledTasks));
+            }
+            return effectiveRequestTasks;
+        }
+
+        private async Task<WfReqTask> LoadReqTaskDetailsForImplCreation(WfReqTask reqTask)
+        {
+            if (reqTask.Id <= 0 || reqTask.TicketId <= 0 || dbAcc == null)
+            {
+                return reqTask;
+            }
+
+            WfTicket activeTicket = ActTicket;
+            WfReqTask detailedReqTask = await LoadReqTaskDetails(reqTask, true);
+            // Loading details refreshes the handler environment as a side effect. Keep the
+            // ticket state that was already derived from the current request-task states;
+            // otherwise the persisted pre-change ticket state can overwrite that derivation.
+            ActTicket = activeTicket;
+            detailedReqTask.StateId = reqTask.StateId;
+            detailedReqTask.Start = reqTask.Start;
+            detailedReqTask.Stop = reqTask.Stop;
+            detailedReqTask.CurrentHandler = reqTask.CurrentHandler;
+            detailedReqTask.RecentHandler = reqTask.RecentHandler;
+            detailedReqTask.AssignedGroup = reqTask.AssignedGroup;
+            SyncActTicketFromReqTask(detailedReqTask);
+            return detailedReqTask;
+        }
+
+        private bool TaskHasRequiredContentForImplCreation(WfReqTask reqTask)
+        {
+            return dbAcc == null || reqTask.TaskType != WfTaskType.access.ToString() || reqTask.Elements.Count > 0;
+        }
+
+        /// <summary>
+        /// Creates a transient request task representing all request task elements in one bundle.
+        /// </summary>
+        private static WfReqTask CreateMergedBundleRequestTask(List<WfReqTask> bundleTasks)
+        {
+            WfReqTask mergedTask = new(bundleTasks[0])
+            {
+                Elements = [.. bundleTasks.SelectMany(task => task.Elements)
+                    .GroupBy(ElementIdentityKey)
+                    .Select(group => group.First())]
+            };
+            mergedTask.SetDeviceList([.. bundleTasks.SelectMany(task => task.GetDeviceList()).Distinct()]);
+            return mergedTask;
+        }
+
+        /// <summary>Resolves the persisted or merged request-task context of a delegated creation event.</summary>
+        public WfReqTask? ResolveRulePositioningRequestTask(WfImplTask implementationTask)
+        {
+            WfTicket? loadedTicket = ActTicket.Tasks.Any(task => task.Id == implementationTask.ReqTaskId)
+                ? ActTicket
+                : TicketList.FirstOrDefault(ticket => ticket.Tasks.Any(task => task.Id == implementationTask.ReqTaskId));
+            WfReqTask? requestTask = loadedTicket?.Tasks.FirstOrDefault(task => task.Id == implementationTask.ReqTaskId)
+                ?? (ActReqTask.Id == implementationTask.ReqTaskId ? ActReqTask : null);
+            if (requestTask == null || !userConfig.ReqConsiderBundling)
+            {
+                return requestTask;
+            }
+
+            string bundleId = requestTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
+            if (string.IsNullOrWhiteSpace(bundleId) || loadedTicket == null)
+            {
+                return requestTask;
+            }
+
+            List<WfReqTask> bundleTasks = [.. loadedTicket.Tasks.Where(task =>
+                task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId)];
+            return CreateMergedBundleRequestTask(bundleTasks);
+        }
+
+        /// <summary>
+        /// Builds the identity used to collapse duplicate elements across bundled request tasks.
+        /// </summary>
+        private static object ElementIdentityKey(WfReqElement element)
+        {
+            return new
+            {
+                element.Field,
+                element.RequestAction,
+                element.DeviceId,
+                element.IpString,
+                element.IpEnd,
+                element.Port,
+                element.PortEnd,
+                element.ProtoId,
+                element.NetworkId,
+                element.ServiceId,
+                element.FlowNetworkObjectId,
+                element.FlowNetworkGroupId,
+                element.FlowServiceObjectId,
+                element.FlowServiceGroupId,
+                element.UserId,
+                element.OriginalNatId,
+                element.RuleUid,
+                element.GroupName,
+                element.Name
+            };
+        }
+
+        /// <summary>
+        /// Returns whether initial implementation tasks may be created for a request task: it has none yet and is
+        /// between approval and completion. Which ones are created decides the auto plan device specific settings.
+        /// </summary>
+        public bool CanAutoCreateInitialImplTasks(WfReqTask reqTask)
+        {
+            return reqTask.ImplementationTasks.Count == 0
+                && RequestTaskNeedsInitialImplTasks(reqTask);
+        }
+
+        /// <summary>
+        /// Determines whether the planning phase is enabled for the supplied state matrix.
+        /// </summary>
+        private static bool IsPlanningPhaseActive(StateMatrix matrix)
+        {
+            if (!matrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool planningActive))
+            {
+                Log.WriteWarning("Workflow State", "Planning phase key is missing from the state matrix; treating planning as inactive.");
+                return false;
+            }
+
+            return planningActive;
+        }
+
+        public bool CanAutoCreateInitialImplTasks(WfTicket ticket, WfReqTask reqTask)
+        {
+            return CanAutoCreateInitialImplTasks(reqTask)
+                && !BundleHasImplementationTasks(ticket, reqTask);
+        }
+
+        public async Task<bool> AutoCreateInitialImplTasksForMonitoring(WfTicket ticket, WfReqTask reqTask)
+        {
+            SetTicketEnv(ticket);
+            WfReqTask taskToUpdate = ActTicket.Tasks.FirstOrDefault(task => task.Id == reqTask.Id) ?? reqTask;
+            if (!CanAutoCreateInitialImplTasks(ActTicket, taskToUpdate))
+            {
+                return false;
+            }
+
+            int previousImplTaskCount = taskToUpdate.ImplementationTasks.Count;
+            bool implementationTasksCreated = false;
+            int createdImplTaskCount = 0;
+            foreach (WfReqTask task in await RequestTasksForInitialImplCreation([taskToUpdate]))
+            {
+                int taskPreviousImplTaskCount = task.ImplementationTasks.Count;
+                await AutoCreateImplTasks(task);
+                int taskCreatedImplTaskCount = Math.Max(0, task.ImplementationTasks.Count - taskPreviousImplTaskCount);
+                createdImplTaskCount += taskCreatedImplTaskCount;
+                implementationTasksCreated = implementationTasksCreated || taskCreatedImplTaskCount > 0;
+                SyncActTicketFromReqTask(task);
+            }
+            createdImplTaskCount = Math.Max(createdImplTaskCount, taskToUpdate.ImplementationTasks.Count - previousImplTaskCount);
+            if (createdImplTaskCount > 0)
+            {
+                LogMonitoringImplementationTasksCreated(ActTicket.Id, taskToUpdate.Id, createdImplTaskCount);
+            }
+            return implementationTasksCreated || taskToUpdate.ImplementationTasks.Count > previousImplTaskCount;
+        }
+
+        private bool BundleHasImplementationTasks(WfTicket ticket, WfReqTask reqTask)
+        {
+            if (!userConfig.ReqConsiderBundling)
+            {
+                return false;
+            }
+
+            string bundleId = reqTask.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
+            return !string.IsNullOrWhiteSpace(bundleId)
+                && ticket.Tasks.Any(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId && task.ImplementationTasks.Count > 0);
+        }
+
+        private bool RequestTaskNeedsInitialImplTasks(WfReqTask reqTask)
+        {
+            return stateMatrixDict.Matrices.TryGetValue(reqTask.TaskType, out StateMatrix? matrix)
+                && reqTask.StateId >= matrix.MinImplTasksNeeded
+                && reqTask.StateId < matrix.MinTicketCompleted;
+        }
+
+        /// <summary>
+        /// Creates the implementation tasks of a request task by task type, following the auto plan and implementation
+        /// mode device specific settings. A request task handed to an external ticket system gets none.
+        /// </summary>
+        /// <param name="reqTask">Request task to create the implementation tasks for.</param>
         private async Task AutoCreateImplTasks(WfReqTask reqTask)
         {
-            WfImplTask newImplTask;
+            if (await IsHandedToExternalTicketSystem(reqTask))
+            {
+                return;
+            }
             if (reqTask.TaskType == WfTaskType.access.ToString())
             {
-                switch (userConfig.ReqAutoCreateImplTasks)
-                {
-                    case AutoCreateImplTaskOptions.never:
-                        break;
-                    case AutoCreateImplTaskOptions.onlyForOneDevice:
-                        if (Devices.Count > 0)
-                        {
-                            await CreateAccessImplTask(reqTask, Devices[0].Id, false);
-                        }
-                        break;
-                    case AutoCreateImplTaskOptions.forEachDevice:
-                        foreach (var device in Devices)
-                        {
-                            await CreateAccessImplTask(reqTask, device.Id);
-                        }
-                        break;
-                    case AutoCreateImplTaskOptions.enterInReqTask:
-                        foreach (var deviceId in reqTask.GetDeviceList())
-                        {
-                            await CreateAccessImplTask(reqTask, deviceId);
-                        }
-                        break;
-                    case AutoCreateImplTaskOptions.afterPathAnalysis:
-                        await CreateAccessImplTasksFromPathAnalysis(reqTask);
-                        break;
-                    default:
-                        break;
-                }
+                await EnsureDevicesLoaded();
+                await AutoCreateAccessImplTasks(reqTask);
+                return;
             }
-            else
+            if (WfObjectTaskHelper.IsManagementObjectTask(reqTask.TaskType))
             {
-                newImplTask = new WfImplTask(reqTask) { TaskNumber = reqTask.HighestImplTaskNumber() + 1, StateId = reqTask.StateId };
-                if (dbAcc != null)
-                {
-                    newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
-                }
-                reqTask.ImplementationTasks.Add(newImplTask);
+                await AutoCreateObjectImplTasks(reqTask);
+                return;
+            }
+            await AutoCreateSingleImplTask(reqTask);
+        }
+
+        private async Task CreateImplTasksForDevices(WfReqTask reqTask, List<int> deviceIds)
+        {
+            WfTicket? storedTicket = await LoadTicketForImplTaskCreation(reqTask, deviceIds.Count);
+            foreach (int deviceId in deviceIds)
+            {
+                await CreateAccessImplTask(reqTask, deviceId, true, storedTicket);
             }
         }
 
-        private async Task CreateAccessImplTask(WfReqTask reqTask, int deviceId, bool adaptTitle = true)
+        /// <summary>
+        /// Creates the implementation task of a new interface request task unless it already has one: one task without
+        /// gateway, which the interface workflow promotes when the interface is created or rejected. It is no firewall
+        /// implementation, so it is created at once and independently of the auto plan device specific settings.
+        /// </summary>
+        /// <param name="reqTask">New interface request task; other task types are ignored.</param>
+        public async Task CreateNewInterfaceImplTask(WfReqTask reqTask)
         {
+            if (reqTask.TaskType == WfTaskType.new_interface.ToString() && reqTask.ImplementationTasks.Count == 0)
+            {
+                await CreateGenericImplTask(reqTask);
+            }
+        }
+
+        private async Task CreateGenericImplTask(WfReqTask reqTask)
+        {
+            WfImplTask newImplTask = new(reqTask) { TaskNumber = reqTask.HighestImplTaskNumber() + 1, StateId = reqTask.StateId };
+            if (dbAcc != null)
+            {
+                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask, reqTask);
+            }
+            reqTask.ImplementationTasks.Add(newImplTask);
+        }
+
+        private async Task CreateAccessImplTask(WfReqTask reqTask, int? deviceId, bool adaptTitle = true, WfTicket? previousTicket = null)
+        {
+            if (reqTask.ImplementationTasks.Any(implTask => implTask.DeviceId == deviceId))
+            {
+                return;
+            }
             WfImplTask newImplTask;
             newImplTask = new WfImplTask(reqTask)
             { TaskNumber = reqTask.HighestImplTaskNumber() + 1, DeviceId = deviceId, StateId = reqTask.StateId };
-            if (adaptTitle)
+            if (adaptTitle && deviceId != null)
             {
-                newImplTask.Title += ": " + Devices[Devices.FindIndex(x => x.Id == deviceId)].Name;
+                Device? device = Devices.FirstOrDefault(x => x.Id == deviceId);
+                if (device != null)
+                {
+                    newImplTask.Title += ": " + device.Name;
+                }
             }
             if (dbAcc != null)
             {
-                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask, reqTask, previousTicket);
             }
             reqTask.ImplementationTasks.Add(newImplTask);
         }
@@ -356,7 +635,7 @@ namespace FWO.Services.Workflow
             {
                 foreach (var implTask in reqTask.ImplementationTasks)
                 {
-                    bool assignedToMe = implTask.CurrentHandler?.DbId == userConfig.User.DbId || implTask.AssignedGroup == userConfig.User.Dn;  // todo: resolve group membership?
+                    bool assignedToMe = implTask.CurrentHandler?.DbId == userConfig.User.DbId || DistName.DnEquals(implTask.AssignedGroup, userConfig.User.Dn);  // todo: resolve group membership?
                     if (selectedOwnerOpt.Id == -1 || (selectedOwnerOpt.Id == -2 && assignedToMe)
                         || (selectedOwnerOpt.Id > 0 && reqTask.Owners.FirstOrDefault(o => o.Owner.Id == selectedOwnerOpt.Id) != null))
                     {

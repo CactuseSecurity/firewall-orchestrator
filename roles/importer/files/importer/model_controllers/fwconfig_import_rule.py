@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import json
 import traceback
-from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import fwo_const
 from fwo_api import FwoApi
@@ -14,34 +15,40 @@ from fwo_exceptions import (
 )
 from fwo_log import ChangeLogger, FWOLogger
 from model_controllers.fwconfig_import_ruleorder import update_rule_order_diffs
-from model_controllers.import_state_controller import ImportStateController
-from models.fwconfig_normalized import FwConfigNormalized
-from models.gateway import Gateway
-from models.networkobject import NetworkObject
 from models.rule import Rule, RuleNormalized
 from models.rule_from import RuleFrom
 from models.rule_metadatum import RuleMetadatum
 from models.rule_service import RuleService
 from models.rule_to import RuleTo
 from models.rulebase import Rulebase, RulebaseForImport
-from models.serviceobject import ServiceObject
-from models.time_object import TimeObject
-from services.global_state import GlobalState
-from services.group_flats_mapper import GroupFlatsMapper
 from services.service_provider import ServiceProvider
-from services.uid2id_mapper import Uid2IdMapper
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from model_controllers.import_state_controller import ImportStateController
+    from models.fwconfig_normalized import FwConfigNormalized
+    from models.gateway import Gateway
+    from models.networkobject import NetworkObject
+    from models.serviceobject import ServiceObject
+    from models.time_object import TimeObject
+    from services.global_state import GlobalState
+    from services.group_flats_mapper import GroupFlatsMapper
+    from services.uid2id_mapper import Uid2IdMapper
 
 
 class RefType(Enum):
-    SRC = "rule_from"
-    DST = "rule_to"
-    SVC = "rule_service"
-    NWOBJ_RESOLVED = "rule_nwobj_resolved"
-    SVC_RESOLVED = "rule_svc_resolved"
-    USER_RESOLVED = "rule_user_resolved"
-    SRC_ZONE = "rule_from_zone"
-    DST_ZONE = "rule_to_zone"
-    TIME = "rule_time"
+    # values mirror the Hasura mutation field base names (firewall schema) and are used
+    # to build the insert_/update_ response keys dynamically (see add/remove rule refs)
+    SRC = "firewall_rule_from"
+    DST = "firewall_rule_to"
+    SVC = "firewall_rule_service"
+    NWOBJ_RESOLVED = "firewall_rule_nw_object_resolved"
+    SVC_RESOLVED = "firewall_rule_nw_service_resolved"
+    USER_RESOLVED = "firewall_rule_nw_user_resolved"
+    SRC_ZONE = "firewall_rule_from_zone"
+    DST_ZONE = "firewall_rule_to_zone"
+    TIME = "firewall_rule_time"
 
 
 # this class is used for importing rules and rule refs into the FWO API
@@ -91,6 +98,9 @@ class FwConfigImportRule:
             changed_rule_uids,
         ) = self.get_all_rule_diffs(prev_rules, curr_rules, prev_rule_to_rulebase, curr_rule_to_rulebase)
 
+        # NAT original rules whose translated counterparts changed need their xlate_rule FKs repointed through normal insert/remove handling to preserve history (F45).
+        xlate_fk_repoint_uids = self.get_stale_xlate_rule_fk_uids(curr_rules, changed_rule_uids, added_rule_uids)
+
         # collect hit information for all rules with hit data
         new_hit_information: list[dict[str, Any]] = []
         self.collect_all_hit_information(prev_config, new_hit_information)
@@ -116,13 +126,34 @@ class FwConfigImportRule:
             {
                 rule_uid: (curr_rules[rule_uid], curr_rule_to_rulebase[rule_uid])
                 for rule_uid in (added_rule_uids | changed_rule_uids)
+                if curr_rules[rule_uid].xlate_rule_uid is None
             }
         )
-
         self.uid2id_mapper.add_rule_mappings(inserted_rule_ids)
-        refs_added = self.add_new_refs(prev_config)
 
-        num_set_removed_rules, _removed_rule_ids = self.mark_rules_removed(list(removed_rule_uids | changed_rule_uids))
+        # drop repoint rows whose translated counterpart's rule_id didn't come back resolvable from the
+        # insert above (e.g. fewer 'returning' rows than expected) - mirrors the KeyError warn-and-skip
+        # behavior the old fixup_stale_xlate_rule_fks provided for this case, rather than letting the
+        # unguarded get_rule_id lookup in prepare_rule_for_import abort the whole import
+        xlate_fk_repoint_uids = self.filter_resolvable_xlate_fk_repoint_uids(curr_rules, xlate_fk_repoint_uids)
+
+        # add new NAT rules separately after all non-NAT rules have been added, to ensure that all xlate rules are already in the database
+        # and can be referenced by their new numeric id in the xlate_rule field of the NAT rules
+        num_inserted_nat_rules, inserted_nat_rule_ids = self.add_new_rules(
+            {
+                rule_uid: (curr_rules[rule_uid], curr_rule_to_rulebase[rule_uid])
+                for rule_uid in (added_rule_uids | changed_rule_uids | xlate_fk_repoint_uids)
+                if curr_rules[rule_uid].xlate_rule_uid is not None
+            }
+        )
+        num_inserted_rules += num_inserted_nat_rules
+        self.uid2id_mapper.add_rule_mappings(inserted_nat_rule_ids)
+
+        refs_added = self.add_new_refs(prev_config, xlate_fk_repoint_uids)
+
+        num_set_removed_rules, _removed_rule_ids = self.mark_rules_removed(
+            list(removed_rule_uids | changed_rule_uids | xlate_fk_repoint_uids)
+        )
         # remove old rulebases
         removed_rulebase_uids = [
             prev_rb.uid
@@ -130,14 +161,25 @@ class FwConfigImportRule:
             if prev_rb.uid not in {rb.uid for rb in self.normalized_config.rulebases}
         ]
         num_deleted_rulebases = self.mark_rulebases_removed(removed_rulebase_uids)
-        refs_removed = self.remove_outdated_refs(prev_config)
+        refs_removed = self.remove_outdated_refs(prev_config, xlate_fk_repoint_uids)
 
-        rule_to_gw_refs_added, rule_to_gw_refs_removed = self.update_rule_enforced_on_gateway(changed_rule_uids)
+        rule_to_gw_refs_added, rule_to_gw_refs_removed = self.update_rule_enforced_on_gateway(
+            changed_rule_uids | xlate_fk_repoint_uids
+        )
 
-        self.write_changelog_rules(
+        changed_rules_for_changelog, moved_between_rulebases_uids = self.collect_changed_rules_for_changelog(
+            prev_rules,
+            curr_rules,
+            changed_rule_uids,
+            xlate_fk_repoint_uids,
+            prev_rule_to_rulebase,
+            curr_rule_to_rulebase,
+        )
+        num_security_relevant_rule_changes = self.write_changelog_rules(
             [curr_rules[rule_uid] for rule_uid in added_rule_uids],
             [prev_rules[rule_uid] for rule_uid in removed_rule_uids],
-            [(prev_rules[rule_uid], curr_rules[rule_uid]) for rule_uid in changed_rule_uids],
+            changed_rules_for_changelog,
+            moved_between_rulebases_uids,
         )
 
         num_moved_rules = self.count_moved_rules(
@@ -154,17 +196,26 @@ class FwConfigImportRule:
         self.import_details.state.stats.increment_rule_delete_count(num_removed_rules)
         self.import_details.state.stats.increment_rule_move_count(num_moved_rules)
         self.import_details.state.stats.increment_rule_change_count(num_changed_rules)
+        self.import_details.state.stats.increment_rule_change_count_security_relevant(
+            num_security_relevant_rule_changes
+        )
         self.import_details.state.stats.increment_rule_ref_add_count(refs_added + rule_to_gw_refs_added)
         self.import_details.state.stats.increment_rule_ref_delete_count(refs_removed + rule_to_gw_refs_removed)
 
         # change counts returned from db mutations should match counts calculated from diffs, if not log a warning
-        if num_inserted_rules != len(added_rule_uids) + len(changed_rule_uids):
+        num_expected_inserted = len(added_rule_uids) + len(changed_rule_uids) + len(xlate_fk_repoint_uids)
+        if num_inserted_rules != num_expected_inserted:
             FWOLogger.warning(
-                f"Number of inserted rules ({num_inserted_rules}) does not match number of added + changed rules ({len(added_rule_uids) + len(changed_rule_uids)} = {len(added_rule_uids)} + {len(changed_rule_uids)})"
+                f"Number of inserted rules ({num_inserted_rules}) does not match number of added + changed + "
+                f"xlate-repoint rules ({num_expected_inserted} = {len(added_rule_uids)} + {len(changed_rule_uids)} "
+                f"+ {len(xlate_fk_repoint_uids)})"
             )
-        if num_set_removed_rules != len(removed_rule_uids) + len(changed_rule_uids):
+        num_expected_removed = len(removed_rule_uids) + len(changed_rule_uids) + len(xlate_fk_repoint_uids)
+        if num_set_removed_rules != num_expected_removed:
             FWOLogger.warning(
-                f"Number of removed rules ({num_set_removed_rules}) does not match number of removed + changed rules ({len(removed_rule_uids) + len(changed_rule_uids)} = {len(removed_rule_uids)} + {len(changed_rule_uids)})"
+                f"Number of removed rules ({num_set_removed_rules}) does not match number of removed + changed + "
+                f"xlate-repoint rules ({num_expected_removed} = {len(removed_rule_uids)} + {len(changed_rule_uids)} "
+                f"+ {len(xlate_fk_repoint_uids)})"
             )
 
     def get_all_rule_diffs(
@@ -470,7 +521,7 @@ class FwConfigImportRule:
         raise FwoImporterError(f"unknown ref type: {ref_type}")
 
     def get_outdated_refs_to_remove(
-        self, prev_rule: RuleNormalized, rule: RuleNormalized | None, remove_all: bool
+        self, prev_rule: RuleNormalized, rule: RuleNormalized | None, *, remove_all: bool
     ) -> dict[RefType, list[dict[str, Any]]]:
         """
         Get the references that need to be removed for a rule based on comparison with the previous rule.
@@ -502,7 +553,10 @@ class FwConfigImportRule:
                 )
         return refs_to_remove
 
-    def get_refs_to_remove(self, prev_config: FwConfigNormalized) -> dict[RefType, list[dict[str, Any]]]:
+    def get_refs_to_remove(
+        self, prev_config: FwConfigNormalized, force_all_refs_rule_uids: set[str] | None = None
+    ) -> dict[RefType, list[dict[str, Any]]]:
+        force_all_refs_rule_uids = force_all_refs_rule_uids or set()
         all_refs_to_remove: dict[RefType, list[dict[str, Any]]] = {ref_type: [] for ref_type in RefType}
         if self.normalized_config is None:
             raise FwoImporterError("cannot remove outdated refs: normalized_config is None")
@@ -517,22 +571,32 @@ class FwConfigImportRule:
                 if uid is None:
                     raise FwoImporterError(f"rule UID is None: {prev_rule} in rulebase {prev_rulebase.name}")
                 rule_removed_or_changed = (
-                    uid not in rules or prev_rule != rules[uid]
+                    uid not in rules or prev_rule != rules[uid] or uid in force_all_refs_rule_uids
                 )  # rule removed or changed -> all refs need to be removed
                 rule_refs_to_remove = self.get_outdated_refs_to_remove(
-                    prev_rule, rules.get(uid, None), rule_removed_or_changed
+                    prev_rule, rules.get(uid, None), remove_all=rule_removed_or_changed
                 )
                 for ref_type, ref_statements in rule_refs_to_remove.items():
                     all_refs_to_remove[ref_type].extend(ref_statements)
         return all_refs_to_remove
 
-    def remove_outdated_refs(self, prev_config: FwConfigNormalized) -> int:
+    def remove_outdated_refs(
+        self, prev_config: FwConfigNormalized, force_all_refs_rule_uids: set[str] | None = None
+    ) -> int:
         """
         Remove all types of outdated rule references based on comparison with the previous configuration. This includes
         source, destination, service, resolved network object, resolved service, resolved user, source zone, and
         destination zone references.
+
+        Args:
+            prev_config: The previous configuration for comparison.
+            force_all_refs_rule_uids: rule_uids (by prev rule_uid) whose refs must be treated as fully
+                removed regardless of content equality - used for NAT xlate-FK-repoint rows (F45/F52),
+                whose old row keeps its refs pointing at the now-superseded rule_id even though the rule
+                content itself is unchanged.
+
         """
-        all_refs_to_remove = self.get_refs_to_remove(prev_config)
+        all_refs_to_remove = self.get_refs_to_remove(prev_config, force_all_refs_rule_uids)
 
         if not any(all_refs_to_remove.values()):
             return 0
@@ -587,7 +651,6 @@ class FwConfigImportRule:
                 obj_id=self.uid2id_mapper.get_network_object_id(nwobj_uid),
                 user_id=self.uid2id_mapper.get_user_id(user_uid) if user_uid else None,
                 rf_create=import_id,
-                rf_last_seen=import_id,  # TODO: to be removed in the future
                 negated=rule.rule_src_neg,
             ).model_dump()
         if ref_type == RefType.DST:
@@ -597,7 +660,6 @@ class FwConfigImportRule:
                 obj_id=self.uid2id_mapper.get_network_object_id(nwobj_uid),
                 user_id=self.uid2id_mapper.get_user_id(user_uid) if user_uid else None,
                 rt_create=import_id,
-                rt_last_seen=import_id,  # TODO: to be removed in the future
                 negated=rule.rule_dst_neg,
             ).model_dump()
         if ref_type == RefType.SVC:
@@ -605,7 +667,6 @@ class FwConfigImportRule:
                 rule_id=self.uid2id_mapper.get_rule_id(rule.rule_uid),
                 svc_id=self.uid2id_mapper.get_service_object_id(ref_uid),  # type: ignore # ref_uid is str here TODO: Cleanup ref_uid dict  # noqa: PGH003
                 rs_create=import_id,
-                rs_last_seen=import_id,  # TODO: to be removed in the future
             ).model_dump()
         if ref_type == RefType.NWOBJ_RESOLVED:
             return {
@@ -643,7 +704,7 @@ class FwConfigImportRule:
         return None
 
     def get_new_refs_to_add(
-        self, rule: RuleNormalized, prev_rule: RuleNormalized | None, add_all: bool
+        self, rule: RuleNormalized, prev_rule: RuleNormalized | None, *, add_all: bool
     ) -> dict[RefType, list[dict[str, Any]]]:
         """
         Get the references that need to be added for a rule based on comparison with the previous rule.
@@ -668,18 +729,23 @@ class FwConfigImportRule:
                 refs_to_add[ref_type].append(self.get_ref_add_statement(ref_type, rule, ref_uid))
         return refs_to_add
 
-    def add_new_refs(self, prev_config: FwConfigNormalized) -> int:
+    def add_new_refs(self, prev_config: FwConfigNormalized, force_all_refs_rule_uids: set[str] | None = None) -> int:
         """
         Add all types of new references for all rules compared to the previous config. This includes source, destination,
         service, resolved network objects, resolved services, resolved users, source zones, and destination zones
 
         Args:
             prev_config (FwConfigNormalized): The previous configuration for comparison.
+            force_all_refs_rule_uids: rule_uids whose refs must be treated as fully (re-)added regardless
+                of content equality - used for NAT xlate-FK-repoint rows (F45/F52), which get a new
+                rule_id this import even though the rule content itself is unchanged, so their new row
+                would otherwise end up with zero refs.
 
         Returns:
             int: The total number of references added.
 
         """
+        force_all_refs_rule_uids = force_all_refs_rule_uids or set()
         all_refs_to_add: dict[RefType, list[dict[str, Any]]] = {ref_type: [] for ref_type in RefType}
         if self.normalized_config is None:
             raise FwoImporterError("cannot add new refs: normalized_config is None")
@@ -694,9 +760,11 @@ class FwConfigImportRule:
                 if uid is None:
                     raise FwoImporterError(f"rule UID is None: {rule} in rulebase {rulebase.name}")
                 rule_added_or_changed = (
-                    uid not in prev_rules or rule != prev_rules[uid]
+                    uid not in prev_rules or rule != prev_rules[uid] or uid in force_all_refs_rule_uids
                 )  # rule added or changed -> all refs need to be added
-                rule_refs_to_add = self.get_new_refs_to_add(rule, prev_rules.get(uid, None), rule_added_or_changed)
+                rule_refs_to_add = self.get_new_refs_to_add(
+                    rule, prev_rules.get(uid, None), add_all=rule_added_or_changed
+                )
                 for ref_type, ref_statements in rule_refs_to_add.items():
                     all_refs_to_add[ref_type].extend(ref_statements)
 
@@ -741,8 +809,8 @@ class FwConfigImportRule:
         changes: int = 0
         new_rule_ids: list[int] = []
 
-        add_new_rule_metadata_mutation = """mutation upsertRuleMetadata($ruleMetadata: [rule_metadata_insert_input!]!) {
-             insert_rule_metadata(objects: $ruleMetadata, on_conflict: {constraint: rule_metadata_mgm_id_rule_uid_unique, update_columns: []}) {
+        add_new_rule_metadata_mutation = """mutation upsertRuleMetadata($ruleMetadata: [firewall_rule_metadata_insert_input!]!) {
+             insert_firewall_rule_metadata(objects: $ruleMetadata, on_conflict: {constraint: rule_metadata_mgm_id_rule_uid_unique, update_columns: []}) {
                 affected_rows
                 returning {
                     rule_metadata_id
@@ -767,7 +835,7 @@ class FwConfigImportRule:
         if "errors" in import_result:
             raise FwoApiWriteError(f"failed to write new RulesMetadata: {import_result['errors']!s}")
         # reduce change number by number of rulebases
-        changes = import_result["data"]["insert_rule_metadata"]["affected_rows"]
+        changes = import_result["data"]["insert_firewall_rule_metadata"]["affected_rows"]
 
         return changes, new_rule_ids
 
@@ -786,8 +854,8 @@ class FwConfigImportRule:
         changes: int = 0
         new_rule_ids: list[dict[str, Any]] = []
 
-        upsert_rules = """mutation upsertRules($rules: [rule_insert_input!]!) {
-                insert_rule(
+        upsert_rules = """mutation upsertRules($rules: [firewall_rule_insert_input!]!) {
+                insert_firewall_rule(
                     objects: $rules,
                 ) {
                     affected_rows,
@@ -817,8 +885,8 @@ class FwConfigImportRule:
                     f"fwo_api:addRulesWithinRulebases - error in addRulesWithinRulebases: {import_result['errors']!s}"
                 )
                 raise FwoApiWriteError(f"failed to write new rules: {import_result['errors']!s}")
-            changes += import_result["data"]["insert_rule"]["affected_rows"]
-            new_rule_ids += import_result["data"]["insert_rule"]["returning"]
+            changes += import_result["data"]["insert_firewall_rule"]["affected_rows"]
+            new_rule_ids += import_result["data"]["insert_firewall_rule"]["returning"]
         return changes, new_rule_ids
 
     def add_new_rulebases(self, new_rulebases: list[Rulebase]) -> tuple[int, list[dict[str, Any]]]:
@@ -833,8 +901,8 @@ class FwConfigImportRule:
                 each with 'uid' and 'id' for each newly added rulebase.
 
         """
-        add_rulebases_without_rules_mutation = """mutation upsertRulebaseWithoutRules($rulebases: [rulebase_insert_input!]!) {
-                insert_rulebase(
+        add_rulebases_without_rules_mutation = """mutation upsertRulebaseWithoutRules($rulebases: [firewall_rulebase_insert_input!]!) {
+                insert_firewall_rulebase(
                     objects: $rulebases,
                 ) {
                     affected_rows,
@@ -866,9 +934,9 @@ class FwConfigImportRule:
             FWOLogger.exception(f"fwo_api:importRules - error in addNewRulebases: {import_result['errors']!s}")
             raise FwoApiWriteError(f"failed to write new rulebases: {import_result['errors']!s}")
 
-        return import_result["data"]["insert_rulebase"]["affected_rows"], import_result["data"]["insert_rulebase"][
-            "returning"
-        ]
+        return import_result["data"]["insert_firewall_rulebase"]["affected_rows"], import_result["data"][
+            "insert_firewall_rulebase"
+        ]["returning"]
 
     def prepare_new_rule_metadata(self, new_rules: list[RuleNormalized]) -> list[dict[str, Any]]:
         if self.normalized_config is None:
@@ -905,7 +973,7 @@ class FwConfigImportRule:
 
         remove_mutation = """
             mutation markRulebasesRemoved($importId: bigint!, $ids: [Int!]!) {
-                update_rulebase(where: {removed: { _is_null: true }, id: {_in: $ids}}, _set: {removed: $importId}) {
+                update_firewall_rulebase(where: {removed: { _is_null: true }, id: {_in: $ids}}, _set: {removed: $importId}) {
                     affected_rows
                 }
             }
@@ -924,7 +992,7 @@ class FwConfigImportRule:
         if "errors" in remove_result:
             raise FwoApiWriteError(f"failed to remove rulebases: {remove_result['errors']!s}")
 
-        return int(remove_result["data"]["update_rulebase"]["affected_rows"])
+        return int(remove_result["data"]["update_firewall_rulebase"]["affected_rows"])
 
     def mark_rules_removed(self, rule_uids_to_remove: list[str]) -> tuple[int, list[int]]:
         """
@@ -937,7 +1005,7 @@ class FwConfigImportRule:
 
         remove_mutation = """
             mutation markRulesRemoved($importId: bigint!, $ruleIds: [bigint!]!) {
-                update_rule(where: {removed: { _is_null: true }, rule_id: {_in: $ruleIds}}, _set: {removed: $importId, active:false}) {
+                update_firewall_rule(where: {removed: { _is_null: true }, rule_id: {_in: $ruleIds}}, _set: {removed: $importId, active:false}) {
                     affected_rows
                     returning { rule_id }
                 }
@@ -956,10 +1024,64 @@ class FwConfigImportRule:
             raise FwoApiWriteError(f"failed to remove rules: {traceback.format_exc()!s}")
         if "errors" in remove_result:
             raise FwoApiWriteError(f"failed to remove rules: {remove_result['errors']!s}")
-        changes = int(remove_result["data"]["update_rule"]["affected_rows"])
-        removed_rule_ids = [item["rule_id"] for item in remove_result["data"]["update_rule"]["returning"]]
+        changes = int(remove_result["data"]["update_firewall_rule"]["affected_rows"])
+        removed_rule_ids = [item["rule_id"] for item in remove_result["data"]["update_firewall_rule"]["returning"]]
 
         return changes, removed_rule_ids
+
+    def get_stale_xlate_rule_fk_uids(
+        self,
+        curr_rules: dict[str, RuleNormalized],
+        changed_rule_uids: set[str],
+        added_rule_uids: set[str],
+    ) -> set[str]:
+        """
+        Find NAT "original" rules whose own row would not otherwise be (re)inserted this
+        import, but whose translated counterpart (xlate_rule_uid target) was changed and
+        therefore got a new rule_id - leaving their xlate_rule FK stale.
+
+        Rule change detection (get_all_rule_diffs) compares xlate_rule_uid as a stable,
+        content-independent string (derived uid, e.g. uid + "_translated" for Check Point NAT
+        rules), so editing only the translated side of a NAT rule pair does not mark the
+        original side as changed on its own.
+
+        The returned uids are meant to be folded into the normal added/changed rule handling
+        (insert a new versioned row, mark the old one removed) rather than patched in place:
+        an in-place UPDATE would rewrite xlate_rule on a row that is also the historical
+        record for past imports, making past-point-in-time NAT reports show the current
+        translation instead of the one that was actually in effect back then.
+        """
+        touched_uids = changed_rule_uids | added_rule_uids
+        return {
+            rule_uid
+            for rule_uid, rule in curr_rules.items()
+            if rule.xlate_rule_uid is not None
+            and rule_uid not in touched_uids  # not already (re)inserted this import
+            and rule.xlate_rule_uid in changed_rule_uids  # translated counterpart got a new rule_id
+        }
+
+    def filter_resolvable_xlate_fk_repoint_uids(
+        self,
+        curr_rules: dict[str, RuleNormalized],
+        xlate_fk_repoint_uids: set[str],
+    ) -> set[str]:
+        """
+        Drop xlate FK repoint rows whose translated counterpart's rule_id is not (yet)
+        resolvable in the uid2id mapping, logging a warning and skipping just that one row
+        instead of letting the unguarded get_rule_id lookup in prepare_rule_for_import raise
+        a KeyError and abort the whole import.
+        """
+        resolvable_uids: set[str] = set()
+        for rule_uid in xlate_fk_repoint_uids:
+            xlate_rule_uid = curr_rules[rule_uid].xlate_rule_uid
+            if xlate_rule_uid is not None and self.uid2id_mapper.rule_uid2id.get(xlate_rule_uid) is None:
+                FWOLogger.warning(
+                    f"could not resolve id for translated counterpart '{xlate_rule_uid}' while repointing "
+                    f"stale xlate_rule FK for rule uid '{rule_uid}' - skipping"
+                )
+                continue
+            resolvable_uids.add(rule_uid)
+        return resolvable_uids
 
     # TODO: find a better place for these kind of functions that simply return from config data
     @staticmethod
@@ -970,6 +1092,11 @@ class FwConfigImportRule:
     ) -> set[tuple[str, str]]:
         """
         Get all rule_enforced_on_gateway (rule to gateway) refs based on the given rulebases and gateways.
+
+        NAT rules are excluded: the rule_enforced_on_gateway table only tracks access rules
+        (see getRulesEnforcedOnGateways.graphql's access_rule filter), so including NAT rules
+        here would make fix_rule_to_gw_refs_in_db treat every NAT rule ref as permanently
+        missing from the (filtered) DB read and re-insert it on every import.
         """
         # first, gather all rule to gateway references from install-on fields
         # need to check global rulebases for rules installed on this mgms gws as well
@@ -978,6 +1105,7 @@ class FwConfigImportRule:
             (rule_uid, gw_installon)
             for rulebase in rulebases_to_check
             for rule_uid, rule in rulebase.rules.items()
+            if rule.access_rule
             for gw_installon in (rule.rule_installon.split(fwo_const.LIST_DELIMITER) if rule.rule_installon else [])
         }
         rules_with_installon = {rule_uid for rule_uid, _ in rule_to_gw_refs}
@@ -1002,7 +1130,8 @@ class FwConfigImportRule:
             (rule_uid, gateway.Uid or "")
             for gateway in gateways
             for rulebase_link in gateway.RulebaseLinks
-            for rule_uid in lookup_rb_by_uid(rulebase_link.to_rulebase_uid).rules
+            for rule_uid, rule in lookup_rb_by_uid(rulebase_link.to_rulebase_uid).rules.items()
+            if rule.access_rule
             # if rule has installon, this is the source of truth for enforced on gateway refs
             if rule_uid not in rules_with_installon
         )
@@ -1015,7 +1144,9 @@ class FwConfigImportRule:
         Update the rule_enforced_on_gateway table based on changes in rule to gateway references.
 
         Args:
-            changed_rule_uids (set[str]): set of UIDs of rules that changed in this import
+            changed_rule_uids (set[str]): set of UIDs of rules that got a new rule_id in this import
+                (both content changes and NAT-repoint-only rules whose xlate_rule FK was
+                repointed to a new rule_id via mark_rules_removed/add_new_rules)
 
         Returns:
             tuple[int, int]: A tuple containing the number of added references and the number of removed references
@@ -1076,10 +1207,10 @@ class FwConfigImportRule:
                 raise FwoApiWriteError(f"failed to remove rule enforced on gateway refs: {traceback.format_exc()!s}")
             if "errors" in remove_result:
                 FWOLogger.exception(
-                    f"fwo_api:update_rule_enforced_on_gateway - error while updating moved rules refs: {remove_result['errors']!s}"
+                    f"fwo_api:update_firewall_rule_enforced_on_gateway - error while updating moved rules refs: {remove_result['errors']!s}"
                 )
                 raise FwoApiWriteError(f"failed to remove rule enforced on gateway refs: {remove_result['errors']!s}")
-            removed_refs = int(remove_result["data"]["update_rule_enforced_on_gateway"]["affected_rows"])
+            removed_refs = int(remove_result["data"]["update_firewall_rule_enforced_on_gateway"]["affected_rows"])
         if refs_to_add:
             add_mutation = FwoApi.get_graphql_code(
                 [fwo_const.GRAPHQL_QUERY_PATH + "rule/insertRuleEnforcedOnGateway.graphql"]
@@ -1103,18 +1234,18 @@ class FwConfigImportRule:
                 raise FwoApiWriteError(f"failed to add rule enforced on gateway refs: {traceback.format_exc()!s}")
             if "errors" in add_result:
                 FWOLogger.exception(
-                    f"fwo_api:update_rule_enforced_on_gateway - error while adding moved rules refs: {add_result['errors']!s}"
+                    f"fwo_api:update_firewall_rule_enforced_on_gateway - error while adding moved rules refs: {add_result['errors']!s}"
                 )
                 raise FwoApiWriteError(f"failed to add rule enforced on gateway refs: {add_result['errors']!s}")
-            added_refs = int(add_result["data"]["insert_rule_enforced_on_gateway"]["affected_rows"])
+            added_refs = int(add_result["data"]["insert_firewall_rule_enforced_on_gateway"]["affected_rows"])
 
         return added_refs, removed_refs
 
     def prepare_rule_for_import(self, rule: RuleNormalized, rulebase_uid: str) -> Rule:
         rulebase_id = self.uid2id_mapper.get_rulebase_id(rulebase_uid)
+        xlate_rule_id = self.uid2id_mapper.get_rule_id(rule.xlate_rule_uid) if rule.xlate_rule_uid else None
         return Rule(
             mgm_id=self.import_details.state.mgm_details.current_mgm_id,
-            rule_num=rule.rule_num,
             rule_disabled=rule.rule_disabled,
             rule_src_neg=rule.rule_src_neg,
             rule_src=rule.rule_src,
@@ -1133,55 +1264,93 @@ class FwConfigImportRule:
             rule_custom_fields=rule.rule_custom_fields,
             rule_implied=rule.rule_implied,
             rule_comment=rule.rule_comment,
-            rule_from_zone=None,  # TODO: to be removed or changed to string of joined zone names
-            rule_to_zone=None,  # TODO: to be removed or changed to string of joined zone names
-            access_rule=True,
-            nat_rule=False,
+            rule_src_zone=rule.rule_src_zone,
+            rule_dst_zone=rule.rule_dst_zone,
+            access_rule=rule.access_rule,
+            nat_rule=rule.nat_rule,
             is_global=False,
             rulebase_id=rulebase_id,
             rule_create=self.import_details.state.import_id,
-            rule_last_seen=self.import_details.state.import_id,
             rule_num_numeric=rule.rule_num_numeric,
             action_id=self.import_details.state.lookup_action(rule.rule_action),
             track_id=self.import_details.state.lookup_track(rule.rule_track),
             rule_head_text=rule.rule_head_text,
             rule_installon=rule.rule_installon,
             last_change_admin=None,  # TODO: get id from rule.last_change_admin
+            xlate_rule=xlate_rule_id,
         )
+
+    @staticmethod
+    def collect_changed_rules_for_changelog(
+        prev_rules: dict[str, RuleNormalized],
+        curr_rules: dict[str, RuleNormalized],
+        changed_rule_uids: set[str],
+        xlate_fk_repoint_uids: set[str],
+        prev_rule_to_rulebase: dict[str, str],
+        curr_rule_to_rulebase: dict[str, str],
+    ) -> tuple[list[tuple[RuleNormalized, RuleNormalized]], set[str]]:
+        """
+        Collects the (old, new) rule pairs that need a changelog entry of type change.
+
+        Every new rule version needs a changelog entry, as the incremental rule owner mapping
+        only sees rules through the changelog. Besides the changed rules this includes the NAT
+        rules that got a new version only because their xlate_rule FK had to be repointed.
+
+        Returns:
+            tuple: The (old, new) rule pairs and the uids of the rules moved to another rulebase.
+
+        """
+        changed_rules = [
+            (prev_rules[rule_uid], curr_rules[rule_uid]) for rule_uid in changed_rule_uids | xlate_fk_repoint_uids
+        ]
+        moved_between_rulebases_uids = {
+            rule_uid
+            for rule_uid in changed_rule_uids
+            if prev_rule_to_rulebase.get(rule_uid) != curr_rule_to_rulebase.get(rule_uid)
+        }
+        return changed_rules, moved_between_rulebases_uids
 
     def write_changelog_rules(
         self,
         added_rules: list[RuleNormalized],
         removed_rules: list[RuleNormalized],
         changed_rules: list[tuple[RuleNormalized, RuleNormalized]],
-    ) -> None:
+        moved_between_rulebases_uids: set[str] | None = None,
+    ) -> int:
         """
         Writes changelog entries for added, removed, and changed rules.
 
         Args:
-            new_rules (list[RuleNormalized]): List of newly added rules.
+            added_rules (list[RuleNormalized]): List of newly added rules.
             removed_rules (list[RuleNormalized]): List of removed rules.
             changed_rules (list[tuple[RuleNormalized, RuleNormalized]]): List of tuples containing old and new versions of changed rules.
+            moved_between_rulebases_uids (set[str] | None): Uids of changed rules moved to another rulebase.
+                Such a move is always security-relevant, even if the rule itself is unchanged.
+
+        Returns:
+            int: The number of changed rules whose change is security-relevant.
+
+        Raises:
+            FwoImporterError: If the changelog entries could not be written. Without them the new
+                rule versions would be invisible to the incremental rule owner mapping.
 
         """
+        moved_uids = moved_between_rulebases_uids or set()
         added_rules_ids = [
             self.uid2id_mapper.get_rule_id(rule.rule_uid) for rule in added_rules if rule.rule_uid is not None
         ]
         removed_rules_ids = [
             self.uid2id_mapper.get_rule_id(rule.rule_uid) for rule in removed_rules if rule.rule_uid is not None
         ]
-        changed_rules_ids: list[tuple[int, int]] = []  # (new_rule_id, old_rule_id)
+        changed_rules_ids: list[tuple[int, int, bool]] = []  # (new_rule_id, old_rule_id, security_relevant)
         for old_rule, new_rule in changed_rules:
-            if (
-                new_rule.rule_uid is not None
-                and old_rule.rule_uid is not None
-                and self.is_change_security_relevant(old_rule, new_rule)
-            ):
+            if new_rule.rule_uid is not None and old_rule.rule_uid is not None:
                 rule_uid = new_rule.rule_uid
                 changed_rules_ids.append(
                     (
                         self.uid2id_mapper.get_rule_id(rule_uid),
                         self.uid2id_mapper.get_rule_id(rule_uid, before_update=True),
+                        rule_uid in moved_uids or self.is_change_security_relevant(old_rule, new_rule),
                     )
                 )
 
@@ -1202,23 +1371,24 @@ class FwConfigImportRule:
                     query_variables=query_variables,
                     analyze_payload=True,
                 )
-                if "errors" in update_changelog_rules_result:
-                    FWOLogger.exception(
-                        f"error while adding changelog entries for objects: {update_changelog_rules_result['errors']!s}"
-                    )
             except Exception:
-                FWOLogger.exception(
-                    f"fatal error while adding changelog entries for objects: {traceback.format_exc()!s}"
+                FWOLogger.exception(f"fatal error while adding changelog entries for rules: {traceback.format_exc()!s}")
+                raise FwoImporterError("failed to add changelog entries for rules") from None
+            if "errors" in update_changelog_rules_result:
+                raise FwoImporterError(
+                    f"error while adding changelog entries for rules: {update_changelog_rules_result['errors']!s}"
                 )
+
+        return sum(1 for _, _, security_relevant in changed_rules_ids if security_relevant)
 
     def prepare_changelog_rules_insert_objects(
         self,
         added_rules_ids: list[int],
         removed_rules_ids: list[int],
-        changed_rules_ids: list[tuple[int, int]],
+        changed_rules_ids: list[tuple[int, int, bool]],
     ) -> list[dict[str, Any]]:
         """
-        Creates two lists of insert arguments for the changelog_rules db table, one for new rules, one for deleted.
+        Creates a list of insert arguments for the changelog_rules db table, covering added, removed and changed rules.
         """
         change_logger = ChangeLogger()
         changelog_rule_insert_objects: list[dict[str, Any]] = []
@@ -1265,8 +1435,9 @@ class FwConfigImportRule:
                     import_time,
                     new_rule_id,
                     old_rule_id,
+                    security_relevant,
                 )
-                for new_rule_id, old_rule_id in changed_rules_ids
+                for new_rule_id, old_rule_id, security_relevant in changed_rules_ids
             ]
         )
 
@@ -1275,13 +1446,11 @@ class FwConfigImportRule:
     def is_change_security_relevant(self, old_rule: RuleNormalized, new_rule: RuleNormalized) -> bool:
         """
         Checks if a change between an old and a new version of a rule is security-relevant,
-        meaning it should be included in the changelog and change reports.
+        meaning it should be included in the change reports. Non-security-relevant changes are
+        still written to the changelog, but flagged with security_relevant=False.
         """
         exclude = {
             "last_hit",
-            "rule_num",
-            "rule_src_zone",
-            "rule_dst_zone",
             "rule_name",
             "rule_comment",
             "rule_custom_fields",

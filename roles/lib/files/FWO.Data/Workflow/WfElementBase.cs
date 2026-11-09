@@ -11,7 +11,8 @@ namespace FWO.Data.Workflow
         service,
         rule,
         modelled_source,
-        modelled_destination
+        modelled_destination,
+        time
     }
 
     public class WfElementBase
@@ -37,6 +38,18 @@ namespace FWO.Data.Workflow
         [JsonProperty("service_id"), JsonPropertyName("service_id")]
         public long? ServiceId { get; set; }
 
+        [JsonProperty("flow_nwobj_id"), JsonPropertyName("flow_nwobj_id")]
+        public long? FlowNetworkObjectId { get; set; }
+
+        [JsonProperty("flow_nwgrp_id"), JsonPropertyName("flow_nwgrp_id")]
+        public long? FlowNetworkGroupId { get; set; }
+
+        [JsonProperty("flow_svcobj_id"), JsonPropertyName("flow_svcobj_id")]
+        public long? FlowServiceObjectId { get; set; }
+
+        [JsonProperty("flow_svcgrp_id"), JsonPropertyName("flow_svcgrp_id")]
+        public long? FlowServiceGroupId { get; set; }
+
         [JsonProperty("field"), JsonPropertyName("field")]
         public string Field { get; set; } = ElemFieldType.source.ToString();
 
@@ -55,6 +68,18 @@ namespace FWO.Data.Workflow
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 
+        [JsonProperty("start_time"), JsonPropertyName("start_time")]
+        public DateTime? StartTime { get; set; }
+
+        [JsonProperty("end_time"), JsonPropertyName("end_time")]
+        public DateTime? EndTime { get; set; }
+
+        [JsonProperty("time_obj_id"), JsonPropertyName("time_obj_id")]
+        public long? TimeObjId { get; set; }
+
+        [JsonProperty("flow_timeobj_id"), JsonPropertyName("flow_timeobj_id")]
+        public long? FlowTimeObjectId { get; set; }
+
 
         public WfElementBase()
         { }
@@ -68,12 +93,20 @@ namespace FWO.Data.Workflow
             ProtoId = element.ProtoId;
             NetworkId = element.NetworkId;
             ServiceId = element.ServiceId;
+            FlowNetworkObjectId = element.FlowNetworkObjectId;
+            FlowNetworkGroupId = element.FlowNetworkGroupId;
+            FlowServiceObjectId = element.FlowServiceObjectId;
+            FlowServiceGroupId = element.FlowServiceGroupId;
             Field = element.Field;
             UserId = element.UserId;
             OriginalNatId = element.OriginalNatId;
             RuleUid = element.RuleUid;
             GroupName = element.GroupName;
             Name = element.Name;
+            StartTime = element.StartTime;
+            EndTime = element.EndTime;
+            TimeObjId = element.TimeObjId;
+            FlowTimeObjectId = element.FlowTimeObjectId;
         }
 
         public static NetworkObject ToNetworkObject(WfElementBase elem)

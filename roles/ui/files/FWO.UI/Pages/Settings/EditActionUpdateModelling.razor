@@ -1,0 +1,89 @@
+@using System.Text.Json
+
+@inject UserConfig userConfig
+
+<div class="col-sm-4">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5529"))">
+        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("modIntegrationStates")):</label>
+        <div class="col-sm-8">
+            <Dropdown ElementType="string"
+                      SelectedElement="selectedModIntegrationState"
+                      SelectedElementChanged="OnIntegrationStateChanged"
+                      ElementToString="@(state => state)"
+                      Elements="AvailableModIntegrationStateNames"
+                      Nullable="true"
+                      NoneSelectedText="@(userConfig.GetText("none"))">
+                <ElementTemplate Context="state">
+                    @state
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+</div>
+<div class="col-sm-4">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5534"))">
+        <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmUpdateModelling">@(userConfig.GetText("confirm_modelling_update")):</label>
+        <div class="col-sm-2">
+            <input id="confirmUpdateModelling" class="form-check-input mt-2" type="checkbox" checked="@actConfirmUpdateModelling" @onchange="OnConfirmChanged" />
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public WfStateAction ActAction { get; set; } = new();
+
+    [Parameter]
+    public List<string> AvailableModIntegrationStateNames { get; set; } = [];
+
+    private string? selectedModIntegrationState;
+    private bool actConfirmUpdateModelling;
+
+    protected override void OnParametersSet()
+    {
+        ResetLocalState();
+        LoadFromExternalParams();
+        UpdateExternalParams();
+    }
+
+    private void ResetLocalState()
+    {
+        selectedModIntegrationState = null;
+        actConfirmUpdateModelling = false;
+    }
+
+    private void LoadFromExternalParams()
+    {
+        if (string.IsNullOrWhiteSpace(ActAction.ExternalParams))
+        {
+            return;
+        }
+
+        UpdateModellingActionParams updateModellingParams = UpdateModellingActionParams.FromExternalParams(ActAction.ExternalParams);
+        selectedModIntegrationState = AvailableModIntegrationStateNames.Contains(updateModellingParams.ModellingState) ? updateModellingParams.ModellingState : null;
+        actConfirmUpdateModelling = updateModellingParams.ConfirmUiMessage;
+    }
+
+    private Task OnIntegrationStateChanged(string? integrationState)
+    {
+        selectedModIntegrationState = integrationState;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnConfirmChanged(ChangeEventArgs changeEventArgs)
+    {
+        actConfirmUpdateModelling = bool.TryParse(changeEventArgs.Value?.ToString(), out bool parsedValue) && parsedValue;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private void UpdateExternalParams()
+    {
+        ActAction.ExternalParams = JsonSerializer.Serialize(new
+        {
+            modelling_state = selectedModIntegrationState ?? "",
+            confirm_ui_message = actConfirmUpdateModelling
+        });
+    }
+}

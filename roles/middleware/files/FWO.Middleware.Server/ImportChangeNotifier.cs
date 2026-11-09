@@ -1,26 +1,22 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
-using FWO.Basics.Exceptions;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Config.Api;
 using FWO.Logging;
-using FWO.Mail;
-using FWO.Encryption;
 using FWO.Report;
 using FWO.Services;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace FWO.Middleware.Server
 {
     /// <summary>
     /// Class handling the Import Change Notification
     /// </summary>
-    public class ImportChangeNotifier
+    public class ImportChangeNotifier : IDisposable
     {
         /// <summary>
         /// Api Connection
@@ -36,23 +32,41 @@ namespace FWO.Middleware.Server
 
         private struct ImportToNotify
         {
+            /// <summary>
+            /// Gets the ControlId value.
+            /// </summary>
             [JsonProperty("control_id"), JsonPropertyName("control_id")]
             public long ControlId { get; set; }
 
+            /// <summary>
+            /// Gets the MgmtId value.
+            /// </summary>
             [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
             public int MgmtId { get; set; }
 
+            /// <summary>
+            /// Gets the Mgmt value.
+            /// </summary>
             [JsonProperty("management"), JsonPropertyName("management")]
             public ImportManagement Mgmt { get; set; }
 
+            /// <summary>
+            /// Gets the StopTime value.
+            /// </summary>
             [JsonProperty("stop_time"), JsonPropertyName("stop_time")]
             public DateTime StopTime { get; set; }
 
+            /// <summary>
+            /// Gets the RelevantChanges value.
+            /// </summary>
             [JsonProperty("security_relevant_changes_counter"), JsonPropertyName("security_relevant_changes_counter")]
             public int RelevantChanges { get; set; }
         };
         private struct ImportManagement
         {
+            /// <summary>
+            /// Gets the MgmtName value.
+            /// </summary>
             [JsonProperty("mgm_name"), JsonPropertyName("mgm_name")]
             public string MgmtName { get; set; }
         }
@@ -63,6 +77,7 @@ namespace FWO.Middleware.Server
         private readonly DeviceFilter deviceFilter = new();
         private List<int> importedManagements = [];
         private readonly UserConfig userConfig;
+        private bool disposed = false;
         private const string LogMessageTitle = "Import Change Notifier";
 
 
@@ -73,35 +88,73 @@ namespace FWO.Middleware.Server
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
-            userConfig = new(globalConfig);
+            userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases resources used by the notifier.
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+                    userConfig.Dispose();
+                }
+                disposed = true;
+            }
         }
 
         /// <summary>
         /// Run the Import Change Notifier
         /// </summary>
-        public async Task Run()
+        /// <param name="cancellationToken">Stops before the first notification is sent; imports then remain unnotified.</param>
+        public async Task Run(CancellationToken cancellationToken = default)
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (WorkInProgress)
+            {
+                return;
+            }
+            WorkInProgress = true;
             try
             {
-                if (!WorkInProgress)
+                cancellationToken.ThrowIfCancellationRequested();
+                if (await NewImportFound())
                 {
-                    WorkInProgress = true;
-                    if (await NewImportFound())
+                    cancellationToken.ThrowIfCancellationRequested();
+                    NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.ImportChange, globalConfig, apiConnection);
+                    if (notificationService.Notifications.Count == 0)
                     {
-                        if (globalConfig.ImpChangeNotifyType != (int)NotificationLayout.SimpleText)
-                        {
-                            await GenerateChangeReport();
-                        }
-                        await SendEmail();
-                        await SetImportsNotified();
+                        Log.WriteInfo(LogMessageTitle, "No notification configured for import changes. Imports remain unnotified.");
+                        return;
                     }
-                    WorkInProgress = false;
+
+                    if (notificationService.Notifications.Any(notification => notification.Layout != NotificationLayout.SimpleText))
+                    {
+                        await GenerateChangeReport(cancellationToken);
+                    }
+                    // last checkpoint: once the first notification is sent, all of them are sent and the imports marked as notified
+                    cancellationToken.ThrowIfCancellationRequested();
+                    foreach (FwoNotification notification in notificationService.Notifications)
+                    {
+                        await notificationService.SendNotification(notification, null, CreateBody(), changeReport);
+                    }
+                    await notificationService.UpdateNotificationsLastSent();
+                    await SetImportsNotified();
                 }
             }
-            catch (Exception)
+            finally
             {
                 WorkInProgress = false;
-                throw;
             }
         }
 
@@ -113,7 +166,7 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotify);
+                importsToNotify = await apiConnection.SendQueryAsync<List<ImportToNotify>>(ReportQueries.getImportsToNotifyForRuleChanges);
             }
 
             importedManagements = [];
@@ -121,14 +174,19 @@ namespace FWO.Middleware.Server
             {
                 importedManagements.Add(impMgt);
             }
+
             return importsToNotify.Count > 0;
         }
 
-        private async Task GenerateChangeReport()
+        private async Task GenerateChangeReport(CancellationToken cancellationToken)
         {
             try
             {
-                changeReport = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", await SetFilters()), apiConnection, userConfig, DefaultInit.DoNothing);
+                changeReport = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", await SetFilters()), apiConnection, userConfig, DefaultInit.DoNothing, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exception)
             {
@@ -138,11 +196,29 @@ namespace FWO.Middleware.Server
 
         private async Task<ReportParams> SetFilters()
         {
-            deviceFilter.Managements = [.. (await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement)).Where(x => importedManagements.Contains(x.Id))];
+            deviceFilter.Managements = [];
+            var result = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagementOrSuperMgm);
+            List<ManagementSelect> selectedManagements = [];
+
+            foreach (ManagementSelect management in result.Where(m => importedManagements.Contains(m.Id)))
+            {
+                if (management.IsSuperManager)
+                {
+                    selectedManagements.AddRange(management.subManagers);
+                }
+                else
+                {
+                    selectedManagements.Add(management);
+                }
+            }
+
+            deviceFilter.Managements = [.. selectedManagements.DistinctBy(m => m.Id)];
+
             deviceFilter.ApplyFullDeviceSelection(true);
 
             return new((int)ReportType.Changes, deviceFilter)
             {
+                IncludeObjects = userConfig.GlobalConfig!.ImpChangeIncludeObjectChanges,
                 TimeFilter = new()
                 {
                     TimeRangeType = TimeRangeType.Fixeddates,
@@ -152,63 +228,9 @@ namespace FWO.Middleware.Server
             };
         }
 
-        private async Task SendEmail()
-        {
-            string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, LogMessageTitle, "Could not decrypt mailserver password.");
-            EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
-                globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
-
-            MailData? mail = await PrepareEmail();
-
-            await MailKitMailer.SendAsync(mail, emailConnection,
-                globalConfig.ImpChangeNotifyType == (int)NotificationLayout.HtmlInBody, new());
-        }
-
-        private async Task<MailData> PrepareEmail()
-        {
-            string subject = globalConfig.ImpChangeNotifySubject;
-            string body = CreateBody();
-            FormFile? attachment = null;
-            if (changeReport != null)
-            {
-                switch (globalConfig.ImpChangeNotifyType)
-                {
-                    case (int)NotificationLayout.HtmlInBody:
-                        body += changeReport.ExportToHtml();
-                        break;
-                    case (int)NotificationLayout.PdfAsAttachment:
-                        string html = changeReport.ExportToHtml();
-                        string? pdfData = await changeReport.ToPdf(html);
-
-                        if (string.IsNullOrWhiteSpace(pdfData))
-                            throw new ProcessingFailedException("No Pdf generated.");
-
-                        attachment = CreateAttachment(pdfData, GlobalConst.kPdf);
-                        break;
-                    case (int)NotificationLayout.HtmlAsAttachment:
-                        attachment = CreateAttachment(changeReport.ExportToHtml(), GlobalConst.kHtml);
-                        break;
-                    case (int)NotificationLayout.CsvAsAttachment:
-                        attachment = CreateAttachment(changeReport.ExportToCsv(), GlobalConst.kCsv);
-                        break;
-                    case (int)NotificationLayout.JsonAsAttachment:
-                        attachment = CreateAttachment(changeReport.ExportToJson(), GlobalConst.kJson);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            MailData mailData = new(CollectRecipients(), subject) { Body = body };
-            if (attachment != null)
-            {
-                mailData.Attachments = new FormFileCollection() { attachment };
-            }
-            return mailData;
-        }
-
         private string CreateBody()
         {
-            StringBuilder body = new(globalConfig.ImpChangeNotifyBody);
+            StringBuilder body = new();
             foreach (var mgmtId in importedManagements)
             {
                 int mgmtCounter = 0;
@@ -216,49 +238,14 @@ namespace FWO.Middleware.Server
                 {
                     mgmtCounter += imp.RelevantChanges;
                 }
-                body.Append(globalConfig.ImpChangeNotifyType == (int)NotificationLayout.HtmlInBody ? "<br>" : "\r\n\r\n");
+                if (body.Length > 0)
+                {
+                    body.AppendLine();
+                    body.AppendLine();
+                }
                 body.Append($"{importsToNotify.FirstOrDefault(x => x.MgmtId == mgmtId).Mgmt.MgmtName} (id={mgmtId}): {mgmtCounter} {userConfig.GetText("changes")}");
             }
             return body.ToString();
-        }
-
-        private FormFile? CreateAttachment(string? content, string fileFormat)
-        {
-            if (content != null)
-            {
-                string fileName = $"{Regex.Replace(globalConfig.ImpChangeNotifySubject, @"\s", "")}_{DateTime.Now.ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssK")}.{fileFormat}";
-
-                MemoryStream memoryStream;
-                string contentType;
-
-                if (fileFormat == GlobalConst.kPdf)
-                {
-                    memoryStream = new(Convert.FromBase64String(content));
-                    contentType = "application/octet-stream";
-                }
-                else
-                {
-                    memoryStream = new(System.Text.Encoding.UTF8.GetBytes(content));
-                    contentType = $"application/{fileFormat}";
-                }
-
-                return new(memoryStream, 0, memoryStream.Length, "FWO-Report-Attachment", fileName)
-                {
-                    Headers = new HeaderDictionary(),
-                    ContentType = contentType
-                };
-            }
-            return null;
-        }
-
-        private List<string> CollectRecipients()
-        {
-            if (globalConfig.UseDummyEmailAddress)
-            {
-                return [globalConfig.DummyEmailAddress];
-            }
-            string[] separatingStrings = [",", ";", "|"];
-            return globalConfig.ImpChangeNotifyRecipients.Split(separatingStrings, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
         }
 
         private async Task SetImportsNotified()

@@ -7,10 +7,9 @@ using System.Reflection;
 namespace FWO.Test
 {
     [TestFixture]
-    [Parallelizable]
     public class LockTest
     {
-        private string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";
+        private string lockFilePath = Log.LockFilePath;
         private static Random random = new Random();
 
         [SetUp]

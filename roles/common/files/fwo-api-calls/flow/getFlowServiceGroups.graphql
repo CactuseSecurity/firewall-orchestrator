@@ -1,0 +1,5 @@
+query getFlowServiceGroups($where: flow_svcgroup_bool_exp = {}, $limit: Int, $offset: Int) {
+  svcgroups: flow_svcgroup(where: $where, limit: $limit, offset: $offset, order_by: [{ name: asc }, { svcgrp_id: asc }]) {
+    ...flowSvcGroupWithMembersFragment
+  }
+}

@@ -1,0 +1,849 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Compliance;
+using FWO.Config.Api;
+using FWO.Config.File;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Data.Workflow;
+using FWO.Logging;
+using FWO.Middleware.Server.Services;
+using FWO.Services;
+using FWO.Services.Workflow;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+
+namespace FWO.Middleware.Server.Controllers
+{
+    /// <summary>
+    /// Controller class for workflow actions.
+    /// </summary>
+    [Authorize]
+    [ApiController]
+    [Route("api/[controller]")]
+    public class WorkflowController : ControllerBase
+    {
+        private readonly GlobalConfig globalConfig;
+        private readonly List<Ldap> ldaps;
+        private readonly JwtWriter jwtWriter;
+        private readonly TokenLifetimeProvider tokenLifetimeProvider;
+        private static readonly KeyedAsyncLock<long> TicketActionLocks = new();
+        private static readonly WorkflowEmailBundleStore EmailBundleStore = new();
+        private static readonly List<string> kNoGroups = [];
+        private const string kStateChangeRefusalTitleKey = "actions";
+        private const string kStateChangeRefusalMessageKey = "E8018";
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public WorkflowController(GlobalConfig globalConfig, List<Ldap> ldaps, JwtWriter jwtWriter, TokenLifetimeProvider tokenLifetimeProvider)
+        {
+            this.globalConfig = globalConfig;
+            this.ldaps = ldaps;
+            this.jwtWriter = jwtWriter;
+            this.tokenLifetimeProvider = tokenLifetimeProvider;
+        }
+
+        /// <summary>
+        /// Execute workflow actions in middleware-server context.
+        /// </summary>
+        /// <param name="parameters">Workflow action parameters</param>
+        /// <returns>true if the workflow action execution was handled</returns>
+        [HttpPost("Actions")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}")]
+        public async Task<WorkflowActionResult> ExecuteActions([FromBody] WorkflowActionParameters parameters)
+        {
+            WorkflowActionResult result = new();
+            try
+            {
+                LogActionRequest(parameters);
+                if (!TryParseScope(parameters, result, out WfObjectScopes scope))
+                {
+                    return result;
+                }
+
+                if (!TryParsePhase(parameters, result, out WorkflowPhases phase))
+                {
+                    return result;
+                }
+
+                if (!CallerCanExecutePhase(User, parameters.ExecutionMode, phase))
+                {
+                    SetWarning(result, $"User is not authorized to execute workflow actions in phase '{phase}'.");
+                    return result;
+                }
+
+                if (!TryRestrictNotificationPlaceholders(parameters, result))
+                {
+                    return result;
+                }
+
+                long lockTicketId = GetTicketId(parameters, scope);
+                if (lockTicketId <= 0)
+                {
+                    SetWarning(result, $"Invalid ticket id {lockTicketId}.");
+                    return result;
+                }
+                return await ExecuteActionsWithTicketLock(parameters, scope, phase, lockTicketId, result);
+            }
+            catch (OperationCanceledException) when (HttpContext?.RequestAborted.IsCancellationRequested == true)
+            {
+                // the client went away (e.g. closed the page) while waiting for the ticket lock: nothing failed here
+                Log.WriteDebug("Workflow Actions", "Workflow action request was cancelled by the client.");
+                result.ErrorMessage = "The request was cancelled.";
+                return result;
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Workflow Actions", "Could not execute workflow actions in middleware.", exc);
+                result.ErrorMessage = exc.Message;
+                return result;
+            }
+        }
+
+        private static void LogActionRequest(WorkflowActionParameters parameters)
+        {
+            Log.WriteDebug("Workflow Actions", $"Received action execution request. Scope: {parameters.Scope}, ActionId: {parameters.ActionId}, ObjectId: {parameters.ObjectId}, TicketId: {parameters.TicketId}, State: {parameters.OldStateId}->{parameters.NewStateId}, Phase: {parameters.Phase}.");
+        }
+
+        /// <summary>
+        /// Replaces the caller's notification placeholder values by what the caller may decide: the user name comes from
+        /// the token, links have to lead into the FWO UI, reason and requester come from the workflow object.
+        /// </summary>
+        /// <returns>False when the values were rejected; the warning is set in the result.</returns>
+        private bool TryRestrictNotificationPlaceholders(WorkflowActionParameters parameters, WorkflowActionResult result)
+        {
+            string callerName = User.FindFirstValue("unique_name") ?? "";
+            parameters.NotificationPlaceholders = NotificationPlaceholderResolver.RestrictCallerPlaceholderData(
+                parameters.NotificationPlaceholders, callerName, globalConfig.UiHostName, out string? error);
+            if (error == null)
+            {
+                return true;
+            }
+
+            SetWarning(result, error);
+            return false;
+        }
+
+        private static bool TryParseScope(WorkflowActionParameters parameters, WorkflowActionResult result, out WfObjectScopes scope)
+        {
+            if (Enum.TryParse(parameters.Scope, out scope) && scope != WfObjectScopes.None)
+            {
+                return true;
+            }
+
+            SetWarning(result, $"Invalid scope '{parameters.Scope}'.");
+            return false;
+        }
+
+        private static bool TryParsePhase(WorkflowActionParameters parameters, WorkflowActionResult result, out WorkflowPhases phase)
+        {
+            if (Enum.TryParse(parameters.Phase, out phase))
+            {
+                return true;
+            }
+
+            SetWarning(result, $"Invalid workflow phase '{parameters.Phase}'.");
+            return false;
+        }
+
+        private static bool CallerCanExecutePhase(ClaimsPrincipal user, string executionMode, WorkflowPhases phase)
+        {
+            if (CallerCanUseRole(user, executionMode, Roles.Admin))
+            {
+                return true;
+            }
+
+            return phase switch
+            {
+                WorkflowPhases.request => CallerCanUseRole(user, executionMode, Roles.Requester),
+                WorkflowPhases.approval => CallerCanUseRole(user, executionMode, Roles.Approver),
+                WorkflowPhases.planning => CallerCanUseRole(user, executionMode, Roles.Planner),
+                WorkflowPhases.implementation => CallerCanUseRole(user, executionMode, Roles.Implementer),
+                WorkflowPhases.review => CallerCanUseRole(user, executionMode, Roles.Reviewer),
+                _ => false
+            };
+        }
+
+        private async Task<WorkflowActionResult> ExecuteActionsWithTicketLock(WorkflowActionParameters parameters, WfObjectScopes scope,
+            WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
+        {
+            string caller = User.FindFirstValue("x-hasura-uuid") ?? "";
+            using IDisposable? ticketActionLock = await TicketActionLocks.TryAcquireAsync(lockTicketId, caller,
+                HttpContext?.RequestAborted ?? CancellationToken.None);
+            if (ticketActionLock == null)
+            {
+                SetWarning(result, $"Too many concurrent workflow action requests. Ticket {lockTicketId} was not processed, please retry.");
+                return result;
+            }
+            return await ExecuteActionsWithApi(parameters, scope, phase, lockTicketId, result);
+        }
+
+        private async Task<WorkflowActionResult> ExecuteActionsWithApi(WorkflowActionParameters parameters, WfObjectScopes scope,
+            WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
+        {
+            using ApiConnection actionApiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url."),
+                jwtWriter.CreateJWTMiddlewareServer(tokenLifetimeProvider.GetInternalServiceTokenLifetime()));
+            return await actionApiConnection.RunWithRole(Roles.MiddlewareServer,
+                async () => await ExecuteActionsInMiddlewareContext(actionApiConnection, parameters, scope, phase, lockTicketId, result));
+        }
+
+        private async Task<WorkflowActionResult> ExecuteActionsInMiddlewareContext(ApiConnection actionApiConnection, WorkflowActionParameters parameters,
+            WfObjectScopes scope, WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
+        {
+            // the injected config is loaded once at startup, the actions have to follow later customizing changes
+            using GlobalConfig currentGlobalConfig = await globalConfig.WithCurrentConfigItemsAsync(actionApiConnection);
+            using UserConfig userConfig = UserConfig.ForGlobalSettings(currentGlobalConfig, actionApiConnection, currentGlobalConfig.DefaultLanguage);
+            WfHandler wfHandler = CreateWorkflowHandler(actionApiConnection, userConfig, phase, result);
+            ApplyCallerIdentity(User, userConfig, wfHandler);
+            wfHandler.userConfig.User.WorkflowVisibilityGroupIds = GetClaimIds(User, "x-hasura-workflow-visibility-groups").ToList();
+            if (!await InitWorkflowHandler(wfHandler, result))
+            {
+                return result;
+            }
+            WfTicket? ticket = await ResolveWorkflowTicket(wfHandler, lockTicketId, result);
+            if (ticket == null)
+            {
+                return result;
+            }
+
+            if (!CallerCanAccessTicket(User, parameters.ExecutionMode, userConfig, ticket))
+            {
+                SetWarning(result, $"User is not authorized to execute workflow actions for ticket {ticket.Id}.");
+                return result;
+            }
+
+            await ReportExpiredEmailBundles(actionApiConnection, userConfig);
+
+            if (parameters.EmailBundleFlushOnly)
+            {
+                return await FlushEmailBundleOnly(wfHandler, parameters, lockTicketId, result);
+            }
+
+            (WfStatefulObject? statefulObject, FwoOwner? owner, long? actionTicketId, string? userGrpDn) = ResolveActionContext(wfHandler, ticket, parameters, scope);
+            if (statefulObject == null)
+            {
+                SetWarning(result, $"Stateful object could not be resolved. Scope: {scope}, ObjectId: {parameters.ObjectId}, TicketId: {ticket.Id}.");
+                return result;
+            }
+
+            if (!await CallerCanAccessVisibility(User, actionApiConnection, wfHandler, scope, statefulObject))
+            {
+                SetWarning(result, $"User is not authorized to access workflow visibility for scope '{scope}' and state {statefulObject.StateId}.");
+                return result;
+            }
+
+            if (!ValidateExecutionRequest(wfHandler, parameters, scope, phase, statefulObject, result))
+            {
+                return result;
+            }
+
+            if (!await TryClaimStateChangeExecution(actionApiConnection, userConfig, parameters, scope, ticket, result))
+            {
+                return result;
+            }
+
+            // The bundle is neither flushed nor removed here: the dedicated flush-only request is the
+            // single flush entry point and removes the bundle itself. Removing it on an action request
+            // would discard captured emails whenever the action fails.
+            wfHandler.ActionHandler!.EmailBundleCollector = GetEmailBundleCollector(parameters, lockTicketId);
+            result.Success = await ExecuteResolvedAction(wfHandler, parameters, scope, statefulObject, owner, actionTicketId, userGrpDn);
+            if (result.Success)
+            {
+                await ContinueAfterInternalWorkIfNeeded(actionApiConnection, userConfig, ticket, parameters, scope, statefulObject, result);
+            }
+            return result;
+        }
+
+        private async Task<WorkflowActionResult> FlushEmailBundleOnly(WfHandler wfHandler, WorkflowActionParameters parameters,
+            long lockTicketId, WorkflowActionResult result)
+        {
+            WorkflowEmailBundleCollector? emailBundleCollector = GetEmailBundleCollector(parameters, lockTicketId, false);
+            if (emailBundleCollector == null)
+            {
+                // An action request carrying this bundle id creates the collector, so by the time a flush
+                // arrives one normally exists - empty when no bundled email action ran, which is the
+                // ordinary case. Absence therefore means the collector never got that far (the action was
+                // rejected before it) or it is gone: swept, or lost with a middleware restart, and in the
+                // restart case nothing in this process can account for what it held. That is worth a
+                // warning rather than a debug note, but not a user facing error on an ordinary promote.
+                Log.WriteWarning("Workflow Actions", $"No email bundle found to flush for ticket {lockTicketId}, bundle {parameters.EmailBundleId}. " +
+                    "Either no bundled email action reached the collector, or the bundle was discarded before it could be sent.");
+                result.Success = true;
+                return result;
+            }
+
+            wfHandler.ActionHandler!.EmailBundleCollector = emailBundleCollector;
+            try
+            {
+                await wfHandler.ActionHandler.FlushEmailBundleCollector();
+                result.Success = true;
+            }
+            finally
+            {
+                EmailBundleStore.Remove(lockTicketId, parameters.EmailBundleId);
+            }
+            return result;
+        }
+
+        private WorkflowEmailBundleCollector? GetEmailBundleCollector(WorkflowActionParameters parameters, long lockTicketId, bool createWhenMissing = true)
+        {
+            if (!Guid.TryParseExact(parameters.EmailBundleId, "N", out _))
+            {
+                return null;
+            }
+
+            string callerDn = User.FindFirstValue("x-hasura-uuid") ?? "";
+            return createWhenMissing
+                ? EmailBundleStore.GetOrCreate(lockTicketId, parameters.EmailBundleId, callerDn)
+                : EmailBundleStore.Get(lockTicketId, parameters.EmailBundleId, callerDn);
+        }
+
+        private static async Task ReportExpiredEmailBundles(ApiConnection actionApiConnection, UserConfig userConfig)
+        {
+            WorkflowEmailBundleSweepResult sweepResult = EmailBundleStore.Sweep();
+            if (!sweepResult.LostEmails)
+            {
+                return;
+            }
+
+            string description = $"{sweepResult.DiscardedItems} bundled workflow email(s) in {sweepResult.DiscardedBundles} " +
+                $"abandoned bundle(s) expired before they were sent.";
+            Log.WriteError("Workflow Actions", description);
+            await AlertHelper.SetAlert(actionApiConnection, userConfig.GetText("send_email"), description,
+                GlobalConst.kWorkflow, AlertCode.WorkflowAlert, new AlertHelper.AdditionalAlertData());
+        }
+
+        private static async Task ContinueAfterInternalWorkIfNeeded(ApiConnection actionApiConnection, UserConfig userConfig,
+            WfTicket ticket, WorkflowActionParameters parameters, WfObjectScopes scope, WfStatefulObject statefulObject, WorkflowActionResult result)
+        {
+            long reqTaskId = scope switch
+            {
+                WfObjectScopes.RequestTask => parameters.ObjectId,
+                WfObjectScopes.ImplementationTask when statefulObject is WfImplTask implTask => implTask.ReqTaskId,
+                _ => 0
+            };
+
+            if (reqTaskId <= 0)
+            {
+                return;
+            }
+
+            WfReqTask? affectedReqTask = ResolveAffectedReqTask(ticket, scope, statefulObject, reqTaskId);
+            if (!IsInternalWorkTask(affectedReqTask))
+            {
+                return;
+            }
+
+            try
+            {
+                using ExternalRequestHandler extRequestHandler = new(userConfig, actionApiConnection);
+                await extRequestHandler.ContinueAfterInternalWorkCompletion(parameters.TicketId, reqTaskId);
+            }
+            catch (Exception exception)
+            {
+                result.Success = false;
+                result.ErrorMessage = $"Could not continue external request chain after internal work. {exception.Message}";
+                AddWorkflowMessage(result, exception, "Internal Work", "Could not continue external request chain after internal work.", true);
+            }
+        }
+
+        private static WfReqTask? ResolveAffectedReqTask(WfTicket ticket, WfObjectScopes scope, WfStatefulObject statefulObject, long reqTaskId)
+        {
+            return scope switch
+            {
+                WfObjectScopes.RequestTask => statefulObject as WfReqTask
+                    ?? ticket.Tasks.FirstOrDefault(task => task.Id == reqTaskId),
+
+                WfObjectScopes.ImplementationTask when statefulObject is WfImplTask implTask
+                    => ticket.Tasks.FirstOrDefault(task => task.Id == implTask.ReqTaskId),
+
+                _ => null
+            };
+        }
+
+        private static bool IsInternalWorkTask(WfReqTask? task)
+        {
+            return task?.GetAddInfoValue(AdditionalInfoKeys.FwConfigChangeTarget) == ManagementFwConfigChangeTargets.InternalWork;
+        }
+
+        private WfHandler CreateWorkflowHandler(ApiConnection actionApiConnection, UserConfig userConfig, WorkflowPhases phase, WorkflowActionResult result)
+        {
+            return new WfHandler(userConfig, actionApiConnection, phase, null, new ComplianceRequestedRulePolicyChecker(userConfig, actionApiConnection),
+                (exception, title, message, errorFlag) => AddWorkflowMessage(result, exception, title, message, errorFlag),
+                new WorkflowRecipientResolver(actionApiConnection, ldaps));
+        }
+
+        private static void AddWorkflowMessage(WorkflowActionResult result, Exception? exception, string title, string message, bool errorFlag)
+        {
+            string resultMessage = string.IsNullOrWhiteSpace(message) ? exception?.Message ?? "" : message;
+            result.Messages.Add(new() { Title = title, Message = resultMessage, ErrorFlag = errorFlag });
+            if (exception != null)
+            {
+                Log.WriteError(title, resultMessage, exception);
+            }
+        }
+
+        private static bool ValidateExecutionRequest(WfHandler wfHandler, WorkflowActionParameters parameters, WfObjectScopes scope, WorkflowPhases phase,
+            WfStatefulObject statefulObject, WorkflowActionResult result)
+        {
+            return parameters.ActionId > 0
+                ? ValidateOfferedAction(wfHandler, parameters, scope, phase, statefulObject, result)
+                : ValidatePersistedStateTransition(parameters, statefulObject, result);
+        }
+
+        private static bool ValidateOfferedAction(WfHandler wfHandler, WorkflowActionParameters parameters, WfObjectScopes scope,
+            WorkflowPhases phase, WfStatefulObject statefulObject, WorkflowActionResult result)
+        {
+            int expectedState = parameters.OldStateId > 0 ? parameters.OldStateId : parameters.NewStateId;
+            if (expectedState > 0 && statefulObject.StateId != expectedState)
+            {
+                SetWarning(result, $"Action execution rejected because the object state is {statefulObject.StateId}, not {expectedState}.");
+                return false;
+            }
+
+            bool actionOffered = wfHandler.ActionHandler?.GetOfferedActions(statefulObject, scope, phase).Any(action => action.Id == parameters.ActionId) == true;
+            if (!actionOffered)
+            {
+                SetWarning(result, $"Action {parameters.ActionId} is not offered for scope '{scope}' in phase '{phase}' and current state {statefulObject.StateId}.");
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Claims the one execution of the state-change actions belonging to a transition.
+        /// </summary>
+        /// <remarks>
+        /// SEC-06: the state of the object is persisted by the caller before its actions are
+        /// requested, so "the object stands in the requested state" stays true once the transition
+        /// happened and cannot tell a first request apart from a replay. The claim is what makes the
+        /// difference: request.state_change_execution holds the state the actions of this object last
+        /// ran for, and the mutation records the new one only when it differs, in a single statement.
+        /// A repeated request therefore executes nothing.
+        /// The claim is keyed on the new state alone. The object is checked to stand in it before the
+        /// claim is attempted, which makes it the only half of the transition the server has
+        /// established; the old state arrives in the request body and is recorded for the audit trail
+        /// only. Letting it take part in the comparison would let a replay re-arm the guard by naming
+        /// a different origin state for a transition that has already run.
+        /// Comparing the state alone holds only while the record keeps up with the object, which is
+        /// why ActionHandler.RecordStateChangeExecution writes it for every state change executed
+        /// inside the middleware - the external request chain promotes request tasks without ever
+        /// reaching this endpoint.
+        /// One path stays uncovered by decision, not by oversight: workflow monitoring persists a
+        /// state change while suppressing its actions, so nothing records it and a later legitimate
+        /// return to that state is refused. Covering it would take either a counter the ui's own role
+        /// can write - which a caller could then move to re-arm this guard and replay - or a database
+        /// trigger. Both were weighed and rejected, and the refusal is made visible instead, so the
+        /// remaining cost is that the actions have to be asked for again rather than being lost
+        /// unnoticed. Do not treat this as a defect to fix silently; it is a known limitation.
+        /// A refused claim does not fail the promote - the state change itself did happen, and
+        /// throwing would turn an accidental double submit into an error - but it is reported to the
+        /// caller as a warning rather than swallowed. The claim compares the state the object stands
+        /// in, and a state change that persisted without running its actions (workflow monitoring
+        /// does this deliberately) leaves the record naming a state the object later returns to, so a
+        /// refusal is not always a replay. Whoever asked for the promote has to be able to see that
+        /// its mail, external request and flow creation did not run, and ask for them again.
+        /// Only the persisted-transition path is claimed. A request naming an action explicitly
+        /// carries no transition to key the claim on and is validated against the actions currently
+        /// offered instead.
+        /// </remarks>
+        /// <param name="actionApiConnection">Api connection running under the middleware role.</param>
+        /// <param name="userConfig">User configuration, for the localized text of a refusal.</param>
+        /// <param name="parameters">The requested action, holding the claimed transition.</param>
+        /// <param name="scope">Scope of the stateful object.</param>
+        /// <param name="ticket">The resolved ticket, which is the stateful object of the ticket scope.</param>
+        /// <param name="result">Result of the action request, completed when the claim is refused.</param>
+        /// <returns>True when the caller may execute the actions of this transition.</returns>
+        private async Task<bool> TryClaimStateChangeExecution(ApiConnection actionApiConnection, UserConfig userConfig,
+            WorkflowActionParameters parameters, WfObjectScopes scope, WfTicket ticket, WorkflowActionResult result)
+        {
+            if (parameters.ActionId > 0)
+            {
+                return true;
+            }
+
+            // Taken from the resolved object rather than from the request: the ticket scope carries
+            // its id in TicketId or ObjectId depending on the caller, and the key must not depend on
+            // which of the two was filled in.
+            long objectId = scope == WfObjectScopes.Ticket ? ticket.Id : parameters.ObjectId;
+            var claimVariables = new
+            {
+                objectScope = scope.ToString(),
+                objectId = objectId,
+                fromStateId = parameters.OldStateId,
+                toStateId = parameters.NewStateId,
+                executedBy = User.FindFirstValue("x-hasura-uuid") ?? "",
+                executedAt = DateTime.UtcNow
+            };
+
+            ReturnId claim = await actionApiConnection.SendQueryAsync<ReturnId>(RequestQueries.claimStateChangeExecution, claimVariables);
+            if (claim.AffectedRows == 1)
+            {
+                return true;
+            }
+
+            string refusal = $"State-change actions for {scope} {objectId} were already executed for the move into state " +
+                $"{parameters.NewStateId} (request named {parameters.OldStateId}->{parameters.NewStateId}), so this request executed nothing.";
+            Log.WriteAudit("Workflow Actions", refusal);
+            Log.WriteWarning("Workflow Actions", refusal);
+            result.Success = true;
+            result.Messages.Add(new()
+            {
+                Title = userConfig.GetText(kStateChangeRefusalTitleKey),
+                Message = userConfig.GetText(kStateChangeRefusalMessageKey),
+                TitleTextKey = kStateChangeRefusalTitleKey,
+                MessageTextKey = kStateChangeRefusalMessageKey,
+                ErrorFlag = true
+            });
+            return false;
+        }
+
+        private static bool ValidatePersistedStateTransition(WorkflowActionParameters parameters, WfStatefulObject statefulObject, WorkflowActionResult result)
+        {
+            if (parameters.StateChangedByCreation && parameters.OldStateId != 0)
+            {
+                SetWarning(result, "State-change action execution rejected because a creation transition named a nonzero old state.");
+                return false;
+            }
+
+            if (parameters.OldStateId == parameters.NewStateId)
+            {
+                SetWarning(result, $"State-change action execution rejected because no state change was requested.");
+                return false;
+            }
+
+            if (statefulObject.StateId != parameters.NewStateId)
+            {
+                SetWarning(result, $"State-change action execution rejected because the persisted object state is {statefulObject.StateId}, not {parameters.NewStateId}.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private static async Task<bool> InitWorkflowHandler(WfHandler wfHandler, WorkflowActionResult result)
+        {
+            if (await wfHandler.InitForActionExecution())
+            {
+                return true;
+            }
+
+            string initDetails = result.Messages.LastOrDefault(message => message.ErrorFlag)?.Message ?? "";
+            string errorMessage = string.IsNullOrWhiteSpace(initDetails)
+                ? "Workflow handler initialization failed."
+                : $"Workflow handler initialization failed. {initDetails}";
+            SetWarning(result, errorMessage);
+            return false;
+        }
+
+        private static async Task<WfTicket?> ResolveWorkflowTicket(WfHandler wfHandler, long lockTicketId, WorkflowActionResult result)
+        {
+            WfTicket? ticket = await wfHandler.ResolveTicket(lockTicketId);
+            if (ticket == null)
+            {
+                SetWarning(result, $"Ticket {lockTicketId} could not be resolved.");
+                return null;
+            }
+
+            wfHandler.TicketList = [ticket];
+            return ticket;
+        }
+
+        private static async Task<bool> ExecuteResolvedAction(WfHandler wfHandler, WorkflowActionParameters parameters, WfObjectScopes scope,
+            WfStatefulObject statefulObject, FwoOwner? owner, long? actionTicketId, string? userGrpDn)
+        {
+            if (parameters.ActionId > 0)
+            {
+                return await wfHandler.ActionHandler!.PerformActionById(parameters.ActionId, statefulObject, scope, owner, actionTicketId, userGrpDn,
+                    parameters.NotificationPlaceholders);
+            }
+
+            MarkStateChanged(statefulObject, parameters.OldStateId, parameters.NewStateId, parameters.StateChangedByCreation);
+            await wfHandler.ActionHandler!.DoStateChangeActions(statefulObject, scope, owner, actionTicketId, userGrpDn, parameters.NotificationPlaceholders);
+            return true;
+        }
+
+        private static void SetWarning(WorkflowActionResult result, string errorMessage)
+        {
+            Log.WriteWarning("Workflow Actions", errorMessage);
+            result.ErrorMessage = errorMessage;
+        }
+
+        private static long GetTicketId(WorkflowActionParameters parameters, WfObjectScopes scope)
+        {
+            return parameters.TicketId > 0 || scope != WfObjectScopes.Ticket ? parameters.TicketId : parameters.ObjectId;
+        }
+
+        private static bool CallerCanAccessTicket(ClaimsPrincipal user, string executionMode, UserConfig userConfig, WfTicket ticket)
+        {
+            if (CallerCanUseRole(user, executionMode, Roles.Admin) || !userConfig.ReqOwnerBased)
+            {
+                return true;
+            }
+
+            if (CallerIsRequester(user, ticket))
+            {
+                return true;
+            }
+
+            HashSet<int> editableOwnerIds = GetClaimIds(user, "x-hasura-editable-owners");
+            return editableOwnerIds.Count > 0 && ticket.Tasks.Any(task => CallerOwnsTask(task, editableOwnerIds));
+        }
+
+        private async Task<bool> CallerCanAccessVisibility(ClaimsPrincipal user, ApiConnection actionApiConnection, WfHandler wfHandler, WfObjectScopes scope, WfStatefulObject statefulObject)
+        {
+            if (!wfHandler.userConfig.ReqVisibilityBased)
+            {
+                return true;
+            }
+
+            StateMatrix stateMatrix = scope == WfObjectScopes.Ticket ? wfHandler.MasterStateMatrix : wfHandler.ActStateMatrix;
+            HashSet<int> visibilityGroupIds = GetClaimIds(user, "x-hasura-workflow-visibility-groups");
+            if (WorkflowVisibilityHelper.CanAccessStatefulObject(statefulObject, stateMatrix, visibilityGroupIds, wfHandler.GetWorkflowExclusiveVisibilityGroupIds()))
+            {
+                return true;
+            }
+            return await IsExplicitlyAssigned(user, actionApiConnection, statefulObject);
+        }
+
+        /// <summary>
+        /// Decides whether the caller is explicitly assigned, resolving the ldap group memberships only if a
+        /// group assignment exists that could match at all. The group dns are no longer part of the jwt, so
+        /// every lookup costs an ldap round trip. The groups are resolved in the directory of the caller's local user,
+        /// not in the first directory that knows the dn (GHSA-695m-f6mv-9g72).
+        /// </summary>
+        private async Task<bool> IsExplicitlyAssigned(ClaimsPrincipal user, ApiConnection actionApiConnection, WfStatefulObject statefulObject)
+        {
+            if (IsExplicitlyAssignedToUserOrGroups(user, statefulObject, kNoGroups))
+            {
+                return true;
+            }
+            if (CollectAssignedGroupDns(statefulObject).Count == 0)
+            {
+                return false;
+            }
+
+            UiUser? caller = await GetCallerLocalUser(user, actionApiConnection);
+            if (caller == null)
+            {
+                return false;
+            }
+            List<string> userGroups = await new UserGroupResolver(ldaps).GetGroupsForUser(caller.Dn, caller.LdapConnection?.Id ?? 0);
+            return IsExplicitlyAssignedToUserOrGroups(user, statefulObject, userGroups);
+        }
+
+        /// <summary>
+        /// Loads the local user of the caller by its id claim. The dn claim must still name that user.
+        /// </summary>
+        /// <returns>The local user, or null if the token carries no id or the ids and dns disagree.</returns>
+        private static async Task<UiUser?> GetCallerLocalUser(ClaimsPrincipal user, ApiConnection actionApiConnection)
+        {
+            int? userId = GetClaimInt(user, "x-hasura-user-id");
+            if (userId == null)
+            {
+                return null;
+            }
+            UiUser[] storedUsers = await actionApiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId });
+            UiUser? storedUser = storedUsers.FirstOrDefault();
+            return storedUser != null && DistName.DnEquals(storedUser.Dn, GetClaimValue(user, "x-hasura-uuid")) ? storedUser : null;
+        }
+
+        private static bool CallerCanUseRole(ClaimsPrincipal user, string executionMode, string role)
+        {
+            return ExecutionModeHelper.HasAnyRoleInExecutionMode(ExecutionModeHelper.GetUserRoles(user), executionMode, [role]);
+        }
+
+        /// <summary>
+        /// Decides whether the caller requested the ticket. A requester with a local user is compared by its local user id
+        /// only, as the dn names a subject only within its directory (GHSA-695m-f6mv-9g72). The dn is compared only for
+        /// tickets without a local requester.
+        /// </summary>
+        private static bool CallerIsRequester(ClaimsPrincipal user, WfTicket ticket)
+        {
+            return IsCurrentUser(user, ticket.Requester?.DbId ?? 0, GetRequesterDn(ticket));
+        }
+
+        /// <summary>
+        /// Compares a recorded subject with the caller: by local user id if the subject has one, otherwise by dn.
+        /// </summary>
+        private static bool IsCurrentUser(ClaimsPrincipal user, int subjectUserId, string? subjectDn)
+        {
+            if (subjectUserId > 0)
+            {
+                int? userId = GetClaimInt(user, "x-hasura-user-id");
+                return userId != null && subjectUserId == userId;
+            }
+            return IsAssignedToCurrentUserDn(user, subjectDn);
+        }
+
+        private static bool CallerOwnsTask(WfReqTask task, HashSet<int> editableOwnerIds)
+        {
+            int requestingOwnerId = task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ReqOwner);
+            return task.Owners.Any(owner => editableOwnerIds.Contains(owner.Owner.Id))
+                || (requestingOwnerId > 0 && editableOwnerIds.Contains(requestingOwnerId));
+        }
+
+        /// <summary>
+        /// Reads an id set claim in the hasura notation ({1,2,3}) of the caller.
+        /// </summary>
+        /// <param name="user">Authenticated caller.</param>
+        /// <param name="claimName">Name of the claim.</param>
+        /// <returns>The ids of the claim; empty when the claim is missing or holds no valid id.</returns>
+        internal static HashSet<int> GetClaimIds(ClaimsPrincipal user, string claimName)
+        {
+            string claimValue = GetClaimValue(user, claimName) ?? "";
+            return claimValue
+                .Trim('{', '}', ' ')
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(value => int.TryParse(value, out _))
+                .Select(int.Parse)
+                .ToHashSet();
+        }
+
+        /// <summary>
+        /// Takes the authenticated caller from the request JWT into the workflow context, so the change
+        /// history attributes the transitions this request triggers to that caller instead of to the
+        /// middleware server, and keeps the row resolvable to the caller's user record.
+        /// </summary>
+        /// <param name="user">Authenticated caller of the action request.</param>
+        /// <param name="userConfig">Workflow config built for this request, supplying the caller identity.</param>
+        /// <param name="wfHandler">Workflow handler of this request, supplying the changer id.</param>
+        /// <remarks>
+        /// The endpoint is role gated, so a JWT is always present. A caller without a resolvable identity
+        /// keeps the empty name and zero user id, which workflow persistence records as an automated change.
+        /// The caller's authorization is evaluated separately on the claims themselves.
+        /// </remarks>
+        internal static void ApplyCallerIdentity(ClaimsPrincipal user, UserConfig userConfig, WfHandler wfHandler)
+        {
+            userConfig.User.Name = user.FindFirstValue("unique_name") ?? "";
+            userConfig.User.Dn = user.FindFirstValue("x-hasura-uuid") ?? "";
+            int? callerId = GetClaimInt(user, "x-hasura-user-id");
+            userConfig.User.DbId = callerId ?? 0;
+            wfHandler.ChangerId = callerId;
+        }
+
+        private static int? GetClaimInt(ClaimsPrincipal user, string claimName)
+        {
+            return int.TryParse(GetClaimValue(user, claimName), out int value) ? value : null;
+        }
+
+        private static bool IsExplicitlyAssignedToUserOrGroups(ClaimsPrincipal user, WfStatefulObject statefulObject, List<string> userGroups)
+        {
+            return IsAssignedToCurrentUser(user, statefulObject.CurrentHandler)
+                || IsAssignedToCurrentUserGroup(userGroups, statefulObject.AssignedGroup)
+                || (statefulObject is WfApproval approval && (IsAssignedToCurrentUserDn(user, approval.ApproverDn)
+                    || IsAssignedToCurrentUserGroup(userGroups, approval.ApproverGroup)));
+        }
+
+        private static List<string> CollectAssignedGroupDns(WfStatefulObject statefulObject)
+        {
+            List<string> assignedGroupDns = [];
+            if (!string.IsNullOrWhiteSpace(statefulObject.AssignedGroup))
+            {
+                assignedGroupDns.Add(statefulObject.AssignedGroup);
+            }
+            if (statefulObject is WfApproval approval && !string.IsNullOrWhiteSpace(approval.ApproverGroup))
+            {
+                assignedGroupDns.Add(approval.ApproverGroup);
+            }
+            return assignedGroupDns;
+        }
+
+        private static bool IsAssignedToCurrentUser(ClaimsPrincipal user, UiUser? handler)
+        {
+            return handler != null && IsCurrentUser(user, handler.DbId, handler.Dn);
+        }
+
+        private static bool IsAssignedToCurrentUserDn(ClaimsPrincipal user, string? dn)
+        {
+            return DistName.DnEquals(dn, GetClaimValue(user, "x-hasura-uuid"));
+        }
+
+        private static bool IsAssignedToCurrentUserGroup(List<string> userGroups, string? groupDn)
+        {
+            return !string.IsNullOrWhiteSpace(groupDn) && userGroups.Any(group => DistName.DnEquals(group, groupDn));
+        }
+
+        private static string? GetClaimValue(ClaimsPrincipal user, string claimName)
+        {
+            return user.Claims.FirstOrDefault(claim => claim.Type.Equals(claimName, StringComparison.OrdinalIgnoreCase)
+                || claim.Type.EndsWith("/" + claimName, StringComparison.OrdinalIgnoreCase))?.Value;
+        }
+
+        private static (WfStatefulObject?, FwoOwner?, long?, string?) ResolveActionContext(WfHandler wfHandler, WfTicket ticket,
+            WorkflowActionParameters parameters, WfObjectScopes scope)
+        {
+            return scope switch
+            {
+                WfObjectScopes.Ticket => (ticket, null, ticket.Id, GetRequesterDn(ticket)),
+                WfObjectScopes.RequestTask => ResolveRequestTask(wfHandler, ticket, parameters.ObjectId),
+                WfObjectScopes.ImplementationTask => ResolveImplementationTask(wfHandler, ticket, parameters.ObjectId),
+                WfObjectScopes.Approval => ResolveApproval(wfHandler, ticket, parameters.ObjectId),
+                _ => (null, null, null, null)
+            };
+        }
+
+        private static string? GetRequesterDn(WfTicket ticket)
+        {
+            return !string.IsNullOrWhiteSpace(ticket.Requester?.Dn) ? ticket.Requester.Dn : ticket.RequesterDn;
+        }
+
+        private static (WfStatefulObject?, FwoOwner?, long?, string?) ResolveRequestTask(WfHandler wfHandler, WfTicket ticket, long objectId)
+        {
+            WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(task => task.Id == objectId);
+            if (reqTask == null)
+            {
+                return (null, null, null, null);
+            }
+
+            wfHandler.TrySetReqTaskEnv(reqTask);
+            return (reqTask, reqTask.Owners.FirstOrDefault()?.Owner, reqTask.TicketId, null);
+        }
+
+        private static (WfStatefulObject?, FwoOwner?, long?, string?) ResolveImplementationTask(WfHandler wfHandler, WfTicket ticket, long objectId)
+        {
+            foreach (WfReqTask reqTask in ticket.Tasks)
+            {
+                WfImplTask? implTask = reqTask.ImplementationTasks.FirstOrDefault(task => task.Id == objectId);
+                if (implTask != null)
+                {
+                    implTask.TicketId = implTask.TicketId > 0 ? implTask.TicketId : reqTask.TicketId;
+                    wfHandler.TrySetImplTaskEnv(implTask);
+                    return (implTask, reqTask.Owners.FirstOrDefault()?.Owner, implTask.TicketId, null);
+                }
+            }
+            return (null, null, null, null);
+        }
+
+        private static (WfStatefulObject?, FwoOwner?, long?, string?) ResolveApproval(WfHandler wfHandler, WfTicket ticket, long objectId)
+        {
+            foreach (WfReqTask reqTask in ticket.Tasks)
+            {
+                WfApproval? approval = reqTask.Approvals.FirstOrDefault(approval => approval.Id == objectId);
+                if (approval != null)
+                {
+                    wfHandler.TrySetReqTaskEnv(reqTask);
+                    return (approval, reqTask.Owners.FirstOrDefault()?.Owner, reqTask.TicketId, null);
+                }
+            }
+            return (null, null, null, null);
+        }
+
+        private static void MarkStateChanged(WfStatefulObject statefulObject, int oldStateId, int newStateId, bool stateChangedByCreation)
+        {
+            if (stateChangedByCreation)
+            {
+                statefulObject.MarkCreatedStateChanged(newStateId);
+                return;
+            }
+
+            statefulObject.StateId = oldStateId;
+            statefulObject.ResetStateChanged();
+            statefulObject.StateId = newStateId;
+        }
+    }
+}

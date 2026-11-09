@@ -11,12 +11,59 @@ namespace FWO.Data
         Compliance = 3,
         InterfaceRequest = 4,
         RuleTimer = 5,
-        AppDecomm = 6
+        AppDecomm = 6,
+        Report = 7,
+        WfAction = 8,
+        InterfaceDecomm = 9,
+        RuleRecertification = 10
+    }
+
+    public static class NotificationClientGroups
+    {
+        /// <summary>
+        /// Returns whether notifications for this client can resolve owner/modelling recipients.
+        /// </summary>
+        /// <param name="client">Notification client to classify.</param>
+        /// <returns>True if modelling recipient options are supported.</returns>
+        public static bool IsModellingRecipientClient(this NotificationClient client)
+        {
+            return client is NotificationClient.Recertification
+                or NotificationClient.InterfaceRequest
+                or NotificationClient.RuleTimer
+                or NotificationClient.AppDecomm
+                or NotificationClient.InterfaceDecomm
+                or NotificationClient.RuleRecertification;
+        }
+
+        /// <summary>
+        /// Returns whether notifications for this client can resolve workflow ticket recipients.
+        /// </summary>
+        /// <param name="client">Notification client to classify.</param>
+        /// <returns>True if workflow recipient options are supported.</returns>
+        public static bool IsWorkflowRecipientClient(this NotificationClient client)
+        {
+            return client is NotificationClient.WfAction;
+        }
     }
 
     public enum NotificationChannel
     {
         Email = 1
+    }
+
+    /// <summary>
+    /// Result of processing a notification delivery request.
+    /// </summary>
+    public enum NotificationDeliveryResult
+    {
+        /// <summary>Email was sent successfully.</summary>
+        Delivered,
+        /// <summary>Sending was intentionally skipped by the logging mode.</summary>
+        Suppressed,
+        /// <summary>No recipient was resolved.</summary>
+        NoRecipients,
+        /// <summary>Sending was attempted but failed.</summary>
+        Failed
     }
 
     public enum NotificationDeadline
@@ -26,6 +73,11 @@ namespace FWO.Data
         RequestDate = 2,
         RuleExpiry = 3,
         DecommissionDate = 4
+    }
+
+    public enum BundleType
+    {
+        Attachments = 1
     }
 
     public static class NotificationDeadlineGroups
@@ -47,8 +99,63 @@ namespace FWO.Data
         }
     }
 
+    public static class NotificationLoggingMode
+    {
+        public const string SendOnly = "send_only";
+        public const string SendAndLog = "send_and_log";
+        public const string LogOnly = "log_only";
+
+        public static List<string> OfferedOptions() => [SendOnly, SendAndLog, LogOnly];
+
+        public static bool ShouldLog(string? loggingMode)
+        {
+            return loggingMode is SendAndLog or LogOnly;
+        }
+
+        public static bool ShouldSend(string? loggingMode)
+        {
+            return loggingMode != LogOnly;
+        }
+    }
+
     public class FwoNotification
     {
+        public FwoNotification()
+        {
+        }
+
+        public FwoNotification(FwoNotification notification)
+        {
+            Id = notification.Id;
+            NotificationClient = notification.NotificationClient;
+            UserId = notification.UserId;
+            OwnerId = notification.OwnerId;
+            Channel = notification.Channel;
+            Name = notification.Name;
+            RecipientTo = notification.RecipientTo;
+            EmailAddressTo = notification.EmailAddressTo;
+            RecipientCc = notification.RecipientCc;
+            EmailAddressCc = notification.EmailAddressCc;
+            RecipientBcc = notification.RecipientBcc;
+            EmailAddressBcc = notification.EmailAddressBcc;
+            EmailSubject = notification.EmailSubject;
+            EmailBody = notification.EmailBody;
+            ScheduleId = notification.ScheduleId;
+            BundleType = notification.BundleType;
+            BundleId = notification.BundleId;
+            Layout = notification.Layout;
+            Deadline = notification.Deadline;
+            IntervalBeforeDeadline = notification.IntervalBeforeDeadline;
+            OffsetBeforeDeadline = notification.OffsetBeforeDeadline;
+            RepeatIntervalAfterDeadline = notification.RepeatIntervalAfterDeadline;
+            InitialOffsetAfterDeadline = notification.InitialOffsetAfterDeadline;
+            RepeatOffsetAfterDeadline = notification.RepeatOffsetAfterDeadline;
+            RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline;
+            LastSent = notification.LastSent;
+            Logging = notification.Logging;
+            Active = notification.Active;
+        }
+
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
 
@@ -79,8 +186,33 @@ namespace FWO.Data
         [JsonProperty("email_address_cc"), JsonPropertyName("email_address_cc")]
         public string EmailAddressCc { get; set; } = "";
 
+        [JsonProperty("recipient_bcc"), JsonPropertyName("recipient_bcc")]
+        private EmailRecipientOption? RecipientBccValue { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public EmailRecipientOption RecipientBcc
+        {
+            get => RecipientBccValue ?? EmailRecipientOption.None;
+            set => RecipientBccValue = value;
+        }
+
+        [JsonProperty("email_address_bcc"), JsonPropertyName("email_address_bcc")]
+        public string EmailAddressBcc { get; set; } = "";
+
         [JsonProperty("email_subject"), JsonPropertyName("email_subject")]
         public string EmailSubject { get; set; } = "";
+
+        [JsonProperty("email_body"), JsonPropertyName("email_body")]
+        public string EmailBody { get; set; } = "";
+
+        [JsonProperty("schedule_id"), JsonPropertyName("schedule_id")]
+        public int? ScheduleId { get; set; }
+
+        [JsonProperty("bundle_type"), JsonPropertyName("bundle_type")]
+        public BundleType? BundleType { get; set; }
+
+        [JsonProperty("bundle_id"), JsonPropertyName("bundle_id")]
+        public string? BundleId { get; set; }
 
         [JsonProperty("layout"), JsonPropertyName("layout")]
         public NotificationLayout Layout { get; set; } = NotificationLayout.SimpleText;
@@ -89,13 +221,13 @@ namespace FWO.Data
         public NotificationDeadline Deadline { get; set; } = NotificationDeadline.None;
 
         [JsonProperty("interval_before_deadline"), JsonPropertyName("interval_before_deadline")]
-        public SchedulerInterval IntervalBeforeDeadline { get; set; } = SchedulerInterval.Weeks;
+        public SchedulerInterval? IntervalBeforeDeadline { get; set; }
 
         [JsonProperty("offset_before_deadline"), JsonPropertyName("offset_before_deadline")]
         public int? OffsetBeforeDeadline { get; set; }
 
         [JsonProperty("repeat_interval_after_deadline"), JsonPropertyName("repeat_interval_after_deadline")]
-        public SchedulerInterval RepeatIntervalAfterDeadline { get; set; } = SchedulerInterval.Weeks;
+        public SchedulerInterval? RepeatIntervalAfterDeadline { get; set; }
 
         [JsonProperty("initial_offset_after_deadline"), JsonPropertyName("initial_offset_after_deadline")]
         public int? InitialOffsetAfterDeadline { get; set; }
@@ -109,15 +241,25 @@ namespace FWO.Data
         [JsonProperty("last_sent"), JsonPropertyName("last_sent")]
         public DateTime? LastSent { get; set; }
 
+        [JsonProperty("logging"), JsonPropertyName("logging")]
+        public string Logging { get; set; } = NotificationLoggingMode.SendOnly;
+
+        [JsonProperty("active"), JsonPropertyName("active")]
+        public bool Active { get; set; } = true;
+
 
         public static List<NotificationDeadline> OfferedDeadlineOptions(NotificationClient client)
         {
             return client switch
             {
                 NotificationClient.Recertification => [NotificationDeadline.RecertDate],
+                NotificationClient.RuleRecertification => [NotificationDeadline.None],
+                NotificationClient.ImportChange => [NotificationDeadline.None],
                 NotificationClient.RuleTimer => [NotificationDeadline.RuleExpiry],
-                NotificationClient.InterfaceRequest => [NotificationDeadline.RequestDate],
+                NotificationClient.InterfaceRequest => [NotificationDeadline.None, NotificationDeadline.RequestDate],
                 NotificationClient.AppDecomm => [NotificationDeadline.None, NotificationDeadline.DecommissionDate],
+                NotificationClient.InterfaceDecomm => [NotificationDeadline.None],
+                NotificationClient.WfAction => [NotificationDeadline.None],
                 _ => Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>().ToList()
             };
         }

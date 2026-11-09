@@ -15,17 +15,32 @@ namespace FWO.Data
         [JsonProperty("recert_check_params"), JsonPropertyName("recert_check_params")]
         public string? RecertCheckParamString { get; set; }
 
+        [JsonProperty("additional_info"), JsonPropertyName("additional_info")]
+        public Dictionary<string, string>? AdditionalInfo { get; set; }
+
+        /// <summary>
+        /// Transient display value used by the owner recertification table for the selected additional-info column.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public string AdditionalInfoValue { get; set; } = "";
+
         [JsonProperty("criticality"), JsonPropertyName("criticality")]
         public string? Criticality { get; set; }
 
         [JsonProperty("owner_lifecycle_state_id"), JsonPropertyName("owner_lifecycle_state_id")]
         public int? OwnerLifeCycleStateId { get; set; }
 
+        [JsonProperty("owner_lifecycle_state"), JsonPropertyName("owner_lifecycle_state")]
+        public OwnerLifeCycleState? OwnerLifeCycleState { get; set; }
+
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; } = true;
 
         [JsonProperty("import_source"), JsonPropertyName("import_source")]
         public string? ImportSource { get; set; }
+
+        [JsonProperty("owner_networks"), JsonPropertyName("owner_networks")]
+        public OwnerNetwork[] OwnerNetworks { get; set; } = [];
 
         [JsonProperty("common_service_possible"), JsonPropertyName("common_service_possible")]
         public bool CommSvcPossible { get; set; } = false;
@@ -45,6 +60,9 @@ namespace FWO.Data
         [JsonProperty("next_recert_date"), JsonPropertyName("next_recert_date")]
         public DateTime? NextRecertDate { get; set; }
 
+        [JsonProperty("changelog_owners"), JsonPropertyName("changelog_owners")]
+        public List<OwnerChange> ChangelogOwners { get; set; } = [];
+
         [JsonProperty("decomm_date"), JsonPropertyName("decomm_date")]
         public DateTime? DecommDate { get; set; }
 
@@ -55,6 +73,13 @@ namespace FWO.Data
         public bool RecertUpcoming { get; set; } = false;
         public long? LastRecertId { get; set; }
 
+        /// <summary>
+        /// Indicates whether this owner still has to be created in the database.
+        /// The default super-owner has Id 0 but already exists, so it is never considered new.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public bool IsNew => Id <= 0 && !IsDefault;
+
         public FwoOwner()
         { }
 
@@ -63,7 +88,11 @@ namespace FWO.Data
             Id = owner.Id;
             LastRecertCheck = owner.LastRecertCheck;
             RecertCheckParamString = owner.RecertCheckParamString;
+            AdditionalInfo = owner.AdditionalInfo == null ? null : new Dictionary<string, string>(owner.AdditionalInfo);
+            AdditionalInfoValue = owner.AdditionalInfoValue;
             Criticality = owner.Criticality;
+            OwnerLifeCycleStateId = owner.OwnerLifeCycleStateId;
+            OwnerLifeCycleState = owner.OwnerLifeCycleState == null ? null : new OwnerLifeCycleState(owner.OwnerLifeCycleState);
             Active = owner.Active;
             ImportSource = owner.ImportSource;
             CommSvcPossible = owner.CommSvcPossible;
@@ -72,7 +101,9 @@ namespace FWO.Data
             LastRecertifierId = owner.LastRecertifierId;
             LastRecertifierDn = owner.LastRecertifierDn;
             NextRecertDate = owner.NextRecertDate;
+            ChangelogOwners = owner.ChangelogOwners.Select(change => new OwnerChange(change)).ToList();
             DecommDate = owner.DecommDate;
+            RecertActive = owner.RecertActive;
             RecertOverdue = owner.RecertOverdue;
             RecertUpcoming = owner.RecertUpcoming;
             LastRecertId = owner.LastRecertId;
@@ -112,6 +143,42 @@ namespace FWO.Data
                 return Id.CompareTo(secondOwner.Id);
             }
             return Name?.CompareTo(secondOwner.Name) ?? -1;
+        }
+
+        public bool UsesCreationDateFallback()
+        {
+            return LastRecertified == null && NextRecertDate == null && GetOwnerCreationDateHint() != null;
+        }
+
+        public DateTime? GetEffectiveLastRecertified()
+        {
+            return LastRecertified ?? GetOwnerCreationDateHint();
+        }
+
+        public DateTime? GetEffectiveNextRecertDate(int defaultRecertInterval)
+        {
+            if (NextRecertDate != null)
+            {
+                return NextRecertDate;
+            }
+
+            DateTime? ownerCreationDate = GetOwnerCreationDateHint();
+            if (ownerCreationDate == null)
+            {
+                return null;
+            }
+            int recertInterval = RecertInterval ?? defaultRecertInterval;
+            return recertInterval > 0 ? ownerCreationDate.Value.AddDays(recertInterval) : null;
+        }
+
+        private DateTime? GetOwnerCreationDateHint()
+        {
+            DateTime ownerCreationDate = ChangelogOwners
+                .Where(change => change.ChangeAction == ChangelogActionType.INSERT && change.ChangeImport.Time != default)
+                .Select(change => change.ChangeImport.Time)
+                .OrderBy(time => time)
+                .FirstOrDefault();
+            return ownerCreationDate == default ? null : ownerCreationDate;
         }
     }
 

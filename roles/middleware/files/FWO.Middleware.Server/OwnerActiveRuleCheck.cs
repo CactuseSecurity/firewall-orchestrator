@@ -13,14 +13,17 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Fetches owners with a decommission date and sends due decommission notifications for each of them.
         /// </summary>
+        /// <param name="cancellationToken">Stops before the next owner.</param>
         /// <returns>The number of sent notifications.</returns>
-        public async Task<int> CheckActiveRulesByScheduler()
+        public async Task<int> CheckActiveRulesByScheduler(CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             int emailsSent = 0;
 
             foreach (FwoOwner owner in owners.Where(o => o.DecommDate != null))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 emailsSent += await CheckActiveRules(owner, NotificationDeadline.DecommissionDate);
             }
 
@@ -56,15 +59,16 @@ namespace FWO.Middleware.Server
                 return 0;
             }
 
-            List<UserGroup> ownerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
             NotificationService notificationService = await NotificationService.CreateAsync(
-                NotificationClient.AppDecomm, GlobalConfig, apiConnection, ownerGroups);
+                NotificationClient.AppDecomm, GlobalConfig, apiConnection);
 
-            string body = BuildRuleBody(owner, GlobalConfig.OwnerActiveRuleEmailBody, "",
-                activeRules.OrderBy(rule => rule.Uid, StringComparer.OrdinalIgnoreCase));
+            IOrderedEnumerable<Rule> orderedRules = activeRules.OrderBy(rule => rule.Uid, StringComparer.OrdinalIgnoreCase);
+            string textBody = BuildRuleTextBody(owner, GlobalConfig.OwnerActiveRuleEmailBody, "", orderedRules);
+            string htmlBody = BuildRuleHtmlBody(owner, GlobalConfig.OwnerActiveRuleEmailBody, "", orderedRules);
             int emailsSent = 0;
             foreach (FwoNotification notification in notificationService.Notifications.Where(n => (n.OwnerId == null || n.OwnerId == owner.Id) && n.Deadline == deadline))
             {
+                string body = notification.Layout == NotificationLayout.HtmlInBody ? htmlBody : textBody;
                 emailsSent += deadline == NotificationDeadline.None
                     ? await notificationService.SendNotification(notification, owner, body)
                     : await notificationService.SendNotificationIfDue(notification, owner, null, body);

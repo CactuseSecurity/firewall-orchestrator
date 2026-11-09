@@ -8,6 +8,6 @@ namespace FWO.Api.Client
 {
     internal class ApiConstants
     {
-        public const bool UseSystemTextJsonSerializer = false;
+        public static readonly bool UseSystemTextJsonSerializer = false;
     }
 }

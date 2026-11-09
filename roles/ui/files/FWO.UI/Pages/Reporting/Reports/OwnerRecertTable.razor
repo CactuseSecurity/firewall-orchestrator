@@ -1,25 +1,45 @@
 ﻿@using FWO.Ui.Display
 
+@using FWO.Basics
 @inject UserConfig userConfig
 
-<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoOwner" Items="Owners" PageSize="0">
-    <Column TableItem="FwoOwner" Title="@(userConfig.GetText("next_recert_date"))" Field="@(x => x.Id)" >
-        <Template>
-            @(context.NextRecertDate?.ToString("dd.MM.yyyy") ?? "")
-        </Template>
-    </Column>
+<Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoOwner" Items="displayOwners" PageSize="0">
+    @if (ShowRecertData)
+    {
+        <Column TableItem="FwoOwner" Title="@(userConfig.GetText("next_recert_date"))" Field="@(x => x.Id)" >
+            <Template>
+                @(OwnerRecertDisplay.FormatNextRecertDate(context, userConfig))
+            </Template>
+        </Column>
+    }
     <Column TableItem="FwoOwner" Title="@(userConfig.GetText("id"))" Field="@(x => x.ExtAppId)" />
     <Column TableItem="FwoOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" />
-    <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertified"))" Field="@(x => x.LastRecertified)" >
+    <Column TableItem="FwoOwner" Title="@(userConfig.GetText("main_responsible"))" Field="@(x => x.Id)" >
         <Template>
-            @(context.LastRecertified?.ToString("dd.MM.yyyy") ?? "")
+            @(OwnerRecertDisplay.FormatMainResponsibles(context))
         </Template>
     </Column>
-    <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertifier"))" Field="@(x => x.LastRecertifierDn)" >
-       <Template>
-            @(GetRecertifierName(context))
-        </Template>
-    </Column>
+    @if (ShowRecertData)
+    {
+        <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertified"))" Field="@(x => x.LastRecertified)" >
+            <Template>
+                @(OwnerRecertDisplay.FormatLastRecertified(context, userConfig))
+            </Template>
+        </Column>
+        <Column TableItem="FwoOwner" Title="@(userConfig.GetText("last_recertifier"))" Field="@(x => x.LastRecertifierDn)" >
+           <Template>
+                @(GetRecertifierName(context))
+            </Template>
+        </Column>
+    }
+    @if (HasAdditionalInfoColumn())
+    {
+        <Column TableItem="FwoOwner" Title="@AdditionalInfoColumnTitle" Field="@(x => x.AdditionalInfoValue)" Sortable="true" Filterable="false">
+           <Template>
+                @((MarkupString)GetAdditionalInfoValueHtml(context))
+            </Template>
+        </Column>
+    }
 </Table>
 
 
@@ -28,9 +48,49 @@
     [Parameter]
     public List<FwoOwner> Owners { get; set; } = [];
 
+    [Parameter]
+    public bool ShowRecertData { get; set; } = true;
+
+    [Parameter]
+    public string AdditionalInfoKey { get; set; } = "";
+
+    private List<FwoOwner> displayOwners = [];
+    private string AdditionalInfoColumnTitle => $"{userConfig.GetText("add_info")}: {AdditionalInfoKey}";
+
+    protected override void OnParametersSet()
+    {
+        if (!HasAdditionalInfoColumn())
+        {
+            displayOwners = Owners;
+            return;
+        }
+
+        displayOwners = Owners.Select(owner =>
+        {
+            owner.AdditionalInfoValue = GetAdditionalInfoValue(owner);
+            return owner;
+        }).ToList();
+    }
+
     private string GetRecertifierName(FwoOwner owner)
     {
         string UserName = new DistName(owner.LastRecertifierDn).UserName;
         return string.IsNullOrEmpty(UserName) ? (owner.LastRecertifierDn ?? "") : UserName;
     }
+
+    private bool HasAdditionalInfoColumn()
+    {
+        return !string.IsNullOrWhiteSpace(AdditionalInfoKey);
+    }
+
+    private string GetAdditionalInfoValueHtml(FwoOwner owner)
+    {
+        return OwnerRecertDisplay.FormatAdditionalInfoValueHtml(owner, AdditionalInfoKey);
+    }
+
+    private string GetAdditionalInfoValue(FwoOwner owner)
+    {
+        return OwnerRecertDisplay.FormatAdditionalInfoValue(owner, AdditionalInfoKey);
+    }
+
 }

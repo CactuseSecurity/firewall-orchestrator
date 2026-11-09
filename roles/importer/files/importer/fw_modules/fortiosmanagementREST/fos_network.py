@@ -1,13 +1,59 @@
-from collections.abc import Generator
+from __future__ import annotations
+
 from ipaddress import IPv6Address
+from typing import TYPE_CHECKING, Literal
 
 import fwo_const
-from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, NwObjAddress6
 from fwo_log import FWOLogger
 from models.networkobject import NetworkObject
 from netaddr import IPAddress, IPNetwork
 
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, NwObjAddress6
+
 DEFAULT_IPv4 = (IPNetwork("0.0.0.0/32"), IPNetwork("255.255.255.255/32"))
+DUMMY_IPv4 = (IPNetwork(fwo_const.DUMMY_IP), IPNetwork(fwo_const.DUMMY_IP))
+DUMMY_IPv6 = (IPNetwork("::/128", version=6), IPNetwork("::/128", version=6))
+
+DOMAIN_IPV4_OBJECT_TYPES = frozenset({"fqdn", "wildcard-fqdn"})
+# FortiOS wildcard masks can describe non-contiguous address patterns. The normalized data model only supports one
+# continuous start/end range, so importing a bounding range would include addresses that the wildcard does not match.
+# Treat wildcard objects as unresolved dynamic objects until the normalized model can represent their exact semantics.
+DYNAMIC_IPV4_OBJECT_TYPES = frozenset({"dynamic", "geography", "interface-subnet", "wildcard"})
+DOMAIN_IPV6_OBJECT_TYPES = frozenset({"fqdn"})
+DYNAMIC_IPV6_OBJECT_TYPES = frozenset({"dynamic", "template"})
+
+
+def _normalize_ipv6_address_range(
+    start_address: IPv6Address, end_address: IPv6Address
+) -> tuple[IPNetwork, IPNetwork, Literal["host", "ip_range"]]:
+    """Normalize explicit IPv6 range bounds to /128 networks."""
+    ip_start = IPNetwork(f"{start_address}/128", version=6)
+    ip_end = IPNetwork(f"{end_address}/128", version=6)
+    obj_typ: Literal["host", "ip_range"] = "ip_range" if int(start_address) != int(end_address) else "host"
+    return ip_start, ip_end, obj_typ
+
+
+def _normalize_static_ipv6_network_object(
+    ip6_obj: NwObjAddress6,
+) -> tuple[IPNetwork, IPNetwork, Literal["host", "ip_range", "network"]]:
+    """Normalize FortiOS IPv6 fields according to the configured object type."""
+    if ip6_obj.type == "iprange" and ip6_obj.start_ip and ip6_obj.end_ip:
+        return _normalize_ipv6_address_range(IPv6Address(ip6_obj.start_ip), IPv6Address(ip6_obj.end_ip))
+
+    if ip6_obj.type == "ipprefix" and ip6_obj.ip6:
+        network = IPNetwork(ip6_obj.ip6, version=6)
+        ip_start_address = IPv6Address(network.first)
+        ip_end = IPNetwork(f"{IPv6Address(network.last)}/128", version=6)
+        obj_typ: Literal["host", "network"] = "network" if network.size > 1 else "host"
+        return IPNetwork(f"{ip_start_address}/128", version=6), ip_end, obj_typ
+
+    FWOLogger.warning(
+        f"normalize_ipv6_network_objects: Unable to determine IP range for network object {ip6_obj.name}, setting to dummy IP."
+    )
+    return DUMMY_IPv6[0], DUMMY_IPv6[1], "host"
 
 
 def normalize_ipv4_network_objects(
@@ -26,7 +72,15 @@ def normalize_ipv4_network_objects(
     """
     for ip4_obj in native_config.nw_obj_address:
         obj_typ = "host"
-        if ip4_obj.subnet:
+        if ip4_obj.type in DOMAIN_IPV4_OBJECT_TYPES:
+            obj_typ = "domain"
+            ip_start = None
+            ip_end = None
+        elif ip4_obj.type in DYNAMIC_IPV4_OBJECT_TYPES:
+            obj_typ = "dynamic_net_obj"
+            ip_start = None
+            ip_end = None
+        elif ip4_obj.subnet:
             host, mask = ip4_obj.subnet.split(" ")
             # get ip_start/32 and ip_end/32 from subnet
             network = IPNetwork(f"{host}/{mask}")
@@ -40,9 +94,9 @@ def normalize_ipv4_network_objects(
             obj_typ = "ip_range"
         else:
             FWOLogger.warning(
-                f"normalize_ipv4_network_objects: Unable to determine IP range for network object {ip4_obj.name}, setting to full range."
+                f"normalize_ipv4_network_objects: Unable to determine IP range for network object {ip4_obj.name}, setting to dummy IP."
             )
-            ip_start, ip_end = DEFAULT_IPv4
+            ip_start, ip_end = DUMMY_IPv4
 
         nw_obj_lookup_dict[ip4_obj.name] = ip4_obj.uuid
 
@@ -69,24 +123,16 @@ def normalize_single_ipv6_network_object(ip6_obj: NwObjAddress6, nw_obj_lookup_d
         NetworkObject: The normalized network object.
 
     """
-    obj_typ = "host"
-    if ip6_obj.ip6:
-        network = IPNetwork(ip6_obj.ip6, version=6)
-        ip_start = IPNetwork(f"{IPv6Address(network.first)}/128", version=6)
-        if ip6_obj.end_ip and ip6_obj.end_ip != "::":
-            ip_end = IPNetwork(f"{ip6_obj.end_ip}/128", version=6)
-            if ip_start != ip_end:
-                obj_typ = "ip_range"
-        else:
-            ip_end = IPNetwork(f"{IPv6Address(network.last)}/128", version=6)
-            if network.size > 1:
-                obj_typ = "network"
+    if ip6_obj.type in DOMAIN_IPV6_OBJECT_TYPES:
+        obj_typ = "domain"
+        ip_start = None
+        ip_end = None
+    elif ip6_obj.type in DYNAMIC_IPV6_OBJECT_TYPES:
+        obj_typ = "dynamic_net_obj"
+        ip_start = None
+        ip_end = None
     else:
-        FWOLogger.warning(
-            f"normalize_ipv6_network_objects: Unable to determine IP range for network object {ip6_obj.name}, setting to full range."
-        )
-        ip_start = IPNetwork("::/128", version=6)
-        ip_end = IPNetwork("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128", version=6)
+        ip_start, ip_end, obj_typ = _normalize_static_ipv6_network_object(ip6_obj)
 
     nw_obj_lookup_dict[ip6_obj.name] = ip6_obj.uuid
 
@@ -182,9 +228,9 @@ def normalize_ip_pools(native_config: FortiOSConfig, nw_obj_lookup_dict: dict[st
             ip_end = IPNetwork(f"{ippool_obj.endip}/32")
         else:
             FWOLogger.warning(
-                f"normalize_ip_pools: Unable to determine IP range for IP pool object {ippool_obj.name}, setting to full range."
+                f"normalize_ip_pools: Unable to determine IP range for IP pool object {ippool_obj.name}, setting to dummy IP."
             )
-            ip_start, ip_end = DEFAULT_IPv4
+            ip_start, ip_end = DUMMY_IPv4
         nw_obj_lookup_dict[ippool_obj.name] = ippool_obj.name
 
         yield NetworkObject(
@@ -198,9 +244,42 @@ def normalize_ip_pools(native_config: FortiOSConfig, nw_obj_lookup_dict: dict[st
         )
 
 
+def parse_fortios_ip_range(ip_value: str | None, obj_name: str, context: str) -> tuple[IPNetwork, IPNetwork, str]:
+    """
+    Parse a FortiOS IPv4 address or 'start-end' range string into start/end /32 networks.
+
+    Args:
+        ip_value: The raw IP value, either a single address or a 'start-end' range.
+        obj_name: Name of the owning object (used for logging).
+        context: Calling context name (used for logging).
+
+    Returns:
+        tuple[IPNetwork, IPNetwork, str]: The start IP, end IP and the derived object type.
+
+    """
+    if not ip_value:
+        FWOLogger.warning(f"{context}: Unable to determine IP range for object {obj_name}, setting to dummy IP.")
+        ip_start, ip_end = DUMMY_IPv4
+        return ip_start, ip_end, "host"
+
+    if "-" in ip_value:
+        start_raw, end_raw = ip_value.split("-", 1)
+        ip_start = IPNetwork(f"{start_raw.strip()}/32")
+        ip_end = IPNetwork(f"{end_raw.strip()}/32")
+        obj_typ = "host" if ip_start.first == ip_end.first else "ip_range"
+        return ip_start, ip_end, obj_typ
+
+    ip_start = IPNetwork(f"{ip_value.strip()}/32")
+    return ip_start, ip_start, "host"
+
+
 def normalize_vips(native_config: FortiOSConfig, nw_obj_lookup_dict: dict[str, str]) -> Generator[NetworkObject]:
     """
-    Normalize VIP objects from the native FortiOS configuration.
+    Normalize VIP (virtual IP / destination NAT) objects from the native FortiOS configuration.
+
+    The external IP (extip) is the address that policies match against at the firewall ingress,
+    so it is used as the normalized object's IP range. This ensures rules referencing VIP/DNAT
+    objects resolve to a network object instead of failing the import or losing coverage.
 
     Args:
         native_config (FortiOSConfig): The native FortiOS configuration.
@@ -210,7 +289,20 @@ def normalize_vips(native_config: FortiOSConfig, nw_obj_lookup_dict: dict[str, s
         NetworkObject: The normalized network object.
 
     """
-    raise NotImplementedError("normalize_vips is not yet implemented.")  # TODO: need test data
+    for vip_obj in native_config.nw_obj_vip:
+        ip_start, ip_end, obj_typ = parse_fortios_ip_range(vip_obj.extip, vip_obj.name, "normalize_vips")
+        obj_uid = vip_obj.uuid or vip_obj.name
+        nw_obj_lookup_dict[vip_obj.name] = obj_uid
+
+        yield NetworkObject(
+            obj_name=vip_obj.name,
+            obj_uid=obj_uid,
+            obj_typ=obj_typ,
+            obj_ip=ip_start,
+            obj_ip_end=ip_end,
+            obj_color=fwo_const.DEFAULT_COLOR,
+            obj_comment=vip_obj.comment,
+        )
 
 
 def normalize_internet_services(
@@ -228,14 +320,13 @@ def normalize_internet_services(
 
     """
     for is_obj in native_config.nw_obj_internet_service:
-        start_ip, end_ip = DEFAULT_IPv4
         nw_obj_lookup_dict[is_obj.name] = is_obj.name
         yield NetworkObject(
             obj_name=is_obj.name,
             obj_uid=is_obj.name,
-            obj_typ="network",
-            obj_ip=start_ip,
-            obj_ip_end=end_ip,
+            obj_typ="dynamic_net_obj",
+            obj_ip=None,
+            obj_ip_end=None,
             obj_color=fwo_const.DEFAULT_COLOR,
             obj_comment=None,
         )
@@ -260,7 +351,7 @@ def normalize_network_objects(
     # groups may use any of the above objects as members
     yield from normalize_nwobj_groups(native_config, nw_obj_lookup_dict)
     yield from normalize_ip_pools(native_config, nw_obj_lookup_dict)
-    # TODO: implement vips
+    yield from normalize_vips(native_config, nw_obj_lookup_dict)
     yield from normalize_internet_services(native_config, nw_obj_lookup_dict)
     # "Original" network object for natting
     yield NetworkObject(

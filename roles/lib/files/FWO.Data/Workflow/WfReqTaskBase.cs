@@ -4,13 +4,18 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Data.Workflow
 {
-    public enum AutoCreateImplTaskOptions
+    /// <summary>
+    /// Whether the requester enters the affected devices in an access request task. Devices entered there take
+    /// precedence over the path analysis algorithm when the implementation tasks are created automatically.
+    /// </summary>
+    public enum ReqDeviceInputOptions
     {
+        /// <summary>No device field in the request task.</summary>
         never,
-        onlyForOneDevice,
-        forEachDevice,
+        /// <summary>Mandatory device field; one implementation task per selected device.</summary>
         enterInReqTask,
-        afterPathAnalysis
+        /// <summary>Like enterInReqTask, but selecting all devices creates exactly one implementation task.</summary>
+        oneTaskForAllDevices
     }
 
     public struct AdditionalInfoKeys
@@ -18,13 +23,23 @@ namespace FWO.Data.Workflow
         public const string ConnId = "ConnId";
         public const string ReqOwner = "ReqOwner";
         public const string GrpName = "GrpName";
+        public const string GroupId = "GroupId";
+        public const string RequestContactName = "requestContactName";
+        public const string RequestContactId = "requestContactId";
+        public const string RequestorName = "requestorName";
+        public const string RequestorId = "requestorId";
+        public const string TimeObjectId = "timeObjectId";
         public const string ExtIcketId = "ExtIcketId";
         public const string AppRoleId = "AppRoleId";
         public const string SvcGrpId = "SvcGrpId";
+        public const string FlowBundleId = "FlowBundleId";
+        public const string FwConfigChangeTarget = "FwConfigChangeTarget";
     }
 
     public class WfReqTaskBase : WfTaskBase
     {
+        public const int kAllDevicesId = -1;
+
         [JsonProperty("request_action"), JsonPropertyName("request_action")]
         public string RequestAction { get; set; } = Workflow.RequestAction.create.ToString();
 
@@ -39,6 +54,9 @@ namespace FWO.Data.Workflow
 
         [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
         public int? ManagementId { get; set; }
+
+        [JsonProperty("locked"), JsonPropertyName("locked")]
+        public bool Locked { get; set; }
 
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public string SelectedDevices
@@ -67,6 +85,7 @@ namespace FWO.Data.Workflow
             LastRecertDate = reqtask.LastRecertDate;
             SelectedDevices = reqtask.SelectedDevices;
             ManagementId = reqtask.ManagementId;
+            Locked = reqtask.Locked;
         }
 
         public virtual List<int> GetDeviceList()
@@ -74,13 +93,28 @@ namespace FWO.Data.Workflow
             return DeviceList;
         }
 
+        public bool HasAllDevicesSelected()
+        {
+            return GetDeviceList().Contains(kAllDevicesId);
+        }
+
+        public virtual List<int> GetResolvedDeviceList(List<Device> devices)
+        {
+            if (HasAllDevicesSelected())
+            {
+                return [.. devices.Select(device => device.Id)];
+            }
+            return GetDeviceList();
+        }
+
+        public void SetDeviceList(List<int> deviceIds)
+        {
+            DeviceList = [.. deviceIds];
+        }
+
         public void SetDeviceList(List<Device> devList)
         {
-            DeviceList = [];
-            foreach (var dev in devList)
-            {
-                DeviceList.Add(dev.Id);
-            }
+            SetDeviceList([.. devList.Select(dev => dev.Id)]);
         }
 
         public int? GetAddInfoIntValue(string key)
@@ -135,6 +169,16 @@ namespace FWO.Data.Workflow
                 }
             }
             AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo);
+        }
+
+        public void RemoveAddInfo(string key)
+        {
+            Dictionary<string, string>? addInfo = GetAddInfos();
+            if (addInfo == null || !addInfo.Remove(key))
+            {
+                return;
+            }
+            AdditionalInfo = addInfo.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(addInfo) : null;
         }
 
         private Dictionary<string, string>? GetAddInfos()

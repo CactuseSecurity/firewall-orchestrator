@@ -1,0 +1,34 @@
+- block:
+    - name: create maint website dir
+      file:
+        path: "/var/www/html/"
+        state: directory
+        mode: "0755"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+
+    - name: copy maintenance web site index
+      copy:
+        src: maintenance-info.html
+        dest: "/var/www/html/index.html"
+        mode: "0644"
+
+    - name: copy maintenance web site image
+      copy:
+        src: men-at-work.png
+        dest: "/var/www/html/men-at-work.png"
+        mode: "0644"
+
+    - name: Select the installed identity for the maintenance site
+      include_tasks: select-maintenance-certificate.yml
+
+    - name: copy httpd maintenance config file to ui target
+      template:
+        src: "httpd-maintenance.conf"
+        dest: "{{ internalca_maintenance_configuration_file }}"
+        owner: root
+        group: root
+
+    - name: Reload Apache with maintenance site before certificate reconciliation
+      include_tasks: reload-before-certificate-reconciliation.yml
+  become: true

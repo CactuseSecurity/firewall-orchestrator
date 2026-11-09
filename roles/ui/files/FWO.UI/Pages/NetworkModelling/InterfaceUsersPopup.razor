@@ -1,10 +1,10 @@
-﻿@inject UserConfig userConfig
+@inject UserConfig userConfig
 
-<PopUp Title="@Title" Show="@Display" Size=PopupSize.Medium OnClose="Close">
+<PopUp Title="@Title" Show="@Display" Size=PopupSize.Auto OnClose="Close">
     <Body>
         @if (Display)
         {
-            <Table TableClass=" table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection" Items="UsingConnections">
+            <Table PageSize="PageSize" TableClass=" table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingConnection" Items="UsingConnections">
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" />
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("owner"))" Field="@(x => x.App.Name)">
                     <Template>
@@ -19,6 +19,7 @@
                     </Template>
                 </Column>
                 <Column TableItem="ModellingConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" />
+                <Pager ShowPageNumber="true" />
             </Table>
         }
     </Body>
@@ -47,6 +48,8 @@
 
     [Parameter, EditorRequired]
     public required FwoOwner App { private get; init; }
+
+    private const int PageSize = 10;
 
     private string Title
     {

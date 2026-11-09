@@ -1,0 +1,27 @@
+- block:
+    - name: Install webserver packages
+      package:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ apache_packages }}"
+
+    - name: copy mw httpd config file to mw target
+      template:
+        src: "httpd.conf"
+        dest: "{{ http_conf_dir }}/{{ product_name }}-mw.conf"
+        owner: root
+        group: root
+
+    - name: add mw port to apache on RedHat
+      lineinfile:
+        path: "{{ apache_ports_config_file }}"
+        regexp: "^Listen {{ middleware_web_listener_port }}$"
+        line: "Listen {{ middleware_web_listener_port }}"
+        create: true
+
+    - name: reload apache
+      service:
+        name: "{{ webserver_package_name }}"
+        state: reloaded
+  become: true
+  environment: "{{ proxy_env }}"

@@ -1,0 +1,887 @@
+using FWO.Middleware.Server.Requests;
+using Microsoft.AspNetCore.Mvc;
+using NUnit.Framework;
+using System.Text.Json;
+
+namespace FWO.Test;
+
+[TestFixture]
+internal class ComplianceZoneValidationTest
+{
+    [Test]
+    public void ResolveZonesForObjects_RejectsNullRequest()
+    {
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(null!, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("Request body is required"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsUnexpectedRootKey()
+    {
+        string json = """
+        {
+          "objects": [],
+          "typo": true
+        }
+        """;
+
+        ResolveZonesForObjectsRequest request = JsonSerializer.Deserialize<ResolveZonesForObjectsRequest>(json)!;
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("resolveZonesForObjects only accepts"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_AllowsNestedGroups()
+    {
+        string json = """
+        {
+          "objects": [
+            {
+              "name": "Root Group",
+              "members": [
+                {
+                  "name": "Leaf",
+                  "type": "network",
+                  "ipHost": "10.0.0.1"
+                },
+                {
+                  "name": "Nested Group",
+                  "members": [
+                    {
+                      "name": "Nested Leaf",
+                      "type": "ip_range",
+                      "ipRange": ["10.0.1.1", "10.0.1.10"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        """;
+
+        ResolveZonesForObjectsRequest request = JsonSerializer.Deserialize<ResolveZonesForObjectsRequest>(json)!;
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_AllowsIpv4RangeBounds()
+    {
+        ResolveZonesForObjectsRequest.LeafObjectRequest leaf = new()
+        {
+            Name = "Network",
+            Type = "network",
+            IpRange = ["10.0.0.0", "10.0.0.255"]
+        };
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects = [leaf]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_AllowsIpv6RangeBounds()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Network",
+                    Type = "network",
+                    IpRange = ["2001:db8::", "2001:db8::3"]
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+        });
+    }
+
+    /// <summary>
+    /// Verifies addresses in a nested leaf pass and the validator leaves the request unchanged; the service
+    /// normalizes the addresses itself.
+    /// </summary>
+    [TestCase("10.0.0.10")]
+    [TestCase("2001:db8::10")]
+    [TestCase("10.0.0.0/24")]
+    [TestCase("10.0.0.5/24")]
+    [TestCase("2001:db8::/126")]
+    [TestCase("0.0.0.0/0")]
+    public void ResolveZonesForObjects_AcceptsAddressInNestedLeaf(string address)
+    {
+        ResolveZonesForObjectsRequest.LeafObjectRequest leaf = new()
+        {
+            Name = "Leaf",
+            Type = "network"
+        };
+        if (address.Contains('/'))
+        {
+            leaf.IpNetwork = address;
+        }
+        else
+        {
+            leaf.IpHost = address;
+        }
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.GroupObjectRequest
+                {
+                    Name = "Group",
+                    Members = [leaf]
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+            Assert.That(address.Contains('/') ? leaf.IpNetwork : leaf.IpHost, Is.EqualTo(address));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_AllowsHostWithBareIpNetwork()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Host",
+                    Type = "host",
+                    IpHost = "192.0.2.10"
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsHostWithNetworkIpNetwork()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Host",
+                    Type = "host",
+                    IpNetwork = "192.0.2.0/24"
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must normalize to one address"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsIpNetworkTogetherWithRangeBound()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Network",
+                    Type = "network",
+                    IpNetwork = "192.0.2.0/24",
+                    IpHost = "192.0.2.10"
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("exactly one"));
+        });
+    }
+
+    [TestCase("not-an-ip")]
+    [TestCase("2001:db8::/129")]
+    [TestCase("010.0.0.0/24")]
+    [TestCase("10.0.0.0/+24")]
+    [TestCase("fe80::%3/64")]
+    [TestCase("::ffff:192.0.2.0/120")]
+    public void ResolveZonesForObjects_RejectsInvalidIpNetwork(string ipNetwork)
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Network",
+                    Type = "network",
+                    IpNetwork = ipNetwork
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsMasksInRangeEndpoints()
+    {
+        ResolveZonesForObjectsRequest.LeafObjectRequest leaf = new()
+        {
+            Name = "Network",
+            Type = "network",
+            IpRange = ["10.0.0.1/32", "10.0.0.2/32"]
+        };
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects = [leaf]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("invalid 'ipRange[0]'"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsBroaderMaskedIpBounds()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Network",
+                    Type = "network",
+                    IpRange = ["10.0.0.1/24", "10.0.0.2/32"]
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("invalid 'ipRange[0]'"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RoundTripsNestedObjects()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.GroupObjectRequest
+                {
+                    Name = "Root Group",
+                    Members =
+                    [
+                        new ResolveZonesForObjectsRequest.LeafObjectRequest
+                        {
+                            Name = "Leaf",
+                            Type = "network",
+                            IpRange = ["10.0.0.1", "10.0.0.10"]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        string json = JsonSerializer.Serialize(request);
+        ResolveZonesForObjectsRequest roundTrip = JsonSerializer.Deserialize<ResolveZonesForObjectsRequest>(json)!;
+
+        Assert.That(roundTrip.Objects, Has.Count.EqualTo(1));
+        Assert.That(roundTrip.Objects[0], Is.TypeOf<ResolveZonesForObjectsRequest.GroupObjectRequest>());
+        ResolveZonesForObjectsRequest.GroupObjectRequest group = (ResolveZonesForObjectsRequest.GroupObjectRequest)roundTrip.Objects[0];
+        Assert.That(group.Members[0], Is.TypeOf<ResolveZonesForObjectsRequest.LeafObjectRequest>());
+        ResolveZonesForObjectsRequest.LeafObjectRequest leaf = (ResolveZonesForObjectsRequest.LeafObjectRequest)group.Members[0];
+        Assert.Multiple(() =>
+        {
+            Assert.That(leaf.Type, Is.EqualTo("network"));
+            Assert.That(leaf.IpRange, Is.EqualTo(["10.0.0.1", "10.0.0.10"]));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsEmptyRequest()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects = []
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must contain at least one entry"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsEmptyGroups()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.GroupObjectRequest
+                {
+                    Name = "Empty Group",
+                    Members = []
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must contain at least one member"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsNullObjectEntry()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects = [null!]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("cannot contain null entries"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsUnsupportedNodeType()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new UnsupportedObjectRequest
+                {
+                    Name = "Unsupported"
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("unsupported object node type"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsMissingType()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Leaf",
+                    IpHost = "10.0.0.1"
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("requires a non-empty 'type'"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsObjectsWithoutMembersOrLeafFields()
+    {
+        string json = """
+        {
+          "objects": [
+            {
+              "name": "Forgotten Group"
+            }
+          ]
+        }
+        """;
+
+        ResolveZonesForObjectsRequest request = JsonSerializer.Deserialize<ResolveZonesForObjectsRequest>(json)!;
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must define either non-empty 'members'"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsUnsupportedTypeValue()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Leaf",
+                    Type = "alias",
+                    IpHost = "10.0.0.1"
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("unsupported 'type' value"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsWrongLengthIpRange()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Leaf",
+                    Type = "network",
+                    IpRange = ["10.0.0.1"]
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("exactly two entries in 'ipRange'"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsInvalidFirstRangeEndpoint()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Leaf",
+                    Type = "network",
+                    IpRange = ["not-an-ip", "10.0.0.1"]
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("invalid 'ipRange[0]' value"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsInvalidSecondRangeEndpoint()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Leaf",
+                    Type = "network",
+                    IpRange = ["10.0.0.1", "not-an-ip"]
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("invalid 'ipRange[1]' value"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsMixedAddressFamilies()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Leaf",
+                    Type = "network",
+                    IpRange = ["10.0.0.1", "2001:db8::1"]
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("same address family"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsDescendingIpRange()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Leaf",
+                    Type = "network",
+                    IpRange = ["10.0.0.2", "10.0.0.1"]
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("lower to its upper address"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsUnknownNestedKey()
+    {
+        string json = """
+        {
+          "objects": [
+            {
+              "name": "Root Group",
+              "members": [
+                {
+                  "name": "Leaf",
+                  "type": "network",
+                  "ipHost": "10.0.0.1",
+                  "typo": true
+                }
+              ]
+            }
+          ]
+        }
+        """;
+
+        ResolveZonesForObjectsRequest request = JsonSerializer.Deserialize<ResolveZonesForObjectsRequest>(json)!;
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("members entry at index 0"));
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("only accepts"));
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("ipNetwork"));
+        });
+        foreach (RequestKeyDefinition addressKey in AddressInputRequestValidator.Keys)
+        {
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(),
+                Does.Contain($"'{addressKey.JsonName}': {addressKey.Description}"));
+        }
+    }
+
+    [TestCase("ipStart")]
+    [TestCase("ipEnd")]
+    public void ResolveZonesForObjects_RejectsRemovedLegacyAddressFields(string legacyField)
+    {
+        string json = $$"""
+        {
+          "objects": [
+            {
+              "name": "Legacy leaf",
+              "type": "network",
+              "{{legacyField}}": "10.0.0.1"
+            }
+          ]
+        }
+        """;
+        ResolveZonesForObjectsRequest request = JsonSerializer.Deserialize<ResolveZonesForObjectsRequest>(json)!;
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("ipHost"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsGroupsWithIpFields()
+    {
+        string json = """
+        {
+          "objects": [
+            {
+              "name": "Group",
+              "members": [
+                {
+                  "name": "Leaf",
+                  "type": "host",
+                  "ipHost": "10.0.0.2"
+                }
+              ],
+              "ipHost": "10.0.0.1"
+            }
+          ]
+        }
+        """;
+
+        ResolveZonesForObjectsRequest request = JsonSerializer.Deserialize<ResolveZonesForObjectsRequest>(json)!;
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("only accepts"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsHostRanges()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Host",
+                    Type = "host",
+                    IpRange = ["10.0.0.1", "10.0.0.2"]
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must normalize to one address"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_AllowsIpv6Addresses()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "IPv6 Network",
+                    Type = "network",
+                    IpRange = ["2001:db8::1", "2001:db8::ffff"]
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsTooManyObjects()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects = Enumerable.Range(0, 2048)
+                .Select(index => (ResolveZonesForObjectsRequest.ObjectRequest)new ResolveZonesForObjectsRequest.GroupObjectRequest
+                {
+                    Name = $"Outer-{index}",
+                    Members =
+                    [
+                        new ResolveZonesForObjectsRequest.GroupObjectRequest
+                        {
+                            Name = $"Inner-{index}",
+                            Members =
+                            [
+                                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                                {
+                                    Name = $"Leaf-{index}",
+                                    Type = "host",
+                                    IpHost = "10.0.0.1"
+                                }
+                            ]
+                        }
+                    ]
+                })
+                .ToList()
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("at most 4096 objects"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsTooManyRanges()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects = Enumerable.Range(0, 2049)
+                .Select(index => (ResolveZonesForObjectsRequest.ObjectRequest)new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = $"Range-{index}",
+                    Type = "ip_range",
+                    IpRange = ["10.0.0.1", "10.0.0.2"]
+                })
+                .ToList()
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("at most 2048 IP ranges"));
+        });
+    }
+
+    private sealed class UnsupportedObjectRequest : ResolveZonesForObjectsRequest.ObjectRequest
+    {
+    }
+}

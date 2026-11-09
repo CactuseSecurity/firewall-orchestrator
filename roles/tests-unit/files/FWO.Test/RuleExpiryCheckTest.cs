@@ -6,13 +6,115 @@ using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System.Collections;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
-    internal class RuleExpiryCheckTest
+    internal partial class RuleExpiryCheckTest
     {
+        private const int kRegexTimeoutMilliseconds = 1000;
+
+        /// <summary>
+        /// Ensures the expiry query loads the owner data needed for recipient resolution.
+        /// </summary>
+        [Test]
+        public void GetTimeBasedRulesByOwner_LoadsOwnerResponsibles()
+        {
+            Assert.That(RuleQueries.getTimeBasedRulesByOwner, Does.Match(
+                @"owner\s*\{[^{}]*owner_responsibles\s*\{\s*dn\s+responsible_type\s*\}"));
+        }
+
+        /// <summary>
+        /// Ensures the expiry query skips disabled rules by filtering on the rule itself, not on the rule owner.
+        /// </summary>
+        [Test]
+        public void GetTimeBasedRulesByOwner_ExcludesDisabledRules()
+        {
+            string query = RuleQueries.getTimeBasedRulesByOwner;
+            Match ruleFilterStart = RuleFilterStartRegex().Match(query);
+            Assert.That(ruleFilterStart.Success, Is.True, "Could not find the rule filter in the query.");
+
+            string ruleOwnerFilterPart = query[..ruleFilterStart.Index];
+            string ruleFilter = ExtractBracedBlock(query, ruleFilterStart.Index + ruleFilterStart.Length - 1);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ruleFilter, Does.Match(@"rule_disabled\s*:\s*\{\s*_eq\s*:\s*false\s*\}"));
+                Assert.That(ruleOwnerFilterPart, Does.Not.Contain("rule_disabled"));
+            });
+        }
+
+        /// <summary>
+        /// Resolves owner recipients through the expiry check without dummy addresses or SMTP.
+        /// </summary>
+        [TestCase(EmailRecipientOption.OwnerGroupOnly, false, true)]
+        [TestCase(EmailRecipientOption.OwnerMainResponsible, true, false)]
+        [TestCase(EmailRecipientOption.AllOwnerResponsibles, true, true)]
+        [TestCase(EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty, false, true)]
+        [TestCase(EmailRecipientOption.ConfiguredResponsibles, false, true)]
+        public async Task CheckRuleExpiry_ResolvesOwnerRecipients(
+            EmailRecipientOption recipientOption, bool includesMain, bool includesSupporting)
+        {
+            FwoNotification notification = CreateRuleTimerNotification(1);
+            notification.RecipientTo = recipientOption;
+            notification.RecipientCc = recipientOption;
+            notification.RecipientBcc = recipientOption;
+            string recipientConfig = new EmailRecipientSelection
+            {
+                OwnerResponsibleTypeIds = new List<int> { GlobalConst.kOwnerResponsibleTypeSupporting }
+            }.ToConfigValue();
+            notification.EmailAddressTo = recipientConfig;
+            notification.EmailAddressCc = recipientConfig;
+            notification.EmailAddressBcc = recipientConfig;
+            ExpiredRuleEntryInput ruleEntry = CreateExpiredRuleEntry(1, 1001);
+            ruleEntry.OwnerResponsibles.Add(new OwnerResponsible
+            {
+                Dn = "cn=main,dc=test",
+                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeMain
+            });
+            ruleEntry.OwnerResponsibles.Add(new OwnerResponsible
+            {
+                Dn = "cn=supporting,dc=test",
+                ResponsibleTypeId = GlobalConst.kOwnerResponsibleTypeSupporting
+            });
+            RuleExpiryCheckTestApiConn apiConnection = new()
+            {
+                Notifications = new List<FwoNotification> { notification },
+                ExpiredRuleEntries = new List<ExpiredRuleEntryInput> { ruleEntry },
+                LdapAvailable = false,
+                Users = new List<UiUser>
+                {
+                    new() { Dn = "cn=main,dc=test", Email = "main@example.test" },
+                    new() { Dn = "cn=supporting,dc=test", Email = "supporting@example.test" }
+                }
+            };
+            SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+            globalConfig.UseDummyEmailAddress = false;
+
+            await new RuleExpiryCheck(apiConnection, globalConfig).CheckRuleExpiry();
+
+            Assert.That(apiConnection.LogEntries, Has.Count.EqualTo(1));
+            NotificationLogInsertEntry logEntry = apiConnection.LogEntries.Single();
+            List<string> expectedRecipients = new();
+            if (includesMain)
+            {
+                expectedRecipients.Add("main@example.test");
+            }
+            if (includesSupporting)
+            {
+                expectedRecipients.Add("supporting@example.test");
+            }
+            Assert.Multiple(() =>
+            {
+                Assert.That(logEntry.To.Split(',', StringSplitOptions.TrimEntries), Is.EquivalentTo(expectedRecipients));
+                Assert.That(logEntry.Cc.Split(',', StringSplitOptions.TrimEntries), Is.EquivalentTo(expectedRecipients));
+                Assert.That(logEntry.Bcc.Split(',', StringSplitOptions.TrimEntries), Is.EquivalentTo(expectedRecipients));
+                Assert.That(apiConnection.LastLogStatus, Is.EqualTo(NotificationLogStatus.Suppressed));
+            });
+        }
+
         [Test]
         public async Task CheckRuleExpiry_SendsNotification_WhenExpiredRuleIsDue()
         {
@@ -50,8 +152,52 @@ namespace FWO.Test
 
             int sentEmails = await check.CheckRuleExpiry();
 
-            ClassicAssert.AreEqual(1, sentEmails);
+            ClassicAssert.AreEqual(0, sentEmails);
             ClassicAssert.AreEqual(1, apiConnection.LastUpdatedNotificationIdCount);
+        }
+
+        [Test]
+        public void CheckRuleExpiry_CanceledAfterFirstOwner_SkipsRemainingOwnersAndUpdatesLastSent()
+        {
+            using CancellationTokenSource cancellationTokenSource = new();
+            RuleExpiryCheckTestApiConn apiConnection = new()
+            {
+                Notifications = [CreateRuleTimerNotification(1)],
+                ExpiredRuleEntries = [CreateExpiredRuleEntry(1, 1001), CreateExpiredRuleEntry(2, 2001)],
+                OnInsertNotificationLog = cancellationTokenSource.Cancel
+            };
+            RuleExpiryCheck check = new(apiConnection, CreateGlobalConfig());
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await check.CheckRuleExpiry(cancellationTokenSource.Token));
+
+            Assert.That(apiConnection.InsertNotificationLogCalls, Is.EqualTo(1));
+            Assert.That(apiConnection.UpdateLastSentCalls, Is.EqualTo(1));
+            Assert.That(apiConnection.LastUpdatedNotificationIdCount, Is.EqualTo(1));
+        }
+
+        private static ExpiredRuleEntryInput CreateExpiredRuleEntry(int ownerId, int ruleId)
+        {
+            return new ExpiredRuleEntryInput
+            {
+                OwnerId = ownerId,
+                OwnerName = $"Owner{ownerId}",
+                OwnerExtAppId = $"APP{ownerId}",
+                RuleId = ruleId,
+                RuleUid = $"uid-{ruleId}",
+                RuleName = $"Allow {ruleId}",
+                RuleNumber = 10,
+                ManagementId = 5,
+                RulebaseName = "RB1",
+                SourceShort = "SrcShort",
+                SourceLong = "SrcLong",
+                DestinationShort = "DstShort",
+                DestinationLong = "DstLong",
+                ServiceShort = "SvcShort",
+                ServiceLong = "SvcLong",
+                CustomFields = "{}",
+                LastHit = DateTime.Now.AddDays(-5),
+                RuleTimes = [new() { TimeObjId = ruleId, TimeObjName = $"TO-{ruleId}", EndTime = DateTime.Now.AddDays(-2) }]
+            };
         }
 
         [Test]
@@ -153,8 +299,8 @@ namespace FWO.Test
 
             int sentEmails = await check.CheckRuleExpiry();
 
-            ClassicAssert.AreEqual(3, sentEmails, "Expected one global mail per owner plus one owner-scoped mail for owner 2.");
-            ClassicAssert.AreEqual(2, apiConnection.LastUpdatedNotificationIdCount, "Only unique notification ids should be marked as sent.");
+            ClassicAssert.AreEqual(0, sentEmails, "The configured rule-expiry notifications are log-only.");
+            ClassicAssert.AreEqual(2, apiConnection.LastUpdatedNotificationIdCount, "Processed log-only notifications must advance last_sent.");
         }
 
         [Test]
@@ -176,9 +322,11 @@ namespace FWO.Test
         public void GetLocalizedIntervalUnit_ReturnsConfiguredTexts()
         {
             SimulatedGlobalConfig config = CreateGlobalConfig();
-            config.DummyTranslate["Days"] = "Tage";
-            config.DummyTranslate["Weeks"] = "Wochen";
-            config.DummyTranslate["Months"] = "Monate";
+            config.DefaultLanguage = "English";
+            config.NotificationLanguage = "German";
+            config.GermanTranslate["Days"] = "Tage";
+            config.GermanTranslate["Weeks"] = "Wochen";
+            config.GermanTranslate["Months"] = "Monate";
 
             RuleExpiryCheck check = new(new RuleExpiryCheckTestApiConn(), config);
             MethodInfo? getLocalizedMethod = typeof(RuleExpiryCheck).GetMethod("GetLocalizedIntervalUnit", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -191,6 +339,23 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Tage", days);
             ClassicAssert.AreEqual("Wochen", weeks);
             ClassicAssert.AreEqual("Monate", months);
+        }
+
+        [Test]
+        public void GetLocalizedIntervalUnit_FallsBackToDefaultLanguage_WhenNotificationLanguageIsUnset()
+        {
+            SimulatedGlobalConfig config = CreateGlobalConfig();
+            config.DefaultLanguage = "German";
+            config.NotificationLanguage = "";
+            config.GermanTranslate["Days"] = "Tage";
+
+            RuleExpiryCheck check = new(new RuleExpiryCheckTestApiConn(), config);
+            MethodInfo? getLocalizedMethod = typeof(RuleExpiryCheck).GetMethod("GetLocalizedIntervalUnit", BindingFlags.NonPublic | BindingFlags.Instance);
+            ClassicAssert.IsNotNull(getLocalizedMethod, "Expected private method GetLocalizedIntervalUnit.");
+
+            string days = (string)(getLocalizedMethod!.Invoke(check, [SchedulerInterval.Days]) ?? "");
+
+            ClassicAssert.AreEqual("Tage", days);
         }
 
         [Test]
@@ -218,12 +383,30 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildRuleExpiryBody_ReplacesPlaceholders()
+        public void BuildRuleExpiryBodies_ReplacesPlaceholders_AndSeparatesTextFromHtml()
         {
-            RuleExpiryCheck check = new(new RuleExpiryCheckTestApiConn(), CreateGlobalConfig());
-            MethodInfo? buildBodyMethod = typeof(RuleExpiryCheck).GetMethod("BuildRuleBody", BindingFlags.NonPublic | BindingFlags.Instance);
-            ClassicAssert.IsNotNull(buildBodyMethod, "Expected protected method BuildRuleBody.");
-            MethodInfo closedBuildBodyMethod = (buildBodyMethod ?? throw new InvalidOperationException("BuildRuleBody method not found."))
+            SimulatedGlobalConfig config = CreateGlobalConfig();
+            config.DefaultLanguage = "English";
+            config.NotificationLanguage = "German";
+            config.GermanTranslate["uid"] = "Kennung";
+            config.GermanTranslate["name"] = "Name";
+            config.GermanTranslate["source"] = "Quelle";
+            config.GermanTranslate["destination"] = "Ziel";
+            config.GermanTranslate["service"] = "Dienst";
+            config.GermanTranslate["change_id"] = "Change-ID";
+            config.GermanTranslate["last_hit"] = "Letzter Treffer";
+            config.GermanTranslate["generated_on"] = "Erstellt am";
+            config.GermanTranslate["owners"] = "Owner";
+
+            RuleExpiryCheck check = new(new RuleExpiryCheckTestApiConn(), config);
+            MethodInfo? buildTextBodyMethod = typeof(RuleExpiryCheck).GetMethod("BuildRuleTextBody", BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo? buildHtmlBodyMethod = typeof(RuleExpiryCheck).GetMethod("BuildRuleHtmlBody", BindingFlags.NonPublic | BindingFlags.Instance);
+            ClassicAssert.IsNotNull(buildTextBodyMethod, "Expected protected method BuildRuleTextBody.");
+            ClassicAssert.IsNotNull(buildHtmlBodyMethod, "Expected protected method BuildRuleHtmlBody.");
+            MethodInfo closedBuildTextBodyMethod = (buildTextBodyMethod ?? throw new InvalidOperationException("BuildRuleTextBody method not found."))
+                .MakeGenericMethod(typeof(RuleExpiryCheck).GetNestedType("RuleExpiryInfo", BindingFlags.NonPublic)
+                    ?? throw new InvalidOperationException("RuleExpiryInfo type not found."));
+            MethodInfo closedBuildHtmlBodyMethod = (buildHtmlBodyMethod ?? throw new InvalidOperationException("BuildRuleHtmlBody method not found."))
                 .MakeGenericMethod(typeof(RuleExpiryCheck).GetNestedType("RuleExpiryInfo", BindingFlags.NonPublic)
                     ?? throw new InvalidOperationException("RuleExpiryInfo type not found."));
 
@@ -253,15 +436,129 @@ namespace FWO.Test
             string bodyTemplate = $"Hello @@APPNAME@@ @@APPID@@ @@TIME_INTERVAL@@ {Placeholder.RULE_TABLE} Bye";
             string intervalText = "2 Weeks";
 
-            string body = (string)(closedBuildBodyMethod.Invoke(check, [owner, bodyTemplate, intervalText, entries, null, null]) ?? "");
+            string textBody = (string?)(closedBuildTextBodyMethod.Invoke(check, [owner, bodyTemplate, intervalText, entries, null, null])) ?? "";
+            string htmlBody = (string?)(closedBuildHtmlBodyMethod.Invoke(check, [owner, bodyTemplate, intervalText, entries, null, null, null])) ?? "";
 
-            ClassicAssert.IsTrue(body.Contains("Hello OwnerX APPX 2 Weeks"));
-            ClassicAssert.IsTrue(body.Contains("<table"));
-            ClassicAssert.IsTrue(body.Contains("</table><p> Bye</p>") || body.Contains("</table><p>Bye</p>"));
-            ClassicAssert.IsFalse(body.Contains("@@APPNAME@@"));
-            ClassicAssert.IsFalse(body.Contains("@@APPID@@"));
-            ClassicAssert.IsFalse(body.Contains("@@TIME_INTERVAL@@"));
-            ClassicAssert.IsFalse(body.Contains(Placeholder.RULE_TABLE));
+            ClassicAssert.IsTrue(textBody.Contains("Hello OwnerX APPX 2 Weeks"));
+            ClassicAssert.IsFalse(textBody.Contains("<table"));
+            ClassicAssert.IsFalse(textBody.Contains("<p>"));
+            ClassicAssert.IsTrue(textBody.Contains("uid"));
+            ClassicAssert.IsTrue(textBody.Contains("Bye"));
+            ClassicAssert.IsFalse(textBody.Contains("@@APPNAME@@"));
+            ClassicAssert.IsFalse(textBody.Contains("@@APPID@@"));
+            ClassicAssert.IsFalse(textBody.Contains("@@TIME_INTERVAL@@"));
+            ClassicAssert.IsFalse(textBody.Contains(Placeholder.RULE_TABLE));
+            ClassicAssert.IsTrue(textBody.Contains("Kennung"));
+
+            ClassicAssert.IsTrue(htmlBody.Contains("Hello OwnerX APPX 2 Weeks"));
+            ClassicAssert.IsFalse(htmlBody.Contains("<html>"));
+            ClassicAssert.IsFalse(htmlBody.Contains("<body>"));
+            ClassicAssert.IsTrue(htmlBody.Contains("<table"));
+            ClassicAssert.IsTrue(htmlBody.Contains("</table><p> Bye</p>") || htmlBody.Contains("</table><p>Bye</p>"));
+            ClassicAssert.IsFalse(htmlBody.Contains("@@APPNAME@@"));
+            ClassicAssert.IsFalse(htmlBody.Contains("@@APPID@@"));
+            ClassicAssert.IsFalse(htmlBody.Contains("@@TIME_INTERVAL@@"));
+            ClassicAssert.IsFalse(htmlBody.Contains(Placeholder.RULE_TABLE));
+            ClassicAssert.IsTrue(htmlBody.Contains("Kennung"));
+        }
+
+        [Test]
+        public void BuildRuleExpiryBodies_RenderResolvedGroupMembers_WhenFlatDataIsAvailable()
+        {
+            SimulatedGlobalConfig config = CreateGlobalConfig();
+            config.DefaultLanguage = "English";
+
+            RuleExpiryCheck check = new(new RuleExpiryCheckTestApiConn(), config);
+            MethodInfo? buildTextBodyMethod = typeof(RuleExpiryCheck).GetMethod("BuildRuleTextBody", BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo? buildHtmlBodyMethod = typeof(RuleExpiryCheck).GetMethod("BuildRuleHtmlBody", BindingFlags.NonPublic | BindingFlags.Instance);
+            ClassicAssert.IsNotNull(buildTextBodyMethod, "Expected protected method BuildRuleTextBody.");
+            ClassicAssert.IsNotNull(buildHtmlBodyMethod, "Expected protected method BuildRuleHtmlBody.");
+
+            Type ruleExpiryInfoType = typeof(RuleExpiryCheck).GetNestedType("RuleExpiryInfo", BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("RuleExpiryInfo type not found.");
+            MethodInfo closedBuildTextBodyMethod = (buildTextBodyMethod ?? throw new InvalidOperationException("BuildRuleTextBody method not found."))
+                .MakeGenericMethod(ruleExpiryInfoType);
+            MethodInfo closedBuildHtmlBodyMethod = (buildHtmlBodyMethod ?? throw new InvalidOperationException("BuildRuleHtmlBody method not found."))
+                .MakeGenericMethod(ruleExpiryInfoType);
+
+            NetworkObject srcMember = new()
+            {
+                Id = 11,
+                Name = "SrcMember",
+                IP = "10.0.0.1",
+                Type = new NetworkObjectType { Name = ObjectType.Host }
+            };
+            NetworkObject srcGroup = new()
+            {
+                Id = 1,
+                Name = "SrcGroup",
+                Type = new NetworkObjectType { Name = ObjectType.Group },
+                ObjectGroupFlats = [new GroupFlat<NetworkObject> { Object = srcMember }]
+            };
+            NetworkObject dstMember = new()
+            {
+                Id = 12,
+                Name = "DstMember",
+                IP = "10.0.0.2",
+                Type = new NetworkObjectType { Name = ObjectType.Host }
+            };
+            NetworkObject dstGroup = new()
+            {
+                Id = 2,
+                Name = "DstGroup",
+                Type = new NetworkObjectType { Name = ObjectType.Group },
+                ObjectGroupFlats = [new GroupFlat<NetworkObject> { Object = dstMember }]
+            };
+            NetworkService svcMember = new()
+            {
+                Id = 13,
+                Name = "SvcMember",
+                DestinationPort = 443,
+                DestinationPortEnd = 443,
+                ProtoId = 6,
+                Protocol = new NetworkProtocol { Id = 6, Name = "TCP" }
+            };
+            NetworkService svcGroup = new()
+            {
+                Id = 3,
+                Name = "SvcGroup",
+                Type = new NetworkServiceType { Name = ObjectType.Group },
+                ServiceGroupFlats = [new GroupFlat<NetworkService> { Object = svcMember }]
+            };
+
+            Rule rule = new()
+            {
+                Uid = "uid-group",
+                Name = "rule-group",
+                CustomFields = "{\"field2\":\"chg-group\"}",
+                Metadata = new RuleMetadata { LastHit = DateTime.Today },
+                Froms = [new NetworkLocation(new NetworkUser(), srcGroup)],
+                Tos = [new NetworkLocation(new NetworkUser(), dstGroup)],
+                Services = [new ServiceWrapper { Content = svcGroup }]
+            };
+            object ruleEntry = Activator.CreateInstance(ruleExpiryInfoType, [rule]) ?? throw new InvalidOperationException("Could not create RuleExpiryInfo.");
+            ruleExpiryInfoType.GetProperty("EndTime")?.SetValue(ruleEntry, DateTime.Today);
+            ruleExpiryInfoType.GetProperty("ExpiryInitiator")?.SetValue(ruleEntry, "init");
+
+            Type listType = typeof(List<>).MakeGenericType(ruleExpiryInfoType);
+            IList entries = (IList)(Activator.CreateInstance(listType) ?? throw new InvalidOperationException("Could not create entry list."));
+            entries.Add(ruleEntry);
+
+            FwoOwner owner = new() { Name = "OwnerX", ExtAppId = "APPX" };
+            string bodyTemplate = $"Hello {Placeholder.RULE_TABLE}";
+
+            string textBody = (string?)(closedBuildTextBodyMethod.Invoke(check, [owner, bodyTemplate, "", entries, null, null])) ?? "";
+            string htmlBody = (string?)(closedBuildHtmlBodyMethod.Invoke(check, [owner, bodyTemplate, "", entries, null, null, null])) ?? "";
+
+            ClassicAssert.IsTrue(textBody.Contains("SrcMember"), "Expected source to show resolved group member.");
+            ClassicAssert.IsTrue(textBody.Contains("DstMember"), "Expected destination to show resolved group member.");
+            ClassicAssert.IsTrue(textBody.Contains("SvcMember"), "Expected service to show resolved group member.");
+            ClassicAssert.IsFalse(textBody.Contains("SrcGroup"), "Expected source group wrapper to be hidden in resolved output.");
+            ClassicAssert.IsFalse(textBody.Contains("DstGroup"), "Expected destination group wrapper to be hidden in resolved output.");
+            ClassicAssert.IsFalse(textBody.Contains("SvcGroup"), "Expected service group wrapper to be hidden in resolved output.");
+            ClassicAssert.IsTrue(htmlBody.Contains("SrcMember"), "Expected HTML source to show resolved group member.");
+            ClassicAssert.IsTrue(htmlBody.Contains("DstMember"), "Expected HTML destination to show resolved group member.");
+            ClassicAssert.IsTrue(htmlBody.Contains("SvcMember"), "Expected HTML service to show resolved group member.");
         }
 
         private static FwoNotification CreateRuleTimerNotification(int id, int? ownerId = null)
@@ -271,6 +568,7 @@ namespace FWO.Test
                 Id = id,
                 OwnerId = ownerId,
                 Deadline = NotificationDeadline.RuleExpiry,
+                Logging = NotificationLoggingMode.LogOnly,
                 RecipientTo = EmailRecipientOption.OtherAddresses,
                 EmailAddressTo = "x@y.de",
                 EmailSubject = "rule expiry",
@@ -292,23 +590,63 @@ namespace FWO.Test
             };
         }
 
+        [GeneratedRegex(@"\brule\s*:\s*\{", RegexOptions.None, kRegexTimeoutMilliseconds)]
+        private static partial Regex RuleFilterStartRegex();
+
+        /// <summary>
+        /// Returns the brace-balanced block starting at the given opening brace.
+        /// </summary>
+        private static string ExtractBracedBlock(string text, int openingBraceIndex)
+        {
+            int depth = 0;
+            for (int index = openingBraceIndex; index < text.Length; ++index)
+            {
+                if (text[index] == '{')
+                {
+                    ++depth;
+                }
+                else if (text[index] == '}')
+                {
+                    --depth;
+                    if (depth == 0)
+                    {
+                        return text.Substring(openingBraceIndex, index - openingBraceIndex + 1);
+                    }
+                }
+            }
+
+            Assert.Fail("Could not find the closing '}' of the block.");
+            return string.Empty;
+        }
+
         private sealed class RuleExpiryCheckTestApiConn : SimulatedApiConnection
         {
             public List<FwoNotification> Notifications { get; set; } = [];
             public List<ExpiredRuleEntryInput> ExpiredRuleEntries { get; set; } = [];
             public int LastUpdatedNotificationIdCount { get; private set; }
+            public int UpdateLastSentCalls { get; private set; }
+            public int InsertNotificationLogCalls { get; private set; }
+            public Action? OnInsertNotificationLog { get; set; }
+            public bool LdapAvailable { get; set; } = true;
+            public List<UiUser> Users { get; set; } = new();
+            public List<NotificationLogInsertEntry> LogEntries { get; } = new();
+            public NotificationLogStatus? LastLogStatus { get; private set; }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 Type responseType = typeof(QueryResponseType);
 
                 if (responseType == typeof(List<Ldap>) && query == AuthQueries.getLdapConnections)
                 {
+                    if (!LdapAvailable)
+                    {
+                        throw new InvalidOperationException("LDAP unavailable in recipient tests.");
+                    }
                     List<Ldap> internalLdaps =
                     [
                         new Ldap
                         {
-                            Address = "127.0.0.1",
+                            Addresses = ["127.0.0.1"],
                             Port = 1,
                             UserSearchPath = "uid=intuser2,ou=users,ou=tenant2,dc=fworch,dc=internal",
                             GroupSearchPath = "ou=groups,dc=fworch,dc=internal"
@@ -324,8 +662,45 @@ namespace FWO.Test
 
                 if (responseType == typeof(ReturnId) && query == NotificationQueries.updateNotificationsLastSent)
                 {
+                    ++UpdateLastSentCalls;
                     LastUpdatedNotificationIdCount = CountIds(variables);
                     return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = LastUpdatedNotificationIdCount });
+                }
+
+                if (responseType == typeof(ReturnIdWrapper) && query == NotificationQueries.insertNotificationLog)
+                {
+                    ++InsertNotificationLogCalls;
+                    if (variables?.GetType().GetProperty("entries")?.GetValue(variables) is List<NotificationLogInsertEntry> entries)
+                    {
+                        LogEntries.AddRange(entries);
+                    }
+                    OnInsertNotificationLog?.Invoke();
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = 1 }]
+                    });
+                }
+
+                if (responseType == typeof(ReturnId) && query == NotificationQueries.updateNotificationLog)
+                {
+                    LastLogStatus = Enum.Parse<NotificationLogStatus>(
+                        variables?.GetType().GetProperty("status")?.GetValue(variables)?.ToString() ?? "");
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
+                }
+
+                if (query == AuthQueries.getUserEmails)
+                {
+                    return Task.FromResult((QueryResponseType)(object)Users);
+                }
+
+                if (query == OwnerQueries.getOwnerResponsibleTypes)
+                {
+                    List<OwnerResponsibleType> types = new()
+                    {
+                        new() { Id = GlobalConst.kOwnerResponsibleTypeMain, Active = true },
+                        new() { Id = GlobalConst.kOwnerResponsibleTypeSupporting, Active = true }
+                    };
+                    return Task.FromResult((QueryResponseType)(object)types);
                 }
 
                 if (query == RuleQueries.getTimeBasedRulesByOwner && responseType.IsGenericType && responseType.GetGenericTypeDefinition() == typeof(List<>))
@@ -352,7 +727,13 @@ namespace FWO.Test
                 foreach (ExpiredRuleEntryInput entry in ExpiredRuleEntries)
                 {
                     object row = Activator.CreateInstance(rowType) ?? throw new InvalidOperationException("Could not create response row.");
-                    rowType.GetProperty("Owner")?.SetValue(row, new FwoOwner { Id = entry.OwnerId, Name = entry.OwnerName, ExtAppId = entry.OwnerExtAppId });
+                    rowType.GetProperty("Owner")?.SetValue(row, new FwoOwner
+                    {
+                        Id = entry.OwnerId,
+                        Name = entry.OwnerName,
+                        ExtAppId = entry.OwnerExtAppId,
+                        OwnerResponsibles = entry.OwnerResponsibles
+                    });
 
                     object rule = Activator.CreateInstance(ruleType) ?? throw new InvalidOperationException("Could not create rule.");
                     ruleType.GetProperty("RuleId")?.SetValue(rule, entry.RuleId);
@@ -397,6 +778,7 @@ namespace FWO.Test
 
         private sealed class ExpiredRuleEntryInput
         {
+            public List<OwnerResponsible> OwnerResponsibles { get; set; } = new();
             public int OwnerId { get; set; }
             public string OwnerName { get; set; } = "";
             public string OwnerExtAppId { get; set; } = "";

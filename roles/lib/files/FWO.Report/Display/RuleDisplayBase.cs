@@ -11,7 +11,22 @@ namespace FWO.Ui.Display
     {
         protected UserConfig userConfig = userConfig;
 
-        public static string DisplayNumber(Rule rule)
+        private readonly CustomFieldKeyCache changeIdKeyCache = new();
+
+        /// <summary>
+        /// Resolves the change identifier from the first configured matching rule custom field.
+        /// </summary>
+        /// <param name="rule">Rule containing the serialized custom fields.</param>
+        /// <returns>The configured custom field value, an error description, or an empty string.</returns>
+        public string DisplayChangeId(Rule rule)
+        {
+            string keysJson = userConfig.GlobalConfig?.CustomFieldChangeIdKey ?? GlobalConst.kDefaultChangeIdKeys;
+            string? value = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, changeIdKeyCache.GetKeys(keysJson),
+                out string? errorMessage, CustomFieldKeyMatching.IgnoreCase);
+            return value ?? errorMessage ?? "";
+        }
+
+        public static string DisplayHierarchicalNumber(Rule rule)
         {
             return rule.DisplayOrderNumberString;
         }
@@ -74,7 +89,7 @@ namespace FWO.Ui.Display
                     violationDetails += "<br>";
                 }
 
-                violationDetails += violation.Details;
+                violationDetails += HtmlOutputEncoder.EncodeText(violation.Details);
                 notFirst = true;
             }
 
@@ -117,7 +132,7 @@ namespace FWO.Ui.Display
                         ruleZones += "<br>";
                     }
 
-                    ruleZones += zoneWrapper.Content.Name;
+                    ruleZones += HtmlOutputEncoder.EncodeText(zoneWrapper.Content.Name);
                     notFirst = true;
                 }
                 return ruleZones;
@@ -142,7 +157,7 @@ namespace FWO.Ui.Display
                         ruleZones += "<br>";
                     }
 
-                    ruleZones += zoneWrapper.Content.Name;
+                    ruleZones += HtmlOutputEncoder.EncodeText(zoneWrapper.Content.Name);
                     notFirst = true;
                 }
                 return ruleZones;
@@ -304,6 +319,44 @@ namespace FWO.Ui.Display
                     added.Add(newItem);
                 }
             }
+        }
+
+        /// <summary>
+        /// Renders a network location as html. Names are encoded, unless the caller passes already rendered
+        /// html for them, such as a link built by <see cref="ReportBase.ConstructLink"/>.
+        /// </summary>
+        /// <param name="networkLocation">The user and object to display.</param>
+        /// <param name="reportType">Report type deciding which parts are shown.</param>
+        /// <param name="userHtml">Rendered html for the user, or null to show the encoded user name.</param>
+        /// <param name="objectHtml">Rendered html for the object, or null to show the encoded object name.</param>
+        /// <returns>Html that is safe to place between tags.</returns>
+        protected static string DisplayNetworkLocationHtml(NetworkLocation networkLocation, ReportType reportType, string? userHtml = null, string? objectHtml = null)
+        {
+            return DisplayNetworkLocation(networkLocation, reportType,
+                userHtml ?? HtmlOutputEncoder.EncodeText(networkLocation.User?.Name),
+                objectHtml ?? HtmlOutputEncoder.EncodeText(networkLocation.Object.Name)).ToString();
+        }
+
+        /// <summary>
+        /// Renders a service as html. The name is encoded, unless the caller passes already rendered html for it.
+        /// </summary>
+        /// <param name="service">The service to display.</param>
+        /// <param name="reportType">Report type deciding which parts are shown.</param>
+        /// <param name="serviceNameHtml">Rendered html for the service name, or null to show the encoded name.</param>
+        /// <returns>Html that is safe to place between tags.</returns>
+        protected static string DisplayServiceHtml(NetworkService service, ReportType reportType, string? serviceNameHtml = null)
+        {
+            StringBuilder result = new();
+            if (reportType.IsTechReport())
+            {
+                result.Append(HtmlOutputEncoder.EncodeText(DisplayBase.DisplayService(service, true).ToString()));
+            }
+            else
+            {
+                result.Append(serviceNameHtml ?? HtmlOutputEncoder.EncodeText(service.Name));
+                result.Append(HtmlOutputEncoder.EncodeText(DisplayBase.DisplayServiceDetails(service)));
+            }
+            return (reportType == ReportType.VarianceAnalysis ? DisplayWithIcon(result, ObjCategory.nsrv, service.Type.Name) : result).ToString();
         }
 
         private static StringBuilder DisplayWithIcon(StringBuilder outputString, ObjCategory? objCategory, string? objType)

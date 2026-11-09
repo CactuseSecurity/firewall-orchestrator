@@ -11,6 +11,9 @@ namespace FWO.Data.Workflow
         [JsonProperty("ticket_id"), JsonPropertyName("ticket_id")]
         public long TicketId { get; set; }
 
+        [JsonProperty("flow_access_id"), JsonPropertyName("flow_access_id")]
+        public long? FlowAccessId { get; set; }
+
         [JsonProperty("elements"), JsonPropertyName("elements")]
         public List<WfReqElement> Elements { get; set; } = [];
 
@@ -40,6 +43,7 @@ namespace FWO.Data.Workflow
         {
             Id = reqtask.Id;
             TicketId = reqtask.TicketId;
+            FlowAccessId = reqtask.FlowAccessId;
             Elements = reqtask.Elements;
             ImplementationTasks = reqtask.ImplementationTasks;
             Approvals = reqtask.Approvals;
@@ -81,18 +85,19 @@ namespace FWO.Data.Workflow
             {
                 if (reqElem.Field == field.ToString())
                 {
-                    elements.Add(new NwObjectElement()
+                    NwObjectElement element = new()
                     {
                         ElemId = reqElem.Id,
                         TaskId = reqElem.TaskId,
-                        Cidr = new Cidr(reqElem.Cidr != null ? reqElem.Cidr.CidrString : ""),
-                        CidrEnd = new Cidr(reqElem.CidrEnd != null ? reqElem.CidrEnd.CidrString : ""),
-                        IpString = reqElem.IpString ?? "",
                         NetworkId = reqElem.NetworkId,
+                        FlowNetworkObjectId = reqElem.FlowNetworkObjectId,
+                        FlowNetworkGroupId = reqElem.FlowNetworkGroupId,
                         RequestAction = reqElem.RequestAction,
                         Name = reqElem.Name,
                         GroupName = reqElem.GroupName ?? ""
-                    });
+                    };
+                    ApplyNetworkAddress(element, reqElem.Cidr, reqElem.CidrEnd, reqElem.IpString, reqElem.IpEnd);
+                    elements.Add(element);
                 }
             }
             return elements;
@@ -109,11 +114,15 @@ namespace FWO.Data.Workflow
                     {
                         ElemId = reqElem.Id,
                         TaskId = reqElem.TaskId,
-                        Port = reqElem.Port ?? 0,
+                        Port = reqElem.Port,
                         PortEnd = reqElem.PortEnd,
                         ProtoId = reqElem.ProtoId ?? 0,
+                        HasProtocol = reqElem.ProtoId != null,
                         ServiceId = reqElem.ServiceId,
+                        FlowServiceObjectId = reqElem.FlowServiceObjectId,
+                        FlowServiceGroupId = reqElem.FlowServiceGroupId,
                         Name = reqElem.Name,
+                        GroupName = reqElem.GroupName,
                         RequestAction = reqElem.RequestAction
                     });
                 }

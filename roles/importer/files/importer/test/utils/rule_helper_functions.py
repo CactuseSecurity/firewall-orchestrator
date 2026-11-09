@@ -1,8 +1,12 @@
-import copy
+from __future__ import annotations
 
-from models.fwconfig_normalized import FwConfigNormalized
-from models.rule import RuleNormalized
-from test.utils.config_builder import FwConfigBuilder
+import copy
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from models.fwconfig_normalized import FwConfigNormalized
+    from models.rule import RuleNormalized
+    from test.utils.config_builder import FwConfigBuilder
 
 
 def remove_rule_from_rulebase(

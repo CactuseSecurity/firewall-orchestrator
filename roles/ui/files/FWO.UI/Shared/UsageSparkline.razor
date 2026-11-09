@@ -1,0 +1,93 @@
+@* Inline SVG trend line of the recent usage samples, without any external charting dependency. *@
+@using System.Globalization
+
+<div class="usage-sparkline">
+    @if (Values.Count > 1)
+    {
+        <svg class="usage-sparkline-svg" viewBox="@($"0 0 {kViewBoxWidth} {kViewBoxHeight}")" preserveAspectRatio="none" role="img" aria-label="@Caption">
+            <polygon class="usage-sparkline-area @AreaClass" points="@AreaPoints" />
+            <polyline class="usage-sparkline-line @LineClass" points="@LinePoints" />
+        </svg>
+        <div class="usage-sparkline-time d-flex justify-content-between text-muted small">
+            <span>@StartTime</span>
+            <span>@EndTime</span>
+        </div>
+    }
+    else
+    {
+        <div class="usage-sparkline-empty">@EmptyText</div>
+    }
+</div>
+
+@code
+{
+    private const int kViewBoxWidth = 100;
+    private const int kViewBoxHeight = 30;
+
+    /// <summary>
+    /// Samples to be drawn, oldest first.
+    /// </summary>
+    [Parameter]
+    public List<double> Values { get; set; } = [];
+
+    /// <summary>
+    /// Upper bound of the value range.
+    /// </summary>
+    [Parameter]
+    public double MaxValue { get; set; } = 100;
+
+    /// <summary>
+    /// Accessible description of the drawn trend.
+    /// </summary>
+    [Parameter]
+    public string Caption { get; set; } = "";
+
+    /// <summary>
+    /// Text shown as long as there are not enough samples for a trend.
+    /// </summary>
+    [Parameter]
+    public string EmptyText { get; set; } = "";
+
+    /// <summary>
+    /// Localized time of the oldest displayed sample.
+    /// </summary>
+    [Parameter]
+    public string StartTime { get; set; } = "";
+
+    /// <summary>
+    /// Localized time of the newest displayed sample.
+    /// </summary>
+    [Parameter]
+    public string EndTime { get; set; } = "";
+
+    /// <summary>
+    /// Css class applied to the trend line.
+    /// </summary>
+    [Parameter]
+    public string LineClass { get; set; } = "usage-sparkline-primary";
+
+    /// <summary>
+    /// Css class applied to the area below the trend line.
+    /// </summary>
+    [Parameter]
+    public string AreaClass { get; set; } = "usage-sparkline-primary";
+
+    private string LinePoints => string.Join(" ", ScaledPoints());
+
+    private string AreaPoints => $"0,{kViewBoxHeight} {LinePoints} {kViewBoxWidth},{kViewBoxHeight}";
+
+    private List<string> ScaledPoints()
+    {
+        List<string> points = [];
+        double upperBound = MaxValue > 0 ? MaxValue : 1;
+        double stepWidth = Values.Count > 1 ? (double)kViewBoxWidth / ( Values.Count - 1 ) : kViewBoxWidth;
+
+        for (int index = 0; index < Values.Count; index++)
+        {
+            double x = index * stepWidth;
+            double y = kViewBoxHeight - kViewBoxHeight * Math.Clamp(Values[index] / upperBound, 0, 1);
+            points.Add($"{x.ToString("0.##", CultureInfo.InvariantCulture)},{y.ToString("0.##", CultureInfo.InvariantCulture)}");
+        }
+        return points;
+    }
+}

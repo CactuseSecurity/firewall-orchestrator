@@ -5,35 +5,8 @@
         state: absent
         path: "{{ fworch_home }}/database"
 
-    - name: include redhat db install parts
-      include_tasks: redhat_preps.yml
-      when: installation_mode == "new" and ansible_os_family == "RedHat"
-
-    - name: install package postgresql packages for redhat
-      package:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - postgresql-server
-        - python3-psycopg2
-      when: ansible_os_family == "RedHat"
-      # todo: check if we need and if true, how to install libpq-dev(el)
-
-    - name: install package postgresql packages for debian n ubuntu
-      package:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - postgresql
-        - python3-psycopg2
-        - libpq-dev
-        - postgresql-client
-      when: ansible_os_family == "Debian"
-
-    - name: initdb as extra step for redhat
-      shell: "LC_ALL=C.UTF-8 /usr/bin/postgresql-setup --initdb"
-      become: true
-      when: ansible_os_family == "RedHat"
+    - name: include os specific database preparation
+      include_tasks: "os/{{ ansible_facts['os_family'] }}.yml"
 
     - name: find out installed postgres version
       script: get_pg_version.sh
@@ -47,17 +20,8 @@
       set_fact: pg_version={{ pg_version | int }}
       when: pg_version|int >= 10
 
-    - name: set postgresql config path for Debian based systems
-      set_fact:
-        postgresql_config_file: /etc/postgresql/{{ pg_version }}/main/postgresql.conf
-        postgresql_hba_file: /etc/postgresql/{{ pg_version }}/main/pg_hba.conf
-      when: ansible_os_family == 'Debian'
-
-    - name: set postgresql config path for RedHat
-      set_fact:
-        postgresql_config_file: /var/lib/pgsql/data/postgresql.conf
-        postgresql_hba_file: /var/lib/pgsql/data/pg_hba.conf
-      when: ansible_os_family == 'RedHat'
+    - name: include os specific postgresql path setup
+      include_tasks: "os/{{ ansible_facts['os_family'] }}-paths.yml"
 
     - name: edit {{ postgresql_config_file }} settings
       lineinfile:
@@ -80,12 +44,16 @@
           regexp: '\s*log_min_error_statement'
         - line: "log_line_prefix = '%d '"
           regexp: '\s*log_line_prefix'
-        - line: "listen_addresses = '{{ api_network_listening_ip_address }},127.0.0.1'"
+        - line: "listen_addresses = '{{ postgresql_listening_addresses }}'"
           regexp: listen_addresses
         - line: "client_encoding = 'UTF8'"
           regexp: client_encoding
       register: postgres_config_updates
 
+    # No local account gets in without a password: the roles below have none by default, so their
+    # loopback logins are refused until an administrator sets one (e.g. for a pg_dump backup over
+    # TCP). md5 also accepts passwords stored as scram-sha-256. The block is rewritten on every
+    # run, which replaces the former trust lines on upgrades.
     - name: edit pg_hba.conf
       blockinfile:
         path: "{{ postgresql_hba_file }}"
@@ -93,10 +61,17 @@
         insertbefore: '# IPv4 local connections:'
         block: |
           host  all         dbadmin              127.0.0.0/8            md5
-          host  all         {{ fwo_db_ro_user }} 127.0.0.0/8            trust
-          host  all         {{ fworch_user }}    127.0.0.0/8            trust
-          host  all         +dbbackupusers       127.0.0.0/8            trust
-          host  all         confexporter         127.0.0.0/8            trust
+          host  all         dbadmin              ::1/128                md5
+          host  all         {{ api_user }}       127.0.0.0/8            md5
+          host  all         {{ api_user }}       ::1/128                md5
+          host  all         {{ fwo_db_ro_user }} 127.0.0.0/8            md5
+          host  all         {{ fwo_db_ro_user }} ::1/128                md5
+          host  all         {{ fworch_user }}    127.0.0.0/8            md5
+          host  all         {{ fworch_user }}    ::1/128                md5
+          host  all         +dbbackupusers       127.0.0.0/8            md5
+          host  all         +dbbackupusers       ::1/128                md5
+          host  all         confexporter         127.0.0.0/8            md5
+          host  all         confexporter         ::1/128                md5
       register: postgres_hba_update
   
     - name: reload postgres service
@@ -105,13 +80,32 @@
         state: restarted
       when: postgres_config_updates.changed or postgres_hba_update.changed
 
+    # RedHat neither starts nor enables postgresql when the package is installed, so without this
+    # the database does not come back after a reboot and every following task fails on a dead
+    # socket. On Debian the package already does both, which makes this a no-op there.
+    - name: make sure postgres is running and starts at host startup
+      service:
+        name: "{{ postgresql_package }}"
+        state: started
+        enabled: true
+
     - name: copy database files to backend target
-      synchronize: 
+      ansible.posix.synchronize:
         src: "./"
         dest: "{{ database_install_dir }}"
         rsync_opts:
-          - "--chown={{ fworch_user }}:{{ fworch_group }}"   
+          # postgres user needs group read access to sql files regardless of system umask
+          - "--chown={{ fworch_user }}:{{ postgres_group }}"
+          - "--chmod=D0750,F0640"
       tags: [ 'test' ]
+
+    - name: ensure database dir is accessible for postgres user
+      file:
+        path: "{{ database_install_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ postgres_group }}"
+        mode: "0750"
 
     - name: create tablespace directory 
       file:
@@ -156,6 +150,9 @@
 - name: upgrade database
   import_tasks: upgrade-database.yml
   when: installation_mode == "upgrade"
+
+- name: create Hasura database user and grants
+  import_tasks: create-hasura-user.yml
 
 - name: (re)defines functions and views (idempotent)
   community.postgresql.postgresql_script:

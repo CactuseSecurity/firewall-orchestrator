@@ -27,6 +27,9 @@ namespace FWO.Data.Workflow
         [JsonProperty("requester_group"), JsonPropertyName("requester_group")]
         public string? RequesterGroup { get; set; }
 
+        [JsonProperty("additional_info"), JsonPropertyName("additional_info")]
+        public string? AdditionalInfo { get; set; }
+
         [JsonProperty("tenant_id"), JsonPropertyName("tenant_id")]
         public int? TenantId { get; set; }
 
@@ -39,11 +42,18 @@ namespace FWO.Data.Workflow
         [JsonProperty("external_ticket_source"), JsonPropertyName("external_ticket_source")]
         public int? ExternalTicketSource { get; set; }
 
+        [JsonProperty("pre_workflow_ticket_reference"), JsonPropertyName("pre_workflow_ticket_reference")]
+        public string? PreWorkflowTicketReference { get; set; }
+
         [JsonProperty("ticket_deadline"), JsonPropertyName("ticket_deadline")]
         public DateTime? Deadline { get; set; }
 
         [JsonProperty("ticket_priority"), JsonPropertyName("ticket_priority")]
         public int? Priority { get; set; }
+
+        [JsonProperty("locked"), JsonPropertyName("locked")]
+        // Locks request-task content and structure, but not ticket header metadata such as title, priority, deadline, or reason.
+        public bool Locked { get; set; }
 
 
         public WfTicketBase()
@@ -58,12 +68,15 @@ namespace FWO.Data.Workflow
             Requester = ticket.Requester;
             RequesterDn = ticket.RequesterDn;
             RequesterGroup = ticket.RequesterGroup;
+            AdditionalInfo = ticket.AdditionalInfo;
             TenantId = ticket.TenantId;
             Reason = ticket.Reason;
             ExternalTicketId = ticket.ExternalTicketId;
             ExternalTicketSource = ticket.ExternalTicketSource;
+            PreWorkflowTicketReference = ticket.PreWorkflowTicketReference;
             Deadline = ticket.Deadline;
             Priority = ticket.Priority;
+            Locked = ticket.Locked;
         }
 
         public override bool Sanitize()
@@ -74,7 +87,32 @@ namespace FWO.Data.Workflow
             RequesterGroup = RequesterGroup.SanitizeLdapPathOpt(ref shortened);
             Reason = Reason.SanitizeOpt(ref shortened);
             ExternalTicketId = ExternalTicketId.SanitizeOpt(ref shortened);
+            PreWorkflowTicketReference = PreWorkflowTicketReference.SanitizeOpt(ref shortened);
             return shortened;
+        }
+
+        /// <summary>
+        /// Gets a string value from the ticket's optional JSON additional information.
+        /// Malformed or non-object JSON is treated as missing information.
+        /// </summary>
+        /// <param name="key">The additional-information key to read.</param>
+        /// <returns>The stored value, or an empty string when it is unavailable or malformed.</returns>
+        public string GetAdditionalInfoValue(string key)
+        {
+            if (string.IsNullOrWhiteSpace(AdditionalInfo))
+            {
+                return "";
+            }
+
+            try
+            {
+                Dictionary<string, string>? additionalInfo = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(AdditionalInfo);
+                return additionalInfo != null && additionalInfo.TryGetValue(key, out string? value) ? value : "";
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return "";
+            }
         }
     }
 }

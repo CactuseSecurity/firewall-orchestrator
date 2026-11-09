@@ -1,0 +1,642 @@
+using FWO.Basics;
+using FWO.Config.Api;
+using FWO.Data;
+using FWO.Data.Report;
+using FWO.Data.Workflow;
+using FWO.Report.Filter.FilterTypes;
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
+
+namespace FWO.Test
+{
+    [TestFixture]
+    [Parallelizable]
+    internal class ReportFiltersTest
+    {
+        private static readonly List<int> kSelectedRulebaseIds = [10];
+
+        /// <summary>New reports use the effective configured view.</summary>
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Init_UsesConfiguredRulesView(bool managementView)
+        {
+            SimulatedUserConfig userConfig = new() { DefaultManagementRulebaseView = managementView };
+            ReportFilters filters = new();
+
+            filters.Init(userConfig, true);
+
+            Assert.That(filters.ManagementRulebaseView, Is.EqualTo(managementView));
+            Assert.That(filters.ToReportParams().ManagementRulebaseView, Is.EqualTo(managementView));
+        }
+
+        /// <summary>Templates take precedence over the default in both directions.</summary>
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SyncFiltersFromTemplate_OverridesConfiguredRulesView(bool managementView)
+        {
+            SimulatedUserConfig userConfig = new() { DefaultManagementRulebaseView = !managementView };
+            ReportFilters filters = new();
+            filters.Init(userConfig, true);
+
+            filters.SyncFiltersFromTemplate(new ReportTemplate("", new ReportParams
+            {
+                ReportType = (int)ReportType.Rules,
+                ManagementRulebaseView = managementView
+            }));
+
+            Assert.That(filters.ManagementRulebaseView, Is.EqualTo(managementView));
+        }
+
+        [Test]
+        public void ManagementRulebaseSelection_RoundTripsWithoutSelectingGateways()
+        {
+            List<ManagementSelect> managements = [new ManagementSelect { Id = 1, Name = "Management" }];
+            ReportFilters filters = new()
+            {
+                ReportType = ReportType.Rules,
+                ManagementRulebaseView = true,
+                RulebaseManagements = CreateRulebaseManagements(),
+                DeviceFilter = new(managements)
+            };
+            filters.SelectedRulebases = [new SelectedRulebase { ManagementId = 1, RulebaseId = 10, RulebaseName = "outdated name" }];
+
+            ReportParams reportParams = filters.ToReportParams();
+            ReportFilters restored = new()
+            {
+                RulebaseManagements = CreateRulebaseManagements(),
+                DeviceFilter = new(managements)
+            };
+            restored.SyncFiltersFromTemplate(new ReportTemplate("", reportParams));
+
+            Assert.That(reportParams.ManagementRulebaseView, Is.True);
+            Assert.That(reportParams.SelectedRulebases.Select(rulebase => rulebase.RulebaseId), Is.EqualTo(kSelectedRulebaseIds));
+            Assert.That(restored.ManagementRulebaseView, Is.True);
+            Assert.That(restored.SelectedRulebases.Select(rulebase => rulebase.RulebaseId), Is.EqualTo(kSelectedRulebaseIds));
+            Assert.That(restored.SelectedRulebases[0].RulebaseName, Is.EqualTo("Start"));
+            Assert.That(restored.DeviceFilter.IsAnyDeviceFilterSet(), Is.False);
+        }
+
+        [Test]
+        public void TenantViewChanged_HidesRulebasesOfInvisibleManagementsAndDropsTheirSelection()
+        {
+            List<ManagementSelect> managements = [new ManagementSelect { Id = 1, Name = "Management", Devices = [new DeviceSelect { Id = 5, Name = "Gateway" }] }];
+            ReportFilters filters = new()
+            {
+                RulebaseManagements = CreateRulebaseManagements(),
+                DeviceFilter = new(managements)
+            };
+            filters.SelectedRulebases = RulebaseSelectionHelper.SelectAll(filters.RulebaseManagements);
+
+            filters.TenantViewChanged(new Tenant { Id = 2, VisibleGatewayIds = [] });
+
+            Assert.That(filters.RulebaseManagements[0].Visible, Is.False);
+            Assert.That(filters.SelectedRulebases, Is.Empty);
+
+            filters.TenantViewChanged(null);
+
+            Assert.That(filters.RulebaseManagements[0].Visible, Is.True);
+        }
+
+        [Test]
+        public void SetRulebaseManagements_KeepsStartRulebasesAndMarksLoaded()
+        {
+            ReportFilters filters = new();
+            List<RulebaseManagementSelect> managements = CreateRulebaseManagements();
+            managements[0].Rulebases.Add(new RulebaseSelect
+            {
+                Id = 20,
+                Name = "Ordered layer",
+                IncomingLinks = [new RulebaseLink { FromRulebaseId = 10, FromRulebase = new Rulebase { MgmtId = 1 } }]
+            });
+
+            Assert.That(filters.RulebaseManagementsLoaded, Is.False);
+
+            filters.SetRulebaseManagements(managements);
+
+            Assert.That(filters.RulebaseManagementsLoaded, Is.True);
+            Assert.That(filters.RulebaseManagements.Single().Rulebases.Select(rulebase => rulebase.Id), Is.EqualTo(kSelectedRulebaseIds));
+        }
+
+        [Test]
+        public void SetRulebaseManagements_AppliesTenantViewSelectedBeforeLoading()
+        {
+            List<ManagementSelect> managements = [new ManagementSelect { Id = 1, Name = "Management", Devices = [new DeviceSelect { Id = 5, Name = "Gateway" }] }];
+            ReportFilters filters = new() { DeviceFilter = new(managements) };
+            filters.TenantViewChanged(new Tenant { Id = 2, VisibleGatewayIds = [] });
+
+            filters.SetRulebaseManagements(CreateRulebaseManagements());
+
+            Assert.That(filters.RulebaseManagements.Single().Visible, Is.False);
+        }
+
+        private static List<RulebaseManagementSelect> CreateRulebaseManagements()
+        {
+            return [new RulebaseManagementSelect { Id = 1, Name = "Management", Rulebases = [new RulebaseSelect { Id = 10, Name = "Start" }] }];
+        }
+
+        [Test]
+        public void ToReportParams_CopiesWorkflowFilter_ForTicketChangeReport()
+        {
+            ReportFilters filters = new()
+            {
+                ReportType = ReportType.TicketChangeReport,
+                WorkflowFilter = new()
+                {
+                    ReferenceDate = WorkflowReferenceDate.TaskEnd,
+                    TaskTypes = [WfTaskType.access, WfTaskType.rule_modify],
+                    StateIds = [3, 7],
+                    Phase = "implementation",
+                    AddInfoFilter = new() { Name = "policy_check", Mode = AddInfoFilterMode.value, Value = "true" },
+                    DetailedView = true,
+                    ShowFullTicket = false
+                }
+            };
+
+            var reportParams = filters.ToReportParams();
+
+            Assert.That(reportParams.WorkflowFilter.ReferenceDate, Is.EqualTo(WorkflowReferenceDate.TaskEnd));
+            Assert.That(reportParams.WorkflowFilter.TaskTypes, Is.EqualTo(new List<WfTaskType> { WfTaskType.access, WfTaskType.rule_modify }));
+            Assert.That(reportParams.WorkflowFilter.StateIds, Is.EqualTo(new List<int> { 3, 7 }));
+            Assert.That(reportParams.WorkflowFilter.Phase, Is.EqualTo("implementation"));
+            Assert.That(reportParams.WorkflowFilter.AddInfoFilter.Name, Is.EqualTo("policy_check"));
+            Assert.That(reportParams.WorkflowFilter.AddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.value));
+            Assert.That(reportParams.WorkflowFilter.AddInfoFilter.Value, Is.EqualTo("true"));
+            Assert.That(reportParams.WorkflowFilter.DetailedView, Is.True);
+            Assert.That(reportParams.WorkflowFilter.ShowFullTicket, Is.False);
+        }
+
+        [Test]
+        public void Init_SetsDefaultsAndCollapsesWhenDeviceCountExceedsThreshold()
+        {
+            SimulatedUserConfig userConfig = new();
+            userConfig.MinCollapseAllDevices = 1;
+            ReportFilters filters = new();
+            filters.DeviceFilter = new DeviceFilter(
+            [
+                new ManagementSelect { Id = 1 },
+                new ManagementSelect { Id = 2 }
+            ]);
+
+            filters.Init(userConfig, showRuleRelatedReports: false);
+
+            Assert.That(filters.ReportType, Is.EqualTo(ReportType.Connections));
+            Assert.That(filters.DisplayedTimeSelection, Is.EqualTo("now"));
+            Assert.That(filters.UnusedDays, Is.EqualTo(userConfig.UnusedTolerance));
+            Assert.That(filters.CollapseDevices, Is.True);
+        }
+
+        [Test]
+        public void SyncFiltersFromTemplate_CopiesWorkflowFilter_ForTicketChangeReport()
+        {
+            ReportFilters filters = new();
+            var template = new FWO.Data.Report.ReportTemplate("", new FWO.Data.Report.ReportParams())
+            {
+                ReportParams =
+                {
+                    ReportType = (int)ReportType.TicketChangeReport,
+                    TimeFilter = new()
+                    {
+                        TimeRangeType = TimeRangeType.Shortcut,
+                        TimeRangeShortcut = "last week"
+                    },
+                    WorkflowFilter = new()
+                    {
+                        ReferenceDate = WorkflowReferenceDate.Approved,
+                        TaskTypes = [WfTaskType.access, WfTaskType.rule_delete],
+                        StateIds = [9],
+                        Phase = "review",
+                        AddInfoFilter = new() { Name = "policy_check", Mode = AddInfoFilterMode.not_existing },
+                        DetailedView = true,
+                        ShowFullTicket = false
+                    },
+                    IncludeObjects = true
+                }
+            };
+
+            filters.SyncFiltersFromTemplate(template);
+
+            Assert.That(filters.ReportType, Is.EqualTo(ReportType.TicketChangeReport));
+            Assert.That(filters.WorkflowFilter.ReferenceDate, Is.EqualTo(WorkflowReferenceDate.Approved));
+            Assert.That(filters.WorkflowFilter.TaskTypes, Is.EqualTo(new List<WfTaskType> { WfTaskType.access, WfTaskType.rule_delete }));
+            Assert.That(filters.WorkflowFilter.StateIds, Is.EqualTo(new List<int> { 9 }));
+            Assert.That(filters.WorkflowFilter.Phase, Is.EqualTo("review"));
+            Assert.That(filters.WorkflowFilter.AddInfoFilter.Name, Is.EqualTo("policy_check"));
+            Assert.That(filters.WorkflowFilter.AddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.not_existing));
+            Assert.That(filters.WorkflowFilter.AddInfoFilter.Value, Is.EqualTo(string.Empty));
+            Assert.That(filters.WorkflowFilter.DetailedView, Is.True);
+            Assert.That(filters.WorkflowFilter.ShowFullTicket, Is.False);
+            Assert.That(filters.TimeFilter.TimeRangeShortcut, Is.EqualTo("last week"));
+            Assert.That(filters.SavedTimeFilter.TimeRangeShortcut, Is.EqualTo("last week"));
+            Assert.That(filters.ToReportParams().TimeFilter.TimeRangeShortcut, Is.EqualTo("last week"));
+            Assert.That(filters.IncludeObjects, Is.True);
+        }
+
+        [Test]
+        public void ToReportParams_CopiesIncludeObjectChangesSettings_ForChangesReport()
+        {
+            ReportFilters filters = new()
+            {
+                ReportType = ReportType.Changes,
+                IncludeObjects = true
+            };
+
+            ReportParams reportParams = filters.ToReportParams();
+
+            Assert.That(reportParams.IncludeObjects, Is.True);
+        }
+
+        [Test]
+        public void ReportData_CopyConstructor_CopiesOwnerAddInfoFilter()
+        {
+            ReportData reportData = new()
+            {
+                OwnerAdditionalInfoKey = "business_unit",
+                OwnerAddInfoFilter = new AddInfoFilter
+                {
+                    Name = "business_unit",
+                    Mode = AddInfoFilterMode.value,
+                    Value = "Payments"
+                }
+            };
+
+            ReportData copiedFromNull = new((ReportData?)null);
+            ReportData copiedReportData = new(reportData);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(copiedFromNull.OwnerAdditionalInfoKey, Is.Empty);
+                Assert.That(copiedFromNull.OwnerAddInfoFilter.Name, Is.Empty);
+                Assert.That(copiedFromNull.OwnerAddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.existing));
+                Assert.That(copiedReportData.OwnerAdditionalInfoKey, Is.EqualTo("business_unit"));
+                Assert.That(copiedReportData.OwnerAddInfoFilter.Name, Is.EqualTo("business_unit"));
+                Assert.That(copiedReportData.OwnerAddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.value));
+                Assert.That(copiedReportData.OwnerAddInfoFilter.Value, Is.EqualTo("Payments"));
+                Assert.That(ReferenceEquals(copiedReportData.OwnerAddInfoFilter, reportData.OwnerAddInfoFilter), Is.False);
+            });
+        }
+
+        [Test]
+        public void ModellingFilter_CopyConstructor_NullSourceKeepsDefaults()
+        {
+            ModellingFilter copiedFilter = new(null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(copiedFilter.SelectedOwners, Is.Empty);
+                Assert.That(copiedFilter.SelectedTemplateOwner.Id, Is.EqualTo(0));
+                Assert.That(copiedFilter.ShowSourceMatch, Is.True);
+                Assert.That(copiedFilter.ShowDestinationMatch, Is.True);
+                Assert.That(copiedFilter.OwnerAddInfoFilter.Name, Is.Empty);
+                Assert.That(copiedFilter.OwnerAddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.existing));
+                Assert.That(copiedFilter.OwnerRecertId, Is.Null);
+                Assert.That(copiedFilter.ReportId, Is.Null);
+            });
+        }
+
+        [Test]
+        public void Init_CopiesGlobalDefaultForIncludeObjectChanges()
+        {
+            SimulatedGlobalConfig globalConfig = new() { ImpChangeIncludeObjectChanges = true };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
+            ReportFilters filters = new();
+
+            filters.Init(userConfig, true);
+
+            Assert.That(filters.IncludeObjects, Is.True);
+        }
+
+        [Test]
+        public void SyncFiltersFromTemplate_CopiesDeviceFilterAndUpdatesSelectAll()
+        {
+            ReportFilters filters = new()
+            {
+                DeviceFilter = new DeviceFilter(
+                [
+                    new ManagementSelect
+                    {
+                        Id = 7,
+                        Devices = [new DeviceSelect { Id = 70, Name = "gw70" }]
+                    }
+                ])
+            };
+            SimulatedUserConfig userConfig = new();
+            filters.Init(userConfig, true);
+            var template = new FWO.Data.Report.ReportTemplate("", new FWO.Data.Report.ReportParams())
+            {
+                ReportParams =
+                {
+                    ReportType = (int)ReportType.Rules,
+                    DeviceFilter = new DeviceFilter(
+                    [
+                        new ManagementSelect
+                        {
+                            Id = 7,
+                            Selected = true,
+                            Devices = [new DeviceSelect { Id = 70, Name = "gw70", Selected = true }]
+                        }
+                    ])
+                }
+            };
+
+            filters.SyncFiltersFromTemplate(template);
+
+            Assert.That(filters.DeviceFilter.Managements[0].Selected, Is.True);
+            Assert.That(filters.DeviceFilter.Managements[0].Devices[0].Selected, Is.True);
+            Assert.That(filters.SelectAll, Is.False);
+        }
+
+        [Test]
+        public void ToReportParams_UsesReducedDeviceFilterForUnusedRulesAndCopiesCreationTolerance()
+        {
+            SimulatedUserConfig userConfig = new();
+            ReportFilters filters = new();
+            filters.Init(userConfig, true);
+            filters.ReportType = ReportType.UnusedRules;
+            filters.ReducedDeviceFilter = new DeviceFilter(
+            [
+                new ManagementSelect
+                {
+                    Id = 7,
+                    Devices = [new DeviceSelect { Id = 70, Name = "gw70", Selected = true }]
+                }
+            ]);
+            filters.UnusedDays = 21;
+
+            ReportParams reportParams = filters.ToReportParams();
+
+            Assert.That(reportParams.DeviceFilter.Managements, Has.Count.EqualTo(1));
+            Assert.That(reportParams.DeviceFilter.Managements[0].Id, Is.EqualTo(7));
+            Assert.That(reportParams.UnusedFilter.UnusedForDays, Is.EqualTo(21));
+            Assert.That(reportParams.UnusedFilter.CreationTolerance, Is.EqualTo(userConfig.CreationTolerance));
+        }
+
+        [Test]
+        public void ToReportParams_UsesTenantFromUserWhenNoTenantSelected()
+        {
+            SimulatedUserConfig userConfig = new();
+            userConfig.User.Tenant = new Tenant { Id = 4 };
+            ReportFilters filters = new()
+            {
+                ReportType = ReportType.Rules
+            };
+            filters.Init(userConfig, true);
+
+            ReportParams reportParams = filters.ToReportParams();
+
+            Assert.That(reportParams.TenantFilter.IsActive, Is.True);
+            Assert.That(reportParams.TenantFilter.TenantId, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void ToReportParams_CopiesOwnerFilter_ForOwnersReport()
+        {
+            ReportFilters filters = new()
+            {
+                ReportType = ReportType.Owners,
+                OwnerFilter = new OwnerFilter
+                {
+                    SelectedOwnerLifeCycleStateId = 3,
+                    SelectedCriticality = "High"
+                }
+            };
+
+            ReportParams reportParams = filters.ToReportParams();
+
+            Assert.That(reportParams.OwnerFilter.SelectedOwnerLifeCycleStateId, Is.EqualTo(3));
+            Assert.That(reportParams.OwnerFilter.SelectedCriticality, Is.EqualTo("High"));
+            Assert.That(ReferenceEquals(reportParams.OwnerFilter, filters.OwnerFilter), Is.False);
+        }
+
+        [Test]
+        public void SyncFiltersFromTemplate_CopiesOwnerFilter_ForOwnersReport()
+        {
+            ReportFilters filters = new();
+            var template = new FWO.Data.Report.ReportTemplate("", new FWO.Data.Report.ReportParams())
+            {
+                ReportParams =
+                {
+                    ReportType = (int)ReportType.Owners,
+                    OwnerFilter = new OwnerFilter
+                    {
+                        SelectedOwnerLifeCycleStateId = 5,
+                        SelectedCriticality = "Medium"
+                    }
+                }
+            };
+
+            filters.SyncFiltersFromTemplate(template);
+
+            Assert.That(filters.ReportType, Is.EqualTo(ReportType.Owners));
+            Assert.That(filters.OwnerFilter.SelectedOwnerLifeCycleStateId, Is.EqualTo(5));
+            Assert.That(filters.OwnerFilter.SelectedCriticality, Is.EqualTo("Medium"));
+            Assert.That(ReferenceEquals(filters.OwnerFilter, template.ReportParams.OwnerFilter), Is.False);
+        }
+
+        [Test]
+        public void ToReportParams_PreservesExplicitTemplateOwner_ForAppRules()
+        {
+            ReportFilters filters = new()
+            {
+                ReportType = ReportType.AppRules
+            };
+            filters.ModellingFilter.SelectedOwner = new FwoOwner { Id = 17, Name = "App A" };
+            filters.ModellingFilter.SelectedTemplateOwner = new FwoOwner { Id = 23, Name = "Template App" };
+
+            ReportParams reportParams = filters.ToReportParams();
+
+            Assert.That(reportParams.ModellingFilter.SelectedOwner.Id, Is.EqualTo(17));
+            Assert.That(reportParams.ModellingFilter.SelectedTemplateOwner.Id, Is.EqualTo(23));
+            Assert.That(reportParams.ModellingFilter.SelectedTemplateOwner.Name, Is.EqualTo("Template App"));
+        }
+
+        [Test]
+        public void ToReportParams_CopiesVarianceFlags()
+        {
+            ReportFilters filters = new()
+            {
+                ReportType = ReportType.VarianceAnalysis
+            };
+            filters.ModellingFilter.RulesForDeletedConns = true;
+            filters.ModellingFilter.AnalyseRemainingRules = true;
+
+            ReportParams reportParams = filters.ToReportParams();
+
+            Assert.That(reportParams.ModellingFilter.RulesForDeletedConns, Is.True);
+            Assert.That(reportParams.ModellingFilter.AnalyseRemainingRules, Is.True);
+        }
+
+        [Test]
+        public void SetDisplayedTimeSelection_ForTicketChangeReportOpenEnd_UsesFromText()
+        {
+            SimulatedUserConfig userConfig = new();
+            ReportFilters filters = new();
+            filters.Init(userConfig, true);
+            filters.ReportType = ReportType.TicketChangeReport;
+            filters.TimeFilter = new()
+            {
+                TimeRangeType = TimeRangeType.Fixeddates,
+                OpenEnd = true,
+                StartTime = new DateTime(2025, 1, 2, 3, 4, 5)
+            };
+
+            filters.SetDisplayedTimeSelection();
+
+            StringAssert.StartsWith("from ", filters.DisplayedTimeSelection);
+            StringAssert.Contains(filters.TimeFilter.StartTime.ToString(), filters.DisplayedTimeSelection);
+        }
+
+        [Test]
+        public void SetDisplayedTimeSelection_ForChangeReportShortcut_UsesTranslatedShortcut()
+        {
+            SimulatedUserConfig userConfig = new();
+            ReportFilters filters = new();
+            filters.Init(userConfig, true);
+            filters.ReportType = ReportType.Changes;
+            filters.TimeFilter = new()
+            {
+                TimeRangeType = TimeRangeType.Shortcut,
+                TimeRangeShortcut = "today"
+            };
+
+            filters.SetDisplayedTimeSelection();
+
+            Assert.That(filters.DisplayedTimeSelection, Is.EqualTo("today"));
+        }
+
+        [Test]
+        public void SetDisplayedTimeSelection_ForNonChangeShortcut_UsesTranslatedShortcut()
+        {
+            SimulatedUserConfig userConfig = new();
+            ReportFilters filters = new();
+            filters.Init(userConfig, true);
+            filters.ReportType = ReportType.Rules;
+            filters.TimeFilter = new()
+            {
+                IsShortcut = true,
+                TimeShortcut = "now"
+            };
+
+            filters.SetDisplayedTimeSelection();
+
+            Assert.That(filters.DisplayedTimeSelection, Is.EqualTo("now"));
+        }
+
+        [Test]
+        public void SetDisplayedTimeSelection_ForNonChangeFixedTime_UsesReportTime()
+        {
+            SimulatedUserConfig userConfig = new();
+            ReportFilters filters = new();
+            filters.Init(userConfig, true);
+            filters.ReportType = ReportType.Rules;
+            filters.TimeFilter = new()
+            {
+                IsShortcut = false,
+                ReportTime = new DateTime(2025, 1, 2, 3, 4, 5)
+            };
+
+            filters.SetDisplayedTimeSelection();
+
+            Assert.That(filters.DisplayedTimeSelection, Is.EqualTo(filters.TimeFilter.ReportTime.ToString()));
+        }
+
+        [Test]
+        public void TenantViewChanged_WithTenantZero_MarksAllDevicesVisible()
+        {
+            ReportFilters filters = new()
+            {
+                DeviceFilter = new DeviceFilter(
+                [
+                    new ManagementSelect
+                    {
+                        Id = 7,
+                        Visible = false,
+                        Shared = true,
+                        Devices =
+                        [
+                            new DeviceSelect { Id = 70, Name = "gw70", Visible = false, Shared = true },
+                            new DeviceSelect { Id = 71, Name = "gw71", Visible = false, Shared = true }
+                        ]
+                    }
+                ])
+            };
+
+            filters.TenantViewChanged(new Tenant { Id = 1 });
+
+            Assert.That(filters.DeviceFilter.Managements[0].Visible, Is.True);
+            Assert.That(filters.DeviceFilter.Managements[0].Shared, Is.False);
+            Assert.That(filters.DeviceFilter.Managements[0].Devices.All(device => device.Visible && !device.Shared), Is.True);
+            Assert.That(filters.SelectAll, Is.True);
+        }
+
+        [Test]
+        public void TenantViewChanged_WithRestrictedTenant_HidesUnlistedDevicesAndClearsSelection()
+        {
+            ReportFilters filters = new()
+            {
+                DeviceFilter = new DeviceFilter(
+                [
+                    new ManagementSelect
+                    {
+                        Id = 7,
+                        Selected = true,
+                        Devices =
+                        [
+                            new DeviceSelect { Id = 70, Name = "gw70", Selected = true },
+                            new DeviceSelect { Id = 71, Name = "gw71", Selected = true }
+                        ]
+                    }
+                ])
+            };
+
+            filters.TenantViewChanged(new Tenant
+            {
+                Id = 2,
+                VisibleGatewayIds = [70]
+            });
+
+            Assert.That(filters.DeviceFilter.Managements[0].Visible, Is.True);
+            Assert.That(filters.DeviceFilter.Managements[0].Shared, Is.True);
+            Assert.That(filters.DeviceFilter.Managements[0].Devices[0].Visible, Is.True);
+            Assert.That(filters.DeviceFilter.Managements[0].Devices[1].Visible, Is.False);
+            Assert.That(filters.DeviceFilter.Managements[0].Devices[1].Selected, Is.False);
+        }
+
+        [Test]
+        public void DeviceFilter_ListAllSelectedManagements_ReturnsSelectedManagementNames()
+        {
+            DeviceFilter deviceFilter = new(
+            [
+                new ManagementSelect
+                {
+                    Id = 7,
+                    Name = "Mgmt A",
+                    Devices =
+                    [
+                        new DeviceSelect { Id = 70, Name = "gw70", Selected = true },
+                        new DeviceSelect { Id = 71, Name = "gw71", Selected = false }
+                    ]
+                },
+                new ManagementSelect
+                {
+                    Id = 8,
+                    Name = "Mgmt B",
+                    Devices =
+                    [
+                        new DeviceSelect { Id = 80, Name = "gw80", Selected = true }
+                    ]
+                },
+                new ManagementSelect
+                {
+                    Id = 9,
+                    Name = "Mgmt C",
+                    Devices =
+                    [
+                        new DeviceSelect { Id = 90, Name = "gw90", Selected = false }
+                    ]
+                }
+            ]);
+
+            Assert.That(deviceFilter.ListAllSelectedManagements(), Is.EqualTo("Mgmt A, Mgmt B"));
+        }
+    }
+}

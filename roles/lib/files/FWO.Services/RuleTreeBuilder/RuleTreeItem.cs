@@ -19,6 +19,10 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         new public List<RuleTreeItem> ElementsFlat { get; set; } = new();
         /// <summary>
+        /// Lookup of flat tree items by their report rule instance.
+        /// </summary>
+        public Dictionary<Rule, RuleTreeItem> ItemsByRule { get; } = new(ReferenceEqualityComparer.Instance);
+        /// <summary>
         /// Flag to mark items that act as roots of section headers
         /// </summary>
         public bool IsSectionHeader { get; set; } = false;
@@ -34,6 +38,21 @@ namespace FWO.Services.RuleTreeBuilder
         /// Flag to mark items that act as roots of ordered layer headers
         /// </summary>
         public bool IsOrderedLayerHeader { get; set; } = false;
+        /// <summary>
+        /// Flag to mark the synthetic policy-container header (e.g. Check Point's package
+        /// rulebase). It is visible but, like a section header, never consumes a dotted
+        /// hierarchy number so the first real ordered layer beneath it stays numbered "1".
+        /// </summary>
+        public bool IsPolicyHeader { get; set; } = false;
+        /// <summary>
+        /// Flag to mark a visible, unnumbered row standing in for a rulebase that is listed completely
+        /// in another rule tree of the report (management rulebases view). It has no children.
+        /// </summary>
+        public bool IsRulebaseReference { get; set; } = false;
+        /// <summary>
+        /// Id of the rulebase a reference row stands for (see <see cref="IsRulebaseReference"/>).
+        /// </summary>
+        public int ReferencedRulebaseId { get; set; }
         /// <summary>
         /// Flag to mark items that act as roots of concatenations
         /// </summary>
@@ -91,75 +110,132 @@ namespace FWO.Services.RuleTreeBuilder
         private void OnIsExpandedChanged()
         {
             SelectedRuleTreeLeafs.Clear();
+            PropagateVisibility(this, AllExpandableAncestorsAreExpanded(this), SelectedRuleTreeLeafs);
+        }
 
-            foreach (RuleTreeItem item in TraverseDown(this))
+        /// <summary>
+        /// Recomputes visibility for every descendant of <paramref name="subtreeRoot"/> in a single
+        /// iterative top-down pass. A descendant is visible only when the root's own ancestor chain
+        /// is expanded and every expandable node on the path down to that descendant is expanded.
+        /// Leaf descendants are appended to <paramref name="leafSink"/> when it is supplied.
+        /// </summary>
+        private static void PropagateVisibility(RuleTreeItem subtreeRoot, bool subtreeRootAncestorsExpanded, List<RuleTreeItem>? leafSink)
+        {
+            bool childVisible = subtreeRootAncestorsExpanded && (subtreeRoot.IsRoot || subtreeRoot.IsExpanded);
+
+            Stack<(RuleTreeItem Node, bool Visible)> pending = new();
+            PushChildren(subtreeRoot, childVisible, pending);
+
+            while (pending.Count > 0)
             {
-                if (item != this)
-                {
-                    if (!item.Children.Any())
-                    {
-                        SelectedRuleTreeLeafs.Add(item);
-                    }
+                (RuleTreeItem node, bool visible) = pending.Pop();
+                node.IsVisible = visible;
 
-                    if (IsExpanded)
-                    {
-                        ExpandItem(item);
-                    }
-                    else
-                    {
-                        item.IsVisible = false;
-                    }
+                if (node.Children.Count == 0)
+                {
+                    leafSink?.Add(node);
+                    continue;
+                }
+
+                PushChildren(node, visible && (node.IsRoot || node.IsExpanded), pending);
+            }
+        }
+
+        /// <summary>
+        /// Pushes every direct child of <paramref name="node"/> onto the traversal stack together
+        /// with the visibility that applies to that child, so the caller can continue the top-down
+        /// visibility propagation without recursion.
+        /// </summary>
+        private static void PushChildren(RuleTreeItem node, bool visible, Stack<(RuleTreeItem Node, bool Visible)> pending)
+        {
+            foreach (RuleTreeItem child in node.Children)
+            {
+                pending.Push((child, visible));
+            }
+        }
+
+        /// <summary>
+        /// Enumerates <paramref name="root"/> and all of its descendants using an explicit stack.
+        /// </summary>
+        private static IEnumerable<RuleTreeItem> EnumerateSubtree(RuleTreeItem root)
+        {
+            Stack<RuleTreeItem> pending = new();
+            pending.Push(root);
+
+            while (pending.Count > 0)
+            {
+                RuleTreeItem node = pending.Pop();
+                yield return node;
+
+                foreach (RuleTreeItem child in node.Children)
+                {
+                    pending.Push(child);
                 }
             }
         }
 
-        private void ExpandItem(RuleTreeItem item)
+        /// <summary>
+        /// Checks whether every expandable ancestor on the path from the supplied item back to
+        /// the tree root is currently expanded. Visibility in the report tree depends on the full
+        /// ancestor chain rather than only on the direct parent because structural inline-layer
+        /// roots remain logically expanded even while their owning visible ancestors are
+        /// collapsed.
+        /// </summary>
+        private static bool AllExpandableAncestorsAreExpanded(RuleTreeItem item)
         {
-            if (item != this && item.Parent != null && !item.Parent.IsExpanded)
-            {
-                item.IsVisible = false;
-            }
-            else
-            {
-                item.IsVisible = true;
-            }
-        }
+            RuleTreeItem? currentAncestor = item.Parent;
 
-        private IEnumerable<RuleTreeItem> TraverseDown(RuleTreeItem item, Action<RuleTreeItem>? action = null)
-        {
-            if (action != null)
+            while (currentAncestor != null)
             {
-                action(item);
-            }
-
-            yield return item;
-
-            foreach (RuleTreeItem child in item.Children)
-            {
-                foreach (RuleTreeItem descendant in TraverseDown(child))
+                if (!currentAncestor.IsRoot && currentAncestor.Children.Count > 0 && !currentAncestor.IsExpanded)
                 {
-                    if (action != null)
-                    {
-                        action(descendant);
-                    }
-
-                    yield return descendant;
+                    return false;
                 }
+
+                currentAncestor = currentAncestor.Parent;
             }
+
+            return true;
         }
 
-        private IEnumerable<RuleTreeItem> TraverseUp(RuleTreeItem item, Action<RuleTreeItem>? action = null)
+        /// <summary>
+        /// Updates the expanded state for all expandable descendants of the provided root item.
+        /// Inline-layer roots are intentionally excluded from external collapse-state changes
+        /// because they are structural-only nodes without their own visible toggle affordance.
+        /// Their descendants should become visible again as soon as the owning visible ancestor
+        /// is re-expanded, so inline roots must stay logically expanded even when the user
+        /// collapses all visible rows.
+        /// </summary>
+        public static void SetExpandedRecursively(RuleTreeItem item, bool isExpanded)
         {
-            var current = item;
-
-            while (current != null)
+            foreach (RuleTreeItem childItem in EnumerateSubtree(item))
             {
-                action?.Invoke(current);
-                yield return current;
+                if (childItem == item || childItem.Children.Count == 0)
+                {
+                    continue;
+                }
 
-                current = current.Parent;
+                // Assign the backing field directly so the per-node visibility pass in
+                // OnIsExpandedChanged does not run once for every node. Inline-layer roots must stay
+                // logically expanded; visibility for the whole subtree is recomputed once below.
+                childItem._isExpanded = childItem.IsInlineLayerRoot || isExpanded;
             }
+
+            RefreshVisibilityRecursively(item);
         }
+
+        /// <summary>
+        /// Recomputes visibility for every descendant below the supplied root after a bulk
+        /// expand/collapse operation. This normalization step ensures that visibility reflects
+        /// the final expanded states of all ancestors instead of the transient state that existed
+        /// while the recursive toggle loop was still in progress.
+        /// </summary>
+        private static void RefreshVisibilityRecursively(RuleTreeItem rootItem)
+        {
+            rootItem.IsVisible = true;
+            PropagateVisibility(rootItem, AllExpandableAncestorsAreExpanded(rootItem), leafSink: null);
+        }
+
 
         #endregion
     }

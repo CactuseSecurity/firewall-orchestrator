@@ -78,7 +78,7 @@ query getManagementForNormalizedConfig(
   }
 }
 
-fragment networkObjectFragment on object {
+fragment networkObjectFragment on firewall_nw_object {
   obj_id
   obj_uid
   obj_name
@@ -95,7 +95,7 @@ fragment networkObjectFragment on object {
   obj_comment
 }
 
-fragment serviceObjectFragment on service {
+fragment serviceObjectFragment on firewall_nw_service {
   svc_id
   svc_uid
   svc_name
@@ -115,7 +115,7 @@ fragment serviceObjectFragment on service {
   svc_rpcnr
 }
 
-fragment userObjectFragment on usr {
+fragment userObjectFragment on firewall_nw_user {
   user_id
   user_uid
   user_name
@@ -137,7 +137,7 @@ fragment timeObjectFragment on time_object {
   end_time
 }
 
-fragment rulebaseFragment on rulebase {
+fragment rulebaseFragment on firewall_rulebase {
   id
   name
   uid
@@ -153,19 +153,20 @@ fragment rulebaseFragment on rulebase {
   }
 }
 
-fragment ruleFragment on rule {
+fragment ruleFragment on firewall_rule {
   rule_id
   rule_uid
   rule_name
-  rule_num
   rule_num_numeric
   rule_disabled
   rule_src_neg
   rule_src
   rule_src_refs
+  rule_src_zone
   rule_dst_neg
   rule_dst
   rule_dst_refs
+  rule_dst_zone
   rule_svc_neg
   rule_svc
   rule_svc_refs
@@ -176,6 +177,8 @@ fragment ruleFragment on rule {
   rule_custom_fields
   rule_implied
   nat_rule
+  access_rule
+  xlate_rule
   uiuser {
     uiuser_username
   }
@@ -186,15 +189,8 @@ fragment ruleFragment on rule {
     rule_last_hit
   }
   rule_comment
-  rule_from_zones {
-    zone {
-      zone_name
-    }
-  }
-  rule_to_zones {
-    zone {
-      zone_name
-    }
+  ruleByXlateRule {
+    rule_uid
   }
   section_header: rule_head_text
 }
@@ -215,7 +211,7 @@ fragment deviceFragment on device {
   hideInUi: hide_in_gui
 }
 
-fragment ruleBaseLinkFragment on rulebase_link {
+fragment ruleBaseLinkFragment on firewall_rulebase_link {
   gw_id
   rule {
     rule_uid

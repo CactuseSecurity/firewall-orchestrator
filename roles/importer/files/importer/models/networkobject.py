@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 from typing import Any
 
 from netaddr import AddrFormatError, IPNetwork
 from pydantic import BaseModel, field_serializer, field_validator
+
+NETWORK_OBJECT_TYPES_WITHOUT_STATIC_IP = frozenset({"group", "dynamic_net_obj", "domain", "access-role"})
 
 
 class NetworkObject(BaseModel):
@@ -56,7 +60,6 @@ class NetworkObjectForImport:
     obj_comment: str | None
     mgm_id: int
     obj_create: int
-    obj_last_seen: int
     obj_typ_id: int
 
     def __init__(self, nw_object: NetworkObject, mgm_id: int, import_id: int, color_id: int, typ_id: int):
@@ -70,7 +73,6 @@ class NetworkObjectForImport:
         self.obj_comment = nw_object.obj_comment
         self.mgm_id = mgm_id
         self.obj_create = import_id
-        self.obj_last_seen = import_id
         self.obj_typ_id = typ_id
 
     def to_dict(self) -> dict[str, Any]:
@@ -83,7 +85,6 @@ class NetworkObjectForImport:
             "obj_comment": self.obj_comment,
             "mgm_id": self.mgm_id,
             "obj_create": self.obj_create,
-            "obj_last_seen": self.obj_last_seen,
             "obj_typ_id": self.obj_typ_id,
         }
 

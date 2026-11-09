@@ -51,7 +51,6 @@ DECLARE
 	b_never_recertified BOOLEAN := FALSE;
 	b_no_current_next_recert_date BOOLEAN := FALSE;
 	b_super_owner_exists BOOLEAN := FALSE;
-	i_previous_import BIGINT;
 	i_current_import_id BIGINT;
 	i_super_owner_id INT;
 	i_current_owner_id_tmp INT;
@@ -63,12 +62,7 @@ BEGIN
 			RAISE WARNING 'found undefined mgm_id in recert_refresh_one_owner_one_mgm';
 		END IF;
 	ELSE
-		-- get id of previous import:
 		SELECT INTO i_current_import_id control_id FROM import_control WHERE mgm_id=i_mgm_id AND stop_time IS NULL;
-		SELECT INTO i_previous_import * FROM get_previous_import_id_for_mgmt(i_mgm_id,i_current_import_id);
-		IF NOT FOUND OR i_previous_import IS NULL THEN
-			i_previous_import := -1;	-- prevent match for previous import
-		END IF;
 
 		SELECT INTO i_super_owner_id id FROM owner WHERE is_default;
 		IF FOUND THEN 
@@ -83,7 +77,7 @@ BEGIN
 		SELECT INTO i_recert_inverval recert_interval FROM owner WHERE id=i_owner_id;
 
 		FOR r_rule IN
-		SELECT rule_uid, rule_id FROM rule WHERE mgm_id=i_mgm_id AND (active OR NOT active AND rule_last_seen=i_previous_import)
+		SELECT rule_uid, rule_id FROM rule WHERE mgm_id=i_mgm_id AND (active OR NOT active AND removed=i_current_import_id)
 		LOOP
 
 			IF recert_owner_responsible_for_rule (i_owner_id, r_rule.rule_id) THEN

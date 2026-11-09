@@ -8,5 +8,16 @@ query getRequestedInterfaces($showRemoved: Boolean!){
     order_by: { name: asc }
   ){
     ...connectionDetails
+    owner {
+      owner_lifecycle_state_id
+      active
+    }
+    ownerByProposedAppId {
+      id
+      name
+      app_id_external
+      owner_lifecycle_state_id
+      active
+    }
   }
 }

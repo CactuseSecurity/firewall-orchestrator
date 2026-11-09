@@ -1,4 +1,4 @@
-﻿@inject UserConfig userConfig
+@inject UserConfig userConfig
 
 
 <PopUp Title="@(ReplaceMode ? userConfig.GetText("U9015") : ConnHandler?.Application.Name)" Show="@Display" Size=PopupSize.XLarge OnClose="Close">
@@ -11,14 +11,14 @@
     <Footer>
         @if(ReplaceMode)
         {
-            <AuthorizeView Roles="@(Roles.Modeller)">
+            <ExecutionModeAuthorizeView Roles="@(Roles.Modeller)">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                 </NotAuthorized> 
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         }
         else

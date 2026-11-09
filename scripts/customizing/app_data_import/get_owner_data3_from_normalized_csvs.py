@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # revision history:
-__version__ = "2026-03-20-01"
+from __future__ import annotations
+
+__version__ = "2026-06-16-01"
 
 # breaking change: /usr/local/fworch needs to be in the python path
 # just add "export PYTHONPATH="$PYTHONPATH:/usr/local/fworch/"" to /etc/environment
@@ -21,6 +23,10 @@ __version__ = "2026-03-20-01"
 #   - allowing csv delimiter override via cli argument
 # 2026-03-20-01:
 #   - generalizing fallback responsible pattern to grouped add_users_by_pattern entries
+# 2026-04-07-01:
+#   - adding optional additional_information import from configured owner CSV columns
+# 2026-06-16-01:
+#   - always adding Isolated additional_information as Ja/Nein when isolation completion data is configured
 
 # reads the main app data from multiple csv files contained in a git repo
 # users will reside in external ldap groups with standardized names
@@ -32,11 +38,11 @@ __version__ = "2026-03-20-01"
 #   b) requires the config items listed in the aprser help to be present in config file /usr/local/orch/etc/secrets/customizingConfig.json
 
 import argparse
-import logging
 import re
 import shlex
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import urllib3
 
@@ -67,6 +73,9 @@ from scripts.customizing.fwo_custom_lib.responsibles_config import (
 from scripts.customizing.fwo_custom_lib.responsibles_config import (
     resolve_responsibles_columns_headers as resolve_responsibles_columns_headers_from_lib,
 )
+
+if TYPE_CHECKING:
+    import logging
 
 base_dir: str = "/usr/local/fworch/"
 base_dir_etc: str = base_dir + "etc/"
@@ -172,6 +181,27 @@ def parse_responsibles_columns(columns_entries: list[str]) -> dict[str, tuple[st
     return parse_responsibles_columns_from_lib(columns_entries)
 
 
+def parse_additional_information_columns(columns_entries: list[str]) -> dict[str, str]:
+    additional_information_columns: dict[str, str] = {}
+    expanded_entries: list[str] = _expand_responsibles_entries(columns_entries)
+    entry: str
+    for entry in expanded_entries:
+        key_mapping: tuple[str, str] | None = _parse_level_mapping(entry)
+        if key_mapping is None:
+            raise argparse.ArgumentTypeError(
+                f"invalid additionalInformationColumns entry '{entry}', expected KEY:HEADER"
+            )
+        dump_key, header_name = key_mapping
+        if dump_key == "" or header_name == "":
+            raise argparse.ArgumentTypeError(
+                f"invalid additionalInformationColumns entry '{entry}', expected KEY:HEADER"
+            )
+        additional_information_columns[dump_key] = header_name
+    if not additional_information_columns:
+        raise argparse.ArgumentTypeError("additionalInformationColumns must contain at least one KEY:HEADER mapping")
+    return additional_information_columns
+
+
 def resolve_responsibles_columns_headers(
     config_file: str,
     cli_responsibles_columns: list[str] | None,
@@ -249,7 +279,7 @@ def normalize_option_value_args(argv: list[str], option_names: tuple[str, ...]) 
     return normalized_argv
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser(description="Read configuration from FW management via API calls")
     parser.add_argument(
         "-c",
@@ -268,6 +298,7 @@ if __name__ == "__main__":
                             "csvAppServerFilePattern": "NeMo_???_IP_.*?.csv", \
                             "gitRepoOwnersWithActiveRecert": "github.example.de/FWO", \
                             "gitFileOwnersWithActiveRecert": "isolated-apps.txt", \
+                            "gitFileOwnersIsolationCompleted": "isolation-completed-apps.txt", \
                             "csvSeparator": ";", \
                             "validAppIdPrefixes": ["app-", "com-"], \
                             "importSource": "tufinRlm" \
@@ -374,6 +405,12 @@ if __name__ == "__main__":
         help='grouped mapping LEVEL:HEADER [HEADER ...]; each HEADER may be an exact column name or a regex matching zero or one CSV column, e.g. 1:"^UserID$" "^UserID Vertreter$" 2:"^UserIDs Mitwirkende$"; ambiguous matches are rejected',
     )
     parser.add_argument(
+        "--additionalInformationColumns",
+        nargs="+",
+        default=None,
+        help='grouped mapping KEY:HEADER used to import extra owner metadata from owner CSV files, e.g. cost_center:"Cost Center" owner_type:"Owner Type"',
+    )
+    parser.add_argument(
         "--add_users_by_pattern",
         nargs="+",
         default=None,
@@ -406,6 +443,9 @@ if __name__ == "__main__":
     )
     recert_active_file_name: str | None = read_custom_config_with_default(
         args.config, "gitFileOwnersWithActiveRecert", None, logger
+    )
+    isolation_completed_file_name: str | None = read_custom_config_with_default(
+        args.config, "gitFileOwnersIsolationCompleted", None, logger
     )
     owner_header_patterns: dict[str, str] = read_custom_config_with_default(
         args.config, "csvOwnerColumnPatterns", {}, logger
@@ -452,6 +492,9 @@ if __name__ == "__main__":
     )
     if responsibles_columns_headers is not None:
         logger.debug("resolved responsiblesColumns=%s", responsibles_columns_headers)
+    additional_information_columns_headers: dict[str, str] | None = None
+    if args.additionalInformationColumns:
+        additional_information_columns_headers = parse_additional_information_columns(args.additionalInformationColumns)
     add_users_by_pattern: dict[str, str] | None = None
     if args.add_users_by_pattern:
         add_users_by_pattern = parse_add_users_by_pattern(args.add_users_by_pattern)
@@ -469,8 +512,12 @@ if __name__ == "__main__":
     local_repo_base_path.mkdir(parents=True, exist_ok=True)
     app_data_repo_target_dir: str = str(local_repo_base_path / "cmdb-repo")
     recert_repo_target_dir: str = str(local_repo_base_path / "recert-repo")
-
     import_from_folder: str | None = args.import_from_folder
+
+    # Cleanup target dir if we are not importing from a folder, to avoid mixing of old and new files
+    if import_from_folder is None:
+        cleanup_repo_target_dir(app_data_repo_target_dir)
+
     try:
         if import_from_folder:
             base_dir = import_from_folder
@@ -522,6 +569,35 @@ if __name__ == "__main__":
             )
 
         #############################################
+        # 2b. get app list with completed isolation
+
+        isolation_completed_app_list: list[str] | None = None
+        if recert_active_repo_url and isolation_completed_file_name:
+            isolation_repo_url: str | None = build_git_repo_url(
+                recert_active_repo_url,
+                cmdb_git_username,
+                cmdb_git_password,
+                logger,
+                "isolation completion",
+            )
+            isolation_completed_data: str | None = None
+            if isolation_repo_url:
+                isolation_completed_data = read_file_from_git_repo(
+                    isolation_repo_url,
+                    recert_repo_target_dir,
+                    isolation_completed_file_name,
+                    logger,
+                    depth=git_depth,
+                )
+            isolation_completed_lines: list[str] = []
+            if isolation_completed_data:
+                isolation_completed_lines = isolation_completed_data.splitlines()
+            isolation_completed_app_list = isolation_completed_lines
+            logger.info("found %s apps with completed isolation", len(isolation_completed_app_list))
+        else:
+            logger.info("no isolation completion source configured; skipping isolation completion import")
+
+        #############################################
         # 3. get app data from CSV files
         app_list: list[Owner] = []
         re_owner_file_pattern: re.Pattern[str] = re.compile(csv_owner_file_pattern)
@@ -537,6 +613,7 @@ if __name__ == "__main__":
                     debug_level,
                     base_dir=base_dir,
                     recert_active_app_list=recert_active_app_list,
+                    isolation_completed_app_list=isolation_completed_app_list,
                     default_recert_active_state=default_recert_active_state,
                     column_patterns=owner_header_patterns,
                     valid_app_id_prefixes=valid_app_id_prefixes,
@@ -549,6 +626,7 @@ if __name__ == "__main__":
                     criticality_column_header=criticality_column_header,
                     criticality_recert_period_mapping=criticality_recert_period_mapping,
                     responsibles_columns_headers=responsibles_columns_headers,
+                    additional_information_columns_headers=additional_information_columns_headers,
                     add_users_by_pattern=add_users_by_pattern,
                 )
 
@@ -586,6 +664,6 @@ if __name__ == "__main__":
             for owner in app_dict.values():
                 total_ips += len(owner.app_servers)
             logger.info("#ip addresses in total: %s", total_ips)
-    finally:
-        if import_from_folder is None:
-            cleanup_repo_target_dir(app_data_repo_target_dir)
+    except Exception:
+        logger.exception("Error during app data import")
+        sys.exit(1)

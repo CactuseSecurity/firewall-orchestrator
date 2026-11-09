@@ -18,6 +18,7 @@ namespace FWO.Data
         ImportBrokenObjectReferences = 16,
         MalformedIpAddress = 17,
         RecursionLimitReached = 18,
+        SshHostKeyRejected = 19,
 
         Autodiscovery = 21,
         AutoDiscoveryErrorUnspecific = 22,
@@ -27,8 +28,10 @@ namespace FWO.Data
         ImportAppData = 41,
         ImportAreaSubnetData = 42,
         AdjustAppServerNames = 43,
+        ImportLogData = 44,
 
         ImportChangeNotify = 51,
+        RuleOwnerMapping = 52,
 
         ExternalRequest = 61,
 

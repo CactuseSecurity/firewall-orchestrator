@@ -10,11 +10,35 @@ fragment reqTaskOverview on request_reqtask {
   rule_tracking
   start
   stop
+  flow_access_id
+  locked
   reason
   additional_info
+  owners: reqtask_owners {
+    owner: owner {
+      id
+      name
+    }
+  }
   on_management: management {
     id: mgm_id
     name: mgm_name
+  }
+  implementation_tasks: impltasks {
+    id
+    title
+    task_number
+    state_id
+    start
+    stop
+    rule_position
+  }
+  request_approvals: approvals {
+    id
+    task_id
+    state_id
+    date_opened
+    approval_date
   }
   comments: reqtask_comments {
     comment: comment {

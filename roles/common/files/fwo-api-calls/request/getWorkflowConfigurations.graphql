@@ -1,0 +1,8 @@
+query getWorkflowConfigurations {
+  workflow_configurations: request_workflow_configuration(order_by: [{is_active: desc}, {name: asc}]) {
+    id
+    name
+    description
+    is_active
+  }
+}

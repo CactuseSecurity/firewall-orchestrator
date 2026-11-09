@@ -25,8 +25,15 @@ namespace FWO.Data.Report
         [JsonProperty("report_template_id"), JsonPropertyName("report_template_id")]
         public int TemplateId { get; set; }
 
+        // the API returns null for a user outside the tenant of the caller (SEC-19)
+        private UiUser reportOwningUser = new();
+
         [JsonProperty("uiuser"), JsonPropertyName("uiuser")]
-        public UiUser ReportOwningUser { get; set; } = new();
+        public UiUser ReportOwningUser
+        {
+            get => reportOwningUser;
+            set => reportOwningUser = value ?? new UiUser();
+        }
 
         [JsonProperty("report_owner_id"), JsonPropertyName("report_owner_id")]
         public int OwningUserId { get; set; }
@@ -60,6 +67,19 @@ namespace FWO.Data.Report
             bool shortened = false;
             Name = Name.SanitizeMand(ref shortened);
             return shortened;
+        }
+
+        /// <summary>
+        /// Drops the generated payloads while keeping the metadata. For a large report each of these
+        /// is a multi megabyte string on the large object heap, so they are released as soon as the
+        /// dialog that produced them is closed instead of staying resident for the rest of the session.
+        /// </summary>
+        public void ReleaseContent()
+        {
+            Json = null;
+            Pdf = null;
+            Html = null;
+            Csv = null;
         }
     }
 }

@@ -1,0 +1,8 @@
+mutation completeLogImport($controlId: bigint!, $stopTime: timestamp!, $successful: Boolean!) {
+  update_import_control(
+    where: {control_id: {_eq: $controlId}},
+    _set: {stop_time: $stopTime, successful_import: $successful}
+  ) {
+    affected_rows
+  }
+}

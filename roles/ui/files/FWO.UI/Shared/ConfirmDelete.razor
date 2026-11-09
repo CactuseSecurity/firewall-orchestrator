@@ -1,4 +1,4 @@
-﻿@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
 
 @inject UserConfig userConfig
 
@@ -8,6 +8,10 @@
         @if (Display)
         {
             <p>@(DeleteMessage)</p>
+            @if (!string.IsNullOrWhiteSpace(WarningMessage))
+            {
+                <div class="alert alert-warning" role="alert">@(WarningMessage)</div>
+            }
         }
     </Body>
     <Footer>
@@ -16,14 +20,14 @@
             {
                 @if(Enabled)
                 {
-                    <AuthorizeView Roles="@AllowedRoles">
+                    <ExecutionModeAuthorizeView Roles="@AllowedRoles">
                         <Authorized>
                             <button type="button" class="btn btn-sm btn-danger" @onclick="Perform">@(DisplayService.DisplayButton(userConfig, Remove ? "remove" : "delete", Icons.Delete))</button>
                         </Authorized>
                         <NotAuthorized>
                             <button type="button" class="btn btn-sm btn-danger" disabled>@(DisplayService.DisplayButton(userConfig, Remove ? "remove" : "delete", Icons.Delete))</button>
                         </NotAuthorized> 
-                    </AuthorizeView>
+                    </ExecutionModeAuthorizeView>
                 }
                 else
                 {
@@ -55,6 +59,9 @@
     public string DeleteMessage { get; set; } = "";
 
     [Parameter]
+    public string WarningMessage { get; set; } = "";
+
+    [Parameter]
     public bool DeleteAllowed { get; set; } = true;
 
     [Parameter]
@@ -74,6 +81,7 @@
         await PerformAction();
         workInProgress = false;
         Display = false;
+        await DisplayChanged.InvokeAsync(Display);
     }
 
     private void Cancel()

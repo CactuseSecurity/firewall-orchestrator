@@ -1,0 +1,82 @@
+using FWO.Middleware.Server.Responses;
+using FWO.Middleware.Server.Services;
+
+namespace FWO.Middleware.Server.Requests;
+
+/// <summary>
+/// Validates a <see cref="GetImplTaskTargetsRequest"/> completely and reports every detected key-level error in
+/// one result.
+/// </summary>
+public static class GetImplTaskTargetsRequestValidator
+{
+    /// <summary>
+    /// Validates the whole request without stopping at the first error.
+    /// </summary>
+    /// <param name="request">Request to validate, or null when no body was supplied.</param>
+    /// <param name="maxLimit">Maximum page size.</param>
+    /// <returns>All detected errors; empty when the request is valid.</returns>
+    public static RequestValidationErrorResponse Validate(GetImplTaskTargetsRequest? request, int maxLimit)
+    {
+        RequestValidationErrorResponse result = new();
+        if (request == null)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kRootPath,
+                $"{GetImplTaskTargetsValidationSchema.kEndpointName} requires a request body. Valid root keys: " +
+                GetImplTaskTargetsValidationSchema.DescribeKeys(GetImplTaskTargetsValidationSchema.RootKeys)));
+            return result;
+        }
+
+        ValidateManagementId(request, result);
+        ValidateObjectKind(request, result);
+        ValidatePaging(request.Options, maxLimit, result);
+        ValidateFilterName(request.Options.Filter, result);
+        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.AdditionalData, GetImplTaskTargetsValidationSchema.kRootPath,
+            GetImplTaskTargetsValidationSchema.RootKeys, result);
+        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.Options.AdditionalData, GetImplTaskTargetsValidationSchema.kOptionsPath,
+            GetImplTaskTargetsValidationSchema.OptionsKeys, result);
+        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.Options.Filter?.AdditionalData, GetImplTaskTargetsValidationSchema.kFilterPath,
+            GetImplTaskTargetsValidationSchema.FilterKeys, result);
+        return result;
+    }
+
+    private static void ValidateManagementId(GetImplTaskTargetsRequest request, RequestValidationErrorResponse result)
+    {
+        if (request.ManagementId <= 0)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kManagementIdPath,
+                $"'{GetImplTaskTargetsValidationSchema.kManagementIdPath}' must be greater than 0."));
+        }
+    }
+
+    private static void ValidateObjectKind(GetImplTaskTargetsRequest request, RequestValidationErrorResponse result)
+    {
+        if (request.IsServiceObject && request.IsTimeObject)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kIsTimeObjectPath,
+                $"'{GetImplTaskTargetsValidationSchema.kIsTimeObjectPath}' must not be true together with 'isServiceObject'."));
+        }
+    }
+
+    private static void ValidatePaging(GetImplTaskTargetsOptions options, int maxLimit, RequestValidationErrorResponse result)
+    {
+        if (!ListPaging.IsValidLimit(options.Limit, maxLimit))
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kLimitPath,
+                ListPaging.BuildLimitError(GetImplTaskTargetsValidationSchema.kLimitPath, maxLimit)));
+        }
+        if (!ListPaging.IsValidOffset(options.Offset))
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kOffsetPath,
+                ListPaging.BuildOffsetError(GetImplTaskTargetsValidationSchema.kOffsetPath)));
+        }
+    }
+
+    private static void ValidateFilterName(ImplTaskTargetFilter? filter, RequestValidationErrorResponse result)
+    {
+        if (filter?.Name?.Length > ImplTaskTargetFilter.kMaxNameLength)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetImplTaskTargetsValidationSchema.kFilterNamePath,
+                $"'{GetImplTaskTargetsValidationSchema.kFilterNamePath}' must not be longer than {ImplTaskTargetFilter.kMaxNameLength} characters."));
+        }
+    }
+}

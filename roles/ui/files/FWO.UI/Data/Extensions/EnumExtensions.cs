@@ -1,0 +1,84 @@
+using FWO.Basics.Enums;
+using FWO.Config.Api;
+using FWO.Data.Enums;
+
+namespace FWO.Ui.Data.Extensions
+{
+    public static class EnumExtensions
+    {
+        extension(PreferredCollapseState state)
+        {
+            /// <summary>
+            /// Returns the localized label for the preferred collapse state.
+            /// </summary>
+            public string ToString(UserConfig userConfig)
+            {
+                ArgumentNullException.ThrowIfNull(userConfig);
+
+                return state switch
+                {
+                    PreferredCollapseState.Collapsed => userConfig.GetText("PreferredCollapseState_Collapsed"),
+                    PreferredCollapseState.Expanded => userConfig.GetText("PreferredCollapseState_Expanded"),
+                    PreferredCollapseState.Intermediate => userConfig.GetText("PreferredCollapseState_Intermediate"),
+                    _ => state.ToString(),
+                };
+            }
+        }
+
+        extension(TokenLifetimeUnit unit)
+        {
+            public string ToString(UserConfig userConfig)
+            {
+                ArgumentNullException.ThrowIfNull(userConfig);
+
+                return unit switch
+                {
+                    TokenLifetimeUnit.Minutes => userConfig.GetText("Minutes2"),
+                    TokenLifetimeUnit.Hours => userConfig.GetText("Hours"),
+                    TokenLifetimeUnit.Days => userConfig.GetText("Days"),
+                    _ => unit.ToString(),
+                };
+            }
+        }
+
+        extension(LogDataImportIntervalUnit unit)
+        {
+            /// <summary>
+            /// Returns the localized label for a log data import interval unit.
+            /// </summary>
+            public string ToString(UserConfig userConfig)
+            {
+                ArgumentNullException.ThrowIfNull(userConfig);
+
+                return unit switch
+                {
+                    LogDataImportIntervalUnit.Seconds => userConfig.GetText("Seconds"),
+                    LogDataImportIntervalUnit.Minutes => userConfig.GetText("Minutes2"),
+                    LogDataImportIntervalUnit.Hours => userConfig.GetText("Hours"),
+                    _ => unit.ToString(),
+                };
+            }
+        }
+
+        extension(LogTimeRangeUnit unit)
+        {
+            /// <summary>
+            /// Returns the localized label for a log time range unit.
+            /// </summary>
+            public string ToString(UserConfig userConfig)
+            {
+                ArgumentNullException.ThrowIfNull(userConfig);
+
+                return unit switch
+                {
+                    LogTimeRangeUnit.Seconds => userConfig.GetText("Seconds"),
+                    LogTimeRangeUnit.Minutes => userConfig.GetText("Minutes2"),
+                    LogTimeRangeUnit.Hours => userConfig.GetText("Hours"),
+                    LogTimeRangeUnit.Days => userConfig.GetText("Days"),
+                    LogTimeRangeUnit.Weeks => userConfig.GetText("Weeks"),
+                    _ => unit.ToString(),
+                };
+            }
+        }
+    }
+}

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from typing import Any
 
+from models.credential import AdditionalCredential  # noqa: TC002 - Pydantic resolves this type at runtime
 from pydantic import BaseModel
 
 
@@ -12,6 +15,7 @@ class Management(BaseModel):
     import_disabled: bool
     devices: list[dict[str, Any]]
     importer_hostname: str
+    ssh_legacy_key_exchange: bool = False
     device_type_name: str
     device_type_version: str
     port: int
@@ -22,6 +26,7 @@ class Management(BaseModel):
     current_mgm_is_super_manager: bool
     domain_name: str | None
     domain_uid: str | None
-    sub_managers: list["Management"]
-    cloud_client_id: str | None = None
-    cloud_client_secret: str | None = None
+    sub_managers: list[Management]
+    additional_credential: AdditionalCredential | None = None
+    cloud_tenant_id: str | None = None
+    cloud_subscription_id: str | None = None

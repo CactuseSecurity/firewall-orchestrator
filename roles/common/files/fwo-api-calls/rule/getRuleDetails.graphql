@@ -10,7 +10,7 @@ query getRuleDetails(
   $limit: Int
   $offset: Int
 ) {
-  rule(
+  firewall_rule(
     limit: $limit
     offset: $offset
     where: {

@@ -25,6 +25,7 @@ try:
         extract_label_items,
         login_fwo,
         login_guardicore,
+        resolve_fwo_client_identity,
         resolve_ssl_verification_settings,
         run_graphql_query,
     )
@@ -39,6 +40,7 @@ except ModuleNotFoundError:
         extract_label_items,
         login_fwo,
         login_guardicore,
+        resolve_fwo_client_identity,
         resolve_ssl_verification_settings,
         run_graphql_query,
     )
@@ -143,7 +145,7 @@ def parse_app_ids(value: str) -> list[str]:
     return app_ids
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args() -> argparse.Namespace:  # pragma: no cover
     parser = argparse.ArgumentParser(description="Create Guardicore rules from FWO active connections")
     parser.add_argument("--fwo-graphql-url", required=True, help="Hasura GraphQL endpoint URL")
     parser.add_argument("--fwo-jwt", help="JWT for FWO GraphQL calls (skips login if provided)")
@@ -196,6 +198,8 @@ def parse_args() -> argparse.Namespace:
         "--fwo-ca-cert",
         help="Path to a CA bundle for FWO API calls",
     )
+    parser.add_argument("--fwo-client-cert", help="Path to the client certificate for FWO API calls")
+    parser.add_argument("--fwo-client-key", help="Path to the client private key for FWO API calls")
     parser.add_argument(
         "--guardicore-ca-cert",
         help="Path to a CA bundle for Guardicore API calls",
@@ -245,7 +249,11 @@ def require_guardicore_fields(args: argparse.Namespace) -> None:
         raise GuardicoreRuleProvisioningError("Missing arguments for Guardicore auth: " + ", ".join(missing))
 
 
-def get_fwo_jwt(args: argparse.Namespace, fwo_verify: bool | str) -> str:
+def get_fwo_jwt(
+    args: argparse.Namespace,
+    fwo_verify: bool | str,
+    client_identity: tuple[str, str] | None = None,
+) -> str:
     if args.fwo_jwt:
         return args.fwo_jwt
     return login_fwo(
@@ -255,6 +263,7 @@ def get_fwo_jwt(args: argparse.Namespace, fwo_verify: bool | str) -> str:
         fwo_verify,
         args.timeout,
         GuardicoreRuleProvisioningError,
+        client_identity,
     )
 
 
@@ -1202,6 +1211,7 @@ def build_runtime_configs(
     guardicore_verify: bool | str,
     fwo_jwt: str,
     guardicore_token: str,
+    client_identity: tuple[str, str] | None = None,
 ) -> tuple[FwoConfig, GuardicoreConfig]:
     return (
         FwoConfig(
@@ -1210,6 +1220,7 @@ def build_runtime_configs(
             verify_ssl=fwo_verify,
             timeout_seconds=args.timeout,
             role=args.fwo_role,
+            client_identity=client_identity,
         ),
         GuardicoreConfig(
             base_url=args.guardicore_url,
@@ -1336,7 +1347,7 @@ def publish_revision_if_needed(
     post_guardicore_revision(guardicore_config, rulesets, args.publish_comments)
 
 
-def main() -> int:
+def main() -> int:  # pragma: no cover
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger = logging.getLogger(__name__)
     args = parse_args()
@@ -1344,13 +1355,17 @@ def main() -> int:
     try:
         require_login_fields(args)
         require_guardicore_fields(args)
-    except GuardicoreRuleProvisioningError:
+        client_identity = resolve_fwo_client_identity(args, GuardicoreRuleProvisioningError)
+    # resolve_fwo_client_identity reads the local fworch.json, which raises
+    # JSONDecodeError when that file is corrupt rather than pretending no client
+    # identity is configured.
+    except (GuardicoreRuleProvisioningError, json.JSONDecodeError):
         logger.exception("Argument validation failed.")
         return 2
 
     try:
         fwo_verify, guardicore_verify = resolve_ssl_verification_settings(args)
-        fwo_jwt = get_fwo_jwt(args, fwo_verify)
+        fwo_jwt = get_fwo_jwt(args, fwo_verify, client_identity)
         guardicore_token = get_guardicore_token(args, guardicore_verify)
         fwo_config, guardicore_config = build_runtime_configs(
             args,
@@ -1358,6 +1373,7 @@ def main() -> int:
             guardicore_verify,
             fwo_jwt,
             guardicore_token,
+            client_identity,
         )
         connections = fetch_connections_from_fwo(fwo_config, app_ids=args.app_ids)
         log_fetch_summary(logger, connections, args.app_ids)
@@ -1373,10 +1389,10 @@ def main() -> int:
         publish_revision_if_needed(args, logger, guardicore_config, sorted_rulesets)
         logger.info("Done. Created %s rule(s), skipped %s connection(s).", created, skipped)
         return 0
-    except GuardicoreRuleProvisioningError:
+    except (GuardicoreRuleProvisioningError, json.JSONDecodeError):
         logger.exception("Guardicore rule provisioning failed.")
         return 1
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     sys.exit(main())

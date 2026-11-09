@@ -12,21 +12,39 @@ namespace FWO.DeviceAutoDiscovery
         public Management SuperManagement { get; set; }
         protected readonly ApiConnection apiConnection;
 
-        public AutoDiscoveryBase(Management mgm, ApiConnection apiConn)
+        /// <summary>
+        /// Whether the TLS certificate of the management API is checked (global setting for firewall connections).
+        /// </summary>
+        public bool CheckCertificates { get; }
+
+        /// <summary>
+        /// Creates an autodiscovery for the given super management.
+        /// </summary>
+        /// <param name="mgm">The super management to discover.</param>
+        /// <param name="apiConn">Connection to the FWO API.</param>
+        /// <param name="checkCertificates">Whether the TLS certificate of the management API is checked.</param>
+        public AutoDiscoveryBase(Management mgm, ApiConnection apiConn, bool checkCertificates)
         {
+            CheckCertificates = checkCertificates;
             SuperManagement = mgm;
             SuperManagement.ImportCredential.Secret = AesEnc.TryDecrypt(SuperManagement.ImportCredential.Secret, true,
                 "AutoDiscovery", $"Could not decrypt secret in credential named '{SuperManagement.ImportCredential.Name}'.", true);
             apiConnection = apiConn;
         }
 
-        public virtual Task<List<Management>> Run()
+        /// <summary>
+        /// Discovers the managements below the super management and returns the differences to the stored ones.
+        /// </summary>
+        /// <param name="cancellationToken">Stops the discovery before the next domain or ADOM; no differences are
+        /// calculated then, as missing managements would otherwise be reported as deleted.</param>
+        public virtual Task<List<Management>> Run(CancellationToken cancellationToken = default)
         {
             return SuperManagement.DeviceType.Name switch
             {
-                "FortiManager" => new AutoDiscoveryFortiManager(SuperManagement, apiConnection).Run(),
-                "CheckPoint" => new AutoDiscoveryCpMds(SuperManagement, apiConnection).Run(),
-                "Check Point" => new AutoDiscoveryCpMds(SuperManagement, apiConnection).Run(),
+                "FortiManager" => new AutoDiscoveryFortiManager(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
+                "CheckPoint" => new AutoDiscoveryCpMds(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
+                "Check Point" => new AutoDiscoveryCpMds(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
+                "Azure" => new AutoDiscoveryAzure(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
                 _ => throw new NotSupportedException("SuperManager Type is not supported."),
             };
         }
@@ -37,16 +55,17 @@ namespace FWO.DeviceAutoDiscovery
             try
             {
                 List<Management> existingManagements = await apiConnection.SendQueryAsync<List<Management>>(FWO.Api.Client.Queries.DeviceQueries.getManagementsDetails);
+                AdoptExistingIdentities(discoveredManagements, existingManagements);
 
-                bool compareDevicesByUidOnly = SuperManagement.DeviceType.Name == "FortiManager";
+                bool compareManagementsByUid = SuperManagement.DeviceType.Name == "FortiManager";
                 foreach (Management discoveredMgmt in discoveredManagements.Where(x => x.ConfigPath != "global"))
                 {
-                    DiscoverManagementDetails(discoveredMgmt, deltaManagements, existingManagements, compareDevicesByUidOnly);
+                    DiscoverManagementDetails(discoveredMgmt, deltaManagements, existingManagements, discoveredManagements, compareManagementsByUid, compareManagementsByUid);
                 }
                 // deleted managements
                 foreach (Management existMgmtDisregardingUid in existingManagements.Where(mgt => mgt.SuperManagerId == SuperManagement.Id && mgt.ConfigPath != "global"))
                 {
-                    Management? foundMgmt = FindManagementIfExist(existMgmtDisregardingUid, discoveredManagements);
+                    Management? foundMgmt = FindManagementIfExist(existMgmtDisregardingUid, discoveredManagements, existingManagements, compareManagementsByUid);
                     if (foundMgmt == null && !existMgmtDisregardingUid.ImportDisabled)
                     {
                         existMgmtDisregardingUid.Delete = true;
@@ -61,13 +80,24 @@ namespace FWO.DeviceAutoDiscovery
             return deltaManagements;
         }
 
+        /// <summary>
+        /// Lets a discovery take over the identity of stored objects that the exact name and uid comparison
+        /// would not recognize, so they are not reported as deleted and added again.
+        /// </summary>
+        /// <param name="discoveredManagements">The discovered managements, changed in place.</param>
+        /// <param name="existingManagements">The managements stored in FWO.</param>
+        protected virtual void AdoptExistingIdentities(List<Management> discoveredManagements, List<Management> existingManagements)
+        { }
+
         private static void DiscoverManagementDetails(
             Management discoveredMgmt,
             List<Management> deltaManagements,
             List<Management> existingManagements,
-            bool compareDevicesByUidOnly)
+            List<Management> discoveredManagements,
+            bool compareDevicesByUidOnly,
+            bool compareManagementsByUid)
         {
-            Management? existMgmtDisregardingUid = FindManagementIfExist(discoveredMgmt, existingManagements);
+            Management? existMgmtDisregardingUid = FindManagementIfExist(discoveredMgmt, existingManagements, discoveredManagements, compareManagementsByUid);
             if (existMgmtDisregardingUid == null)
             {
                 // new management
@@ -120,8 +150,17 @@ namespace FWO.DeviceAutoDiscovery
             }
         }
 
-        private static Management? FindManagementIfExist(Management mgm, List<Management> mgmtList)
+        private static Management? FindManagementIfExist(Management mgm, List<Management> mgmtList,
+            List<Management> sourceList, bool compareManagementsByUid)
         {
+            if (compareManagementsByUid)
+            {
+                // fall back to ADOM name if the ADOM UID changed on the FortiManager
+                return mgmtList.FirstOrDefault(m => ManagementUidMatches(m, mgm))
+                    ?? mgmtList.FirstOrDefault(m => ManagementConfigPathMatches(m, mgm)
+                        && !sourceList.Any(other => ManagementUidMatches(other, m)));
+            }
+
             Management? existingManagement = mgmtList.FirstOrDefault(m => m.Equals(mgm));
             if (existingManagement != null)
             {
@@ -130,11 +169,32 @@ namespace FWO.DeviceAutoDiscovery
             return null;
         }
 
+        /// <summary>
+        /// Matches FortiManager child managements by ADOM UID within the same super manager.
+        /// </summary>
+        private static bool ManagementUidMatches(Management first, Management second)
+        {
+            return !string.IsNullOrEmpty(first.Uid) &&
+                   !string.IsNullOrEmpty(second.Uid) &&
+                   first.Uid.GenerousCompare(second.Uid) &&
+                   first.SuperManagerId == second.SuperManagerId;
+        }
+
+        /// <summary>
+        /// Matches FortiManager child managements by ADOM name (config path) within the same super manager.
+        /// </summary>
+        private static bool ManagementConfigPathMatches(Management first, Management second)
+        {
+            return !string.IsNullOrEmpty(first.ConfigPath) &&
+                   first.ConfigPath == second.ConfigPath &&
+                   first.SuperManagerId == second.SuperManagerId;
+        }
+
         private static bool CheckDeviceNotInMgmt(Device dev, Management mgmt, bool compareDevicesByUidOnly)
         {
             if (compareDevicesByUidOnly)
             {
-                if (mgmt.Devices.FirstOrDefault(devInMgt => devInMgt.Uid.GenerousCompare(dev.Uid)) != null)
+                if (mgmt.Devices.FirstOrDefault(devInMgt => DeviceUidMatches(devInMgt, dev)) != null)
                 {
                     return false;
                 }
@@ -148,7 +208,38 @@ namespace FWO.DeviceAutoDiscovery
             return true;
         }
 
+        /// <summary>
+        /// Matches FortiManager gateways by non-empty UID.
+        /// </summary>
+        private static bool DeviceUidMatches(Device first, Device second)
+        {
+            return !string.IsNullOrEmpty(first.Uid) &&
+                   !string.IsNullOrEmpty(second.Uid) &&
+                   first.Uid.GenerousCompare(second.Uid);
+        }
+
         protected virtual Management CreateManagement(Management superManagement, string domainName, string domainUid) { return new(); }
+
+        /// <summary>
+        /// Decides whether a domain name reported by the discovered manager may become the config path of a management.
+        /// </summary>
+        /// <remarks>
+        /// The importer reads the config of a management whose config path is a URI (http, https, file) from that URI
+        /// instead of the firewall API. A name chosen on the remote manager must never select such a source, so names
+        /// containing "://" are skipped. Firewall managers do not allow such names for their domains anyway.
+        /// </remarks>
+        /// <param name="domainName">The domain or ADOM name reported by the manager.</param>
+        /// <returns>True when the domain can be turned into a management.</returns>
+        public static bool IsAcceptableDomainName(string? domainName)
+        {
+            if (domainName != null && domainName.Contains("://", StringComparison.Ordinal))
+            {
+                Log.WriteWarning("Autodiscovery", $"Skipping discovered domain '{domainName}': a name in URI form would " +
+                    "make the importer read the config from that URI instead of the firewall API.");
+                return false;
+            }
+            return true;
+        }
 
 
         public List<ActionItem> ConvertToActions(List<Management> diffList)
@@ -216,8 +307,7 @@ namespace FWO.DeviceAutoDiscovery
             Management MgtVariables = new()
             {
                 Hostname = SuperManagement.Hostname,
-                ImportCredential = SuperManagement.ImportCredential,
-                ImporterHostname = SuperManagement.ImporterHostname,
+                ImportCredential = CreateCredentialReference(SuperManagement.ImportCredential),
                 DebugLevel = SuperManagement.DebugLevel,
                 Port = SuperManagement.Port,
                 ImportDisabled = false,
@@ -255,6 +345,25 @@ namespace FWO.DeviceAutoDiscovery
                     JsonData = JsonSerializer.Serialize(dev)
                 });
             }
+        }
+
+        /// <summary>
+        /// Returns a reference to the given credential without its secret.
+        /// </summary>
+        /// <remarks>
+        /// The action data of a new management is stored in the alert and written to the log, while the super
+        /// management holds the decrypted secret at this point. The autodiscovery dialog creates the management
+        /// with the credential id only, so the secret must never be part of the action data.
+        /// </remarks>
+        /// <param name="credential">The credential of the super management.</param>
+        /// <returns>A credential carrying only id and name.</returns>
+        private static Credential CreateCredentialReference(Credential credential)
+        {
+            return new Credential
+            {
+                Id = credential.Id,
+                Name = credential.Name
+            };
         }
 
         private void ChangeManagement(Management changedMgmt, List<ActionItem> actions, int counter)

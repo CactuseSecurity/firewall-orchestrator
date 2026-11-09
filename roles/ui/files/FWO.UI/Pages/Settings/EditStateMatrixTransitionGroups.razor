@@ -1,0 +1,417 @@
+@using FWO.Data
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+<PopUp Title="@(userConfig.GetText("edit_transition_groups"))" Show="@(Display && !DirectEditMode)" Size=PopupSize.XLarge OnClose="ClosePopup">
+    <Body>
+        @if (Display && !DirectEditMode)
+        {
+            <div class="d-flex mb-2 mt-2">
+                <button type="button" class="btn btn-sm btn-success" @onclick="AddGroup">
+                    @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                </button>
+            </div>
+            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="StateMatrixTransitionGroup" Items="transitionGroups" PageSize="0" ColumnReorder="true">
+                <Column TableItem="StateMatrixTransitionGroup" Title="@(userConfig.GetText("action"))" Field="@(group => group.Id)" Sortable="false" Filterable="false">
+                    <Template>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="() => EditGroup(context)">
+                                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteGroup(context)">
+                                @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))
+                            </button>
+                        </div>
+                    </Template>
+                </Column>
+                <Column TableItem="StateMatrixTransitionGroup" Title="@(userConfig.GetText("name"))" Field="@(group => group.Name)" Sortable="true" Filterable="true" />
+                <Column TableItem="StateMatrixTransitionGroup" Title="@(userConfig.GetText("phase"))" Field="@(group => group.Phase)" Sortable="true" Filterable="true">
+                    <Template>
+                        @DisplayPhase(context.Phase)
+                    </Template>
+                </Column>
+                <Column TableItem="StateMatrixTransitionGroup" Title="@(userConfig.GetText("visibility_group"))" Field="@(group => group.VisibilityGroupId)" Sortable="true" Filterable="false">
+                    <Template>
+                        @VisibilityGroupName(context.VisibilityGroupId)
+                    </Template>
+                </Column>
+                <Column TableItem="StateMatrixTransitionGroup" Title="@(userConfig.GetText("exclusive"))" Field="@(group => group.Exclusive)" Sortable="true" Filterable="false">
+                    <Template>
+                        @RenderExclusiveFlag(context)
+                    </Template>
+                </Column>
+                <Column TableItem="StateMatrixTransitionGroup" Title="@(userConfig.GetText("using_phases"))" Field="@(group => group.PhaseMatrixUsageCount)" Sortable="true" Filterable="false" />
+                <Column TableItem="StateMatrixTransitionGroup" Title="@(userConfig.GetText("transitions"))" Field="@(group => group.TransitionCount)" Sortable="true" Filterable="false" />
+            </Table>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "ok", Icons.Confirm))</button>
+    </Footer>
+</PopUp>
+
+<PopUp Title="@(userConfig.GetText(editGroup.Id == 0 ? "add_transition_group" : "edit_transition_group"))" Show="@EditMode" Size=PopupSize.Large OnClose="CloseEditorPopup">
+    <Body>
+        @if (EditMode)
+        {
+            <div class="form-group row mb-2">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                <div class="col-sm-9"><input class="form-control form-control-sm" @bind="editGroup.Name" /></div>
+            </div>
+            <div class="form-group row mb-2">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("description")):</label>
+                <div class="col-sm-9"><textarea class="form-control form-control-sm" @bind="editGroup.Description"></textarea></div>
+            </div>
+            <div class="form-group row mb-2">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("phase")):</label>
+                <div class="col-sm-9">
+                    <select class="form-select form-select-sm" @bind="editGroup.Phase">
+                        <option value="">@(userConfig.GetText("all"))</option>
+                        @foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
+                        {
+                            <option value="@phase.ToString()">@(userConfig.GetText(phase.ToString()))</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="form-group row mb-3">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("visibility_group")):</label>
+                <div class="col-sm-9">
+                    <select class="form-select form-select-sm" @bind="editGroup.VisibilityGroupId">
+                        <option value="">-</option>
+                        @foreach (WorkflowVisibilityGroup group in visibilityGroups)
+                        {
+                            <option value="@group.Id">@group.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="form-group row mb-3">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("exclusive")):</label>
+                <div class="col-sm-9 d-flex align-items-center">
+                    <input id="transition_group_exclusive" class="form-check-input me-2" type="checkbox" @bind="editGroup.Exclusive" disabled="@(!editGroup.VisibilityGroupId.HasValue)" />
+                </div>
+            </div>
+            <div class="form-group row mb-3">
+                <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("using_phases")):</label>
+                <div class="col-sm-9">
+                    @if (editGroup.PhaseMatrixUsages.Count == 0)
+                    {
+                        <span>-</span>
+                    }
+                    else
+                    {
+                        @foreach (StateMatrixPhaseTransitionGroup usage in editGroup.PhaseMatrixUsages)
+                        {
+                            <div class="text-break border-bottom py-1">
+                                @usage.PhaseMatrix.Name (@userConfig.GetText(usage.PhaseMatrix.Phase))
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">@(userConfig.GetText("transitions"))</h6>
+                <button type="button" class="btn btn-sm btn-success" disabled="@(States.Count == 0)" @onclick="AddTransition">
+                    @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                </button>
+            </div>
+            <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto" TableItem="StateMatrixTransition" Items="editGroup.Transitions" PageSize="0" ColumnReorder="false">
+                <Column TableItem="StateMatrixTransition" Title="@(userConfig.GetText("from_state"))" Field="@(transition => transition.FromStateId)" Sortable="false" Filterable="false">
+                    <Template>
+                        <select class="form-select form-select-sm" @bind="context.FromStateId">
+                            @foreach (WfState state in States)
+                            {
+                                <option value="@state.Id">@StateDisplayName(state)</option>
+                            }
+                        </select>
+                    </Template>
+                </Column>
+                <Column TableItem="StateMatrixTransition" Title="@(userConfig.GetText("to_state"))" Field="@(transition => transition.ToStateId)" Sortable="false" Filterable="false">
+                    <Template>
+                        <select class="form-select form-select-sm" @bind="context.ToStateId">
+                            @foreach (WfState state in States)
+                            {
+                                <option value="@state.Id">@StateDisplayName(state)</option>
+                            }
+                        </select>
+                    </Template>
+                </Column>
+                <Column TableItem="StateMatrixTransition" Title="@(userConfig.GetText("action"))" Field="@(transition => transition.FromStateId)" Sortable="false" Filterable="false">
+                    <Template>
+                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => editGroup.Transitions.Remove(context)">
+                            <span class="@Icons.Delete"></span>
+                        </button>
+                    </Template>
+                </Column>
+            </Table>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanSave)" @onclick="Save">
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                </NotAuthorized>
+            </ExecutionModeAuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseEditorView">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+<ConfirmDelete @bind-Display="DeleteMode" PerformAction="DeleteGroup" AllowedRoles="@Roles.Admin"
+               Title="@userConfig.GetText("delete_transition_group")" DeleteMessage="@DeleteGroupMessage" />
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public bool Display { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> DisplayChanged { get; set; }
+
+    [Parameter]
+    public List<WfState> States { get; set; } = [];
+
+    [Parameter]
+    public EventCallback TransitionGroupsChanged { get; set; }
+
+    [Parameter]
+    public int? TransitionGroupIdToEdit { get; set; }
+
+    private List<StateMatrixTransitionGroup> transitionGroups = [];
+    private List<WorkflowVisibilityGroup> visibilityGroups = [];
+    private StateMatrixTransitionGroup editGroup = new();
+    private StateMatrixTransitionGroup originalGroup = new();
+    private StateMatrixTransitionGroup groupToDelete = new();
+    private bool EditMode;
+    private bool DeleteMode;
+    private bool wasDisplayed;
+    private bool DirectEditMode => TransitionGroupIdToEdit.HasValue;
+    private bool CanSave => !string.IsNullOrWhiteSpace(editGroup.Name) && !HasDuplicateName() && !HasDuplicateTransitions();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Display && !wasDisplayed)
+        {
+            await RefreshGroups();
+            StateMatrixTransitionGroup? groupToEdit = transitionGroups.FirstOrDefault(group => group.Id == TransitionGroupIdToEdit);
+            if (groupToEdit != null)
+            {
+                EditGroup(groupToEdit);
+            }
+        }
+        wasDisplayed = Display;
+    }
+
+    private async Task RefreshGroups()
+    {
+        try
+        {
+            transitionGroups = await apiConnection.SendQueryAsync<List<StateMatrixTransitionGroup>>(RequestQueries.getStateMatrixTransitionGroups);
+            visibilityGroups = await apiConnection.SendQueryAsync<List<WorkflowVisibilityGroup>>(RequestQueries.getWorkflowVisibilityGroups);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private void AddGroup()
+    {
+        editGroup = new StateMatrixTransitionGroup();
+        originalGroup = new StateMatrixTransitionGroup();
+        EditMode = true;
+    }
+
+    private void EditGroup(StateMatrixTransitionGroup group)
+    {
+        editGroup = Clone(group);
+        originalGroup = Clone(group);
+        if (!editGroup.VisibilityGroupId.HasValue)
+        {
+            editGroup.Exclusive = false;
+        }
+        EditMode = true;
+    }
+
+    private void RequestDeleteGroup(StateMatrixTransitionGroup group)
+    {
+        groupToDelete = group;
+        DeleteMode = true;
+    }
+
+    private string DeleteGroupMessage => $"{userConfig.GetText("delete_transition_group_message")} {groupToDelete.Name}?";
+
+    private async Task DeleteGroup()
+    {
+        try
+        {
+            await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteStateMatrixTransitionGroup, new { id = groupToDelete.Id });
+            await RefreshGroups();
+            await TransitionGroupsChanged.InvokeAsync();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("delete_transition_group"), "", true);
+        }
+    }
+
+    private void AddTransition()
+    {
+        int stateId = States.First().Id;
+        editGroup.Transitions.Add(new StateMatrixTransition { FromStateId = stateId, ToStateId = stateId });
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            editGroup.Name = editGroup.Name.Trim();
+            editGroup.Description = NormalizeOptional(editGroup.Description);
+            editGroup.Phase = NormalizeOptional(editGroup.Phase);
+            if (!editGroup.VisibilityGroupId.HasValue)
+            {
+                editGroup.Exclusive = false;
+            }
+            int groupId = editGroup.Id;
+            if (groupId == 0)
+            {
+                ReturnId result = await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.createStateMatrixTransitionGroup, new
+                {
+                    name = editGroup.Name,
+                    description = editGroup.Description,
+                    phase = editGroup.Phase,
+                    visibilityGroupId = editGroup.VisibilityGroupId,
+                    exclusive = editGroup.Exclusive
+                });
+                groupId = result.NewId;
+            }
+            else
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateStateMatrixTransitionGroup, new
+                {
+                    id = groupId,
+                    name = editGroup.Name,
+                    description = editGroup.Description,
+                    phase = editGroup.Phase,
+                    visibilityGroupId = editGroup.VisibilityGroupId,
+                    exclusive = editGroup.Exclusive
+                });
+            }
+            await SaveTransitions(groupId);
+            await RefreshGroups();
+            await TransitionGroupsChanged.InvokeAsync();
+            await CloseEditorView();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("edit_transition_group"), "", true);
+        }
+    }
+
+    private async Task SaveTransitions(int groupId)
+    {
+        HashSet<(int FromStateId, int ToStateId)> oldTransitions = originalGroup.Transitions
+            .Select(transition => (transition.FromStateId, transition.ToStateId)).ToHashSet();
+        HashSet<(int FromStateId, int ToStateId)> newTransitions = editGroup.Transitions
+            .Select(transition => (transition.FromStateId, transition.ToStateId)).ToHashSet();
+        List<object> removedTransitions = oldTransitions.Except(newTransitions)
+            .Select(transition => (object)new
+            {
+                transition_group_id = new { _eq = groupId },
+                from_state_id = new { _eq = transition.FromStateId },
+                to_state_id = new { _eq = transition.ToStateId }
+            }).ToList();
+        List<object> transitions = editGroup.Transitions
+            .Select((transition, sortOrder) => new { transition, sortOrder })
+            .Where(item => !oldTransitions.Contains((item.transition.FromStateId, item.transition.ToStateId)) ||
+                originalGroup.Transitions.First(existing => existing.FromStateId == item.transition.FromStateId && existing.ToStateId == item.transition.ToStateId).SortOrder != item.sortOrder)
+            .Select(item => (object)new
+            {
+                transition_group_id = groupId,
+                from_state_id = item.transition.FromStateId,
+                to_state_id = item.transition.ToStateId,
+                sort_order = item.sortOrder
+            }).ToList();
+        if (removedTransitions.Count > 0 || transitions.Count > 0)
+        {
+            await apiConnection.SendQueryAsync<object>(RequestQueries.replaceStateMatrixTransitionGroupTransitions, new { removedTransitions, transitions });
+        }
+    }
+
+    private bool HasDuplicateName() => transitionGroups.Any(group => group.Id != editGroup.Id && string.Equals(group.Name, editGroup.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private bool HasDuplicateTransitions() => editGroup.Transitions
+        .GroupBy(transition => (transition.FromStateId, transition.ToStateId)).Any(group => group.Count() > 1);
+
+    private string DisplayPhase(string? phase) => string.IsNullOrWhiteSpace(phase) ? userConfig.GetText("all") : userConfig.GetText(phase);
+
+    private string VisibilityGroupName(int? visibilityGroupId) => visibilityGroups.FirstOrDefault(group => group.Id == visibilityGroupId)?.Name ?? "-";
+
+    private static Microsoft.AspNetCore.Components.MarkupString RenderExclusiveFlag(StateMatrixTransitionGroup group)
+    {
+        return group.VisibilityGroupId.HasValue
+            ? group.Exclusive.ShowAsHtml()
+            : new Microsoft.AspNetCore.Components.MarkupString("");
+    }
+
+    /// <summary>
+    /// Formats a state for selection in a transition group.
+    /// </summary>
+    private static string StateDisplayName(WfState state) => $"{state.Name} ({state.Id})";
+
+    private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static StateMatrixTransitionGroup Clone(StateMatrixTransitionGroup group) => new()
+    {
+        Id = group.Id,
+        Name = group.Name,
+        Description = group.Description,
+        Phase = group.Phase,
+        VisibilityGroupId = group.VisibilityGroupId,
+        Exclusive = group.VisibilityGroupId.HasValue && group.Exclusive,
+        VisibilityGroup = group.VisibilityGroup,
+        PhaseMatrixUsages = group.PhaseMatrixUsages,
+        Transitions = group.Transitions.Select(transition => new StateMatrixTransition
+        {
+            FromStateId = transition.FromStateId,
+            ToStateId = transition.ToStateId,
+            SortOrder = transition.SortOrder
+        }).ToList()
+    };
+
+    private void CloseEditor() => EditMode = false;
+
+    private async Task CloseEditorView()
+    {
+        if (DirectEditMode)
+        {
+            await Close();
+        }
+        else
+        {
+            CloseEditor();
+        }
+    }
+
+    private void CloseEditorPopup() => _ = CloseEditorView();
+
+    private async Task Close()
+    {
+        CloseEditor();
+        Display = false;
+        await DisplayChanged.InvokeAsync(false);
+    }
+
+    private void ClosePopup() => _ = Close();
+}

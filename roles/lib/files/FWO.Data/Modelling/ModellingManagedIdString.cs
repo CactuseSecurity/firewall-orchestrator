@@ -166,21 +166,34 @@ namespace FWO.Data.Modelling
             FixedPart = ConvertAreaToAppRole(areaIdString, NamingConvention);
         }
 
+        /// <summary>
+        /// Converts the fixed part of an area identifier into the fixed part of an app role identifier.
+        /// </summary>
+        /// <param name="areaIdString">identifier of the network area</param>
+        /// <param name="namingConvention">naming convention to apply, patterns may be null in stored configs</param>
+        /// <returns>the app role fixed part or the unchanged area identifier if it is too short</returns>
         public static string ConvertAreaToAppRole(string areaIdString, ModellingNamingConvention namingConvention)
         {
             if (areaIdString.Length >= namingConvention.FixedPartLength)
             {
-                return areaIdString.Substring(0, namingConvention.FixedPartLength).Remove(0, namingConvention.NetworkAreaPattern.Length).Insert(0, namingConvention.AppRolePattern);
+                int convLength = Math.Min(namingConvention.NetworkAreaPattern?.Length ?? 0, namingConvention.FixedPartLength);
+                return areaIdString.Substring(0, namingConvention.FixedPartLength).Remove(0, convLength).Insert(0, namingConvention.AppRolePattern ?? "");
             }
             return areaIdString;
         }
 
+        /// <summary>
+        /// Converts the fixed part of an app role identifier back into the fixed part of an area identifier.
+        /// </summary>
+        /// <param name="appRoleIdString">identifier of the app role</param>
+        /// <param name="namingConvention">naming convention to apply, patterns may be null in stored configs</param>
+        /// <returns>the area fixed part or an empty string if the app role identifier is too short</returns>
         public static string ConvertAppRoleToArea(string appRoleIdString, ModellingNamingConvention namingConvention)
         {
-            int convLength = namingConvention.AppRolePattern.Length > namingConvention.FixedPartLength ? namingConvention.FixedPartLength : namingConvention.AppRolePattern.Length;
+            int convLength = Math.Min(namingConvention.AppRolePattern?.Length ?? 0, namingConvention.FixedPartLength);
             if (appRoleIdString.Length >= namingConvention.FixedPartLength)
             {
-                return appRoleIdString.Substring(0, namingConvention.FixedPartLength).Remove(0, convLength).Insert(0, namingConvention.NetworkAreaPattern);
+                return appRoleIdString.Substring(0, namingConvention.FixedPartLength).Remove(0, convLength).Insert(0, namingConvention.NetworkAreaPattern ?? "");
             }
             return "";
         }

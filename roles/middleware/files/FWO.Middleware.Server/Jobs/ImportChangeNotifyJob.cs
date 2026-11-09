@@ -30,12 +30,17 @@ namespace FWO.Middleware.Server.Jobs
         }
 
         /// <inheritdoc />
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
             try
             {
-                ImportChangeNotifier notifyImportChanges = new(apiConnection, globalConfig);
-                await notifyImportChanges.Run();
+                cancellationToken.ThrowIfCancellationRequested();
+                using ImportChangeNotifier notifyImportChanges = new(apiConnection, globalConfig);
+                await notifyImportChanges.Run(cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ImportChangeNotifyJob)} stopped.");
             }
             catch (Exception exc)
             {

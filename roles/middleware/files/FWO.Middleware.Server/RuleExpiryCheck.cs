@@ -27,12 +27,14 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Rule expiry check
         /// </summary>
-        public async Task<int> CheckRuleExpiry()
+        /// <param name="cancellationToken">Stops before the next owner; the last sent state of notifications is still updated.</param>
+        public async Task<int> CheckRuleExpiry(CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             int emailsSent = 0;
             Dictionary<string, string> ruleExpiryInitiatorKeys = ParseRuleExpiryInitiatorKeys(GlobalConfig.RuleExpiryInitiatorKeys);
-            List<UserGroup> ownerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
-            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.RuleTimer, GlobalConfig, apiConnection, ownerGroups);
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.RuleTimer, GlobalConfig, apiConnection);
             List<RuleOwnerWithRuleTimes> rulesByOwner = await apiConnection.SendQueryAsync<List<RuleOwnerWithRuleTimes>>(
                 RuleQueries.getTimeBasedRulesByOwner);
 
@@ -40,41 +42,59 @@ namespace FWO.Middleware.Server
                 .Where(item => item.Owner != null && item.Rule != null)
                 .GroupBy(item => item.Owner.Id);
 
-            foreach (var ownerBucket in ownerBuckets)
+            try
             {
-                FwoOwner owner = ownerBucket.First().Owner;
-                List<RuleExpiryInfo> timedEntries = ownerBucket
-                    .SelectMany(item => item.Rule.GetRuleTimesWithEndDate(ruleExpiryInitiatorKeys))
-                    .DistinctBy(item => $"{item.Id}:{item.TimeObjectId}")
-                    .OrderBy(item => item.EndTime)
-                    .ToList();
-
-                if (timedEntries.Count == 0)
+                foreach (var ownerBucket in ownerBuckets)
                 {
-                    continue;
-                }
-
-                foreach (var notification in notificationService.Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
-                {
-                    List<RuleExpiryInfo> dueEntries = timedEntries
-                        .Where(entry => NotificationService.IsNotificationDue(owner, entry.EndTime, notification))
+                    cancellationToken.ThrowIfCancellationRequested();
+                    FwoOwner owner = ownerBucket.First().Owner;
+                    List<RuleExpiryInfo> timedEntries = ownerBucket
+                        .SelectMany(item => item.Rule.GetRuleTimesWithEndDate(ruleExpiryInitiatorKeys))
+                        .DistinctBy(item => $"{item.Id}:{item.TimeObjectId}")
+                        .OrderBy(item => item.EndTime)
                         .ToList();
 
-                    if (dueEntries.Count == 0)
+                    if (timedEntries.Count == 0)
                     {
                         continue;
                     }
 
-                    string timeIntervalText = BuildTimeIntervalText(notification);
-                    string body = BuildRuleBody(
-                        owner,
-                        GlobalConfig.RuleExpiryEmailBody,
-                        timeIntervalText,
-                        dueEntries.OrderBy(item => item.EndTime),
-                        [GlobalConfig.GetText("deadline"), GlobalConfig.GetText("ruleExpiryInitiator")],
-                        expiryInfo => [expiryInfo.EndTime.ToString("yyyy-MM-dd"), expiryInfo.ExpiryInitiator]);
-                    emailsSent += await notificationService.SendNotification(notification, owner, body, null, timeIntervalText);
+                    foreach (var notification in notificationService.Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
+                    {
+                        List<RuleExpiryInfo> dueEntries = timedEntries
+                            .Where(entry => NotificationService.IsNotificationDue(owner, entry.EndTime, notification))
+                            .ToList();
+
+                        if (dueEntries.Count == 0)
+                        {
+                            continue;
+                        }
+
+                        string timeIntervalText = BuildTimeIntervalText(notification);
+                        string body = notification.Layout == NotificationLayout.HtmlInBody
+                            ? BuildRuleHtmlBody(
+                                owner,
+                                GlobalConfig.RuleExpiryEmailBody,
+                                timeIntervalText,
+                                dueEntries.OrderBy(item => item.EndTime),
+                                [GlobalConfig.GetText("deadline"), GlobalConfig.GetText("ruleExpiryInitiator")],
+                                expiryInfo => [expiryInfo.EndTime.ToString("yyyy-MM-dd"), expiryInfo.ExpiryInitiator])
+                            : BuildRuleTextBody(
+                                owner,
+                                GlobalConfig.RuleExpiryEmailBody,
+                                timeIntervalText,
+                                dueEntries.OrderBy(item => item.EndTime),
+                                [GlobalConfig.GetText("deadline"), GlobalConfig.GetText("ruleExpiryInitiator")],
+                                expiryInfo => [expiryInfo.EndTime.ToString("yyyy-MM-dd"), expiryInfo.ExpiryInitiator]);
+                        emailsSent += await notificationService.SendNotification(notification, owner, body, null, timeIntervalText);
+                    }
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // keep the already sent notifications from being sent again
+                await notificationService.UpdateNotificationsLastSent();
+                throw;
             }
 
             await notificationService.UpdateNotificationsLastSent();
@@ -117,12 +137,12 @@ namespace FWO.Middleware.Server
             if ((notification.InitialOffsetAfterDeadline ?? 0) > 0)
             {
                 intervalValue = notification.InitialOffsetAfterDeadline ?? 0;
-                intervalUnit = notification.RepeatIntervalAfterDeadline;
+                intervalUnit = notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days;
             }
             else
             {
                 intervalValue = notification.OffsetBeforeDeadline ?? 0;
-                intervalUnit = notification.IntervalBeforeDeadline;
+                intervalUnit = notification.IntervalBeforeDeadline ?? SchedulerInterval.Days;
             }
 
             if (intervalValue <= 0)
@@ -142,20 +162,29 @@ namespace FWO.Middleware.Server
                 SchedulerInterval.Months => "Months",
                 _ => "Days"
             };
-            return GlobalConfig.GetText(intervalTextKey);
+            return GlobalConfig.GetNotificationText(intervalTextKey);
         }
 
         private sealed class RuleOwnerWithRuleTimes
         {
+            /// <summary>
+            /// Performs the new operation.
+            /// </summary>
             [JsonProperty("owner"), JsonPropertyName("owner")]
             public FwoOwner Owner { get; set; } = new();
 
+            /// <summary>
+            /// Performs the new operation.
+            /// </summary>
             [JsonProperty("rule"), JsonPropertyName("rule")]
             public RuleWithExpiry Rule { get; set; } = new();
         }
 
         private sealed class RuleWithExpiry : Rule
         {
+            /// <summary>
+            /// Performs the GetRuleTimesWithEndDate operation.
+            /// </summary>
             public List<RuleExpiryInfo> GetRuleTimesWithEndDate(IReadOnlyDictionary<string, string> initiatorTexts)
             {
                 return RuleTimes
@@ -189,11 +218,23 @@ namespace FWO.Middleware.Server
 
         private sealed class RuleExpiryInfo : Rule
         {
+            /// <summary>
+            /// Initializes a new instance of the type.
+            /// </summary>
             public RuleExpiryInfo(Rule rule) : base(rule)
             { }
 
+            /// <summary>
+            /// Gets the TimeObjectId value.
+            /// </summary>
             public long TimeObjectId { get; set; }
+            /// <summary>
+            /// Gets the EndTime value.
+            /// </summary>
             public DateTime EndTime { get; set; }
+            /// <summary>
+            /// Gets the ExpiryInitiator value.
+            /// </summary>
             public string ExpiryInitiator { get; set; } = "";
         }
     }

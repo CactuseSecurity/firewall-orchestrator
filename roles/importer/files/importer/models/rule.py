@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from models.caseinsensitiveenum import CaseInsensitiveEnum
-from pydantic import BaseModel
+from models.time_object import validate_iso_timestamp_value
+from pydantic import BaseModel, field_validator
 
 
 class RuleType(CaseInsensitiveEnum):
@@ -36,7 +39,6 @@ class RuleTrack(CaseInsensitiveEnum):
 
 # RuleNormalized is the model for a normalized rule (containing no DB IDs)
 class RuleNormalized(BaseModel):  # noqa: PLW1641
-    rule_num: int
     rule_num_numeric: float
     rule_disabled: bool
     rule_src_neg: bool
@@ -64,14 +66,20 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
     rule_src_zone: str | None = None
     rule_dst_zone: str | None = None
     rule_head_text: str | None = None
+    xlate_rule_uid: str | None = None
+    nat_rule: bool = False
+    access_rule: bool = True
+
+    @field_validator("last_hit")
+    @classmethod
+    def validate_last_hit_format(cls, value: str | None) -> str | None:
+        return validate_iso_timestamp_value("Rule last_hit", value)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, RuleNormalized):
             return NotImplemented
-        # Compare all fields except 'last_hit' and 'rule_num' and zones
-        # Zones are excluded because they are currently not written to the rule directly,
-        #  only linked through rule_from_zone and rule_to_zone tables (similar to _resolved tables)
-        exclude = {"last_hit", "rule_num", "rule_src_zone", "rule_dst_zone"}
+        # Compare all fields except 'last_hit'
+        exclude = {"last_hit"}
         self_dict = self.model_dump(exclude=exclude)
         other_dict = other.model_dump(exclude=exclude)
         return self_dict == other_dict
@@ -88,7 +96,6 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
 	"parent_rule_type" smallint,
 	"active" Boolean NOT NULL Default TRUE,
 	"removed" BIGINT,
-	"rule_num" Integer NOT NULL,
 	"rule_num_numeric" NUMERIC(16, 8),
 	"rule_ruleid" Varchar,
 	"rule_uid" Text,
@@ -104,8 +111,6 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
 	"rule_src_refs" Text,
 	"rule_dst_refs" Text,
 	"rule_svc_refs" Text,
-	"rule_from_zone" Integer,
-	"rule_to_zone" Integer,
 	"rule_action" Text NOT NULL,
 	"rule_track" Text NOT NULL,
 	"rule_installon" Varchar,
@@ -114,7 +119,6 @@ class RuleNormalized(BaseModel):  # noqa: PLW1641
 	"rule_head_text" Text,
 	"rule_implied" Boolean NOT NULL Default FALSE,
 	"rule_create" BIGINT NOT NULL,
-	"rule_last_seen" BIGINT NOT NULL,
 	"dev_id" Integer,
 	"rule_custom_fields" jsonb,
 	"access_rule" BOOLEAN Default TRUE,
@@ -143,13 +147,11 @@ class Rule(BaseModel):
     rule_dst: str
     rule_dst_neg: bool
     rule_dst_refs: str
-    rule_from_zone: int | None = None
+    rule_src_zone: str | None = None
     rule_head_text: str | None = None
     rule_implied: bool = False
     rule_installon: str | None = None
-    rule_last_seen: int
     rule_name: str | None = None
-    rule_num: int
     rule_num_numeric: float
     rule_src: str
     rule_src_neg: bool
@@ -158,7 +160,7 @@ class Rule(BaseModel):
     rule_svc_neg: bool
     rule_svc_refs: str
     rule_time: str | None = None
-    rule_to_zone: int | None = None
+    rule_dst_zone: str | None = None
     track_id: int
     xlate_rule: int | None = None
     rule_track: str

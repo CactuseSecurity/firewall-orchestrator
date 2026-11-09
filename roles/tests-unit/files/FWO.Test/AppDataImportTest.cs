@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using FWO.Api.Client;
 using FWO.Basics;
@@ -10,6 +11,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Middleware.Server;
+using Novell.Directory.Ldap;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 
@@ -704,6 +706,34 @@ namespace FWO.Test
             Assert.That(handledGroupDnsByLdap, Is.Empty);
         }
 
+        /// <summary>
+        /// Writing responsibles to uiuser only serves later email resolution. When the API
+        /// drops out there, the remaining responsibles must still be tried and the app must
+        /// not be reported as failed, which would also skip its recertification setup.
+        /// </summary>
+        [Test]
+        public async Task AddAllResponsiblesToUiUser_WhenUpsertCannotReachApi_ContinuesWithRemainingResponsibles()
+        {
+            UnreachableUpsertApiConnection apiConnection = new();
+            ResolverTestAppDataImport import = new(
+                new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase),
+                new Dictionary<string, UiUser>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["cn=user1,ou=users,dc=example,dc=com"] = new() { Dn = "cn=user1,ou=users,dc=example,dc=com", Name = "user1" },
+                    ["cn=user2,ou=users,dc=example,dc=com"] = new() { Dn = "cn=user2,ou=users,dc=example,dc=com", Name = "user2" }
+                },
+                apiConnection: apiConnection);
+            List<OwnerResponsible> responsibles =
+            [
+                new() { Dn = "cn=user1,ou=users,dc=example,dc=com" },
+                new() { Dn = "cn=user2,ou=users,dc=example,dc=com" }
+            ];
+
+            await InvokeAddAllResponsiblesToUiUser(import, responsibles);
+
+            Assert.That(apiConnection.UpsertCount, Is.EqualTo(2));
+        }
+
         [Test]
         public async Task ConvertLdapToUiUser_ReturnsNull_WhenNoUserSearchPathMatchesDn()
         {
@@ -720,6 +750,56 @@ namespace FWO.Test
             UiUser? uiUser = await InvokeConvertLdapToUiUser(import, "cn=user3,ou=other,dc=example,dc=com");
 
             Assert.That(uiUser, Is.Null);
+        }
+
+        [Test]
+        public async Task ResolveImportedUserIdentifierToDn_ReturnsNullWithoutLdaps()
+        {
+            BaseResolverTestAppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+
+            string? resolvedDn = await import.ResolveUserIdentifier("user-a");
+
+            Assert.That(resolvedDn, Is.Null);
+        }
+
+        [Test]
+        public async Task ResolveImportedGroupIdentifierToDn_ReturnsNullWithoutLdaps()
+        {
+            BaseResolverTestAppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+
+            string? resolvedDn = await import.ResolveGroupIdentifier("group-a");
+
+            Assert.That(resolvedDn, Is.Null);
+        }
+
+        [Test]
+        public async Task ResolveImportedResponsibleIdentifierToDn_ReturnsNullWithoutLdaps()
+        {
+            BaseResolverTestAppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+
+            string? resolvedDn = await import.ResolveResponsibleIdentifier("mixed-a");
+
+            Assert.That(resolvedDn, Is.Null);
+        }
+
+        [Test]
+        public async Task ResolveImportedUiUser_ReturnsNullWithoutLdaps()
+        {
+            BaseResolverTestAppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+
+            UiUser? resolvedUser = await import.ResolveUiUser("cn=user,dc=example,dc=com");
+
+            Assert.That(resolvedUser, Is.Null);
+        }
+
+        [Test]
+        public async Task ResolveImportedGroupMembers_ReturnsEmptyForEmptyGroupDn()
+        {
+            BaseResolverTestAppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+
+            List<string> resolvedMembers = await import.ResolveGroupMembers(new Ldap(), "");
+
+            Assert.That(resolvedMembers, Is.Empty);
         }
 
         [Test]
@@ -770,6 +850,303 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ImportAppServers_AddsMissingServerAndMarksStaleExistingServerDeleted()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetUserConfig(import, new SimulatedUserConfig());
+            apiConn.AppServersByOwner[(50, "SRC-SRV")] =
+            [
+                new ModellingAppServer
+                {
+                    Id = 900,
+                    AppId = 50,
+                    Name = "stale",
+                    Ip = "10.0.0.9/32",
+                    IpEnd = "10.0.0.9/32",
+                    ImportSource = "SRC-SRV",
+                    CustomType = 0,
+                    IsDeleted = false
+                }
+            ];
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-50",
+                ImportSource = "SRC-SRV",
+                AppServers =
+                [
+                    new() { Name = "new-server", Ip = "10.0.0.1/32", IpEnd = "" }
+                ]
+            };
+
+            await InvokeImportAppServers(import, incomingApp, 50);
+
+            Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.LastNewAppServerIpEnd, Is.EqualTo("10.0.0.1/32"));
+            Assert.That(apiConn.SetAppServerDeletedStates, Does.Contain((900L, true)));
+            Assert.That(apiConn.AddHistoryEntryCalls, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task ImportAppServers_ReactivatesDeletedExistingServerAndDoesNotCreateNewServer()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetUserConfig(import, new SimulatedUserConfig());
+            apiConn.AppServersByOwner[(51, "SRC-SRV")] =
+            [
+                new ModellingAppServer
+                {
+                    Id = 901,
+                    AppId = 51,
+                    Name = "existing",
+                    Ip = "10.0.0.1/32",
+                    IpEnd = "10.0.0.1/32",
+                    ImportSource = "SRC-SRV",
+                    CustomType = 0,
+                    IsDeleted = true
+                }
+            ];
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-51",
+                ImportSource = "SRC-SRV",
+                AppServers =
+                [
+                    new() { Name = "existing", Ip = "10.0.0.1/32", IpEnd = "" }
+                ]
+            };
+
+            await InvokeImportAppServers(import, incomingApp, 51);
+
+            Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(0));
+            Assert.That(apiConn.SetAppServerDeletedStates, Does.Contain((901L, false)));
+            Assert.That(apiConn.AddHistoryEntryCalls, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task ImportAppServers_UpdatesExistingServerNameAndMissingType()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetUserConfig(import, new SimulatedUserConfig());
+            apiConn.AppServersByOwner[(52, "SRC-SRV")] =
+            [
+                new ModellingAppServer
+                {
+                    Id = 902,
+                    AppId = 52,
+                    Name = "old-name",
+                    Ip = "10.0.0.1/32",
+                    IpEnd = "10.0.0.1/32",
+                    ImportSource = "SRC-SRV",
+                    CustomType = null,
+                    IsDeleted = false
+                }
+            ];
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-52",
+                ImportSource = "SRC-SRV",
+                AppServers =
+                [
+                    new() { Name = "new-name", Ip = "10.0.0.1/32", IpEnd = "" }
+                ]
+            };
+
+            await InvokeImportAppServers(import, incomingApp, 52);
+
+            Assert.That(apiConn.SetAppServerNameCalls, Is.EqualTo(1));
+            Assert.That(apiConn.LastSetAppServerName, Is.EqualTo((902L, "new-name")));
+            Assert.That(apiConn.SetAppServerTypeCalls, Is.EqualTo(1));
+            Assert.That(apiConn.LastSetAppServerType, Is.EqualTo((902L, 0)));
+            Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(0));
+            Assert.That(apiConn.AddHistoryEntryCalls, Is.EqualTo(2));
+        }
+
+        private const string kDnsName = "app-srv-1";
+        private const string kFileName = "name-from-file";
+        private const string kDnsTestImportSource = "SRC-DNS";
+        private static readonly List<FwoOwner> kNoExistingApps = [];
+
+        private static ModellingImportAppData BuildNewAppWithServer(string ip)
+        {
+            return new()
+            {
+                Name = "App-Dns",
+                ExtAppId = "APP-DNS",
+                ImportSource = kDnsTestImportSource,
+                AppServers = [new() { Name = kFileName, Ip = ip, IpEnd = "" }]
+            };
+        }
+
+        [Test]
+        public async Task SaveApp_NewApp_NamesAppServerFromDns_WhenDnsLookupIsOn()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            List<IPAddress> lookedUpAddresses = [];
+            AppDataImport import = new(apiConn, new GlobalConfig { DnsLookup = true }, address =>
+            {
+                lookedUpAddresses.Add(address);
+                return Task.FromResult(kDnsName);
+            });
+            SetUserConfig(import, new SimulatedUserConfig());
+            SetExistingApps(import, kNoExistingApps);
+
+            bool imported = await InvokeSaveApp(import, BuildNewAppWithServer("10.0.0.1/32"), new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.LastNewAppServerName, Is.EqualTo(kDnsName));
+            Assert.That(apiConn.LastNewAppServerIpEnd, Is.EqualTo("10.0.0.1/32"));
+            Assert.That(lookedUpAddresses, Has.Count.EqualTo(1));
+            Assert.That(lookedUpAddresses[0], Is.EqualTo(IPAddress.Parse("10.0.0.1")));
+        }
+
+        [Test]
+        public async Task SaveApp_NewApp_KeepsFileName_WhenDnsLookupIsOff()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            int lookups = 0;
+            AppDataImport import = new(apiConn, new GlobalConfig { DnsLookup = false }, _ =>
+            {
+                ++lookups;
+                return Task.FromResult(kDnsName);
+            });
+            SetUserConfig(import, new SimulatedUserConfig());
+            SetExistingApps(import, kNoExistingApps);
+
+            bool imported = await InvokeSaveApp(import, BuildNewAppWithServer("10.0.0.1/32"), new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastNewAppServerName, Is.EqualTo(kFileName));
+            Assert.That(apiConn.LastNewAppServerIpEnd, Is.EqualTo("10.0.0.1/32"));
+            Assert.That(lookups, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task SaveApp_NewApp_KeepsFileName_WhenIpIsNotResolvable()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig { DnsLookup = true }, _ => Task.FromResult(""));
+            SetUserConfig(import, new SimulatedUserConfig());
+            SetExistingApps(import, kNoExistingApps);
+
+            bool imported = await InvokeSaveApp(import, BuildNewAppWithServer("10.0.0.1/32"), new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastNewAppServerName, Is.EqualTo(kFileName));
+        }
+
+        [Test]
+        public async Task ImportAppServers_NamesNewServerOfExistingAppFromDns_WhenDnsLookupIsOn()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig { DnsLookup = true }, _ => Task.FromResult(kDnsName));
+            SetUserConfig(import, new SimulatedUserConfig());
+
+            await InvokeImportAppServers(import, BuildNewAppWithServer("10.0.0.2/32"), 53);
+
+            Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.LastNewAppServerName, Is.EqualTo(kDnsName));
+        }
+
+        [Test]
+        public async Task SaveApp_NewApp_KeepsFileNameAndLogsError_WhenDnsLookupFails()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig { DnsLookup = true },
+                _ => throw new InvalidOperationException("Simulated dns failure."));
+            SetUserConfig(import, new SimulatedUserConfig());
+            SetExistingApps(import, kNoExistingApps);
+
+            bool imported = await InvokeSaveApp(import, BuildNewAppWithServer("10.0.0.1/32"), new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.LastNewAppServerName, Is.EqualTo(kFileName));
+            Assert.That(apiConn.LogEntryDescriptions,
+                Does.Contain($"App Server name {kFileName} could not be set according to naming conventions."));
+        }
+
+        [Test]
+        public async Task ImportAppServers_ContinuesWithNextServer_WhenIpIsInvalid()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetUserConfig(import, new SimulatedUserConfig());
+            apiConn.AppServersByOwner[(54, kDnsTestImportSource)] = BuildExistingAppServer(54, "deleted-srv", isDeleted: true, customType: 0);
+            ModellingImportAppData incomingApp = BuildNewAppWithServer("no-ip");
+            incomingApp.AppServers.Add(new() { Name = "valid-srv", Ip = "10.0.0.2/32", IpEnd = "" });
+
+            await InvokeImportAppServers(import, incomingApp, 54);
+
+            Assert.That(apiConn.LogEntryDescriptions, Does.Contain($"App Server {kFileName} could not be processed."));
+            Assert.That(apiConn.NewAppServerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.LastNewAppServerName, Is.EqualTo("valid-srv"));
+        }
+
+        [Test]
+        public async Task ImportAppServers_StopsServer_WhenReactivationFails()
+        {
+            AppDataImportSaveAppApiConn apiConn = new() { FailingQueries = { ModellingQueries.setAppServerDeletedState } };
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetUserConfig(import, new SimulatedUserConfig());
+            apiConn.AppServersByOwner[(55, kDnsTestImportSource)] = BuildExistingAppServer(55, kFileName, isDeleted: true, customType: 0);
+
+            await InvokeImportAppServers(import, BuildNewAppWithServer("10.0.0.1/32"), 55);
+
+            Assert.That(apiConn.LogEntryDescriptions, Does.Contain($"App Server {kFileName} could not be reactivated."));
+            Assert.That(apiConn.SetAppServerTypeCalls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task ImportAppServers_StopsServer_WhenNameUpdateFails()
+        {
+            AppDataImportSaveAppApiConn apiConn = new() { FailingQueries = { ModellingQueries.setAppServerName } };
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetUserConfig(import, new SimulatedUserConfig());
+            apiConn.AppServersByOwner[(56, kDnsTestImportSource)] = BuildExistingAppServer(56, "old-name", isDeleted: false, customType: null);
+
+            await InvokeImportAppServers(import, BuildNewAppWithServer("10.0.0.1/32"), 56);
+
+            Assert.That(apiConn.LogEntryDescriptions, Does.Contain($"Name of App Server old-name could not be set to {kFileName}."));
+            Assert.That(apiConn.SetAppServerTypeCalls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task ImportAppServers_ReportsFailure_WhenTypeUpdateFails()
+        {
+            AppDataImportSaveAppApiConn apiConn = new() { FailingQueries = { ModellingQueries.setAppServerType } };
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetUserConfig(import, new SimulatedUserConfig());
+            apiConn.AppServersByOwner[(57, kDnsTestImportSource)] = BuildExistingAppServer(57, kFileName, isDeleted: false, customType: null);
+
+            await InvokeImportAppServers(import, BuildNewAppWithServer("10.0.0.1/32"), 57);
+
+            Assert.That(apiConn.LogEntryDescriptions, Does.Contain($"Type of App Server {kFileName} could not be set."));
+            Assert.That(apiConn.SetAppServerNameCalls, Is.EqualTo(0));
+        }
+
+        private static List<ModellingAppServer> BuildExistingAppServer(int appId, string name, bool isDeleted, int? customType)
+        {
+            return
+            [
+                new ModellingAppServer
+                {
+                    Id = 900 + appId,
+                    AppId = appId,
+                    Name = name,
+                    Ip = "10.0.0.1/32",
+                    IpEnd = "10.0.0.1/32",
+                    ImportSource = kDnsTestImportSource,
+                    CustomType = customType,
+                    IsDeleted = isDeleted
+                }
+            ];
+        }
+
+        [Test]
         public void CheckResponsibles_ReturnsInsertAndDelete_WhenSyncEnabled()
         {
             AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
@@ -794,6 +1171,27 @@ namespace FWO.Test
             Assert.That(toDelete, Has.Count.EqualTo(1));
             Assert.That(toDelete[0].Dn, Is.EqualTo("cn=delete,dc=example,dc=com"));
             Assert.That(toDelete[0].ResponsibleTypeId, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void CheckResponsibles_TreatsNormalizedDnsAsUnchanged()
+        {
+            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+            SetOwnerDataImportSyncUsers(import, true);
+            List<OwnerResponsible> existingResponsibles =
+            [
+                new() { Dn = @"CN=User\, Example,OU=Users,DC=Example,DC=COM", ResponsibleTypeId = 1 }
+            ];
+            List<OwnerResponsible> incomingResponsibles =
+            [
+                new() { Dn = @"cn=User\2C Example,ou=users,dc=example,dc=com", ResponsibleTypeId = 1 }
+            ];
+
+            (List<OwnerResponsible> toInsert, List<OwnerResponsible> toDelete) =
+                InvokeCheckResponsibles(import, existingResponsibles, incomingResponsibles);
+
+            Assert.That(toInsert, Is.Empty);
+            Assert.That(toDelete, Is.Empty);
         }
 
         [Test]
@@ -1089,6 +1487,228 @@ namespace FWO.Test
 
             Assert.That(imported, Is.True);
             Assert.That(apiConn.LastNewOwnerDecommDate, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task SaveApp_ForwardsAdditionalInformationToOwnerMutations()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig());
+            SetExistingApps(import, []);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-Info",
+                ExtAppId = "APP-INFO",
+                ImportSource = "SRC-INFO",
+                AdditionalInformation = new Dictionary<string, string>
+                {
+                    ["cost_center"] = "4711",
+                    ["owner_type"] = "shared"
+                }
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastNewOwnerAdditionalInfo, Is.Not.Null);
+            Assert.That(apiConn.LastNewOwnerAdditionalInfo, Is.EqualTo(incomingApp.AdditionalInformation));
+        }
+
+        [Test]
+        public async Task SaveApp_NewActiveOwner_PersistsRecertActiveAndInitializesRecert()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            GlobalConfig globalConfig = new() { RecertificationMode = RecertificationMode.OwnersAndRules };
+            AppDataImport import = new(apiConn, globalConfig);
+            SetUserConfig(import, new SimulatedUserConfig { RecertificationMode = RecertificationMode.OwnersAndRules });
+            SetExistingApps(import, []);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-Recert",
+                ExtAppId = "APP-RECERT",
+                ImportSource = "SRC-RECERT",
+                RecertActive = true,
+                RecertInterval = 30
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastNewOwnerRecertActive, Is.True);
+            Assert.That(apiConn.GetOwnerRecertCalls, Is.EqualTo(1));
+            Assert.That(apiConn.RecertifyOwnerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.SetOwnerLastRecertCalls, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task SaveApp_ExistingActiveOwner_StillEnsuresInitialRecert()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            GlobalConfig globalConfig = new() { RecertificationMode = RecertificationMode.OwnersAndRules };
+            AppDataImport import = new(apiConn, globalConfig);
+            SetUserConfig(import, new SimulatedUserConfig { RecertificationMode = RecertificationMode.OwnersAndRules });
+            SetExistingApps(import,
+            [
+                new() { Id = 44, Name = "App-44", ExtAppId = "APP-44", RecertActive = true }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-44",
+                ExtAppId = "APP-44",
+                ImportSource = "SRC-44",
+                RecertActive = true
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.GetOwnerRecertCalls, Is.EqualTo(1));
+            Assert.That(apiConn.RecertifyOwnerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.SetOwnerLastRecertCalls, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task SaveApp_NewInactiveOwner_PersistsRecertInactiveAndDoesNotInitializeRecert()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            GlobalConfig globalConfig = new() { RecertificationMode = RecertificationMode.OwnersAndRules };
+            AppDataImport import = new(apiConn, globalConfig);
+            SetUserConfig(import, new SimulatedUserConfig { RecertificationMode = RecertificationMode.OwnersAndRules });
+            SetExistingApps(import, []);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-NoRecert",
+                ExtAppId = "APP-NO-RECERT",
+                ImportSource = "SRC-NO-RECERT",
+                RecertActive = false
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastNewOwnerRecertActive, Is.False);
+            Assert.That(apiConn.GetOwnerRecertCalls, Is.EqualTo(0));
+            Assert.That(apiConn.RecertifyOwnerCalls, Is.EqualTo(0));
+            Assert.That(apiConn.SetOwnerLastRecertCalls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task SaveApp_NewActiveOwner_InRuleByRuleMode_DoesNotInitializeOwnerRecert()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            GlobalConfig globalConfig = new() { RecertificationMode = RecertificationMode.RuleByRule };
+            AppDataImport import = new(apiConn, globalConfig);
+            SetUserConfig(import, new SimulatedUserConfig { RecertificationMode = RecertificationMode.RuleByRule });
+            SetExistingApps(import, []);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-RuleRecert",
+                ExtAppId = "APP-RULE-RECERT",
+                ImportSource = "SRC-RULE-RECERT",
+                RecertActive = true
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastNewOwnerRecertActive, Is.True);
+            Assert.That(apiConn.GetOwnerRecertCalls, Is.EqualTo(0));
+            Assert.That(apiConn.RecertifyOwnerCalls, Is.EqualTo(0));
+            Assert.That(apiConn.SetOwnerLastRecertCalls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task SaveApp_ExistingInactiveOwnerImportedActive_PersistsRecertActiveAndInitializesRecert()
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            GlobalConfig globalConfig = new() { RecertificationMode = RecertificationMode.OwnersAndRules };
+            AppDataImport import = new(apiConn, globalConfig);
+            SetUserConfig(import, new SimulatedUserConfig { RecertificationMode = RecertificationMode.OwnersAndRules });
+            SetExistingApps(import,
+            [
+                new() { Id = 45, Name = "App-45", ExtAppId = "APP-45", RecertActive = false }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-45",
+                ExtAppId = "APP-45",
+                ImportSource = "SRC-45",
+                RecertActive = true
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.LastUpdateOwnerRecertActive, Is.True);
+            Assert.That(apiConn.GetOwnerRecertCalls, Is.EqualTo(1));
+            Assert.That(apiConn.RecertifyOwnerCalls, Is.EqualTo(1));
+            Assert.That(apiConn.SetOwnerLastRecertCalls, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task SaveApp_ActiveOwnerWithExistingInitialRecert_DoesNotCreateDuplicateInitialRecert()
+        {
+            AppDataImportSaveAppApiConn apiConn = new()
+            {
+                ExistingInitialOwnerRecerts =
+                [
+                    new OwnerRecertification { Id = 555, OwnerId = 46, Recertified = false }
+                ]
+            };
+            GlobalConfig globalConfig = new() { RecertificationMode = RecertificationMode.OwnersAndRules };
+            AppDataImport import = new(apiConn, globalConfig);
+            SetUserConfig(import, new SimulatedUserConfig { RecertificationMode = RecertificationMode.OwnersAndRules });
+            SetExistingApps(import,
+            [
+                new() { Id = 46, Name = "App-46", ExtAppId = "APP-46", RecertActive = true }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-46",
+                ExtAppId = "APP-46",
+                ImportSource = "SRC-46",
+                RecertActive = true
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.GetOwnerRecertCalls, Is.EqualTo(1));
+            Assert.That(apiConn.RecertifyOwnerCalls, Is.EqualTo(0));
+            Assert.That(apiConn.SetOwnerLastRecertCalls, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task SaveApp_ActiveOwnerWithExistingRealRecert_DoesNotCreateInitialRecert()
+        {
+            AppDataImportSaveAppApiConn apiConn = new()
+            {
+                ExistingInitialOwnerRecerts =
+                [
+                    new OwnerRecertification { Id = 556, OwnerId = 47, Recertified = true }
+                ]
+            };
+            GlobalConfig globalConfig = new() { RecertificationMode = RecertificationMode.OwnersAndRules };
+            AppDataImport import = new(apiConn, globalConfig);
+            SetUserConfig(import, new SimulatedUserConfig { RecertificationMode = RecertificationMode.OwnersAndRules });
+            SetExistingApps(import,
+            [
+                new() { Id = 47, Name = "App-47", ExtAppId = "APP-47", RecertActive = true }
+            ]);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-47",
+                ExtAppId = "APP-47",
+                ImportSource = "SRC-47",
+                RecertActive = true
+            };
+
+            bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
+
+            Assert.That(imported, Is.True);
+            Assert.That(apiConn.GetOwnerRecertCalls, Is.EqualTo(1));
+            Assert.That(apiConn.RecertifyOwnerCalls, Is.EqualTo(0));
+            Assert.That(apiConn.SetOwnerLastRecertCalls, Is.EqualTo(0));
         }
 
         [Test]
@@ -1425,6 +2045,99 @@ namespace FWO.Test
             Assert.That(import.ResolvedIdentifiers, Is.EqualTo(new[] { "missing.user", "missing.user" }));
         }
 
+        private static readonly List<string> kExistingGroupDn = ["cn=group1,ou=groups,dc=example,dc=com"];
+        private const string kDirectoryUserDn = "cn=user1,ou=users,dc=example,dc=com";
+        private const int kDirectoryLdapId = 7;
+        private static readonly List<string> kDirectoryUserDnList = [kDirectoryUserDn];
+        private static readonly List<string> kForgedAndExistingDns =
+            ["cn=forged.admin,ou=users,dc=example,dc=com", "cn=group1,ou=groups,dc=example,dc=com"];
+
+        /// <summary>
+        /// A directory that cannot be asked must fail the app, so that it keeps its responsibles and their roles,
+        /// instead of dropping the imported dn as if its entry were gone.
+        /// </summary>
+        [Test]
+        public void NormalizeImportedUserReferences_FailsWhenDirectoryCannotBeRead()
+        {
+            RecordingLdapClient ldapClient = new() { ReadException = new LdapException("busy", LdapException.Busy, null) };
+            AppDataImport import = CreateImportWithDirectory(ldapClient);
+
+            Assert.ThrowsAsync<LdapException>(async () => await InvokeNormalizeImportedUserReferences(import, CreateAppWithDirectoryUser()));
+        }
+
+        /// <summary>
+        /// The real directory check keeps a dn whose entry exists and drops one the directory does not know.
+        /// </summary>
+        [Test]
+        public async Task NormalizeImportedUserReferences_ChecksDnsAgainstDirectory()
+        {
+            RecordingLdapClient existingClient = new();
+            existingClient.ReadResultsByDn[kDirectoryUserDn] = LdapTestSupport.CreateEntry(kDirectoryUserDn);
+            RecordingLdapClient missingClient = new() { ReadException = new LdapException("no such object", LdapException.NoSuchObject, null) };
+
+            ModellingImportAppData keptApp = await InvokeNormalizeImportedUserReferences(CreateImportWithDirectory(existingClient), CreateAppWithDirectoryUser());
+            ModellingImportAppData droppedApp = await InvokeNormalizeImportedUserReferences(CreateImportWithDirectory(missingClient), CreateAppWithDirectoryUser());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(keptApp.MainUser, Is.EqualTo(kDirectoryUserDn));
+                Assert.That(keptApp.Responsibles?["1"], Is.EqualTo(kDirectoryUserDnList));
+                Assert.That(droppedApp.MainUser, Is.Null);
+                Assert.That(droppedApp.Responsibles?["1"], Is.Empty);
+            });
+        }
+
+        private static AppDataImport CreateImportWithDirectory(RecordingLdapClient ldapClient)
+        {
+            AppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+            TestableLdap ldap = new(ldapClient)
+            {
+                Id = kDirectoryLdapId,
+                UserSearchPath = "ou=users,dc=example,dc=com"
+            };
+            List<Ldap> connectedLdaps = [ldap];
+            SetConnectedLdaps(import, connectedLdaps);
+            return import;
+        }
+
+        private static ModellingImportAppData CreateAppWithDirectoryUser()
+        {
+            return new()
+            {
+                Name = "App-Directory",
+                ExtAppId = "APP-DIRECTORY",
+                MainUser = kDirectoryUserDn,
+                Responsibles = new Dictionary<string, List<string>> { ["1"] = new List<string>(kDirectoryUserDnList) }
+            };
+        }
+
+        /// <summary>
+        /// An imported dn receives workflow roles only if it names an existing directory entry
+        /// (GHSA-6g84, fwo-middleware-server-apistartupprobe-002).
+        /// </summary>
+        [Test]
+        public async Task NormalizeImportedUserReferences_DropsDnsWithoutDirectoryEntry()
+        {
+            ResolverTestAppDataImport import = new(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase),
+                existingDns: kExistingGroupDn);
+            ModellingImportAppData incomingApp = new()
+            {
+                Name = "App-Forged",
+                ExtAppId = "APP-FORGED",
+                MainUser = "cn=forged.admin,ou=users,dc=example,dc=com",
+                Responsibles = new Dictionary<string, List<string>> { ["1"] = new List<string>(kForgedAndExistingDns) }
+            };
+
+            ModellingImportAppData normalizedApp = await InvokeNormalizeImportedUserReferences(import, incomingApp);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(normalizedApp.MainUser, Is.Null);
+                Assert.That(normalizedApp.Responsibles?["1"], Is.EqualTo(kExistingGroupDn));
+                Assert.That(import.CheckedDns, Has.Count.EqualTo(3));
+            });
+        }
+
         [Test]
         public async Task NormalizeImportedUserReferences_ResolvesPlainGroupNamesToGroupDns()
         {
@@ -1498,6 +2211,13 @@ namespace FWO.Test
                 ?? throw new InvalidOperationException("globalConfig field not found.");
             GlobalConfig globalConfig = (GlobalConfig)field.GetValue(import)!;
             globalConfig.OwnerDataImportSyncUsers = syncUsers;
+        }
+
+        private static void SetUserConfig(AppDataImport import, UserConfig userConfig)
+        {
+            FieldInfo field = typeof(AppDataImport).GetField("userConfig", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("userConfig field not found.");
+            field.SetValue(import, userConfig);
         }
 
         private static void SetRolesByType(AppDataImport import, Dictionary<int, List<string>> rolesByType)
@@ -1625,7 +2345,7 @@ namespace FWO.Test
                 "ImportApps",
                 BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("ImportApps helper not found.");
-            await (Task)method.Invoke(import, [importfileName, tracker])!;
+            await (Task)method.Invoke(import, [importfileName, tracker, CancellationToken.None])!;
         }
 
         private static async Task<bool> InvokeSaveApp(AppDataImport import, ModellingImportAppData incomingApp, OwnerChangeImportTracker tracker)
@@ -1635,6 +2355,15 @@ namespace FWO.Test
                 BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("SaveApp helper not found.");
             return await (Task<bool>)method.Invoke(import, [incomingApp, tracker])!;
+        }
+
+        private static async Task InvokeImportAppServers(AppDataImport import, ModellingImportAppData incomingApp, int appId)
+        {
+            MethodInfo method = typeof(AppDataImport).GetMethod(
+                "ImportAppServers",
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("ImportAppServers helper not found.");
+            await (Task)method.Invoke(import, [incomingApp, appId])!;
         }
 
         private static async Task InvokeAddOwnerLifeCycleStateActiveChangeIfNeeded(
@@ -1750,7 +2479,7 @@ namespace FWO.Test
             public int UpdateChangelogOwnerCalls { get; private set; }
             public HashSet<int> FailDeactivateOwnerIds { get; } = [];
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == OwnerQueries.getOwners)
                 {
@@ -1823,7 +2552,7 @@ namespace FWO.Test
             public List<(int ownerId, string dn, int responsibleType)> Inserted { get; } = [];
             public List<(int ownerId, string dn, int responsibleType)> Deleted { get; } = [];
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == OwnerQueries.newOwnerResponsibles)
                 {
@@ -1900,13 +2629,39 @@ namespace FWO.Test
             public Dictionary<(int ownerId, string importSource), List<ModellingAppServer>> AppServersByOwner { get; } = [];
             public DateTime? LastNewOwnerDecommDate { get; private set; }
             public DateTime? LastUpdateOwnerDecommDate { get; private set; }
+            public Dictionary<string, string>? LastNewOwnerAdditionalInfo { get; private set; }
+            public Dictionary<string, string>? LastUpdateOwnerAdditionalInfo { get; private set; }
+            public bool? LastNewOwnerRecertActive { get; private set; }
+            public bool? LastUpdateOwnerRecertActive { get; private set; }
+            public int GetOwnerRecertCalls { get; private set; }
+            public int RecertifyOwnerCalls { get; private set; }
+            public int SetOwnerLastRecertCalls { get; private set; }
+            public List<OwnerRecertification> ExistingInitialOwnerRecerts { get; init; } = [];
+            public int NewAppServerCalls { get; private set; }
+            public int SetAppServerNameCalls { get; private set; }
+            public int SetAppServerTypeCalls { get; private set; }
+            public int AddHistoryEntryCalls { get; private set; }
+            public string? LastNewAppServerIpEnd { get; private set; }
+            public string? LastNewAppServerName { get; private set; }
+            public (long id, string name)? LastSetAppServerName { get; private set; }
+            public (long id, int customType)? LastSetAppServerType { get; private set; }
+            public List<(long id, bool deleted)> SetAppServerDeletedStates { get; } = [];
+            public HashSet<string> FailingQueries { get; init; } = [];
+            public List<string> LogEntryDescriptions { get; } = [];
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
+                if (FailingQueries.Contains(query))
+                {
+                    throw new InvalidOperationException("Simulated api failure.");
+                }
+
                 if (query == OwnerQueries.newOwner)
                 {
                     ++NewOwnerCalls;
                     LastNewOwnerDecommDate = GetAnonymousDateTime(variables, "decommDate");
+                    LastNewOwnerAdditionalInfo = GetAnonymousStringDictionary(variables, "additionalInfo");
+                    LastNewOwnerRecertActive = GetAnonymousBool(variables, "recertActive");
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                     {
                         ReturnIds = [new ReturnId { NewId = 1 }]
@@ -1917,6 +2672,8 @@ namespace FWO.Test
                 {
                     ++UpdateOwnerCalls;
                     LastUpdateOwnerDecommDate = GetAnonymousDateTime(variables, "decommDate");
+                    LastUpdateOwnerAdditionalInfo = GetAnonymousStringDictionary(variables, "additionalInfo");
+                    LastUpdateOwnerRecertActive = GetAnonymousBool(variables, "recertActive");
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                     {
                         ReturnIds = [new ReturnId { NewId = 1 }]
@@ -1944,6 +2701,60 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)appServers);
                 }
 
+                if (query == ModellingQueries.getAppServersByIp)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<ModellingAppServer>());
+                }
+
+                if (query == ModellingQueries.newAppServer)
+                {
+                    ++NewAppServerCalls;
+                    LastNewAppServerIpEnd = GetAnonymousString(variables, "ipEnd");
+                    LastNewAppServerName = GetAnonymousString(variables, "name");
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { NewIdLong = 777 }]
+                    });
+                }
+
+                if (query == ModellingQueries.setAppServerDeletedState)
+                {
+                    SetAppServerDeletedStates.Add((GetAnonymousLong(variables, "id"), GetAnonymousBool(variables, "deleted") ?? false));
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { NewIdLong = GetAnonymousLong(variables, "id") }]
+                    });
+                }
+
+                if (query == ModellingQueries.setAppServerName)
+                {
+                    ++SetAppServerNameCalls;
+                    LastSetAppServerName = (GetAnonymousLong(variables, "id"), GetAnonymousString(variables, "newName"));
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId
+                    {
+                        UpdatedIdLong = GetAnonymousLong(variables, "id")
+                    });
+                }
+
+                if (query == ModellingQueries.setAppServerType)
+                {
+                    ++SetAppServerTypeCalls;
+                    LastSetAppServerType = (GetAnonymousLong(variables, "id"), GetAnonymousInt(variables, "customType"));
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { NewIdLong = GetAnonymousLong(variables, "id") }]
+                    });
+                }
+
+                if (query == ModellingQueries.addHistoryEntry)
+                {
+                    ++AddHistoryEntryCalls;
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { NewId = 1 }]
+                    });
+                }
+
                 if (query == ImportQueries.addImportForOwner)
                 {
                     return Task.FromResult((QueryResponseType)(object)new InsertImportControl
@@ -1957,13 +2768,53 @@ namespace FWO.Test
 
                 if (query == MonitorQueries.addDataImportLogEntry)
                 {
+                    LogEntryDescriptions.Add(GetAnonymousString(variables, "description"));
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                     {
                         ReturnIds = [new ReturnId { NewId = 1 }]
                     });
                 }
 
+                if (query == RecertQueries.getOwnerRecert)
+                {
+                    ++GetOwnerRecertCalls;
+                    return Task.FromResult((QueryResponseType)(object)ExistingInitialOwnerRecerts);
+                }
+
+                if (query == RecertQueries.recertifyOwner)
+                {
+                    ++RecertifyOwnerCalls;
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { NewIdLong = 1234 }]
+                    });
+                }
+
+                if (query == OwnerQueries.setOwnerLastRecert)
+                {
+                    ++SetOwnerLastRecertCalls;
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId
+                    {
+                        UpdatedId = GetAnonymousInt(variables, "id")
+                    });
+                }
+
                 throw new NotImplementedException($"Query not implemented in save-app test api: {query}");
+            }
+
+            private static bool? GetAnonymousBool(object? variables, string propertyName)
+            {
+                if (variables == null)
+                {
+                    return null;
+                }
+                PropertyInfo? property = variables.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                if (property == null)
+                {
+                    return null;
+                }
+                object? value = property.GetValue(variables);
+                return value as bool? ?? (value is bool boolValue ? boolValue : null);
             }
 
             private static char? GetAnonymousChar(object? variables, string propertyName)
@@ -1996,6 +2847,26 @@ namespace FWO.Test
                 return value is int intValue ? intValue : 0;
             }
 
+            private static long GetAnonymousLong(object? variables, string propertyName)
+            {
+                if (variables == null)
+                {
+                    return 0;
+                }
+                PropertyInfo? property = variables.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                if (property == null)
+                {
+                    return 0;
+                }
+                object? value = property.GetValue(variables);
+                return value switch
+                {
+                    long longValue => longValue,
+                    int intValue => intValue,
+                    _ => 0
+                };
+            }
+
             private static DateTime? GetAnonymousDateTime(object? variables, string propertyName)
             {
                 if (variables == null)
@@ -2025,6 +2896,21 @@ namespace FWO.Test
                 object? value = property.GetValue(variables);
                 return value as string ?? "";
             }
+
+            private static Dictionary<string, string>? GetAnonymousStringDictionary(object? variables, string propertyName)
+            {
+                if (variables == null)
+                {
+                    return null;
+                }
+                PropertyInfo? property = variables.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                if (property == null)
+                {
+                    return null;
+                }
+                object? value = property.GetValue(variables);
+                return value as Dictionary<string, string>;
+            }
         }
 
         private sealed class TestAppDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : AppDataImport(apiConnection, globalConfig)
@@ -2038,22 +2924,82 @@ namespace FWO.Test
             }
         }
 
+        private sealed class BaseResolverTestAppDataImport : AppDataImport
+        {
+            public BaseResolverTestAppDataImport(ApiConnection apiConnection, GlobalConfig globalConfig)
+                : base(apiConnection, globalConfig)
+            {
+            }
+
+            public Task<string?> ResolveUserIdentifier(string userIdentifier)
+            {
+                return ResolveImportedUserIdentifierToDn(userIdentifier);
+            }
+
+            public Task<string?> ResolveGroupIdentifier(string groupIdentifier)
+            {
+                return ResolveImportedGroupIdentifierToDn(groupIdentifier);
+            }
+
+            public Task<string?> ResolveResponsibleIdentifier(string identifier)
+            {
+                return ResolveImportedResponsibleIdentifierToDn(identifier);
+            }
+
+            public Task<UiUser?> ResolveUiUser(string responsibleDn)
+            {
+                return ResolveImportedUiUser(responsibleDn);
+            }
+
+            public Task<List<string>> ResolveGroupMembers(Ldap ldap, string groupDn)
+            {
+                return ResolveImportedGroupMembers(ldap, groupDn);
+            }
+        }
+
+        private sealed class UnreachableUpsertApiConnection : SimulatedApiConnection
+        {
+            public int UpsertCount { get; private set; }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == AuthQueries.getUserByDn)
+                {
+                    return Task.FromResult((QueryResponseType)(object)Array.Empty<UiUser>());
+                }
+
+                if (query == AuthQueries.upsertUiUser)
+                {
+                    ++UpsertCount;
+                    throw new HttpRequestException("connection reset by peer");
+                }
+
+                throw new AssertionException($"Unexpected query: {query}");
+            }
+        }
+
         private sealed class ResolverTestAppDataImport : AppDataImport
         {
             private readonly Dictionary<string, string?> resolutions;
             private readonly Dictionary<string, UiUser> uiUsersByDn;
             private readonly Dictionary<string, List<string>> groupMembersByDn;
             private readonly Dictionary<string, string?> groupResolutions;
+            private readonly HashSet<string>? existingDns;
             public List<string> ResolvedIdentifiers { get; } = [];
+            public List<string> CheckedDns { get; } = [];
             public List<string> ResolvedGroupIdentifiers { get; } = [];
 
             public ResolverTestAppDataImport(
                 Dictionary<string, string?> resolutions,
                 Dictionary<string, UiUser>? uiUsersByDn = null,
                 Dictionary<string, List<string>>? groupMembersByDn = null,
-                Dictionary<string, string?>? groupResolutions = null)
-                : base(new SimulatedApiConnection(), new GlobalConfig())
+                Dictionary<string, string?>? groupResolutions = null,
+                ApiConnection? apiConnection = null,
+                IEnumerable<string>? existingDns = null)
+                : base(apiConnection ?? new SimulatedApiConnection(), new GlobalConfig())
             {
+                // null: every imported dn names an existing directory entry
+                this.existingDns = existingDns == null ? null : new HashSet<string>(existingDns, StringComparer.OrdinalIgnoreCase);
                 this.resolutions = resolutions;
                 this.uiUsersByDn = uiUsersByDn ?? new(StringComparer.OrdinalIgnoreCase);
                 this.groupMembersByDn = groupMembersByDn ?? new(StringComparer.OrdinalIgnoreCase);
@@ -2074,6 +3020,12 @@ namespace FWO.Test
             protected override Task<List<string>> ResolveImportedGroupMembers(Ldap ldap, string groupDn)
             {
                 return Task.FromResult(groupMembersByDn.TryGetValue(groupDn, out List<string>? members) ? members : []);
+            }
+
+            protected override Task<string?> ResolveImportedDistinguishedName(string distinguishedName)
+            {
+                CheckedDns.Add(distinguishedName);
+                return Task.FromResult(existingDns == null || existingDns.Contains(distinguishedName) ? distinguishedName : null);
             }
 
             protected override Task<string?> ResolveImportedGroupIdentifierToDn(string groupIdentifier)

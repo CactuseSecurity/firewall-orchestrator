@@ -1,15 +1,39 @@
 using System;
 using System.IO;
 using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.File;
+using FWO.Logging;
 using FWO.Middleware.Server;
 using NUnit.Framework;
+using System.Reflection;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {
     [TestFixture]
     public class DataImportBaseTest
     {
+        private static readonly string[] kExpectedSingleQuotesAndEscapesArguments =
+        [
+            "alpha",
+            "beta gamma",
+            "delta value",
+            "quoted value"
+        ];
+
+        private static readonly string[] kExpectedPreservedQuotedArguments =
+        [
+            "--filterColumn",
+            "Aktive Firewallregel",
+            "--includeValues",
+            "Ja",
+            "--compositeIdFields",
+            "Applikation",
+            "Teilapplikation"
+        ];
+
         [Test]
         public void RunImportScriptReturnsFalseWhenScriptMissing()
         {
@@ -32,7 +56,7 @@ namespace FWO.Test
                 Assert.Ignore("Script execution test requires a Unix-like environment.");
             }
 
-            string tempDir = Path.Combine(Path.GetTempPath(), $"fwo-import-test-{Guid.NewGuid():N}");
+            string tempDir = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"fwo-import-test-{Guid.NewGuid():N}");
             Directory.CreateDirectory(tempDir);
 
             try
@@ -55,7 +79,8 @@ namespace FWO.Test
 
                 bool executed = importer.ExecuteScript(
                     scriptPath,
-                    "--criticalityRecertPeriodMapping \"1:360\" \"2:180\" \"3:90\" --compositeIdFields \"Applikation\" \"Teilapplikation\""
+                    "--criticalityRecertPeriodMapping \"1:360\" \"2:180\" \"3:90\" --compositeIdFields \"Applikation\" \"Teilapplikation\"",
+                    validateImportFile: false
                 );
 
                 Assert.That(executed, Is.True);
@@ -83,6 +108,156 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RunImportScriptClosesStandardInputSoAScriptCannotWaitForIt()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Assert.Ignore("Script execution test requires a Unix-like environment.");
+            }
+
+            string tempDir = CreateScriptDirectory();
+            try
+            {
+                string outputFile = Path.Combine(tempDir, "input.txt");
+                // a script reading its standard input stands for a tool asking for credentials:
+                // it has to see the end of the stream instead of waiting for an answer
+                string scriptContent = "#!/usr/bin/env python3\n"
+                    + "import sys\n"
+                    + $"with open(r\"{outputFile}\", \"w\", encoding=\"utf-8\") as file:\n"
+                    + "    file.write(f\"{sys.stdin.isatty()}|{sys.stdin.read()}\")\n";
+                string scriptPath = WriteScript(tempDir, "read_input.py", scriptContent);
+
+                bool executed = CreateImporter(TimeSpan.FromSeconds(20)).ExecuteScript(scriptPath, null, validateImportFile: false);
+
+                Assert.That(executed, Is.True);
+                Assert.That(File.ReadAllText(outputFile), Is.EqualTo("False|"));
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+
+        [Test]
+        public void RunImportScriptStopsAScriptWhichDoesNotFinishInTime()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Assert.Ignore("Script execution test requires a Unix-like environment.");
+            }
+
+            string tempDir = CreateScriptDirectory();
+            try
+            {
+                string outputFile = Path.Combine(tempDir, "finished.txt");
+                string scriptContent = "#!/usr/bin/env python3\n"
+                    + "import time\n"
+                    + "time.sleep(60)\n"
+                    + $"with open(r\"{outputFile}\", \"w\", encoding=\"utf-8\") as file:\n"
+                    + "    file.write(\"finished\")\n";
+                string scriptPath = WriteScript(tempDir, "endless.py", scriptContent);
+
+                bool executed = CreateImporter(TimeSpan.FromSeconds(2)).ExecuteScript(scriptPath, null, validateImportFile: false);
+
+                Assert.That(executed, Is.False);
+                Assert.That(File.Exists(outputFile), Is.False);
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+
+        [Test]
+        public async Task RunImportScriptReportsWhatATimedOutScriptWroteBeforeItGotStuck()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Assert.Ignore("Script execution test requires a Unix-like environment.");
+            }
+
+            string tempDir = CreateScriptDirectory();
+            try
+            {
+                // the scripts log to their error output, so the reason a script hangs - a git
+                // command waiting for credentials for instance - is written before it stops
+                string scriptContent = "#!/usr/bin/env python3\n"
+                    + "import sys, time\n"
+                    + "print('[ERROR] waiting for git credentials', file=sys.stderr, flush=True)\n"
+                    + "time.sleep(60)\n";
+                string scriptPath = WriteScript(tempDir, "stuck.py", scriptContent);
+                bool executed = false;
+                string logOutput = await ConsoleOutput.CaptureAsync(() =>
+                {
+                    executed = CreateImporter(TimeSpan.FromSeconds(2)).ExecuteScript(scriptPath, null, validateImportFile: false);
+                    return Task.CompletedTask;
+                });
+                Assert.That(executed, Is.False);
+                Assert.That(logOutput, Does.Contain("waiting for git credentials"));
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+
+        [Test]
+        public void ImportScriptTimeoutIsTakenFromTheConfiguration()
+        {
+            Assert.That(CreateConfiguredImporter(90).ScriptTimeout, Is.EqualTo(TimeSpan.FromMinutes(90)),
+                "an installation with a long running import script raises the setting instead of patching the code");
+        }
+
+        [Test]
+        public void ImportScriptTimeoutFallsBackToTheDefaultForAnUnusableValue()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(CreateConfiguredImporter(0).ScriptTimeout, Is.EqualTo(TimeSpan.FromMinutes(60)));
+                Assert.That(CreateConfiguredImporter(-5).ScriptTimeout, Is.EqualTo(TimeSpan.FromMinutes(60)),
+                    "a misconfiguration must not stop every script right after it was started");
+            });
+        }
+
+        [Test]
+        public void ImportScriptTimeoutStaysWaitable()
+        {
+            // the wait is expressed in milliseconds as an int, a larger value would make every
+            // scripted import fail instead of running longer
+            TimeSpan cappedTimeout = CreateConfiguredImporter(int.MaxValue).ScriptTimeout;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(cappedTimeout, Is.EqualTo(TimeSpan.FromMinutes(GlobalConst.kMaxImportScriptTimeoutMinutes)));
+                Assert.That(cappedTimeout.TotalMilliseconds, Is.LessThanOrEqualTo(int.MaxValue));
+                Assert.That(CreateConfiguredImporter(GlobalConst.kMaxImportScriptTimeoutMinutes).ScriptTimeout.TotalMilliseconds,
+                    Is.LessThanOrEqualTo(int.MaxValue), "the configurable maximum is still waitable");
+            });
+        }
+
+        [Test]
+        public void GetScriptOutputLogTypeReportsTheSeverityTheScriptUsed()
+        {
+            // the scripts log to the error output, so a run ending successfully can still report
+            // that it could not do its work, for instance that a push was never acknowledged
+            Assert.Multiple(() =>
+            {
+                Assert.That(TestDataImportBase.GetOutputLogType(
+                    "2026-08-14T09:57:59 [ERROR] [import_log:reuse_pend: 175] no new log data is imported"),
+                    Is.EqualTo(LogType.Error));
+                Assert.That(TestDataImportBase.GetOutputLogType(
+                    "2026-08-14T09:57:59 [CRITI] [import_log:main      : 291] unusable configuration"),
+                    Is.EqualTo(LogType.Error));
+                Assert.That(TestDataImportBase.GetOutputLogType(
+                    "2026-08-14T09:57:59 [WARNI] [import_log:reuse_pend: 182] reusing it (1)"),
+                    Is.EqualTo(LogType.Warning));
+                Assert.That(TestDataImportBase.GetOutputLogType(
+                    "2026-08-14T09:57:59 [INFO ] [import_log:import_dat: 247] converted 2 CSV files"),
+                    Is.EqualTo(LogType.Info));
+            });
+        }
+
+        [Test]
         public void ReadFileTrimsContent()
         {
             ApiConnection apiConnection = new SimulatedApiConnection();
@@ -94,7 +269,7 @@ namespace FWO.Test
             {
                 File.WriteAllText(tempFile, "  sample text \n");
 
-                importer.ReadImportFile(tempFile);
+                importer.ReadImportFile(tempFile, validateImportFile: false);
 
                 Assert.That(importer.ImportFile, Is.EqualTo("sample text"));
             }
@@ -102,6 +277,18 @@ namespace FWO.Test
             {
                 File.Delete(tempFile);
             }
+        }
+
+        [Test]
+        public void ReadFileThrowsWhenFileMissing()
+        {
+            ApiConnection apiConnection = new SimulatedApiConnection();
+            GlobalConfig globalConfig = new SimulatedGlobalConfig();
+            TestDataImportBase importer = new(apiConnection, globalConfig);
+
+            string missingFile = Path.Combine(Path.GetTempPath(), $"missing-{Guid.NewGuid():N}.txt");
+
+            Assert.Throws<FileNotFoundException>(() => importer.ReadImportFile(missingFile, validateImportFile: false));
         }
 
         [Test]
@@ -113,34 +300,259 @@ namespace FWO.Test
 
             Assert.That(
                 arguments,
-                Is.EqualTo(
-                [
-                    "--filterColumn",
-                    "Aktive Firewallregel",
-                    "--includeValues",
-                    "Ja",
-                    "--compositeIdFields",
-                    "Applikation",
-                    "Teilapplikation"
-                ])
+                Is.EqualTo(kExpectedPreservedQuotedArguments)
             );
+        }
+
+        [Test]
+        public void ParseCommandLineArgumentsHandlesSingleQuotesAndEscapes()
+        {
+            List<string> arguments = TestDataImportBase.GetArguments(
+                "alpha 'beta gamma' delta\\ value \"quoted value\""
+            );
+
+            Assert.That(arguments, Is.EqualTo(kExpectedSingleQuotesAndEscapesArguments));
+        }
+
+        [Test]
+        public void ValidateConfiguredImportSource_ReturnsValidatedFilesForExtensionlessSource()
+        {
+            string tempRoot = CreateNonWorldWritableTempDirectory();
+            object? originalConfigData = null;
+            object? originalJwtPrivateKey = null;
+            object? originalJwtPublicKey = null;
+            bool configSnapshotTaken = false;
+            try
+            {
+                (originalConfigData, originalJwtPrivateKey, originalJwtPublicKey) = SnapshotConfigFileState();
+                configSnapshotTaken = true;
+
+                string configFilePath = Path.Combine(tempRoot, "config.json");
+                string privateKeyPath = Path.Combine(tempRoot, "private.pem");
+                string publicKeyPath = Path.Combine(tempRoot, "public.pem");
+                string configJson = $"{{\"fworch_home\":\"{tempRoot.Replace("\\", "\\\\")}\"}}";
+                File.WriteAllText(configFilePath, configJson);
+                File.WriteAllText(privateKeyPath, "");
+                File.WriteAllText(publicKeyPath, "");
+                TestHelper.InvokeMethod<ConfigFile, object?>("Read", [configFilePath, privateKeyPath, publicKeyPath]);
+
+                string customizationRoot = Path.Combine(tempRoot, "etc");
+                Directory.CreateDirectory(customizationRoot);
+                string importFile = Path.Combine(customizationRoot, "owners.json");
+                File.WriteAllText(importFile, "{}");
+                SetOwnerOnlyModes(tempRoot, customizationRoot, importFile);
+
+                List<string> validatedFiles = TestDataImportBase.ValidateConfiguredSource(Path.Combine(customizationRoot, "owners"));
+
+                Assert.That(validatedFiles, Is.EqualTo(new[] { importFile }));
+            }
+            finally
+            {
+                if (configSnapshotTaken)
+                {
+                    RestoreConfigFileState(originalConfigData, originalJwtPrivateKey, originalJwtPublicKey);
+                }
+                Directory.Delete(tempRoot, true);
+            }
+        }
+
+        [Test]
+        public void ImportPathPolicyAcceptsAllowedExistingFileAndRemovesExtension()
+        {
+            string tempRoot = CreateNonWorldWritableTempDirectory();
+            try
+            {
+                string nestedDir = Path.Combine(tempRoot, "nested");
+                Directory.CreateDirectory(nestedDir);
+                string importFile = Path.Combine(nestedDir, "owners.json");
+                File.WriteAllText(importFile, "{}");
+                SetOwnerOnlyModes(tempRoot, nestedDir, importFile);
+
+                List<string> validFiles = ImportPathPolicy.GetValidatedExistingImportFiles(importFile, tempRoot);
+                List<string> stems = ImportPathPolicy.GetAllowedImportFileStems(tempRoot);
+
+                Assert.That(validFiles, Is.EqualTo(new[] { importFile }));
+                Assert.That(stems, Is.EqualTo(new[] { Path.Combine(nestedDir, "owners") }));
+                Assert.That(ImportPathPolicy.RemoveAllowedExtension(importFile), Is.EqualTo(Path.Combine(nestedDir, "owners")));
+            }
+            finally
+            {
+                Directory.Delete(tempRoot, true);
+            }
+        }
+
+        [Test]
+        public void ImportPathPolicyAllowsOnlyConfiguredCustomizationRoots()
+        {
+            string fwoHome = CreateNonWorldWritableTempDirectory();
+            try
+            {
+                string customizingRoot = Path.Combine(fwoHome, "scripts", "customizing");
+                string etcRoot = Path.Combine(fwoHome, "etc");
+                string blockedRoot = Path.Combine(fwoHome, "importer");
+                Directory.CreateDirectory(customizingRoot);
+                Directory.CreateDirectory(etcRoot);
+                Directory.CreateDirectory(blockedRoot);
+
+                string customizingScript = Path.Combine(customizingRoot, "owners.py");
+                string etcFile = Path.Combine(etcRoot, "owners.json");
+                string blockedScript = Path.Combine(blockedRoot, "owners.py");
+                File.WriteAllText(customizingScript, "#!/usr/bin/env python3\n");
+                File.WriteAllText(etcFile, "{}");
+                File.WriteAllText(blockedScript, "#!/usr/bin/env python3\n");
+
+                List<string> allowedRoots = [customizingRoot, etcRoot];
+
+                Assert.DoesNotThrow(() => ImportPathPolicy.ValidateExistingImportFile(customizingScript, allowedRoots));
+                Assert.DoesNotThrow(() => ImportPathPolicy.ValidateExistingImportFile(etcFile, allowedRoots));
+                Assert.Throws<UnauthorizedAccessException>(() =>
+                    ImportPathPolicy.ValidateExistingImportFile(blockedScript, allowedRoots));
+                Assert.Throws<UnauthorizedAccessException>(() =>
+                    ImportPathPolicy.ValidateImportSourceShape(blockedScript, allowedRoots));
+                Assert.That(
+                    ImportPathPolicy.GetAllowedImportFileStems(allowedRoots),
+                    Is.EquivalentTo(new[]
+                    {
+                        Path.Combine(customizingRoot, "owners"),
+                        Path.Combine(etcRoot, "owners")
+                    })
+                );
+            }
+            finally
+            {
+                Directory.Delete(fwoHome, true);
+            }
+        }
+
+        [Test]
+        public void ImportPathPolicyRejectsFileOutsideAllowedRoot()
+        {
+            string tempRoot = CreateNonWorldWritableTempDirectory();
+            string outsideFile = Path.Combine(Path.GetTempPath(), $"outside-{Guid.NewGuid():N}.json");
+            try
+            {
+                File.WriteAllText(outsideFile, "{}");
+
+                Assert.Throws<UnauthorizedAccessException>(() =>
+                    ImportPathPolicy.GetValidatedExistingImportFiles(outsideFile, tempRoot));
+            }
+            finally
+            {
+                Directory.Delete(tempRoot, true);
+                File.Delete(outsideFile);
+            }
+        }
+
+        [Test]
+        public void ImportPathPolicyRejectsWorldWritablePath()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Assert.Ignore("Unix file mode test requires a Unix-like environment.");
+            }
+
+            string tempRoot = CreateNonWorldWritableTempDirectory();
+            try
+            {
+                string importFile = Path.Combine(tempRoot, "owners.json");
+                File.WriteAllText(importFile, "{}");
+#pragma warning disable CA1416 // Unix file modes are only set on Unix-like platforms.
+                File.SetUnixFileMode(importFile, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.OtherWrite);
+#pragma warning restore CA1416
+
+                Assert.Throws<UnauthorizedAccessException>(() =>
+                    ImportPathPolicy.GetValidatedExistingImportFiles(importFile, tempRoot));
+            }
+            finally
+            {
+                Directory.Delete(tempRoot, true);
+            }
+        }
+
+        [Test]
+        public void ValidateImportSourceShapeAcceptsSourceUnderRootWithoutFilesystemAccess()
+        {
+            // Root and files do not exist on disk: shape validation must not touch the filesystem.
+            string root = Path.Combine(Path.GetTempPath(), $"fwo-missing-root-{Guid.NewGuid():N}");
+
+            Assert.DoesNotThrow(() => ImportPathPolicy.ValidateImportSourceShape(Path.Combine(root, "owners"), root));
+            Assert.DoesNotThrow(() => ImportPathPolicy.ValidateImportSourceShape(Path.Combine(root, "nested", "owners.json"), root));
+            Assert.DoesNotThrow(() => ImportPathPolicy.ValidateImportSourceShape("owners", root));
+        }
+
+        [Test]
+        public void ValidateImportSourceShapeRejectsTraversalOutsideRoot()
+        {
+            string root = Path.Combine(Path.GetTempPath(), $"fwo-missing-root-{Guid.NewGuid():N}");
+
+            Assert.Throws<UnauthorizedAccessException>(() =>
+                ImportPathPolicy.ValidateImportSourceShape(Path.Combine(root, "..", "owners"), root));
+        }
+
+        [Test]
+        public void ValidateImportSourceShapeRejectsDisallowedExtension()
+        {
+            string root = Path.Combine(Path.GetTempPath(), $"fwo-missing-root-{Guid.NewGuid():N}");
+
+            Assert.Throws<ArgumentException>(() =>
+                ImportPathPolicy.ValidateImportSourceShape(Path.Combine(root, "owners.sh"), root));
+        }
+
+        private static TestDataImportBase CreateImporter(TimeSpan scriptTimeout)
+        {
+            return new TestDataImportBase(new SimulatedApiConnection(), new SimulatedGlobalConfig(), scriptTimeout);
+        }
+
+        private static TestDataImportBase CreateConfiguredImporter(int importScriptTimeout)
+        {
+            SimulatedGlobalConfig globalConfig = new() { ImportScriptTimeout = importScriptTimeout };
+            return new TestDataImportBase(new SimulatedApiConnection(), globalConfig);
+        }
+
+        private static string CreateScriptDirectory()
+        {
+            string tempDir = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"fwo-import-test-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(tempDir);
+            return tempDir;
+        }
+
+        private static string WriteScript(string tempDir, string scriptName, string scriptContent)
+        {
+            string scriptPath = Path.Combine(tempDir, scriptName);
+            File.WriteAllText(scriptPath, scriptContent);
+#pragma warning disable CA1416 // Validate platform compatibility
+            File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+#pragma warning restore CA1416 // Validate platform compatibility
+            return scriptPath;
         }
 
         private sealed class TestDataImportBase : DataImportBase
         {
-            public TestDataImportBase(ApiConnection apiConnection, GlobalConfig globalConfig)
+            private readonly TimeSpan? scriptTimeout;
+
+            public TestDataImportBase(ApiConnection apiConnection, GlobalConfig globalConfig, TimeSpan? scriptTimeout = null)
                 : base(apiConnection, globalConfig)
             {
+                this.scriptTimeout = scriptTimeout;
             }
 
-            public bool ExecuteScript(string scriptPath, string? args)
+            protected override TimeSpan ImportScriptTimeout => scriptTimeout ?? base.ImportScriptTimeout;
+
+            public TimeSpan ScriptTimeout => ImportScriptTimeout;
+
+            public static LogType GetOutputLogType(string errorOutput)
             {
-                return RunImportScript(scriptPath, args);
+                return GetScriptOutputLogType(errorOutput);
             }
 
-            public void ReadImportFile(string filepath)
+            public bool ExecuteScript(string scriptPath, string? args, bool validateImportFile = true)
             {
-                ReadFile(filepath);
+                return RunImportScript(scriptPath, args, validateImportFile);
+            }
+
+            public void ReadImportFile(string filepath, bool validateImportFile = true)
+            {
+                ReadFile(filepath, validateImportFile);
             }
 
             public static List<string> GetArguments(string args)
@@ -148,7 +560,56 @@ namespace FWO.Test
                 return ParseCommandLineArguments(args);
             }
 
+            public static List<string> ValidateConfiguredSource(string importfilePathAndName)
+            {
+                return ValidateConfiguredImportSource(importfilePathAndName);
+            }
+
             public string ImportFile => importFile;
+        }
+
+        private static string CreateNonWorldWritableTempDirectory()
+        {
+            string tempRoot = Path.Combine(Path.GetTempPath(), $"fwo-import-policy-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(tempRoot);
+            if (!OperatingSystem.IsWindows())
+            {
+#pragma warning disable CA1416 // Unix file modes are only set on Unix-like platforms.
+                File.SetUnixFileMode(tempRoot, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+#pragma warning restore CA1416
+            }
+            return tempRoot;
+        }
+
+        private static void SetOwnerOnlyModes(string root, string nestedDir, string filePath)
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return;
+            }
+
+#pragma warning disable CA1416 // Unix file modes are only set on Unix-like platforms.
+            File.SetUnixFileMode(root, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            File.SetUnixFileMode(nestedDir, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            File.SetUnixFileMode(filePath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+#pragma warning restore CA1416
+        }
+
+        private static (object? Data, object? JwtPrivateKey, object? JwtPublicKey) SnapshotConfigFileState()
+        {
+            Type configFileType = typeof(ConfigFile);
+            object? data = configFileType.GetProperty("Data", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null);
+            object? jwtPrivateKey = configFileType.GetField("jwtPrivateKey", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null);
+            object? jwtPublicKey = configFileType.GetField("jwtPublicKey", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null);
+            return (data, jwtPrivateKey, jwtPublicKey);
+        }
+
+        private static void RestoreConfigFileState(object? data, object? jwtPrivateKey, object? jwtPublicKey)
+        {
+            Type configFileType = typeof(ConfigFile);
+            configFileType.GetProperty("Data", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, data);
+            configFileType.GetField("jwtPrivateKey", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, jwtPrivateKey);
+            configFileType.GetField("jwtPublicKey", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, jwtPublicKey);
         }
     }
 }

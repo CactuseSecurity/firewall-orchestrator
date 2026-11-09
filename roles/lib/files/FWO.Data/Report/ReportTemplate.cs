@@ -29,9 +29,6 @@ namespace FWO.Data.Report
 
         public bool Detailed { get; set; } = false;
 
-        public bool IncludeObjectsInReportChanges { get; set; } = false;
-        public bool IncludeObjectsInReportChangesUiPresesed { get; set; } = false;
-
         public ReportTemplate()
         { }
 
@@ -56,8 +53,17 @@ namespace FWO.Data.Report
         [JsonProperty("report_type"), JsonPropertyName("report_type")]
         public int ReportType { get; set; } = 0;
 
+        [JsonProperty("include_objects"), JsonPropertyName("include_objects")]
+        public bool IncludeObjects { get; set; } = false;
+
         [JsonProperty("device_filter"), JsonPropertyName("device_filter")]
         public DeviceFilter DeviceFilter { get; set; } = new();
+
+        [JsonProperty("management_rulebase_view"), JsonPropertyName("management_rulebase_view")]
+        public bool ManagementRulebaseView { get; set; }
+
+        [JsonProperty("selected_rulebases"), JsonPropertyName("selected_rulebases")]
+        public List<SelectedRulebase> SelectedRulebases { get; set; } = [];
 
         [JsonProperty("time_filter"), JsonPropertyName("time_filter")]
         public TimeFilter TimeFilter { get; set; } = new();
@@ -74,8 +80,14 @@ namespace FWO.Data.Report
         [JsonProperty("modelling_filter"), JsonPropertyName("modelling_filter")]
         public ModellingFilter ModellingFilter { get; set; } = new();
 
+        [JsonProperty("owner_filter"), JsonPropertyName("owner_filter")]
+        public OwnerFilter OwnerFilter { get; set; } = new();
+
         [JsonProperty("compliance_filter"), JsonPropertyName("compliance_filter")]
         public ComplianceFilter ComplianceFilter { get; set; } = new();
+
+        [JsonProperty("workflow_filter"), JsonPropertyName("workflow_filter")]
+        public WorkflowFilter WorkflowFilter { get; set; } = new();
 
         public ReportParams()
         { }
@@ -84,6 +96,14 @@ namespace FWO.Data.Report
         {
             ReportType = reportType;
             DeviceFilter = deviceFilter;
+        }
+
+        /// <summary>
+        /// Checks whether a Rules report is scoped by selected rulebases (management rulebases view) instead of the device filter.
+        /// </summary>
+        public bool IsManagementRulebaseView()
+        {
+            return ReportType == (int)FWO.Basics.ReportType.Rules && ManagementRulebaseView;
         }
     }
 }

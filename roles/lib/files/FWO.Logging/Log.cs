@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Globalization;
+using System.Text;
 using FWO.Basics;
 using FWO.Basics.Interfaces;
 
@@ -8,9 +10,26 @@ namespace FWO.Logging
 {
     public static class Log
     {
+        private const string lockDirEnvVar = "FWO_LOG_LOCK_DIR";
+        private const string defaultLockDir = "/var/fworch/lock";
+
         private static SemaphoreSlim semaphore = new(1, 1);
-        private static readonly string lockFilePath = $"/var/fworch/lock/{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock";
         private static readonly Random random = new();
+
+        /// <summary>
+        /// Path of the lock file used to coordinate log file swapping with external processes.
+        /// The directory can be overridden via the FWO_LOG_LOCK_DIR environment variable
+        /// (e.g. on test hosts where /var/fworch/lock does not exist).
+        /// </summary>
+        public static string LockFilePath { get; } = Path.Combine(
+            ResolveLockDir(),
+            $"{Assembly.GetEntryAssembly()?.GetName().Name}_log.lock");
+
+        private static string ResolveLockDir()
+        {
+            string? configuredLockDir = Environment.GetEnvironmentVariable(lockDirEnvVar);
+            return string.IsNullOrWhiteSpace(configuredLockDir) ? defaultLockDir : configuredLockDir;
+        }
 
         static Log()
         {
@@ -25,7 +44,7 @@ namespace FWO.Logging
                     try
                     {
                         // Open file
-                        using FileStream file = await GetFile(lockFilePath);
+                        using FileStream file = await GetFile(LockFilePath);
                         // Read file content
                         using StreamReader reader = new(file);
                         string lockFileContent = (await reader.ReadToEndAsync()).Trim();
@@ -125,9 +144,7 @@ namespace FWO.Logging
                 (Text != null ? $"{Text}" : "") +
                 (Error != null ?
                 "\n ---\n" +
-                $"Exception thrown: \n {Error?.GetType().Name} \n" +
-                $"Message: \n {Error?.Message.TrimStart()} \n" +
-                $"Stack Trace: \n {Error?.StackTrace?.TrimStart()}"
+                $"Exception thrown: \n {Error}"
                 : "");
 
             WriteLog("Error", Title, DisplayText, callerName, callerFile, callerLineNumber, ConsoleColor.Red);
@@ -211,16 +228,78 @@ namespace FWO.Logging
             WriteInColor($"FWORCHAlert - {Title}, {Text}");
         }
 
+        /// <summary>
+        /// Writes a line to the console in the given colors. A failing console write is swallowed
+        /// and the log semaphore is always released, so one broken write can neither break the
+        /// caller nor block every later log call of the process.
+        /// </summary>
         private static void WriteInColor(string Text, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
         {
             semaphore.Wait();
-            if (ForegroundColor != null)
-                Console.ForegroundColor = (ConsoleColor)ForegroundColor;
-            if (BackgroundColor != null)
-                Console.BackgroundColor = (ConsoleColor)BackgroundColor;
-            Console.Out.WriteLine(Text.SanitizeMand()); // TODO: async method ?
-            Console.ResetColor();
-            semaphore.Release();
+            try
+            {
+                try
+                {
+                    if (ForegroundColor != null)
+                        Console.ForegroundColor = (ConsoleColor)ForegroundColor;
+                    if (BackgroundColor != null)
+                        Console.BackgroundColor = (ConsoleColor)BackgroundColor;
+                    Console.Out.WriteLine(SanitizeForLogOutput(Text)); // TODO: async method ?
+                }
+                finally
+                {
+                    Console.ResetColor();
+                }
+            }
+            catch (Exception)
+            {
+                // a failing log write (e.g. stdout temporarily not writable) must never break the caller
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+
+        /// <summary>
+        /// Preserves meaningful punctuation in log messages while removing invisible control
+        /// and format characters that can break parsing or obfuscate terminal output.
+        /// </summary>
+        private static string SanitizeForLogOutput(string text)
+        {
+            StringBuilder sanitizedText = new(text.Length);
+            bool previousCharacterWasSpace = false;
+
+            foreach (char currentCharacter in text)
+            {
+                if (char.IsWhiteSpace(currentCharacter) && currentCharacter != ' ')
+                {
+                    if (!previousCharacterWasSpace)
+                    {
+                        sanitizedText.Append(' ');
+                        previousCharacterWasSpace = true;
+                    }
+                }
+                else if (IsVisibleLogCharacter(currentCharacter))
+                {
+                    sanitizedText.Append(currentCharacter);
+                    previousCharacterWasSpace = currentCharacter == ' ';
+                }
+            }
+
+            return sanitizedText.ToString().Trim();
+        }
+
+        private static bool IsVisibleLogCharacter(char currentCharacter)
+        {
+            UnicodeCategory characterCategory = char.GetUnicodeCategory(currentCharacter);
+            return characterCategory != UnicodeCategory.Control
+                && characterCategory != UnicodeCategory.Format
+                && characterCategory != UnicodeCategory.LineSeparator
+                && characterCategory != UnicodeCategory.ParagraphSeparator
+                && characterCategory != UnicodeCategory.Surrogate
+                && characterCategory != UnicodeCategory.PrivateUse
+                && characterCategory != UnicodeCategory.OtherNotAssigned;
         }
 
         public static void TryWriteLog(LogType logType, string title, string text, bool condition)

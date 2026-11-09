@@ -49,6 +49,9 @@ namespace FWO.Data.Modelling
         [JsonProperty("owner"), JsonPropertyName("owner")]
         public FwoOwner App { get; set; } = new();
 
+        [JsonProperty("ownerByProposedAppId"), JsonPropertyName("ownerByProposedAppId")]
+        public FwoOwner ProposedApp { get; set; } = new();
+
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; } = "";
 
@@ -190,6 +193,7 @@ namespace FWO.Data.Modelling
             AppId = conn.AppId;
             App = conn.App;
             ProposedAppId = conn.ProposedAppId;
+            ProposedApp = conn.ProposedApp;
             Name = conn.Name;
             Reason = conn.Reason;
             IsInterface = conn.IsInterface;
@@ -286,6 +290,32 @@ namespace FWO.Data.Modelling
                 DeletedObjectsFound(rolloutRemoved) ||
                 EmptyServiceGroupsFound());
         }
+
+        public bool IsRelevantForNotificationRequest(long dummyAppRoleId, bool rolloutRemoved = false)
+        {
+            return NotAlreadyRequested() &&
+                !IsDocumentationOnly() &&
+                IsRelevantForVarianceAnalysis(dummyAppRoleId, rolloutRemoved);
+        }
+
+        public bool NotAlreadyRequested()
+        {
+            return !RequestedOnFw;
+        }
+
+        public bool IsIntegrationStateIncludedForRequest(string marker, HashSet<string> includedRequestStateNames)
+        {
+            return ModIntegrationStateConfig.IsIncludedForRequest(ModIntegrationStateConfig.GetStateName(GetStringProperty(ModIntegrationStateConfig.EffectiveMarker(marker))), includedRequestStateNames);
+        }
+
+        public DateTime? GetIntegrationStateSetAt(string marker)
+        {
+            return ModIntegrationStateConfig.GetStateTimestamp(GetStringProperty(ModIntegrationStateConfig.EffectiveMarker(marker))) ??
+                ModIntegrationStateConfig.ParseTimestamp(GetStringProperty(ModIntegrationStateConfig.TimestampMarker(marker)));
+        }
+
+        public bool HasExtraConfigType(string extraConfigType)
+            => ExtraConfigs.Any(config => string.Equals(config.ExtraConfigType, extraConfigType, StringComparison.OrdinalIgnoreCase));
 
         public void AddProperty(string key, string value = "")
         {

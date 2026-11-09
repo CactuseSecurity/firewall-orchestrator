@@ -1,0 +1,102 @@
+@using FWO.Services.Workflow
+
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("change_state") + ": " + ObjectName)" Show="@Display" Size=PopupSize.Small OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <div class="form-group row">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("promote_to")):</label>
+                <div class="col-sm-8">
+                    <Dropdown ElementType="int" SelectedElement="TargetStateId" SelectedElementChanged="TargetStateIdChanged"
+                              ElementToString="@(stateId => StateIdToString(stateId))" Elements="AvailableTargetStateIds">
+                        <ElementTemplate Context="stateId">
+                            @(StateIdToString(stateId))
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H7031"))">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state_change_mode")):</label>
+                <div class="col-sm-8">
+                    <Dropdown ElementType="MonitoringStateChangeMode" SelectedElement="StateChangeMode" SelectedElementChanged="StateChangeModeChanged"
+                              ElementToString="StateChangeModeToString" Elements="AvailableStateChangeModes">
+                        <ElementTemplate Context="mode">
+                            @(StateChangeModeToString(mode))
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Apply">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                </NotAuthorized>
+            </ExecutionModeAuthorizeView>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code
+{
+    private readonly List<MonitoringStateChangeMode> AvailableStateChangeModes = [MonitoringStateChangeMode.LocalOnly, MonitoringStateChangeMode.CascadeParents, MonitoringStateChangeMode.TriggerActions];
+
+    [Parameter]
+    public bool Display { get; set; }
+
+    [Parameter]
+    public string ObjectName { get; set; } = "";
+
+    [Parameter]
+    public int TargetStateId { get; set; }
+
+    [Parameter]
+    public EventCallback<int> TargetStateIdChanged { get; set; }
+
+    [Parameter]
+    public MonitoringStateChangeMode StateChangeMode { get; set; }
+
+    [Parameter]
+    public EventCallback<MonitoringStateChangeMode> StateChangeModeChanged { get; set; }
+
+    [Parameter]
+    public List<int> AvailableTargetStateIds { get; set; } = [];
+
+    [Parameter]
+    public Dictionary<int, string> StateNames { get; set; } = [];
+
+    [Parameter]
+    public Func<Task> ApplyStateChange { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public Action CloseStateDialog { get; set; } = () => { };
+
+    private string StateIdToString(int stateId)
+    {
+        return StateNames.TryGetValue(stateId, out string? stateName) ? stateName : stateId.ToString();
+    }
+
+    private string StateChangeModeToString(MonitoringStateChangeMode mode)
+    {
+        return userConfig.GetText(mode.ToString());
+    }
+
+    private async Task Apply()
+    {
+        await ApplyStateChange();
+    }
+
+    private void Close()
+    {
+        Display = false;
+        CloseStateDialog();
+    }
+}

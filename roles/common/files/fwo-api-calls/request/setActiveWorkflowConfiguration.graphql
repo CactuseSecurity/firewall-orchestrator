@@ -1,0 +1,14 @@
+mutation setActiveWorkflowConfiguration($configurationId: Int!) {
+  deactivate_current: update_request_workflow_configuration(
+    where: {is_active: {_eq: true}}
+    _set: {is_active: false}
+  ) {
+    affected_rows
+  }
+  activate_selected: update_request_workflow_configuration_by_pk(
+    pk_columns: {id: $configurationId}
+    _set: {is_active: true}
+  ) {
+    id
+  }
+}

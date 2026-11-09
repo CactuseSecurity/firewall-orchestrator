@@ -28,7 +28,15 @@
                     <li class="list-group-item">
                         <div class="mb-1">@(userConfig.GetText("export_as"))</div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="reportExportPdf" @bind="ExportPdf">
+                            @if (PdfAvailable())
+                            {
+                                <input class="form-check-input" type="checkbox" id="reportExportPdf" @bind="ExportPdf">
+                            }
+                            else
+                            {
+                                ExportPdf = false;
+                                <input disabled class="form-check-input" type="checkbox" id="reportExportPdf">
+                            }
                             <label class="form-check-label" for="reportExportPdf">
                                 PDF
                             </label>
@@ -56,7 +64,15 @@
                             }
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="reportExportHtml" @bind="ExportHtml">
+                            @if (HtmlAvailable())
+                            {
+                                <input class="form-check-input" type="checkbox" id="reportExportHtml" @bind="ExportHtml">
+                            }
+                            else
+                            {
+                                ExportHtml = false;
+                                <input disabled class="form-check-input" type="checkbox" id="reportExportHtml">
+                            }
                             <label class="form-check-label" for="reportExportHtml">
                                 HTML
                             </label>
@@ -111,10 +127,13 @@
 </PopUp>
 
 <ReportDownloadPopUp Title="@(userConfig.GetText("export_report_download"))" ReportFile="reportExportFile"
-    Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportDownloadDialog = false" />
+    Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="CloseExportDownloadDialog" />
 
 @code
 {
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
@@ -132,6 +151,16 @@
     private bool ShowExportDialog = false;
     private bool ShowExportDownloadDialog = false;
 
+    /// <summary>
+    /// Closes the download dialog and drops the html the export left cached on the report. The next
+    /// export rebuilds it; keeping it would hold the rendered report for the rest of the session.
+    /// </summary>
+    private void CloseExportDownloadDialog()
+    {
+        ShowExportDownloadDialog = false;
+        ReportToExport?.ReleaseExportCache();
+    }
+
     private bool Exporting = false;
 
     private int PaperSizeWidth = 0;
@@ -141,7 +170,8 @@
 
     private bool csvAvailable()
     {
-        if(ReportToExport is ReportBase report && (report.ReportType.IsResolvedReport() || report.ReportType.IsComplianceReport() ))
+        if (ReportToExport is ReportBase report
+            && report.ReportType.SupportsCsvExport(report.ReportData.WorkflowFilter.DetailedView))
         {
             return true;
         }
@@ -149,6 +179,24 @@
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Determines whether HTML export is available for the current report.
+    /// </summary>
+    private bool HtmlAvailable()
+    {
+        return ReportToExport is ReportBase report
+            && report.ReportType.SupportsHtmlExport();
+    }
+
+    /// <summary>
+    /// Determines whether PDF export is available for the current report.
+    /// </summary>
+    private bool PdfAvailable()
+    {
+        return ReportToExport is ReportBase report
+            && report.ReportType.SupportsPdfExport();
     }
 
     private async Task Export()
@@ -165,34 +213,16 @@
                 {
                     if (!ReportToExport.GotObjectsInReport)
                     {
-                        await ReportToExport.GetObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
+                        await GetReportObjectsForExport();
                     }
 
-                    if (ExportHtml)
-                    {
-                        reportExportFile.Html = ReportToExport.ExportToHtml();
-                    }
+                    ConvertToHtml();
 
-                    if (ExportPdf)
-                    {
-                        ReportToExport.CustomHeight = PaperSizeHeight;
-                        ReportToExport.CustomWidth = PaperSizeWidth;
+                    await ConvertToPdf();
 
-                        string html = ReportToExport.ExportToHtml();
-                        reportExportFile.Pdf = await ReportToExport.ToPdf(html, SelectedPaperFormat);
-                        
-                    }
-
-                    if (ExportCsv)
-                    {
-                        reportExportFile.Csv = ReportToExport.ExportToCsv();
-                    }
-
-                    // if archiving, json report has to be generated
-                    if (ExportJson || ExportArchive)
-                    {
-                        reportExportFile.Json = ReportToExport.ExportToJson();
-                    }
+                    ConvertToCsv();
+                    
+                    ExportToJson();
 
                     if (ExportArchive)
                     {
@@ -223,6 +253,76 @@
         else
         {
             DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true);
+        }
+    }
+
+    /// <summary>
+    /// Gets all report objects using the role required by App Rules reports when an authentication
+    /// state is available.
+    /// </summary>
+    private async Task GetReportObjectsForExport()
+    {
+        if (ReportToExport == null)
+        {
+            return;
+        }
+
+        if (authenticationStateTask == null || ReportToExport.ReportType != ReportType.AppRules)
+        {
+            await FetchReportObjects();
+            return;
+        }
+
+        AuthenticationState authenticationState = await authenticationStateTask;
+        await apiConnection.RunWithBestRoleForReport(authenticationState.User, ReportToExport.ReportType,
+            async () =>
+            {
+                await FetchReportObjects();
+                return true;
+            }, userConfig.GetExplicitlyDeniedRoles(ReportToExport.ReportType));
+    }
+
+    /// <summary>
+    /// Gets all objects needed by the report export.
+    /// </summary>
+    private Task FetchReportObjects()
+    {
+        return ReportToExport!.GetObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
+    }
+
+    private async Task ConvertToPdf()
+    {
+        if (ReportToExport != null && ExportPdf && PdfAvailable())
+        {
+            ReportToExport.CustomHeight = PaperSizeHeight;
+            ReportToExport.CustomWidth = PaperSizeWidth;
+
+            string html = ReportToExport.ExportToHtml();
+            reportExportFile.Pdf = await ReportToExport.ToPdf(html, SelectedPaperFormat);
+        }
+    }
+
+    private void ConvertToHtml()
+    {
+        if (ReportToExport != null && ExportHtml && HtmlAvailable())
+        {
+            reportExportFile.Html = ReportToExport.ExportToHtml();
+        }
+    }
+
+    private void ConvertToCsv()
+    {
+        if (ReportToExport != null &&ExportCsv && csvAvailable())
+        {
+            reportExportFile.Csv = ReportToExport.ExportToCsv();
+        }
+    }
+
+    private void ExportToJson()
+    {
+        if (ReportToExport != null && (ExportJson || ExportArchive))
+        {
+            reportExportFile.Json = ReportToExport.ExportToJson();
         }
     }
 }

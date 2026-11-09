@@ -50,40 +50,35 @@ class TestFwConfigImportObjectAddChangelogObjs:
         self, fwconfig_import_object: FwConfigImportObject, api_call: FwoApiCall, mocker: MockerFixture
     ):
         # Arrange
-        mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
         api_call.call = mocker.Mock(return_value={"errors": [{"message": "Some error occurred"}]})
 
-        # Act
-        fwconfig_import_object.add_changelog_objs(
-            nwobj_ids_added=[{"obj_id": 1}],
-            nw_obj_ids_removed=[{"obj_id": 2}],
-            svc_obj_ids_added=[{"svc_id": 3}],
-            svc_obj_ids_removed=[{"svc_id": 4}],
-        )
-
-        # Assert
-        mock_logger.assert_called_once_with(
-            "error while adding changelog entries for objects: [{'message': 'Some error occurred'}]"
+        # Act / Assert: an incomplete changelog fails the import
+        with pytest.raises(FwoImporterError) as raised:
+            fwconfig_import_object.add_changelog_objs(
+                nwobj_ids_added=[{"obj_id": 1}],
+                nw_obj_ids_removed=[{"obj_id": 2}],
+                svc_obj_ids_added=[{"svc_id": 3}],
+                svc_obj_ids_removed=[{"svc_id": 4}],
+            )
+        assert "error while adding changelog entries for objects: [{'message': 'Some error occurred'}]" in str(
+            raised.value
         )
 
     def test_add_changelog_objects_with_exception(
         self, fwconfig_import_object: FwConfigImportObject, api_call: FwoApiCall, mocker: MockerFixture
     ):
         # Arrange
-        mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
         api_call.call = mocker.Mock(side_effect=Exception("API call failed"))
 
-        # Act
-        fwconfig_import_object.add_changelog_objs(
-            nwobj_ids_added=[{"obj_id": 1}],
-            nw_obj_ids_removed=[{"obj_id": 2}],
-            svc_obj_ids_added=[{"svc_id": 3}],
-            svc_obj_ids_removed=[{"svc_id": 4}],
-        )
-
-        # Assert
-        assert mock_logger.call_count == 1
-        assert str(mock_logger.call_args[0][0]).startswith(
+        # Act / Assert: an incomplete changelog fails the import
+        with pytest.raises(FwoImporterError) as raised:
+            fwconfig_import_object.add_changelog_objs(
+                nwobj_ids_added=[{"obj_id": 1}],
+                nw_obj_ids_removed=[{"obj_id": 2}],
+                svc_obj_ids_added=[{"svc_id": 3}],
+                svc_obj_ids_removed=[{"svc_id": 4}],
+            )
+        assert str(raised.value).startswith(
             "fatal error while adding changelog entries for objects: Traceback (most recent call last):"
         )
 
@@ -517,9 +512,7 @@ class TestFwConfigImportObjectCollectGroupMembers:
         )
 
         # Assert
-        assert new_group_members == [
-            {f"{prefix}_id": 1, f"{prefix}_member_id": 2, "import_created": 5, "import_last_seen": 5}
-        ]
+        assert new_group_members == [{f"{prefix}_id": 1, f"{prefix}_member_id": 2, "import_created": 5}]
 
 
 class TestFwConfigImportObjectCollectFlatGroupMembers:
@@ -597,9 +590,7 @@ class TestFwConfigImportObjectCollectFlatGroupMembers:
         )
 
         # Assert
-        assert new_group_member_flats == [
-            {f"{prefix}_flat_id": 1, f"{prefix}_flat_member_id": 2, "import_created": 5, "import_last_seen": 5}
-        ]
+        assert new_group_member_flats == [{f"{prefix}_flat_id": 1, f"{prefix}_flat_member_id": 2, "import_created": 5}]
 
 
 class TestFwConfigImportObjectAddGroupMemberships:
@@ -702,7 +693,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 5,
-                    "import_last_seen": 5,
                     "objgrp_id": 1,
                     "objgrp_member_id": 1,
                 },
@@ -710,7 +700,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 5,
-                    "import_last_seen": 5,
                     "objgrp_flat_id": 1,
                     "objgrp_flat_member_id": 1,
                 }
@@ -751,7 +740,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 7,
-                    "import_last_seen": 7,
                     "objgrp_id": 1,
                     "objgrp_member_id": 1,
                 }
@@ -759,7 +747,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 7,
-                    "import_last_seen": 7,
                     "objgrp_flat_id": 1,
                     "objgrp_flat_member_id": 1,
                 }
@@ -800,7 +787,7 @@ class TestFwConfigImportObjectAddGroupMemberships:
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
                 "data": {
-                    "insert_objgrp": {"affected_rows": 1},
+                    "insert_firewall_nw_object_group": {"affected_rows": 1},
                     "insert_objgrp_flat": {"affected_rows": 1},
                 }
             }
@@ -819,7 +806,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             "groups": [
                 {
                     "import_created": 13,
-                    "import_last_seen": 13,
                     "objgrp_id": 1,
                     "objgrp_member_id": 2,
                 }
@@ -827,7 +813,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             "groupFlats": [
                 {
                     "import_created": 13,
-                    "import_last_seen": 13,
                     "objgrp_flat_id": 1,
                     "objgrp_flat_member_id": 2,
                 }
@@ -874,7 +859,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 9,
-                    "import_last_seen": 9,
                     "objgrp_id": 1,
                     "objgrp_member_id": 2,
                 }
@@ -882,7 +866,6 @@ class TestFwConfigImportObjectAddGroupMemberships:
             [
                 {
                     "import_created": 9,
-                    "import_last_seen": 9,
                     "objgrp_flat_id": 1,
                     "objgrp_flat_member_id": 2,
                 }
@@ -937,37 +920,33 @@ class TestFwConfigImportObjectAddGroupMemberships:
         )
 
         # Assert
-        fwconfig_import_object.write_member_updates.assert_called_once()
-        actual_members, actual_flats, actual_prefix = fwconfig_import_object.write_member_updates.call_args.args
-        assert sorted(actual_members, key=lambda x: x["objgrp_member_id"]) == [
-            {
-                "import_created": 11,
-                "import_last_seen": 11,
-                "objgrp_id": 1,
-                "objgrp_member_id": 2,
-            },
-            {
-                "import_created": 11,
-                "import_last_seen": 11,
-                "objgrp_id": 1,
-                "objgrp_member_id": 3,
-            },
-        ]
-        assert sorted(actual_flats, key=lambda x: x["objgrp_flat_member_id"]) == [
-            {
-                "import_created": 11,
-                "import_last_seen": 11,
-                "objgrp_flat_id": 1,
-                "objgrp_flat_member_id": 2,
-            },
-            {
-                "import_created": 11,
-                "import_last_seen": 11,
-                "objgrp_flat_id": 1,
-                "objgrp_flat_member_id": 3,
-            },
-        ]
-        assert actual_prefix == "objgrp"
+        fwconfig_import_object.write_member_updates.assert_called_once_with(
+            [
+                {
+                    "import_created": 11,
+                    "objgrp_id": 1,
+                    "objgrp_member_id": 2,
+                },
+                {
+                    "import_created": 11,
+                    "objgrp_id": 1,
+                    "objgrp_member_id": 3,
+                },
+            ],
+            [
+                {
+                    "import_created": 11,
+                    "objgrp_flat_id": 1,
+                    "objgrp_flat_member_id": 2,
+                },
+                {
+                    "import_created": 11,
+                    "objgrp_flat_id": 1,
+                    "objgrp_flat_member_id": 3,
+                },
+            ],
+            "objgrp",
+        )
 
 
 class TestFwConfigImportObjectFindRemovedObjects:
@@ -1186,7 +1165,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
                     "update_objgrp_flat": {
                         "affected_rows": 1,
                     },
-                    "update_objgrp": {
+                    "update_firewall_nw_object_group": {
                         "affected_rows": 1,
                     },
                 }
@@ -1243,19 +1222,16 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
             }
         )
         fwconfig_import_object.import_state.state.import_id = 5
-        mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
 
-        # Act
-        fwconfig_import_object.remove_outdated_memberships(
-            prev_config=prev_config,
-            typ=Type.NETWORK_OBJECT,
-        )
-
-        # Assert
+        # Act / Assert: stale memberships fail the import
+        with pytest.raises(FwoImporterError) as raised:
+            fwconfig_import_object.remove_outdated_memberships(
+                prev_config=prev_config,
+                typ=Type.NETWORK_OBJECT,
+            )
         fwconfig_import_object.import_state.api_call.call.assert_called_once()
-        mock_logger.assert_called_once()
         assert (
-            mock_logger.call_args[0][0]
+            str(raised.value)
             == "fwo_api:importNwObject - error in removeOutdatedObjgrpMemberships: [{'message': 'Some error occurred'}]"
         )
 
@@ -1278,23 +1254,20 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object.prev_group_flats_mapper.get_network_object_flats = mocker.Mock(return_value={2})
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
-                "errors": "Some unexpected error occurred",
+                "error": "Some unexpected error occurred",
             }
         )
         fwconfig_import_object.import_state.state.import_id = 5
-        mock_logger = mocker.patch("fwo_log.FWOLogger.exception")
 
-        # Act
-        fwconfig_import_object.remove_outdated_memberships(
-            prev_config=prev_config,
-            typ=Type.NETWORK_OBJECT,
-        )
-
-        # Assert
+        # Act / Assert: a malformed answer fails the import as well
+        with pytest.raises(FwoImporterError) as raised:
+            fwconfig_import_object.remove_outdated_memberships(
+                prev_config=prev_config,
+                typ=Type.NETWORK_OBJECT,
+            )
         fwconfig_import_object.import_state.api_call.call.assert_called_once()
-        mock_logger.assert_called_once()
-        assert str(mock_logger.call_args[0][0]).startswith(
-            "fwo_api:importNwObject - error in removeOutdatedObjgrpMemberships: Some unexpected error occurred"
+        assert str(raised.value).startswith(
+            "failed to remove outdated group memberships for Type.NETWORK_OBJECT: Traceback"
         )
 
     def test_remove_outdated_memberships_group_removed(
@@ -1322,7 +1295,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
                 "data": {
-                    "update_objgrp": {"affected_rows": 1},
+                    "update_firewall_nw_object_group": {"affected_rows": 1},
                     "update_objgrp_flat": {"affected_rows": 1},
                 }
             }
@@ -1379,7 +1352,7 @@ class TestFwConfigImportObjectRemoveOutdatedMemberships:
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
                 "data": {
-                    "update_objgrp": {"affected_rows": 2},
+                    "update_firewall_nw_object_group": {"affected_rows": 2},
                     "update_objgrp_flat": {"affected_rows": 2},
                 }
             }
@@ -1929,13 +1902,11 @@ class TestFwConfigImportObjectPrepareNewZones:
             {
                 "mgm_id": 1,
                 "zone_create": 5,
-                "zone_last_seen": 5,
                 "zone_name": "zone1",
             },
             {
                 "mgm_id": 1,
                 "zone_create": 5,
-                "zone_last_seen": 5,
                 "zone_name": "zone2",
             },
         ]
@@ -1977,7 +1948,6 @@ class TestFwConfigImportObjectPrepareNewUserobjs:
             {
                 "mgm_id": 1,
                 "user_create": 5,
-                "user_last_seen": 5,
                 "user_name": f"user-{new_user_uids[0]}",
                 "user_uid": new_user_uids[0],
                 "usr_typ_id": 2,
@@ -1985,7 +1955,6 @@ class TestFwConfigImportObjectPrepareNewUserobjs:
             {
                 "mgm_id": 1,
                 "user_create": 5,
-                "user_last_seen": 5,
                 "user_name": f"user-{new_user_uids[1]}",
                 "user_uid": new_user_uids[1],
                 "usr_typ_id": 2,
@@ -2223,14 +2192,14 @@ class TestFwConfigImportObjectUpdateObjectsViaApi:
         fwconfig_import_object.import_state.api_call.call = mocker.Mock(
             return_value={
                 "data": {
-                    "insert_object": {"affected_rows": 1, "returning": [{"id": 1}]},
-                    "insert_service": {"affected_rows": 1, "returning": [{"id": 2}]},
-                    "insert_usr": {"affected_rows": 1, "returning": [{"id": 3}]},
-                    "insert_zone": {"affected_rows": 1, "returning": [{"id": 4}]},
-                    "update_object": {"affected_rows": 1, "returning": [{"id": 5}]},
-                    "update_service": {"affected_rows": 1, "returning": [{"id": 6}]},
-                    "update_usr": {"affected_rows": 1, "returning": [{"id": 7}]},
-                    "update_zone": {"affected_rows": 1, "returning": [{"id": 8}]},
+                    "insert_firewall_nw_object": {"affected_rows": 1, "returning": [{"id": 1}]},
+                    "insert_firewall_nw_service": {"affected_rows": 1, "returning": [{"id": 2}]},
+                    "insert_firewall_nw_user": {"affected_rows": 1, "returning": [{"id": 3}]},
+                    "insert_firewall_zone": {"affected_rows": 1, "returning": [{"id": 4}]},
+                    "update_firewall_nw_object": {"affected_rows": 1, "returning": [{"id": 5}]},
+                    "update_firewall_nw_service": {"affected_rows": 1, "returning": [{"id": 6}]},
+                    "update_firewall_nw_user": {"affected_rows": 1, "returning": [{"id": 7}]},
+                    "update_firewall_zone": {"affected_rows": 1, "returning": [{"id": 8}]},
                 }
             }
         )
@@ -2334,6 +2303,7 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
         fwconfig_import_object.remove_outdated_memberships = mocker.Mock()
         fwconfig_import_object.add_group_memberships = mocker.Mock()
         fwconfig_import_object.add_changelog_objs = mocker.Mock()
+        fwconfig_import_object.update_time_objs_via_api = mocker.Mock()
 
         fwconfig_import_object.update_objects_via_api = mocker.Mock(
             return_value=(
@@ -2390,6 +2360,11 @@ class TestFwConfigImportObjectUpdateObjectDiffs:
 
         assert fwconfig_import_object.remove_outdated_memberships.call_count == 3
         assert fwconfig_import_object.add_group_memberships.call_count == 3
+        fwconfig_import_object.update_time_objs_via_api.assert_called_once_with(
+            prev_config.time_objects,
+            curr_config.time_objects,
+            is_global=fw_config_manager.is_super_manager,
+        )
 
         fwconfig_import_object.add_changelog_objs.assert_called_once_with(
             [{"obj_id": 2}],

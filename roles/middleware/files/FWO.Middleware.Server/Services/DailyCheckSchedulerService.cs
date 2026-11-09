@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -16,8 +17,10 @@ namespace FWO.Middleware.Server.Services
         private readonly ISchedulerFactory schedulerFactory;
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
+        private readonly TimeProvider timeProvider;
         private GraphQlApiSubscription<List<ConfigItem>>? configSubscription;
         private IScheduler? scheduler;
+        private ScheduleFingerprint? lastAppliedSchedule;
         private bool disposed = false;
 
         private const string JobKeyName = "DailyCheckJob";
@@ -31,11 +34,13 @@ namespace FWO.Middleware.Server.Services
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="globalConfig">Global configuration.</param>
         /// <param name="appLifetime">Application lifetime for startup hook.</param>
-        public DailyCheckSchedulerService(ISchedulerFactory schedulerFactory, ApiConnection apiConnection, GlobalConfig globalConfig, IHostApplicationLifetime appLifetime)
+        /// <param name="timeProvider">Clock used for schedule calculations.</param>
+        public DailyCheckSchedulerService(ISchedulerFactory schedulerFactory, ApiConnection apiConnection, GlobalConfig globalConfig, IHostApplicationLifetime appLifetime, TimeProvider? timeProvider = null)
         {
             this.schedulerFactory = schedulerFactory;
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
+            this.timeProvider = timeProvider ?? TimeProvider.System;
 
             // Attach after application started
             appLifetime.ApplicationStarted.Register(OnStarted);
@@ -46,7 +51,7 @@ namespace FWO.Middleware.Server.Services
             try
             {
                 scheduler = await schedulerFactory.GetScheduler();
-                configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(ApiExceptionHandler, OnGlobalConfigChange, ConfigQueries.subscribeDailyCheckConfigChanges);
+                configSubscription = apiConnection.GetSubscription<List<ConfigItem>>(GraphqlExceptionHandler.Handle, OnGlobalConfigChange, ConfigQueries.subscribeDailyCheckConfigChanges);
                 Log.WriteInfo(SchedulerName, "Listener started");
             }
             catch (Exception ex)
@@ -60,13 +65,26 @@ namespace FWO.Middleware.Server.Services
             try
             {
                 globalConfig.SubscriptionUpdateHandler([.. config]);
+                ScheduleFingerprint scheduleKey = GetScheduleFingerprint();
+                if (scheduleKey == lastAppliedSchedule)
+                {
+                    Log.WriteDebug(SchedulerName, "Config emission with unchanged schedule - skipping reschedule.");
+                    return;
+                }
+
                 await ScheduleJob();
+                lastAppliedSchedule = scheduleKey;
                 Log.WriteInfo(SchedulerName, "Job rescheduled due to config change");
             }
             catch (Exception ex)
             {
                 Log.WriteError(SchedulerName, "Failed to reschedule job", ex);
             }
+        }
+
+        private ScheduleFingerprint GetScheduleFingerprint()
+        {
+            return new ScheduleFingerprint(globalConfig.DailyCheckStartAt, TimeSpan.FromDays(1));
         }
 
         private async Task ScheduleJob()
@@ -80,7 +98,7 @@ namespace FWO.Middleware.Server.Services
             var jobKey = new JobKey(JobKeyName);
             var triggerKey = new TriggerKey(TriggerKeyName);
 
-            if (await scheduler.CheckExists(jobKey))
+            if (await scheduler.Exists(jobKey))
             {
                 await scheduler.DeleteJob(jobKey);
                 Log.WriteInfo(SchedulerName, "Removed existing job");
@@ -105,20 +123,15 @@ namespace FWO.Middleware.Server.Services
             Log.WriteInfo(SchedulerName, $"Job scheduled. Start: {startTime:yyyy-MM-dd HH:mm:ss}, Interval: 1d");
         }
 
-        private static DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval)
+        private DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval)
         {
             DateTime startTime = configuredStartTime;
-            DateTime now = DateTime.Now;
+            DateTime now = timeProvider.GetUtcNow().LocalDateTime;
             while (startTime < now)
             {
                 startTime = startTime.Add(interval);
             }
             return new DateTimeOffset(startTime);
-        }
-
-        private static void ApiExceptionHandler(Exception exception)
-        {
-            Log.WriteError(SchedulerName, "Config subscription lead to exception. Retry subscription.", exception);
         }
 
         /// <summary>
@@ -141,5 +154,7 @@ namespace FWO.Middleware.Server.Services
                 }
             }
         }
+
+        private readonly record struct ScheduleFingerprint(DateTime StartAt, TimeSpan Interval);
     }
 }

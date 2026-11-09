@@ -35,6 +35,7 @@ Owner row import can be filtered via CLI parameters:
 - `--lifecycleState` (default: `Lifecycle State`): owner CSV header used to import `owner_lifecycle_state`.
 - `--criticalityColumnHeader` (optional): owner CSV header used to import `criticality`; if omitted, `criticality` is not included in JSON output.
 - `--criticalityRecertPeriodMapping` (optional): list of mappings `PREFIX:DAYS` (for example `1:360 2:360 3:180 4:180 5:180`). If `criticality` starts with `PREFIX`, `recert_period_days` is set to `DAYS`; otherwise default logic applies.
+  Changing this mapping updates the imported owner interval on the next app data import; it does not reset completed recertification history, but open future recertification entries use the updated interval after recalculation.
 - `--responsiblesColumns` (optional): grouped mapping `LEVEL:HEADER [HEADER ...]`, where each `HEADER` may be either an exact column name or a regex that may match zero or one CSV column. Example: `1:"^UserID$" "^UserID Vertreter$" 2:"^UserIDs Mitwirkende$" 3:"^UserID Leiter OE$"`. Imports `responsibles` into owner JSON using the configured levels and column order. Missing matches are ignored; ambiguous regexes are rejected.
 - `--add_users_by_pattern` (optional): grouped mapping `LEVEL:PATTERN [LEVEL:PATTERN ...]` used to append generated users to `responsibles` without overwriting existing entries. Example: `1:"ROLE_@@AppId@@" 2:"A_@@AppPrefix@@_@@AppId@@_FW_RULEMGT"`.
 - `--compositeIdFields` (optional): list of owner CSV headers used to build `app_id_external` as a composite key.
@@ -44,6 +45,85 @@ Owner row import can be filtered via CLI parameters:
 
 Example:
 `--filterColumn "Aktive Firewallregel" --includeValues "Ja" "Ausnahme" --filterColumn "Importieren" --includeValues "Ja"`
+
+## Generate test owner data
+
+`generate_owner_data.py` creates normalized owner JSON for local testing. Each generated owner has
+a unique `APP-` application ID and a unique server address, so the output can be used directly as
+input to `log_data_import/generate_log_data.py`.
+
+```bash
+python3 generate_owner_data.py 500 /path/to/app-data.json
+```
+
+The script refuses to replace an existing output file unless `--overwrite` is supplied.
+
+Use `--reverse-dns-resolvable` to take the server addresses from a built-in list of public resolver
+addresses with stable PTR records (for example `8.8.8.8`, `1.1.1.1`, `9.9.9.9`) instead of the
+private `10.0.0.0/8` test network. Log data generated from such owners shows source or destination
+names after the log data import. Every candidate is reverse-resolved on the generating host and
+only resolvable addresses are used, so the owner count is limited to the number of resolvable
+candidates (at most 32). The script fails without writing a file when fewer candidates resolve than
+owners are requested.
+
+```bash
+python3 generate_owner_data.py 10 /path/to/app-data.json --reverse-dns-resolvable
+```
+
+`--no-reverse-dns-resolvable` explicitly selects the default private test network.
+
+## Generate test area IP data
+
+`../area_ip_data_import/generate_area_ip_data.py` creates area IP data JSON in the format imported by
+the area IP data import (ImportIpDataJob). It reads an app-data JSON file and distributes its app
+servers over `--area-count` areas (default 3) named `Generated Area 1`, `Generated Area 2`, ... with
+the id strings `NA01`, `NA02`, ... Consecutive servers share an area, and every server becomes a subnet
+named after the server. A server range which is not a single network is split into several subnets.
+
+```bash
+python3 ../area_ip_data_import/generate_area_ip_data.py /path/to/app-data.json /path/to/area-ip-data.json --area-count 5
+```
+
+To import the file, enter its path without the `.json` extension in Settings - Further Settings -
+Modelling - "Path and Name of Subnet data import". The import replaces the complete area data:
+areas which exist in FWORCH but not in the imported files are deleted. The script refuses to replace
+an existing output file unless `--overwrite` is supplied.
+
+## Generate matching app, log and area IP data
+
+`../generate_app_and_log_data.py` generates normalized app-data JSON, compatible log-data JSON and
+area IP data JSON in one command. By default it creates one log flow per generated application; every
+log `app_id` and `destination` matches that application's `app_id_external` and server IP in the
+app-data output. The area IP data covers the generated app servers as described above; use
+`--area-count` to choose the number of areas.
+
+```bash
+python3 ../generate_app_and_log_data.py 20 /path/to/app-data.json /path/to/log-data.json /path/to/area-ip-data.json
+```
+
+Unlike `generate_owner_data.py`, this script uses reverse DNS resolvable server addresses by default
+(see `--reverse-dns-resolvable` above), so the imported log data shows destination names. This
+limits the number of applications to the resolvable candidates (at most 32). Use
+`--no-reverse-dns-resolvable` to generate more applications with addresses of the private test
+network instead:
+
+```bash
+python3 ../generate_app_and_log_data.py 500 /path/to/app-data.json /path/to/log-data.json /path/to/area-ip-data.json --no-reverse-dns-resolvable
+```
+
+Use `--log-count` to create a different number of flows. Additional flows are assigned round-robin
+across the generated applications. The script refuses to overwrite any of the output files unless
+`--overwrite` is supplied.
+
+Use `--log-format csv` to write the log data as CSV instead:
+
+```bash
+python3 ../generate_app_and_log_data.py 20 /path/to/app-data.json /path/to/log-data.csv /path/to/area-ip-data.json --log-format csv
+```
+
+The default JSON output has a `logs` array. Each entry contains the matching `app_id` and
+`destination`, plus `log_count`, `source`, `protocol`, `port`, and `action` fields accepted by the
+log-data importer.
 
 #### Settings via UI
 
@@ -73,6 +153,7 @@ Adjust the settings in the config file /etc/fworch/secrets/customizingConfig.jso
 - username should be an admin user for Tufin RLM
 - under ldapPath enter your standard LDAP path and make sure the user id parameter [USERID] is at the right place
 - finally enter the path to your Tufin installation, e.g. https://tufin.cactus.de/ without any path informatin just ending with a "/"
+- checkCertificates validates the TLS certificate of the RLM API against the host trust store; add the issuing CA there if RLM uses a self-signed or internal certificate. A config file without this key keeps the previous unchecked behaviour and logs a warning on every run
 - for the Subnet Data import enter the path to the .csv-File
 
 ```json
@@ -81,6 +162,7 @@ Adjust the settings in the config file /etc/fworch/secrets/customizingConfig.jso
     "password": "pwd1",
     "ldapPath": "CN={USERID},OU=Benutzer,DC=CACTUS,DC=DE",
     "apiBaseUri": "https://tufin.cactus.de/",
+    "checkCertificates": true,
     "subnetData": "/usr/local/fworch/scripts/customizing/modelling/NwObjDataOrigExample.csv"
 }
 ```

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # library for all FWORCH API calls in importer module
 import datetime
 import json
@@ -9,12 +11,12 @@ import fwo_const
 from fwo_api import FwoApi
 from fwo_exceptions import FwoApiFailedLockImportError
 from fwo_log import FWOLogger
-from model_controllers.management_controller import ManagementController
-from models.fwconfig_normalized import FwConfigNormalized
 from query_analyzer import QueryAnalyzer
 
 if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
+    from model_controllers.management_controller import ManagementController
+    from models.fwconfig_normalized import FwConfigNormalized
     from models.import_state import ImportState
 
 # NOTE: we cannot import ImportState(Controller) here due to circular refs
@@ -154,7 +156,7 @@ class FwoApiCall:
             changes_in_import = 0
         return changes_in_import
 
-    def unlock_import(self, import_state: "ImportState", success: bool):
+    def unlock_import(self, import_state: ImportState, success: bool):
         import_id = import_state.import_id
         mgm_id = import_state.mgm_details.mgm_id
         import_stats = import_state.stats
@@ -166,7 +168,7 @@ class FwoApiCall:
                 "success": success,
                 "changesFound": import_stats.get_total_change_number() > 0,
                 "policyChangesFound": import_stats.get_rule_change_number() > 0,
-                "changeNumber": import_stats.get_rule_change_number(),
+                "changeNumber": import_stats.get_security_relevant_rule_change_number(),
             }
 
             unlock_mutation = FwoApi.get_graphql_code(
@@ -183,7 +185,7 @@ class FwoApiCall:
     #   currently temporarily only working with single chunk
     def import_json_config(
         self,
-        import_state: "ImportState",
+        import_state: ImportState,
         config: FwConfigNormalized,
         start_import: bool,
     ):
@@ -222,7 +224,7 @@ class FwoApiCall:
             FWOLogger.exception("failed to delete config without changes")
 
     def get_error_string_from_imp_control(
-        self, _: "ImportStateController", query_variables: dict[str, Any]
+        self, _: ImportStateController, query_variables: dict[str, Any]
     ) -> list[dict[str, Any]]:  # TYPING: confirm return type
         error_query = (
             "query getErrors($importId:bigint) { import_control(where:{control_id:{_eq:$importId}}) { import_errors } }"
@@ -286,10 +288,6 @@ class FwoApiCall:
         mgm_details: ManagementController | None = None,
     ):
         add_alert_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "monitor/addAlert.graphql"])
-        get_alert_query = FwoApi.get_graphql_code(
-            [fwo_const.GRAPHQL_QUERY_PATH + "monitor/getAlertByManagement.graphql"]
-        )
-        ack_alert_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "monitor/updateAlert.graphql"])
 
         query_variables = {"source": source}
 
@@ -323,27 +321,38 @@ class FwoApiCall:
                 return
 
             # Acknowledge older alert for same problem on same management
-            query_variables: dict[str, Any] = {
-                "mgmId": mgm_id,
-                "alertCode": alert_code,
-                "currentAlertId": new_alert_id,
-            }
-            existing_unacknowledged_alerts = self.api.call(get_alert_query, query_variables=query_variables)
-            if "data" not in existing_unacknowledged_alerts or "alert" not in existing_unacknowledged_alerts["data"]:
-                return
-
-            for alert in existing_unacknowledged_alerts["data"]["alert"]:
-                if "alert_id" in alert:
-                    now = datetime.datetime.now().isoformat()
-                    query_variables = {
-                        "userId": 0,
-                        "alertId": alert["alert_id"],
-                        "ackTimeStamp": now,
-                    }
-                    _ = self.api.call(ack_alert_mutation, query_variables=query_variables)
+            self.acknowledge_open_alerts(mgm_id, alert_code, keep_alert_id=new_alert_id)
         except Exception as e:
             FWOLogger.error(f"failed to create alert entry: {json.dumps(query_variables)}; exception: {e!s}")
             raise
+
+    def acknowledge_open_alerts(self, mgm_id: int, alert_code: int, keep_alert_id: int = 0) -> None:
+        """
+        Acknowledge the open alerts of a management with the given code, e.g. once their cause is gone.
+
+        Args:
+            mgm_id: Management the alerts belong to.
+            alert_code: Code of the alerts to acknowledge.
+            keep_alert_id: Alert that stays open, e.g. the one just created; 0 acknowledges all.
+
+        """
+        get_alert_query = FwoApi.get_graphql_code(
+            [fwo_const.GRAPHQL_QUERY_PATH + "monitor/getAlertByManagement.graphql"]
+        )
+        ack_alert_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "monitor/updateAlert.graphql"])
+        query_variables: dict[str, Any] = {"mgmId": mgm_id, "alertCode": alert_code, "currentAlertId": keep_alert_id}
+        open_alerts = self.api.call(get_alert_query, query_variables=query_variables)
+        if "data" not in open_alerts or "alert" not in open_alerts["data"]:
+            return
+
+        for alert in open_alerts["data"]["alert"]:
+            if "alert_id" in alert:
+                ack_variables: dict[str, Any] = {
+                    "userId": 0,
+                    "alertId": alert["alert_id"],
+                    "ackTimeStamp": datetime.datetime.now().isoformat(),
+                }
+                _ = self.api.call(ack_alert_mutation, query_variables=ack_variables)
 
     def _set_alert_build_query_vars(
         self,
@@ -371,7 +380,7 @@ class FwoApiCall:
         if alert_code is not None:
             query_variables.update({"alertCode": alert_code})
 
-    def complete_import(self, import_state: "ImportState", exception: BaseException | None = None):
+    def complete_import(self, import_state: ImportState, exception: BaseException | None = None):
         if not import_state.responsible_for_importing:
             return
 
@@ -401,13 +410,15 @@ class FwoApiCall:
             + str(import_state.stats.get_total_change_number())
             + ", rule change count: "
             + str(import_state.stats.get_rule_change_number())
+            + ", security-relevant rule change count: "
+            + str(import_state.stats.get_security_relevant_rule_change_number())
             + ", duration: "
             + str(int(time.time()) - import_state.start_time)
             + "s"
         )
         import_result += ", ERRORS: " + exception_message if exception_message is not None else ""
 
-        if import_state.stats.get_change_details() != {} and FWOLogger.is_debug_level(4) and exception is None:
+        if import_state.stats.get_change_details() != {} and exception is None:
             import_result += ", change details: " + str(import_state.stats.get_change_details())
 
         if exception is not None:

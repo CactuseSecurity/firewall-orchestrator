@@ -13,7 +13,7 @@
       register: lib_dir_check
 
     - name: backup lib dir
-      synchronize:
+      ansible.posix.synchronize:
         src: "{{ fworch_home }}/lib"
         dest: "{{ fworch_home }}/backup_lib"
       delegate_to: "{{ inventory_hostname }}"
@@ -26,6 +26,14 @@
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
 
+    - name: create the runtime directory for dotnet commands run as {{ fworch_user }}
+      file:
+        path: "{{ dotnet_xdg_runtime_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0700"
+
     - name: install dotnet needed for both ui and middleware servers
       include_tasks: install_dot_net.yml
 
@@ -37,7 +45,7 @@
       include_tasks: install_puppeteer.yml
 
     - name: copy {{ product_name }} dotnet lib files to lib target
-      synchronize:
+      ansible.posix.synchronize:
         src: "./"
         dest: "{{ lib_dir }}"
         rsync_opts:

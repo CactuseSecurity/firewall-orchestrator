@@ -5,7 +5,15 @@ namespace FWO.Report.Filter
 {
     public class Parser
     {
+        /// <summary>
+        /// Maximum number of brackets and negations that may enclose a filter term. Each level costs stack
+        /// frames while parsing and extracting, and a stack overflow cannot be caught, so deeper filters are
+        /// rejected with a syntax error.
+        /// </summary>
+        public const int kMaxNestingDepth = 100;
+
         int position;
+        int nestingDepth;
         readonly List<Token> tokens;
 
         public Parser(List<Token> tokens)
@@ -106,7 +114,9 @@ namespace FWO.Report.Filter
             if (GetNextToken().Kind == TokenKind.Not)
             {
                 rootNode.Operator = CheckToken(TokenKind.Not);
+                EnterNesting(rootNode.Operator);
                 rootNode.Value = ParseNot();
+                LeaveNesting();
                 return rootNode;
             }
 
@@ -124,11 +134,34 @@ namespace FWO.Report.Filter
 
         private AstNode ParseBracket()
         {
-            CheckToken(TokenKind.BL);
+            Token openingBracket = CheckToken(TokenKind.BL);
+            EnterNesting(openingBracket);
             AstNode rootNode = ParseOr();
             CheckToken(TokenKind.BR);
+            LeaveNesting();
 
             return rootNode;
+        }
+
+        /// <summary>
+        /// Opens one nesting level for a bracket or negation and rejects the filter when it gets too deep.
+        /// </summary>
+        /// <param name="nestingToken">The bracket or negation token that opens the level.</param>
+        private void EnterNesting(Token nestingToken)
+        {
+            nestingDepth++;
+            if (nestingDepth > kMaxNestingDepth)
+            {
+                throw new SyntaxException($"Filter is nested too deeply. At most {kMaxNestingDepth} brackets and negations may enclose a term.", nestingToken.Position);
+            }
+        }
+
+        /// <summary>
+        /// Closes the nesting level opened by the last call of <see cref="EnterNesting"/>.
+        /// </summary>
+        private void LeaveNesting()
+        {
+            nestingDepth--;
         }
 
         private AstNode ParseFilter()
@@ -138,7 +171,7 @@ namespace FWO.Report.Filter
             Token Value = CheckToken(TokenKind.Value);
             return Name.Kind switch
             {
-                TokenKind.Value or TokenKind.Service or TokenKind.Action or TokenKind.Management or TokenKind.Gateway or TokenKind.FullText or TokenKind.Protocol
+                TokenKind.Value or TokenKind.Service or TokenKind.Action or TokenKind.Management or TokenKind.Gateway or TokenKind.FullText or TokenKind.Protocol or TokenKind.Criticality or TokenKind.OwnerState
                 => new AstNodeFilterString() { Name = Name, Operator = Operator, Value = Value },
 
                 TokenKind.Disabled or TokenKind.SourceNegated or TokenKind.DestinationNegated or TokenKind.ServiceNegated or TokenKind.Remove
@@ -150,10 +183,13 @@ namespace FWO.Report.Filter
                 TokenKind.ReportType
                 => new AstNodeFilterReportType() { Name = Name, Operator = Operator, Value = Value },
 
+                TokenKind.TaskType or TokenKind.Phase or TokenKind.States or TokenKind.ReferenceDate
+                => new AstNodeFilterWorkflow() { Name = Name, Operator = Operator, Value = Value },
+
                 TokenKind.DestinationPort or TokenKind.RecertDisplay or TokenKind.Unused
                 => new AstNodeFilterInt() { Name = Name, Operator = Operator, Value = Value },
 
-                TokenKind.Source or TokenKind.Destination
+                TokenKind.Source or TokenKind.Destination or TokenKind.SourceType or TokenKind.DestinationType
                 => new AstNodeFilterNetwork() { Name = Name, Operator = Operator, Value = Value },
 
                 _ => throw new NotSupportedException($"No type found for filter with token kind: {Name.Kind}"),
@@ -168,9 +204,11 @@ namespace FWO.Report.Filter
         private Token ParseFilterName()
         {
             return CheckToken(
-                TokenKind.LastHit, TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Protocol,
+                TokenKind.LastHit, TokenKind.Destination, TokenKind.Source, TokenKind.DestinationType, TokenKind.SourceType, TokenKind.Service, TokenKind.Protocol,
                 TokenKind.DestinationPort, TokenKind.Action, TokenKind.FullText, TokenKind.Gateway,
-                TokenKind.Management, TokenKind.Remove, TokenKind.RecertDisplay, TokenKind.Disabled, TokenKind.Unused);
+                TokenKind.Management, TokenKind.Remove, TokenKind.RecertDisplay, TokenKind.Disabled, TokenKind.Unused,
+                TokenKind.ReportType, TokenKind.TaskType, TokenKind.Phase, TokenKind.States, TokenKind.OwnerState,
+                TokenKind.Criticality, TokenKind.ReferenceDate);
         }
 
         private Token CheckToken(params TokenKind[] expectedTokenKinds)

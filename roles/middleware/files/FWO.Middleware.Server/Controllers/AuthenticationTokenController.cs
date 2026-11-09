@@ -1,13 +1,20 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Logging;
+using FWO.Middleware.Server.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
 using System.Data;
+using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Authentication;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -21,21 +28,235 @@ namespace FWO.Middleware.Server.Controllers
         private readonly JwtWriter jwtWriter;
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
+        private readonly TokenLifetimeProvider tokenLifetimeProvider;
+        private readonly LoginThrottle loginThrottle;
+
+        // Longer than a healthy refresh ever takes, short enough that a caller stuck behind
+        // a hanging one gets an answer before its own HTTP timeout.
+        private static readonly TimeSpan kRefreshLockTimeout = TimeSpan.FromSeconds(30);
+
+        private const string kRefreshLogCategory = "Token Refresh";
+        private const string kRevokeLogCategory = "Token Revoke";
+        private const string kSessionCheckLogCategory = "Session Check";
+        private static readonly string[] kRefreshTokenErrors = [SessionCheckParameters.kRefreshTokenDescription];
+        private const string kLoginLogCategory = "User Authentication";
+        private const string kTokenGenerationLogCategory = "Token Generation";
+
+        private enum RefreshTokenConsumptionState
+        {
+            NotAttempted,
+            MayBeConsumed,
+            Consumed
+        }
 
         /// <summary>
-        /// Constructor needing jwt writer, ldap list and connection
+        /// Constructor needing jwt writer, ldap list, connection and the login throttle
         /// </summary>
-        public AuthenticationTokenController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection)
+        public AuthenticationTokenController(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection, TokenLifetimeProvider tokenLifetimeProvider, LoginThrottle loginThrottle)
         {
             this.jwtWriter = jwtWriter;
             this.ldaps = ldaps;
             this.apiConnection = apiConnection;
+            this.tokenLifetimeProvider = tokenLifetimeProvider;
+            this.loginThrottle = loginThrottle;
+        }
+
+        private CancellationToken RequestAborted => HttpContext?.RequestAborted ?? default;
+
+        private IPAddress? ClientAddress => HttpContext?.Connection.RemoteIpAddress;
+
+        /// <summary>
+        /// Admits a login attempt to the directories, unless the client or the user name exceeded its login limit.
+        /// </summary>
+        /// <param name="userName">Login name of the attempt; null for anonymous requests, which are never limited.</param>
+        /// <returns>The attempt, to be disposed when it ends, or null if it has to be answered with 429 (see ThrottledResult).</returns>
+        private LoginAttempt? BeginAttempt(string? userName)
+        {
+            LoginAttempt? attempt = loginThrottle.BeginAttempt(userName, ClientAddress);
+            if (attempt == null)
+            {
+                Log.WriteWarning(kLoginLogCategory, $"Login attempt for user \"{userName}\" from {ClientAddress} refused: login limit exceeded.");
+            }
+            return attempt;
+        }
+
+        /// <summary>
+        /// Answers a login refused by the login limits before any LDAP work.
+        /// </summary>
+        private ObjectResult ThrottledResult()
+        {
+            return CapacityResult(new LoginCapacityException(LoginCapacityException.kTooManyAttempts, StatusCodes.Status429TooManyRequests));
+        }
+
+        /// <summary>
+        /// Answers a refused login with its status code, telling the client when to retry.
+        /// </summary>
+        private ObjectResult CapacityResult(LoginCapacityException exception)
+        {
+            if (HttpContext != null)
+            {
+                HttpContext.Response.Headers.RetryAfter = LoginThrottle.kRetryAfterSeconds.ToString();
+            }
+            return StatusCode(exception.StatusCode, exception.Message);
+        }
+
+        /// <summary>
+        /// Answers a login that failed because the API could not be reached. Same reasoning as for refresh:
+        /// an unreachable API is not a malformed request, and the transport error belongs in the log, not in
+        /// the response body, where it would expose the internal API endpoint.
+        /// </summary>
+        /// <param name="exception">Exception that indicates the unreachable API.</param>
+        /// <returns>A retryable 503 without transport details.</returns>
+        private ObjectResult ApiUnreachableLoginResult(Exception exception)
+        {
+            Log.WriteError(kTokenGenerationLogCategory, "Could not reach the API while logging in", exception);
+
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                "The API could not be reached while logging in. Please retry.");
+        }
+
+        /// <summary>
+        /// Authenticates a user by password and counts invalid credentials against the user's failure limit.
+        /// </summary>
+        private async Task<UiUser?> AuthenticateWithPasswordAsync(AuthManager authManager, UiUser? user, LoginAttempt attempt)
+        {
+            try
+            {
+                return await authManager.AuthenticateAndBuildUserAsync(user, validatePassword: true, cancellationToken: RequestAborted);
+            }
+            catch (AuthenticationException)
+            {
+                attempt.RecordFailure();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Generates a new access and refresh token pair for a user based on the provided authentication parameters.
+        /// </summary>
+        /// <remarks>This endpoint is typically used during user login to obtain tokens for subsequent
+        /// authenticated requests. The refresh token is stored in the database as a hash for security purposes. Ensure
+        /// that the credentials provided are valid to receive a token pair.</remarks>
+        /// <param name="parameters">The authentication parameters containing the user's credentials. Must include a valid username and password.
+        /// Cannot be null.</param>
+        /// <returns>An <see cref="ActionResult{TokenPair}"/> containing the generated access and refresh tokens if
+        /// authentication is successful; otherwise, a bad request result with an error message.</returns>
+        [HttpPost("GetTokenPair")]
+        public async Task<ActionResult<TokenPair>> GetTokenPair([FromBody] AuthenticationTokenGetParameters parameters)
+        {
+            try
+            {
+                UiUser? user = null;
+
+                if (parameters != null)
+                {
+                    string? username = parameters.Username;
+                    string? password = parameters.Password;
+
+                    if (username != null && password != null)
+                        user = new UiUser { Name = username, Password = password };
+                }
+
+                using LoginAttempt? attempt = BeginAttempt(user?.Name);
+                if (attempt == null)
+                {
+                    return ThrottledResult();
+                }
+
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
+
+                UiUser? authenticatedUser = await AuthenticateWithPasswordAsync(authManager, user, attempt);
+
+                // Creates access and refresh token and stores the refresh token hash in DB
+                TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedUser);
+                WriteTokenPairAudit("IssueTokenPair", tokenPair, authenticatedUser, authenticatedUser == null
+                    ? "Issued anonymous bootstrap token pair."
+                    : "Issued token pair after successful authentication.");
+
+                return Ok(tokenPair);
+            }
+            catch (LoginCapacityException ex)
+            {
+                return CapacityResult(ex);
+            }
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
+            {
+                return ApiUnreachableLoginResult(exception);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(kTokenGenerationLogCategory, "Error generating token pair", ex);
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Generates a new access and refresh token pair for a specified user, using administrator credentials for authorization.
+        /// </summary>
+        /// <remarks>This endpoint is restricted to users with the admin role. The administrator's
+        /// credentials are validated before generating a token pair for the target user. The target user's password is
+        /// not required for this operation. Supply options.targetLdapId when more than one LDAP
+        /// connection contains the target; an ambiguous target is rejected.</remarks>
+        /// <param name="parameters">The parameters containing administrator credentials and the target user's information. Must include valid
+        /// admin username and password, as well as the target user's name or distinguished name.</param>
+        /// <returns>An <see cref="ActionResult{TokenPair}"/> containing the generated token pair for the target user if the
+        /// operation succeeds; otherwise, a bad request result with an error message.</returns>
+        /// <exception cref="AuthenticationException">Thrown if the provided administrator credentials do not correspond to a user with the admin role.</exception>
+        [HttpPost("GetTokenPairForUser")]
+        public async Task<ActionResult<TokenPair>> GetTokenPairForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
+        {
+            try
+            {
+                using LoginAttempt? attempt = BeginAttempt(parameters.AdminUsername);
+                if (attempt == null)
+                {
+                    return ThrottledResult();
+                }
+
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
+                UiUser adminUser = new() { Name = parameters.AdminUsername, Password = parameters.AdminPassword };
+
+                UiUser authenticatedAdminUser = await AuthenticateWithPasswordAsync(authManager, adminUser, attempt)
+                    ?? throw new AuthenticationException("Provided admin credentials are invalid.");
+
+                if (!authenticatedAdminUser.Roles.Contains(Roles.Admin))
+                {
+                    throw new AuthenticationException("Provided credentials do not belong to a user with role admin.");
+                }
+
+                UiUser targetUser = AuthDirectoryBinding.BuildDelegatedTargetUser(parameters);
+
+                UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false, cancellationToken: RequestAborted)
+                    ?? throw new AuthenticationException("Provided target user credentials are invalid.");
+
+                // Delegated tokens are not refreshable: withholding the refresh token prevents an admin-issued
+                // short-lived delegated session from being rotated into a normal full-lifetime user session (#4654).
+                TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedTargetUser, issueRefreshToken: false);
+
+                WriteTokenPairAudit("IssueDelegatedTokenPair", tokenPair, authenticatedAdminUser, $"Issued delegated token pair for target user \"{authenticatedTargetUser.Name}\".");
+
+                return Ok(tokenPair);
+            }
+            catch (LoginCapacityException e)
+            {
+                return CapacityResult(e);
+            }
+            catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
+            {
+                return ApiUnreachableLoginResult(e);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
 
         /// <summary>
         /// Generates an authentication token (jwt) given valid credentials.  
         /// </summary>
         /// <remarks>
+        /// Deprecated: This endpoint will be dropped in the next major release. Use /api/AuthenticationToken/GetTokenPair instead.
+        ///
         /// Username (required)&#xA;
         /// Password (required)
         /// </remarks>
@@ -58,12 +279,33 @@ namespace FWO.Middleware.Server.Controllers
                         user = new UiUser { Name = username, Password = password };
                 }
 
-                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+                using LoginAttempt? attempt = BeginAttempt(user?.Name);
+                if (attempt == null)
+                {
+                    return ThrottledResult();
+                }
 
-                // Authenticate user
-                string jwt = await authManager.AuthorizeUserAsync(user, validatePassword: true);
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
+
+                UiUser? authenticatedUser = await AuthenticateWithPasswordAsync(authManager, user, attempt);
+
+                TimeSpan accessLifetime = authenticatedUser == null ? tokenLifetimeProvider.GetAnonymousTokenLifetime() : await tokenLifetimeProvider.GetUserAccessTokenLifetimeAsync(apiConnection);
+
+                string jwt = jwtWriter.CreateJWT(authenticatedUser, accessLifetime);
+
+                WriteJwtAudit("IssueAccessToken", jwt, authenticatedUser, authenticatedUser == null
+                    ? "Issued anonymous bootstrap access token."
+                    : "Issued access token after successful authentication.");
 
                 return Ok(jwt);
+            }
+            catch (LoginCapacityException e)
+            {
+                return CapacityResult(e);
+            }
+            catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
+            {
+                return ApiUnreachableLoginResult(e);
             }
             catch (Exception e)
             {
@@ -77,11 +319,11 @@ namespace FWO.Middleware.Server.Controllers
         /// <remarks>
         /// AdminUsername (required) - Example: "admin" &#xA;
         /// AdminPassword (required) - Example: "password" &#xA;
-        /// Lifetime (optional) - Example: "365.12:02:00" ("days.hours:minutes:seconds") &#xA;
         /// TargetUserDn OR TargetUserName (required) - Example: "uid=demo_user,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal" OR "demo_user" 
+        /// Options.TargetLdapId (optional) - positive LDAP connection ID; required when the target matches multiple directories.
         /// </remarks>
-        /// <param name="parameters">Admin Credentials, Lifetime, User</param>
-        /// <returns>User jwt, if credentials are vaild.</returns>
+        /// <param name="parameters">Admin credentials and target user identity.</param>
+        /// <returns>User jwt, if credentials are valid.</returns>
         [HttpPost("GetForUser")]
         public async Task<ActionResult<string>> GetAsyncForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
         {
@@ -89,340 +331,475 @@ namespace FWO.Middleware.Server.Controllers
             {
                 string adminUsername = parameters.AdminUsername;
                 string adminPassword = parameters.AdminPassword;
-                TimeSpan lifetime = parameters.Lifetime;
-                string targetUserName = parameters.TargetUserName;
-                string targetUserDn = parameters.TargetUserDn;
-
-                AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
+                using LoginAttempt? attempt = BeginAttempt(adminUsername);
+                if (attempt == null)
+                {
+                    return ThrottledResult();
+                }
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
                 UiUser adminUser = new() { Name = adminUsername, Password = adminPassword };
                 // Check if admin valids are valid
                 try
                 {
-                    await authManager.AuthorizeUserAsync(adminUser, validatePassword: true);
-                    if (!adminUser.Roles.Contains(Roles.Admin))
+                    UiUser authenticatedAdminUser = await AuthenticateWithPasswordAsync(authManager, adminUser, attempt)
+                        ?? throw new AuthenticationException("Provided admin credentials are invalid.");
+                    if (!authenticatedAdminUser.Roles.Contains(Roles.Admin))
                     {
                         throw new AuthenticationException("Provided credentials do not belong to a user with role admin.");
                     }
+                    adminUser = authenticatedAdminUser;
                 }
-                catch (Exception e)
+                // An unreachable API is no credential problem, so it must not be re-wrapped as one.
+                catch (Exception e) when (e is not LoginCapacityException && !ApiReachability.IndicatesUnreachableApi(e))
                 {
                     throw new AuthenticationException("Error while validating admin credentials: " + e.Message);
                 }
                 // Check if username is valid and generate jwt
                 try
                 {
-                    UiUser targetUser = new() { Name = targetUserName, Dn = targetUserDn };
-                    string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false, lifetime);
+                    UiUser targetUser = AuthDirectoryBinding.BuildDelegatedTargetUser(parameters);
+                    UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false, cancellationToken: RequestAborted)
+                        ?? throw new AuthenticationException("Provided target user credentials are invalid.");
+
+                    TimeSpan configuredLifetime = await tokenLifetimeProvider.GetUserAccessTokenLifetimeAsync(apiConnection);
+                    string jwt = jwtWriter.CreateJWT(authenticatedTargetUser, configuredLifetime);
+
+                    WriteJwtAudit("IssueDelegatedAccessToken", jwt, adminUser,
+                        $"Issued delegated access token for target user \"{authenticatedTargetUser.Name}\".");
+
                     return Ok(jwt);
                 }
-                catch (Exception e)
+                catch (Exception e) when (e is not LoginCapacityException && !ApiReachability.IndicatesUnreachableApi(e))
                 {
                     throw new AuthenticationException("Error while validating user credentials (user name): " + e.Message);
                 }
+            }
+            catch (LoginCapacityException e)
+            {
+                return CapacityResult(e);
+            }
+            catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
+            {
+                return ApiUnreachableLoginResult(e);
             }
             catch (Exception e)
             {
                 return BadRequest(e.Message);
             }
         }
-    }
 
-    class AuthManager
-    {
-        private readonly JwtWriter jwtWriter;
-        private readonly List<Ldap> ldaps;
-        private readonly ApiConnection apiConnection;
-        private readonly string UserAuthentication = "User Authentication";
-
-        public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection)
+        /// <summary>
+        /// Refreshes an access token using a valid refresh token.
+        /// </summary>
+        /// <param name="request">Refresh token request</param>
+        /// <returns>New token pair if refresh token is valid</returns>
+        [HttpPost("Refresh")]
+        public async Task<ActionResult<TokenPair>> RefreshToken([FromBody] RefreshTokenRequest request)
         {
-            this.jwtWriter = jwtWriter;
-            this.ldaps = ldaps;
-            this.apiConnection = apiConnection;
+            CancellationToken requestAborted = RequestAborted;
+            try
+            {
+                if (string.IsNullOrEmpty(request.RefreshToken))
+                {
+                    return BadRequest("Refresh token is required");
+                }
+
+                using IDisposable? refreshTokenLock = await RefreshTokenLockRegistry.TryAcquireAsync(
+                    AuthManager.GenerateTokenHash(request.RefreshToken), kRefreshLockTimeout, requestAborted);
+                if (refreshTokenLock == null)
+                {
+                    // Another request with this token has been running for too long, or too many
+                    // requests use the lock already; this one has not touched the token, so a retry is safe.
+                    Log.WriteWarning(kRefreshLogCategory, $"Could not take the lock of the refresh token within {kRefreshLockTimeout.TotalSeconds} s " +
+                        "or too many concurrent refreshes are pending.");
+                    if (HttpContext != null)
+                    {
+                        HttpContext.Response.Headers.RetryAfter = LoginThrottle.kRetryAfterSeconds.ToString();
+                    }
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                        "Another refresh with this token is still in progress. Please retry.");
+                }
+
+                return await RefreshTokenCore(request.RefreshToken);
+            }
+            catch (OperationCanceledException) when (requestAborted.IsCancellationRequested)
+            {
+                // The caller disconnected while waiting; nobody is left to read an answer.
+                return StatusCode(StatusCodes.Status499ClientClosedRequest);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(kRefreshLogCategory, "Failed to refresh token", ex);
+                return BadRequest("The refresh could not be completed.");
+            }
         }
 
         /// <summary>
-        /// Validates user credentials and retrieves user information. Returns a jwt containing it.
+        /// Validates the refresh token, rebuilds its user and rotates the token pair.
+        /// Must only run while the caller holds the lock of this token.
         /// </summary>
-        /// <param name="user">User to validate. Must contain username / dn and password if <paramref name="validatePassword"/> == true.</param>
-        /// <param name="validatePassword">Check password if true.</param>
-        /// <param name="lifetime">Set the lifetime of the jwt (optional)</param>
-        /// <returns>Jwt, User infos (dn, email, groups, roles, tenant), if credentials are valid.</returns>
-        public async Task<string> AuthorizeUserAsync(UiUser? user, bool validatePassword, TimeSpan? lifetime = null)
+        /// <param name="refreshToken">Raw refresh token supplied by the caller.</param>
+        /// <returns>
+        /// The new token pair, 401 if the token is invalid or already consumed, or 503 if
+        /// the API could not be reached before the token was consumed.
+        /// </returns>
+        private async Task<ActionResult<TokenPair>> RefreshTokenCore(string refreshToken)
         {
-            // Case: anonymous user
-            if (user == null)
-                return await jwtWriter.CreateJWT();
+            // Track the consuming call separately from confirmed consumption because a
+            // connection failure during the mutation cannot reveal whether it committed.
+            RefreshTokenConsumptionState consumptionState = RefreshTokenConsumptionState.NotAttempted;
 
-            // Retrieve ldap entry for user (throws exception if credentials are invalid)
-            (LdapEntry ldapUser, Ldap ldap) = await AuthenticateInAnyLdap(user, validatePassword);
+            // Captured as soon as the user is known so that the audit trail can name whose
+            // session ended even when the failure happens later, outside the scope the user
+            // is declared in.
+            string auditIdentity = "";
 
-            // Get dn of user
-            user.Dn = ldapUser.Dn;
-            Log.WriteInfo(UserAuthentication,
-                $"User {user.Name} authenticated with dn={user.Dn}, selected_ldap=({AuthLoggingHelper.FormatSelectedLdap(ldap)})");
-
-            // Get email of user
-            user.Email = Ldap.GetEmail(ldapUser);
-            user.Firstname = Ldap.GetFirstName(ldapUser);
-            user.Lastname = Ldap.GetLastName(ldapUser);
-
-            // Get groups of user
-            user.Groups = await GetGroups(ldapUser, ldap);
-            Log.WriteInfo(UserAuthentication,
-                $"Resolved groups for user dn={user.Dn}: {AuthLoggingHelper.FormatResolvedGroups(user.Groups)}");
-
-            // Get roles of user
-            user.Roles = await GetRoles(user);
-
-            // Get tenant of user
-            user.Tenant = await GetTenantAsync(ldapUser, ldap);
-            Log.WriteDebug("Get Tenants", $"Found tenant for user: {user.Tenant?.Name ?? ""}");
-
-            // Remember the hosting ldap
-            user.LdapConnection.Id = ldap.Id;
-
-            // Create JWT for validated user with roles and tenant
-            return await jwtWriter.CreateJWT(user, lifetime);
-        }
-
-        public async Task<List<string>> GetGroups(LdapEntry ldapUser, Ldap ldap)
-        {
-            HashSet<string> userGroups = new(StringComparer.OrdinalIgnoreCase);
-            userGroups.UnionWith(ldap.GetGroups(ldapUser));
-            if (userGroups.Count == 0)
-            {
-                string? groupPath = !string.IsNullOrWhiteSpace(ldap.GroupSearchPath) ? ldap.GroupSearchPath : ldap.GroupWritePath;
-                List<string> groupNames = await ldap.GetGroups([ldapUser.Dn]);
-                userGroups.UnionWith(Ldap.BuildGroupDns(groupNames, groupPath));
-            }
-            if (!ldap.IsInternal())
-            {
-                object groupsLock = new();
-                List<Task> ldapRoleRequests = [];
-
-                foreach (Ldap currentLdap in ldaps.Where(l => l.IsInternal()))
-                {
-                    ldapRoleRequests.Add(Task.Run(async () =>
-                    {
-                        // Get groups from current Ldap
-                        List<string> currentGroups = await currentLdap.GetGroups([ldapUser.Dn]);
-                        lock (groupsLock)
-                        {
-                            string? groupPath = !string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath) ? currentLdap.GroupSearchPath : currentLdap.GroupWritePath;
-                            userGroups.UnionWith(Ldap.BuildGroupDns(currentGroups, groupPath));
-                        }
-                    }));
-                }
-                await Task.WhenAll(ldapRoleRequests);
-            }
-            return userGroups.ToList();
-        }
-
-        public async Task<(LdapEntry, Ldap)> AuthenticateInAnyLdap(UiUser user, bool validatePassword)
-        {
-            Log.WriteDebug(UserAuthentication, $"Trying to get ldap entry for user: {user.Name + " " + user.Dn}...");
-
-            if (user.Dn == "" && user.Name == "")
-            {
-                throw new AuthenticationException("A0001 Invalid credentials. Username / User DN must not be empty.");
-            }
-            else
-            {
-                (LdapEntry? ldapEntry, Ldap? ldap) = await TryLoginAnywhere(user, validatePassword);
-                if (ldapEntry != null && ldap != null)
-                {
-                    return (ldapEntry, ldap);
-                }
-                Log.WriteInfo(UserAuthentication, $"User {user.Name} not found in any connected LDAP.");
-            }
-
-            // Invalid User Credentials
-            throw new AuthenticationException("A0002 Invalid credentials");
-        }
-
-        private async Task<(LdapEntry?, Ldap?)> TryLoginAnywhere(UiUser user, bool validatePassword)
-        {
-            List<Ldap> activeLdaps = ldaps.Where(x => x.Active).ToList();
-            if (activeLdaps.Count == 0)
-            {
-                return (null, null);
-            }
-
-            (LdapEntry? Entry, Ldap? Ldap)[] ldapResults = new (LdapEntry?, Ldap?)[activeLdaps.Count];
-            List<Task> ldapValidationRequests = [];
-
-            for (int ldapIndex = 0; ldapIndex < activeLdaps.Count; ldapIndex++)
-            {
-                int currentIndex = ldapIndex;
-                Ldap currentLdap = activeLdaps[currentIndex];
-                ldapValidationRequests.Add(Task.Run(async () =>
-                {
-                    Log.WriteDebug(UserAuthentication, $"Trying to authenticate {user.Name + " " + user.Dn} against LDAP {currentLdap.Address}:{currentLdap.Port} ...");
-                    LdapEntry? currentLdapEntry = await TryLogin(currentLdap, user, validatePassword);
-                    ldapResults[currentIndex] = (currentLdapEntry, currentLdapEntry != null ? currentLdap : null);
-                }));
-            }
-
-            await Task.WhenAll(ldapValidationRequests);
-
-            int preferredLdapIndex = AuthLdapSelection.GetPreferredLdapIndex(
-                ldapResults.Select(result => result.Entry != null).ToList());
-            if (preferredLdapIndex >= 0)
-            {
-                return ldapResults[preferredLdapIndex];
-            }
-            return (null, null);
-        }
-
-        private async Task<LdapEntry?> TryLogin(Ldap currentLdap, UiUser user, bool validatePassword)
-        {
-            LdapEntry? currentLdapEntry = null;
             try
             {
-                currentLdapEntry = await currentLdap.GetLdapEntry(user, validatePassword);
-                if (currentLdapEntry != null)
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
+
+                // Validate refresh token
+                RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(refreshToken);
+
+                if (tokenInfo == null)
                 {
-                    // User was successfully authenticated via this LDAP
-                    if (user.Name == Roles.Importer)
-                    {
-                        Log.WriteDebug(UserAuthentication, $"User {user.Name + " " + currentLdapEntry.Dn} found.");
-                    }
-                    else
-                    {
-                        Log.WriteInfo(UserAuthentication, $"User {user.Name + " " + currentLdapEntry.Dn} found.");
-                    }
+                    return Unauthorized("Invalid or expired refresh token");
                 }
+
+                UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = tokenInfo.UserId });
+                UiUser? storedUser = users.FirstOrDefault();
+
+                if (storedUser == null)
+                {
+                    return Unauthorized("User not found");
+                }
+
+                UiUser? user = await authManager.AuthenticateAndBuildUserAsync(storedUser, validatePassword: false, updateLoginState: false, cancellationToken: RequestAborted);
+
+                if (user == null)
+                {
+                    return Unauthorized("User could not be reconstructed for refresh");
+                }
+
+                auditIdentity = $"User \"{user.Name}\" with DN: \"{user.Dn}\"";
+
+                // Consume the old refresh token exactly once before minting a new pair.
+                consumptionState = RefreshTokenConsumptionState.MayBeConsumed;
+                int revokedTokens = await authManager.RevokeRefreshToken(refreshToken);
+
+                if (revokedTokens != 1)
+                {
+                    WriteAudit(nameof(RefreshToken), $"Refresh token for {auditIdentity} was already consumed or revoked.");
+
+                    return Unauthorized("Invalid or expired refresh token");
+                }
+
+                consumptionState = RefreshTokenConsumptionState.Consumed;
+
+                TokenPair newTokens = await authManager.CreateTokenPair(user);
+
+                WriteAudit(nameof(RefreshToken), $"Successfully rotated auth tokens for {auditIdentity}.");
+
+                return Ok(newTokens);
             }
-            catch
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
             {
-                // this Ldap can't validate user, but maybe another one can
+                return UnreachableApiRefreshResult(exception, consumptionState, auditIdentity);
             }
-            return currentLdapEntry;
+            catch (LoginCapacityException exception)
+            {
+                // Raised while rebuilding the user, before the refresh token is consumed, so the client keeps a
+                // token that still works and must be told to retry rather than to log in again.
+                return CapacityResult(new LoginCapacityException(exception.Message, StatusCodes.Status503ServiceUnavailable));
+            }
+            catch (AuthenticationException exception)
+            {
+                // The stored user could not be authenticated again in its directory, e.g. because its dn now names
+                // another directory entry. The session has ended, so the client has to log in again.
+                WriteAudit(nameof(RefreshToken), $"Refresh refused for {(auditIdentity == "" ? "a stored user" : auditIdentity)}: {exception.Message}");
+                return Unauthorized(exception.Message);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(kRefreshLogCategory, "Failed to refresh token", ex);
+                return BadRequest("The refresh could not be completed.");
+            }
         }
 
-        public async Task<List<string>> GetRoles(UiUser user)
+        /// <summary>
+        /// Answers a refresh that failed because the API could not be reached.
+        /// </summary>
+        /// <param name="exception">The failure that indicates the unreachable API.</param>
+        /// <param name="consumptionState">How far the consumption of the refresh token got.</param>
+        /// <param name="auditIdentity">The user of the token for the audit trail, empty if not known yet.</param>
+        /// <returns>401 if the token was consumed, otherwise 503 inviting a retry.</returns>
+        private ObjectResult UnreachableApiRefreshResult(Exception exception, RefreshTokenConsumptionState consumptionState, string auditIdentity)
         {
-            List<string> dnList =
-            [
-                user.Dn,
-                .. user.Groups, // search all groups where user is member for group associated roles
-            ];
+            // The API could not be reached, which is not the caller's fault: answering
+            // 400 tells a client its request was malformed and must not be repeated,
+            // while the truthful answer is that this attempt could not be completed.
+            // Whether it may be repeated depends on how far it got, so say which.
+            Log.WriteError(kRefreshLogCategory, "Could not reach the API while refreshing a token", exception);
 
-            List<string> userRoles = [];
-            object rolesLock = new();
-
-            List<Task> ldapRoleRequests = [];
-
-            foreach (Ldap currentLdap in ldaps.Where(l => l.HasRoleHandling()))
+            if (consumptionState == RefreshTokenConsumptionState.Consumed)
             {
-                // if current Ldap has roles stored
-                ldapRoleRequests.Add(Task.Run(async () =>
-                {
-                    // Get roles from current Ldap
-                    List<string> currentRoles = await currentLdap.GetRoles(dnList);
+                // Audited like every other terminal outcome of this endpoint: a token
+                // was spent and a session ended, which is exactly what the trail is for.
+                WriteAudit(nameof(RefreshToken), $"Refresh token for {auditIdentity} was consumed, but no new token pair could be issued because the API could not be reached.");
 
-                    lock (rolesLock)
-                    {
-                        userRoles.AddRange(currentRoles);
-                    }
-                }));
+                // The token is spent, so it genuinely is invalid now, and 401 is both the
+                // truthful answer and the one a client can act on: a 503 here reads as
+                // retryable, so the client would hold on to a token that cannot work and
+                // reach the login one refresh cycle later than it needs to.
+                return Unauthorized("The refresh token was consumed, but the API could not be reached to issue a new token pair. Please log in again.");
             }
 
-            await Task.WhenAll(ldapRoleRequests);
-
-            // If no roles found
-            if (userRoles.Count == 0)
+            if (consumptionState == RefreshTokenConsumptionState.MayBeConsumed)
             {
-                // Use anonymous role
-                Log.WriteWarning("Missing roles", $"No roles for user \"{user.Dn}\" could be found. Using anonymous role.");
-                userRoles.Add(Roles.Anonymous);
+                WriteAudit(nameof(RefreshToken), $"Refresh token for {auditIdentity} may have been consumed because the API became unreachable during the operation.");
             }
 
-            return userRoles;
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                "The API could not be reached while refreshing the token. Please retry.");
         }
 
-        public async Task<Tenant?> GetTenantAsync(LdapEntry user, Ldap ldap)
-        {
-            Tenant tenant = new();
-            if (ldap.TenantId != null)
-            {
-                Log.WriteDebug("Get Tenant", $"This LDAP has the fixed tenant {ldap.TenantId.Value}");
-                tenant.Id = ldap.TenantId.Value;
-            }
-            else
-            {
-                tenant.Name = new DistName(user.Dn).GetTenantNameViaLdapTenantLevel(ldap.TenantLevel);
-                if (tenant.Name == "")
-                {
-                    return null;
-                }
-                Log.WriteDebug("Get Tenant", $"extracting TenantName as: {tenant.Name} from {user.Dn}");
-                if (tenant.Name == ldap.GlobalTenantName)
-                {
-                    tenant.Id = GlobalConst.kTenant0Id;
-                }
-                else
-                {
-                    var tenNameObj = new { tenant_name = tenant.Name };
-                    Tenant[] tenants = await apiConnection.SendQueryAsync<Tenant[]>(AuthQueries.getTenantId, tenNameObj, "getTenantId");
-                    if (tenants.Length > 0)
-                    {
-                        tenant.Id = tenants[0].Id;
-                    }
-                    else
-                    {
-                        // tenant unknown: create in db. This should only happen for users from external Ldaps
-                        // no further search for devices etc necessary
-                        return await CreateTenantInDb(tenant);
-                    }
-                }
-            }
-            await AddDevices(apiConnection, tenant);
-
-            return tenant;
-        }
-
-        private async Task<Tenant?> CreateTenantInDb(Tenant tenant)
+        /// <summary>
+        /// Revokes a refresh token, preventing it from being used for future token refreshes.
+        /// </summary>
+        /// <param name="request">The request containing the refresh token to revoke.</param>
+        /// <returns>
+        /// An <see cref="ActionResult"/> indicating success if the token is revoked;
+        /// otherwise, a bad request or unauthorized result with an error message.
+        /// </returns>
+        [HttpPost("Revoke")]
+        public async Task<ActionResult> RevokeToken([FromBody] RefreshTokenRequest request)
         {
             try
             {
-                var Variables = new
+                if (string.IsNullOrEmpty(request.RefreshToken))
                 {
-                    name = tenant.Name,
-                    project = "",
-                    comment = "",
-                    viewAllDevices = false,
-                    create = DateTime.Now
+                    return BadRequest("Refresh token is required");
+                }
+
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
+
+                RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(request.RefreshToken);
+
+                if (tokenInfo == null)
+                {
+                    return Unauthorized("Invalid or expired refresh token");
+                }
+
+                UiUser? auditUser = null;
+
+                UiUser[] revokeUsers = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = tokenInfo.UserId });
+                auditUser = revokeUsers.FirstOrDefault() ?? new UiUser()
+                {
+                    Name = tokenInfo.UserId.ToString(),
+                    Dn = ""
                 };
-                ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(AuthQueries.addTenant, Variables)).ReturnIds;
-                if (returnIds != null)
+
+                int revokedTokens;
+                try
                 {
-                    tenant.Id = returnIds[0].NewId;
-                    return tenant;
+                    revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
                 }
-                else
+                catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
                 {
-                    return null;
+                    Log.WriteError(kRevokeLogCategory, "Could not reach the API while revoking a refresh token", exception);
+                    WriteAudit(nameof(RevokeToken), $"Refresh token for User \"{auditUser.Name}\" with DN: \"{auditUser.Dn}\" may have been revoked because the API became unreachable during the operation.");
+
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                        "The API could not be reached while revoking the token. Please retry.");
                 }
+
+                if (revokedTokens != 1)
+                {
+                    WriteAudit(nameof(RevokeToken), $"Refresh token for User \"{auditUser.Name}\" with DN: \"{auditUser.Dn}\" was already consumed or revoked.");
+
+                    return Unauthorized("Invalid or expired refresh token");
+                }
+
+                WriteAudit(nameof(RevokeToken), $"Revoked auth tokens for User \"{auditUser.Name}\" with DN: \"{auditUser.Dn}\".");
+
+                return Ok();
+            }
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
+            {
+                Log.WriteError(kRevokeLogCategory, "Could not reach the API while revoking a refresh token", exception);
+
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    "The API could not be reached while revoking the token. Please retry.");
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(kRevokeLogCategory, "Failed to revoke token", ex);
+                return BadRequest("The revocation could not be completed.");
+            }
+        }
+
+        /// <summary>
+        /// Checks whether the session of the calling user is still live, i.e. whether the given refresh token belongs
+        /// to the caller and has neither expired nor been revoked. Sessions are revoked when the permissions of their
+        /// user are reduced or the user is deleted, and the UI ends a session as soon as this check reports it ended.
+        /// </summary>
+        /// <remarks>
+        /// RefreshToken (required): refresh token of the session, see <see cref="SessionCheckParameters.kRefreshTokenDescription"/>. &#xA;
+        /// Options (optional): defaults to an empty object. &#xA;
+        /// Only interactive users may call it, so that every call counts against the per-user rate limit.
+        /// </remarks>
+        /// <param name="parameters">Refresh token of the session.</param>
+        /// <returns>True if the session is live, false if it has ended.</returns>
+        /// <response code="400">The refresh token is missing or too long.</response>
+        /// <response code="403">The caller is not an interactive user.</response>
+        /// <response code="503">The API could not be reached; the check may be repeated.</response>
+        [HttpPost("CheckSession")]
+        [Authorize]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<bool>> CheckSession([FromBody] SessionCheckParameters parameters)
+        {
+            // callers without a user identity are exempt from the per-user rate limit, so they are refused before any work
+            if (ApiRateLimiting.GetPartitionKey(User) == null)
+            {
+                return Forbid();
+            }
+
+            Dictionary<string, string[]> errors = ValidateSessionCheck(parameters);
+            if (errors.Count > 0)
+            {
+                return BadRequest(new ValidationProblemDetails(errors) { Status = StatusCodes.Status400BadRequest });
+            }
+
+            try
+            {
+                AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
+                RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(parameters.RefreshToken);
+
+                // a token of another user does not prove a session of the caller
+                bool sessionLive = tokenInfo != null && int.TryParse(User.FindFirst("x-hasura-user-id")?.Value, out int callerUserId)
+                    && tokenInfo.UserId == callerUserId;
+                return Ok(sessionLive);
+            }
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
+            {
+                Log.WriteError(kSessionCheckLogCategory, "Could not reach the API while checking a session", exception);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "The API could not be reached while checking the session. Please retry.");
             }
             catch (Exception exception)
             {
-                Log.WriteError("AddTenant", $"Adding Tenant {tenant.Name} locally failed: {exception.Message}");
-                return null;
+                Log.WriteError(kSessionCheckLogCategory, "Failed to check session", exception);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "The session could not be checked. Please retry.");
             }
         }
 
-        // the following method adds device visibility information to a tenant (fetched from API)
-        private static async Task AddDevices(ApiConnection conn, Tenant tenant)
+        /// <summary>
+        /// Validates a session check request and returns all errors found, keyed by their request path.
+        /// </summary>
+        /// <param name="parameters">The request.</param>
+        /// <returns>The errors; empty if the request is valid.</returns>
+        internal static Dictionary<string, string[]> ValidateSessionCheck(SessionCheckParameters? parameters)
         {
-            var tenIdObj = new { tenantId = tenant.Id };
+            Dictionary<string, string[]> errors = [];
+            string refreshToken = parameters?.RefreshToken ?? "";
+            if (string.IsNullOrWhiteSpace(refreshToken) || refreshToken.Length > SessionCheckParameters.kMaxRefreshTokenLength)
+            {
+                errors.Add("refreshToken", kRefreshTokenErrors);
+            }
+            return errors;
+        }
 
-            Device[] deviceIds = await conn.SendQueryAsync<Device[]>(AuthQueries.getVisibleDeviceIdsPerTenant, tenIdObj, "getVisibleDeviceIdsPerTenant");
-            tenant.VisibleGatewayIds = Array.ConvertAll(deviceIds, device => device.Id);
+#if DEBUG
+        /// <summary>
+        ///  Tests the Auth from API docs. If this returns unauthorized then check JWT token in API docs and try again.
+        /// </summary>
+        /// <returns></returns>
+        [Authorize]
+        [HttpGet("TestAuth")]
+        public async Task<ActionResult> TestAuth()
+        {
+            return Ok();
+        }
+#endif
+        /// <summary>
+        /// Reads a JWT without validating it so audit logging can extract metadata such as jti and expiry.
+        /// </summary>
+        /// <param name="jwt">JWT to inspect.</param>
+        /// <returns>Parsed JWT.</returns>
+        private static JwtSecurityToken ReadJwt(string jwt)
+        {
+            return new JwtSecurityTokenHandler().ReadJwtToken(jwt);
+        }
 
-            Management[] managementIds = await conn.SendQueryAsync<Management[]>(AuthQueries.getVisibleManagementIdsPerTenant, tenIdObj, "getVisibleManagementIdsPerTenant");
-            tenant.VisibleManagementIds = Array.ConvertAll(managementIds, management => management.Id);
+        /// <summary>
+        /// Builds the audit text for an issued access and optional refresh token pair.
+        /// </summary>
+        /// <param name="tokenPair">Issued token pair.</param>
+        /// <param name="actionText">Human-readable action prefix.</param>
+        /// <returns>Audit message text containing jti and expiry information.</returns>
+        private static string BuildTokenPairAuditText(TokenPair tokenPair, string actionText)
+        {
+            JwtSecurityToken accessToken = ReadJwt(tokenPair.AccessToken);
+            string auditText = $"{actionText} access_jti={accessToken.Id}, access_expires={accessToken.ValidTo.ToLocalTime():yyyy-MM-dd'T'HH:mm:sszzz}";
+            if (tokenPair.RefreshTokenExpires != DateTime.MinValue)
+            {
+                auditText += $", refresh_expires={tokenPair.RefreshTokenExpires.ToLocalTime():yyyy-MM-dd'T'HH:mm:sszzz}";
+            }
+
+            return auditText;
+        }
+
+        /// <summary>
+        /// Writes an audit entry for an issued access and optional refresh token pair.
+        /// </summary>
+        /// <param name="title">Audit title.</param>
+        /// <param name="tokenPair">Issued token pair.</param>
+        /// <param name="actingUser">User that triggered the issuance, if available.</param>
+        /// <param name="actionText">Human-readable action prefix.</param>
+        private static void WriteTokenPairAudit(string title, TokenPair tokenPair, UiUser? actingUser, string actionText)
+        {
+            WriteAudit(title, BuildTokenPairAuditText(tokenPair, actionText), actingUser);
+        }
+
+        /// <summary>
+        /// Builds the audit text for an issued access token.
+        /// </summary>
+        /// <param name="jwt">Issued JWT.</param>
+        /// <param name="actionText">Human-readable action prefix.</param>
+        /// <returns>Audit message text containing jti and expiry information.</returns>
+        private static string BuildJwtAuditText(string jwt, string actionText)
+        {
+            JwtSecurityToken accessToken = ReadJwt(jwt);
+            return $"{actionText} access_jti={accessToken.Id}, access_expires={accessToken.ValidTo.ToLocalTime():yyyy-MM-dd'T'HH:mm:sszzz}";
+        }
+
+        /// <summary>
+        /// Writes an audit entry for an issued access token.
+        /// </summary>
+        /// <param name="title">Audit title.</param>
+        /// <param name="jwt">Issued JWT.</param>
+        /// <param name="actingUser">User that triggered the issuance, if available.</param>
+        /// <param name="actionText">Human-readable action prefix.</param>
+        private static void WriteJwtAudit(string title, string jwt, UiUser? actingUser, string actionText)
+        {
+            WriteAudit(title, BuildJwtAuditText(jwt, actionText), actingUser);
+        }
+
+        /// <summary>
+        /// Writes an audit entry either with actor identity data or anonymously when no actor is available.
+        /// </summary>
+        /// <param name="title">Audit title.</param>
+        /// <param name="text">Audit text.</param>
+        /// <param name="actingUser">User that triggered the action, if available.</param>
+        private static void WriteAudit(string title, string text, UiUser? actingUser = null)
+        {
+            if (actingUser != null)
+            {
+                Log.WriteAudit(title, text, actingUser.Name, actingUser.Dn);
+            }
+            else
+            {
+                Log.WriteAudit(title, text);
+            }
         }
     }
 }

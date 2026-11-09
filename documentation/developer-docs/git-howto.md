@@ -119,6 +119,33 @@ How to merge fork tpurschke/master into CactuseSecurity/master
 
 ## Submodules
 
+### Before you pull: back up an existing `.claude/` directory
+
+The repo tracks `.claude` as a link to the `.agents` submodule. If you already have a
+local `.claude/` directory, move it before pulling so its local settings and skills are
+not replaced:
+```shell
+mv .claude ~/claude-backup-$(date +%F)
+git pull
+```
+
+### Windows only: enable symbolic links before cloning
+
+Before cloning, enable Windows **Developer Mode** (or run Git elevated) and configure Git:
+```shell
+git config --global core.symlinks true
+```
+The Git for Windows installer provides the same setting as **Enable symbolic links**.
+Without symlink support, `.claude`, `AGENTS.md`, `CLAUDE.md`, and the shared GraphQL
+queries are checked out incorrectly.
+
+For an existing clone, enable the setting, initialize submodules, then restore the links:
+```shell
+git config core.symlinks true
+git submodule update --init --recursive
+git checkout --force HEAD -- .claude AGENTS.md CLAUDE.md roles/lib/files/FWO.Api.Client/Queries/GraphQL
+```
+
 ### Automatic submodule sync via repo hooks
 Enable the repo-managed hooks once (per clone) to keep submodules up to date automatically:
 ```shell
@@ -138,6 +165,9 @@ To automatically ignore local submodule pointer changes, run:
 ```shell
 git config submodule.agents.ignore all
 ```
+
+The `.agents` submodule is loaded as project configuration through the `.claude` link;
+review submodule pointer updates as carefully as code changes.
 
 ### Trigger hook 
 In order to initially trigger the hook which does the initialisation, we need to do any of the operations (git checkout, git merge, git rewrite)
@@ -176,6 +206,23 @@ tim@acantha24:~/dev/tim/fwo$
 Notes:
 - 160000 - sub module
 - 120000 - symbolic link
+
+List every symbolic link the repo tracks:
+```shell
+git ls-files -s | awk '$1=="120000"'
+```
+This shows tracked links, not whether they were checked out correctly. Check both the
+link and its target on disk:
+```shell
+git ls-files -s | awk '$1=="120000"{print $4}' | while read -r f; do
+  [ -L "$f" ] || echo "NOT A LINK: $f"
+  [ -e "$f" ] || echo "DANGLING:   $f"
+done
+```
+No output means all links are valid. `NOT A LINK` indicates that the checkout lacks
+symlink support; `DANGLING` usually means that `.agents` was not initialized. Run
+`git submodule update --init --recursive` to fix the latter.
+
 ## Troubleshooting: pre-commit Python / Ruff / Pyright
 
 If `git commit` fails with messages like:
@@ -200,8 +247,59 @@ This typically happens when:
 - project Python dependencies are not installed yet.
 
 In this repo, `core.hooksPath` is set to `.githooks`, so these checks run automatically on commit.
+The hook prefers the repository-local virtual environment at `.venv` when it exists.
+That means fixing a global Python installation often does nothing for the commit hook.
 
-### 3. Suggested changes
+### 3. Fast fix for Ruff version mismatch
+
+If the error looks like this:
+
+```text
+Error: Ruff version mismatch.
+Installed ruff is 0.15.21, but pyproject.toml requires 0.16.0.
+```
+
+fix the repo-local `.venv`, not the global Python installation.
+
+From the repo root:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install --upgrade ruff==0.16.0
+.\.venv\Scripts\python.exe -m ruff check --fix
+.\.venv\Scripts\python.exe -m ruff format
+```
+
+Then retry:
+
+```powershell
+git commit
+```
+
+Why this works:
+
+- the pre-commit hook checks `.venv` first,
+- `pyproject.toml` currently requires `ruff==0.16.0`,
+- `roles/importer/files/importer/requirements.txt` currently pins `ruff==0.16.0`.
+
+Quick verification:
+
+```powershell
+.\.venv\Scripts\python.exe -m ruff --version
+```
+
+### 4. If `.venv` does not exist yet
+
+Create it once from the repo root:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -U pip
+.\.venv\Scripts\python.exe -m pip install -r roles\importer\files\importer\requirements.txt -r scripts\requirements.txt
+```
+
+Then rerun the Ruff commands from the previous section.
+
+### 5. Full setup if Python tooling is missing
 
 Recommended setup (repo root):
 
@@ -209,7 +307,7 @@ Recommended setup (repo root):
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -U pip
-python -m pip install -r roles\importer\files\importer\requirements.txt -r scripts\customizing\app_data_import\requirements-for-app-data-import.txt
+python -m pip install -r roles\importer\files\importer\requirements.txt -r scripts\requirements.txt
 ```
 
 Optional validation:

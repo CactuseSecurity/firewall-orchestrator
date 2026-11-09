@@ -1,5 +1,12 @@
-from models.rule import RuleNormalized
+from __future__ import annotations
+
+from importlib import import_module
+from typing import TYPE_CHECKING
+
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from models.rule import RuleNormalized
 
 
 # Rulebase is the model for a rulebase (containing no DB IDs)
@@ -43,7 +50,7 @@ class RulebaseForImport(BaseModel):
     removed: int | None = None
 
     @classmethod
-    def from_rulebase(cls, rulebase: Rulebase, mgm_id: int, created: int) -> "RulebaseForImport":
+    def from_rulebase(cls, rulebase: Rulebase, mgm_id: int, created: int) -> RulebaseForImport:
         return cls(
             name=rulebase.name,
             uid=rulebase.uid,
@@ -51,3 +58,6 @@ class RulebaseForImport(BaseModel):
             is_global=rulebase.is_global,
             created=created,
         )
+
+
+Rulebase.model_rebuild(_types_namespace={"RuleNormalized": import_module("models.rule").RuleNormalized})

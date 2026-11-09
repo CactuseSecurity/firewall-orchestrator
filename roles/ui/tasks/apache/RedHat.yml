@@ -1,0 +1,20 @@
+- block:
+    - name: Install webserver packages
+      package:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ apache_packages }}"
+
+    - name: copy ui httpd config file to ui target
+      template:
+        src: "httpd.conf"
+        dest: "{{ http_conf_dir }}/{{ product_name }}-ui.conf"
+        owner: root
+        group: root
+
+    - name: reload apache
+      service:
+        name: "{{ webserver_package_name }}"
+        state: reloaded
+  become: true
+  environment: "{{ proxy_env }}"

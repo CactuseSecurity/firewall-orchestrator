@@ -1,0 +1,2477 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
+using Novell.Directory.Ldap;
+using FWO.Config.Api.Data;
+using FWO.Config.Api;
+using FWO.Data;
+using FWO.Data.Middleware;
+using FWO.Data.Workflow;
+using FWO.Middleware.Server;
+using FWO.Middleware.Server.Controllers;
+using FWO.Middleware.Server.Services;
+using FWO.Services;
+using FWO.Services.RulePositioning;
+using FWO.Services.Workflow;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using NUnit.Framework;
+using System.Reflection;
+using System.Security.Claims;
+using System.Security.Cryptography;
+
+namespace FWO.Test
+{
+    [TestFixture]
+    internal class WorkflowMiddlewareUnitTest
+    {
+        private static readonly List<string> kNoUserGroups = [];
+        private static readonly List<Ldap> kNoLdaps = [];
+        private const string kVisibilityUserPath = "ou=users,ou=operator,dc=fworch,dc=internal";
+        private const string kVisibilityGroupPath = "ou=groups,ou=operator,dc=fworch,dc=internal";
+        private const int kVisibilityLdapId = 3;
+        private const int kVisibilityCallerId = 21;
+        private const string kLdapSearchUser = "cn=search,dc=example,dc=com";
+        private const string kRemovedFwAdminRole = "fw-admin";
+        private static readonly string kLdapSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
+        private static readonly string[] kExpectedAssignedGroupDns =
+        [
+            "cn=assignees,ou=groups,dc=fworch,dc=internal",
+            "cn=approvers,ou=groups,dc=fworch,dc=internal"
+        ];
+        private static readonly string[] kGetUserEmailsQuery = [AuthQueries.getUserEmails];
+        private static readonly string[] kApproverRole = [Roles.Approver];
+        private static readonly string[] kRequesterRole = [Roles.Requester];
+        private static readonly string[] kAdminRole = [Roles.Admin];
+        private const int kCallerUserId = 93;
+        private static readonly string[] kExpectedResolvedUserDns = ["uid=user,ou=users,dc=test"];
+
+        private sealed class RecipientResolverApiConn : SimulatedApiConnection
+        {
+            public List<string> Queries { get; } = [];
+            public List<UiUser> Users { get; set; } = [];
+
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                Queries.Add(query);
+                if (query == AuthQueries.getUserEmails)
+                {
+                    return Task.FromResult((T)(object)Users);
+                }
+                throw new AssertionException($"Unexpected query: {query}");
+            }
+        }
+
+        private sealed class TestRequestedRulePolicyChecker : IRequestedRulePolicyChecker
+        {
+            public Task<bool> AreRequestTasksCompliant(IEnumerable<int> policyIds, IEnumerable<WfReqTask> requestTasks)
+            {
+                return Task.FromResult(true);
+            }
+        }
+
+        private sealed class TestWorkflowRecipientResolver : IWorkflowRecipientResolver
+        {
+            public Task<List<string>> ResolveUserDns(IEnumerable<string> dns)
+            {
+                return Task.FromResult(dns.ToList());
+            }
+
+            public Task<List<UiUser>> ResolveUsers(IEnumerable<string> dns)
+            {
+                return Task.FromResult(dns.Select(dn => new UiUser { Dn = dn, Email = $"{dn}@example.test" }).ToList());
+            }
+        }
+
+        private sealed class WorkflowExecutionApiConn : ApiConnection
+        {
+            public List<string> Queries { get; } = [];
+            public List<string> Roles { get; } = [];
+            public List<WfState> States { get; set; } = [];
+            public WfTicket Ticket { get; set; } = new();
+
+            /// <summary>
+            /// Rows the state-change execution claim reports as written. One means the transition
+            /// was claimed by this request, zero that it had already been executed.
+            /// </summary>
+            public int StateChangeClaimAffectedRows { get; set; } = 1;
+
+            /// <summary>
+            /// Variables of the last state-change execution claim, so a test can check what the
+            /// claim was keyed on.
+            /// </summary>
+            public object? LastStateChangeClaimVariables { get; private set; }
+
+            /// <summary>
+            /// When set, the claim is answered from <see cref="claimedStates"/> the way
+            /// request.state_change_execution answers it, instead of from the fixed
+            /// <see cref="StateChangeClaimAffectedRows"/>. That lets a test submit several requests in
+            /// a row and see which of them the guard actually grants.
+            /// </summary>
+            public bool EmulateStateChangeExecutionTable { get; set; }
+
+            /// <summary>
+            /// The transition each object's actions last ran for, keyed as the table's primary key is.
+            /// </summary>
+            private readonly Dictionary<string, string> claimedTransitions = [];
+
+            public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler,
+                GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null,
+                string? operationName = null)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                Queries.Add(query);
+                if (query == RequestQueries.getStates)
+                {
+                    return Task.FromResult((T)(object)States);
+                }
+
+                if (query == RequestQueries.getTicketById)
+                {
+                    return Task.FromResult((T)(object)Ticket);
+                }
+
+                if (query == RequestQueries.claimStateChangeExecution)
+                {
+                    LastStateChangeClaimVariables = variables;
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = ClaimStateChangeExecution(variables) });
+                }
+
+                if (query == RequestQueries.recordStateChangeExecution)
+                {
+                    RecordStateChangeExecution(variables);
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
+                }
+
+                if (query.Contains("getConfigItemsByUser", StringComparison.OrdinalIgnoreCase)
+                    || query.Contains("getConfigItemByKey", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Task.FromResult(CreateEmptyQueryResult<T>());
+                }
+
+                throw new AssertionException($"Unexpected query: {query}");
+            }
+
+            public override Task<ApiResponse<T>> SendQuerySafeAsync<T>(string query, object? variables = null, string? operationName = null)
+            {
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// Answers a claim the way request.state_change_execution does: one row per object, and the
+            /// row is rewritten only when the guard of the mutation holds against what is recorded there.
+            /// The guard is read out of the mutation itself rather than restated here, so that a guard
+            /// which brings the caller-supplied origin state back into the comparison is emulated as
+            /// such and the test that varies it fails.
+            /// </summary>
+            /// <param name="variables">The claim variables the controller sent.</param>
+            /// <returns>The number of rows the claim reports as written.</returns>
+            private int ClaimStateChangeExecution(object? variables)
+            {
+                if (!EmulateStateChangeExecutionTable || variables == null)
+                {
+                    return StateChangeClaimAffectedRows;
+                }
+
+                string key = $"{ReadVariable(variables, "objectScope")}:{ReadVariable(variables, "objectId")}";
+                string guard = RequestQueries.claimStateChangeExecution[RequestQueries.claimStateChangeExecution.IndexOf("where:", StringComparison.Ordinal)..];
+                string comparedTransition = guard.Contains("from_state_id", StringComparison.Ordinal)
+                    ? $"{ReadVariable(variables, "fromStateId")}->{ReadVariable(variables, "toStateId")}"
+                    : $"{ReadVariable(variables, "toStateId")}";
+                if (claimedTransitions.TryGetValue(key, out string? claimedTransition) && claimedTransition == comparedTransition)
+                {
+                    return 0;
+                }
+
+                claimedTransitions[key] = comparedTransition;
+                return 1;
+            }
+
+            /// <summary>
+            /// Writes the row the way recordStateChangeExecution does: unguarded, so the record keeps up
+            /// with a state change executed inside the middleware that never reaches the action endpoint.
+            /// </summary>
+            /// <param name="variables">The record variables.</param>
+            private void RecordStateChangeExecution(object? variables)
+            {
+                if (!EmulateStateChangeExecutionTable || variables == null)
+                {
+                    return;
+                }
+
+                string key = $"{ReadVariable(variables, "objectScope")}:{ReadVariable(variables, "objectId")}";
+                string guard = RequestQueries.claimStateChangeExecution[RequestQueries.claimStateChangeExecution.IndexOf("where:", StringComparison.Ordinal)..];
+                claimedTransitions[key] = guard.Contains("from_state_id", StringComparison.Ordinal)
+                    ? $"{ReadVariable(variables, "fromStateId")}->{ReadVariable(variables, "toStateId")}"
+                    : $"{ReadVariable(variables, "toStateId")}";
+            }
+
+            public override void SetAuthHeader(string jwt)
+            { }
+
+            public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
+            {
+                return Task.CompletedTask;
+            }
+
+            public override void SetRole(string role)
+            {
+                Roles.Add(role);
+            }
+
+            public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)
+            { }
+
+            public override void SwitchBack()
+            {
+                Roles.Add("<switch>");
+            }
+
+            protected override void Dispose(bool disposing)
+            { }
+
+            public override void DisposeSubscriptions<T>()
+            { }
+        }
+
+        private sealed class TestGlobalStateMatrix : GlobalStateMatrix
+        {
+            public override Task Init(ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master)
+            {
+                GlobalMatrix = BuildMatrices();
+                return Task.CompletedTask;
+            }
+
+            private static Dictionary<WorkflowPhases, StateMatrix> BuildMatrices()
+            {
+                return new Dictionary<WorkflowPhases, StateMatrix>
+                {
+                    [WorkflowPhases.request] = BuildMatrix(8),
+                    [WorkflowPhases.approval] = BuildMatrix(8),
+                    [WorkflowPhases.planning] = BuildMatrix(8),
+                    [WorkflowPhases.verification] = BuildMatrix(8),
+                    [WorkflowPhases.implementation] = BuildMatrix(8),
+                    [WorkflowPhases.review] = BuildMatrix(8),
+                    [WorkflowPhases.recertification] = BuildMatrix(8)
+                };
+            }
+
+            private static StateMatrix BuildMatrix(int lowestEndState)
+            {
+                return new StateMatrix
+                {
+                    Matrix = new Dictionary<int, List<int>>(),
+                    DerivedStates = new Dictionary<int, int>(),
+                    LowestInputState = 1,
+                    LowestStartedState = 1,
+                    LowestEndState = lowestEndState,
+                    Active = true,
+                    StateVisibilityGroupIds = new Dictionary<int, List<int>>(),
+                    ExclusiveVisibilityGroupIds = new HashSet<int>(),
+                    PhaseActive = new Dictionary<WorkflowPhases, bool>
+                    {
+                        [WorkflowPhases.request] = true,
+                        [WorkflowPhases.approval] = true,
+                        [WorkflowPhases.planning] = true,
+                        [WorkflowPhases.verification] = true,
+                        [WorkflowPhases.implementation] = true,
+                        [WorkflowPhases.review] = true,
+                        [WorkflowPhases.recertification] = true
+                    }
+                };
+            }
+        }
+
+        [Test]
+        public void WorkflowController_GetTicketId_UsesObjectIdForTicketScopeWhenTicketIdMissing()
+        {
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                ObjectId = 42,
+                TicketId = 0
+            };
+
+            long ticketId = InvokePrivateStatic<long>(typeof(WorkflowController), "GetTicketId", parameters, WfObjectScopes.Ticket);
+
+            Assert.That(ticketId, Is.EqualTo(42));
+        }
+
+        [Test]
+        public void WorkflowController_ResolveActionContext_ReturnsRequestTaskOwnerAndTicketId()
+        {
+            FwoOwner owner = new() { Id = 7, Name = "App" };
+            WfReqTask reqTask = new()
+            {
+                Id = 11,
+                TicketId = 42,
+                Owners = [new FwoOwnerDataHelper { Owner = owner }]
+            };
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Tasks = [reqTask]
+            };
+            WorkflowActionParameters parameters = new()
+            {
+                ObjectId = reqTask.Id
+            };
+
+            object context = InvokePrivateStatic<object>(typeof(WorkflowController), "ResolveActionContext", new WfHandler(), ticket, parameters, WfObjectScopes.RequestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetTupleItem<WfStatefulObject?>(context, "Item1"), Is.SameAs(reqTask));
+                Assert.That(GetTupleItem<FwoOwner?>(context, "Item2"), Is.SameAs(owner));
+                Assert.That(GetTupleItem<long?>(context, "Item3"), Is.EqualTo(42));
+                Assert.That(GetTupleItem<string?>(context, "Item4"), Is.Null);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ResolveActionContext_ReturnsImplementationTaskOwnerAndTicketId()
+        {
+            FwoOwner owner = new() { Id = 7, Name = "App" };
+            WfImplTask implTask = new() { Id = 21, TicketId = 0 };
+            WfReqTask reqTask = new()
+            {
+                Id = 11,
+                TicketId = 42,
+                Owners = [new FwoOwnerDataHelper { Owner = owner }],
+                ImplementationTasks = [implTask]
+            };
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Tasks = [reqTask]
+            };
+            WorkflowActionParameters parameters = new()
+            {
+                ObjectId = implTask.Id
+            };
+
+            object context = InvokePrivateStatic<object>(typeof(WorkflowController), "ResolveActionContext", new WfHandler(), ticket, parameters, WfObjectScopes.ImplementationTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetTupleItem<WfStatefulObject?>(context, "Item1"), Is.SameAs(implTask));
+                Assert.That(GetTupleItem<FwoOwner?>(context, "Item2"), Is.SameAs(owner));
+                Assert.That(GetTupleItem<long?>(context, "Item3"), Is.EqualTo(42));
+                Assert.That(implTask.TicketId, Is.EqualTo(42));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ResolveActionContext_ReturnsApprovalAndTicketId()
+        {
+            FwoOwner owner = new() { Id = 7, Name = "App" };
+            WfApproval approval = new() { Id = 31 };
+            WfReqTask reqTask = new()
+            {
+                Id = 11,
+                TicketId = 42,
+                Owners = [new FwoOwnerDataHelper { Owner = owner }],
+                Approvals = [approval]
+            };
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Tasks = [reqTask]
+            };
+            WorkflowActionParameters parameters = new()
+            {
+                ObjectId = approval.Id
+            };
+
+            object context = InvokePrivateStatic<object>(typeof(WorkflowController), "ResolveActionContext", new WfHandler(), ticket, parameters, WfObjectScopes.Approval);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetTupleItem<WfStatefulObject?>(context, "Item1"), Is.SameAs(approval));
+                Assert.That(GetTupleItem<FwoOwner?>(context, "Item2"), Is.SameAs(owner));
+                Assert.That(GetTupleItem<long?>(context, "Item3"), Is.EqualTo(42));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ResolveActionContext_ReturnsNullForMissingObject()
+        {
+            WorkflowActionParameters parameters = new()
+            {
+                ObjectId = 999
+            };
+
+            object context = InvokePrivateStatic<object>(typeof(WorkflowController), "ResolveActionContext", new WfHandler(), new WfTicket(), parameters, WfObjectScopes.RequestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetTupleItem<WfStatefulObject?>(context, "Item1"), Is.Null);
+                Assert.That(GetTupleItem<FwoOwner?>(context, "Item2"), Is.Null);
+                Assert.That(GetTupleItem<long?>(context, "Item3"), Is.Null);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_MarkStateChanged_RestoresOriginalChangeTracking()
+        {
+            WfTicket ticket = new() { StateId = 5 };
+            ticket.ResetStateChanged();
+
+            InvokePrivateStatic<object?>(typeof(WorkflowController), "MarkStateChanged", ticket, 5, 8, false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ticket.StateId, Is.EqualTo(8));
+                Assert.That(ticket.StateChanged(), Is.True);
+                Assert.That(ticket.ChangedFrom(), Is.EqualTo(5));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_MarkStateChanged_RestoresCreationMarker()
+        {
+            WfImplTask implementationTask = new() { StateId = 8 };
+            implementationTask.ResetStateChanged();
+
+            InvokePrivateStatic<object?>(typeof(WorkflowController), "MarkStateChanged", implementationTask, 0, 8, true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(implementationTask.StateId, Is.EqualTo(8));
+                Assert.That(implementationTask.StateChanged(), Is.True);
+                Assert.That(implementationTask.ChangedFrom(), Is.Zero);
+                Assert.That(implementationTask.StateChangedByCreation(), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task WorkflowController_ExecuteActionsRejectsInvalidScopeBeforeMiddlewareApi()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+
+            WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
+            {
+                Scope = "invalid",
+                Phase = WorkflowPhases.request.ToString()
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("Invalid scope"));
+            });
+        }
+
+        [Test]
+        public async Task WorkflowController_ExecuteActionsRejectsInvalidPhaseBeforeMiddlewareApi()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+
+            WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                Phase = "invalid"
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("Invalid workflow phase"));
+            });
+        }
+
+        [Test]
+        public async Task WorkflowController_ExecuteActionsRejectsPhaseNotAvailableInExecutionMode()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Auditor, Roles.Approver));
+
+            WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                Phase = WorkflowPhases.approval.ToString(),
+                ExecutionMode = Roles.Auditor
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("not authorized"));
+            });
+        }
+
+        [Test]
+        public async Task WorkflowController_ExecuteActionsRejectsOversizedNotificationPlaceholdersBeforeTicketLock()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+
+            WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                Phase = WorkflowPhases.request.ToString(),
+                TicketId = 0,
+                NotificationPlaceholders = new NotificationPlaceholderData
+                {
+                    Content = new string('c', NotificationPlaceholderResolver.kMaxCallerContentLength + 1)
+                }
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain(NotificationPlaceholderResolver.kMaxCallerContentLength.ToString()));
+            });
+        }
+
+        [Test]
+        public async Task WorkflowController_ExecuteActions_ReturnsErrorWhenApiServerUriIsMissing()
+        {
+            string? previousApiServerUri = GetApiServerUri();
+            SetApiServerUri(null);
+            try
+            {
+                WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+
+                WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
+                {
+                    Scope = WfObjectScopes.Ticket.ToString(),
+                    Phase = WorkflowPhases.request.ToString(),
+                    ObjectId = 1
+                });
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result.Success, Is.False);
+                    Assert.That(result.ErrorMessage, Does.Contain("necessary config value"));
+                    Assert.That(GetTicketActionLockCount(), Is.Zero);
+                });
+            }
+            finally
+            {
+                SetApiServerUri(previousApiServerUri);
+            }
+        }
+
+        /// <summary>
+        /// SEC-24: a request without a positive ticket id must be rejected before any per-ticket lock is
+        /// allocated, and a request that fails inside the lock must not leave its lock entry behind.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_ExecuteActionsRejectsNonPositiveTicketIdWithoutAllocatingLock()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+
+            WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
+            {
+                Scope = WfObjectScopes.RequestTask.ToString(),
+                Phase = WorkflowPhases.request.ToString(),
+                ObjectId = 5,
+                TicketId = -7
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("Invalid ticket id"));
+                Assert.That(GetTicketActionLockCount(), Is.Zero);
+            });
+        }
+
+        /// <summary>
+        /// Review finding F7: a client that goes away while waiting for the ticket lock is no error of the
+        /// middleware; the request ends without executing anything and leaves no lock behind.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_ExecuteActionsEndsQuietlyWhenTheClientCancels()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            controller.HttpContext.RequestAborted = new CancellationToken(canceled: true);
+
+            WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                Phase = WorkflowPhases.request.ToString(),
+                ObjectId = 1
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.ErrorMessage, Is.EqualTo("The request was cancelled."));
+                Assert.That(GetTicketActionLockCount(), Is.Zero);
+            });
+        }
+
+        /// <summary>
+        /// SEC-24: a caller already holding or waiting for the maximum number of distinct tickets is
+        /// rejected before a further ticket lock is allocated.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_ExecuteActionsRejectsCallerExceedingConcurrentTicketCap()
+        {
+            const string callerDn = "uid=flood,ou=users,dc=test";
+            const long firstHeldTicketId = 900001;
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRolesAndClaims(kAdminRole, new Claim("x-hasura-uuid", callerDn)));
+            KeyedAsyncLock<long> ticketActionLocks = GetTicketActionLocks();
+            List<IDisposable> heldLocks = [];
+            try
+            {
+                for (long ticketId = firstHeldTicketId; ticketId < firstHeldTicketId + KeyedAsyncLock<long>.kDefaultMaxKeysPerOwner; ticketId++)
+                {
+                    heldLocks.Add(await ticketActionLocks.TryAcquireAsync(ticketId, callerDn) ?? throw new InvalidOperationException("Lock setup failed."));
+                }
+
+                WorkflowActionResult result = await controller.ExecuteActions(new WorkflowActionParameters
+                {
+                    Scope = WfObjectScopes.Ticket.ToString(),
+                    Phase = WorkflowPhases.request.ToString(),
+                    ObjectId = firstHeldTicketId - 1
+                });
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result.Success, Is.False);
+                    Assert.That(result.ErrorMessage, Does.Contain("Too many concurrent workflow action requests"));
+                    Assert.That(GetTicketActionLockCount(), Is.EqualTo(KeyedAsyncLock<long>.kDefaultMaxKeysPerOwner));
+                });
+            }
+            finally
+            {
+                heldLocks.ForEach(heldLock => heldLock.Dispose());
+            }
+            Assert.That(GetTicketActionLockCount(), Is.Zero);
+        }
+
+        /// <summary>
+        /// SEC-06: the object's state is persisted before its actions are requested, so a request
+        /// that only claims "the object stands in the new state" stays valid after the transition
+        /// happened and could be submitted again to fire the side effects a second time. Once the
+        /// transition is claimed, the repeated request must execute nothing.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_ExecuteActionsInMiddlewareContext_ExecutesNothingForAnAlreadyClaimedTransition()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new()
+            {
+                States = [],
+                // what the claim reports once the transition was executed by an earlier request
+                StateChangeClaimAffectedRows = 0
+            };
+            apiConnection.Ticket = new WfTicket
+            {
+                Id = 42,
+                StateId = 8,
+                Requester = new UiUser { Dn = "uid=requester,dc=fworch,dc=internal" }
+            };
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                Phase = WorkflowPhases.request.ToString(),
+                ExecutionMode = Roles.Admin,
+                OldStateId = 5,
+                NewStateId = 8
+            };
+            WorkflowActionResult result = new();
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                WorkflowActionResult executed = await InvokePrivateAsync<WorkflowActionResult>(controller, "ExecuteActionsInMiddlewareContext",
+                    apiConnection, parameters, WfObjectScopes.Ticket, WorkflowPhases.request, 42L, result);
+
+                Assert.Multiple(() =>
+                {
+                    // the state change itself did happen, so the promote does not fail - throwing would
+                    // turn an accidental double submit into an error
+                    Assert.That(executed.Success, Is.True);
+                    Assert.That(executed.ErrorMessage, Is.Null.Or.Empty);
+                    // but the caller is told, because a refusal is not always a replay: a state change
+                    // that persisted without its actions leaves a record the next promote runs into,
+                    // and whoever asked for it has to see that its side effects did not run
+                    Assert.That(executed.Messages.Any(message => message.ErrorFlag), Is.True,
+                        "a refused claim must reach the caller rather than being swallowed");
+                    // the middleware only knows the default language, so the keys travel along for the
+                    // ui to show the refusal in the language of its own user
+                    Assert.That(executed.Messages.Any(message => message.ErrorFlag
+                        && message.TitleTextKey == "actions" && message.MessageTextKey == "E8018"), Is.True,
+                        "a refused claim must carry the text keys of its title and message");
+                    Assert.That(apiConnection.Queries.Count(query => query == RequestQueries.claimStateChangeExecution), Is.EqualTo(1),
+                        "the claim is the single decision point and must be attempted exactly once");
+                });
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        [Test]
+        public async Task WorkflowController_RefusedDuplicateCreationNeverActivatesRulePositioning()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new()
+            {
+                States = [],
+                StateChangeClaimAffectedRows = 0
+            };
+            WfReqTask requestTask = new()
+            {
+                Id = 31,
+                TicketId = 42,
+                StateId = 4,
+                ManagementId = 11,
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString()
+            };
+            requestTask.SetDeviceList([21]);
+            requestTask.ImplementationTasks.Add(new WfImplTask
+            {
+                Id = 41,
+                TicketId = 42,
+                ReqTaskId = 31,
+                StateId = 4,
+                DeviceId = 21,
+                TaskType = WfTaskType.access.ToString(),
+                ImplAction = RequestAction.create.ToString()
+            });
+            apiConnection.Ticket = new WfTicket { Id = 42, StateId = 4, Tasks = { requestTask } };
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.ImplementationTask.ToString(),
+                ObjectId = 41,
+                TicketId = 42,
+                Phase = WorkflowPhases.request.ToString(),
+                ExecutionMode = Roles.Admin,
+                OldStateId = 0,
+                NewStateId = 4,
+                StateChangedByCreation = true
+            };
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            IServiceProvider? previousServices = FWO.Services.ServiceProvider.Services;
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            FWO.Services.ServiceProvider.Services = new ServiceCollection()
+                .AddSingleton<IRulePositioningWorkflowCaller>(caller)
+                .BuildServiceProvider();
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                WorkflowActionResult result = await InvokePrivateAsync<WorkflowActionResult>(
+                    controller,
+                    "ExecuteActionsInMiddlewareContext",
+                    apiConnection,
+                    parameters,
+                    WfObjectScopes.ImplementationTask,
+                    WorkflowPhases.request,
+                    42L,
+                    new WorkflowActionResult());
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result.Success, Is.True);
+                    Assert.That(result.Messages.Any(message => message.ErrorFlag), Is.True);
+                    Assert.That(caller.ApplicabilityCount, Is.Zero);
+                    Assert.That(caller.CalculationCount, Is.Zero);
+                });
+            }
+            finally
+            {
+                FWO.Services.ServiceProvider.Services = previousServices;
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        [Test]
+        public async Task WorkflowController_ClientDisconnectAfterCreationDoesNotCancelRulePositioning()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            using CancellationTokenSource requestCancellation = new();
+            controller.HttpContext.RequestAborted = requestCancellation.Token;
+            WorkflowExecutionApiConn apiConnection = new() { States = [] };
+            WfReqTask requestTask = new()
+            {
+                Id = 31,
+                TicketId = 42,
+                StateId = 4,
+                ManagementId = 11,
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString()
+            };
+            requestTask.SetDeviceList([21]);
+            requestTask.ImplementationTasks.Add(new WfImplTask
+            {
+                Id = 41,
+                TicketId = 42,
+                ReqTaskId = 31,
+                StateId = 4,
+                DeviceId = 21,
+                TaskType = WfTaskType.access.ToString(),
+                ImplAction = RequestAction.create.ToString()
+            });
+            apiConnection.Ticket = new WfTicket { Id = 42, StateId = 4, Tasks = { requestTask } };
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.ImplementationTask.ToString(),
+                ObjectId = 41,
+                TicketId = 42,
+                Phase = WorkflowPhases.request.ToString(),
+                ExecutionMode = Roles.Admin,
+                OldStateId = 0,
+                NewStateId = 4,
+                StateChangedByCreation = true
+            };
+            TaskCompletionSource<CancellationToken> started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            RecordingRulePositioningWorkflowCaller caller = new()
+            {
+                Calculation = async cancellationToken =>
+                {
+                    started.TrySetResult(cancellationToken);
+                    await release.Task.WaitAsync(cancellationToken);
+                    return new RulePositioningWorkflowOutcome(RulePositioningWorkflowStatus.Stored);
+                }
+            };
+            IServiceProvider? previousServices = FWO.Services.ServiceProvider.Services;
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            FWO.Services.ServiceProvider.Services = new ServiceCollection()
+                .AddSingleton<IRulePositioningWorkflowCaller>(caller)
+                .BuildServiceProvider();
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                Task<WorkflowActionResult> execution = InvokePrivateAsync<WorkflowActionResult>(
+                    controller,
+                    "ExecuteActionsInMiddlewareContext",
+                    apiConnection,
+                    parameters,
+                    WfObjectScopes.ImplementationTask,
+                    WorkflowPhases.request,
+                    42L,
+                    new WorkflowActionResult());
+                CancellationToken positioningToken = await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+                requestCancellation.Cancel();
+
+                Assert.That(positioningToken.IsCancellationRequested, Is.False);
+                release.TrySetResult();
+                WorkflowActionResult result = await execution;
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result.Success, Is.True);
+                    Assert.That(caller.CalculationCount, Is.EqualTo(1));
+                    Assert.That(caller.LastCancellationToken.CanBeCanceled, Is.True,
+                        "the independent positioning timeout must remain active");
+                    Assert.That(caller.LastCancellationToken.IsCancellationRequested, Is.False);
+                });
+            }
+            finally
+            {
+                release.TrySetResult();
+                FWO.Services.ServiceProvider.Services = previousServices;
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        /// <summary>
+        /// The claim decides whether the side effects run, so it must be keyed on the object the
+        /// server resolved rather than on the id the caller happened to send.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_TryClaimStateChangeExecution_KeysTheClaimOnTheResolvedTicket()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new();
+            WfTicket ticket = new() { Id = 42, StateId = 8 };
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                ObjectId = 999,
+                OldStateId = 5,
+                NewStateId = 8
+            };
+
+            bool claimed = await InvokePrivateAsync<bool>(controller, "TryClaimStateChangeExecution",
+                apiConnection, new UserConfig(), parameters, WfObjectScopes.Ticket, ticket, new WorkflowActionResult());
+
+            object variables = apiConnection.LastStateChangeClaimVariables!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(claimed, Is.True);
+                Assert.That(ReadVariable(variables, "objectId"), Is.EqualTo(42L),
+                    "the ticket scope must be keyed on the resolved ticket, not on the caller's object id");
+                Assert.That(ReadVariable(variables, "objectScope"), Is.EqualTo(WfObjectScopes.Ticket.ToString()));
+                Assert.That(ReadVariable(variables, "fromStateId"), Is.EqualTo(5));
+                Assert.That(ReadVariable(variables, "toStateId"), Is.EqualTo(8));
+            });
+        }
+
+        /// <summary>
+        /// The origin state of the transition arrives in the request body and is never established
+        /// against the state the object actually held, so the guard must not compare it. A guard that
+        /// did would be re-armed by a replay that simply names a different origin state.
+        /// </summary>
+        [Test]
+        public void ClaimStateChangeExecution_GuardsOnTheStateTheServerVerified()
+        {
+            string guard = RequestQueries.claimStateChangeExecution[RequestQueries.claimStateChangeExecution.IndexOf("where:", StringComparison.Ordinal)..];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(guard, Does.Contain("to_state_id"));
+                Assert.That(guard, Does.Not.Contain("from_state_id"),
+                    "the caller-supplied origin state must not decide whether the claim is granted");
+                Assert.That(guard, Does.Not.Contain("$fromStateId"),
+                    "the caller-supplied origin state must not decide whether the claim is granted");
+            });
+        }
+
+        /// <summary>
+        /// A replay that varies only the origin state must stay refused: the object still stands in
+        /// the state its actions already ran for, so nothing may be executed a second time.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_TryClaimStateChangeExecution_StaysRefusedWhenTheOriginStateIsVaried()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new() { EmulateStateChangeExecutionTable = true };
+            WfTicket ticket = new() { Id = 42, StateId = 8 };
+
+            bool firstClaim = await ClaimTransition(controller, apiConnection, ticket, 5, 8);
+            bool replayedClaim = await ClaimTransition(controller, apiConnection, ticket, 5, 8);
+            bool replayedWithOtherOriginClaim = await ClaimTransition(controller, apiConnection, ticket, 6, 8);
+            bool nextTransitionClaim = await ClaimTransition(controller, apiConnection, ticket, 8, 9);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstClaim, Is.True, "the first request of a transition executes its actions");
+                Assert.That(replayedClaim, Is.False, "the identical replay is refused");
+                Assert.That(replayedWithOtherOriginClaim, Is.False,
+                    "varying the origin state must not re-arm the guard for a transition that already ran");
+                Assert.That(nextTransitionClaim, Is.True, "moving the object on is a transition of its own");
+            });
+        }
+
+        /// <summary>
+        /// Not every state change reaches this endpoint: the external request chain promotes a request
+        /// task from inside the middleware. Those executions record the state they ran for, so the guard
+        /// keeps up with the object and a later legitimate move back into an earlier state is still
+        /// claimable rather than being taken for a replay.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_TryClaimStateChangeExecution_ClaimsAfterAStateChangeExecutedInsideTheMiddleware()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new() { EmulateStateChangeExecutionTable = true };
+            WfTicket ticket = new() { Id = 42, StateId = 200 };
+
+            bool promoteClaim = await ClaimTransition(controller, apiConnection, ticket, 100, 200);
+            // the external request chain moves the object on without passing through the endpoint
+            await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.recordStateChangeExecution, new
+            {
+                objectScope = WfObjectScopes.Ticket.ToString(),
+                objectId = 42L,
+                fromStateId = 200,
+                toStateId = 300,
+                executedBy = "",
+                executedAt = DateTime.UtcNow
+            });
+            bool moveBackClaim = await ClaimTransition(controller, apiConnection, ticket, 300, 200);
+            bool replayOfTheMoveBack = await ClaimTransition(controller, apiConnection, ticket, 300, 200);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(promoteClaim, Is.True, "the first request of a transition executes its actions");
+                Assert.That(moveBackClaim, Is.True,
+                    "moving back into a state the object had left is a first execution, not a replay");
+                Assert.That(replayOfTheMoveBack, Is.False, "the replay of that move is still refused");
+            });
+        }
+
+        /// <summary>
+        /// Attempts one claim for the given transition of the given ticket.
+        /// </summary>
+        /// <param name="controller">The controller under test.</param>
+        /// <param name="apiConnection">Api connection answering the claim.</param>
+        /// <param name="ticket">The resolved ticket the claim is keyed on.</param>
+        /// <param name="oldStateId">Origin state as the request names it.</param>
+        /// <param name="newStateId">State the object is being moved into.</param>
+        /// <returns>True when the caller may execute the actions of this transition.</returns>
+        private static async Task<bool> ClaimTransition(WorkflowController controller, WorkflowExecutionApiConn apiConnection,
+            WfTicket ticket, int oldStateId, int newStateId)
+        {
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                OldStateId = oldStateId,
+                NewStateId = newStateId
+            };
+
+            return await InvokePrivateAsync<bool>(controller, "TryClaimStateChangeExecution",
+                apiConnection, new UserConfig(), parameters, WfObjectScopes.Ticket, ticket, new WorkflowActionResult());
+        }
+
+        /// <summary>
+        /// A request naming an action explicitly carries no transition to key a claim on, and is
+        /// validated against the actions currently offered instead. It must not consume the claim of
+        /// the transition the object last went through.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_TryClaimStateChangeExecution_DoesNotClaimForAnExplicitAction()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new();
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                ActionId = 3,
+                OldStateId = 5,
+                NewStateId = 8
+            };
+
+            bool claimed = await InvokePrivateAsync<bool>(controller, "TryClaimStateChangeExecution",
+                apiConnection, new UserConfig(), parameters, WfObjectScopes.Ticket, new WfTicket { Id = 42 }, new WorkflowActionResult());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(claimed, Is.True);
+                Assert.That(apiConnection.Queries, Has.None.EqualTo(RequestQueries.claimStateChangeExecution));
+            });
+        }
+
+        /// <summary>
+        /// Reads one property of the anonymous variables object handed to the api connection.
+        /// </summary>
+        /// <param name="variables">The variables object of a recorded query.</param>
+        /// <param name="name">Name of the property to read.</param>
+        private static object? ReadVariable(object variables, string name)
+        {
+            return variables.GetType().GetProperty(name)?.GetValue(variables);
+        }
+
+        [Test]
+        public async Task WorkflowController_ExecuteActionsInMiddlewareContext_CompletesTicketStateChange()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new()
+            {
+                States = []
+            };
+            apiConnection.Ticket = new WfTicket
+            {
+                Id = 42,
+                StateId = 8,
+                Requester = new UiUser { Dn = "uid=requester,dc=fworch,dc=internal" }
+            };
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                Phase = WorkflowPhases.request.ToString(),
+                ExecutionMode = Roles.Admin,
+                OldStateId = 5,
+                NewStateId = 8
+            };
+            WorkflowActionResult result = new();
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                WorkflowActionResult executed = await InvokePrivateAsync<WorkflowActionResult>(controller, "ExecuteActionsInMiddlewareContext",
+                    apiConnection, parameters, WfObjectScopes.Ticket, WorkflowPhases.request, 42L, result);
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(executed.Success, Is.True);
+                    Assert.That(executed.ErrorMessage, Is.Empty);
+                    Assert.That(executed.Messages, Is.Empty);
+                    Assert.That(apiConnection.Queries, Has.Some.EqualTo(RequestQueries.getStates));
+                    Assert.That(apiConnection.Queries, Has.Some.EqualTo(RequestQueries.getTicketById));
+                    Assert.That(apiConnection.Roles, Does.Contain(Roles.MiddlewareServer));
+                });
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        [Test]
+        public void WorkflowController_ApplyCallerIdentity_AttributesTheChangeToTheAuthenticatedCaller()
+        {
+            SimulatedUserConfig userConfig = new();
+            WfHandler wfHandler = new();
+
+            WorkflowController.ApplyCallerIdentity(PrincipalWithRolesAndClaims(kApproverRole,
+                new Claim("unique_name", "alice"), new Claim("x-hasura-user-id", $"{kCallerUserId}"),
+                new Claim("x-hasura-uuid", "uid=alice,ou=users,dc=example")), userConfig, wfHandler);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(userConfig.User.Name, Is.EqualTo("alice"));
+                Assert.That(userConfig.User.Dn, Is.EqualTo("uid=alice,ou=users,dc=example"));
+                Assert.That(userConfig.User.DbId, Is.EqualTo(kCallerUserId));
+                Assert.That(wfHandler.ChangerId, Is.EqualTo(kCallerUserId));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ApplyCallerIdentity_LeavesAutomationAttributionForAnUnidentifiedCaller()
+        {
+            SimulatedUserConfig userConfig = new();
+            WfHandler wfHandler = new();
+
+            WorkflowController.ApplyCallerIdentity(PrincipalWithRoles(Roles.Approver), userConfig, wfHandler);
+
+            Assert.Multiple(() =>
+            {
+                // an empty name makes the history writer fall back to Roles.MiddlewareServer
+                Assert.That(userConfig.User.Name, Is.Empty);
+                Assert.That(userConfig.User.DbId, Is.Zero);
+                Assert.That(wfHandler.ChangerId, Is.Null);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_InitWorkflowHandler_ReturnsWarningWhenInitializationFails()
+        {
+            WfHandler handler = new();
+            WorkflowActionResult result = new();
+
+            bool initialized = InvokePrivateStaticAsync<bool>(typeof(WorkflowController), "InitWorkflowHandler", handler, result).GetAwaiter().GetResult();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(initialized, Is.False);
+                Assert.That(result.ErrorMessage, Is.EqualTo("Workflow handler initialization failed."));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_AddWorkflowMessage_UsesExceptionMessageWhenTextMissing()
+        {
+            WorkflowActionResult result = new();
+
+            InvokePrivateStatic<object?>(typeof(WorkflowController), "AddWorkflowMessage", result,
+                new InvalidOperationException("boom"), "Title", " ", true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Messages, Has.Count.EqualTo(1));
+                Assert.That(result.Messages[0].Title, Is.EqualTo("Title"));
+                Assert.That(result.Messages[0].Message, Is.EqualTo("boom"));
+                Assert.That(result.Messages[0].ErrorFlag, Is.True);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanExecutePhase_RequiresMatchingWorkflowRole()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Requester), "", WorkflowPhases.request), Is.True);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Requester), "", WorkflowPhases.approval), Is.False);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Modeller), "", WorkflowPhases.request), Is.False);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Admin), "", WorkflowPhases.review), Is.True);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase", PrincipalWithRoles(Roles.Admin, Roles.Requester), "", WorkflowPhases.review), Is.False);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase",
+                    PrincipalWithRoles(Roles.Admin, Roles.Requester), Roles.Admin, WorkflowPhases.review), Is.True);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase",
+                    PrincipalWithRoles(Roles.Admin, Roles.Requester), GlobalConst.kUserRolesSelection, WorkflowPhases.review), Is.False);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase",
+                    PrincipalWithRoles(Roles.Auditor, Roles.Approver), Roles.Auditor, WorkflowPhases.approval), Is.False);
+            });
+        }
+
+        /// <summary>
+        /// The fw-admin role was removed. A token of an installation whose directory still holds the
+        /// role must not unlock any workflow phase through it.
+        /// </summary>
+        [Test]
+        public void WorkflowController_CallerCanExecutePhase_IgnoresRemovedFwAdminRole()
+        {
+            Assert.Multiple(() =>
+            {
+                foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
+                {
+                    Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase",
+                        PrincipalWithRoles(kRemovedFwAdminRole), "", phase), Is.False, phase.ToString());
+                }
+            });
+        }
+
+        /// <summary>
+        /// With owner based workflows, a leftover fw-admin role must not grant access to foreign tickets.
+        /// </summary>
+        [Test]
+        public void WorkflowController_CallerCanAccessTicket_IgnoresRemovedFwAdminRole()
+        {
+            SimulatedUserConfig userConfig = new() { ReqOwnerBased = true };
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Tasks =
+                [
+                    new()
+                    {
+                        Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 7 } }]
+                    }
+                ]
+            };
+
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRoles(kRemovedFwAdminRole), "", userConfig, ticket);
+
+            Assert.That(allowed, Is.False);
+        }
+
+        [Test]
+        public void WorkflowController_TryParseScope_RejectsNoneAndInvalidScope()
+        {
+            WorkflowActionResult noneResult = new();
+            WorkflowActionParameters noneParameters = new() { Scope = WfObjectScopes.None.ToString() };
+            object?[] noneArgs = [noneParameters, noneResult, WfObjectScopes.Ticket];
+            WorkflowActionResult invalidResult = new();
+            WorkflowActionParameters invalidParameters = new() { Scope = "invalid" };
+            object?[] invalidArgs = [invalidParameters, invalidResult, WfObjectScopes.Ticket];
+
+            bool noneParsed = InvokePrivateStaticWithRef<bool>(typeof(WorkflowController), "TryParseScope", noneArgs);
+            bool invalidParsed = InvokePrivateStaticWithRef<bool>(typeof(WorkflowController), "TryParseScope", invalidArgs);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(noneParsed, Is.False);
+                Assert.That(noneResult.ErrorMessage, Does.Contain("Invalid scope"));
+                Assert.That(invalidParsed, Is.False);
+                Assert.That(invalidResult.ErrorMessage, Does.Contain("Invalid scope"));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_TryParsePhase_RejectsInvalidPhase()
+        {
+            WorkflowActionParameters parameters = new() { Phase = "invalid" };
+            WorkflowActionResult result = new();
+            object?[] args = [parameters, result, WorkflowPhases.request];
+
+            bool parsed = InvokePrivateStaticWithRef<bool>(typeof(WorkflowController), "TryParsePhase", args);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parsed, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("Invalid workflow phase"));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidateOfferedAction_UsesOldStateForLocallyChangedObject()
+        {
+            WfStateAction action = new()
+            {
+                Id = 1,
+                Event = StateActionEvents.OfferButton.ToString(),
+                Scope = WfObjectScopes.ImplementationTask.ToString(),
+                TaskType = WfTaskType.access.ToString()
+            };
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.implementation,
+                ActionHandler = new ActionHandler(new SimulatedApiConnection(), new WfHandler())
+            };
+            SetPrivateField(handler.ActionHandler, "states", new List<WfState>
+            {
+                new() { Id = 210, Actions = [new WfStateActionDataHelper { Action = action }] }
+            });
+            WfImplTask persistedTask = new() { StateId = 210, TaskType = WfTaskType.access.ToString() };
+            WorkflowActionParameters parameters = new()
+            {
+                ActionId = action.Id,
+                OldStateId = 210,
+                NewStateId = 249
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidateOfferedAction",
+                handler, parameters, WfObjectScopes.ImplementationTask, WorkflowPhases.implementation, persistedTask, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.True);
+                Assert.That(result.ErrorMessage, Is.Null.Or.Empty);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidateOfferedAction_RejectsWhenActionIsNotOffered()
+        {
+            WfStateAction offeredAction = new()
+            {
+                Id = 2,
+                Event = StateActionEvents.OfferButton.ToString(),
+                Scope = WfObjectScopes.ImplementationTask.ToString(),
+                TaskType = WfTaskType.access.ToString()
+            };
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.implementation,
+                ActionHandler = new ActionHandler(new SimulatedApiConnection(), new WfHandler())
+            };
+            SetPrivateField(handler.ActionHandler, "states", new List<WfState>
+            {
+                new() { Id = 210, Actions = [new WfStateActionDataHelper { Action = offeredAction }] }
+            });
+            WfImplTask persistedTask = new() { StateId = 210, TaskType = WfTaskType.access.ToString() };
+            WorkflowActionParameters parameters = new()
+            {
+                ActionId = 999,
+                OldStateId = 210,
+                NewStateId = 210
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidateOfferedAction",
+                handler, parameters, WfObjectScopes.ImplementationTask, WorkflowPhases.implementation, persistedTask, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("not offered"));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidateOfferedAction_RejectsWhenPersistedStateDiffersFromOldState()
+        {
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.implementation,
+                ActionHandler = new ActionHandler(new SimulatedApiConnection(), new WfHandler())
+            };
+            WfImplTask persistedTask = new() { StateId = 211, TaskType = WfTaskType.access.ToString() };
+            WorkflowActionParameters parameters = new()
+            {
+                ActionId = 1,
+                OldStateId = 210,
+                NewStateId = 249
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidateOfferedAction",
+                handler, parameters, WfObjectScopes.ImplementationTask, WorkflowPhases.implementation, persistedTask, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("not 210"));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidatePersistedStateTransition_AllowsPersistedTransition()
+        {
+            WfImplTask persistedTask = new() { StateId = 630 };
+            WorkflowActionParameters parameters = new()
+            {
+                OldStateId = 0,
+                NewStateId = 630
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidatePersistedStateTransition",
+                parameters, persistedTask, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.True);
+                Assert.That(result.ErrorMessage, Is.Null.Or.Empty);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidatePersistedStateTransition_RejectsNoStateChange()
+        {
+            WfTicket persistedTicket = new() { StateId = 5 };
+            WorkflowActionParameters parameters = new()
+            {
+                OldStateId = 5,
+                NewStateId = 5
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidatePersistedStateTransition",
+                parameters, persistedTicket, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("no state change"));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidatePersistedStateTransition_AllowsPersistedAdminTransitionInUserRolesMode()
+        {
+            WfImplTask persistedTask = new() { StateId = 630 };
+            WorkflowActionParameters parameters = new()
+            {
+                OldStateId = 0,
+                NewStateId = 630,
+                ExecutionMode = GlobalConst.kUserRolesSelection
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidatePersistedStateTransition",
+                parameters, persistedTask, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.True);
+                Assert.That(result.ErrorMessage, Is.Null.Or.Empty);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidatePersistedStateTransition_AllowsAlreadyPersistedTransitionForActions()
+        {
+            WfImplTask persistedTask = new() { StateId = 630 };
+            WorkflowActionParameters parameters = new()
+            {
+                OldStateId = 0,
+                NewStateId = 630
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidatePersistedStateTransition",
+                parameters, persistedTask, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.True);
+                Assert.That(result.ErrorMessage, Is.Null.Or.Empty);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidatePersistedStateTransition_AllowsCreatedObjectInitialState()
+        {
+            WfTicket persistedTicket = new() { StateId = 1 };
+            WorkflowActionParameters parameters = new()
+            {
+                OldStateId = 0,
+                NewStateId = 1,
+                StateChangedByCreation = true
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidatePersistedStateTransition",
+                parameters, persistedTicket, result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.True);
+                Assert.That(result.ErrorMessage, Is.Null.Or.Empty);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidatePersistedStateTransition_RejectsCreationWithNonzeroOldState()
+        {
+            WfImplTask persistedTask = new() { StateId = 8 };
+            WorkflowActionParameters parameters = new()
+            {
+                OldStateId = 5,
+                NewStateId = 8,
+                StateChangedByCreation = true
+            };
+            WorkflowActionResult result = new();
+
+            bool valid = InvokePrivateStatic<bool>(
+                typeof(WorkflowController),
+                "ValidatePersistedStateTransition",
+                parameters,
+                persistedTask,
+                result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(result.ErrorMessage, Does.Contain("nonzero old state"));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanAccessTicket_RequiresOwnerClaimWhenOwnerBased()
+        {
+            SimulatedUserConfig userConfig = new() { ReqOwnerBased = true };
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Tasks =
+                [
+                    new()
+                    {
+                        Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 7 } }]
+                    }
+                ]
+            };
+
+            bool ownerAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-editable-owners", "{7}")), "", userConfig, ticket);
+            bool otherOwnerRejected = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-editable-owners", "{8}")), "", userConfig, ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ownerAllowed, Is.True);
+                Assert.That(otherOwnerRejected, Is.False);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanAccessTicket_AllowsRequesterByIdOrDnWithoutLocalUser()
+        {
+            SimulatedUserConfig userConfig = new() { ReqOwnerBased = true };
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Requester = new UiUser { DbId = 5, Dn = "uid=requester,dc=fworch,dc=internal" }
+            };
+            WfTicket ticketWithoutLocalRequester = new()
+            {
+                Id = 43,
+                RequesterDn = "uid=requester,dc=fworch,dc=internal"
+            };
+
+            bool byIdAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRolesAndClaims(kRequesterRole, new Claim("x-hasura-user-id", "5")), "", userConfig, ticket);
+            // the same dn of another local user (e.g. of another directory) must not count as requester
+            bool byDnOfOtherLocalUserAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRolesAndClaims(kRequesterRole, new Claim("x-hasura-user-id", "9"), new Claim("x-hasura-uuid", "UID=REQUESTER,dc=fworch,dc=internal")), "", userConfig, ticket);
+            bool byDnWithoutLocalRequesterAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRolesAndClaims(kRequesterRole, new Claim("x-hasura-uuid", "UID=REQUESTER,dc=fworch,dc=internal")), "", userConfig, ticketWithoutLocalRequester);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(byIdAllowed, Is.True);
+                Assert.That(byDnOfOtherLocalUserAllowed, Is.False);
+                Assert.That(byDnWithoutLocalRequesterAllowed, Is.True);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanAccessTicket_DoesNotUseAdminInUserRolesMode()
+        {
+            SimulatedUserConfig userConfig = new() { ReqOwnerBased = true };
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Tasks =
+                [
+                    new()
+                    {
+                        Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 7 } }]
+                    }
+                ]
+            };
+
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRoles(Roles.Admin, Roles.Requester), GlobalConst.kUserRolesSelection, userConfig, ticket);
+
+            Assert.That(allowed, Is.False);
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanAccessTicket_AllowsTaskRequestingOwnerClaim()
+        {
+            SimulatedUserConfig userConfig = new() { ReqOwnerBased = true };
+            WfReqTask reqTask = new();
+            reqTask.SetAddInfo(AdditionalInfoKeys.ReqOwner, "9");
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Tasks = [reqTask]
+            };
+
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-editable-owners", "{9}")), "", userConfig, ticket);
+
+            Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanAccessTicket_AllowsAdminAndWhenOwnerBasedIsDisabled()
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqOwnerBased = false
+            };
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Tasks =
+                [
+                    new()
+                    {
+                        Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 7 } }]
+                    }
+                ]
+            };
+
+            bool adminAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRoles(Roles.Admin), "", userConfig, ticket);
+            bool unrestrictedAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRoles(Roles.Approver), "", userConfig, ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(adminAllowed, Is.True);
+                Assert.That(unrestrictedAllowed, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_RequiresMatchingVisibilityGroup()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqVisibilityBased = true
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    StateVisibilityGroupIds = new Dictionary<int, List<int>>
+                    {
+                        [10] = [7]
+                    }
+                },
+                ActStateMatrix = new StateMatrix
+                {
+                    StateVisibilityGroupIds = new Dictionary<int, List<int>>
+                    {
+                        [20] = [8]
+                    }
+                }
+            };
+
+            bool allowed = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-workflow-visibility-groups", "{7}")), handler, WfObjectScopes.Ticket, new WfTicket { StateId = 10 });
+            bool rejected = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-workflow-visibility-groups", "{9}")), handler, WfObjectScopes.Ticket, new WfTicket { StateId = 10 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(allowed, Is.True);
+                Assert.That(rejected, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_DeniesUntaggedObjectsForExclusiveMembers()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqVisibilityBased = true
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    ExclusiveVisibilityGroupIds = [7]
+                }
+            };
+
+            bool allowed = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-workflow-visibility-groups", "{7}")), handler, WfObjectScopes.Ticket, new WfTicket { StateId = 10 });
+
+            Assert.That(allowed, Is.False);
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_SkipsChecksWhenFeatureIsDisabled()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqVisibilityBased = false
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    StateVisibilityGroupIds = new Dictionary<int, List<int>>
+                    {
+                        [10] = [7]
+                    }
+                }
+            };
+
+            bool allowed = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-workflow-visibility-groups", "{9}")), handler, WfObjectScopes.Ticket, new WfTicket { StateId = 10 });
+
+            Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public void WorkflowController_IsExplicitlyAssigned_AllowsExplicitApprovalGroupAssignment()
+        {
+            string approvalGroupDn = "cn=approvers,ou=groups,dc=fworch,dc=internal";
+            WfApproval approval = new()
+            {
+                Id = 31,
+                StateId = 10,
+                ApproverGroup = approvalGroupDn
+            };
+            List<string> userGroups = [approvalGroupDn];
+
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "IsExplicitlyAssignedToUserOrGroups",
+                PrincipalWithRolesAndClaims([Roles.Approver]), approval, userGroups);
+            bool rejected = InvokePrivateStatic<bool>(typeof(WorkflowController), "IsExplicitlyAssignedToUserOrGroups",
+                PrincipalWithRolesAndClaims([Roles.Approver]), approval, kNoUserGroups);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(allowed, Is.True);
+                Assert.That(rejected, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_AllowsExplicitHandlerAssignment()
+        {
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqVisibilityBased = true
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    StateVisibilityGroupIds = new Dictionary<int, List<int>>
+                    {
+                        [10] = [7]
+                    }
+                }
+            };
+            WfTicket ticket = new()
+            {
+                StateId = 10,
+                CurrentHandler = new UiUser { DbId = 7, Dn = "uid=handler,dc=fworch,dc=internal" }
+            };
+
+            bool allowed = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-user-id", "7")), handler, WfObjectScopes.Ticket, ticket);
+
+            Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public void WorkflowController_IsExplicitlyAssigned_AllowsExplicitStatefulGroupAssignment()
+        {
+            string assignedGroupDn = "cn=assignees,ou=groups,dc=fworch,dc=internal";
+            WfTicket ticket = new()
+            {
+                StateId = 10,
+                AssignedGroup = assignedGroupDn
+            };
+            List<string> userGroups = [assignedGroupDn];
+
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "IsExplicitlyAssignedToUserOrGroups",
+                PrincipalWithRolesAndClaims([Roles.Approver]), ticket, userGroups);
+            bool rejected = InvokePrivateStatic<bool>(typeof(WorkflowController), "IsExplicitlyAssignedToUserOrGroups",
+                PrincipalWithRolesAndClaims([Roles.Approver]), ticket, kNoUserGroups);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(allowed, Is.True);
+                Assert.That(rejected, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_ResolvesGroupAssignmentFromLdap()
+        {
+            // the group dns are no longer in the jwt, so an assigned group must be resolved from ldap
+            string userDn = "cn=approver,ou=users,ou=operator,dc=fworch,dc=internal";
+            WfTicket ticket = new()
+            {
+                StateId = 10,
+                AssignedGroup = $"cn=assignees,{kVisibilityGroupPath}"
+            };
+
+            List<Ldap> ldaps = [CreateGroupResolvingLdap("assignees", userDn)];
+            bool allowed = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims(kApproverRole, new Claim("x-hasura-uuid", userDn), new Claim("x-hasura-user-id", $"{kVisibilityCallerId}")),
+                CreateVisibilityHandler(), WfObjectScopes.Ticket, ticket,
+                ldaps, StoredCaller(userDn));
+
+            Assert.That(allowed, Is.True);
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_ResolvesGroupsOnlyInTheCallersDirectory()
+        {
+            // a local user of another directory with the same dn must not inherit the group assignment
+            string userDn = "cn=approver,ou=users,ou=operator,dc=fworch,dc=internal";
+            TestableLdap groupResolvingLdap = CreateGroupResolvingLdap("assignees", userDn);
+            WfTicket ticket = new()
+            {
+                StateId = 10,
+                AssignedGroup = $"cn=assignees,{kVisibilityGroupPath}"
+            };
+
+            List<Ldap> ldaps = [groupResolvingLdap];
+            bool allowed = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims(kApproverRole, new Claim("x-hasura-uuid", userDn), new Claim("x-hasura-user-id", $"{kVisibilityCallerId}")),
+                CreateVisibilityHandler(), WfObjectScopes.Ticket, ticket,
+                ldaps, StoredCaller(userDn, kVisibilityLdapId + 1));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(allowed, Is.False);
+                Assert.That(groupResolvingLdap.ConnectCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_DeniesGroupAssignmentWithoutMatchingLocalUser()
+        {
+            string userDn = "cn=approver,ou=users,ou=operator,dc=fworch,dc=internal";
+            WfTicket ticket = new()
+            {
+                StateId = 10,
+                AssignedGroup = $"cn=assignees,{kVisibilityGroupPath}"
+            };
+
+            List<Ldap> ldaps = [CreateGroupResolvingLdap("assignees", userDn)];
+            List<Ldap> ldaps2 = [CreateGroupResolvingLdap("assignees", userDn)];
+            bool withoutUserId = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims(kApproverRole, new Claim("x-hasura-uuid", userDn)),
+                CreateVisibilityHandler(), WfObjectScopes.Ticket, ticket,
+                ldaps, StoredCaller(userDn));
+            bool withOtherDn = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims(kApproverRole, new Claim("x-hasura-uuid", userDn), new Claim("x-hasura-user-id", $"{kVisibilityCallerId}")),
+                CreateVisibilityHandler(), WfObjectScopes.Ticket, ticket,
+                ldaps2, StoredCaller("cn=other,ou=users,ou=operator,dc=fworch,dc=internal"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(withoutUserId, Is.False);
+                Assert.That(withOtherDn, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_DeniesWhenLdapReportsNoMatchingGroup()
+        {
+            string userDn = "cn=outsider,ou=users,ou=operator,dc=fworch,dc=internal";
+            WfTicket ticket = new()
+            {
+                StateId = 10,
+                AssignedGroup = $"cn=assignees,{kVisibilityGroupPath}"
+            };
+
+            List<Ldap> ldaps = [CreateGroupResolvingLdap("some-other-group", userDn)];
+            bool allowed = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims(kApproverRole, new Claim("x-hasura-uuid", userDn), new Claim("x-hasura-user-id", $"{kVisibilityCallerId}")),
+                CreateVisibilityHandler(), WfObjectScopes.Ticket, ticket,
+                ldaps, StoredCaller(userDn));
+
+            Assert.That(allowed, Is.False);
+        }
+
+        [Test]
+        public async Task WorkflowController_CallerCanAccessVisibility_SkipsLdapWhenNoGroupIsAssigned()
+        {
+            RecordingLdapClient connection = new();
+            TestableLdap ldap = new(connection)
+            {
+                SearchUser = kLdapSearchUser,
+                SearchUserPwd = kLdapSearchPassword,
+                UserSearchPath = kVisibilityUserPath,
+                GroupSearchPath = kVisibilityGroupPath
+            };
+
+            bool allowed = await InvokeCallerCanAccessVisibility(
+                PrincipalWithRolesAndClaims([Roles.Approver], new Claim("x-hasura-uuid", "cn=nobody,ou=users,ou=operator,dc=fworch,dc=internal")),
+                CreateVisibilityHandler(), WfObjectScopes.Ticket, new WfTicket { StateId = 10 },
+                [ldap]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(allowed, Is.False);
+                // no group assignment exists, so the expensive ldap lookup must be skipped entirely
+                Assert.That(connection.ReadCalls, Is.Empty);
+                Assert.That(connection.SearchCalls, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_CallerCanExecutePhase_MapsEveryPhaseToItsRole()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokeCallerCanExecutePhase(Roles.Planner, WorkflowPhases.planning), Is.True);
+                Assert.That(InvokeCallerCanExecutePhase(Roles.Implementer, WorkflowPhases.implementation), Is.True);
+                Assert.That(InvokeCallerCanExecutePhase(Roles.Reviewer, WorkflowPhases.review), Is.True);
+                Assert.That(InvokeCallerCanExecutePhase(Roles.Requester, WorkflowPhases.request), Is.True);
+                Assert.That(InvokeCallerCanExecutePhase(Roles.Approver, WorkflowPhases.approval), Is.True);
+                // a role from a different phase must not unlock the phase
+                Assert.That(InvokeCallerCanExecutePhase(Roles.Reviewer, WorkflowPhases.planning), Is.False);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ResolveAffectedReqTask_ResolvesPerScope()
+        {
+            WfReqTask reqTask = new() { Id = 5, TicketId = 1 };
+            WfImplTask implTask = new() { Id = 9, ReqTaskId = 5 };
+            WfTicket ticket = new() { Id = 1, Tasks = [reqTask] };
+
+            WfReqTask? direct = InvokePrivateStatic<WfReqTask?>(typeof(WorkflowController), "ResolveAffectedReqTask",
+                ticket, WfObjectScopes.RequestTask, reqTask, 5L);
+            WfReqTask? byId = InvokePrivateStatic<WfReqTask?>(typeof(WorkflowController), "ResolveAffectedReqTask",
+                ticket, WfObjectScopes.RequestTask, new WfTicket(), 5L);
+            WfReqTask? viaImplTask = InvokePrivateStatic<WfReqTask?>(typeof(WorkflowController), "ResolveAffectedReqTask",
+                ticket, WfObjectScopes.ImplementationTask, implTask, 0L);
+            WfReqTask? unsupported = InvokePrivateStatic<WfReqTask?>(typeof(WorkflowController), "ResolveAffectedReqTask",
+                ticket, WfObjectScopes.Approval, reqTask, 5L);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(direct, Is.SameAs(reqTask));
+                Assert.That(byId, Is.SameAs(reqTask));
+                Assert.That(viaImplTask, Is.SameAs(reqTask));
+                Assert.That(unsupported, Is.Null);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_IsInternalWorkTask_DetectsInternalWorkTarget()
+        {
+            WfReqTask internalWork = new();
+            internalWork.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
+            WfReqTask other = new();
+            other.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, "something-else");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "IsInternalWorkTask", internalWork), Is.True);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "IsInternalWorkTask", other), Is.False);
+                Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "IsInternalWorkTask", (WfReqTask?)null), Is.False);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ValidatePersistedStateTransition_RejectsNonTransitions()
+        {
+            WorkflowActionResult noChangeResult = new();
+            WorkflowActionResult staleResult = new();
+            WorkflowActionResult okResult = new();
+
+            bool noChange = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidatePersistedStateTransition",
+                new WorkflowActionParameters { OldStateId = 10, NewStateId = 10 }, new WfTicket { StateId = 10 }, noChangeResult);
+            bool stale = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidatePersistedStateTransition",
+                new WorkflowActionParameters { OldStateId = 10, NewStateId = 20 }, new WfTicket { StateId = 10 }, staleResult);
+            bool valid = InvokePrivateStatic<bool>(typeof(WorkflowController), "ValidatePersistedStateTransition",
+                new WorkflowActionParameters { OldStateId = 10, NewStateId = 20 }, new WfTicket { StateId = 20 }, okResult);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(noChange, Is.False);
+                Assert.That(stale, Is.False);
+                Assert.That(valid, Is.True);
+                Assert.That(staleResult.ErrorMessage, Does.Contain("not 20"));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ResolveActionContext_ReturnsEmptyContextForUnknownObjects()
+        {
+            WfHandler handler = CreateVisibilityHandler();
+            WfTicket ticket = new() { Id = 3, Tasks = [] };
+
+            (WfStatefulObject? implObject, _, _, _) = InvokePrivateStatic<(WfStatefulObject?, FwoOwner?, long?, string?)>(
+                typeof(WorkflowController), "ResolveImplementationTask", handler, ticket, 404L);
+            (WfStatefulObject? approvalObject, _, _, _) = InvokePrivateStatic<(WfStatefulObject?, FwoOwner?, long?, string?)>(
+                typeof(WorkflowController), "ResolveApproval", handler, ticket, 404L);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(implObject, Is.Null);
+                Assert.That(approvalObject, Is.Null);
+            });
+        }
+
+        [Test]
+        public void WorkflowController_CollectAssignedGroupDns_ReturnsOnlyNonEmptyGroupDns()
+        {
+            WfApproval approvalWithBoth = new()
+            {
+                AssignedGroup = "cn=assignees,ou=groups,dc=fworch,dc=internal",
+                ApproverGroup = "cn=approvers,ou=groups,dc=fworch,dc=internal"
+            };
+            WfTicket ticketWithout = new() { AssignedGroup = "  " };
+
+            List<string> both = InvokePrivateStatic<List<string>>(typeof(WorkflowController), "CollectAssignedGroupDns", approvalWithBoth);
+            List<string> none = InvokePrivateStatic<List<string>>(typeof(WorkflowController), "CollectAssignedGroupDns", ticketWithout);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(both, Is.EqualTo(kExpectedAssignedGroupDns));
+                Assert.That(none, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task WorkflowRecipientResolver_ResolveUserDns_ReturnsDistinctDirectUserDns()
+        {
+            WorkflowRecipientResolver resolver = new(new RecipientResolverApiConn(), []);
+
+            List<string> resolvedDns = await resolver.ResolveUserDns([
+                "uid=user,ou=users,dc=test",
+                "UID=USER,ou=users,dc=test",
+                ""
+            ]);
+
+            Assert.That(resolvedDns, Is.EqualTo(kExpectedResolvedUserDns));
+        }
+
+        [Test]
+        public void WorkflowController_GetClaimHelpers_ParseIdsValuesAndJsonClaims()
+        {
+            ClaimsPrincipal user = PrincipalWithRolesAndClaims(
+                [Roles.Approver],
+                new Claim("x-hasura-user-id", "17"),
+                new Claim("x-hasura-uuid", "uid=test,dc=fworch,dc=internal"),
+                new Claim("x-hasura-workflow-visibility-groups", "{ 2, 4, x, 9 }"));
+
+            HashSet<int> ids = InvokePrivateStatic<HashSet<int>>(typeof(WorkflowController), "GetClaimIds", user, "x-hasura-workflow-visibility-groups");
+            int? userId = InvokePrivateStatic<int?>(typeof(WorkflowController), "GetClaimInt", user, "x-hasura-user-id");
+            string? uuid = InvokePrivateStatic<string?>(typeof(WorkflowController), "GetClaimValue", user, "x-hasura-uuid");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ids, Is.EquivalentTo([2, 4, 9]));
+                Assert.That(userId, Is.EqualTo(17));
+                Assert.That(uuid, Is.EqualTo("uid=test,dc=fworch,dc=internal"));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_GetTicketId_UsesTicketIdForNonTicketScope()
+        {
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.RequestTask.ToString(),
+                ObjectId = 42,
+                TicketId = 17
+            };
+
+            long ticketId = InvokePrivateStatic<long>(typeof(WorkflowController), "GetTicketId", parameters, WfObjectScopes.RequestTask);
+
+            Assert.That(ticketId, Is.EqualTo(17));
+        }
+
+        [Test]
+        public void WorkflowController_GetTicketId_UsesExplicitTicketIdForTicketScope()
+        {
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                ObjectId = 42,
+                TicketId = 99
+            };
+
+            long ticketId = InvokePrivateStatic<long>(typeof(WorkflowController), "GetTicketId", parameters, WfObjectScopes.Ticket);
+
+            Assert.That(ticketId, Is.EqualTo(99));
+        }
+
+        [Test]
+        public void WorkflowController_ResolveActionContext_ReturnsTicketScopeTuple()
+        {
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Requester = new UiUser { Dn = "uid=requester,dc=fworch,dc=internal" }
+            };
+            WorkflowActionParameters parameters = new()
+            {
+                TicketId = 42
+            };
+
+            object context = InvokePrivateStatic<object>(typeof(WorkflowController), "ResolveActionContext", new WfHandler(), ticket, parameters, WfObjectScopes.Ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetTupleItem<WfStatefulObject?>(context, "Item1"), Is.SameAs(ticket));
+                Assert.That(GetTupleItem<FwoOwner?>(context, "Item2"), Is.Null);
+                Assert.That(GetTupleItem<long?>(context, "Item3"), Is.EqualTo(42));
+                Assert.That(GetTupleItem<string?>(context, "Item4"), Is.EqualTo("uid=requester,dc=fworch,dc=internal"));
+            });
+        }
+
+        [Test]
+        public async Task WorkflowRecipientResolver_ResolveUsers_UsesCachedUiUsersWithEmail()
+        {
+            RecipientResolverApiConn apiConn = new()
+            {
+                Users =
+                [
+                    new() { Dn = "uid=user,ou=users,dc=test", Email = "user@example.test" },
+                    new() { Dn = "uid=other,ou=users,dc=test", Email = "other@example.test" }
+                ]
+            };
+            WorkflowRecipientResolver resolver = new(apiConn, []);
+
+            List<UiUser> users = await resolver.ResolveUsers(["uid=user,ou=users,dc=test"]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Is.EqualTo(kGetUserEmailsQuery));
+                Assert.That(users, Has.Count.EqualTo(1));
+                Assert.That(users[0].Email, Is.EqualTo("user@example.test"));
+            });
+        }
+
+        [Test]
+        public async Task WorkflowRecipientResolver_ResolveUsers_ReturnsEmptyWhenDnsAreBlank()
+        {
+            RecipientResolverApiConn apiConn = new();
+            WorkflowRecipientResolver resolver = new(apiConn, []);
+
+            List<UiUser> users = await resolver.ResolveUsers(["", "   "]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(users, Is.Empty);
+                Assert.That(apiConn.Queries, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task WorkflowRecipientResolver_ResolveUsers_ReturnsCachedUserWithoutEmailWhenLdapLookupUnavailable()
+        {
+            RecipientResolverApiConn apiConn = new()
+            {
+                Users =
+                [
+                    new() { Dn = "uid=user,ou=users,dc=test", Name = "user" }
+                ]
+            };
+            WorkflowRecipientResolver resolver = new(apiConn, []);
+
+            List<UiUser> users = await resolver.ResolveUsers(["uid=user,ou=users,dc=test"]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Is.EqualTo(kGetUserEmailsQuery));
+                Assert.That(users, Has.Count.EqualTo(1));
+                Assert.That(users[0].Dn, Is.EqualTo("uid=user,ou=users,dc=test"));
+                Assert.That(users[0].Email, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task WorkflowRecipientResolver_ResolveUsers_ReturnsEmptyWhenDnCannotBeResolved()
+        {
+            RecipientResolverApiConn apiConn = new();
+            WorkflowRecipientResolver resolver = new(apiConn, []);
+
+            List<UiUser> users = await resolver.ResolveUsers(["uid=missing,ou=users,dc=test"]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Is.EqualTo(kGetUserEmailsQuery));
+                Assert.That(users, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task WorkflowRecipientResolver_ResolveUserDns_UsesGroupHandlingLdapForDistinctDirectDns()
+        {
+            Ldap ldap = new()
+            {
+                GroupSearchPath = "ou=groups,dc=test",
+                GroupWritePath = "ou=write,dc=test",
+                UserSearchPath = ""
+            };
+            WorkflowRecipientResolver resolver = new(new RecipientResolverApiConn(), [ldap]);
+
+            List<string> resolvedDns = await resolver.ResolveUserDns([
+                "uid=user,ou=users,dc=test",
+                "UID=USER,ou=users,dc=test",
+                "cn=group,ou=groups,dc=test"
+            ]);
+
+            Assert.That(resolvedDns, Is.EqualTo(kExpectedResolvedUserDns));
+        }
+
+        [Test]
+        public async Task WorkflowRecipientResolver_ResolveUserDns_IgnoresLdapsWithoutGroupHandling()
+        {
+            Ldap ldap = new()
+            {
+                UserSearchPath = "ou=users,dc=test"
+            };
+            WorkflowRecipientResolver resolver = new(new RecipientResolverApiConn(), [ldap]);
+
+            List<string> resolvedDns = await resolver.ResolveUserDns([
+                "uid=user,ou=users,dc=test",
+                "cn=group,ou=groups,dc=test"
+            ]);
+
+            Assert.That(resolvedDns, Is.EqualTo([
+                "uid=user,ou=users,dc=test",
+                "cn=group,ou=groups,dc=test"
+            ]));
+        }
+
+        [Test]
+        public void ActionHandler_Constructor_UsesExplicitResolverAndPolicyChecker()
+        {
+            TestWorkflowRecipientResolver resolver = new();
+            TestRequestedRulePolicyChecker policyChecker = new();
+            ActionHandler handler = new(new RecipientResolverApiConn(), new WfHandler(), null, true, policyChecker, resolver);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<IWorkflowRecipientResolver?>(handler, "workflowRecipientResolver"), Is.SameAs(resolver));
+                Assert.That(GetPrivateField<IRequestedRulePolicyChecker?>(handler, "requestedRulePolicyChecker"), Is.SameAs(policyChecker));
+            });
+        }
+
+        [Test]
+        public void WfHandler_MiddlewareConstructor_StoresWorkflowDependencies()
+        {
+            TestWorkflowRecipientResolver resolver = new();
+            TestRequestedRulePolicyChecker policyChecker = new();
+            WfHandler handler = new(new SimulatedUserConfig(), new RecipientResolverApiConn(), WorkflowPhases.approval, [], policyChecker, null, resolver);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.Phase, Is.EqualTo(WorkflowPhases.approval));
+                Assert.That(handler.RequestedRulePolicyChecker, Is.SameAs(policyChecker));
+                Assert.That(handler.WorkflowRecipientResolver, Is.SameAs(resolver));
+            });
+        }
+
+        private static T InvokePrivateStatic<T>(Type type, string methodName, params object?[] parameters)
+        {
+            MethodInfo method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException($"{methodName} not found.");
+            return (T)method.Invoke(null, parameters)!;
+        }
+
+        private static async Task<bool> InvokeCallerCanAccessVisibility(ClaimsPrincipal user, WfHandler handler,
+            WfObjectScopes scope, WfStatefulObject statefulObject)
+        {
+            return await InvokeCallerCanAccessVisibility(user, handler, scope, statefulObject, kNoLdaps);
+        }
+
+        private static async Task<bool> InvokeCallerCanAccessVisibility(ClaimsPrincipal user, WfHandler handler,
+            WfObjectScopes scope, WfStatefulObject statefulObject, List<Ldap> ldaps, UiUser? storedCaller = null)
+        {
+            WorkflowController controller = CreateWorkflowController(user, ldaps);
+            MethodInfo method = typeof(WorkflowController).GetMethod("CallerCanAccessVisibility", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("CallerCanAccessVisibility not found.");
+            using StoredCallerApiConnection apiConnection = new(storedCaller);
+            object?[] arguments = [user, apiConnection, handler, scope, statefulObject];
+            return await (Task<bool>)method.Invoke(controller, arguments)!;
+        }
+
+        /// <summary>
+        /// Answers the lookup of the caller's local user by its id.
+        /// </summary>
+        private sealed class StoredCallerApiConnection(UiUser? storedCaller) : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query != AuthQueries.getUserByDbId)
+                {
+                    throw new NotImplementedException(query);
+                }
+                UiUser[] storedUsers = storedCaller == null ? [] : [storedCaller];
+                return Task.FromResult((QueryResponseType)(object)storedUsers);
+            }
+        }
+
+        private static async Task<T> InvokePrivateStaticAsync<T>(Type type, string methodName, params object?[] parameters)
+        {
+            MethodInfo method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException($"{methodName} not found.");
+            return await (Task<T>)method.Invoke(null, parameters)!;
+        }
+
+        private static T CreateEmptyQueryResult<T>()
+        {
+            Type resultType = typeof(T);
+            if (resultType.IsArray)
+            {
+                return (T)(object)Array.CreateInstance(resultType.GetElementType()!, 0);
+            }
+
+            if (resultType.IsGenericType && resultType.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                return (T)Activator.CreateInstance(resultType)!;
+            }
+
+            return default!;
+        }
+
+        private static async Task<T> InvokePrivateAsync<T>(object instance, string methodName, params object?[] parameters)
+        {
+            MethodInfo method = instance.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException($"{methodName} not found.");
+            return await (Task<T>)method.Invoke(instance, parameters)!;
+        }
+
+        private static T InvokePrivateStaticWithRef<T>(Type type, string methodName, object?[] parameters)
+        {
+            MethodInfo method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException($"{methodName} not found.");
+            return (T)method.Invoke(null, parameters)!;
+        }
+
+        private static ClaimsPrincipal PrincipalWithRoles(params string[] roles)
+        {
+            ClaimsIdentity identity = new(roles.Select(role => new Claim(ClaimTypes.Role, role)), "test");
+            return new ClaimsPrincipal(identity);
+        }
+
+        private static ClaimsPrincipal PrincipalWithRolesAndClaims(string[] roles, params Claim[] claims)
+        {
+            ClaimsIdentity identity = new(roles.Select(role => new Claim(ClaimTypes.Role, role)).Concat(claims), "test");
+            return new ClaimsPrincipal(identity);
+        }
+
+        private static WorkflowController CreateWorkflowController(ClaimsPrincipal user)
+        {
+            return CreateWorkflowController(user, kNoLdaps);
+        }
+
+        private static bool InvokeCallerCanExecutePhase(string role, WorkflowPhases phase)
+        {
+            return InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase",
+                PrincipalWithRoles([role]), GlobalConst.kUserRolesSelection, phase);
+        }
+
+        private static WfHandler CreateVisibilityHandler()
+        {
+            return new WfHandler
+            {
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqVisibilityBased = true
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    StateVisibilityGroupIds = new Dictionary<int, List<int>>
+                    {
+                        [10] = [7]
+                    }
+                }
+            };
+        }
+
+        private static TestableLdap CreateGroupResolvingLdap(string groupName, string memberDn)
+        {
+            RecordingLdapClient connection = new()
+            {
+                ReadResult = LdapTestSupport.CreateEntry(memberDn,
+                    new LdapAttribute("memberOf", $"cn={groupName},{kVisibilityGroupPath}"))
+            };
+            return new TestableLdap(connection)
+            {
+                Id = kVisibilityLdapId,
+                SearchUser = kLdapSearchUser,
+                SearchUserPwd = kLdapSearchPassword,
+                UserSearchPath = kVisibilityUserPath,
+                GroupSearchPath = kVisibilityGroupPath
+            };
+        }
+
+        private static UiUser StoredCaller(string userDn, int ldapId = kVisibilityLdapId)
+        {
+            return new UiUser { DbId = kVisibilityCallerId, Dn = userDn, LdapConnection = new() { Id = ldapId } };
+        }
+
+        private static WorkflowController CreateWorkflowController(ClaimsPrincipal user, List<Ldap> ldaps)
+        {
+            RSA rsa = RSA.Create(2048);
+            WorkflowController controller = new(new SimulatedGlobalConfig(), ldaps, new JwtWriter(new RsaSecurityKey(rsa)), new TokenLifetimeProvider())
+            {
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext
+                    {
+                        User = user
+                    }
+                }
+            };
+            return controller;
+        }
+
+        private static int GetTicketActionLockCount()
+        {
+            return GetTicketActionLocks().Count;
+        }
+
+        private static KeyedAsyncLock<long> GetTicketActionLocks()
+        {
+            FieldInfo field = typeof(WorkflowController).GetField("TicketActionLocks", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingFieldException(nameof(WorkflowController), "TicketActionLocks");
+            return (KeyedAsyncLock<long>)field.GetValue(null)!;
+        }
+
+        private static string? GetApiServerUri()
+        {
+            Type configFileType = typeof(FWO.Config.File.ConfigFile);
+            PropertyInfo dataProperty = configFileType.GetProperty("Data", BindingFlags.Static | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("ConfigFile.Data not found.");
+            object data = dataProperty.GetValue(null)!;
+            return (string?)data.GetType().GetProperty("ApiServerUri", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.GetValue(data);
+        }
+
+        private static void SetApiServerUri(string? apiServerUri)
+        {
+            Type configFileType = typeof(FWO.Config.File.ConfigFile);
+            Type? configFileDataType = configFileType.GetNestedType("ConfigFileData", BindingFlags.NonPublic);
+            object configData = Activator.CreateInstance(configFileDataType ?? throw new MissingMemberException(configFileType.FullName, "ConfigFileData"))
+                ?? throw new InvalidOperationException("Could not create config file data.");
+            configFileDataType.GetProperty("ApiServerUri", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!
+                .SetValue(configData, apiServerUri);
+            configFileType.GetProperty("Data", BindingFlags.Static | BindingFlags.NonPublic)!
+                .SetValue(null, configData);
+        }
+
+        private static T GetPrivateField<T>(object instance, string fieldName)
+        {
+            FieldInfo field = instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException($"{fieldName} not found.");
+            return (T)field.GetValue(instance)!;
+        }
+
+        private static void SetPrivateField(object instance, string fieldName, object? value)
+        {
+            FieldInfo field = instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException($"{fieldName} not found.");
+            field.SetValue(instance, value);
+        }
+
+        private static T GetTupleItem<T>(object tuple, string itemName)
+        {
+            FieldInfo field = tuple.GetType().GetField(itemName)
+                ?? throw new InvalidOperationException($"{itemName} not found.");
+            return (T)field.GetValue(tuple)!;
+        }
+    }
+}

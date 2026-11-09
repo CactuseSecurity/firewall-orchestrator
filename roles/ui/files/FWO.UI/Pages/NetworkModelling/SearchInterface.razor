@@ -1,4 +1,4 @@
-﻿@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -16,14 +16,14 @@
         <div class="btn-group">
             @if (SelectedInterfaces.Count > 0)
             {
-                <AuthorizeView Roles="@Roles.Modeller">
+                <ExecutionModeAuthorizeView Roles="@Roles.Modeller">
                     <Authorized>
                         <button type="button" class="btn btn-sm btn-success" @onclick="SelectInterface">@(DisplayService.DisplayButton(userConfig, "select", Icons.Select))</button>
                     </Authorized>
                     <NotAuthorized>
                         <button type="button" class="btn btn-sm btn-success" disabled>@(DisplayService.DisplayButton(userConfig, "select", Icons.Select))</button>
                     </NotAuthorized>
-                </AuthorizeView>
+                </ExecutionModeAuthorizeView>
             }
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
@@ -111,6 +111,11 @@
 
                 foreach (ModellingConnection @interface in SelectedInterfaces)
                 {
+                    if (PreselectedInterfaces.Any(selected => selected.Id == @interface.Id))
+                    {
+                        continue;
+                    }
+
                     var Variables = new
                     {
                         appId = Application.Id,
@@ -118,7 +123,7 @@
                     };
 
                     await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addSelectedConnection, Variables);
-                    PreselectedInterfaces.Add(@interface ?? throw new ArgumentException("No Interface selected."));
+                    PreselectedInterfaces.Add(@interface);
                 }
 
                 RefreshSelectionList();

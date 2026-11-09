@@ -1,0 +1,536 @@
+@using FWO.Data
+@using FWO.Data.Workflow
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+@if (EditMode)
+{
+    <div class="form-group row mt-2">
+        <div class="col-sm-6">
+            <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="objectKind" id="objKindNetwork" autocomplete="off"
+                       checked="@(kind == ObjectTaskKind.Network)" @onchange="() => SetKind(ObjectTaskKind.Network)">
+                <label class="btn btn-outline-primary" for="objKindNetwork">@(userConfig.GetText("network_object"))</label>
+
+                <input type="radio" class="btn-check" name="objectKind" id="objKindService" autocomplete="off"
+                       checked="@(kind == ObjectTaskKind.Service)" @onchange="() => SetKind(ObjectTaskKind.Service)">
+                <label class="btn btn-outline-primary" for="objKindService">@(userConfig.GetText("service"))</label>
+
+                <input type="radio" class="btn-check" name="objectKind" id="objKindTime" autocomplete="off"
+                       checked="@(kind == ObjectTaskKind.Time)" @onchange="() => SetKind(ObjectTaskKind.Time)">
+                <label class="btn btn-outline-primary" for="objKindTime">@(userConfig.GetText("time_object"))</label>
+            </div>
+        </div>
+    </div>
+    @if (IsModify)
+    {
+        <div class="form-group row mt-2">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("object"))*:</label>
+            <div class="col-sm-6">
+                @if (ManagementId is > 0)
+                {
+                    <ObjectSelector @key="@($"{ManagementId}-{kind}")" ManagementId="ManagementId.Value" Kind="kind" IpProtos="DisplayIpProtos"
+                        SelectedNetworkObject="selectedNetworkObject" SelectedNetworkObjectChanged="SelectNetworkObject"
+                        SelectedService="selectedService" SelectedServiceChanged="SelectService"
+                        SelectedTimeObject="selectedTimeObject" SelectedTimeObjectChanged="SelectTimeObject" />
+                }
+                else
+                {
+                    <label class="col-form-label col-form-label-sm text-muted">@(userConfig.GetText("select_management_first"))</label>
+                }
+            </div>
+        </div>
+    }
+    <div class="form-group row mt-2">
+        <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+        <div class="col-sm-3">
+            <input type="text" class="form-control form-control-sm" @bind="objectName" />
+        </div>
+        @if (kind == ObjectTaskKind.Network)
+        {
+            <div class="col-sm-4">
+                <input type="text" class="form-control form-control-sm @(ValidationClass(networkInputValid))" placeholder="@(userConfig.GetText("ip_addresses"))"
+                    @bind="NetworkInput" @bind:event="oninput" />
+            </div>
+        }
+        else if (kind == ObjectTaskKind.Time)
+        {
+            <label class="col-sm-1 col-form-label col-form-label-sm" for="objStartDate">@(userConfig.GetText("start_time")):</label>
+            <div class="col-sm-3 d-flex gap-1">
+                <input id="objStartDate" type="date" class="form-control form-control-sm @(ValidationClass(startInputValid))" value="@startDateInput" @oninput="SetStartDate" />
+                <input id="objStartTime" type="time" class="form-control form-control-sm @(ValidationClass(startInputValid))" value="@startTimeInput" @oninput="SetStartTime" />
+            </div>
+            <label class="col-sm-1 col-form-label col-form-label-sm" for="objEndDate">@(userConfig.GetText("end_time")):</label>
+            <div class="col-sm-3 d-flex gap-1">
+                <input id="objEndDate" type="date" class="form-control form-control-sm @(ValidationClass(EndInputValid))" value="@endDateInput" @oninput="SetEndDate" />
+                <input id="objEndTime" type="time" class="form-control form-control-sm @(ValidationClass(EndInputValid))" value="@endTimeInput" @oninput="SetEndTime" />
+            </div>
+        }
+        else
+        {
+            <div class="col-sm-2">
+                <Dropdown ElementType="int" @bind-SelectedElement="ProtoId"
+                    ElementToString="@(protoId => SelectableIpProtos.FirstOrDefault(x => x.Id == protoId)?.Name ?? "")" Elements="SelectableIpProtos.ConvertAll(x => x.Id)">
+                    <ElementTemplate Context="proto">
+                        @(SelectableIpProtos.FirstOrDefault(x => x.Id == proto)?.Name)
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+            @if (IpProtocol.HasPorts(protoId))
+            {
+                <div class="col-sm-2">
+                    <input type="text" class="form-control form-control-sm @(ValidationClass(portInputValid))" placeholder="@(userConfig.GetText("port_range"))"
+                        @bind="PortInput" @bind:event="oninput" />
+                </div>
+            }
+        }
+    </div>
+    @if (IsModify && original != null)
+    {
+        <div class="form-group row">
+            <div class="offset-sm-1 col-sm-10">
+                <small class="text-muted">@(userConfig.GetText("previous_state")): @DisplayElement(original)</small>
+            </div>
+        </div>
+    }
+}
+else
+{
+    @if (!IsModify && requested != null)
+    {
+        <div class="form-group row mt-2">
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText(ObjectTypeTextKey())):</label>
+            <div class="col-sm-3">
+                <label class="col-sm-12 h-100 border bg-secondary">@requested.Name</label>
+            </div>
+        </div>
+    }
+    <div class="form-group row mt-2">
+        <div class="list-group col-sm-6">
+            @if (original != null)
+            {
+                <div class="list-group-item border bg-secondary">
+                    <label>@(userConfig.GetText("previous_state")): @DisplayElement(original)</label>
+                </div>
+            }
+            @if (!IsModify && requested != null)
+            {
+                <div class="list-group-item border bg-secondary">
+                    <label>@DisplayElement(requested, false)</label>
+                </div>
+            }
+            else if (requested != null)
+            {
+                <div class="list-group-item border bg-secondary">
+                    <label>@(userConfig.GetText("requested_state")): @DisplayElement(requested)</label>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public WfReqTask ReqTask { get; set; } = new();
+
+    [Parameter]
+    public bool IsModify { get; set; }
+
+    [Parameter]
+    public int? ManagementId { get; set; }
+
+    [Parameter]
+    public bool EditMode { get; set; }
+
+    [Parameter]
+    public List<IpProtocol> SelectableIpProtos { get; set; } = [];
+
+    [Parameter]
+    public List<IpProtocol> DisplayIpProtos { get; set; } = [];
+
+    private WfReqTask? initializedTask;
+    private ObjectTaskKind kind;
+    private WfReqElement? original;
+    private int? selectionManagementId;
+    private WfReqElement? requested;
+    private NetworkObject? selectedNetworkObject;
+    private NetworkService? selectedService;
+    private TimeObject? selectedTimeObject;
+    private DateTime? startTime;
+    private DateTime? endTime;
+    // the inputs are kept as typed: a date or time entered alone must not be cleared by the next rendering
+    private string startDateInput = "";
+    private string startTimeInput = "";
+    private string endDateInput = "";
+    private string endTimeInput = "";
+    private bool? startInputValid;
+    private bool? endInputValid;
+    private string? objectName;
+    private string networkInput = "";
+    private bool? networkInputValid;
+    private int protoId;
+    private string portInput = "";
+    private bool? portInputValid;
+
+    private string NetworkInput
+    {
+        get => networkInput;
+        set
+        {
+            networkInput = value;
+            networkInputValid = string.IsNullOrWhiteSpace(value) ? null : WfObjectTaskHelper.TryParseNetworkInput(value, ReqTask.Id, out _);
+        }
+    }
+
+    private string PortInput
+    {
+        get => portInput;
+        set
+        {
+            portInput = value;
+            portInputValid = string.IsNullOrWhiteSpace(value) ? null : WfObjectTaskHelper.TryParsePortInput(value, out _, out _);
+        }
+    }
+
+    /// <summary>
+    /// False when both bounds are entered and the start lies after the end, otherwise null (no marking).
+    /// </summary>
+    private bool? TimeBoundsValid => startTime.HasValue && endTime.HasValue && startTime > endTime ? false : null;
+
+    /// <summary>
+    /// Marks the end input as invalid when it cannot be read or lies before the start.
+    /// </summary>
+    private bool? EndInputValid => endInputValid ?? TimeBoundsValid;
+
+    private int ProtoId
+    {
+        get => protoId;
+        set
+        {
+            protoId = value;
+            if (!IpProtocol.HasPorts(protoId))
+            {
+                PortInput = "";
+            }
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(initializedTask, ReqTask))
+        {
+            initializedTask = ReqTask;
+            InitFromTask();
+        }
+        else if (IsModify && original != null && selectionManagementId != ManagementId)
+        {
+            // the selected object belongs to the previous management and is no longer offered by the search
+            ClearSelection();
+        }
+    }
+
+    private void InitFromTask()
+    {
+        original = WfObjectTaskHelper.GetOriginalElement(ReqTask);
+        requested = WfObjectTaskHelper.GetRequestedElement(ReqTask);
+        kind = WfObjectTaskHelper.GetKind(requested ?? original);
+        selectedNetworkObject = null;
+        selectedService = null;
+        selectedTimeObject = null;
+        objectName = requested?.Name;
+        protoId = requested?.ProtoId ?? SelectableIpProtos.FirstOrDefault()?.Id ?? 0;
+        networkInput = requested != null && kind == ObjectTaskKind.Network ? WfObjectTaskHelper.FormatNetworkInput(ToNwObjectElement(requested)) : "";
+        portInput = requested != null && kind == ObjectTaskKind.Service ? WfObjectTaskHelper.FormatPortInput(requested.Port, requested.PortEnd) : "";
+        SetTimeBounds(kind == ObjectTaskKind.Time ? requested?.StartTime : null, kind == ObjectTaskKind.Time ? requested?.EndTime : null);
+        networkInputValid = null;
+        portInputValid = null;
+        if (original != null)
+        {
+            InitSelection(original);
+        }
+        // stored elements reference an object of the management stored with the task
+        selectionManagementId = original != null ? ReqTask.ManagementId ?? ManagementId : null;
+    }
+
+    private void InitSelection(WfReqElement originalElement)
+    {
+        switch (kind)
+        {
+            case ObjectTaskKind.Service:
+                selectedService = new() { Id = originalElement.ServiceId ?? 0, Name = originalElement.Name ?? "", ProtoId = originalElement.ProtoId,
+                    DestinationPort = originalElement.Port, DestinationPortEnd = originalElement.PortEnd };
+                break;
+            case ObjectTaskKind.Time:
+                selectedTimeObject = new() { Id = originalElement.TimeObjId ?? 0, Name = originalElement.Name ?? "",
+                    StartTime = originalElement.StartTime, EndTime = originalElement.EndTime };
+                break;
+            default:
+                selectedNetworkObject = new() { Id = originalElement.NetworkId ?? 0, Name = originalElement.Name ?? "",
+                    IP = originalElement.IpString, IpEnd = originalElement.IpEnd };
+                break;
+        }
+    }
+
+    private void SetKind(ObjectTaskKind newKind)
+    {
+        if (kind == newKind)
+        {
+            return;
+        }
+        kind = newKind;
+        ClearSelection();
+    }
+
+    private void ClearSelection()
+    {
+        original = null;
+        selectedNetworkObject = null;
+        selectedService = null;
+        selectedTimeObject = null;
+        selectionManagementId = null;
+        if (IsModify)
+        {
+            // the name was prefilled from the dropped object
+            objectName = null;
+        }
+        NetworkInput = "";
+        PortInput = "";
+        SetTimeBounds(null, null);
+    }
+
+    private void SelectNetworkObject(NetworkObject? networkObject)
+    {
+        selectionManagementId = ManagementId;
+        selectedNetworkObject = networkObject;
+        original = networkObject == null ? null
+            : WfObjectTaskHelper.ToNwObjectElement(networkObject, RequestAction.unchanged.ToString(), ReqTask.Id).ToReqElement(ElemFieldType.source);
+        objectName = networkObject?.Name;
+        NetworkInput = original != null ? WfObjectTaskHelper.FormatNetworkInput(ToNwObjectElement(original)) : "";
+    }
+
+    private void SelectService(NetworkService? service)
+    {
+        selectionManagementId = ManagementId;
+        selectedService = service;
+        original = service == null ? null
+            : WfObjectTaskHelper.ToNwServiceElement(service, RequestAction.unchanged.ToString(), ReqTask.Id).ToReqElement();
+        objectName = service?.Name;
+        protoId = service?.ProtoId ?? protoId;
+        PortInput = WfObjectTaskHelper.FormatPortInput(service?.DestinationPort, service?.DestinationPortEnd);
+    }
+
+    private void SelectTimeObject(TimeObject? timeObject)
+    {
+        selectionManagementId = ManagementId;
+        selectedTimeObject = timeObject;
+        original = timeObject == null ? null
+            : WfObjectTaskHelper.ToTimeElement(timeObject, RequestAction.unchanged.ToString(), ReqTask.Id);
+        objectName = timeObject?.Name;
+        SetTimeBounds(timeObject?.StartTime, timeObject?.EndTime);
+    }
+
+    private void SetTimeBounds(DateTime? start, DateTime? end)
+    {
+        startTime = start;
+        endTime = end;
+        startDateInput = WfObjectTaskHelper.FormatDateInput(start);
+        startTimeInput = WfObjectTaskHelper.FormatTimeInput(start);
+        endDateInput = WfObjectTaskHelper.FormatDateInput(end);
+        endTimeInput = WfObjectTaskHelper.FormatTimeInput(end);
+        startInputValid = null;
+        endInputValid = null;
+    }
+
+    private void SetStartDate(ChangeEventArgs args)
+    {
+        startDateInput = args.Value?.ToString() ?? "";
+        if (!string.IsNullOrWhiteSpace(startDateInput) && string.IsNullOrWhiteSpace(startTimeInput))
+        {
+            startTimeInput = WfObjectTaskHelper.kDefaultStartTimeInput;
+        }
+        UpdateStartTime();
+    }
+
+    private void SetStartTime(ChangeEventArgs args)
+    {
+        startTimeInput = args.Value?.ToString() ?? "";
+        UpdateStartTime();
+    }
+
+    private void SetEndDate(ChangeEventArgs args)
+    {
+        endDateInput = args.Value?.ToString() ?? "";
+        if (!string.IsNullOrWhiteSpace(endDateInput) && string.IsNullOrWhiteSpace(endTimeInput))
+        {
+            endTimeInput = WfObjectTaskHelper.kDefaultEndTimeInput;
+        }
+        UpdateEndTime();
+    }
+
+    private void SetEndTime(ChangeEventArgs args)
+    {
+        endTimeInput = args.Value?.ToString() ?? "";
+        UpdateEndTime();
+    }
+
+    private void UpdateStartTime()
+    {
+        bool valid = WfObjectTaskHelper.TryParseDateTimeInput(startDateInput, startTimeInput, WfObjectTaskHelper.kDefaultStartTimeInput, out startTime);
+        startInputValid = valid ? null : false;
+    }
+
+    private void UpdateEndTime()
+    {
+        bool valid = WfObjectTaskHelper.TryParseDateTimeInput(endDateInput, endTimeInput, WfObjectTaskHelper.kDefaultEndTimeInput, out endTime);
+        endInputValid = valid ? null : false;
+    }
+
+    /// <summary>
+    /// Checks the entered object and writes it into the request task. Returns the text key of the
+    /// error message when the input is incomplete or invalid, otherwise null.
+    /// </summary>
+    public string? ApplyToTask()
+    {
+        // like group_create, an object to be created may be requested for all managements ("All");
+        // a modified object references an imported object of exactly one management
+        if (IsModify && ManagementId is not > 0)
+        {
+            return "E5127";
+        }
+        if (IsModify && (original == null || selectionManagementId != ManagementId))
+        {
+            return "E5126";
+        }
+        string requestAction = IsModify ? RequestAction.modify.ToString() : RequestAction.create.ToString();
+        WfReqElement? requestedElement = kind switch
+        {
+            ObjectTaskKind.Service => BuildServiceElement(requestAction),
+            ObjectTaskKind.Time => BuildTimeElement(requestAction),
+            _ => BuildNetworkElement(requestAction)
+        };
+        if (requestedElement == null)
+        {
+            return "E5124";
+        }
+        if (IsModify && IsUnchanged(original!, requestedElement))
+        {
+            return "E5125";
+        }
+        List<WfReqElement> elements = IsModify ? [new WfReqElement(original!) { RequestAction = RequestAction.unchanged.ToString() }, requestedElement] : [requestedElement];
+        WfObjectTaskHelper.ReplaceElements(ReqTask, elements);
+        requested = requestedElement;
+        return null;
+    }
+
+    private WfReqElement? BuildNetworkElement(string requestAction)
+    {
+        if (!WfObjectTaskHelper.TryParseNetworkInput(networkInput, ReqTask.Id, out NwObjectElement element)
+            || !WfObjectTaskHelper.HasNetworkMinimum(element))
+        {
+            return null;
+        }
+        element.Name = string.IsNullOrWhiteSpace(objectName) ? null : objectName.Trim();
+        element.RequestAction = requestAction;
+        element.NetworkId = IsModify ? original?.NetworkId : null;
+        return element.ToReqElement(ElemFieldType.source);
+    }
+
+    private WfReqElement? BuildServiceElement(string requestAction)
+    {
+        int? port = null;
+        int? portEnd = null;
+        if (IpProtocol.HasPorts(protoId) && !WfObjectTaskHelper.TryParsePortInput(portInput, out port, out portEnd))
+        {
+            return null;
+        }
+        NwServiceElement element = new()
+        {
+            TaskId = ReqTask.Id,
+            ProtoId = protoId,
+            Port = port,
+            PortEnd = portEnd,
+            Name = string.IsNullOrWhiteSpace(objectName) ? null : objectName.Trim(),
+            ServiceId = IsModify ? original?.ServiceId : null,
+            RequestAction = requestAction
+        };
+        return WfObjectTaskHelper.HasServiceMinimum(element) ? element.ToReqElement() : null;
+    }
+
+    private WfReqElement? BuildTimeElement(string requestAction)
+    {
+        if (startInputValid == false || endInputValid == false)
+        {
+            return null;
+        }
+        WfReqElement element = new()
+        {
+            TaskId = ReqTask.Id,
+            Field = ElemFieldType.time.ToString(),
+            Name = string.IsNullOrWhiteSpace(objectName) ? null : objectName.Trim(),
+            StartTime = startTime,
+            EndTime = endTime,
+            TimeObjId = IsModify ? original?.TimeObjId : null,
+            RequestAction = requestAction
+        };
+        return WfObjectTaskHelper.HasTimeMinimum(element) ? element : null;
+    }
+
+    private bool IsUnchanged(WfReqElement previous, WfReqElement current)
+    {
+        return kind switch
+        {
+            ObjectTaskKind.Service => WfObjectTaskHelper.IsUnchanged(ToNwServiceElement(previous), ToNwServiceElement(current)),
+            ObjectTaskKind.Time => WfObjectTaskHelper.IsUnchangedTimeObject(previous, current),
+            _ => WfObjectTaskHelper.IsUnchanged(ToNwObjectElement(previous), ToNwObjectElement(current))
+        };
+    }
+
+    private NwObjectElement ToNwObjectElement(WfReqElement element)
+    {
+        WfReqTask singleElementTask = new() { Elements = [element] };
+        return singleElementTask.GetNwObjectElements(ElemFieldType.source).FirstOrDefault() ?? new();
+    }
+
+    private static NwServiceElement ToNwServiceElement(WfReqElement element)
+    {
+        WfReqTask singleElementTask = new() { Elements = [element] };
+        return singleElementTask.GetServiceElements().FirstOrDefault() ?? new();
+    }
+
+    private string DisplayElement(WfReqElement element, bool includeName = true)
+    {
+        string name = includeName && !string.IsNullOrWhiteSpace(element.Name) ? element.Name + " " : "";
+        switch (WfObjectTaskHelper.GetKind(element))
+        {
+            case ObjectTaskKind.Service:
+                return name + DisplayBase.DisplayService(ToNwServiceElement(element), DisplayIpProtos);
+            case ObjectTaskKind.Time:
+                return name + WfObjectTaskHelper.FormatTimeRange(element.StartTime, element.EndTime);
+            default:
+                NwObjectElement nwObject = ToNwObjectElement(element);
+                return name + NwObjDisplay.DisplayIp(nwObject.IpString, nwObject.IpEndString);
+        }
+    }
+
+    private string ObjectTypeTextKey()
+    {
+        return kind switch
+        {
+            ObjectTaskKind.Service => "service",
+            ObjectTaskKind.Time => "time_object",
+            _ => "network_object"
+        };
+    }
+
+    private static string ValidationClass(bool? valid)
+    {
+        return valid switch
+        {
+            true => "is-valid",
+            false => "is-invalid",
+            _ => ""
+        };
+    }
+}

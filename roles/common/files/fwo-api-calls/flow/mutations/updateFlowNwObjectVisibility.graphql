@@ -1,0 +1,20 @@
+mutation updateFlowNwObjectVisibility(
+  $nwobjId: bigint!
+  $showInRequestModule: Boolean!
+) {
+  update_flow_nwobject_by_pk(
+    pk_columns: { nwobj_id: $nwobjId }
+    _set: {
+      show_in_request_module: $showInRequestModule
+    }
+  ) {
+    nwobj_id
+    name
+    ip_start
+    ip_end
+    nwobj_hash
+    state
+    removed_date
+    show_in_request_module
+  }
+}

@@ -18,12 +18,6 @@ namespace FWO.Test
         static readonly Action<Exception?, string, string, bool> DisplayMessageInUi = DefaultInit.DoNothing;
         static readonly FwoOwner Application = new() { Id = 1, Name = "TestApp" };
 
-        [OneTimeSetUp]
-        public void EnsureRequiredTranslationKeys()
-        {
-            SimulatedUserConfig.DummyTranslate.TryAdd("save_connection", "Save Connection");
-        }
-
         [Test]
         public void CalcVisibility_InterfaceWithDestinationFilled_ReadonlyFlags()
         {
@@ -236,7 +230,7 @@ namespace FWO.Test
             public bool UpdateConnectionPropertiesCalled { get; private set; }
             public object? LastVariables { get; private set; }
 
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == FWO.Api.Client.Queries.ModellingQueries.updateConnectionProperties && typeof(QueryResponseType) == typeof(ReturnId))
                 {

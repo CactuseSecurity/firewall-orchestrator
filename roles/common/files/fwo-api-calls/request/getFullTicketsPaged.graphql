@@ -1,0 +1,22 @@
+query getFullTicketsPaged($limit: Int!, $offset: Int!, $taskTypes: [String!], $stateIds: [Int!]) {
+  request_ticket(
+    where: {
+      _and: [
+        {reqtasks: {task_type: {_in: $taskTypes}}},
+        {
+          _or: [
+            {state_id: {_in: $stateIds}},
+            {reqtasks: {state_id: {_in: $stateIds}}},
+            {reqtasks: {impltasks: {state_id: {_in: $stateIds}}}},
+            {reqtasks: {approvals: {state_id: {_in: $stateIds}}}}
+          ]
+        }
+      ]
+    },
+    order_by: {id: desc},
+    limit: $limit,
+    offset: $offset
+  ) {
+    ...ticketDetails
+  }
+}

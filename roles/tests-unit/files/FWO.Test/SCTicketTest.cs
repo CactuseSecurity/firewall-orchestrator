@@ -1,3 +1,5 @@
+using FWO.Api.Client;
+using System.Reflection;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Data;
@@ -14,6 +16,7 @@ namespace FWO.Test
     [Parallelizable]
     internal class SCTicketTest
     {
+        private static readonly ExternalCertificateChecks CertificateChecks = new(FirewallConnections: true, TicketSystems: true);
         static readonly ModellingNamingConvention NamingConvention = new()
         {
             NetworkAreaRequired = true,
@@ -30,7 +33,7 @@ namespace FWO.Test
         readonly ExternalTicketSystem ticketSystem = new()
         {
             Id = 1,
-            Type = ExternalTicketSystemType.TufinSecureChange,
+            TypeId = BuiltInExternalTicketSystemTypes.TufinSecureChangeId,
             Authorization = "xyz",
             Name = "Tufin",
             Url = "https://tufin-test.xxx.de/securechangeworkflow/api/securechange/",
@@ -197,7 +200,7 @@ namespace FWO.Test
         [Test]
         public async Task TestSCGrpCreateTicket()
         {
-            SCTicket ticket = new(ticketSystem);
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
             await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(GrpCreateFilledTicketText, ticket.TicketText);
@@ -206,19 +209,140 @@ namespace FWO.Test
         [Test]
         public async Task TestSCAccessTicket()
         {
-            SCTicket ticket = new(ticketSystem);
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
             await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(AccessFilledTicketText, ticket.TicketText);
         }
 
         [Test]
+        public async Task TestSCAccessTicketSortsSourceObjectsAlphabetically()
+        {
+            List<WfReqTask> unsortedAccessReqTask =
+            [
+                ConstructAccTask(1, "new Connection", 1, WfTaskType.access.ToString(), RequestAction.create.ToString())
+            ];
+            unsortedAccessReqTask[0].Elements.Insert(0, new()
+            {
+                Id = 5,
+                TaskId = 1,
+                RequestAction = RequestAction.create.ToString(),
+                GroupName = "ARxx12345-200",
+                Field = ElemFieldType.source.ToString()
+            });
+            unsortedAccessReqTask[0].Elements.Insert(0, new()
+            {
+                Id = 6,
+                TaskId = 1,
+                RequestAction = RequestAction.create.ToString(),
+                GroupName = "ARxx12345-050",
+                Field = ElemFieldType.source.ToString()
+            });
+
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
+            await ticket.CreateRequestString(unsortedAccessReqTask, ipProtos, NamingConvention);
+
+            ClassicAssert.IsTrue(ticket.TicketText.Contains(
+                "\"sources\":{\"source\":[{\"@type\": \"Object\", \"object_name\": \"ARxx12345-050\", \"management_name\": \"CheckpointExt\"}," +
+                "{\"@type\": \"Object\", \"object_name\": \"ARxx12345-100\", \"management_name\": \"CheckpointExt\"}," +
+                "{\"@type\": \"Object\", \"object_name\": \"ARxx12345-200\", \"management_name\": \"CheckpointExt\"}]}"));
+        }
+
+        [Test]
+        public async Task TestSCAccessTicketSortsDestinationObjectsAlphabetically()
+        {
+            List<WfReqTask> unsortedAccessReqTask =
+            [
+                ConstructAccTask(1, "new Connection", 1, WfTaskType.access.ToString(), RequestAction.create.ToString())
+            ];
+            unsortedAccessReqTask[0].Elements.Insert(0, new()
+            {
+                Id = 5,
+                TaskId = 1,
+                RequestAction = RequestAction.create.ToString(),
+                GroupName = "ARxx12345-200",
+                Field = ElemFieldType.destination.ToString()
+            });
+            unsortedAccessReqTask[0].Elements.Insert(0, new()
+            {
+                Id = 6,
+                TaskId = 1,
+                RequestAction = RequestAction.create.ToString(),
+                GroupName = "ARxx12345-050",
+                Field = ElemFieldType.destination.ToString()
+            });
+
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
+            await ticket.CreateRequestString(unsortedAccessReqTask, ipProtos, NamingConvention);
+
+            ClassicAssert.IsTrue(ticket.TicketText.Contains(
+                "\"destinations\":{\"destination\":[{\"@type\": \"Object\", \"object_name\": \"ARxx12345-050\", \"management_name\": \"CheckpointExt\"}," +
+                "{\"@type\": \"Object\", \"object_name\": \"ARxx12345-101\", \"management_name\": \"CheckpointExt\"}," +
+                "{\"@type\": \"Object\", \"object_name\": \"ARxx12345-200\", \"management_name\": \"CheckpointExt\"}]}"));
+        }
+
+        [Test]
         public async Task TestSCRemoveTicket()
         {
-            SCTicket ticket = new(ticketSystem);
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
             await ticket.CreateRequestString(removeReqTasks, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(RemoveFilledTicketText, ticket.TicketText);
+        }
+
+        [Test]
+        public async Task TestSCRemoveTicketWithServiceWithoutProtocol()
+        {
+            List<WfReqTask> removeAnyReqTask =
+            [
+                ConstructAccTask(4, "old Connection3", 4, WfTaskType.rule_delete.ToString(), RequestAction.delete.ToString())
+            ];
+            removeAnyReqTask[0].Elements.RemoveAll(e => e.Field == ElemFieldType.service.ToString());
+            removeAnyReqTask[0].Elements.Add(new()
+            {
+                Id = 7,
+                TaskId = 4,
+                RequestAction = RequestAction.unchanged.ToString(),
+                Name = "Any",
+                Field = ElemFieldType.service.ToString()
+            });
+            removeAnyReqTask[0].Elements.Add(new()
+            {
+                Id = 8,
+                TaskId = 4,
+                RequestAction = RequestAction.unchanged.ToString(),
+                Name = "AnyOther",
+                Field = ElemFieldType.service.ToString()
+            });
+
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
+            await ticket.CreateRequestString(removeAnyReqTask, ipProtos, NamingConvention);
+
+            ClassicAssert.IsTrue(ticket.TicketText.Contains("\"services\":{\"service\":[{\"@type\": \"ANY\"}]}"));
+        }
+
+        [Test]
+        public async Task TestSCRemoveTicketWithServiceGroup()
+        {
+            List<WfReqTask> removeGrpSvcReqTask =
+            [
+                ConstructAccTask(5, "old Connection4", 5, WfTaskType.rule_delete.ToString(), RequestAction.delete.ToString())
+            ];
+            removeGrpSvcReqTask[0].Elements.RemoveAll(e => e.Field == ElemFieldType.service.ToString());
+            removeGrpSvcReqTask[0].Elements.Add(new()
+            {
+                Id = 9,
+                TaskId = 5,
+                RequestAction = RequestAction.unchanged.ToString(),
+                Name = "SvcGrp1",
+                GroupName = "SvcGrp1",
+                Field = ElemFieldType.service.ToString()
+            });
+
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
+            await ticket.CreateRequestString(removeGrpSvcReqTask, ipProtos, NamingConvention);
+
+            ClassicAssert.IsTrue(ticket.TicketText.Contains("\"services\":{\"service\":[{\"@type\": \"Object\", \"object_name\": \"SvcGrp1\", \"management_name\": \"CheckpointExt\"}]}"));
         }
 
         [Test]
@@ -229,7 +353,7 @@ namespace FWO.Test
             scClient.EnqueueResponse("users.json?user_name=alice",
                 new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"users\":{\"user\":[{\"id\":55}]}}" });
 
-            SCTicket ticket = new(lookupSystem, scClient) { Requester = "alice" };
+            SCTicket ticket = new(lookupSystem, CertificateChecks, scClient) { Requester = "alice" };
             await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention);
 
             ClassicAssert.IsTrue(ticket.TicketText.Contains("\"requester\":\"55\""));
@@ -243,7 +367,7 @@ namespace FWO.Test
             scClient.EnqueueResponse("users.json?user_name=unknown",
                 new(new()) { StatusCode = HttpStatusCode.OK, Content = "" });
 
-            SCTicket ticket = new(lookupSystem, scClient) { Requester = "unknown" };
+            SCTicket ticket = new(lookupSystem, CertificateChecks, scClient) { Requester = "unknown" };
 
             Assert.ThrowsAsync<ProcessingFailedException>(async () =>
                 await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention));
@@ -257,7 +381,7 @@ namespace FWO.Test
             scClient.EnqueueResponse("users.json?user_name=error",
                 new(new()) { StatusCode = HttpStatusCode.BadRequest, Content = "{\"error\":\"bad\"}" });
 
-            SCTicket ticket = new(lookupSystem, scClient) { Requester = "error" };
+            SCTicket ticket = new(lookupSystem, CertificateChecks, scClient) { Requester = "error" };
 
             Assert.ThrowsAsync<ProcessingFailedException>(async () =>
                 await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention));
@@ -268,13 +392,27 @@ namespace FWO.Test
             return new()
             {
                 Id = ticketSystem.Id,
-                Type = ticketSystem.Type,
+                TypeId = ticketSystem.TypeId,
                 Authorization = ticketSystem.Authorization,
                 Name = ticketSystem.Name,
                 Url = ticketSystem.Url,
                 LookupRequesterId = lookupRequesterId,
                 Templates = ticketSystem.Templates
             };
+        }
+
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        public void Constructor_CreatesTheClientWithTheTicketSystemCertificateCheck(bool firewallConnections, bool ticketSystems)
+        {
+            SCTicket ticket = new(new ExternalTicketSystem { Url = "https://securechange.example.test/" },
+                new ExternalCertificateChecks(firewallConnections, ticketSystems));
+
+            object client = typeof(SCTicket).GetField("SCClient", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(ticket)
+                ?? throw new MissingFieldException(nameof(SCTicket), "SCClient");
+            object? checkCertificates = typeof(RestApiClient).GetField("CheckCertificates", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(client);
+
+            Assert.That(checkCertificates, Is.EqualTo(ticketSystems));
         }
     }
 }

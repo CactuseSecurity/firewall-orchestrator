@@ -1,12 +1,25 @@
 ﻿@using FWO.Report.Filter
 
+@using FWO.Basics
+
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
 
-<PopUp Title="@(userConfig.GetText("select_device"))" Show="@Display" Size=PopupSize.Medium OnClose="Cancel">
+<PopUp Title="@(userConfig.GetText(PopupTitleKey()))" Show="@Display" Size=PopupSize.Small OnClose="Cancel">
     <Body>
-        <DeviceSelection @bind-DeviceFilter="DeviceFilter" @bind-CollapseAll="collapseDevices" ShowTitle="false"/>
+        @if (ManagementRulebaseView)
+        {
+            <RulebaseSelection Managements="rulebaseManagements" @bind-SelectedRulebases="SelectedRulebases" ShowTitle="false" />
+        }
+        else if (SelectedReportType == ReportType.AppRules || SelectedReportType == ReportType.Recertification)
+        {
+            <ManagementSelection @bind-DeviceFilter="DeviceFilter" @bind-SelectAll="SelectAll" ShowTitle="false" UseLightText="false" />
+        }
+        else
+        {
+            <DeviceSelection @bind-DeviceFilter="DeviceFilter" @bind-CollapseAll="collapseDevices" ShowTitle="false" />
+        }
     </Body>
     <Footer>
         <button type="button" class="btn btn-primary" @onclick="Commit">@(DisplayService.DisplayButton(userConfig, "commit_changes", Icons.Save))</button>
@@ -32,9 +45,36 @@
     [Parameter]
     public EventCallback<DeviceFilter> DeviceFilterChanged { get; set; }
 
+    [Parameter]
+    public ReportType SelectedReportType { get; set; }
+
+    [Parameter]
+    public bool ManagementRulebaseView { get; set; }
+
+    [Parameter]
+    public List<SelectedRulebase> SelectedRulebases { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<List<SelectedRulebase>> SelectedRulebasesChanged { get; set; }
+
     private bool collapseDevices = false;
+    private bool SelectAll { get; set; } = true;
     private DeviceFilter DeviceFilterOrig = new();
+    private List<SelectedRulebase> SelectedRulebasesOrig = [];
+    private List<RulebaseManagementSelect> rulebaseManagements = [];
     private bool FirstTry = true;
+
+    /// <summary>
+    /// Returns the text key of the popup title depending on what is selected (rulebases, managements or devices).
+    /// </summary>
+    private string PopupTitleKey()
+    {
+        if (ManagementRulebaseView)
+        {
+            return "select_rulebase";
+        }
+        return SelectedReportType == ReportType.AppRules || SelectedReportType == ReportType.Recertification ? "select_management" : "select_device";
+    }
 
 
     protected override async Task OnParametersSetAsync()
@@ -45,11 +85,13 @@
             {
                 FirstTry = false;
                 DeviceFilterOrig = DeviceFilter.Clone();
+                SelectedRulebasesOrig = [.. SelectedRulebases];
                 await SyncDevices();
                 if (DeviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)
                 {
                     collapseDevices = true;
                 }
+                SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
             }
         }
         catch (Exception exception)
@@ -64,6 +106,12 @@
         {
             DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
             DeviceFilter.SynchronizeDevFilter(DeviceFilterOrig);
+            if (ManagementRulebaseView)
+            {
+                rulebaseManagements = RulebaseManagementSelect.KeepStartRulebases(
+                    await apiConnection.SendQueryAsync<List<RulebaseManagementSelect>>(DeviceQueries.getManagementsForRulebaseReporting));
+                SelectedRulebases = RulebaseSelectionHelper.KeepAvailable(SelectedRulebases, rulebaseManagements);
+            }
         }
         catch (Exception exception)
         {
@@ -74,12 +122,14 @@
     private void Cancel()
     {
         DeviceFilter = DeviceFilterOrig;
+        SelectedRulebases = SelectedRulebasesOrig;
         Commit();
     }
 
     private void Commit()
     {
         DeviceFilterChanged.InvokeAsync(DeviceFilter);
+        SelectedRulebasesChanged.InvokeAsync(SelectedRulebases);
         Display = false;
         DisplayChanged.InvokeAsync(Display);
         FirstTry = true;

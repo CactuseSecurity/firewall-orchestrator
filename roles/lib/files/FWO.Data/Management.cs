@@ -28,7 +28,10 @@ namespace FWO.Data
         public string Hostname { get; set; } = "";
 
         [JsonProperty("import_credential"), JsonPropertyName("import_credential")]
-        public ImportCredential ImportCredential { get; set; } = new();
+        public Credential ImportCredential { get; set; } = new();
+
+        [JsonProperty("export_credential"), JsonPropertyName("export_credential")]
+        public Credential ExportCredential { get; set; } = new();
 
         [JsonProperty("configPath"), JsonPropertyName("configPath")]
         public string? ConfigPath { get; set; } = "";
@@ -47,9 +50,6 @@ namespace FWO.Data
 
         [JsonProperty("is_super_manager"), JsonPropertyName("is_super_manager")]
         public bool IsSupermanager { get; set; } = false;
-
-        [JsonProperty("importerHostname"), JsonPropertyName("importerHostname")]
-        public string? ImporterHostname { get; set; } = "";
 
         [JsonProperty("port"), JsonPropertyName("port")]
         public int Port { get; set; }
@@ -85,7 +85,7 @@ namespace FWO.Data
         public NetworkUser[] Users { get; set; } = [];
 
         [JsonProperty("zoneObjects"), JsonPropertyName("zoneObjects")]
-        public NetworkZone[] Zones { get; set; } = [];
+        public FirewallZone[] Zones { get; set; } = [];
 
         [JsonProperty("timeObjects"), JsonPropertyName("timeObjects")]
         public TimeObject[] TimeObjects { get; set; } = [];
@@ -123,15 +123,18 @@ namespace FWO.Data
             Uid = management.Uid;
             Hostname = management.Hostname;
             if (management.ImportCredential != null)
-                ImportCredential = new ImportCredential(management.ImportCredential);
+                ImportCredential = new Credential(management.ImportCredential);
             else
-                ImportCredential = new ImportCredential();
+                ImportCredential = new Credential();
+            if (management.ExportCredential != null)
+                ExportCredential = new Credential(management.ExportCredential);
+            else
+                ExportCredential = new Credential();
             ConfigPath = management.ConfigPath;
             DomainUid = management.DomainUid;
             CloudSubscriptionId = management.CloudSubscriptionId;
             CloudTenantId = management.CloudTenantId;
             SuperManagerId = management.SuperManagerId;
-            ImporterHostname = management.ImporterHostname;
             Port = management.Port;
             ImportDisabled = management.ImportDisabled;
             ForceInitialImport = management.ForceInitialImport;
@@ -181,14 +184,6 @@ namespace FWO.Data
             Hostname = Hostname.SanitizeMand(ref shortened);
             ConfigPath = ConfigPath.SanitizeOpt(ref shortened);
             DomainUid = DomainUid.SanitizeOpt(ref shortened);
-            if (ImporterHostname != null)
-            {
-                ImporterHostname = ImporterHostname.SanitizeMand(ref shortened);
-            }
-            else
-            {
-                ImporterHostname = "";
-            }
             Comment = Comment.SanitizeCommentOpt(ref shortened);
             CloudSubscriptionId = CloudSubscriptionId.SanitizeOpt(ref shortened);
             CloudTenantId = CloudTenantId.SanitizeOpt(ref shortened);

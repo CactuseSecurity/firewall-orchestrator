@@ -1,0 +1,5 @@
+query getFlowAddressGroups($where: flow_nwgroup_bool_exp = {}, $limit: Int, $offset: Int) {
+  nwgroups: flow_nwgroup(where: $where, limit: $limit, offset: $offset, order_by: [{ name: asc }, { nwgrp_id: asc }]) {
+    ...flowNwGroupWithMembersFragment
+  }
+}

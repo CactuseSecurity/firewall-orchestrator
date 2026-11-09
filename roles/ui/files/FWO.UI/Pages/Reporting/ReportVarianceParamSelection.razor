@@ -1,0 +1,62 @@
+@using FWO.Data.Report
+
+@inject UserConfig userConfig
+
+@if (UseFormLayout)
+{
+    @VarianceFields
+}
+else
+{
+    <div class="p-3">
+        @VarianceFields
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public ModellingFilter ModellingFilter { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<ModellingFilter> ModellingFilterChanged { get; set; }
+
+    [Parameter]
+    public bool UseLightText { get; set; } = true;
+
+    [Parameter]
+    public bool UseFormLayout { get; set; }
+
+    private string CheckboxLabelClass => UseLightText ? "form-check-label text-white" : "form-check-label";
+    private string FirstFieldContainerClass => UseFormLayout ? "form-group row" : string.Empty;
+    private string FieldContentClass => UseFormLayout ? "offset-sm-3 col-sm-8" : string.Empty;
+
+    private RenderFragment VarianceFields => @<text>
+        <div class="@FirstFieldContainerClass">
+            <div class="@FieldContentClass">
+                <div class="form-check">
+                    <input class="form-check-input" id="varianceDeletedConns" type="checkbox"
+                           checked="@ModellingFilter.RulesForDeletedConns" @onchange="ToggleRulesForDeletedConns" />
+                    <label class="@CheckboxLabelClass" for="varianceDeletedConns">@(userConfig.GetText("rules_for_deleted_conns"))</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" id="varianceAnalyseRemaining" type="checkbox"
+                           checked="@ModellingFilter.AnalyseRemainingRules" @onchange="ToggleAnalyseRemainingRules" />
+                    <label class="@CheckboxLabelClass" for="varianceAnalyseRemaining">@(userConfig.GetText("analyse_remaining_rules"))</label>
+                </div>
+            </div>
+        </div>
+    </text>;
+
+    private async Task ToggleRulesForDeletedConns(ChangeEventArgs args)
+    {
+        ModellingFilter.RulesForDeletedConns = args.Value as bool? ?? false;
+        await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+
+    private async Task ToggleAnalyseRemainingRules(ChangeEventArgs args)
+    {
+        ModellingFilter.AnalyseRemainingRules = args.Value as bool? ?? false;
+        await ModellingFilterChanged.InvokeAsync(ModellingFilter);
+    }
+}

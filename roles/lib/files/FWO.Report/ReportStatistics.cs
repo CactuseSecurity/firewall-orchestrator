@@ -91,7 +91,7 @@ namespace FWO.Report
 
             foreach (ManagementReport managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
-                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("no_of_obj")} - {managementReport.Name}</h4>");
+                report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("no_of_obj")} - {HtmlOutputEncoder.EncodeText(managementReport.Name)}</h4>");
                 report.AppendLine("<table>");
                 report.AppendLine("<tr>");
                 report.AppendLine($"<th>{userConfig.GetText("network_objects")}</th>");
@@ -119,7 +119,7 @@ namespace FWO.Report
                     if (device.RuleStatistics != null)
                     {
                         report.AppendLine("<tr>");
-                        report.AppendLine($"<td>{device.Name}</td>");
+                        report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(device.Name)}</td>");
                         report.AppendLine($"<td>{device.RuleStatistics.ObjectAggregate.ObjectCount}</td>");
                         report.AppendLine("</tr>");
                     }

@@ -1,5 +1,6 @@
 using FWO.Data;
 using FWO.Data.Workflow;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -17,7 +18,8 @@ namespace FWO.Test
                 Reason = "reason",
                 AdditionalInfo = "{\"key\":\"value\"}",
                 LastRecertDate = new DateTime(2024, 1, 2),
-                ManagementId = 5
+                ManagementId = 5,
+                FlowAccessId = 99
             };
             reqTask.SelectedDevices = "[1,2]";
             reqTask.Elements.Add(new WfReqElement
@@ -62,6 +64,8 @@ namespace FWO.Test
             Assert.That(reqWriter.AdditionalInfo, Is.EqualTo(reqTask.AdditionalInfo));
             Assert.That(reqWriter.LastRecertDate, Is.EqualTo(reqTask.LastRecertDate));
             Assert.That(reqWriter.ManagementId, Is.EqualTo(reqTask.ManagementId));
+            Assert.That(JsonConvert.SerializeObject(reqWriter), Does.Not.Contain("flow_access_id"));
+            Assert.That(System.Text.Json.JsonSerializer.Serialize(reqWriter), Does.Not.Contain("flow_access_id"));
             Assert.That(reqWriter.GetDeviceList(), Is.EqualTo(new List<int> { 1, 2 }));
             Assert.That(reqWriter.Elements.WfElementList, Has.Count.EqualTo(1));
 
@@ -96,6 +100,51 @@ namespace FWO.Test
 
             Assert.That(reqWriter.Owners.WfOwnerList, Has.Count.EqualTo(1));
             Assert.That(reqWriter.Owners.WfOwnerList[0].OwnerId, Is.EqualTo(77));
+        }
+
+        [Test]
+        public void Writers_StoreNullPortForPortlessProtocols()
+        {
+            WfReqElement reqElement = new()
+            {
+                ProtoId = 50,
+                Port = 0,
+                PortEnd = null,
+                Field = ElemFieldType.service.ToString()
+            };
+
+            WfReqElementWriter reqWriter = new(reqElement);
+
+            Assert.That(reqWriter.Port, Is.Null);
+            Assert.That(reqWriter.PortEnd, Is.Null);
+        }
+
+        [Test]
+        public void ElementWriter_WritesTimeBoundsAsUtc()
+        {
+            DateTime localStart = new(2026, 11, 1, 8, 0, 0, DateTimeKind.Unspecified);
+            WfTicket ticket = new();
+            WfReqTask reqTask = new() { TaskType = WfTaskType.object_create.ToString() };
+            reqTask.Elements.Add(new WfReqElement
+            {
+                Field = ElemFieldType.time.ToString(),
+                Name = "maintenance",
+                StartTime = localStart,
+                EndTime = null
+            });
+            ticket.Tasks.Add(reqTask);
+
+            WfReqElementWriter elemWriter = new WfTicketWriter(ticket).Tasks[0].Elements.WfElementList[0];
+            DateTime expectedStart = localStart.ToUniversalTime();
+            string json = JsonConvert.SerializeObject(elemWriter);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(elemWriter.StartTime, Is.EqualTo(expectedStart));
+                Assert.That(elemWriter.StartTime?.Kind, Is.EqualTo(DateTimeKind.Utc));
+                Assert.That(elemWriter.EndTime, Is.Null);
+                Assert.That(json, Does.Contain($"\"start_time\":\"{expectedStart:yyyy-MM-ddTHH:mm:ss}Z\""));
+            });
         }
     }
 }

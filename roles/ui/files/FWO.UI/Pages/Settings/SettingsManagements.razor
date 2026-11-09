@@ -1,15 +1,16 @@
-﻿@using FWO.DeviceAutoDiscovery
-@using FWO.Middleware.Client
-@using System.Text.Json.Serialization
-@using Newtonsoft.Json
 @using System.Security.Authentication
+@using FWO.Data.Logging
+@using FWO.DeviceAutoDiscovery
+@using FWO.Middleware.Client
+@using FWO.Services.Logging
 
 
 @page "/settings/managements"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject TokenService tokenService
 
 <div class="input-group">
     <h3>@(userConfig.GetText("managements"))</h3>
@@ -22,11 +23,11 @@
     <button type="button" class="btn btn-sm btn-success" @onclick="Add">@(userConfig.GetText("add_new_management"))</button>
     @if (showCleanupButton)
     {
-        <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
+        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
             <Authorized>
                 <button type="button" class="btn btn-sm btn-danger" @onclick="RequestRemoveSampleData">@(userConfig.GetText("remove_sample_data"))</button>
             </Authorized>
-        </AuthorizeView>
+        </ExecutionModeAuthorizeView>
     }
 </div>
 
@@ -37,15 +38,15 @@
                 <div class="btn-group">
                     <button type="button" class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
-                    <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")" Context="ctx">
-                        <Authorized>
+                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")" Context="ctx">
+                        <Authorized Context="authState">
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                             @if (context.DeviceType.CanBeSupermanager() || context.DeviceType.CanBeAutodiscovered(context))
                             {
                                 <button type="button" class="btn btn-sm btn-secondary" @onclick="() => AutoDiscover(context)">@(userConfig.GetText("autodiscover"))</button>
                             }
                         </Authorized>
-                    </AuthorizeView>
+                    </ExecutionModeAuthorizeView>
                 </div>
             </Template>
         </Column>
@@ -69,7 +70,7 @@
                 }
             </Template>
         </Column>
-        <Column TableItem="Management" Title="@(userConfig.GetText("import_credential"))" Field="@(x => x.ImportCredential.Id)" Sortable="true">
+        <Column TableItem="Management" Title="@(userConfig.GetText("readonly_credential_mgm"))" Field="@(x => x.ImportCredential.Id)" Sortable="true">
             <Template>
                 @if (!context.DeviceType.IsDummyRouter())
                 {
@@ -88,7 +89,6 @@
             </Template>
         </Column>
 
-        <Column TableItem="Management" Title="@(userConfig.GetText("importer_host"))" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true">
             <Template>
                 @((!context.ImportDisabled).ShowAsHtml())
@@ -171,9 +171,19 @@
                         </div>
                     }
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5116"))">
-                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("import_credential"))*:</label>
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("readonly_credential_mgm"))*:</label>
                         <div class="col-sm-8">
-                            <Dropdown ElementType="ImportCredential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ImportCredential" Elements="credentials">
+                            <Dropdown ElementType="Credential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ImportCredential" Elements="credentials">
+                                <ElementTemplate Context="cred">
+                                    @cred.Name
+                                </ElementTemplate>
+                            </Dropdown>
+                        </div>
+                    </div>
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5117"))">
+                        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_credential")):</label>
+                        <div class="col-sm-8">
+                            <Dropdown ElementType="Credential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ExportCredential" Elements="credentials" Nullable="true" NoneSelectedText="">
                                 <ElementTemplate Context="cred">
                                     @cred.Name
                                 </ElementTemplate>
@@ -209,12 +219,6 @@
                         </div>
                     </div>
                 }
-                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5120"))">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("importer_host")):</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
-                    </div>
-                </div>
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5121"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("debug_level")) (0-9):</label>
                     <div class="col-sm-8">
@@ -247,14 +251,14 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <AuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
                 </NotAuthorized> 
-            </AuthorizeView>
+            </ExecutionModeAuthorizeView>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Cancel">@(userConfig.GetText("cancel"))</button>
         </div>
     </Footer>
@@ -274,10 +278,8 @@
     private List<ActionItem> actActions = [];
     private List<Management> managements = [];
     private List<Management> sampleManagements = [];
-    private List<Management> discoveredManagements = [];
     private List<DeviceType> deviceTypes = [];
-    private List<Device> devices = [];
-    private List<ImportCredential> credentials = [];
+    private List<Credential> credentials = [];
 
     private ITable<Management>? table;
 
@@ -303,16 +305,30 @@
     protected override async Task OnInitializedAsync()
     {
         await Refresh();
+
+        await base.OnInitializedAsync();
     }
 
     protected async Task Refresh()
     {
         try
         {
-            JwtReader jwt = new (userConfig.User.Jwt);
-            await jwt.Validate();
+            string? accessToken = await tokenService.GetAccessToken();
 
-            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
+            if (string.IsNullOrWhiteSpace(accessToken))
+            {
+                throw new AuthenticationException("not_authorized");
+            }
+
+            JwtReader jwt = new(accessToken);
+            JwtValidationResult validationResult = await jwt.ValidateToken();
+
+            if (!validationResult.IsSuccess)
+            {
+                throw new AuthenticationException("not_authorized");
+            }
+
+            if (jwt.ContainsAllowedRole(Roles.Admin))
             {
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
             }
@@ -325,13 +341,13 @@
 
             deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(DeviceQueries.getDeviceTypeDetails);
 
-            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
+            if (jwt.ContainsAllowedRole(Roles.Admin))
             {
-                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
+                credentials = await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentials);
             }
             else
             {
-                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentialsWithoutSecrets);
+                credentials = await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentialsWithoutSecrets);
             }
         }
         catch (System.Exception exception)
@@ -380,6 +396,15 @@
             int delId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.deleteManagement, Variables)).DeletedId;
             if (delId == actManagement.Id)
             {
+                await ChangeLogHelper.LogManagerChange(new ManagementChangeLogRequest
+                {
+                    Family = ChangeLogFamily.Manual,
+                    Operation = ChangeLogOperation.Delete,
+                    ManagementId = actManagement.Id,
+                    ManagementName = actManagement.Name,
+                    UserId = userConfig.User.DbId.ToString(),
+                    Origin = ChangeLogOrigin.UiSettings
+                });
                 managements.Remove(actManagement);
             }
             workInProgress = false;
@@ -417,7 +442,7 @@
         newManagement = new Management()
         {
             DeviceType = deviceTypes.Count > 0 ? deviceTypes.First() : new DeviceType(), 
-            ImportCredential = credentials.Count > 0 ? credentials.First() : new ImportCredential()
+            ImportCredential = credentials.Count > 0 ? credentials.First() : new Credential()
         };
         Edit(newManagement);
     }
@@ -442,71 +467,7 @@
             }
             if (CheckValues(actManagement, userConfig.GetText("save_management")))
             {
-                if (AddMode)
-                {
-                    // insert new management
-                    var Variables = new
-                    {
-                        name = actManagement.Name,
-                        uid = actManagement.Uid,
-                        devTypeId = actManagement.DeviceType.Id,
-                        hostname = actManagement.Hostname,
-                        importCredentialId = actManagement.ImportCredential.Id,
-                        port = actManagement.Port,
-                        importDisabled = actManagement.ImportDisabled,
-                        forceInitialImport = actManagement.ForceInitialImport,
-                        hideInUi = actManagement.HideInUi,
-                        configPath = actManagement.ConfigPath,
-                        domainUid = actManagement.DomainUid,
-                        cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
-                        cloudTenantId = actManagement.CloudTenantId,                        
-                        superManager = actManagement.SuperManagerId,
-                        importerHostname = actManagement.ImporterHostname,
-                        debugLevel = actManagement.DebugLevel,
-                        comment = actManagement.Comment,
-                        extMgtData = actManagement.ExtMgtData,
-                        isSuperManager = actManagement.DeviceType.CanBeSupermanager()
-                    };
-                    ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(DeviceQueries.newManagement, Variables)).ReturnIds;
-                    if (returnIds != null)
-                    {
-                        actManagement.Id = returnIds[0].NewId;
-                    }
-                    managements.Add(actManagement);
-                    AddMode = false;
-                    EditMode = false;
-                }
-                else
-                {
-                    // Update existing management
-                    var Variables = new
-                    {
-                        id = actManagement.Id,
-                        name = actManagement.Name,
-                        uid = actManagement.Uid,
-                        devTypeId = actManagement.DeviceType.Id,
-                        hostname = actManagement.Hostname,
-                        importCredentialId = actManagement.ImportCredential.Id,
-                        port = actManagement.Port,
-                        importDisabled = actManagement.ImportDisabled,
-                        forceInitialImport = actManagement.ForceInitialImport,
-                        hideInUi = actManagement.HideInUi,
-                        configPath = actManagement.ConfigPath,
-                        domainUid = actManagement.DomainUid,
-                        cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
-                        cloudTenantId = actManagement.CloudTenantId,                        
-                        superManager = actManagement.SuperManagerId,
-                        importerHostname = actManagement.ImporterHostname,
-                        debugLevel = actManagement.DebugLevel,
-                        comment = actManagement.Comment,
-                        extMgtData = actManagement.ExtMgtData,
-                        isSuperManager = actManagement.DeviceType.CanBeSupermanager()
-                    };
-                    int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagement, Variables)).UpdatedId;
-                    EditMode = (udId == actManagement.Id ? false : true);
-                    managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
-                }
-                AnalyseSampleManagements();
+                await PersistManagmentChanges();
             }
             StateHasChanged();
         }
@@ -514,6 +475,100 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("save_management"), "", true);
         }
+    }
+
+    private async Task PersistManagmentChanges()
+    {
+        if (AddMode)
+        {
+            // insert new management
+            var Variables = new
+            {
+                name = actManagement.Name,
+                uid = actManagement.Uid,
+                devTypeId = actManagement.DeviceType.Id,
+                hostname = actManagement.Hostname,
+                importCredentialId = actManagement.ImportCredential.Id,
+                exportCredentialId = actManagement.ExportCredential?.Id > 0
+                    ? actManagement.ExportCredential.Id
+                    : (int?)null,
+                port = actManagement.Port,
+                importDisabled = actManagement.ImportDisabled,
+                forceInitialImport = actManagement.ForceInitialImport,
+                hideInUi = actManagement.HideInUi,
+                configPath = actManagement.ConfigPath,
+                domainUid = actManagement.DomainUid,
+                cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
+                cloudTenantId = actManagement.CloudTenantId,                        
+                superManager = actManagement.SuperManagerId,
+                debugLevel = actManagement.DebugLevel,
+                comment = actManagement.Comment,
+                extMgtData = actManagement.ExtMgtData,
+                isSuperManager = actManagement.DeviceType.CanBeSupermanager()
+            };
+            ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(DeviceQueries.newManagement, Variables)).ReturnIds;
+            if (returnIds != null)
+            {
+                actManagement.Id = returnIds[0].NewId;
+                await ChangeLogHelper.LogManagerChange(new ManagementChangeLogRequest
+                {
+                    Family = ChangeLogFamily.Manual,
+                    Operation = ChangeLogOperation.Create,
+                    ManagementId = actManagement.Id,
+                    ManagementName = actManagement.Name,
+                    UserId = userConfig.User.DbId.ToString(),
+                    Origin = ChangeLogOrigin.UiSettings
+                });
+            }
+            managements.Add(actManagement);
+            AddMode = false;
+            EditMode = false;
+        }
+        else
+        {
+            // Update existing management
+            var Variables = new
+            {
+                id = actManagement.Id,
+                name = actManagement.Name,
+                uid = actManagement.Uid,
+                devTypeId = actManagement.DeviceType.Id,
+                hostname = actManagement.Hostname,
+                importCredentialId = actManagement.ImportCredential.Id,
+                exportCredentialId = actManagement.ExportCredential?.Id > 0
+                    ? actManagement.ExportCredential.Id
+                    : (int?)null,
+                port = actManagement.Port,
+                importDisabled = actManagement.ImportDisabled,
+                forceInitialImport = actManagement.ForceInitialImport,
+                hideInUi = actManagement.HideInUi,
+                configPath = actManagement.ConfigPath,
+                domainUid = actManagement.DomainUid,
+                cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
+                cloudTenantId = actManagement.CloudTenantId,                        
+                superManager = actManagement.SuperManagerId,
+                debugLevel = actManagement.DebugLevel,
+                comment = actManagement.Comment,
+                extMgtData = actManagement.ExtMgtData,
+                isSuperManager = actManagement.DeviceType.CanBeSupermanager()
+            };
+            int udId = (await apiConnection.SendQueryAsync<ReturnId>(DeviceQueries.updateManagement, Variables)).UpdatedId;
+            if (udId == actManagement.Id)
+            {
+                await ChangeLogHelper.LogManagerChange(new ManagementChangeLogRequest
+                {
+                    Family = ChangeLogFamily.Manual,
+                    Operation = ChangeLogOperation.Update,
+                    ManagementId = actManagement.Id,
+                    ManagementName = actManagement.Name,
+                    UserId = userConfig.User.DbId.ToString(),
+                    Origin = ChangeLogOrigin.UiSettings
+                });
+            }
+            EditMode = (udId == actManagement.Id ? false : true);
+            managements[managements.FindIndex(x => x.Id == actManagement.Id)] = actManagement;
+        }
+        AnalyseSampleManagements();
     }
 
     private bool CheckValues(Management mgm, string checkCause)
@@ -569,7 +624,7 @@
         {
             workInProgress = true;
             StateHasChanged();
-            AutoDiscoveryBase actAutodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
+            AutoDiscoveryBase actAutodiscovery = new AutoDiscoveryBase(superManagement, apiConnection, userConfig.ImportCheckCertificates);
             actActions = actAutodiscovery.ConvertToActions(await actAutodiscovery.Run());
             int ChangeCounter = actActions.Count();
             await AddAutoDiscoverLogEntry(0, userConfig.GetText("manual_autodiscovery"), (ChangeCounter > 0 ? ChangeCounter + userConfig.GetText("changes_found") : userConfig.GetText("found_no_changes")), superManagement.Id);

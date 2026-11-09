@@ -1,0 +1,38 @@
+- block:
+    - name: Install webserver packages
+      package:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ apache_packages }}"
+
+    - name: enable required apache modules
+      apache2_module:
+        state: present
+        name: "{{ item }}"
+      loop: "{{ apache2_required_modules }}"
+
+    - name: copy ui httpd config file to ui target
+      template:
+        src: "httpd.conf"
+        dest: "{{ http_conf_dir }}/{{ product_name }}-ui.conf"
+        owner: root
+        group: root
+
+    - name: disable apache2 default web site
+      command: "a2dissite 000-default"
+      ignore_errors: true
+
+    - name: enable {{ product_name }} web site
+      command: "a2ensite {{ product_name }}-ui"
+      register: testoutput
+
+    - name: test
+      debug:
+        var: testoutput
+
+    - name: reload apache
+      service:
+        name: "{{ webserver_package_name }}"
+        state: reloaded
+  become: true
+  environment: "{{ proxy_env }}"

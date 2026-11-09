@@ -1,0 +1,16 @@
+query getRulesForOwnerMappingNameField {
+  firewall_rule(
+    where: {
+      removed: { _is_null: true }
+      rule_name: { _is_null: false }
+      access_rule: { _eq: true }
+    }
+  ) {
+    rule_id
+    rule_name
+    rule_uid
+    rule_metadatum {
+      rule_metadata_id
+    }
+  }
+}

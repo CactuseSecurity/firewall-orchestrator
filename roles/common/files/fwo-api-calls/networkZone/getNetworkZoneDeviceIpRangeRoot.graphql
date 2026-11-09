@@ -1,0 +1,10 @@
+query getNetworkZoneDeviceIpRangeRoot ($matrixId: Int!) {
+  network_zone_device_ip_range_root (where: { ip_range: { criterion_id: {_eq: $matrixId} } }) {
+    dev_id
+    ip_range_id
+    order_to_root
+    device {
+      name: dev_name
+    }
+  }
+}

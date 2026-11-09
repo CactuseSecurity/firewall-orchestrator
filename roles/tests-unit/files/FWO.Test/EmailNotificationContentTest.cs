@@ -1,0 +1,930 @@
+using FWO.Basics;
+using FWO.Data;
+using FWO.Data.Modelling;
+using FWO.Data.Workflow;
+using FWO.Services;
+using FWO.Services.Modelling;
+using Microsoft.AspNetCore.Http;
+using NUnit.Framework;
+using System.Text;
+
+namespace FWO.Test
+{
+    [TestFixture]
+    public class EmailNotificationContentTest
+    {
+        private static readonly Dictionary<int, string> kProtocolNames = new() { [1] = "ICMP", [6] = "TCP" };
+
+        [Test]
+        public void BuildHtmlTableEscapesCellsAndAllowsRawColumns()
+        {
+            NotificationTableRow row = new()
+            {
+                HtmlCells = ["A&B", "<b>raw</b>"],
+                TextCells = ["A&B", "raw"]
+            };
+
+            string html = NotificationTableBodyBuilder.BuildHtmlTable(["H&1", "H2"], [row], [1]);
+
+            Assert.That(html, Does.Contain("<th>H&amp;1</th>"));
+            Assert.That(html, Does.Contain("<td>A&amp;B</td>"));
+            Assert.That(html, Does.Contain("<td><b>raw</b></td>"));
+        }
+
+        [Test]
+        public void BuildTextTableJoinsHeadersAndRows()
+        {
+            NotificationTableRow row = new()
+            {
+                TextCells = ["a", "b"]
+            };
+
+            string text = NotificationTableBodyBuilder.BuildTextTable(["H1", "H2"], [row]);
+
+            Assert.That(text, Is.EqualTo($"H1 | H2{Environment.NewLine}a | b"));
+        }
+
+        [Test]
+        public void BuildHtmlBodyKeepsParagraphsAndInjectsTable()
+        {
+            string html = NotificationTableBodyBuilder.BuildHtmlBody($"First line\n\n{Placeholder.RULE_TABLE}\nTail", "<table>body</table>");
+
+            Assert.That(html, Is.EqualTo("<p>First line<br><br></p><table>body</table><p><br>Tail</p>"));
+        }
+
+        [Test]
+        public void BuildHtmlDocumentWrapsBodyWithStandardStyle()
+        {
+            string html = NotificationTableBodyBuilder.BuildHtmlDocument("<p>content</p>");
+
+            Assert.That(html, Does.StartWith("<!DOCTYPE html>"));
+            Assert.That(html, Does.Contain("<body>"));
+            Assert.That(html, Does.Contain("font-family: arial, sans-serif;"));
+            Assert.That(html, Does.Contain("<p>content</p>"));
+        }
+
+        [Test]
+        public void BuildHtmlReportSectionIncludesTitleOwnerAndBody()
+        {
+            string html = NotificationTableBodyBuilder.BuildHtmlReportSection("Section Title", "<p>body</p>", "OwnerX", "Generated on", "Owners");
+
+            Assert.That(html, Does.Contain("<h2>Section Title</h2>"));
+            Assert.That(html, Does.Contain("<p>Generated on:"));
+            Assert.That(html, Does.Contain("<p>Owners: OwnerX</p>"));
+            Assert.That(html, Does.Contain("<p>body</p>"));
+        }
+
+        [Test]
+        public void NotificationLayoutContentUsesLayoutSpecificBody()
+        {
+            NotificationEmailLayoutContent content = new()
+            {
+                PlainText = "plain content",
+                Html = "<strong>html content</strong>"
+            };
+
+            Assert.That(content.BodyForLayout(NotificationLayout.SimpleText), Is.EqualTo("plain content"));
+            Assert.That(content.BodyForLayout(NotificationLayout.HtmlInBody), Is.EqualTo("<strong>html content</strong>"));
+        }
+
+        [Test]
+        public void NormalizeTextCellRemovesHtmlAndDecodesEntities()
+        {
+            string text = NotificationTableBodyBuilder.NormalizeTextCell("alpha<br><span>beta</span>&amp; gamma");
+
+            Assert.That(text, Is.EqualTo("alpha, beta& gamma"));
+        }
+
+        [Test]
+        public void BuildBodyUsesLayoutSpecificContent()
+        {
+            NotificationEmailLayoutContent content = new()
+            {
+                PlainText = "plain content",
+                Html = "<strong>html content</strong>"
+            };
+            FwoNotification htmlNotification = new()
+            {
+                Layout = NotificationLayout.HtmlInBody,
+                EmailBody = $"before {Placeholder.CONTENT} after"
+            };
+            FwoNotification textNotification = new()
+            {
+                Layout = NotificationLayout.SimpleText,
+                EmailBody = Placeholder.CONTENT
+            };
+            FwoNotification attachmentNotification = new()
+            {
+                Layout = NotificationLayout.CsvAsAttachment,
+                EmailBody = $"before {Placeholder.CONTENT} after"
+            };
+
+            string htmlBody = NotificationEmailLayoutHelper.BuildBody(htmlNotification, content);
+            Assert.That(htmlBody, Does.StartWith("before <style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100%;}"));
+            Assert.That(htmlBody, Does.Contain("<strong>html content</strong>"));
+            Assert.That(NotificationEmailLayoutHelper.BuildBody(textNotification, content), Is.EqualTo("plain content"));
+            Assert.That(NotificationEmailLayoutHelper.BuildBody(attachmentNotification, content), Is.EqualTo("before  after"));
+        }
+
+        [Test]
+        public void BuildBodyWithStringContentConvertsNewLinesInHtmlLayout()
+        {
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.HtmlInBody,
+                EmailBody = "header "
+            };
+
+            string body = NotificationEmailLayoutHelper.BuildBody(notification, "line1\r\nline2\nline3");
+
+            Assert.That(body, Is.EqualTo("header line1<br>line2<br>line3"));
+        }
+
+        [Test]
+        public void BuildBodyWithLayoutContentAppendsWhenPlaceholderIsMissing()
+        {
+            NotificationEmailLayoutContent content = new()
+            {
+                PlainText = "plain content",
+                Html = "<strong>html content</strong>"
+            };
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.SimpleText,
+                EmailBody = "prefix "
+            };
+
+            string body = NotificationEmailLayoutHelper.BuildBody(notification, content);
+
+            Assert.That(body, Is.EqualTo("prefix plain content"));
+        }
+
+        [Test]
+        public void BuildBodyAppendsContentWhenPlaceholderIsMissing()
+        {
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.SimpleText,
+                EmailBody = "header\n"
+            };
+
+            Assert.That(NotificationEmailLayoutHelper.BuildBody(notification, "details"), Is.EqualTo("header\ndetails"));
+        }
+
+        [Test]
+        public void BuildBodyWithLayoutContentReturnsPlaceholderFreeBodyWhenContentIsMissing()
+        {
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.HtmlInBody,
+                EmailBody = $"intro {Placeholder.CONTENT} tail"
+            };
+
+            Assert.That(NotificationEmailLayoutHelper.BuildBody(notification, (NotificationEmailLayoutContent?)null), Is.EqualTo("intro  tail"));
+        }
+
+        [Test]
+        public void FromRequestTasksListsObjectTasksWithPreviousAndRequestedState()
+        {
+            WfReqTask objectTask = new()
+            {
+                Id = 9,
+                TaskNumber = 3,
+                Title = "Move web server",
+                TaskType = WfTaskType.object_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.unchanged.ToString(), Name = "srv_web01", NetworkId = 4711, IpString = "10.1.1.5" },
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.modify.ToString(), Name = "srv_web02", NetworkId = 4711, IpString = "10.1.1.6" }
+                }
+            };
+            List<WfReqTask> tasks = [objectTask];
+
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks(tasks, new EmailNotificationUserConfig());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(content.Html, Does.Contain("<h2>Object Requests</h2>"));
+                Assert.That(content.Html, Does.Not.Contain("<h2>Requested Connections</h2>"));
+                Assert.That(content.PlainText, Does.Contain("srv_web01"));
+                Assert.That(content.PlainText, Does.Contain("srv_web02"));
+                Assert.That(content.Csv, Does.Contain("\"srv_web01 (10.1.1.5)\",\"srv_web02 (10.1.1.6)\""));
+            });
+        }
+
+        [Test]
+        public void FromRequestTasksShowsAChangeOfOnlyTheAddressOrOnlyThePort()
+        {
+            WfReqTask addressChange = new()
+            {
+                Id = 21,
+                TaskNumber = 1,
+                Title = "Move host",
+                TaskType = WfTaskType.object_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.unchanged.ToString(), Name = "srv_web01", NetworkId = 4711, IpString = "10.1.1.5" },
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.modify.ToString(), Name = "srv_web01", NetworkId = 4711, IpString = "10.1.1.6" }
+                }
+            };
+            WfReqTask portChange = new()
+            {
+                Id = 22,
+                TaskNumber = 2,
+                Title = "Move service",
+                TaskType = WfTaskType.object_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), RequestAction = RequestAction.unchanged.ToString(), Name = "https_alt", ServiceId = 815, ProtoId = 6, Port = 8443 },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), RequestAction = RequestAction.modify.ToString(), Name = "https_alt", ServiceId = 815, ProtoId = 6, Port = 9443 }
+                }
+            };
+            WfReqTask createWithoutPort = new()
+            {
+                Id = 23,
+                TaskNumber = 3,
+                Title = "New ping",
+                TaskType = WfTaskType.object_create.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), RequestAction = RequestAction.create.ToString(), ProtoId = 1 }
+                }
+            };
+            List<WfReqTask> tasks = [addressChange, portChange, createWithoutPort];
+
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks(tasks, new EmailNotificationUserConfig(), kProtocolNames);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(content.Csv, Does.Contain("\"srv_web01 (10.1.1.5)\",\"srv_web01 (10.1.1.6)\""));
+                Assert.That(content.Csv, Does.Contain("\"https_alt (8443/TCP)\",\"https_alt (9443/TCP)\""));
+                Assert.That(content.Csv, Does.Contain("\"\",\"ICMP\""));
+            });
+        }
+
+        [Test]
+        public void FromRequestTasksShowsTheBoundsOfATimeObject()
+        {
+            DateTime start = new(2026, 11, 1, 8, 0, 0);
+            DateTime end = new(2026, 11, 30, 18, 0, 0);
+            WfReqTask timeChange = new()
+            {
+                Id = 24,
+                TaskNumber = 4,
+                Title = "Extend maintenance",
+                TaskType = WfTaskType.object_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.unchanged.ToString(), Name = "maintenance", TimeObjId = 77, StartTime = start, EndTime = end },
+                    new WfReqElement { Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.modify.ToString(), Name = "maintenance", TimeObjId = 77, EndTime = end }
+                }
+            };
+            List<WfReqTask> tasks = [timeChange];
+
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks(tasks, new EmailNotificationUserConfig(), kProtocolNames);
+
+            Assert.That(content.Csv, Does.Contain("\"maintenance (2026-11-01 08:00 - 2026-11-30 18:00)\",\"maintenance (<= 2026-11-30 18:00)\""));
+        }
+
+        [Test]
+        public void FromImplementationTasksListsObjectTasksApartFromConnections()
+        {
+            WfImplTask objectTask = new()
+            {
+                Id = 11,
+                TaskNumber = 1,
+                Title = "Move web server",
+                TaskType = WfTaskType.object_modify.ToString(),
+                ImplAction = RequestAction.modify.ToString(),
+                ImplElements =
+                [
+                    new WfImplElement { Field = ElemFieldType.source.ToString(), ImplAction = RequestAction.unchanged.ToString(), Name = "srv_web01", IpString = "10.1.1.5" },
+                    new WfImplElement { Field = ElemFieldType.source.ToString(), ImplAction = RequestAction.modify.ToString(), Name = "srv_web02", IpString = "10.1.1.6" }
+                ]
+            };
+            WfImplTask accessTask = new()
+            {
+                Id = 12,
+                TaskNumber = 2,
+                Title = "Open web",
+                TaskType = WfTaskType.access.ToString(),
+                ImplElements =
+                [
+                    new WfImplElement { Field = ElemFieldType.source.ToString(), Name = "src-a" },
+                    new WfImplElement { Field = ElemFieldType.destination.ToString(), Name = "dst-a" },
+                    new WfImplElement { Field = ElemFieldType.service.ToString(), Port = 443, ProtoId = 6 }
+                ]
+            };
+            List<WfImplTask> tasks = [objectTask, accessTask];
+
+            WorkflowEmailContent content = WorkflowEmailContent.FromImplementationTasks(tasks, new EmailNotificationUserConfig());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(content.Html, Does.Contain("<h2>Object Requests</h2>"));
+                Assert.That(content.Html, Does.Contain("<h2>Requested Connections</h2>"));
+                Assert.That(content.Csv, Does.Contain("\"srv_web01 (10.1.1.5)\",\"srv_web02 (10.1.1.6)\""));
+                Assert.That(content.Csv, Does.Not.Contain("\"srv_web01, srv_web02\""));
+            });
+        }
+
+        [Test]
+        public void BuildBodyWithWorkflowHtmlInBodyPrefixesSharedTableStyle()
+        {
+            WfReqTask task = new()
+            {
+                Id = 7,
+                TaskNumber = 101,
+                Title = "Open web",
+                RequestAction = RequestAction.create.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "src-a" },
+                    new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = "10.0.0.1" },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), Port = 80, PortEnd = 443, ProtoId = 6 }
+                }
+            };
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks([task], new EmailNotificationUserConfig());
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.HtmlInBody,
+                EmailBody = "prefix "
+            };
+
+            string body = NotificationEmailLayoutHelper.BuildBody(notification, content);
+
+            Assert.That(body, Does.StartWith("prefix <style>table {font-family: arial, sans-serif;font-size: 10px;border-collapse: collapse;width: 100%;}"));
+            Assert.That(body, Does.Contain("<h2>Requested Connections</h2>"));
+            Assert.That(body, Does.Contain("<table border=\"1\" cellspacing=\"0\" cellpadding=\"4\">"));
+        }
+
+        [Test]
+        public async Task BuildAttachmentWrapsHtmlFragmentAndReturnsNullForMissingContent()
+        {
+            NotificationEmailLayoutContent content = new()
+            {
+                Html = "<p>html fragment</p>",
+                Csv = "a,b",
+                Json = "{}"
+            };
+
+            FormFile? htmlAttachment = await NotificationEmailLayoutHelper.BuildAttachment(NotificationLayout.HtmlAsAttachment, content, "Subject Line");
+            FormFile? nullAttachment = await NotificationEmailLayoutHelper.BuildAttachment(NotificationLayout.HtmlAsAttachment, null, "Subject Line");
+
+            Assert.That(htmlAttachment, Is.Not.Null);
+            Assert.That(htmlAttachment!.ContentType, Is.EqualTo("application/html"));
+            Assert.That(await ReadFormFile(htmlAttachment), Does.Contain("<!DOCTYPE html>"));
+            Assert.That(await ReadFormFile(htmlAttachment), Does.Contain("<p>html fragment</p>"));
+            Assert.That(nullAttachment, Is.Null);
+        }
+
+        [Test]
+        public async Task BuildAttachmentWithContentReturnsNullForUnsupportedLayout()
+        {
+            NotificationEmailLayoutContent content = new()
+            {
+                Html = "<p>html fragment</p>",
+                Csv = "a,b",
+                Json = "{}"
+            };
+
+            FormFile? unsupportedAttachment = await NotificationEmailLayoutHelper.BuildAttachment(NotificationLayout.SimpleText, content, "Subject Line");
+
+            Assert.That(unsupportedAttachment, Is.Null);
+        }
+
+        [TestCase(NotificationLayout.HtmlAsAttachment, "application/html", "<p>html fragment</p>")]
+        [TestCase(NotificationLayout.JsonAsAttachment, "application/json", "{\"k\":1}")]
+        [TestCase(NotificationLayout.CsvAsAttachment, "application/csv", "a,b")]
+        public async Task BuildAttachmentWithDelegatesUsesAllTextBasedLayouts(NotificationLayout layout, string expectedContentType, string expectedBody)
+        {
+            FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(
+                layout,
+                "Subject Line",
+                () => "<p>html fragment</p>",
+                () => "{\"k\":1}",
+                () => "a,b",
+                _ => Task.FromResult<string?>(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("pdf fragment"))));
+
+            Assert.That(attachment, Is.Not.Null);
+            Assert.That(attachment!.ContentType, Is.EqualTo(expectedContentType));
+            Assert.That(await ReadFormFile(attachment), Is.EqualTo(expectedBody));
+        }
+
+        [Test]
+        public async Task BuildAttachmentWithDelegatesUsesPdfLayoutAndNullForUnsupportedLayout()
+        {
+            FormFile? pdfAttachment = await NotificationEmailLayoutHelper.BuildAttachment(
+                NotificationLayout.PdfAsAttachment,
+                "Subject Line",
+                () => "<p>html fragment</p>",
+                () => "{\"k\":1}",
+                () => "a,b",
+                _ => Task.FromResult<string?>(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("pdf fragment"))));
+
+            FormFile? unsupportedAttachment = await NotificationEmailLayoutHelper.BuildAttachment(
+                NotificationLayout.SimpleText,
+                "Subject Line",
+                () => "<p>html fragment</p>",
+                () => "{\"k\":1}",
+                () => "a,b",
+                _ => Task.FromResult<string?>(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("pdf fragment"))));
+
+            Assert.That(pdfAttachment, Is.Not.Null);
+            Assert.That(pdfAttachment!.ContentType, Is.EqualTo("application/octet-stream"));
+            Assert.That(await ReadFormFile(pdfAttachment), Is.EqualTo("pdf fragment"));
+            Assert.That(unsupportedAttachment, Is.Null);
+        }
+
+        [Test]
+        public void ReplaceWorkflowPlaceholdersUsesTicketOwnerFallback()
+        {
+            WfTicket ticket = new()
+            {
+                Requester = new() { Name = "Requester" },
+                Tasks =
+                {
+                    new WfReqTask
+                    {
+                        Owners =
+                        {
+                            new() { Owner = new() { Name = "Application", ExtAppId = "APP-1" } }
+                        }
+                    }
+                }
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.REQUESTER}", ticket, null);
+
+            Assert.That(text, Is.EqualTo("Application/APP-1/Requester"));
+        }
+
+        [Test]
+        public void ReplaceWorkflowPlaceholdersUsesRequesterDnWhenRequesterNameIsMissing()
+        {
+            WfTicket ticket = new()
+            {
+                RequesterDn = "cn=requester,dc=test",
+                Tasks =
+                {
+                    new WfReqTask
+                    {
+                        Owners =
+                        {
+                            new() { Owner = new() { Name = "Application", ExtAppId = "APP-2" } }
+                        }
+                    }
+                }
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.REQUESTER}", ticket, null);
+
+            Assert.That(text, Is.EqualTo("Application/APP-2/cn=requester,dc=test"));
+        }
+
+        [Test]
+        public void ReplaceWorkflowPlaceholdersAppliesCallerProvidedContext()
+        {
+            WfTicket ticket = new()
+            {
+                Requester = new() { Name = "Requester" },
+                Reason = "Original reason",
+                CreationDate = new DateTime(2025, 1, 2)
+            };
+            NotificationPlaceholderData placeholderData = new()
+            {
+                RequestingAppName = "Requesting App",
+                RequestingAppId = "REQ-APP",
+                InterfaceName = "old-interface",
+                InterfaceLinkText = "Interface",
+                InterfaceLinkName = "old-interface",
+                InterfaceLinkUrl = "https://example.test/old",
+                NewInterfaceName = "new-interface",
+                NewInterfaceLinkText = "New interface",
+                NewInterfaceLinkName = "new-interface",
+                NewInterfaceLinkUrl = "https://example.test/new",
+                Reason = "Rejected reason",
+                UserName = "Rejecter",
+                RequestDate = "03.01.2025"
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(
+                string.Join("|", new List<string>
+                {
+                    Placeholder.APPNAME,
+                    Placeholder.APPID,
+                    Placeholder.REQUESTER,
+                    Placeholder.REQUESTING_APPNAME,
+                    Placeholder.REQUESTING_APPID,
+                    Placeholder.INTERFACE_NAME,
+                    Placeholder.INTERFACE_LINK,
+                    Placeholder.NEW_INTERFACE_NAME,
+                    Placeholder.NEW_INTERFACE_LINK,
+                    Placeholder.REASON,
+                    Placeholder.USER_NAME,
+                    Placeholder.REQUESTDATE
+                }),
+                ticket,
+                new FwoOwner { Name = "Owner", ExtAppId = "APP-1" },
+                placeholderData,
+                isHtmlBody: true);
+
+            Assert.That(text, Is.EqualTo(
+                "Owner|APP-1|Requester|Requesting App|REQ-APP|old-interface|<a target=\"_blank\" href=\"https://example.test/old\">Interface: old-interface</a>|new-interface|<a target=\"_blank\" href=\"https://example.test/new\">New interface: new-interface</a>|Rejected reason|Rejecter|03.01.2025"));
+        }
+
+        [Test]
+        public void ReplaceOwnerPlaceholdersReplacesAppAndTimeInterval()
+        {
+            FwoOwner owner = new()
+            {
+                Name = "Application",
+                ExtAppId = "APP-3"
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.TIME_INTERVAL}", owner, "14 days");
+
+            Assert.That(text, Is.EqualTo("Application/APP-3/14 days"));
+        }
+
+        [Test]
+        public void ReplaceNotificationPlaceholdersReplacesRequestContext()
+        {
+            FwoOwner selectedOwner = new()
+            {
+                Name = "Selected",
+                ExtAppId = "APP-1"
+            };
+            FwoOwner requestingOwner = new()
+            {
+                Name = "Requester",
+                ExtAppId = "APP-2"
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.REQUESTING_APPNAME}/{Placeholder.REQUESTING_APPID}/{Placeholder.REQUESTER}/{Placeholder.INTERFACE_NAME}/{Placeholder.INTERFACE_LINK}/{Placeholder.NEW_INTERFACE_NAME}/{Placeholder.NEW_INTERFACE_LINK}/{Placeholder.REASON}/{Placeholder.USER_NAME}",
+                new NotificationPlaceholderResolver.NotificationPlaceholderValues
+                {
+                    Application = selectedOwner,
+                    RequestingOwner = requestingOwner,
+                    InterfaceName = "if-test",
+                    InterfaceLinkText = "Interface Request",
+                    InterfaceLinkUrl = "https://ui.example.test/networkmodelling/APP-1/99",
+                    NewInterfaceName = "if-test",
+                    NewInterfaceLinkText = "Interface Request",
+                    NewInterfaceLinkUrl = "https://ui.example.test/networkmodelling/APP-1/99",
+                    Reason = "Need access",
+                    UserName = "Tester"
+                },
+                isHtmlBody: true);
+
+            Assert.That(text, Is.EqualTo(
+                "Selected/APP-1/Requester/APP-2/Requester/if-test/"
+                + "<a target=\"_blank\" href=\"https://ui.example.test/networkmodelling/APP-1/99\">Interface Request</a>"
+                + "/if-test/"
+                + "<a target=\"_blank\" href=\"https://ui.example.test/networkmodelling/APP-1/99\">Interface Request</a>"
+                + "/Need access/Tester"));
+        }
+
+        [Test]
+        public void ReplaceDecommissionPlaceholdersReplacesDecommissionContext()
+        {
+            FwoOwner application = new()
+            {
+                Name = "Application",
+                ExtAppId = "APP-9"
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.INTERFACE_NAME}/{Placeholder.NEW_INTERFACE_NAME}/{Placeholder.NEW_INTERFACE_LINK}/{Placeholder.REASON}/{Placeholder.USER_NAME}",
+                new NotificationPlaceholderResolver.NotificationPlaceholderValues
+                {
+                    Application = application,
+                    InterfaceName = "if-old",
+                    NewInterfaceName = "if-new",
+                    NewInterfaceLinkText = "Interface",
+                    NewInterfaceLinkName = "if-new",
+                    NewInterfaceLinkUrl = "https://ui.example.test/networkmodelling/APP-9/100",
+                    Reason = "Planned decommission",
+                    UserName = "Tester"
+                });
+
+            Assert.That(text, Is.EqualTo("Application/APP-9/if-old/if-new/https://ui.example.test/networkmodelling/APP-9/100/Planned decommission/Tester"));
+        }
+
+        [Test]
+        public void ReplaceDecommissionBodyPlaceholdersRendersFormattedContext()
+        {
+            FwoOwner application = new()
+            {
+                Name = "Application",
+                ExtAppId = "APP-9"
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(
+                $"{Placeholder.INTERFACE_NAME}/{Placeholder.NEW_INTERFACE_NAME}/{Placeholder.NEW_INTERFACE_LINK}/{Placeholder.REASON}/{Placeholder.USER_NAME}",
+                new NotificationPlaceholderResolver.NotificationPlaceholderValues
+                {
+                    Application = application,
+                    InterfaceName = "if-old",
+                    NewInterfaceName = "if-new",
+                    NewInterfaceLinkText = "Interface",
+                    NewInterfaceLinkName = "if-new",
+                    NewInterfaceLinkUrl = "https://ui.example.test/networkmodelling/APP-9/100",
+                    Reason = "Planned decommission",
+                    UserName = "Tester"
+                },
+                isHtmlBody: true);
+
+            Assert.That(text, Is.EqualTo("if-old/if-new/<a target=\"_blank\" href=\"https://ui.example.test/networkmodelling/APP-9/100\">Interface: if-new</a>/Planned decommission/Tester"));
+        }
+
+        [Test]
+        public void NotificationScheduleHelper_ConsidersRequestNotificationsDueImmediately()
+        {
+            FwoNotification notification = new()
+            {
+                Deadline = NotificationDeadline.RequestDate,
+                IntervalBeforeDeadline = SchedulerInterval.Days,
+                OffsetBeforeDeadline = 0
+            };
+
+            Assert.That(NotificationScheduleHelper.IsNotificationDue(new FwoOwner(), DateTime.Now, notification), Is.True);
+        }
+
+        [Test]
+        public void NotificationScheduleHelper_SkipsDelayedRequestReminders()
+        {
+            FwoNotification notification = new()
+            {
+                Deadline = NotificationDeadline.RequestDate,
+                RepeatIntervalAfterDeadline = SchedulerInterval.Days,
+                InitialOffsetAfterDeadline = 2,
+                RepeatOffsetAfterDeadline = 1,
+                RepetitionsAfterDeadline = 2
+            };
+
+            Assert.That(NotificationScheduleHelper.IsNotificationDue(new FwoOwner(), DateTime.Now.AddDays(-1), notification), Is.False);
+        }
+
+        [Test]
+        public void NotificationRequestBuilderKeepsNetworkIpsWhenTicketIsSerialized()
+        {
+            ModellingNotificationRequestBuilder builder = new(new EmailNotificationUserConfig());
+            ModellingConnection connection = new()
+            {
+                Id = 42,
+                Name = "Interface based access",
+                SourceAppServers =
+                [
+                    new() { Content = new() { Name = "Source", Ip = "10.0.0.1", IpEnd = "10.0.0.1" } }
+                ],
+                DestinationAppServers =
+                [
+                    new() { Content = new() { Name = "Destination", Ip = "10.0.0.2", IpEnd = "10.0.0.2" } }
+                ]
+            };
+
+            List<WfReqTask> tasks = builder.BuildRequestTasks([connection], new() { Id = 7, Name = "App" }, 1);
+            WfTicket ticket = new() { Tasks = tasks };
+            ticket.UpdateCidrsInTaskElements();
+
+            WfReqTask accessTask = tasks.First(task => task.TaskType == WfTaskType.access.ToString());
+            Assert.That(accessTask.Elements.First(element => element.Field == ElemFieldType.source.ToString()).IpString, Is.EqualTo("10.0.0.1"));
+            Assert.That(accessTask.Elements.First(element => element.Field == ElemFieldType.destination.ToString()).IpString, Is.EqualTo("10.0.0.2"));
+            Assert.That(accessTask.Elements.First(element => element.Field == ElemFieldType.source.ToString()).Cidr?.CidrString, Is.EqualTo("10.0.0.1/32"));
+        }
+
+        [Test]
+        public void NotificationRequestBuilderKeepsExistingGroupsInAccessTask()
+        {
+            ModellingNotificationRequestBuilder builder = new(new EmailNotificationUserConfig());
+            ModellingConnection connection = new()
+            {
+                Id = 42,
+                Name = "Interface based access",
+                SourceAppRoles =
+                [
+                    new() { Content = new() { IdString = "AR-Source" } }
+                ],
+                DestinationAppRoles =
+                [
+                    new() { Content = new() { IdString = "AR-Destination" } }
+                ],
+                ServiceGroups =
+                [
+                    new() { Content = new() { Name = "SG-Web" } }
+                ]
+            };
+
+            List<WfReqTask> tasks = builder.BuildRequestTasks([connection], new() { Id = 7, Name = "App" }, 1);
+            WfReqTask accessTask = tasks.First(task => task.TaskType == WfTaskType.access.ToString());
+
+            Assert.That(accessTask.Elements.Any(element => element.Field == ElemFieldType.source.ToString() && element.GroupName == "AR-Source"), Is.True);
+            Assert.That(accessTask.Elements.Any(element => element.Field == ElemFieldType.destination.ToString() && element.GroupName == "AR-Destination"), Is.True);
+            Assert.That(accessTask.Elements.Any(element => element.Field == ElemFieldType.service.ToString() && element.GroupName == "SG-Web"), Is.True);
+        }
+
+        [Test]
+        public async Task BuildAttachmentCreatesCsvAttachment()
+        {
+            NotificationEmailLayoutContent content = new() { Csv = "a,b" };
+
+            FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(NotificationLayout.CsvAsAttachment, content, "Subject Line");
+
+            Assert.That(attachment, Is.Not.Null);
+            Assert.That(attachment!.ContentType, Is.EqualTo("application/csv"));
+            Assert.That(attachment.FileName, Does.StartWith("SubjectLine_"));
+            Assert.That(await ReadFormFile(attachment), Is.EqualTo("a,b"));
+        }
+
+        [Test]
+        public void FromRequestTasksBuildsTextHtmlCsvAndJsonContent()
+        {
+            WfReqTask task = new()
+            {
+                Id = 7,
+                TaskNumber = 101,
+                Title = "Open web",
+                RequestAction = RequestAction.create.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "src-a" },
+                    new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = "10.0.0.1" },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), Port = 80, PortEnd = 443, ProtoId = 6 }
+                }
+            };
+            WfReqTask emptyTask = new() { Id = 8, TaskNumber = 102, Title = "Empty" };
+
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks([task, emptyTask], new EmailNotificationUserConfig());
+
+            Assert.That(content.PlainText, Does.Contain("Requested Connections"));
+            Assert.That(content.PlainText, Does.Contain("101 | Open web | create | src-a | 10.0.0.1 | 80-443/6"));
+            Assert.That(content.PlainText, Does.Not.Contain("Empty"));
+            Assert.That(content.Html, Does.Contain("<h2>Requested Connections</h2>"));
+            Assert.That(content.Csv, Does.Contain("\"101\",\"Open web\",\"create\",\"src-a\",\"10.0.0.1\",\"80-443/6\""));
+            Assert.That(content.Json, Does.Contain("\"Source\":\"src-a\""));
+        }
+
+        [Test]
+        public void FromRequestTasksBuildsProtocolNamesFromSuppliedProtocolMap()
+        {
+            WfReqTask task = new()
+            {
+                Id = 7,
+                TaskNumber = 101,
+                Title = "Open web",
+                RequestAction = RequestAction.create.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "src-a" },
+                    new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = "10.0.0.1" },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), Name = "1000/TCP", Port = 1000, ProtoId = 6 },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), Port = 4000, PortEnd = 5000, ProtoId = 17 }
+                }
+            };
+
+            Dictionary<int, string> protocolNamesById = new()
+            {
+                { 6, "TCP" },
+                { 17, "UDP" }
+            };
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks([task], new EmailNotificationUserConfig(), protocolNamesById);
+
+            Assert.That(content.PlainText, Does.Contain("1000/TCP, 4000-5000/UDP"));
+        }
+
+        [Test]
+        public void FromRequestTasksBuildsSeparateGroupSectionWithMembers()
+        {
+            WfReqTask accessTask = new()
+            {
+                Id = 7,
+                TaskNumber = 101,
+                Title = "Open web",
+                RequestAction = RequestAction.create.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "src-a" },
+                    new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = "10.0.0.1" },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), GroupName = "WebServices" }
+                }
+            };
+            WfReqTask groupTask = new()
+            {
+                Id = 8,
+                TaskNumber = 102,
+                TaskType = WfTaskType.group_create.ToString(),
+                Title = "New App Role",
+                RequestAction = RequestAction.create.ToString(),
+                Elements =
+                {
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.source.ToString(),
+                        RequestAction = RequestAction.create.ToString(),
+                        GroupName = "AR1",
+                        IpString = "10.0.0.2"
+                    }
+                }
+            };
+            WfReqTask modifyGroupTask = new()
+            {
+                Id = 9,
+                TaskNumber = 103,
+                TaskType = WfTaskType.group_modify.ToString(),
+                Title = "Update App Role",
+                RequestAction = RequestAction.modify.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.addAfterCreation.ToString(), GroupName = "AR1", Name = "Server2" }
+                },
+                RemovedElements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.delete.ToString(), GroupName = "AR1", IpString = "10.0.0.3" }
+                }
+            };
+
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks([groupTask, accessTask, modifyGroupTask], new EmailNotificationUserConfig());
+
+            Assert.That(content.PlainText, Does.Contain("Requested Connections"));
+            Assert.That(content.PlainText, Does.Contain("101 | Open web | create | src-a | 10.0.0.1 | WebServices"));
+            Assert.That(content.PlainText, Does.Contain("Group Requests"));
+            Assert.That(content.PlainText, Does.Contain("Task | Type | Title | Action | Current Members | Members to add | Members to remove"));
+            Assert.That(content.PlainText, Does.Contain("102 | Create Group | New App Role | create |  | 10.0.0.2 |"));
+            Assert.That(content.PlainText, Does.Contain("103 | Modify Group | Update App Role | modify |  | Server2 | 10.0.0.3"));
+            Assert.That(content.Csv, Does.Contain("\"102\",\"Create Group\",\"New App Role\",\"create\",\"\",\"10.0.0.2\",\"\""));
+            Assert.That(content.Json, Does.Contain("\"MembersToAdd\":\"10.0.0.2\""));
+            Assert.That(content.Json, Does.Contain("\"MembersToRemove\":\"10.0.0.3\""));
+        }
+
+        [Test]
+        public void FromRequestTasksFormatsGroupServiceAndRuleMembersWithDetails()
+        {
+            WfReqTask groupTask = new()
+            {
+                Id = 10,
+                TaskNumber = 104,
+                TaskType = WfTaskType.group_modify.ToString(),
+                Title = "Refine Group",
+                RequestAction = RequestAction.modify.ToString(),
+                Elements =
+                {
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.service.ToString(),
+                        RequestAction = RequestAction.modify.ToString(),
+                        Port = 443,
+                        ProtoId = 6
+                    },
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.rule.ToString(),
+                        RequestAction = RequestAction.addAfterCreation.ToString(),
+                        Name = "RuleA",
+                        RuleUid = "R-7"
+                    }
+                }
+            };
+
+            List<WfReqTask> requestTasks = new() { groupTask };
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks(requestTasks, new EmailNotificationUserConfig(), new Dictionary<int, string>
+            {
+                { 6, "TCP" }
+            });
+
+            Assert.That(content.PlainText, Does.Contain("443/TCP"));
+            Assert.That(content.PlainText, Does.Contain("RuleA (R-7)"));
+        }
+
+        private static async Task<string> ReadFormFile(FormFile formFile)
+        {
+            using Stream stream = formFile.OpenReadStream();
+            using StreamReader reader = new(stream);
+            return await reader.ReadToEndAsync();
+        }
+
+        private sealed class EmailNotificationUserConfig : SimulatedUserConfig
+        {
+            private static readonly Dictionary<string, string> Translations = new()
+            {
+                { "requested_connections", "Requested Connections" },
+                { "object_requests", "Object Requests" },
+                { "task", "Task" }
+            };
+
+            public override string GetText(string key)
+            {
+                return Translations.TryGetValue(key, out string? value) ? value : base.GetText(key);
+            }
+        }
+    }
+}

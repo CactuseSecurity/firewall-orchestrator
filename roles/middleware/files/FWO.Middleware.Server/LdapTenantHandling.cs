@@ -20,9 +20,7 @@ namespace FWO.Middleware.Server
             bool tenantAdded = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 LdapAttributeSet attributeSet = new()
                 {
@@ -36,16 +34,16 @@ namespace FWO.Middleware.Server
                     //Add the entry to the directory
                     await connection.AddAsync(newEntry);
                     tenantAdded = true;
-                    Log.WriteDebug("Add tenant", $"Tenant {tenantName} added in {Address}:{Port}");
+                    Log.WriteDebug("Add tenant", $"Tenant {tenantName} added in {Host()}");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteInfo("Add Tenant", $"couldn't add tenant to LDAP {Address}:{Port}: {exception}");
+                    Log.WriteInfo("Add Tenant", $"couldn't add tenant to LDAP {Host()}: {exception}");
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to add tenant", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to add tenant", exception);
             }
             return tenantAdded;
         }
@@ -60,9 +58,7 @@ namespace FWO.Middleware.Server
             bool tenantDeleted = false;
             try
             {
-                using LdapConnection connection = await Connect();
-                // Authenticate as write user
-                await TryBind(connection, WriteUser, WriteUserPwd);
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 try
                 {
@@ -70,16 +66,16 @@ namespace FWO.Middleware.Server
                     //Delete the entry in the directory
                     await connection.DeleteAsync(tenantDn);
                     tenantDeleted = true;
-                    Log.WriteDebug("Delete Tenant", $"tenant {tenantDn} deleted in {Address}:{Port}");
+                    Log.WriteDebug("Delete Tenant", $"tenant {tenantDn} deleted in {Host()}");
                 }
                 catch (Exception exception)
                 {
-                    Log.WriteInfo("Delete Tenant", $"couldn't delete tenant in LDAP {Address}:{Port}: {exception}");
+                    Log.WriteInfo("Delete Tenant", $"couldn't delete tenant in LDAP {Host()}: {exception}");
                 }
             }
             catch (Exception exception)
             {
-                Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to delete tenant", exception);
+                Log.WriteError($"Non-LDAP exception {Host()}", "Unexpected error while trying to delete tenant", exception);
             }
             return tenantDeleted;
         }

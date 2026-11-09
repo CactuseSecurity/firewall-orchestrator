@@ -1,4 +1,5 @@
 @using FWO.Ui.Services
+@using FWO.Compliance
 @using FWO.Middleware.Client
 
 @page "/request/approvals/{ticketId?}"
@@ -21,6 +22,7 @@ else
 {
    <Loading/>
 }
+<InProgress Display="WorkInProgress"/>
 
 @code
 {
@@ -37,20 +39,20 @@ else
     private WfStateDict states = new ();
     private List<int>? OwnerIds = null;
     private bool InitComplete = false;
+    private bool WorkInProgress = false;
 
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            apiConnection.SetProperRole(authenticationStateTask!.Result.User, [ Roles.Admin, Roles.Approver, Roles.Auditor ]);
             await states.Init(apiConnection);
 
             if(userConfig.ReqOwnerBased)
             {
-                OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
+                OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
             }
-            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.approval){};
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.approval, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient)){};
             await Reset();
             await HandleTicketId();
             wfHandler.SetContinueEnv(ObjAction.approve);
@@ -79,7 +81,7 @@ else
     {
         try
         {
-            wfHandler.ReadOnlyMode = !(authenticationStateTask!.Result.User.IsInRole(Roles.Approver) || authenticationStateTask!.Result.User.IsInRole(Roles.Admin));
+            wfHandler.ReadOnlyMode = !userConfig.CanUseAnyRole(Roles.Approver, Roles.Admin);
             await wfHandler.Init(true, OwnerIds);
         }
         catch (Exception exception)
@@ -90,13 +92,24 @@ else
 
     public async Task StartApproveTask(WfReqTask reqTask)
     {
+        if (WorkInProgress)
+        {
+            return;
+        }
+        WorkInProgress = true;
         try
         {
+            await InvokeAsync(StateHasChanged);
             await wfHandler.StartWorkOnReqTask(reqTask, ObjAction.approve);
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("start_work"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 }

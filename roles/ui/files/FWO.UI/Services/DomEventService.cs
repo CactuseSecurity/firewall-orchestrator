@@ -99,6 +99,11 @@ namespace FWO.Ui.Services
 
         public async ValueTask DisposeAsync()
         {
+            OnGlobalScroll = null;
+            OnGlobalClick = null;
+            OnGlobalFocus = null;
+            OnGlobalResize = null;
+
             await DisposeAsyncCore().ConfigureAwait(false);
             GC.SuppressFinalize(this);
         }

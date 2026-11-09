@@ -1,66 +1,106 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VENV_BIN=""
-
 # Load config file
 CONFIG_FILE=".githooks/tooling.env"
 set -a
 source "$CONFIG_FILE"
 set +a
 
-if [ -d ".venv/Scripts" ]; then
-    # Using virtual environment from .venv (Windows)
-    VENV_BIN=".venv/Scripts/"
-    source ".venv/Scripts/activate"
-elif [ -d ".venv/bin" ]; then
-    # Using virtual environment from .venv (Unix)
-    VENV_BIN=".venv/bin/"
-    source ".venv/bin/activate"
-elif command -v conda >/dev/null 2>&1; then
-    # Using conda
-    CONDA_BASE="$(conda info --base)"
-    source "$CONDA_BASE/etc/profile.d/conda.sh"
-    conda activate "$CONDA_ENV"
-    if [ -d "$CONDA_PREFIX/Scripts" ]; then
-        # Conda Windows
-        VENV_BIN="$CONDA_PREFIX/Scripts/"
-    else
-        # Conda Unix
-        VENV_BIN="$CONDA_PREFIX/bin/"
-    fi
-fi
+# Set default python path
+PYTHON_CMD=("python")
 
-if [ -z "$VENV_BIN" ]; then
+if [ -f ".venv/Scripts/activate" ]; then
+    # Using virtual environment from .venv (Windows)
+    source ".venv/Scripts/activate"
+elif [ -f ".venv/bin/activate" ]; then
+    # Using virtual environment from .venv (Unix)
+    source ".venv/bin/activate"
+elif [ -d ".venv" ]; then
+    # The directory exists but carries no activate script. "python -m venv" leaves
+    # exactly this behind when it cannot bootstrap pip - on Debian and Ubuntu that is
+    # the pythonX.Y-venv package missing - and testing for the directory rather than
+    # for the script turned that into an unexplained "No such file or directory" abort.
+    echo "Error: '.venv' exists but contains no activate script, so it is an incomplete virtual environment."
+    echo "Recreate it, installing the venv module for your Python first if 'python3 -m venv' reports ensurepip as unavailable:"
+    echo "  sudo apt install python3-venv python3-pip   # Debian/Ubuntu; name the pythonX.Y-venv package if that one has no candidate"
+    echo "  rm -rf .venv && python3 -m venv .venv"
+    echo "  .venv/bin/python -m pip install -r roles/importer/files/importer/requirements.txt"
+    exit 1
+elif command -v conda >/dev/null 2>&1 && [ -n "${CONDA_ENV:-}" ]; then
+    PYTHON_CMD=("conda" "run" "--no-capture-output" "-n" "$CONDA_ENV" "python")
+else
     echo "Warning: No virtual environment found. Assuming python (with ruff and pyright) is available in base environment."
 fi
 
-# Assure dotnet and python are available
-UNAVAILABLE_DEPENDENCIES=false
-for cmd in "dotnet" "python"; do
-    command -v "$cmd" >/dev/null 2>&1 || {
-        echo "Error: '$cmd' not found. Please install it or activate your environment."
-        UNAVAILABLE_DEPENDENCIES=true
-    }
-done
-if $UNAVAILABLE_DEPENDENCIES; then
-    exit 1;
+# Assure dotnet is available
+if ! command -v dotnet >/dev/null 2>&1; then
+    echo "Error: 'dotnet' not found. Please install it or make sure it is on PATH."
+    exit 1
 fi
 
-PYTHON_PATH="$(command -v python)"
+# Assure python is available
+if ! "${PYTHON_CMD[@]}" --version >/dev/null 2>&1; then
+    echo "Error: Python is not available."
+    exit 1
+fi
 
 # Assure ruff and pyright are available
 for python_tool in ruff pyright; do
-    if ! "$PYTHON_PATH" -m "$python_tool" --version >/dev/null 2>&1; then
+    if ! "${PYTHON_CMD[@]}" -m "$python_tool" --version >/dev/null 2>&1; then
         echo "Error: 'python -m $python_tool' is not available. Please install $python_tool in the active environment."
         exit 1
     fi
 done
 
+required_ruff_version="$("${PYTHON_CMD[@]}" -c 'from pathlib import Path; import re; text = Path("pyproject.toml").read_text(encoding="utf-8"); match = re.search(r"required-version\s*=\s*[\"'\'']([^\"'\'']+)[\"'\'']", text); print(match.group(1) if match else "")')"
+installed_ruff_version="$("${PYTHON_CMD[@]}" -m ruff --version | awk '{print $2}')"
+requirements_ruff_version="$("${PYTHON_CMD[@]}" -c 'from pathlib import Path; import re; text = Path("roles/importer/files/importer/requirements.txt").read_text(encoding="utf-8"); match = re.search(r"^ruff==(.+)$", text, re.MULTILINE); print(match.group(1) if match else "")')"
+
+if [ -z "$required_ruff_version" ]; then
+    echo "Error: Could not read [tool.ruff].required-version from pyproject.toml."
+    exit 1
+fi
+
+if [ "$requirements_ruff_version" != "$required_ruff_version" ]; then
+    echo "Error: Ruff version mismatch."
+    echo "roles/importer/files/importer/requirements.txt pins ruff ${requirements_ruff_version:-<missing>}, but pyproject.toml requires ${required_ruff_version}."
+    echo
+    echo "Fix this by keeping the ruff pins in sync:"
+    echo "  update roles/importer/files/importer/requirements.txt to ruff==${required_ruff_version}"
+    echo "  or change pyproject.toml [tool.ruff].required-version to ${requirements_ruff_version} if that is the intended project version"
+    echo "Then rerun:"
+    echo "  ${PYTHON_CMD[*]} -m pip install -r roles/importer/files/importer/requirements.txt"
+    echo "  ${PYTHON_CMD[*]} -m ruff check --fix"
+    echo "  ${PYTHON_CMD[*]} -m ruff format"
+    exit 1
+fi
+
+if [ "$installed_ruff_version" != "$required_ruff_version" ]; then
+    echo "Error: Ruff version mismatch."
+    echo "Installed ruff is ${installed_ruff_version}, but pyproject.toml requires ${required_ruff_version}."
+    echo
+    echo "Fix this by installing the pinned ruff version in the active environment:"
+    echo "  ${PYTHON_CMD[*]} -m pip install --upgrade ruff==${required_ruff_version}"
+    echo "Then rerun:"
+    echo "  ${PYTHON_CMD[*]} -m ruff check --fix"
+    echo "  ${PYTHON_CMD[*]} -m ruff format"
+    exit 1
+fi
+
 # Python Checks
-"$PYTHON_PATH" -m ruff check --fix
-"$PYTHON_PATH" -m ruff format
-"$PYTHON_PATH" -m pyright
+"${PYTHON_CMD[@]}" -m ruff check --fix
+"${PYTHON_CMD[@]}" -m ruff format
+
+STAGED_PYRIGHT_FILES=()
+while IFS= read -r -d '' staged_file; do
+    STAGED_PYRIGHT_FILES+=("$staged_file")
+done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.py')
+
+if [ "${#STAGED_PYRIGHT_FILES[@]}" -gt 0 ]; then
+    echo "Info: running pyright with $("${PYTHON_CMD[@]}" -m pyright --version) on ${#STAGED_PYRIGHT_FILES[@]} staged Python file(s)."
+    "${PYTHON_CMD[@]}" -m pyright "${STAGED_PYRIGHT_FILES[@]}"
+fi
 
 # Determine changed Dotnet files
 STAGED_ROLES_DOTNET_FORMAT_FILES=()
@@ -72,16 +112,70 @@ while IFS= read -r -d '' staged_file; do
     esac
 done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.cs' '*.razor' '*.cshtml')
 
-# If any Dontet files have been changed run
+# If any Dotnet files have been changed run
 # Dotnet checks
 if [ "${#STAGED_ROLES_DOTNET_FORMAT_FILES[@]}" -gt 0 ]; then
     dotnet format roles --no-restore --include "${STAGED_ROLES_DOTNET_FORMAT_FILES[@]}"
 fi
 
-# Prevent committing submodule pointer updates (auto-unstage)
-for submodule in $CHECK_SUBMODULE_POINTERS; do
-    if ! git diff --cached --quiet --ignore-submodules=none -- "$submodule"; then
-        echo "Info: Unstaging '$submodule' submodule pointer change (not allowed in commits)."
-        git restore --staged -- "$submodule" >/dev/null 2>&1
+# Prevent accidental submodule pointer updates.
+#
+# Normal commit:
+#   Any staged submodule pointer change is considered accidental and is unstaged.
+#
+# Merge commit:
+#   - staged pointer == MERGE_HEAD pointer -> allow incoming branch version
+#   - staged pointer == HEAD pointer       -> allow first-parent version
+#   - staged pointer == neither           -> fail and require explicit resolution
+for submodule in ${CHECK_SUBMODULE_POINTERS:-}; do
+    # Nothing staged for this submodule.
+    if git diff --cached --quiet --ignore-submodules=none -- "$submodule"; then
+        continue
     fi
+
+    # Get the pointer currently staged in the index.
+    staged_pointer="$(
+        git ls-files -s -- "$submodule" |
+        awk '$1 == "160000" { print $2; exit }'
+    )"
+
+    # Not currently creating a merge commit:
+    # preserve the existing accidental-pointer protection.
+    if ! merge_head="$(git rev-parse -q --verify MERGE_HEAD 2>/dev/null)"; then
+        echo "Info: Unstaging '$submodule' submodule pointer change (not allowed in normal commits)."
+        git restore --staged -- "$submodule" >/dev/null 2>&1
+        continue
+    fi
+
+    # During a merge, HEAD is the first parent and MERGE_HEAD is the
+    # incoming branch.
+    first_parent_pointer="$(
+        git ls-tree HEAD -- "$submodule" |
+        awk '$1 == "160000" { print $3; exit }'
+    )"
+
+    incoming_pointer="$(
+        git ls-tree "$merge_head" -- "$submodule" |
+        awk '$1 == "160000" { print $3; exit }'
+    )"
+
+    if [[ -n "$staged_pointer" &&
+          "$staged_pointer" == "$incoming_pointer" ]]; then
+        echo "Info: Keeping '$submodule' pointer from incoming merge branch ($staged_pointer)."
+        continue
+    fi
+
+    if [[ -n "$staged_pointer" &&
+          "$staged_pointer" == "$first_parent_pointer" ]]; then
+        echo "Info: Keeping '$submodule' pointer from first merge parent ($staged_pointer)."
+        continue
+    fi
+
+    echo "Error: Unexpected '$submodule' submodule pointer during merge."
+    echo "  first parent (HEAD):  ${first_parent_pointer:-<none>}"
+    echo "  incoming (MERGE_HEAD): ${incoming_pointer:-<none>}"
+    echo "  staged:               ${staged_pointer:-<none>}"
+    echo
+    echo "Resolve the submodule pointer explicitly before committing."
+    exit 1
 done

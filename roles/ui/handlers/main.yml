@@ -1,7 +1,7 @@
 ---
 
 - name: recover backup
-  synchronize:
+  ansible.posix.synchronize:
     src: "{{ fworch_home }}/backup_ui/ui"
     dest: "{{ fworch_home }}"
   delegate_to: "{{ inventory_hostname }}"

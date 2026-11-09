@@ -1,22 +1,40 @@
+from __future__ import annotations
+
 # library for API get functions
 import json
 import time
+from contextlib import contextmanager
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fwo_const
 import fwo_globals
 import requests
-from fw_modules.checkpointR8x import cp_const, cp_network
+from fw_modules.checkpointR8x import cp_const
+from fw_modules.checkpointR8x.cp_object_resolver import (
+    handle_cpmi_any_object,
+    handle_gateway_objects,
+    handle_global_object,
+    handle_network_zone_objects,
+    handle_updatable_objects,
+    resolve_ref_list_from_object_dictionary,
+)
 from fwo_exceptions import FwApiError, FwApiResponseDecodingError, FwLoginFailedError, FwoImporterError
 from fwo_log import FWOLogger
-from model_controllers.management_controller import ManagementController
+from fwo_redaction import redact_sensitive_values, redact_url_credentials, session_fingerprint
 from services.service_provider import ServiceProvider
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from model_controllers.management_controller import ManagementController
 
 # Constants for status values
 STATUS_IN_PROGRESS = "in progress"
 STATUS_SUCCEEDED = "succeeded"
 STATUS_FAILED = "failed"
+# api sessions are only logged by their fingerprint, never by the session id itself
+SESSION_LOG_PREFIX = "session: "
 
 
 def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str | None, show_progress: bool = False):
@@ -30,20 +48,25 @@ def cp_api_call(url: str, command: str, json_payload: dict[str, Any], sid: str |
         FWOLogger.debug("json_payload: " + str(json_payload), 10)
 
     try:
-        r = requests.post(url, json=json_payload, headers=request_headers, verify=fwo_globals.verify_certs)
-    except requests.exceptions.RequestException as _:
-        if "password" in json.dumps(json_payload):
-            exception_text = "\nerror while sending api_call containing credential information to url '" + str(url)
-        else:
-            exception_text = (
-                "\nerror while sending api_call to url '"
-                + str(url)
-                + "' with payload '"
-                + json.dumps(json_payload, indent=2)
-                + "' and  headers: '"
-                + json.dumps(request_headers, indent=2)
-            )
-        raise FwApiError(exception_text)
+        r = requests.post(
+            url,
+            json=json_payload,
+            headers=request_headers,
+            verify=fwo_globals.verify_certs,
+            timeout=fwo_const.FWO_HTTP_TIMEOUT,
+        )
+    except requests.exceptions.RequestException as request_error:
+        # the headers carry the session token and are never part of the text, which ends up in alerts and logs;
+        # the transport reason names host, port and path, and tells a TLS handshake failure from a certificate error.
+        # It also repeats a proxy url it cannot parse, credentials included, so user info in urls is redacted.
+        certificate_checking = "off" if fwo_globals.verify_certs is False else "on"
+        transport_reason = redact_url_credentials(str(request_error))
+        exception_text = (
+            f"\nerror while sending api_call '{command}' to url '{redact_url_credentials(url)}' "
+            f"({type(request_error).__name__}: {transport_reason}, certificate checking: {certificate_checking}) "
+            f"with payload '{json.dumps(redact_sensitive_values(json_payload), indent=2)}'"
+        )
+        raise FwApiError(exception_text) from None
     if show_progress:
         print(".", end="", flush=True)  # noqa: T201
 
@@ -74,6 +97,28 @@ def login(mgm_details: ManagementController):
 def logout(url: str, sid: str):
     FWOLogger.debug("logout from url " + url, 3)
     return cp_api_call(url, "logout", {}, sid)
+
+
+def logout_quietly(url: str, sid: str) -> None:
+    """Log out without raising, so that a failed logout never hides the error that ended the session early."""
+    try:
+        logout(url, sid)
+    except Exception:
+        FWOLogger.warning(f"logout of api session {session_fingerprint(sid)} from url {url} failed")
+
+
+@contextmanager
+def api_session(mgm_details: ManagementController) -> Generator[str, None, None]:
+    """
+    Log in to the management API and log out again when the block is left, also after an error.
+
+    A session left open stays usable with the import user's permissions until the manager times it out.
+    """
+    sid = login(mgm_details)
+    try:
+        yield sid
+    finally:
+        logout_quietly(mgm_details.build_fw_api_string(), sid)
 
 
 def process_single_task(task: dict[str, Any]) -> tuple[str, int]:
@@ -191,7 +236,7 @@ def get_show_packages_via_api(
         total = packages["total"]
     else:
         FWOLogger.error("packages do not contain total field")
-        FWOLogger.warning("sid: " + sid)
+        FWOLogger.warning(SESSION_LOG_PREFIX + session_fingerprint(sid))
         FWOLogger.warning("api_v_url:  " + api_v_url)
         for key, value in show_params_policy_structure.items():
             FWOLogger.warning("show_params_policy_structure " + key + ": " + str(value))
@@ -294,7 +339,7 @@ def log_global_assignments_error(
     sid: str, api_v_url: str, show_params_policy_structure: dict[str, Any], assignments: dict[str, Any]
 ) -> None:
     """Log error information for global assignments debugging."""
-    FWOLogger.warning("sid: " + sid)
+    FWOLogger.warning(SESSION_LOG_PREFIX + session_fingerprint(sid))
     FWOLogger.warning("api_v_url: " + api_v_url)
     for key, value in show_params_policy_structure.items():
         FWOLogger.warning("show_params_policy_structure " + key + ": " + str(value))
@@ -476,9 +521,98 @@ def resolve_checkpoint_uids_via_object_dict(
     try:
         for rule_field in ["source", "destination", "service", "action", "track", "install-on", "time"]:
             resolve_ref_list_from_object_dictionary(rulebase, rule_field, native_config_domain=native_config_domain)
-        current_rulebase["chunks"].append(rulebase)
+        merge_split_section_with_previous_chunk(current_rulebase, rulebase)
     except Exception:
         FWOLogger.error("error while getting a field of layer " + rulebase_uid + ", params: " + str(show_params_rules))
+
+
+def merge_split_section_with_previous_chunk(current_rulebase: dict[str, Any], rulebase_chunk: dict[str, Any]) -> None:
+    """
+    Append a fetched rulebase page after merging a section that continues across the page boundary.
+
+    Check Point can split one logical ``access-section`` across multiple paginated
+    ``show-access-rulebase`` responses. If both fragments are stored unchanged, later
+    section lookup can rediscover the trailing fragment as if it were an additional
+    standalone section.
+
+    This helper tries to merge the first section of the new page into the last stored
+    section of the previous page before appending the chunk. If the new page only
+    contained that continuation fragment, there is nothing left to append.
+    """
+    previous_chunk = get_last_chunk_with_rulebase(current_rulebase)
+    if (
+        previous_chunk is not None
+        and merge_section_across_chunk_boundary(previous_chunk, rulebase_chunk)
+        and not rulebase_chunk["rulebase"]
+    ):
+        return
+    current_rulebase["chunks"].append(rulebase_chunk)
+
+
+def get_last_chunk_with_rulebase(current_rulebase: dict[str, Any]) -> dict[str, Any] | None:
+    """
+    Return the most recent stored chunk that still contains rulebase entries.
+
+    A split section can only continue from the immediately preceding API page, so the
+    merge logic only needs the last non-empty chunk.
+    """
+    for chunk in reversed(current_rulebase["chunks"]):
+        if chunk.get("rulebase"):
+            return chunk
+    return None
+
+
+def merge_section_across_chunk_boundary(previous_chunk: dict[str, Any], next_chunk: dict[str, Any]) -> bool:
+    """
+    Merge two chunk-boundary section fragments when they represent one logical section.
+
+    The last section of ``previous_chunk`` and the first section of ``next_chunk`` are
+    examined. If they are the same section split by pagination, the rules from the next
+    fragment are appended to the already stored one, the upper range marker is updated,
+    and the consumed fragment is removed from ``next_chunk``.
+
+    Returns ``True`` when a merge happened and ``False`` otherwise.
+    """
+    previous_section = get_boundary_section(previous_chunk, first=False)
+    next_section = get_boundary_section(next_chunk, first=True)
+    if previous_section is None or next_section is None:
+        return False
+    if not is_split_section_continuation(previous_section, next_section):
+        return False
+
+    previous_section["rulebase"].extend(next_section["rulebase"])
+    previous_section["to"] = next_section["to"]
+    next_chunk["rulebase"].pop(0)
+    return True
+
+
+def get_boundary_section(rulebase_chunk: dict[str, Any], first: bool) -> dict[str, Any] | None:
+    """
+    Return the boundary element of a chunk when that element is an ``access-section``.
+
+    The merge logic only stitches section objects at the chunk boundary. Plain access
+    rules are not treated as merge candidates and therefore yield ``None`` here.
+    """
+    sections = rulebase_chunk.get("rulebase")
+    if not sections:
+        return None
+    section = sections[0] if first else sections[-1]
+    if section.get("type") != "access-section":
+        return None
+    return section
+
+
+def is_split_section_continuation(previous_section: dict[str, Any], next_section: dict[str, Any]) -> bool:
+    """
+    Decide whether ``next_section`` is the direct paginated continuation of ``previous_section``.
+
+    The section UID establishes identity, while the numeric rule range confirms that the
+    second fragment begins immediately after the first one ends. Requiring both avoids
+    merging unrelated or malformed data that merely shares a UID.
+    """
+    if previous_section.get("uid") != next_section.get("uid"):
+        return False
+    return previous_section["to"] + 1 == next_section["from"]
 
 
 def control_while_loop_in_get_rulebases_in_chunks(
@@ -496,7 +630,7 @@ def control_while_loop_in_get_rulebases_in_chunks(
             "rulebase does not contain total field, get_rulebase_chunk_from_api found garbled json "
             + str(current_rulebase)
         )
-        FWOLogger.warning("sid:  " + sid)
+        FWOLogger.warning(SESSION_LOG_PREFIX + session_fingerprint(sid))
         FWOLogger.warning("api_v_url: " + api_v_url)
         for key, value in show_params_rules.items():
             FWOLogger.warning("show_params_rules " + key + ": " + str(value))
@@ -684,249 +818,6 @@ def get_nat_rules_from_api_as_dict(
     return nat_rules
 
 
-def find_element_by_uid(array: list[dict[str, Any]], uid: str | None) -> dict[str, Any] | None:
-    for el in array:
-        if "uid" in el and el["uid"] == uid:
-            return el
-    return None
-
-
-def resolve_ref_from_object_dictionary(
-    uid: str | None,
-    obj_dict: list[dict[str, Any]],
-    native_config_domain: dict[str, Any] | None = None,
-    field_name: str | None = None,
-) -> dict[str, Any] | None:
-    if native_config_domain is None:
-        native_config_domain = {}
-    matched_obj = find_element_by_uid(obj_dict, uid)
-
-    if matched_obj is None:  # object not in dict - need to fetch it from API
-        if field_name != "track" and uid != "29e53e3d-23bf-48fe-b6b1-d59bd88036f9":
-            # 29e53e3d-23bf-48fe-b6b1-d59bd88036f9 is a track object uid (track None) which is not in the object dictionary, but used in some rules
-            if field_name is None:
-                field_name = "unknown"
-            if uid is None:
-                uid = "unknown"
-            FWOLogger.warning(f"object of type {field_name} with uid {uid} not found in object dictionary")
-        return None
-    # there are some objects (at least CpmiVoipSipDomain) which are not API-gettable with show-objects (only with show-object "UID")
-    # these must be added to the (network) objects tables
-    if matched_obj["type"] in ["CpmiVoipSipDomain", "CpmiVoipMgcpDomain", "gsn_handover_group"]:
-        FWOLogger.info(
-            f"adding {matched_obj['type']} '{matched_obj['name']}' object manually, because it is not retrieved by show objects API command"
-        )
-        color = matched_obj.get("color", "black")
-        native_config_domain["objects"].append(
-            {
-                "type": matched_obj["type"],
-                "chunks": [
-                    {
-                        "objects": [
-                            {
-                                "uid": matched_obj["uid"],
-                                "name": matched_obj["name"],
-                                "color": color,
-                                "type": matched_obj["type"],
-                                "domain": matched_obj["domain"],
-                            }
-                        ]
-                    }
-                ],
-            }
-        )
-
-    return matched_obj
-
-
-# resolving all uid references using the object dictionary
-# dealing with a single chunk
-def resolve_ref_list_from_object_dictionary(
-    rulebase: list[dict[str, Any]] | dict[str, Any],
-    value: str,
-    obj_dicts: list[dict[str, Any]] | None = None,
-    native_config_domain: dict[str, Any] | None = None,
-):  # TODO: what is objDict: I think it should be a list of dicts
-    if native_config_domain is None:
-        native_config_domain = {}
-    if obj_dicts is None:
-        obj_dicts = []
-    if isinstance(rulebase, dict) and "objects-dictionary" in rulebase:
-        obj_dicts = rulebase["objects-dictionary"]
-    if isinstance(rulebase, list):  # found a list of rules
-        for rule in rulebase:
-            if value in rule:
-                categorize_value_for_resolve_ref(rule, value, obj_dicts, native_config_domain)  # type: ignore  # noqa: PGH003
-            if "rulebase" in rule:
-                resolve_ref_list_from_object_dictionary(
-                    rule["rulebase"], value, obj_dicts=obj_dicts, native_config_domain=native_config_domain
-                )
-    elif "rulebase" in rulebase:
-        resolve_ref_list_from_object_dictionary(
-            rulebase["rulebase"], value, obj_dicts=obj_dicts, native_config_domain=native_config_domain
-        )
-
-
-def categorize_value_for_resolve_ref(
-    rule: dict[str, Any], value: str, obj_dict: list[dict[str, Any]], native_config_domain: dict[str, Any]
-):
-    value_list: list[Any] = []
-    if isinstance(rule[value], str):  # assuming single uid
-        rule[value] = resolve_ref_from_object_dictionary(
-            rule[value], obj_dict, native_config_domain=native_config_domain, field_name=value
-        )
-    elif "type" in rule[value]:  # e.g. track
-        rule[value] = resolve_ref_from_object_dictionary(
-            rule[value]["type"], obj_dict, native_config_domain=native_config_domain, field_name=value
-        )
-    else:  # assuming list of rules
-        value_list.extend(
-            [
-                resolve_ref_from_object_dictionary(
-                    rule_id, obj_dict, native_config_domain=native_config_domain, field_name=value
-                )
-                for rule_id in rule[value]
-            ]
-        )
-
-        rule[value] = value_list  # replace ref list with object list
-
-
-def handle_cpmi_any_object(obj: dict[str, Any]) -> dict[str, Any]:
-    """Handle CpmiAnyObject type objects."""
-    color = obj.get("color", "black")
-
-    if obj["name"] == "Any":
-        return {
-            "type": "hosts",
-            "chunks": [
-                {
-                    "objects": [
-                        {
-                            "uid": obj["uid"],
-                            "name": obj["name"],
-                            "color": color,
-                            "comments": "any nw object checkpoint (hard coded)",
-                            "type": "network",
-                            "ipv4-address": fwo_const.ANY_IP_IPV4,
-                            "domain": obj["domain"],
-                        }
-                    ]
-                }
-            ],
-        }
-    if obj["name"] == "None":  # None service or network object
-        return {
-            "type": "hosts",
-            "chunks": [
-                {
-                    "objects": [
-                        {
-                            "uid": obj["uid"],
-                            "name": obj["name"],
-                            "color": color,
-                            "comments": "none nw object checkpoint (hard coded)",
-                            "type": "group",
-                            "domain": obj["domain"],
-                        }
-                    ]
-                }
-            ],
-        }
-    return {}
-
-
-def handle_gateway_objects(obj: dict[str, Any]) -> dict[str, Any]:
-    """Handle various gateway and network member objects."""
-    color = obj.get("color", "black")
-    return {
-        "type": "hosts",
-        "chunks": [
-            {
-                "objects": [
-                    {
-                        "uid": obj["uid"],
-                        "name": obj["name"],
-                        "color": color,
-                        "comments": obj["comments"],
-                        "type": "host",
-                        "ipv4-address": cp_network.get_ip_of_obj(obj),
-                        "domain": obj["domain"],
-                    }
-                ]
-            }
-        ],
-    }
-
-
-def handle_global_object(obj: dict[str, Any]) -> dict[str, Any]:
-    """Handle Global type objects."""
-    color = obj.get("color", "black")
-    return {
-        "type": "hosts",
-        "chunks": [
-            {
-                "objects": [
-                    {
-                        "uid": obj["uid"],
-                        "name": obj["name"],
-                        "color": color,
-                        "comments": obj["comments"],
-                        "type": "host",
-                        "ipv4-address": fwo_const.ANY_IP_IPV4,
-                        "domain": obj["domain"],
-                    }
-                ]
-            }
-        ],
-    }
-
-
-def handle_updatable_objects(obj: dict[str, Any]) -> dict[str, Any]:
-    """Handle updatable objects and VoIP domains."""
-    color = obj.get("color", "black")
-    return {
-        "type": "hosts",
-        "chunks": [
-            {
-                "objects": [
-                    {
-                        "uid": obj["uid"],
-                        "name": obj["name"],
-                        "color": color,
-                        "comments": obj["comments"],
-                        "type": "host",
-                        "domain": obj["domain"],
-                    }
-                ]
-            }
-        ],
-    }
-
-
-def handle_network_zone_objects(obj: dict[str, Any]) -> dict[str, Any]:
-    """Handle Internet and security-zone objects."""
-    color = obj.get("color", "black")
-    return {
-        "type": "hosts",
-        "chunks": [
-            {
-                "objects": [
-                    {
-                        "uid": obj["uid"],
-                        "name": obj["name"],
-                        "color": color,
-                        "comments": obj["comments"],
-                        "type": "network",
-                        "ipv4-address": fwo_const.ANY_IP_IPV4,
-                        "domain": obj["domain"],
-                    }
-                ]
-            }
-        ],
-    }
-
-
 def get_object_details_from_api(uid_missing_obj: str, sid: str = "", apiurl: str = "") -> dict[str, Any]:
     FWOLogger.debug(f"getting {uid_missing_obj} from API", 6)
 
@@ -964,7 +855,7 @@ def get_object_details_from_api(uid_missing_obj: str, sid: str = "", apiurl: str
         return handle_gateway_objects(obj)
     if obj_type == "Global":
         return handle_global_object(obj)
-    if obj_type in ["updatable-object", "CpmiVoipSipDomain", "CpmiVoipMgcpDomain", "gsn_handover_group"]:
+    if obj_type == "updatable-object" or cp_const.is_object_dictionary_only_obj_type(obj_type):
         return handle_updatable_objects(obj)
     if obj_type in ["Internet", "security-zone"]:
         return handle_network_zone_objects(obj)
@@ -972,3 +863,38 @@ def get_object_details_from_api(uid_missing_obj: str, sid: str = "", apiurl: str
         return obj
     FWOLogger.warning(f"missing nw obj of unexpected type '{obj_type}': {uid_missing_obj}")
     return {}
+
+
+def get_gateways_and_servers(sid: str = "", apiurl: str = "") -> list[dict[str, Any]]:
+    """Fetch gateways and servers from the API."""
+    current = 0
+    total = 1
+
+    gateways_and_servers: list[dict[str, Any]] = []
+
+    while current < total:
+        try:
+            result = cp_api_call(apiurl, "show-gateways-and-servers", {"details-level": "full", "offset": current}, sid)
+        except Exception as e:
+            raise FwoImporterError(f"error while trying to get gateways and servers: {e}") from e
+
+        if result is None or "objects" not in result:
+            raise FwoImporterError("no objects received while trying to get gateways and servers")
+
+        gateways_and_servers.extend(result["objects"])
+
+        if "total" not in result or "to" not in result:
+            raise FwoImporterError("result does not contain total or to field while trying to get gateways and servers")
+
+        total = result["total"]
+        if total == 0:
+            break
+        new_current = result["to"]
+        if new_current <= current:
+            raise FwoImporterError(
+                f"pagination did not advance while trying to get gateways and servers: "
+                f"'to'={new_current} did not exceed previous offset={current}"
+            )
+        current = new_current
+
+    return gateways_and_servers

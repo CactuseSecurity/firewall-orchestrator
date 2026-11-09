@@ -1,5 +1,6 @@
 ﻿@using FWO.Ui.Display
 @using FWO.Config.Api
+@using FWO.Data.Report
 @using FWO.Report
 @using FWO.Report.Filter
 @using FWO.Data.Modelling
@@ -7,33 +8,70 @@
 
 @inject UserConfig userConfig
 
-@if(OwnerData.Count > 0)
+@if (displayedOwnerData.Count > 0)
 {
-    @if(overdueOwners.Count > 0)
+    @if (ShowStatistics)
     {
-        <h5>@(userConfig.GetText("U4003"))</h5>
-        <OwnerRecertTable Owners="overdueOwners" />
+        <h5>@(userConfig.GetText("statistics"))</h5>
+        <ul>
+            <li>@(GetOverdueHeadline()): @overdueOwners.Count</li>
+            @if (RecertificationDisplayPeriod > 0)
+            {
+                <li>@(GetUpcomingHeadline()): @upcomingOwners.Count</li>
+            }
+            @if (furtherOwners.Count > 0)
+            {
+                <li>@(GetFurtherHeadline()): @furtherOwners.Count</li>
+            }
+            @if (inactiveOwners.Count > 0)
+            {
+                <li>@(GetInactiveHeadline()): @inactiveOwners.Count</li>
+            }
+        </ul>
+    }
+    @if (MergeOwnerRecertTables)
+    {
+        <h5>@(GetMergedHeadline())</h5>
+        <OwnerRecertTable Owners="mergedOwners" AdditionalInfoKey="@GetDisplayOwnerAdditionalInfoKey()" />
     }
     else
     {
-        <b>@(userConfig.GetText("U4004"))</b>
-        <br><br>
+        @if (overdueOwners.Count > 0)
+        {
+            <h5>@(GetOverdueHeadline())</h5>
+            <OwnerRecertTable Owners="overdueOwners" AdditionalInfoKey="@GetDisplayOwnerAdditionalInfoKey()" />
+        }
+        else
+        {
+            <b>@(userConfig.GetText("U4004"))</b>
+            <br><br>
+        }
+        @if (upcomingOwners.Count > 0)
+        {
+            <h5>@(GetUpcomingHeadline())</h5>
+            <OwnerRecertTable Owners="upcomingOwners" AdditionalInfoKey="@GetDisplayOwnerAdditionalInfoKey()" />
+        }
+        else if (RecertificationDisplayPeriod > 0)
+        {
+            <b>@(userConfig.GetText("U4006").Replace(Placeholder.DAYS, RecertificationDisplayPeriod.ToString()))</b>
+            <br><br>
+        }
+        @if (furtherOwners.Count > 0)
+        {
+            <h5>@(GetFurtherHeadline())</h5>
+            <OwnerRecertTable Owners="furtherOwners" AdditionalInfoKey="@GetDisplayOwnerAdditionalInfoKey()" />
+        }
+        @if (inactiveOwners.Count > 0)
+        {
+            <h5>@(GetInactiveHeadline())</h5>
+            <OwnerRecertTable Owners="inactiveOwners" ShowRecertData="false" AdditionalInfoKey="@GetDisplayOwnerAdditionalInfoKey()" />
+        }
     }
-    @if(upcomingOwners.Count > 0)
-    {
-        <h5>@(userConfig.GetText("U4005").Replace(Placeholder.DAYS, RecertificationDisplayPeriod.ToString()))</h5>
-        <OwnerRecertTable Owners="upcomingOwners" />
-    }
-    else if (RecertificationDisplayPeriod > 0)
-    {
-        <b>@(userConfig.GetText("U4006").Replace(Placeholder.DAYS, RecertificationDisplayPeriod.ToString()))</b>
-        <br><br>
-    }
-    @if(furtherOwners.Count > 0)
-    {
-        <h5>@(userConfig.GetText( allRecertified ? "U4007" : "U4008"))</h5>
-        <OwnerRecertTable Owners="furtherOwners" />
-    }
+}
+else
+{
+    <b>@(userConfig.GetText("no_recertifiable_owners_assigned"))</b>
+    <br><br>
 }
 
 @code
@@ -44,21 +82,97 @@
     [Parameter]
     public int RecertificationDisplayPeriod { get; set; } = 0;
 
+    [Parameter]
+    public bool MergeOwnerRecertTables { get; set; } = false;
+
+    [Parameter]
+    public string OwnerAdditionalInfoKey { get; set; } = "";
+
+    [Parameter]
+    public AddInfoFilter OwnerAddInfoFilter { get; set; } = new();
+
+    private AddInfoFilter effectiveOwnerAddInfoFilter = new();
     private List<FwoOwner> overdueOwners = [];
     private List<FwoOwner> upcomingOwners = [];
     private List<FwoOwner> furtherOwners = [];
+    private List<FwoOwner> inactiveOwners = [];
+    private List<FwoOwner> mergedOwners = [];
+    private List<OwnerConnectionReport> displayedOwnerData = [];
     private bool allRecertified = false;
+    private bool ShowStatistics => true;
 
     protected override void OnParametersSet()
     {
-        overdueOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertOverdue)];
-        upcomingOwners = [.. OwnerData.Select(o => o.Owner).Where(o => o.RecertUpcoming)];
-        furtherOwners = [.. OwnerData.Select(o => o.Owner).Where(o => !o.RecertOverdue && !o.RecertUpcoming)];
-        allRecertified = !furtherOwners.Any( o => o.NextRecertDate == null);
+        effectiveOwnerAddInfoFilter = GetEffectiveOwnerAddInfoFilter();
+        displayedOwnerData = [.. OwnerData.Where(owner => OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner.Owner, effectiveOwnerAddInfoFilter))];
+        overdueOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => o.RecertOverdue)];
+        upcomingOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => o.RecertUpcoming)];
+        furtherOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => o.RecertActive && !o.RecertOverdue && !o.RecertUpcoming)];
+        inactiveOwners = [.. displayedOwnerData.Select(o => o.Owner).Where(o => !o.RecertActive).OrderBy(o => o.Id)];
+        mergedOwners = overdueOwners
+            .Concat(upcomingOwners)
+            .Concat(furtherOwners)
+            .Concat(inactiveOwners)
+            .OrderBy(owner => owner.GetEffectiveNextRecertDate(userConfig.RecertificationPeriod) ?? DateTime.MaxValue)
+            .ThenBy(owner => owner.ExtAppId ?? "")
+            .ThenBy(owner => owner.Name)
+            .ToList();
+        allRecertified = !furtherOwners.Any(o => o.NextRecertDate == null);
     }
 
-    private string GetNextRecertDate(FwoOwner owner)
+    private string GetDisplayOwnerAdditionalInfoKey()
     {
-        return owner.NextRecertDate != null ? ((DateTime)owner.NextRecertDate).ToString("dd.MM.yyyy") : "";
+        if (effectiveOwnerAddInfoFilter.Mode == AddInfoFilterMode.not_existing)
+        {
+            return "";
+        }
+
+        return !string.IsNullOrWhiteSpace(effectiveOwnerAddInfoFilter.Name)
+            ? effectiveOwnerAddInfoFilter.Name
+            : OwnerAdditionalInfoKey;
+    }
+
+    private AddInfoFilter GetEffectiveOwnerAddInfoFilter()
+    {
+        if (!string.IsNullOrWhiteSpace(OwnerAddInfoFilter.Name))
+        {
+            return new AddInfoFilter(OwnerAddInfoFilter);
+        }
+
+        if (!string.IsNullOrWhiteSpace(OwnerAdditionalInfoKey))
+        {
+            return new AddInfoFilter
+            {
+                Name = OwnerAdditionalInfoKey,
+                Mode = AddInfoFilterMode.display_only
+            };
+        }
+
+        return new AddInfoFilter();
+    }
+
+    private string GetOverdueHeadline()
+    {
+        return userConfig.GetText("U4003");
+    }
+
+    private string GetUpcomingHeadline()
+    {
+        return userConfig.GetText("U4005").Replace(Placeholder.DAYS, RecertificationDisplayPeriod.ToString());
+    }
+
+    private string GetFurtherHeadline()
+    {
+        return userConfig.GetText(allRecertified ? "U4007" : "U4008");
+    }
+
+    private string GetInactiveHeadline()
+    {
+        return userConfig.GetText("U4009");
+    }
+
+    private string GetMergedHeadline()
+    {
+        return userConfig.GetText("owner_recert_overview");
     }
 }

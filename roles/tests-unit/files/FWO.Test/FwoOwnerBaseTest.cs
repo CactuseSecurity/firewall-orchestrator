@@ -24,5 +24,17 @@ namespace FWO.Test
             Assert.That(mainResponsibles, Has.Count.EqualTo(1));
             Assert.That(mainResponsibles[0], Is.EqualTo("cn=main"));
         }
+
+        [Test]
+        public void OwnerResponsiblesCompareNormalizedDns()
+        {
+            FwoOwnerBase owner = new();
+
+            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, @"CN=User\, Example,OU=Users,DC=Example,DC=COM");
+            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, @"cn=User\2C Example,ou=users,dc=example,dc=com");
+            owner.RemoveOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, @"cn=User\2C Example,ou=users,dc=example,dc=com");
+
+            Assert.That(owner.GetOwnerResponsiblesByType(GlobalConst.kOwnerResponsibleTypeMain), Is.Empty);
+        }
     }
 }

@@ -1,0 +1,14 @@
+fragment ruleEnforcedOnGateways on firewall_rule {
+  rule_enforced_on_gateways(where: {
+    created: { _lte: $import_id_end }
+    _or: [
+      { removed: { _is_null: true } }
+      { removed: { _gt: $import_id_start } }
+    ]
+  }, order_by:{ device: { dev_name: asc } }) {
+    device {
+      id: dev_id
+      name: dev_name
+    }
+  }
+}

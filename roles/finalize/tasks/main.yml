@@ -22,7 +22,7 @@
   when: not already_installed and installation_mode == "upgrade"
 
 - name: Modify the product version in the config file
-  block:      
+  block:
     - name: Read config file
       slurp:
         path: "{{ fworch_conf_file }}"
@@ -38,12 +38,17 @@
         dest: "{{ fworch_conf_file }}"
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
-      become: true     
+        mode: "0640"
+      become: true
+  become: true
   when: installation_mode == "upgrade"
   
 - name: include upgrade script
   import_tasks: run-upgrades.yml
   when: "installation_mode == 'upgrade'"
+
+- name: clean up unit files left behind in the vendor systemd unit directory
+  import_tasks: relocate-systemd-units.yml
 
 - name: call external python scripts to set some customer specific config settings via API
   script: "{{ item }}"
@@ -51,8 +56,7 @@
     executable: python3
   become: true
   when: "'apiserver' in group_names"
-  with_fileglob:
-    - "scripts/customizing/api/*.py"
+  loop: "{{ lookup('ansible.builtin.fileglob', 'scripts/customizing/api/*.py', wantlist=True, errors='ignore') }}"
 
 # Do general cleanup
 # - name: delete ldif files
@@ -61,6 +65,16 @@
 #     state: absent
 #   become: true
 #   when: "'middlewareserver' in group_names"
+
+# a service that exhausted its start rate limit stays failed and refuses to be restarted with
+# "start request repeated too quickly" until its state is cleared - so clear it before the
+# restarts below, otherwise an installer run cannot recover a service that was crash looping
+- name: clear any failed state before restarting the {{ product_name }} services
+  command: "systemctl reset-failed {{ item }}.service"
+  loop: "{{ fworch_systemd_unit_names }}"
+  changed_when: false
+  failed_when: false
+  become: true
 
 - name: restart UI to display new product version
   ansible.builtin.systemd:
@@ -95,15 +109,6 @@
   become: true
   when: "demo_data_present.query_result == [] and 'sampleserver' in group_names"
 
-- name: start importer service
-  systemd:
-    name: "{{ product_name }}-importer-api"
-    state: started
-    daemon_reload: true
-    enabled: true
-  become: true
-  when: "'importers' in group_names"
-
 - name: remove maint website dir
   file:
     path: "{{ fworch_home }}/maint-website"
@@ -114,25 +119,42 @@
   command: "a2dissite {{ product_name }}-maintenance"
   ignore_errors: true
   become: true
-  when: "installation_mode == 'upgrade' and 'frontends' in group_names"
+  when:
+    - "installation_mode == 'upgrade'"
+    - "'frontends' in group_names"
+    - "ansible_facts['os_family'] == 'Debian'"
 
-- name: restart apache without maintenance site
+- name: remove RedHat maintenance web site config
+  file:
+    path: "{{ http_conf_dir }}/{{ product_name }}-maintenance.conf"
+    state: absent
+  become: true
+  when:
+    - "installation_mode == 'upgrade'"
+    - "'frontends' in group_names"
+    - "ansible_facts['os_family'] == 'RedHat'"
+
+- name: reload apache without maintenance site
   service:
     name: "{{ webserver_package_name }}"
-    state: restarted
+    state: reloaded
   become: true
 
 - name: finally restart MW
   ansible.builtin.systemd:
     name: "{{ product_name }}-middleware"
     state: restarted
+    daemon_reload: true
   become: true
-  when: "'middlewareserver' in group_names and (mw_deploy_changed | default(false))"
+  when: "'middlewareserver' in group_names and (mw_deploy_changed | default(false) or internalca_client_identity_changed | default(false))"
 
-# TODO - find out why UI sometimes crashes during upgrade of heavy data installations
 - name: finally restart UI
   ansible.builtin.systemd:
     name: "{{ product_name }}-ui"
     state: restarted
   become: true
-  when: "'frontends' in group_names and (ui_deploy_changed | default(false))"
+  when: "'frontends' in group_names and (ui_deploy_changed | default(false) or internalca_client_identity_changed | default(false))"
+
+# the importer is deliberately not started here: it has to come up after every task which restarts
+# one of its dependencies, and the plays which follow this role still restart the middleware and
+# reload apache. it is started by the last play in site.yml instead.

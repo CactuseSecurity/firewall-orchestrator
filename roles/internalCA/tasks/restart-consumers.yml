@@ -21,6 +21,21 @@
   service_facts:
   become: true
 
+# The same services also cache the internal CA anchors: Apache its client CA file until it
+# is reloaded, the .NET middleware and UI the operating-system trust store they loaded at
+# start. A changed anchor - and, during pass 1 of a CA rotation, a host that has not yet
+# confirmed it trusts the staged CA - therefore reloads and restarts them as well. The
+# second condition is what makes an interrupted pass 1 safe to repeat: the files already
+# hold the staged CA, so nothing reports a change, but the restart may never have happened.
+- name: Decide whether the services caching the internal CA anchors need a restart
+  set_fact:
+    internalca_trust_consumers_restart: >-
+      {{
+        internalca_internal_ca_trust_changed | default(false) | bool
+        or (internalca_rotation_staged | default(false) | bool
+            and not internalca_rotation_marker_current | default(false) | bool)
+      }}
+
 # Which of the names service_facts returned are really installed here is decided by
 # fworch_installed_services in inventory/group_vars/all.yml - a name systemd only knows from
 # another unit's After=, and a masked unit, are both excluded there. The same expression decides
@@ -47,6 +62,7 @@
     # maintenance site, where reconcile-maintenance-certificate.yml never ran.
     - >-
       internalca_apache_identity_changed | default(false) | bool
+      or internalca_trust_consumers_restart | bool
       or internalca_maintenance_identity_changed | default(false) | bool
       or (maintenance_apache_restart_deferred | default(false) | bool
           and internalca_maintenance_identity_available | default(true) | bool)
@@ -61,21 +77,21 @@
     - internalca_ldap_identity_changed | default(false) | bool
     - "'slapd.service' in fworch_installed_services"
 
-- name: Restart the middleware after its client identity was renewed
+- name: Restart the middleware after its client identity or trust anchors changed
   systemd:
     name: "{{ middleware_service_name }}"
     state: restarted
   become: true
   when:
-    - internalca_client_identity_changed | default(false) | bool
+    - internalca_client_identity_changed | default(false) | bool or internalca_trust_consumers_restart | bool
     - (middleware_service_name ~ '.service') in fworch_installed_services
 
-- name: Restart the UI after its client identity was renewed
+- name: Restart the UI after its client identity or trust anchors changed
   systemd:
     name: "{{ ui_service_name }}"
     state: restarted
   become: true
   when:
-    - internalca_client_identity_changed | default(false) | bool
+    - internalca_client_identity_changed | default(false) | bool or internalca_trust_consumers_restart | bool
     - ui_service_name is defined
     - (ui_service_name ~ '.service') in fworch_installed_services

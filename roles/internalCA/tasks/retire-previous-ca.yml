@@ -1,0 +1,62 @@
+---
+# The end of pass 2 of a CA rotation: withdraws trust in the CA that was switched away
+# from. Runs on every host after every FWO identity was re-signed by the CA in force and
+# its consumers restarted, and only proceeds once each host has confirmed that none of
+# its identities still names the previous CA as issuer. check-ca-rotation.yml already
+# made sure the complete inventory is in the run, so no host outside it can still be
+# relying on that CA.
+- name: Read the FWO identities installed on this host
+  community.crypto.x509_certificate_info:
+    path: "{{ item.certificate }}"
+  loop: "{{ internalca_certificate_profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: internalca_retire_installed_info
+  changed_when: false
+  become: true
+
+- name: Require every FWO identity to be signed by the internal CA in force
+  assert:
+    that:
+      - >-
+        internalca_retire_installed_info.results
+        | map(attribute='issuer') | map(attribute='commonName', default='')
+        | reject('equalto', internalca_ca_common_name) | list | length == 0
+    fail_msg: >-
+      {{ inventory_hostname }} still holds an FWO identity that was not issued by
+      {{ internalca_ca_common_name }}, so the previous internal CA stays trusted on every
+      host. Run the full upgrade with
+      -e "installation_mode=upgrade internalca_ca_rotation=activate" again.
+
+- name: Retire the internal CA that was switched away from
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ internalca_previous_ca_certificate }}"
+    - "{{ internalca_ca_rotation_marker_dir }}"
+  delegate_to: "{{ internalca_ca_host }}"
+  run_once: true
+  become: true
+
+- name: Read the CA rotation state after retiring the previous CA
+  include_tasks: read-ca-rotation-state.yml
+
+- name: Read the internal CA trust set after retiring the previous CA
+  include_tasks: read-ca-trust-set.yml
+
+- name: Install the internal CA trust anchor without the previous CA
+  include_tasks: install-trust.yml
+
+# Apache reads its client CA file only when it is reloaded, and until then keeps
+# accepting client identities the previous CA signed. The services trusting the previous
+# CA through the operating-system store are left running: its key no longer exists, so
+# nothing new can be signed by it, and they drop it on their next restart.
+- name: Reload Apache to stop accepting identities of the previous internal CA
+  systemd:
+    name: "{{ webserver_package_name }}"
+    state: reloaded
+  become: true
+  when:
+    - internalca_internal_ca_trust_changed | default(false) | bool
+    - (webserver_package_name ~ '.service') in fworch_installed_services

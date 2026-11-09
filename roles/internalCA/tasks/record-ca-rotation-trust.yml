@@ -1,0 +1,26 @@
+---
+# Pass 1 of a CA rotation is complete on a host once it trusts the staged CA in every
+# place it reads anchors from and the services caching them have been restarted. This
+# file runs after both - install-trust.yml and restart-consumers.yml - and records that
+# on internalca_ca_host, the only place pass 2 can check it for every host at once. A run
+# interrupted before this point leaves no marker, so the next run restarts the services
+# again instead of trusting that the interrupted one got that far.
+- name: Create the CA rotation marker directory
+  file:
+    path: "{{ internalca_ca_rotation_marker_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  delegate_to: "{{ internalca_ca_host }}"
+  become: true
+
+- name: Record that this host trusts the staged internal CA
+  copy:
+    content: "{{ internalca_rotation_incoming_fingerprint }}\n"
+    dest: "{{ internalca_ca_rotation_marker_dir }}/{{ inventory_hostname }}"
+    owner: root
+    group: root
+    mode: "0600"
+  delegate_to: "{{ internalca_ca_host }}"
+  become: true

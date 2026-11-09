@@ -118,6 +118,13 @@
   become: true
   when: ansible_facts['os_family'] == 'Debian'
 
+- name: Remove the second internal CA of a rotation from Debian trust store
+  file:
+    path: "/usr/local/share/ca-certificates/{{ internalca_ca_rotation_trust_anchor }}"
+    state: absent
+  become: true
+  when: ansible_facts['os_family'] == 'Debian'
+
 # --fresh, and unconditional. Deciding this on whether *this* run removed an anchor loses the
 # refresh for good as soon as one is removed without it: the extracted copy in /etc/ssl/certs and
 # its hash link outlive the anchor they were derived from, the next uninstall finds the source
@@ -143,6 +150,13 @@
     path: "/etc/pki/ca-trust/source/anchors/{{ internalca_peer_ca_trust_anchor }}"
     state: absent
   register: internalca_redhat_peer_ca_anchor_removed
+  become: true
+  when: ansible_facts['os_family'] == 'RedHat'
+
+- name: Remove the second internal CA of a rotation from RedHat trust store
+  file:
+    path: "/etc/pki/ca-trust/source/anchors/{{ internalca_ca_rotation_trust_anchor }}"
+    state: absent
   become: true
   when: ansible_facts['os_family'] == 'RedHat'
 

@@ -178,6 +178,41 @@ jobs:
           cd ${{ github.workspace }}
           ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e add_demo_data=yes --tags integrationtests
 
+      # Both passes of a CA rotation, each limited to the certificate play plus the tests:
+      # the rotation restarts the services caching anchors and identities itself, which is
+      # what makes a "--tags certificates" rotation supported in the first place. The
+      # tests run inside each invocation because they assert on the state that very step
+      # has to leave - both anchors trusted after pass 1 (proven with a client identity of
+      # the staged CA presented to the API), the previous one retired after pass 2.
+      - name: Run Ansible CA rotation pass 1 (prepare) with integration tests
+        if: ${{ matrix.integration && success() }}
+        run: |
+          cd ${{ github.workspace }}
+          ./scripts/run-playbook-with-sudo.sh site.yml \
+            -e force_install=true \
+            -e add_demo_data=yes \
+            -e "installation_mode=upgrade internalca_ca_rotation=prepare" \
+            --tags certificates,integrationtests
+
+      - name: Run Ansible CA rotation pass 2 (activate) with integration tests
+        if: ${{ matrix.integration && success() }}
+        run: |
+          cd ${{ github.workspace }}
+          ./scripts/run-playbook-with-sudo.sh site.yml \
+            -e force_install=true \
+            -e add_demo_data=yes \
+            -e "installation_mode=upgrade internalca_ca_rotation=activate" \
+            --tags certificates,integrationtests
+
+      - name: Collect certificate diagnostics after a failed CA rotation
+        if: ${{ matrix.integration && failure() }}
+        run: |
+          sudo ls -laR /usr/local/fworch/etc/secrets/ca/ || true
+          sudo cat /usr/local/fworch/etc/secrets/ca/retired-ca-names || true
+          sudo openssl crl2pkcs7 -nocrl -certfile /etc/fworch/fworch-internal-ca.crt | openssl pkcs7 -print_certs -noout || true
+          sudo openssl x509 -in /usr/local/fworch/etc/secrets/client/client.crt -noout -issuer -dates || true
+          sudo tail -n 100 /var/log/apache2/error.log || true
+
       # A full run rather than "--tags integrationtests", because roles/tests-integration
       # asserts on facts the reset itself produces - the retired CA names, which identities
       # were reissued, which customer-managed pairs were left untouched - and those exist

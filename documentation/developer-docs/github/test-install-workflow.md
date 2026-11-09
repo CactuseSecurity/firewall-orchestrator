@@ -65,10 +65,23 @@ The flagged entries run, in order:
 2. an install with `--skip-tags integrationtests`
 3. the JWT refresh integration test
 4. the Ansible `--tags integrationtests` cleanup step
-5. a certificate reset upgrade,
+5. pass 1 of a CA rotation,
+   `-e "installation_mode=upgrade internalca_ca_rotation=prepare" --tags certificates,integrationtests`
+6. pass 2 of a CA rotation,
+   `-e "installation_mode=upgrade internalca_ca_rotation=activate" --tags certificates,integrationtests`
+7. a certificate reset upgrade,
    `-e "installation_mode=upgrade internalca_reset_certificates=true"`
 
-Step 5 is a full run rather than a tag-limited one on purpose:
+Steps 5 and 6 are limited to the certificate play and the tests: a
+rotation restarts the services caching its anchors and identities
+itself, so the tag-limited form is the one an operator may also use.
+Each runs the tests inside the same invocation, because they check the
+state that pass has to leave behind - after pass 1 both CAs are trusted
+everywhere, proven by presenting a client identity of the staged CA to
+the API, and after pass 2 the previous CA is trusted nowhere. A failure
+is followed by a certificate diagnostics step.
+
+Step 7 is a full run rather than a tag-limited one on purpose:
 `roles/tests-integration` asserts on facts the reset itself produces —
 which CA was retired, which identities were reissued, which
 customer-managed pairs were left untouched — and those exist only inside

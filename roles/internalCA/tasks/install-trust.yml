@@ -2,6 +2,13 @@
 # Consumers that cannot use the OS trust store need an explicit CA file. The
 # issuer copy lives in a root-only directory and does not exist on other hosts,
 # so every host keeps its own world-readable copy next to the FWO config.
+#
+# While a CA rotation is under way the file carries the second internal CA as well, so
+# Apache accepts client identities of both and the trust bundle assembled from it below
+# covers both. The CA in force stays first: x509_certificate_info - the expiry check and
+# the integration tests - reads the first certificate of a file. Written in one task per
+# case, like the trust bundle, so the file stays byte-identical to its previous content
+# whenever no rotation is under way.
 - name: Install internal CA certificate for FWO components
   copy:
     content: "{{ hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode }}"
@@ -9,7 +16,23 @@
     owner: root
     group: "{{ fworch_group }}"
     mode: "0644"
+  register: internalca_ca_local_single
   become: true
+  when: hostvars[internalca_ca_host].internalca_rotation_partner_pem | default('') | length == 0
+
+- name: Install both internal CA certificates of a rotation for FWO components
+  copy:
+    # A YAML literal block, so the PEM blocks are separated by real line endings.
+    content: |
+      {{ hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode | trim }}
+      {{ hostvars[internalca_ca_host].internalca_rotation_partner_pem | b64decode | trim }}
+    dest: "{{ internalca_ca_certificate_local }}"
+    owner: root
+    group: "{{ fworch_group }}"
+    mode: "0644"
+  register: internalca_ca_local_rotation
+  become: true
+  when: hostvars[internalca_ca_host].internalca_rotation_partner_pem | default('') | length > 0
 
 # FWO clients that use the configured trust bundle need both the internal CA and,
 # when configured, the issuer of a retained customer-managed Apache certificate.
@@ -58,6 +81,31 @@
     - ansible_facts['os_family'] == 'Debian'
     - internalca_peer_ca_certificate == internalca_ca_certificate_local
 
+# The second internal CA of a rotation gets an anchor file of its own: update-ca-certificates
+# links only the first certificate of each file into /etc/ssl/certs.
+- name: Install the second internal CA of a rotation on Debian trust store
+  copy:
+    content: "{{ hostvars[internalca_ca_host].internalca_rotation_partner_pem | b64decode }}"
+    dest: "/usr/local/share/ca-certificates/{{ internalca_ca_rotation_trust_anchor }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: internalca_debian_rotation_anchor
+  become: true
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - hostvars[internalca_ca_host].internalca_rotation_partner_pem | default('') | length > 0
+
+- name: Remove a retired internal CA from the Debian trust store
+  file:
+    path: "/usr/local/share/ca-certificates/{{ internalca_ca_rotation_trust_anchor }}"
+    state: absent
+  register: internalca_debian_rotation_anchor_retired
+  become: true
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - hostvars[internalca_ca_host].internalca_rotation_partner_pem | default('') | length == 0
+
 - name: Refresh Debian CA trust store
   command: update-ca-certificates
   changed_when: false
@@ -68,6 +116,8 @@
       internalca_debian_ca_anchor.changed
       or internalca_debian_peer_ca_anchor.changed | default(false)
       or internalca_debian_peer_ca_retired.changed | default(false)
+      or internalca_debian_rotation_anchor.changed | default(false)
+      or internalca_debian_rotation_anchor_retired.changed | default(false)
 
 - name: Install internal CA on RedHat trust store
   copy:
@@ -103,6 +153,29 @@
     - ansible_facts['os_family'] == 'RedHat'
     - internalca_peer_ca_certificate == internalca_ca_certificate_local
 
+- name: Install the second internal CA of a rotation on RedHat trust store
+  copy:
+    content: "{{ hostvars[internalca_ca_host].internalca_rotation_partner_pem | b64decode }}"
+    dest: "/etc/pki/ca-trust/source/anchors/{{ internalca_ca_rotation_trust_anchor }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: internalca_redhat_rotation_anchor
+  become: true
+  when:
+    - ansible_facts['os_family'] == 'RedHat'
+    - hostvars[internalca_ca_host].internalca_rotation_partner_pem | default('') | length > 0
+
+- name: Remove a retired internal CA from the RedHat trust store
+  file:
+    path: "/etc/pki/ca-trust/source/anchors/{{ internalca_ca_rotation_trust_anchor }}"
+    state: absent
+  register: internalca_redhat_rotation_anchor_retired
+  become: true
+  when:
+    - ansible_facts['os_family'] == 'RedHat'
+    - hostvars[internalca_ca_host].internalca_rotation_partner_pem | default('') | length == 0
+
 - name: Refresh RedHat CA trust store
   command: update-ca-trust extract
   changed_when: false
@@ -113,3 +186,24 @@
       internalca_redhat_ca_anchor.changed
       or internalca_redhat_peer_ca_anchor.changed | default(false)
       or internalca_redhat_peer_ca_retired.changed | default(false)
+      or internalca_redhat_rotation_anchor.changed | default(false)
+      or internalca_redhat_rotation_anchor_retired.changed | default(false)
+
+# Apache reads its client CA file only on reload, and the .NET services may hold the
+# operating-system store they loaded at start. restart-consumers.yml reloads and restarts
+# them when this is set. A peer CA change is deliberately not included: it does not
+# touch the internal CA file, and the trust bundle it does touch is re-read by FWO's own
+# clients as soon as it changes.
+- name: Record whether the internal CA trust anchors changed
+  set_fact:
+    internalca_internal_ca_trust_changed: >-
+      {{
+        internalca_ca_local_single.changed | default(false)
+        or internalca_ca_local_rotation.changed | default(false)
+        or internalca_debian_ca_anchor.changed | default(false)
+        or internalca_debian_rotation_anchor.changed | default(false)
+        or internalca_debian_rotation_anchor_retired.changed | default(false)
+        or internalca_redhat_ca_anchor.changed | default(false)
+        or internalca_redhat_rotation_anchor.changed | default(false)
+        or internalca_redhat_rotation_anchor_retired.changed | default(false)
+      }}

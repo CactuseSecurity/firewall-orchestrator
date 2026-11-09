@@ -1,6 +1,7 @@
 # Firewall Orchestrator Revision History
 
 ## 9.9.1 - 05.11.2026
+- installer: Ansible collection sources such as Artifactory can be configured per installation with `fwo_galaxy_server_list` and `fwo_galaxy_servers` in `fwo-install-settings.yml`; bootstrap and subsequent collection downloads use these settings, with environment overrides and credentials kept separate
 - request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent
 - workflow UI: the promotion-mode setting now also supports action-buttons-only in addition to ticket, task and combined promotion
 - workflow UI: approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks
@@ -71,7 +72,6 @@
 - login page: infrastructure errors are no longer shown before authentication; JWT key import errors no longer log the key; the CI version gate and the log data import escape line breaks of file names
 
 ## 9.8.5 - 29.10.2026
-- installer: Ansible collection sources such as Artifactory can be configured per installation with `fwo_galaxy_server_list` and `fwo_galaxy_servers` in `fwo-install-settings.yml`; bootstrap and subsequent collection downloads use these settings, with environment overrides and credentials kept separate
 - installer: after an operating system upgrade to a new PostgreSQL major version (e.g. Debian 12 -> 13: 15 -> 17) the upgrade stops before changing PostgreSQL and names the steps to migrate the database (`pg_upgradecluster` on Debian/Ubuntu, `postgresql-setup --upgrade` on Red Hat/Rocky) instead of failing on a missing postgresql.conf; documentation/installer/server-upgrade.md describes the migration (#5598)
 - installer: the importer and customizing script python venvs are rebuilt when they were created for another python version (e.g. 3.11 -> 3.13 after an operating system upgrade), instead of failing with `No module named 'pip'` or leaving the importer without its packages (#5599)
 - installer: remove the unused Docker role, the move of the API from Docker to Podman and the Docker handling of upgrade and uninstall; the ignored parameter `docker_network` is gone (#5519)

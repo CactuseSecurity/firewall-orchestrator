@@ -370,8 +370,21 @@ fwo_galaxy_server_list:
   - artifactory
 fwo_galaxy_servers:
   artifactory:
-    url: https://artifacts.customer.de/artifactory/api/ansible/ansible-remote/
+    url: https://artifactory.example.com/artifactory/api/ansible/<repo-key>/
 ```
+
+For Artifactory, replace `<repo-key>` with the key of an Ansible *remote* repository
+that proxies `https://galaxy.ansible.com`. The key is specific to each Artifactory
+instance; a wrong key fails with `HTTP Code: 404`. The repository's "Set Me Up" page
+shows the URL, or list the Ansible repositories with:
+
+```console
+curl -sS "https://artifactory.example.com/artifactory/api/repositories?packageType=ansible"
+```
+
+With the correct key, the first download of a collection version that the remote
+repository had not cached yet has been seen to fail with `HTTP Error 404`; running the
+download again succeeded.
 
 Before the first installation, create this file at the real path
 `/usr/local/fworch/etc/fwo-install-settings.yml` as described above. A relocated

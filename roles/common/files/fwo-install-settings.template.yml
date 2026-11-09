@@ -70,11 +70,14 @@ fwo_endpoint_hostname: ""
 # URLs must end in /. Only url is accepted here: supply authentication through
 # ANSIBLE_GALAXY_SERVER_ARTIFACTORY_TOKEN (or USERNAME/PASSWORD) in the environment.
 # Existing ANSIBLE_GALAXY_* environment values override these settings for the run.
+# For Artifactory, <repo-key> is the key of an Ansible remote repository proxying
+# https://galaxy.ansible.com; list the keys with
+# https://artifactory.example.com/artifactory/api/repositories?packageType=ansible
 # fwo_galaxy_server_list:
 #   - artifactory
 # fwo_galaxy_servers:
 #   artifactory:
-#     url: https://artifacts.customer.de/artifactory/api/ansible/ansible-remote/
+#     url: https://artifactory.example.com/artifactory/api/ansible/<repo-key>/
 
 
 ### Administrator-managed Apache certificates

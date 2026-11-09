@@ -153,6 +153,21 @@ def test_invalid_unicode_settings_file(tmp_path: Path) -> None:
         galaxy.load_install_settings(str(settings_path))
 
 
+def test_missing_pyyaml_is_reported_clearly(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    settings_path = tmp_path / "settings.yml"
+    settings_path.write_text("fwo_endpoint_hostname: fwo.example.test\n", encoding="utf-8")
+    monkeypatch.setitem(sys.modules, "yaml", None)
+    with pytest.raises(galaxy.InstallerSettingsError, match="needs PyYAML"):
+        galaxy.load_install_settings(str(settings_path))
+
+
+def test_absent_default_settings_need_no_pyyaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("FWORCH_LOCAL_SETTINGS", raising=False)
+    monkeypatch.setattr(galaxy, "k_default_settings_file", tmp_path / "missing.yml")
+    monkeypatch.setitem(sys.modules, "yaml", None)
+    assert galaxy.load_install_settings(None) == {}
+
+
 def test_main_passes_arguments_and_exit_status(monkeypatch: pytest.MonkeyPatch) -> None:
     runner = Mock(return_value=subprocess.CompletedProcess(args=[], returncode=7))
     monkeypatch.setattr(galaxy.subprocess, "run", runner)
@@ -212,6 +227,17 @@ def make_installer_stubs(tmp_path: Path) -> dict[str, str]:
     return environment
 
 
+def make_launcher_repo(tmp_path: Path) -> Path:
+    """Minimal repository layout the launcher needs: one pinned collection that is not installed yet."""
+    working_path = tmp_path / "repo"
+    (working_path / "collections").mkdir(parents=True)
+    (working_path / "collections/requirements.yml").write_text(
+        "collections:\n  - name: community.general\n    version: 11.4.2\n",
+        encoding="utf-8",
+    )
+    return working_path
+
+
 @pytest.mark.parametrize("entry_point", ["bootstrap", "launcher"])
 def test_installer_entry_points_use_installation_sources(
     tmp_path: Path,
@@ -227,12 +253,7 @@ def test_installer_entry_points_use_installation_sources(
         command = ["bash", str(repo_path / "scripts/install-ansible-from-venv.sh")]
         working_path = repo_path
     else:
-        working_path = tmp_path / "repo"
-        (working_path / "collections").mkdir(parents=True)
-        (working_path / "collections/requirements.yml").write_text(
-            "collections:\n  - name: community.general\n    version: 11.4.2\n",
-            encoding="utf-8",
-        )
+        working_path = make_launcher_repo(tmp_path)
         command = ["bash", str(repo_path / "scripts/run-playbook-with-sudo.sh"), "site.yml"]
     result = subprocess.run(command, cwd=working_path, env=environment, capture_output=True, text=True, check=False)  # noqa: S603 - offline stubs
     assert result.returncode == 0, result.stderr
@@ -248,3 +269,30 @@ def test_installer_entry_points_use_installation_sources(
         "collections",
         "--force",
     ]
+
+
+def test_launcher_runs_galaxy_with_ansible_python(tmp_path: Path, galaxy_settings: dict[str, object]) -> None:
+    """The python3 on the PATH may lack PyYAML (e.g. Ansible from pipx); Ansible's own interpreter has it."""
+    repo_path = Path(galaxy.__file__).resolve().parent.parent
+    environment = make_installer_stubs(tmp_path)
+    bin_path = tmp_path / "bin"
+    # Without site-packages, the python3 on the PATH cannot import PyYAML.
+    (bin_path / "python3").write_text('#!/bin/bash\nexec "$REAL_PYTHON" -S "$@"\n', encoding="utf-8")
+    (bin_path / "ansible").write_text(
+        f"#!/bin/bash\necho 'ansible [core 2.19.7]'\necho '  python version = 3.x (main) [GCC] ({sys.executable})'\n",
+        encoding="utf-8",
+    )
+    probe = subprocess.run(  # noqa: S603 - offline stub
+        [str(bin_path / "python3"), "-c", "import yaml"], env=environment, capture_output=True, check=False
+    )
+    if probe.returncode == 0:
+        pytest.skip("PyYAML is importable without site-packages in this interpreter")
+    settings_path = tmp_path / "settings.yml"
+    settings_path.write_text(yaml.safe_dump(galaxy_settings), encoding="utf-8")
+    environment["FWORCH_LOCAL_SETTINGS"] = str(settings_path)
+    command = ["bash", str(repo_path / "scripts/run-playbook-with-sudo.sh"), "site.yml"]
+    working_path = make_launcher_repo(tmp_path)
+    result = subprocess.run(command, cwd=working_path, env=environment, capture_output=True, text=True, check=False)  # noqa: S603 - offline stubs
+    assert result.returncode == 0, result.stderr
+    captured = json.loads(Path(environment["GALAXY_CAPTURE"]).read_text(encoding="utf-8"))
+    assert captured["url"] == "https://artifacts.example.test/api/ansible/remote/"

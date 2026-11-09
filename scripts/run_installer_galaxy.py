@@ -5,15 +5,17 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import os
 import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from urllib.parse import urlsplit
 
-import yaml
+if TYPE_CHECKING:
+    from types import ModuleType
 
 k_default_settings_file = Path("/usr/local/fworch/etc/fwo-install-settings.yml")
 k_server_name_pattern = re.compile(r"[a-z][a-z0-9_]*")
@@ -24,6 +26,17 @@ class InstallerSettingsError(ValueError):
     """Invalid persisted installer input."""
 
 
+def import_yaml() -> ModuleType:
+    """Import PyYAML only when a settings file exists: the launcher may run outside the installer venv."""
+    try:
+        return importlib.import_module("yaml")
+    except ImportError:
+        raise InstallerSettingsError(
+            "Reading the installer settings file needs PyYAML for the Python running this script "
+            f"({sys.executable}); activate the installer environment with: source scripts/install-ansible-from-venv.sh"
+        ) from None
+
+
 def load_install_settings(settings_file: str | None) -> dict[str, object]:
     """Use the same settings location and missing-file policy as the launcher."""
     if settings_file == "":
@@ -31,14 +44,19 @@ def load_install_settings(settings_file: str | None) -> dict[str, object]:
     requested_file = settings_file or os.environ.get("FWORCH_LOCAL_SETTINGS")
     settings_path = Path(requested_file) if requested_file else k_default_settings_file
     try:
-        settings = yaml.safe_load(settings_path.read_text(encoding="utf-8"))
+        settings_text = settings_path.read_text(encoding="utf-8")
     except FileNotFoundError:
         if not requested_file:
             return {}
         raise InstallerSettingsError("The requested installer settings file does not exist.") from None
     except OSError:
         raise InstallerSettingsError("The installer settings file cannot be read.") from None
-    except (yaml.YAMLError, UnicodeError):
+    except UnicodeError:
+        raise InstallerSettingsError("The installer settings file must contain valid YAML.") from None
+    yaml = import_yaml()
+    try:
+        settings = yaml.safe_load(settings_text)
+    except yaml.YAMLError:
         # YAML errors can include source lines containing credentials or other input.
         raise InstallerSettingsError("The installer settings file must contain valid YAML.") from None
     if not isinstance(settings, dict):

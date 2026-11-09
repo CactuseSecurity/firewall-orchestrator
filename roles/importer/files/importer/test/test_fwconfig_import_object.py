@@ -919,34 +919,34 @@ class TestFwConfigImportObjectAddGroupMemberships:
             prev_config=prev_config,
         )
 
-        # Assert
-        fwconfig_import_object.write_member_updates.assert_called_once_with(
-            [
-                {
-                    "import_created": 11,
-                    "objgrp_id": 1,
-                    "objgrp_member_id": 2,
-                },
-                {
-                    "import_created": 11,
-                    "objgrp_id": 1,
-                    "objgrp_member_id": 3,
-                },
-            ],
-            [
-                {
-                    "import_created": 11,
-                    "objgrp_flat_id": 1,
-                    "objgrp_flat_member_id": 2,
-                },
-                {
-                    "import_created": 11,
-                    "objgrp_flat_id": 1,
-                    "objgrp_flat_member_id": 3,
-                },
-            ],
-            "objgrp",
-        )
+        # Assert: flats are ordered by their (random) uids, so compare independent of order
+        fwconfig_import_object.write_member_updates.assert_called_once()
+        actual_members, actual_flats, actual_prefix = fwconfig_import_object.write_member_updates.call_args.args
+        assert sorted(actual_members, key=lambda x: x["objgrp_member_id"]) == [
+            {
+                "import_created": 11,
+                "objgrp_id": 1,
+                "objgrp_member_id": 2,
+            },
+            {
+                "import_created": 11,
+                "objgrp_id": 1,
+                "objgrp_member_id": 3,
+            },
+        ]
+        assert sorted(actual_flats, key=lambda x: x["objgrp_flat_member_id"]) == [
+            {
+                "import_created": 11,
+                "objgrp_flat_id": 1,
+                "objgrp_flat_member_id": 2,
+            },
+            {
+                "import_created": 11,
+                "objgrp_flat_id": 1,
+                "objgrp_flat_member_id": 3,
+            },
+        ]
+        assert actual_prefix == "objgrp"
 
 
 class TestFwConfigImportObjectFindRemovedObjects:

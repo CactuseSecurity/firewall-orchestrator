@@ -14,7 +14,6 @@ mutation updateManagement(
   $domainUid: String
   $cloudTenantId: String
   $cloudSubscriptionId: String
-  $importerHostname: String
   $comment: String
   $debugLevel: Int
   $superManager: Int
@@ -34,7 +33,6 @@ mutation updateManagement(
       domain_uid: $domainUid
       cloud_subscription_id: $cloudSubscriptionId
       cloud_tenant_id: $cloudTenantId
-      importer_hostname: $importerHostname
       ssh_port: $port
       do_not_import: $importDisabled
       force_initial_import: $forceInitialImport

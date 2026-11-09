@@ -88,14 +88,6 @@ namespace FWO.Test
             }
         }
 
-        [SetUp]
-        public void SetUpTranslations()
-        {
-            SimulatedUserConfig.DummyTranslate.TryAdd("export_report", "Export report");
-            SimulatedUserConfig.DummyTranslate.TryAdd("export_report_download", "Download export");
-            SimulatedUserConfig.DummyTranslate.TryAdd("E1002", "No report to export");
-        }
-
         private static BunitContext CreateContext()
         {
             BunitContext context = new();

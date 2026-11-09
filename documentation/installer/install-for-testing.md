@@ -9,6 +9,7 @@ This includes:
 - jwt generation keys
 - API hasura admin secret
 - UI admin user
+- demo data with sample users and their passwords (see "add_demo_data" below)
 These secrets are fixed and publicly known in the source tree. They must never be used for production installations.
 Note: the installer writes these secrets into the etc/secrets directory and prints only the file paths at the end of the installation.
 
@@ -71,19 +72,36 @@ e.g. if your hasura metadata file needs to be re-created from scratch, then use 
 ./scripts/run-playbook-with-sudo.sh site.yml -e "api_no_metadata=yes"
 ```
 
-## Parameter "add_demo_data" to avoid creation of sample data (i.e. in production)
+## Parameter "add_demo_data" to create demo data
 
-The following command prevents the creation of sample data in the database:
+Demo data (sample devices, owners and LDAP users with publicly known passwords) is not created by default.
+It is created automatically when installing with testkeys=yes. For a demo installation without the other
+test keys, request it explicitly:
 
 ```console
-./scripts/run-playbook-with-sudo.sh site.yml -e "add_demo_data=no"
+./scripts/run-playbook-with-sudo.sh site.yml -e "add_demo_data=yes"
 ```
 
-note: demo/sample data can also be removed via settings menues.
+To install with testkeys=yes but without demo data, add -e "add_demo_data=no".
+Demo data is only created during a new installation; an upgrade neither adds nor removes it.
+
+note: demo/sample data can be removed via settings menues.
+
+When the sample-auth-data role runs again on an existing LDAP tree, existing sample entries and
+role/group memberships are kept, and missing ones are added even if earlier ones already exist.
+Any other LDAP error stops the installation and names the sample tree, record number and DN of each
+failing entry.
+
+To run the sample LDAP seeding regression tests without installing FWO or running an
+LDAP server, use the installer Ansible environment and run:
+
+```console
+bash scripts/tests/test-sample-auth-data.sh
+```
 
 ### Parameter "second_ldap_db" to install second ldap database
 
-if you want to install a second ldap database "dc=example,dc=com"
+if you want to install a second ldap database "dc=example,dc=com" (requires demo data, see "add_demo_data")
 
 ```console
 ./scripts/run-playbook-with-sudo.sh site.yml -e "second_ldap_db=yes"

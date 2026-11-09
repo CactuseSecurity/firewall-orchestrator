@@ -88,6 +88,10 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | External state handling | 8.3 (8.3.1) |
 | `automatic_only` workflow states | 9.0.18 |
 | Configurable execution order for actions assigned to states | 9.1.1 |
+| Workflow configuration transfer with selected-phase export, custom file names, merge support, and state-definition validation | 9.8.2 |
+| Implementation tasks created by the state action "Create implementation tasks", controlled per gateway and management by device specific settings | 9.8.3 |
+| Tufin SecureChange ticket templates as device specific settings (global, per device type and per management) | 9.8.5 |
+| Semantic rule positioning for Check Point access-rule implementation tasks | 9.8.7 |
 
 ## Recertification
 
@@ -107,6 +111,8 @@ For a chronological, version-by-version listing (8.0 onwards) see
 
 | Feature | Introduced in |
 | --- | --- |
+| Rules report management rulebases view (start rulebase selection, including rulebases without gateway) | 9.6.1 |
+| Configurable global and personal default rules report view (gateway rules or management rulebases) | 9.6.1 |
 | Report scheduling | 5.0.1 |
 | Default report templates | 5.1.04 |
 | First compliance report template | 5.1.05 |
@@ -127,6 +133,7 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | Feature | Introduced in |
 | --- | --- |
 | Compliance matrix module | 7.0 (6.5.0) |
+| Optional filter for newly non-compliant rules in compliance diff reports | 9.4.5 |
 
 ## Tenant management
 
@@ -175,6 +182,7 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | Endpoint for getting rules | 8.8 |
 | `rule_owner` table for REST API | 9.0.1 |
 | JWT refresh token | 9.1.0 |
+| Paging of all REST list endpoints with configurable maximum page size (`maxRestResponseObjectLimit`) | 9.8.4 |
 
 ## User interface
 

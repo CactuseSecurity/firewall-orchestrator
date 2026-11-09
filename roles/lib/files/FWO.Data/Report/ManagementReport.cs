@@ -63,7 +63,7 @@ namespace FWO.Data.Report
         public NetworkUser[] Users { get; set; } = [];
 
         [JsonProperty("zoneObjects"), JsonPropertyName("zoneObjects")]
-        public NetworkZone[] Zones { get; set; } = [];
+        public FirewallZone[] Zones { get; set; } = [];
 
         [JsonProperty("reportNetworkObjects"), JsonPropertyName("reportNetworkObjects")]
         public NetworkObject[] ReportObjects { get; set; } = [];
@@ -108,12 +108,12 @@ namespace FWO.Data.Report
 
         public string NameAndDeviceNames(string separator = ", ")
         {
-            return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
+            return $"{Name} [{string.Join(separator, Devices.Select(device => device.Name).Distinct())}]";
         }
 
         public string NameAndRulebaseNames(string separator = ", ")
         {
-            return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
+            return $"{Name} [{string.Join(separator, Devices.Select(device => device.Name).Distinct())}]";
         }
 
         /// <summary>

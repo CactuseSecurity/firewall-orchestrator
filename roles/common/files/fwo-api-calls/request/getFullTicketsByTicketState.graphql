@@ -1,0 +1,5 @@
+query getFullTicketsByTicketState($fromState: Int!, $toState: Int!) {
+  request_ticket(where: {state_id: {_gte: $fromState, _lt: $toState}}, order_by: {id: desc}) {
+    ...ticketDetails
+  }
+}

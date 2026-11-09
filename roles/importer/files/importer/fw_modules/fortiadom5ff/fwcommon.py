@@ -8,11 +8,12 @@ import fwo_const
 from fw_modules.fortiadom5ff import fmgr_getter
 from fw_modules.fortiadom5ff.fmgr_consts import nw_obj_types, svc_obj_types, user_obj_types
 from fw_modules.fortiadom5ff.fmgr_network import normalize_network_objects
-from fw_modules.fortiadom5ff.fmgr_rule import get_access_policy, get_nat_policy, normalize_rulebases
+from fw_modules.fortiadom5ff.fmgr_rule import get_access_policy, normalize_rulebases
 from fw_modules.fortiadom5ff.fmgr_service import normalize_service_objects
 from fw_modules.fortiadom5ff.fmgr_zone import get_zones, normalize_zones
-from fwo_base import ConfigAction, write_native_config_to_file
-from fwo_exceptions import FwLoginFailedError, FwLogoutFailedError, ImportInterruptionError
+from fwo_base import write_native_config_to_file
+from fwo_enums import ConfigAction
+from fwo_exceptions import FwLoginFailedError, ImportInterruptionError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fw_common import FwCommon
@@ -56,6 +57,31 @@ def get_config(
 
 def get_native_config(config_in: FwConfigManagerListController, import_state: ImportStateController) -> None:
     sid = get_sid(import_state.state)
+    fm_api_url = import_state.state.mgm_details.build_fw_api_string()
+    try:
+        _fetch_native_config(config_in, import_state, sid)
+    finally:
+        _logout_quietly(fm_api_url, sid)
+
+    write_native_config_to_file(import_state.state, config_in.native_config)
+
+
+def _logout_quietly(fm_api_url: str, sid: str) -> None:
+    """
+    Log out of the FortiManager API without letting a failure there decide the import.
+
+    The session times out on the manager anyway, so a failed logout must neither discard a completely fetched
+    configuration nor hide the error of a failed fetch.
+    """
+    try:
+        fmgr_getter.logout(fm_api_url, sid)
+    except Exception as logout_error:
+        FWOLogger.warning(f"logout from FortiManager failed ({type(logout_error).__name__}), ignoring it")
+
+
+def _fetch_native_config(
+    config_in: FwConfigManagerListController, import_state: ImportStateController, sid: str
+) -> None:
     limit = import_state.state.fwo_config.api_fetch_size
     fm_api_url = import_state.state.mgm_details.build_fw_api_string()
     native_config_global = initialize_native_config_domain(import_state.state.mgm_details)
@@ -126,22 +152,6 @@ def get_native_config(config_in: FwConfigManagerListController, import_state: Im
                 device_config,
                 limit,
             )
-            get_nat_policy(
-                sid,
-                fm_api_url,
-                native_config_adom,
-                adom_device_vdom_policy_package_structure,
-                adom_name,
-                mgm_details_device,
-                limit,
-            )
-
-    try:  # logout of fortimanager API
-        fmgr_getter.logout(fm_api_url, sid)
-    except Exception:
-        raise FwLogoutFailedError("logout exception probably due to timeout - irrelevant, so ignoring it")
-
-    write_native_config_to_file(import_state.state, config_in.native_config)
 
 
 def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
@@ -153,7 +163,6 @@ def initialize_native_config_domain(mgm_details: Management) -> dict[str, Any]:
         "management_uid": mgm_details.uid,
         "objects": [],
         "rulebases": [],
-        "nat_rulebases": [],
         "zones": [],
         "gateways": [],
         "time_objects": [],

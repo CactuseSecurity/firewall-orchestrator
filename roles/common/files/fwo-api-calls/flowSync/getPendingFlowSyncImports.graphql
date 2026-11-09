@@ -1,9 +1,15 @@
+# Imports whose flow data is still missing.
+# Flow sync works on the normalized objects and rules of a management, so only rule imports (1)
+# produce work here. Import types without a management - owner or log data imports - never get
+# flow_sync_done and would otherwise pile up in this backlog and be reported as pending imports
+# without a management id in every run.
 query getPendingFlowSyncImports {
   import_control(
     where: {
       successful_import: { _eq: true }
       changes_found: { _eq: true }
       flow_sync_done: { _eq: false }
+      import_type_id: { _eq: 1 }
     }
     order_by: { control_id: asc }
   ) {

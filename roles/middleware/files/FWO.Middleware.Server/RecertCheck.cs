@@ -7,9 +7,7 @@ using FWO.Config.File;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Report;
-using FWO.Encryption;
 using FWO.Logging;
-using FWO.Mail;
 using FWO.Middleware.Server.Services;
 using FWO.Report;
 using FWO.Services;
@@ -27,8 +25,6 @@ namespace FWO.Middleware.Server
         private readonly ApiConnection apiConnectionMiddlewareServer;
         private readonly GlobalConfig globalConfig;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
-        private List<Ldap> connectedLdaps = [];
-        private List<UiUser> uiUsers = [];
         private RecertCheckParams? globCheckParams;
         private List<FwoOwner> owners = [];
         private const string LogMessageTitle = "Recertification Check";
@@ -46,36 +42,57 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Recertification check
         /// </summary>
-        public async Task<int> CheckRecertifications()
+        /// <param name="cancellationToken">Stops before the next owner; the last sent state of notifications is still updated.</param>
+        public async Task<int> CheckRecertifications(CancellationToken cancellationToken = default)
         {
             int emailsSent = 0;
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 await InitEnv();
                 if (globalConfig.RecertificationMode == RecertificationMode.RuleByRule)
                 {
-                    string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, LogMessageTitle, "Could not decrypt mailserver password.");
-                    EmailConnection emailConnection = new(globalConfig.EmailServerAddress, globalConfig.EmailPort,
-                        globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress);
+                    NotificationService notificationService = await NotificationService.CreateAsync(
+                        NotificationClient.RuleRecertification,
+                        globalConfig,
+                        apiConnectionMiddlewareServer);
                     JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
                     ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall(tokenLifetimeProvider.GetInternalServiceTokenLifetime()));
-                    foreach (FwoOwner owner in owners)
+                    await ForEachOwnerUpdatingLastSent(owners, notificationService, async owner =>
                     {
-                        emailsSent += await CheckRuleByRule(owner, apiConnectionReporter, emailConnection);
-                        await SetOwnerLastCheck(owner);
-                    }
+                        int ownerEmailsSent = await CheckRuleByRule(owner, apiConnectionReporter, notificationService);
+                        emailsSent += ownerEmailsSent;
+                        if (ownerEmailsSent > 0)
+                        {
+                            await SetOwnerLastCheck(owner);
+                        }
+                    }, cancellationToken);
                 }
                 else
                 {
-                    List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnectionMiddlewareServer);
-                    NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Recertification, globalConfig, apiConnectionMiddlewareServer, OwnerGroups);
-                    foreach (FwoOwner? owner in owners.Where(o => IsRecertCheckTime(o)))
+                    NotificationService notificationService = await NotificationService.CreateAsync(
+                        NotificationClient.Recertification,
+                        globalConfig,
+                        apiConnectionMiddlewareServer);
+                    using UserConfig reportUserConfig = UserConfig.ForGlobalSettings(
+                        globalConfig,
+                        apiConnectionMiddlewareServer,
+                        globalConfig.DefaultLanguage);
+                    await ForEachOwnerUpdatingLastSent(owners.Where(o => IsRecertCheckTime(o)), notificationService, async owner =>
                     {
-                        emailsSent += await notificationService.SendNotificationsIfDue(owner, null, PrepareOwnerBody(owner), await PrepareOwnerReport(owner));
-                        await SetOwnerLastCheck(owner);
-                    }
-                    await notificationService.UpdateNotificationsLastSent();
+                        int ownerEmailsSent = await SendOwnerNotificationsIfDue(notificationService, owner,
+                            await PrepareOwnerReport(owner, reportUserConfig));
+                        emailsSent += ownerEmailsSent;
+                        if (ownerEmailsSent > 0)
+                        {
+                            await SetOwnerLastCheck(owner);
+                        }
+                    }, cancellationToken);
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exception)
             {
@@ -84,11 +101,32 @@ namespace FWO.Middleware.Server
             return emailsSent;
         }
 
+        /// <summary>
+        /// Checks every owner and updates the last sent state of the notifications afterwards,
+        /// also when stopped between two owners, so already sent notifications are not repeated.
+        /// </summary>
+        private static async Task ForEachOwnerUpdatingLastSent(IEnumerable<FwoOwner> ownersToCheck, NotificationService notificationService,
+            Func<FwoOwner, Task> checkOwner, CancellationToken cancellationToken)
+        {
+            try
+            {
+                foreach (FwoOwner owner in ownersToCheck)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await checkOwner(owner);
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                await notificationService.UpdateNotificationsLastSent();
+                throw;
+            }
+            await notificationService.UpdateNotificationsLastSent();
+        }
+
         private async Task InitEnv()
         {
             globCheckParams = System.Text.Json.JsonSerializer.Deserialize<RecertCheckParams>(globalConfig.RecCheckParams);
-            connectedLdaps = apiConnectionMiddlewareServer.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections).Result;
-            uiUsers = await apiConnectionMiddlewareServer.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);
             owners = await apiConnectionMiddlewareServer.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
         }
 
@@ -162,7 +200,7 @@ namespace FWO.Middleware.Server
             return nextCheck;
         }
 
-        private async Task<int> CheckRuleByRule(FwoOwner owner, ApiConnection apiConnection, EmailConnection emailConnection)
+        private async Task<int> CheckRuleByRule(FwoOwner owner, ApiConnection apiConnection, NotificationService notificationService)
         {
             List<Rule> openRecerts = await GenerateRulesRecertificationReport(apiConnection, owner);
             List<Rule> upcomingRecerts = [];
@@ -178,12 +216,18 @@ namespace FWO.Middleware.Server
                     overdueRecerts.Add(rule);
                 }
             }
-            if (upcomingRecerts.Count > 0 || overdueRecerts.Count > 0)
+            if (upcomingRecerts.Count == 0 && overdueRecerts.Count == 0)
             {
-                await MailKitMailer.SendAsync(await PrepareRulesEmail(owner, upcomingRecerts, overdueRecerts), emailConnection, false, new());
-                return 1;
+                return 0;
             }
-            return 0;
+
+            int emailsSent = 0;
+            foreach (FwoNotification notification in notificationService.Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
+            {
+                string body = BuildRulesBody(notification, upcomingRecerts, overdueRecerts, owner.Name);
+                emailsSent += await notificationService.SendNotification(notification, owner, body);
+            }
+            return emailsSent;
         }
 
         private async Task<List<Rule>> GenerateRulesRecertificationReport(ApiConnection apiConnection, FwoOwner owner)
@@ -228,130 +272,98 @@ namespace FWO.Middleware.Server
             return rules;
         }
 
-        private async Task<MailData> PrepareRulesEmail(FwoOwner owner, List<Rule> upcomingRecerts, List<Rule> overdueRecerts)
+        /// <summary>
+        /// Sends the owner recertification notifications that are due, each with a body built for its layout.
+        /// </summary>
+        private async Task<int> SendOwnerNotificationsIfDue(NotificationService notificationService, FwoOwner owner, ReportBase? report)
         {
-            string subject = globalConfig.RecCheckEmailSubject + " " + owner.Name;
-            return new MailData(await CollectEmailAddresses(owner), subject) { Body = PrepareRulesBody(upcomingRecerts, overdueRecerts, owner.Name) };
+            int emailsSent = 0;
+            foreach (FwoNotification notification in notificationService.Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
+            {
+                emailsSent += await notificationService.SendNotificationIfDue(notification, owner, owner.NextRecertDate,
+                    BuildOwnerBody(notification, owner), report);
+            }
+            return emailsSent;
         }
 
-        private string PrepareRulesBody(List<Rule> upcomingRecerts, List<Rule> overdueRecerts, string ownerName)
+        /// <summary>
+        /// Builds the owner recertification body in the form the notification's layout needs.
+        /// </summary>
+        private string BuildOwnerBody(FwoNotification notification, FwoOwner owner)
+        {
+            return PrepareOwnerBody(owner, IsHtmlBody(notification));
+        }
+
+        /// <summary>
+        /// Builds the rule recertification body in the form the notification's layout needs.
+        /// </summary>
+        private string BuildRulesBody(FwoNotification notification, List<Rule> upcomingRecerts, List<Rule> overdueRecerts, string ownerName)
+        {
+            return PrepareRulesBody(upcomingRecerts, overdueRecerts, ownerName, IsHtmlBody(notification));
+        }
+
+        private static bool IsHtmlBody(FwoNotification notification)
+        {
+            return notification.Layout == NotificationLayout.HtmlInBody;
+        }
+
+        /// <summary>
+        /// Returns a value for the email body: HTML-encoded for HTML bodies, as owner and rule names come from imports.
+        /// </summary>
+        private static string ForBody(string? value, bool isHtmlBody)
+        {
+            return isHtmlBody ? HtmlOutputEncoder.EncodeText(value) : value ?? "";
+        }
+
+        private string PrepareRulesBody(List<Rule> upcomingRecerts, List<Rule> overdueRecerts, string ownerName, bool isHtmlBody)
         {
             StringBuilder body = new();
             if (upcomingRecerts.Count > 0)
             {
-                body.AppendLine(globalConfig.RecCheckEmailUpcomingText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n");
+                body.AppendLine(globalConfig.RecCheckEmailUpcomingText.Replace(Placeholder.APPNAME, ForBody(ownerName, isHtmlBody)) + "\r\n\r\n");
                 foreach (var rule in upcomingRecerts)
                 {
-                    body.AppendLine(PrepareLine(rule));
+                    body.AppendLine(PrepareLine(rule, isHtmlBody));
                 }
             }
             body.AppendLine("\r\n\r\n");
             if (overdueRecerts.Count > 0)
             {
-                body.AppendLine(globalConfig.RecCheckEmailOverdueText.Replace(Placeholder.APPNAME, ownerName) + "\r\n\r\n");
+                body.AppendLine(globalConfig.RecCheckEmailOverdueText.Replace(Placeholder.APPNAME, ForBody(ownerName, isHtmlBody)) + "\r\n\r\n");
                 foreach (Rule rule in overdueRecerts)
                 {
-                    body.AppendLine(PrepareLine(rule));
+                    body.AppendLine(PrepareLine(rule, isHtmlBody));
                 }
             }
             return body.ToString();
         }
 
-        private static string PrepareLine(Rule rule)
+        private static string PrepareLine(Rule rule, bool isHtmlBody)
         {
             Recertification? nextRecert = rule.Metadata.RuleRecertification.FirstOrDefault(x => x.RecertDate == null);
             return (nextRecert != null && nextRecert.NextRecertDate != null ? DateOnly.FromDateTime((DateTime)nextRecert.NextRecertDate) : "") + ": "
-                    + rule.DeviceName + ": " + rule.Name + ":" + rule.Uid + "\r\n\r\n";  // link ?
+                    + ForBody(rule.DeviceName, isHtmlBody) + ": " + ForBody(rule.Name, isHtmlBody) + ":" + ForBody(rule.Uid, isHtmlBody) + "\r\n\r\n";  // link ?
         }
 
-        private async Task<List<string>> CollectEmailAddresses(FwoOwner owner)
-        {
-            if (globalConfig.UseDummyEmailAddress)
-            {
-                return [globalConfig.DummyEmailAddress];
-            }
-            List<string> tos = [];
-            List<string> userDns = await ResolveOwnerUserDns(owner);
-            foreach (var userDn in userDns)
-            {
-                UiUser? uiuser = uiUsers.FirstOrDefault(x => DistName.DnEquals(x.Dn, userDn));
-                if (uiuser != null && uiuser.Email != null && uiuser.Email != "")
-                {
-                    tos.Add(uiuser.Email);
-                }
-            }
-            return tos;
-        }
-
-        private async Task<List<string>> ResolveOwnerUserDns(FwoOwner owner)
-        {
-            List<string> ownerDns = owner.GetAllOwnerResponsibles();
-            if (ownerDns.Count == 0)
-            {
-                return [];
-            }
-
-            HashSet<string> resolvedUsers = new(DistName.DnComparer);
-            object resolvedLock = new();
-            List<Task> ldapRequests = [];
-
-            foreach (Ldap currentLdap in connectedLdaps.Where(ldap => ldap.HasGroupHandling()))
-            {
-                ldapRequests.Add(Task.Run(async () =>
-                {
-                    List<string> currentResolved = await currentLdap.ResolveUsersFromDns(ownerDns);
-                    if (currentResolved.Count == 0)
-                    {
-                        return;
-                    }
-
-                    lock (resolvedLock)
-                    {
-                        foreach (string dn in currentResolved)
-                        {
-                            resolvedUsers.Add(dn);
-                        }
-                    }
-                }));
-            }
-
-            await Task.WhenAll(ldapRequests);
-
-            foreach (string dn in ownerDns)
-            {
-                if (string.IsNullOrWhiteSpace(dn))
-                {
-                    continue;
-                }
-                bool isGroupDn = connectedLdaps.Any(ldap => ldap.HasGroupHandling()
-                    && !string.IsNullOrWhiteSpace(ldap.GroupSearchPath)
-                    && dn.EndsWith(ldap.GroupSearchPath, StringComparison.OrdinalIgnoreCase));
-                if (!isGroupDn)
-                {
-                    resolvedUsers.Add(dn);
-                }
-            }
-
-            return resolvedUsers.ToList();
-        }
-
-        private string PrepareOwnerBody(FwoOwner owner)
+        private string PrepareOwnerBody(FwoOwner owner, bool isHtmlBody)
         {
             string msgText = owner.NextRecertDate >= DateTime.Today ? globalConfig.RecCheckEmailUpcomingText : globalConfig.RecCheckEmailOverdueText;
-            return msgText.Replace(Placeholder.APPNAME, owner.Name);
+            return msgText.Replace(Placeholder.APPNAME, ForBody(owner.Name, isHtmlBody));
         }
 
-        private async Task<ReportBase?> PrepareOwnerReport(FwoOwner owner)
+        private async Task<ReportBase?> PrepareOwnerReport(FwoOwner owner, UserConfig reportUserConfig)
         {
             ReportParams reportParams = new((int)ReportType.OwnerRecertification, new())
             {
                 ModellingFilter = new()
                 {
-                    SelectedOwner = owner
+                    SelectedOwner = owner,
+                    // The scheduled check uses LastRecertCheck for due evaluation. Do not
+                    // apply the interactive report's next_recert_date filter as well.
+                    ShowAllOwners = true
                 }
             };
-            using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnectionMiddlewareServer, globalConfig.DefaultLanguage);
-            return await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", reportParams), apiConnectionMiddlewareServer, userConfig, DefaultInit.DoNothing);
+            return await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", reportParams), apiConnectionMiddlewareServer, reportUserConfig, DefaultInit.DoNothing);
         }
 
         private async Task SetOwnerLastCheck(FwoOwner owner)

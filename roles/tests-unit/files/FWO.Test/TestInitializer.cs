@@ -12,6 +12,7 @@ namespace FWO.Test
     class TestInitializer
     {
         private const string kConfigFilePathEnvVar = "FWO_CONFIG_FILE_PATH";
+        private const string kRunIntegrationTestsEnvVar = "FWO_RUN_INTEGRATION_TESTS";
         private const string kLogLockDirEnvVar = "FWO_LOG_LOCK_DIR";
 
         private const string kTestConfigFileContent = @"{
@@ -80,7 +81,9 @@ namespace FWO.Test
         /// </summary>
         private void SetConfigFilePath()
         {
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(kConfigFilePathEnvVar)))
+            string? configuredConfigPath = Environment.GetEnvironmentVariable(kConfigFilePathEnvVar);
+            string? runIntegrationTests = Environment.GetEnvironmentVariable(kRunIntegrationTestsEnvVar);
+            if (!ShouldCreateSyntheticConfig(configuredConfigPath, runIntegrationTests))
             {
                 return;
             }
@@ -88,6 +91,19 @@ namespace FWO.Test
             testConfigFilePath = Path.Combine(TestContext.CurrentContext.WorkDirectory, "fworch.test.json");
             File.WriteAllText(testConfigFilePath, kTestConfigFileContent);
             Environment.SetEnvironmentVariable(kConfigFilePathEnvVar, testConfigFilePath);
+        }
+
+        /// <summary>
+        /// Determines whether unit tests need an isolated config instead of an explicitly
+        /// configured or installed integration environment.
+        /// </summary>
+        /// <param name="configuredConfigPath">The explicitly configured FWO config path.</param>
+        /// <param name="runIntegrationTests">The integration-test opt-in value.</param>
+        /// <returns>True when a synthetic unit-test config should be created.</returns>
+        internal static bool ShouldCreateSyntheticConfig(string? configuredConfigPath, string? runIntegrationTests)
+        {
+            return string.IsNullOrEmpty(configuredConfigPath)
+                && !string.Equals(runIntegrationTests, "true", StringComparison.OrdinalIgnoreCase);
         }
 
         public static void SetGermanCultureOnAllUnitTest()

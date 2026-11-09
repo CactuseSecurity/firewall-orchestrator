@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Data.Flow;
 using NUnit.Framework;
 
@@ -19,6 +20,15 @@ namespace FWO.Test
 
             Assert.That(localEndTime.ToUniversalTime(), Is.EqualTo(kUtcEndTime));
             Assert.That(localHash, Is.EqualTo(utcHash));
+        }
+
+        [Test]
+        public void GenerateSvcObjectHash_UsesCanonicalHashForAnyIpProtocol()
+        {
+            string hash = FlowHashGenerator.GenerateSvcObjectHash(GlobalConst.kAnyIpProtocolId, null, null);
+
+            Assert.That(hash, Is.Not.Empty);
+            Assert.That(hash, Is.EqualTo(FlowHashGenerator.GenerateSvcObjectHash(GlobalConst.kAnyIpProtocolId, null, null)));
         }
     }
 }

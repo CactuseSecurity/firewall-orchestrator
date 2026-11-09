@@ -34,26 +34,6 @@ namespace FWO.Test
             field.SetValue(component, value);
         }
 
-        [SetUp]
-        public void SetUp()
-        {
-            SimulatedUserConfig.DummyTranslate["edit_fix_crit"] = "Edit fixed criterion";
-            SimulatedUserConfig.DummyTranslate["H5512"] = "Criterion help";
-            SimulatedUserConfig.DummyTranslate["content_mode"] = "Content mode";
-            SimulatedUserConfig.DummyTranslate["elements"] = "Elements";
-            SimulatedUserConfig.DummyTranslate["content"] = "Content";
-            SimulatedUserConfig.DummyTranslate["criterion_hint_minimum_cidr_length"] = "CIDR hint";
-            SimulatedUserConfig.DummyTranslate["criterion_hint_forbidden_service_uid"] = "UID hint";
-            SimulatedUserConfig.DummyTranslate["criterion_hint_forbidden_service_protocol_port"] = "Port/protocol hint";
-            SimulatedUserConfig.DummyTranslate["criterion_hint_forbid_source_name"] = "Source name hint";
-            SimulatedUserConfig.DummyTranslate["criterion_hint_forbid_destination_name"] = "Destination name hint";
-            SimulatedUserConfig.DummyTranslate["criterion_error_minimum_cidr_length"] = "Invalid CIDR";
-            SimulatedUserConfig.DummyTranslate["criterion_error_forbidden_service_protocol_port"] = "Invalid port protocol";
-            SimulatedUserConfig.DummyTranslate["criterion_error_non_empty_content"] = "Content required";
-            SimulatedUserConfig.DummyTranslate["criterion_no_content_required"] = "No content required";
-            SimulatedUserConfig.DummyTranslate["port_protocol"] = "Port/Protocol";
-        }
-
         [Test]
         public async Task Save_ForbiddenServiceWithPendingProtocolPort_AddsPendingElement()
         {

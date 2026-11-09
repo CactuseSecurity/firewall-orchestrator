@@ -10,14 +10,6 @@ namespace FWO.Test
     [Parallelizable]
     internal class EnumExtensionsTest
     {
-        [SetUp]
-        public void SetUp()
-        {
-            SimulatedUserConfig.DummyTranslate["PreferredCollapseState_Collapsed"] = "Collapsed";
-            SimulatedUserConfig.DummyTranslate["PreferredCollapseState_Expanded"] = "Expanded";
-            SimulatedUserConfig.DummyTranslate["PreferredCollapseState_Intermediate"] = "Intermediate";
-        }
-
         [TestCase(PreferredCollapseState.Collapsed, "Collapsed")]
         [TestCase(PreferredCollapseState.Expanded, "Expanded")]
         [TestCase(PreferredCollapseState.Intermediate, "Intermediate")]

@@ -1,23 +1,33 @@
 using FWO.Api.Client;
 using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
+using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Config.File;
+using FWO.Compliance;
+using FWO.Compliance.RulePositioning;
 using FWO.Logging;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.OpenApi;
 using FWO.Middleware.Server.Services;
+using FWO.Services;
 using FWO.Services.FlowSync;
+using FWO.Services.RuleTreeBuilder;
+using FWO.Services.Workflow;
+using FWO.Services.PathAnalysis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using Quartz;
 using Scalar.AspNetCore;
 
 object changesLock = new(); // LOCK
 const string kApiDocsPageRoute = "/api-docs";
 const string kApiDocsRoute = "/api-docs/{documentName}.json";
+const string kApiStartupLogCategory = "Api startup";
+// EX_CONFIG from sysexits(3): the service was configured to reach an api it cannot reach.
+// Non-zero is what makes systemd's Restart=on-failure and its start rate limit apply at all.
+const int kApiUnavailableExitCode = 78;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -28,48 +38,53 @@ TokenLifetimeProvider tokenLifetimeProvider = new();
 JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
 InternalApiTokenService internalApiTokenService = new(jwtWriter, tokenLifetimeProvider);
 
-// Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header. 
-ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), internalApiTokenService.CreateInitialMiddlewareToken());
+// Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header.
+string apiServerUri = ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup.");
+ApiConnection apiConnection = new GraphQlApiConnection(apiServerUri, internalApiTokenService.CreateInitialMiddlewareToken());
 
-List<Ldap> connectedLdaps = [];
-int connectionAttemptsCount = 1;
-while (true)
+// Retried, because the graphql api may not have started yet - but bounded, because the web
+// server below is not started until this succeeds, so an api that stays unreachable used to
+// leave a service that reports itself as running and never answers. Giving up hands the
+// decision to systemd, which restarts and reports it; see ApiStartupProbe.
+List<Ldap> connectedLdaps;
+try
 {
-    // Repeat first api call in case graphql api is not started yet
-    try
-    {
-        connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getAllLdapConnections);
-        break;
-    }
-    catch (Exception ex)
-    {
-        Log.WriteError("Graphql api", "Graphql api unreachable.", ex);
-        Thread.Sleep(500 * connectionAttemptsCount++);
-    }
+    connectedLdaps = await ApiStartupProbe.RunFirstQueryAsync(
+        () => apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getAllLdapConnections), apiServerUri);
+}
+catch (ApiUnavailableAtStartupException exception)
+{
+    // The inner exception carries the last actual failure, so it is logged rather than this
+    // one's own stack trace, which would only point back at this line.
+    Log.WriteError(kApiStartupLogCategory, exception.Message, exception.InnerException);
+    return kApiUnavailableExitCode;
 }
 
 GraphQlApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscriptionUpdate = (List<Ldap> ldapsChanges) => { lock (changesLock) { connectedLdaps = ldapsChanges; } };
 
 GraphQlApiSubscription<List<Ldap>> connectedLdapsSubscription = apiConnection.GetSubscription<List<Ldap>>(GraphqlExceptionHandler.Handle, connectedLdapsSubscriptionUpdate, AuthQueries.getLdapConnectionsSubscription);
-Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => $"{ldap.Address}:{ldap.Port}")));
+Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdaps.ConvertAll(ldap => ldap.Host())));
+AuthDirectoryBinding.WarnAboutOverlappingNamespaces(connectedLdaps);
 
 // GlobalConfig for Quartz DI
 GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
 
-builder.Services.AddQuartz();
-builder.Services.AddQuartzHostedService(options =>
-{
-    options.WaitForJobsToComplete = true;
-});
+// Shared clock for Quartz and jobs, replaceable in tests
+TimeProvider timeProvider = TimeProvider.System;
+builder.Services.AddSingleton(timeProvider);
+
+builder.Services.AddMiddlewareQuartz(timeProvider);
 
 // Register singletons for DI
 builder.Services.AddSingleton(apiConnection);
 builder.Services.AddSingleton(globalConfig);
 builder.Services.AddSingleton<FlowSync>();
-builder.Services.AddSingleton<JobExecutionTracker>();
 builder.Services.AddSingleton<ComplianceCheckStatusTracker>();
 builder.Services.AddSingleton(tokenLifetimeProvider);
 builder.Services.AddSingleton(internalApiTokenService);
+builder.Services.AddSingleton<INotificationEmailSender, NotificationEmailSender>();
+builder.Services.AddRulePositioning();
+builder.Services.AddSingleton<DeviceSpecificSettingsManager>();
 builder.Services.AddHostedService<InternalApiTokenRefreshService>();
 
 // Register config listeners as singletons (activated at startup)
@@ -77,6 +92,7 @@ builder.Services.AddSingleton<ExternalRequestSchedulerService>();
 builder.Services.AddSingleton<AutoDiscoverSchedulerService>();
 builder.Services.AddSingleton<DailyCheckSchedulerService>();
 builder.Services.AddSingleton<ImportAppDataSchedulerService>();
+builder.Services.AddSingleton<ImportLogDataSchedulerService>();
 builder.Services.AddSingleton<ImportIpDataSchedulerService>();
 builder.Services.AddSingleton<ImportChangeNotifySchedulerService>();
 builder.Services.AddSingleton<VarianceAnalysisSchedulerService>();
@@ -84,6 +100,7 @@ builder.Services.AddSingleton<ReportSchedulerService>();
 builder.Services.AddSingleton<ComplianceSchedulerService>();
 builder.Services.AddSingleton<UpdateRuleOwnerMappingSchedulerService>();
 builder.Services.AddSingleton<UpdateFlowsSchedulerService>();
+builder.Services.AddSingleton<RestApiConfigService>();
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -92,12 +109,29 @@ builder.Services.AddControllers()
       ApiDocumentationJsonOptions.Configure(jsonOptions);
   });
 
+// Login limits bound the LDAP work unauthenticated requests can cause (GHSA-xcfh-6hcc-m37w)
+LoginThrottleSettings loginThrottleSettings = LoginThrottleSettings.FromConfigFile();
+LdapAuthenticationGate.Configure(loginThrottleSettings);
+builder.Services.AddSingleton(new LoginThrottle(loginThrottleSettings));
+
+// Per-user request budget for all REST endpoints and concurrency limits for expensive ones (GHSA-m87v-j229-2g65)
+builder.Services.AddApiRateLimiting(ApiRateLimitSettings.FromConfigFile());
+
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
 builder.Services.AddSingleton<FlowCatalogService>();
-builder.Services.AddSingleton<ComplianceZoneService>();
+builder.Services.AddSingleton<IFlowGroupResolver>(serviceProvider => serviceProvider.GetRequiredService<FlowCatalogService>());
+builder.Services.AddSingleton<DesignatedZoneMatrixService>();
+builder.Services.AddSingleton<ICreationRuleZoneResolver, CreationRuleZoneResolver>();
 builder.Services.AddSingleton<FlowComplianceService>();
-builder.Services.AddSingleton<FlowRequestService>();
+builder.Services.AddSingleton<WorkflowTicketService>();
+builder.Services.AddSingleton<WorkflowChangeHistoryService>();
+builder.Services.AddSingleton<PathAnalyzerFactory>();
+builder.Services.AddSingleton<PathAnalysisService>();
+builder.Services.AddSingleton<ImplTaskTargetService>();
+builder.Services.AddTransient<IRuleTreeBuilder, RuleTreeBuilder>();
+builder.Services.AddSingleton<IRequestedRulePolicyCheckerFactory, ComplianceRequestedRulePolicyCheckerFactory>();
+
 builder.Services.AddApiExamples();
 
 builder.Services.AddAuthentication(confOptions =>
@@ -125,6 +159,8 @@ builder.Services.AddOpenApi("v1", options =>
     options.AddOperationTransformer<OpenApiOperationNameTransformer>();
     options.AddOperationTransformer<OpenApiAuthorizationOperationTransformer>();
     options.AddOperationTransformer<OpenApiApiExampleOperationTransformer>();
+    options.AddSchemaTransformer<OpenApiRequiredSchemaTransformer>();
+    options.AddSchemaTransformer<OpenApiAddressInputSchemaTransformer>();
     options.AddDocumentTransformer((document, context, cancellationToken) =>
     {
         document.Info = new OpenApiInfo
@@ -170,6 +206,8 @@ builder.Services.AddOpenApi("v1", options =>
 
 WebApplication app = builder.Build();
 
+FWO.Services.ServiceProvider.Services = app.Services;
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -198,20 +236,16 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
-
-//Register JobExecutionTracker with scheduler
-ISchedulerFactory schedulerFactory = app.Services.GetRequiredService<ISchedulerFactory>();
-JobExecutionTracker executionTracker = app.Services.GetRequiredService<JobExecutionTracker>();
-IScheduler scheduler = await schedulerFactory.GetScheduler();
-scheduler.ListenerManager.AddJobListener(executionTracker);
 
 // Activate config listeners so they attach subscriptions after startup
 app.Services.GetRequiredService<ExternalRequestSchedulerService>();
 app.Services.GetRequiredService<AutoDiscoverSchedulerService>();
 app.Services.GetRequiredService<DailyCheckSchedulerService>();
 app.Services.GetRequiredService<ImportAppDataSchedulerService>();
+app.Services.GetRequiredService<ImportLogDataSchedulerService>();
 app.Services.GetRequiredService<ImportIpDataSchedulerService>();
 app.Services.GetRequiredService<ImportChangeNotifySchedulerService>();
 app.Services.GetRequiredService<VarianceAnalysisSchedulerService>();
@@ -219,8 +253,13 @@ app.Services.GetRequiredService<ReportSchedulerService>();
 app.Services.GetRequiredService<ComplianceSchedulerService>();
 app.Services.GetRequiredService<UpdateRuleOwnerMappingSchedulerService>();
 app.Services.GetRequiredService<UpdateFlowsSchedulerService>();
+app.Services.GetRequiredService<RestApiConfigService>();
 
 await app.RunAsync();
+
+// A shut down web server is an ordinary stop, so systemd must not see it as a failure and
+// restart it. Only the startup give-up above exits non-zero.
+return 0;
 
 namespace FWO.Middleware.ServerTest
 {

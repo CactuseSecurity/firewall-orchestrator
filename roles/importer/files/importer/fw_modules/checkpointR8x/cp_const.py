@@ -30,10 +30,16 @@ local_nw_obj_table_names = [
     "interoperable-devices",
     "security-zones",
     "access-roles",
-    "CpmiVoipSipDomain",
-    "CpmiVoipMgcpDomain",
-    "gsn_handover_group",
 ]
+
+# VoIP domain objects use the legacy Cpmi* type names on older management API versions
+# and voip-domain-* type names (e.g. voip-domain-sip-proxy) on newer ones
+voip_domain_legacy_obj_types = ["CpmiVoipSipDomain", "CpmiVoipMgcpDomain"]
+voip_domain_obj_type_prefix = "voip-domain-"
+
+# objects that are neither returned by show-objects nor by a type specific show command
+# they are only found in the rulebase objects dictionary and have to be added to the native config manually
+object_dictionary_only_obj_types = [*voip_domain_legacy_obj_types, "gsn_handover_group"]
 
 time_obj_table_names = ["times"]
 
@@ -101,6 +107,14 @@ cp_specific_object_types = [  # used for fetching enrichment data via "get objec
     "CpmiGatewayCluster",
     "checkpoint-host",
     "cluster-member",
-    "CpmiVoipSipDomain",
-    "CpmiVoipMgcpDomain",
 ]
+
+
+def is_voip_domain_obj_type(obj_type: str) -> bool:
+    """Returns True for VoIP domain object types in both legacy and current naming."""
+    return obj_type in voip_domain_legacy_obj_types or obj_type.startswith(voip_domain_obj_type_prefix)
+
+
+def is_object_dictionary_only_obj_type(obj_type: str) -> bool:
+    """Returns True for object types that can only be retrieved via the rulebase objects dictionary."""
+    return obj_type in object_dictionary_only_obj_types or is_voip_domain_obj_type(obj_type)

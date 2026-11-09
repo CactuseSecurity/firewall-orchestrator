@@ -1,0 +1,256 @@
+#!/usr/bin/env bash
+#
+# Regression tests for the launcher guards in scripts/run-playbook-with-sudo.sh:
+# require_ansible_core and the version-aware ensure_collections. The launcher is
+# sourced and its functions driven with stubbed ansible/ansible-galaxy on PATH.
+
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+launcher="$repo_root/run-playbook-with-sudo.sh"
+
+pass=0
+fail=0
+
+# Stub `ansible` (prints "[core $1]", or nothing when $1=none) and `ansible-galaxy`
+# (touches marker $2 when called) on a fresh PATH dir.
+make_stub_bin() {
+    local core_version="$1" galaxy_marker="$2" bin
+    bin="$(mktemp -d)"
+
+    if [[ "$core_version" == "none" ]]; then
+        printf '#!/usr/bin/env bash\nexit 0\n' >"$bin/ansible"
+    else
+        printf '#!/usr/bin/env bash\necho "ansible [core %s]"\n' "$core_version" >"$bin/ansible"
+    fi
+
+    printf '#!/usr/bin/env bash\ntouch %q\nexit 0\n' "$galaxy_marker" >"$bin/ansible-galaxy"
+
+    chmod +x "$bin/ansible" "$bin/ansible-galaxy"
+    printf '%s' "$bin"
+    return 0
+}
+
+# Fixture repo dir with collections/requirements.yml and optional repository-local
+# and fallback community.general manifests ("" = no manifest).
+make_fixture() {
+    local local_cg_version="$1" fallback_cg_version="$2" dir manifest
+    dir="$(mktemp -d)"
+    mkdir -p "$dir/collections" "$dir/fallback"
+    cat >"$dir/ansible.cfg" <<'INI'
+[defaults]
+collections_path = ./collections:./fallback
+INI
+    cat >"$dir/collections/requirements.yml" <<'YAML'
+---
+collections:
+  - name: community.general
+    version: 11.4.2
+YAML
+
+    if [[ -n "$local_cg_version" ]]; then
+        manifest="$dir/collections/ansible_collections/community/general"
+        mkdir -p "$manifest"
+        printf '{\n  "collection_info": {\n    "version": "%s"\n  }\n}\n' \
+            "$local_cg_version" >"$manifest/MANIFEST.json"
+    fi
+
+    if [[ -n "$fallback_cg_version" ]]; then
+        manifest="$dir/fallback/ansible_collections/community/general"
+        mkdir -p "$manifest"
+        printf '{\n  "collection_info": {\n    "version": "%s"\n  }\n}\n' \
+            "$fallback_cg_version" >"$manifest/MANIFEST.json"
+    fi
+
+    printf '%s' "$dir"
+    return 0
+}
+
+# assert_case <name> <expected_rc> <expect_galaxy: yes|no> <core_version> <local_cg_version> <fallback_cg_version> <fallback_only_env: no|singular|plural> <func>
+assert_case() {
+    local name="$1" expected_rc="$2" expect_galaxy="$3" core_version="$4" local_cg_version="$5" fallback_cg_version="$6" fallback_only_env="$7" func="$8"
+    local bin fixture marker rc galaxy_seen="no"
+
+    marker="$(mktemp -u)"
+    bin="$(make_stub_bin "$core_version" "$marker")"
+    fixture="$(make_fixture "$local_cg_version" "$fallback_cg_version")"
+
+    (
+        cd "$fixture" || exit 99
+        PATH="$bin:$PATH"
+        if [[ "$fallback_only_env" == "singular" ]]; then
+            ANSIBLE_COLLECTIONS_PATH="$fixture/fallback"
+        elif [[ "$fallback_only_env" == "plural" ]]; then
+            ANSIBLE_COLLECTIONS_PATHS="$fixture/fallback"
+        fi
+        # shellcheck disable=SC1090
+        source "$launcher"
+        "$func"
+    ) >/dev/null 2>&1
+    rc=$?
+
+    [[ -f "$marker" ]] && galaxy_seen="yes"
+
+    local ok=1
+    [[ "$rc" -eq "$expected_rc" ]] || ok=0
+    [[ "$galaxy_seen" == "$expect_galaxy" ]] || ok=0
+
+    if [[ "$ok" -eq 1 ]]; then
+        printf 'PASS  %s\n' "$name"
+        pass=$((pass + 1))
+    else
+        printf 'FAIL  %s (rc=%s want %s; galaxy=%s want %s)\n' \
+            "$name" "$rc" "$expected_rc" "$galaxy_seen" "$expect_galaxy"
+        fail=$((fail + 1))
+    fi
+
+    rm -rf "$bin" "$fixture"
+    rm -f "$marker"
+    return 0
+}
+
+# assert_settings_case <name> <expected_rc> <expected_resolved: none|file> <file_state: absent|present|unreadable> <env: unset|set|set_missing>
+# Drives resolve_install_settings with the default path pointed at a temporary file, so the
+# case does not depend on whether this machine happens to have an installed FWO.
+assert_settings_case() {
+    local name="$1" expected_rc="$2" expected_resolved="$3" file_state="$4" env_state="$5"
+    local dir settings rc resolved
+
+    # root reads a 000 file regardless of its mode, so that case cannot be expressed here.
+    if [[ "$file_state" == "unreadable" ]] && [[ "$(id -u)" -eq 0 ]]; then
+        printf 'SKIP  %s (running as root)\n' "$name"
+        return 0
+    fi
+
+    dir="$(mktemp -d)"
+    settings="$dir/fwo-install-settings.yml"
+    if [[ "$file_state" != "absent" ]]; then
+        printf 'fwo_endpoint_hostname: fwo.example.com\n' >"$settings"
+        if [[ "$file_state" == "unreadable" ]]; then
+            chmod 000 "$settings"
+        fi
+    fi
+
+    resolved="$(
+        # shellcheck disable=SC1090
+        source "$launcher"
+        install_settings_default_file="$settings"
+        case "$env_state" in
+            set) export FWORCH_LOCAL_SETTINGS="$settings" ;;
+            set_missing) export FWORCH_LOCAL_SETTINGS="$dir/not-there.yml" ;;
+            *) unset FWORCH_LOCAL_SETTINGS ;;
+        esac
+        resolve_install_settings 2>/dev/null || exit $?
+        printf '%s' "$install_settings_file"
+    )"
+    rc=$?
+
+    local ok=1 got="none"
+    [[ -n "$resolved" ]] && got="file"
+    [[ "$rc" -eq "$expected_rc" ]] || ok=0
+    [[ "$got" == "$expected_resolved" ]] || ok=0
+    # A resolved path must be the file itself, never a guess at one.
+    [[ "$got" == "none" || "$resolved" == "$settings" ]] || ok=0
+
+    if [[ "$ok" -eq 1 ]]; then
+        printf 'PASS  %s\n' "$name"
+        pass=$((pass + 1))
+    else
+        printf 'FAIL  %s (rc=%s want %s; resolved=%s want %s)\n' \
+            "$name" "$rc" "$expected_rc" "$got" "$expected_resolved"
+        fail=$((fail + 1))
+    fi
+
+    chmod 700 "$dir" 2>/dev/null || true
+    rm -rf "$dir"
+    return 0
+}
+
+#           name                                                  rc  galaxy core     local   fallback env  func
+assert_case "core >=2.16 passes"                                   0  no     2.19.7   11.4.2  ""       no   require_ansible_core
+assert_case "core <2.16 rejected"                                  1  no     2.14.18  11.4.2  ""       no   require_ansible_core
+assert_case "missing/unknown ansible rejected"                     1  no     none     11.4.2  ""       no   require_ansible_core
+assert_case "correct local manifest: no galaxy call"               0  no     2.19.7   11.4.2  ""       no   ensure_collections
+assert_case "matching fallback manifest: no galaxy call"           0  no     2.19.7   ""      11.4.2   no   ensure_collections
+assert_case "stale local shadows fallback: reinstalls"             0  yes    2.19.7   6.6.2   11.4.2   no   ensure_collections
+assert_case "stale local outside configured path: no galaxy call"  0  no     2.19.7   6.6.2   11.4.2   singular ensure_collections
+assert_case "legacy fallback path variable: no galaxy call"        0  no     2.19.7   ""      11.4.2   plural   ensure_collections
+assert_case "missing manifests: installs"                          0  yes    2.19.7   ""      ""       no   ensure_collections
+
+#                    name                                             rc  resolved  file        env
+assert_settings_case "no settings file: silent, nothing applied"       0  none      absent      unset
+assert_settings_case "settings file at the default path: applied"      0  file      present     unset
+assert_settings_case "unreadable settings file rejected"               1  none      unreadable  unset
+assert_settings_case "FWORCH_LOCAL_SETTINGS honoured"                  0  file      present     set
+assert_settings_case "FWORCH_LOCAL_SETTINGS pointing nowhere fails"    1  none      present     set_missing
+
+# assert_sudoers_case <name> <expected_rc> <visudo_rc> <expected_file: yes|no>
+# Drives install_temporary_sudoers with stubbed sudo and visudo and a temporary sudoers
+# directory: the entry must only be installed after visudo accepted it, with mode 0440,
+# and the cleanup must remove it.
+assert_sudoers_case() {
+    local name="$1" expected_rc="$2" visudo_rc="$3" expected_file="$4"
+    local bin dir rc installed="no" mode="" removed="yes"
+
+    bin="$(mktemp -d)"
+    dir="$(mktemp -d)"
+    printf '#!/usr/bin/env bash\nexit %s\n' "$visudo_rc" >"$bin/visudo"
+    # runs the command without privileges, dropping the root ownership that needs them
+    cat >"$bin/sudo" <<'STUB'
+#!/usr/bin/env bash
+args=()
+while [[ $# -gt 0 ]]; do
+    if [[ "$1" == "-o" || "$1" == "-g" ]]; then shift 2; continue; fi
+    args+=("$1"); shift
+done
+exec "${args[@]}"
+STUB
+    chmod +x "$bin/visudo" "$bin/sudo"
+
+    (
+        PATH="$bin:$PATH"
+        # shellcheck disable=SC1090
+        source "$launcher"
+        trap - EXIT
+        sudoers_dir="$dir"
+        install_temporary_sudoers
+        rc=$?
+        if compgen -G "$dir/fworch-ansible-*" >/dev/null; then
+            printf 'installed %s\n' "$(stat -c '%a' "$dir"/fworch-ansible-*)"
+        fi
+        cleanup
+        if compgen -G "$dir/fworch-ansible-*" >/dev/null; then
+            printf 'left\n'
+        fi
+        exit "$rc"
+    ) >"$dir.out" 2>/dev/null
+    rc=$?
+
+    grep -q '^installed' "$dir.out" && installed="yes"
+    mode="$(sed -n 's/^installed //p' "$dir.out")"
+    grep -q '^left' "$dir.out" && removed="no"
+
+    local ok=1
+    [[ "$rc" -eq "$expected_rc" ]] || ok=0
+    [[ "$installed" == "$expected_file" ]] || ok=0
+    [[ "$installed" == "no" || "$mode" == "440" ]] || ok=0
+    [[ "$removed" == "yes" ]] || ok=0
+
+    if [[ "$ok" -eq 1 ]]; then
+        printf 'PASS  %s\n' "$name"
+        pass=$((pass + 1))
+    else
+        printf 'FAIL  %s (rc=%s want %s; installed=%s want %s; mode=%s; removed=%s)\n' \
+            "$name" "$rc" "$expected_rc" "$installed" "$expected_file" "$mode" "$removed"
+        fail=$((fail + 1))
+    fi
+
+    rm -rf "$bin" "$dir" "$dir.out"
+    return 0
+}
+
+assert_sudoers_case "sudoers entry is installed with mode 0440 and removed again" 0 0 yes
+assert_sudoers_case "sudoers entry rejected by visudo is never installed"        1 1 no
+
+printf '\n%d passed, %d failed\n' "$pass" "$fail"
+[[ "$fail" -eq 0 ]]

@@ -8,6 +8,32 @@ namespace FWO.Test
     public class ApproverAllowedChangesConfigTest
     {
         [Test]
+        public void Catalog_OffersNoObjectReferenceFieldsForObjectTasks()
+        {
+            List<string> createFields = ApproverAllowedChangesCatalog.TaskTypeFields[WfTaskType.object_create].ConvertAll(field => field.Key);
+            List<string> modifyFields = ApproverAllowedChangesCatalog.TaskTypeFields[WfTaskType.object_modify].ConvertAll(field => field.Key);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(createFields, Does.Contain(WorkflowEditableFieldKeys.Title));
+                Assert.That(createFields, Does.Contain(WorkflowEditableFieldKeys.Management));
+                Assert.That(createFields, Does.Not.Contain(WorkflowEditableFieldKeys.Name));
+                Assert.That(modifyFields, Does.Contain(WorkflowEditableFieldKeys.Reason));
+                Assert.That(modifyFields, Does.Not.Contain(WorkflowEditableFieldKeys.Management));
+                Assert.That(modifyFields, Does.Not.Contain(WorkflowEditableFieldKeys.Name));
+            });
+        }
+
+        [Test]
+        public void Catalog_OffersOwnerForAccessTasks()
+        {
+            List<string> accessFields = ApproverAllowedChangesCatalog.TaskTypeFields[WfTaskType.access]
+                .ConvertAll(field => field.Key);
+
+            Assert.That(accessFields, Does.Contain(WorkflowEditableFieldKeys.Owner));
+        }
+
+        [Test]
         public void Parse_ReturnsDefaults_WhenConfigIsEmpty()
         {
             ApproverAllowedChangesConfig config = ApproverAllowedChangesConfig.Parse("");
@@ -67,6 +93,7 @@ namespace FWO.Test
         {
             ApproverAllowedChangesConfig config = new();
             config.SetTaskField(WfTaskType.access, WorkflowEditableFieldKeys.Services, true);
+            config.SetTaskField(WfTaskType.access, WorkflowEditableFieldKeys.Owner, true);
             ApproverAllowedChangesAccess.TaskFieldEditContext approvalContext = new()
             {
                 IsApprovalPhase = true,
@@ -85,6 +112,7 @@ namespace FWO.Test
             };
 
             Assert.That(ApproverAllowedChangesAccess.CanEditTaskField(config, approvalContext, WorkflowEditableFieldKeys.Services), Is.True);
+            Assert.That(ApproverAllowedChangesAccess.CanEditTaskField(config, approvalContext, WorkflowEditableFieldKeys.Owner), Is.True);
             Assert.That(ApproverAllowedChangesAccess.CanEditTaskField(config, noApproveContext, WorkflowEditableFieldKeys.Services), Is.False);
             Assert.That(ApproverAllowedChangesAccess.CanEditTaskField(config, approvalContext, WorkflowEditableFieldKeys.Source), Is.False);
             Assert.That(ApproverAllowedChangesAccess.CanEditTaskField(config, planningContext, WorkflowEditableFieldKeys.Services), Is.False);

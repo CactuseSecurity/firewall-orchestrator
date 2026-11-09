@@ -29,8 +29,15 @@ ALTER TABLE owner_network ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_is_host CHECK (is_single_ip(ip));
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_end_is_host CHECK (is_single_ip(ip_end));
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_unique UNIQUE (owner_id, ip, ip_end, import_source);
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_start_is_host CHECK (is_single_ip(ip_start));
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_end_is_host CHECK (is_single_ip(ip_end));
+-- IPv4 addresses sort before IPv6 ones, so ip_start <= ip_end alone still admits a range which starts
+-- in one address family and ends in the other
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_same_family CHECK (family(ip_start) = family(ip_end));
 ALTER TABLE request.reqelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 ALTER TABLE request.implelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
+ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_rule_position_object
+    CHECK (rule_position IS NULL OR jsonb_typeof(rule_position) = 'object');
 -- Alter Table "rule" add Constraint "rule_altkey" UNIQUE ("dev_id","rule_uid","rule_create",xlate_rule);
 Alter Table "rule" ADD Constraint "rule_unique_mgm_id_rule_uid_rule_create_xlate_rule" UNIQUE ("mgm_id", "rule_uid","rule_create","xlate_rule");
 Alter table "rulebase" add CONSTRAINT rulebase_uid_mgm_id_removed_key UNIQUE ("mgm_id", "uid", "removed");
@@ -45,16 +52,22 @@ Alter table "rulebase_link" add CONSTRAINT unique_rulebase_link
 Alter Table firewall."nw_service" add Constraint "svc_altkey" UNIQUE ("mgm_id","svc_uid","svc_create");
 Alter Table "stm_dev_typ" add Constraint "Alter_Key1" UNIQUE ("dev_typ_name","dev_typ_version");
 Alter Table firewall."nw_user" add Constraint "usr_altkey" UNIQUE ("mgm_id","user_name","user_create");
+-- the servers of an ldap connection are replicas of one directory, tried in order; at least one is required
+Alter Table "ldap_connection" add Constraint "ldap_connection_server_not_empty" CHECK (cardinality("ldap_server") > 0 AND array_position("ldap_server", NULL) IS NULL AND array_position("ldap_server", '') IS NULL);
+-- a dn is unique only inside its directory, so a local user is identified by directory and dn (SEC-11)
+Alter Table "uiuser" add Constraint "uiuser_ldap_connection_id_uuid_key" UNIQUE ("ldap_connection_id","uuid");
+-- a dn can be handed to another person, so the local user is bound to the immutable object id of its directory entry (GHSA-695m-f6mv-9g72)
+Alter Table "uiuser" add Constraint "uiuser_ldap_connection_id_directory_object_id_key" UNIQUE ("ldap_connection_id","directory_object_id");
 
 CREATE UNIQUE INDEX if not exists "zone_mgm_id_zone_name_removed_is_null_unique" ON zone (mgm_id, zone_name) WHERE removed IS NULL;
 
 create unique index if not exists only_one_future_recert_per_owner_per_rule on recertification(owner_id,rule_metadata_id,recert_date)
     where recert_date IS NULL;
 
---- compliance
+--- network_zone
 
 CREATE EXTENSION IF NOT EXISTS btree_gist;
-ALTER TABLE compliance.ip_range ADD CONSTRAINT "exclude_overlapping_ip_ranges"
+ALTER TABLE network_zone.ip_range ADD CONSTRAINT "exclude_overlapping_ip_ranges"
 EXCLUDE USING gist (
     network_zone_id WITH =,
     numrange(ip_range_start - '0.0.0.0'::inet, ip_range_end - '0.0.0.0'::inet, '[]') WITH &&

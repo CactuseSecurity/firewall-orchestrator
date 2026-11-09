@@ -2,10 +2,16 @@ mutation addSelectedConnection(
   $appId: Int!
   $connectionId: Int!
   ) {
-  insert_modelling_selected_connections(objects: {
-    app_id: $appId
-    connection_id: $connectionId
-  }) {
+  insert_modelling_selected_connections(
+    objects: {
+      app_id: $appId
+      connection_id: $connectionId
+    }
+    on_conflict: {
+      constraint: selected_connections_pkey
+      update_columns: []
+    }
+  ) {
     returning {
       insertedId: connection_id
     }

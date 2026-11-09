@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api.Data;
@@ -147,33 +148,51 @@ namespace FWO.Middleware.Server
         /// <param name="user">The authenticated user whose local UI context should be synchronized.</param>
         /// <param name="updateLastLogin">True to update the persisted last-login timestamp.</param>
         /// <param name="createIfMissing">True to create the user in the local database if no record exists yet.</param>
+        /// <param name="bindDirectoryObject">True to bind a local user without directory object id to the one of the user, see <see cref="UiUserDirectoryObjectBinding"/>.
+        /// Only a password login may bind.</param>
         /// <returns>The given user enriched with local database id, password-change flag, and ownership information.</returns>
-        public static async Task<UiUser> SynchronizeUiUserContext(ApiConnection apiConnection, UiUser user, bool updateLastLogin = true, bool createIfMissing = true)
+        /// <exception cref="InvalidOperationException">The user has no LDAP connection, the workflow visibility groups could not be determined, or a new local user could not be added.</exception>
+        /// <exception cref="System.Security.Authentication.AuthenticationException">The local user of the dn is bound to another directory entry.</exception>
+        /// <exception cref="Exception">Rethrown unchanged when the API could not be reached or the local user could not be looked up.</exception>
+        public static async Task<UiUser> SynchronizeUiUserContext(ApiConnection apiConnection, UiUser user, bool updateLastLogin = true, bool createIfMissing = true,
+            bool bindDirectoryObject = false)
         {
-            bool userSetInDb = false;
+            // A dn is unique only inside its directory: the same dn in two LDAP connections belongs to
+            // two different subjects, so the local user must never be resolved by the dn alone (SEC-11).
+            int ldapConnectionId = user.LdapConnection?.Id ?? 0;
+            if (ldapConnectionId <= 0)
+            {
+                throw new InvalidOperationException($"User {user.Name} with dn {user.Dn} has no LDAP connection, so its local user cannot be determined.");
+            }
+
+            // The local user is resolved outside the error handling below: a failed lookup must refuse the request
+            // instead of continuing as if the user were new, which would hand out the local user stored for the dn
+            // without the directory object check (GHSA-695m-f6mv-9g72).
+            UiUser? existingUser = await UiUserDirectoryObjectBinding.ResolveLocalUser(apiConnection, user, ldapConnectionId, bindDirectoryObject);
+            bool userSetInDb = existingUser != null;
+            if (existingUser != null)
+            {
+                user.DbId = existingUser.DbId;
+                user.PasswordMustBeChanged = updateLastLogin
+                    ? await UpdateLastLogin(apiConnection, user.DbId)
+                    : existingUser.PasswordMustBeChanged;
+            }
+            else
+            {
+                Log.WriteDebug("User not found", $"Couldn't find {user.Name} in internal database");
+            }
+
             bool workflowVisibilityGroupsLoaded = false;
             bool workflowVisibilityGroupsAttempted = false;
             try
             {
-                UiUser[] existingUsers = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn });
-
-                if (existingUsers.Length > 0)
-                {
-                    user.DbId = existingUsers[0].DbId;
-                    user.PasswordMustBeChanged = updateLastLogin
-                        ? await UpdateLastLogin(apiConnection, user.DbId)
-                        : existingUsers[0].PasswordMustBeChanged;
-                    userSetInDb = true;
-                }
-                else
-                {
-                    Log.WriteDebug("User not found", $"Couldn't find {user.Name} in internal database");
-                }
                 await GetOwnershipsFromOwnerLdap(apiConnection, user);
                 workflowVisibilityGroupsAttempted = true;
                 workflowVisibilityGroupsLoaded = await GetWorkflowVisibilityGroupIds(apiConnection, user);
             }
-            catch (Exception exeption)
+            // An unreachable API must stay recognizable as such, so that callers can answer
+            // "retry" instead of reporting the request itself as failed.
+            catch (Exception exeption) when (!ApiReachability.IndicatesUnreachableApi(exeption))
             {
                 Log.WriteError("Get User Error", $"Error while trying to find {user.Name} in database.", exeption);
             }
@@ -191,7 +210,13 @@ namespace FWO.Middleware.Server
                 }
 
                 Log.WriteInfo("New User", $"User {user.Name} first time log in - adding to internal database.");
+                user.DbId = 0;
                 await UpsertUiUser(apiConnection, user, true);
+                if (user.DbId <= 0)
+                {
+                    // without a local user the token would carry user id 0, the system user holding the global settings
+                    throw new InvalidOperationException($"User {user.Name} with dn {user.Dn} could not be added to the local database.");
+                }
             }
             return user;
         }
@@ -252,7 +277,7 @@ namespace FWO.Middleware.Server
                 user.Ownerships = user.Ownerships.Distinct().ToList();
                 user.RecertOwnerships = user.RecertOwnerships.Distinct().ToList();
             }
-            catch (Exception exeption)
+            catch (Exception exeption) when (!ApiReachability.IndicatesUnreachableApi(exeption))
             {
                 Log.WriteError("Get ownerships", $"Ownerships could not be detemined for User {user.Name}.", exeption);
             }
@@ -261,6 +286,10 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Resolves workflow visibility group memberships for the given user from the database.
         /// </summary>
+        /// <param name="apiConn">API connection used to read the workflow visibility groups.</param>
+        /// <param name="user">User whose workflow visibility group ids are resolved.</param>
+        /// <returns>True if the visibility groups could be determined, otherwise false.</returns>
+        /// <exception cref="Exception">Rethrown unchanged when the API could not be reached.</exception>
         public static async Task<bool> GetWorkflowVisibilityGroupIds(ApiConnection apiConn, UiUser user)
         {
             try
@@ -295,7 +324,7 @@ namespace FWO.Middleware.Server
                     $"User {user.Name} resolved workflow visibility group ids: [{string.Join(", ", user.WorkflowVisibilityGroupIds)}]");
                 return true;
             }
-            catch (Exception exeption)
+            catch (Exception exeption) when (!ApiReachability.IndicatesUnreachableApi(exeption))
             {
                 Log.WriteError("Get workflow visibility groups", $"Workflow visibility groups could not be determined for User {user.Name}.", exeption);
                 return false;
@@ -305,11 +334,20 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// add user to uiuser - either with or without current login time
         /// </summary>
+        /// <remarks>
+        /// Without a login (e.g. app data import, workflow recipients) a local user bound to another directory entry is
+        /// left untouched: the dn was handed to another person, whose data must not overwrite it (GHSA-695m-f6mv-9g72).
+        /// The user's DbId then stays unset.
+        /// </remarks>
         /// <returns>void</returns> 
         public static async Task UpsertUiUser(ApiConnection apiConn, UiUser user, bool loginHappened = false)
         {
             try
             {
+                if (!loginHappened && await IsBoundToAnotherDirectoryEntry(apiConn, user))
+                {
+                    return;
+                }
                 // add new user to uiuser
                 if (loginHappened)
                 {
@@ -323,6 +361,7 @@ namespace FWO.Middleware.Server
                         tenant = user.Tenant != null ? user.Tenant.Id : (int?)null,
                         passwordMustBeChanged = false,
                         ldapConnectionId = user.LdapConnection.Id,
+                        directoryObjectId = user.DirectoryObjectId,
                         loginTime = DateTime.UtcNow
                     };
                     ReturnId[]? returnIds = (await apiConn.SendQueryAsync<ReturnIdWrapper>(AuthQueries.upsertUiUser, VariablesWithLogin)).ReturnIds;
@@ -342,7 +381,8 @@ namespace FWO.Middleware.Server
                         email = user.Email,
                         tenant = user.Tenant != null ? user.Tenant.Id : (int?)null,
                         passwordMustBeChanged = false,
-                        ldapConnectionId = user.LdapConnection.Id
+                        ldapConnectionId = user.LdapConnection.Id,
+                        directoryObjectId = user.DirectoryObjectId
                     };
                     ReturnId[]? returnIds = (await apiConn.SendQueryAsync<ReturnIdWrapper>(AuthQueries.upsertUiUser, VariablesWithoutLogin)).ReturnIds;
                     if (returnIds != null)
@@ -351,10 +391,23 @@ namespace FWO.Middleware.Server
                     }
                 }
             }
-            catch (Exception exeption)
+            catch (Exception exeption) when (!ApiReachability.IndicatesUnreachableApi(exeption))
             {
                 Log.WriteError("Add User Error", $"User {user.Name} could not be added to database.", exeption);
             }
+        }
+
+        private static async Task<bool> IsBoundToAnotherDirectoryEntry(ApiConnection apiConn, UiUser user)
+        {
+            UiUser? storedUser = (await apiConn.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn,
+                new { dn = user.Dn, ldapConnectionId = user.LdapConnection.Id })).FirstOrDefault();
+            if (storedUser?.DirectoryObjectId == null || string.Equals(storedUser.DirectoryObjectId, user.DirectoryObjectId, StringComparison.Ordinal))
+            {
+                return false;
+            }
+            Log.WriteWarning("Add User", $"Local user id={storedUser.DbId} with dn {user.Dn} is bound to directory object {storedUser.DirectoryObjectId}, " +
+                $"but the dn now names {user.DirectoryObjectId ?? "an entry without object id"}. The local user is not updated.");
+            return true;
         }
 
         private static async Task<bool> UpdateLastLogin(ApiConnection apiConn, int id)
@@ -368,7 +421,7 @@ namespace FWO.Middleware.Server
                 };
                 return (await apiConn.SendQueryAsync<ReturnId>(AuthQueries.updateUserLastLogin, Variables)).PasswordMustBeChanged;
             }
-            catch (Exception exeption)
+            catch (Exception exeption) when (!ApiReachability.IndicatesUnreachableApi(exeption))
             {
                 Log.WriteError("Update User Error", $"User {id} could not be updated in database.", exeption);
             }
@@ -378,13 +431,16 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Update the passwordMustBeChanged flag.
         /// </summary>
-        public static async Task UpdateUserPasswordChanged(ApiConnection apiConn, string userDn, bool passwordMustBeChanged = false)
+        /// <param name="apiConn">API connection used to update the local user.</param>
+        /// <param name="userId">Local database id of the user. The dn is not used, as it does not identify a user across LDAP connections.</param>
+        /// <param name="passwordMustBeChanged">New value of the flag.</param>
+        public static async Task UpdateUserPasswordChanged(ApiConnection apiConn, int userId, bool passwordMustBeChanged = false)
         {
             try
             {
                 var Variables = new
                 {
-                    dn = userDn,
+                    id = userId,
                     passwordMustBeChanged = passwordMustBeChanged,
                     changeTime = DateTime.UtcNow
                 };
@@ -392,7 +448,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exeption)
             {
-                Log.WriteError("Update User Error", $"User {userDn} could not be updated in database.", exeption);
+                Log.WriteError("Update User Error", $"User {userId} could not be updated in database.", exeption);
             }
         }
     }

@@ -1,5 +1,7 @@
+using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Data.Flow;
+using FWO.Data.Middleware;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using FWO.Middleware.Server.Controllers;
@@ -126,7 +128,8 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetServiceObjectId_RejectsMissingProtocol()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
         ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest
         {
@@ -139,10 +142,108 @@ internal class FlowControllerValidationTest
         Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'protocol'"));
     }
 
+    [TestCase("ipStart")]
+    [TestCase("ipEnd")]
+    public async Task GetAddressObjectId_RejectsRemovedLegacyAddressFields(string legacyField)
+    {
+        GetAddressObjectIdRequest request = JsonSerializer.Deserialize<GetAddressObjectIdRequest>(
+            $$"""{"{{legacyField}}":"10.0.0.1"}""")!;
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
+
+        ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(request);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("ipHost"));
+        });
+    }
+
+    [Test]
+    public async Task FlowController_ResolveGroupMembers_AllowsEmptyRequest()
+    {
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(null);
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        FlowGroupResolutionResult response = (FlowGroupResolutionResult)((OkObjectResult)result.Result!).Value!;
+        Assert.That(response.NetworkGroups, Is.Empty);
+        Assert.That(response.ServiceGroups, Is.Empty);
+    }
+
+    [Test]
+    public async Task FlowController_ResolveGroupMembers_AllowsKnownSelectors()
+    {
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(new ResolveFlowGroupsRequest
+        {
+            NetworkGroupIds = [10],
+            NetworkGroupNames = ["network-group"],
+            ServiceGroupIds = [20],
+            ServiceGroupNames = ["service-group"]
+        });
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+    }
+
+    [Test]
+    public async Task FlowController_ResolveGroupMembers_RejectsBlankGroupNames()
+    {
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(new ResolveFlowGroupsRequest
+        {
+            NetworkGroupNames = [" "]
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("must not be empty"));
+    }
+
+    [Test]
+    public async Task FlowController_ResolveGroupMembers_RejectsUnknownFields()
+    {
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
+        ResolveFlowGroupsRequest request = new()
+        {
+            AdditionalData = new Dictionary<string, JsonElement>
+            {
+                ["unexpected"] = JsonDocument.Parse("1").RootElement
+            }
+        };
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(request);
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+    }
+
+    [Test]
+    public async Task FlowController_ResolveGroupMembers_RejectsTooManySelectors()
+    {
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
+        ResolveFlowGroupsRequest request = new()
+        {
+            NetworkGroupIds = Enumerable.Range(1, 101).Select(id => (long)id).ToList()
+        };
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(request);
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+    }
+
     [Test]
     public async Task FlowControllerValidation_GetServiceObjectId_RejectsInvalidPortRange()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
         ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest
         {
@@ -156,39 +257,117 @@ internal class FlowControllerValidationTest
     }
 
     [Test]
-    public async Task FlowControllerValidation_GetAddressObjectId_RejectsMissingIpBounds()
+    public async Task FlowControllerValidation_GetAddressObjectId_RejectsMissingAddressRepresentation()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
-        ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
-        {
-            IpStart = string.Empty,
-            IpEnd = "10.0.0.2"
-        });
+        ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest());
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'ipStart'"));
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("exactly one"));
     }
 
     [Test]
     public async Task FlowControllerValidation_GetAddressObjectId_RejectsInvalidIpRange()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
         ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
         {
-            IpStart = "banana",
-            IpEnd = "10.0.0.2"
+            IpRange = ["banana", "10.0.0.2"]
         });
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("invalid 'ipStart'"));
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("invalid 'ipRange[0]'"));
+    }
+
+    [Test]
+    public async Task FlowControllerValidation_GetAddressObjectId_RejectsBroaderMaskedIpRange()
+    {
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
+
+        ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
+        {
+            IpRange = ["10.0.0.1/24", "10.0.0.2"]
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("invalid 'ipRange[0]'"));
+    }
+
+    [Test]
+    public async Task FlowControllerValidation_GetAddressObjectId_RejectsNetworkTogetherWithRangeBound()
+    {
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
+
+        ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
+        {
+            IpNetwork = "10.0.0.0/24",
+            IpHost = "10.0.0.1"
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("exactly one"));
+    }
+
+    [TestCase("not-an-ip")]
+    public async Task FlowControllerValidation_GetAddressObjectId_RejectsInvalidNetwork(string ipNetwork)
+    {
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
+
+        ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
+        {
+            IpNetwork = ipNetwork
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+    }
+
+    [TestCase("host", "192.0.2.10", "", "192.0.2.10", "192.0.2.10")]
+    [TestCase("network", "192.0.2.10/24", "", "192.0.2.0", "192.0.2.255")]
+    [TestCase("network", "2001:db8::/126", "", "2001:db8::", "2001:db8::3")]
+    [TestCase("range", "192.0.2.10", "192.0.2.20", "192.0.2.10", "192.0.2.20")]
+    public async Task GetAddressObjectId_QueriesNormalizedBoundsAndReturnsIdentifier(
+        string representation, string firstValue, string secondValue, string expectedStart, string expectedEnd)
+    {
+        AddressObjectLookupApiConnection api = new();
+        using FlowCatalogService service = new(api, new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
+        GetAddressObjectIdRequest request = representation switch
+        {
+            "host" => new() { IpHost = firstValue },
+            "network" => new() { IpNetwork = firstValue },
+            _ => new() { IpRange = [firstValue, secondValue] }
+        };
+
+        for (int pass = 0; pass < 2; pass++)
+        {
+            ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(request);
+            Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+            AddressObjectIdResponse response = (AddressObjectIdResponse)((OkObjectResult)result.Result!).Value!;
+            JsonElement where = api.Variables.GetProperty("where");
+            Assert.Multiple(() =>
+            {
+                Assert.That(where.GetProperty("ip_start").GetProperty("_eq").GetString(), Is.EqualTo(expectedStart));
+                Assert.That(where.GetProperty("ip_end").GetProperty("_eq").GetString(), Is.EqualTo(expectedEnd));
+                Assert.That(response.Id, Is.EqualTo(42));
+                Assert.That(response.Name, Is.EqualTo("address-object"));
+                Assert.That(request.NormalizedIpStart, Is.EqualTo(expectedStart));
+                Assert.That(request.NormalizedIpEnd, Is.EqualTo(expectedEnd));
+            });
+        }
     }
 
     [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_RejectsInvalidTimeRange()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {
@@ -205,7 +384,8 @@ internal class FlowControllerValidationTest
     [TestCase(true)]
     public async Task FlowControllerValidation_GetTimeObjectId_RejectsMissingBounds(bool includeFilter)
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
         GetTimeObjectIdRequest request = new();
         if (includeFilter)
@@ -225,7 +405,7 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_AllowsMissingEndTime()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new TimeObjectLookupApiConnection
+        using FlowCatalogService service = new(new TimeObjectLookupApiConnection
         {
             TimeObjects =
             [
@@ -235,7 +415,8 @@ internal class FlowControllerValidationTest
                     Name = "BusinessHours"
                 }
             ]
-        }));
+        }, new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {
@@ -255,7 +436,7 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_AllowsMissingStartTime()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new TimeObjectLookupApiConnection
+        using FlowCatalogService service = new(new TimeObjectLookupApiConnection
         {
             TimeObjects =
             [
@@ -265,7 +446,8 @@ internal class FlowControllerValidationTest
                     Name = "DeadlineOnly"
                 }
             ]
-        }));
+        }, new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {
@@ -285,7 +467,7 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_ReturnsMatchingResponse()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new TimeObjectLookupApiConnection
+        using FlowCatalogService service = new(new TimeObjectLookupApiConnection
         {
             TimeObjects =
             [
@@ -295,7 +477,8 @@ internal class FlowControllerValidationTest
                     Name = "BusinessHours"
                 }
             ]
-        }));
+        }, new GlobalConfig());
+        FlowCatalogController controller = new(service, new SimulatedGlobalConfig());
 
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {
@@ -330,6 +513,58 @@ internal class FlowControllerValidationTest
             Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
             Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("GetTimeObjectId"));
             Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'visibleInRequest'"));
+        });
+    }
+
+    [Test]
+    public void FlowControllerValidation_GetAddressGroups_AcceptsOptionContainer()
+    {
+        GetAddressGroupsRequest request = JsonSerializer.Deserialize<GetAddressGroupsRequest>(
+            """{"filter":{"visibleInRequest":true},"option":{"separateZoneGroups":true}}""")!;
+        RequestRootValidationSchema rootSchema = new(
+            "GetAddressGroups",
+            [
+                new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
+                new RequestKeyDefinition("option", "Optional option container controlling the response shape.")
+            ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(RequestRootValidator.TryValidate(request, rootSchema, out var rootError), Is.True);
+            Assert.That(rootError, Is.Null);
+            Assert.That(AddressGroupsOptionValidator.TryValidate(request.Option, out var optionError), Is.True);
+            Assert.That(optionError, Is.Null);
+            Assert.That(request.Option!.SeparateZoneGroups, Is.True);
+        });
+    }
+
+    [Test]
+    public void FlowControllerValidation_GetAddressGroups_RejectsUnknownOptionKeys()
+    {
+        GetAddressGroupsRequest request = JsonSerializer.Deserialize<GetAddressGroupsRequest>(
+            """{"option":{"separateZoneGroups":true,"typo":1}}""")!;
+
+        bool valid = AddressGroupsOptionValidator.TryValidate(request.Option, out var error);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'option'"));
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("separateZoneGroups"));
+        });
+    }
+
+    [Test]
+    public void FlowControllerValidation_GetAddressGroups_AcceptsMissingOptionContainer()
+    {
+        GetAddressGroupsRequest request = JsonSerializer.Deserialize<GetAddressGroupsRequest>("{}")!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(AddressGroupsOptionValidator.TryValidate(request.Option, out var error), Is.True);
+            Assert.That(error, Is.Null);
+            Assert.That(AddressGroupsOptionValidator.AllowedKeys, Has.Count.EqualTo(1));
         });
     }
 
@@ -391,13 +626,14 @@ internal class FlowControllerValidationTest
                 "GetAddressObjectId",
                 [
                     new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-                    new RequestKeyDefinition("ipStart", "Start IP address for the address object lookup."),
-                    new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup.")
+                    new RequestKeyDefinition("ipHost", "One maskless IPv4 or IPv6 address."),
+                    new RequestKeyDefinition("ipNetwork", "One canonical IPv4 or IPv6 CIDR network."),
+                    new RequestKeyDefinition("ipRange", "Two maskless addresses defining an inclusive range.")
                 ]),
             RequestFilterValidationSchema.ForVisibleInRequest("GetAddressObjectId"),
-            """{"filter":{"visibleInRequest":false},"ipStart":"10.0.0.1","ipEnd":"10.0.0.2"}""",
-            """{"filter":{"visibleInRequest":false},"ipStart":"10.0.0.1","ipEnd":"10.0.0.2","typo":1}""",
-            "ipStart"));
+            """{"filter":{"visibleInRequest":false},"ipRange":["10.0.0.1","10.0.0.2"]}""",
+            """{"filter":{"visibleInRequest":false},"ipRange":["10.0.0.1","10.0.0.2"],"typo":1}""",
+            "ipRange"));
 
         yield return new TestCaseData(new LookupRequestCase(
             "GetTimeObjectId",
@@ -434,6 +670,15 @@ internal class FlowControllerValidationTest
     {
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
+            if (typeof(QueryResponseType) == typeof(List<FlowNwGroup>))
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<FlowNwGroup>());
+            }
+            if (typeof(QueryResponseType) == typeof(List<FlowSvcGroup>))
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<FlowSvcGroup>());
+            }
+
             throw new InvalidOperationException("Validation should return before the API is queried.");
         }
 
@@ -469,6 +714,25 @@ internal class FlowControllerValidationTest
         public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
         {
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class AddressObjectLookupApiConnection : SimulatedApiConnection
+    {
+        public JsonElement Variables { get; private set; }
+
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+        {
+            Variables = JsonSerializer.SerializeToElement(variables);
+            if (typeof(QueryResponseType) == typeof(List<FlowNwObject>))
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<FlowNwObject>
+                {
+                    new() { Id = 42, Name = "address-object" }
+                });
+            }
+
+            throw new NotImplementedException($"Unsupported response type {typeof(QueryResponseType).Name}");
         }
     }
 

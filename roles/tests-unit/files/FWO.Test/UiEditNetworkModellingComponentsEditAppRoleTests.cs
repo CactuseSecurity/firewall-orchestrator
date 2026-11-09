@@ -264,5 +264,26 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task EditAppRoleLeftSide_RendersAppServerLibraryWithoutBorder()
+        {
+            await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
+            ModellingAppServer server = CreateServer(1, "srv1", "10.0.0.1/32");
+            ModellingAppRoleHandler handler = CreateAppRoleHandler(
+                new RecordingApiConnection(),
+                userConfig,
+                networkAreaRequired: false,
+                availableAppServers: new List<ModellingAppServer> { server },
+                appRole: new ModellingAppRole());
+            handler.AppServersInArea = new List<ModellingAppServer> { server };
+
+            IRenderedComponent<EditAppRoleLeftSide> component = RenderEditAppRoleLeftSide(context, handler);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("#app-role-library-ordered-draggable-list .draggable-item"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("#app-role-library-ordered-draggable-list .border"), Is.Empty);
+            });
+        }
     }
 }

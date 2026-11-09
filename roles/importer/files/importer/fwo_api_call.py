@@ -168,7 +168,7 @@ class FwoApiCall:
                 "success": success,
                 "changesFound": import_stats.get_total_change_number() > 0,
                 "policyChangesFound": import_stats.get_rule_change_number() > 0,
-                "changeNumber": import_stats.get_rule_change_number(),
+                "changeNumber": import_stats.get_security_relevant_rule_change_number(),
             }
 
             unlock_mutation = FwoApi.get_graphql_code(
@@ -288,10 +288,6 @@ class FwoApiCall:
         mgm_details: ManagementController | None = None,
     ):
         add_alert_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "monitor/addAlert.graphql"])
-        get_alert_query = FwoApi.get_graphql_code(
-            [fwo_const.GRAPHQL_QUERY_PATH + "monitor/getAlertByManagement.graphql"]
-        )
-        ack_alert_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "monitor/updateAlert.graphql"])
 
         query_variables = {"source": source}
 
@@ -325,27 +321,38 @@ class FwoApiCall:
                 return
 
             # Acknowledge older alert for same problem on same management
-            query_variables: dict[str, Any] = {
-                "mgmId": mgm_id,
-                "alertCode": alert_code,
-                "currentAlertId": new_alert_id,
-            }
-            existing_unacknowledged_alerts = self.api.call(get_alert_query, query_variables=query_variables)
-            if "data" not in existing_unacknowledged_alerts or "alert" not in existing_unacknowledged_alerts["data"]:
-                return
-
-            for alert in existing_unacknowledged_alerts["data"]["alert"]:
-                if "alert_id" in alert:
-                    now = datetime.datetime.now().isoformat()
-                    query_variables = {
-                        "userId": 0,
-                        "alertId": alert["alert_id"],
-                        "ackTimeStamp": now,
-                    }
-                    _ = self.api.call(ack_alert_mutation, query_variables=query_variables)
+            self.acknowledge_open_alerts(mgm_id, alert_code, keep_alert_id=new_alert_id)
         except Exception as e:
             FWOLogger.error(f"failed to create alert entry: {json.dumps(query_variables)}; exception: {e!s}")
             raise
+
+    def acknowledge_open_alerts(self, mgm_id: int, alert_code: int, keep_alert_id: int = 0) -> None:
+        """
+        Acknowledge the open alerts of a management with the given code, e.g. once their cause is gone.
+
+        Args:
+            mgm_id: Management the alerts belong to.
+            alert_code: Code of the alerts to acknowledge.
+            keep_alert_id: Alert that stays open, e.g. the one just created; 0 acknowledges all.
+
+        """
+        get_alert_query = FwoApi.get_graphql_code(
+            [fwo_const.GRAPHQL_QUERY_PATH + "monitor/getAlertByManagement.graphql"]
+        )
+        ack_alert_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "monitor/updateAlert.graphql"])
+        query_variables: dict[str, Any] = {"mgmId": mgm_id, "alertCode": alert_code, "currentAlertId": keep_alert_id}
+        open_alerts = self.api.call(get_alert_query, query_variables=query_variables)
+        if "data" not in open_alerts or "alert" not in open_alerts["data"]:
+            return
+
+        for alert in open_alerts["data"]["alert"]:
+            if "alert_id" in alert:
+                ack_variables: dict[str, Any] = {
+                    "userId": 0,
+                    "alertId": alert["alert_id"],
+                    "ackTimeStamp": datetime.datetime.now().isoformat(),
+                }
+                _ = self.api.call(ack_alert_mutation, query_variables=ack_variables)
 
     def _set_alert_build_query_vars(
         self,
@@ -403,6 +410,8 @@ class FwoApiCall:
             + str(import_state.stats.get_total_change_number())
             + ", rule change count: "
             + str(import_state.stats.get_rule_change_number())
+            + ", security-relevant rule change count: "
+            + str(import_state.stats.get_security_relevant_rule_change_number())
             + ", duration: "
             + str(int(time.time()) - import_state.start_time)
             + "s"

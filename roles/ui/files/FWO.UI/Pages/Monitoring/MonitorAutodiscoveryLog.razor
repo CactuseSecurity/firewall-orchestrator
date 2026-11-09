@@ -4,7 +4,7 @@
 @inject UserConfig userConfig
 
 @page "/monitoring/autodiscovery_logs"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 <h3>@(userConfig.GetText("autodiscovery_logs"))</h3>
 @(userConfig.GetText("U7401"))

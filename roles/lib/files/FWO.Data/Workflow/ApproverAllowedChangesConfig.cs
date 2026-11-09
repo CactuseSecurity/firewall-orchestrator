@@ -208,6 +208,7 @@ namespace FWO.Data.Workflow
             [WfTaskType.access] =
             [
                 new(WorkflowEditableFieldKeys.Title),
+                new(WorkflowEditableFieldKeys.Owner),
                 new(WorkflowEditableFieldKeys.Management),
                 new(WorkflowEditableFieldKeys.Gateways),
                 new(WorkflowEditableFieldKeys.RuleAction),
@@ -215,6 +216,7 @@ namespace FWO.Data.Workflow
                 new(WorkflowEditableFieldKeys.ValidFrom),
                 new(WorkflowEditableFieldKeys.ValidTo),
                 new(WorkflowEditableFieldKeys.Reason),
+                new(WorkflowEditableFieldKeys.FreeText),
                 new(WorkflowEditableFieldKeys.Source),
                 new(WorkflowEditableFieldKeys.Destination),
                 new(WorkflowEditableFieldKeys.Services)
@@ -255,6 +257,19 @@ namespace FWO.Data.Workflow
                 new(WorkflowEditableFieldKeys.Title),
                 new(WorkflowEditableFieldKeys.Management),
                 new(WorkflowEditableFieldKeys.Name),
+                new(WorkflowEditableFieldKeys.Reason)
+            ],
+            // the object itself, its name included, is part of the element and stays with the requester
+            [WfTaskType.object_create] =
+            [
+                new(WorkflowEditableFieldKeys.Title),
+                new(WorkflowEditableFieldKeys.Management),
+                new(WorkflowEditableFieldKeys.Reason)
+            ],
+            // no management either: the task references an object of exactly that management
+            [WfTaskType.object_modify] =
+            [
+                new(WorkflowEditableFieldKeys.Title),
                 new(WorkflowEditableFieldKeys.Reason)
             ]
         };

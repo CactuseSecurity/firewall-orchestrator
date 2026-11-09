@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Report.Filter.Exceptions;
 using FWO.Report.Filter.FilterTypes;
 
@@ -83,6 +84,19 @@ namespace FWO.Report.Filter.Ast
             query.QueryVariables[queryVarName] = op == TokenKind.EQ ? $"%{queryVarValue}%" : queryVarValue;
 
             return queryVarName;
+        }
+
+        /// <summary>
+        /// Builds a GraphQL condition for the canonical, protocol-agnostic ANY service.
+        /// </summary>
+        /// <param name="protocolIdField">Name of the protocol ID field in the target service type.</param>
+        /// <param name="portStartField">Name of the start-port field in the target service type.</param>
+        /// <param name="portEndField">Name of the end-port field in the target service type.</param>
+        /// <returns>GraphQL condition matching only canonical ANY services.</returns>
+        protected static string BuildCanonicalAnyServiceFilter(string protocolIdField, string portStartField, string portEndField)
+        {
+            return $"{{ {protocolIdField}: {{ _eq: {GlobalConst.kAnyIpProtocolId} }}, " +
+                $"{portStartField}: {{ _is_null: true }}, {portEndField}: {{ _is_null: true }} }}";
         }
 
         public abstract void ConvertToSemanticType();

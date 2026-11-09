@@ -24,9 +24,11 @@ namespace FWO.Test
                 Assert.That(persistedNotification.NotificationClient, Is.EqualTo(NotificationClient.Report));
                 Assert.That(persistedNotification.Name, Is.EqualTo(notification.Name));
                 Assert.That(persistedNotification.EmailAddressTo, Is.EqualTo(notification.EmailAddressTo));
+                Assert.That(persistedNotification.Logging, Is.EqualTo(notification.Logging));
                 Assert.That(apiConnection.AddCalls[0].Client, Is.EqualTo(NotificationClient.Report.ToString()));
                 Assert.That(apiConnection.AddCalls[0].Name, Is.EqualTo(notification.Name));
                 Assert.That(apiConnection.AddCalls[0].BundleId, Is.EqualTo(notification.BundleId));
+                Assert.That(apiConnection.AddCalls[0].Logging, Is.EqualTo(notification.Logging));
             });
         }
 
@@ -45,9 +47,11 @@ namespace FWO.Test
                 Assert.That(apiConnection.UpdateCalls, Has.Count.EqualTo(1));
                 Assert.That(persistedNotification.Id, Is.EqualTo(17));
                 Assert.That(persistedNotification.EmailSubject, Is.EqualTo("Updated Subject"));
+                Assert.That(persistedNotification.Logging, Is.EqualTo(notification.Logging));
                 Assert.That(apiConnection.UpdateCalls[0].Id, Is.EqualTo(17));
                 Assert.That(apiConnection.UpdateCalls[0].Subject, Is.EqualTo("Updated Subject"));
                 Assert.That(apiConnection.UpdateCalls[0].Layout, Is.EqualTo(notification.Layout.ToString()));
+                Assert.That(apiConnection.UpdateCalls[0].Logging, Is.EqualTo(notification.Logging));
             });
         }
 
@@ -78,7 +82,8 @@ namespace FWO.Test
                 BundleType = BundleType.Attachments,
                 BundleId = "bundle-1",
                 Layout = NotificationLayout.PdfAsAttachment,
-                Deadline = NotificationDeadline.None
+                Deadline = NotificationDeadline.None,
+                Logging = NotificationLoggingMode.SendOnly
             };
         }
 
@@ -139,6 +144,7 @@ namespace FWO.Test
             internal string Subject { get; init; } = "";
             internal string Layout { get; init; } = "";
             internal string? BundleId { get; init; }
+            internal string Logging { get; init; } = "";
 
             internal static NotificationMutationCall From(object? variables)
             {
@@ -149,7 +155,8 @@ namespace FWO.Test
                     Name = ReadString(variables, "name"),
                     Subject = ReadString(variables, "subject"),
                     Layout = ReadString(variables, "layout"),
-                    BundleId = ReadNullableString(variables, "bundleId")
+                    BundleId = ReadNullableString(variables, "bundleId"),
+                    Logging = ReadString(variables, "logging")
                 };
             }
 

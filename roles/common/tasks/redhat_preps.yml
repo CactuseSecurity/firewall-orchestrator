@@ -67,11 +67,30 @@
             dest: "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
           environment: "{{ proxy_env }}"
 
+        - name: require a pinned EPEL signing key fingerprint
+          assert:
+            that: epel_signing_key_fingerprints[redhat_major_version | string] is defined
+            fail_msg: >-
+              No EPEL signing key fingerprint is pinned for Red Hat {{ redhat_major_version }}: add it to
+              epel_signing_key_fingerprints in inventory/group_vars/all.yml.
+
         - name: import EPEL GPG key
           rpm_key:
             state: present
             key: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ redhat_major_version }}"
+            fingerprint: "{{ epel_signing_key_fingerprints[redhat_major_version | string] }}"
           environment: "{{ proxy_env }}"
+
+        # the package runs scripts as root on installation, so it is only installed with a valid signature
+        - name: verify the signature of the EPEL release package
+          command:
+            argv:
+              - rpmkeys
+              - --checksig
+              - "/tmp/epel-release-latest-{{ redhat_major_version }}.noarch.rpm"
+          register: epel_release_signature
+          changed_when: false
+          failed_when: epel_release_signature.rc != 0 or 'signatures OK' not in epel_release_signature.stdout
 
         - name: add EPEL repos
           yum:

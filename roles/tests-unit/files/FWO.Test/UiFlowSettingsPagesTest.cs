@@ -1,11 +1,14 @@
+using AngleSharp.Dom;
 using Bunit;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Ui.Pages.Settings;
+using FWO.Ui.Shared;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -23,12 +26,6 @@ namespace FWO.Test
         private static readonly long[] kUnmappedNetworkCandidateIds = [13, 14];
         private static readonly string[] kUnmappedNetworkCandidateTypes = ["host", "host"];
 
-        [SetUp]
-        public void SetUp()
-        {
-            SeedTranslations();
-        }
-
         [Test]
         public async Task FlowNetworkGroupsPage_RendersWithoutErrors()
         {
@@ -37,6 +34,113 @@ namespace FWO.Test
             IRenderedComponent<SettingsFlowNetworkGroups> component = RenderPage<SettingsFlowNetworkGroups>(context);
 
             component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("Flow Network Group")));
+        }
+
+        [Test]
+        public async Task FlowNetworkGroupsPage_AuditorCanViewButNotChange()
+        {
+            await using BunitContext context = CreateContext(out _, Roles.Auditor);
+
+            IRenderedComponent<SettingsFlowNetworkGroups> component = RenderPage<SettingsFlowNetworkGroups>(context);
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Flow Network Group"));
+                AssertButtonsDisabled(component, kBulkVisibilityButtonKeys);
+                Assert.That(component.FindComponent<FlowDuplicateResolver<NetworkObject>>().Instance.CanResolve, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task FlowNetworkGroupsPage_AdminCanChange()
+        {
+            await using BunitContext context = CreateContext();
+
+            IRenderedComponent<SettingsFlowNetworkGroups> component = RenderPage<SettingsFlowNetworkGroups>(context);
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Flow Network Group"));
+                List<IElement> bulkButtons = FindButtons(component, kBulkVisibilityButtonKeys);
+                Assert.That(bulkButtons, Has.Count.GreaterThanOrEqualTo(kBulkVisibilityButtonKeys.Count));
+                Assert.That(bulkButtons.All(button => !button.HasAttribute("disabled")), Is.True);
+                Assert.That(component.FindComponent<FlowDuplicateResolver<NetworkObject>>().Instance.CanResolve, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task FlowNetworkObjectsPage_AuditorLoadsCatalogButCannotChange()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _, Roles.Auditor);
+
+            IRenderedComponent<SettingsFlowNetworkObjects> component = RenderPage<SettingsFlowNetworkObjects>(context);
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("192.0.2.10-192.0.2.20"));
+                AssertButtonsDisabled(component, kBulkVisibilityButtonKeys);
+                Assert.That(component.FindComponent<FlowDuplicateResolver<NetworkObject>>().Instance.CanResolve, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task FlowGeneralPage_AuditorLoadsSettingsButCannotChange()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out FlowNetworkObjectsNamingApiConn apiConnection, Roles.Auditor);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowSelectableManagements));
+                AssertButtonsDisabled(component, kGeneralWriteButtonKeys);
+            });
+        }
+
+        [Test]
+        public async Task FlowServiceObjectsAndGroupsAndTimeObjectsPages_AuditorCannotResolveDuplicates()
+        {
+            await using BunitContext context = CreateContext(out _, Roles.Auditor);
+
+            IRenderedComponent<SettingsFlowServiceObjects> serviceObjects = RenderPage<SettingsFlowServiceObjects>(context);
+            IRenderedComponent<SettingsFlowServiceGroups> serviceGroups = RenderPage<SettingsFlowServiceGroups>(context);
+            IRenderedComponent<SettingsFlowTimeObjects> timeObjects = RenderPage<SettingsFlowTimeObjects>(context);
+
+            serviceObjects.WaitForAssertion(() =>
+            {
+                AssertButtonsDisabled(serviceObjects, kBulkVisibilityButtonKeys);
+                Assert.That(serviceObjects.FindComponent<FlowDuplicateResolver<NetworkService>>().Instance.CanResolve, Is.False);
+            });
+            serviceGroups.WaitForAssertion(() =>
+            {
+                AssertButtonsDisabled(serviceGroups, kBulkVisibilityButtonKeys);
+                Assert.That(serviceGroups.FindComponent<FlowDuplicateResolver<NetworkService>>().Instance.CanResolve, Is.False);
+            });
+            timeObjects.WaitForAssertion(() =>
+            {
+                AssertButtonsDisabled(timeObjects, kBulkVisibilityButtonKeys);
+                Assert.That(timeObjects.FindComponent<FlowDuplicateResolver<TimeObject>>().Instance.CanResolve, Is.False);
+            });
+        }
+
+        private static readonly List<string> kBulkVisibilityButtonKeys = ["show_in_request_module", "disable"];
+        private static readonly List<string> kGeneralWriteButtonKeys = ["save", "recalculate_flow_names", "reset_flow_db"];
+
+        private static List<IElement> FindButtons<TComponent>(IRenderedComponent<TComponent> component, List<string> textKeys)
+            where TComponent : Microsoft.AspNetCore.Components.IComponent
+        {
+            // iconified buttons carry their text only in the tooltip of the icon, so the inner html is searched
+            SimulatedUserConfig userConfig = new();
+            List<string> texts = [.. textKeys.Select(userConfig.GetText)];
+            return [.. component.FindAll("button").Where(button => texts.Any(text => button.InnerHtml.Contains(text, StringComparison.Ordinal)))];
+        }
+
+        private static void AssertButtonsDisabled<TComponent>(IRenderedComponent<TComponent> component, List<string> textKeys)
+            where TComponent : Microsoft.AspNetCore.Components.IComponent
+        {
+            List<IElement> buttons = FindButtons(component, textKeys);
+            Assert.That(buttons, Has.Count.GreaterThanOrEqualTo(textKeys.Count));
+            Assert.That(buttons.All(button => button.HasAttribute("disabled")), Is.True);
         }
 
         [Test]
@@ -128,6 +232,57 @@ namespace FWO.Test
                 Assert.That(apiConnection.MappingCalls, Is.EqualTo(new List<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)>
                 {
                     (11, 900, true)
+                }));
+            });
+        }
+
+        [Test]
+        public async Task FlowServiceObjectsPage_CreateCustomAnyService_ReusesCanonicalFlowObject()
+        {
+            string anyServiceHash = FlowHashGenerator.GenerateSvcObjectHash(GlobalConst.kAnyIpProtocolId, null, null);
+            FlowSvcObject existingFlowSvcObject = new()
+            {
+                Id = 777,
+                Name = "ANY",
+                ProtoId = GlobalConst.kAnyIpProtocolId,
+                Hash = anyServiceHash,
+                State = FlowState.Implemented,
+                ShowInRequestModule = true
+            };
+            NetworkService anyService = new()
+            {
+                Id = 11,
+                Name = "ALL",
+                Uid = "svc-any",
+                DestinationPort = null,
+                DestinationPortEnd = null,
+                ProtoId = GlobalConst.kAnyIpProtocolId,
+                FlowServiceObjectId = null,
+                Type = new NetworkServiceType { Name = ServiceType.SimpleService },
+                FlowActive = false
+            };
+            await using BunitContext context = CreateCustomServiceCreateContext(
+                out FlowServiceObjectsCustomCreateApiConn apiConnection,
+                existingFlowSvcObject,
+                anyService);
+
+            IRenderedComponent<SettingsFlowServiceObjects> component = RenderPage<SettingsFlowServiceObjects>(context);
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn.btn-sm.btn-primary"), Is.Not.Empty));
+
+            component.FindAll("button.btn.btn-sm.btn-primary")[0].Click();
+            component.WaitForAssertion(() => Assert.That(component.FindAll("input.form-control.form-control-sm"), Is.Not.Empty));
+            component.FindAll("input.form-control.form-control-sm")[0].Change("Different Any Name");
+            component.FindAll("button.btn-outline-primary")[0].Click();
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn-success"), Is.Not.Empty));
+            component.FindAll("button.btn.btn-sm.btn-primary")[^1].Click();
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(apiConnection.Queries, Does.Not.Contain(FlowQueries.insertFlowSvcObjects));
+                Assert.That(apiConnection.InsertedServiceObject, Is.Null);
+                Assert.That(apiConnection.MappingCalls, Is.EqualTo(new List<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)>
+                {
+                    (11, 777, true)
                 }));
             });
         }
@@ -533,6 +688,178 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task FlowGeneralPage_SaveZoneGroupPatterns_StoresConfiguredPatterns()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            GetZoneGroupPatterns(component.Instance)[0].Value = "_zone";
+            GetZoneGroupPatterns(component.Instance)[0].MatchType = FlowZoneNameMatchType.Suffix;
+            await InvokeZoneGroupMethod(component, "SaveZoneGroupPatterns");
+
+            ConfigData configData = (ConfigData)GetMember(component.Instance, "configData")!;
+            Assert.That(configData.FlowZoneGroupNamePatterns, Does.Contain("\"value\":\"_zone\""));
+            Assert.That(FlowZoneGroupMatcher.ParsePatterns(configData.FlowZoneGroupNamePatterns), Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task FlowGeneralPage_RemoveZoneGroupPattern_DropsTheSelectedRow()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            GetZoneGroupPatterns(component.Instance)[0].Value = "_zone";
+            component.Render();
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn.btn-sm.btn-danger"), Is.Not.Empty));
+
+            component.FindAll("button.btn.btn-sm.btn-danger")[0].Click();
+
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+        }
+
+        [Test]
+        public async Task FlowGeneralPage_SaveZoneGroupPatterns_WithEmptyValue_KeepsRowAndReportsError()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+            List<(string Title, string Message, bool IsError)> uiMessages = CaptureUiMessages(component.Instance);
+
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            await InvokeZoneGroupMethod(component, "SaveZoneGroupPatterns");
+
+            ConfigData configData = (ConfigData)GetMember(component.Instance, "configData")!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetZoneGroupPatterns(component.Instance), Has.Count.EqualTo(1));
+                Assert.That(configData.FlowZoneGroupNamePatterns, Does.Not.Contain("\"value\""));
+                Assert.That(uiMessages, Has.Count.EqualTo(1));
+                Assert.That(uiMessages[0].IsError, Is.True);
+                Assert.That(uiMessages[0].Message, Is.EqualTo("E5297"));
+            });
+        }
+
+        [Test]
+        public async Task FlowGeneralPage_SaveZoneGroupPatterns_WithDuplicate_KeepsRowsAndNamesTheDuplicate()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+            List<(string Title, string Message, bool IsError)> uiMessages = CaptureUiMessages(component.Instance);
+
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            GetZoneGroupPatterns(component.Instance)[0].Value = "_zone";
+            GetZoneGroupPatterns(component.Instance)[1].Value = "_ZONE";
+            await InvokeZoneGroupMethod(component, "SaveZoneGroupPatterns");
+
+            ConfigData configData = (ConfigData)GetMember(component.Instance, "configData")!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetZoneGroupPatterns(component.Instance), Has.Count.EqualTo(2));
+                Assert.That(configData.FlowZoneGroupNamePatterns, Does.Not.Contain("\"value\""));
+                Assert.That(uiMessages, Has.Count.EqualTo(1));
+                Assert.That(uiMessages[0].IsError, Is.True);
+                Assert.That(uiMessages[0].Message, Is.EqualTo("E5298: _ZONE"));
+            });
+        }
+
+        [Test]
+        public async Task FlowGeneralPage_SetZoneGroupMatchType_IgnoresValueOutsideTheEnum()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+            List<(string Title, string Message, bool IsError)> uiMessages = CaptureUiMessages(component.Instance);
+
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            GetZoneGroupPatterns(component.Instance)[0].Value = "_zone";
+            GetZoneGroupPatterns(component.Instance)[0].MatchType = FlowZoneNameMatchType.Contains;
+            component.Render();
+
+            FindZoneGroupRowControls(component)[0].Change("7");
+
+            Assert.That(GetZoneGroupPatterns(component.Instance)[0].MatchType, Is.EqualTo(FlowZoneNameMatchType.Contains));
+
+            await InvokeZoneGroupMethod(component, "SaveZoneGroupPatterns");
+
+            ConfigData configData = (ConfigData)GetMember(component.Instance, "configData")!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetZoneGroupPatterns(component.Instance), Has.Count.EqualTo(1));
+                Assert.That(configData.FlowZoneGroupNamePatterns, Does.Contain("\"value\":\"_zone\""));
+                Assert.That(FlowZoneGroupMatcher.ParsePatterns(configData.FlowZoneGroupNamePatterns), Has.Count.EqualTo(1));
+                Assert.That(uiMessages, Has.Count.EqualTo(1));
+                Assert.That(uiMessages[0].IsError, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task FlowGeneralPage_ZoneGroupPatternRowControls_FollowWorkInProgress()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            GetZoneGroupPatterns(component.Instance)[0].Value = "_zone";
+            component.Render();
+            Assert.That(FindZoneGroupRowControls(component).Exists(control => control.HasAttribute("disabled")), Is.False);
+
+            SetMember(component.Instance, "workInProgress", true);
+            component.Render();
+
+            List<IElement> rowControls = FindZoneGroupRowControls(component);
+            Assert.That(rowControls, Has.Count.EqualTo(4));
+            Assert.That(rowControls.TrueForAll(control => control.HasAttribute("disabled")), Is.True);
+        }
+
+        private static List<IElement> FindZoneGroupRowControls(IRenderedComponent<SettingsFlowGeneral> component)
+        {
+            IElement patternRow = component.FindAll("table")
+                .First(table => table.QuerySelector("input.form-check-input") != null)
+                .QuerySelectorAll("tbody tr")[0];
+            return [.. patternRow.QuerySelectorAll("select, input, button")];
+        }
+
+        private static List<(string Title, string Message, bool IsError)> CaptureUiMessages(SettingsFlowGeneral page)
+        {
+            List<(string Title, string Message, bool IsError)> uiMessages = [];
+            SetMember(page, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)(
+                (_, title, message, isError) => uiMessages.Add((title, message, isError))));
+            return uiMessages;
+        }
+
+        private static List<FlowZoneGroupPattern> GetZoneGroupPatterns(SettingsFlowGeneral page)
+        {
+            return (List<FlowZoneGroupPattern>)GetMember(page, "zoneGroupPatterns")!;
+        }
+
+        private static async Task InvokeZoneGroupMethod(IRenderedComponent<SettingsFlowGeneral> component, string methodName)
+        {
+            MethodInfo? method = typeof(SettingsFlowGeneral).GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null, $"Missing method {methodName}.");
+            await component.InvokeAsync(async () =>
+            {
+                object? invocationResult = method!.Invoke(component.Instance, null);
+                if (invocationResult is Task task)
+                {
+                    await task;
+                }
+            });
+        }
+
+        [Test]
         public async Task FlowNetworkObjectsPage_ShowsSpinnerOnBusyActionButtons()
         {
             await using BunitContext context = CreateNetworkObjectsContext(out _);
@@ -653,7 +980,7 @@ namespace FWO.Test
             return CreateContext(out _);
         }
 
-        private static BunitContext CreateContext(out FlowSettingsPagesTestApiConn apiConnection)
+        private static BunitContext CreateContext(out FlowSettingsPagesTestApiConn apiConnection, string role = Roles.Admin)
         {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -665,9 +992,9 @@ namespace FWO.Test
             context.Services.AddScoped<DomEventService>();
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig
             {
-                User = { Roles = [Roles.Admin] }
+                User = { Roles = [role] }
             });
-            context.Services.AddSingleton<AuthenticationStateProvider>(new FlowSettingsPagesAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<AuthenticationStateProvider>(new FlowSettingsPagesAuthStateProvider(role));
             return context;
         }
 
@@ -678,14 +1005,17 @@ namespace FWO.Test
                 .ToList();
         }
 
-        private static BunitContext CreateCustomServiceCreateContext(out FlowServiceObjectsCustomCreateApiConn apiConnection)
+        private static BunitContext CreateCustomServiceCreateContext(
+            out FlowServiceObjectsCustomCreateApiConn apiConnection,
+            FlowSvcObject? existingFlowSvcObject = null,
+            NetworkService? customServiceCandidate = null)
         {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddLocalization();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
-            apiConnection = new FlowServiceObjectsCustomCreateApiConn();
+            apiConnection = new FlowServiceObjectsCustomCreateApiConn(existingFlowSvcObject, customServiceCandidate);
             context.Services.AddSingleton<ApiConnection>(apiConnection);
             context.Services.AddScoped<DomEventService>();
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig
@@ -798,7 +1128,7 @@ namespace FWO.Test
             return context;
         }
 
-        private static BunitContext CreateNetworkObjectsContext(out FlowNetworkObjectsNamingApiConn apiConnection)
+        private static BunitContext CreateNetworkObjectsContext(out FlowNetworkObjectsNamingApiConn apiConnection, string role = Roles.Admin)
         {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -811,56 +1141,10 @@ namespace FWO.Test
             context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig
             {
-                User = { Roles = [Roles.Admin] }
+                User = { Roles = [role] }
             });
-            context.Services.AddSingleton<AuthenticationStateProvider>(new FlowSettingsPagesAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<AuthenticationStateProvider>(new FlowSettingsPagesAuthStateProvider(role));
             return context;
-        }
-
-        private static void SeedTranslations()
-        {
-            foreach (string key in new[]
-            {
-                "network_groups",
-                "service_objects",
-                "service_groups",
-                "time_objects",
-                "duplicate_objects",
-                "flow_object",
-                "management",
-                "objects",
-                "actions",
-                "id",
-                "name",
-                "state",
-                "show_in_request_module",
-                "details",
-                "uid",
-                "search_name",
-                "custom_objects",
-                "custom_network_objects",
-                "custom_service_objects",
-                "create_custom_flow_object",
-                "create_custom_network_object",
-                "create_custom_service_object",
-                "flow_objects",
-                "flow_network_objects",
-                "flow_service_objects",
-                "flow_network_groups",
-                "flow_service_groups",
-                "flow_time_objects",
-                "edit_flow_object",
-                "save",
-                "cancel",
-                "select",
-                "no_duplicate_conflicts",
-                "current",
-                "type",
-                "ip"
-            })
-            {
-                SimulatedUserConfig.DummyTranslate.TryAdd(key, key);
-            }
         }
 
         private static IRenderedComponent<TComponent> RenderPage<TComponent>(BunitContext context)
@@ -869,6 +1153,20 @@ namespace FWO.Test
             return context.Render<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<TComponent>())
                 .FindComponent<TComponent>();
+        }
+
+        private static object? GetMember(object instance, string memberName)
+        {
+            Type type = instance.GetType();
+            PropertyInfo? property = type.GetProperty(memberName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property != null)
+            {
+                return property.GetValue(instance);
+            }
+
+            FieldInfo? field = type.GetField(memberName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(field, Is.Not.Null, $"Missing member {memberName}.");
+            return field!.GetValue(instance);
         }
 
         private static void SetMember(object instance, string memberName, object? value)
@@ -932,7 +1230,7 @@ namespace FWO.Test
                 Name = null,
                 Mappings = new List<FlowNamingMapping>
                 {
-                    new() { ManagementId = 20, Name = "Global Object Name" }
+                    new() { ManagementId = 20, Name = "Global Object Name", FlowActive = true }
                 }
             }
         };
@@ -1467,7 +1765,9 @@ namespace FWO.Test
             ]
         };
 
-        public FlowServiceObjectsCustomCreateApiConn(FlowSvcObject? existingFlowSvcObject = null)
+        public FlowServiceObjectsCustomCreateApiConn(
+            FlowSvcObject? existingFlowSvcObject = null,
+            NetworkService? customServiceCandidate = null)
         {
             flowSvcObject = existingFlowSvcObject ?? new FlowSvcObject
             {
@@ -1480,6 +1780,10 @@ namespace FWO.Test
                 State = FlowState.Requested,
                 ShowInRequestModule = true
             };
+            if (customServiceCandidate != null)
+            {
+                managementOne.Services[0] = customServiceCandidate;
+            }
         }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)

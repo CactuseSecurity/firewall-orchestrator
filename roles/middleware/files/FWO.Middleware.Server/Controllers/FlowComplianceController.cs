@@ -4,6 +4,7 @@ using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FWO.Middleware.Server.Controllers;
 
@@ -13,6 +14,7 @@ namespace FWO.Middleware.Server.Controllers;
 /// </summary>
 [Authorize]
 [ApiController]
+[AggregatedValidationErrors]
 [Route("api/flow")]
 public class FlowComplianceController : ControllerBase
 {
@@ -30,15 +32,22 @@ public class FlowComplianceController : ControllerBase
     /// <summary>
     /// Returns the compliance state for the requested flows using shared compliance data.
     /// This evaluation is not scoped to a modeller or owner.
-    /// Only IPv4 source and destination ranges are supported; IPv6 addresses are rejected during validation.
+    /// Each source and destination accepts exactly one address representation: ipHost, ipNetwork,
+    /// or a two-entry ipRange. Hosts and range endpoints must be maskless. Address text follows the
+    /// shared FWO parser; CIDRs are normalized to their inclusive bounds before evaluation.
+    /// Criteria that only support IPv4 report an IPv6 flow as NotAssessable instead of as a violation.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getFlowComplianceState")]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
+    [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<List<FlowComplianceStateResponse>>> GetFlowComplianceState([FromBody] GetFlowComplianceStateRequest request)
     {
-        if (!FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult))
+        RequestValidationErrorResponse validationErrors = FlowComplianceRequestValidator.ValidateFlowComplianceState(request);
+        if (validationErrors.Errors.Count > 0)
         {
-            return errorResult!;
+            return BadRequest(validationErrors);
         }
 
         return Ok(await flowComplianceService.GetFlowComplianceStateAsync(request));
@@ -50,11 +59,13 @@ public class FlowComplianceController : ControllerBase
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getPolicyIds")]
+    [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetPolicyIdsResponse>> GetPolicyIds([FromBody] GetPolicyIdsRequest request)
     {
-        if (!FlowComplianceRequestValidator.TryValidatePolicyIds(request, out ActionResult? errorResult))
+        RequestValidationErrorResponse validationErrors = FlowComplianceRequestValidator.ValidatePolicyIds(request);
+        if (validationErrors.Errors.Count > 0)
         {
-            return errorResult!;
+            return BadRequest(validationErrors);
         }
 
         return Ok(new GetPolicyIdsResponse

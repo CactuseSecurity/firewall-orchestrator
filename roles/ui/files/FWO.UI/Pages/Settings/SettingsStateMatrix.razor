@@ -171,7 +171,19 @@
                 </div>
             }
             <h5 data-toggle="tooltip" title="@(userConfig.PureLine("H5545"))">@(userConfig.GetText("special_states"))</h5>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5551"))">
+            @if (actTaskType == WfTaskType.master)
+            {
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5554"))">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("phase_visibility_mode")):</label>
+                    <div class="col-sm-3">
+                    <Dropdown ElementType="PhaseVisibilityMode" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].VisibilityMode"
+                              ElementToString="@(mode => userConfig.GetText(mode.ToString()))" Elements="Enum.GetValues<PhaseVisibilityMode>()">
+                            <ElementTemplate Context="mode">@(userConfig.GetText(mode.ToString()))</ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+            }
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5551"))">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_input_state")):</label>
                 <div class="col-sm-3">
                     <Dropdown ElementType="int" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].LowestInputState" ElementToString="StateDisplayName" Elements="stateIds" >

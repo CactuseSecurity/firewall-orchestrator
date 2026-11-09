@@ -6,11 +6,12 @@
 @using System.Text.Json
 
 @page "/monitoring/main"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
 @inject UserConfig userConfig
+@inject UiSessionTracker SessionTracker
 
 
 <div class="input-group">
@@ -20,7 +21,7 @@
 @(userConfig.GetText("U7001"))
 <hr />
 
-<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
+<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
     <h5>@(userConfig.GetText("open_alerts"))</h5>
     @if (InitComplete)
     {
@@ -30,7 +31,7 @@
         }
         else
         {
-            <button type="button" class="btn btn-sm btn-danger" disabled="@(!userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin))" @onclick="RequestAcknowledgeAllOpen">@(DisplayService.DisplayButton(userConfig, "acknowledge_all", Icons.Acknowledge))</button>
+            <button type="button" class="btn btn-sm btn-danger" disabled="@(!userConfig.CanUseAnyRole(Roles.Admin))" @onclick="RequestAcknowledgeAllOpen">@(DisplayService.DisplayButton(userConfig, "acknowledge_all", Icons.Acknowledge))</button>
             <div class="vheight75">
                 <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
                 <Table PageSize="PageSize" TableClass="table table-bordered table-sm th-bg-secondary sticky-header" TableItem="Alert" Items="alertEntrys">
@@ -58,7 +59,7 @@
                                     <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                                 }
 
-                                @if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin))
+                                @if (userConfig.CanUseAnyRole(Roles.Admin))
                                 {
                                     <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Acknowledge(alert)">@(DisplayService.DisplayButton(userConfig, "acknowledge", Icons.Acknowledge))</button>
                                 }
@@ -131,7 +132,7 @@
     {
         try
         {
-            if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
+            if (userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor))
             {
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
                 await RefreshAlerts();
@@ -263,6 +264,8 @@
             await DeleteTenants();
             await DeleteGroups();
             await DeleteOwners();
+            // sessions of deleted sample users and of members of deleted sample groups end at once
+            SessionTracker.RequestSessionCheck();
 
             await Acknowledge(actAlert);
             DisplayMessageInUi(null, userConfig.GetText("remove_sample_data"), ConstructMessage(), false);
@@ -278,7 +281,7 @@
     private async Task DeleteManagements()
     {
         // Todo: refresh necessary?
-        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
+        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor))
         {
             managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
         }
@@ -313,10 +316,18 @@
 
     private async Task DeleteCredentials()
     {
-        List<ImportCredential> credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
+        List<Credential> credentials = await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentials);
         deletedSampleCredentials = 0;
         foreach (var credential in credentials.Where(c => c.Name.EndsWith(GlobalConst.k_demo)))
         {
+            // an external ticket system would lose its login, the database cannot prevent this (reference in the config)
+            List<ExternalTicketSystem> ticketSystems = ExternalTicketSystem.UsingCredential(userConfig.ExtTicketSystems, credential.Id);
+            if (ticketSystems.Count > 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("delete_credential"),
+                    $"{userConfig.GetText("E5113")} ({credential.Name}: {string.Join(", ", ticketSystems.Select(system => system.Name))})", true);
+                continue;
+            }
             if (await DeleteCredential(credential))
             {
                 deletedSampleCredentials++;
@@ -324,7 +335,7 @@
         }
     }
 
-    private async Task<bool> DeleteCredential(ImportCredential credential)
+    private async Task<bool> DeleteCredential(Credential credential)
     {
         try
         {

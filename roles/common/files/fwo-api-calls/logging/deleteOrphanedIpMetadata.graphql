@@ -1,0 +1,15 @@
+# Removes the metadata of addresses no log entry refers to any more. Without it the table would
+# keep the applications, network areas and resolved names of every address ever logged, outliving
+# the configured retention of the log entries the values were calculated for.
+mutation deleteOrphanedIpMetadata {
+  delete_logging_ip_metadata(
+    where: {
+      _and: [
+        {_not: {source_log_entries: {}}}
+        {_not: {destination_log_entries: {}}}
+      ]
+    }
+  ) {
+    affected_rows
+  }
+}

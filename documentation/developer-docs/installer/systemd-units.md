@@ -69,6 +69,30 @@ a drop-in at `/etc/systemd/system/fworch-hasura-api.service.d/fworch-startup.con
 regeneration of the unit. Note that `After=` only orders, it does not pull a dependency in, so
 `postgresql.service` is named in `Wants=` as well.
 
+### When the installer starts the importer
+
+Unit ordering only covers a boot. During an installer run the order is decided by the plays, and
+the importer has to come up last: an import which is already running while apache, the API or the
+middleware restarts loses its API connection and is rolled back. Both `roles/finalize` and the
+integration tests (`sample-auth-data`, `test-auth`) still restart those services, so:
+
+- `roles/importer` only enables `fworch-importer-api.service`, as its last task, so that a reboot
+  in the middle of an installation does not start an importer whose credentials are not in place
+- the service is restarted by the last play in `site.yml`, after finalize and after the
+  integration tests - do not start it anywhere before that play
+- `roles/tests-integration/tasks/test-importer-service-start-order.yml`, imported by the play
+  right after it, asserts that the importer and every dependency on the same host are active
+  and that the importer was activated after all of them
+
+An upgrade stops the importer in `roles/common` before it changes anything. A run that aborts
+before the last play - for example because an integration test fails - therefore leaves the
+importer stopped but enabled. Repeat the run, or start it with
+`systemctl start fworch-importer-api`, once the cause is fixed.
+
+The restart play carries the tags of the finalize play. `--tags api` and `--tags certificates`
+select neither, although both can restart a dependency, so the importer is not restarted after
+them - and after an upgrade limited to `--tags api` it stays stopped.
+
 ## Services not owned by the installer
 
 `postgresql`, `slapd` and the web server are OS packages, not fworch units, but the stack does not

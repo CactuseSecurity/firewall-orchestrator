@@ -42,6 +42,14 @@
         </div>
     </div>
 </div>
+<div class="col-sm-4 mt-2">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5537"))">
+        <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmBundleMessage">@(userConfig.GetText("confirm_action_message")):</label>
+        <div class="col-sm-2">
+            <input id="confirmBundleMessage" class="form-check-input mt-2" type="checkbox" checked="@confirmUiMessage" @onchange="OnConfirmMessageChanged" />
+        </div>
+    </div>
+</div>
 
 @code {
     [Parameter]
@@ -53,6 +61,7 @@
     private BundleTaskType selectedBundleTaskType = BundleTaskType.TwoOutOfThree;
     private bool cleanBundleZones;
     private CompliancePolicy? selectedBundlePolicy;
+    private bool confirmUiMessage;
 
     protected override void OnParametersSet()
     {
@@ -65,6 +74,7 @@
         selectedBundleTaskType = BundleTaskType.TwoOutOfThree;
         cleanBundleZones = false;
         selectedBundlePolicy = null;
+        confirmUiMessage = false;
     }
 
     private void LoadFromExternalParams()
@@ -73,6 +83,7 @@
         selectedBundleTaskType = bundleParams.BundleType;
         cleanBundleZones = bundleParams.CleanZones;
         selectedBundlePolicy = Policies.FirstOrDefault(policy => policy.Id == bundleParams.PolicyId);
+        confirmUiMessage = bundleParams.ConfirmUiMessage;
     }
 
     private Task OnBundleTypeChanged(BundleTaskType bundleTaskType)
@@ -96,13 +107,21 @@
         return Task.CompletedTask;
     }
 
+    private Task OnConfirmMessageChanged(ChangeEventArgs changeEventArgs)
+    {
+        confirmUiMessage = bool.TryParse(changeEventArgs.Value?.ToString(), out bool checkedValue) && checkedValue;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
     private void UpdateExternalParams()
     {
         ActAction.ExternalParams = new BundleTasksActionParams
         {
             BundleType = selectedBundleTaskType,
             CleanZones = cleanBundleZones,
-            PolicyId = selectedBundlePolicy?.Id
+            PolicyId = selectedBundlePolicy?.Id,
+            ConfirmUiMessage = confirmUiMessage
         }.ToExternalParams();
     }
 }

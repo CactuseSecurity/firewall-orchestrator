@@ -258,6 +258,41 @@ namespace FWO.Data.Flow
         public long TimeObjId { get; set; }
     }
 
+    /// <summary>
+    /// A flow entry whose stored hash does not match the hash calculated from its current state.
+    /// </summary>
+    public class FlowHashInconsistency
+    {
+        private const int kMaxDescribedInconsistencies = 20;
+
+        public string EntryType { get; init; } = "";
+        public long Id { get; init; }
+        public string StoredHash { get; init; } = "";
+
+        /// <summary>
+        /// The hash calculated from the current state, or null when no hash can be calculated for the entry.
+        /// </summary>
+        public string? RecalculatedHash { get; init; }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            return $"{EntryType} id {Id} (stored {StoredHash}, recalculated {RecalculatedHash ?? "none"})";
+        }
+
+        /// <summary>
+        /// Describes the given inconsistencies for a log message. The number of described entries is capped so
+        /// that a flow database with many inconsistent entries does not produce an unreadable log line.
+        /// </summary>
+        public static string Describe(IReadOnlyList<FlowHashInconsistency> inconsistencies)
+        {
+            string description = string.Join("; ", inconsistencies.Take(kMaxDescribedInconsistencies));
+            return inconsistencies.Count > kMaxDescribedInconsistencies
+                ? $"{description}; and {inconsistencies.Count - kMaxDescribedInconsistencies} more"
+                : description;
+        }
+    }
+
     public class FlowSyncFlowDataInput
     {
         public List<FlowNwObject> NwObjects { get; init; } = [];
@@ -378,21 +413,44 @@ namespace FWO.Data.Flow
         }
 
         /// <summary>
-        /// Checks if there are any inconsistencies between the stored hashes and the hashes calculated from the
-        /// current state of the objects using the current hash calculation logic.
+        /// Collects the entries whose stored hash differs from the hash calculated from their current state with
+        /// the current hash calculation logic.
         /// Network objects, service objects and time objects where the hash cannot be calculated automatically
         /// (manually created flow objects) are excluded from this check. For groups and accesses, all base
-        /// objects contained within the group/access are expected to have valid hashes.
+        /// objects contained within the group/access are expected to have valid hashes, so a hash that cannot be
+        /// calculated any more is reported as well.
         /// </summary>
-        /// <returns></returns>
-        public bool HasHashInconsistencies()
+        /// <returns>The inconsistent entries with their stored and recalculated hash, empty if there are none.</returns>
+        public List<FlowHashInconsistency> GetHashInconsistencies()
         {
-            return NwObjects.Values.Any(fo => fo.TryCalculateHash() is string h && h != fo.Hash)
-                || SvcObjects.Values.Any(fs => fs.TryCalculateHash() is string h && h != fs.Hash)
-                || TimeObjects.Values.Any(fto => fto.TryCalculateHash() is string h && h != fto.Hash)
-                || NwGroups.Values.Any(g => g.TryCalculateHash() != g.Hash)
-                || SvcGroups.Values.Any(g => g.TryCalculateHash() != g.Hash)
-                || Accesses.Values.Any(fa => fa.TryCalculateHash() != fa.Hash);
+            return
+            [
+                .. CollectInconsistencies(FlowEntryType.kNwObject, NwObjects.Values.Select(entry => (entry.Id, entry.Hash, entry.TryCalculateHash())), false),
+                .. CollectInconsistencies(FlowEntryType.kSvcObject, SvcObjects.Values.Select(entry => (entry.Id, entry.Hash, entry.TryCalculateHash())), false),
+                .. CollectInconsistencies(FlowEntryType.kTimeObject, TimeObjects.Values.Select(entry => (entry.Id, entry.Hash, entry.TryCalculateHash())), false),
+                .. CollectInconsistencies(FlowEntryType.kNwGroup, NwGroups.Values.Select(entry => (entry.Id, entry.Hash, entry.TryCalculateHash())), true),
+                .. CollectInconsistencies(FlowEntryType.kSvcGroup, SvcGroups.Values.Select(entry => (entry.Id, entry.Hash, entry.TryCalculateHash())), true),
+                .. CollectInconsistencies(FlowEntryType.kAccess, Accesses.Values.Select(entry => (entry.Id, entry.Hash, entry.TryCalculateHash())), true)
+            ];
+        }
+
+        /// <summary>
+        /// Selects the entries of one flow entry type whose stored hash no longer matches their recalculated hash.
+        /// Entries without a recalculated hash are only reported when the entry type is expected to always have one.
+        /// </summary>
+        private static IEnumerable<FlowHashInconsistency> CollectInconsistencies(string entryType,
+            IEnumerable<(long Id, string StoredHash, string? RecalculatedHash)> entries, bool reportEntriesWithoutRecalculatedHash)
+        {
+            return entries
+                .Where(entry => (entry.RecalculatedHash != null || reportEntriesWithoutRecalculatedHash)
+                    && entry.RecalculatedHash != entry.StoredHash)
+                .Select(entry => new FlowHashInconsistency
+                {
+                    EntryType = entryType,
+                    Id = entry.Id,
+                    StoredHash = entry.StoredHash,
+                    RecalculatedHash = entry.RecalculatedHash
+                });
         }
     }
 }

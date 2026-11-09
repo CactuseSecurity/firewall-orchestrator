@@ -7,9 +7,14 @@ service, source, and destination references.
 """
 
 import fwo_base
+import fwo_const
 from fw_modules.ciscoasa9.asa_models import AccessList, AccessListEntry, AsaProtocolGroup, EndpointKind
-from fw_modules.ciscoasa9.asa_network import get_network_rule_endpoint
-from fw_modules.ciscoasa9.asa_service import create_any_protocol_service, create_service_for_acl_entry
+from fw_modules.ciscoasa9.asa_network import get_network_rule_endpoint, get_subnet_endpoint_address
+from fw_modules.ciscoasa9.asa_service import (
+    create_service_for_acl_entry,
+    create_service_for_protocol_entry,
+    restrict_service_to_protocol,
+)
 from fwo_log import FWOLogger
 from models.networkobject import NetworkObject
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
@@ -19,36 +24,45 @@ from netaddr import IPNetwork
 
 
 def create_service_for_protocol_group_entry(
-    protocol_group_name: str, protocol_groups: list[AsaProtocolGroup], service_objects: dict[str, ServiceObject]
+    entry: AccessListEntry, protocol_groups: list[AsaProtocolGroup], service_objects: dict[str, ServiceObject]
 ) -> str:
     """
-    Resolve service reference for a protocol group.
+    Resolve the service reference of an entry whose protocol is a protocol group.
+
+    Every protocol of the group gets the destination of the entry (e.g. "object-group TCPUDP any any eq domain" is
+    domain on tcp and on udp). A service group as destination only applies to the protocols it has services of.
 
     Args:
-        protocol_group_name: Name of the protocol group
+        entry: Access list entry with a protocol group as protocol
         protocol_groups: List of protocol groups for resolving references
         service_objects: Dictionary of service objects to update if needed
+
     Returns:
         Service reference string
 
-    """
-    allowed_protocols = []
-    for pg in protocol_groups:
-        if pg.name == protocol_group_name:
-            allowed_protocols = pg.protocols
-            break
+    Raises:
+        ValueError: if the protocol group is unknown or the destination applies to none of its protocols
 
-    if allowed_protocols:
-        svc_refs: list[str] = []
-        for proto in allowed_protocols:
-            svc_ref = create_any_protocol_service(proto, service_objects)
-            svc_refs.append(svc_ref)
-        return fwo_base.sort_and_join(svc_refs)
-    # Fallback if protocol group not found
-    FWOLogger.warning(f"Protocol group '{protocol_group_name}' not found. Defaulting to tcp/udp/icmp any.")
-    svc_refs = []
-    for proto in ("tcp", "udp", "icmp"):
-        svc_refs.append(create_any_protocol_service(proto, service_objects))
+    """
+    protocol_group = next((pg for pg in protocol_groups if pg.name == entry.protocol.value), None)
+    if protocol_group is None or not protocol_group.protocols:
+        raise ValueError(f"Protocol group '{entry.protocol.value}' is unknown or empty.")
+
+    svc_refs: list[str] = []
+    for proto in protocol_group.protocols:
+        if entry.dst_port.kind in ("service", "service-group"):
+            restricted = restrict_service_to_protocol(entry.dst_port.value, proto, service_objects)
+            if restricted is not None:
+                svc_refs.append(restricted)
+            continue
+        single_protocol_entry = entry.model_copy(update={"protocol": EndpointKind(kind="protocol", value=proto)})
+        svc_refs.extend(
+            create_service_for_protocol_entry(single_protocol_entry, service_objects).split(fwo_const.LIST_DELIMITER)
+        )
+    if not svc_refs:
+        raise ValueError(
+            f"Service '{entry.dst_port.value}' contains no service of protocol group '{entry.protocol.value}'."
+        )
     return fwo_base.sort_and_join(svc_refs)
 
 
@@ -69,7 +83,7 @@ def resolve_service_reference_for_rule(
     """
     if entry.protocol.kind == "protocol-group":
         # Protocol group - resolve to list of protocols
-        return create_service_for_protocol_group_entry(entry.protocol.value, protocol_groups, service_objects)
+        return create_service_for_protocol_group_entry(entry, protocol_groups, service_objects)
     # Handle other protocol types using existing function
     return create_service_for_acl_entry(entry, service_objects)
 
@@ -89,9 +103,9 @@ def resolve_network_reference_for_rule(endpoint: EndpointKind, network_objects: 
     # Create network object if needed and get reference
     network_obj = get_network_rule_endpoint(endpoint, network_objects)
 
-    # Return reference - convert subnet mask to CIDR if present
+    # Return reference - convert subnet mask to CIDR if present (the address may be a name alias)
     if hasattr(endpoint, "mask") and endpoint.mask is not None:
-        return str(IPNetwork(f"{endpoint.value}/{endpoint.mask}"))
+        return str(IPNetwork(f"{get_subnet_endpoint_address(endpoint, network_objects)}/{endpoint.mask}"))
     return network_obj.obj_uid
 
 
@@ -117,8 +131,11 @@ def create_rule_from_acl_entry(
         Normalized rule object
 
     """
-    # Generate unique rule UID by hashing entry dict
-    rule_uid = fwo_base.generate_hash_from_dict(entry.model_dump())
+    # Generate unique rule UID by hashing entry dict; time_range is left out when unset, so that
+    # the UIDs of entries without a time-range stay the same as before the field existed
+    rule_uid = fwo_base.generate_hash_from_dict(
+        entry.model_dump(exclude={"time_range"}) if entry.time_range is None else entry.model_dump()
+    )
 
     # Resolve service reference
     svc_ref = resolve_service_reference_for_rule(entry, protocol_groups, service_objects)
@@ -143,7 +160,7 @@ def create_rule_from_acl_entry(
         rule_action=RuleAction.ACCEPT if entry.action == "permit" else RuleAction.DROP,
         rule_track=RuleTrack.NONE,
         rule_installon=None,  # gateway_uid, TODO: commented out for now to avoid duplication issues
-        rule_time=None,
+        rule_time=entry.time_range,
         rule_name=access_list_name,
         rule_uid=rule_uid,
         rule_custom_fields=None,

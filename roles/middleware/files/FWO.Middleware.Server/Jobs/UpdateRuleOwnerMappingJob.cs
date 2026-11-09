@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Logging;
 using FWO.Services;
 using Quartz;
 
@@ -14,6 +15,7 @@ namespace FWO.Middleware.Server.Jobs
     public class UpdateRuleOwnerMappingJob : IJob
     {
         private const string LogMessageTitle = "Update rule_owner Notify";
+        private const int kAlertSeverity = 1;
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
 
@@ -29,16 +31,21 @@ namespace FWO.Middleware.Server.Jobs
         }
 
         /// <inheritdoc />
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 UpdateRuleOwnerMapping updateRuleOwnerMapping = new(apiConnection, globalConfig);
-                await updateRuleOwnerMapping.Run();
+                await updateRuleOwnerMapping.Run(cancellationToken: cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(UpdateRuleOwnerMappingJob)} stopped.");
             }
             catch (Exception exc)
             {
-                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitle, GlobalConst.kImportChangeNotify, AlertCode.ImportChangeNotify, exc);
+                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, kAlertSeverity, LogMessageTitle, GlobalConst.kRuleOwnerMapping, AlertCode.RuleOwnerMapping, exc);
             }
         }
     }

@@ -290,7 +290,7 @@ namespace FWO.Report
 
             foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
-                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{management.Name}</h3>");
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{HtmlOutputEncoder.EncodeText(management.Name)}</h3>");
                 report.AppendLine("<hr>");
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">Rules</h4>");
 

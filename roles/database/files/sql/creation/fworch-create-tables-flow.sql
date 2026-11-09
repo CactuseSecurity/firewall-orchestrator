@@ -15,6 +15,10 @@ create table flow.nwobject
     state varchar(32) NOT NULL DEFAULT 'requested',
     removed_date Timestamp with time zone,
     show_in_request_module boolean NOT NULL DEFAULT FALSE,
+    -- the host and address family rules for ip_start and ip_end are added in
+    -- fworch-create-constraints.sql, as flow_nwobject_ip_start_is_host, flow_nwobject_ip_end_is_host
+    -- and flow_nwobject_ip_same_family. The first two call is_single_ip(), which that same file
+    -- creates and which does not exist yet at this point in the creation process
     check ((ip_start IS NULL) = (ip_end IS NULL)),
     check (ip_start <= ip_end),
     check (state IN ('requested', 'denied', 'implemented', 'removed'))
@@ -46,6 +50,12 @@ create table flow.svcobject
     check (port_start <= port_end),
     check (port_start between 0 and 65535),
     check (port_end between 0 and 65535),
+    CONSTRAINT flow_svcobject_canonical_any_lifecycle_check CHECK (
+        ip_proto_id <> -1
+        OR port_start IS NOT NULL
+        OR port_end IS NOT NULL
+        OR (state = 'implemented' AND removed_date IS NULL)
+    ),
     check (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
 

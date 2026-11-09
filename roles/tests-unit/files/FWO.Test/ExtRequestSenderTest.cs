@@ -19,7 +19,6 @@ namespace FWO.Test
         {
             Id = 1,
             TypeId = BuiltInExternalTicketSystemTypes.TufinSecureChangeId,
-            Authorization = "xyz",
             Name = "Tufin",
             Url = "https://tufin-test.xxx.de/securechangeworkflow/api/securechange/",
             Templates =

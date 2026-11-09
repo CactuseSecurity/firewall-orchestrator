@@ -49,8 +49,8 @@ class RecordingClient:
         self.calls.append((query, variables))
         if "insert_import_control" in query:
             return {"insert_import_control": {"returning": [{"control_id": self._next_id()}]}}
-        if "insert_import_credential" in query:
-            return {"insert_import_credential": {"returning": [{"id": self._next_id()}]}}
+        if "insert_credential" in query:
+            return {"insert_credential": {"returning": [{"id": self._next_id()}]}}
         if "insert_management" in query:
             return {"insert_management": {"returning": [{"mgm_id": self._next_id()}]}}
         if "insert_device" in query:

@@ -20,13 +20,17 @@ namespace FWO.Api.Client.Queries
         public static readonly string subscribeAutodiscoveryConfigChanges;
         public static readonly string subscribeExternalRequestConfigChanges;
         public static readonly string subscribeDailyCheckConfigChanges;
+        public static readonly string subscribeFlowRequestConfigChanges;
         public static readonly string subscribeImportAppDataConfigChanges;
+        public static readonly string subscribeImportLogDataConfigChanges;
         public static readonly string subscribeImportIpDataConfigChanges;
         public static readonly string subscribeImportNotifyConfigChanges;
         public static readonly string subscribeVarianceAnalysisConfigChanges;
         public static readonly string subscribeComplianceCheckConfigChanges;
         public static readonly string subscribeUpdateRuleOwnerMappingConfigChanges;
         public static readonly string subscribeFlowSyncConfigChanges;
+        public static readonly string subscribeFlowCatalogConfigChanges;
+        public static readonly string subscribeRestApiConfigChanges;
 
 
         static ConfigQueries()
@@ -49,13 +53,17 @@ namespace FWO.Api.Client.Queries
                 subscribeAutodiscoveryConfigChanges = GetQueryText("config/subscribeAutodiscoveryConfigChanges.graphql");
                 subscribeExternalRequestConfigChanges = GetQueryText("config/subscribeExternalRequestConfigChanges.graphql");
                 subscribeDailyCheckConfigChanges = GetQueryText("config/subscribeDailyCheckConfigChanges.graphql");
+                subscribeFlowRequestConfigChanges = GetQueryText("config/subscribeFlowRequestConfigChanges.graphql");
                 subscribeImportAppDataConfigChanges = GetQueryText("config/subscribeImportAppDataConfigChanges.graphql");
+                subscribeImportLogDataConfigChanges = GetQueryText("config/subscribeImportLogDataConfigChanges.graphql");
                 subscribeImportIpDataConfigChanges = GetQueryText("config/subscribeImportSubnetDataConfigChanges.graphql");
                 subscribeImportNotifyConfigChanges = GetQueryText("config/subscribeImportNotifyConfigChanges.graphql");
                 subscribeVarianceAnalysisConfigChanges = GetQueryText("config/subscribeVarianceAnalysisConfigChanges.graphql");
                 subscribeComplianceCheckConfigChanges = GetQueryText("config/subscribeComplianceCheckConfigChanges.graphql");
                 subscribeUpdateRuleOwnerMappingConfigChanges = GetQueryText("config/subscribeUpdateRuleOwnerMappingConfigChanges.graphql");
                 subscribeFlowSyncConfigChanges = GetQueryText("config/subscribeFlowSyncConfigChanges.graphql");
+                subscribeFlowCatalogConfigChanges = GetQueryText("config/subscribeFlowCatalogConfigChanges.graphql");
+                subscribeRestApiConfigChanges = GetQueryText("config/subscribeRestApiConfigChanges.graphql");
             }
             catch (Exception exception)
             {

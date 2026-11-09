@@ -35,6 +35,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getPublishedInterfaces;
         public static readonly string getRequestedInterfaces;
         public static readonly string getConnectionById;
+        public static readonly string getConnectionForNotification;
         public static readonly string getConnections;
         public static readonly string getConnectionsResolved;
         public static readonly string getConnectionsByTicketId;
@@ -119,11 +120,15 @@ namespace FWO.Api.Client.Queries
         public static readonly string getHistory;
         public static readonly string getHistoryForApp;
         public static readonly string addHistoryEntry;
+        public static readonly string addHistoryEntryAsService;
 
         public static readonly string newAppZone;
         public static readonly string getAppZones;
         public static readonly string getApplicationIpAddresses;
         public static readonly string getAppZonesByAppId;
+        public static readonly string getAvailableInterfacesForApp;
+        public static readonly string getAppRolesPerApp;
+        public static readonly string getNetworkAreas;
 
         public static readonly string getOwnersForRuleOwnerNameField;
         public static readonly string getOwnersForRuleOwnerNameFieldFilteredByOwner;
@@ -166,6 +171,7 @@ namespace FWO.Api.Client.Queries
                 getPublishedInterfaces = connectionDetailsFragment + GetQueryText("modelling/getPublishedInterfaces.graphql");
                 getRequestedInterfaces = connectionDetailsFragment + GetQueryText("modelling/getRequestedInterfaces.graphql");
                 getConnectionById = connectionDetailsFragment + GetQueryText("modelling/getConnectionById.graphql");
+                getConnectionForNotification = GetQueryText("modelling/getConnectionForNotification.graphql");
                 getConnections = connectionDetailsFragment + GetQueryText("modelling/getConnections.graphql");
                 getConnectionsResolved = connectionResolvedDetailsFragment + GetQueryText("modelling/getConnectionsResolved.graphql");
                 getConnectionsByTicketId = connectionDetailsFragment + GetQueryText("modelling/getConnectionsByTicketId.graphql");
@@ -248,11 +254,15 @@ namespace FWO.Api.Client.Queries
                 getHistory = GetQueryText("modelling/getHistory.graphql");
                 getHistoryForApp = GetQueryText("modelling/getHistoryForApp.graphql");
                 addHistoryEntry = GetQueryText("modelling/addHistoryEntry.graphql");
+                addHistoryEntryAsService = GetQueryText("modelling/addHistoryEntryAsService.graphql");
 
                 newAppZone = GetQueryText("modelling/addNwAppZone.graphql");
                 getAppZones = appServerDetailsFragment + GetQueryText("modelling/getAppZones.graphql");
                 getApplicationIpAddresses = GetQueryText("modelling/getApplicationIpAddresses.graphql");
                 getAppZonesByAppId = appServerDetailsFragment + GetQueryText("modelling/getAppZonesByAppId.graphql");
+                getAvailableInterfacesForApp = GetQueryText("modelling/getAvailableInterfacesForApp.graphql");
+                getAppRolesPerApp = GetQueryText("modelling/getAppRolesPerApp.graphql");
+                getNetworkAreas = GetQueryText("modelling/getNetworkAreas.graphql");
 
                 getOwnersForRuleOwnerNameField = GetQueryText("modelling/getOwnersForRuleOwnerNameField.graphql");
                 getOwnersForRuleOwnerNameFieldFilteredByOwner = GetQueryText("modelling/getOwnersForRuleOwnerNameFieldFilteredByOwner.graphql");

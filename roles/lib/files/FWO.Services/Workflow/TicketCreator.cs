@@ -67,6 +67,12 @@ namespace FWO.Services.Workflow
             wfHandler.AddTicketMode = true;
             wfHandler.ActTicket.UpdateCidrsInTaskElements();
             long ticketId = await wfHandler.SaveTicket(wfHandler.ActTicket);
+            if (ticketId > 0 && wfHandler.LastSaveReloadFailed && !await TryReloadSavedTicket(ticketId))
+            {
+                // the comments belong to request tasks whose ids are unknown in the in-memory copy
+                Log.WriteError("Create Ticket", $"Ticket {ticketId} was saved but could not be read back, so the comments of its request tasks were not added.");
+                return wfHandler.ActTicket;
+            }
             if (ticketId > 0)
             {
                 foreach (var reqtask in reqTasks.Where(t => t.Comments.Count > 0))
@@ -81,6 +87,25 @@ namespace FWO.Services.Workflow
                 }
             }
             return wfHandler.ActTicket;
+        }
+
+        /// <summary>
+        /// Reads a saved ticket again after its reload during the save failed. On success the handler works with the
+        /// stored ticket, including the ids of its request tasks; otherwise it keeps the in-memory copy.
+        /// </summary>
+        /// <param name="ticketId">Id of the saved ticket.</param>
+        /// <returns>True if the stored ticket could be read.</returns>
+        private async Task<bool> TryReloadSavedTicket(long ticketId)
+        {
+            WfTicket inMemoryTicket = wfHandler.ActTicket;
+            WfTicket? storedTicket = await wfHandler.ResolveTicket(ticketId);
+            if (storedTicket?.Id == ticketId)
+            {
+                return true;
+            }
+            // a failed read yields an empty ticket, which ResolveTicket has made the current one
+            wfHandler.SetTicketEnv(inMemoryTicket);
+            return false;
         }
 
         public async Task<bool> PromoteTicket(long ticketId, string extReqState)
@@ -134,6 +159,7 @@ namespace FWO.Services.Workflow
             long ticketId = await wfHandler.SaveTicket(wfHandler.ActTicket);
             if (ticketId > 0)
             {
+                await CreateNewInterfaceImplTask(ticketId);
                 await AddRequesterInfoToImplTask(ticketId);
             }
             return ticketId;
@@ -156,15 +182,17 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Promotes the first new-interface implementation task of the given ticket.
         /// </summary>
-        public async Task<bool> PromoteNewInterfaceImplTask(long ticketId, ExtStates extState, string comment = "")
+        public async Task<bool> PromoteNewInterfaceImplTask(long ticketId, ExtStates extState, string comment = "",
+            NotificationPlaceholderData? placeholderData = null)
         {
-            return await PromoteNewInterfaceImplTasks(ticketId, extState, null, comment) > 0;
+            return await PromoteNewInterfaceImplTasks(ticketId, extState, null, comment, placeholderData) > 0;
         }
 
         /// <summary>
         /// Promotes selected new-interface implementation tasks of the given ticket.
         /// </summary>
-        public async Task<int> PromoteNewInterfaceImplTasks(long ticketId, ExtStates extState, IEnumerable<long>? requestTaskIds, string comment = "")
+        public async Task<int> PromoteNewInterfaceImplTasks(long ticketId, ExtStates extState, IEnumerable<long>? requestTaskIds, string comment = "",
+            NotificationPlaceholderData? placeholderData = null)
         {
             ExtStateHandler extStateHandler = new(apiConnection);
             await wfHandler.Init();
@@ -183,7 +211,7 @@ namespace FWO.Services.Workflow
                 {
                     await wfHandler.ConfAddCommentToImplTask(comment);
                 }
-                await wfHandler.PromoteImplTask(new() { StateId = (int)newState });
+                await wfHandler.PromoteImplTask(new() { StateId = (int)newState }, placeholderData);
                 promotedCount++;
             }
             return promotedCount;
@@ -250,6 +278,23 @@ namespace FWO.Services.Workflow
             if (ticketId > 0 && !string.IsNullOrWhiteSpace(comment))
             {
                 await wfHandler.ConfAddCommentToTicket(comment);
+            }
+        }
+
+        /// <summary>
+        /// Creates the implementation task of the new interface request task of a ticket. Implementation tasks are not
+        /// created when a ticket is saved any more, but the interface workflow needs this task from the start.
+        /// </summary>
+        private async Task CreateNewInterfaceImplTask(long ticketId)
+        {
+            WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
+            if (ticket == null)
+            {
+                return;
+            }
+            foreach (WfReqTask reqTask in ticket.Tasks.Where(task => task.TaskType == WfTaskType.new_interface.ToString()))
+            {
+                await wfHandler.CreateNewInterfaceImplTask(reqTask);
             }
         }
 

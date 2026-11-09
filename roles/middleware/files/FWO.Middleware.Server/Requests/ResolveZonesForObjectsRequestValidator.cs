@@ -1,6 +1,5 @@
 using FWO.Basics;
 using Microsoft.AspNetCore.Mvc;
-using System.Net;
 
 namespace FWO.Middleware.Server.Requests;
 
@@ -24,8 +23,7 @@ public static class ResolveZonesForObjectsRequestValidator
     [
         new("name", "Display name of the object."),
         new("type", "Object type of the object."),
-        new("ipStart", "Start IP address or range value of the object."),
-        new("ipEnd", "End IP address or range value of the object.")
+        .. AddressInputRequestValidator.Keys
     ];
 
     private static readonly RequestKeyDefinition[] GroupKeys =
@@ -161,10 +159,11 @@ public static class ResolveZonesForObjectsRequestValidator
         }
 
         if (string.IsNullOrWhiteSpace(leaf.Type)
-            && string.IsNullOrWhiteSpace(leaf.IpStart)
-            && string.IsNullOrWhiteSpace(leaf.IpEnd))
+            && string.IsNullOrEmpty(leaf.IpHost)
+            && string.IsNullOrEmpty(leaf.IpNetwork)
+            && leaf.IpRange is not { Count: > 0 })
         {
-            errorResult = new BadRequestObjectResult($"'{context}' must define either non-empty 'members' or the leaf fields 'type', 'ipStart', and 'ipEnd'.");
+            errorResult = new BadRequestObjectResult($"'{context}' must define either non-empty 'members' or a leaf 'type' with one address representation.");
             return false;
         }
 
@@ -181,22 +180,20 @@ public static class ResolveZonesForObjectsRequestValidator
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(leaf.IpStart) || string.IsNullOrWhiteSpace(leaf.IpEnd))
-        {
-            errorResult = new BadRequestObjectResult($"'{context}' requires non-empty 'ipStart' and 'ipEnd'.");
-            return false;
-        }
-
-        if (!FlowComplianceRequestValidator.TryValidateIpRange(leaf.IpStart, leaf.IpEnd, context, out string? ipRangeError))
+        if (!AddressInputNormalizer.TryValidateAndNormalize(
+            leaf,
+            $"'{context}'",
+            out NormalizedAddressBounds normalizedBounds,
+            out string? ipRangeError))
         {
             errorResult = new BadRequestObjectResult(ipRangeError);
             return false;
         }
 
         if (string.Equals(leaf.Type, ObjectType.Host, StringComparison.OrdinalIgnoreCase)
-            && !IPAddress.Parse(leaf.IpStart).Equals(IPAddress.Parse(leaf.IpEnd)))
+            && !normalizedBounds.IpStart.Equals(normalizedBounds.IpEnd))
         {
-            errorResult = new BadRequestObjectResult($"'{context}' entries of type '{ObjectType.Host}' must use the same 'ipStart' and 'ipEnd'.");
+            errorResult = new BadRequestObjectResult($"'{context}' entries of type '{ObjectType.Host}' must normalize to one address.");
             return false;
         }
 

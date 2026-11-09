@@ -32,7 +32,7 @@
       when: >
         ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] | float >= 24.04
         or ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_version'] | float >= 13
-        or ansible_facts['distribution'] == "Debian" and ansible_lsb.codename == "trixie"
+        or ansible_facts['distribution'] == "Debian" and ansible_facts['lsb']['codename'] == "trixie"
 
     - block:
         - name: Ensure the /etc/apparmor.d directory exists
@@ -48,7 +48,7 @@
               abi <abi/4.0>,
               include <tunables/global>
 
-              profile /usr/local/fworch/bin/**/chrome flags=(unconfined) {
+              profile {{ fworch_browser_dir }}/**/chrome flags=(unconfined) {
                   userns,
 
                   # Site-specific additions and overrides. See local/README for details.

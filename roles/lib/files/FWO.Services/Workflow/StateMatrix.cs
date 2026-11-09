@@ -26,6 +26,9 @@ namespace FWO.Services.Workflow
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; }
 
+        [JsonProperty("phase_visibility_mode"), JsonPropertyName("phase_visibility_mode")]
+        public PhaseVisibilityMode VisibilityMode { get; set; } = PhaseVisibilityMode.AnyTask;
+
         [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
         public Dictionary<int, List<int>> StateVisibilityGroupIds { get; set; } = [];
 
@@ -57,6 +60,7 @@ namespace FWO.Services.Workflow
             LowestStartedState = glbStateMatrix.GlobalMatrix[phase].LowestStartedState;
             LowestEndState = glbStateMatrix.GlobalMatrix[phase].LowestEndState;
             Active = glbStateMatrix.GlobalMatrix[phase].Active;
+            VisibilityMode = glbStateMatrix.GlobalMatrix[phase].VisibilityMode;
             StateVisibilityGroupIds = glbStateMatrix.GlobalMatrix[phase].StateVisibilityGroupIds.ToDictionary(entry => entry.Key, entry => entry.Value.ToList());
             ExclusiveVisibilityGroupIds = [.. glbStateMatrix.GlobalMatrix[phase].ExclusiveVisibilityGroupIds];
             AutomaticOnlyStates = preloadedStates.Where(state => state.AutomaticOnly).Select(state => state.Id).ToHashSet();
@@ -70,12 +74,17 @@ namespace FWO.Services.Workflow
                 }
             }
             MinImplTasksNeeded = glbStateMatrix.GlobalMatrix[WorkflowPhases.implementation].LowestInputState;
-            MinTicketCompleted = glbStateMatrix.GlobalMatrix[PhaseActive.LastOrDefault(p => p.Value == true).Key].LowestEndState;
+            WorkflowPhases lastActivePhase = PhaseActive
+                .Where(entry => entry.Value)
+                .Select(entry => entry.Key)
+                .DefaultIfEmpty(phase)
+                .Max();
+            MinTicketCompleted = glbStateMatrix.GlobalMatrix[lastActivePhase].LowestEndState;
         }
 
         public bool getNextActivePhase(ref WorkflowPhases phase)
         {
-            foreach (var tmpPhase in PhaseActive)
+            foreach (var tmpPhase in PhaseActive.OrderBy(entry => entry.Key))
             {
                 if (tmpPhase.Key > phase && tmpPhase.Value)
                 {
@@ -326,6 +335,7 @@ namespace FWO.Services.Workflow
                 LowestStartedState = source.LowestStartedState,
                 LowestEndState = source.LowestEndState,
                 Active = source.Active,
+                VisibilityMode = source.VisibilityMode,
                 StateVisibilityGroupIds = source.StateVisibilityGroupIds.ToDictionary(entry => entry.Key, entry => entry.Value.ToList()),
                 ExclusiveVisibilityGroupIds = [.. source.ExclusiveVisibilityGroupIds]
             };
@@ -334,6 +344,7 @@ namespace FWO.Services.Workflow
         private static bool HasChangedDeferredValues(StateMatrix current, StateMatrix original)
         {
             return current.Active != original.Active
+                || current.VisibilityMode != original.VisibilityMode
                 || current.LowestInputState != original.LowestInputState
                 || current.LowestStartedState != original.LowestStartedState
                 || current.LowestEndState != original.LowestEndState

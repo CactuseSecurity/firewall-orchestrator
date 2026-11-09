@@ -61,6 +61,11 @@ namespace FWO.Test
 
         private static MonitorExternalRequests RenderComponent(MonitorExternalRequestsApiConn apiConn)
         {
+            return RenderPage(apiConn).FindComponent<MonitorExternalRequests>().Instance;
+        }
+
+        private static IRenderedComponent<CascadingAuthenticationState> RenderPage(MonitorExternalRequestsApiConn apiConn)
+        {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
@@ -71,9 +76,8 @@ namespace FWO.Test
             context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
 
-            IRenderedComponent<CascadingAuthenticationState> component = context.Render<CascadingAuthenticationState>(parameters =>
+            return context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<MonitorExternalRequests>());
-            return component.FindComponent<MonitorExternalRequests>().Instance;
         }
 
         [Test]
@@ -212,6 +216,27 @@ namespace FWO.Test
             {
                 Assert.That(GetPrivateField<ExternalRequest>(component, "actRequest").Id, Is.EqualTo(9));
                 Assert.That(GetPrivateField<bool>(component, "DetailsMode"), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task Details_RedactsAuthorizationOfTicketSystem()
+        {
+            const string encryptedAuthorization = "c2VjcmV0LWNpcGhlcnRleHQ=";
+            MonitorExternalRequestsApiConn apiConn = new();
+            IRenderedComponent<MonitorExternalRequests> page = RenderPage(apiConn).FindComponent<MonitorExternalRequests>();
+            ExternalRequest request = CreateRequest(9, ExtStates.ExtReqFailed, false);
+            request.ExtTicketSystem = $"{{\"Id\":1,\"Name\":\"Tufin\",\"Authorization\":\"{encryptedAuthorization}\",\"Url\":\"https://tufin\"}}";
+
+            object[] arguments = [request];
+            await page.InvokeAsync(() => GetPrivateMethod("Details", typeof(ExternalRequest)).Invoke(page.Instance, arguments));
+            page.Render();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(page.Markup, Does.Not.Contain(encryptedAuthorization));
+                Assert.That(page.Markup, Does.Contain("****"));
+                Assert.That(page.Markup, Does.Contain("https://tufin"));
             });
         }
 

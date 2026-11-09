@@ -5,6 +5,7 @@ mutation updateImplementationTask(
   $implIaskNumber: Int
   $state: Int
   $device: Int
+  $mgmId: Int
   $implAction: action_enum
   $ruleAction: Int
   $tracking: Int
@@ -21,6 +22,7 @@ mutation updateImplementationTask(
     task_number: $implIaskNumber
     state_id: $state
     device_id: $device
+    mgm_id: $mgmId
     implementation_action: $implAction
     rule_action: $ruleAction
     rule_tracking: $tracking

@@ -1,5 +1,7 @@
 using System.Net;
+using System.Security.Claims;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JsonRequired = System.Text.Json.Serialization.JsonRequiredAttribute;
@@ -10,9 +12,11 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Networking;
 using FWO.Logging;
+using FWO.Middleware.Server.Services;
 using FWO.Ui.Display;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Newtonsoft.Json;
 
 namespace FWO.Middleware.Server.Controllers;
@@ -26,9 +30,22 @@ namespace FWO.Middleware.Server.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class RuleController(ApiConnection apiConnection) : ControllerBase
+public class RuleController(ApiConnection apiConnection, GlobalConfig globalConfig) : ControllerBase
 {
     private const int OwnerMappingIdCustomField = 2;
+    private const int UnsetPortEnd = 0;
+    private const string kSiemLogTitle = "Log type: portal-application";
+    private const string kSiemResultOk = "ok";
+    private const string kSiemResultRejected = "rejected";
+    private const string kSiemResultError = "error";
+    private const string kCallerNameClaim = "unique_name";
+    private const string kCallerIdClaim = "x-hasura-user-id";
+
+    // Relaxed escaping keeps non-ASCII names readable; quotes, backslashes and control characters are still escaped.
+    private static readonly JsonSerializerOptions kSiemValueSerializerOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
 
     /// <summary>
     /// Returns firewall rules that match the specified filtering options.
@@ -36,7 +53,11 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     /// <remarks>
     /// Exactly one of <c>OwnerId</c> or <c>IpAddress</c> must be provided in the request query.
     /// When <c>OwnerId</c> is set, all rules mapped to the given owner are returned.
-    /// When <c>IpAddress</c> is set, rules are filtered by IP range using the supplied <c>Filter</c> fields:
+    /// When <c>IpAddress</c> is set, rules are filtered by IP range using the supplied <c>Filter</c> fields.
+    /// Rules are ordered by rule id, so <c>options.limit</c> and <c>options.offset</c> page the result
+    /// deterministically. Without a limit a page of at most the configured <c>maxRestResponseObjectLimit</c> rules
+    /// (default 10000) is returned; <c>result.count</c> is the number of rules in the page, and the
+    /// <c>X-Has-More</c> response header tells whether further rules follow.
     /// </remarks>
     /// <returns>
     /// An <see cref="ActionResult{T}"/> containing a <see cref="RulesByFilterResponse"/> on success,
@@ -45,54 +66,75 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     /// <param name="request">The owner- or IP-based rule filter request.</param>
     /// <param name="requestId">Optional client request identifier supplied through the <c>X-Request-Id</c> header.</param>
     [HttpPost("GetRulesByFilter")]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     public async Task<ActionResult<RulesByFilterResponse>> GetRulesByFilter(
         [FromBody] RulesByFilterRequest request,
         [FromHeader(Name = "X-Request-Id")] string? requestId = null)
     {
+        DateTime requestTime = DateTime.UtcNow;
+        string resolvedRequestId = requestId ?? Guid.NewGuid().ToString();
+        string siemResult = kSiemResultError;
         try
         {
             string? filterSelectionValidationError = ValidateFilterSelection(request.Query.OwnerId, request.Query.IpAddress);
             if (filterSelectionValidationError is not null)
             {
+                siemResult = kSiemResultRejected;
                 return BadRequest(filterSelectionValidationError);
             }
 
-            GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection);
-            UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
+            RulesByFilterOptions options = request.Options ?? new RulesByFilterOptions();
+            int maxLimit = ListPaging.GetMaxObjectLimit(globalConfig);
+            Dictionary<string, string[]> pagingErrors = ListPaging.ValidatePaging(options.Limit, options.Offset, maxLimit, "options.limit", "options.offset");
+            if (pagingErrors.Count > 0)
+            {
+                siemResult = kSiemResultRejected;
+                return BadRequest($"Invalid paging: {string.Join(" ", pagingErrors.Values.SelectMany(errors => errors))}");
+            }
+            RulePage page = new(ListPaging.GetPageSize(options.Limit, maxLimit), options.Offset);
 
-            string resolvedRequestId = requestId ?? Guid.NewGuid().ToString();
+            GlobalConfig requestConfig = await GlobalConfig.ConstructAsync(apiConnection);
+            UserConfig userConfig = UserConfig.ForGlobalSettings(requestConfig, apiConnection);
 
-            LogSiemEntry(request, resolvedRequestId);
-
-            List<RuleDetail> rules;
+            ListPage<RuleDetail> rules;
             if (request.Query.OwnerId is not null)
             {
                 rules = await FetchRulesByOwnerId(
                     request.Query.OwnerId.Value,
+                    page,
                     userConfig);
             }
             else
             {
-                (List<RuleDetail>? fetchedRules, string? validationError) = await FetchRulesByIpAddress(
+                (ListPage<RuleDetail>? fetchedRules, string? validationError) = await FetchRulesByIpAddress(
                     request.Query.IpAddress,
                     request.Query.Filter,
+                    page,
                     userConfig);
 
                 if (validationError is not null)
                 {
+                    siemResult = kSiemResultRejected;
                     return BadRequest(validationError);
                 }
 
-                rules = fetchedRules ?? [];
+                rules = fetchedRules ?? new ListPage<RuleDetail>(new List<RuleDetail>(), false);
             }
 
-            return Ok(CreateRulesByFilterResponse(resolvedRequestId, rules));
+            siemResult = kSiemResultOk;
+            ListPaging.SetHasMoreHeader(HttpContext, rules.HasMore);
+            return Ok(CreateRulesByFilterResponse(resolvedRequestId, rules.Items));
         }
         catch (Exception exception)
         {
             Log.WriteError("Get Rules By Filter", "Error while fetching rules.", exception);
             return StatusCode(500, "Internal server error");
+        }
+        finally
+        {
+            Log.WriteInfo(kSiemLogTitle, BuildSiemEntry(request, resolvedRequestId, User, siemResult, requestTime));
         }
     }
 
@@ -114,9 +156,10 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         return null;
     }
 
-    private async Task<(List<RuleDetail>? Rules, string? Error)> FetchRulesByIpAddress(
+    private async Task<(ListPage<RuleDetail>? Rules, string? Error)> FetchRulesByIpAddress(
         string? ipAddress,
         RuleFilter? queryFilter,
+        RulePage page,
         UserConfig userConfig)
     {
         if (!IPAddress.TryParse(ipAddress, out IPAddress? parsedIpAddress) || parsedIpAddress.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
@@ -136,6 +179,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             effectiveFilter.Action,
             effectiveFilter.MinPrefixLength,
             effectiveFilter.InField,
+            page,
             userConfig), null);
     }
 
@@ -178,34 +222,71 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         };
     }
 
-    private void LogSiemEntry(RulesByFilterRequest request, string requestId)
+    /// <summary>
+    /// Builds the SIEM audit entry for a rules-by-filter request.
+    /// </summary>
+    /// <remarks>
+    /// The caller identity is taken from the authenticated JWT. The user given in the request body is
+    /// logged as well, since a portal application calls on behalf of its own users. All strings that
+    /// do not come from the middleware itself are JSON-quoted, so they cannot add fields to the entry.
+    /// </remarks>
+    /// <param name="request">The rules-by-filter request as sent by the client.</param>
+    /// <param name="requestId">The resolved request identifier.</param>
+    /// <param name="caller">The authenticated principal of the caller, if any.</param>
+    /// <param name="result">The outcome of the request: ok, rejected or error.</param>
+    /// <param name="timestamp">The UTC time the request was received.</param>
+    /// <returns>The entry as comma-separated <c>Key: value</c> pairs.</returns>
+    internal static string BuildSiemEntry(RulesByFilterRequest request, string requestId, ClaimsPrincipal? caller,
+        string result, DateTime timestamp)
     {
-        var info = $"DateTime: {DateTime.UtcNow:O}, " +
-                   $"RequestId: {requestId}, " +
-                   $"UserID: {request.RequestContext.UserID}, " +
-                   $"UserName: {request.RequestContext.UserName}, ";
+        string callerName = caller?.FindFirstValue(kCallerNameClaim) ?? caller?.Identity?.Name ?? "";
+        int callerId = int.TryParse(caller?.FindFirstValue(kCallerIdClaim), out int parsedCallerId) ? parsedCallerId : 0;
+
+        List<string> fields =
+        [
+            $"DateTime: {timestamp:O}",
+            $"RequestId: {QuoteSiemValue(requestId)}",
+            $"CallerName: {QuoteSiemValue(callerName)}",
+            $"CallerId: {callerId}",
+            $"UserID: {QuoteSiemValue(request.RequestContext.UserID)}",
+            $"UserName: {QuoteSiemValue(request.RequestContext.UserName)}"
+        ];
         if (request.Query.OwnerId is not null)
         {
-            info += $"OwnerId: {request.Query.OwnerId}";
+            fields.Add($"OwnerId: {request.Query.OwnerId}");
         }
-        else if (request.Query.IpAddress is not null && request.Query.Filter is not null)
+        if (request.Query.IpAddress is not null)
         {
-            info += $"IpAddress: {request.Query.IpAddress}"
-                    + "Filter: {"
-                    + $"MinPrefixLength: {request.Query.Filter.MinPrefixLength}"
-                    + $"InField: {request.Query.Filter.InField}"
-                    + $"Action: {request.Query.Filter.Action}"
-                    + "}";
+            fields.Add($"IpAddress: {QuoteSiemValue(request.Query.IpAddress)}");
         }
+        if (request.Query.Filter is not null)
+        {
+            fields.Add("Filter: {"
+                + $"MinPrefixLength: {request.Query.Filter.MinPrefixLength}, "
+                + $"InField: {QuoteSiemValue(request.Query.Filter.InField)}, "
+                + $"Action: {QuoteSiemValue(request.Query.Filter.Action)}"
+                + "}");
+        }
+        fields.Add($"Result: {result}");
 
-        Log.WriteInfo("Log type: portal-application", info);
+        return string.Join(", ", fields);
     }
 
-    private async Task<List<RuleDetail>> FetchRulesByOwnerId(int ownerId,
+    private static string QuoteSiemValue(string? value)
+    {
+        return System.Text.Json.JsonSerializer.Serialize(value ?? "", kSiemValueSerializerOptions);
+    }
+
+    /// <summary>
+    /// Returns one page of the rules mapped to the owner. The page is cut from the ordered rule ids, so only the
+    /// details of the rules of the page are fetched.
+    /// </summary>
+    private async Task<ListPage<RuleDetail>> FetchRulesByOwnerId(int ownerId, RulePage page,
         UserConfig userConfig)
     {
-        var ruleIDs = await GetRuleIdsByOwnerId(ownerId);
-        return await GetRulesByIdsAsync(ruleIDs, userConfig);
+        List<int> orderedRuleIds = [.. (await GetRuleIdsByOwnerId(ownerId)).Distinct().Order()];
+        ListPage<int> ruleIdPage = ListPage<int>.FromOrderedItems(orderedRuleIds, page.PageSize, page.Offset);
+        return new ListPage<RuleDetail>(await GetRulesByIdsAsync(ruleIdPage.Items, userConfig), ruleIdPage.HasMore);
     }
 
     private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds, UserConfig userConfig)
@@ -221,7 +302,8 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         };
 
         var result = await apiConnection.SendQueryAsync<List<Rule>>(query, variables);
-        return ConvertRuleList(result, userConfig);
+        List<Rule> orderedRules = result.OrderBy(rule => rule.Id).ToList();
+        return ConvertRuleList(orderedRules, userConfig);
     }
 
     private async Task<List<int>> GetRuleIdsByOwnerId(int ownerId)
@@ -241,8 +323,8 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             .ToList();
     }
 
-    private async Task<List<RuleDetail>> FilterRules(IPAddress ipAddress, string action, int minPrefix,
-        string inField, UserConfig userConfig)
+    private async Task<ListPage<RuleDetail>> FilterRules(IPAddress ipAddress, string action, int minPrefix,
+        string inField, RulePage page, UserConfig userConfig)
     {
         IpFilterHelper ipHelper = new IpFilterHelper();
 
@@ -255,27 +337,73 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 
         foreach (var rule in result)
         {
-            var sourceObjects = FlattenRuleNetworkObjects(
-                rule.Froms.Select(source => source.Object).ToList());
-            var destObjects = FlattenRuleNetworkObjects(
-                rule.Tos.Select(dest => dest.Object).ToList());
-
-            bool isInRange = inField switch
-            {
-                FilterFields.Source => ipHelper.IsInRange(ipAddress, minPrefix, sourceObjects),
-                FilterFields.Destination => ipHelper.IsInRange(ipAddress, minPrefix, destObjects),
-                FilterFields.Both => ipHelper.IsInRange(ipAddress, minPrefix, sourceObjects) ||
-                                     ipHelper.IsInRange(ipAddress, minPrefix, destObjects),
-                _ => throw new ArgumentException($"Invalid InField: {inField}")
-            };
-
-            if (isInRange)
+            if (MatchesRuleIpFilter(rule, ipAddress, minPrefix, inField, ipHelper))
             {
                 ruleItems.Add(rule);
             }
         }
 
-        return ConvertRuleList(ruleItems, userConfig);
+        ListPage<Rule> rulePage = ListPage<Rule>.FromOrderedItems(ruleItems.OrderBy(rule => rule.Id), page.PageSize, page.Offset);
+        return new ListPage<RuleDetail>(ConvertRuleList(rulePage.Items, userConfig), rulePage.HasMore);
+    }
+
+    /// <summary>
+    /// Checks the selected rule field for the IP address and both fields for minimum-prefix compliance.
+    /// </summary>
+    private static bool MatchesRuleIpFilter(Rule rule, IPAddress ipAddress, int minPrefix, string inField,
+        IpFilterHelper ipHelper)
+    {
+        switch (inField)
+        {
+            case FilterFields.Source:
+                {
+                    IpFilterEvaluation sourceEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                        GetRuleNetworkObjects(rule, isSource: true));
+                    if (sourceEvaluation != IpFilterEvaluation.Match)
+                    {
+                        return false;
+                    }
+
+                    return ipHelper.MeetsMinimumPrefix(minPrefix, GetRuleNetworkObjects(rule, isSource: false));
+                }
+            case FilterFields.Destination:
+                {
+                    IpFilterEvaluation destinationEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                        GetRuleNetworkObjects(rule, isSource: false));
+                    if (destinationEvaluation != IpFilterEvaluation.Match)
+                    {
+                        return false;
+                    }
+
+                    return ipHelper.MeetsMinimumPrefix(minPrefix, GetRuleNetworkObjects(rule, isSource: true));
+                }
+            case FilterFields.Both:
+                {
+                    IpFilterEvaluation sourceEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                        GetRuleNetworkObjects(rule, isSource: true));
+                    if (sourceEvaluation == IpFilterEvaluation.PrefixViolation)
+                    {
+                        return false;
+                    }
+
+                    IpFilterEvaluation destinationEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                        GetRuleNetworkObjects(rule, isSource: false));
+                    return destinationEvaluation != IpFilterEvaluation.PrefixViolation &&
+                           (sourceEvaluation == IpFilterEvaluation.Match ||
+                            destinationEvaluation == IpFilterEvaluation.Match);
+                }
+            default:
+                throw new ArgumentException($"Invalid InField: {inField}");
+        }
+    }
+
+    /// <summary>
+    /// Returns the flattened network objects with a known type from one side of a rule.
+    /// </summary>
+    private static List<NetworkObject> GetRuleNetworkObjects(Rule rule, bool isSource)
+    {
+        IEnumerable<NetworkLocation> locations = isSource ? rule.Froms : rule.Tos;
+        return FlattenRuleNetworkObjects(locations.Select(location => location.Object));
     }
 
     private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig)
@@ -286,7 +414,8 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 
         return inputList.Select(item =>
         {
-            List<NetworkService> flattenedServices = FlattenRuleServices(item.Services.Select(s => s.Content).ToList());
+            List<NetworkService> ruleServices = GetRuleServices(item.Services.Select(s => s.Content).ToList());
+            List<NetworkService> ruleServicesWithMembers = GetRuleServicesWithMembers(ruleServices);
 
             return new RuleDetail
             {
@@ -297,7 +426,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                     {
                         Name = s.Name,
                         Type = s.Type.Name,
-                        Ip = DisplayBase.DisplayIp(s.IP, s.IpEnd)
+                        Ip = DisplayBase.DisplayIp(s.IP ?? "", s.IpEnd ?? "")
                     })
                     .ToList(),
                 SourceShort = DisplaySourceOrDestinationPlain(item, isSource: true, userConfig),
@@ -306,19 +435,20 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                     {
                         Name = d.Name,
                         Type = d.Type.Name,
-                        Ip = DisplayBase.DisplayIp(d.IP, d.IpEnd)
+                        Ip = DisplayBase.DisplayIp(d.IP ?? "", d.IpEnd ?? "")
                     })
                     .ToList(),
                 DestinationShort = DisplaySourceOrDestinationPlain(item, isSource: false, userConfig),
-                Service = flattenedServices
+                Service = ruleServicesWithMembers
                     .Select(s => new ServiceObject
                     {
                         Name = s.Name,
                         Protocol = s.Protocol?.Name ?? notFound,
-                        Port = s.DestinationPort ?? -1
+                        Port = s.DestinationPort ?? -1,
+                        PortEnd = NormalizePortEnd(s.DestinationPort, s.DestinationPortEnd)
                     })
                     .ToList(),
-                ServiceShort = DisplayServicesPlain(flattenedServices, item.ServiceNegated, userConfig),
+                ServiceShort = DisplayServicesPlain(ruleServices, item.ServiceNegated, userConfig),
                 Name = item.Name ?? notFound,
                 CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
                 LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
@@ -329,6 +459,16 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 Time = item.RuleTimes.Where(ruleTimeObject => ruleTimeObject.TimeObj is not null).Select(ruleTimeObject => ruleTimeObject.TimeObj!.Name).ToList()
             };
         }).ToList();
+    }
+
+    /// <summary>
+    /// Returns a range end only when the service contains a distinct starting port and ending port.
+    /// </summary>
+    private static int? NormalizePortEnd(int? port, int? portEnd)
+    {
+        return port is null || portEnd is null || portEnd == UnsetPortEnd || portEnd == port
+            ? null
+            : portEnd;
     }
 
     private static string DisplaySourceOrDestinationPlain(Rule rule, bool isSource, UserConfig userConfig)
@@ -425,7 +565,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         return result.ToString();
     }
 
-    private static List<NetworkObject> FlattenRuleNetworkObjects(List<NetworkObject> list)
+    private static List<NetworkObject> FlattenRuleNetworkObjects(IEnumerable<NetworkObject> list)
     {
         return NetworkObject.FlattenRuleNetworkObjects(list)
             .Where(HasType)
@@ -433,9 +573,18 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             .ToList();
     }
 
-    private static List<NetworkService> FlattenRuleServices(List<NetworkService> list)
+    private static List<NetworkService> GetRuleServices(List<NetworkService> list)
     {
-        return NetworkService.FlattenRuleServices(list)
+        return list
+            .Where(HasType)
+            .Distinct()
+            .ToList();
+    }
+
+    private static List<NetworkService> GetRuleServicesWithMembers(List<NetworkService> list)
+    {
+        return list
+            .Concat(NetworkService.FlattenRuleServices(list))
             .Where(HasType)
             .Distinct()
             .ToList();
@@ -467,6 +616,13 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         return ruleAction;
     }
 
+    /// <summary>
+    /// Page of the rule result requested by the caller.
+    /// </summary>
+    /// <param name="PageSize">Number of rules in the page.</param>
+    /// <param name="Offset">Number of rules skipped before the page; null skips none.</param>
+    private sealed record RulePage(int PageSize, int? Offset);
+
     private static class FilterFields
     {
         public const string Source = "source";
@@ -480,9 +636,14 @@ public sealed class IpFilterHelper
 {
     private readonly NetworkObjectRangeAnalyzer _rangeAnalyzer = new();
 
-    public bool IsInRange(IPAddress ipAddress, int minPrefix, List<NetworkObject> objects)
+    public IpFilterEvaluation EvaluateField(IPAddress ipAddress, int minPrefix, List<NetworkObject> objects)
     {
-        return _rangeAnalyzer.MatchesIpFilter(ipAddress, minPrefix, objects);
+        return _rangeAnalyzer.EvaluateIpFilter(ipAddress, minPrefix, objects);
+    }
+
+    public bool MeetsMinimumPrefix(int minPrefix, List<NetworkObject> objects)
+    {
+        return _rangeAnalyzer.MeetsMinimumPrefix(minPrefix, objects);
     }
 }
 
@@ -490,6 +651,32 @@ public class RulesByFilterRequest
 {
     public RequestContext RequestContext { get; set; } = new();
     public RulesByFilterQuery Query { get; set; } = new();
+
+    /// <summary>
+    /// Optional paging options. Defaults to {}; an explicit null is treated like the default.
+    /// </summary>
+    [JsonPropertyName("options")]
+    public RulesByFilterOptions? Options { get; set; } = new();
+}
+
+/// <summary>
+/// Paging options of the rules-by-filter lookup. Rules are ordered by rule id.
+/// </summary>
+public class RulesByFilterOptions
+{
+    /// <summary>
+    /// Maximum number of rules returned, between 1 and the configured <c>maxRestResponseObjectLimit</c>
+    /// (default 10000). Omitted or null returns a page of that size; the <c>X-Has-More</c> response header tells
+    /// whether further rules follow.
+    /// </summary>
+    [JsonPropertyName("limit")]
+    public int? Limit { get; set; }
+
+    /// <summary>
+    /// Number of rules skipped before the first returned rule, at least 0. Omitted or null skips no rule.
+    /// </summary>
+    [JsonPropertyName("offset")]
+    public int? Offset { get; set; }
 }
 
 public class RulesByFilterQuery
@@ -616,6 +803,10 @@ public class ServiceObject
 
     [JsonPropertyName("port")]
     public int Port { get; set; }
+
+    [JsonPropertyName("portEnd")]
+    [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? PortEnd { get; set; }
 }
 
 public class RequestContext

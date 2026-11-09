@@ -29,6 +29,13 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class UiMainLayoutTest
     {
+        private static readonly IEnumerable<string> AdminRequesterRoles = [Roles.Admin, Roles.Requester];
+        private static readonly List<string> WorkflowRoles = [Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer];
+        private static readonly List<string> PersonalSettingsAmbientRoles = [Roles.Modeller, Roles.Recertifier, Roles.ReporterViewAll, Roles.Reporter,
+            Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.Auditor];
+        private static readonly string[] ReportAmbientRoles = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
+            Roles.Recertifier, Roles.Admin, Roles.Auditor];
+
         private static MethodInfo GetPrivateMethod(string name)
         {
             return typeof(MainLayout).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
@@ -139,35 +146,29 @@ namespace FWO.Test
             {
                 ["/settings/user"] = [Roles.Modeller, Roles.Recertifier, Roles.ReporterViewAll, Roles.Reporter,
                     Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer,
-                    Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/settings/language"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/settings/report"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/settings/modellingpersonal"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/settings/recertificationpersonal"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/report/generation"] = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
-                    Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin],
-                ["/report/schedule"] = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
-                    Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin],
-                ["/report/archive"] = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
-                    Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin],
+                    Roles.Admin, Roles.Auditor],
+                ["/settings/personal"] = PersonalSettingsAmbientRoles,
+                ["/report/generation"] = ReportAmbientRoles.ToList(),
+                ["/report/schedule"] = ReportAmbientRoles.ToList(),
+                ["/report/archive"] = ReportAmbientRoles.ToList(),
                 ["/networkmodelling"] = [Roles.Modeller, Roles.Admin, Roles.Auditor],
                 ["/certification"] = [Roles.Recertifier, Roles.Modeller, Roles.Admin, Roles.Auditor],
-                ["/request/tickets"] = [Roles.Requester, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/request/ticketsoverview"] = [Roles.Requester, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/request/approvals"] = [Roles.Approver, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/request/plannings"] = [Roles.Planner, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/request/implementations"] = [Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin,
+                ["/request/tickets"] = [Roles.Requester, Roles.Admin, Roles.Auditor],
+                ["/request/ticketsoverview"] = [Roles.Requester, Roles.Admin, Roles.Auditor],
+                ["/request/approvals"] = [Roles.Approver, Roles.Admin, Roles.Auditor],
+                ["/request/plannings"] = [Roles.Planner, Roles.Admin, Roles.Auditor],
+                ["/request/implementations"] = [Roles.Implementer, Roles.Reviewer, Roles.Admin,
                     Roles.Auditor],
-                ["/request/reviews"] = [Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/monitoring"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/monitoring/import_status"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/monitoring/alerts"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/monitoring/modelling_requests"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/monitoring/requested_interfaces"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/compliance/checks"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/compliance/matrix"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/compliance/policies"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/network_analysis"] = [Roles.Planner, Roles.FwAdmin, Roles.Admin, Roles.Auditor],
+                ["/request/reviews"] = [Roles.Reviewer, Roles.Admin, Roles.Auditor],
+                ["/monitoring"] = [Roles.Admin, Roles.Auditor],
+                ["/monitoring/import_status"] = [Roles.Admin, Roles.Auditor],
+                ["/monitoring/alerts"] = [Roles.Admin, Roles.Auditor],
+                ["/monitoring/modelling_requests"] = [Roles.Admin, Roles.Auditor],
+                ["/monitoring/requested_interfaces"] = [Roles.Admin, Roles.Auditor],
+                ["/compliance/checks"] = [Roles.Admin, Roles.Auditor],
+                ["/compliance/matrix"] = [Roles.Admin, Roles.Auditor],
+                ["/compliance/policies"] = [Roles.Admin, Roles.Auditor],
+                ["/network_analysis"] = [Roles.Planner, Roles.Admin, Roles.Auditor],
             };
 
             Assert.Multiple(() =>
@@ -176,6 +177,23 @@ namespace FWO.Test
                 {
                     Assert.That(GetAmbientRolesForRoute(fixture.Layout.Instance, route), Is.EqualTo(expectedRoles), route);
                 }
+            });
+        }
+
+        [Test]
+        public async Task NavigationToPersonalSettingsExpandsWorkflowRolesIntoAmbientRoleSelection()
+        {
+            await using MainLayoutFixture fixture = new(roles: AdminRequesterRoles);
+            fixture.ApiConnection.AmbientRoleRequests.Clear();
+            fixture.ApiConnection.AmbientRoleSelections.Clear();
+
+            fixture.NavigationManager.NavigateTo("/settings/personal");
+
+            fixture.Layout.WaitForAssertion(() =>
+            {
+                Assert.That(fixture.ApiConnection.AmbientRoleRequests.Last(), Is.EqualTo(PersonalSettingsAmbientRoles));
+                Assert.That(fixture.ApiConnection.AmbientRoleSelections.Last(), Is.EqualTo(Roles.Requester));
+                Assert.That(fixture.ApiConnection.AmbientRoleRequests.Last(), Does.Contain(Roles.Requester));
             });
         }
 
@@ -189,16 +207,7 @@ namespace FWO.Test
 
             fixture.Layout.WaitForAssertion(() =>
             {
-                Assert.That(fixture.ApiConnection.AmbientRoleRequests.Last(), Is.EqualTo(new[]
-                {
-                    Roles.ReporterViewAll,
-                    Roles.Reporter,
-                    Roles.Modeller,
-                    Roles.Recertifier,
-                    Roles.Admin,
-                    Roles.Auditor,
-                    Roles.FwAdmin
-                }));
+                Assert.That(fixture.ApiConnection.AmbientRoleRequests.Last(), Is.EqualTo(ReportAmbientRoles));
                 Assert.That(fixture.ApiConnection.LastAmbientUser?.Identity?.Name, Is.EqualTo("tester"));
             });
         }

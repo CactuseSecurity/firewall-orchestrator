@@ -1,5 +1,7 @@
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Encryption;
 using FWO.Middleware.Server;
 using Novell.Directory.Ldap;
 using NUnit.Framework;
@@ -8,9 +10,13 @@ using System.Reflection;
 namespace FWO.Test
 {
     [TestFixture]
+    // TestConnection_DoesNotDecryptAStoredSecret installs a process wide main key.
+    [NonParallelizable]
     internal class LdapBasicTest
     {
+        private const string kClearTextSecret = "theClearTextSecret";
         private static readonly string kUserDn = "uid=user,ou=users,dc=example,dc=com";
+        private static readonly List<string> kUserDnList = [kUserDn];
         private static readonly string kSearchUser = "cn=search,dc=example,dc=com";
         private static readonly string kSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
         private static readonly string kRoleDn = "cn=AppOwners,ou=roles,dc=example,dc=com";
@@ -20,6 +26,7 @@ namespace FWO.Test
         private static readonly string kDescription = "Application owners";
         private static readonly string[] kOwnerGroupValues = { "ownergroup" };
         private static readonly string[] kUidValues = { "user" };
+        private static readonly string[] kOtherUidValues = { "other" };
         private static readonly string[] kMailValues = { kMail };
         private static readonly string[] kDescriptionValues = { kDescription };
         private static readonly string[] kUniqueMemberValues = { kUserDn };
@@ -50,6 +57,166 @@ namespace FWO.Test
             string escaped = Ldap.EscapeSearchPattern("cn=User*(test)");
 
             Assert.That(escaped, Is.EqualTo(@"cn=User*\28test\29"));
+        }
+
+        [TestCase("*")]
+        [TestCase("a*")]
+        [TestCase(@"a\2a")]
+        [TestCase("a\0")]
+        [TestCase("a(b)")]
+        public async Task Login_RejectsFilterSyntaxBeforeConnecting(string name)
+        {
+            RecordingLdapClient connection = new();
+            global::FWO.Test.TestableLdap ldap = new(connection);
+
+            LdapEntry? entry = await ldap.GetLdapEntry(new UiUser { Name = name, Password = "secret" }, true);
+
+            Assert.That(entry, Is.Null);
+            Assert.That(ldap.ConnectCount, Is.Zero);
+        }
+
+        [TestCase(LdapType.ActiveDirectory, "(sAMAccountName=user)", "uid=")]
+        [TestCase(LdapType.OpenLdap, "(uid=user)", "sAMAccountName=")]
+        [TestCase(LdapType.Default, "(|(sAMAccountName=user)(uid=user))", "cn=")]
+        public async Task Login_SearchesTheTrimmedNameExactlyInTheLoginAttributeOfTheDirectoryType(LdapType type, string expectedFilterPart, string unexpectedFilterPart)
+        {
+            RecordingLdapClient connection = new()
+            {
+                SearchResults = LdapTestSupport.CreateSearchResults()
+            };
+            global::FWO.Test.TestableLdap ldap = new(connection)
+            {
+                UserSearchPath = "ou=users,dc=example,dc=com",
+                Type = (int)type
+            };
+
+            await ldap.GetLdapEntry(new UiUser { Name = " user ", Password = "secret" }, true);
+
+            string filter = connection.SearchCalls[0].Filter;
+            Assert.That(filter, Does.Contain(expectedFilterPart));
+            Assert.That(filter, Does.Not.Contain(unexpectedFilterPart));
+            Assert.That(filter, Does.Not.Contain("userPrincipalName").And.Not.Contain("mail="));
+        }
+
+        [Test]
+        public async Task Login_DoesNotBindAnEntryWhoseNameDiffersFromTheLoginName()
+        {
+            // e.g. an entry matched by a second uid value or by uid while its sAMAccountName differs
+            LdapEntry entry = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("uid", kOtherUidValues));
+            RecordingLdapClient connection = new()
+            {
+                SearchResults = LdapTestSupport.CreateSearchResults(entry)
+            };
+            global::FWO.Test.TestableLdap ldap = new(connection)
+            {
+                UserSearchPath = "ou=users,dc=example,dc=com"
+            };
+
+            LdapEntry? result = await ldap.GetLdapEntry(new UiUser { Name = "user", Password = "secret" }, true);
+
+            Assert.That(result, Is.Null);
+            Assert.That(connection.BindCalls, Is.Empty);
+        }
+
+        [Test]
+        public async Task Login_RequiresOneMatchingCanonicalUser()
+        {
+            LdapEntry user = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("uid", kUidValues));
+            LdapEntry other = LdapTestSupport.CreateEntry("uid=other,ou=users,dc=example,dc=com", new LdapAttribute("uid", kUidValues));
+            RecordingLdapClient connection = new()
+            {
+                SearchResults = LdapTestSupport.CreateSearchResults(user, other)
+            };
+            global::FWO.Test.TestableLdap ldap = new(connection)
+            {
+                UserSearchPath = "ou=users,dc=example,dc=com"
+            };
+
+            LdapEntry? entry = await ldap.GetLdapEntry(new UiUser { Name = "user", Password = "secret" }, true);
+
+            Assert.That(entry, Is.Null);
+            Assert.That(connection.BindCalls, Is.Empty);
+            Assert.That(connection.SearchCalls[0].Filter, Does.Contain("(uid=user)"));
+        }
+
+        [Test]
+        public async Task Login_BindsOnlyExactCanonicalUser()
+        {
+            LdapEntry user = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("uid", kUidValues));
+            RecordingLdapClient connection = new()
+            {
+                SearchResults = LdapTestSupport.CreateSearchResults(user)
+            };
+            global::FWO.Test.TestableLdap ldap = new(connection)
+            {
+                UserSearchPath = "ou=users,dc=example,dc=com"
+            };
+
+            LdapEntry? entry = await ldap.GetLdapEntry(new UiUser { Name = "user", Password = "secret" }, true);
+
+            Assert.That(entry, Is.SameAs(user));
+            Assert.That(connection.BindCalls, Has.Count.EqualTo(1));
+            Assert.That(connection.BindCalls[0].User, Is.EqualTo(kUserDn));
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Login_CancellationDuringTheSearchIsNoInvalidLogin(bool validateCredentials)
+        {
+            using CancellationTokenSource cancellation = new();
+            RecordingLdapClient connection = new()
+            {
+                // a closed connection ends the search without results
+                SearchResponder = (_, _, _, _, _) =>
+                {
+                    cancellation.Cancel();
+                    return LdapTestSupport.CreateSearchResults();
+                }
+            };
+            global::FWO.Test.TestableLdap ldap = new(connection)
+            {
+                UserSearchPath = "ou=users,dc=example,dc=com"
+            };
+
+            Assert.CatchAsync<OperationCanceledException>(async () =>
+                await ldap.GetLdapEntry(new UiUser { Name = "user", Password = "secret" }, validateCredentials, cancellation.Token));
+        }
+
+        [Test]
+        public void Memberships_CancellationDuringTheLookupIsNoEmptyResult()
+        {
+            using IDisposable mainKey = LdapTestSupport.UseTestMainKey();
+            using CancellationTokenSource cancellation = new();
+            RecordingLdapClient connection = new()
+            {
+                SearchResponder = (_, _, _, _, _) =>
+                {
+                    cancellation.Cancel();
+                    return LdapTestSupport.CreateSearchResults();
+                }
+            };
+            global::FWO.Test.TestableLdap ldap = new(connection)
+            {
+                SearchUser = kSearchUser,
+                SearchUserPwd = kSearchPassword,
+                GroupSearchPath = "ou=groups,dc=example,dc=com"
+            };
+
+            Assert.CatchAsync<OperationCanceledException>(async () =>
+                await ldap.GetGroups(kUserDnList, cancellation.Token));
+        }
+
+        [Test]
+        public void Login_CancelledRequestDoesNotConnect()
+        {
+            RecordingLdapClient connection = new();
+            global::FWO.Test.TestableLdap ldap = new(connection);
+            using CancellationTokenSource cancellation = new();
+            cancellation.Cancel();
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () =>
+                await ldap.GetLdapEntry(new UiUser { Name = "user", Password = "secret" }, true, cancellation.Token));
+            Assert.That(ldap.ConnectCount, Is.Zero);
         }
 
         [Test]
@@ -158,7 +325,7 @@ namespace FWO.Test
             string setPassword = await ldap.SetPassword("uid=user,ou=users,dc=example,dc=com", "new");
             bool added = await ldap.AddUser("uid=user,ou=users,dc=example,dc=com", "pw", "user@example.test");
             bool updated = await ldap.UpdateUser("uid=user,ou=users,dc=example,dc=com", "user@example.test");
-            bool deleted = await ldap.DeleteUser("uid=user,ou=users,dc=example,dc=com");
+            LdapUserDeletion deleted = await ldap.DeleteUser("uid=user,ou=users,dc=example,dc=com", null);
 
             Assert.Multiple(() =>
             {
@@ -166,7 +333,7 @@ namespace FWO.Test
                 Assert.That(setPassword, Is.Not.Empty);
                 Assert.That(added, Is.False);
                 Assert.That(updated, Is.False);
-                Assert.That(deleted, Is.False);
+                Assert.That(deleted, Is.EqualTo(LdapUserDeletion.Failed));
             });
         }
 
@@ -271,6 +438,42 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DeleteUser_DeletesAnUnboundUserByDnWithoutReading()
+        {
+            RecordingLdapClient client = new();
+            global::FWO.Test.TestableLdap ldap = new(client) { WriteUser = "cn=write,dc=example,dc=com", WriteUserPwd = "writepwd" };
+
+            LdapUserDeletion deletion = await ldap.DeleteUser(kUserDn, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(deletion, Is.EqualTo(LdapUserDeletion.Deleted));
+                Assert.That(client.ReadCalls, Is.Empty);
+                Assert.That(client.DeletedDns, Has.Count.EqualTo(1).And.Contains(kUserDn));
+            });
+        }
+
+        [Test]
+        public async Task DeleteUser_KeepsAMissingBoundEntryAndAnEntryWithoutObjectId()
+        {
+            RecordingLdapClient missingClient = new();
+            global::FWO.Test.TestableLdap missingLdap = new(missingClient) { WriteUser = "cn=write,dc=example,dc=com", WriteUserPwd = "writepwd" };
+            RecordingLdapClient noIdClient = new() { ReadResult = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("mail", kMail)) };
+            global::FWO.Test.TestableLdap noIdLdap = new(noIdClient) { WriteUser = "cn=write,dc=example,dc=com", WriteUserPwd = "writepwd" };
+
+            LdapUserDeletion missingDeletion = await missingLdap.DeleteUser(kUserDn, "entryUUID:6f1b6c2e-0c5b-4a55-9e5a-5d3e2c1b0a99");
+            LdapUserDeletion noIdDeletion = await noIdLdap.DeleteUser(kUserDn, "entryUUID:6f1b6c2e-0c5b-4a55-9e5a-5d3e2c1b0a99");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(missingDeletion, Is.EqualTo(LdapUserDeletion.NotBound));
+                Assert.That(noIdDeletion, Is.EqualTo(LdapUserDeletion.NotBound));
+                Assert.That(missingClient.DeletedDns, Is.Empty);
+                Assert.That(noIdClient.DeletedDns, Is.Empty);
+            });
+        }
+
+        [Test]
         public async Task AddUpdateAndDeleteGroupReturnExpectedValues()
         {
             RecordingLdapClient addClient = new();
@@ -338,7 +541,7 @@ namespace FWO.Test
             FakeLdapConnection connection = new();
             TestableLdap ldap = new(connection)
             {
-                Address = "example.test",
+                Addresses = ["example.test"],
                 Port = 636,
                 SearchUser = kSearchUser,
                 SearchUserPwd = kSearchPassword,
@@ -354,6 +557,54 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestConnection_BindsWithThePasswordsAsTheyWereGiven()
+        {
+            FakeLdapConnection connection = new();
+            TestableLdap ldap = new(connection)
+            {
+                Addresses = ["example.test"],
+                Port = 636,
+                SearchUser = kSearchUser,
+                SearchUserPwd = "clearTextSearchPwd",
+                WriteUser = "cn=write,dc=example,dc=com",
+                WriteUserPwd = "clearTextWritePwd"
+            };
+
+            await ldap.TestConnection();
+
+            Assert.That(connection.LastBoundPasswords, Is.EqualTo(new List<string> { "clearTextSearchPwd", "clearTextWritePwd" }));
+        }
+
+        [Test]
+        public async Task TestConnection_DoesNotDecryptAStoredSecret()
+        {
+            // the connection test reaches a server chosen by the caller, so a stored credential
+            // must never be turned back into its clear text form here. The scope installs the key
+            // the fixture encrypts with, so the decryption path is genuinely available and this
+            // asserts that it was not taken - rather than that it could not have been.
+            using IDisposable mainKey = LdapTestSupport.UseTestMainKey();
+
+            string encryptedPwd = LdapTestSupport.CreateEncryptedSecret(kClearTextSecret);
+            Assert.That(encryptedPwd, Is.Not.EqualTo(kClearTextSecret));
+            Assert.That(AesEnc.TryDecrypt(encryptedPwd, true), Is.EqualTo(kClearTextSecret),
+                "the scope must make the secret decryptable, otherwise this test proves nothing");
+
+            FakeLdapConnection connection = new();
+            TestableLdap ldap = new(connection)
+            {
+                Addresses = ["example.test"],
+                Port = 636,
+                SearchUser = kSearchUser,
+                SearchUserPwd = encryptedPwd
+            };
+
+            await ldap.TestConnection();
+
+            Assert.That(connection.LastBoundPasswords, Is.EqualTo(new List<string> { encryptedPwd }));
+            Assert.That(connection.LastBoundPasswords, Has.No.Member(kClearTextSecret));
+        }
+
+        [Test]
         public async Task GetUserDetailsFromLdap_UsesOverriddenConnectionWithoutNetwork()
         {
             LdapEntry expectedEntry = Entry(kUserDn, ("uid", ["user"]));
@@ -363,7 +614,7 @@ namespace FWO.Test
             };
             TestableLdap ldap = new(connection)
             {
-                Address = "example.test",
+                Addresses = ["example.test"],
                 Port = 389,
                 SearchUser = kSearchUser,
                 SearchUserPwd = kSearchPassword
@@ -380,7 +631,7 @@ namespace FWO.Test
         {
             return new Ldap
             {
-                Address = "127.0.0.1",
+                Addresses = ["127.0.0.1"],
                 Port = 1,
                 SearchUser = "cn=search,dc=example,dc=com",
                 SearchUserPwd = kSearchPassword,
@@ -412,7 +663,12 @@ namespace FWO.Test
                 this.connection = connection;
             }
 
-            protected override Task<ILdapClient> Connect()
+            protected override Task<ILdapClient> Connect(CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult(connection);
+            }
+
+            protected override Task<ILdapClient> ConnectToServer(string address, CancellationToken cancellationToken = default)
             {
                 return Task.FromResult(connection);
             }
@@ -424,6 +680,7 @@ namespace FWO.Test
             public int BindCalls { get; private set; }
             public int ReadCalls { get; private set; }
             public List<string> LastBoundUsers { get; } = [];
+            public List<string> LastBoundPasswords { get; } = [];
             public LdapConstraints SearchConstraints { get; } = new();
             public LdapConstraints Constraints { get; set; } = new();
             public LdapEntry? ReadResult { get; set; }
@@ -432,6 +689,7 @@ namespace FWO.Test
             {
                 BindCalls++;
                 LastBoundUsers.Add(user);
+                LastBoundPasswords.Add(password);
                 Bound = true;
                 return Task.CompletedTask;
             }

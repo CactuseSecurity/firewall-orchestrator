@@ -315,6 +315,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public void WfImplTask_FromRuleDeleteTask_TakesDeviceOfRuleElement()
+        {
+            WfReqTask reqTask = new() { Id = 10, TaskType = WfTaskType.rule_delete.ToString(), RequestAction = "delete" };
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "src" });
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.destination.ToString(), Name = "dst" });
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.service.ToString(), Name = "svc" });
+            reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.rule.ToString(), RuleUid = "rule-uid", DeviceId = 8 });
+
+            WfImplTask implTask = new(reqTask);
+
+            Assert.That(implTask.DeviceId, Is.EqualTo(8));
+        }
+
+        [Test]
         public void WfImplTask_FromReqTask_DoesNotCopyComments_WhenDisabled()
         {
             WfReqTask reqTask = new();
@@ -452,13 +466,13 @@ namespace FWO.Test
                 new WfCommentDataHelper(new WfComment
                 {
                     CreationDate = firstDate,
-                    Creator = new UiUser { Name = "Alice" },
+                    Creator = new UiUser { DbId = 1, Name = "Alice" },
                     CommentText = "Hello"
                 }),
                 new WfCommentDataHelper(new WfComment
                 {
                     CreationDate = secondDate,
-                    Creator = new UiUser { Name = "Bob" },
+                    Creator = new UiUser { DbId = 2, Name = "Bob" },
                     CommentText = "World"
                 })
             ];
@@ -473,6 +487,24 @@ namespace FWO.Test
 
             string markup = WfStatefulObject.DisplayAllComments(comments, true);
             Assert.That(markup, Does.Contain("<br>"));
+        }
+
+        [Test]
+        public void WfStatefulObject_DisplayAllComments_UsesSystemForSystemUser()
+        {
+            List<WfCommentDataHelper> comments =
+            [
+                new WfCommentDataHelper(new WfComment
+                {
+                    Creator = new UiUser { DbId = 0, Name = "default" },
+                    CommentText = "Automatically approved"
+                })
+            ];
+
+            string rendered = WfStatefulObject.DisplayAllComments(comments);
+
+            Assert.That(rendered, Does.Contain("system: Automatically approved"));
+            Assert.That(rendered, Does.Not.Contain("default: Automatically approved"));
         }
     }
 }

@@ -1,0 +1,141 @@
+---
+# Drives roles/lib/tasks/move_browser_out_of_fworch_home.yml itself on stand-in directories. The tree
+# below {{ fworch_home }}/bin belonged to {{ fworch_user }} before 9.8.6, so the move must not let that
+# user reach any file outside it: a planted symbolic link is removed before root changes the modes of
+# the moved tree, and a tree that still holds anything root cannot trust is discarded.
+- name: Create a temporary directory for the browser migration test
+  tempfile:
+    state: directory
+    prefix: fworch-browser-migration-
+  register: test_browser_root
+  become: true
+
+- name: Test the browser migration
+  vars:
+    test_browser_migration: "{{ role_path }}/../lib/tasks/move_browser_out_of_fworch_home.yml"
+    test_browser_target: "{{ test_browser_root.path }}/outside-target"
+    test_browser_version: Linux-1.0.0.0
+  become: true
+  block:
+    - name: Let {{ fworch_user }} reach the stand-in homes
+      file:
+        path: "{{ test_browser_root.path }}"
+        state: directory
+        mode: "0755"
+
+    - name: Create a root only file outside the browser tree
+      copy:
+        dest: "{{ test_browser_target }}"
+        content: "secret\n"
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Create the stand-in homes and browser directories
+      file:
+        path: "{{ test_browser_root.path }}/{{ item.name }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.owner }}"
+        mode: "0755"
+      loop:
+        - { name: trusted-home, owner: "{{ fworch_user }}" }
+        - { name: trusted-home/bin, owner: "{{ fworch_user }}" }
+        - { name: trusted-lib, owner: root }
+        - { name: untrusted-home, owner: "{{ fworch_user }}" }
+        - { name: untrusted-home/bin, owner: "{{ fworch_user }}" }
+        - { name: untrusted-lib, owner: root }
+
+    - name: Create the browser trees as {{ fworch_user }}
+      file:
+        path: "{{ test_browser_root.path }}/{{ item }}-home/bin/Chrome/{{ test_browser_version }}/chrome-linux64"
+        state: directory
+        mode: "0777"
+      loop: [trusted, untrusted]
+      become_user: "{{ fworch_user }}"
+
+    - name: Create the stand-in browser binaries as {{ fworch_user }}
+      copy:
+        dest: "{{ test_browser_root.path }}/{{ item }}-home/bin/Chrome/{{ test_browser_version }}/chrome-linux64/chrome"
+        content: "#!/bin/sh\necho stand-in\n"
+        mode: "0777"
+      loop: [trusted, untrusted]
+      become_user: "{{ fworch_user }}"
+
+    - name: Plant a link to the root only file in the browser tree
+      file:
+        src: "{{ test_browser_target }}"
+        dest: "{{ test_browser_root.path }}/trusted-home/bin/Chrome/{{ test_browser_version }}/planted"
+        state: link
+        force: true
+      become_user: "{{ fworch_user }}"
+
+    - name: Plant a second name of a file in the browser tree that is discarded
+      file:
+        src: "{{ test_browser_root.path }}/untrusted-home/bin/Chrome/{{ test_browser_version }}/chrome-linux64/chrome"
+        dest: "{{ test_browser_root.path }}/untrusted-home/bin/Chrome/{{ test_browser_version }}/hard"
+        state: hard
+      become_user: "{{ fworch_user }}"
+
+    - name: Move the tree with the planted link
+      include_tasks: "{{ test_browser_migration }}"
+      vars:
+        fworch_home: "{{ test_browser_root.path }}/trusted-home"
+        fworch_browser_dir: "{{ test_browser_root.path }}/trusted-lib"
+
+    - name: Move the tree with the second file name
+      include_tasks: "{{ test_browser_migration }}"
+      vars:
+        fworch_home: "{{ test_browser_root.path }}/untrusted-home"
+        fworch_browser_dir: "{{ test_browser_root.path }}/untrusted-lib"
+
+    # the same change of modes the installer applies to the moved browser afterwards
+    - name: Open the moved browser for reading as the installer does
+      file:
+        path: "{{ test_browser_root.path }}/trusted-lib/Chrome"
+        state: directory
+        recurse: true
+        follow: false
+        mode: "u=rwX,g=rX,o=rX"
+
+    - name: Read the results of the browser migration
+      stat:
+        path: "{{ item }}"
+        follow: false
+      loop:
+        - "{{ test_browser_target }}"
+        - "{{ test_browser_root.path }}/trusted-lib/Chrome/{{ test_browser_version }}/planted"
+        - "{{ test_browser_root.path }}/trusted-lib/Chrome/{{ test_browser_version }}/chrome-linux64/chrome"
+        - "{{ test_browser_root.path }}/trusted-lib/chrome"
+        - "{{ test_browser_root.path }}/trusted-home/bin/Chrome"
+        - "{{ test_browser_root.path }}/untrusted-lib/Chrome"
+      register: test_browser_results
+
+    - name: Assert the move neither reached the outside file nor kept anything untrusted
+      vars:
+        test_target: "{{ test_browser_results.results[0].stat }}"
+        test_planted: "{{ test_browser_results.results[1].stat }}"
+        test_binary: "{{ test_browser_results.results[2].stat }}"
+        test_binary_link: "{{ test_browser_results.results[3].stat }}"
+        test_legacy: "{{ test_browser_results.results[4].stat }}"
+        test_discarded: "{{ test_browser_results.results[5].stat }}"
+      assert:
+        that:
+          - test_target.mode == '0600'
+          - not test_planted.exists
+          - test_binary.exists and test_binary.pw_name == 'root'
+          - not (test_binary.woth or test_binary.wgrp)
+          - test_binary_link.islnk | default(false)
+          - test_binary_link.lnk_source | default('') == test_browser_root.path ~ '/trusted-lib/Chrome/' ~ test_browser_version ~ '/chrome-linux64/chrome'
+          - not test_legacy.exists
+          - not test_discarded.exists
+        fail_msg: >-
+          The browser migration left the tree or the outside file in a wrong state:
+          outside file mode {{ test_target.mode }}, planted link kept {{ test_planted.exists }},
+          binary {{ test_binary }}, browser link {{ test_binary_link }}, untrusted tree kept {{ test_discarded.exists }}
+
+  always:
+    - name: Remove the browser migration test directory
+      file:
+        path: "{{ test_browser_root.path }}"
+        state: absent

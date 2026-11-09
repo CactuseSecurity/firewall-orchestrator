@@ -1,17 +1,23 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Compliance.RulePositioning;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Middleware.Server;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using NUnit.Framework;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using NetTools;
 using System.Net;
+using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Threading;
 
 namespace FWO.Test
@@ -19,6 +25,12 @@ namespace FWO.Test
     [TestFixture]
     internal class ComplianceControllerTest
     {
+        private static readonly List<int> kFirstTwoZoneIds = [10, 20];
+        private static readonly List<int> kLastZoneId = [30];
+        private static readonly List<int> kSingleManagement = [1];
+        private static readonly List<Ldap> kNoLdaps = [];
+        private static readonly List<string> kDmzIpRange = ["10.0.0.0", "10.0.0.255"];
+
         [Test]
         public async Task StartInitialComplianceCheck_ReturnsAcceptedAndMarksJobSucceeded()
         {
@@ -143,9 +155,9 @@ namespace FWO.Test
         [Test]
         public async Task Post_ReturnsExceptionMessageWhenImportFails()
         {
-            ComplianceController controller = new(new DummyApiConnection());
+            ComplianceController controller = CreateComplianceController();
 
-            string result = await controller.Post(new ComplianceImportMatrixParameters
+            string result = await controller.Post(new ImportMatrixParameters
             {
                 FileName = "matrix.csv",
                 Data = "name;value",
@@ -157,32 +169,79 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Get_ReturnsEmptyStringWhenReportGenerationFails()
+        public async Task Get_ReturnsServerErrorInsteadOfAnEmptyReportWhenReportGenerationFails()
         {
-            ComplianceController controller = new(new DummyApiConnection());
+            ComplianceController controller = CreateComplianceController();
 
-            string result = await controller.Get(new ComplianceReportParameters
+            ActionResult<string> result = await controller.Get(new ComplianceReportParameters
             {
-                ManagementIds = [1]
+                ManagementIds = kSingleManagement
             });
 
-            Assert.That(result, Is.Empty);
+            Assert.That(result.Value, Is.Null);
+            Assert.That(result.Result, Is.InstanceOf<ObjectResult>());
+            Assert.That(((ObjectResult)result.Result!).StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+        }
+
+        [TestCase(StatusCodes.Status429TooManyRequests, LoginCapacityException.kTooManyAttempts)]
+        [TestCase(StatusCodes.Status503ServiceUnavailable, LoginCapacityException.kUnavailable)]
+        public void ReportErrorResult_DirectoriesAtCapacity_AnswersTheCapacityStatusWithRetryAfter(int statusCode, string message)
+        {
+            ComplianceController controller = CreateComplianceControllerWithHttpContext(out DefaultHttpContext httpContext);
+
+            ObjectResult result = controller.ReportErrorResult(new LoginCapacityException(message, statusCode));
+
+            Assert.That(result.StatusCode, Is.EqualTo(statusCode));
+            Assert.That(result.Value, Is.EqualTo(message));
+            Assert.That(httpContext.Response.Headers.RetryAfter.ToString(), Is.EqualTo(LoginThrottle.kRetryAfterSeconds.ToString()));
+        }
+
+        [Test]
+        public void ReportErrorResult_CallerNotFoundInDirectories_AnswersUnauthorized()
+        {
+            ComplianceController controller = CreateComplianceControllerWithHttpContext(out _);
+
+            ObjectResult result = controller.ReportErrorResult(new AuthenticationException("A0002 Invalid credentials"));
+
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status401Unauthorized));
+        }
+
+        [Test]
+        public void ReportErrorResult_RequestAbortedByCaller_AnswersClientClosedRequest()
+        {
+            ComplianceController controller = CreateComplianceControllerWithHttpContext(out DefaultHttpContext httpContext);
+            using CancellationTokenSource aborted = new();
+            aborted.Cancel();
+            httpContext.RequestAborted = aborted.Token;
+
+            ObjectResult result = controller.ReportErrorResult(new OperationCanceledException(aborted.Token));
+
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status499ClientClosedRequest));
+        }
+
+        [Test]
+        public void ReportErrorResult_CancellationWithoutAbortedRequestAndOtherErrors_AnswerServerError()
+        {
+            ComplianceController controller = CreateComplianceControllerWithHttpContext(out _);
+
+            Assert.That(controller.ReportErrorResult(new OperationCanceledException()).StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+            Assert.That(controller.ReportErrorResult(new InvalidOperationException("boom")).StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
         }
 
         [Test]
         public async Task GetDesignatedZoneMatrixZones_ReturnsZonesForConfiguredMatrix()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
-                [new ComplianceNetworkZone
+                [new NetworkZone
                 {
                     Id = 99,
                     Name = "DMZ",
                     Description = "Demilitarized zone",
                     IPRanges = [new IPAddressRange(IPAddress.Parse("10.0.0.0"), IPAddress.Parse("10.0.0.255"))]
                 }]);
-            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12), new SimulatedGlobalConfig());
 
             ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.GetDesignatedZoneMatrixZones();
 
@@ -193,27 +252,81 @@ namespace FWO.Test
             Assert.That(zones[0].Name, Is.EqualTo("DMZ"));
             Assert.That(zones[0].Description, Is.EqualTo("Demilitarized zone"));
             Assert.That(zones[0].IpRanges, Has.Count.EqualTo(1));
-            Assert.That(zones[0].IpRanges[0].IpStart, Is.EqualTo("10.0.0.0"));
-            Assert.That(zones[0].IpRanges[0].IpEnd, Is.EqualTo("10.0.0.255"));
+            Assert.That(zones[0].IpRanges[0].IpRange, Is.EqualTo(kDmzIpRange));
             Assert.That(apiConnection.LastMatrixQuery, Is.EqualTo(ComplianceQueries.getMatrixById));
             Assert.That(GetAnonymousProperty<int>(apiConnection.LastMatrixQueryVariables, "criterionId"), Is.EqualTo(12));
             Assert.That(apiConnection.MatrixQueryCount, Is.EqualTo(1));
         }
 
         [Test]
+        public async Task GetDesignatedZoneMatrixZones_PagesTheZonesOrderedById()
+        {
+            ComplianceZoneController firstPageController = CreatePagingZoneController(new SimulatedGlobalConfig());
+            ComplianceZoneController lastPageController = CreatePagingZoneController(new SimulatedGlobalConfig());
+
+            ActionResult<List<ComplianceDesignatedZoneResponse>> firstPage = await firstPageController.GetDesignatedZoneMatrixZones(limit: 2);
+            ActionResult<List<ComplianceDesignatedZoneResponse>> lastPage = await lastPageController.GetDesignatedZoneMatrixZones(limit: 2, offset: 2);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ZoneIds(firstPage), Is.EqualTo(kFirstTwoZoneIds));
+                Assert.That(firstPageController.HttpContext.Response.Headers["X-Has-More"].ToString(), Is.EqualTo("true"));
+                Assert.That(ZoneIds(lastPage), Is.EqualTo(kLastZoneId));
+                Assert.That(lastPageController.HttpContext.Response.Headers["X-Has-More"].ToString(), Is.EqualTo("false"));
+            });
+        }
+
+        [TestCase(0, null)]
+        [TestCase(GlobalConst.kMinRestResponseObjectLimit + 1, null)]
+        [TestCase(null, -1)]
+        public async Task GetDesignatedZoneMatrixZones_RejectsPagingOutOfRange(int? limit, int? offset)
+        {
+            ComplianceZoneController controller = CreatePagingZoneController(new SimulatedGlobalConfig { MaxRestResponseObjectLimit = GlobalConst.kMinRestResponseObjectLimit });
+
+            ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.GetDesignatedZoneMatrixZones(limit, offset);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(((BadRequestObjectResult)result.Result!).Value, Is.TypeOf<ValidationProblemDetails>());
+            });
+        }
+
+        private static ComplianceZoneController CreatePagingZoneController(SimulatedGlobalConfig globalConfig)
+        {
+            DummyApiConnection apiConnection = new(
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
+                [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
+                [
+                    new NetworkZone { Id = 30, Name = "C" },
+                    new NetworkZone { Id = 10, Name = "A" },
+                    new NetworkZone { Id = 20, Name = "B" }
+                ]);
+            return new ComplianceZoneController(CreateZoneService(apiConnection, 12), globalConfig)
+            {
+                ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+            };
+        }
+
+        private static IEnumerable<int> ZoneIds(ActionResult<List<ComplianceDesignatedZoneResponse>> result)
+        {
+            return ((List<ComplianceDesignatedZoneResponse>)((OkObjectResult)result.Result!).Value!).Select(zone => zone.Id);
+        }
+
+        [Test]
         public async Task GetDesignatedZoneMatrixZones_PassesConfiguredMatrixIdToGraphQl()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
-                [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }]);
-            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
+                [new NetworkZone { Id = 99, Name = "DMZ" }]);
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12), new SimulatedGlobalConfig());
 
             _ = await controller.GetDesignatedZoneMatrixZones();
 
             Assert.That(apiConnection.LastMatrixQuery, Is.EqualTo(ComplianceQueries.getMatrixById));
             Assert.That(GetAnonymousProperty<int>(apiConnection.LastMatrixQueryVariables, "criterionId"), Is.EqualTo(12));
-            Assert.That(apiConnection.LastNetworkZoneQuery, Is.EqualTo(ComplianceQueries.getNetworkZonesForMatrix));
+            Assert.That(apiConnection.LastNetworkZoneQuery, Is.EqualTo(NetworkZoneQueries.getNetworkZonesForMatrix));
             Assert.That(GetAnonymousProperty<int>(apiConnection.LastNetworkZoneQueryVariables, "criterionId"), Is.EqualTo(12));
         }
 
@@ -221,10 +334,10 @@ namespace FWO.Test
         public async Task GetDesignatedZoneMatrixZones_ReturnsEmptyListWhenConfiguredMatrixWasDeleted()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [],
-                [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }]);
-            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
+                [new NetworkZone { Id = 99, Name = "DMZ" }]);
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12), new SimulatedGlobalConfig());
 
             ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.GetDesignatedZoneMatrixZones();
 
@@ -241,7 +354,7 @@ namespace FWO.Test
         public async Task GetDesignatedZoneMatrixZones_ReturnsEmptyListWhenNoMatrixConfigured()
         {
             DummyApiConnection apiConnection = new();
-            ComplianceZoneController controller = new(CreateZoneService(apiConnection));
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection), new SimulatedGlobalConfig());
 
             ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.GetDesignatedZoneMatrixZones();
 
@@ -256,11 +369,11 @@ namespace FWO.Test
         public async Task GetDesignatedZoneMatrixZones_ReturnsServerErrorWhenServiceFails()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
-                [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }],
+                [new NetworkZone { Id = 99, Name = "DMZ" }],
                 throwOnNetworkZoneQuery: true);
-            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12), new SimulatedGlobalConfig());
 
             ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.GetDesignatedZoneMatrixZones();
 
@@ -272,17 +385,17 @@ namespace FWO.Test
         public async Task ResolveZonesForObjects_ReturnsZonesForNestedGroups()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [
-                    new ComplianceNetworkZone
+                    new NetworkZone
                     {
                         Id = 20,
                         Name = "Backend",
                         Description = "Backend zone",
                         IPRanges = [new IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))]
                     },
-                    new ComplianceNetworkZone
+                    new NetworkZone
                     {
                         Id = 10,
                         Name = "DMZ",
@@ -290,7 +403,7 @@ namespace FWO.Test
                         IPRanges = [new IPAddressRange(IPAddress.Parse("10.0.1.1"), IPAddress.Parse("10.0.1.1"))]
                     }
                 ]);
-            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12), new SimulatedGlobalConfig());
 
             ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.ResolveZonesForObjects(new ResolveZonesForObjectsRequest
             {
@@ -310,22 +423,19 @@ namespace FWO.Test
                                     {
                                         Name = "Backend Host",
                                         Type = "host",
-                                        IpStart = "10.0.0.1",
-                                        IpEnd = "10.0.0.1"
+                                        IpRange = ["10.0.0.1", "10.0.0.1"]
                                     },
                                     new ResolveZonesForObjectsRequest.LeafObjectRequest
                                     {
                                         Name = "Backend Host Duplicate",
                                         Type = "network",
-                                        IpStart = "10.0.0.1",
-                                        IpEnd = "10.0.0.1"
+                                        IpRange = ["10.0.0.1", "10.0.0.1"]
                                     },
                                     new ResolveZonesForObjectsRequest.LeafObjectRequest
                                     {
                                         Name = "DMZ Host",
                                         Type = "ip_range",
-                                        IpStart = "10.0.1.1",
-                                        IpEnd = "10.0.1.1"
+                                        IpRange = ["10.0.1.1", "10.0.1.1"]
                                     }
                                 ]
                             }
@@ -346,11 +456,11 @@ namespace FWO.Test
         public async Task ResolveZonesForObjects_ReturnsServerErrorWhenServiceFails()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
-                [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }],
+                [new NetworkZone { Id = 99, Name = "DMZ" }],
                 throwOnNetworkZoneQuery: true);
-            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12), new SimulatedGlobalConfig());
 
             ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.ResolveZonesForObjects(new ResolveZonesForObjectsRequest
             {
@@ -360,8 +470,7 @@ namespace FWO.Test
                     {
                         Name = "Leaf",
                         Type = "network",
-                        IpStart = "10.0.0.1",
-                        IpEnd = "10.0.0.1"
+                        IpRange = ["10.0.0.1", "10.0.0.1"]
                     }
                 ]
             });
@@ -371,9 +480,80 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ResolveZonesForObjects_ReturnsBadRequestListingUnassignableRanges()
+        {
+            ConfigItem[] configItems = [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }];
+            List<ComplianceCriterion> matrices = [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }];
+            IPAddressRange[] ipv4ZoneRanges = [new IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))];
+            List<NetworkZone> zones =
+            [
+                new NetworkZone
+                {
+                    Id = 10,
+                    Name = "IPv4 Zone",
+                    IPRanges = ipv4ZoneRanges
+                }
+            ];
+            DummyApiConnection apiConnection = new(configItems, matrices, zones);
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12), new SimulatedGlobalConfig());
+            List<ResolveZonesForObjectsRequest.ObjectRequest> requestedObjects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "IPv6 Host",
+                    Type = "host",
+                    IpRange = ["2001:db8::1", "2001:db8::1"]
+                }
+            ];
+
+            ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.ResolveZonesForObjects(new ResolveZonesForObjectsRequest
+            {
+                Objects = requestedObjects
+            });
+
+            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(
+                ((BadRequestObjectResult)result.Result!).Value?.ToString(),
+                Does.Contain("2001:db8::1-2001:db8::1"));
+        }
+
+        [Test]
+        public async Task ResolveZonesForObjects_ReturnsServerErrorForOtherArgumentException()
+        {
+            // Only the deliberate unassignable-ranges signal may reach the client. Any other argument exception
+            // raised inside the service is a defect and must be logged as a server error instead of echoed as 400.
+            ConfigItem[] configItems = [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }];
+            List<ComplianceCriterion> matrices = [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }];
+            List<NetworkZone> zones = [new NetworkZone { Id = 99, Name = "DMZ" }];
+            DummyApiConnection apiConnection = new(
+                configItems,
+                matrices,
+                zones,
+                networkZoneQueryException: new ArgumentException("Zone query argument rejected."));
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12), new SimulatedGlobalConfig());
+            List<ResolveZonesForObjectsRequest.ObjectRequest> requestedObjects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Leaf",
+                    Type = "network",
+                    IpRange = ["10.0.0.1", "10.0.0.1"]
+                }
+            ];
+
+            ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.ResolveZonesForObjects(new ResolveZonesForObjectsRequest
+            {
+                Objects = requestedObjects
+            });
+
+            Assert.That(result.Result, Is.TypeOf<StatusCodeResult>());
+            Assert.That(((StatusCodeResult)result.Result!).StatusCode, Is.EqualTo(500));
+        }
+
+        [Test]
         public async Task ResolveZonesForObjects_ReturnsBadRequestWhenValidationFails()
         {
-            ComplianceZoneController controller = new(CreateZoneService(new DummyApiConnection(), 12));
+            ComplianceZoneController controller = new(CreateZoneService(new DummyApiConnection(), 12), new SimulatedGlobalConfig());
 
             ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.ResolveZonesForObjects(new ResolveZonesForObjectsRequest
             {
@@ -384,11 +564,24 @@ namespace FWO.Test
             Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("must contain at least one entry"));
         }
 
+        private static ComplianceController CreateComplianceController()
+        {
+            return new ComplianceController(new DummyApiConnection(), new JwtWriter(new RsaSecurityKey(RSA.Create(2048))), kNoLdaps);
+        }
+
+        private static ComplianceController CreateComplianceControllerWithHttpContext(out DefaultHttpContext httpContext)
+        {
+            ComplianceController controller = CreateComplianceController();
+            httpContext = new DefaultHttpContext();
+            controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+            return controller;
+        }
+
         private sealed class DummyApiConnection : ApiConnection
         {
             private readonly ConfigItem[] configItems;
             private readonly List<ComplianceCriterion> matrices;
-            private readonly List<ComplianceNetworkZone> zones;
+            private readonly List<NetworkZone> zones;
             private readonly Language[] languages =
             [
                 new Language
@@ -417,22 +610,25 @@ namespace FWO.Test
             public DummyApiConnection(
                 ConfigItem[]? configItems = null,
                 List<ComplianceCriterion>? matrices = null,
-                List<ComplianceNetworkZone>? zones = null,
+                List<NetworkZone>? zones = null,
                 bool throwOnMatrixQuery = false,
                 bool throwOnNetworkZoneQuery = false,
-                bool throwOnViolationCount = false)
+                bool throwOnViolationCount = false,
+                Exception? networkZoneQueryException = null)
             {
                 this.configItems = configItems ?? [];
                 this.matrices = matrices ?? [];
                 this.zones = zones ?? [];
                 this.throwOnMatrixQuery = throwOnMatrixQuery;
-                this.throwOnNetworkZoneQuery = throwOnNetworkZoneQuery;
+                this.throwOnNetworkZoneQuery = throwOnNetworkZoneQuery || networkZoneQueryException != null;
                 this.throwOnViolationCount = throwOnViolationCount;
+                this.networkZoneQueryException = networkZoneQueryException;
             }
 
             private readonly bool throwOnMatrixQuery;
             private readonly bool throwOnNetworkZoneQuery;
             private readonly bool throwOnViolationCount;
+            private readonly Exception? networkZoneQueryException;
 
             public override void SetAuthHeader(string jwt) { }
             public override void SetRole(string role) { }
@@ -482,11 +678,11 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)matrices);
                 }
 
-                if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == ComplianceQueries.getNetworkZonesForMatrix)
+                if (typeof(QueryResponseType) == typeof(List<NetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
                 {
                     if (throwOnNetworkZoneQuery)
                     {
-                        throw new InvalidOperationException("Network zone query failed.");
+                        throw networkZoneQueryException ?? new InvalidOperationException("Network zone query failed.");
                     }
 
                     LastNetworkZoneQuery = query;
@@ -512,14 +708,14 @@ namespace FWO.Test
             return (T)value!;
         }
 
-        private static ComplianceZoneService CreateZoneService(ApiConnection apiConnection, int matrixId = 0)
+        private static DesignatedZoneMatrixService CreateZoneService(ApiConnection apiConnection, int matrixId = 0)
         {
             SimulatedGlobalConfig globalConfig = new()
             {
-                ComplianceDesignatedZoneMatrixId = matrixId
+                DesignatedZoneMatrixId = matrixId
             };
 
-            return new ComplianceZoneService(apiConnection, globalConfig);
+            return new DesignatedZoneMatrixService(new DesignatedZoneMatrixReader(apiConnection), globalConfig);
         }
 
     }

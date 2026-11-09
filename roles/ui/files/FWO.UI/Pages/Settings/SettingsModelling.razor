@@ -17,7 +17,7 @@
 @inject MiddlewareClient middlewareClient
 
 <div class="input-group">
-    <h3>@(userConfig.GetText("modelling_settings"))</h3>
+    <h3>@(userConfig.GetText("modelling_general_settings"))</h3>
     <HelpLink Page="settings/modelling" />
 </div>
 @(userConfig.GetText("U5322"))
@@ -26,10 +26,14 @@
 @if(configData != null && initComplete)
 {
     <form onsubmit="return false">
-        <button type="button" class="btn btn-sm btn-dark ms-5" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))"
-        @onclick="PredefServices">
-            @(DisplayService.DisplayButton(userConfig, "predef_services", Icons.ServiceGroup))
-        </button>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("predef_services")):</label>
+            <div class="col-sm-6">
+                <button type="button" class="btn btn-sm btn-dark" @onclick="PredefServices">
+                    @(DisplayService.DisplayButton(userConfig, "predef_services", Icons.ServiceGroup))
+                </button>
+            </div>
+        </div>
         <hr />
         <div class="form-group row mt-2">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5603"))">
@@ -50,12 +54,6 @@
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5605"))">
                 <label class="col-form-label col-sm-8">@(userConfig.GetText("overviewDisplayLines"))*:</label>
                 <input type="number" min="0" class="col-sm-3" @bind="configData!.OverviewDisplayLines" />
-            </div>
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5618"))">
-                <label for="cbx_iconify" class="col-form-label col-sm-8">@(userConfig.GetText("modIconify"))*:</label>
-                <div class="col-sm-2">
-                    <input id="cbx_iconify" type="checkbox" class="w-100" @bind="configData!.ModIconify">
-                </div>
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5617"))">
                 <label for="cbx_reduced_protocol_set" class="col-form-label col-sm-7">@(userConfig.GetText("reducedProtocolSet")):</label>
@@ -124,6 +122,11 @@
             <CommonAreaSelection CommonAreas="UpdObjAreas" CommAreasToDelete="UpdObjAreasToDelete" SearchCommonArea="SearchUpdObjArea"/>
         </div>
         <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5659a"))">
+            <label class="col-form-label col-sm-4">@userConfig.GetText("com_svc_excluded_areas"):</label>
+            <CommonAreaSelection CommonAreas="ComSvcExcludedAreas" CommAreasToDelete="ComSvcExcludedAreasToDelete" SearchCommonArea="SearchComSvcExcludedArea" ShowUsageFlags="false"/>
+        </div>
+        <hr />
         <div class="form-group row">
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5606"))">
                 <label for="cbx_network_area_required" class="col-form-label col-sm-8">@(userConfig.GetText("networkAreaRequired")):</label>
@@ -143,7 +146,7 @@
         <div class="form-group row mt-2">
             <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5607"))">
                 <label class="col-form-label col-sm-5">@userConfig.GetText("fixedPartLength"):</label>
-                <input type="number" min="0" class="col-sm-4" @bind="namingConvention.FixedPartLength" />
+                <input type="number" min="@(namingConvention.NetworkAreaRequired ? namingConvention.NetworkAreaPattern.Length + 1 : 0)" class="col-sm-4" @bind="namingConvention.FixedPartLength" />
             </div>
             <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5619"))">
                 <label for="cbx_use_app_part" class="col-form-label col-sm-8">@(userConfig.GetText("useAppPart")):</label>
@@ -201,66 +204,6 @@
                     <input id="cbx_replace_appserver" type="checkbox" @bind="configData!.AutoReplaceAppServer">
                 </div>
             </div>
-        </div>
-        <hr />
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5622"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqInterfaceName")):</label>
-            <input type="text" class="col-sm-6" @bind="configData!.ModReqInterfaceName" />
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailReceiver")):</label>
-            <div class="col-sm-6">
-                <EmailRecipientSelectionEditor Selection="@modReqEmailRecipients" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
-                    CheckboxIdPrefix="cbx_mod_req_mail" Client="NotificationClient.InterfaceRequest" />
-            </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
-            <label for="cbx_email_requester_in_cc" class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailRequesterInCc")):</label>
-            <div class="col-sm-6">
-                <input id="cbx_email_requester_in_cc" type="checkbox" @bind="configData!.ModReqEmailRequesterInCc">
-            </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailSubject")):</label>
-            <input type="text" class="col-sm-6" @bind="configData!.ModReqEmailSubject" />
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5624"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailBody")):</label>
-            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModReqEmailBody"></textarea>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5625"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTicketTitle")):</label>
-            <input type="text" class="col-sm-6" @bind="configData!.ModReqTicketTitle" />
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5626"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
-            <input type="text" class="col-sm-6" @bind="configData!.ModReqTaskTitle" />
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5629"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("reminders")):</label>
-            <div class="col-sm-8">
-                <EditNotifications Client="NotificationClient.InterfaceRequest"/>
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5624a"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modUnansweredReqEmailBody")):</label>
-            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModUnansweredReqEmailBody"></textarea>
-        </div>
-        <hr />
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5660"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailReceiver")):</label>
-            <div class="col-sm-4">
-                <EmailRecipientSelectionEditor Selection="@modDecommEmailRecipients" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
-                    CheckboxIdPrefix="cbx_mod_decomm_mail" Client="NotificationClient.AppDecomm" />
-            </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5661"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailSubject")):</label>
-            <input type="text" class="col-sm-6" @bind="configData!.ModDecommEmailSubject" />
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5662"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailBody")):</label>
-            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModDecommEmailBody"></textarea>
         </div>
         <hr />
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5679"))">
@@ -411,6 +354,7 @@ else
 <SearchNwObject @bind-Display="searchCommonArea" ObjectList="CommonAreas.ConvertAll(x => x.Area)" Add="AddCommonArea" CommonAreaMode="true" />
 <SearchNwObject @bind-Display="searchSpecUserArea" ObjectList="SpecUserAreas.ConvertAll(x => x.Area)" Add="AddSpecUserArea" SpecUserMode="true"/>
 <SearchNwObject @bind-Display="searchUpdObjArea" ObjectList="UpdObjAreas.ConvertAll(x => x.Area)" Add="AddUpdObjArea" UpdObjMode="true"/>
+<SearchNwObject @bind-Display="searchComSvcExcludedArea" ObjectList="ComSvcExcludedAreas.ConvertAll(x => x.Area)" Add="AddComSvcExcludedArea" ComSvcExcludedMode="true"/>
 @code
 {
     [CascadingParameter]
@@ -429,19 +373,19 @@ else
     private string actExtraConfig = "";
 
     private List<ModellingNwGroup> allAreas = [];
-    private List<OwnerResponsibleType> activeOwnerResponsibleTypes = [];
-    private EmailRecipientSelection modReqEmailRecipients = new();
-    private EmailRecipientSelection modDecommEmailRecipients = new();
     private List<CommonArea> CommonAreas = [];
     private List<CommonArea> CommAreasToDelete = [];
     private List<CommonArea> SpecUserAreas = [];
     private readonly List<CommonArea> SpecUserAreasToDelete = [];
     private List<CommonArea> UpdObjAreas = [];
     private readonly List<CommonArea> UpdObjAreasToDelete = [];
+    private List<CommonArea> ComSvcExcludedAreas = [];
+    private readonly List<CommonArea> ComSvcExcludedAreasToDelete = [];
     private bool predefServices = false;
     private bool searchCommonArea = false;
     private bool searchSpecUserArea = false;
     private bool searchUpdObjArea = false;
+    private bool searchComSvcExcludedArea = false;
     private ModellingNamingConvention namingConvention = new();
     private List<IpProtocol> availableProtocols = [];
     private DateTime varAnalysisDate = DateTime.Today;
@@ -458,18 +402,12 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            activeOwnerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
-            activeOwnerResponsibleTypes = activeOwnerResponsibleTypes
-                .Where(type => type.Active)
-                .ToList();
-            List<int> activeTypeIds = activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
-            modReqEmailRecipients = EmailRecipientSelection.Parse(configData.ModReqEmailReceiver, activeTypeIds);
-            modDecommEmailRecipients = EmailRecipientSelection.Parse(configData.ModDecommEmailReceiver, activeTypeIds);
-            MergeLegacyOtherAddresses(modReqEmailRecipients, configData.ModReqEmailOtherAddresses);
-            MergeLegacyOtherAddresses(modDecommEmailRecipients, configData.ModDecommEmailOtherAddresses);
-            availableProtocols = ProtocolDisplayHelper.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols), null, false);
+            availableProtocols = ProtocolDisplayHelper.CustomSortProtocols(
+                ProtocolDisplayHelper.GetSelectableProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols)),
+                null,
+                false);
             ExtraConfigs = JsonSerializer.Deserialize<List<string>>(configData.ModExtraConfigs) ?? [];
-            namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(configData.ModNamingConvention) ?? new();
+            namingConvention = ModellingNamingConvention.FromJson(configData.ModNamingConvention);
             if (configData.ModAppServerTypes != "")
             {
                 appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(configData.ModAppServerTypes) ?? [];
@@ -483,6 +421,7 @@ else
             CommonAreas = RefreshAreas(configData.ModCommonAreas);
             SpecUserAreas = RefreshAreas(configData.ModSpecUserAreas);
             UpdObjAreas = RefreshAreas(configData.ModUpdatableObjAreas);
+            ComSvcExcludedAreas = RefreshAreas(configData.ModComSvcExcludedAreas);
             varAnalysisDate = varAnalysisTime = configData.VarianceAnalysisStartAt;
 
             ruleRecognitionOption = string.IsNullOrEmpty(configData.RuleRecognitionOption) ? new() : JsonSerializer.Deserialize<RuleRecognitionOption>(configData.RuleRecognitionOption) ?? new();
@@ -526,6 +465,12 @@ else
     public bool AddUpdObjArea(ModellingNwGroup area)
     {
         UpdObjAreas.Add(new() { Area = new() { Content = area } });
+        return true;
+    }
+
+    public bool AddComSvcExcludedArea(ModellingNwGroup area)
+    {
+        ComSvcExcludedAreas.Add(new() { Area = new() { Content = area } });
         return true;
     }
 
@@ -576,6 +521,13 @@ else
         return true;
     }
 
+    private bool SearchComSvcExcludedArea()
+    {
+        searchComSvcExcludedArea = true;
+        StateHasChanged();
+        return true;
+    }
+
     private void VarianceOptions()
     {
         varOptMode = true;
@@ -595,6 +547,13 @@ else
     {
         try
         {
+            namingConvention.Normalize();
+            string? namingConventionError = GetNamingConventionError();
+            if (namingConventionError != null)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText(namingConventionError), true);
+                return;
+            }
             if (configData != null)
             {
                 PrepareConfigData();
@@ -608,7 +567,8 @@ else
                 CommonAreas = RefreshAreas(configData.ModCommonAreas);
                 SpecUserAreas = RefreshAreas(configData.ModSpecUserAreas);
                 UpdObjAreas = RefreshAreas(configData.ModUpdatableObjAreas);
-                DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText("U5301"), false);
+                ComSvcExcludedAreas = RefreshAreas(configData.ModComSvcExcludedAreas);
+                DisplayMessageInUi(null, userConfig.GetText("modelling_general_settings"), userConfig.GetText("U5301"), false);
             }
             else
             {
@@ -617,48 +577,34 @@ else
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("modelling_settings"), "", true);
+            DisplayMessageInUi(exception, userConfig.GetText("modelling_general_settings"), "", true);
         }
+    }
+
+    /// <summary>
+    /// Determines the message key if converting a network area would not preserve the area-specific part of its fixed identifier.
+    /// Only relevant for conventions using network areas, as no conversion takes place otherwise.
+    /// </summary>
+    private string? GetNamingConventionError()
+    {
+        if (namingConvention.IsAreaConversionValid())
+        {
+            return null;
+        }
+        return namingConvention.IsFixedPartLengthValid() ? "E5602" : "E5601";
     }
 
     private void PrepareConfigData()
     {
         PrepareExtraConfigs();
-        PrepareModellingMailRecipients();
         configData!.ModNamingConvention = JsonSerializer.Serialize(namingConvention);
         PrepareAppServerTypes();
         configData!.ModCommonAreas = PrepareAreas(CommonAreas, CommAreasToDelete);
         configData!.ModSpecUserAreas = PrepareAreas(SpecUserAreas, SpecUserAreasToDelete);
         configData!.ModUpdatableObjAreas = PrepareAreas(UpdObjAreas, UpdObjAreasToDelete);
+        configData!.ModComSvcExcludedAreas = PrepareAreas(ComSvcExcludedAreas, ComSvcExcludedAreasToDelete);
         configData!.VarianceAnalysisStartAt = varAnalysisDate.Date.Add(varAnalysisTime.TimeOfDay);
         configData!.RuleRecognitionOption = JsonSerializer.Serialize(ruleRecognitionOption);
-    }
-
-    private void PrepareModellingMailRecipients()
-    {
-        List<int> activeTypeIds = activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
-        configData!.ModReqEmailReceiver = modReqEmailRecipients.ToConfigValue(activeTypeIds);
-        configData!.ModDecommEmailReceiver = modDecommEmailRecipients.ToConfigValue(activeTypeIds);
-        configData!.ModReqEmailOtherAddresses = "";
-        configData!.ModDecommEmailOtherAddresses = "";
-    }
-
-    private static void MergeLegacyOtherAddresses(EmailRecipientSelection selection, string legacyOtherAddresses)
-    {
-        List<string> addresses = EmailHelper.SplitAddresses(legacyOtherAddresses);
-        if (addresses.Count == 0)
-        {
-            return;
-        }
-        selection.OtherAddresses = true;
-        selection.None = false;
-        foreach (string address in addresses)
-        {
-            if (!selection.OtherAddressList.Contains(address, StringComparer.OrdinalIgnoreCase))
-            {
-                selection.OtherAddressList.Add(address);
-            }
-        }
     }
 
     private string PrepareAreas(List<CommonArea> areas, List<CommonArea> areasToDelete)

@@ -20,4 +20,8 @@ fragment reqElementDetails on request_reqelement {
   flow_nwgrp_id
   flow_svcobj_id
   flow_svcgrp_id
+  start_time
+  end_time
+  time_obj_id
+  flow_timeobj_id
 }

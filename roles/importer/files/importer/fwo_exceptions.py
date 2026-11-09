@@ -116,6 +116,14 @@ class FwoApiServiceUnavailableError(Exception):
         super().__init__(self.message)
 
 
+class ConfigFileRejectedError(Exception):
+    """a config file to import exceeds a limit or is served through a redirect"""
+
+    def __init__(self, message: str = "Config file rejected") -> None:
+        self.message = message
+        super().__init__(self.message)
+
+
 class ConfigFileNotFoundError(Exception):
     """can only happen when specifying config file with -i switch"""
 
@@ -144,6 +152,10 @@ class FwoImporterError(Exception):
 
     def __init__(self, message: str = rollback_string):
         super().__init__(message)
+
+
+class SshHostKeyRejectedError(FwoImporterError):
+    """Custom exception to signal that the SSH host key of a firewall is unknown or has changed."""
 
 
 class FwoImporterErrorInconsistenciesError(Exception):
@@ -178,13 +190,6 @@ class FwApiResponseDecodingError(Exception):
     """Custom exception to signal a failure during decoding checkpoint api response to JSON."""
 
     def __init__(self, message: str = "Error while trying to decode firewall management API response into JSON."):
-        super().__init__(message)
-
-
-class FwoApiFailedDeleteOldImportsError(Exception):
-    """Custom exception to signal a failure during deletion of old import data."""
-
-    def __init__(self, message: str = "Error while trying to remove old import data."):
         super().__init__(message)
 
 

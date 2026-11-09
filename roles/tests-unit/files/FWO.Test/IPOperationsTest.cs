@@ -1,4 +1,5 @@
 using System.Net;
+using DnsClient;
 using NetTools;
 using NUnit.Framework;
 using FWO.Basics;
@@ -77,6 +78,56 @@ namespace FWO.Test
 
             // Assert
             Assert.That(!ok);
+        }
+
+        [TestCase("010.0.0.1")]
+        [TestCase("192.000.002.010")]
+        [TestCase("127.1")]
+        [TestCase("2130706433")]
+        [TestCase("0x7f000001")]
+        [TestCase("[2001:db8::1]")]
+        [TestCase("fe80::1%3")]
+        [TestCase("::ffff:192.0.2.10")]
+        [TestCase("::192.0.2.10")]
+        [TestCase("::ffff:c000:20a")]
+        [TestCase("::c000:20a")]
+        [TestCase("2001:db8::192.0.2.10")]
+        [TestCase("64:ff9b::192.0.2.1")]
+        [TestCase("::2")]
+        [TestCase("::-::ffff")]
+        [TestCase("192.0.2.0/+24")]
+        [TestCase("192.0.2.0/ 24")]
+        [TestCase("192.0.2.0/24 ")]
+        public void TryParseIPStringToRange_NonCanonicalAddress_StrictTrue_Fails(string input)
+        {
+            bool ok = IpOperations.TryParseIPStringToRange(input, out _, strictv4Parse: true);
+
+            Assert.That(ok, Is.False);
+        }
+
+        [TestCase("192.0.2.10", "192.0.2.10", "192.0.2.10")]
+        [TestCase("192.0.2.10-192.0.2.20", "192.0.2.10", "192.0.2.20")]
+        [TestCase("192.0.2.10 - 192.0.2.20", "192.0.2.10", "192.0.2.20")]
+        [TestCase("192.0.2.10/24", "192.0.2.0", "192.0.2.255")]
+        [TestCase("2001:db8::10", "2001:db8::10", "2001:db8::10")]
+        [TestCase("2001:db8::10 - 2001:db8::20", "2001:db8::10", "2001:db8::20")]
+        [TestCase("2001:db8::10/126", "2001:db8::10", "2001:db8::13")]
+        public void TryParseIPStringToRange_StandardAddress_StrictTrue_Succeeds(
+            string input,
+            string expectedStart,
+            string expectedEnd)
+        {
+            bool ok = IpOperations.TryParseIPStringToRange(
+                input,
+                out (string start, string end) range,
+                strictv4Parse: true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ok, Is.True);
+                Assert.That(range.start, Is.EqualTo(expectedStart));
+                Assert.That(range.end, Is.EqualTo(expectedEnd));
+            });
         }
 
         [Test]
@@ -452,6 +503,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Subtract_IPv6AddressRange_PreservesUnsubtractedIntervals()
+        {
+            IPAddressRange source = new(
+                IPAddress.Parse("2001:db8::"),
+                IPAddress.Parse("2001:db8::10"));
+            List<IPAddressRange> subtract =
+            [
+                new(IPAddress.Parse("2001:db8::"), IPAddress.Parse("2001:db8::")),
+                new(IPAddress.Parse("2001:db8::10"), IPAddress.Parse("2001:db8::10"))
+            ];
+
+            List<IPAddressRange> result = source.Subtract(subtract);
+
+            Assert.That(result, Has.Count.EqualTo(1),
+                () => string.Join(", ", result.Select(range => $"{range.Begin}-{range.End}")));
+            Assert.Multiple(() =>
+            {
+                Assert.That(result[0].Begin.ToString(), Is.EqualTo("2001:db8::1"));
+                Assert.That(result[0].End.ToString(), Is.EqualTo("2001:db8::f"));
+            });
+        }
+
+        [Test]
         public void ToMergedRanges_AdjacentNetworks_Succeeds()
         {
             // Arrange
@@ -466,6 +540,21 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, merged.Count);
             ClassicAssert.AreEqual("192.168.10.0", merged[0].Begin.ToString());
             ClassicAssert.AreEqual("192.168.10.255", merged[0].End.ToString());
+        }
+
+        [Test]
+        public void ToMergedRanges_IPv6Network_IncludesTheWholeNetwork()
+        {
+            List<IPNetwork2> networks = [IPNetwork2.Parse("2001:db8::/126")];
+
+            List<IPAddressRange> merged = networks.ToMergedRanges();
+
+            Assert.That(merged, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(merged[0].Begin.ToString(), Is.EqualTo("2001:db8::"));
+                Assert.That(merged[0].End.ToString(), Is.EqualTo("2001:db8::3"));
+            });
         }
 
         [Test]
@@ -604,6 +693,82 @@ namespace FWO.Test
         {
             Assert.AreEqual("not-an-ip", IpOperations.ToCompactNotation("not-an-ip", "10.0.0.1"));
             Assert.AreEqual("10.0.0.1", IpOperations.ToCompactNotation("10.0.0.1", "2001:db8::1"));
+        }
+
+        private static readonly List<string> kPtrNames = ["host.example.test"];
+
+        /// <summary>
+        /// A response without error is definitive, with or without PTR records.
+        /// </summary>
+        [Test]
+        public void SelectReverseLookupNames_ReturnsTheNamesOfAResponseWithoutError()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(IpOperations.SelectReverseLookupNames(DnsHeaderResponseCode.NoError, kPtrNames), Is.EqualTo(kPtrNames));
+                Assert.That(IpOperations.SelectReverseLookupNames(DnsHeaderResponseCode.NoError, Array.Empty<string>()), Is.Empty);
+            });
+        }
+
+        /// <summary>
+        /// A non-existent domain answers that the address has no name.
+        /// </summary>
+        [Test]
+        public void SelectReverseLookupNames_ReturnsNoNameForANonExistentDomain()
+        {
+            Assert.That(IpOperations.SelectReverseLookupNames(DnsHeaderResponseCode.NotExistentDomain, kPtrNames), Is.Empty);
+        }
+
+        /// <summary>
+        /// Other response codes may change with the next query and therefore are no answer.
+        /// </summary>
+        [TestCase(DnsHeaderResponseCode.ServerFailure)]
+        [TestCase(DnsHeaderResponseCode.Refused)]
+        [TestCase(DnsHeaderResponseCode.FormatError)]
+        [TestCase(DnsHeaderResponseCode.NotImplemented)]
+        public void SelectReverseLookupNames_ReturnsNullForAFailedLookup(DnsHeaderResponseCode responseCode)
+        {
+            Assert.That(IpOperations.SelectReverseLookupNames(responseCode, kPtrNames), Is.Null);
+        }
+
+        [TestCase("10.0.0.1", null, "10.0.0.1", "10.0.0.1")]
+        [TestCase("10.0.2.0/24", null, "10.0.2.0", "10.0.2.255")]
+        [TestCase("10.0.2.0/255.255.255.0", null, "10.0.2.0", "10.0.2.255")]
+        [TestCase("10.0.1.1", "10.0.1.9", "10.0.1.1", "10.0.1.9")]
+        [TestCase("10.0.0.1/32", "10.0.0.5/32", "10.0.0.1", "10.0.0.5")]
+        [TestCase("2001:db8::1", null, "2001:db8::1", "2001:db8::1")]
+        [TestCase("2001:db8::/64", null, "2001:db8::", "2001:db8::ffff:ffff:ffff:ffff")]
+        [TestCase("2001:db8::1/128", "2001:db8::5/128", "2001:db8::1", "2001:db8::5")]
+        [TestCase("10.0.0.0/24", "10.0.0.0/24", "10.0.0.0", "10.0.0.255")]
+        [TestCase("10.0.0.0/24", "10.0.0.255/24", "10.0.0.0", "10.0.0.255")]
+        [TestCase("2001:db8::/64", "2001:db8::/64", "2001:db8::", "2001:db8::ffff:ffff:ffff:ffff")]
+        public void TryParseIPRange_ParsesIpv4AndIpv6IncludingStoredNetmasks(string start, string? end, string expectedBegin, string expectedEnd)
+        {
+            bool parsed = IpOperations.TryParseIPRange(start, end, out IPAddressRange? range);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parsed, Is.True);
+                Assert.That(range?.Begin.ToString(), Is.EqualTo(expectedBegin));
+                Assert.That(range?.End.ToString(), Is.EqualTo(expectedEnd));
+            });
+        }
+
+        [TestCase(null, null)]
+        [TestCase(" ", null)]
+        [TestCase("no address", null)]
+        [TestCase("10.0.0.9", "10.0.0.1")]
+        [TestCase("10.0.0.1", "::1")]
+        [TestCase("10.0.0.1", "garbage")]
+        public void TryParseIPRange_FailsForMissingOrUnusableAddress(string? start, string? end)
+        {
+            bool parsed = IpOperations.TryParseIPRange(start, end, out IPAddressRange? range);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parsed, Is.False);
+                Assert.That(range, Is.Null);
+            });
         }
     }
 }

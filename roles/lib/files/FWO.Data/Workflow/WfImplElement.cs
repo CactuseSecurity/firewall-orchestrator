@@ -48,6 +48,9 @@ namespace FWO.Data.Workflow
             RuleUid = element.RuleUid;
             GroupName = element.GroupName;
             Name = element.Name;
+            StartTime = element.StartTime;
+            EndTime = element.EndTime;
+            TimeObjId = element.TimeObjId;
         }
     }
 }

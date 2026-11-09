@@ -36,15 +36,17 @@ public sealed class GetApplicationAddressesOptions
     public bool? ShowOnlyActiveState { get; set; }
 
     /// <summary>
-    /// Gets or sets the optional maximum number of applications to read. When omitted, every matching
-    /// application is returned. Applications are ordered by name, so this pages the result deterministically
-    /// together with <see cref="Offset"/>.
+    /// Gets or sets the maximum number of applications to read, between 1 and the configured
+    /// <c>maxRestResponseObjectLimit</c> (default 10000). When omitted or null, a page of that size is returned.
+    /// Applications are ordered by name, so this pages the result deterministically together with <see cref="Offset"/>;
+    /// the <c>X-Has-More</c> response header tells whether further applications follow.
     /// </summary>
     [JsonPropertyName("limit")]
     public int? Limit { get; set; }
 
     /// <summary>
-    /// Gets or sets the optional number of applications to skip before the first returned application.
+    /// Gets or sets the optional number of applications to skip before the first returned application. When omitted
+    /// or null, no application is skipped.
     /// </summary>
     [JsonPropertyName("offset")]
     public int? Offset { get; set; }

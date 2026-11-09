@@ -39,9 +39,9 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
             ExtMgtData extMgt = ReqTask.OnManagement != null && ReqTask.OnManagement?.ExtMgtData != null ?
                 System.Text.Json.JsonSerializer.Deserialize<ExtMgtData>(ReqTask.OnManagement?.ExtMgtData ?? "{}") : new();
             TaskText = template.TasksTemplate
-                .Replace(Placeholder.ORDERNAME, "AR" + ReqTask.TaskNumber.ToString())
-                .Replace(Placeholder.TASKCOMMENT, ReqTask.GetFirstCommentText())
-                .Replace(Placeholder.ACTION, MapActionType(ReqTask))
+                .ReplaceJsonStringPlaceholder(Placeholder.ORDERNAME, "AR" + ReqTask.TaskNumber.ToString())
+                .ReplaceJsonStringPlaceholder(Placeholder.TASKCOMMENT, ReqTask.GetFirstCommentText())
+                .ReplaceJsonStringPlaceholder(Placeholder.ACTION, MapActionType(ReqTask))
                 .Replace(Placeholder.SOURCES, ConvertNetworkElems(template, UseModelled() ? ElemFieldType.modelled_source : ElemFieldType.source, extMgt.ExtName))
                 .Replace(Placeholder.DESTINATIONS, ConvertNetworkElems(template, UseModelled() ? ElemFieldType.modelled_destination : ElemFieldType.destination, extMgt.ExtName))
                 .Replace(Placeholder.SERVICES, ConvertServiceElems(template, extMgt.ExtName));
@@ -127,15 +127,20 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
             {
                 return FillIcmpTemplate(template, svc.Name ?? "");
             }
-            if (svc.ProtoId == 6 || svc.ProtoId == 17) // TCP, UDP
+            if ((svc.ProtoId == 6 || svc.ProtoId == 17) && svc.Port != null) // TCP, UDP with a port
             {
                 return FillServiceTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), DisplayPortRange(svc.Port, svc.PortEnd), svc.Name ?? "");
             }
             return FillIpProtocolTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), svc.ProtoId.ToString(), svc.Name ?? "");
         }
 
-        public static string DisplayPortRange(int port, int? portEnd)
+        public static string DisplayPortRange(int? port, int? portEnd)
         {
+            if (port == null)
+            {
+                return "";
+            }
+
             return portEnd == null || portEnd == 0 || port == portEnd ? $"{port}" : $"{port}-{portEnd}";
         }
 

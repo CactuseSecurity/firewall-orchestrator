@@ -1,0 +1,121 @@
+---
+# roles/common picks the identity the maintenance vhost is written with, and then decides
+# whether Apache can be restarted with it at all. Both halves decide whether an upgrade
+# keeps serving: the wrong pick names a certificate Apache cannot load, and a wrong
+# deferral either restarts Apache into a missing identity or leaves the maintenance site
+# configured but never served. Only the decision is included here, never the restart, so
+# nothing touches the web server of the installation under test. The facts the real run
+# left behind are saved and restored around the cases.
+# Saved as one dict with empty-string stand-ins rather than as three omit values: a
+# set_fact whose every value is omit has no key/value pair left and fails outright, which
+# is exactly the state a fresh installation is in - roles/common only runs the maintenance
+# site during an upgrade, so none of these facts exists yet.
+- name: Remember the maintenance selection state before testing it
+  set_fact:
+    test_selection_state_before:
+      certificate: "{{ maintenance_apache_certificate | default('') }}"
+      private_key: "{{ maintenance_apache_private_key | default('') }}"
+      deferred: "{{ maintenance_apache_restart_deferred | default('') }}"
+
+- name: Create a temporary maintenance selection test directory
+  tempfile:
+    state: directory
+    prefix: fworch-maintenance-selection-
+  register: test_selection_directory
+
+- name: Create an identity the selection cases can find on disk
+  copy:
+    content: "not a certificate - only its presence on disk is under test"
+    dest: "{{ test_selection_directory.path }}/{{ item }}"
+    mode: "0600"
+  loop:
+    - present.crt
+    - present.key
+
+- name: Define the vhost bodies the selection cases are given
+  set_fact:
+    test_selection_present_vhost: |
+      <VirtualHost *:{{ ui_web_port }}>
+          SSLCertificateFile {{ test_selection_directory.path }}/present.crt
+          SSLCertificateKeyFile {{ test_selection_directory.path }}/present.key
+      </VirtualHost>
+    test_selection_absent_vhost: |
+      <VirtualHost *:{{ ui_web_port }}>
+          SSLCertificateFile {{ test_selection_directory.path }}/absent.crt
+          SSLCertificateKeyFile {{ test_selection_directory.path }}/absent.key
+      </VirtualHost>
+
+- name: Select the maintenance identity from a vhost naming an installed identity
+  include_tasks: "{{ role_path }}/../common/tasks/apache/select-maintenance-certificate.yml"
+  vars:
+    apache_tls_vhost_content:
+      content: "{{ test_selection_present_vhost | b64encode }}"
+
+- name: Verify the installed vhost identity is preferred over the FWO default
+  assert:
+    that:
+      - maintenance_apache_certificate == test_selection_directory.path ~ '/present.crt'
+      - maintenance_apache_private_key == test_selection_directory.path ~ '/present.key'
+    fail_msg: >-
+      The maintenance site must serve the identity the installed vhost names until
+      roles/internalCA has decided who owns it, but selected
+      {{ maintenance_apache_certificate }}.
+
+- name: Decide the restart for a maintenance identity that is present
+  include_tasks: "{{ role_path }}/../common/tasks/apache/decide-maintenance-restart.yml"
+
+- name: Verify Apache is restarted for an identity that exists
+  assert:
+    that:
+      - not (maintenance_apache_restart_deferred | bool)
+    fail_msg: >-
+      Both halves of the selected maintenance identity exist, so the restart must not be
+      deferred - deferring it leaves the enabled maintenance site unserved for the rest
+      of the upgrade.
+
+- name: Select the maintenance identity when no installed vhost can be read
+  include_tasks: "{{ role_path }}/../common/tasks/apache/select-maintenance-certificate.yml"
+  vars:
+    apache_tls_vhost_content: {}
+
+- name: Verify the FWO default identity is used when no vhost names one
+  assert:
+    that:
+      - maintenance_apache_certificate == internalca_apache_certificate
+      - maintenance_apache_private_key == internalca_apache_private_key
+    fail_msg: >-
+      With no readable vhost the maintenance site has to fall back to the identity FWO
+      issues, but selected {{ maintenance_apache_certificate }}.
+
+# The pre-9.5.0 upgrade whose FWO identity does not exist yet: the restart has to be
+# deferred, and restart-consumers.yml then makes it good once internalCA has issued it.
+- name: Select a maintenance identity that has not been issued yet
+  include_tasks: "{{ role_path }}/../common/tasks/apache/select-maintenance-certificate.yml"
+  vars:
+    apache_tls_vhost_content:
+      content: "{{ test_selection_absent_vhost | b64encode }}"
+
+- name: Decide the restart for a maintenance identity that is missing
+  include_tasks: "{{ role_path }}/../common/tasks/apache/decide-maintenance-restart.yml"
+
+- name: Verify the restart is deferred for an identity that does not exist yet
+  assert:
+    that:
+      - maintenance_apache_certificate == test_selection_directory.path ~ '/absent.crt'
+      - maintenance_apache_restart_deferred | bool
+    fail_msg: >-
+      The selected maintenance identity does not exist, so restarting Apache with it
+      would fail and the restart has to be deferred to roles/internalCA.
+
+# An empty string restores the "not set" state as far as every consumer is concerned:
+# both facts are only ever read through | bool or as a path that is then stat'ed.
+- name: Restore the maintenance selection state
+  set_fact:
+    maintenance_apache_certificate: "{{ test_selection_state_before.certificate }}"
+    maintenance_apache_private_key: "{{ test_selection_state_before.private_key }}"
+    maintenance_apache_restart_deferred: "{{ test_selection_state_before.deferred }}"
+
+- name: Remove the temporary maintenance selection test directory
+  file:
+    path: "{{ test_selection_directory.path }}"
+    state: absent

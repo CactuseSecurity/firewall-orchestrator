@@ -15,8 +15,15 @@ namespace FWO.Data.Workflow
         [JsonProperty("creation_date"), JsonPropertyName("creation_date")]
         public DateTime CreationDate { get; set; } = DateTime.Now;
 
+        // the API returns null for a user outside the tenant of the caller (SEC-19)
+        private UiUser creator = new UiUser();
+
         [JsonProperty("creator"), JsonPropertyName("creator")]
-        public UiUser Creator { get; set; } = new UiUser();
+        public UiUser Creator
+        {
+            get => creator;
+            set => creator = value ?? new UiUser();
+        }
 
         [JsonProperty("comment_text"), JsonPropertyName("comment_text")]
         public string CommentText { get; set; } = "";

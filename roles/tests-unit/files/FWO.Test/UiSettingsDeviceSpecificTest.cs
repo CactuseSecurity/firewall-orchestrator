@@ -1,0 +1,406 @@
+using System.Security.Claims;
+using AngleSharp.Dom;
+using Bunit;
+using FWO.Basics;
+using FWO.Config.Api;
+using FWO.Data.DeviceSpecificSettings;
+using FWO.Services;
+using FWO.Ui.Pages.Settings;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.DependencyInjection;
+using NUnit.Framework;
+
+namespace FWO.Test;
+
+/// <summary>
+/// Covers the role-dependent editability of the device specific settings page: admins can edit the fields,
+/// auditors see the same values with every editor disabled.
+/// </summary>
+[TestFixture]
+internal sealed class UiSettingsDeviceSpecificTest
+{
+    private const long kGlobalNodeId = 1;
+
+    private static readonly string kLoggingSwitchSelector = $"#dss-override-{DeviceSpecificSettingKeys.RuleLoggingOverride.DatabaseKey}";
+    private static readonly string kLoggingSelectSelector = $"#dss-field-{DeviceSpecificSettingKeys.RuleLoggingOverride.DatabaseKey} select";
+
+    /// <summary>Admin can pick a configured external ticket system, which is stored by its ID.</summary>
+    [Test]
+    public async Task Admin_CanSelectExternalTicketSystem()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        await using BunitContext context = CreateContext(Roles.Admin, api, "[{\"Id\":3,\"Name\":\"Ticketing\"}]");
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        string key = DeviceSpecificSettingKeys.RerouteToExternalTicketSystem.DatabaseKey;
+        page.Find($"#dss-override-{key}").Change(true);
+        Assert.That(page.FindAll($"#dss-field-{key} select option").Select(option => option.TextContent),
+            Does.Contain("Ticketing (3)"));
+        page.Find($"#dss-field-{key} select").Change("3");
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        Assert.That(api.ReadValue(kGlobalNodeId, DeviceSpecificSettingKeys.RerouteToExternalTicketSystem)?.ToObject<int>(), Is.EqualTo(3));
+    }
+
+    /// <summary>Boolean settings are edited as yes/no and stored as JSON booleans.</summary>
+    [Test]
+    public async Task Admin_SavesBooleanSettingsAsJsonBooleans()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        await using BunitContext context = CreateContext(Roles.Admin, api);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        string key = DeviceSpecificSettingKeys.AutoPlanImplementation.DatabaseKey;
+        page.Find($"#dss-override-{key}").Change(true);
+        page.Find($"#dss-field-{key} select").Change(bool.FalseString);
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        Assert.That(api.ReadValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementation)?.Type, Is.EqualTo(Newtonsoft.Json.Linq.JTokenType.Boolean));
+        Assert.That(api.ReadValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementation)?.ToObject<bool>(), Is.False);
+    }
+
+    [Test]
+    public async Task Admin_CanSaveLayerGuardSectionTemplateAndSeeItAtGateway()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        await using BunitContext context = CreateContext(Roles.Admin, api);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        string key = DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.DatabaseKey;
+        string fieldSelector = $"#dss-field-{key} input[type=text]";
+
+        await page.Find($"#dss-override-{key}").ChangeAsync(
+            new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
+        await page.Find(fieldSelector).ChangeAsync(
+            new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "fixed @@SOURCE_ZONE@@ fixed" });
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        Assert.That(api.ReadValue(kGlobalNodeId,
+            DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate)?.ToObject<string>(),
+            Is.EqualTo("fixed @@SOURCE_ZONE@@ fixed"));
+
+        await TreeButton(page, "Check Point R8x").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        page.WaitForAssertion(() => TreeButton(page, "cp-mgr"));
+        await TreeButton(page, "cp-mgr").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        page.WaitForAssertion(() => TreeButton(page, "cp-gw-a"));
+        await TreeButton(page, "cp-gw-a").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        page.WaitForAssertion(() => page.Find(fieldSelector));
+    }
+
+    [TestCase("")]
+    [TestCase("@@SOURCE@@")]
+    [TestCase("@@SOURCE_ZONE")]
+    public async Task Admin_RejectsInvalidLayerGuardSectionTemplate(string invalidTemplate)
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        List<(Exception? Exception, string Message, bool IsError)> displayedMessages = [];
+        await using BunitContext context = CreateContext(Roles.Admin, api);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context,
+            (exception, _, message, isError) => displayedMessages.Add((exception, message, isError)));
+        string key = DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.DatabaseKey;
+
+        await page.Find($"#dss-override-{key}").ChangeAsync(
+            new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
+        await page.Find($"#dss-field-{key} input[type=text]").ChangeAsync(
+            new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = invalidTemplate });
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        Assert.That(displayedMessages, Has.Count.EqualTo(1));
+        (Exception? exception, string message, bool isError) = displayedMessages.Single();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(api.ReadValue(kGlobalNodeId,
+                DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate), Is.Null);
+            Assert.That(exception, Is.Null);
+            Assert.That(message, Is.EqualTo("E5302"));
+            Assert.That(isError, Is.True);
+        }
+    }
+
+    /// <summary>Install-on targets are restricted to the two contract values.</summary>
+    [Test]
+    public async Task InstallOn_UsesABoundedSelector()
+    {
+        await using BunitContext context = CreateContext(Roles.Admin);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        Assert.That(page.FindAll("#dss-field-installOn select option"), Has.Count.EqualTo(2));
+        Assert.That(page.FindAll("#dss-field-installOn input[type=text]"), Is.Empty);
+    }
+
+    [Test]
+    public async Task Auditor_SeesTheStoredValuesWithAllEditorsDisabled()
+    {
+        await using BunitContext context = CreateContext(Roles.Auditor);
+
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+
+        List<IElement> editors = [.. page.FindAll("form input, form select, form textarea, form button")];
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(page.Find(kLoggingSwitchSelector).HasAttribute("checked"), Is.True);
+            Assert.That(page.Find(kLoggingSelectSelector).GetAttribute("value"), Is.EqualTo(nameof(ProvisioningLoggingMode.LogTrack)));
+            Assert.That(editors, Is.Not.Empty);
+            Assert.That(editors.Where(editor => !editor.HasAttribute("disabled")).Select(editor => editor.Id ?? editor.TagName),
+                Is.Empty);
+        }
+    }
+
+    [Test]
+    public async Task Admin_CanEditOverridesAndSwitchFields()
+    {
+        await using BunitContext context = CreateContext(Roles.Admin);
+
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(page.Find(kLoggingSwitchSelector).HasAttribute("disabled"), Is.False);
+            Assert.That(page.Find(kLoggingSelectSelector).HasAttribute("disabled"), Is.False);
+        }
+    }
+
+    [Test]
+    public async Task Admin_CanClearDormantOverrideAfterVendorMove()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        api.AddNode(2, DeviceSpecificScopeType.DeviceType, "9", kGlobalNodeId, "Check Point R8x");
+        api.AddNode(5, DeviceSpecificScopeType.DeviceType, "11", kGlobalNodeId, "FortiADOM 5ff");
+        api.AddNode(3, DeviceSpecificScopeType.Management, "100", 5, "cp-mgr");
+        api.SetValue(3, DeviceSpecificSettingKeys.RuleZoneFromOverride, "internal");
+        await using BunitContext context = CreateContext(Roles.Admin, api);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+
+        await TreeButton(page, "Check Point R8x").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        page.WaitForAssertion(() => TreeButton(page, "cp-mgr"));
+        await TreeButton(page, "cp-mgr").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        page.WaitForAssertion(() => page.Find(".dss-clear-dormant"));
+
+        IElement dormantValue = page.Find($"#dss-field-{DeviceSpecificSettingKeys.RuleZoneFromOverride.DatabaseKey} input[type=text]");
+        IElement clearButton = page.Find(".dss-clear-dormant");
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(dormantValue.GetAttribute("value"), Is.EqualTo("internal"));
+            Assert.That(dormantValue.HasAttribute("disabled"), Is.True);
+            Assert.That(clearButton.HasAttribute("disabled"), Is.False);
+        }
+
+        await clearButton.ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(api.ReadValue(3, DeviceSpecificSettingKeys.RuleZoneFromOverride), Is.Null);
+            Assert.That(page.FindAll(".dss-clear-dormant"), Is.Empty);
+        }
+    }
+
+    [Test]
+    public async Task Saving_DisablesTheEditorAndTreeAndIgnoresQueuedEdits()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        await using BunitContext context = CreateContext(Roles.Admin, api);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        await page.Find(kLoggingSelectSelector).ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs
+        {
+            Value = nameof(ProvisioningLoggingMode.None)
+        });
+
+        TaskCompletionSource<bool> saveQueryStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<bool> continueSave = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int queryCount = 0;
+        api.BeforeQueryAsync = async _ =>
+        {
+            if (Interlocked.Increment(ref queryCount) == 1)
+            {
+                saveQueryStarted.TrySetResult(true);
+                await continueSave.Task;
+            }
+        };
+
+        Task saveTask = Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        try
+        {
+            await saveQueryStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            page.WaitForAssertion(() =>
+            {
+                Assert.That(page.FindAll("form input, form select, form textarea, form button")
+                    .All(control => control.HasAttribute("disabled")), Is.True);
+                Assert.That(page.FindAll(".col-sm-3 button").All(button => button.HasAttribute("disabled")), Is.True);
+                Assert.That(Button(page, "Save").HasAttribute("disabled"), Is.True);
+                Assert.That(Button(page, "Cancel").HasAttribute("disabled"), Is.True);
+            });
+
+            await page.Find(kLoggingSelectSelector).ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs
+            {
+                Value = nameof(ProvisioningLoggingMode.Log)
+            });
+            await page.Find(kLoggingSwitchSelector).ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = false });
+            await page.Find(".col-sm-3 button.btn-primary")
+                .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        }
+        finally
+        {
+            continueSave.TrySetResult(true);
+        }
+        await saveTask;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(api.ReadValue(kGlobalNodeId, DeviceSpecificSettingKeys.RuleLoggingOverride)?.ToString(),
+                Is.EqualTo("none"));
+            Assert.That(page.Find(kLoggingSwitchSelector).HasAttribute("checked"), Is.True);
+            Assert.That(page.Find(kLoggingSelectSelector).GetAttribute("value"),
+                Is.EqualTo(nameof(ProvisioningLoggingMode.None)));
+        }
+    }
+
+    [Test]
+    public async Task Auditor_TogglingASwitchLeavesTheFormUnchanged()
+    {
+        await using BunitContext context = CreateContext(Roles.Auditor);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+
+        await page.Find(kLoggingSwitchSelector).ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = false });
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(page.Find(kLoggingSwitchSelector).HasAttribute("checked"), Is.True);
+            Assert.That(page.FindAll(".alert-warning"), Is.Empty);
+        }
+    }
+
+    /// <summary>
+    /// An empty firewall write value stands for the shipped default: it is shown as placeholder, "Edit default" takes it over
+    /// for editing, "Reset to default" empties the value again, and the empty value is what gets stored.
+    /// </summary>
+    [Test]
+    public async Task Admin_KeepsFirewallWriteDefaultsEmptyUntilCopied()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        api.AddNode(2, DeviceSpecificScopeType.DeviceType, "9", kGlobalNodeId, "Check Point R8x");
+        api.SetValue(2, FirewallWriteSettingKeys.Endpoints[FirewallWriteOperation.HostCreate], "POST custom-host");
+        await using BunitContext context = CreateContext(Roles.Admin, api);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        await TreeButton(page, "Check Point R8x").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        string field = $"#dss-field-{FirewallWriteSettingKeys.Endpoints[FirewallWriteOperation.HostCreate].DatabaseKey}";
+        page.WaitForAssertion(() => page.Find($"{field} .dss-endpoint-path"));
+        IElement Path() => page.Find($"{field} .dss-endpoint-path");
+        IElement Method() => page.Find($"{field} .dss-endpoint-method");
+        IElement ResetButton() => page.Find($"{field} .dss-reset-default");
+        IElement EditButton() => page.Find($"{field} .dss-edit-default");
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(Method().GetAttribute("value"), Is.EqualTo("POST"));
+            Assert.That(Path().GetAttribute("value"), Is.EqualTo("custom-host"));
+            Assert.That(Path().GetAttribute("placeholder"), Is.EqualTo("add-host"));
+            Assert.That(EditButton().HasAttribute("disabled"), Is.True);
+        }
+
+        await ResetButton().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(Method().GetAttribute("value"), Is.Empty);
+            Assert.That(Method().QuerySelector("option[value='']")?.TextContent, Is.EqualTo("POST"));
+            Assert.That(Path().GetAttribute("value"), Is.Empty);
+            Assert.That(ResetButton().HasAttribute("disabled"), Is.True);
+            Assert.That(EditButton().HasAttribute("disabled"), Is.False);
+        }
+
+        await EditButton().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(Method().GetAttribute("value"), Is.EqualTo("POST"));
+            Assert.That(Path().GetAttribute("value"), Is.EqualTo("add-host"));
+        }
+
+        await Method().ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "PUT" });
+        Assert.That(Path().GetAttribute("value"), Is.EqualTo("add-host"));
+
+        await ResetButton().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        Assert.That(api.ReadValue(2, FirewallWriteSettingKeys.Endpoints[FirewallWriteOperation.HostCreate])?.ToObject<string>(), Is.Empty);
+    }
+
+    /// <summary>
+    /// SecureChange templates are offered at Global with the shipped template as placeholder; an override is stored as text,
+    /// and a part without shipped template has no placeholder.
+    /// </summary>
+    [Test]
+    public async Task Admin_EditsSecureChangeTemplatesAtGlobal()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        await using BunitContext context = CreateContext(Roles.Admin, api);
+        IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
+        DeviceSpecificSettingKey<string> ticketKey = SecureChangeTemplateSettingKeys.Keys[(FWO.Data.SCTaskType.AccessRequest, SecureChangeTemplatePart.Ticket)];
+        DeviceSpecificSettingKey<string> ipKey = SecureChangeTemplateSettingKeys.Keys[(FWO.Data.SCTaskType.AccessRequest, SecureChangeTemplatePart.Ip)];
+        IElement Ticket() => page.Find($"#dss-field-{ticketKey.DatabaseKey} textarea");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(Ticket().GetAttribute("placeholder"),
+                Is.EqualTo(FWO.ExternalSystems.Tufin.SecureChange.SCTemplateDefaults.Get(FWO.Data.SCTaskType.AccessRequest, SecureChangeTemplatePart.Ticket)));
+            Assert.That(Ticket().HasAttribute("disabled"), Is.True);
+            Assert.That(page.Find($"#dss-field-{ipKey.DatabaseKey} textarea").HasAttribute("placeholder"), Is.False);
+        }
+
+        await page.Find($"#dss-override-{ticketKey.DatabaseKey}").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true });
+        await Ticket().ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "{\"ticket\":@@TASKS@@}" });
+        await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        Assert.That(api.ReadValue(kGlobalNodeId, ticketKey)?.ToObject<string>(), Is.EqualTo("{\"ticket\":@@TASKS@@}"));
+    }
+
+    private static IRenderedComponent<CascadingAuthenticationState> RenderPage(
+        BunitContext context,
+        Action<Exception?, string, string, bool>? displayMessageInUi = null)
+    {
+        IRenderedComponent<CascadingAuthenticationState> page = context.Render<CascadingAuthenticationState>(parameters => parameters
+            .AddChildContent<CascadingValue<Action<Exception?, string, string, bool>>>(child => child
+                .Add(component => component.Value, displayMessageInUi ?? DefaultInit.DoNothing)
+                .AddChildContent<SettingsDeviceSpecific>(_ => { })));
+        page.WaitForAssertion(() => page.Find(kLoggingSwitchSelector));
+        return page;
+    }
+
+    private static IElement Button(IRenderedComponent<CascadingAuthenticationState> page, string text) =>
+        page.FindAll("button").Single(button => button.TextContent.Trim() == text ||
+            button.QuerySelectorAll("[title]").Any(element => element.GetAttribute("title") == text));
+
+    private static IElement TreeButton(IRenderedComponent<CascadingAuthenticationState> page, string text) =>
+        page.FindAll(".col-sm-3 button").Single(button => button.TextContent.Trim() == text);
+
+    private static InMemoryDeviceSpecificSettingsApiConnection CreateApi()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = new();
+        api.Managements.AddRange(DeviceSpecificSettingsDataTest.SampleManagements());
+        api.AddNode(kGlobalNodeId, DeviceSpecificScopeType.Global, "global", displayName: "Global");
+        api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.RuleLoggingOverride, ProvisioningLoggingMode.LogTrack);
+        return api;
+    }
+
+    private static BunitContext CreateContext(string role, InMemoryDeviceSpecificSettingsApiConnection? api = null, string extTicketSystems = "")
+    {
+        api ??= CreateApi();
+
+        SimulatedUserConfig userConfig = new();
+        userConfig.User.Roles = new List<string> { role };
+        userConfig.ExtTicketSystems = extTicketSystems;
+
+        BunitContext context = new();
+        context.JSInterop.Mode = JSRuntimeMode.Loose;
+        context.Services.AddAuthorizationCore();
+        context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+        context.Services.AddSingleton<AuthenticationStateProvider>(new RoleAuthStateProvider(role));
+        context.Services.AddSingleton<FWO.Api.Client.ApiConnection>(api);
+        context.Services.AddSingleton<UserConfig>(userConfig);
+        context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
+        return context;
+    }
+
+    private sealed class RoleAuthStateProvider(string role) : AuthenticationStateProvider
+    {
+        private readonly List<Claim> claims = new() { new Claim(ClaimTypes.Role, role) };
+
+        private AuthenticationState authenticationState => new(new ClaimsPrincipal(new ClaimsIdentity(
+            claims, authenticationType: "Test", nameType: ClaimTypes.Name, roleType: ClaimTypes.Role)));
+
+        public override Task<AuthenticationState> GetAuthenticationStateAsync() => Task.FromResult(authenticationState);
+    }
+}

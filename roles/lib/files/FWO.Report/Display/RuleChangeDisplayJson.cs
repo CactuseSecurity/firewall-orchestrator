@@ -126,7 +126,7 @@ namespace FWO.Ui.Display
             {
                 case 'D': return DisplayRuleSourceZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray());
                 case 'I': return DisplayRuleSourceZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray());
-                case 'C': return DisplayJsonArray("source zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
+                case 'C': return DisplayJsonArray("source zones", DisplayArrayDiff(ListFirewallZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListFirewallZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
                 default: return "";
             }
         }
@@ -164,7 +164,7 @@ namespace FWO.Ui.Display
             {
                 case 'D': return DisplayRuleDestinationZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray());
                 case 'I': return DisplayRuleDestinationZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray());
-                case 'C': return DisplayJsonArray("destination zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray())));
+                case 'C': return DisplayJsonArray("destination zones", DisplayArrayDiff(ListFirewallZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()), ListFirewallZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray())));
                 default: return "";
             }
         }
@@ -418,21 +418,37 @@ namespace FWO.Ui.Display
             }
         }
 
-        private string? DisplayDiff(string? oldElement, string? newElement)
+        /// <summary>
+        /// Renders the difference between two element texts.
+        /// </summary>
+        /// <param name="oldElement">Text before the change, may be null for columns that are nullable in the database.</param>
+        /// <param name="newElement">Text after the change, may be null for columns that are nullable in the database.</param>
+        /// <returns>The rendered difference.</returns>
+        private string DisplayDiff(string? oldElement, string? newElement)
         {
+            oldElement ??= "";
+            newElement ??= "";
             if (oldElement == newElement)
             {
                 return oldElement;
             }
-            else
-            {
-                return (oldElement != null && oldElement.Length > 0 ? $"{userConfig.GetText("deleted")}: {oldElement}{(newElement != null && newElement.Length > 0 ? ", " : "")}" : "")
-                    + (newElement != null && newElement.Length > 0 ? $"{userConfig.GetText("added")}: {newElement}" : "");
-            }
+
+            string separator = oldElement.Length > 0 && newElement.Length > 0 ? ", " : "";
+            string deletedPart = oldElement.Length > 0 ? $"{userConfig.GetText("deleted")}: {oldElement}{separator}" : "";
+            string addedPart = newElement.Length > 0 ? $"{userConfig.GetText("added")}: {newElement}" : "";
+            return deletedPart + addedPart;
         }
 
-        private string DisplayArrayDiff(string oldElement, string newElement)
+        /// <summary>
+        /// Renders the difference between two element lists.
+        /// </summary>
+        /// <param name="oldElement">List before the change, may be null for columns that are nullable in the database.</param>
+        /// <param name="newElement">List after the change, may be null for columns that are nullable in the database.</param>
+        /// <returns>The rendered difference.</returns>
+        private string DisplayArrayDiff(string? oldElement, string? newElement)
         {
+            oldElement ??= "";
+            newElement ??= "";
             if (oldElement == newElement)
             {
                 return oldElement;

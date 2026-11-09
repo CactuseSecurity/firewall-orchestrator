@@ -14,11 +14,21 @@ namespace FWO.Data
 
     public class LdapConnectionBase
     {
+        /// <summary>Maximum number of servers of one LDAP connection.</summary>
+        public const int kMaxServers = 10;
+        /// <summary>Maximum length of a server name (the maximum length of a DNS name).</summary>
+        public const int kMaxServerLength = 253;
+        private static readonly char[] kAddressSeparators = [',', ';', ' ', '\t', '\n', '\r'];
+
         [JsonProperty("ldap_connection_id"), JsonPropertyName("ldap_connection_id")]
         public int Id { get; set; }
 
+        /// <summary>
+        /// Servers of the directory (names or ip addresses), tried in this order. Several servers are replicas of one
+        /// directory and share all other settings of the connection, including the port.
+        /// </summary>
         [JsonProperty("ldap_server"), JsonPropertyName("ldap_server")]
-        public string Address { get; set; } = "";
+        public List<string> Addresses { get; set; } = [];
 
         [JsonProperty("ldap_port"), JsonPropertyName("ldap_port")]
         public int Port { get; set; }
@@ -74,7 +84,7 @@ namespace FWO.Data
         public LdapConnectionBase(LdapConnectionBase ldapConnection)
         {
             Id = ldapConnection.Id;
-            Address = ldapConnection.Address;
+            Addresses = [.. ldapConnection.Addresses];
             Port = ldapConnection.Port;
             Type = ldapConnection.Type;
             PatternLength = ldapConnection.PatternLength;
@@ -96,7 +106,7 @@ namespace FWO.Data
         public LdapConnectionBase(LdapGetUpdateParameters ldapGetUpdateParameters)
         {
             Id = ldapGetUpdateParameters.Id;
-            Address = ldapGetUpdateParameters.Address;
+            Addresses = [.. ldapGetUpdateParameters.Addresses];
             Port = ldapGetUpdateParameters.Port;
             Type = ldapGetUpdateParameters.Type;
             PatternLength = ldapGetUpdateParameters.PatternLength;
@@ -118,7 +128,7 @@ namespace FWO.Data
         public virtual bool Sanitize()
         {
             bool shortened = false;
-            Address = Address.SanitizeMand(ref shortened);
+            Addresses = SanitizeAddresses(Addresses, ref shortened);
             SearchUser = SearchUser.SanitizeLdapPathOpt(ref shortened) ?? "";
             UserSearchPath = UserSearchPath.SanitizeLdapPathOpt(ref shortened);
             RoleSearchPath = RoleSearchPath.SanitizeLdapPathOpt(ref shortened);
@@ -131,9 +141,51 @@ namespace FWO.Data
             return shortened;
         }
 
+        /// <summary>
+        /// Lists the servers of the connection with their port, e.g. for display and logs.
+        /// </summary>
+        /// <returns>The servers as "address:port", separated by commas; empty if no server is set.</returns>
         public string Host()
         {
-            return Address != "" ? Address + ":" + Port : "";
+            return FormatHosts(Addresses, Port);
+        }
+
+        /// <summary>
+        /// Lists servers with their port.
+        /// </summary>
+        /// <param name="addresses">Names or ip addresses of the servers.</param>
+        /// <param name="port">Port shared by the servers.</param>
+        /// <returns>The servers as "address:port", separated by commas; empty if no server is given.</returns>
+        public static string FormatHosts(IEnumerable<string> addresses, int port)
+        {
+            return string.Join(", ", addresses.Select(address => $"{address}:{port}"));
+        }
+
+        /// <summary>
+        /// Splits a text listing servers, separated by commas, semicolons or blanks, into the server list.
+        /// </summary>
+        /// <param name="addressText">Text as entered, e.g. "ldap1.example.com, ldap2.example.com".</param>
+        /// <returns>The servers in the given order, without empty entries and duplicates.</returns>
+        public static List<string> ParseAddresses(string? addressText)
+        {
+            return (addressText ?? "")
+                .Split(kAddressSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> SanitizeAddresses(List<string>? addresses, ref bool shortened)
+        {
+            List<string> sanitizedAddresses = [];
+            foreach (string address in addresses ?? [])
+            {
+                string sanitizedAddress = address.SanitizeMand(ref shortened);
+                if (sanitizedAddress != "" && !sanitizedAddresses.Contains(sanitizedAddress, StringComparer.OrdinalIgnoreCase))
+                {
+                    sanitizedAddresses.Add(sanitizedAddress);
+                }
+            }
+            return sanitizedAddresses;
         }
 
         public bool IsWritable()

@@ -75,7 +75,6 @@ namespace FWO.Test
         {
             await using BunitContext context = CreateContext(out RecordingApiConnection apiConn, out SimulatedUserConfig userConfig);
             userConfig.AllowServiceInConn = true;
-            SimulatedUserConfig.DummyTranslate["U9004"] = "Delete ";
             ModellingServiceGroup group = new() { Id = 301, Name = "group301" };
             apiConn.GlobalServiceGroups = new List<ModellingServiceGroup> { group };
             apiConn.GlobalServices = new List<ModellingService>();

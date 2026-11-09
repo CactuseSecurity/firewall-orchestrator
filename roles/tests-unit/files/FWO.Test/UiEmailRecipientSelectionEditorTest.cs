@@ -7,6 +7,7 @@ using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Linq;
 
 namespace FWO.Test
 {
@@ -17,11 +18,6 @@ namespace FWO.Test
         [Test]
         public void Render_OrdersResponsiblesOtherAddressesAndEnsureFlag()
         {
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.OtherAddresses), "Other addresses");
-            SimulatedUserConfig.DummyTranslate.TryAdd("modEnsureAtLeastOneEmailNotification", "Ensure at least one notification");
-            SimulatedUserConfig.DummyTranslate.TryAdd("Main responsible", "Main responsible");
-            SimulatedUserConfig.DummyTranslate.TryAdd("Supporting responsible", "Supporting responsible");
-            SimulatedUserConfig.DummyTranslate.TryAdd("Optional escalation responsible", "Optional escalation responsible");
             Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
 
             IRenderedComponent<EmailRecipientSelectionEditor> component = Render<EmailRecipientSelectionEditor>(parameters => parameters
@@ -54,10 +50,89 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Render_ShowsRequesterOptionWhenEnabled()
+        {
+            SimulatedUserConfig userConfig = new();
+            Services.AddSingleton<UserConfig>(userConfig);
+
+            IRenderedComponent<EmailRecipientSelectionEditor> component = Render<EmailRecipientSelectionEditor>(parameters => parameters
+                .Add(p => p.Selection, new EmailRecipientSelection())
+                .Add(p => p.ShowRequesterOption, true));
+
+            Assert.That(component.FindAll("label.form-check-label").Select(label => label.TextContent), Does.Contain(userConfig.GetText(nameof(EmailRecipientOption.Requester))));
+        }
+
+        [Test]
+        public void RequesterCheckbox_TogglesRequesterSelectionAndDerivedNone()
+        {
+            Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            EmailRecipientSelection selection = new();
+
+            IRenderedComponent<EmailRecipientSelectionEditor> component = Render<EmailRecipientSelectionEditor>(parameters => parameters
+                .Add(p => p.Selection, selection)
+                .Add(p => p.ShowRequesterOption, true)
+                .Add(p => p.CheckboxIdPrefix, "test_recipients"));
+
+            component.Find("#test_recipients_requester").Change(true);
+
+            Assert.That(selection.Requester, Is.True);
+            Assert.That(selection.None, Is.False);
+
+            component.Find("#test_recipients_requester").Change(false);
+
+            Assert.That(selection.Requester, Is.False);
+            Assert.That(selection.None, Is.True);
+        }
+
+        [Test]
+        public void OtherAddressesCheckbox_TogglesSelectionAndDerivedNone()
+        {
+            Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            EmailRecipientSelection selection = new();
+
+            IRenderedComponent<EmailRecipientSelectionEditor> component = Render<EmailRecipientSelectionEditor>(parameters => parameters
+                .Add(p => p.Selection, selection)
+                .Add(p => p.CheckboxIdPrefix, "test_recipients"));
+
+            component.Find("#test_recipients_other").Change(true);
+
+            Assert.That(selection.OtherAddresses, Is.True);
+            Assert.That(selection.None, Is.False);
+
+            component.Find("#test_recipients_other").Change(false);
+
+            Assert.That(selection.OtherAddresses, Is.False);
+            Assert.That(selection.None, Is.True);
+        }
+
+        [Test]
+        public void OwnerResponsibleTypeCheckbox_TogglesSelectionAndDerivedNone()
+        {
+            Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            EmailRecipientSelection selection = new();
+
+            IRenderedComponent<EmailRecipientSelectionEditor> component = Render<EmailRecipientSelectionEditor>(parameters => parameters
+                .Add(p => p.Selection, selection)
+                .Add(p => p.OwnerResponsibleTypes, new List<OwnerResponsibleType>
+                {
+                    new() { Id = 7, Name = "Main responsible", Active = true, SortOrder = 10 }
+                })
+                .Add(p => p.CheckboxIdPrefix, "test_recipients"));
+
+            component.Find("#test_recipients_ort_7").Change(true);
+
+            Assert.That(selection.OwnerResponsibleTypeIds, Is.EqualTo(new List<int> { 7 }));
+            Assert.That(selection.None, Is.False);
+
+            component.Find("#test_recipients_ort_7").Change(false);
+
+            Assert.That(selection.OwnerResponsibleTypeIds, Is.Empty);
+            Assert.That(selection.None, Is.True);
+        }
+
+        [Test]
         public void OtherEmailAddressesEditor_AddsSanitizedAddressToList()
         {
-            SimulatedUserConfig.DummyTranslate.TryAdd("email_address", "Email address");
-            SimulatedUserConfig.DummyTranslate.TryAdd("U0001", "Address shortened");
             Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
             List<string> addresses = [];
 
@@ -90,14 +165,6 @@ namespace FWO.Test
         [Test]
         public void WorkflowEmailRecipientEditor_ShowsAddressEditorOnlyForOtherAddresses()
         {
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.None), "None");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.OtherAddresses), "Other addresses");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.CurrentHandler), "Current handler");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.RecentHandler), "Recent handler");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.AssignedGroup), "Assigned group");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.Requester), "Requester");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.Approver), "Approver");
-            SimulatedUserConfig.DummyTranslate.TryAdd(nameof(EmailRecipientOption.LastCommenter), "Last commenter");
             Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
             Services.AddSingleton(new DomEventService());
 

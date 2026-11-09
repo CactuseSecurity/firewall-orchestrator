@@ -17,22 +17,31 @@
 #       csvFiles # array of file basenames containing the app data
 #       ldapPath # full ldap user path (used for building DN from user basename) #noqa: ERA001
 
+from __future__ import annotations
+
 import argparse
 import csv
 import ipaddress
 import json
-import logging
 import socket
 import sys
 from asyncio.log import logger
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 import urllib3
 
-from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_custom_config
+from scripts.customizing.fwo_custom_lib.basic_helpers import (
+    get_logger,
+    read_custom_config,
+    read_custom_config_with_default,
+    resolve_requests_verify,
+)
 from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo
+
+if TYPE_CHECKING:
+    import logging
 
 base_dir: str = "/usr/local/fworch/"
 base_dir_etc: str = base_dir + "etc/"
@@ -192,7 +201,7 @@ def extract_socket_info(asset: dict[str, Any], _services: list[Any]) -> list[dic
     return sockets
 
 
-def rlm_login(user: str, password: str, api_url: str) -> str:
+def rlm_login(user: str, password: str, api_url: str, verify: bool | str = True) -> str:
     payload: dict[str, str] = {
         "username": user,
         "password": password,
@@ -202,7 +211,7 @@ def rlm_login(user: str, password: str, api_url: str) -> str:
     }
 
     with requests.Session() as session:
-        session.verify = False
+        session.verify = verify
         try:
             response = session.post(api_url, payload, timeout=HTTP_TIMEOUT)
         except requests.exceptions.RequestException:
@@ -215,7 +224,7 @@ def rlm_login(user: str, password: str, api_url: str) -> str:
         )
 
 
-def rlm_get_owners(token: str, api_url: str, rlm_version: float = 2.5) -> dict[str, Any]:
+def rlm_get_owners(token: str, api_url: str, rlm_version: float = 2.5, verify: bool | str = True) -> dict[str, Any]:
     headers: dict[str, str] = {}
     params: dict[str, str] = {}
 
@@ -225,7 +234,7 @@ def rlm_get_owners(token: str, api_url: str, rlm_version: float = 2.5) -> dict[s
         params = {"access_token": token}
 
     with requests.Session() as session:
-        session.verify = False
+        session.verify = verify
         try:
             response = session.get(api_url, headers=headers, params=params, timeout=HTTP_TIMEOUT)
 
@@ -273,6 +282,18 @@ if __name__ == "__main__":  # pragma: no cover
     git_password: str = read_custom_config(args.config, "gitpassword", logger=logger)
     rlm_version: str = read_custom_config(args.config, "rlmVersion", logger=logger)
     csv_files: list[str] = read_custom_config(args.config, "csvFiles", logger=logger)
+    # config files written before this setting existed keep their unchecked behaviour
+    rlm_check_certificates: bool = bool(
+        read_custom_config_with_default(args.config, "checkCertificates", default_value=False, logger=logger)
+    )
+    if not rlm_check_certificates and rlm_api_url.startswith("http"):
+        logger.warning(
+            "certificate checking is switched off for %s: the RLM credentials can be intercepted; "
+            'add the issuing CA to the host trust store and set "checkCertificates": true in %s',
+            rlm_api_url,
+            args.config,
+        )
+    rlm_verify: bool | str = resolve_requests_verify(rlm_check_certificates)
 
     ######################################################
     # 1. get all owners
@@ -334,8 +355,10 @@ if __name__ == "__main__":  # pragma: no cover
     else:
         # get app list directly from RLM via API
         try:
-            oauth_token: str = rlm_login(rlm_username, rlm_password, rlm_api_url + api_url_path_rlm_login)
-            rlm_owner_data = rlm_get_owners(oauth_token, rlm_api_url + api_url_path_rlm_apps, float(rlm_version))
+            oauth_token: str = rlm_login(rlm_username, rlm_password, rlm_api_url + api_url_path_rlm_login, rlm_verify)
+            rlm_owner_data = rlm_get_owners(
+                oauth_token, rlm_api_url + api_url_path_rlm_apps, float(rlm_version), rlm_verify
+            )
 
         except Exception:
             logger.exception("error while getting owner data from RLM API")

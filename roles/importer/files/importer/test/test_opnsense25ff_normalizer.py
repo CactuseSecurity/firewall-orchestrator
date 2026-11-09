@@ -1,7 +1,9 @@
 # pyright: reportPrivateUsage=false
 # tests target internal normalizer helpers, hence private-usage is allowed here
+from __future__ import annotations
+
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from fw_modules.opnsense25ff.opnsense_constants import UNASSIGNED_RULEBASE_NAME
@@ -35,12 +37,14 @@ from fw_modules.opnsense25ff.opnsense_normalizer import (
 from fw_modules.opnsense25ff.opnsense_parser import parse_opnsense_config
 from fwo_exceptions import FwoImporterError
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 from models.networkobject import NetworkObject
 from models.rule import RuleAction, RuleTrack, RuleType
 from models.rulebase import Rulebase
 from models.serviceobject import ServiceObject
-from pytest_mock import MockerFixture
+
+if TYPE_CHECKING:
+    from model_controllers.import_state_controller import ImportStateController
+    from pytest_mock import MockerFixture
 
 
 def _host_alias(name: str) -> OPNsenseHostAlias:

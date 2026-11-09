@@ -13,7 +13,7 @@ ou:systemuser-------------------------------------                              
 |                                                                                  |                      |                       |                   |
 cn:admin                cn:dbadmin               cn:n.n                            cn:admin               cn:user1_demo                cn:testuser         cn:n.n
 uid: 12345                                                                         ...                                            | -->>
-passwd: sha256(fworch.1)
+passwd: <password hash>
 n.n.
 
 

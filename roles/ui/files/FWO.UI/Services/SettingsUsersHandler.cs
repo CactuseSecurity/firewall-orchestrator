@@ -21,6 +21,7 @@ namespace FWO.Ui.Services
         MiddlewareClient middlewareClient,
         UserConfig userConfig,
         GlobalConfig globalConfig,
+        UiSessionTracker sessionTracker,
         Action<Exception?, string, string, bool> displayMessageInUi)
     {
         public List<UiLdapConnection> ConnectedLdaps { get; set; } = [];
@@ -70,7 +71,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                ConnectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getLdapConnections);
+                ConnectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getLdapConnectionsWithoutSecrets);
                 WritableLdaps = ConnectedLdaps.FindAll(x => x.IsWritable());
                 InternalLdap = ConnectedLdaps.FirstOrDefault(x => x.IsInternal()) ?? throw new KeyNotFoundException(userConfig.GetText("E5207"));
 
@@ -294,7 +295,7 @@ namespace FWO.Ui.Services
             {
                 foreach (UiUser ldapUser in LdapUsers)
                 {
-                    UiUser? relatedUiUser = UiUsers.FirstOrDefault(x => DistName.DnEquals(x.Dn, ldapUser.Dn));
+                    UiUser? relatedUiUser = UiUsers.FirstOrDefault(x => x.IsSameDirectoryAccount(ldapUser));
                     if (relatedUiUser != null)
                     {
                         // Update related user
@@ -715,7 +716,7 @@ namespace FWO.Ui.Services
                 displayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5212"), true);
                 return false;
             }
-            if (UiUsers.Exists(x => DistName.DnEquals(x.Dn, ActUser.Dn)))
+            if (UiUsers.Exists(x => x.IsSameDirectoryAccount(ActUser)))
             {
                 displayMessageInUi(null, userConfig.GetText("add_user"), userConfig.GetText("E5210"), true);
                 return false;
@@ -822,6 +823,7 @@ namespace FWO.Ui.Services
                 {
                     UiUsers.Remove(ActUser);
                     DeleteMode = false;
+                    sessionTracker.RequestSessionCheck();
 
                     Log.WriteAudit(
                         Title: $"Users Settings",

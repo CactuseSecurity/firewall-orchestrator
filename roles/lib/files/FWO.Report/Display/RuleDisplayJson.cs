@@ -37,9 +37,9 @@ namespace FWO.Ui.Display
             return DisplayJsonString("name", name);
         }
 
-        protected string DisplayRuleSourceZones(NetworkZone[] networkZones)
+        protected string DisplayRuleSourceZones(FirewallZone[] firewallZones)
         {
-            return DisplayJsonArray("source zones", ListNetworkZones(networkZones));
+            return DisplayJsonArray("source zones", ListFirewallZones(firewallZones));
         }
 
         protected string DisplaySourceNegated(bool sourceNegated)
@@ -52,9 +52,9 @@ namespace FWO.Ui.Display
             return DisplayJsonArray("source", ListNetworkLocations(rule, reportType, true));
         }
 
-        protected string DisplayRuleDestinationZones(NetworkZone[] networkZones)
+        protected string DisplayRuleDestinationZones(FirewallZone[] firewallZones)
         {
-            return DisplayJsonArray("destination zones", ListNetworkZones(networkZones));
+            return DisplayJsonArray("destination zones", ListFirewallZones(firewallZones));
         }
 
         protected string DisplayDestinationNegated(bool destinationNegated)
@@ -176,7 +176,7 @@ namespace FWO.Ui.Display
             }
             else
             {
-                stringBuilder.AppendLine("\"section header\": \"" + rule.SectionHeader + "\"");
+                stringBuilder.AppendLine("\"section header\": " + JsonConvert.ToString(rule.SectionHeader));
             }
             stringBuilder.Append("},");
             return stringBuilder.ToString();
@@ -219,10 +219,10 @@ namespace FWO.Ui.Display
                 );
         }
 
-        protected string ListNetworkZones(NetworkZone[] networkZones)
+        protected static string ListFirewallZones(FirewallZone[] firewallZones)
         {
             List<string> displayedZones = new List<string>();
-            foreach (NetworkZone networkZone in networkZones)
+            foreach (FirewallZone networkZone in firewallZones)
             {
                 displayedZones.Add(JsonConvert.ToString(networkZone.Name));
             }

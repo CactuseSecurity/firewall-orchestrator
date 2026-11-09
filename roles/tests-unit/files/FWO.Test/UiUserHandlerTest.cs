@@ -17,8 +17,14 @@ namespace FWO.Test
         private static readonly int[] kExpectedRecertOwnerships = [3];
         private static readonly int[] kExpectedVisibilityGroupIds = [7];
         private static readonly string[] kGetWorkflowVisibilityGroupsQuery = [RequestQueries.getWorkflowVisibilityGroups];
+        private const string kRecycledDn = "uid=x,ou=users,dc=example,dc=com";
         private static readonly string[] kUpsertUiUserQuery = [AuthQueries.upsertUiUser];
+        private static readonly string[] kLookupAndUpsertUiUserQueries = [AuthQueries.getUserByDn, AuthQueries.upsertUiUser];
+        private static readonly string[] kLookupOnlyQuery = [AuthQueries.getUserByDn];
         private static readonly string[] kUpdatePasswordChangeQuery = [AuthQueries.updateUserPasswordChange];
+        private const int kLdapConnectionId = 1;
+        private const int kOtherLdapConnectionId = 2;
+        private const string kSharedDn = "uid=shared,ou=users,dc=example,dc=com";
 
         [Test]
         public async Task GetExpirationTime_WhenConfigExistsInDatabase_ReturnsDatabaseValue()
@@ -82,13 +88,61 @@ namespace FWO.Test
             UiUser user = new()
             {
                 Name = "user1",
-                Dn = "uid=user1,ou=users,dc=example,dc=com"
+                Dn = "uid=user1,ou=users,dc=example,dc=com",
+                LdapConnection = new() { Id = kLdapConnectionId }
             };
 
             InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await UiUserHandler.SynchronizeUiUserContext(apiConnection, user))!;
 
             Assert.That(exception.Message, Does.Contain("Workflow visibility groups could not be determined"));
+        }
+
+        [Test]
+        public void SynchronizeUiUserContext_WhenApiUnreachableForVisibilityGroups_RethrowsOriginalException()
+        {
+            FailingVisibilityApiConnection apiConnection = new(new HttpRequestException("connection reset"));
+            UiUser user = new()
+            {
+                Name = "user1",
+                Dn = "uid=user1,ou=users,dc=example,dc=com",
+                LdapConnection = new() { Id = kLdapConnectionId }
+            };
+
+            HttpRequestException exception = Assert.ThrowsAsync<HttpRequestException>(async () =>
+                await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: false, createIfMissing: false))!;
+
+            Assert.That(exception.Message, Is.EqualTo("connection reset"));
+        }
+
+        [Test]
+        public void SynchronizeUiUserContext_WhenApiUnreachableForUserLookup_RethrowsOriginalException()
+        {
+            UnreachableUserLookupApiConnection apiConnection = new();
+            UiUser user = new()
+            {
+                Name = "user1",
+                Dn = "uid=user1,ou=users,dc=example,dc=com",
+                LdapConnection = new() { Id = kLdapConnectionId }
+            };
+
+            Assert.ThrowsAsync<HttpRequestException>(async () =>
+                await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: false, createIfMissing: false));
+        }
+
+        [Test]
+        public async Task GetWorkflowVisibilityGroupIds_WhenQueryFailsForOtherReason_ReturnsFalse()
+        {
+            FailingVisibilityApiConnection apiConnection = new();
+            UiUser user = new()
+            {
+                Name = "user1",
+                Dn = "uid=user1,ou=users,dc=example,dc=com"
+            };
+
+            bool loaded = await UiUserHandler.GetWorkflowVisibilityGroupIds(apiConnection, user);
+
+            Assert.That(loaded, Is.False);
         }
 
         [Test]
@@ -223,7 +277,8 @@ namespace FWO.Test
                 Groups = ["cn=group1,ou=groups,dc=example,dc=com"],
                 Ownerships = [99],
                 RecertOwnerships = [88],
-                WorkflowVisibilityGroupIds = [55]
+                WorkflowVisibilityGroupIds = [55],
+                LdapConnection = new() { Id = kLdapConnectionId }
             };
 
             UiUser result = await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: false, createIfMissing: true);
@@ -255,7 +310,8 @@ namespace FWO.Test
             UiUser user = new()
             {
                 Name = "newuser",
-                Dn = "uid=newuser,ou=users,dc=example,dc=com"
+                Dn = "uid=newuser,ou=users,dc=example,dc=com",
+                LdapConnection = new() { Id = kLdapConnectionId }
             };
 
             KeyNotFoundException exception = Assert.ThrowsAsync<KeyNotFoundException>(async () =>
@@ -263,6 +319,56 @@ namespace FWO.Test
 
             Assert.That(exception.Message, Does.Contain("could not be found in the local database"));
             Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.upsertUiUser));
+        }
+
+        [Test]
+        public void SynchronizeUiUserContext_WhenApiCannotBeReached_PropagatesAndDoesNotUpsert()
+        {
+            UnreachableApiConnection apiConnection = new(AuthQueries.getUserByDn);
+            UiUser user = new()
+            {
+                Name = "api-down-user",
+                Dn = "uid=api-down-user,ou=users,dc=example,dc=com",
+                LdapConnection = new() { Id = kLdapConnectionId }
+            };
+
+            HttpRequestException exception = Assert.ThrowsAsync<HttpRequestException>(async () =>
+                await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: false, createIfMissing: true))!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception.Message, Does.Contain("connection reset by peer"));
+                Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getUserByDn));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.upsertUiUser));
+            });
+        }
+
+        /// <summary>
+        /// Losing the API while recording the login used to be swallowed and answered with
+        /// "password must be changed", sending the user to the password form for a transport
+        /// failure. It has to surface as the API failure it is.
+        /// </summary>
+        [Test]
+        public void SynchronizeUiUserContext_WhenApiIsLostDuringLastLoginUpdate_PropagatesInsteadOfForcingPasswordChange()
+        {
+            UnreachableApiConnection apiConnection = new(AuthQueries.updateUserLastLogin);
+            UiUser user = new()
+            {
+                Name = "api-down-user",
+                Dn = "uid=api-down-user,ou=users,dc=example,dc=com",
+                PasswordMustBeChanged = false,
+                LdapConnection = new() { Id = kLdapConnectionId }
+            };
+
+            Assert.ThrowsAsync<HttpRequestException>(async () =>
+                await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: true, createIfMissing: true));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(user.PasswordMustBeChanged, Is.False);
+                Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.updateUserLastLogin));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.upsertUiUser));
+            });
         }
 
         [Test]
@@ -310,7 +416,8 @@ namespace FWO.Test
             UiUser user = new()
             {
                 Name = "existing",
-                Dn = "uid=existing,ou=users,dc=example,dc=com"
+                Dn = "uid=existing,ou=users,dc=example,dc=com",
+                LdapConnection = new() { Id = kLdapConnectionId }
             };
 
             UiUser result = await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: true, createIfMissing: true);
@@ -333,7 +440,8 @@ namespace FWO.Test
             UiUser user = new()
             {
                 Name = "login",
-                Dn = "uid=login,ou=users,dc=example,dc=com"
+                Dn = "uid=login,ou=users,dc=example,dc=com",
+                LdapConnection = new() { Id = kLdapConnectionId }
             };
 
             UiUser result = await UiUserHandler.HandleUiUserAtLogin(apiConnection, user);
@@ -354,6 +462,50 @@ namespace FWO.Test
 
             await UiUserHandler.UpsertUiUser(apiConnection, user, loginHappened: false);
 
+            Assert.That(apiConnection.Queries, Is.EqualTo(kLookupAndUpsertUiUserQueries));
+        }
+
+        [Test]
+        public async Task UpsertUiUser_WithoutLogin_LeavesALocalUserBoundToAnotherDirectoryEntryUntouched()
+        {
+            UiUserContextApiConnection apiConnection = new()
+            {
+                ExistingUsers = [new UiUser { DbId = 17, Dn = kRecycledDn, DirectoryObjectId = "entryUUID:first" }]
+            };
+            UiUser nextHolder = new() { Name = "x", Dn = kRecycledDn, DirectoryObjectId = "entryUUID:second", LdapConnection = new() { Id = 3 } };
+
+            await UiUserHandler.UpsertUiUser(apiConnection, nextHolder, loginHappened: false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries, Is.EqualTo(kLookupOnlyQuery));
+                Assert.That(nextHolder.DbId, Is.Zero);
+            });
+        }
+
+        [TestCase("entryUUID:first")]
+        [TestCase(null)]
+        public async Task UpsertUiUser_WithoutLogin_UpdatesALocalUserOfTheSameOrNoDirectoryEntry(string? storedObjectId)
+        {
+            UiUserContextApiConnection apiConnection = new()
+            {
+                ExistingUsers = [new UiUser { DbId = 17, Dn = kRecycledDn, DirectoryObjectId = storedObjectId }]
+            };
+            UiUser holder = new() { Name = "x", Dn = kRecycledDn, DirectoryObjectId = "entryUUID:first", LdapConnection = new() { Id = 3 } };
+
+            await UiUserHandler.UpsertUiUser(apiConnection, holder, loginHappened: false);
+
+            Assert.That(apiConnection.Queries, Is.EqualTo(kLookupAndUpsertUiUserQueries));
+        }
+
+        [Test]
+        public async Task UpsertUiUser_AtLogin_DoesNotLookUpTheLocalUserAgain()
+        {
+            UiUserContextApiConnection apiConnection = new();
+            UiUser user = new() { Name = "x", Dn = kRecycledDn, LdapConnection = new() { Id = 3 } };
+
+            await UiUserHandler.UpsertUiUser(apiConnection, user, loginHappened: true);
+
             Assert.That(apiConnection.Queries, Is.EqualTo(kUpsertUiUserQuery));
         }
 
@@ -362,9 +514,100 @@ namespace FWO.Test
         {
             UiUserContextApiConnection apiConnection = new();
 
-            await UiUserHandler.UpdateUserPasswordChanged(apiConnection, "uid=user,ou=users,dc=example,dc=com", true);
+            await UiUserHandler.UpdateUserPasswordChanged(apiConnection, 17, true);
 
-            Assert.That(apiConnection.Queries, Is.EqualTo(kUpdatePasswordChangeQuery));
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries, Is.EqualTo(kUpdatePasswordChangeQuery));
+                Assert.That(ReadVariable(apiConnection.Variables.Single(), "id"), Is.EqualTo(17));
+            });
+        }
+
+        [Test]
+        public async Task SynchronizeUiUserContext_LooksUpTheLocalUserByDirectoryAndDn()
+        {
+            UiUserContextApiConnection apiConnection = new()
+            {
+                ExistingUsers = [new() { DbId = 42, Dn = kSharedDn }]
+            };
+            UiUser user = new()
+            {
+                Name = "shared",
+                Dn = kSharedDn,
+                LdapConnection = new() { Id = kOtherLdapConnectionId }
+            };
+
+            await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: false, createIfMissing: false);
+
+            object? lookupVariables = apiConnection.Variables[apiConnection.Queries.IndexOf(AuthQueries.getUserByDn)];
+            Assert.Multiple(() =>
+            {
+                Assert.That(ReadVariable(lookupVariables, "dn"), Is.EqualTo(kSharedDn));
+                Assert.That(ReadVariable(lookupVariables, "ldapConnectionId"), Is.EqualTo(kOtherLdapConnectionId));
+            });
+        }
+
+        [Test]
+        public async Task SynchronizeUiUserContext_WhenSameDnExistsInTwoDirectories_ResolvesDistinctLocalUsers()
+        {
+            DirectoryScopedApiConnection apiConnection = new();
+            apiConnection.AddUser(kLdapConnectionId, kSharedDn, 11);
+            apiConnection.AddUser(kOtherLdapConnectionId, kSharedDn, 22);
+            UiUser firstUser = new() { Name = "shared", Dn = kSharedDn, LdapConnection = new() { Id = kLdapConnectionId } };
+            UiUser secondUser = new() { Name = "shared", Dn = kSharedDn, LdapConnection = new() { Id = kOtherLdapConnectionId } };
+
+            await UiUserHandler.SynchronizeUiUserContext(apiConnection, firstUser, updateLastLogin: false, createIfMissing: false);
+            await UiUserHandler.SynchronizeUiUserContext(apiConnection, secondUser, updateLastLogin: false, createIfMissing: false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstUser.DbId, Is.EqualTo(11));
+                Assert.That(secondUser.DbId, Is.EqualTo(22));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.upsertUiUser));
+            });
+        }
+
+        [Test]
+        public async Task SynchronizeUiUserContext_WhenDnIsOnlyKnownInAnotherDirectory_CreatesANewLocalUser()
+        {
+            DirectoryScopedApiConnection apiConnection = new();
+            apiConnection.AddUser(kLdapConnectionId, kSharedDn, 11);
+            UiUser user = new() { Name = "shared", Dn = kSharedDn, LdapConnection = new() { Id = kOtherLdapConnectionId } };
+
+            UiUser result = await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: false, createIfMissing: true);
+
+            object? upsertVariables = apiConnection.Variables[apiConnection.Queries.IndexOf(AuthQueries.upsertUiUser)];
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.DbId, Is.EqualTo(DirectoryScopedApiConnection.kNewUserId));
+                Assert.That(result.DbId, Is.Not.EqualTo(11));
+                Assert.That(ReadVariable(upsertVariables, "ldapConnectionId"), Is.EqualTo(kOtherLdapConnectionId));
+            });
+        }
+
+        [Test]
+        public void SynchronizeUiUserContext_WhenUserHasNoLdapConnection_ThrowsWithoutLookup()
+        {
+            UiUserContextApiConnection apiConnection = new()
+            {
+                ExistingUsers = [new() { DbId = 42, Dn = kSharedDn }]
+            };
+            UiUser user = new() { Name = "shared", Dn = kSharedDn, LdapConnection = null! };
+
+            InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: false, createIfMissing: true))!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception.Message, Does.Contain("has no LDAP connection"));
+                Assert.That(apiConnection.Queries, Is.Empty);
+                Assert.That(user.DbId, Is.Zero);
+            });
+        }
+
+        private static object? ReadVariable(object? variables, string name)
+        {
+            return variables?.GetType().GetProperty(name)?.GetValue(variables);
         }
 
         private sealed class OwnershipApiConnection : SimulatedApiConnection
@@ -388,6 +631,7 @@ namespace FWO.Test
         private sealed class UiUserContextApiConnection : SimulatedApiConnection
         {
             public List<string> Queries { get; } = [];
+            public List<object?> Variables { get; } = [];
             public UiUser[] ExistingUsers { get; set; } = [];
             public List<FwoOwner> DirectOwners { get; set; } = [];
             public List<FwoOwner> GroupOwners { get; set; } = [];
@@ -399,6 +643,7 @@ namespace FWO.Test
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 Queries.Add(query);
+                Variables.Add(variables);
                 object result = query switch
                 {
                     string value when value == AuthQueries.getUserByDn => ExistingUsers,
@@ -415,6 +660,43 @@ namespace FWO.Test
             }
         }
 
+        /// <summary>
+        /// Holds local users keyed like the database does, by directory and dn, so that a lookup
+        /// that ignored the directory would return the wrong local user.
+        /// </summary>
+        private sealed class DirectoryScopedApiConnection : SimulatedApiConnection
+        {
+            public const int kNewUserId = 77;
+            private readonly Dictionary<(int LdapConnectionId, string Dn), int> userIds = [];
+            public List<string> Queries { get; } = [];
+            public List<object?> Variables { get; } = [];
+
+            public void AddUser(int ldapConnectionId, string dn, int dbId) => userIds[(ldapConnectionId, dn)] = dbId;
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                Queries.Add(query);
+                Variables.Add(variables);
+                object result = query switch
+                {
+                    string value when value == AuthQueries.getUserByDn => FindUsers(variables),
+                    string value when value == AuthQueries.upsertUiUser => new ReturnIdWrapper { ReturnIds = [new ReturnId { NewId = kNewUserId }] },
+                    string value when value == OwnerQueries.getOwnersForUser => new List<FwoOwner>(),
+                    string value when value == OwnerQueries.getOwnersForDnsWithRecertification => new List<FwoOwner>(),
+                    string value when value == RequestQueries.getWorkflowVisibilityGroups => new List<WorkflowVisibilityGroup>(),
+                    _ => throw new AssertionException($"Unexpected query: {query}")
+                };
+                return Task.FromResult((QueryResponseType)result);
+            }
+
+            private UiUser[] FindUsers(object? variables)
+            {
+                string dn = (string)ReadVariable(variables, "dn")!;
+                int ldapConnectionId = (int)ReadVariable(variables, "ldapConnectionId")!;
+                return userIds.TryGetValue((ldapConnectionId, dn), out int dbId) ? [new UiUser { DbId = dbId, Dn = dn }] : [];
+            }
+        }
+
         private sealed class ThrowingConfigApiConnection : SimulatedApiConnection
         {
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
@@ -428,8 +710,52 @@ namespace FWO.Test
             }
         }
 
-        private sealed class FailingVisibilityApiConnection : SimulatedApiConnection
+        /// <summary>
+        /// Finds an existing user, then loses the API at <see cref="failingQuery"/>. Any query
+        /// after that point fails the test, because nothing may run once the API is gone.
+        /// </summary>
+        private sealed class UnreachableApiConnection : SimulatedApiConnection
         {
+            private readonly string failingQuery;
+
+            public UnreachableApiConnection(string failingQuery)
+            {
+                this.failingQuery = failingQuery;
+            }
+
+            public List<string> Queries { get; } = [];
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                Queries.Add(query);
+
+                if (query == failingQuery)
+                {
+                    throw new HttpRequestException("connection reset by peer");
+                }
+
+                if (query == AuthQueries.getUserByDn)
+                {
+                    object existingUsers = new UiUser[]
+                    {
+                        new()
+                        {
+                            DbId = 42,
+                            Name = "api-down-user",
+                            Dn = "uid=api-down-user,ou=users,dc=example,dc=com"
+                        }
+                    };
+                    return Task.FromResult((QueryResponseType)existingUsers);
+                }
+
+                throw new AssertionException($"Unexpected query after unreachable API: {query}");
+            }
+        }
+
+        private sealed class FailingVisibilityApiConnection(Exception? visibilityFailure = null) : SimulatedApiConnection
+        {
+            private readonly Exception visibilityFailure = visibilityFailure ?? new InvalidOperationException("visibility lookup failed");
+
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 object result = query switch
@@ -446,10 +772,18 @@ namespace FWO.Test
                     string value when value == AuthQueries.updateUserLastLogin => new ReturnId { PasswordMustBeChanged = false },
                     string value when value == OwnerQueries.getOwnersForUser => new List<FwoOwner>(),
                     string value when value == OwnerQueries.getOwnersForDnsWithRecertification => new List<FwoOwner>(),
-                    string value when value == RequestQueries.getWorkflowVisibilityGroups => throw new InvalidOperationException("visibility lookup failed"),
+                    string value when value == RequestQueries.getWorkflowVisibilityGroups => throw visibilityFailure,
                     _ => throw new AssertionException($"Unexpected query: {query}")
                 };
                 return Task.FromResult((QueryResponseType)result);
+            }
+        }
+
+        private sealed class UnreachableUserLookupApiConnection : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                throw new HttpRequestException("connection refused");
             }
         }
 

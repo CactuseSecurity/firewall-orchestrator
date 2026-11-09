@@ -158,7 +158,7 @@ namespace FWO.Test
             {
                 userConfig = new SimulatedUserConfig
                 {
-                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices,
+                    ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices,
                     ReqConsiderBundling = true
                 }
             };
@@ -715,7 +715,6 @@ namespace FWO.Test
         }
 
         [TestCase(Roles.Auditor)]
-        [TestCase(Roles.FwAdmin)]
         public async Task StateChangePopup_NonAdminGetsDisabledSaveButton(string role)
         {
             await using BunitContext context = CreatePopupContext(role, out _);
@@ -779,7 +778,7 @@ namespace FWO.Test
         public MonitorWorkflowUserConfig()
         {
             ReqAvailableTaskTypes = "[\"access\",\"group_create\"]";
-            ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices;
+            ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices;
             ReqConsiderBundling = true;
         }
 

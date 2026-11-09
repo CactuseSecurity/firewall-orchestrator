@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import importlib.util
-from contextlib import AbstractContextManager
 from pathlib import Path
-from types import ModuleType
-from typing import Any, Protocol, TextIO, cast
+from typing import TYPE_CHECKING, Any, Protocol, TextIO, cast
+
+if TYPE_CHECKING:
+    from contextlib import AbstractContextManager
+    from types import ModuleType
 
 
 class MonkeyPatchFixture(Protocol):

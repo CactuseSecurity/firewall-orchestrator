@@ -11,7 +11,8 @@ namespace FWO.Data.Workflow
         service,
         rule,
         modelled_source,
-        modelled_destination
+        modelled_destination,
+        time
     }
 
     public class WfElementBase
@@ -67,6 +68,18 @@ namespace FWO.Data.Workflow
         [JsonProperty("name"), JsonPropertyName("name")]
         public string? Name { get; set; }
 
+        [JsonProperty("start_time"), JsonPropertyName("start_time")]
+        public DateTime? StartTime { get; set; }
+
+        [JsonProperty("end_time"), JsonPropertyName("end_time")]
+        public DateTime? EndTime { get; set; }
+
+        [JsonProperty("time_obj_id"), JsonPropertyName("time_obj_id")]
+        public long? TimeObjId { get; set; }
+
+        [JsonProperty("flow_timeobj_id"), JsonPropertyName("flow_timeobj_id")]
+        public long? FlowTimeObjectId { get; set; }
+
 
         public WfElementBase()
         { }
@@ -90,6 +103,10 @@ namespace FWO.Data.Workflow
             RuleUid = element.RuleUid;
             GroupName = element.GroupName;
             Name = element.Name;
+            StartTime = element.StartTime;
+            EndTime = element.EndTime;
+            TimeObjId = element.TimeObjId;
+            FlowTimeObjectId = element.FlowTimeObjectId;
         }
 
         public static NetworkObject ToNetworkObject(WfElementBase elem)

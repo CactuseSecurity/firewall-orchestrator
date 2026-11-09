@@ -3264,6 +3264,21 @@
                   "using": {
                     "foreign_key_constraint_on": "ticket_id"
                   }
+                },
+                {
+                  "name": "changer_user",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "changer_id": "uiuser_id"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "uiuser",
+                        "schema": "public"
+                      }
+                    }
+                  }
                 }
               ],
               "insert_permissions": [

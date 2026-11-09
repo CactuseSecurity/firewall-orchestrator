@@ -108,6 +108,33 @@ internal class DeviceSpecificSettingsServiceTest
     }
 
     [Test]
+    public async Task LayerGuardSectionNameTemplate_InheritsAndCanBeOverriddenAtGateway()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = PersistedCheckPointChain(includeGateway: true);
+        api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "global");
+        api.SetValue(kManagementNodeId, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "management");
+        DeviceSpecificSettingsService service = Service(api);
+        DeviceSpecificNode root = await service.LoadHierarchyAsync(DeviceSpecificSettingsDataTest.SampleManagements());
+        DeviceSpecificLevelForm form = await service.LoadFormAsync(
+            Node(root, DeviceSpecificScopeType.Gateway, "200"));
+        DeviceSpecificFieldState state = State(form, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(state.DisplayedValue, Is.EqualTo("management"));
+            Assert.That(state.InheritedSource?.NodeId, Is.EqualTo(kManagementNodeId));
+        }
+
+        state.Override();
+        state.LocalValue = "fixed @@SOURCE_ZONE@@ fixed";
+        await service.SaveAsync(form);
+
+        Assert.That(api.ReadValue(kGatewayNodeId,
+            DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate)?.ToObject<string>(),
+            Is.EqualTo("fixed @@SOURCE_ZONE@@ fixed"));
+    }
+
+    [Test]
     public async Task LoadForm_LocalOverride_KnowsTheValueItWouldInherit()
     {
         InMemoryDeviceSpecificSettingsApiConnection api = PersistedCheckPointChain(includeGateway: false);

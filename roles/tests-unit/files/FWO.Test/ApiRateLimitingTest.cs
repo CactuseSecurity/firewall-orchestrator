@@ -42,7 +42,8 @@ namespace FWO.Test
             (typeof(GroupController), nameof(GroupController.Get)),
             (typeof(GroupController), nameof(GroupController.GetMembers)),
             (typeof(GroupController), nameof(GroupController.GetMemberships)),
-            (typeof(GroupController), nameof(GroupController.ResolveMembers))
+            (typeof(GroupController), nameof(GroupController.ResolveMembers)),
+            (typeof(WorkflowController), nameof(WorkflowController.ExecuteActions))
         ];
 
         [Test]

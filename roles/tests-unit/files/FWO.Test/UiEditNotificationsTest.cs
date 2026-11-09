@@ -599,6 +599,26 @@ namespace FWO.Test
             Assert.That(layouts, Does.Not.Contain(NotificationLayout.PdfAsAttachment));
         }
 
+        /// <summary>
+        /// Import change notifications carry change reports, which have no csv export.
+        /// </summary>
+        [TestCase(NotificationClient.ImportChange)]
+        [TestCase(NotificationClient.ImportNatChange)]
+        public void OfferedLayoutOptions_ExcludesCsvForImportChangeClients(NotificationClient client)
+        {
+            EditNotifications component = new();
+            SetClient(component, client);
+
+            List<NotificationLayout> layouts = (List<NotificationLayout>)GetPrivateMethod("OfferedLayoutOptions").Invoke(component, null)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(layouts, Does.Not.Contain(NotificationLayout.CsvAsAttachment));
+                Assert.That(layouts, Does.Contain(NotificationLayout.JsonAsAttachment));
+                Assert.That(layouts, Does.Contain(NotificationLayout.PdfAsAttachment));
+            });
+        }
+
         [Test]
         public void OfferedLayoutOptions_OffersAttachmentsForReportClient()
         {

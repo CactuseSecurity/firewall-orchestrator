@@ -21,6 +21,7 @@ namespace FWO.Test
     [NonParallelizable]
     internal class ReportJobTest
     {
+        private static readonly TimeZoneInfo kBerlin = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
         private object? originalConfigFileData;
 
         private sealed class ReportJobApiConnection : ApiConnection
@@ -452,6 +453,78 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Execute_ScheduleInRepeatedAutumnHour_GeneratesReportOnlyOnce()
+        {
+            DateTimeOffset firstCheck = new(2026, 10, 24, 23, 0, 0, TimeSpan.Zero);
+            DateTimeOffset lastCheck = new(2026, 10, 25, 3, 0, 0, TimeSpan.Zero);
+
+            List<DateTimeOffset> generationTimes = await RunMinuteChecks(new DateTime(2026, 10, 1, 2, 30, 0), firstCheck, lastCheck);
+
+            Assert.That(generationTimes, Has.Count.EqualTo(1));
+            Assert.That(generationTimes[0], Is.EqualTo(new DateTimeOffset(2026, 10, 25, 2, 30, 0, TimeSpan.FromHours(2))));
+        }
+
+        [Test]
+        public async Task Execute_ScheduleInMissingSpringHour_GeneratesReportOnceAfterGap()
+        {
+            DateTimeOffset firstCheck = new(2027, 3, 27, 23, 0, 0, TimeSpan.Zero);
+            DateTimeOffset lastCheck = new(2027, 3, 28, 3, 0, 0, TimeSpan.Zero);
+
+            List<DateTimeOffset> generationTimes = await RunMinuteChecks(new DateTime(2027, 3, 1, 2, 30, 0), firstCheck, lastCheck);
+
+            Assert.That(generationTimes, Has.Count.EqualTo(1));
+            Assert.That(generationTimes[0], Is.EqualTo(new DateTimeOffset(2027, 3, 28, 3, 0, 0, TimeSpan.FromHours(2))));
+        }
+
+        [Test]
+        public async Task Execute_DailySchedule_KeepsWallClockTimeAfterAutumnSwitch()
+        {
+            DateTimeOffset firstCheck = new(2026, 10, 26, 4, 0, 0, TimeSpan.Zero);
+            DateTimeOffset lastCheck = new(2026, 10, 26, 6, 0, 0, TimeSpan.Zero);
+
+            List<DateTimeOffset> generationTimes = await RunMinuteChecks(new DateTime(2026, 7, 1, 6, 0, 0), firstCheck, lastCheck);
+
+            Assert.That(generationTimes, Has.Count.EqualTo(1));
+            Assert.That(generationTimes[0], Is.EqualTo(new DateTimeOffset(2026, 10, 26, 6, 0, 0, TimeSpan.FromHours(1))));
+        }
+
+        /// <summary>
+        /// Runs the report check once per minute like the scheduler does, each time with the schedule as stored
+        /// (the advanced start time is not persisted), and returns the check times that started a report.
+        /// </summary>
+        private static async Task<List<DateTimeOffset>> RunMinuteChecks(DateTime scheduleStart, DateTimeOffset firstCheck, DateTimeOffset lastCheck)
+        {
+            ReportJobApiConnection apiConnection = new() { LdapConnections = [] };
+            SteppingTimeProvider clock = new(firstCheck, kBerlin);
+            ReportJob reportJob = CreateReportJob(apiConnection, clock);
+            List<DateTimeOffset> generationTimes = [];
+
+            for (DateTimeOffset check = firstCheck; check <= lastCheck; check = check.AddMinutes(1))
+            {
+                clock.Now = check;
+                apiConnection.ReportSchedules = [CreateDailyTicketReportSchedule(scheduleStart)];
+                int ldapQueriesBefore = apiConnection.Queries.Count(query => query == AuthQueries.getLdapConnections);
+
+                await reportJob.Execute(null!);
+
+                if (apiConnection.Queries.Count(query => query == AuthQueries.getLdapConnections) > ldapQueriesBefore)
+                {
+                    generationTimes.Add(TimeZoneInfo.ConvertTime(check, kBerlin));
+                }
+            }
+            return generationTimes;
+        }
+
+        private sealed class SteppingTimeProvider(DateTimeOffset now, TimeZoneInfo localTimeZone) : TimeProvider
+        {
+            public DateTimeOffset Now { get; set; } = now;
+
+            public override DateTimeOffset GetUtcNow() => Now.ToUniversalTime();
+
+            public override TimeZoneInfo LocalTimeZone => localTimeZone;
+        }
+
+        [Test]
         public async Task Execute_CanceledTokenIsForwardedToScheduleProcessing()
         {
             // A due schedule would start report generation (LDAP query) if the job token were not
@@ -504,7 +577,7 @@ namespace FWO.Test
             using CancellationTokenSource cancellationTokenSource = new();
             await cancellationTokenSource.CancelAsync();
 
-            await (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, currentTimeRounded, cancellationTokenSource.Token])!;
+            await (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, new DateTimeOffset(currentTimeRounded), cancellationTokenSource.Token])!;
 
             Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
         }
@@ -597,7 +670,7 @@ namespace FWO.Test
                 RepeatOffset = 1
             };
 
-            await (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, startTime.AddMinutes(5), CancellationToken.None])!;
+            await (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, new DateTimeOffset(startTime.AddMinutes(5)), CancellationToken.None])!;
 
             Assert.That(reportSchedule.StartTime, Is.EqualTo(startTime));
         }
@@ -616,7 +689,7 @@ namespace FWO.Test
             };
             DateTime currentTimeRounded = new(2026, 4, 21, 10, 5, 0);
 
-            await (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, currentTimeRounded, CancellationToken.None])!;
+            await (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, new DateTimeOffset(currentTimeRounded), CancellationToken.None])!;
 
             Assert.That(reportSchedule.StartTime, Is.EqualTo(new DateTime(2026, 4, 22, 10, 0, 0)));
         }
@@ -635,7 +708,7 @@ namespace FWO.Test
                 RepeatOffset = 1
             };
 
-            await (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, originalStartTime.AddMinutes(5), CancellationToken.None])!;
+            await (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, new DateTimeOffset(originalStartTime.AddMinutes(5)), CancellationToken.None])!;
 
             Assert.That(reportSchedule.StartTime, Is.EqualTo(originalStartTime));
         }

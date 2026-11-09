@@ -21,6 +21,7 @@
   - scheduled reports: a report due in the skipped hour is generated after the gap instead of being skipped, a report due in the repeated hour is generated only once
   - the "Trigger scheduled" log message shows the next run with its UTC offset
 - request workflow: the Check Point LayerGuard section name is configurable at every device-specific-settings level with optional, repeatable source- and destination-zone placeholders; fixed names avoid zone-matrix resolution (#5626)
+- request workflow: change history entries always name their authenticated author (GHSA-6g84, usergroupresolver-001). Readers no longer show the free-text changer of a row written by a user but the login name of its user id (preset from the session; the UI passes it for admin sessions), or the id when the reader may not see that user. The audit-proof REST endpoint (`workflow/getAuditProofCriticalChanges`) only reports flagged changes written by a known user other than the ticket's requester, and the modelling history shows the resolved name as well
 
 ## 9.8.7 - 04.11.2026
 - request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section

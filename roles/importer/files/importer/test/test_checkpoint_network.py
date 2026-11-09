@@ -65,6 +65,46 @@ def test_legacy_voip_domain_object_is_normalized_as_host_without_real_ip():
     assert voip_object["obj_ip_end"] == fwo_const.DUMMY_IP
 
 
+def test_all_legacy_voip_domain_objects_are_normalized_as_host_without_real_ip():
+    for voip_type in [
+        "CpmiVoipSipDomain",
+        "CpmiVoipMgcpDomain",
+        "CpmiVoipSkinnyDomain",
+        "CpmiVoipGkDomain",
+        "CpmiVoipGwDomain",
+    ]:
+        voip_object = normalize_checkpoint_object(voip_type, voip_type)
+
+        assert voip_object["obj_uid"] == f"{voip_type}-uid", voip_type
+        assert voip_object["obj_typ"] == "host", voip_type
+        assert voip_object["obj_ip"] == fwo_const.DUMMY_IP, voip_type
+        assert voip_object["obj_ip_end"] == fwo_const.DUMMY_IP, voip_type
+
+
+def test_legacy_skinny_voip_object_only_referenced_via_object_dictionary_is_resolvable():
+    voip_uid = "3c1f6a2e-5b7d-4e0a-9c8b-2d4f6e8a0b1c"
+    object_dictionary: list[dict[str, Any]] = [
+        {
+            "uid": voip_uid,
+            "name": "Skinny_Test_VoIP",
+            "type": "CpmiVoipSkinnyDomain",
+            "domain": {"uid": "41e821a0-3720-11e3-aa6e-0800200c9fde", "name": "SMC User", "domain-type": "domain"},
+            "color": "black",
+        }
+    ]
+    native_config: dict[str, Any] = {"objects": []}
+    normalized_config: dict[str, Any] = {}
+
+    cp_object_resolver.resolve_ref_from_object_dictionary(
+        voip_uid, object_dictionary, native_config, field_name="destination"
+    )
+    normalize_network_objects(native_config, normalized_config, import_id=1)
+
+    normalized_objects = normalized_config["network_objects"]
+    assert [nw_obj["obj_uid"] for nw_obj in normalized_objects] == [voip_uid]
+    assert normalized_objects[0]["obj_typ"] == "host"
+
+
 def test_new_style_voip_domain_objects_are_normalized_like_legacy_ones():
     for voip_type in ["voip-domain-sip-proxy", "voip-domain-mgcp-call-agent", "voip-domain-h323-gatekeeper"]:
         voip_object = normalize_checkpoint_object(voip_type, voip_type)
@@ -116,6 +156,9 @@ def test_voip_object_only_referenced_via_object_dictionary_is_resolvable():
 
 def test_voip_and_dictionary_only_types_are_detected():
     assert cp_const.is_voip_domain_obj_type("CpmiVoipSipDomain")
+    assert cp_const.is_voip_domain_obj_type("CpmiVoipSkinnyDomain")
+    assert cp_const.is_voip_domain_obj_type("CpmiVoipGkDomain")
+    assert cp_const.is_voip_domain_obj_type("CpmiVoipGwDomain")
     assert cp_const.is_voip_domain_obj_type("voip-domain-sip-proxy")
     assert not cp_const.is_voip_domain_obj_type("gsn_handover_group")
     assert not cp_const.is_voip_domain_obj_type("host")

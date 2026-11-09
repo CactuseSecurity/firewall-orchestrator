@@ -14,6 +14,12 @@
 - performance: database indices for the foreign key columns of the request and modelling schemas that the workflow and modelling relationships filter on (e.g. ticket tasks, request and implementation elements, comments, connection objects and services, interface usage), speeding up ticket and requested interfaces pages (#5644)
   - requested interfaces page: loads a slim interface list incl. the using connections and all ticket states with one chunked query instead of one query per interface and per ticket; interface details are loaded when an interface is opened
   - owner report implementation state: reads ticket states in batches without task metadata and stops after finding the newest completed ticket
+- fix: scheduled middleware jobs no longer shift by one hour after a switch between summer and winter time (#5653)
+  - intervals of whole days (e.g. app data import every 24 h, daily check, compliance check every 1440 min) run at the configured wall-clock time
+  - whole-hour intervals that divide a day (2, 3, 4, 6, 8, 12 h) run at fixed wall-clock hours of each day; all other intervals keep a fixed interval in absolute time
+  - existing daily schedules in the hour skipped in spring run at the first valid time after the gap (03:00), even when rescheduled shortly after the previous run; a future first run of a day schedule inside the gap is skipped to retain the configured time on later days; a start time in the hour repeated in autumn runs once
+  - scheduled reports: a report due in the skipped hour is generated after the gap instead of being skipped, a report due in the repeated hour is generated only once
+  - the "Trigger scheduled" log message shows the next run with its UTC offset
 - request workflow: the Check Point LayerGuard section name is configurable at every device-specific-settings level with optional, repeatable source- and destination-zone placeholders; fixed names avoid zone-matrix resolution (#5626)
 
 ## 9.8.7 - 04.11.2026

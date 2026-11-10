@@ -116,10 +116,13 @@ while IFS= read -r -d '' staged_file; do
 done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.cs' '*.razor' '*.cshtml')
 
 # If any Dotnet files have been changed run
-# Dotnet checks
-if [ "${#STAGED_ROLES_DOTNET_FORMAT_FILES[@]}" -gt 0 ]; then
-    dotnet format roles --no-restore --include "${STAGED_ROLES_DOTNET_FORMAT_FILES[@]}"
-fi
+# Dotnet checks. Windows limits a command line to 32767 characters and dotnet format
+# passes its arguments on to a child process, so a commit with many files (e.g. a merge)
+# is formatted in chunks of files.
+DOTNET_FORMAT_CHUNK_SIZE=150
+for ((chunk_start = 0; chunk_start < ${#STAGED_ROLES_DOTNET_FORMAT_FILES[@]}; chunk_start += DOTNET_FORMAT_CHUNK_SIZE)); do
+    dotnet format roles --no-restore --include "${STAGED_ROLES_DOTNET_FORMAT_FILES[@]:chunk_start:DOTNET_FORMAT_CHUNK_SIZE}"
+done
 
 # Prevent accidental submodule pointer updates.
 #

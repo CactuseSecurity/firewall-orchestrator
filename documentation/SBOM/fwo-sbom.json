@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:7dabf102-344d-4f5d-8b3a-5615c6ab89da",
+  "serialNumber": "urn:uuid:859ed6c6-6cfa-483c-8f33-2ad341032385",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-10T21:32:47Z",
+    "timestamp": "2026-11-10T21:41:39Z",
     "tools": {
       "components": [
         {
@@ -669,20 +669,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/IPNetwork2@4.3.0",
+      "bom-ref": "pkg:nuget/IPNetwork2@5.0.1",
       "authors": [
         {
           "name": "Luc Dvchosal"
         }
       ],
       "name": "IPNetwork2",
-      "version": "4.3.0",
+      "version": "5.0.1",
       "description": "IPNetwork C# library take care of complex network, ip, ipv4, ipv6, netmask, cidr, subnet, subnetting, supernet and supernetting calculation for .Net developpers. It works with IPv4 and IPv6 as well. It is written in C# for .NetStandard and coreclr and has a light and clean API and is fully unit tested.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "DB75471AA032BC8E52BB0AABFB2AC0059EA629BC8986CB94A4B52D06233A669437C6B5C202A74E6B882984AADC16B0140D7BF851295E56AAC4B8A5543A5A1F6E"
+          "content": "DF8B68736271C7E015A8B165A84E901ED2D966B315BCCC939A3DF4B2A4C6CCA747342E90F709DB439694DF6E7B0C2F485768E553F8C0FE0197475E127143DC6C"
         }
       ],
       "licenses": [
@@ -693,7 +693,7 @@
         }
       ],
       "copyright": "Copyright 2025",
-      "purl": "pkg:nuget/IPNetwork2@4.3.0",
+      "purl": "pkg:nuget/IPNetwork2@5.0.1",
       "externalReferences": [
         {
           "url": "https://github.com/lduchosal/ipnetwork",
@@ -4851,7 +4851,7 @@
         "pkg:nuget/GraphQL.Client.Serializer.Newtonsoft@6.1.0",
         "pkg:nuget/GraphQL.Client.Serializer.SystemTextJson@6.1.0",
         "pkg:nuget/IPAddressRange@6.3.0",
-        "pkg:nuget/IPNetwork2@4.3.0",
+        "pkg:nuget/IPNetwork2@5.0.1",
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.14",
         "pkg:nuget/Microsoft.IdentityModel.Tokens@8.23.0",
         "pkg:nuget/Microsoft.Rest.ClientRuntime@2.3.24",
@@ -4988,7 +4988,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/IPNetwork2@4.3.0",
+      "ref": "pkg:nuget/IPNetwork2@5.0.1",
       "dependsOn": []
     },
     {

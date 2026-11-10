@@ -518,21 +518,24 @@ max-width: 99%;
     padding-bottom: 30px;
 } */
 
+/* The .modal-body box of a popup scrolls in both directions (see PopUp.razor.css). A responsive table
+    wrapper inside it must not become a scroll container of its own, the sticky table headers would
+    then stick to the wrapper instead of the popup. */
 div.modal-body > div.table-responsive {
-    overflow-x: inherit;
+    overflow-x: visible;
 }
 
 div.modal-body > * > div.table-responsive {
-    overflow-x: inherit;
+    overflow-x: visible;
 }
 
-/* The scroll container of a table in a popup is the .modal-content box itself. A sticky offset is
-    resolved against the content box of the scroll container, so a header pinned at the generic
-    top: -1px would come to rest below the top padding of the popup and the rows would scroll
-    through the gap above it. Compensating that padding pins the header to the top edge of the popup.
+/* The scroll container of a table in a popup is its .modal-body box (see PopUp.razor.css). A sticky
+    offset is resolved against the content box of the scroll container, so a header pinned at the
+    generic top: -1px would come to rest below the top padding of the body and the rows would scroll
+    through the gap above it. Compensating that padding pins the header to the top edge of the body.
     The fallback keeps the declaration valid (and the header sticky) if the variable ever goes away. */
 div.modal-content .sticky-header thead {
-    top: calc(-1px - var(--fwo-modal-content-padding-top, 0px));
+    top: calc(-1px - var(--fwo-modal-body-padding-top, 0px));
 }
 
 .small-helptext {

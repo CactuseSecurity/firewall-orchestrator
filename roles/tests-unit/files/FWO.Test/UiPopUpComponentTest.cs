@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using Bunit;
 using FWO.Ui.Services;
 using FWO.Ui.Shared;
@@ -13,6 +14,7 @@ namespace FWO.Test
         private const string kCenterClass = "custom-modal-center";
         private const string kMovableClass = "popup-movable";
         private const string kResizableClass = "popup-resizable";
+        private const string kResizeHandleSelector = ".popup-dialog > .popup-resize-handle";
 
         private static readonly PopupSize[] kCenteredSizes =
         [
@@ -110,6 +112,24 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// The header is the first child of the content box and not part of the scrolling body, so it
+        /// stays visible (and usable as drag handle) while the body scrolls.
+        /// </summary>
+        [Test]
+        public async Task Header_StaysOutsideTheScrollingBody()
+        {
+            await using BunitContext context = new();
+
+            foreach (PopupSize size in kCenteredSizes.Append(PopupSize.FullScreen))
+            {
+                IRenderedComponent<PopUp> popup = RenderPopUp(context, size);
+                IElement content = popup.Find(".modal-content");
+                Assert.That(popup.FindAll(".modal-body .modal-header"), Is.Empty, $"The header of popup size {size} scrolls with the body.");
+                Assert.That(content.FirstElementChild?.ClassList, Does.Contain("popup-header"), $"Popup size {size} does not start with its header.");
+            }
+        }
+
+        /// <summary>
         /// Every popup but the full screen one can be moved, the extra small confirmation popups are
         /// not resizable, because their content box has a fixed maximum height.
         /// </summary>
@@ -120,10 +140,14 @@ namespace FWO.Test
 
             foreach (PopupSize size in kCenteredSizes)
             {
-                string[] dialogClasses = RenderDialogClass(context, size).Split(' ');
+                IRenderedComponent<PopUp> popup = RenderPopUp(context, size);
+                string[] dialogClasses = (popup.Find(".modal-open > div").GetAttribute("class") ?? "").Split(' ');
+                bool expectResizable = size != PopupSize.XSmall;
                 Assert.That(dialogClasses, Contains.Item(kMovableClass), $"Popup size {size} is not movable.");
-                Assert.That(dialogClasses.Contains(kResizableClass), Is.EqualTo(size != PopupSize.XSmall),
+                Assert.That(dialogClasses.Contains(kResizableClass), Is.EqualTo(expectResizable),
                     $"Popup size {size} has the wrong resize behavior.");
+                Assert.That(popup.FindAll(kResizeHandleSelector), Has.Count.EqualTo(expectResizable ? 1 : 0),
+                    $"Popup size {size} has the wrong number of resize handles.");
             }
 
             string[] fullScreenClasses = RenderDialogClass(context, PopupSize.FullScreen).Split(' ');
@@ -144,6 +168,7 @@ namespace FWO.Test
 
             Assert.That(dialogClasses, Has.No.Member(kMovableClass));
             Assert.That(dialogClasses, Has.No.Member(kResizableClass));
+            Assert.That(popup.FindAll(kResizeHandleSelector), Is.Empty);
         }
 
         private static string RenderDialogClass(BunitContext context, PopupSize size)

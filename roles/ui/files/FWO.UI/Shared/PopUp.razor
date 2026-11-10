@@ -4,8 +4,8 @@
         <div class="modal-open" tabindex="-1">
             <div class="popup-dialog @(SizeClass()) @(AdjustClass())">
                 <div class="modal-content @(SizeClassContent())">
-                    <div class="modal-header justify-content-between">
-                        <div style="display:flex;align-items:center;gap:0.2rem;">
+                    <div class="modal-header popup-header justify-content-between">
+                        <div class="popup-title">
                             <h5 class="mb-0">@Title</h5>
                             @if (!string.IsNullOrWhiteSpace(HelpPage))
                             {
@@ -28,6 +28,10 @@
                             @Footer
                         </div>
                     </div>
+                }
+                @if (CanResize)
+                {
+                    <div class="popup-resize-handle" aria-hidden="true"></div>
                 }
             </div>
         </div>
@@ -70,7 +74,7 @@
     public bool Movable { get; set; } = true;
 
     /// <summary>
-    /// Allows the user to resize the popup with the handle in its lower right corner.
+    /// Allows the user to resize the popup with the handle in its lower right corner (see wwwroot/js/popup.js).
     /// Ignored for full screen and extra small popups.
     /// </summary>
     [Parameter]

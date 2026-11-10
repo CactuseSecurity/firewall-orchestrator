@@ -1,7 +1,7 @@
-/* !! ATTENTION: The .modal-content box is the scroll container of a popup. Do not add an
-    offset to its content classes without checking the sticky headers of the tables inside
-    the popups (see .sticky-header in site.css) !!
-    Its top padding is published as --fwo-modal-content-padding-top, because the sticky
+/* !! ATTENTION: The .modal-body box is the scroll container of a popup, the .modal-content box
+    around it only holds the fixed header and the body. Do not add an offset to the body without
+    checking the sticky headers of the tables inside the popups (see .sticky-header in site.css) !!
+    The top padding of the body is published as --fwo-modal-body-padding-top, because the sticky
     headers have to compensate it. Change the padding only through that variable.
 */
 
@@ -61,24 +61,17 @@
         size of a flex item, without it the content box would refuse to shrink and overflow. */
     flex: 1 1 auto;
     min-height: 0;
-    /* The modal is only as wide as its content, so a scrollbar appearing on the content box
-        would cover its right edge instead of widening the modal. */
+}
+
+/* The modal is only as wide as its content, so a scrollbar appearing on the scrolling body
+    would cover its right edge instead of widening the modal. */
+.custom-modal-content-auto > .modal-body {
     scrollbar-gutter: stable;
 }
 
 .custom-modal-auto > .custom-modal-footer {
     /* The footer is the fixed part of the layout, only the content box above it may shrink. */
     flex: 0 0 auto;
-}
-
-/* Keeps the title and the close button reachable while the content below them scrolls.
-    The z-index has to stay above the sticky table headers (.sticky-header thead in site.css),
-    the background is needed because the content scrolls underneath the header. */
-.custom-modal-content-auto .modal-header {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background-color: rgba(255, 255, 255, 1);
 }
 
 /* Centers the modal in the viewport without a transform (see attention note above):
@@ -127,12 +120,23 @@
     padding-left: 1em;
     padding-right: 1em;
 }
+/* The content box keeps its size class (the size of the popup) and stacks the header above the
+    scrolling body, so the title, the help link and the close button stay visible while the body
+    scrolls. min-height: 0 lets the body shrink below its content and scroll instead of overflowing. */
 .modal-content {
-    --fwo-modal-content-padding-top: 2em;
-    padding: var(--fwo-modal-content-padding-top) 2em 0 2em;
+    --fwo-modal-body-padding-top: 0px;
+    padding: 2em 2em 0 2em;
     background-color: rgba(255, 255, 255, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-content > .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
-    /*overflow-x: hidden;*/    
+    padding-top: var(--fwo-modal-body-padding-top);
 }
 
 /* All popups are column flex boxes: the content box takes the space the footer leaves, so it
@@ -152,13 +156,35 @@
     flex: 0 0 auto;
 }
 
-/* CSS resize needs an overflow other than visible. Only the dialog box is clipped, the content
-    box keeps scrolling and fixed dropdown menus are not affected by the clipping. */
+/* The header is the fixed part of the content box, only the body below it scrolls. */
+.popup-header {
+    flex: 0 0 auto;
+}
+
+.popup-title {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+/* Resizing is done by popup.js with the handle below (pointer capture works the same in all
+    browsers, the native CSS resize gesture does not). The minimum size keeps title, close button
+    and footer usable, the popup.js only writes width and height. */
 .popup-resizable {
-    resize: both;
-    overflow: hidden;
     min-width: 20rem;
     min-height: 10rem;
+}
+
+.popup-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 1rem;
+    height: 1rem;
+    cursor: nwse-resize;
+    touch-action: none;
+    background: linear-gradient(135deg, transparent 50%, rgba(0, 0, 0, 0.35) 50%, rgba(0, 0, 0, 0.35) 58%,
+        transparent 58%, transparent 70%, rgba(0, 0, 0, 0.35) 70%, rgba(0, 0, 0, 0.35) 78%, transparent 78%);
 }
 
 .popup-movable .modal-header {

@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:b82346cf-1fdb-4bea-9205-5eaa0e7e8423",
+  "serialNumber": "urn:uuid:7867be9c-7830-43a2-bc2d-da43f5366d58",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-02T15:03:36Z",
+    "timestamp": "2026-11-10T09:24:31Z",
     "tools": {
       "components": [
         {
@@ -35,20 +35,20 @@
   "components": [
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/AngleSharp@1.9.1",
+      "bom-ref": "pkg:nuget/AngleSharp@1.10.1",
       "authors": [
         {
           "name": "AngleSharp"
         }
       ],
       "name": "AngleSharp",
-      "version": "1.9.1",
+      "version": "1.10.1",
       "description": "AngleSharp is the ultimate angle brackets parser library. It parses HTML5, CSS3, and XML to construct a DOM based on the official W3C specification.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "92EF867BB4C8C0E47D5F37031D6A5931A0C9DFCD66A3F6DCD278FDF08C367599FF8F0C0FD2DF33C66263C9361CC2E977E3C0EBE8F040F447A8A78C3543CB24F4"
+          "content": "5F46554567B225B2C10D7438E7DBB64371EFAFC240A5665D33288E62DA8D404BB4122EB7E650852AEDDC60A2ACFCE767FD78D0E39CAD00B2297D5092F566E9E0"
         }
       ],
       "licenses": [
@@ -59,7 +59,7 @@
         }
       ],
       "copyright": "Copyright 2013-2026, AngleSharp.",
-      "purl": "pkg:nuget/AngleSharp@1.9.1",
+      "purl": "pkg:nuget/AngleSharp@1.10.1",
       "externalReferences": [
         {
           "url": "https://anglesharp.github.io/",
@@ -73,20 +73,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/AngleSharp.Css@1.2.0",
+      "bom-ref": "pkg:nuget/AngleSharp.Css@1.4.0",
       "authors": [
         {
           "name": "AngleSharp.Css"
         }
       ],
       "name": "AngleSharp.Css",
-      "version": "1.2.0",
+      "version": "1.4.0",
       "description": "Extends the CSSOM from the core AngleSharp library.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "3B2EBA1186A52E5B4AEC8515E487B9D8A04F416E542B962982254B98B70D9D036B04374B971A87FBC128247D486DBADDB865A96BAB8C96EF3631B16BEFD11D8C"
+          "content": "CCDAA1B8A2F06555E9220667EDECA576BF37473073A1C04149118BE8953BDB511C3966FB36CC8361E4D689CAE04316DBA75AD3520B3F4B7BE61E6B96BE9F5CAD"
         }
       ],
       "licenses": [
@@ -96,7 +96,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/AngleSharp.Css@1.2.0",
+      "purl": "pkg:nuget/AngleSharp.Css@1.4.0",
       "externalReferences": [
         {
           "url": "https://anglesharp.github.io/",
@@ -223,20 +223,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/bunit@2.13.3",
+      "bom-ref": "pkg:nuget/bunit@2.14.0",
       "authors": [
         {
           "name": "Egil Hansen"
         }
       ],
       "name": "bunit",
-      "version": "2.13.3",
+      "version": "2.14.0",
       "description": "bUnit is a testing library for Blazor components.\n\n\t\t\tYou can easily define components under test in C# or Razor syntax and verify outcome\n\t\t\tusing semantic HTML diffing/comparison logic.\n\t\t\tYou can interact with and inspect the component under test, trigger event handlers,\n\t\t\tprovide cascading values, and inject services.\n\n\t\t\tbUnit also includes a complete fake implementation of Blazor\u0027s authentication and\n\t\t\tauthorization logic, navigation manager, and\n\t\t\tJSInterop.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "51C5BA5C20AEF3BA373A6FDEF9F083C2F443CD4CD80A261E9E4AB6FD354C3D0AC6D0EA6CEEB73A00C23E225F690935917DAE9D176981355391B2B74E0EDA056D"
+          "content": "22B1DE671FAE5B7A43584E1F2598B685AECE0716F4CF0166225B41F6D30A4FEDE0967B1E95DB441AF869712394DBA6D3A02D0289FC54888D39BEB2CEF3BE32C1"
         }
       ],
       "licenses": [
@@ -247,7 +247,7 @@
         }
       ],
       "copyright": "Egil Hansen",
-      "purl": "pkg:nuget/bunit@2.13.3",
+      "purl": "pkg:nuget/bunit@2.14.0",
       "externalReferences": [
         {
           "url": "https://bunit.egilhansen.com/",
@@ -4391,20 +4391,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Quartz@4.7.0",
+      "bom-ref": "pkg:nuget/Quartz@4.7.3",
       "authors": [
         {
           "name": "Marko Lahma, Quartz.NET"
         }
       ],
       "name": "Quartz",
-      "version": "4.7.0",
+      "version": "4.7.3",
       "description": "Quartz.NET job scheduler - cron, calendar and interval triggers, clustering over a persistent job store, and Microsoft.Extensions hosting, logging, options and dependency injection throughout. The core package: everything else builds on this one.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "642F6D644299659573A66CDAEBDE9FAE104563E3C3649736100BE2B764D2BA07728A0315429C84FDC19F2C51F5FD257ECA610461A1E5D4FF14453D4EE1A71C6E"
+          "content": "99A9883A75A57532CCD7305BFC841F16E0DDBD7DFF2D9F3B7463D1722BAB9F6D71FA2950793F18EE810ED4B9115BCC6F4FA5C115C0F3A15F5281061A5BA3FE31"
         }
       ],
       "licenses": [
@@ -4415,7 +4415,7 @@
         }
       ],
       "copyright": "Copyright Marko Lahma",
-      "purl": "pkg:nuget/Quartz@4.7.0",
+      "purl": "pkg:nuget/Quartz@4.7.3",
       "externalReferences": [
         {
           "url": "https://www.quartz-scheduler.net/",
@@ -4542,20 +4542,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Scalar.AspNetCore@2.18.7",
+      "bom-ref": "pkg:nuget/Scalar.AspNetCore@2.19.0",
       "authors": [
         {
           "name": "Scalar"
         }
       ],
       "name": "Scalar.AspNetCore",
-      "version": "2.18.7",
+      "version": "2.19.0",
       "description": "Generate beautiful interactive API documentation from OpenAPI/Swagger documents.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "4AC2F4AF0618F15B8D5DE36987420621ED986DD4B2F00F0DEBCFB9416D824176F0D94F0F62AB6B2E69975A963EC87D1E9BE96B5126CE96923093A312F4C32C65"
+          "content": "00156F69294EAA9AB3EB238F4CC3ECA75172CEF7D783B4BADB94A38375473C232CFF52DDA458F346C57BEB321EB15EEAC975F574B91E467747A612A384036DC9"
         }
       ],
       "licenses": [
@@ -4565,7 +4565,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/Scalar.AspNetCore@2.18.7",
+      "purl": "pkg:nuget/Scalar.AspNetCore@2.19.0",
       "externalReferences": [
         {
           "url": "https://scalar.com/",
@@ -4579,20 +4579,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/SoPro.FancyTable@1.1.0",
+      "bom-ref": "pkg:nuget/SoPro.FancyTable@1.5.0",
       "authors": [
         {
           "name": "SolidProgramming"
         }
       ],
       "name": "SoPro.FancyTable",
-      "version": "1.1.0",
+      "version": "1.5.0",
       "description": "Reusable Blazor table components with sorting, search, column visibility, and tree table support.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "D78759DE82DC7BB0F5D57AA85FBDAD70A38D80BA68DEF17E21037CB534A5F95D9C5DF327D79A47FBA98B047D603DFD3A7992104ED210829342CE56B71F997791"
+          "content": "3FB1984FE766C183A39DE98C0C2CC9594145D75108CDD1D706060B6A6C339CFE27C84E76600CBB7AB2BE29FD48D6FB0AFDB73E4E5508F8D9E63C80C53892CAFD"
         }
       ],
       "licenses": [
@@ -4602,7 +4602,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/SoPro.FancyTable@1.1.0",
+      "purl": "pkg:nuget/SoPro.FancyTable@1.5.0",
       "externalReferences": [
         {
           "url": "https://github.com/SolidProgramming/SoPro.FancyTable",
@@ -4867,13 +4867,13 @@
         "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.14",
         "pkg:nuget/Microsoft.OpenApi@2.13.0",
         "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
-        "pkg:nuget/Quartz@4.7.0",
-        "pkg:nuget/Scalar.AspNetCore@2.18.7",
+        "pkg:nuget/Quartz@4.7.3",
+        "pkg:nuget/Scalar.AspNetCore@2.19.0",
         "pkg:nuget/BlazorTable@1.17.0",
         "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.14",
-        "pkg:nuget/SoPro.FancyTable@1.1.0",
-        "pkg:nuget/AngleSharp@1.9.1",
-        "pkg:nuget/bunit@2.13.3",
+        "pkg:nuget/SoPro.FancyTable@1.5.0",
+        "pkg:nuget/AngleSharp@1.10.1",
+        "pkg:nuget/bunit@2.14.0",
         "pkg:nuget/coverlet.collector@10.1.0",
         "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.14",
         "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.0",
@@ -4885,20 +4885,20 @@
       ]
     },
     {
-      "ref": "pkg:nuget/AngleSharp.Css@1.2.0",
+      "ref": "pkg:nuget/AngleSharp.Css@1.4.0",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.9.1"
+        "pkg:nuget/AngleSharp@1.10.1"
       ]
     },
     {
       "ref": "pkg:nuget/AngleSharp.Diffing@1.1.1",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.9.1",
-        "pkg:nuget/AngleSharp.Css@1.2.0"
+        "pkg:nuget/AngleSharp@1.10.1",
+        "pkg:nuget/AngleSharp.Css@1.4.0"
       ]
     },
     {
-      "ref": "pkg:nuget/AngleSharp@1.9.1",
+      "ref": "pkg:nuget/AngleSharp@1.10.1",
       "dependsOn": []
     },
     {
@@ -4912,10 +4912,10 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/bunit@2.13.3",
+      "ref": "pkg:nuget/bunit@2.14.0",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.9.1",
-        "pkg:nuget/AngleSharp.Css@1.2.0",
+        "pkg:nuget/AngleSharp@1.10.1",
+        "pkg:nuget/AngleSharp.Css@1.4.0",
         "pkg:nuget/AngleSharp.Diffing@1.1.1",
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.14",
         "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.13",
@@ -5639,7 +5639,7 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Quartz@4.7.0",
+      "ref": "pkg:nuget/Quartz@4.7.3",
       "dependsOn": []
     },
     {
@@ -5658,11 +5658,11 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Scalar.AspNetCore@2.18.7",
+      "ref": "pkg:nuget/Scalar.AspNetCore@2.19.0",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/SoPro.FancyTable@1.1.0",
+      "ref": "pkg:nuget/SoPro.FancyTable@1.5.0",
       "dependsOn": []
     },
     {

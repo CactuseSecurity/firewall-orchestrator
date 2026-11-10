@@ -134,3 +134,43 @@
     overflow-y: auto;
     /*overflow-x: hidden;*/    
 }
+
+/* All popups are column flex boxes: the content box takes the space the footer leaves, so it
+    follows the dialog when the user resizes it (popup.js). The fixed heights of the content
+    classes above stay the initial size, min-height: 0 allows the content box to shrink. */
+.popup-dialog {
+    display: flex;
+    flex-direction: column;
+}
+
+.popup-dialog > .modal-content {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.popup-dialog > .custom-modal-footer {
+    flex: 0 0 auto;
+}
+
+/* CSS resize needs an overflow other than visible. Only the dialog box is clipped, the content
+    box keeps scrolling and fixed dropdown menus are not affected by the clipping. */
+.popup-resizable {
+    resize: both;
+    overflow: hidden;
+    min-width: 20rem;
+    min-height: 10rem;
+}
+
+.popup-movable .modal-header {
+    cursor: move;
+    touch-action: none;
+}
+
+.popup-movable .modal-header button,
+.popup-movable .modal-header a {
+    cursor: pointer;
+}
+
+.popup-dragging {
+    user-select: none;
+}

@@ -177,6 +177,42 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// A resizable popup needs an overflow other than visible for the CSS resize handle, and its
+        /// content box has to follow the resized dialog, so every dialog is a column flex box whose
+        /// content box may grow and shrink.
+        /// </summary>
+        [Test]
+        public void PopUpCss_LetsTheContentFollowAResizedDialog()
+        {
+            string popUpCss = ReadStyleSheetWithoutComments(kPopUpCssResource);
+
+            Match dialogRule = PopupDialogRuleRegex().Match(popUpCss);
+            Match contentRule = PopupDialogContentRuleRegex().Match(popUpCss);
+            Match resizableRule = PopupResizableRuleRegex().Match(popUpCss);
+            Assert.Multiple(() =>
+            {
+                Assert.That(dialogRule.Success, Is.True, "The rule of the popup dialog is missing.");
+                Assert.That(contentRule.Success, Is.True, "The rule of the popup dialog content is missing.");
+                Assert.That(resizableRule.Success, Is.True, "The rule of the resizable popup is missing.");
+            });
+
+            string dialogDeclarations = NormalizeWhitespace(dialogRule.Groups["body"].Value);
+            string contentDeclarations = NormalizeWhitespace(contentRule.Groups["body"].Value);
+            string resizableDeclarations = NormalizeWhitespace(resizableRule.Groups["body"].Value);
+            Assert.Multiple(() =>
+            {
+                Assert.That(dialogDeclarations, Does.Contain("display: flex"));
+                Assert.That(dialogDeclarations, Does.Contain("flex-direction: column"));
+                Assert.That(contentDeclarations, Does.Contain("flex: 1 1 auto"));
+                Assert.That(contentDeclarations, Does.Contain("min-height: 0"),
+                    "Without min-height: 0 the content box cannot shrink with the resized dialog.");
+                Assert.That(resizableDeclarations, Does.Contain("resize: both"));
+                Assert.That(resizableDeclarations, Does.Contain("overflow: hidden"),
+                    "The CSS resize handle is only shown for an overflow other than visible.");
+            });
+        }
+
         private static string ReadStyleSheetWithoutComments(string resourceName)
         {
             Assembly assembly = typeof(UiPopUpStyleTest).Assembly;
@@ -230,6 +266,15 @@ namespace FWO.Test
 
         [GeneratedRegex(@"\.modal-content\s+\.sticky-header\s+thead\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
         private static partial Regex ModalStickyHeaderRuleRegex();
+
+        [GeneratedRegex(@"\.popup-dialog\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex PopupDialogRuleRegex();
+
+        [GeneratedRegex(@"\.popup-dialog\s*>\s*\.modal-content\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex PopupDialogContentRuleRegex();
+
+        [GeneratedRegex(@"\.popup-resizable\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex PopupResizableRuleRegex();
 
         [GeneratedRegex(@"\s+", RegexOptions.None, knMilliseconds)]
         private static partial Regex WhitespaceRegex();

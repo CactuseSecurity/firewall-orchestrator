@@ -2,7 +2,7 @@
 {
     <div class="modal-backdrop popup-outer">
         <div class="modal-open" tabindex="-1">
-            <div class="@(SizeClass())">
+            <div class="popup-dialog @(SizeClass()) @(AdjustClass())">
                 <div class="modal-content @(SizeClassContent())">
                     <div class="modal-header justify-content-between">
                         <div style="display:flex;align-items:center;gap:0.2rem;">
@@ -62,6 +62,40 @@
 
     [Parameter]
     public string FooterCssClass { get; set; } = "modal-footer";
+
+    /// <summary>
+    /// Allows the user to drag the popup around by its header. Ignored for full screen popups.
+    /// </summary>
+    [Parameter]
+    public bool Movable { get; set; } = true;
+
+    /// <summary>
+    /// Allows the user to resize the popup with the handle in its lower right corner.
+    /// Ignored for full screen and extra small popups.
+    /// </summary>
+    [Parameter]
+    public bool Resizable { get; set; } = true;
+
+    private bool CanMove => Movable && Size != PopupSize.FullScreen;
+
+    private bool CanResize => Resizable && Size != PopupSize.FullScreen && Size != PopupSize.XSmall;
+
+    /// <summary>
+    /// Marks the dialog for the delegated move and resize handlers in wwwroot/js/popup.js.
+    /// </summary>
+    private string AdjustClass()
+    {
+        List<string> adjustClasses = [];
+        if (CanMove)
+        {
+            adjustClasses.Add("popup-movable");
+        }
+        if (CanResize)
+        {
+            adjustClasses.Add("popup-resizable");
+        }
+        return string.Join(" ", adjustClasses);
+    }
 
     private string SizeClass()
     {

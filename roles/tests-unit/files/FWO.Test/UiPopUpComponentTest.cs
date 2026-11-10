@@ -11,6 +11,8 @@ namespace FWO.Test
     internal class UiPopUpComponentTest
     {
         private const string kCenterClass = "custom-modal-center";
+        private const string kMovableClass = "popup-movable";
+        private const string kResizableClass = "popup-resizable";
 
         private static readonly PopupSize[] kCenteredSizes =
         [
@@ -107,6 +109,43 @@ namespace FWO.Test
             Assert.That(popup.FindAll(".custom-modal-footer"), Is.Empty);
         }
 
+        /// <summary>
+        /// Every popup but the full screen one can be moved, the extra small confirmation popups are
+        /// not resizable, because their content box has a fixed maximum height.
+        /// </summary>
+        [Test]
+        public async Task AdjustClass_MarksMovableAndResizablePopups()
+        {
+            await using BunitContext context = new();
+
+            foreach (PopupSize size in kCenteredSizes)
+            {
+                string[] dialogClasses = RenderDialogClass(context, size).Split(' ');
+                Assert.That(dialogClasses, Contains.Item(kMovableClass), $"Popup size {size} is not movable.");
+                Assert.That(dialogClasses.Contains(kResizableClass), Is.EqualTo(size != PopupSize.XSmall),
+                    $"Popup size {size} has the wrong resize behavior.");
+            }
+
+            string[] fullScreenClasses = RenderDialogClass(context, PopupSize.FullScreen).Split(' ');
+            Assert.That(fullScreenClasses, Has.No.Member(kMovableClass));
+            Assert.That(fullScreenClasses, Has.No.Member(kResizableClass));
+        }
+
+        /// <summary>
+        /// Both behaviors can be switched off per popup.
+        /// </summary>
+        [Test]
+        public async Task AdjustClass_RespectsDisabledParameters()
+        {
+            await using BunitContext context = new();
+
+            IRenderedComponent<PopUp> popup = RenderPopUp(context, PopupSize.Large, movable: false, resizable: false);
+            string[] dialogClasses = (popup.Find(".modal-open > div").GetAttribute("class") ?? "").Split(' ');
+
+            Assert.That(dialogClasses, Has.No.Member(kMovableClass));
+            Assert.That(dialogClasses, Has.No.Member(kResizableClass));
+        }
+
         private static string RenderDialogClass(BunitContext context, PopupSize size)
         {
             return RenderPopUp(context, size).Find(".modal-open > div").GetAttribute("class") ?? "";
@@ -117,11 +156,13 @@ namespace FWO.Test
             return RenderPopUp(context, size).Find(".modal-content").GetAttribute("class") ?? "";
         }
 
-        private static IRenderedComponent<PopUp> RenderPopUp(BunitContext context, PopupSize size)
+        private static IRenderedComponent<PopUp> RenderPopUp(BunitContext context, PopupSize size, bool movable = true, bool resizable = true)
         {
             return context.Render<PopUp>(parameters => parameters
                 .Add(p => p.Show, true)
                 .Add(p => p.Size, size)
+                .Add(p => p.Movable, movable)
+                .Add(p => p.Resizable, resizable)
                 .Add(p => p.Title, "TestPopup")
                 .Add(p => p.Body, (RenderFragment)(builder => builder.AddMarkupContent(0, "<span>body</span>")))
                 .Add(p => p.Footer, (RenderFragment)(builder => builder.AddMarkupContent(0, "<span>footer</span>"))));

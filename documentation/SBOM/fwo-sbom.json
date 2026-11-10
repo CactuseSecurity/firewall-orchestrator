@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:7867be9c-7830-43a2-bc2d-da43f5366d58",
+  "serialNumber": "urn:uuid:7dabf102-344d-4f5d-8b3a-5615c6ab89da",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-10T09:24:31Z",
+    "timestamp": "2026-11-10T21:32:47Z",
     "tools": {
       "components": [
         {
@@ -73,20 +73,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/AngleSharp.Css@1.4.0",
+      "bom-ref": "pkg:nuget/AngleSharp.Css@1.4.1",
       "authors": [
         {
           "name": "AngleSharp.Css"
         }
       ],
       "name": "AngleSharp.Css",
-      "version": "1.4.0",
+      "version": "1.4.1",
       "description": "Extends the CSSOM from the core AngleSharp library.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "CCDAA1B8A2F06555E9220667EDECA576BF37473073A1C04149118BE8953BDB511C3966FB36CC8361E4D689CAE04316DBA75AD3520B3F4B7BE61E6B96BE9F5CAD"
+          "content": "6BF4ED61A102C68D9F7D5160E60BCF016805F60B3D0E2A20EDF8C54B8570A96C198EEBF6F0D645A22A62DED506656BEB063B8C578C822C4A0D8A5558A53E5CE5"
         }
       ],
       "licenses": [
@@ -96,7 +96,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/AngleSharp.Css@1.4.0",
+      "purl": "pkg:nuget/AngleSharp.Css@1.4.1",
       "externalReferences": [
         {
           "url": "https://anglesharp.github.io/",
@@ -223,20 +223,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/bunit@2.14.0",
+      "bom-ref": "pkg:nuget/bunit@2.15.2",
       "authors": [
         {
           "name": "Egil Hansen"
         }
       ],
       "name": "bunit",
-      "version": "2.14.0",
+      "version": "2.15.2",
       "description": "bUnit is a testing library for Blazor components.\n\n\t\t\tYou can easily define components under test in C# or Razor syntax and verify outcome\n\t\t\tusing semantic HTML diffing/comparison logic.\n\t\t\tYou can interact with and inspect the component under test, trigger event handlers,\n\t\t\tprovide cascading values, and inject services.\n\n\t\t\tbUnit also includes a complete fake implementation of Blazor\u0027s authentication and\n\t\t\tauthorization logic, navigation manager, and\n\t\t\tJSInterop.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "22B1DE671FAE5B7A43584E1F2598B685AECE0716F4CF0166225B41F6D30A4FEDE0967B1E95DB441AF869712394DBA6D3A02D0289FC54888D39BEB2CEF3BE32C1"
+          "content": "0005B9C3B8A52AAB9A87BC6AC50E89E999C0C841FD72E2023D499071FBE6CB41090B1086CDD637FBFA58D2FE7E50D9722D2C28A2FEFC289476C9E07F15ABEB44"
         }
       ],
       "licenses": [
@@ -247,7 +247,7 @@
         }
       ],
       "copyright": "Egil Hansen",
-      "purl": "pkg:nuget/bunit@2.14.0",
+      "purl": "pkg:nuget/bunit@2.15.2",
       "externalReferences": [
         {
           "url": "https://bunit.egilhansen.com/",
@@ -1200,20 +1200,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Http@2.3.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Http@2.3.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Http",
-      "version": "2.3.13",
+      "version": "2.3.14",
       "description": "ASP.NET Core default HTTP feature implementations.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "162D233725171ADE09DBDE13D42902885CCA5DE4D66EFD2D148901D8D1757F2421627D162FD031921A04D18838EA4EC17452DB5C9BEE09346ABD85B30A072E03"
+          "content": "CE2E5F03A66855CC634AF658F701CF076A51BB292BDD50AEC6DF1C29411C2413782718EB273DCD618AEDC66980AF04A732DF4ED546672C14DC4BB565F2BF8C0F"
         }
       ],
       "licenses": [
@@ -1225,7 +1225,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Http@2.3.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Http@2.3.14",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1239,20 +1239,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Http.Abstractions@2.3.12",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Http.Abstractions@2.3.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Http.Abstractions",
-      "version": "2.3.12",
+      "version": "2.3.13",
       "description": "ASP.NET Core HTTP object model for HTTP requests and responses and also common extension methods for registering middleware in an IApplicationBuilder.\nCommonly used types:\nMicrosoft.AspNetCore.Builder.IApplicationBuilder\nMicrosoft.AspNetCore.Http.HttpContext\nMicrosoft.AspNetCore.Http.HttpRequest\nMicrosoft.AspNetCore.Http.HttpResponse",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "9FB266292AD7F54995DC1E14776EE7AF76C6D505512EAFD35DE8927CD985C25EAC931BB48DECBA69D166513082CE08A24DDB40CE07BE02AE311F3F84589F7C14"
+          "content": "2A3F325F7FFE108E4CF4BAF02FF5AB8DE4C961DD3F47C0A2F9B41EE9B71E1DEE7C09FE3188534ACB59B61C988CEC07DCA9A142517B7C645FCEFD591C5CAC27BA"
         }
       ],
       "licenses": [
@@ -1264,7 +1264,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Http.Abstractions@2.3.12",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Http.Abstractions@2.3.13",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1278,20 +1278,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Http.Features@2.3.11",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.Http.Features@2.3.12",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.Http.Features",
-      "version": "2.3.11",
+      "version": "2.3.12",
       "description": "ASP.NET Core HTTP feature interface definitions.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "87FC43691001750A46409A4148382FE17115F03028032DB18B1E7FB3A5EFF470BECAC38FD6610FC86BE3CE543A52D6CE6566DE8A61172E9654481683127D6010"
+          "content": "025CA250ABD0CE22B8AB6D6939204ECCB7283507AD61E0B6950024549F8E3577052BA23D8D9DB615039069209FD39D014797E5C7079B6FC3F394BD2D50CFF6C5"
         }
       ],
       "licenses": [
@@ -1303,7 +1303,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.Http.Features@2.3.11",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.Http.Features@2.3.12",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1469,20 +1469,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.12",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.WebUtilities",
-      "version": "2.3.12",
+      "version": "2.3.13",
       "description": "ASP.NET Core utilities, such as for working with forms, multipart messages, and query strings.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "0A8AFD157A277AE971DDF4FFE160AE4A6F0F47D66033FE170D0C78193F31C2D5D7A0AEB4F354D0751C09567C97974C916C3D6F8AF913699A3F693C7372D3C464"
+          "content": "27D5CAE14D4CA048575A3144D269ABF28A3CE1BA3D95A309AD4CA30E39D382F3710E5CE8CEA47CE340B0FC293F941CC9D09F74A905B314C4C31B8BAD736B4703"
         }
       ],
       "licenses": [
@@ -1494,7 +1494,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.12",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.13",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1584,20 +1584,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.CodeCoverage@18.11.0",
+      "bom-ref": "pkg:nuget/Microsoft.CodeCoverage@18.11.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.CodeCoverage",
-      "version": "18.11.0",
+      "version": "18.11.1",
       "description": "Microsoft.CodeCoverage package brings infra for collecting code coverage from vstest.console.exe and \u0022dotnet test\u0022.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "37ABE4F8DB25C8C48237695461AA801743019C1BFF10C6E10E3CAD1AB97B6C2961D98AF38DD8664F70F38E8D070B66C437F2E835D81BBA14436CA78353C13419"
+          "content": "CE43B06D38DC39FFC8CDD50E249E5FCAAADF1DE67609AB3E4D48852E7B7D26AE74DCD2F4BA4E1873E9F3F71AA161528FADCEF2E780E5A9BCDEBF8FA88DDEA9C3"
         }
       ],
       "licenses": [
@@ -1608,7 +1608,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.CodeCoverage@18.11.0",
+      "purl": "pkg:nuget/Microsoft.CodeCoverage@18.11.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/vstest",
@@ -3598,20 +3598,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.Net.Http.Headers@2.3.12",
+      "bom-ref": "pkg:nuget/Microsoft.Net.Http.Headers@2.3.13",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.Net.Http.Headers",
-      "version": "2.3.12",
+      "version": "2.3.13",
       "description": "HTTP header parser implementations.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "C687E50B7FB49AAB91265E777B91D97CDAECD50F42517755F639549AC283744FC658D89184C826CBC454BF2686358EF4E8C7A13A8866500E9D8B759FB2756AF5"
+          "content": "34DF4AD18E8011DCBC60470C4F9E0E2E30D474F2D86D11AB65D9084B6209081145C6FE1CE9CF3BCC90F7D7FE2F4DC79233DA1000C9517930766CE83671B3BBAF"
         }
       ],
       "licenses": [
@@ -3623,7 +3623,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.Net.Http.Headers@2.3.12",
+      "purl": "pkg:nuget/Microsoft.Net.Http.Headers@2.3.13",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -3637,20 +3637,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.0",
+      "bom-ref": "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.NET.Test.Sdk",
-      "version": "18.11.0",
+      "version": "18.11.1",
       "description": "The MSbuild targets and properties for building .NET test projects.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "E7F69FEBEDEF4343A04722F67274BC85C23CD64CC9E22BDE67D5429D7C39D75643A75C33F128A6800C324AC120EE9178C5757837E4F0AC76BCB0B764139CD4BE"
+          "content": "683F98F9C7C15265CEBC8EECF65F097CA560A5E9E09A951FAAFB512C50090E91F52FC04D7D95BE9D716819A7EF976A5CE1EF81809AC45D870E7456792477ACFD"
         }
       ],
       "licenses": [
@@ -3661,7 +3661,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.0",
+      "purl": "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/vstest",
@@ -4018,20 +4018,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.0",
+      "bom-ref": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.TestPlatform.ObjectModel",
-      "version": "18.11.0",
+      "version": "18.11.1",
       "description": "The Microsoft Test Platform Object Model.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "9870C52B8CB39DDE2F55851A20617C722203BC064479CA8033ABA875D99536AAD064CA3B379EB2E6A640DA9C43C1E8FDAC8AA87FA179D471D3356820E76570B2"
+          "content": "5058DBF675FD09034AFF70F087F005F02555F5A04C5E65B32D4CB5EDB18412361AEECA94628E520176A7F793CBC3EF86E43013D84D61A5F12CA9E2A39C77A0E2"
         }
       ],
       "licenses": [
@@ -4042,7 +4042,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.0",
+      "purl": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/vstest",
@@ -4056,20 +4056,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.11.0",
+      "bom-ref": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.11.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.TestPlatform.TestHost",
-      "version": "18.11.0",
+      "version": "18.11.1",
       "description": "Testplatform host executes the test using specified adapter.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "DD400B4E778B3EDFC73CBC1DF7F6B5FFCB8257563EF6ED12DB028DBEDB22FBD48C16D236EFCAE14C48F20721DCF8A7FF9501B254C883FCE7C0C68D6D49326C14"
+          "content": "3B6AEBE9F54A717A1083D647ABCF419A7526699106015E8F3ACEDDFF56959AC05D4D75F7F8E4854EDDD78808313B28F4D08789DABA48F3CD03D00EB1D24BC52A"
         }
       ],
       "licenses": [
@@ -4080,7 +4080,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.11.0",
+      "purl": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.11.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/vstest",
@@ -4542,20 +4542,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Scalar.AspNetCore@2.19.0",
+      "bom-ref": "pkg:nuget/Scalar.AspNetCore@2.20.0",
       "authors": [
         {
           "name": "Scalar"
         }
       ],
       "name": "Scalar.AspNetCore",
-      "version": "2.19.0",
+      "version": "2.20.0",
       "description": "Generate beautiful interactive API documentation from OpenAPI/Swagger documents.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "00156F69294EAA9AB3EB238F4CC3ECA75172CEF7D783B4BADB94A38375473C232CFF52DDA458F346C57BEB321EB15EEAC975F574B91E467747A612A384036DC9"
+          "content": "E4A6CE1270366BBDAC36869A1984AA7F794239B10342314CD5359FDB015C2A22309E4C8A9E2A649257A8713064B59EECFF86102674DA26CE0EC0A20FC9380462"
         }
       ],
       "licenses": [
@@ -4565,7 +4565,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/Scalar.AspNetCore@2.19.0",
+      "purl": "pkg:nuget/Scalar.AspNetCore@2.20.0",
       "externalReferences": [
         {
           "url": "https://scalar.com/",
@@ -4860,7 +4860,7 @@
         "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.23.0",
         "pkg:nuget/HtmlAgilityPack@1.13.1",
         "pkg:nuget/MailKit@4.18.2",
-        "pkg:nuget/Microsoft.AspNetCore.Http@2.3.13",
+        "pkg:nuget/Microsoft.AspNetCore.Http@2.3.14",
         "pkg:nuget/MimeKit@4.18.2",
         "pkg:nuget/PuppeteerSharp@25.15.0",
         "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.14",
@@ -4868,15 +4868,15 @@
         "pkg:nuget/Microsoft.OpenApi@2.13.0",
         "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
         "pkg:nuget/Quartz@4.7.3",
-        "pkg:nuget/Scalar.AspNetCore@2.19.0",
+        "pkg:nuget/Scalar.AspNetCore@2.20.0",
         "pkg:nuget/BlazorTable@1.17.0",
         "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.14",
         "pkg:nuget/SoPro.FancyTable@1.5.0",
         "pkg:nuget/AngleSharp@1.10.1",
-        "pkg:nuget/bunit@2.14.0",
+        "pkg:nuget/bunit@2.15.2",
         "pkg:nuget/coverlet.collector@10.1.0",
         "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.14",
-        "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.0",
+        "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.1",
         "pkg:nuget/Moq@4.21.0",
         "pkg:nuget/NSubstitute@6.2.0",
         "pkg:nuget/NUnit@4.6.1",
@@ -4885,7 +4885,7 @@
       ]
     },
     {
-      "ref": "pkg:nuget/AngleSharp.Css@1.4.0",
+      "ref": "pkg:nuget/AngleSharp.Css@1.4.1",
       "dependsOn": [
         "pkg:nuget/AngleSharp@1.10.1"
       ]
@@ -4894,7 +4894,7 @@
       "ref": "pkg:nuget/AngleSharp.Diffing@1.1.1",
       "dependsOn": [
         "pkg:nuget/AngleSharp@1.10.1",
-        "pkg:nuget/AngleSharp.Css@1.4.0"
+        "pkg:nuget/AngleSharp.Css@1.4.1"
       ]
     },
     {
@@ -4912,10 +4912,10 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/bunit@2.14.0",
+      "ref": "pkg:nuget/bunit@2.15.2",
       "dependsOn": [
         "pkg:nuget/AngleSharp@1.10.1",
-        "pkg:nuget/AngleSharp.Css@1.4.0",
+        "pkg:nuget/AngleSharp.Css@1.4.1",
         "pkg:nuget/AngleSharp.Diffing@1.1.1",
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.14",
         "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.13",
@@ -5077,25 +5077,25 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Http.Abstractions@2.3.12",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Http.Abstractions@2.3.13",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Http.Features@2.3.11"
+        "pkg:nuget/Microsoft.AspNetCore.Http.Features@2.3.12"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Http.Features@2.3.11",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Http.Features@2.3.12",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Http@2.3.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Http@2.3.14",
       "dependsOn": [
-        "pkg:nuget/Microsoft.AspNetCore.Http.Abstractions@2.3.12",
-        "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.12",
+        "pkg:nuget/Microsoft.AspNetCore.Http.Abstractions@2.3.13",
+        "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.13",
         "pkg:nuget/Microsoft.Extensions.ObjectPool@8.0.11",
         "pkg:nuget/Microsoft.Extensions.Options@10.0.14",
-        "pkg:nuget/Microsoft.Net.Http.Headers@2.3.12"
+        "pkg:nuget/Microsoft.Net.Http.Headers@2.3.13"
       ]
     },
     {
@@ -5121,9 +5121,9 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.12",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.13",
       "dependsOn": [
-        "pkg:nuget/Microsoft.Net.Http.Headers@2.3.12"
+        "pkg:nuget/Microsoft.Net.Http.Headers@2.3.13"
       ]
     },
     {
@@ -5135,7 +5135,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.CodeCoverage@18.11.0",
+      "ref": "pkg:nuget/Microsoft.CodeCoverage@18.11.1",
       "dependsOn": []
     },
     {
@@ -5514,16 +5514,16 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.Net.Http.Headers@2.3.12",
+      "ref": "pkg:nuget/Microsoft.Net.Http.Headers@2.3.13",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.Primitives@10.0.14"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.0",
+      "ref": "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.1",
       "dependsOn": [
-        "pkg:nuget/Microsoft.CodeCoverage@18.11.0",
-        "pkg:nuget/Microsoft.TestPlatform.TestHost@18.11.0"
+        "pkg:nuget/Microsoft.CodeCoverage@18.11.1",
+        "pkg:nuget/Microsoft.TestPlatform.TestHost@18.11.1"
       ]
     },
     {
@@ -5559,7 +5559,7 @@
     {
       "ref": "pkg:nuget/Microsoft.Testing.Extensions.VSTestBridge@2.4.1",
       "dependsOn": [
-        "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.0",
+        "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.1",
         "pkg:nuget/Microsoft.Testing.Extensions.Telemetry@2.4.1",
         "pkg:nuget/Microsoft.Testing.Extensions.TrxReport.Abstractions@2.4.1",
         "pkg:nuget/Microsoft.Testing.Platform@2.4.1"
@@ -5580,13 +5580,13 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.0",
+      "ref": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.1",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.11.0",
+      "ref": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.11.1",
       "dependsOn": [
-        "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.0"
+        "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.1"
       ]
     },
     {
@@ -5658,7 +5658,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Scalar.AspNetCore@2.19.0",
+      "ref": "pkg:nuget/Scalar.AspNetCore@2.20.0",
       "dependsOn": []
     },
     {

@@ -1,5 +1,8 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.2 - 10.11.2026
+- dependencies: update NuGet packages (AngleSharp 1.10.1, bunit 2.14.0, Quartz 4.7.3, Scalar.AspNetCore 2.19.0, SoPro.FancyTable 1.5.0)
+
 ## 9.9.1 - 05.11.2026
 - request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent
 - workflow UI: the promotion-mode setting now also supports action-buttons-only in addition to ticket, task and combined promotion

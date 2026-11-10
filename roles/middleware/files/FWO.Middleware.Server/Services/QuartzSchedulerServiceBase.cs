@@ -180,55 +180,16 @@ namespace FWO.Middleware.Server.Services
                 return;
             }
 
-            DateTimeOffset startTime = CalculateStartTime(StartAt, Interval);
-
-            ITrigger trigger = TriggerBuilder.Create()
-                .WithIdentity(triggerKey)
-                .ForJob(jobKey)
-                .StartAt(startTime)
-                .WithSimpleSchedule(x => x
-                    .WithInterval(Interval)
-                    .RepeatForever())
-                .Build();
+            DateTimeOffset now = timeProvider.GetUtcNow();
+            TimeZoneInfo zone = timeProvider.LocalTimeZone;
+            ITrigger trigger = WallClockSchedule.CreateTrigger(triggerKey, jobKey, StartAt, Interval, now, zone);
 
             await scheduler.ScheduleJob(trigger);
 
             Log.WriteInfo(
                 options.SchedulerName,
-                $"Trigger scheduled. Start: {startTime:yyyy-MM-dd HH:mm:ss}, Interval: {SleepTime}{IntervalLogSuffix}");
-        }
-
-        /// <summary>
-        /// Calculates the next start time in the future from a configured start time.
-        /// </summary>
-        /// <param name="configuredStartTime">Configured start time.</param>
-        /// <param name="interval">Schedule interval.</param>
-        /// <returns>Next start time in the future.</returns>
-        protected DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval)
-        {
-            return CalculateStartTime(configuredStartTime, interval, timeProvider.GetUtcNow().LocalDateTime);
-        }
-
-        /// <summary>
-        /// Calculates the next start time in the future relative to a fixed point in time.
-        /// </summary>
-        /// <param name="configuredStartTime">Configured start time.</param>
-        /// <param name="interval">Schedule interval.</param>
-        /// <param name="now">Reference time.</param>
-        /// <returns>Next start time in the future.</returns>
-        protected static DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval, DateTime now)
-        {
-            if (interval <= TimeSpan.Zero)
-            {
-                throw new ArgumentOutOfRangeException(nameof(interval), "Interval must be greater than zero.");
-            }
-
-            DateTime startTime = configuredStartTime;
-            while (startTime < now)
-            {
-                startTime = startTime.Add(interval);
-            }
-            return new DateTimeOffset(startTime);
+                $"Trigger scheduled. Start: {WallClockSchedule.FormatNextFireTime(trigger, now, zone)}, " +
+                $"Interval: {SleepTime}{IntervalLogSuffix}, Schedule: {WallClockSchedule.GetScheduleKind(Interval)}");
         }
 
         private void FireAndForget(Task task, string failureMessage)

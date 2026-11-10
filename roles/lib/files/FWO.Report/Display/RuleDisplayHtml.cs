@@ -126,6 +126,66 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
+        /// <summary>
+        /// Displays the translated source of a NAT rule.
+        /// </summary>
+        /// <param name="rule">NAT rule whose translated part is displayed.</param>
+        /// <param name="location">Output location defining how object links are built.</param>
+        /// <param name="chapterNumber">Chapter number used for object links.</param>
+        /// <param name="style">Style applied to the displayed objects.</param>
+        /// <param name="reportType">Report type the objects are linked for.</param>
+        /// <returns>The translated source as html.</returns>
+        public string DisplayTranslatedSource(Rule rule, OutputLocation location, int chapterNumber = 0, string style = "", ReportType reportType = ReportType.NatRules)
+        {
+            return DisplayTranslatedSourceOrDestination(rule, chapterNumber, location, style, true, reportType);
+        }
+
+        /// <summary>
+        /// Displays the translated destination of a NAT rule.
+        /// </summary>
+        /// <param name="rule">NAT rule whose translated part is displayed.</param>
+        /// <param name="location">Output location defining how object links are built.</param>
+        /// <param name="chapterNumber">Chapter number used for object links.</param>
+        /// <param name="style">Style applied to the displayed objects.</param>
+        /// <param name="reportType">Report type the objects are linked for.</param>
+        /// <returns>The translated destination as html.</returns>
+        public string DisplayTranslatedDestination(Rule rule, OutputLocation location, int chapterNumber = 0, string style = "", ReportType reportType = ReportType.NatRules)
+        {
+            return DisplayTranslatedSourceOrDestination(rule, chapterNumber, location, style, false, reportType);
+        }
+
+        /// <summary>
+        /// Displays the translated services of a NAT rule.
+        /// </summary>
+        /// <param name="rule">NAT rule whose translated part is displayed.</param>
+        /// <param name="location">Output location defining how object links are built.</param>
+        /// <param name="chapterNumber">Chapter number used for object links.</param>
+        /// <param name="style">Style applied to the displayed services.</param>
+        /// <param name="reportType">Report type the services are linked for.</param>
+        /// <returns>The translated services as html.</returns>
+        public string DisplayTranslatedService(Rule rule, OutputLocation location, int chapterNumber = 0, string style = "", ReportType reportType = ReportType.NatRules)
+        {
+            StringBuilder result = new();
+            if (rule.NatData.TranslatedServiceNegated)
+            {
+                result.AppendLine(userConfig.GetText("negated") + "<br>");
+            }
+            result.AppendJoin("<br>", Array.ConvertAll(rule.NatData.TranslatedServices, service => ServiceToHtml(service.Content, rule.MgmtId, chapterNumber, location, style, reportType)));
+            return result.ToString();
+        }
+
+        private string DisplayTranslatedSourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, string style, bool isSource, ReportType reportType)
+        {
+            StringBuilder result = new();
+            if ((isSource && rule.NatData.TranslatedSourceNegated) || (!isSource && rule.NatData.TranslatedDestinationNegated))
+            {
+                result.AppendLine(userConfig.GetText("negated") + "<br>");
+            }
+            NetworkLocation[] translatedLocations = isSource ? rule.NatData.TranslatedFroms : rule.NatData.TranslatedTos;
+            result.AppendJoin("<br>", Array.ConvertAll(translatedLocations, networkLocation => NetworkLocationToHtml(networkLocation, rule.MgmtId, chapterNumber, location, style, reportType)));
+            return result.ToString();
+        }
+
         public static string DisplayEnforcingGateways(Rule rule, OutputLocation location, ReportType reportType, int chapterNumber = 0, string style = "")
         {
             StringBuilder result = new();

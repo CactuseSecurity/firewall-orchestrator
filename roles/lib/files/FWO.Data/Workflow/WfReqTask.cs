@@ -32,6 +32,12 @@ namespace FWO.Data.Workflow
         [JsonProperty("on_management"), JsonPropertyName("on_management")]
         public Management? OnManagement { get; set; }
 
+        /// <summary>
+        /// Temporary correlation to the negative API entity that created this task.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public long? WorkflowEntityId { get; set; }
+
         public List<WfReqElement> RemovedElements { get; set; } = [];
         public List<FwoOwner> NewOwners { get; set; } = [];
         public List<FwoOwner> RemovedOwners { get; set; } = [];
@@ -53,6 +59,7 @@ namespace FWO.Data.Workflow
             NewOwners = reqtask.NewOwners;
             RemovedOwners = reqtask.RemovedOwners;
             OnManagement = reqtask.OnManagement;
+            WorkflowEntityId = reqtask.WorkflowEntityId;
         }
 
         public string OwnerList()
@@ -92,6 +99,7 @@ namespace FWO.Data.Workflow
                         NetworkId = reqElem.NetworkId,
                         FlowNetworkObjectId = reqElem.FlowNetworkObjectId,
                         FlowNetworkGroupId = reqElem.FlowNetworkGroupId,
+                        ObjectTaskId = reqElem.ObjectTaskId ?? (WfObjectTaskHelper.IsManagementObjectTask(TaskType) ? Id : null),
                         RequestAction = reqElem.RequestAction,
                         Name = reqElem.Name,
                         GroupName = reqElem.GroupName ?? ""
@@ -121,6 +129,7 @@ namespace FWO.Data.Workflow
                         ServiceId = reqElem.ServiceId,
                         FlowServiceObjectId = reqElem.FlowServiceObjectId,
                         FlowServiceGroupId = reqElem.FlowServiceGroupId,
+                        ObjectTaskId = reqElem.ObjectTaskId ?? (WfObjectTaskHelper.IsManagementObjectTask(TaskType) ? Id : null),
                         Name = reqElem.Name,
                         GroupName = reqElem.GroupName,
                         RequestAction = reqElem.RequestAction

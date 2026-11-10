@@ -52,6 +52,7 @@ fragment implTaskDetails on request_impltask {
     start_time
     end_time
     time_obj_id
+    object_task_id
   }
   comments: impltask_comments {
     comment: comment {

@@ -34,7 +34,13 @@ local_nw_obj_table_names = [
 
 # VoIP domain objects use the legacy Cpmi* type names on older management API versions
 # and voip-domain-* type names (e.g. voip-domain-sip-proxy) on newer ones
-voip_domain_legacy_obj_types = ["CpmiVoipSipDomain", "CpmiVoipMgcpDomain"]
+voip_domain_legacy_obj_types = [
+    "CpmiVoipSipDomain",
+    "CpmiVoipMgcpDomain",
+    "CpmiVoipSkinnyDomain",
+    "CpmiVoipGkDomain",
+    "CpmiVoipGwDomain",
+]
 voip_domain_obj_type_prefix = "voip-domain-"
 
 # objects that are neither returned by show-objects nor by a type specific show command

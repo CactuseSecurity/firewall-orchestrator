@@ -35,6 +35,13 @@ namespace FWO.Test
             userConfig.ReqVisibilityBased = true;
         }
 
+        private static T InvokePrivate<T>(WfHandler handler, string methodName, params object?[] arguments)
+        {
+            MethodInfo method = typeof(WfHandler).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException($"Method '{methodName}' not found.");
+            return (T)(method.Invoke(handler, arguments) ?? throw new InvalidOperationException($"Method '{methodName}' returned null."));
+        }
+
         private sealed class TicketTestApiConn : SimulatedApiConnection
         {
             public WfTicket Ticket { get; set; } = new();
@@ -911,6 +918,99 @@ namespace FWO.Test
             Assert.That(ticket!.Tasks, Has.Count.EqualTo(1));
             Assert.That(ticket.Tasks[0].Approvals, Has.Count.EqualTo(1));
             Assert.That(ticket.Tasks[0].Approvals[0].Id, Is.EqualTo(31));
+        }
+
+        [Test]
+        public void CanViewImplTask_AllowsTaskAssignedToCurrentUser()
+        {
+            UserConfig userConfig = new();
+            userConfig.User.Dn = "uid=approver,ou=users,dc=fworch";
+            userConfig.User.WorkflowVisibilityGroupIds = [3];
+            EnableVisibilityChecks(userConfig);
+            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), null!, null!, WorkflowPhases.approval);
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                StateVisibilityGroupIds =
+                {
+                    [21] = [99]
+                }
+            });
+            WfImplTask implTask = new()
+            {
+                Id = 22,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 21,
+                CurrentHandler = new UiUser { Dn = userConfig.User.Dn }
+            };
+
+            bool visible = InvokePrivate<bool>(handler, "CanViewImplTask", implTask, new HashSet<int>());
+
+            Assert.That(visible, Is.True);
+        }
+
+        [Test]
+        public void CanViewApproval_ReturnsTrueWhenVisibilityChecksAreDisabled()
+        {
+            WfHandler handler = new();
+            WfApproval approval = new() { Id = 31, StateId = 41 };
+
+            bool visible = InvokePrivate<bool>(handler, "CanViewApproval", approval, new StateMatrix(), new HashSet<int>());
+
+            Assert.That(visible, Is.True);
+        }
+
+        [Test]
+        public void CanViewApproval_AllowsApprovalAssignedToCurrentUser()
+        {
+            UserConfig userConfig = new();
+            userConfig.User.Dn = "uid=approver,ou=users,dc=fworch";
+            userConfig.User.WorkflowVisibilityGroupIds = [3];
+            EnableVisibilityChecks(userConfig);
+            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), null!, null!, WorkflowPhases.approval);
+            WfApproval approval = new()
+            {
+                Id = 31,
+                StateId = 41,
+                ApproverDn = userConfig.User.Dn
+            };
+
+            bool visible = InvokePrivate<bool>(handler, "CanViewApproval", approval, new StateMatrix(), new HashSet<int>());
+
+            Assert.That(visible, Is.True);
+        }
+
+        [Test]
+        public void IsExplicitApprovalAssignment_MatchesUserDnOrGroup()
+        {
+            UserConfig userConfig = new();
+            userConfig.User.Dn = "uid=approver,ou=users,dc=fworch";
+            userConfig.User.Groups = ["cn=approvers,dc=fworch"];
+            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), null!, null!, WorkflowPhases.approval);
+            WfApproval userApproval = new() { ApproverDn = userConfig.User.Dn };
+            WfApproval groupApproval = new() { ApproverGroup = userConfig.User.Groups[0] };
+            WfApproval unrelatedApproval = new() { ApproverDn = "uid=other,ou=users,dc=fworch", ApproverGroup = "cn=other,dc=fworch" };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(handler, "IsExplicitApprovalAssignment", userApproval), Is.True);
+                Assert.That(InvokePrivate<bool>(handler, "IsExplicitApprovalAssignment", groupApproval), Is.True);
+                Assert.That(InvokePrivate<bool>(handler, "IsExplicitApprovalAssignment", unrelatedApproval), Is.False);
+            });
+        }
+
+        [Test]
+        public void IsAssignedToCurrentUserDn_HandlesNullAndMatchingDn()
+        {
+            UserConfig userConfig = new();
+            userConfig.User.Dn = "uid=approver,ou=users,dc=fworch";
+            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), null!, null!, WorkflowPhases.approval);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(handler, "IsAssignedToCurrentUserDn", userConfig.User.Dn), Is.True);
+                Assert.That(InvokePrivate<bool>(handler, "IsAssignedToCurrentUserDn", "uid=other,ou=users,dc=fworch"), Is.False);
+                Assert.That(InvokePrivate<bool>(handler, "IsAssignedToCurrentUserDn", (string?)null), Is.False);
+            });
         }
 
         [Test]

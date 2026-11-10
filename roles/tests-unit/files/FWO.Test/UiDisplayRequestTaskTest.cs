@@ -56,6 +56,38 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CanEditAndSaveFields_AllowsTaskFieldsWithFlowDbReference()
+        {
+            DisplayRequestTask component = new();
+            SimulatedUserConfig userConfig = new();
+            ApproverAllowedChangesConfig config = new();
+            config.SetTaskField(WfTaskType.access, WorkflowEditableFieldKeys.Services, true);
+            userConfig.ReqAllowedChangesByApprover = config.ToConfigValue();
+            SetPrivateField(component, "userConfig", userConfig);
+
+            WfReqTask storedTask = new()
+            {
+                Id = 100,
+                TaskType = WfTaskType.access.ToString(),
+                FlowAccessId = 901
+            };
+            SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                ActReqTask = new WfReqTask(storedTask),
+                ActTicket = new WfTicket { Tasks = [storedTask] },
+                ApproveReqTaskMode = true
+            });
+            SetPrivateField(component, nameof(DisplayRequestTask.Phase), WorkflowPhases.approval);
+            SetPrivateField(component, "actTaskType", WfTaskType.access);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(component, "CanEditReqTaskField", WorkflowEditableFieldKeys.Services), Is.True);
+                Assert.That(InvokePrivate<bool>(component, "CanSaveReqTaskChanges"), Is.True);
+            });
+        }
+
+        [Test]
         public void AccessTaskVisibilityConfigControlsDescriptiveFields()
         {
             DisplayRequestTask component = new();
@@ -152,6 +184,21 @@ namespace FWO.Test
             });
             await InvokePrivateTask(component, "ConfApproveTask", new WfApproval());
             await InvokePrivateTask(component, "SaveReqTask");
+
+            Assert.That(GetPrivateField<bool>(component, "WorkInProgress"), Is.True);
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_SaveApprovalTaskChanges_DoesNothingWhileBusy()
+        {
+            DisplayRequestTask component = new();
+            SetPrivateField(component, "WorkInProgress", true);
+            SetPrivateField(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                ActReqTask = new WfReqTask { Title = "Approval task", TaskType = WfTaskType.access.ToString() }
+            });
+
+            await InvokePrivateTask(component, "SaveApprovalTaskChanges");
 
             Assert.That(GetPrivateField<bool>(component, "WorkInProgress"), Is.True);
         }
@@ -804,6 +851,86 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayRequestTask_RuleDeleteWithUnknownRule_IsRejected()
+        {
+            List<string> messages = [];
+            SimulatedUserConfig userConfig = new();
+            WfReqTask task = new() { Title = "Delete rule", TaskType = WfTaskType.rule_delete.ToString() };
+            task.Elements.Add(new WfReqElement
+            {
+                Field = ElemFieldType.rule.ToString(),
+                RuleUid = "rule-404"
+            });
+            DisplayRequestTask component = new();
+            RequestTaskElementEditor elementEditor = new();
+            SetMember(elementEditor, "actRules", new List<NwRuleElement> { new() });
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler { ActReqTask = task });
+            SetMember(component, "actTaskType", WfTaskType.rule_delete);
+            SetMember(component, "actRuleDevice", new Device { Id = 12 });
+            SetMember(component, "elementEditor", elementEditor);
+            SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((_, _, message, _) => messages.Add(message)));
+
+            bool valid = await InvokePrivateTaskResult<bool>(component, "CheckTaskValues");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0], Is.EqualTo(userConfig.GetText("E8013") + "rule-404"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_ObjectTaskWithInvalidStructure_IsRejected()
+        {
+            List<string> messages = [];
+            SimulatedUserConfig userConfig = new();
+            DisplayRequestTask component = new();
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                ActReqTask = new WfReqTask { Title = "Create object", TaskType = WfTaskType.object_create.ToString() }
+            });
+            SetMember(component, "actTaskType", WfTaskType.object_create);
+            SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((_, _, message, _) => messages.Add(message)));
+
+            bool valid = await InvokePrivateTaskResult<bool>(component, "CheckTaskValues");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0], Is.EqualTo(userConfig.GetText("E5124")));
+            });
+        }
+
+        [Test]
+        public async Task DisplayRequestTask_ObjectTaskInEditModeWithoutEditor_IsRejected()
+        {
+            List<string> messages = [];
+            SimulatedUserConfig userConfig = new();
+            DisplayRequestTask component = new();
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                EditReqTaskMode = true,
+                ActReqTask = new WfReqTask { Title = "Create object", TaskType = WfTaskType.object_create.ToString() }
+            });
+            SetMember(component, "actTaskType", WfTaskType.object_create);
+            SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((_, _, message, _) => messages.Add(message)));
+
+            bool valid = await InvokePrivateTaskResult<bool>(component, "RejectInvalidObjectTask");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(valid, Is.False);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0], Is.EqualTo(userConfig.GetText("E5124")));
+            });
+        }
+
+        [Test]
         public async Task DisplayRequestTask_PrepareReqTaskForSave_SetsSpecialTaskValues()
         {
             WfReqTask ruleDeleteTask = new() { Title = "Delete", TaskType = WfTaskType.rule_delete.ToString() };
@@ -1392,10 +1519,47 @@ namespace FWO.Test
             };
             DisplayRequestTask component = new();
             SetMember(component, nameof(DisplayRequestTask.WfHandler), handler);
+            handler.ActReqTask.Elements.Add(new WfReqElement
+            {
+                Field = ElemFieldType.time.ToString(),
+                FlowTimeObjectId = 1,
+                Name = "Flow time"
+            });
             SetMember(component, "userConfig", new RequestWorkflowUserConfig());
             SetRequestTaskElementMember(component, "actSources", new List<NwObjectElement> { new("10.0.0.1", 1) });
             SetRequestTaskElementMember(component, "actDestinations", new List<NwObjectElement> { new("10.0.1.1", 1) });
             SetRequestTaskElementMember(component, "actServices", new List<NwServiceElement> { new() { FlowServiceObjectId = 201, Name = "Flow Service" } });
+
+            bool isValid = UiRequestCoverageTest.InvokePrivateBool(component, "RejectInvalidAccessTask");
+
+            Assert.That(isValid, Is.True);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void DisplayRequestTask_DateOnlyAccessTaskIsAcceptedInCreateAndEditMode(bool editMode)
+        {
+            WfReqTask task = new()
+            {
+                TaskType = WfTaskType.access.ToString(),
+                TargetBeginDate = new DateTime(2026, 8, 1),
+                TargetEndDate = new DateTime(2026, 8, 31)
+            };
+            DisplayRequestTask component = new();
+            SetMember(component, nameof(DisplayRequestTask.WfHandler), new WfHandler
+            {
+                AddReqTaskMode = !editMode,
+                EditReqTaskMode = editMode,
+                ActReqTask = task
+            });
+            SetMember(component, "userConfig", new RequestWorkflowUserConfig
+            {
+                ReqDeviceInput = ReqDeviceInputOptions.never
+            });
+            SetMember(component, "actTaskType", WfTaskType.access);
+            SetRequestTaskElementMember(component, "actSources", new List<NwObjectElement> { new("10.0.0.1", 1) });
+            SetRequestTaskElementMember(component, "actDestinations", new List<NwObjectElement> { new("10.0.1.1", 1) });
+            SetRequestTaskElementMember(component, "actServices", new List<NwServiceElement> { new() { ProtoId = 50 } });
 
             bool isValid = UiRequestCoverageTest.InvokePrivateBool(component, "RejectInvalidAccessTask");
 
@@ -1423,6 +1587,12 @@ namespace FWO.Test
                 {
                     PhaseActive = { [WorkflowPhases.planning] = true }
                 }
+            });
+            GetMember<WfHandler>(component, nameof(DisplayRequestTask.WfHandler)).ActReqTask.Elements.Add(new WfReqElement
+            {
+                Field = ElemFieldType.time.ToString(),
+                FlowTimeObjectId = 1,
+                Name = "Flow time"
             });
             SetMember(component, "userConfig", new RequestWorkflowUserConfig());
             SetRequestTaskElementMember(component, "actSources", new List<NwObjectElement> { new("10.0.0.1", 1) });
@@ -1456,6 +1626,12 @@ namespace FWO.Test
                 {
                     PhaseActive = { [WorkflowPhases.planning] = true }
                 }
+            });
+            GetMember<WfHandler>(component, nameof(DisplayRequestTask.WfHandler)).ActReqTask.Elements.Add(new WfReqElement
+            {
+                Field = ElemFieldType.time.ToString(),
+                FlowTimeObjectId = 1,
+                Name = "Flow time"
             });
             SetMember(component, "userConfig", new RequestWorkflowUserConfig());
             SetRequestTaskElementMember(component, "actSources", new List<NwObjectElement> { new("10.0.0.1", 1) });

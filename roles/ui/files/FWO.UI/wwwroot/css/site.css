@@ -637,3 +637,79 @@ div.modal-content .sticky-header thead {
 .approval-task-network-table-technical .approval-task-zone-column {
     width: 50%;
 }
+
+/* Settings forms (Shared/SettingsRow.razor): every row of a settings page shares one label column
+    and one value column, so all inputs of a page start at the same position. Inputs use the small
+    Bootstrap controls to match the height of the Dropdown component, their width is set with the
+    settings-input-* classes instead of grid columns. */
+.settings-row {
+    display: grid;
+    grid-template-columns: minmax(14rem, 24rem) minmax(0, 1fr);
+    column-gap: 1.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.settings-row-top {
+    align-items: start;
+}
+
+.settings-row-top > .settings-label {
+    padding-top: 0.25rem;
+}
+
+.settings-label {
+    margin: 0;
+}
+
+.settings-value {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: calc(1.5em + 0.5rem + 2px);
+}
+
+.settings-input-sm {
+    width: 8rem;
+}
+
+.settings-input-md {
+    width: 20rem;
+}
+
+.settings-input-lg {
+    width: 100%;
+    max-width: 40rem;
+}
+
+/* Several checkboxes of one setting: the label of each box wraps next to its box. */
+.settings-check-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: 0.25rem 1rem;
+    width: 100%;
+    max-width: 60rem;
+}
+
+.settings-check-grid > .form-check {
+    margin: 0;
+}
+
+.settings-value > .form-switch {
+    margin: 0;
+    min-height: 0;
+}
+
+.settings-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+@media (max-width: 767.98px) {
+    .settings-row {
+        grid-template-columns: minmax(0, 1fr);
+        row-gap: 0.25rem;
+    }
+}

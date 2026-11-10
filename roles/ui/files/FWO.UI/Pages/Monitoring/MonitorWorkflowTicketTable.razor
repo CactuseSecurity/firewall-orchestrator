@@ -194,19 +194,19 @@
                 Title = userConfig.GetText("actions"),
                 Sortable = false,
                 Searchable = false,
-                Hideable = kDisplayColumn.Hideable,
+                Hideable = false,
                 Resizable = kDisplayColumn.Resizable,
                 Filterable = kDisplayColumn.Filterable,
                 CellTemplate = ActionsCellTemplate
             },
             CreateColumn("id", userConfig.GetText("id"), row => row.Id.ToString(), kIdColumn, row => row.Id),
-            CreateColumn("type", userConfig.GetText("type"), row => GetKindText(row.Kind), kDisplayColumn),
-            CreateColumn("name", userConfig.GetText("name"), row => row.Name, kSortOnlyColumn),
+            CreateColumn("type", userConfig.GetText("type"), row => GetKindText(row.Kind), kServerColumn),
+            CreateColumn("name", userConfig.GetText("name"), row => row.Name, kServerColumn),
             CreateColumn("tasks", userConfig.GetText("tasks"), row => row.TaskCount?.ToString() ?? "", kDisplayColumn, row => row.TaskCount),
             CreateColumn("requester", userConfig.GetText("requester"), row => row.Requester, kFilterOnlyColumn),
             CreateColumn("state", userConfig.GetText("state"), row => ResolveStateName(row.StateId), kServerColumn, cellTemplate: StateCellTemplate),
-            CreateColumn("start_time", userConfig.GetText("start_time"), row => row.Start?.ToString() ?? "", kSortOnlyColumn, row => row.Start),
-            CreateColumn("end_time", userConfig.GetText("end_time"), row => row.End?.ToString() ?? "", kSortOnlyColumn, row => row.End)
+            CreateColumn("start_time", userConfig.GetText("start_time"), row => row.Start?.ToString() ?? "", kServerColumn, row => row.Start),
+            CreateColumn("end_time", userConfig.GetText("end_time"), row => row.End?.ToString() ?? "", kServerColumn, row => row.End)
         ];
     }
 

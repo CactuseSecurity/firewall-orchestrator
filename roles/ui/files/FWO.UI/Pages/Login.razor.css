@@ -27,3 +27,18 @@
         max-width: 250px;
     }
 }
+
+/* The login page is rendered without a layout (see App.razor), so it has to span the
+    viewport itself to center the login card vertically. A column flex box keeps the
+    optional welcome message directly below the card. */
+.login-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: 1rem 0;
+}
+
+.password-change-card {
+    width: 250px;
+}

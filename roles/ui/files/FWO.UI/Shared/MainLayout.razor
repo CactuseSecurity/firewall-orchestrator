@@ -127,7 +127,6 @@
     private List<UIMessage> UIMessages = [];
     private Queue<UIMessage> UIMessageQue = [];
     private Timer? UIMessageQueTimer;
-    private IDisposable? locationChangingRegistration;
     private bool ambientRoleInitialized;
 
     protected override async Task OnInitializedAsync()
@@ -139,8 +138,6 @@
 
         DisplayMessageInUiFunction = (exception, title, message, errorFlag) =>
             _ = DisplayMessageInUiAsync(exception, title, message, errorFlag);
-
-        locationChangingRegistration = NavigationManager.RegisterLocationChangingHandler(OnLocationChanging);
 
         if (authenticationStateTask != null)
         {
@@ -155,7 +152,7 @@
             }
         }
 
-        UpdateAmbientModuleRole(NavigationManager.Uri);
+        UpdateAmbientModuleRole();
         ambientRoleInitialized = true;
 
         await EnsureAlertSubscriptionAsync();
@@ -172,15 +169,9 @@
         await tokenRefreshCoordinator.StartAsync();
     }
 
-    private ValueTask OnLocationChanging(LocationChangingContext context)
-    {
-        UpdateAmbientModuleRole(context.TargetLocation);
-        return ValueTask.CompletedTask;
-    }
-
     private void OnExecutionModeChanged(object? sender, string executionMode)
     {
-        UpdateAmbientModuleRole(NavigationManager.Uri);
+        UpdateAmbientModuleRole();
     }
 
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authStateTask)
@@ -212,11 +203,18 @@
     private async Task ApplyAuthenticationStateAsync(AuthenticationState authState)
     {
         User = authState.User;
-        UpdateAmbientModuleRole(NavigationManager.Uri);
+        UpdateAmbientModuleRole();
         await EnsureAlertSubscriptionAsync();
     }
 
-    private void UpdateAmbientModuleRole(string location)
+    /// <summary>
+    /// Lets the API connection choose the ambient role from the page that is current when a request is sent.
+    /// </summary>
+    /// <remarks>The role is resolved per request instead of being pushed on navigation: a location-changing
+    /// handler would make Blazor intercept every browser history step (breaking native fragment navigation,
+    /// e.g. the report links to objects in the right sidebar), and a location-changed handler would run only
+    /// after the router has already rendered the new page and started its first queries.</remarks>
+    private void UpdateAmbientModuleRole()
     {
         if (User == null)
         {
@@ -224,7 +222,7 @@
             return;
         }
 
-        apiConnection.SetAmbientRole(User, GetAmbientRolesForLocation(location));
+        apiConnection.SetAmbientRoleProvider(User, () => GetAmbientRolesForLocation(NavigationManager.Uri));
     }
 
     private async Task EnsureAlertSubscriptionAsync()
@@ -675,7 +673,6 @@
         }
 
         alertSubscription?.Dispose();
-        locationChangingRegistration?.Dispose();
         apiConnection.OnExecutionModeChanged -= OnExecutionModeChanged;
         authenticationProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
         EventMediator.Unsubscribe<PermissionChangedEvent>(nameof(PermissionChangedEvent));

@@ -733,3 +733,11 @@ div.modal-content .sticky-header thead {
 .input-group > .settings-input-sm {
     flex: 0 0 8rem;
 }
+
+/* Switches, check boxes and radio buttons (and their labels, which toggle them) are clickable, so they
+    show the pointer cursor. Bootstrap's more specific :disabled rules keep the default cursor for
+    disabled controls. */
+.form-check-input,
+.form-check-label {
+    cursor: pointer;
+}

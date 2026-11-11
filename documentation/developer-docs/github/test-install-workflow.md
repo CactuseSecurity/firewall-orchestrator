@@ -109,11 +109,22 @@ fails. When Dependabot opens a pip PR that bumps ruff, only the
 `requirements.txt` pin changes.
 
 The `sync-ruff-required-version` job closes that gap automatically. It
-runs only on `pull_request` events from `dependabot[bot]` on a
-`dependabot/pip/*` branch. It reads the pinned ruff version from
-`requirements.txt`, and if `required-version` in `pyproject.toml` differs,
-rewrites it, commits, and pushes the fix back onto the Dependabot branch.
-The job is idempotent — when the two already match, it does nothing.
+runs only on `pull_request` events that are triggered by `dependabot[bot]`
+on a PR opened by `dependabot[bot]` from a `dependabot/pip/*` branch of
+this repository (fork PRs are excluded explicitly). It reads the pinned
+ruff version from `requirements.txt`, and if `required-version` in
+`pyproject.toml` differs, rewrites it, commits, and pushes the fix back
+onto the Dependabot branch. The version must be a plain release or
+pre-release number (e.g. `0.17.0`, `0.18.0b1`); anything else fails the
+job instead of being written into `pyproject.toml`. The job is
+idempotent — when the two already match, it does nothing.
+
+The sync commit is authored as `dependabot[bot]` on purpose: Dependabot
+stops rebasing a PR once commits from other authors are on it. When
+Dependabot rebases, it drops the sync commit, and the next
+Dependabot-triggered run adds it again. The commit is still pushed by the
+App, so its message carries a `Synced-by:` trailer with the URL of the
+workflow run that pushed it.
 
 The push is authenticated with a short-lived GitHub App installation
 token minted by `actions/create-github-app-token`, scoped to
@@ -128,7 +139,16 @@ The App credentials are supplied as `vars.FWO_RUFF_SYNC_APP_ID` and the
 variables -> Dependabot; Dependabot-triggered runs cannot read regular
 Actions secrets, so the private key must live in the Dependabot store).
 The App must be installed on the repository with **Contents: Read and
-write**. When the credentials are absent the `setup` job's
+write**.
+
+Use a **dedicated** App for this job. Do not reuse an existing App such as
+the release fast-forward App. The sync App must be installed only on this
+repository, have only the Contents permission, and must not appear as a
+bypass actor in any branch ruleset. Otherwise a token minted in a
+Dependabot-triggered run could push to `develop` or `main` without review
+or status checks.
+
+When the credentials are absent the `setup` job's
 `has_ruff_sync_app` output is `false` and the job is skipped rather than
 failing.
 

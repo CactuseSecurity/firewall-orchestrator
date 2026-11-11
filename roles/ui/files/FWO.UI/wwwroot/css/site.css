@@ -56,11 +56,6 @@ header {
         right: 50%;
     }
 
-.radioSpace {
-    margin-right: 10px;
-    margin-left: 20px;
-}
-
 .managementSelect {
     position: relative;
     width: 100%;
@@ -450,11 +445,6 @@ thead {
     }
 }
 
-.radioSpace {
-    margin-right: 10px;
-    margin-left: 20px;
-}
-
 .draggable-item {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -704,4 +694,42 @@ div.modal-content .sticky-header thead {
         grid-template-columns: minmax(0, 1fr);
         row-gap: 0.25rem;
     }
+}
+
+/* Checkboxes of one setting split into titled groups (e.g. the excluded address ranges). */
+.settings-check-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.settings-check-group-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+/* Label/value pairs nested inside the value column of a settings row. */
+.settings-subgrid {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.25rem 1rem;
+    align-items: center;
+    justify-items: start;
+}
+
+/* A few short options of one setting side by side (e.g. radio buttons). */
+.settings-check-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.5rem;
+}
+
+.settings-check-inline > .form-check {
+    margin: 0;
+}
+
+/* Inside an input group Bootstrap stretches every control, a fixed width class has to opt out. */
+.input-group > .settings-input-sm {
+    flex: 0 0 8rem;
 }

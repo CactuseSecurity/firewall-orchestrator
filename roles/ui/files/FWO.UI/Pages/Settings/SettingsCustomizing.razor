@@ -20,181 +20,152 @@
 @if (InitComplete && configData != null)
 {
     <form onsubmit="return false">
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5562"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAvailableTaskTypes")):</label>
-            @* nested row: further task types wrap below the first one instead of below the label *@
-            <div class="col-sm-9">
-                <div class="row">
-                    @foreach (WfTaskType type in Enum.GetValues(typeof(WfTaskType)))
+        <SettingsRow LabelKey="reqAvailableTaskTypes" TooltipKey="H5562" AlignTop="true">
+            <div class="settings-check-grid">
+                @foreach (WfTaskType type in Enum.GetValues(typeof(WfTaskType)))
+                {
+                    @if(type != WfTaskType.master)
                     {
-                        @if(type != WfTaskType.master)
-                        {
-                            <div class="form-group col-6 col-md-4 col-xl-2">
-                                <input id="cbx_@type.ToString()" type="checkbox" @bind="taskTypesActiveDict[type]" />
-                                <label for="cbx_@type.ToString()" class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
-                            </div>
-                        }
-                    }
-                </div>
-            </div>
-        </div>
-        <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5579a"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqTicketFieldVisibility")):</label>
-            <div class="col-sm-9">
-                <div class="row">
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_ticket_requester" type="checkbox" @bind="ticketFieldVisibilityConfig.ShowRequester" />
-                        <label for="cbx_show_ticket_requester" class="col-form-label">@(userConfig.GetText("requester"))</label>
-                    </div>
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_ticket_priority" type="checkbox" @bind="ticketFieldVisibilityConfig.ShowPriority" />
-                        <label for="cbx_show_ticket_priority" class="col-form-label">@(userConfig.GetText("priority"))</label>
-                    </div>
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_ticket_deadline" type="checkbox" @bind="ticketFieldVisibilityConfig.ShowDeadline" />
-                        <label for="cbx_show_ticket_deadline" class="col-form-label">@(userConfig.GetText("deadline"))</label>
-                    </div>
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_ticket_reason" type="checkbox" @bind="ticketFieldVisibilityConfig.ShowReason" />
-                        <label for="cbx_show_ticket_reason" class="col-form-label">@(userConfig.GetText("reason"))</label>
-                    </div>
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_ticket_comments" type="checkbox" @bind="ticketFieldVisibilityConfig.ShowComments" />
-                        <label for="cbx_show_ticket_comments" class="col-form-label">@(userConfig.GetText("comments"))</label>
-                    </div>
-                    <div class="form-group col-12 col-md-8 col-xl-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5556"))">
-                        <div class="row align-items-center">
-                            <label for="sel_ticket_handler_display_mode" class="col-form-label col-6">@(userConfig.GetText("displayed_handlers_in_ticket_list"))</label>
-                            <div class="col-6">
-                                <Dropdown Id="sel_ticket_handler_display_mode" ElementType="TicketHandlerDisplayMode"
-                                          @bind-SelectedElement="ticketFieldVisibilityConfig.HandlerDisplayMode"
-                                          ElementToString="TicketHandlerDisplayModeText"
-                                          Elements="Enum.GetValues<TicketHandlerDisplayMode>()">
-                                    <ElementTemplate Context="mode">
-                                        @(TicketHandlerDisplayModeText(mode))
-                                    </ElementTemplate>
-                                </Dropdown>
-                            </div>
+                        <div class="form-check">
+                            <input id="cbx_@type.ToString()" type="checkbox" class="form-check-input" @bind="taskTypesActiveDict[type]" />
+                            <label for="cbx_@type.ToString()" class="form-check-label">@(userConfig.GetText(type.ToString()))</label>
                         </div>
-                    </div>
-                </div>
+                    }
+                }
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5579b"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAccessTaskFieldVisibility")):</label>
-            <div class="col-sm-9">
-                <div class="row">
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_access_task_management" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowManagement" />
-                        <label for="cbx_show_access_task_management" class="col-form-label">@(userConfig.GetText("management"))</label>
-                    </div>
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_access_task_owner" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowOwner" />
-                        <label for="cbx_show_access_task_owner" class="col-form-label">@(userConfig.GetText("owner"))</label>
-                    </div>
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_access_task_rule_action" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowRuleAction" />
-                        <label for="cbx_show_access_task_rule_action" class="col-form-label">@(userConfig.GetText("rule_action"))</label>
-                    </div>
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_access_task_tracking" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowTracking" />
-                        <label for="cbx_show_access_task_tracking" class="col-form-label">@(userConfig.GetText("track"))</label>
-                    </div>
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_access_task_valid_from" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowValidFrom" />
-                        <label for="cbx_show_access_task_valid_from" class="col-form-label">@(userConfig.GetText("valid_from"))</label>
-                    </div>
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_access_task_valid_to" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowValidTo" />
-                        <label for="cbx_show_access_task_valid_to" class="col-form-label">@(userConfig.GetText("valid_to"))</label>
-                    </div>
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_access_task_reason" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowReason" />
-                        <label for="cbx_show_access_task_reason" class="col-form-label">@(userConfig.GetText("reason"))</label>
-                    </div>
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_access_task_free_text" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowFreeText" />
-                        <label for="cbx_show_access_task_free_text" class="col-form-label">@(userConfig.GetText("free_text"))</label>
-                    </div>
-                    <div class="form-group col-6 col-md-4 col-xl-2">
-                        <input id="cbx_show_access_task_comments" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowComments" />
-                        <label for="cbx_show_access_task_comments" class="col-form-label">@(userConfig.GetText("comments"))</label>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5563"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqPriorities")):</label>
-            <div class="col-sm-9">
-                <div class="m-2 vheight75">
-                    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfPriority" Items="prioList" PageSize="0" ColumnReorder="true">
-                        <Column TableItem="WfPriority" Title="@(userConfig.GetText("numeric_prio"))" Field="@(x => x.NumPrio)" Sortable="true" Filterable="true" />
-                        <Column Context="prio" TableItem="WfPriority" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" >
-                            <Template>
-                                <input type="string" @bind="prio.Name">
-                            </Template>
-                        </Column>
-                        <Column Context="prio" TableItem="WfPriority" Title="@(userConfig.GetText("ticket_deadline"))" Field="@(x => x.TicketDeadline)" Sortable="true" Filterable="true" >
-                            <Template>
-                                <input type="number" min="0" @bind="prio.TicketDeadline">
-                            </Template>
-                        </Column>
-                        <Column Context="prio" TableItem="WfPriority" Title="@(userConfig.GetText("approval_deadline_days"))" Field="@(x => x.ApprovalDeadline)" Sortable="true" Filterable="true" >
-                            <Template>
-                                <input type="number" min="0" @bind="prio.ApprovalDeadline">
-                            </Template>
-                        </Column>
-                    </Table>
+        <SettingsRow LabelKey="reqTicketFieldVisibility" TooltipKey="H5579a" AlignTop="true">
+            <div class="settings-check-grid">
+                <div class="form-check">
+                    <input id="cbx_show_ticket_requester" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.ShowRequester" />
+                    <label for="cbx_show_ticket_requester" class="form-check-label">@(userConfig.GetText("requester"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_ticket_priority" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.ShowPriority" />
+                    <label for="cbx_show_ticket_priority" class="form-check-label">@(userConfig.GetText("priority"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_ticket_deadline" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.ShowDeadline" />
+                    <label for="cbx_show_ticket_deadline" class="form-check-label">@(userConfig.GetText("deadline"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_ticket_reason" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.ShowReason" />
+                    <label for="cbx_show_ticket_reason" class="form-check-label">@(userConfig.GetText("reason"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_ticket_comments" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.ShowComments" />
+                    <label for="cbx_show_ticket_comments" class="form-check-label">@(userConfig.GetText("comments"))</label>
                 </div>
             </div>
-        </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="displayed_handlers_in_ticket_list" TooltipKey="H5556" LabelFor="sel_ticket_handler_display_mode">
+            <div class="settings-input-md">
+                <Dropdown Id="sel_ticket_handler_display_mode" ElementType="TicketHandlerDisplayMode"
+                          @bind-SelectedElement="ticketFieldVisibilityConfig.HandlerDisplayMode"
+                          ElementToString="TicketHandlerDisplayModeText"
+                          Elements="Enum.GetValues<TicketHandlerDisplayMode>()">
+                    <ElementTemplate Context="mode">
+                        @(TicketHandlerDisplayModeText(mode))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="reqAccessTaskFieldVisibility" TooltipKey="H5579b" AlignTop="true">
+            <div class="settings-check-grid">
+                <div class="form-check">
+                    <input id="cbx_show_access_task_management" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.AccessTask.ShowManagement" />
+                    <label for="cbx_show_access_task_management" class="form-check-label">@(userConfig.GetText("management"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_access_task_owner" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.AccessTask.ShowOwner" />
+                    <label for="cbx_show_access_task_owner" class="form-check-label">@(userConfig.GetText("owner"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_access_task_rule_action" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.AccessTask.ShowRuleAction" />
+                    <label for="cbx_show_access_task_rule_action" class="form-check-label">@(userConfig.GetText("rule_action"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_access_task_tracking" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.AccessTask.ShowTracking" />
+                    <label for="cbx_show_access_task_tracking" class="form-check-label">@(userConfig.GetText("track"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_access_task_valid_from" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.AccessTask.ShowValidFrom" />
+                    <label for="cbx_show_access_task_valid_from" class="form-check-label">@(userConfig.GetText("valid_from"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_access_task_valid_to" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.AccessTask.ShowValidTo" />
+                    <label for="cbx_show_access_task_valid_to" class="form-check-label">@(userConfig.GetText("valid_to"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_access_task_reason" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.AccessTask.ShowReason" />
+                    <label for="cbx_show_access_task_reason" class="form-check-label">@(userConfig.GetText("reason"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_access_task_free_text" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.AccessTask.ShowFreeText" />
+                    <label for="cbx_show_access_task_free_text" class="form-check-label">@(userConfig.GetText("free_text"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_access_task_comments" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.AccessTask.ShowComments" />
+                    <label for="cbx_show_access_task_comments" class="form-check-label">@(userConfig.GetText("comments"))</label>
+                </div>
+            </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row">
-            <div class="form-group row col-sm-4 align-items-center"data-toggle="tooltip" title="@(userConfig.PureLine("H5568"))">
-                <label for="cbx_owner_based" class="col-form-label col-sm-8">@(userConfig.GetText("reqOwnerBased")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_owner_based" type="checkbox" @bind="configData!.ReqOwnerBased">
-                </div>
+        <SettingsRow LabelKey="reqPriorities" TooltipKey="H5563" AlignTop="true">
+            <div class="w-100 vheight75">
+                <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfPriority" Items="prioList" PageSize="0" ColumnReorder="true">
+                    <Column TableItem="WfPriority" Title="@(userConfig.GetText("numeric_prio"))" Field="@(x => x.NumPrio)" Sortable="true" Filterable="true" />
+                    <Column Context="prio" TableItem="WfPriority" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" >
+                        <Template>
+                            <input type="text" class="form-control form-control-sm" @bind="prio.Name">
+                        </Template>
+                    </Column>
+                    <Column Context="prio" TableItem="WfPriority" Title="@(userConfig.GetText("ticket_deadline"))" Field="@(x => x.TicketDeadline)" Sortable="true" Filterable="true" >
+                        <Template>
+                            <input type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="prio.TicketDeadline">
+                        </Template>
+                    </Column>
+                    <Column Context="prio" TableItem="WfPriority" Title="@(userConfig.GetText("approval_deadline_days"))" Field="@(x => x.ApprovalDeadline)" Sortable="true" Filterable="true" >
+                        <Template>
+                            <input type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="prio.ApprovalDeadline">
+                        </Template>
+                    </Column>
+                </Table>
             </div>
-            <div class="form-group row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5579"))">
-                <label for="cbx_visibility_based" class="col-form-label col-sm-8">@(userConfig.GetText("reqVisibilityBased")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_visibility_based" type="checkbox" @bind="configData!.ReqVisibilityBased">
-                </div>
-            </div>
-        </div>
-        <div class="form-group row">
-            <div class="form-group row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5570"))">
-                <label for="cbx_reduced_view" class="col-form-label col-sm-8">@(userConfig.GetText("reqReducedView")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_reduced_view" type="checkbox" @bind="configData!.ReqReducedView">
-                </div>
-            </div>
-            <div class="form-group row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5569"))">
-                <label for="cbx_show_compliance" class="col-form-label col-sm-8">@(userConfig.GetText("reqShowCompliance")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_show_compliance" type="checkbox" @bind="configData!.ReqShowCompliance">
-                </div>
-            </div>
-        </div>
+        </SettingsRow>
         <hr />
-
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5564"))">
-            <label for="cbx_use_flow_db" class="col-form-label col-sm-3">@(userConfig.GetText("reqUseFlowDb")):</label>
-            <div class="col-sm-1">
-                <input id="cbx_use_flow_db" type="checkbox" @bind="configData!.ReqUseFlowDb">
+        <SettingsRow LabelKey="reqOwnerBased" TooltipKey="H5568" LabelFor="cbx_owner_based">
+            <div class="form-check form-switch">
+                <input id="cbx_owner_based" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ReqOwnerBased">
             </div>
-            <div class="col-sm-2">
-                <button type="button" class="btn btn-sm btn-warning" @onclick="() => editFlowIntegrationMode = true">
-                    @(DisplayService.DisplayButton(userConfig, "flow_integration", Icons.Edit))
-                </button>
+        </SettingsRow>
+        <SettingsRow LabelKey="reqVisibilityBased" TooltipKey="H5579" LabelFor="cbx_visibility_based">
+            <div class="form-check form-switch">
+                <input id="cbx_visibility_based" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ReqVisibilityBased">
             </div>
-        </div>
-        <div class="form-group row">
-            <label class="col-form-label col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5546"))">@(userConfig.GetText("api_ticket_initial_state")):</label>
-            <div class="col-sm-3">
+        </SettingsRow>
+        <SettingsRow LabelKey="reqReducedView" TooltipKey="H5570" LabelFor="cbx_reduced_view">
+            <div class="form-check form-switch">
+                <input id="cbx_reduced_view" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ReqReducedView">
+            </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="reqShowCompliance" TooltipKey="H5569" LabelFor="cbx_show_compliance">
+            <div class="form-check form-switch">
+                <input id="cbx_show_compliance" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ReqShowCompliance">
+            </div>
+        </SettingsRow>
+        <hr />
+        <SettingsRow LabelKey="reqUseFlowDb" TooltipKey="H5564" LabelFor="cbx_use_flow_db">
+            <div class="form-check form-switch">
+                <input id="cbx_use_flow_db" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ReqUseFlowDb">
+            </div>
+            <button type="button" class="btn btn-sm btn-warning" @onclick="() => editFlowIntegrationMode = true">
+                @(DisplayService.DisplayButton(userConfig, "flow_integration", Icons.Edit))
+            </button>
+        </SettingsRow>
+        <SettingsRow LabelKey="api_ticket_initial_state" TooltipKey="H5546">
+            <div class="settings-input-md">
                 <Dropdown ElementType="int?" @bind-SelectedElement="selectedApiTicketInitialStateId" ElementToString="StateDisplayName"
                           Elements="stateIds.Select(stateId => (int?)stateId)" Nullable="true" NoneSelectedText="@(userConfig.GetText("use_default"))">
                     <ElementTemplate Context="stateId">
@@ -202,31 +173,25 @@
                     </ElementTemplate>
                 </Dropdown>
             </div>
-            <div class="col-sm-2">
-                <label class="col-form-label" data-toggle="tooltip" title="@(userConfig.PureLine("C9034"))">@(userConfig.GetText("reqCreateRequestTaskSortConfig")):</label>
+        </SettingsRow>
+        <SettingsRow LabelKey="reqCreateRequestTaskSortConfig" TooltipKey="C9034">
+            <button type="button" class="btn btn-sm btn-warning" @onclick="() => editCreateRequestTaskSortConfigMode = true">
+                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+            </button>
+        </SettingsRow>
+        <SettingsRow LabelKey="reqActivatePathAnalysis" TooltipKey="H5567" LabelFor="cbx_activate_path_analysis">
+            <div class="form-check form-switch">
+                <input id="cbx_activate_path_analysis" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ReqActivatePathAnalysis">
             </div>
-            <div class="col-sm-2">
-                <button type="button" class="btn btn-sm btn-warning" @onclick="() => editCreateRequestTaskSortConfigMode = true">
-                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
-                </button>
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5567"))">
-            <label for="cbx_activate_path_analysis" class="col-form-label col-sm-3">@(userConfig.GetText("reqActivatePathAnalysis")):</label>
-            <div class="col-sm-2">
-                <input id="cbx_activate_path_analysis" type="checkbox" @bind="configData!.ReqActivatePathAnalysis">
-            </div>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5576"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowedChangesByApprover")):</label>
-            <div class="col-sm-4">
-                <button type="button" class="btn btn-sm btn-warning" @onclick="() => editAllowedChangesByApproverMode = true">
-                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
-                </button>
-            </div>
-            <label class="col-form-label col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5576a"))">@(userConfig.GetText("approval_edit_mode")):</label>
-            <div class="col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5576a"))">
+        <SettingsRow LabelKey="reqAllowedChangesByApprover" TooltipKey="H5576">
+            <button type="button" class="btn btn-sm btn-warning" @onclick="() => editAllowedChangesByApproverMode = true">
+                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+            </button>
+        </SettingsRow>
+        <SettingsRow LabelKey="approval_edit_mode" TooltipKey="H5576a" LabelFor="sel_approval_edit_mode">
+            <div class="settings-input-md">
                 <Dropdown Id="sel_approval_edit_mode" ElementType="ApprovalEditMode"
                           @bind-SelectedElement="configData!.ReqApprovalEditMode"
                           ElementToString="ApprovalEditModeText"
@@ -236,63 +201,51 @@
                     </ElementTemplate>
                 </Dropdown>
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5582a"))">
-            <label for="txt_implicit_approval_comment" class="col-form-label col-sm-3">@(userConfig.GetText("reqImplicitApprovalComment")):</label>
-            <div class="col-sm-9">
-                <textarea id="txt_implicit_approval_comment" class="form-control" rows="2" @bind="configData!.ReqImplicitApprovalComment"></textarea>
-            </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5576b"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("time_object_origin_suffixes")):</label>
-            <div class="col-sm-2">
-                <button type="button" class="btn btn-sm btn-warning" @onclick="() => editTimeObjectOriginSuffixesMode = true">
-                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
-                </button>
-            </div>
-        </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="reqImplicitApprovalComment" TooltipKey="H5582a" LabelFor="txt_implicit_approval_comment" AlignTop="true">
+            <textarea id="txt_implicit_approval_comment" class="form-control form-control-sm settings-input-lg" rows="2" @bind="configData!.ReqImplicitApprovalComment"></textarea>
+        </SettingsRow>
+        <SettingsRow LabelKey="time_object_origin_suffixes" TooltipKey="H5576b">
+            <button type="button" class="btn btn-sm btn-warning" @onclick="() => editTimeObjectOriginSuffixesMode = true">
+                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+            </button>
+        </SettingsRow>
         <hr />
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5566a") + "\r\n" + userConfig.PureLine("H5571") + "\r\n" + userConfig.PureLine("H5574") + "\r\n" +
-                userConfig.PureLine("H5577"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqDeviceInput")):</label>
-            <div class="col-sm-3">
+        <SettingsRow LabelKey="reqDeviceInput" Tooltip="@(userConfig.PureLine("H5566a") + "\r\n" + userConfig.PureLine("H5571") + "\r\n" + userConfig.PureLine("H5574") + "\r\n" + userConfig.PureLine("H5577"))">
+            <div class="settings-input-md">
                 <Dropdown ElementType="ReqDeviceInputOptions" @bind-SelectedElement="configData!.ReqDeviceInput" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues<ReqDeviceInputOptions>()" >
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>
                 </Dropdown>
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5580") + "\r\n" + userConfig.PureLine("H5575") + "\r\n" +
-                userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5572"))">
-            <label for="pathAnalysisAlgorithm" class="col-form-label col-sm-3">@(userConfig.GetText("path_analysis_algorithm")):</label>
-            <div class="col-sm-3">
-                <select id="pathAnalysisAlgorithm" class="form-select form-select-sm" @bind="configData!.PathAnalysisAlgorithm">
-                    @foreach (PathAnalysisAlgorithm algorithm in pathAnalysisAlgorithms)
-                    {
-                        <option value="@algorithm.Id">@AlgorithmDisplayName(algorithm)</option>
-                    }
-                </select>
+        </SettingsRow>
+        <SettingsRow LabelKey="path_analysis_algorithm" LabelFor="pathAnalysisAlgorithm"
+                     Tooltip="@(userConfig.PureLine("H5580") + "\r\n" + userConfig.PureLine("H5575") + "\r\n" + userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5572"))">
+            <select id="pathAnalysisAlgorithm" class="form-select form-select-sm settings-input-md" @bind="configData!.PathAnalysisAlgorithm">
+                @foreach (PathAnalysisAlgorithm algorithm in pathAnalysisAlgorithms)
+                {
+                    <option value="@algorithm.Id">@AlgorithmDisplayName(algorithm)</option>
+                }
+            </select>
+        </SettingsRow>
+        <SettingsRow LabelKey="reqBundlingOptions" TooltipKey="H5566">
+            <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("H5578"))">
+                <input id="cbx_consider_bundling" type="checkbox" class="form-check-input" @bind="configData!.ReqConsiderBundling">
+                <label for="cbx_consider_bundling" class="form-check-label">@(userConfig.GetText("reqConsiderBundling"))</label>
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5566"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqBundlingOptions")):</label>
-            <label for="cbx_consider_bundling" class="col-form-label col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5578"))">@(userConfig.GetText("reqConsiderBundling")):</label>
-            <div class="col-sm-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5578"))">
-                <input id="cbx_consider_bundling" type="checkbox" @bind="configData!.ReqConsiderBundling">
+            <div class="form-check" data-toggle="tooltip" title="@(userConfig.PureLine("H5579c"))">
+                <input id="cbx_display_bundled_tasks_as_one" type="checkbox" class="form-check-input" @bind="configData!.ReqDisplayBundledTasksAsOne">
+                <label for="cbx_display_bundled_tasks_as_one" class="form-check-label">@(userConfig.GetText("reqDisplayBundledTasksAsOne"))</label>
             </div>
-            <label for="cbx_display_bundled_tasks_as_one" class="col-form-label col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5579c"))">@(userConfig.GetText("reqDisplayBundledTasksAsOne")):</label>
-            <div class="col-sm-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5579c"))">
-                <input id="cbx_display_bundled_tasks_as_one" type="checkbox" @bind="configData!.ReqDisplayBundledTasksAsOne">
+        </SettingsRow>
+        <SettingsRow LabelKey="reqCreateObjectsSeparately" TooltipKey="H5578a" LabelFor="cbx_create_objects_separately">
+            <div class="form-check form-switch">
+                <input id="cbx_create_objects_separately" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ReqCreateObjectsSeparately">
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5578a"))">
-            <label for="cbx_create_objects_separately" class="col-form-label col-sm-3">@(userConfig.GetText("reqCreateObjectsSeparately")):</label>
-            <div class="col-sm-1">
-                <input id="cbx_create_objects_separately" type="checkbox" @bind="configData!.ReqCreateObjectsSeparately">
-            </div>
-        </div>
+        </SettingsRow>
     </form>
+
 
     <hr />
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">

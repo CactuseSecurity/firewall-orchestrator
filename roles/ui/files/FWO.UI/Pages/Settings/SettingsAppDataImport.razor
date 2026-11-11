@@ -31,17 +31,15 @@
 @if (configData != null && initComplete)
 {
     <form onsubmit="return false">
-        <div class="form-group row mt-4" data-toggle="tooltip" title="@(userConfig.PureLine("H9055"))">
-            <label class="col-form-label col-sm-4">@userConfig.GetText("import_app_server"):</label>
-            <div class="row col-sm-6">
+        <SettingsRow LabelKey="import_app_server" TooltipKey="H9055" AlignTop="true">
+            <div>
                 <ImportFileUpload SupportedFileFormats=".csv" AuthorizedRoles="@Roles.Admin"
                                   UploadCase="FileUploadCase.ImportAppServerFromCSV" />
             </div>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5611"))">
-            <label class="col-form-label col-sm-4">@userConfig.GetText("importAppDataPath"):</label>
-            <div class="col-sm-6">
+        <SettingsRow LabelKey="importAppDataPath" TooltipKey="H5611" AlignTop="true">
+            <div class="settings-input-lg">
                 <EditList ElementType="string" Elements="appDataPaths.ToArray()" ElementsToAdd="PathsToAdd"
                           ElementsToDelete="PathsToDelete" StdLayout="false">
                     <Display>
@@ -50,56 +48,51 @@
                         </div>
                     </Display>
                 </EditList>
-                <div class="row col-sm-12 mt-1">
-                    <input type="text" class="col-sm-10" @bind="actPath" placeholder="@AllowedImportPathPlaceholder" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" disabled="@(string.IsNullOrWhiteSpace(actPath))" @onclick="AddPath"
+                <div class="input-group input-group-sm mt-1">
+                    <input type="text" class="form-control" @bind="actPath" placeholder="@AllowedImportPathPlaceholder" />
+                    <button type="button" class="btn btn-sm btn-primary" disabled="@(string.IsNullOrWhiteSpace(actPath))" @onclick="AddPath"
                             @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5611a"))">
-            <label class="col-form-label col-sm-4">@userConfig.GetText("importAppDataScriptArgs"):</label>
-            <input type="text" class="col-sm-6" @bind="configData!.ImportAppDataScriptArgs" />
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5612"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("importAppDataSleepTime")):</label>
-            <input type="number" min="0" class="col-sm-2" @bind="configData!.ImportAppDataSleepTime" />
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5613"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("importAppDataStartAt")):</label>
-            <input type="time" step="60" class="col-sm-2" @bind="appDataTime" />
-            <input type="date" class="col-sm-2" @bind="appDataDate" />
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5676"))">
-            <label class="col-sm-4 col-form-label col-form-label">@(userConfig.GetText("ownerDataImportSyncUsers")):</label>
-            <div class="col-sm-2">
-                <input id="cbx_owner_data_import_sync_users" type="checkbox" class="col-sm-2"
-                       @bind="configData!.OwnerDataImportSyncUsers">
+        </SettingsRow>
+        <SettingsRow LabelKey="importAppDataScriptArgs" TooltipKey="H5611a" LabelFor="importAppDataScriptArgs">
+            <input id="importAppDataScriptArgs" type="text" class="form-control form-control-sm settings-input-lg" @bind="configData!.ImportAppDataScriptArgs" />
+        </SettingsRow>
+        <SettingsRow LabelKey="importAppDataSleepTime" TooltipKey="H5612" LabelFor="importAppDataSleepTime">
+            <input id="importAppDataSleepTime" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.ImportAppDataSleepTime" />
+        </SettingsRow>
+        <SettingsRow LabelKey="importAppDataStartAt" TooltipKey="H5613" LabelFor="importAppDataStartTime">
+            <input id="importAppDataStartTime" type="time" step="60" class="form-control form-control-sm w-auto" @bind="appDataTime" />
+            <input type="date" class="form-control form-control-sm w-auto" @bind="appDataDate" />
+        </SettingsRow>
+        <SettingsRow LabelKey="ownerDataImportSyncUsers" TooltipKey="H5676" LabelFor="cbx_owner_data_import_sync_users">
+            <div class="form-check form-switch">
+                <input id="cbx_owner_data_import_sync_users" type="checkbox" role="switch" class="form-check-input" @bind="configData!.OwnerDataImportSyncUsers">
             </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5673"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("set_roles_with_import")):</label>
-            <div class="form-group row col-sm-8">
+        </SettingsRow>
+        <SettingsRow LabelKey="set_roles_with_import" TooltipKey="H5673" AlignTop="true">
+            <div class="settings-check-groups">
                 @foreach (OwnerResponsibleType type in ownerResponsibleTypes)
                 {
-                    <div class="col-sm-12 mt-2">
-                        <div class="fw-bold">@GetResponsibleTypeDisplayName(type)</div>
-                    </div>
-                    @foreach (string role in availableRoles)
-                    {
-                        <div class="form-group col-sm-3">
-                            <input id="@($"cbx_type_{type.Id}_{role}")" type="checkbox" @bind="rolesByTypeDict[type.Id][role]"
-                                   disabled="@(!type.Active || (!type.AllowModelling && OwnerResponsibleRoleHelper.IsModellingRole(role)) || (!type.AllowRecertification && OwnerResponsibleRoleHelper.IsRecertificationRole(role)))" />
-                            <label for="@($"cbx_type_{type.Id}_{role}")" class="col-form-label">@(role)</label>
+                    <div class="settings-check-group">
+                        <div class="settings-check-group-title">@GetResponsibleTypeDisplayName(type)</div>
+                        <div class="settings-check-grid">
+                            @foreach (string role in availableRoles)
+                            {
+                                <div class="form-check">
+                                    <input id="@($"cbx_type_{type.Id}_{role}")" type="checkbox" class="form-check-input" @bind="rolesByTypeDict[type.Id][role]"
+                                           disabled="@(!type.Active || (!type.AllowModelling && OwnerResponsibleRoleHelper.IsModellingRole(role)) || (!type.AllowRecertification && OwnerResponsibleRoleHelper.IsRecertificationRole(role)))" />
+                                    <label for="@($"cbx_type_{type.Id}_{role}")" class="form-check-label">@(role)</label>
+                                </div>
+                            }
                         </div>
-                    }
+                    </div>
                 }
             </div>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5614"))">
-            <label class="col-form-label col-sm-4">@userConfig.GetText("importSubnetDataPath"):</label>
-            <div class="col-sm-6">
+        <SettingsRow LabelKey="importSubnetDataPath" TooltipKey="H5614" AlignTop="true">
+            <div class="settings-input-lg">
                 <EditList ElementType="string" Elements="SubnetDataPaths.ToArray()" ElementsToAdd="PathsToAddSubnet"
                           ElementsToDelete="PathsToDeleteSubnet" StdLayout="false">
                     <Display>
@@ -108,24 +101,23 @@
                         </div>
                     </Display>
                 </EditList>
-                <div class="row col-sm-12 mt-1">
-                    <input type="text" class="col-sm-10" @bind="SubnetActPath" placeholder="@AllowedImportPathPlaceholder" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" disabled="@(string.IsNullOrWhiteSpace(SubnetActPath))" @onclick="AddPathSubnet"
+                <div class="input-group input-group-sm mt-1">
+                    <input type="text" class="form-control" @bind="SubnetActPath" placeholder="@AllowedImportPathPlaceholder" />
+                    <button type="button" class="btn btn-sm btn-primary" disabled="@(string.IsNullOrWhiteSpace(SubnetActPath))" @onclick="AddPathSubnet"
                             @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5615"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataSleepTime")):</label>
-            <input type="number" min="0" class="col-sm-2" @bind="configData!.ImportSubnetDataSleepTime" />
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5616"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("importSubnetDataStartAt")):</label>
-            <input type="time" step="60" class="col-sm-2" @bind="subnetDataTime" />
-            <input type="date" class="col-sm-2" @bind="subnetDataDate" />
-        </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="importSubnetDataSleepTime" TooltipKey="H5615" LabelFor="importSubnetDataSleepTime">
+            <input id="importSubnetDataSleepTime" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.ImportSubnetDataSleepTime" />
+        </SettingsRow>
+        <SettingsRow LabelKey="importSubnetDataStartAt" TooltipKey="H5616" LabelFor="importSubnetDataStartTime">
+            <input id="importSubnetDataStartTime" type="time" step="60" class="form-control form-control-sm w-auto" @bind="subnetDataTime" />
+            <input type="date" class="form-control form-control-sm w-auto" @bind="subnetDataDate" />
+        </SettingsRow>
         <hr />
     </form>
+
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save"

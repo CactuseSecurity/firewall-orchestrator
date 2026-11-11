@@ -17,25 +17,22 @@
 </div>
 @(userConfig.GetText("U5328"))
 <hr />
-<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5812"))">
-    <label class="col-form-label col-sm-4">@userConfig.GetText("import_matrix"):</label>
-    <div class="row col-sm-6">
+<SettingsRow LabelKey="import_matrix" TooltipKey="H5812" AlignTop="true">
+    <div>
         <ImportFileUpload SupportedFileFormats=".json" AuthorizedRoles="@Roles.Admin" UploadCase="FileUploadCase.ImportMatrix" />
     </div>
-</div>
+</SettingsRow>
 @if (configData != null)
 {
-    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5842"))">
-        <label for="lbl_imported_matrix_readonly" class="col-form-label col-sm-4">@(userConfig.GetText("importedMatrixReadOnly")):</label>
-        <div class="col-sm-7">
-            <input id="lbl_imported_matrix_readonly" type="checkbox" @bind="configData.ImportedMatrixReadOnly" />
+    <SettingsRow LabelKey="importedMatrixReadOnly" TooltipKey="H5842" LabelFor="lbl_imported_matrix_readonly">
+        <div class="form-check form-switch">
+            <input id="lbl_imported_matrix_readonly" type="checkbox" role="switch" class="form-check-input" @bind="configData.ImportedMatrixReadOnly" />
         </div>
-    </div>
+    </SettingsRow>
     <hr />
     <form onsubmit="return false">
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5891"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("designated_zone_matrix")):</label>
-            <div class="col-sm-2">
+        <SettingsRow LabelKey="designated_zone_matrix" TooltipKey="H5891">
+            <div class="settings-input-md">
                 <Dropdown ElementType="ComplianceCriterion"
                           ElementToString="@(matrix => matrix.Name)"
                           @bind-SelectedElement="designatedZoneMatrix"
@@ -47,20 +44,19 @@
                     </ElementTemplate>
                 </Dropdown>
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5809"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("matrixAllowNestedZones"))</label>
-            <div class="col-sm-7">
-                <input type="checkbox" @bind="configData!.MatrixAllowNestedZones" />
+        </SettingsRow>
+        <SettingsRow LabelKey="matrixAllowNestedZones" TooltipKey="H5809" LabelFor="cbx_matrix_allow_nested_zones">
+            <div class="form-check form-switch">
+                <input id="cbx_matrix_allow_nested_zones" type="checkbox" role="switch" class="form-check-input" @bind="configData!.MatrixAllowNestedZones" />
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5815"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("sortMatrixByID"))</label>
-            <div class="col-sm-7">
-                <input type="checkbox" @bind="configData!.SortMatrixByID" />
+        </SettingsRow>
+        <SettingsRow LabelKey="sortMatrixByID" TooltipKey="H5815" LabelFor="cbx_sort_matrix_by_id">
+            <div class="form-check form-switch">
+                <input id="cbx_sort_matrix_by_id" type="checkbox" role="switch" class="form-check-input" @bind="configData!.SortMatrixByID" />
             </div>
-        </div>
+        </SettingsRow>
     </form>
+
     <hr />
     <div class="pb-5">
         <ExecutionModeAuthorizeView Roles="@Roles.Admin">

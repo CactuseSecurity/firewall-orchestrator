@@ -37,132 +37,97 @@
         </div>
     }
     <form onsubmit="return false">
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5460"))">
-            <label for="defaultRulesView" class="col-form-label col-sm-4">@(userConfig.GetText("default_rules_view")):</label>
-            <div class="col-sm-4">
+        <SettingsRow LabelKey="default_rules_view" TooltipKey="H5460" LabelFor="defaultRulesView">
+            <div class="settings-input-md">
                 <RulesViewSelect Id="defaultRulesView" @bind-ManagementRulebaseView="configData!.DefaultManagementRulebaseView" />
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.ElementsPerFetch" />
+        </SettingsRow>
+        <SettingsRow LabelKey="elementsPerFetch" TooltipKey="H5412" Marked="true" LabelFor="elementsPerFetch">
+            <input id="elementsPerFetch" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.ElementsPerFetch" />
+        </SettingsRow>
+        <SettingsRow LabelKey="autoFillRightSidebar" TooltipKey="H5414" LabelFor="cbx_auto_fill_right_sidebar">
+            <div class="form-check form-switch">
+                <input id="cbx_auto_fill_right_sidebar" type="checkbox" role="switch" class="form-check-input" @bind="configData!.AutoFillRightSidebar">
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5414"))">
-            <label for="cbx_auto_fill_right_sidebar" class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
-            <div class="col-sm-1">
-                <input id="cbx_auto_fill_right_sidebar" type="checkbox" class="w-100" @bind="configData!.AutoFillRightSidebar">
+        </SettingsRow>
+        <SettingsRow LabelKey="maxInitialFetchesRightSidebar" TooltipKey="H5413" LabelFor="maxInitialFetchesRightSidebar">
+            <input id="maxInitialFetchesRightSidebar" type="number" min="0" class="form-control form-control-sm settings-input-sm"
+                   disabled="@configData!.AutoFillRightSidebar" @bind="configData!.MaxInitialFetchesRightSidebar" />
+        </SettingsRow>
+        <SettingsRow LabelKey="minCollapseAllDevices" TooltipKey="H5422" Marked="true" LabelFor="minCollapseAllDevices">
+            <input id="minCollapseAllDevices" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.MinCollapseAllDevices">
+        </SettingsRow>
+        <SettingsRow LabelKey="resolveNetworkAreas" TooltipKey="H5456" Marked="true" LabelFor="cbx_resolveNAs">
+            <div class="form-check form-switch">
+                <input id="cbx_resolveNAs" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ResolveNetworkAreas">
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5413"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
-            <div class="col-sm-2">
-                @if (configData!.AutoFillRightSidebar)
-                {
-                    <input disabled type="number" min="0" @bind="configData!.MaxInitialFetchesRightSidebar" />
-                }
-                else
-                {
-                    <input type="number" min="0" @bind="configData!.MaxInitialFetchesRightSidebar" />
-                }
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5422"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices"))*:</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.MinCollapseAllDevices">
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5456"))">
-            <label for="cbx_resolveNAs" class="col-form-label col-sm-4">@(userConfig.GetText("resolveNetworkAreas"))*:</label>
-            <div class="col-sm-1">
-                <input id="cbx_resolveNAs" type="checkbox" class="w-100" @bind="configData!.ResolveNetworkAreas">
-            </div>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5447"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("unusedTolerance"))*:</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.UnusedTolerance" />
-            </div>
-        </div>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5448"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("creationTolerance"))*:</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.CreationTolerance" />
-            </div>
-        </div>
+        <SettingsRow LabelKey="unusedTolerance" TooltipKey="H5447" Marked="true" LabelFor="unusedTolerance">
+            <input id="unusedTolerance" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.UnusedTolerance" />
+        </SettingsRow>
+        <SettingsRow LabelKey="creationTolerance" TooltipKey="H5448" Marked="true" LabelFor="creationTolerance">
+            <input id="creationTolerance" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.CreationTolerance" />
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5455"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("availableReportTypes")):</label>
-            <div class="form-group row col-sm-9">
+        <SettingsRow LabelKey="availableReportTypes" TooltipKey="H5455" AlignTop="true">
+            <div class="settings-check-grid">
                 @foreach (ReportType type in ReportTypeGroups.ReportTypeSelection().Except(ExcludedReportTypesForSelection))
                 {
-                    <div class="form-group col-sm-3">
-                        <input id="cbx_@type.ToString()" type="checkbox" @bind="reportTypesActiveDict[type]" />
-                        <label for="cbx_@type.ToString()" class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
+                    <div class="form-check">
+                        <input id="cbx_@type.ToString()" type="checkbox" class="form-check-input" @bind="reportTypesActiveDict[type]" />
+                        <label for="cbx_@type.ToString()" class="form-check-label">@(userConfig.GetText(type.ToString()))</label>
                     </div>
                 }
             </div>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5463"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reportTypeVisibilityByRole")):</label>
-            <div class="col-sm-9">
-                @if (!rolesLoaded)
-                {
-                    <Loading />
-                }
-                else if (availableRoles.Count > 0)
-                {
-                    <div class="form-group row mb-2">
-                        <label class="col-form-label col-sm-2">@(userConfig.GetText("role")):</label>
-                        <div class="col-sm-4">
-                            <select class="form-select form-select-sm" @bind="selectedRole">
-                                <option value=""></option>
-                                @foreach (string role in availableRoles)
-                                {
-                                    <option value="@role">@role</option>
-                                }
-                            </select>
-                        </div>
-                    </div>
+        <SettingsRow LabelKey="reportTypeVisibilityByRole" TooltipKey="H5463" AlignTop="true">
+            @if (!rolesLoaded)
+            {
+                <Loading />
+            }
+            else if (availableRoles.Count > 0)
+            {
+                <div class="settings-subgrid">
+                    <label for="reportTypeVisibilityRole">@(userConfig.GetText("role")):</label>
+                    <select id="reportTypeVisibilityRole" class="form-select form-select-sm settings-input-md" @bind="selectedRole">
+                        <option value=""></option>
+                        @foreach (string role in availableRoles)
+                        {
+                            <option value="@role">@role</option>
+                        }
+                    </select>
                     @if (!string.IsNullOrEmpty(selectedRole) && reportTypeVisibilityByRole.TryGetValue(selectedRole, out Dictionary<ReportType, ReportTypeVisibilityOption>? visibilityForRole))
                     {
                         @foreach (ReportType type in ReportTypeGroups.ReportTypeSelection().Except(ExcludedReportTypesForSelection))
                         {
-                            <div class="form-group row col-sm-12 mt-1">
-                                <label class="col-form-label col-sm-4">@(userConfig.GetText(type.ToString()))</label>
-                                <div class="col-sm-4">
-                                    <div class="btn-group btn-group-sm" role="group" aria-label="ReportTypeVisibility_@(type)">
-                                        <input type="radio" class="btn-check" name="reportTypeVisibility_@(type)" autocomplete="off"
-                                               id="rtv_@(type)_inherited" checked="@(visibilityForRole[type] == ReportTypeVisibilityOption.Inherited)"
-                                               @oninput="() => visibilityForRole[type] = ReportTypeVisibilityOption.Inherited">
-                                        <label class="btn btn-outline-primary three-state-button" for="rtv_@(type)_inherited">@(userConfig.GetText("inherited"))</label>
-
-                                        <input type="radio" class="btn-check" name="reportTypeVisibility_@(type)" autocomplete="off"
-                                               id="rtv_@(type)_visible" checked="@(visibilityForRole[type] == ReportTypeVisibilityOption.Visible)"
-                                               @oninput="() => visibilityForRole[type] = ReportTypeVisibilityOption.Visible">
-                                        <label class="btn btn-outline-primary three-state-button" for="rtv_@(type)_visible">@(userConfig.GetText("visible"))</label>
-
-                                        <input type="radio" class="btn-check" name="reportTypeVisibility_@(type)" autocomplete="off"
-                                               id="rtv_@(type)_notvisible" checked="@(visibilityForRole[type] == ReportTypeVisibilityOption.NotVisible)"
-                                               @oninput="() => visibilityForRole[type] = ReportTypeVisibilityOption.NotVisible">
-                                        <label class="btn btn-outline-primary three-state-button" for="rtv_@(type)_notvisible">@(userConfig.GetText("not_visible"))</label>
-                                    </div>
-                                </div>
+                            <span>@(userConfig.GetText(type.ToString()))</span>
+                            <div class="btn-group btn-group-sm" role="group" aria-label="ReportTypeVisibility_@(type)">
+                                <input type="radio" class="btn-check" name="reportTypeVisibility_@(type)" autocomplete="off"
+                                       id="rtv_@(type)_inherited" checked="@(visibilityForRole[type] == ReportTypeVisibilityOption.Inherited)"
+                                       @oninput="() => visibilityForRole[type] = ReportTypeVisibilityOption.Inherited">
+                                <label class="btn btn-outline-primary three-state-button" for="rtv_@(type)_inherited">@(userConfig.GetText("inherited"))</label>
+                                <input type="radio" class="btn-check" name="reportTypeVisibility_@(type)" autocomplete="off"
+                                       id="rtv_@(type)_visible" checked="@(visibilityForRole[type] == ReportTypeVisibilityOption.Visible)"
+                                       @oninput="() => visibilityForRole[type] = ReportTypeVisibilityOption.Visible">
+                                <label class="btn btn-outline-primary three-state-button" for="rtv_@(type)_visible">@(userConfig.GetText("visible"))</label>
+                                <input type="radio" class="btn-check" name="reportTypeVisibility_@(type)" autocomplete="off"
+                                       id="rtv_@(type)_notvisible" checked="@(visibilityForRole[type] == ReportTypeVisibilityOption.NotVisible)"
+                                       @oninput="() => visibilityForRole[type] = ReportTypeVisibilityOption.NotVisible">
+                                <label class="btn btn-outline-primary three-state-button" for="rtv_@(type)_notvisible">@(userConfig.GetText("not_visible"))</label>
                             </div>
                         }
                     }
-                }
-                else
-                {
-                    <span class="col-form-label">@(userConfig.GetText("E5251"))</span>
-                }
-            </div>
-        </div>
+                </div>
+            }
+            else
+            {
+                <span>@(userConfig.GetText("E5251"))</span>
+            }
+        </SettingsRow>
     </form>
+
     <hr />
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>

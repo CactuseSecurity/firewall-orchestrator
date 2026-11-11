@@ -3,9 +3,8 @@
 @inject UserConfig userConfig
 
 @* editor for the rule owner mapping source settings, shared by every settings page offering them *@
-<div class="form-group row mt-2 align-items-center">
-    <label class="col-sm-4 col-form-label me-2" for="ownerMappingSourceDropdown">@(userConfig.GetText("source"))</label>
-    <div class="col-sm-5">
+<SettingsRow LabelKey="source" LabelFor="ownerMappingSourceDropdown">
+    <div class="settings-input-md">
         @* not nullable: "Disabled" is the selection for "no owner mapping", so the selection must never be empty *@
         <Dropdown ElementType="OwnerMappingSourceStm?" ElementToString="GetOwnerMappingSourceText" SelectedElement="@Handler.SelectedSource"
                   SelectedElementChanged="@(src => { Handler.SelectSource(src); ownerKeyMessage = ""; StateHasChanged(); })" Elements="Handler.OwnerMappingSources" Nullable="false" id="ownerMappingSourceDropdown">
@@ -14,12 +13,11 @@
             </ElementTemplate>
         </Dropdown>
     </div>
-</div>
+</SettingsRow>
 @if (Handler.SelectedSource == OwnerMappingSourceStm.CustomField)
 {
-    <div class="form-group row mb-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5677"))">
-        <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_Owner_key"):</label>
-        <div class="col-sm-5">
+    <SettingsRow LabelKey="custom_field_Owner_key" TooltipKey="H5677" AlignTop="true">
+        <div class="settings-input-lg">
             <EditList ElementType="string" Elements="Handler.OwnerKeys.ToArray()" ElementsToAdd="Handler.OwnerKeysToAdd"
                       ElementsToDelete="Handler.OwnerKeysToDelete" StdLayout="false">
                 <Display>
@@ -28,34 +26,30 @@
                     </div>
                 </Display>
             </EditList>
-            <div class="row col-sm-12 mt-1">
-                <input type="text" class="col-sm-10" @bind="Handler.ActiveOwnerKey" />
-                <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddOwnerKey"
+            <div class="input-group input-group-sm mt-1">
+                <input type="text" class="form-control" @bind="Handler.ActiveOwnerKey" />
+                <button type="button" class="btn btn-sm btn-primary" @onclick="AddOwnerKey"
                         @onclick:preventDefault>
                     @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
                 </button>
             </div>
             @if (ownerKeyMessage.Length > 0)
             {
-                <div class="row col-sm-12 mt-1 text-danger">@ownerKeyMessage</div>
+                <div class="mt-1 text-danger">@ownerKeyMessage</div>
             }
         </div>
-    </div>
+    </SettingsRow>
 }
 @if (Handler.SelectedSource == OwnerMappingSourceStm.NameField)
 {
-    <div class="form-group row mt-2 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5648"))">
-        <label class="col-sm-4 col-form-label me-2">@userConfig.GetText("modelledMarker"):</label>
-        <div class="col-sm-5">
-            <input type="text" class="form-control" @bind="Handler.ModelledMarker" />
-        </div>
-    </div>
+    <SettingsRow LabelKey="modelledMarker" TooltipKey="H5648" LabelFor="modelledMarker">
+        <input id="modelledMarker" type="text" class="form-control form-control-sm settings-input-md" @bind="Handler.ModelledMarker" />
+    </SettingsRow>
 }
 @if (Handler.SelectedSource != OwnerMappingSourceStm.Disabled)
 {
-    <div class="form-group row mt-2 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5916"))">
-        <label class="col-sm-4 col-form-label me-2" for="ruleOwnerMappingLogLevelDropdown">@(userConfig.GetText("ruleOwnerMappingLogLevel")):</label>
-        <div class="col-sm-5">
+    <SettingsRow LabelKey="ruleOwnerMappingLogLevel" TooltipKey="H5916" LabelFor="ruleOwnerMappingLogLevelDropdown">
+        <div class="settings-input-md">
             <Dropdown ElementType="RuleOwnerMappingLogLevel?" ElementToString="GetLogLevelText" SelectedElement="@Handler.LogLevel"
                       SelectedElementChanged="@(level => { Handler.LogLevel = level ?? RuleOwnerMappingLogLevel.Warning; StateHasChanged(); })"
                       Elements="Handler.LogLevels" Nullable="false" id="ruleOwnerMappingLogLevelDropdown">
@@ -64,7 +58,7 @@
                 </ElementTemplate>
             </Dropdown>
         </div>
-    </div>
+    </SettingsRow>
 }
 
 @code

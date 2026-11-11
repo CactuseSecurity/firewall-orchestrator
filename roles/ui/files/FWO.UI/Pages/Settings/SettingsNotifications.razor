@@ -20,9 +20,8 @@
 @if(configData != null)
 {
     <form onsubmit="return false">
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5721a"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("notificationLanguage")):</label>
-            <div class="col-sm-2">
+        <SettingsRow LabelKey="notificationLanguage" TooltipKey="H5721a">
+            <div class="settings-input-md">
                 <Dropdown ElementType="Language"
                           ElementToString="@(l => string.IsNullOrWhiteSpace(l.Name) ? userConfig.GetText("useGlobalDefault") : userConfig.GetText(l.Name))"
                           @bind-SelectedElement="selectedNotificationLanguage"
@@ -32,22 +31,17 @@
                     </ElementTemplate>
                 </Dropdown>
             </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5721"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleExpiryNotifications")):</label>
-            <div class="col-sm-8">
+        </SettingsRow>
+        <SettingsRow LabelKey="ruleExpiryNotifications" TooltipKey="H5721" AlignTop="true">
+            <div class="w-100">
                 <EditNotifications Client="NotificationClient.RuleTimer" />
             </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5722"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleExpiryEmailBody")):</label>
-            <div class="col-sm-8">
-                <textarea class="form-control form-control-sm w-100" rows="10" @bind="configData.RuleExpiryEmailBody"></textarea>
-            </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5723"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleExpiryInitiatorKeys")):</label>
-            <div class="col-sm-8">
+        </SettingsRow>
+        <SettingsRow LabelKey="ruleExpiryEmailBody" TooltipKey="H5722" LabelFor="ruleExpiryEmailBody" AlignTop="true">
+            <textarea id="ruleExpiryEmailBody" class="form-control form-control-sm settings-input-lg" rows="10" @bind="configData.RuleExpiryEmailBody"></textarea>
+        </SettingsRow>
+        <SettingsRow LabelKey="ruleExpiryInitiatorKeys" TooltipKey="H5723" AlignTop="true">
+            <div class="settings-input-lg">
                 <EditList ElementType="RuleExpiryInitiatorText" Elements="initiatorKeys.ToArray()" ElementsToAdd="initiatorKeysToAdd" ElementsToDelete="initiatorKeysToDelete" StdLayout="false">
                     <Display>
                         <div class="row">
@@ -56,27 +50,24 @@
                         </div>
                     </Display>
                 </EditList>
-                <div class="row mt-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5724"))">
-                    <input type="text" class="col-sm-2" placeholder="@userConfig.GetText("key")" @bind="actInitiatorKey.Key" />
-                    <input type="text" class="col-sm-8" placeholder="@userConfig.GetText("text")" @bind="actInitiatorKey.Text" />
-                    <button type="button" class="col-sm-1 btn btn-sm btn-primary" @onclick="AddInitiatorKey" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                <div class="input-group input-group-sm mt-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5724"))">
+                    <input type="text" class="form-control settings-input-sm" placeholder="@userConfig.GetText("key")" @bind="actInitiatorKey.Key" />
+                    <input type="text" class="form-control" placeholder="@userConfig.GetText("text")" @bind="actInitiatorKey.Text" />
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="AddInitiatorKey" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5725"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("ownerActiveRuleNotifications")):</label>
-            <div class="col-sm-8">
+        <SettingsRow LabelKey="ownerActiveRuleNotifications" TooltipKey="H5725" AlignTop="true">
+            <div class="w-100">
                 <EditNotifications Client="NotificationClient.AppDecomm" />
             </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5726"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("ownerActiveRuleEmailBody")):</label>
-            <div class="col-sm-8">
-                <textarea class="form-control form-control-sm w-100" rows="10" @bind="configData.OwnerActiveRuleEmailBody"></textarea>
-            </div>
-        </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="ownerActiveRuleEmailBody" TooltipKey="H5726" LabelFor="ownerActiveRuleEmailBody" AlignTop="true">
+            <textarea id="ownerActiveRuleEmailBody" class="form-control form-control-sm settings-input-lg" rows="10" @bind="configData.OwnerActiveRuleEmailBody"></textarea>
+        </SettingsRow>
     </form>
+
     <hr />
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>

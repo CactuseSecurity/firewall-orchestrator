@@ -69,6 +69,23 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// A pre-built tooltip (combined from several text keys) takes precedence over the tooltip key.
+        /// </summary>
+        [Test]
+        public async Task Render_PrefersPrebuiltTooltip()
+        {
+            await using BunitContext context = CreateContext();
+            const string prebuiltTooltip = "combined tooltip text";
+
+            IRenderedComponent<SettingsRow> row = context.Render<SettingsRow>(parameters => parameters
+                .Add(p => p.LabelKey, kLabelKey)
+                .Add(p => p.TooltipKey, kTooltipKey)
+                .Add(p => p.Tooltip, prebuiltTooltip));
+
+            Assert.That(row.Find(".settings-row").GetAttribute("title"), Is.EqualTo(prebuiltTooltip));
+        }
+
+        /// <summary>
         /// Multi-line values align the label with their first line instead of their center.
         /// </summary>
         [Test]

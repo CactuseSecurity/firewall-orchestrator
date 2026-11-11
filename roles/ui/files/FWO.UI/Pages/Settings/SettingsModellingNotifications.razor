@@ -20,18 +20,15 @@
 {
     <form onsubmit="return false">
         <h4>@(userConfig.GetText("request_interface"))</h4>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5622"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqInterfaceName")):</label>
-            <input type="text" class="col-sm-6" @bind="configData.ModReqInterfaceName" />
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5625"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTicketTitle")):</label>
-            <input type="text" class="col-sm-6" @bind="configData.ModReqTicketTitle" />
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5626"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
-            <input type="text" class="col-sm-6" @bind="configData.ModReqTaskTitle" />
-        </div>
+        <SettingsRow LabelKey="modReqInterfaceName" TooltipKey="H5622" LabelFor="modReqInterfaceName">
+            <input id="modReqInterfaceName" type="text" class="form-control form-control-sm settings-input-lg" @bind="configData.ModReqInterfaceName" />
+        </SettingsRow>
+        <SettingsRow LabelKey="modReqTicketTitle" TooltipKey="H5625" LabelFor="modReqTicketTitle">
+            <input id="modReqTicketTitle" type="text" class="form-control form-control-sm settings-input-lg" @bind="configData.ModReqTicketTitle" />
+        </SettingsRow>
+        <SettingsRow LabelKey="modReqTaskTitle" TooltipKey="H5626" LabelFor="modReqTaskTitle">
+            <input id="modReqTaskTitle" type="text" class="form-control form-control-sm settings-input-lg" @bind="configData.ModReqTaskTitle" />
+        </SettingsRow>
         <div class="mt-4 mb-3">
             <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>

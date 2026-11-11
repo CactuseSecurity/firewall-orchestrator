@@ -22,6 +22,12 @@
     public string? TooltipKey { get; set; }
 
     /// <summary>
+    /// Already localized tooltip text, for tooltips combining several text keys. Takes precedence over TooltipKey.
+    /// </summary>
+    [Parameter]
+    public string? Tooltip { get; set; }
+
+    /// <summary>
     /// Marks the label with an asterisk, used for settings the user can overwrite in the personal settings.
     /// </summary>
     [Parameter]
@@ -47,5 +53,5 @@
 
     private string LabelText => $"{userConfig.GetText(LabelKey)}{(Marked ? "*" : "")}:";
 
-    private string? TooltipText => string.IsNullOrEmpty(TooltipKey) ? null : userConfig.PureLine(TooltipKey);
+    private string? TooltipText => Tooltip ?? (string.IsNullOrEmpty(TooltipKey) ? null : userConfig.PureLine(TooltipKey));
 }

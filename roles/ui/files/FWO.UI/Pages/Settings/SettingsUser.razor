@@ -11,23 +11,19 @@
 <h3>@(userConfig.GetText("user")): @(userConfig.User.Name)</h3>
 <hr />
 
-<div class="form-group row">
-    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("email")):</label>
-    <label class="col-sm-8">@user?.Email</label>
-</div>
-<div class="form-group row">
-    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("last_login")):</label>
-    <label class="col-sm-8">@user?.LastLogin</label>
-</div>
-<div class="form-group row">
-    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("last_pw_change")):</label>
-    <label class="col-sm-8">@user?.LastPasswordChange</label>
-</div>
+<SettingsRow LabelKey="email">
+    <span>@user?.Email</span>
+</SettingsRow>
+<SettingsRow LabelKey="last_login">
+    <span>@user?.LastLogin</span>
+</SettingsRow>
+<SettingsRow LabelKey="last_pw_change">
+    <span>@user?.LastPasswordChange</span>
+</SettingsRow>
 @if (showExecutionModeSelection)
 {
-    <div class="form-group row">
-        <label for="dropdown-input-execution_mode_select" class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("execution_mode")):</label>
-        <div class="col-sm-4">
+    <SettingsRow LabelKey="execution_mode" LabelFor="dropdown-input-execution_mode_select">
+        <div class="settings-input-md">
             <Dropdown ElementType="string" Id="execution_mode_select" SelectedElement="selectedExecutionMode"
                       SelectedElementChanged="SelectExecutionMode" ElementToString="GetExecutionModeText"
                       Elements="selectableExecutionModes">
@@ -36,7 +32,7 @@
                 </ElementTemplate>
             </Dropdown>
         </div>
-    </div>
+    </SettingsRow>
 }
 <hr />
 

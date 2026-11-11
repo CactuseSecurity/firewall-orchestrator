@@ -1,5 +1,9 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.2 - 11.11.2026
+- dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
+
+
 ## 9.9.1 - 05.11.2026
 - request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent
 - workflow UI: the promotion-mode setting now also supports action-buttons-only in addition to ticket, task and combined promotion
@@ -19,6 +23,9 @@
   - rules are ordered by rule collection group and rule collection priority
 - Azure gateway autodiscovery: Azure managements can now be autodiscovered (scheduled and manually); the Azure Firewalls of the subscription whose firewall policy lies in the configured resource group are proposed as gateways with the policy name as local rulebase; firewalls with classic rules are skipped
 - new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
+- performance: database indices for the foreign key columns of the request and modelling schemas that the workflow and modelling relationships filter on (e.g. ticket tasks, request and implementation elements, comments, connection objects and services, interface usage), speeding up ticket and requested interfaces pages (#5644)
+  - requested interfaces page: loads a slim interface list incl. the using connections and all ticket states with one chunked query instead of one query per interface and per ticket; interface details are loaded when an interface is opened
+  - owner report implementation state: reads ticket states in batches without task metadata and stops after finding the newest completed ticket
 - fix: scheduled middleware jobs no longer shift by one hour after a switch between summer and winter time (#5653)
   - intervals of whole days (e.g. app data import every 24 h, daily check, compliance check every 1440 min) run at the configured wall-clock time
   - whole-hour intervals that divide a day (2, 3, 4, 6, 8, 12 h) run at fixed wall-clock hours of each day; all other intervals keep a fixed interval in absolute time
@@ -26,6 +33,7 @@
   - scheduled reports: a report due in the skipped hour is generated after the gap instead of being skipped, a report due in the repeated hour is generated only once
   - the "Trigger scheduled" log message shows the next run with its UTC offset
 - request workflow: the Check Point LayerGuard section name is configurable at every device-specific-settings level with optional, repeatable source- and destination-zone placeholders; fixed names avoid zone-matrix resolution (#5626)
+- request workflow: change history entries always name their authenticated author (GHSA-6g84, usergroupresolver-001). Readers no longer show the free-text changer of a row written by a user but the login name of its user id (preset from the session; the UI passes it for admin sessions), or the id when the reader may not see that user. The audit-proof REST endpoint (`workflow/getAuditProofCriticalChanges`) only reports flagged changes written by a known user other than the ticket's requester, and the modelling history shows the resolved name as well
 
 ## 9.8.7 - 04.11.2026
 - request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section

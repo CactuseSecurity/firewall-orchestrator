@@ -30,6 +30,12 @@ namespace FWO.Test
             public long UpdatedTicketId { get; set; } = 101;
             public long UpdatedApprovalId { get; set; } = 301;
             public bool ThrowOnNewTicket { get; set; }
+            public string ActRole { get; set; } = "";
+
+            public override string GetActRole()
+            {
+                return ActRole;
+            }
             public bool ReturnNullNewTicketIds { get; set; }
             public long NewCommentId { get; set; } = 601;
             public long NewImplTaskId { get; set; } = 401;
@@ -3239,6 +3245,29 @@ namespace FWO.Test
             {
                 Assert.That(apiConn.LastHistoryQuery, Is.EqualTo(ModellingQueries.addHistoryEntry));
                 Assert.That(apiConn.LastHistoryVariables?.GetType().GetProperty("changerId"), Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task LogWorkflowChange_PassesTheAdminsOwnId_InAnAdminUiSession()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket { Id = 101, Title = "Old title", Requester = new UiUser { DbId = 7 } },
+                ActRole = Roles.Admin
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval, "admin-user", true, kCallerUserId);
+
+            await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Corrected title" });
+
+            // Hasura applies no changer_id preset to the admin role: without the id the row could neither be
+            // attributed nor confirmed as audit-proof critical, and ChangerId of a middleware caller is ignored
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.LastHistoryQuery, Is.EqualTo(ModellingQueries.addHistoryEntryAsService));
+                Assert.That(HistoryRawValue(apiConn, "changerId"), Is.EqualTo("42"));
+                Assert.That(HistoryRawValue(apiConn, "auditProofCritical"), Is.EqualTo("true"));
             });
         }
 

@@ -49,6 +49,9 @@ updates:
       # python-dateutil >=4 requires Python >=3.11; the installer and importer still support Python 3.10
       - dependency-name: "python-dateutil"
         versions: [">=4"]
+      # pre-commit >=4.7 requires Python >=3.11; the installer and importer still support Python 3.10
+      - dependency-name: "pre-commit"
+        versions: [">=4.7"]
     assignees:
       - Laennart
 

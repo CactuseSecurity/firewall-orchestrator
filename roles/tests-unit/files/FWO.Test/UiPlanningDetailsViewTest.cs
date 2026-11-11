@@ -4,6 +4,8 @@ using FWO.Api.Client;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Flow;
+using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Data.Workflow;
 using FWO.Services;
 using FWO.Services.Workflow;
@@ -472,6 +474,7 @@ internal sealed class UiPlanningDetailsViewTest
         {
             Id = 11,
             TaskType = WfTaskType.access.ToString(),
+            ManagementId = 4,
             ImplementationTasks = [existing]
         };
         WfHandler handler = UiRequestWorkflowTest.CreateWorkflowHandler(
@@ -489,6 +492,7 @@ internal sealed class UiPlanningDetailsViewTest
         {
             Assert.That(UiRequestWorkflowTest.GetMember<bool>(component, "displayImplementationTaskCreation"), Is.True);
             Assert.That(handler.ActImplTask.TaskNumber, Is.EqualTo(4));
+            Assert.That(handler.ActImplTask.ManagementId, Is.EqualTo(4));
         });
 
         await UiRequestWorkflowTest.InvokePrivateTask(component, "OpenDeleteConfirmation", existing);
@@ -697,6 +701,36 @@ internal sealed class UiPlanningDetailsViewTest
         {
             Assert.That(action, Is.EqualTo("allow"));
             Assert.That(tracking, Is.EqualTo("log"));
+        });
+    }
+
+    [Test]
+    public void RulePositionDisplayHelper_FormatsKnownRulePositions()
+    {
+        WfImplTask belowTask = new()
+        {
+            RulePosition = new CheckPointRulePosition(
+                "layer-1",
+                CheckPointPositionAnchorKind.Below,
+                "rule-42",
+                ProvisioningPositioningAlgorithm.DefaultEndOfRulebase)
+        };
+        WfImplTask topTask = new()
+        {
+            RulePosition = new CheckPointRulePosition(
+                "layer-1",
+                CheckPointPositionAnchorKind.Top,
+                null,
+                ProvisioningPositioningAlgorithm.DefaultEndOfRulebase)
+        };
+
+        string below = RulePositionDisplayHelper.Format(belowTask.RulePosition, new PositioningUserConfig());
+        string top = RulePositionDisplayHelper.Format(topTask.RulePosition, new PositioningUserConfig());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(below, Is.EqualTo("Behind rule rule-42"));
+            Assert.That(top, Is.EqualTo("At beginning of layer layer-1"));
         });
     }
 
@@ -1093,5 +1127,18 @@ internal sealed class UiPlanningDetailsViewTest
         service.PlannerOwnerChangesAllowed = true;
 
         Assert.That(service.CanEdit(new List<WfReqTask> { task }, WorkflowEditableFieldKeys.Owner), Is.False);
+    }
+
+    private sealed class PositioningUserConfig : UserConfig
+    {
+        public override string GetText(string key)
+        {
+            return key switch
+            {
+                "rule_position_behind_rule" => "Behind rule {0}",
+                "rule_position_at_start_of_layer" => "At beginning of layer {0}",
+                _ => key
+            };
+        }
     }
 }

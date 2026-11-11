@@ -172,7 +172,8 @@
         WfHandler.SelectReqTask(requestTask, ObjAction.display);
         WfImplTask implementationTask = new(requestTask, false)
         {
-            TaskNumber = requestTask.HighestImplTaskNumber() + 1
+            TaskNumber = requestTask.HighestImplTaskNumber() + 1,
+            ManagementId = requestTask.ManagementId
         };
         WfHandler.SelectImplTask(implementationTask, ObjAction.add);
         creationRequestTask = requestTask;

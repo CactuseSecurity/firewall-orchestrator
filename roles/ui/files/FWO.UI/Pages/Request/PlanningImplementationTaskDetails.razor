@@ -63,7 +63,8 @@
                         || implementationTask.TaskType == WfTaskType.rule_modify.ToString())
                     {
                         <div class="form-group row">
-                            @ReadOnlyValue(userConfig.GetText("rule_position"), RulePositionName(implementationTask), "col-12")
+                            @ReadOnlyValue(userConfig.GetText("rule_position"),
+                                RulePositionDisplayHelper.Format(implementationTask.RulePosition, userConfig), "col-12")
                         </div>
                         <div class="form-group row mt-2">
                             @ImplementationElementValue(userConfig.GetText("source"), implementationTask, ElemFieldType.source)
@@ -746,13 +747,6 @@
             return;
         }
         AddTableRow(builder, "…", $"(+{elementCount - kMaxDisplayedElements})");
-    }
-
-    private string RulePositionName(WfImplTask implementationTask)
-    {
-        return implementationTask.RulePosition == null
-            ? ""
-            : System.Text.Json.JsonSerializer.Serialize(implementationTask.RulePosition);
     }
 
     private string TimeRestriction(WfImplTask implementationTask)

@@ -346,7 +346,8 @@
         WfImplTask newTask = new (requestTask, false)
         {
             TaskNumber = WfHandler.ActReqTask.HighestImplTaskNumber() + 1,
-            DeviceId = (WfHandler.Devices.Count > 0 ? WfHandler.Devices[0].Id : 0)
+            DeviceId = (WfHandler.Devices.Count > 0 ? WfHandler.Devices[0].Id : 0),
+            ManagementId = requestTask.ManagementId
         };
         if(WfHandler.Devices.Count > 0)
         {

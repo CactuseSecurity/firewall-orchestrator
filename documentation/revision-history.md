@@ -5,6 +5,9 @@
   - pass 1 (`-e "installation_mode=upgrade internalca_ca_rotation=prepare"`) stages the next CA on the CA host and makes every host trust both CAs - Apache client CA file, trust bundle and operating-system store - restarting the services that cache their anchors; nothing is re-signed, and the pass can be repeated until every host is reached
   - pass 2 (`internalca_ca_rotation=activate`) runs against the complete inventory only and refuses to start until every host has confirmed pass 1; it switches to the next CA, re-signs every FWO-managed identity, restarts its consumers and only then withdraws trust in the previous CA
   - interrupting either pass leaves a working installation and rerunning it resumes; pass 1 is accepted inside the critical CA expiry window, since it is the remedy for it
+## 9.9.2 - 11.11.2026
+- dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
+
 
 ## 9.9.1 - 05.11.2026
 - request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent

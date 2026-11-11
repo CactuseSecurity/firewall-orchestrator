@@ -57,6 +57,14 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
                 await settingsManager.LoadLevelAsync<GatewayDeviceSpecificSettings>(
                     DeviceSpecificScopePath.ForGateway(target.Management, target.Gateway));
             cancellationToken.ThrowIfCancellationRequested();
+            if (settings.Settings.PositioningAlgorithm ==
+                    ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection &&
+                requestTask.ManagementId is not > 0)
+            {
+                return LoggedOutcome(
+                    implementationTask.Id,
+                    RulePositioningWorkflowStatus.NotApplicable);
+            }
             IReadOnlyCollection<WfReqTask>? ticketTasks = await LoadTicketTasksIfRequiredAsync(
                 requestTask,
                 settings.Settings.PositioningAlgorithm,

@@ -132,6 +132,39 @@ internal class RulePositioningWorkflowCallerTest
         });
     }
 
+    [TestCase(null)]
+    [TestCase(0)]
+    public async Task CustomerAlgorithm_WithoutRequestManagementIsNotApplicableAndPreservesPosition(
+        int? requestManagementId)
+    {
+        RecordingApiConnection api = new()
+        {
+            PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection,
+            TargetManagementId = kGatewayManagementId
+        };
+        RecordingStrategy strategy = new(Success(
+            ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        requestTask.ManagementId = requestManagementId;
+        implementationTask.ManagementId = null;
+
+        RulePositioningWorkflowOutcome outcome = await Caller(api, strategy).CalculateAndPersistAsync(
+            requestTask,
+            implementationTask,
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.NotApplicable));
+            Assert.That(api.TargetReads, Is.EqualTo(1));
+            Assert.That(api.SettingsReads, Is.EqualTo(1));
+            Assert.That(api.TicketReads, Is.Zero);
+            Assert.That(api.ConfigReads, Is.Zero);
+            Assert.That(api.PositionWrites, Is.Zero);
+            Assert.That(strategy.CalculationCount, Is.Zero);
+        });
+    }
+
     [TestCase(InvalidTargetCase.Missing)]
     [TestCase(InvalidTargetCase.Duplicate)]
     [TestCase(InvalidTargetCase.WrongGateway)]

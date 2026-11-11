@@ -6,7 +6,7 @@
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
-<PopUp Title="@PlanningViewTitle" Show="@Display" Size="PopupSize.XLarge" OnClose="Close">
+<PopUp Title="@PlanningViewTitle" Show="@Display" Size="PopupSize.XLarge" OnClose="ClosePopup">
     <Body>
         @if (Display)
         {
@@ -55,7 +55,13 @@
         }
     </Body>
     <Footer>
-        <button type="button" class="btn btn-sm btn-primary" @onclick="Close">@(userConfig.GetText("ok"))</button>
+        <WorkflowTaskDetailsFooter OfferedActions="OfferedActions"
+            CanShowAction="CanShowOfferedAction"
+            PerformAction="PerformTicketAction"
+            CanPromoteTicket="CanPromoteTicket"
+            PromoteTicket="PromoteTicket"
+            ShowCancel="ShowCancel"
+            Close="Close" />
     </Footer>
 </PopUp>
 <PlanningImplementationTaskCreationView @bind-Display="displayImplementationTaskCreation"
@@ -73,6 +79,11 @@
     [Parameter] public WfHandler WfHandler { get; set; } = new();
     [Parameter] public WfStateDict States { get; set; } = new();
     [Parameter] public WorkflowPhases Phase { get; set; } = WorkflowPhases.planning;
+    [Parameter] public IReadOnlyList<WfStateAction> OfferedActions { get; set; } = [];
+    [Parameter] public Func<WfStateAction, Task> PerformTicketAction { get; set; } = _ => Task.CompletedTask;
+    [Parameter] public bool CanPromoteTicket { get; set; }
+    [Parameter] public Func<Task> PromoteTicket { get; set; } = DefaultInit.DoNothing;
+    [Parameter] public bool ShowCancel { get; set; }
     [Parameter] public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
     [Parameter] public Func<Task> Closed { get; set; } = DefaultInit.DoNothing;
 
@@ -122,6 +133,12 @@
 
     private Task SaveOwner(FwoOwner owner) => editorService.SaveOwner(owner);
 
+    private bool CanShowOfferedAction(WfStateAction action)
+    {
+        return WfHandler.CanPerformActionOnActTicket(action)
+            && (!WfHandler.ReadOnlyMode || WfStateAction.IsReadonlyType(action.ActionType));
+    }
+
     private static bool IsAccessTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsAccessTask(task);
 
     private static bool IsGroupTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsGroupTask(task);
@@ -136,11 +153,13 @@
         }
     }
 
-    private async void Close()
+    private async Task Close()
     {
         await DisplayChanged.InvokeAsync(false);
         await Closed();
     }
+
+    private void ClosePopup() => _ = Close();
 
     private async Task Reset()
     {

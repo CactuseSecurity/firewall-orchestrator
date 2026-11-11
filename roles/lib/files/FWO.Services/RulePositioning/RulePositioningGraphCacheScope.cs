@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FWO.Data.RulePositioning;
 using RulebaseGraphReadResult = FWO.Data.RulePositioning.PositioningResult<
     FWO.Services.RulePositioning.RulebaseGraphReadValue,
@@ -34,17 +35,22 @@ internal static class RulePositioningGraphCacheScope
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        long started = Stopwatch.GetTimestamp();
         CacheState? state = kCurrent.Value;
         if (state == null)
         {
-            return await read();
+            RulebaseGraphReadResult uncachedResult = await read();
+            WriteCacheEvent(managementId, gatewayId, false, false, started);
+            return uncachedResult;
         }
 
         (int ManagementId, int GatewayId) key = (managementId, gatewayId);
         Task<RulebaseGraphReadResult> pendingRead;
+        bool cacheHit;
         lock (state.Reads)
         {
-            if (!state.Reads.TryGetValue(key, out pendingRead!))
+            cacheHit = state.Reads.TryGetValue(key, out pendingRead!);
+            if (!cacheHit)
             {
                 pendingRead = read();
                 state.Reads[key] = pendingRead;
@@ -53,9 +59,11 @@ internal static class RulePositioningGraphCacheScope
 
         try
         {
-            return await pendingRead.WaitAsync(cancellationToken);
+            RulebaseGraphReadResult result = await pendingRead.WaitAsync(cancellationToken);
+            WriteCacheEvent(managementId, gatewayId, true, cacheHit, started);
+            return result;
         }
-        catch
+        catch (Exception exception)
         {
             lock (state.Reads)
             {
@@ -65,9 +73,42 @@ internal static class RulePositioningGraphCacheScope
                     state.Reads.Remove(key);
                 }
             }
+            RulePositioningDiagnosticLog.WriteException(
+                "graph.cache",
+                exception,
+                Facts(managementId, gatewayId, true, cacheHit, started));
             throw;
         }
     }
+
+    /// <summary>Writes one bounded cache lookup summary.</summary>
+    private static void WriteCacheEvent(
+        int managementId,
+        int gatewayId,
+        bool cacheActive,
+        bool cacheHit,
+        long started)
+    {
+        RulePositioningDiagnosticLog.WriteInfo(
+            "graph.cache",
+            "summary",
+            Facts(managementId, gatewayId, cacheActive, cacheHit, started));
+    }
+
+    /// <summary>Builds the cache event's numeric facts.</summary>
+    private static Dictionary<string, object?> Facts(
+        int managementId,
+        int gatewayId,
+        bool cacheActive,
+        bool cacheHit,
+        long started) => new()
+        {
+            ["management_id"] = managementId,
+            ["gateway_id"] = gatewayId,
+            ["cache_active"] = cacheActive,
+            ["cache_hit"] = cacheHit,
+            ["duration_ms"] = (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds
+        };
 
     /// <summary>Mutable operation-local cache shared by nested leases.</summary>
     private sealed class CacheState

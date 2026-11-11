@@ -5,6 +5,7 @@ using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Services.RulePositioning;
 using FWO.Services.RulePositioning.Blocks;
 using FWO.Services.RulePositioning.CheckPoint;
+using System.Diagnostics;
 using CheckPointLayerGuardReadResult = FWO.Data.RulePositioning.PositioningResult<
     FWO.Data.RulePositioning.CheckPoint.CheckPointLayerGuardSnapshot,
     FWO.Services.RulePositioning.CheckPoint.CheckPointLayerGuardReadFailureCategory>;
@@ -59,10 +60,19 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     /// <inheritdoc />
     public bool CanHandle(DeviceType deviceType, ProvisioningPositioningAlgorithm positioningAlgorithm)
     {
-        return deviceType != null
+        bool supported = deviceType != null
             && deviceType.Id == DeviceTypeIds.kCheckPointR8x
             && IsUsableAlgorithm(positioningAlgorithm)
             && recipeCatalog.SupportsAlgorithm(positioningAlgorithm);
+        RulePositioningDiagnosticLog.WriteInfo("recipe.capability", "summary",
+            new Dictionary<string, object?>
+            {
+                ["strategy"] = nameof(CheckPointRulePositioningStrategy),
+                ["device_type_id"] = deviceType?.Id,
+                ["algorithm"] = positioningAlgorithm.ToString(),
+                ["supported"] = supported
+            });
+        return supported;
     }
 
     /// <inheritdoc />
@@ -80,8 +90,13 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            RulePositioningDiagnosticLog.WriteException("strategy.exception", exception, new Dictionary<string, object?>
+            {
+                ["strategy"] = nameof(CheckPointRulePositioningStrategy),
+                ["public_category"] = RulePositioningFailureCategory.CalculationFailed.ToString()
+            });
             return Failure(RulePositioningFailureCategory.CalculationFailed);
         }
     }
@@ -96,21 +111,40 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
             RulePositioningContextValidator.ValidateTicketAwareContext(context);
         if (validationFailure.HasValue)
         {
-            return Failure(validationFailure.Value);
+            return LoggedMapping("validation", validationFailure.Value.ToString(), validationFailure.Value, null, 0);
         }
 
         ProvisioningPositioningAlgorithm algorithm = context.EffectiveSettings.PositioningAlgorithm;
         if (!CanHandle(context.TargetGateway.DeviceType, algorithm))
         {
-            return Failure(RulePositioningFailureCategory.PositioningMethodNotImplemented);
+            return LoggedMapping("capability", "unsupported", RulePositioningFailureCategory.PositioningMethodNotImplemented,
+                algorithm, 0);
         }
 
+        string? templateText = context.EffectiveSettings.CheckPointLayerGuardSectionNameTemplate;
+        RulePositioningDiagnosticFingerprint templateFingerprint = RulePositioningDiagnosticLog.Fingerprint(templateText);
+        Stopwatch operation = Stopwatch.StartNew();
         PositioningResult<CheckPointSectionNameTemplate, CheckPointSectionNameTemplateFailureCategory> templateResult =
-            CheckPointSectionNameTemplate.Parse(context.EffectiveSettings.CheckPointLayerGuardSectionNameTemplate);
+            CheckPointSectionNameTemplate.Parse(templateText);
         if (!templateResult.TryGetValue(out CheckPointSectionNameTemplate? sectionNameTemplate))
         {
-            return Failure(RulePositioningFailureCategory.ConfigurationInvalid);
+            templateResult.TryGetFailure(out CheckPointSectionNameTemplateFailureCategory parseCategory);
+            RulePositioningDiagnosticLog.WriteFailure("section-template.parse", new Dictionary<string, object?>
+            {
+                ["template_length"] = templateFingerprint.Length,
+                ["template_fingerprint"] = templateFingerprint.Sha256Prefix,
+                ["parse_category"] = parseCategory.ToString()
+            });
+            return LoggedMapping("template.parse", parseCategory.ToString(),
+                RulePositioningFailureCategory.ConfigurationInvalid, algorithm, operation.ElapsedMilliseconds);
         }
+        RulePositioningDiagnosticLog.WriteInfo("section-template.parse", "success", new Dictionary<string, object?>
+        {
+            ["template_length"] = templateFingerprint.Length,
+            ["template_fingerprint"] = templateFingerprint.Sha256Prefix,
+            ["required_variables"] = sectionNameTemplate.RequiredVariables.OrderBy(variable => variable)
+                .Select(variable => variable.ToString()).ToArray()
+        });
 
         InputPreparationResult preparation = await PrepareInputsAsync(
             context,
@@ -126,19 +160,22 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
             CheckPointLayerGuardSectionNameResolver.Resolve(sectionNameTemplate, inputs.ZoneInput);
         if (!sectionNameResult.TryGetValue(out string? normalizedSectionName))
         {
-            return Failure(RulePositioningFailureCategory.ConfigurationInvalid);
+            sectionNameResult.TryGetFailure(out CheckPointLayerGuardSectionNameFailureCategory sectionCategory);
+            return LoggedMapping("template.render", sectionCategory.ToString(),
+                RulePositioningFailureCategory.ConfigurationInvalid, algorithm, 0);
         }
 
         CheckPointLayerGuardZonePairPositioningInput positioningInput = new(
             inputs.NetworkInput,
             inputs.GuardSnapshot);
+        operation.Restart();
         CheckPointRecipeSelectionResult selectionResult = recipeCatalog.SelectRecipe(
             algorithm,
             positioningInput,
             normalizedSectionName);
         if (!selectionResult.TryGetValue(out PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>? recipe))
         {
-            return MapSelectionFailure(selectionResult);
+            return MapSelectionFailure(selectionResult, algorithm, operation.ElapsedMilliseconds);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -146,20 +183,23 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
             context,
             inputs.Snapshot,
             positioningInput);
+        operation.Restart();
         PositioningBlockResult<CheckPointBlockValue> executionResult = await recipeExecutor.ExecuteAsync(
             recipe,
             checkPointContext,
             cancellationToken);
         if (executionResult is not PositioningBlockSuccess<CheckPointBlockValue> executionSuccess)
         {
-            return MapExecutionFailure(executionResult);
+            return MapExecutionFailure(executionResult, algorithm, operation.ElapsedMilliseconds);
         }
         if (executionSuccess.Value is not CheckPointPositionValue positionValue
             || positionValue.Position.PositioningAlgorithm != algorithm)
         {
-            return Failure(RulePositioningFailureCategory.CalculationFailed);
+            return LoggedMapping("execution.result", executionSuccess.Value.GetType().Name,
+                RulePositioningFailureCategory.CalculationFailed, algorithm, 0);
         }
 
+        WritePositionSuccess(positionValue.Position, algorithm);
         return new RulePositioningSuccess(positionValue.Position);
     }
 
@@ -169,33 +209,39 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         bool requiresZones,
         CancellationToken cancellationToken)
     {
+        Stopwatch stage = Stopwatch.StartNew();
         RulebaseGraphReadResult graphResult = await graphReader.ReadAsync(
             context.TargetManagement.Id,
             context.TargetGateway.Id,
             cancellationToken);
         if (!graphResult.TryGetValue(out RulebaseGraphReadValue? graphValue))
         {
-            return InputPreparationResult.Failed(MapGraphFailure(graphResult));
+            return InputPreparationResult.Failed(MapGraphFailure(graphResult,
+                context.EffectiveSettings.PositioningAlgorithm, stage.ElapsedMilliseconds));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        stage.Restart();
         CreationRuleNetworkResolutionResult networkResult = await networkResolver.ResolveAsync(
             context.ParentRequestTask,
             context.TicketRequestTasks!,
             cancellationToken);
         if (!networkResult.TryGetValue(out CreationRuleNetworkInput? networkInput))
         {
-            return InputPreparationResult.Failed(MapNetworkFailure(networkResult));
+            return InputPreparationResult.Failed(MapNetworkFailure(networkResult,
+                context.EffectiveSettings.PositioningAlgorithm, stage.ElapsedMilliseconds));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        stage.Restart();
         CheckPointLayerGuardReadResult guardResult = await guardReader.ReadAsync(
             graphValue.Snapshot,
             graphValue.ImportId,
             cancellationToken);
         if (!guardResult.TryGetValue(out CheckPointLayerGuardSnapshot? guardSnapshot))
         {
-            return InputPreparationResult.Failed(MapGuardFailure(guardResult));
+            return InputPreparationResult.Failed(MapGuardFailure(guardResult,
+                context.EffectiveSettings.PositioningAlgorithm, stage.ElapsedMilliseconds));
         }
 
         CreationRuleZoneInput? zoneInput = null;
@@ -203,15 +249,18 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         {
             cancellationToken.ThrowIfCancellationRequested();
             RulePositioningConfiguration configuration = context.Configuration!;
+            stage.Restart();
             DesignatedZoneMatrixReadResult matrixResult = await zoneMatrixReader.ReadAsync(
                 configuration.DesignatedZoneMatrixId,
                 cancellationToken);
             if (!matrixResult.TryGetValue(out DesignatedZoneMatrixReadValue? matrixValue))
             {
-                return InputPreparationResult.Failed(MapMatrixFailure(matrixResult));
+                return InputPreparationResult.Failed(MapMatrixFailure(matrixResult,
+                    context.EffectiveSettings.PositioningAlgorithm, stage.ElapsedMilliseconds));
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            stage.Restart();
             CreationRuleZoneResolutionResult zoneResult = await zoneResolver.ResolveAsync(
                 networkInput,
                 matrixValue.NetworkZones,
@@ -219,10 +268,24 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
                 cancellationToken);
             if (!zoneResult.TryGetValue(out zoneInput))
             {
-                return InputPreparationResult.Failed(MapZoneFailure(zoneResult));
+                return InputPreparationResult.Failed(MapZoneFailure(zoneResult,
+                    context.EffectiveSettings.PositioningAlgorithm, stage.ElapsedMilliseconds));
             }
         }
 
+        RulePositioningDiagnosticLog.WriteInfo("strategy.inputs", "success", new Dictionary<string, object?>
+        {
+            ["algorithm"] = context.EffectiveSettings.PositioningAlgorithm.ToString(),
+            ["import_id"] = graphValue.ImportId,
+            ["graph_rulebase_count"] = graphValue.Snapshot.Rulebases.Count,
+            ["graph_link_count"] = graphValue.Snapshot.Links.Count,
+            ["source_range_count"] = networkInput.SourceRanges.Count,
+            ["destination_range_count"] = networkInput.DestinationRanges.Count,
+            ["guard_count"] = guardSnapshot.GuardsByTargetLayerId.Count,
+            ["source_zone_ids"] = zoneInput?.SourceZones.Select(zone => zone.Id).Take(16).ToArray(),
+            ["destination_zone_ids"] = zoneInput?.DestinationZones.Select(zone => zone.Id).Take(16).ToArray(),
+            ["matrix_id"] = zoneInput?.CriterionId
+        });
         return InputPreparationResult.Succeeded(new PreparedInputs(
             graphValue.Snapshot,
             networkInput,
@@ -248,7 +311,10 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     }
 
     /// <summary>Maps effective-network failures to the public positioning contract.</summary>
-    private static RulePositioningFailure MapNetworkFailure(CreationRuleNetworkResolutionResult result)
+    private static RulePositioningFailure MapNetworkFailure(
+        CreationRuleNetworkResolutionResult result,
+        ProvisioningPositioningAlgorithm algorithm,
+        long durationMs)
     {
         RulePositioningFailureCategory category = result.TryGetFailure(
             out CreationRuleNetworkResolutionFailureCategory failureCategory)
@@ -262,18 +328,23 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
                 _ => RulePositioningFailureCategory.InvalidInput
             }
             : RulePositioningFailureCategory.CalculationFailed;
-        return Failure(category);
+        result.TryGetFailure(out CreationRuleNetworkResolutionFailureCategory internalCategory);
+        return LoggedMapping("network", internalCategory.ToString(), category, algorithm, durationMs);
     }
 
     /// <summary>Maps fixed-import layer-guard failures to the public positioning contract.</summary>
-    private static RulePositioningFailure MapGuardFailure(CheckPointLayerGuardReadResult result)
+    private static RulePositioningFailure MapGuardFailure(
+        CheckPointLayerGuardReadResult result,
+        ProvisioningPositioningAlgorithm algorithm,
+        long durationMs)
     {
         RulePositioningFailureCategory category = result.TryGetFailure(out CheckPointLayerGuardReadFailureCategory failureCategory)
             && failureCategory is CheckPointLayerGuardReadFailureCategory.InvalidInput
                 or CheckPointLayerGuardReadFailureCategory.ScopeMismatch
                 ? RulePositioningFailureCategory.InvalidInput
                 : RulePositioningFailureCategory.CalculationFailed;
-        return Failure(category);
+        result.TryGetFailure(out CheckPointLayerGuardReadFailureCategory internalCategory);
+        return LoggedMapping("guard", internalCategory.ToString(), category, algorithm, durationMs);
     }
 
     /// <summary>Checks whether an algorithm is defined and non-default.</summary>
@@ -283,17 +354,24 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     }
 
     /// <summary>Maps graph-reader failures to the Phase 1 contract.</summary>
-    private static RulePositioningFailure MapGraphFailure(RulebaseGraphReadResult result)
+    private static RulePositioningFailure MapGraphFailure(
+        RulebaseGraphReadResult result,
+        ProvisioningPositioningAlgorithm algorithm,
+        long durationMs)
     {
         RulePositioningFailureCategory category = result.TryGetFailure(out RulebaseGraphReadFailureCategory failureCategory)
             && failureCategory is RulebaseGraphReadFailureCategory.InvalidInput or RulebaseGraphReadFailureCategory.ScopeMismatch
                 ? RulePositioningFailureCategory.InvalidInput
                 : RulePositioningFailureCategory.CalculationFailed;
-        return Failure(category);
+        result.TryGetFailure(out RulebaseGraphReadFailureCategory internalCategory);
+        return LoggedMapping("graph", internalCategory.ToString(), category, algorithm, durationMs);
     }
 
     /// <summary>Maps designated-matrix-reader failures to the Phase 1 contract.</summary>
-    private static RulePositioningFailure MapMatrixFailure(DesignatedZoneMatrixReadResult result)
+    private static RulePositioningFailure MapMatrixFailure(
+        DesignatedZoneMatrixReadResult result,
+        ProvisioningPositioningAlgorithm algorithm,
+        long durationMs)
     {
         RulePositioningFailureCategory category = result.TryGetFailure(
             out DesignatedZoneMatrixReadFailureCategory failureCategory)
@@ -301,11 +379,15 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
                 or DesignatedZoneMatrixReadFailureCategory.MatrixUnavailable
                 ? RulePositioningFailureCategory.ConfigurationInvalid
                 : RulePositioningFailureCategory.CalculationFailed;
-        return Failure(category);
+        result.TryGetFailure(out DesignatedZoneMatrixReadFailureCategory internalCategory);
+        return LoggedMapping("matrix", internalCategory.ToString(), category, algorithm, durationMs);
     }
 
     /// <summary>Maps zone-resolution failures to the Phase 1 contract.</summary>
-    private static RulePositioningFailure MapZoneFailure(CreationRuleZoneResolutionResult result)
+    private static RulePositioningFailure MapZoneFailure(
+        CreationRuleZoneResolutionResult result,
+        ProvisioningPositioningAlgorithm algorithm,
+        long durationMs)
     {
         RulePositioningFailureCategory category = result.TryGetFailure(
             out CreationRuleZoneResolutionFailureCategory failureCategory)
@@ -319,11 +401,15 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
                 _ => RulePositioningFailureCategory.CalculationFailed
             }
             : RulePositioningFailureCategory.CalculationFailed;
-        return Failure(category);
+        result.TryGetFailure(out CreationRuleZoneResolutionFailureCategory internalCategory);
+        return LoggedMapping("zone", internalCategory.ToString(), category, algorithm, durationMs);
     }
 
     /// <summary>Maps recipe-selection failures to the Phase 1 contract.</summary>
-    private static RulePositioningFailure MapSelectionFailure(CheckPointRecipeSelectionResult result)
+    private static RulePositioningFailure MapSelectionFailure(
+        CheckPointRecipeSelectionResult result,
+        ProvisioningPositioningAlgorithm algorithm,
+        long durationMs)
     {
         RulePositioningFailureCategory category = RulePositioningFailureCategory.CalculationFailed;
         if (result.TryGetFailure(out CheckPointRecipeSelectionFailureCategory failureCategory))
@@ -332,22 +418,62 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
                 ? RulePositioningFailureCategory.PositioningMethodNotImplemented
                 : RulePositioningFailureCategory.ConfigurationInvalid;
         }
-        return Failure(category);
+        result.TryGetFailure(out CheckPointRecipeSelectionFailureCategory internalCategory);
+        return LoggedMapping("recipe.selection", internalCategory.ToString(), category, algorithm, durationMs);
     }
 
     /// <summary>Maps recipe-execution failures to the Phase 1 contract.</summary>
-    private static RulePositioningFailure MapExecutionFailure(PositioningBlockResult<CheckPointBlockValue> result)
+    private static RulePositioningFailure MapExecutionFailure(
+        PositioningBlockResult<CheckPointBlockValue> result,
+        ProvisioningPositioningAlgorithm algorithm,
+        long durationMs)
     {
         RulePositioningFailureCategory category = result is PositioningBlockFailure<CheckPointBlockValue> failure
             && failure.Category == PositioningBlockFailureCategory.InvalidRecipe
                 ? RulePositioningFailureCategory.ConfigurationInvalid
                 : RulePositioningFailureCategory.CalculationFailed;
-        return Failure(category);
+        string internalCategory = result is PositioningBlockFailure<CheckPointBlockValue> blockFailure
+            ? blockFailure.Category.ToString()
+            : "UnexpectedResultType";
+        return LoggedMapping("recipe.execution", internalCategory, category, algorithm, durationMs);
     }
 
     /// <summary>Creates a Phase 1 failure with its fixed safe diagnostic.</summary>
     private static RulePositioningFailure Failure(RulePositioningFailureCategory category)
     {
         return new RulePositioningFailure(category);
+    }
+
+    private static RulePositioningFailure LoggedMapping(
+        string component,
+        string internalCategory,
+        RulePositioningFailureCategory publicCategory,
+        ProvisioningPositioningAlgorithm? algorithm,
+        long durationMs)
+    {
+        RulePositioningDiagnosticLog.WriteFailure("strategy.mapping", new Dictionary<string, object?>
+        {
+            ["strategy"] = nameof(CheckPointRulePositioningStrategy),
+            ["component"] = component,
+            ["internal_category"] = internalCategory,
+            ["public_category"] = publicCategory.ToString(),
+            ["algorithm"] = algorithm?.ToString(),
+            ["duration_ms"] = durationMs
+        });
+        return Failure(publicCategory);
+    }
+
+    private static void WritePositionSuccess(
+        CheckPointRulePosition position,
+        ProvisioningPositioningAlgorithm algorithm)
+    {
+        RulePositioningDiagnosticLog.WriteInfo("strategy.position", "success", new Dictionary<string, object?>
+        {
+            ["strategy"] = nameof(CheckPointRulePositioningStrategy),
+            ["algorithm"] = algorithm.ToString(),
+            ["anchor_kind"] = position.AnchorKind.ToString(),
+            ["layer_uid"] = RulePositioningDiagnosticLog.Fingerprint(position.LayerUid),
+            ["anchor_uid"] = RulePositioningDiagnosticLog.Fingerprint(position.AnchorRuleUid)
+        });
     }
 }

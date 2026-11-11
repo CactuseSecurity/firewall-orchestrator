@@ -3,13 +3,16 @@ using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Data.Workflow;
+using FWO.Services.RulePositioning;
 using FWO.Services.RulePositioning.Blocks;
 using FWO.Services.RulePositioning.CheckPoint;
+using FWO.Test.Helpers;
 using NUnit.Framework;
 
 namespace FWO.Test;
 
 [TestFixture]
+[NonParallelizable]
 public class CheckPointStructuralBlocksTest
 {
     private const int kManagementId = 10;
@@ -327,10 +330,17 @@ public class CheckPointStructuralBlocksTest
     public async Task InvalidCheckPointTopology_ReturnsInvalidSnapshot(InvalidGraphKind graphKind)
     {
         CheckPointPositioningContext context = Context(InvalidGraphSnapshot(graphKind));
+        PositioningBlockResult<CheckPointBlockValue>? result = null;
 
-        PositioningBlockResult<CheckPointBlockValue> result = await Execute(InitialLayer(), context);
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+        {
+            using IDisposable attempt = RulePositioningDiagnosticLog.BeginAttempt(1, 2, 3, kGatewayId);
+            result = await Execute(InitialLayer(), context);
+        });
 
-        AssertFailure(result, PositioningBlockFailureCategory.InvalidSnapshot, CheckPointLayerScopeBlock.kKind);
+        AssertFailure(result!, PositioningBlockFailureCategory.InvalidSnapshot, CheckPointLayerScopeBlock.kKind);
+        Assert.That(output, Does.Contain("\"stage\":\"topology.validation\""));
+        Assert.That(output, Does.Contain("\"invariant\":"));
     }
 
     [Test]

@@ -1,5 +1,6 @@
 using FWO.Data.RulePositioning;
 using FWO.Services.RulePositioning.CheckPoint;
+using FWO.Services.RulePositioning;
 
 namespace FWO.Compliance.RulePositioning.CheckPoint;
 
@@ -13,10 +14,17 @@ public static class CheckPointLayerGuardSectionNameResolver
     {
         ArgumentNullException.ThrowIfNull(template);
 
+        RulePositioningDiagnosticLog.WriteInfo("section-template.render", "start", new Dictionary<string, object?>
+        {
+            ["required_variables"] = template.RequiredVariables.OrderBy(variable => variable).Select(variable => variable.ToString()).ToArray(),
+            ["source_zone_ids"] = zoneInput?.SourceZones.Select(zone => zone.Id).Take(16).ToArray(),
+            ["destination_zone_ids"] = zoneInput?.DestinationZones.Select(zone => zone.Id).Take(16).ToArray()
+        });
+
         Dictionary<CheckPointSectionNameVariable, string> values = [];
         if (template.RequiredVariables.Count > 0 && zoneInput == null)
         {
-            return Failure(CheckPointLayerGuardSectionNameFailureCategory.MissingZoneInput);
+            return LoggedFailure(CheckPointLayerGuardSectionNameFailureCategory.MissingZoneInput);
         }
 
         if (template.RequiredVariables.Contains(CheckPointSectionNameVariable.SourceZone) &&
@@ -27,7 +35,7 @@ public static class CheckPointLayerGuardSectionNameResolver
                 zoneInput.SourceCoverage,
                 out CheckPointLayerGuardSectionNameFailureCategory sourceFailure))
         {
-            return Failure(sourceFailure);
+            return LoggedFailure(sourceFailure);
         }
 
         if (template.RequiredVariables.Contains(CheckPointSectionNameVariable.DestinationZone) &&
@@ -38,13 +46,27 @@ public static class CheckPointLayerGuardSectionNameResolver
                 zoneInput.DestinationCoverage,
                 out CheckPointLayerGuardSectionNameFailureCategory destinationFailure))
         {
-            return Failure(destinationFailure);
+            return LoggedFailure(destinationFailure);
         }
 
         PositioningResult<string, CheckPointSectionNameTemplateFailureCategory> rendered = template.Render(values);
-        return rendered.TryGetValue(out string? sectionName)
-            ? PositioningResult<string, CheckPointLayerGuardSectionNameFailureCategory>.Success(sectionName)
-            : Failure(CheckPointLayerGuardSectionNameFailureCategory.TemplateRenderInvalid);
+        if (!rendered.TryGetValue(out string? sectionName))
+        {
+            rendered.TryGetFailure(out CheckPointSectionNameTemplateFailureCategory renderCategory);
+            RulePositioningDiagnosticLog.WriteFailure("section-template.render", new Dictionary<string, object?>
+            {
+                ["failure_category"] = CheckPointLayerGuardSectionNameFailureCategory.TemplateRenderInvalid.ToString(),
+                ["render_category"] = renderCategory.ToString()
+            });
+            return Failure(CheckPointLayerGuardSectionNameFailureCategory.TemplateRenderInvalid);
+        }
+        RulePositioningDiagnosticFingerprint fingerprint = RulePositioningDiagnosticLog.Fingerprint(sectionName);
+        RulePositioningDiagnosticLog.WriteInfo("section-template.render", "success", new Dictionary<string, object?>
+        {
+            ["rendered_name_length"] = fingerprint.Length,
+            ["rendered_name_fingerprint"] = fingerprint.Sha256Prefix
+        });
+        return PositioningResult<string, CheckPointLayerGuardSectionNameFailureCategory>.Success(sectionName);
     }
 
     private static bool TryAddZoneValue(
@@ -92,6 +114,16 @@ public static class CheckPointLayerGuardSectionNameResolver
     private static PositioningResult<string, CheckPointLayerGuardSectionNameFailureCategory> Failure(
         CheckPointLayerGuardSectionNameFailureCategory category) =>
         PositioningResult<string, CheckPointLayerGuardSectionNameFailureCategory>.Failure(category);
+
+    private static PositioningResult<string, CheckPointLayerGuardSectionNameFailureCategory> LoggedFailure(
+        CheckPointLayerGuardSectionNameFailureCategory category)
+    {
+        RulePositioningDiagnosticLog.WriteFailure("section-template.render", new Dictionary<string, object?>
+        {
+            ["failure_category"] = category.ToString()
+        });
+        return Failure(category);
+    }
 }
 
 /// <summary>Safe failure categories for resolving a LayerGuard section name.</summary>

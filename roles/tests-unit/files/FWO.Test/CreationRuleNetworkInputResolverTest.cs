@@ -4,6 +4,8 @@ using FWO.Data.Middleware;
 using FWO.Data.RulePositioning;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
+using FWO.Services.RulePositioning;
+using FWO.Test.Helpers;
 using NUnit.Framework;
 using CreationRuleNetworkResolutionResult = FWO.Data.RulePositioning.PositioningResult<
     FWO.Data.RulePositioning.CreationRuleNetworkInput,
@@ -12,10 +14,35 @@ using CreationRuleNetworkResolutionResult = FWO.Data.RulePositioning.Positioning
 namespace FWO.Test;
 
 [TestFixture]
+[NonParallelizable]
 public class CreationRuleNetworkInputResolverTest
 {
     private static readonly string[] kExpectedResolvedSourceAddresses = ["10.0.0.1", "10.0.0.2"];
     private static readonly long[] kExpectedRequestedGroupIds = [7];
+
+    [Test]
+    public async Task InvalidAddressTrace_ReportsCategoryWithoutRawCustomerValue()
+    {
+        const string secretAddress = "CUSTOMER_SECRET_192.0.2.99";
+        WfReqTask access = Access(
+            [Leaf(ElemFieldType.source, secretAddress, secretAddress)],
+            [Leaf(ElemFieldType.destination, "203.0.113.1", null)]);
+        CreationRuleNetworkResolutionResult? result = null;
+
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+        {
+            using IDisposable attempt = RulePositioningDiagnosticLog.BeginAttempt(1, access.Id, access.TicketId, 2);
+            result = await Resolver().ResolveAsync(access, [access], CancellationToken.None);
+        });
+
+        Assert.That(AssertFailure(result!), Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.InvalidAddress));
+        Assert.Multiple(() =>
+        {
+            Assert.That(output, Does.Contain("\"stage\":\"network.resolve\""));
+            Assert.That(output, Does.Contain("\"failure_category\":\"InvalidAddress\""));
+            Assert.That(output, Does.Not.Contain(secretAddress));
+        });
+    }
 
     [Test]
     public async Task DirectRanges_AreNormalizedDeduplicatedAndImmutable()
@@ -280,13 +307,19 @@ public class CreationRuleNetworkInputResolverTest
             return new FlowGroupResolutionResult { NetworkGroups = resolved };
         });
 
-        CreationRuleNetworkResolutionFailureCategory failure = AssertFailure(
-            await Resolver(groups).ResolveAsync(access, [access], CancellationToken.None));
+        CreationRuleNetworkResolutionFailureCategory failure = default;
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+        {
+            using IDisposable attempt = RulePositioningDiagnosticLog.BeginAttempt(1, access.Id, access.TicketId, 2);
+            failure = AssertFailure(await Resolver(groups).ResolveAsync(access, [access], CancellationToken.None));
+        });
 
         Assert.Multiple(() =>
         {
             Assert.That(failure, Is.EqualTo(expectedCategory));
             Assert.That(groups.CallCount, Is.EqualTo(2));
+            Assert.That(output, Does.Contain("\"flow_id\":101"));
+            Assert.That(output, Does.Contain($"\"match_count\":{(duplicateLastGroup ? 2 : 0)}"));
         });
     }
 

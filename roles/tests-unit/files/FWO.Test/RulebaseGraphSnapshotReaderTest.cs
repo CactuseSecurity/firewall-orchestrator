@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Compliance.RulePositioning.CheckPoint;
@@ -8,6 +9,7 @@ using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Data.Workflow;
 using FWO.Services.RulePositioning;
+using FWO.Test.Helpers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -18,6 +20,7 @@ using RulebaseGraphReadResult = FWO.Data.RulePositioning.PositioningResult<
 namespace FWO.Test;
 
 [TestFixture]
+[NonParallelizable]
 public class RulebaseGraphSnapshotReaderTest
 {
     private const int kExpectedLinkLimit = 10001;
@@ -147,6 +150,113 @@ public class RulebaseGraphSnapshotReaderTest
         {
             Assert.That(second, Is.SameAs(first));
             Assert.That(api.Calls, Has.Count.EqualTo(3));
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_ReportsCacheMissThenHitWithinOneAttempt()
+    {
+        SimulatedApiConnection api = SuccessfulApi();
+        RulebaseGraphSnapshotReader reader = new(api);
+
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+        {
+            using IDisposable attempt = RulePositioningDiagnosticLog.BeginAttempt(1, 2, 3, kGatewayId);
+            using (RulePositioningGraphCacheScope.Begin())
+            {
+                AssertSuccess(await reader.ReadAsync(kManagementId, kGatewayId, CancellationToken.None));
+                AssertSuccess(await reader.ReadAsync(kManagementId, kGatewayId, CancellationToken.None));
+            }
+        });
+
+        List<JsonElement> cacheEvents = ParseDiagnostics(output)
+            .Where(Event => Event.GetProperty("stage").GetString() == "graph.cache")
+            .ToList();
+        Assert.Multiple(() =>
+        {
+            Assert.That(cacheEvents, Has.Count.EqualTo(2));
+            Assert.That(cacheEvents.Select(Event => Event.GetProperty("facts").GetProperty("cache_hit").GetBoolean()),
+                Is.EqualTo(new[] { false, true }));
+            Assert.That(api.Calls, Has.Count.EqualTo(3));
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_BlankRulebaseUidReportsFingerprintedInvariant()
+    {
+        string invalidRulebases = Mutate(kRulebasesJson, Root => Root[0]!["uid"] = "   ");
+        SimulatedApiConnection api = new(kImportJson, kLinksJson, invalidRulebases);
+        RulebaseGraphReadResult? result = null;
+
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+        {
+            using IDisposable attempt = RulePositioningDiagnosticLog.BeginAttempt(1, 2, 3, kGatewayId);
+            result = await new RulebaseGraphSnapshotReader(api)
+                .ReadAsync(kManagementId, kGatewayId, CancellationToken.None);
+        });
+
+        AssertFailure(result!, RulebaseGraphReadFailureCategory.InvalidGraphData);
+        JsonElement invariant = ParseDiagnostics(output).Single(Event =>
+            Event.GetProperty("stage").GetString() == "graph.invariant" &&
+            Event.GetProperty("facts").GetProperty("invariant").GetString() == "rulebase_uid_blank");
+        Assert.That(invariant.GetProperty("facts").GetProperty("uid").GetProperty("length").GetInt32(),
+            Is.EqualTo(3));
+    }
+
+    [Test]
+    public async Task ReadAsync_OversizedLinkGraphEmitsBoundedSummary()
+    {
+        JArray root = JArray.Parse(kLinksJson);
+        JArray links = (JArray)root[0]!["rulebase_links"]!;
+        JObject template = (JObject)links[0]!;
+        links.Clear();
+        for (int index = 1; index <= kExpectedLinkLimit; index++)
+        {
+            JObject link = (JObject)template.DeepClone();
+            link["id"] = index;
+            links.Add(link);
+        }
+        SimulatedApiConnection api = new(kImportJson, root.ToString(Formatting.None));
+
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+        {
+            using IDisposable attempt = RulePositioningDiagnosticLog.BeginAttempt(1, 2, 3, kGatewayId);
+            AssertFailure(
+                await new RulebaseGraphSnapshotReader(api).ReadAsync(kManagementId, kGatewayId, CancellationToken.None),
+                RulebaseGraphReadFailureCategory.InvalidGraphData);
+        });
+
+        List<JsonElement> diagnostics = ParseDiagnostics(output);
+        Assert.That(diagnostics, Has.Count.LessThanOrEqualTo(10));
+        Assert.That(diagnostics.Any(Event =>
+            Event.GetProperty("stage").GetString() == "graph.invariant" &&
+            Event.GetProperty("facts").GetProperty("invariant").GetString() == "link_count_out_of_range"),
+            Is.True);
+    }
+
+    [Test]
+    public async Task ReadAsync_MissingLinkSourceRuleReportsFirstNumericIdentity()
+    {
+        string incompleteRulebases = Mutate(kRulebasesJson,
+            root => ((JArray)root[1]!["rules"]!).RemoveAt(1));
+        SimulatedApiConnection api = new(kImportJson, kLinksJson, incompleteRulebases);
+        RulebaseGraphReadResult? result = null;
+
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+        {
+            using IDisposable attempt = RulePositioningDiagnosticLog.BeginAttempt(1, 2, 3, kGatewayId);
+            result = await new RulebaseGraphSnapshotReader(api)
+                .ReadAsync(kManagementId, kGatewayId, CancellationToken.None);
+        });
+
+        AssertFailure(result!, RulebaseGraphReadFailureCategory.InvalidGraphData);
+        JsonElement invariant = ParseDiagnostics(output).Single(Event =>
+            Event.GetProperty("stage").GetString() == "graph.invariant" &&
+            Event.GetProperty("facts").GetProperty("invariant").GetString() == "source_rule_missing");
+        Assert.Multiple(() =>
+        {
+            Assert.That(invariant.GetProperty("facts").GetProperty("source_rule_id").GetInt64(), Is.EqualTo(201));
+            Assert.That(invariant.GetProperty("facts").GetProperty("violation_count").GetInt32(), Is.EqualTo(1));
         });
     }
 
@@ -443,6 +553,22 @@ public class RulebaseGraphSnapshotReaderTest
     {
         Assert.That(result.TryGetValue(out RulebaseGraphReadValue? value), Is.True);
         return value!;
+    }
+
+    private static List<JsonElement> ParseDiagnostics(string output)
+    {
+        const string prefix = "RPDIAG ";
+        return
+        [
+            .. output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                .Where(Line => Line.Contains(prefix, StringComparison.Ordinal))
+                .Select(Line =>
+                {
+                    int jsonStart = Line.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length;
+                    using JsonDocument document = JsonDocument.Parse(Line[jsonStart..]);
+                    return document.RootElement.Clone();
+                })
+        ];
     }
 
     private static void AssertExactCalls(

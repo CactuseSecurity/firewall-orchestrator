@@ -9,6 +9,7 @@ using FWO.Middleware.Server;
 using FWO.Services.RulePositioning;
 using FWO.Services.RulePositioning.Blocks;
 using FWO.Services.RulePositioning.CheckPoint;
+using FWO.Test.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Concurrent;
@@ -37,6 +38,7 @@ using CheckPointRecipeSelectionResult = FWO.Data.RulePositioning.PositioningResu
 namespace FWO.Test;
 
 [TestFixture]
+[NonParallelizable]
 internal class CheckPointRulePositioningStrategyTest
 {
     private const int kManagementId = 21;
@@ -571,6 +573,28 @@ internal class CheckPointRulePositioningStrategyTest
 
         AssertFailure(result, RulePositioningFailureCategory.CalculationFailed);
         Assert.That(((RulePositioningFailure)result).Diagnostic, Does.Not.Contain(kSentinel));
+    }
+
+    [Test]
+    public async Task CalculateAsync_LogsInternalCategoryBeforePublicFailureMapping()
+    {
+        StrategyFixture fixture = new();
+        fixture.Graph.Result = RulebaseGraphReadResult.Failure(RulebaseGraphReadFailureCategory.InvalidGraphData);
+
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+        {
+            using IDisposable attempt = RulePositioningDiagnosticLog.BeginAttempt(1, 2, 3, kGatewayId);
+            RulePositioningResult result = await fixture.Strategy.CalculateAsync(ValidContext(), CancellationToken.None);
+            AssertFailure(result, RulePositioningFailureCategory.CalculationFailed);
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(output, Does.Contain("\"stage\":\"strategy.mapping\""));
+            Assert.That(output, Does.Contain("\"component\":\"graph\""));
+            Assert.That(output, Does.Contain("\"internal_category\":\"InvalidGraphData\""));
+            Assert.That(output, Does.Contain("\"public_category\":\"CalculationFailed\""));
+        });
     }
 
     [Test]

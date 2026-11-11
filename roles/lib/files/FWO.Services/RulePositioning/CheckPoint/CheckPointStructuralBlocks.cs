@@ -218,10 +218,32 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
         if (positioningInput == null ||
             !TryValidateSnapshot(context, positioningInput, structure!, out List<GuardCandidate> candidates))
         {
+            RulePositioningDiagnosticLog.WriteFailure("block.decision", new Dictionary<string, object?>
+            {
+                ["block_kind"] = Kind,
+                ["failure_category"] = PositioningBlockFailureCategory.InvalidSnapshot.ToString(),
+                ["inline_link_count"] = context.Snapshot.Links.Count(link => link.LinkType == RulebaseLinkTypes.Inline),
+                ["guard_count"] = positioningInput?.GuardSnapshot.GuardsByTargetLayerId.Count
+            });
             return Result(PositioningBlockFailureCategory.InvalidSnapshot);
         }
 
         GuardMatchSummary matches = EvaluateCandidates(positioningInput, candidates, cancellationToken);
+        RulePositioningDiagnosticLog.WriteInfo("block.guard-match", "summary", new Dictionary<string, object?>
+        {
+            ["block_kind"] = Kind,
+            ["candidate_count"] = candidates.Count,
+            ["first_candidate_layer_id"] = candidates.FirstOrDefault()?.Layer.Node.Id,
+            ["definite_match_count"] = matches.DefiniteMatches,
+            ["indeterminate_candidate_count"] = matches.IndeterminateCandidates,
+            ["source_contained_count"] = matches.SourceContained,
+            ["source_not_contained_count"] = matches.SourceNotContained,
+            ["source_indeterminate_count"] = matches.SourceIndeterminate,
+            ["destination_contained_count"] = matches.DestinationContained,
+            ["destination_not_contained_count"] = matches.DestinationNotContained,
+            ["destination_indeterminate_count"] = matches.DestinationIndeterminate,
+            ["selected_scope_id"] = matches.SelectedLayer?.Node.Id
+        });
         return ResolveMatches(matches);
     }
 
@@ -233,6 +255,12 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
     {
         int definiteMatches = 0;
         int indeterminateCandidates = 0;
+        int sourceContained = 0;
+        int sourceNotContained = 0;
+        int sourceIndeterminate = 0;
+        int destinationContained = 0;
+        int destinationNotContained = 0;
+        int destinationIndeterminate = 0;
         CheckPointLayerStructure? selectedLayer = null;
         foreach (GuardCandidate candidate in candidates)
         {
@@ -241,6 +269,8 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
                 candidate.Guard.Source, positioningInput.NetworkInput.SourceRanges, cancellationToken);
             CheckPointGuardContainmentResult destination = CheckPointGuardContainmentEvaluator.Evaluate(
                 candidate.Guard.Destination, positioningInput.NetworkInput.DestinationRanges, cancellationToken);
+            Count(source, ref sourceContained, ref sourceNotContained, ref sourceIndeterminate);
+            Count(destination, ref destinationContained, ref destinationNotContained, ref destinationIndeterminate);
             if (source == CheckPointGuardContainmentResult.Contained && destination == CheckPointGuardContainmentResult.Contained)
             {
                 definiteMatches++;
@@ -252,7 +282,27 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
                 indeterminateCandidates++;
             }
         }
-        return new GuardMatchSummary(definiteMatches, indeterminateCandidates, selectedLayer);
+        return new GuardMatchSummary(
+            definiteMatches,
+            indeterminateCandidates,
+            selectedLayer,
+            sourceContained,
+            sourceNotContained,
+            sourceIndeterminate,
+            destinationContained,
+            destinationNotContained,
+            destinationIndeterminate);
+    }
+
+    private static void Count(
+        CheckPointGuardContainmentResult result,
+        ref int contained,
+        ref int notContained,
+        ref int indeterminate)
+    {
+        if (result == CheckPointGuardContainmentResult.Contained) contained++;
+        else if (result == CheckPointGuardContainmentResult.NotContained) notContained++;
+        else indeterminate++;
     }
 
     /// <summary>Maps aggregate guard containment to one selected scope or failure.</summary>
@@ -270,6 +320,11 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
         {
             return Result(PositioningBlockFailureCategory.ScopeNotFound);
         }
+        RulePositioningDiagnosticLog.WriteInfo("block.decision", "success", new Dictionary<string, object?>
+        {
+            ["block_kind"] = kKind,
+            ["selected_scope_id"] = matches.SelectedLayer.Node.Id
+        });
         return Task.FromResult<PositioningBlockResult<CheckPointBlockValue>>(
             new PositioningBlockSuccess<CheckPointBlockValue>(new CheckPointScopeValue(matches.SelectedLayer)));
     }
@@ -355,7 +410,13 @@ public sealed class CheckPointLayerGuardScopeBlock : IPositioningBlock<CheckPoin
     private sealed record GuardMatchSummary(
         int DefiniteMatches,
         int IndeterminateCandidates,
-        CheckPointLayerStructure? SelectedLayer);
+        CheckPointLayerStructure? SelectedLayer,
+        int SourceContained,
+        int SourceNotContained,
+        int SourceIndeterminate,
+        int DestinationContained,
+        int DestinationNotContained,
+        int DestinationIndeterminate);
 }
 
 /// <summary>
@@ -409,6 +470,18 @@ public sealed class CheckPointLayerScopeBlock : IPositioningBlock<CheckPointPosi
         }
 
         List<CheckPointLayerStructure> matches = MatchingLayers(structure!).ToList();
+        RulePositioningDiagnosticLog.WriteInfo("block.scope-selection", "summary", new Dictionary<string, object?>
+        {
+            ["block_kind"] = Kind,
+            ["selector_kind"] = Selector.Mode.ToString(),
+            ["scope_fingerprint"] = Selector.Value == null
+                ? null
+                : RulePositioningDiagnosticLog.Fingerprint(Selector.Value),
+            ["candidate_count"] = structure!.Layers.Count,
+            ["match_count"] = matches.Count,
+            ["first_candidate_layer_id"] = matches.FirstOrDefault()?.Node.Id,
+            ["selected_scope_id"] = matches.Count == 1 ? matches[0].Node.Id : null
+        });
         return Task.FromResult<PositioningBlockResult<CheckPointBlockValue>>(matches.Count switch
         {
             0 => CheckPointBlockValidation.Failure(PositioningBlockFailureCategory.ScopeNotFound, Kind),
@@ -497,6 +570,17 @@ public sealed class CheckPointSectionScopeBlock : IPositioningBlock<CheckPointPo
                 CheckPointBlockValidation.Failure(PositioningBlockFailureCategory.InvalidSnapshot, Kind));
         }
         List<CheckPointSectionStructure> matches = parent.LayerStructure.Sections.Where(Matches).ToList();
+        RulePositioningDiagnosticLog.WriteInfo("block.scope-selection", "summary", new Dictionary<string, object?>
+        {
+            ["block_kind"] = Kind,
+            ["selector_kind"] = Selector.Mode.ToString(),
+            ["scope_fingerprint"] = RulePositioningDiagnosticLog.Fingerprint(Selector.Value),
+            ["parent_layer_id"] = parent.Layer.Id,
+            ["candidate_count"] = parent.LayerStructure.Sections.Count,
+            ["match_count"] = matches.Count,
+            ["first_candidate_section_id"] = matches.FirstOrDefault()?.Node.Id,
+            ["selected_scope_id"] = matches.Count == 1 ? matches[0].Node.Id : null
+        });
         return Task.FromResult<PositioningBlockResult<CheckPointBlockValue>>(matches.Count switch
         {
             0 => CheckPointBlockValidation.Failure(PositioningBlockFailureCategory.ScopeNotFound, Kind),
@@ -648,6 +732,16 @@ public abstract class CheckPointBoundaryBlock : IPositioningBlock<CheckPointPosi
         CheckPointRulePosition position = ScopeRules(scope).Count > 0
             ? ResolvePopulatedScope(scope, algorithm)
             : ResolveEmptyScope(scope, algorithm);
+        RulePositioningDiagnosticLog.WriteInfo("block.boundary", "success", new Dictionary<string, object?>
+        {
+            ["block_kind"] = Kind,
+            ["boundary_direction"] = this is BeginningOfBlock ? "beginning" : "end",
+            ["selected_scope_id"] = scope.Section?.Id ?? scope.Layer.Id,
+            ["available_ordered_rule_count"] = ScopeRules(scope).Count,
+            ["anchor_kind"] = position.AnchorKind.ToString(),
+            ["layer_uid"] = RulePositioningDiagnosticLog.Fingerprint(position.LayerUid),
+            ["anchor_uid"] = RulePositioningDiagnosticLog.Fingerprint(position.AnchorRuleUid)
+        });
         return Task.FromResult<PositioningBlockResult<CheckPointBlockValue>>(
             new PositioningBlockSuccess<CheckPointBlockValue>(new CheckPointPositionValue(position)));
     }
@@ -829,6 +923,12 @@ internal static class CheckPointBlockValidation
         PositioningBlockFailureCategory category,
         string blockKind)
     {
+        RulePositioningDiagnosticLog.WriteFailure("block.failure", new Dictionary<string, object?>
+        {
+            ["block_kind"] = blockKind,
+            ["failure_category"] = category.ToString(),
+            ["reason"] = category.ToString()
+        });
         return new PositioningBlockFailure<CheckPointBlockValue>(category, blockKind);
     }
 }

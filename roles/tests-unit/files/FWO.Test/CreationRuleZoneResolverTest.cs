@@ -119,6 +119,20 @@ internal class CreationRuleZoneResolverTest
     }
 
     [Test]
+    public async Task ResolveAsync_NullZoneDependenciesRemainInvalidZoneData()
+    {
+        CreationRuleNetworkInput input = Input([Range("10.0.0.1")], [Range("10.0.0.2")]);
+
+        FailureValue nullZones = Failure(await Resolver().ResolveAsync(
+            input, null!, Config(autoCalculateInternetZone: false), CancellationToken.None));
+        FailureValue nullConfiguration = Failure(await Resolver().ResolveAsync(
+            input, [], null!, CancellationToken.None));
+
+        Assert.That(new[] { nullZones.Category, nullConfiguration.Category },
+            Is.All.EqualTo(CreationRuleZoneResolutionFailureCategory.InvalidZoneData));
+    }
+
+    [Test]
     public async Task ResolveAsync_RequiresExactlyOneValidAutomaticInternetZone()
     {
         CreationRuleNetworkInput input = Input([Range("10.0.0.1")], [Range("10.0.0.2")]);

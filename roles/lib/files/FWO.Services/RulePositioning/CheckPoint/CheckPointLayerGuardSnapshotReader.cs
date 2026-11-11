@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
@@ -29,6 +30,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
     {
         if (graph == null || importId <= 0 || graph.ManagementId <= 0 || graph.GatewayId <= 0)
         {
+            Invariant("invalid_scope", ("import_id", importId), ("management_id", graph?.ManagementId ?? 0), ("gateway_id", graph?.GatewayId ?? 0));
             return Failure(CheckPointLayerGuardReadFailureCategory.InvalidInput);
         }
         cancellationToken.ThrowIfCancellationRequested();
@@ -38,6 +40,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         }
         if (candidates.Count == 0)
         {
+            RulePositioningDiagnosticLog.WriteInfo("guard.candidates", "summary", Facts(("candidate_count", 0), ("inline_link_count", 0)));
             return Success(graph, importId, kNoGuards);
         }
 
@@ -45,17 +48,29 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         List<RuleWire>? rules;
         try
         {
+            long started = Stopwatch.GetTimestamp();
+            RulePositioningDiagnosticLog.WriteInfo(
+                "guard.query",
+                "start",
+                Facts(("requested_rule_count", sourceRuleIds.Count), ("import_id", importId)));
             rules = await apiConnection.SendQueryAsync<List<RuleWire>>(
                 RulePositioningQueries.getCheckPointLayerGuardsAtImport,
                 new { managementId = graph.ManagementId, sourceRuleIds, importId },
                 kOperation).WaitAsync(cancellationToken);
+            RulePositioningDiagnosticLog.WriteInfo(
+                "guard.query",
+                "success",
+                Facts(
+                    ("duration_ms", (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds),
+                    ("returned_rule_count", rules?.Count ?? 0)));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            RulePositioningDiagnosticLog.WriteException("guard.query", exception);
             return Failure(CheckPointLayerGuardReadFailureCategory.QueryFailed);
         }
 
@@ -63,6 +78,16 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         {
             return Failure(CheckPointLayerGuardReadFailureCategory.InvalidGuardData);
         }
+        RulePositioningDiagnosticLog.WriteInfo(
+            "guard.map",
+            "success",
+            Facts(
+                ("guard_count", guards.Count),
+                ("term_count", guards.Sum(Guard => Guard.Source.Terms.Count + Guard.Destination.Terms.Count)),
+                ("range_count", guards.Sum(Guard => Guard.Source.Terms.Sum(Term => Term.IncludedRanges.Count + Term.ExcludedRanges.Count) +
+                    Guard.Destination.Terms.Sum(Term => Term.IncludedRanges.Count + Term.ExcludedRanges.Count))),
+                ("unresolved_term_count", guards.Sum(Guard => Guard.Source.Terms.Count(Term => Term.HasUnresolvedIncludedTerms || Term.HasUnresolvedExcludedTerms) +
+                    Guard.Destination.Terms.Count(Term => Term.HasUnresolvedIncludedTerms || Term.HasUnresolvedExcludedTerms)))));
         return Success(graph, importId, guards);
     }
 
@@ -75,6 +100,13 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         List<RulebaseGraphLink> links = [.. graph.Links.Where(link => link.LinkType == RulebaseLinkTypes.Inline)];
         HashSet<long> initialTargets = [.. graph.Links.Where(link => link.IsInitial)
             .Select(link => link.TargetRulebaseId)];
+        RulePositioningDiagnosticLog.WriteInfo(
+            "guard.candidates",
+            "summary",
+            Facts(
+                ("rulebase_count", graph.Rulebases.Count),
+                ("total_link_count", graph.Links.Count),
+                ("inline_link_count", links.Count)));
         if (!HasValidCandidateLinks(links, initialTargets))
         {
             return false;
@@ -93,12 +125,26 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
     /// <summary>Checks inline-link identity, scope, and one-to-one cardinality.</summary>
     private static bool HasValidCandidateLinks(
         List<RulebaseGraphLink> links,
-        HashSet<long> initialTargets) =>
-        links.All(link => link.SourceRuleId.HasValue && link.SourceRulebaseId.HasValue &&
-            !link.IsInitial && !link.IsSection && !link.IsGlobal &&
-            !initialTargets.Contains(link.TargetRulebaseId)) &&
-        links.GroupBy(link => link.SourceRuleId).All(group => group.Count() == 1) &&
-        links.GroupBy(link => link.TargetRulebaseId).All(group => group.Count() == 1);
+        HashSet<long> initialTargets)
+    {
+        List<RulebaseGraphLink> invalid = links.Where(link => !link.SourceRuleId.HasValue ||
+            !link.SourceRulebaseId.HasValue || link.IsInitial || link.IsSection || link.IsGlobal ||
+            initialTargets.Contains(link.TargetRulebaseId)).ToList();
+        IGrouping<long?, RulebaseGraphLink>? duplicateSource = links.GroupBy(link => link.SourceRuleId)
+            .FirstOrDefault(group => group.Count() > 1);
+        IGrouping<long, RulebaseGraphLink>? duplicateTarget = links.GroupBy(link => link.TargetRulebaseId)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (invalid.Count > 0 || duplicateSource != null || duplicateTarget != null)
+        {
+            Invariant(
+                invalid.Count > 0 ? "candidate_link_invalid" : duplicateSource != null ? "candidate_source_ambiguous" : "candidate_target_ambiguous",
+                ("violation_count", invalid.Count > 0 ? invalid.Count : duplicateSource?.Count() ?? duplicateTarget!.Count()),
+                ("source_rule_id", invalid.FirstOrDefault()?.SourceRuleId ?? duplicateSource?.Key ?? 0),
+                ("target_rulebase_id", invalid.FirstOrDefault()?.TargetRulebaseId ?? duplicateTarget?.Key ?? 0));
+            return false;
+        }
+        return true;
+    }
 
     /// <summary>Maps one validated inline link to a guard query candidate.</summary>
     private static bool TryCreateCandidate(
@@ -113,6 +159,11 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
             rulebase.Id == link.TargetRulebaseId);
         if (source == null || target == null || source.Rules.Count(rule => rule.Id == link.SourceRuleId) != 1)
         {
+            Invariant(
+                "candidate_endpoint_invalid",
+                ("source_rule_id", link.SourceRuleId ?? 0),
+                ("source_rulebase_id", link.SourceRulebaseId ?? 0),
+                ("target_rulebase_id", link.TargetRulebaseId));
             return false;
         }
         candidate = new GuardCandidate(
@@ -147,9 +198,21 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
     }
 
     /// <summary>Checks guard query count, nullability, and rule identity uniqueness.</summary>
-    private static bool HasValidGuardRules(List<RuleWire>? rules, int expectedCount) =>
-        rules != null && rules.Count == expectedCount && rules.All(rule => rule != null) &&
-        rules.GroupBy(rule => rule.Id).All(group => group.Count() == 1);
+    private static bool HasValidGuardRules(List<RuleWire>? rules, int expectedCount)
+    {
+        if (rules == null || rules.Count != expectedCount || rules.Any(Rule => Rule == null))
+        {
+            Invariant("guard_rule_cardinality", ("expected_count", expectedCount), ("actual_count", rules?.Count ?? 0));
+            return false;
+        }
+        IGrouping<long?, RuleWire>? duplicate = rules.GroupBy(Rule => Rule.Id).FirstOrDefault(Group => Group.Count() > 1);
+        if (duplicate != null)
+        {
+            Invariant("guard_rule_duplicate", ("rule_id", duplicate.Key ?? 0), ("violation_count", duplicate.Count()));
+            return false;
+        }
+        return true;
+    }
 
     /// <summary>Validates and maps one queried guard rule.</summary>
     private static bool TryMapGuard(
@@ -166,6 +229,14 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
             !rule.SourceNegated.HasValue || !rule.DestinationNegated.HasValue ||
             !IsHistorical(rule.Created, rule.Removed, importId))
         {
+            Invariant(
+                "guard_rule_invalid",
+                ("expected_rule_id", candidate.SourceRuleId),
+                ("returned_rule_id", rule?.Id ?? 0),
+                ("expected_management_id", managementId),
+                ("actual_management_id", rule?.ManagementId ?? 0),
+                ("expected_rulebase_id", candidate.SourceRulebaseId),
+                ("actual_rulebase_id", rule?.RulebaseId ?? 0));
             return false;
         }
         if (!TryMapSide(
@@ -199,6 +270,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         if (associations == null || associations.Any(association => association == null) ||
             associations.GroupBy(association => association.ObjectId).Any(group => group.Count() != 1))
         {
+            Invariant("guard_association_collection_invalid", ("rule_id", expectedRuleId), ("source_side", sourceSide));
             return false;
         }
         List<CheckPointGuardAddressTerm> terms = [];
@@ -210,6 +282,13 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
                 association.Object?.Id != association.ObjectId ||
                 !TryMapTerm(association.Object, importId, out CheckPointGuardAddressTerm? term))
             {
+                Invariant(
+                    "guard_association_invalid",
+                    ("rule_id", expectedRuleId),
+                    ("object_id", association.ObjectId ?? 0),
+                    ("returned_rule_id", association.RuleId ?? 0),
+                    ("expected_negated", sideNegated),
+                    ("actual_negated", association.Negated ?? false));
                 return false;
             }
             terms.Add(term!);
@@ -227,6 +306,11 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         term = null;
         if (!IsValidObject(topLevel, importId))
         {
+            Invariant(
+                "guard_object_invalid",
+                ("object_id", topLevel?.Id ?? 0),
+                ("object_uid", RulePositioningDiagnosticLog.Fingerprint(topLevel?.Uid)),
+                ("object_type", RulePositioningDiagnosticLog.Fingerprint(topLevel?.Type?.Name)));
             return false;
         }
         List<IPAddressRange> included = [];
@@ -263,6 +347,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
     {
         if (!TryParseRange(directObject.Ip, directObject.IpEnd, out IPAddressRange? range))
         {
+            Invariant("guard_address_invalid", ("object_id", directObject.Id ?? 0));
             return false;
         }
         included.Add(range!);
@@ -282,6 +367,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         unresolvedExcluded = false;
         if (group.Flats == null || group.Flats.GroupBy(flat => flat.MemberId).Any(members => members.Count() != 1))
         {
+            Invariant("guard_group_flat_collection_invalid", ("group_id", group.Id ?? 0));
             return false;
         }
 
@@ -314,6 +400,11 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
     {
         if (!IsValidFlat(flat, groupId, importId))
         {
+            Invariant(
+                "guard_group_flat_invalid",
+                ("group_id", groupId),
+                ("member_id", flat.MemberId ?? 0),
+                ("returned_group_id", flat.GroupId ?? 0));
             return false;
         }
         if (IsStructuralGroupRow(flat, groupId))
@@ -328,6 +419,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         }
         if (!TryParseRange(flat.Object!.Ip, flat.Object.IpEnd, out IPAddressRange? range))
         {
+            Invariant("guard_flat_address_invalid", ("group_id", groupId), ("member_id", flat.MemberId ?? 0));
             return false;
         }
         (flat.Negated!.Value ? excluded : included).Add(range!);
@@ -367,6 +459,19 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
     /// <summary>Applies the fixed-import half-open historical interval.</summary>
     private static bool IsHistorical(long? created, long? removed, long importId) =>
         created is > 0 && created <= importId && (!removed.HasValue || removed > importId);
+
+    /// <summary>Writes one stable guard mapping invariant with safe identities only.</summary>
+    private static void Invariant(string invariant, params (string Key, object? Value)[] values)
+    {
+        Dictionary<string, object?> facts = Facts(values);
+        facts["invariant"] = invariant;
+        facts.TryAdd("violation_count", 1);
+        RulePositioningDiagnosticLog.WriteFailure("guard.invariant", facts);
+    }
+
+    /// <summary>Builds one bounded guard diagnostic fact map.</summary>
+    private static Dictionary<string, object?> Facts(params (string Key, object? Value)[] values) =>
+        values.ToDictionary(Value => Value.Key, Value => Value.Value);
 
     /// <summary>Creates a successful immutable guard snapshot result.</summary>
     private static CheckPointLayerGuardReadResult Success(

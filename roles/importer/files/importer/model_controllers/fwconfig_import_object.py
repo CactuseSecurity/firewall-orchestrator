@@ -608,7 +608,7 @@ class FwConfigImportObject:
         prev_member_uids = self.get_members(typ, self.get_refs(typ, prev_config_objects[uid]))
         prev_flat_member_uids = self.get_prev_flats(typ, uid)
         member_uids = []  # all members need to be removed if group deleted or changed
-        flat_member_uids = []
+        flat_member_uids: set[str] = set()
         # group not removed and group not changed -> check for changes in members
         if uid in current_config_objects and current_config_objects[uid] == prev_config_objects[uid]:
             member_uids = self.get_members(typ, self.get_refs(typ, current_config_objects[uid]))

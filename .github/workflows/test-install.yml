@@ -178,6 +178,136 @@ jobs:
           cd ${{ github.workspace }}
           ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e add_demo_data=yes --tags integrationtests
 
+      # Both passes of a CA rotation, each limited to the certificate play plus the tests:
+      # the rotation restarts the services caching anchors and identities itself, which is
+      # what makes a "--tags certificates" rotation supported in the first place. The
+      # tests run inside each invocation because they assert on the state that very step
+      # has to leave - both anchors trusted after pass 1 (proven with a client identity of
+      # the staged CA presented to the API), the previous one retired after pass 2.
+      - name: Run Ansible CA rotation pass 1 (prepare) with integration tests
+        if: ${{ matrix.integration && success() }}
+        run: |
+          cd ${{ github.workspace }}
+          ./scripts/run-playbook-with-sudo.sh site.yml \
+            -e force_install=true \
+            -e add_demo_data=yes \
+            -e "installation_mode=upgrade internalca_ca_rotation=prepare" \
+            --tags certificates,integrationtests
+
+      # The refusal pass 2 depends on: without a pass-1 record for every host it must stop
+      # before switching anything. The markers are set aside, pass 2 has to be refused for
+      # exactly that reason, and the staged CA must still be staged rather than switched
+      # to; the pass 2 step below is the matching allowed case once the markers are back.
+      # The markers are put back before the result is checked, so a failure leaves the
+      # rotation state intact for the diagnostics step.
+      - name: Verify CA rotation pass 2 refuses a host that has not recorded pass 1
+        if: ${{ matrix.integration && success() }}
+        run: |
+          cd ${{ github.workspace }}
+          ca_dir=/usr/local/fworch/etc/secrets/ca
+          sudo mv "$ca_dir/rotation" "$RUNNER_TEMP/rotation-markers"
+          refusal_status=0
+          ./scripts/ci/expect-installer-refusal.sh \
+            "has not confirmed that it trusts the next internal CA" \
+            site.yml \
+            -e force_install=true \
+            -e "installation_mode=upgrade internalca_ca_rotation=activate" \
+            --tags certificates || refusal_status=$?
+          sudo mv "$RUNNER_TEMP/rotation-markers" "$ca_dir/rotation"
+          test "$refusal_status" -eq 0
+          sudo test -f "$ca_dir/next-ca.crt"
+          sudo test ! -e "$ca_dir/previous-ca.crt"
+
+      # An interrupted switch leaves the key and certificate of two different CAs in place,
+      # and only pass 2 may complete it: any other run would take the mismatch for a damaged
+      # CA certificate and self-sign a replacement for the key. The state is simulated by a
+      # previous-ca.crt next to the staged CA; an upgrade without the switch has to be
+      # refused and must not have touched the CA in force.
+      - name: Verify an interrupted CA switch refuses every run other than pass 2
+        if: ${{ matrix.integration && success() }}
+        run: |
+          cd ${{ github.workspace }}
+          ca_dir=/usr/local/fworch/etc/secrets/ca
+          ca_before="$(sudo sha256sum "$ca_dir/ca.crt" "$ca_dir/ca.key")"
+          sudo install -o root -g root -m 0600 "$ca_dir/ca.crt" "$ca_dir/previous-ca.crt"
+          refusal_status=0
+          ./scripts/ci/expect-installer-refusal.sh \
+            "was interrupted while it switched to the next internal CA" \
+            site.yml \
+            -e force_install=true \
+            -e installation_mode=upgrade \
+            --tags certificates || refusal_status=$?
+          sudo rm -f "$ca_dir/previous-ca.crt"
+          test "$refusal_status" -eq 0
+          test "$(sudo sha256sum "$ca_dir/ca.crt" "$ca_dir/ca.key")" = "$ca_before"
+          sudo test -f "$ca_dir/next-ca.crt"
+
+      - name: Run Ansible CA rotation pass 2 (activate) with integration tests
+        if: ${{ matrix.integration && success() }}
+        run: |
+          cd ${{ github.workspace }}
+          ./scripts/run-playbook-with-sudo.sh site.yml \
+            -e force_install=true \
+            -e add_demo_data=yes \
+            -e "installation_mode=upgrade internalca_ca_rotation=activate" \
+            --tags certificates,integrationtests
+
+      # The refusals that apply once a rotation has completed, each checked against its
+      # own message:
+      # - pass 2 repeated finds nothing to resume and must say so, rather than send the
+      #   operator off to prepare another rotation;
+      # - pass 1 while a switch has not completed (simulated by a previous-ca.crt without
+      #   a staged CA) must not stage a CA;
+      # - the switch persisted in the installer settings file must be refused, because it
+      #   would repeat the step on every later upgrade.
+      # None of them may leave a staged CA behind. "activate" with --limit is not covered:
+      # the single-host CI inventory has no host a limit could leave out.
+      - name: Verify the CA rotation refusals after pass 2
+        if: ${{ matrix.integration && success() }}
+        run: |
+          cd ${{ github.workspace }}
+          ca_dir=/usr/local/fworch/etc/secrets/ca
+
+          ./scripts/ci/expect-installer-refusal.sh \
+            "that rotation is complete and nothing needs to be repeated" \
+            site.yml \
+            -e force_install=true \
+            -e "installation_mode=upgrade internalca_ca_rotation=activate" \
+            --tags certificates
+          sudo test ! -e "$ca_dir/next-ca.crt"
+
+          sudo install -o root -g root -m 0600 "$ca_dir/ca.crt" "$ca_dir/previous-ca.crt"
+          refusal_status=0
+          ./scripts/ci/expect-installer-refusal.sh \
+            "to finish it before preparing another rotation" \
+            site.yml \
+            -e force_install=true \
+            -e "installation_mode=upgrade internalca_ca_rotation=prepare" \
+            --tags certificates || refusal_status=$?
+          sudo rm -f "$ca_dir/previous-ca.crt"
+          test "$refusal_status" -eq 0
+          sudo test ! -e "$ca_dir/next-ca.crt"
+
+          settings_file="$RUNNER_TEMP/fwo-install-settings-rotation.yml"
+          printf 'internalca_ca_rotation: prepare\n' > "$settings_file"
+          FWORCH_LOCAL_SETTINGS="$settings_file" ./scripts/ci/expect-installer-refusal.sh \
+            "It is a one-shot switch for the two passes of a CA rotation" \
+            site.yml \
+            -e force_install=true \
+            -e installation_mode=upgrade \
+            --tags certificates
+          rm -f "$settings_file"
+          sudo test ! -e "$ca_dir/next-ca.crt"
+
+      - name: Collect certificate diagnostics after a failed CA rotation
+        if: ${{ matrix.integration && failure() }}
+        run: |
+          sudo ls -laR /usr/local/fworch/etc/secrets/ca/ || true
+          sudo cat /usr/local/fworch/etc/secrets/ca/retired-ca-names || true
+          sudo openssl crl2pkcs7 -nocrl -certfile /etc/fworch/fworch-internal-ca.crt | openssl pkcs7 -print_certs -noout || true
+          sudo openssl x509 -in /usr/local/fworch/etc/secrets/client/client.crt -noout -issuer -dates || true
+          sudo tail -n 100 /var/log/apache2/error.log || true
+
       # A full run rather than "--tags integrationtests", because roles/tests-integration
       # asserts on facts the reset itself produces - the retired CA names, which identities
       # were reissued, which customer-managed pairs were left untouched - and those exist
@@ -202,6 +332,15 @@ jobs:
           sudo openssl x509 -in /usr/local/fworch/etc/fworch-internal-ca.crt -noout -subject -dates || true
           sudo apachectl configtest || true
           sudo tail -n 100 /var/log/apache2/error.log || true
+
+      # The UI blocks before it listens until its config subscription delivers, so a broken API
+      # websocket path only shows up as a 503 from Apache - its own log says why.
+      - name: Collect UI diagnostics after a failure
+        if: ${{ matrix.integration && failure() }}
+        run: |
+          sudo systemctl status fworch-ui --no-pager || true
+          sudo journalctl -u fworch-ui --no-pager -n 200 || true
+          sudo tail -n 200 /var/log/fworch/ui.log || true
 
 
   launcher-guard-tests:

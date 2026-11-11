@@ -30,7 +30,9 @@ file explicitly. The issuer copy under `/usr/local/fworch/etc/secrets/ca/` is
 root-only and exists on the middleware server alone, so every host also
 receives a world-readable copy at `/etc/fworch/fworch-internal-ca.crt`
 (`internalca_ca_certificate_local`). That is the path Apache client
-verification uses; never reference the issuer copy from another host.
+verification uses; never reference the issuer copy from another host. While a CA
+rotation is under way (see *Rotating the internal CA* below) the file holds the
+second internal CA as well, after the CA in force.
 
 Alongside it every host receives `/etc/fworch/fworch-trust-bundle.crt`
 (`internalca_trust_bundle`), which holds the internal CA plus any additional issuer
@@ -329,8 +331,11 @@ To rotate a certificate ahead of the renewal schedule without renaming anything,
 remove the affected certificate from
 `/usr/local/fworch/etc/secrets/ca/issued/<host>/` and rerun the installer.
 
-To replace the internal CA and every FWO-managed identity in one installer run, use
-the one-shot reset switch during an upgrade:
+To replace the internal CA without interrupting TLS between FWO components, use the
+two-pass rotation described in *Rotating the internal CA* below. To replace the internal
+CA and every FWO-managed identity in one installer run instead - accepting a maintenance
+window, for example after a suspected CA key compromise - use the one-shot reset switch
+during an upgrade:
 
 ```
 ./scripts/run-playbook-with-sudo.sh site.yml \
@@ -398,7 +403,10 @@ prints a warning. Within `internalca_ca_expiry_critical_days` (90) of expiry it
 stops instead, since anything it issued would be near-worthless; set
 `internalca_ignore_ca_expiry: true` to complete a run anyway, which does not make
 the certificates any more valid. `internalca_ca_expiry_warning_days` (365) adds a
-second, earlier warning threshold independent of the leaf validity.
+second, earlier warning threshold independent of the leaf validity. Rotate the CA as
+described in *Rotating the internal CA* below once the warning appears; pass 1 is
+accepted inside the critical window, since it is the remedy, and pass 2 is checked
+against the new CA.
 
 FWO's shared GraphQL and middleware clients validate servers against the CA
 configured as `tls_ca_certificate`. Ensure that `api_uri`, `middleware_uri`,
@@ -430,6 +438,89 @@ curl --request POST \
 
 The client private key is readable only by the FWO service account, so run such
 commands as that user or as root.
+
+## Rotating the internal CA
+
+The internal CA is valid for `internalca_ca_validity_days` (3650) and, unlike the
+certificates it issues, is never renewed by a regular installer run. Replace it with a
+rotation in two installer runs, driven by the one-shot switch `internalca_ca_rotation`.
+
+A single run cannot do this safely. Every host has to trust the new CA *before* any host
+presents a certificate signed by it, and the services keep the trust anchors they have
+loaded: Apache its client CA file until it is reloaded, the middleware and UI the
+operating-system trust store they started with. A host that is switched while one of its
+peers has not yet picked up the new anchor is cut off from that peer. The rotation
+therefore first makes every host trust both CAs, and only switches once that is
+confirmed for every host.
+
+**Pass 1 - distribute the next CA.**
+
+```
+./scripts/run-playbook-with-sudo.sh site.yml \
+  -e installation_mode=upgrade \
+  -e internalca_ca_rotation=prepare
+```
+
+The CA host creates the next CA beside the current one
+(`/usr/local/fworch/etc/secrets/ca/next-ca.{key,crt}`), under a name of its own. Every
+host then trusts both: `/etc/fworch/fworch-internal-ca.crt` and the trust bundle hold
+both CAs, and the operating-system store receives the next CA as
+`fworch-internal-ca-rotation.crt`. Apache is reloaded and the middleware and UI are
+restarted so the new anchors take effect, and only then does the host record under
+`/usr/local/fworch/etc/secrets/ca/rotation/` on the CA host that it completed pass 1.
+Nothing is re-signed: every host keeps serving its current certificates, so the
+installation works throughout. Pass 1 may be limited with `--limit` and repeated as
+often as needed - it reuses the staged CA - until every host has been reached. The first
+run has to include the CA host (`internalca_ca_host`, the first middleware server), since
+only that host can create the next CA; the installer refuses a first run without it. A
+regular upgrade between the two passes keeps distributing both CAs.
+
+Between the passes, add the next CA to every browser and external trust store that holds
+the current one. The end of the installer output shows both certificates, the second is
+the next CA; the UI offers the same file for download.
+
+**Pass 2 - switch, then retire the previous CA.**
+
+```
+./scripts/run-playbook-with-sudo.sh site.yml \
+  -e installation_mode=upgrade \
+  -e internalca_ca_rotation=activate
+```
+
+Pass 2 runs against the complete inventory only, and refuses to start while any host has
+not recorded pass 1 for the CA that is staged. It then makes the next CA the CA in force
+- the previous CA's name is recorded under `retired-ca-names`, its public certificate is
+kept as `previous-ca.crt` and its private key is overwritten - re-signs every
+FWO-managed client, Apache and OpenLDAP identity, and restarts the services holding
+them. Throughout, every host trusts both CAs. Only after each host has confirmed that
+all of its FWO identities are signed by the new CA does the run remove the previous CA
+from every trust store and reload Apache, which from then on rejects client certificates
+of the previous CA. The rotation state on the CA host is removed last, once every host
+has done so.
+
+Both passes may also be run as `--tags certificates`: they restart the services that
+need it themselves. Do not put `internalca_ca_rotation` in
+`/etc/fworch/fwo-install-settings.yml`; like the reset switch it is refused there.
+
+**Interrupted runs.** Interrupting either pass leaves a working installation, because
+until the very end of pass 2 every host trusts both CAs. Rerun the same pass to resume:
+pass 1 restarts the services again on every host that has not recorded its completion,
+and pass 2 continues from wherever it stopped, including an interrupted switch on the CA
+host - which is why, while one is pending, the installer accepts no run other than pass
+2. A regular upgrade after an interrupted pass 2 re-signs identities with the new CA but
+keeps trusting the previous one until pass 2 is run again. Once pass 2 has completed,
+running it again is refused with a note that there is nothing left to do - do not
+answer that by preparing another rotation.
+
+**After the rotation.** As with a reset, copies of an FWO identity held outside the FWO
+hosts - a client certificate imported into a browser, see [Importing the client
+certificate into Firefox](#importing-the-client-certificate-into-firefox) - were signed
+by the previous CA and are rejected by the API after pass 2. Replace them between the two
+passes where possible, and remove the previous CA from browsers and external trust stores
+once pass 2 has completed. Customer-managed certificates are not affected by a rotation.
+
+A reset (`internalca_reset_certificates`) abandons a rotation under way and replaces the
+CA in one run; the two switches cannot be combined.
 
 ## Certificates of firewall managements, ticket systems and email servers
 
@@ -558,7 +649,8 @@ Import `client.p12` from Firefox's **Settings → Privacy & Security →
 Certificates → View Certificates → Your Certificates → Import**.
 
 An identity imported here is a copy, and no installer run updates it. After a CA
-rotation with `internalca_reset_certificates` it is signed by a retired issuer and the
+reset with `internalca_reset_certificates`, or once pass 2 of a rotation with
+`internalca_ca_rotation` has completed, it is signed by a retired issuer and the
 API rejects it, so export and import it again - and delete the previous entry under
 **Your Certificates**, the same way the retired authority is deleted under
 **Authorities**.

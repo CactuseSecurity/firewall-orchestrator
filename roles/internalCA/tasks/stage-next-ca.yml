@@ -1,0 +1,35 @@
+---
+# Pass 1 of a CA rotation, on internalca_ca_host: creates the next CA beside the one in
+# force. It signs nothing until pass 2 switches to it. Every task keeps what an earlier
+# run created, so repeating pass 1 until it has reached every host stages one CA, not
+# one per run.
+- name: Generate the next internal CA private key
+  community.crypto.openssl_privatekey:
+    path: "{{ internalca_next_ca_private_key }}"
+    size: "{{ internalca_key_size if internalca_key_type == 'RSA' else omit }}"
+    type: "{{ internalca_key_type }}"
+    curve: "{{ internalca_key_curve if internalca_key_type == 'ECC' else omit }}"
+    mode: "0600"
+  become: true
+  no_log: true
+
+- name: Read the next internal CA public key fingerprint
+  community.crypto.openssl_privatekey_info:
+    path: "{{ internalca_next_ca_private_key }}"
+  register: internalca_next_ca_private_key_info
+  become: true
+  no_log: true
+
+# Named from its own key like every CA created since 9.5.0, so it is told apart from the
+# CA in force - also on an installation that still carries the unsuffixed pre-9.5.0 name.
+- name: Generate the next internal CA certificate
+  include_tasks: generate-ca-certificate.yml
+  vars:
+    internalca_generate_ca_private_key: "{{ internalca_next_ca_private_key }}"
+    internalca_generate_ca_csr: "{{ internalca_next_ca_csr }}"
+    internalca_generate_ca_certificate: "{{ internalca_next_ca_certificate }}"
+    internalca_generate_ca_common_name: >-
+      {{ internalca_ca_common_name_prefix ~ ' '
+         ~ (internalca_next_ca_private_key_info.public_key_fingerprints.sha256
+            | replace(':', '') | lower)[:16] }}
+    internalca_generate_ca_force: false

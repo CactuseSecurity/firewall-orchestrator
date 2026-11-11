@@ -319,7 +319,39 @@ internalca_ca_host: "{{ groups['middlewareserver'] | first }}"
 # rather than in the role defaults, because roles/tests-integration reads it too.
 internalca_retired_ca_names: "{{ fworch_secrets_dir }}/ca/retired-ca-names"
 internalca_ca_trust_anchor: "{{ product_name }}-internal-ca.crt"
+# Holds the internal CA in force and, while a CA rotation is under way, the second
+# internal CA it is crossing to or from - never a customer issuer. Apache verifies client
+# certificates against it, so during a rotation both CAs' client identities are accepted.
+# The CA in force is always the first certificate in the file.
 internalca_ca_certificate_local: "{{ fworch_conf_dir }}/{{ internalca_ca_trust_anchor }}"
+
+# Two-pass rotation of the internal CA, see documentation/certificates.md. A one-shot
+# switch like internalca_reset_certificates - pass it with -e for a single upgrade run,
+# never persist it in the installer settings file:
+#   prepare   pass 1: create the next CA beside the current one and make every host trust
+#             both, restarting the services that cache their trust anchors. Nothing is
+#             re-signed. Repeat until every host has been reached.
+#   activate  pass 2: once pass 1 reached every host, sign every FWO identity with the
+#             next CA, restart the services holding them and only then stop trusting the
+#             previous CA. Runs against the complete inventory only.
+# Empty means no rotation step is taken. A run without the switch never starts or
+# finishes a rotation, but it keeps distributing both anchors while one is under way.
+internalca_ca_rotation: ""
+# The rotation state, kept beside the CA on internalca_ca_host. Here rather than in the
+# role defaults because roles/tests-integration reads them.
+#   next-ca.*        the CA pass 1 created and pass 2 switches to
+#   previous-ca.crt  the CA pass 2 switched away from, trusted until pass 2 completes
+#   rotation/<host>  written once <host> trusts the next CA and has restarted the services
+#                    caching their anchors; pass 2 refuses to switch without one per host
+internalca_next_ca_certificate: "{{ fworch_secrets_dir }}/ca/next-ca.crt"
+internalca_next_ca_private_key: "{{ fworch_secrets_dir }}/ca/next-ca.key"
+internalca_previous_ca_certificate: "{{ fworch_secrets_dir }}/ca/previous-ca.crt"
+internalca_ca_rotation_marker_dir: "{{ fworch_secrets_dir }}/ca/rotation"
+# The operating-system trust-store anchor for the second internal CA during a rotation.
+# A file of its own rather than appended to internalca_ca_trust_anchor, because
+# update-ca-certificates only links the first certificate of each anchor file. Read by
+# roles/common for uninstall.
+internalca_ca_rotation_trust_anchor: "{{ product_name }}-internal-ca-rotation.crt"
 # An additional issuer to trust besides the FWO internal CA. Leave it at the
 # internal CA - the default - unless an upgrade retained a customer-managed Apache
 # certificate; then set it to that certificate's issuing root CA, at the same path
@@ -336,7 +368,7 @@ internalca_peer_ca_trust_anchor: "{{ product_name }}-peer-ca.crt"
 # fworch.json as tls_ca_certificate and used by the importer, the customizing
 # scripts, the .NET GraphQL and LDAP clients and the integration tests. Assembled
 # by roles/internalCA from the internal CA plus internalca_peer_ca_certificate.
-# Distinct from internalca_ca_certificate_local, which stays the internal CA alone:
+# Distinct from internalca_ca_certificate_local, which holds internal CAs only:
 # that one is what Apache verifies *client* certificates against, and adding a
 # customer issuer there would let it mint FWO client identities.
 internalca_trust_bundle: "{{ fworch_conf_dir }}/{{ product_name }}-trust-bundle.crt"
@@ -739,7 +771,6 @@ apache2_required_modules:
     - proxy
     - proxy_http
     - ssl
-    - proxy_wstunnel
 
 apache_security_headers:
     - 'Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"'

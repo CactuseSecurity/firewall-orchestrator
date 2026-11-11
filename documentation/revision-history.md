@@ -1,5 +1,11 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.2 - 09.11.2026
+- installer: supported two-pass rotation of the internal CA without loss of connectivity between FWO components (#5130)
+  - pass 1 (`-e "installation_mode=upgrade internalca_ca_rotation=prepare"`) stages the next CA on the CA host and makes every host trust both CAs - Apache client CA file, trust bundle and operating-system store - restarting the services that cache their anchors; nothing is re-signed, and the pass can be repeated until every host is reached
+  - pass 2 (`internalca_ca_rotation=activate`) runs against the complete inventory only and refuses to start until every host has confirmed pass 1; it switches to the next CA, re-signs every FWO-managed identity, restarts its consumers and only then withdraws trust in the previous CA
+  - interrupting either pass leaves a working installation and rerunning it resumes; pass 1 is accepted inside the critical CA expiry window, since it is the remedy for it
+- installer: fixed reading the retired internal CA names once more than one is recorded - a second certificate reset, or a reset after a CA rotation, took every FWO-issued Apache and OpenLDAP identity for a customer certificate and stopped the upgrade
 ## 9.9.2 - 11.11.2026
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.2 (denial-of-service fixes in validator and parser).

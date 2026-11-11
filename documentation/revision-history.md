@@ -1,5 +1,9 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.2 - 11.11.2026
+- dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
+
+
 ## 9.9.1 - 05.11.2026
 - request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent
 - workflow UI: the promotion-mode setting now also supports action-buttons-only in addition to ticket, task and combined promotion

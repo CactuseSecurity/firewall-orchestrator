@@ -88,24 +88,22 @@
                             @ReadOnlyValue(userConfig.GetText("rule_uid"), RuleUid(implementationTask), "col-xl-6 col-lg-6 mb-2")
                         </div>
                     }
-                    else if (WfObjectTaskHelper.IsObjectTask(implementationTask.TaskType))
+                    else if (WfObjectTaskHelper.IsObjectTask(implementationTask.TaskType)
+                        && !IsTimeObjectTask(implementationTask))
                     {
-                        @if (!IsTimeObjectTask(implementationTask))
-                        {
-                            <div class="form-group row">
-                                <div class="col-12">
-                                    <DisplayObjectTaskElement ReqTask="@CreateEditorTask(implementationTask)"
-                                        IsModify="false" EditMode="false" DisplayIpProtos="ipProtocols">
-                                        <ObjectNamePrefix>
-                                            <button type="button" class="btn btn-sm btn-secondary mr-2"
-                                                @onclick="() => OpenNameEditor(implementationTask)">
-                                                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
-                                            </button>
-                                        </ObjectNamePrefix>
-                                    </DisplayObjectTaskElement>
-                                </div>
+                        <div class="form-group row">
+                            <div class="col-12">
+                                <DisplayObjectTaskElement ReqTask="@CreateEditorTask(implementationTask)"
+                                    IsModify="false" EditMode="false" DisplayIpProtos="ipProtocols">
+                                    <ObjectNamePrefix>
+                                        <button type="button" class="btn btn-sm btn-secondary mr-2"
+                                            @onclick="() => OpenNameEditor(implementationTask)">
+                                            @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                                        </button>
+                                    </ObjectNamePrefix>
+                                </DisplayObjectTaskElement>
                             </div>
-                        }
+                        </div>
                     }
                 </div>
             </Collapse>
@@ -146,7 +144,6 @@
     private bool displayDeviceEditor;
     private bool displayTextEditor;
     private bool displayNameEditor;
-    private WfImplTask? editingNameTask;
     private List<IpProtocol> ipProtocols = [];
     private const int kMaxDisplayedElements = 5;
     private bool IsInitiallyExpanded => CreationMode || RequestTask.TaskType == WfTaskType.access.ToString();
@@ -185,7 +182,6 @@
     private Task OpenNameEditor(WfImplTask implementationTask)
     {
         WfHandler.SelectImplTask(implementationTask, ObjAction.edit);
-        editingNameTask = implementationTask;
         nameEditorValue = IsGroupTask(implementationTask) ? GroupName(implementationTask) : ObjectName(implementationTask);
         displayNameEditor = true;
         return Task.CompletedTask;
@@ -376,7 +372,6 @@
         }
 
         await SaveImplementationTask();
-        editingNameTask = null;
     }
 
     private async Task SaveDevice(Device? device)
@@ -652,12 +647,6 @@
         return WfHandler.Devices.FirstOrDefault(device => device.Id == implementationTask.DeviceId)?.Name ?? "";
     }
 
-    private static string ElementNames(WfImplTask implementationTask, ElemFieldType field)
-    {
-        return string.Join(", ", implementationTask.GetNwObjectElements(field)
-            .Select(element => element.Name ?? element.GroupName ?? ""));
-    }
-
     private RenderFragment ImplementationElementValue(string label, WfImplTask implementationTask, ElemFieldType field) => builder =>
     {
         builder.OpenElement(0, "div");
@@ -766,12 +755,6 @@
             : System.Text.Json.JsonSerializer.Serialize(implementationTask.RulePosition);
     }
 
-    private static string ServiceNames(WfImplTask implementationTask)
-    {
-        return string.Join(", ", implementationTask.GetServiceElements()
-            .Select(element => element.Name ?? element.GroupName ?? ""));
-    }
-
     private string TimeRestriction(WfImplTask implementationTask)
     {
         WfImplElement? timeElement = implementationTask.ImplElements
@@ -798,7 +781,18 @@
         string validity = "";
         if (!string.IsNullOrWhiteSpace(begin) || !string.IsNullOrWhiteSpace(end))
         {
-            validity = string.IsNullOrWhiteSpace(begin) ? end : string.IsNullOrWhiteSpace(end) ? begin : $"{begin} - {end}";
+            if (string.IsNullOrWhiteSpace(begin))
+            {
+                validity = end;
+            }
+            else if (string.IsNullOrWhiteSpace(end))
+            {
+                validity = begin;
+            }
+            else
+            {
+                validity = $"{begin} - {end}";
+            }
         }
         return string.IsNullOrWhiteSpace(validity) ? name : $"{name} ({validity})";
     }

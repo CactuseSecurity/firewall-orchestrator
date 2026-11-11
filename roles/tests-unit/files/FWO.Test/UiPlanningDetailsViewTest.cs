@@ -354,7 +354,7 @@ internal sealed class UiPlanningDetailsViewTest
                 return Task.CompletedTask;
             }));
 
-        await cut.FindAll("button.btn-secondary").Last().ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await cut.FindAll("button.btn-secondary")[^1].ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
 
         Assert.That(displayChanged, Is.False);
     }
@@ -496,7 +496,7 @@ internal sealed class UiPlanningDetailsViewTest
     }
 
     [Test]
-    public void PlanningDetailsView_HeaderUsesRequestAndTicketMetadata()
+    public void PlanningDetailsView_HeaderUsesTicketMetadata()
     {
         WfReqTask task = new() { Id = 11, Title = "Allow web", StateId = 2, TaskType = WfTaskType.access.ToString() };
         PlanningDetailsView component = new();
@@ -509,15 +509,10 @@ internal sealed class UiPlanningDetailsViewTest
         };
         UiRequestWorkflowTest.SetMember(component, nameof(PlanningDetailsView.WfHandler), handler);
 
-        object[] taskArgument = [task];
-        string requestTitle = (string)UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningDetailsView), "RequestTaskTitle")
-            .Invoke(component, taskArgument)!;
         string planningTitle = UiRequestWorkflowTest.GetMember<string>(component, "PlanningViewTitle");
 
         Assert.Multiple(() =>
         {
-            Assert.That(requestTitle, Does.Contain("11"));
-            Assert.That(requestTitle, Does.Contain("Allow web"));
             Assert.That(planningTitle, Does.Contain("7"));
             Assert.That(planningTitle, Does.Contain("Firewall change"));
         });
@@ -1044,7 +1039,7 @@ internal sealed class UiPlanningDetailsViewTest
     }
 
     [Test]
-    public void PlanningImplementationTaskDetails_ConvertsServiceElementsAndBuildsElementNames()
+    public void PlanningImplementationTaskDetails_ConvertsServiceElements()
     {
         WfImplTask task = new()
         {
@@ -1059,14 +1054,10 @@ internal sealed class UiPlanningDetailsViewTest
         WfImplElement serviceElement = task.ImplElements.Single(element => element.Field == ElemFieldType.service.ToString());
         NwServiceElement converted = (NwServiceElement)UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "ToServiceElement")
             .Invoke(null, [serviceElement])!;
-        string names = (string)UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "ElementNames")
-            .Invoke(null, [task, ElemFieldType.source])!;
-
         Assert.Multiple(() =>
         {
             Assert.That(converted.Name, Is.EqualTo("https"));
             Assert.That(converted.Port, Is.EqualTo(443));
-            Assert.That(names, Is.EqualTo("source, source-2"));
         });
     }
 

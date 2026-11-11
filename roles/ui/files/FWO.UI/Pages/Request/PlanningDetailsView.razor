@@ -187,14 +187,6 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private string RequestTaskTitle(WfReqTask requestTask)
-    {
-        string title = string.IsNullOrWhiteSpace(requestTask.Title)
-            ? userConfig.GetText("task")
-            : requestTask.Title;
-        return $"{requestTask.Id}: {title}";
-    }
-
     private string PlanningViewTitle
     {
         get

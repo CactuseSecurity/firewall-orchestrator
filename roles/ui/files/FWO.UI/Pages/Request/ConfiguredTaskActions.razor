@@ -87,14 +87,14 @@
             {
                 await ActionRequested(action);
             }
-            else if (WfHandler.ActionHandler == null)
+            else
             {
-                return;
-            }
+                if (WfHandler.ActionHandler == null)
+                {
+                    return;
+                }
 
-            if (ActionRequested == null)
-            {
-                await WfHandler.ActionHandler!.PerformAction(action, Target, Scope, Owner, TicketId);
+                await WfHandler.ActionHandler.PerformAction(action, Target, Scope, Owner, TicketId);
             }
             await AfterAction();
         }

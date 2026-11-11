@@ -3,9 +3,7 @@ using FWO.Api.Client;
 using FWO.Data;
 using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
-using FWO.Services.RulePositioning;
 using FWO.Services.RulePositioning.CheckPoint;
-using FWO.Test.Helpers;
 using NetTools;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -17,7 +15,6 @@ using CheckPointLayerGuardReadResult = FWO.Data.RulePositioning.PositioningResul
 namespace FWO.Test;
 
 [TestFixture]
-[NonParallelizable]
 public class CheckPointLayerGuardSnapshotReaderTest
 {
     private const int kManagementId = 10;
@@ -106,18 +103,11 @@ public class CheckPointLayerGuardSnapshotReaderTest
         sourceObject["obj_ip"] = start;
         sourceObject["obj_ip_end"] = end;
 
-        CheckPointLayerGuardReadResult? result = null;
-        string output = await ConsoleOutput.CaptureAsync(async () =>
-        {
-            using IDisposable attempt = RulePositioningDiagnosticLog.BeginAttempt(1, 2, 3, kGatewayId);
-            result = await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
-                .ReadAsync(Graph(), kImportId, CancellationToken.None);
-        });
-        CheckPointLayerGuardReadFailureCategory failure = AssertFailure(result!);
+        CheckPointLayerGuardReadFailureCategory failure = AssertFailure(
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
 
         Assert.That(failure, Is.EqualTo(CheckPointLayerGuardReadFailureCategory.InvalidGuardData));
-        Assert.That(output, Does.Contain("\"stage\":\"guard.invariant\""));
-        Assert.That(output, Does.Contain("\"invariant\":"));
     }
 
     [Test]

@@ -1,9 +1,7 @@
-using System.Runtime.CompilerServices;
 using FWO.Data.Middleware;
 using FWO.Data.RulePositioning;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
-using FWO.Services.RulePositioning;
 using NetTools;
 using CreationRuleNetworkResolutionResult = FWO.Data.RulePositioning.PositioningResult<
     FWO.Data.RulePositioning.CreationRuleNetworkInput,
@@ -26,82 +24,39 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         IReadOnlyCollection<WfReqTask> ticketTasks,
         CancellationToken cancellationToken)
     {
-        string currentOperation = "network.validate";
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             ValidateAccessTask(accessTask);
-            currentOperation = "network.ticket_projection";
             IReadOnlyList<WfReqTask> orderedTasks = TicketNetworkStateProjector.Project(
                 accessTask,
                 ticketTasks);
-            currentOperation = "network.active_sides";
             List<WfReqElement> sources = ActiveSide(accessTask, ElemFieldType.source);
             List<WfReqElement> destinations = ActiveSide(accessTask, ElemFieldType.destination);
-            RulePositioningDiagnosticLog.WriteInfo(
-                "network.prepare",
-                "summary",
-                Facts(
-                    ("task_id", accessTask.Id),
-                    ("task_type", accessTask.TaskType),
-                    ("request_action", accessTask.RequestAction),
-                    ("ticket_task_count", orderedTasks.Count),
-                    ("minimum_task_order", orderedTasks.Count == 0 ? 0 : orderedTasks.Min(Task => Task.TaskNumber)),
-                    ("maximum_task_order", orderedTasks.Count == 0 ? 0 : orderedTasks.Max(Task => Task.TaskNumber)),
-                    ("total_source_count", accessTask.Elements.Count(Element => Element.Field == ElemFieldType.source.ToString())),
-                    ("active_source_count", sources.Count),
-                    ("total_destination_count", accessTask.Elements.Count(Element => Element.Field == ElemFieldType.destination.ToString())),
-                    ("active_destination_count", destinations.Count),
-                    ("direct_address_count", sources.Concat(destinations).Count(HasAddress)),
-                    ("group_reference_count", sources.Concat(destinations).Count(Element => !HasAddress(Element)))));
             if (sources.Count == 0 || destinations.Count == 0)
             {
                 throw Failure(CreationRuleNetworkResolutionFailureCategory.InvalidInput);
             }
 
-            currentOperation = "network.catalog";
             CatalogIndex catalog = await LoadCatalogAsync(
                 sources.Concat(destinations), orderedTasks, cancellationToken);
             ResolutionContext context = new(accessTask, orderedTasks, catalog, cancellationToken);
-            currentOperation = "network.resolve_sources";
             List<IPAddressRange> sourceRanges = ResolveElements(sources, context, kEmptyResolutionPath);
-            currentOperation = "network.resolve_destinations";
             List<IPAddressRange> destinationRanges = ResolveElements(destinations, context, kEmptyResolutionPath);
-            IReadOnlyList<IPAddressRange> normalizedSources = PositioningAddressRangeNormalizer.Distinct(sourceRanges);
-            IReadOnlyList<IPAddressRange> normalizedDestinations = PositioningAddressRangeNormalizer.Distinct(destinationRanges);
-            RulePositioningDiagnosticLog.WriteInfo(
-                "network.resolve",
-                "success",
-                Facts(
-                    ("source_range_count", normalizedSources.Count),
-                    ("destination_range_count", normalizedDestinations.Count),
-                    ("source_address_families", AddressFamilies(normalizedSources)),
-                    ("destination_address_families", AddressFamilies(normalizedDestinations))));
             return CreationRuleNetworkResolutionResult.Success(new CreationRuleNetworkInput(
-                normalizedSources,
-                normalizedDestinations));
+                PositioningAddressRangeNormalizer.Distinct(sourceRanges),
+                PositioningAddressRangeNormalizer.Distinct(destinationRanges)));
         }
-        catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            RulePositioningDiagnosticLog.WriteException(currentOperation, exception);
             throw;
         }
         catch (NetworkResolutionException exception)
         {
-            RulePositioningDiagnosticLog.WriteFailure(
-                "network.resolve",
-                Facts(
-                    ("operation", currentOperation),
-                    ("task_id", accessTask?.Id ?? 0),
-                    ("failure_category", exception.Category.ToString())));
             return CreationRuleNetworkResolutionResult.Failure(exception.Category);
         }
-        catch (Exception exception)
+        catch (Exception)
         {
-            RulePositioningDiagnosticLog.WriteException(
-                "network.resolve",
-                exception,
-                Facts(("operation", currentOperation), ("task_id", accessTask?.Id ?? 0)));
             return CreationRuleNetworkResolutionResult.Failure(
                 CreationRuleNetworkResolutionFailureCategory.UnexpectedFailure);
         }
@@ -159,16 +114,6 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
             .Select(reference => reference.FlowId!.Value).Distinct().ToList();
         List<string> names = requested.Where(reference => reference.FlowId is not > 0 && reference.Name.Length > 0)
             .Select(reference => reference.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        RulePositioningDiagnosticLog.WriteInfo(
-            "network.catalog.selectors",
-            "summary",
-            Facts(
-                ("id_selector_count", ids.Count),
-                ("name_selector_count", names.Count),
-                ("id_chunk_count", (ids.Count + FlowGroupResolutionParameters.MaxSelectors - 1) /
-                    FlowGroupResolutionParameters.MaxSelectors),
-                ("name_chunk_count", (names.Count + FlowGroupResolutionParameters.MaxSelectors - 1) /
-                    FlowGroupResolutionParameters.MaxSelectors)));
         if (ids.Count == 0 && names.Count == 0)
         {
             return new CatalogIndex(new List<FlowNetworkGroupResolution>());
@@ -188,12 +133,6 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
                 groups.AddRange(await LoadCatalogChunkAsync(
                     new FlowGroupResolutionParameters { NetworkGroupNames = chunk }, cancellationToken));
             }
-            RulePositioningDiagnosticLog.WriteInfo(
-                "network.catalog.result",
-                "success",
-                Facts(
-                    ("returned_group_count", groups.Count),
-                    ("returned_member_count", groups.Sum(Group => Group.Members?.Count ?? 0))));
             return new CatalogIndex(groups);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -258,16 +197,14 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
             .ToList();
         if (matching.Any(task => !TicketNetworkStateProjector.IsBefore(task, context.AccessTask)))
         {
-            throw Failure(CreationRuleNetworkResolutionFailureCategory.ProtocolOrderInvalid,
-                IdentityFacts(identity, matching.Count));
+            throw Failure(CreationRuleNetworkResolutionFailureCategory.ProtocolOrderInvalid);
         }
         if (matching.Count > 0)
         {
             WfReqElement? effective = matching.Select(WfObjectTaskHelper.GetRequestedElement).LastOrDefault(element => element != null);
             if (effective == null)
             {
-                throw Failure(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved,
-                    IdentityFacts(identity, matching.Count));
+                throw Failure(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved);
             }
             requested = effective;
         }
@@ -282,29 +219,18 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
     {
         if (!identity.IsUsable)
         {
-            throw Failure(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved, IdentityFacts(identity, 0));
+            throw Failure(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved);
         }
         string visitKey = identity.Key;
         if (visited.Count >= TicketNetworkStateProjector.kMaximumGroupDepth || visited.Contains(visitKey))
         {
-            RulePositioningDiagnosticLog.WriteFailure(
-                "network.group.recursion",
-                Facts(
-                    ("depth", visited.Count),
-                    ("maximum_depth", TicketNetworkStateProjector.kMaximumGroupDepth),
-                    ("cycle", visited.Contains(visitKey)),
-                    ("group_key", RulePositioningDiagnosticLog.Fingerprint(visitKey))));
-            Dictionary<string, object?> facts = IdentityFacts(identity);
-            facts["depth"] = visited.Count;
-            facts["cycle"] = visited.Contains(visitKey);
-            throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved, facts);
+            throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
         }
         List<WfReqTask> ticketTasks = context.Tasks.Where(IsNetworkGroupTask)
             .Where(task => Matches(identity, GroupIdentityForTask(task))).ToList();
         if (ticketTasks.Any(task => !TicketNetworkStateProjector.IsBefore(task, context.AccessTask)))
         {
-            throw Failure(CreationRuleNetworkResolutionFailureCategory.ProtocolOrderInvalid,
-                IdentityFacts(identity, ticketTasks.Count));
+            throw Failure(CreationRuleNetworkResolutionFailureCategory.ProtocolOrderInvalid);
         }
         IReadOnlyCollection<string> path = [.. visited, visitKey];
         if (ticketTasks.Count > 0)
@@ -350,10 +276,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         }
         if (!initialized || deleted || members.Count == 0)
         {
-            Dictionary<string, object?> facts = IdentityFacts(identity, tasks.Count);
-            facts["member_count"] = members.Count;
-            facts["deleted"] = deleted;
-            throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved, facts);
+            throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
         }
         return ResolveElements(members, context, path);
     }
@@ -372,8 +295,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
                 Matches(GroupIdentityForElement(change), GroupIdentityForElement(members[index]))).ToList();
             if (matches.Count > 1)
             {
-                throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupAmbiguous,
-                    IdentityFacts(IdentityForElement(change), matches.Count));
+                throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupAmbiguous);
             }
             ApplyMemberAction(members, change, action, matches);
         }
@@ -395,11 +317,11 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
             case RequestAction.unchanged:
                 return;
             case RequestAction.modify:
-                RequireSingleMemberMatch(change, matches);
+                RequireSingleMemberMatch(matches);
                 members[matches[0]] = Clone(change);
                 return;
             case RequestAction.delete:
-                RequireSingleMemberMatch(change, matches);
+                RequireSingleMemberMatch(matches);
                 members.RemoveAt(matches[0]);
                 return;
             default:
@@ -408,12 +330,11 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
     }
 
     /// <summary>Rejects a group member change without exactly one existing match.</summary>
-    private static void RequireSingleMemberMatch(WfReqElement change, List<int> matches)
+    private static void RequireSingleMemberMatch(List<int> matches)
     {
         if (matches.Count != 1)
         {
-            throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved,
-                IdentityFacts(IdentityForElement(change), matches.Count));
+            throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
         }
     }
 
@@ -424,8 +345,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
     {
         if (group.Members.Count == 0)
         {
-            throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved,
-                IdentityFacts(new GroupIdentity(group.Id, null, group.Name ?? string.Empty), 0));
+            throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
         }
         List<IPAddressRange> ranges = [];
         foreach (FlowNetworkMemberResolution member in group.Members)
@@ -438,8 +358,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
             catch (NetworkResolutionException exception) when (
                 exception.Category == CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved)
             {
-                throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved,
-                    IdentityFacts(new GroupIdentity(group.Id, null, group.Name ?? string.Empty)));
+                throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
             }
         }
         return ranges;
@@ -492,12 +411,6 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         element.NetworkId,
         element.Name?.Trim() ?? string.Empty);
 
-    /// <summary>Chooses the same prioritized identity family used for member matching.</summary>
-    private static GroupIdentity IdentityForElement(WfReqElement element) =>
-        element.FlowNetworkGroupId is > 0 || !string.IsNullOrWhiteSpace(element.GroupName)
-            ? GroupIdentityForElement(element)
-            : ObjectIdentityForElement(element);
-
     /// <summary>Returns the first normalized nonblank identity name.</summary>
     private static string FirstName(string? first, string? second) =>
         !string.IsNullOrWhiteSpace(first) ? first.Trim() : second?.Trim() ?? string.Empty;
@@ -521,52 +434,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
     private static WfReqElement Clone(WfReqElement element) => new(element);
 
     /// <summary>Creates an internal typed control-flow failure.</summary>
-    private static NetworkResolutionException Failure(
-        CreationRuleNetworkResolutionFailureCategory category,
-        IReadOnlyDictionary<string, object?>? context = null,
-        [CallerMemberName] string operation = "")
-    {
-        Dictionary<string, object?> facts = Facts(
-            ("operation", operation),
-            ("failure_category", category.ToString()));
-        if (context != null)
-        {
-            foreach ((string key, object? value) in context)
-            {
-                facts.TryAdd(key, value);
-            }
-        }
-        RulePositioningDiagnosticLog.WriteFailure(
-            "network.failure",
-            facts);
-        return new NetworkResolutionException(category);
-    }
-
-    /// <summary>Builds a safe identity summary without retaining a fallback name.</summary>
-    private static Dictionary<string, object?> IdentityFacts(GroupIdentity identity, int? matchCount = null)
-    {
-        string source = identity.FlowId is > 0
-            ? "flow_id"
-            : identity.NormalizedId is > 0 ? "normalized_id" : identity.Name.Length > 0 ? "name" : "none";
-        Dictionary<string, object?> facts = Facts(
-            ("identity_source", source),
-            ("flow_id", identity.FlowId is > 0 ? identity.FlowId : null),
-            ("normalized_id", identity.NormalizedId is > 0 ? identity.NormalizedId : null),
-            ("fallback_name", source == "name" ? RulePositioningDiagnosticLog.Fingerprint(identity.Name) : null));
-        if (matchCount.HasValue)
-        {
-            facts["match_count"] = matchCount.Value;
-        }
-        return facts;
-    }
-
-    /// <summary>Returns the distinct address-family names represented by safe normalized ranges.</summary>
-    private static List<string> AddressFamilies(IEnumerable<IPAddressRange> ranges) =>
-        ranges.Select(Range => Range.Begin.AddressFamily.ToString()).Distinct().Order().ToList();
-
-    /// <summary>Builds one bounded network diagnostic fact map.</summary>
-    private static Dictionary<string, object?> Facts(params (string Key, object? Value)[] values) =>
-        values.ToDictionary(Value => Value.Key, Value => Value.Value);
+    private static NetworkResolutionException Failure(CreationRuleNetworkResolutionFailureCategory category) => new(category);
 
     /// <summary>Immutable state shared while resolving nested ticket and catalog elements.</summary>
     private sealed record ResolutionContext(
@@ -607,13 +475,11 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
                     string.Equals(group.Name.Trim(), identity.Name, StringComparison.OrdinalIgnoreCase))];
             if (matches.Count > 1)
             {
-                throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupAmbiguous,
-                    IdentityFacts(identity, matches.Count));
+                throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupAmbiguous);
             }
             if (matches.Count == 0)
             {
-                throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved,
-                    IdentityFacts(identity, matches.Count));
+                throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
             }
             return matches[0];
         }

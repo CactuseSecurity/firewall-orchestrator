@@ -68,7 +68,7 @@ internal sealed class CheckPointGraphStructure
         {
             interpretedLayers = layers;
             initialLayer = null;
-            if (!TryValidateTopology())
+            if (!hasValidInlineLinks || !HasUnambiguousSuccessors(snapshot.Links))
             {
                 return false;
             }
@@ -80,21 +80,7 @@ internal sealed class CheckPointGraphStructure
             {
                 return false;
             }
-            if (!TryAddOrderedLayers(initialLayerId))
-            {
-                return false;
-            }
-            RulePositioningDiagnosticLog.WriteInfo(
-                "topology.validation",
-                "success",
-                Facts(
-                    ("rulebase_count", snapshot.Rulebases.Count),
-                    ("link_count", snapshot.Links.Count),
-                    ("rule_count", snapshot.Rulebases.Sum(Rulebase => Rulebase.Rules.Count)),
-                    ("initial_layer_id", initialLayerId),
-                    ("interpreted_layer_count", layers.Count),
-                    ("interpreted_section_count", layers.Sum(Layer => Layer.Sections.Count))));
-            return true;
+            return TryAddOrderedLayers(initialLayerId);
         }
 
         /// <summary>Resolves the first selectable layer from the unique initial relationship.</summary>
@@ -105,12 +91,6 @@ internal sealed class CheckPointGraphStructure
             if (initialLinks.Count != 1 || initialLinks[0].IsSection ||
                 initialLinks[0].LinkType == RulebaseLinkTypes.Inline)
             {
-                TopologyFailure(
-                    initialLinks.Count != 1 ? "initial_link_cardinality" : "initial_link_invalid",
-                    ("initial_link_count", initialLinks.Count),
-                    ("first_target_rulebase_id", initialLinks.FirstOrDefault()?.TargetRulebaseId ?? 0),
-                    ("first_link_type", initialLinks.FirstOrDefault()?.LinkType ?? 0),
-                    ("first_is_section", initialLinks.FirstOrDefault()?.IsSection ?? false));
                 return false;
             }
 
@@ -122,7 +102,6 @@ internal sealed class CheckPointGraphStructure
             RulebaseGraphLink? policySuccessor = GetUniqueOrderedSuccessor(initialLayerId);
             if (policySuccessor == null)
             {
-                TopologyFailure("policy_successor_missing", ("policy_rulebase_id", initialLayerId));
                 return false;
             }
             initialLayerId = policySuccessor.TargetRulebaseId;
@@ -142,14 +121,8 @@ internal sealed class CheckPointGraphStructure
                     return true;
                 }
                 currentLayerId = successor.TargetRulebaseId;
-                if (!orderedLayerIds.Add(currentLayerId))
+                if (!orderedLayerIds.Add(currentLayerId) || !TryAddLayer(currentLayerId, out _))
                 {
-                    TopologyFailure("ordered_cycle", ("rulebase_id", currentLayerId));
-                    return false;
-                }
-                if (!TryAddLayer(currentLayerId, out _))
-                {
-                    TopologyFailure("ordered_layer_invalid", ("rulebase_id", currentLayerId));
                     return false;
                 }
             }
@@ -169,10 +142,6 @@ internal sealed class CheckPointGraphStructure
                 if (pending.Depth > rulebasesById.Count ||
                     !TryCreateLayer(pending.RulebaseId, out CheckPointLayerStructure? currentLayer))
                 {
-                    TopologyFailure(
-                        pending.Depth > rulebasesById.Count ? "inline_depth_exceeded" : "inline_layer_invalid",
-                        ("rulebase_id", pending.RulebaseId),
-                        ("depth", pending.Depth));
                     return false;
                 }
 
@@ -193,17 +162,9 @@ internal sealed class CheckPointGraphStructure
         private bool TryCreateLayer(long rulebaseId, out CheckPointLayerStructure? layer)
         {
             layer = null;
-            if (!interpretedRulebaseIds.Add(rulebaseId))
-            {
-                TopologyFailure("rulebase_revisited", ("rulebase_id", rulebaseId));
-                return false;
-            }
-            if (!rulebasesById.TryGetValue(rulebaseId, out RulebaseGraphNode? node))
-            {
-                TopologyFailure("rulebase_missing", ("rulebase_id", rulebaseId));
-                return false;
-            }
-            if (!TryBuildSections(rulebaseId, out List<CheckPointSectionStructure> sections))
+            if (!interpretedRulebaseIds.Add(rulebaseId) ||
+                !rulebasesById.TryGetValue(rulebaseId, out RulebaseGraphNode? node) ||
+                !TryBuildSections(rulebaseId, out List<CheckPointSectionStructure> sections))
             {
                 return false;
             }
@@ -231,19 +192,9 @@ internal sealed class CheckPointGraphStructure
                     return true;
                 }
                 currentRulebaseId = successor.TargetRulebaseId;
-                if (!sectionIds.Add(currentRulebaseId))
+                if (!sectionIds.Add(currentRulebaseId) || !interpretedRulebaseIds.Add(currentRulebaseId) ||
+                    !rulebasesById.TryGetValue(currentRulebaseId, out RulebaseGraphNode? sectionNode))
                 {
-                    TopologyFailure("section_cycle", ("layer_rulebase_id", layerRulebaseId), ("section_rulebase_id", currentRulebaseId));
-                    return false;
-                }
-                if (!interpretedRulebaseIds.Add(currentRulebaseId))
-                {
-                    TopologyFailure("section_revisited", ("layer_rulebase_id", layerRulebaseId), ("section_rulebase_id", currentRulebaseId));
-                    return false;
-                }
-                if (!rulebasesById.TryGetValue(currentRulebaseId, out RulebaseGraphNode? sectionNode))
-                {
-                    TopologyFailure("section_missing", ("layer_rulebase_id", layerRulebaseId), ("section_rulebase_id", currentRulebaseId));
                     return false;
                 }
                 sections.Add(new CheckPointSectionStructure(sectionNode));
@@ -290,76 +241,46 @@ internal sealed class CheckPointGraphStructure
         /// <summary>
         /// Rejects topology that would require choosing one structural successor.
         /// </summary>
-        private bool TryValidateTopology()
+        private static bool HasUnambiguousSuccessors(IEnumerable<RulebaseGraphLink> links)
         {
-            List<RulebaseGraphLink> graphLinks = snapshot.Links.ToList();
-            if (!hasValidInlineLinks)
-            {
-                TopologyFailure("inline_lookup_invalid");
-                return false;
-            }
-            RulebaseGraphLink? invalidSource = graphLinks.FirstOrDefault(link =>
+            List<RulebaseGraphLink> graphLinks = links.ToList();
+            return !HasInvalidStructuralSource(graphLinks) &&
+                !HasAmbiguousOrderedSuccessor(graphLinks) &&
+                !HasAmbiguousSectionSuccessor(graphLinks) &&
+                !HasAmbiguousInlineLink(graphLinks) &&
+                !HasInlineLinkWithoutRule(graphLinks);
+        }
+
+        /// <summary>Checks structural links for a missing non-initial source rulebase.</summary>
+        private static bool HasInvalidStructuralSource(List<RulebaseGraphLink> links) =>
+            links.Any(link =>
                 (link.IsSection || link.LinkType == RulebaseLinkTypes.Ordered ||
                     link.LinkType == RulebaseLinkTypes.Domain) &&
                 !link.IsInitial && !link.SourceRulebaseId.HasValue);
-            if (invalidSource != null)
-            {
-                TopologyFailure("structural_source_missing", ("target_rulebase_id", invalidSource.TargetRulebaseId));
-                return false;
-            }
-            IGrouping<long?, RulebaseGraphLink>? ordered = graphLinks
-                .Where(link => !link.IsSection && link.SourceRulebaseId.HasValue &&
+
+        /// <summary>Checks for multiple ordered successors of one rulebase.</summary>
+        private static bool HasAmbiguousOrderedSuccessor(List<RulebaseGraphLink> links) =>
+            links.Where(link => !link.IsSection &&
                     (link.LinkType == RulebaseLinkTypes.Ordered || link.LinkType == RulebaseLinkTypes.Domain))
+                .Where(link => link.SourceRulebaseId.HasValue)
                 .GroupBy(link => link.SourceRulebaseId)
-                .FirstOrDefault(group => group.Count() > 1);
-            if (ordered != null)
-            {
-                TopologyFailure("ordered_successor_ambiguous", ("source_rulebase_id", ordered.Key ?? 0), ("violation_count", ordered.Count()));
-                return false;
-            }
-            IGrouping<long?, RulebaseGraphLink>? sections = graphLinks
-                .Where(link => link.IsSection && link.SourceRulebaseId.HasValue)
+                .Any(group => group.Count() > 1);
+
+        /// <summary>Checks for multiple section successors of one rulebase.</summary>
+        private static bool HasAmbiguousSectionSuccessor(List<RulebaseGraphLink> links) =>
+            links.Where(link => link.IsSection && link.SourceRulebaseId.HasValue)
                 .GroupBy(link => link.SourceRulebaseId)
-                .FirstOrDefault(group => group.Count() > 1);
-            if (sections != null)
-            {
-                TopologyFailure("section_successor_ambiguous", ("source_rulebase_id", sections.Key ?? 0), ("violation_count", sections.Count()));
-                return false;
-            }
-            IGrouping<long?, RulebaseGraphLink>? inline = graphLinks
-                .Where(link => link.LinkType == RulebaseLinkTypes.Inline && link.SourceRuleId.HasValue)
+                .Any(group => group.Count() > 1);
+
+        /// <summary>Checks for multiple inline targets of one source rule.</summary>
+        private static bool HasAmbiguousInlineLink(List<RulebaseGraphLink> links) =>
+            links.Where(link => link.LinkType == RulebaseLinkTypes.Inline && link.SourceRuleId.HasValue)
                 .GroupBy(link => link.SourceRuleId)
-                .FirstOrDefault(group => group.Count() > 1);
-            if (inline != null)
-            {
-                TopologyFailure("inline_successor_ambiguous", ("source_rule_id", inline.Key ?? 0), ("violation_count", inline.Count()));
-                return false;
-            }
-            RulebaseGraphLink? inlineWithoutRule = graphLinks.FirstOrDefault(link =>
-                link.LinkType == RulebaseLinkTypes.Inline && !link.SourceRuleId.HasValue);
-            if (inlineWithoutRule != null)
-            {
-                TopologyFailure("inline_source_rule_missing", ("target_rulebase_id", inlineWithoutRule.TargetRulebaseId));
-                return false;
-            }
-            return true;
-        }
+                .Any(group => group.Count() > 1);
 
-        /// <summary>Writes the first failed topology invariant with bounded graph totals.</summary>
-        private void TopologyFailure(string invariant, params (string Key, object? Value)[] values)
-        {
-            Dictionary<string, object?> facts = Facts(values);
-            facts["invariant"] = invariant;
-            facts.TryAdd("violation_count", 1);
-            facts["rulebase_count"] = snapshot.Rulebases.Count;
-            facts["link_count"] = snapshot.Links.Count;
-            facts["rule_count"] = snapshot.Rulebases.Sum(Rulebase => Rulebase.Rules.Count);
-            RulePositioningDiagnosticLog.WriteFailure("topology.validation", facts);
-        }
-
-        /// <summary>Builds one bounded topology fact map.</summary>
-        private static Dictionary<string, object?> Facts(params (string Key, object? Value)[] values) =>
-            values.ToDictionary(Value => Value.Key, Value => Value.Value);
+        /// <summary>Checks for an inline link without its source rule identity.</summary>
+        private static bool HasInlineLinkWithoutRule(List<RulebaseGraphLink> links) =>
+            links.Any(link => link.LinkType == RulebaseLinkTypes.Inline && !link.SourceRuleId.HasValue);
     }
 }
 

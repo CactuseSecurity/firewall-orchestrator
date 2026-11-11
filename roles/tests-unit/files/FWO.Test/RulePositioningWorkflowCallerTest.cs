@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Text.Json;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
@@ -11,13 +10,11 @@ using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Data.Workflow;
 using FWO.Services.RulePositioning;
-using FWO.Test.Helpers;
 using NUnit.Framework;
 
 namespace FWO.Test;
 
 [TestFixture]
-[NonParallelizable]
 internal class RulePositioningWorkflowCallerTest
 {
     private const int kManagementId = 11;
@@ -25,56 +22,6 @@ internal class RulePositioningWorkflowCallerTest
     private const int kGatewayId = 21;
     private const long kRequestTaskId = 31;
     private const long kImplementationTaskId = 41;
-
-    [TestCase(DiagnosticScenario.Success)]
-    [TestCase(DiagnosticScenario.NotApplicable)]
-    [TestCase(DiagnosticScenario.TargetInconsistency)]
-    [TestCase(DiagnosticScenario.SettingsException)]
-    [TestCase(DiagnosticScenario.InvalidTicketSlice)]
-    [TestCase(DiagnosticScenario.ConfigurationException)]
-    [TestCase(DiagnosticScenario.CalculationFailure)]
-    [TestCase(DiagnosticScenario.PersistenceFailure)]
-    public async Task CalculateAndPersistAsync_EmitsCompleteOrderedTraceWithoutChangingOutcome(
-        DiagnosticScenario scenario)
-    {
-        RecordingApiConnection api = new();
-        RecordingStrategy strategy = new(scenario == DiagnosticScenario.CalculationFailure
-            ? new RulePositioningFailure(RulePositioningFailureCategory.CalculationFailed)
-            : Success(scenario is DiagnosticScenario.InvalidTicketSlice or DiagnosticScenario.ConfigurationException
-                ? ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection
-                : ProvisioningPositioningAlgorithm.DefaultEndOfRulebase));
-        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
-        ConfigureDiagnosticScenario(scenario, api, requestTask, implementationTask);
-
-        RulePositioningWorkflowOutcome? outcome = null;
-        string output = await ConsoleOutput.CaptureAsync(async () =>
-        {
-            outcome = await Caller(api, strategy).CalculateAndPersistAsync(
-                requestTask,
-                implementationTask,
-                CancellationToken.None);
-        });
-
-        DiagnosticExpectation expected = DiagnosticExpectation.For(scenario);
-        List<JsonElement> diagnostics = ParseDiagnostics(output);
-        Assert.Multiple(() =>
-        {
-            Assert.That(outcome!.Status, Is.EqualTo(expected.Status));
-            Assert.That(outcome.FailureCategory, Is.EqualTo(expected.FailureCategory));
-            Assert.That(api.TargetReads, Is.EqualTo(expected.TargetReads));
-            Assert.That(api.SettingsReads, Is.EqualTo(expected.SettingsReads));
-            Assert.That(api.TicketReads, Is.EqualTo(expected.TicketReads));
-            Assert.That(api.ConfigReads, Is.EqualTo(expected.ConfigReads));
-            Assert.That(api.PositionWrites, Is.EqualTo(expected.PositionWrites));
-            Assert.That(diagnostics, Is.Not.Empty);
-            Assert.That(diagnostics.Select(Event => Event.GetProperty("sequence").GetInt64()), Is.Ordered);
-            Assert.That(diagnostics.Select(Event => Event.GetProperty("attempt_id").GetString()).Distinct().Count(),
-                Is.EqualTo(1));
-            Assert.That(diagnostics.Select(Event => Event.GetProperty("stage").GetString()),
-                Does.Contain(expected.RequiredStage));
-            Assert.That(diagnostics.Last().GetProperty("stage").GetString(), Is.EqualTo("workflow.final"));
-        });
-    }
 
     [Test]
     public async Task CalculateAndPersistAsync_LoadsContextCalculatesOnceAndStoresPosition()
@@ -664,60 +611,6 @@ internal class RulePositioningWorkflowCallerTest
         Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.False);
     }
 
-    /// <summary>Applies one high-level diagnostic path without changing the production fixture shape.</summary>
-    private static void ConfigureDiagnosticScenario(
-        DiagnosticScenario scenario,
-        RecordingApiConnection api,
-        WfReqTask requestTask,
-        WfImplTask implementationTask)
-    {
-        switch (scenario)
-        {
-            case DiagnosticScenario.NotApplicable:
-                implementationTask.DeviceId = null;
-                break;
-            case DiagnosticScenario.TargetInconsistency:
-                api.TargetCount = 0;
-                break;
-            case DiagnosticScenario.SettingsException:
-                api.ThrowOnSettingsRead = true;
-                break;
-            case DiagnosticScenario.InvalidTicketSlice:
-                api.PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection;
-                api.Ticket = new WfTicket { Id = requestTask.TicketId + 1 };
-                break;
-            case DiagnosticScenario.ConfigurationException:
-                api.PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection;
-                api.Ticket = new WfTicket
-                {
-                    Id = requestTask.TicketId,
-                    Tasks = [TicketTask(requestTask.Id, requestTask.TaskNumber, requestTask.ManagementId!.Value)]
-                };
-                api.ThrowOnConfigRead = true;
-                break;
-            case DiagnosticScenario.PersistenceFailure:
-                api.ThrowOnPositionWrite = true;
-                break;
-        }
-    }
-
-    /// <summary>Extracts compact diagnostic JSON objects from formatted log lines.</summary>
-    private static List<JsonElement> ParseDiagnostics(string output)
-    {
-        const string prefix = "RPDIAG ";
-        return
-        [
-            .. output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-                .Where(Line => Line.Contains(prefix, StringComparison.Ordinal))
-                .Select(Line =>
-                {
-                    int jsonStart = Line.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length;
-                    using JsonDocument document = JsonDocument.Parse(Line[jsonStart..]);
-                    return document.RootElement.Clone();
-                })
-        ];
-    }
-
     private static RulePositioningWorkflowCaller Caller(
         RecordingApiConnection api,
         RecordingStrategy strategy,
@@ -799,8 +692,6 @@ internal class RulePositioningWorkflowCallerTest
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public bool ThrowOnTargetRead { get; set; }
-        public bool ThrowOnSettingsRead { get; set; }
-        public bool ThrowOnConfigRead { get; set; }
         public bool ThrowOnPositionWrite { get; set; }
         public bool DelayPositionWrite { get; set; }
         public int TargetCount { get; set; } = 1;
@@ -845,10 +736,6 @@ internal class RulePositioningWorkflowCallerTest
             if (query == ConfigQueries.getConfigItemsByUser)
             {
                 ConfigReads++;
-                if (ThrowOnConfigRead)
-                {
-                    throw new InvalidOperationException("sensitive configuration load failure");
-                }
                 return (T)(object)new ConfigItem[]
                 {
                     new()
@@ -868,10 +755,6 @@ internal class RulePositioningWorkflowCallerTest
             if (query == DeviceSpecificSettingsQueries.getNodesByNaturalKeys)
             {
                 SettingsReads++;
-                if (ThrowOnSettingsRead)
-                {
-                    throw new InvalidOperationException("sensitive settings load failure");
-                }
                 if (PositioningAlgorithm == ProvisioningPositioningAlgorithm.DefaultEndOfRulebase)
                 {
                     return (T)(object)new List<DeviceSpecificConfigNodeData>();
@@ -953,56 +836,5 @@ internal class RulePositioningWorkflowCallerTest
         WrongGateway,
         MissingManagement,
         InvalidManagement
-    }
-
-    public enum DiagnosticScenario
-    {
-        Success,
-        NotApplicable,
-        TargetInconsistency,
-        SettingsException,
-        InvalidTicketSlice,
-        ConfigurationException,
-        CalculationFailure,
-        PersistenceFailure
-    }
-
-    private sealed record DiagnosticExpectation(
-        RulePositioningWorkflowStatus Status,
-        RulePositioningFailureCategory? FailureCategory,
-        int TargetReads,
-        int SettingsReads,
-        int TicketReads,
-        int ConfigReads,
-        int PositionWrites,
-        string RequiredStage)
-    {
-        public static DiagnosticExpectation For(DiagnosticScenario scenario) => scenario switch
-        {
-            DiagnosticScenario.Success => new(RulePositioningWorkflowStatus.Stored, null, 1, 1, 0, 0, 1, "manager.calculate"),
-            DiagnosticScenario.NotApplicable => new(RulePositioningWorkflowStatus.NotApplicable, null, 0, 0, 0, 0, 0, "workflow.applicability"),
-            DiagnosticScenario.TargetInconsistency => Failure(1, 0, 0, 0, "target.validation"),
-            DiagnosticScenario.SettingsException => Failure(1, 1, 0, 0, "settings.load"),
-            DiagnosticScenario.InvalidTicketSlice => Failure(1, 1, 1, 0, "ticket.load"),
-            DiagnosticScenario.ConfigurationException => Failure(1, 1, 1, 1, "configuration.load"),
-            DiagnosticScenario.CalculationFailure => Failure(1, 1, 0, 0, "manager.calculate"),
-            DiagnosticScenario.PersistenceFailure => new(RulePositioningWorkflowStatus.PersistenceFailed, null, 1, 1, 0, 0, 1, "persistence.write"),
-            _ => throw new ArgumentOutOfRangeException(nameof(scenario))
-        };
-
-        private static DiagnosticExpectation Failure(
-            int targetReads,
-            int settingsReads,
-            int ticketReads,
-            int configReads,
-            string requiredStage) => new(
-                RulePositioningWorkflowStatus.ClearedAfterFailure,
-                RulePositioningFailureCategory.CalculationFailed,
-                targetReads,
-                settingsReads,
-                ticketReads,
-                configReads,
-                1,
-                requiredStage);
     }
 }

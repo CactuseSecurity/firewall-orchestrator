@@ -4,7 +4,6 @@ using FWO.NetworkTopology;
 using FWO.Data.RulePositioning;
 using NetTools;
 using System.Net.Sockets;
-using FWO.Services.RulePositioning;
 using CreationRuleZoneResolutionResult = FWO.Data.RulePositioning.PositioningResult<
     FWO.Compliance.RulePositioning.CreationRuleZoneInput,
     FWO.Compliance.RulePositioning.CreationRuleZoneResolutionFailureCategory>;
@@ -15,10 +14,7 @@ namespace FWO.Compliance.RulePositioning;
 public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
 {
     /// <summary>Resolved zones and address coverage for one rule side.</summary>
-    private sealed record SideResolution(
-        List<PositioningZoneReference> Zones,
-        ZoneCoverage Coverage,
-        int UnassignableRangeCount);
+    private sealed record SideResolution(List<PositioningZoneReference> Zones, ZoneCoverage Coverage);
 
     /// <inheritdoc />
     public Task<CreationRuleZoneResolutionResult> ResolveAsync(
@@ -32,47 +28,18 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
             cancellationToken.ThrowIfCancellationRequested();
             if (networkInput == null)
             {
-                WriteFailure(CreationRuleZoneResolutionFailureCategory.InvalidInput);
                 return Task.FromResult<CreationRuleZoneResolutionResult>(
                     Failure(CreationRuleZoneResolutionFailureCategory.InvalidInput));
             }
             if (!TryValidateZones(networkZones, configuration, cancellationToken, out List<NetworkZone> validatedZones))
             {
-                WriteFailure(
-                    CreationRuleZoneResolutionFailureCategory.InvalidZoneData,
-                    networkZones,
-                    configuration);
                 return Task.FromResult<CreationRuleZoneResolutionResult>(
                     Failure(CreationRuleZoneResolutionFailureCategory.InvalidZoneData));
             }
-            RulePositioningDiagnosticLog.WriteInfo("zone.resolution", "start", new Dictionary<string, object?>
-            {
-                ["matrix_id"] = configuration.DesignatedZoneMatrixId,
-                ["zone_count"] = networkZones.Count,
-                ["source_range_count"] = networkInput.SourceRanges.Count,
-                ["destination_range_count"] = networkInput.DestinationRanges.Count,
-                ["source_address_families"] = AddressFamilies(networkInput.SourceRanges),
-                ["destination_address_families"] = AddressFamilies(networkInput.DestinationRanges),
-                ["automatic_internet_fallback"] = configuration.AutoCalculateInternetZone,
-                ["internet_zone_name"] = RulePositioningDiagnosticLog.Fingerprint(configuration.InternetLocalZoneName)
-            });
             List<IPAddressRange> sourceRanges = networkInput.SourceRanges.ToList();
             List<IPAddressRange> destinationRanges = networkInput.DestinationRanges.ToList();
             SideResolution source = ResolveSide(sourceRanges, validatedZones, configuration, cancellationToken);
             SideResolution destination = ResolveSide(destinationRanges, validatedZones, configuration, cancellationToken);
-            RulePositioningDiagnosticLog.WriteInfo("zone.resolution", "success", new Dictionary<string, object?>
-            {
-                ["matrix_id"] = configuration.DesignatedZoneMatrixId,
-                ["source_matched_zone_count"] = source.Zones.Count,
-                ["destination_matched_zone_count"] = destination.Zones.Count,
-                ["source_zone_ids"] = source.Zones.Select(zone => zone.Id).Take(32).ToArray(),
-                ["destination_zone_ids"] = destination.Zones.Select(zone => zone.Id).Take(32).ToArray(),
-                ["source_unresolved_range_count"] = source.UnassignableRangeCount,
-                ["destination_unresolved_range_count"] = destination.UnassignableRangeCount,
-                ["source_coverage"] = source.Coverage.ToString(),
-                ["destination_coverage"] = destination.Coverage.ToString(),
-                ["automatic_internet_fallback"] = configuration.AutoCalculateInternetZone
-            });
             return Task.FromResult(CreationRuleZoneResolutionResult.Success(
                 new CreationRuleZoneInput(
                     configuration.DesignatedZoneMatrixId,
@@ -87,19 +54,11 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
         }
         catch (Exception exception) when (exception is FormatException or ArgumentException or OverflowException)
         {
-            RulePositioningDiagnosticLog.WriteException("zone.resolution", exception, new Dictionary<string, object?>
-            {
-                ["failure_category"] = CreationRuleZoneResolutionFailureCategory.InvalidAddress.ToString()
-            });
             return Task.FromResult<CreationRuleZoneResolutionResult>(
                 Failure(CreationRuleZoneResolutionFailureCategory.InvalidAddress));
         }
-        catch (Exception exception)
+        catch (Exception)
         {
-            RulePositioningDiagnosticLog.WriteException("zone.resolution", exception, new Dictionary<string, object?>
-            {
-                ["failure_category"] = CreationRuleZoneResolutionFailureCategory.UnexpectedFailure.ToString()
-            });
             return Task.FromResult<CreationRuleZoneResolutionResult>(
                 Failure(CreationRuleZoneResolutionFailureCategory.UnexpectedFailure));
         }
@@ -212,7 +171,7 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
         {
             coverage = references.Count == 0 ? ZoneCoverage.None : ZoneCoverage.Partial;
         }
-        return new SideResolution(references, coverage, unassignableRanges.Count);
+        return new SideResolution(references, coverage);
     }
 
     /// <summary>Converts a compliance zone without retaining mutable caller data.</summary>
@@ -272,44 +231,5 @@ public sealed class CreationRuleZoneResolver : ICreationRuleZoneResolver
     private static CreationRuleZoneResolutionResult Failure(CreationRuleZoneResolutionFailureCategory category)
     {
         return CreationRuleZoneResolutionResult.Failure(category);
-    }
-
-    private static string[] AddressFamilies(IEnumerable<IPAddressRange> ranges) => ranges
-        .Where(range => range?.Begin != null)
-        .Select(range => range.Begin.AddressFamily.ToString())
-        .Distinct(StringComparer.Ordinal)
-        .OrderBy(family => family, StringComparer.Ordinal)
-        .Take(4)
-        .ToArray();
-
-    private static void WriteFailure(
-        CreationRuleZoneResolutionFailureCategory category,
-        IReadOnlyCollection<NetworkZone>? zones = null,
-        RulePositioningConfiguration? configuration = null)
-    {
-        RulePositioningDiagnosticLog.WriteFailure("zone.resolution", new Dictionary<string, object?>
-        {
-            ["failure_category"] = category.ToString(),
-            ["matrix_id"] = configuration?.DesignatedZoneMatrixId,
-            ["zone_count"] = zones?.Count ?? 0,
-            ["invalid_zone_count"] = CountInvalidZones(zones, configuration),
-            ["automatic_internet_fallback"] = configuration?.AutoCalculateInternetZone,
-            ["internet_zone_name"] = RulePositioningDiagnosticLog.Fingerprint(configuration?.InternetLocalZoneName)
-        });
-    }
-
-    private static int CountInvalidZones(
-        IReadOnlyCollection<NetworkZone>? zones,
-        RulePositioningConfiguration? configuration)
-    {
-        if (zones == null || configuration == null)
-        {
-            return zones?.Count ?? 0;
-        }
-        HashSet<int> ids = [];
-        return zones.Count(zone => zone == null || zone.Id <= 0 || !ids.Add(zone.Id) ||
-            zone.CriterionId != configuration.DesignatedZoneMatrixId ||
-            string.IsNullOrWhiteSpace(zone.Name) || zone.IPRanges == null ||
-            zone.IPRanges.Any(range => !IsValidRange(range)));
     }
 }

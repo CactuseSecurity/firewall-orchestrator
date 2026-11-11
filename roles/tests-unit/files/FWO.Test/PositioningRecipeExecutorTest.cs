@@ -1,12 +1,9 @@
 using FWO.Services.RulePositioning.Blocks;
-using FWO.Services.RulePositioning;
-using FWO.Test.Helpers;
 using NUnit.Framework;
 
 namespace FWO.Test;
 
 [TestFixture]
-[NonParallelizable]
 public class PositioningRecipeExecutorTest
 {
     private static readonly PositioningBlockRole kNumberRole = new("test.number");
@@ -175,31 +172,6 @@ public class PositioningRecipeExecutorTest
         {
             Assert.That(failure.Category, Is.EqualTo(PositioningBlockFailureCategory.InvalidRecipe));
             Assert.That(failure.OriginatingBlockKind, Is.EqualTo("recipe"));
-        });
-    }
-
-    [Test]
-    public async Task ExecuteAsync_LogsBoundedRecipeAndNodeSummariesWithoutValues()
-    {
-        const string secret = "evaluated-secret-value";
-        TestBlock child = Leaf("child", 2);
-        TestBlock root = new("root", kNumberRole, [child], [kNumberRole], (_, _, _) =>
-            Task.FromResult<PositioningBlockResult<int>>(
-                new PositioningBlockFailure<int>(PositioningBlockFailureCategory.ScopeNotFound, "root")));
-
-        string output = await ConsoleOutput.CaptureAsync(async () =>
-        {
-            using IDisposable attempt = RulePositioningDiagnosticLog.BeginAttempt(1, 2, 3, 4);
-            await Execute(root, 0);
-        });
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(output, Does.Contain("\"stage\":\"recipe.execution\""));
-            Assert.That(output, Does.Contain("\"node_count\":2"));
-            Assert.That(output, Does.Contain("\"max_depth\":2"));
-            Assert.That(output, Does.Contain("\"failure_category\":\"ScopeNotFound\""));
-            Assert.That(output, Does.Not.Contain(secret));
         });
     }
 

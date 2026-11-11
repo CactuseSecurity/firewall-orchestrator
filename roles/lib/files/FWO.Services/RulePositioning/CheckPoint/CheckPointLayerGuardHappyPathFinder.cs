@@ -191,67 +191,99 @@ public sealed class CheckPointLayerGuardHappyPathFinder : ICheckPointLayerGuardH
         SearchState state,
         CancellationToken cancellationToken)
     {
+        RenderedZonePairIndex renderedPairs = BuildRenderedZonePairIndex(
+            zones, template, state, cancellationToken);
+        if (renderedPairs.LimitReached)
+        {
+            return new StructuralBuildResult([], true);
+        }
+
         List<StructuralMatch> matches = [];
+        HashSet<(int SourceZoneId, int DestinationZoneId)> matchedPairs = [];
         foreach (CheckPointLayerGuard guard in guards.GuardsByTargetLayerId.Values.OrderBy(value => value.TargetLayerId))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             CheckPointLayerStructure? layer = structure.Layers.SingleOrDefault(candidate => candidate.Node.Id == guard.TargetLayerId);
             if (layer == null)
             {
                 return new StructuralBuildResult([], false);
             }
-            foreach (NetworkZone source in zones)
+
+            IEnumerable<CheckPointSectionStructure> uniqueSections = layer.Sections
+                .GroupBy(section => NormalizeSectionName(section.Node.Name), StringComparer.Ordinal)
+                .Where(group => group.Count() == 1)
+                .Select(group => group.Single());
+            foreach (CheckPointSectionStructure section in uniqueSections)
             {
-                foreach (NetworkZone destination in zones)
+                string normalizedName = NormalizeSectionName(section.Node.Name);
+                if (!renderedPairs.BySectionName.TryGetValue(normalizedName, out List<RenderedZonePair>? pairs))
+                {
+                    continue;
+                }
+                foreach (RenderedZonePair pair in pairs)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (state.RenderedZonePairCount >= limits.MaximumRenderedZonePairs)
-                    {
-                        return new StructuralBuildResult(matches, true);
-                    }
-                    state.RenderedZonePairCount++;
-                    TryAddStructuralMatch(matches, layer, guard, source, destination, template, state);
+                    matchedPairs.Add((pair.SourceZone.Id, pair.DestinationZone.Id));
+                    matches.Add(new StructuralMatch(layer, section, guard, pair.SourceZone,
+                        pair.DestinationZone, pair.NormalizedRenderedSectionName));
                 }
             }
         }
-        return new StructuralBuildResult(matches
+        state.StructuralMatchCount = matches.Count;
+        state.SectionRejectionCount += renderedPairs.IndexedPairCount - matchedPairs.Count;
+        List<StructuralMatch> orderedMatches = matches
             .OrderBy(match => match.Layer.Node.Id)
             .ThenBy(match => match.Section.Node.Id)
             .ThenBy(match => match.SourceZone.Id)
             .ThenBy(match => match.DestinationZone.Id)
-            .ToList(), false);
+            .ToList();
+        cancellationToken.ThrowIfCancellationRequested();
+        return new StructuralBuildResult(orderedMatches, false);
     }
 
-    /// <summary>Adds one pair only when rendering succeeds and exactly one section matches.</summary>
-    private static void TryAddStructuralMatch(
-        List<StructuralMatch> matches,
-        CheckPointLayerStructure layer,
-        CheckPointLayerGuard guard,
-        NetworkZone source,
-        NetworkZone destination,
+    /// <summary>Renders each deterministic source/destination pair once and indexes successful names.</summary>
+    private RenderedZonePairIndex BuildRenderedZonePairIndex(
+        List<NetworkZone> zones,
         CheckPointSectionNameTemplate template,
-        SearchState state)
+        SearchState state,
+        CancellationToken cancellationToken)
     {
-        Dictionary<CheckPointSectionNameVariable, string> values = new()
+        Dictionary<string, List<RenderedZonePair>> bySectionName = new(StringComparer.Ordinal);
+        int indexedPairCount = 0;
+        foreach (NetworkZone source in zones)
         {
-            [CheckPointSectionNameVariable.SourceZone] = source.Name,
-            [CheckPointSectionNameVariable.DestinationZone] = destination.Name
-        };
-        PositioningResult<string, CheckPointSectionNameTemplateFailureCategory> rendered = template.Render(values);
-        if (!rendered.TryGetValue(out string? name))
-        {
-            state.SectionRejectionCount++;
-            return;
+            foreach (NetworkZone destination in zones)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (state.RenderedZonePairCount >= limits.MaximumRenderedZonePairs)
+                {
+                    return new RenderedZonePairIndex(bySectionName, indexedPairCount, true);
+                }
+                state.RenderedZonePairCount++;
+                Dictionary<CheckPointSectionNameVariable, string> values = new()
+                {
+                    [CheckPointSectionNameVariable.SourceZone] = source.Name,
+                    [CheckPointSectionNameVariable.DestinationZone] = destination.Name
+                };
+                PositioningResult<string, CheckPointSectionNameTemplateFailureCategory> rendered =
+                    template.Render(values);
+                if (!rendered.TryGetValue(out string? name))
+                {
+                    state.SectionRejectionCount++;
+                    continue;
+                }
+                string normalizedName = NormalizeSectionName(name);
+                RenderedZonePair pair = new(source, destination, normalizedName);
+                bySectionName.TryAdd(normalizedName, []);
+                bySectionName[normalizedName].Add(pair);
+                indexedPairCount++;
+            }
         }
-        List<CheckPointSectionStructure> sections = layer.Sections.Where(section =>
-            string.Equals(section.Node.Name.Trim().ToUpperInvariant(), name, StringComparison.Ordinal)).ToList();
-        if (sections.Count != 1)
-        {
-            state.SectionRejectionCount++;
-            return;
-        }
-        state.StructuralMatchCount++;
-        matches.Add(new StructuralMatch(layer, sections[0], guard, source, destination, name));
+        return new RenderedZonePairIndex(bySectionName, indexedPairCount, false);
     }
+
+    /// <summary>Normalizes section names for ordinal indexed lookup.</summary>
+    private static string NormalizeSectionName(string name) => name.Trim().ToUpperInvariant();
 
     /// <summary>Partitions one target zone wherever zone or any guard membership can change.</summary>
     internal static CheckPointRepresentativeAddressPartition PartitionAddresses(
@@ -499,6 +531,16 @@ public sealed class CheckPointLayerGuardHappyPathFinder : ICheckPointLayerGuardH
         NetworkZone SourceZone,
         NetworkZone DestinationZone,
         string RenderedSectionName);
+
+    private sealed record RenderedZonePair(
+        NetworkZone SourceZone,
+        NetworkZone DestinationZone,
+        string NormalizedRenderedSectionName);
+
+    private sealed record RenderedZonePairIndex(
+        Dictionary<string, List<RenderedZonePair>> BySectionName,
+        int IndexedPairCount,
+        bool LimitReached);
 
     private sealed record StructuralBuildResult(List<StructuralMatch> Matches, bool LimitReached);
     private sealed record GuardValidation(bool IsValid, bool IsIndeterminate);

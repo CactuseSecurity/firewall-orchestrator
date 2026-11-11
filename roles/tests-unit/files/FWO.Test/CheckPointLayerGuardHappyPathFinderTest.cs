@@ -210,6 +210,85 @@ internal sealed class CheckPointLayerGuardHappyPathFinderTest
     }
 
     [Test]
+    public async Task FindAsync_RendersZonePairsOnceAcrossRealisticGuardCardinality()
+    {
+        List<NetworkZone> zones = Enumerable.Range(1, 60)
+            .Select(id => Zone(id, $"Zone-{id}", $"10.0.{id}.1"))
+            .ToList();
+        List<CheckPointLayerGuard> guards = Enumerable.Range(0, 59)
+            .Select(index => Guard(
+                1_000 + index,
+                1,
+                2 + index * 2,
+                index == 58 ? "10.0.59.1" : "10.0.1.1",
+                index == 58 ? "10.0.60.1" : "10.0.1.1"))
+            .ToList();
+        SearchFixture fixture = Fixture(
+            GraphWithInlineLayers(59, "[Zone-59] -> [Zone-60]"),
+            guards,
+            zones);
+
+        CheckPointLayerGuardHappyPathSearchResult result = await Find(fixture);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(CheckPointLayerGuardHappyPathSearchStatus.Found));
+            Assert.That(result.Reason, Is.EqualTo(CheckPointLayerGuardHappyPathSearchReason.CandidateValidated));
+            Assert.That(result.Statistics.RenderedZonePairCount, Is.EqualTo(3_600));
+            Assert.That(result.Statistics.RenderedZonePairCount, Is.LessThan(10_000));
+            Assert.That(result.Statistics.StructuralMatchCount, Is.GreaterThanOrEqualTo(1));
+            Assert.That(result.Statistics.SectionRejectionCount, Is.EqualTo(3_599));
+            Assert.That(result.Candidate?.TargetLayerId, Is.EqualTo(118));
+        });
+    }
+
+    [Test]
+    public async Task FindAsync_MoreThanTenThousandUniqueZonePairsReturnsSearchLimitReached()
+    {
+        List<NetworkZone> zones = Enumerable.Range(1, 101)
+            .Select(id => Zone(id, $"Zone-{id}", $"10.0.{id}.1"))
+            .ToList();
+        SearchFixture fixture = Fixture(
+            Graph("Missing", includeSectionRule: true),
+            [Guard(10, 1, 2, "10.0.1.1", "10.0.2.1")],
+            zones);
+
+        CheckPointLayerGuardHappyPathSearchResult result = await Find(fixture);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(CheckPointLayerGuardHappyPathSearchStatus.SearchLimitReached));
+            Assert.That(result.Reason,
+                Is.EqualTo(CheckPointLayerGuardHappyPathSearchReason.RenderedZonePairLimit));
+            Assert.That(result.Statistics.RenderedZonePairCount, Is.EqualTo(10_000));
+        });
+    }
+
+    [Test]
+    public async Task FindAsync_SharedZoneNamesTryMatchingPairsInZoneIdOrder()
+    {
+        SearchFixture fixture = Fixture(
+            Graph("[Source] -> [Destination]", includeSectionRule: true),
+            [Guard(10, 1, 2, "10.0.0.1-10.0.0.2", "20.0.0.1-20.0.0.2")],
+            [
+                Zone(4, "Destination", "20.0.0.2"),
+                Zone(2, "Source", "10.0.0.2"),
+                Zone(3, "Destination", "20.0.0.1"),
+                Zone(1, "Source", "10.0.0.1")
+            ]);
+
+        CheckPointLayerGuardHappyPathSearchResult result = await Find(fixture);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(CheckPointLayerGuardHappyPathSearchStatus.Found));
+            Assert.That(result.Statistics.StructuralMatchCount, Is.EqualTo(4));
+            Assert.That(result.Candidate!.SourceZoneId, Is.EqualTo(1));
+            Assert.That(result.Candidate.DestinationZoneId, Is.EqualTo(3));
+        });
+    }
+
+    [Test]
     public async Task FindAsync_MissingRenderedSectionReturnsNoCandidateAfterExhaustion()
     {
         SearchFixture fixture = Fixture(
@@ -487,6 +566,27 @@ internal sealed class CheckPointLayerGuardHappyPathFinderTest
             Link(1, 11, 4, RulebaseLinkTypes.Inline),
             Link(4, null, 5, RulebaseLinkTypes.Concatenated, section: true)
         ]);
+    }
+
+    private static RulebaseGraphSnapshot GraphWithInlineLayers(int layerCount, string finalSectionName)
+    {
+        List<Rule> guardRules = Enumerable.Range(0, layerCount)
+            .Select(index => Rule(1_000 + index, $"guard-{index}", index + 1))
+            .ToList();
+        List<Rulebase> rulebases = [Rulebase(1, "main", "Main", guardRules.ToArray())];
+        List<RulebaseLink> links = [Link(null, null, 1, RulebaseLinkTypes.Ordered, initial: true)];
+        for (int index = 0; index < layerCount; index++)
+        {
+            int layerId = 2 + index * 2;
+            int sectionId = layerId + 1;
+            string sectionName = index == layerCount - 1 ? finalSectionName : $"Unmatched-{index}";
+            rulebases.Add(Rulebase(layerId, $"inline-{index}", $"Inline {index}"));
+            rulebases.Add(Rulebase(sectionId, $"section-{index}", sectionName,
+                Rule(2_000 + index, $"section-rule-{index}", 1)));
+            links.Add(Link(1, 1_000 + index, layerId, RulebaseLinkTypes.Inline));
+            links.Add(Link(layerId, null, sectionId, RulebaseLinkTypes.Concatenated, section: true));
+        }
+        return new RulebaseGraphSnapshot(kManagementId, kGatewayId, rulebases, links);
     }
 
     private static RulebaseGraphSnapshot GraphWithDuplicateSections(string firstName, string secondName)

@@ -193,6 +193,7 @@ internal class CheckPointRulePositioningStrategyTest
             Assert.That(fixture.ExecutionToken, Is.EqualTo(cancellation.Token));
             Assert.That(position, Is.SameAs(fixture.ReturnedPosition));
             Assert.That(position.PositioningAlgorithm, Is.EqualTo(kAlgorithm));
+            Assert.That(fixture.Finder.CallCount, Is.Zero);
         });
 
         PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> SuccessfulRecipe(List<string> events)
@@ -281,6 +282,7 @@ internal class CheckPointRulePositioningStrategyTest
             Assert.That(fixture.Matrix.CallCount, Is.EqualTo(1));
             Assert.That(fixture.Resolver.CallCount, Is.EqualTo(1));
             Assert.That(fixture.Catalog.SelectCallCount, Is.Zero);
+            Assert.That(fixture.Finder.CallCount, Is.Zero);
         });
     }
 
@@ -376,6 +378,7 @@ internal class CheckPointRulePositioningStrategyTest
         AssertFailure(result, RulePositioningFailureCategory.ConfigurationInvalid);
         Assert.That(fixture.Catalog.SupportCallCount, Is.Zero);
         Assert.That(fixture.Graph.CallCount, Is.Zero);
+        Assert.That(fixture.Finder.CallCount, Is.Zero);
     }
 
     [TestCase(13)]
@@ -547,6 +550,156 @@ internal class CheckPointRulePositioningStrategyTest
         });
     }
 
+    [Test]
+    public async Task CalculateAsync_TargetSectionScopeFailureCallsFinderWithPreparedSnapshots()
+    {
+        StrategyFixture fixture = new();
+        List<NetworkZone> zones = [new() { Id = 1, Name = "Zone", IPRanges = [IPAddressRange.Parse("10.0.0.0/24")] }];
+        fixture.Zones = zones;
+        fixture.Catalog.Recipe = FailureRecipe(
+            PositioningBlockFailureCategory.ScopeNotFound, CheckPointSectionScopeBlock.kKind);
+        RulePositioningContext context = ValidContext();
+        using CancellationTokenSource cancellation = new();
+
+        RulePositioningResult result = await fixture.Strategy.CalculateAsync(context, cancellation.Token);
+
+        AssertFailure(result, RulePositioningFailureCategory.CalculationFailed);
+        Assert.That(fixture.Graph.Result.TryGetValue(out RulebaseGraphReadValue? graphValue), Is.True);
+        Assert.That(fixture.Matrix.Result.TryGetValue(out DesignatedZoneMatrixReadValue? matrixValue), Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(fixture.Finder.CallCount, Is.EqualTo(1));
+            Assert.That(fixture.Finder.Context, Is.SameAs(context));
+            Assert.That(fixture.Finder.Graph, Is.SameAs(graphValue!.Snapshot));
+            Assert.That(fixture.Finder.Guards, Is.SameAs(fixture.Guards.Snapshot));
+            Assert.That(fixture.Finder.Zones, Is.SameAs(matrixValue!.NetworkZones));
+            Assert.That(fixture.Finder.Configuration, Is.SameAs(context.Configuration));
+            Assert.That(fixture.Finder.Template!.RequiredVariables,
+                Is.EquivalentTo([CheckPointSectionNameVariable.SourceZone, CheckPointSectionNameVariable.DestinationZone]));
+            Assert.That(fixture.Finder.Token, Is.EqualTo(cancellation.Token));
+        });
+    }
+
+    [TestCase(PositioningBlockFailureCategory.ScopeNotFound, CheckPointLayerGuardScopeBlock.kKind)]
+    [TestCase(PositioningBlockFailureCategory.ScopeAmbiguous, CheckPointSectionScopeBlock.kKind)]
+    [TestCase(PositioningBlockFailureCategory.InvalidSnapshot, CheckPointSectionScopeBlock.kKind)]
+    public async Task CalculateAsync_OtherRecipeFailuresDoNotCallFinder(
+        PositioningBlockFailureCategory category,
+        string originatingBlockKind)
+    {
+        StrategyFixture fixture = new();
+        fixture.Catalog.Recipe = FailureRecipe(category, originatingBlockKind);
+
+        RulePositioningResult result = await fixture.Strategy.CalculateAsync(ValidContext(), CancellationToken.None);
+
+        AssertFailure(result, RulePositioningFailureCategory.CalculationFailed);
+        Assert.That(fixture.Finder.CallCount, Is.Zero);
+    }
+
+    [Test]
+    public async Task CalculateAsync_FinderResultCannotReplaceOriginalFailure()
+    {
+        StrategyFixture found = new();
+        found.Catalog.Recipe = FailureRecipe(
+            PositioningBlockFailureCategory.ScopeNotFound, CheckPointSectionScopeBlock.kKind);
+        found.Finder.Result = FoundSearchResult();
+        StrategyFixture noCandidate = new();
+        noCandidate.Catalog.Recipe = FailureRecipe(
+            PositioningBlockFailureCategory.ScopeNotFound, CheckPointSectionScopeBlock.kKind);
+        StrategyFixture throws = new();
+        throws.Catalog.Recipe = FailureRecipe(
+            PositioningBlockFailureCategory.ScopeNotFound, CheckPointSectionScopeBlock.kKind);
+        throws.Finder.Exception = new InvalidOperationException(kSentinel);
+
+        RulePositioningResult[] results =
+        [
+            await found.Strategy.CalculateAsync(ValidContext(), CancellationToken.None),
+            await noCandidate.Strategy.CalculateAsync(ValidContext(), CancellationToken.None),
+            await throws.Strategy.CalculateAsync(ValidContext(), CancellationToken.None)
+        ];
+
+        Assert.That(results, Has.All.TypeOf<RulePositioningFailure>());
+        Assert.That(results.Cast<RulePositioningFailure>().Select(result => result.Category),
+            Is.All.EqualTo(RulePositioningFailureCategory.CalculationFailed));
+    }
+
+    [Test]
+    public async Task CalculateAsync_FoundCandidateWritesOneBoundedCustomerDataEvent()
+    {
+        StrategyFixture fixture = new();
+        fixture.Catalog.Recipe = FailureRecipe(
+            PositioningBlockFailureCategory.ScopeNotFound, CheckPointSectionScopeBlock.kKind);
+        fixture.Finder.Result = FoundSearchResult();
+
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+        {
+            using IDisposable attempt = RulePositioningDiagnosticLog.BeginAttempt(1, 2, 3, kGatewayId);
+            RulePositioningResult result = await fixture.Strategy.CalculateAsync(ValidContext(), CancellationToken.None);
+            AssertFailure(result, RulePositioningFailureCategory.CalculationFailed);
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(output, Does.Contain("\"stage\":\"happy-path.search\""));
+            Assert.That(output, Does.Contain("\"outcome\":\"success\""));
+            Assert.That(output, Does.Contain("\"contains_customer_network_data\":true"));
+            Assert.That(output, Does.Contain("\"source_ip\":\"10.0.0.1\""));
+            Assert.That(output, Does.Contain("\"destination_ip\":\"20.0.0.1\""));
+            Assert.That(output, Does.Contain("\"rendered_section_name\":\"[SOURCE] -\\u003E [DESTINATION]\""));
+            Assert.That(output, Does.Contain("\"anchor_kind\":\"Top\""));
+        });
+    }
+
+    [Test]
+    public async Task CalculateAsync_FixedTemplateFailureSkipsFinderWithoutLoadingMatrix()
+    {
+        StrategyFixture fixture = new();
+        fixture.Catalog.Recipe = FailureRecipe(
+            PositioningBlockFailureCategory.ScopeNotFound, CheckPointSectionScopeBlock.kKind);
+        RulePositioningContext context = ValidContext();
+        context.EffectiveSettings.CheckPointLayerGuardSectionNameTemplate = "Fixed section";
+
+        RulePositioningResult result = await fixture.Strategy.CalculateAsync(context, CancellationToken.None);
+
+        AssertFailure(result, RulePositioningFailureCategory.CalculationFailed);
+        Assert.Multiple(() =>
+        {
+            Assert.That(fixture.Matrix.CallCount, Is.Zero);
+            Assert.That(fixture.Resolver.CallCount, Is.Zero);
+            Assert.That(fixture.Finder.CallCount, Is.Zero);
+        });
+    }
+
+    [Test]
+    public async Task CalculateAsync_PropagatesCancellationFromFinder()
+    {
+        StrategyFixture fixture = new();
+        fixture.Catalog.Recipe = FailureRecipe(
+            PositioningBlockFailureCategory.ScopeNotFound, CheckPointSectionScopeBlock.kKind);
+        fixture.Finder.Pending = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using CancellationTokenSource cancellation = new();
+        Task<RulePositioningResult> calculation = fixture.Strategy.CalculateAsync(ValidContext(), cancellation.Token);
+        await fixture.Finder.Pending.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        cancellation.Cancel();
+
+        Assert.CatchAsync<OperationCanceledException>(async () => await calculation);
+    }
+
+    [Test]
+    public void CalculateAsync_PropagatesFinderExceptionCarryingCallerToken()
+    {
+        StrategyFixture fixture = new();
+        fixture.Catalog.Recipe = FailureRecipe(
+            PositioningBlockFailureCategory.ScopeNotFound, CheckPointSectionScopeBlock.kKind);
+        using CancellationTokenSource cancellation = new();
+        fixture.Finder.Exception = new OperationCanceledException(cancellation.Token);
+
+        Assert.CatchAsync<OperationCanceledException>(async () =>
+            await fixture.Strategy.CalculateAsync(ValidContext(), cancellation.Token));
+        Assert.That(cancellation.IsCancellationRequested, Is.False);
+    }
+
     [TestCase("graph")]
     [TestCase("network")]
     [TestCase("guard")]
@@ -689,7 +842,8 @@ internal class CheckPointRulePositioningStrategyTest
         RecordingCatalog catalog = new() { Recipe = StructuralRecipe() };
         RecordingNetworkResolver network = new(NetworkInput(), []);
         RecordingGuardReader guards = new([]);
-        CheckPointRulePositioningStrategy strategy = new(graph, network, guards, matrix, resolver, catalog);
+        CheckPointRulePositioningStrategy strategy = new(
+            graph, network, guards, matrix, resolver, catalog, new RecordingFinder());
         RulePositioningContext first = ValidContext(101, 201);
         RulePositioningContext second = ValidContext(102, 202);
 
@@ -731,6 +885,10 @@ internal class CheckPointRulePositioningStrategyTest
                 service.ServiceType == typeof(ICheckPointPositioningRecipeCatalog)
                 && service.ImplementationType == typeof(CheckPointPositioningRecipeCatalog)));
             Assert.That(services, Has.Some.Matches<ServiceDescriptor>(service =>
+                service.ServiceType == typeof(ICheckPointLayerGuardHappyPathFinder)
+                && service.ImplementationType == typeof(CheckPointLayerGuardHappyPathFinder)
+                && service.Lifetime == ServiceLifetime.Singleton));
+            Assert.That(services, Has.Some.Matches<ServiceDescriptor>(service =>
                 service.ServiceType == typeof(IRulePositioningWorkflowCaller)
                 && service.ImplementationType == typeof(RulePositioningWorkflowCaller)));
         });
@@ -751,19 +909,50 @@ internal class CheckPointRulePositioningStrategyTest
         Assert.Multiple(() =>
         {
             Assert.Throws<ArgumentNullException>(() => new CheckPointRulePositioningStrategy(
-                null!, fixture.Network, fixture.Guards, fixture.Matrix, fixture.Resolver, fixture.Catalog));
+                null!, fixture.Network, fixture.Guards, fixture.Matrix, fixture.Resolver, fixture.Catalog, fixture.Finder));
             Assert.Throws<ArgumentNullException>(() => new CheckPointRulePositioningStrategy(
-                fixture.Graph, null!, fixture.Guards, fixture.Matrix, fixture.Resolver, fixture.Catalog));
+                fixture.Graph, null!, fixture.Guards, fixture.Matrix, fixture.Resolver, fixture.Catalog, fixture.Finder));
             Assert.Throws<ArgumentNullException>(() => new CheckPointRulePositioningStrategy(
-                fixture.Graph, fixture.Network, null!, fixture.Matrix, fixture.Resolver, fixture.Catalog));
+                fixture.Graph, fixture.Network, null!, fixture.Matrix, fixture.Resolver, fixture.Catalog, fixture.Finder));
             Assert.Throws<ArgumentNullException>(() => new CheckPointRulePositioningStrategy(
-                fixture.Graph, fixture.Network, fixture.Guards, null!, fixture.Resolver, fixture.Catalog));
+                fixture.Graph, fixture.Network, fixture.Guards, null!, fixture.Resolver, fixture.Catalog, fixture.Finder));
             Assert.Throws<ArgumentNullException>(() => new CheckPointRulePositioningStrategy(
-                fixture.Graph, fixture.Network, fixture.Guards, fixture.Matrix, null!, fixture.Catalog));
+                fixture.Graph, fixture.Network, fixture.Guards, fixture.Matrix, null!, fixture.Catalog, fixture.Finder));
             Assert.Throws<ArgumentNullException>(() => new CheckPointRulePositioningStrategy(
-                fixture.Graph, fixture.Network, fixture.Guards, fixture.Matrix, fixture.Resolver, null!));
+                fixture.Graph, fixture.Network, fixture.Guards, fixture.Matrix, fixture.Resolver, null!, fixture.Finder));
+            Assert.Throws<ArgumentNullException>(() => new CheckPointRulePositioningStrategy(
+                fixture.Graph, fixture.Network, fixture.Guards, fixture.Matrix, fixture.Resolver, fixture.Catalog, null!));
         });
     }
+
+    private static PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> FailureRecipe(
+        PositioningBlockFailureCategory category,
+        string originatingBlockKind) => new(new RecordingResultBlock((_, _, _) =>
+            Task.FromResult<PositioningBlockResult<CheckPointBlockValue>>(
+                new PositioningBlockFailure<CheckPointBlockValue>(category, originatingBlockKind))));
+
+    private static CheckPointLayerGuardHappyPathSearchResult FoundSearchResult() => new(
+        CheckPointLayerGuardHappyPathSearchStatus.Found,
+        CheckPointLayerGuardHappyPathSearchReason.CandidateValidated,
+        new CheckPointLayerGuardHappyPathCandidate(
+            IPAddress.Parse("10.0.0.1"),
+            IPAddress.Parse("20.0.0.1"),
+            1,
+            "Source",
+            2,
+            "Destination",
+            10,
+            20,
+            "Layer",
+            "layer-uid",
+            30,
+            "Section",
+            "section-uid",
+            "[SOURCE] -> [DESTINATION]",
+            new CheckPointRulePosition("layer-uid", CheckPointPositionAnchorKind.Top, null, kAlgorithm)),
+        EmptySearchStatistics());
+
+    private static CheckPointLayerGuardHappyPathSearchStatistics EmptySearchStatistics() => new(0, 0, 0, 0, 0, 0, 0);
 
     private static PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> StructuralRecipe() =>
         new(new EndOfBlock(new CheckPointLayerScopeBlock(CheckPointLayerSelector.InitialLayer())));
@@ -907,6 +1096,7 @@ internal class CheckPointRulePositioningStrategyTest
         public RecordingMatrixReader Matrix { get; }
         public RecordingZoneResolver Resolver { get; }
         public RecordingCatalog Catalog { get; }
+        public RecordingFinder Finder { get; }
         public CheckPointRulePositioningStrategy Strategy { get; }
         public CheckPointPositioningContext? ExecutionContext { get; set; }
         public CancellationToken ExecutionToken { get; set; }
@@ -940,8 +1130,9 @@ internal class CheckPointRulePositioningStrategyTest
                 DesignatedZoneMatrixReadResult.Success(new DesignatedZoneMatrixReadValue([])), operationOrder);
             Resolver = new RecordingZoneResolver(CreationRuleZoneResolutionResult.Success(ZoneInput()), operationOrder);
             Catalog = new RecordingCatalog(operationOrder) { Recipe = CreateDefaultRecipe() };
+            Finder = new RecordingFinder();
             Strategy = new CheckPointRulePositioningStrategy(
-                Graph, Network, Guards, Matrix, Resolver, Catalog);
+                Graph, Network, Guards, Matrix, Resolver, Catalog, Finder);
 
             PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> CreateDefaultRecipe()
             {
@@ -981,6 +1172,51 @@ internal class CheckPointRulePositioningStrategyTest
             RequestTask = accessTask;
             TicketTasks = ticketTasks;
             order.Add("network");
+            if (Exception != null) throw Exception;
+            if (Pending != null)
+            {
+                Pending.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+            return Result;
+        }
+    }
+
+    private sealed class RecordingFinder : ICheckPointLayerGuardHappyPathFinder
+    {
+        public CheckPointLayerGuardHappyPathSearchResult Result { get; set; } = new(
+            CheckPointLayerGuardHappyPathSearchStatus.NoCandidate,
+            CheckPointLayerGuardHappyPathSearchReason.Exhausted,
+            null,
+            EmptySearchStatistics());
+        public Exception? Exception { get; set; }
+        public TaskCompletionSource? Pending { get; set; }
+        public int CallCount { get; private set; }
+        public RulePositioningContext? Context { get; private set; }
+        public RulebaseGraphSnapshot? Graph { get; private set; }
+        public CheckPointLayerGuardSnapshot? Guards { get; private set; }
+        public IReadOnlyCollection<NetworkZone>? Zones { get; private set; }
+        public RulePositioningConfiguration? Configuration { get; private set; }
+        public CheckPointSectionNameTemplate? Template { get; private set; }
+        public CancellationToken Token { get; private set; }
+
+        public async Task<CheckPointLayerGuardHappyPathSearchResult> FindAsync(
+            RulePositioningContext context,
+            RulebaseGraphSnapshot graph,
+            CheckPointLayerGuardSnapshot guards,
+            IReadOnlyCollection<NetworkZone> networkZones,
+            RulePositioningConfiguration configuration,
+            CheckPointSectionNameTemplate sectionNameTemplate,
+            CancellationToken cancellationToken)
+        {
+            CallCount++;
+            Context = context;
+            Graph = graph;
+            Guards = guards;
+            Zones = networkZones;
+            Configuration = configuration;
+            Template = sectionNameTemplate;
+            Token = cancellationToken;
             if (Exception != null) throw Exception;
             if (Pending != null)
             {

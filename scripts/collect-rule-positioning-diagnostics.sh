@@ -78,6 +78,7 @@ def line_timestamp(line):
 middleware_lines = list(read_lines(middleware_glob))
 diagnostics = []
 attempt_windows = {}
+happy_path_events = {}
 for line in middleware_lines:
     marker = "RPDIAG "
     position = line.find(marker)
@@ -95,6 +96,12 @@ for line in middleware_lines:
         continue
     timestamp = line_timestamp(line)
     diagnostics.append((attempt_id, sequence, line, timestamp))
+    if (payload.get("stage") == "happy-path.search" and payload.get("outcome") in {
+        "success", "summary", "skipped", "exception"
+    }):
+        previous = happy_path_events.get(attempt_id)
+        if previous is None or sequence > previous[0]:
+            happy_path_events[attempt_id] = (sequence, payload)
     if timestamp is not None:
         start, end = attempt_windows.get(attempt_id, (timestamp, timestamp))
         attempt_windows[attempt_id] = (min(start, timestamp), max(end, timestamp))
@@ -263,7 +270,8 @@ generated_at = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z
 
 sections = [
     "# Rule positioning diagnostic bundle",
-    "collector_schema_version=1",
+    "collector_schema_version=2",
+    "contains_customer_network_data=true",
     f"generated_at_utc={generated_at}",
     f"hostname={socket.gethostname()}",
     f"repository_head={git_head or 'unavailable'}",
@@ -276,6 +284,17 @@ for key in ("ActiveState", "ActiveEnterTimestamp", "ExecStart", "MainPID"):
         sections.append(f"{key}={service_properties[key]}")
 if executable_sha256:
     sections.append(f"ExecStartSHA256={executable_sha256}")
+
+sections.extend(["", "## LayerGuard happy-path candidate"])
+for attempt_id in sorted(happy_path_events):
+    sequence, payload = happy_path_events[attempt_id]
+    summary = {
+        "attempt_id": attempt_id,
+        "sequence": sequence,
+        "outcome": payload.get("outcome"),
+        "facts": payload.get("facts", {}),
+    }
+    sections.append(json.dumps(summary, separators=(",", ":"), sort_keys=True))
 
 sections.extend(["", "## RPDIAG events"])
 sections.extend(entry[2] for entry in diagnostics)

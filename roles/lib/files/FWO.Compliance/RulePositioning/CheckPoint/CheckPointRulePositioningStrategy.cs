@@ -37,6 +37,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     private readonly IDesignatedZoneMatrixReader zoneMatrixReader;
     private readonly ICreationRuleZoneResolver zoneResolver;
     private readonly ICheckPointPositioningRecipeCatalog recipeCatalog;
+    private readonly ICheckPointLayerGuardHappyPathFinder happyPathFinder;
     /// <summary>Executes the selected Check Point positioning recipe.</summary>
     private readonly PositioningRecipeExecutor<CheckPointPositioningContext, CheckPointBlockValue> recipeExecutor = new();
 
@@ -47,7 +48,8 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         ICheckPointLayerGuardSnapshotReader guardReader,
         IDesignatedZoneMatrixReader zoneMatrixReader,
         ICreationRuleZoneResolver zoneResolver,
-        ICheckPointPositioningRecipeCatalog recipeCatalog)
+        ICheckPointPositioningRecipeCatalog recipeCatalog,
+        ICheckPointLayerGuardHappyPathFinder happyPathFinder)
     {
         this.graphReader = graphReader ?? throw new ArgumentNullException(nameof(graphReader));
         this.networkResolver = networkResolver ?? throw new ArgumentNullException(nameof(networkResolver));
@@ -55,6 +57,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         this.zoneMatrixReader = zoneMatrixReader ?? throw new ArgumentNullException(nameof(zoneMatrixReader));
         this.zoneResolver = zoneResolver ?? throw new ArgumentNullException(nameof(zoneResolver));
         this.recipeCatalog = recipeCatalog ?? throw new ArgumentNullException(nameof(recipeCatalog));
+        this.happyPathFinder = happyPathFinder ?? throw new ArgumentNullException(nameof(happyPathFinder));
     }
 
     /// <inheritdoc />
@@ -190,7 +193,10 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
             cancellationToken);
         if (executionResult is not PositioningBlockSuccess<CheckPointBlockValue> executionSuccess)
         {
-            return MapExecutionFailure(executionResult, algorithm, operation.ElapsedMilliseconds);
+            long executionDuration = operation.ElapsedMilliseconds;
+            await SearchHappyPathAfterTargetFailureAsync(
+                executionResult, context, inputs, sectionNameTemplate, cancellationToken);
+            return MapExecutionFailure(executionResult, algorithm, executionDuration);
         }
         if (executionSuccess.Value is not CheckPointPositionValue positionValue
             || positionValue.Position.PositioningAlgorithm != algorithm)
@@ -245,6 +251,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         }
 
         CreationRuleZoneInput? zoneInput = null;
+        IReadOnlyCollection<NetworkZone>? networkZones = null;
         if (requiresZones)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -258,6 +265,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
                 return InputPreparationResult.Failed(MapMatrixFailure(matrixResult,
                     context.EffectiveSettings.PositioningAlgorithm, stage.ElapsedMilliseconds));
             }
+            networkZones = matrixValue.NetworkZones;
 
             cancellationToken.ThrowIfCancellationRequested();
             stage.Restart();
@@ -290,7 +298,8 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
             graphValue.Snapshot,
             networkInput,
             guardSnapshot,
-            zoneInput));
+            zoneInput,
+            networkZones));
     }
 
     /// <summary>Validated data required to select and execute one positioning recipe.</summary>
@@ -298,7 +307,117 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         RulebaseGraphSnapshot Snapshot,
         CreationRuleNetworkInput NetworkInput,
         CheckPointLayerGuardSnapshot GuardSnapshot,
-        CreationRuleZoneInput? ZoneInput);
+        CreationRuleZoneInput? ZoneInput,
+        IReadOnlyCollection<NetworkZone>? NetworkZones);
+
+    /// <summary>Runs bounded diagnostics only after the exact target section-scope failure.</summary>
+    private async Task SearchHappyPathAfterTargetFailureAsync(
+        PositioningBlockResult<CheckPointBlockValue> executionResult,
+        RulePositioningContext context,
+        PreparedInputs inputs,
+        CheckPointSectionNameTemplate sectionNameTemplate,
+        CancellationToken cancellationToken)
+    {
+        if (executionResult is not PositioningBlockFailure<CheckPointBlockValue>
+            {
+                Category: PositioningBlockFailureCategory.ScopeNotFound,
+                OriginatingBlockKind: CheckPointSectionScopeBlock.kKind
+            })
+        {
+            return;
+        }
+        RulePositioningDiagnosticLog.WriteInfo("happy-path.search", "start", new Dictionary<string, object?>
+        {
+            ["contains_customer_network_data"] = true
+        });
+        if (inputs.NetworkZones == null || context.Configuration == null)
+        {
+            RulePositioningDiagnosticLog.WriteInfo("happy-path.search", "skipped", new Dictionary<string, object?>
+            {
+                ["contains_customer_network_data"] = true,
+                ["reason"] = "ZoneSnapshotUnavailable"
+            });
+            return;
+        }
+        try
+        {
+            CheckPointLayerGuardHappyPathSearchResult result = await happyPathFinder.FindAsync(
+                context,
+                inputs.Snapshot,
+                inputs.GuardSnapshot,
+                inputs.NetworkZones,
+                context.Configuration,
+                sectionNameTemplate,
+                cancellationToken);
+            WriteHappyPathResult(result);
+        }
+        catch (OperationCanceledException exception)
+            when (cancellationToken.IsCancellationRequested ||
+                cancellationToken.CanBeCanceled && exception.CancellationToken == cancellationToken)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            RulePositioningDiagnosticLog.WriteInfo("happy-path.search", "exception", new Dictionary<string, object?>
+            {
+                ["contains_customer_network_data"] = true,
+                ["exception_type"] = exception.GetType().FullName ?? exception.GetType().Name
+            });
+        }
+    }
+
+    /// <summary>Writes one bounded terminal event without dumping search inputs.</summary>
+    private static void WriteHappyPathResult(CheckPointLayerGuardHappyPathSearchResult result)
+    {
+        Dictionary<string, object?> facts = SearchFacts(result);
+        if (result.Status == CheckPointLayerGuardHappyPathSearchStatus.Found && result.Candidate != null)
+        {
+            AddCandidateFacts(facts, result.Candidate);
+            RulePositioningDiagnosticLog.WriteInfo("happy-path.search", "success", facts);
+            return;
+        }
+        RulePositioningDiagnosticLog.WriteInfo("happy-path.search", "summary", facts);
+    }
+
+    /// <summary>Creates bounded status and counter facts shared by every terminal result.</summary>
+    private static Dictionary<string, object?> SearchFacts(CheckPointLayerGuardHappyPathSearchResult result) => new()
+    {
+        ["contains_customer_network_data"] = true,
+        ["status"] = result.Status.ToString(),
+        ["reason"] = result.Reason.ToString(),
+        ["rendered_zone_pair_count"] = result.Statistics.RenderedZonePairCount,
+        ["structural_match_count"] = result.Statistics.StructuralMatchCount,
+        ["address_pair_validation_count"] = result.Statistics.AddressPairValidationCount,
+        ["zone_rejection_count"] = result.Statistics.ZoneRejectionCount,
+        ["guard_rejection_count"] = result.Statistics.GuardRejectionCount,
+        ["section_rejection_count"] = result.Statistics.SectionRejectionCount,
+        ["recipe_rejection_count"] = result.Statistics.RecipeRejectionCount
+    };
+
+    /// <summary>Adds only the single validated candidate and predicted semantic position.</summary>
+    private static void AddCandidateFacts(
+        Dictionary<string, object?> facts,
+        CheckPointLayerGuardHappyPathCandidate candidate)
+    {
+        facts["source_ip"] = candidate.SourceAddress.ToString();
+        facts["destination_ip"] = candidate.DestinationAddress.ToString();
+        facts["source_zone_id"] = candidate.SourceZoneId;
+        facts["source_zone_name"] = candidate.SourceZoneName;
+        facts["destination_zone_id"] = candidate.DestinationZoneId;
+        facts["destination_zone_name"] = candidate.DestinationZoneName;
+        facts["guard_rule_id"] = candidate.GuardRuleId;
+        facts["target_layer_id"] = candidate.TargetLayerId;
+        facts["target_layer_name"] = candidate.TargetLayerName;
+        facts["target_layer_uid"] = candidate.TargetLayerUid;
+        facts["section_id"] = candidate.SectionId;
+        facts["section_name"] = candidate.SectionName;
+        facts["section_uid"] = candidate.SectionUid;
+        facts["rendered_section_name"] = candidate.RenderedSectionName;
+        facts["anchor_kind"] = candidate.PredictedPosition.AnchorKind.ToString();
+        facts["layer_uid"] = candidate.PredictedPosition.LayerUid;
+        facts["anchor_rule_uid"] = candidate.PredictedPosition.AnchorRuleUid;
+    }
 
     /// <summary>Result of preparing positioning inputs without throwing domain failures.</summary>
     private sealed record InputPreparationResult(PreparedInputs? Inputs, RulePositioningFailure? PreparationFailure)

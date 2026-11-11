@@ -31,12 +31,18 @@ gzip "$log_dir/middleware.log.1"
 
 cat > "$log_dir/middleware.log" <<'EOF'
 2026-11-11T09:59:59+00:00 Info - Rule positioning diagnostic, RPDIAG {"schema_version":1,"attempt_id":"other-task","sequence":1,"implementation_task_id":77,"stage":"workflow","outcome":"start","facts":{"secret":"SECRET_OTHER_TASK"}}
+2026-11-11T09:59:59+00:00 Info - Rule positioning diagnostic, RPDIAG {"schema_version":1,"attempt_id":"other-task","sequence":2,"implementation_task_id":77,"stage":"happy-path.search","outcome":"success","facts":{"status":"Found","source_ip":"SECRET_OTHER_SOURCE","destination_ip":"SECRET_OTHER_DESTINATION"}}
 2026-11-11T11:00:00+00:00 Info - Rule positioning diagnostic, RPDIAG {"schema_version":1,"attempt_id":"attempt-a","sequence":2,"implementation_task_id":42,"stage":"workflow","outcome":"complete","facts":{}}
 2026-11-11T10:59:58+00:00 Info - Rule positioning diagnostic, RPDIAG {"schema_version":1,"attempt_id":"attempt-a","sequence":1,"implementation_task_id":42,"stage":"workflow","outcome":"start","facts":{}}
+2026-11-11T10:59:59+00:00 Info - Rule positioning diagnostic, RPDIAG {"schema_version":1,"attempt_id":"attempt-a","sequence":3,"implementation_task_id":42,"stage":"happy-path.search","outcome":"success","facts":{"contains_customer_network_data":true,"status":"Found","reason":"CandidateValidated","rendered_zone_pair_count":4,"structural_match_count":1,"address_pair_validation_count":2,"zone_rejection_count":1,"guard_rejection_count":0,"section_rejection_count":3,"recipe_rejection_count":0,"source_ip":"10.0.0.10","destination_ip":"20.0.0.20","source_zone_id":11,"source_zone_name":"Source Zone","destination_zone_id":22,"destination_zone_name":"Destination Zone","guard_rule_id":101,"target_layer_id":202,"target_layer_name":"Inline Layer","target_layer_uid":"inline-layer-uid","section_id":303,"section_name":"[Source Zone] -\u003E [Destination Zone]","section_uid":"section-uid","rendered_section_name":"[SOURCE ZONE] -\u003E [DESTINATION ZONE]","anchor_kind":"Below","layer_uid":"inline-layer-uid","anchor_rule_uid":"last-rule-uid"}}
 2026-11-11T10:59:59+00:00 Error - API Connections (GraphQlApiConnection.cs in line 456), query SECRET_MIDDLEWARE_QUERY_A; message SECRET_HASURA_MESSAGE_A
 2026-11-11T11:00:01+00:00 Info - Rule positioning, Implementation task 42: Stored; failure category: None.
 2026-11-11T11:00:02+00:00 Info - Rule positioning, Implementation task 77: SECRET_OTHER_OUTCOME
 2026-11-11T10:59:59+00:00 Error - Customer text, misleading Implementation task 42: Stored; failure category: None. SECRET_MISLEADING_OUTCOME
+EOF
+
+cat >> "$log_dir/middleware.log.1.raw" <<'EOF'
+2026-11-11T10:00:02+00:00 Info - Rule positioning diagnostic, RPDIAG {"schema_version":1,"attempt_id":"attempt-b","sequence":3,"implementation_task_id":42,"stage":"happy-path.search","outcome":"summary","facts":{"contains_customer_network_data":true,"status":"NoCandidate","reason":"Exhausted","rendered_zone_pair_count":9,"structural_match_count":0,"address_pair_validation_count":0,"zone_rejection_count":0,"guard_rejection_count":0,"section_rejection_count":9,"recipe_rejection_count":0}}
 EOF
 
 cat > "$log_dir/api.log" <<'EOF'
@@ -74,6 +80,29 @@ grep -q '"source_line":456' "$output_path"
 grep -q '"status":"Stored"' "$output_path"
 grep -q '"role":"middleware-server"' "$output_path"
 grep -q '"status_code":500' "$output_path"
+grep -q '^collector_schema_version=2$' "$output_path"
+grep -q '^contains_customer_network_data=true$' "$output_path"
+grep -q '^## LayerGuard happy-path candidate$' "$output_path"
+grep -q '"source_ip":"10.0.0.10"' "$output_path"
+grep -q '"destination_ip":"20.0.0.20"' "$output_path"
+grep -q '"source_zone_id":11' "$output_path"
+grep -q '"source_zone_name":"Source Zone"' "$output_path"
+grep -q '"destination_zone_id":22' "$output_path"
+grep -q '"destination_zone_name":"Destination Zone"' "$output_path"
+grep -q '"guard_rule_id":101' "$output_path"
+grep -q '"target_layer_id":202' "$output_path"
+grep -q '"target_layer_name":"Inline Layer"' "$output_path"
+grep -q '"target_layer_uid":"inline-layer-uid"' "$output_path"
+grep -q '"section_id":303' "$output_path"
+grep -q '"section_name":"\[Source Zone\] -\\u003E \[Destination Zone\]"' "$output_path"
+grep -q '"section_uid":"section-uid"' "$output_path"
+grep -q '"rendered_section_name":"\[SOURCE ZONE\] -\\u003E \[DESTINATION ZONE\]"' "$output_path"
+grep -q '"anchor_kind":"Below"' "$output_path"
+grep -q '"layer_uid":"inline-layer-uid"' "$output_path"
+grep -q '"anchor_rule_uid":"last-rule-uid"' "$output_path"
+grep -q '"status":"NoCandidate"' "$output_path"
+grep -q '"rendered_zone_pair_count":9' "$output_path"
+grep -q '"section_rejection_count":9' "$output_path"
 ! grep -q 'SECRET_' "$output_path"
 ! grep -q 'Implementation task 77:' "$output_path"
 

@@ -46,6 +46,9 @@ updates:
       # scrapli >=2026.5 is the native libscrapli rewrite (scrapli 2); the ASA importer still uses the scrapli 1 API
       - dependency-name: "scrapli"
         versions: [">=2026.5"]
+      # python-dateutil >=4 requires Python >=3.11; the installer and importer still support Python 3.10
+      - dependency-name: "python-dateutil"
+        versions: [">=4"]
     assignees:
       - Laennart
 

@@ -123,11 +123,15 @@
   changed_when: false
   become: true
 
+# splitlines rather than split('\n'): Ansible escapes backslashes inside expressions, so
+# '\n' here splits on a literal backslash-n and the whole file stays one name. That only
+# shows once a second name is recorded - a second reset, or a reset after a rotation -
+# and then no leaf of either retired CA is recognised as FWO-issued any more.
 - name: Remember the internal CA names this installation has retired
   set_fact:
     internalca_previous_ca_common_names: >-
       {{
-        (internalca_retired_ca_names_content.content | default('') | b64decode).split('\n')
+        (internalca_retired_ca_names_content.content | default('') | b64decode).splitlines()
         | map('trim') | reject('equalto', '') | unique | list
       }}
 

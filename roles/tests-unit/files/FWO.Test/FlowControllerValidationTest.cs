@@ -140,7 +140,8 @@ internal class FlowControllerValidationTest
     [TestCaseSource(nameof(GroupRequestCases))]
     public void FlowCatalogGroupFilterValidation_RejectsUnknownKeys(GroupRequestCase requestCase)
     {
-        object request = requestCase.Deserialize("""{"filter":{"visibleInRequest":true,"typo":1}}""");
+        object request = requestCase.Deserialize(
+            """{"filter":{"visibleInRequest":true,"includeTechnicalDetails":true,"typo":1}}""");
 
         bool valid = FlowCatalogGroupFilterValidator.TryValidate(
             (IFlowCatalogGroupFilterRequest)request, requestCase.FilterSchema, out ActionResult? error);
@@ -152,6 +153,8 @@ internal class FlowControllerValidationTest
             Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain(requestCase.EndpointName));
             Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'visibleInRequest'"));
             Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'includeTechnicalDetails'"));
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(),
+                Does.Contain("Valid filter keys may be used independently or together."));
         });
     }
 

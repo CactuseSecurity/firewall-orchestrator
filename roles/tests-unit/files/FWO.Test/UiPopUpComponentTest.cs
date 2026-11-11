@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using Bunit;
+using FWO.Basics;
 using FWO.Ui.Services;
 using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Components;
@@ -127,6 +128,30 @@ namespace FWO.Test
                 Assert.That(popup.FindAll(".modal-body .modal-header"), Is.Empty, $"The header of popup size {size} scrolls with the body.");
                 Assert.That(content.FirstElementChild?.ClassList, Does.Contain("popup-header"), $"Popup size {size} does not start with its header.");
             }
+        }
+
+        /// <summary>
+        /// The close button in the header shows the shared close icon and closes the popup.
+        /// </summary>
+        [Test]
+        public async Task CloseButton_ShowsCloseIconAndClosesPopup()
+        {
+            await using BunitContext context = new();
+            bool closed = false;
+
+            IRenderedComponent<PopUp> popup = context.Render<PopUp>(parameters => parameters
+                .Add(p => p.Show, true)
+                .Add(p => p.Title, "TestPopup")
+                .Add(p => p.OnClose, () => closed = true));
+            IElement closeButton = popup.Find(".popup-header > button.popup-close");
+
+            Assert.That(closeButton.QuerySelector("span")?.ClassName, Is.EqualTo(Icons.Close));
+            closeButton.Click();
+            Assert.Multiple(() =>
+            {
+                Assert.That(closed, Is.True);
+                Assert.That(popup.FindAll(".popup-dialog"), Is.Empty);
+            });
         }
 
         /// <summary>

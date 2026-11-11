@@ -97,14 +97,6 @@ header {
     font-weight: bold;
 }
 
-.modern-close {
-    display: inline-block;
-    border: none;
-    background-color: white;
-    font-weight: bold;
-    font-size: large;
-}
-
 .no-border {
     border: none;
 }

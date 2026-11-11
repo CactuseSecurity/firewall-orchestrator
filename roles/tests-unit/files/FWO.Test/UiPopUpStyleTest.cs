@@ -105,6 +105,8 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(headerDeclarations, Does.Contain("flex: 0 0 auto"));
+                Assert.That(headerDeclarations, Does.Contain("margin: 0 -2em"),
+                    "The header has to span the side padding of the content box, so the whole top strip can be grabbed.");
                 Assert.That(headerDeclarations, Does.Not.Contain("position: sticky"),
                     "A sticky header inside the scroll container would cover the sticky table headers.");
             });
@@ -229,6 +231,21 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// The close button needs a visible hover state and a focus ring for keyboard users.
+        /// </summary>
+        [Test]
+        public void PopUpCss_GivesTheCloseButtonHoverAndFocusStates()
+        {
+            string popUpCss = ReadStyleSheetWithoutComments(kPopUpCssResource);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(CloseHoverRuleRegex().IsMatch(popUpCss), Is.True, "The close button has no hover state.");
+                Assert.That(CloseFocusRuleRegex().IsMatch(popUpCss), Is.True, "The close button has no keyboard focus state.");
+            });
+        }
+
         private static string ReadStyleSheetWithoutComments(string resourceName)
         {
             Assembly assembly = typeof(UiPopUpStyleTest).Assembly;
@@ -272,6 +289,12 @@ namespace FWO.Test
 
         [GeneratedRegex(@"\.modal-content\s+\.sticky-header\s+thead\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
         private static partial Regex ModalStickyHeaderRuleRegex();
+
+        [GeneratedRegex(@"\.popup-close:hover\s*\{[^}]*background-color[^}]*\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex CloseHoverRuleRegex();
+
+        [GeneratedRegex(@"\.popup-close:focus-visible\s*\{[^}]*box-shadow[^}]*\}", RegexOptions.None, knMilliseconds)]
+        private static partial Regex CloseFocusRuleRegex();
 
         [GeneratedRegex(@"\.popup-header\s*\{(?<body>[^}]*)\}", RegexOptions.None, knMilliseconds)]
         private static partial Regex PopupHeaderRuleRegex();

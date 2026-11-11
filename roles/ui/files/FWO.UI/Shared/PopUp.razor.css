@@ -125,7 +125,8 @@
     scrolls. min-height: 0 lets the body shrink below its content and scroll instead of overflowing. */
 .modal-content {
     --fwo-modal-body-padding-top: 0px;
-    padding: 2em 2em 0 2em;
+    /* No top padding: the header owns the whole top strip of the popup (see .popup-header). */
+    padding: 0 2em;
     background-color: rgba(255, 255, 255, 1);
     display: flex;
     flex-direction: column;
@@ -156,9 +157,46 @@
     flex: 0 0 auto;
 }
 
-/* The header is the fixed part of the content box, only the body below it scrolls. */
+/* The header is the fixed part of the content box, only the body below it scrolls. It spans the
+    whole top strip of the popup, including the side padding of the content box, so the popup can be
+    moved by grabbing anywhere above the body. The padding keeps the former position of the title. */
 .popup-header {
     flex: 0 0 auto;
+    margin: 0 -2em;
+    padding: 2em 2em 0 2em;
+}
+
+/* Round icon button: unobtrusive at rest, a clear target on hover and for keyboard focus. */
+.popup-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    margin: -0.25rem -0.5rem -0.25rem 0;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background-color: transparent;
+    color: var(--bs-secondary-color);
+    font-size: 1rem;
+    line-height: 1;
+    transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+}
+
+.popup-close:hover {
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-emphasis-color);
+}
+
+.popup-close:active {
+    background-color: var(--bs-border-color);
+}
+
+.popup-close:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.35);
 }
 
 .popup-title {

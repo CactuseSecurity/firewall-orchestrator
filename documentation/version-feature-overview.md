@@ -276,3 +276,5 @@ For a feature-centric, thematically grouped view see
 - Access-task elements reference their ticket-local object-create task, keeping object changes consistent.
 - Approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks.
 - The promotion-mode setting supports an action-buttons-only option in addition to ticket, task and combined promotion.
+
+### 9.9.2 - 11.11.2026

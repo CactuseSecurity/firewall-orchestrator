@@ -1,5 +1,10 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.2 - 11.11.2026
+- dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
+- dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.2 (denial-of-service fixes in validator and parser).
+
+
 ## 9.9.1 - 05.11.2026
 - installer: Ansible collection sources such as Artifactory can be configured per installation with `fwo_galaxy_server_list` and `fwo_galaxy_servers` in `fwo-install-settings.yml`; bootstrap and subsequent collection downloads use these settings, with environment overrides and credentials kept separate
 - request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent

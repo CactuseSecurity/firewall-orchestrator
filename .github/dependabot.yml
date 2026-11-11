@@ -26,11 +26,18 @@ updates:
     assignees:
       - SolidProgramming
 
+  # importer and scripts requirements are installed together in CI, so shared
+  # pins (graphql-core, requests, urllib3, ...) must be bumped in one PR
   - package-ecosystem: "pip"
-    directory: "/roles/importer/files/importer"
+    directories:
+      - "/roles/importer/files/importer"
+      - "/scripts"
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    groups:
+      importer-and-scripts:
+        group-by: dependency-name
     cooldown:
       default-days: 30
       include:
@@ -55,6 +62,9 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    # scripts/ is covered together with the importer above
+    exclude-paths:
+      - "scripts/**"
     ignore:
       # ansible >=13 requires Python >=3.12, unavailable on Debian 12 (see requirements.txt)
       - dependency-name: "ansible"

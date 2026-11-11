@@ -54,6 +54,8 @@
     - internalca_promote_next_stat.stat.exists
     - not internalca_promote_previous_stat.stat.exists
 
+# Root-only: nothing reads this copy except the installer, which distributes it through
+# read-ca-trust-set.yml as root.
 - name: Keep the internal CA being switched away from trusted
   copy:
     src: "{{ internalca_ca_certificate }}"
@@ -61,7 +63,7 @@
     remote_src: true
     owner: root
     group: root
-    mode: "0644"
+    mode: "0600"
   become: true
   when:
     - internalca_promote_next_stat.stat.exists

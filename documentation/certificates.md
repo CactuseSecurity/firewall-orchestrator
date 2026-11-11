@@ -470,8 +470,10 @@ restarted so the new anchors take effect, and only then does the host record und
 `/usr/local/fworch/etc/secrets/ca/rotation/` on the CA host that it completed pass 1.
 Nothing is re-signed: every host keeps serving its current certificates, so the
 installation works throughout. Pass 1 may be limited with `--limit` and repeated as
-often as needed - it reuses the staged CA - until every host has been reached. A regular
-upgrade between the two passes keeps distributing both CAs.
+often as needed - it reuses the staged CA - until every host has been reached. The first
+run has to include the CA host (`internalca_ca_host`, the first middleware server), since
+only that host can create the next CA; the installer refuses a first run without it. A
+regular upgrade between the two passes keeps distributing both CAs.
 
 Between the passes, add the next CA to every browser and external trust store that holds
 the current one. The end of the installer output shows both certificates, the second is
@@ -493,7 +495,8 @@ FWO-managed client, Apache and OpenLDAP identity, and restarts the services hold
 them. Throughout, every host trusts both CAs. Only after each host has confirmed that
 all of its FWO identities are signed by the new CA does the run remove the previous CA
 from every trust store and reload Apache, which from then on rejects client certificates
-of the previous CA.
+of the previous CA. The rotation state on the CA host is removed last, once every host
+has done so.
 
 Both passes may also be run as `--tags certificates`: they restart the services that
 need it themselves. Do not put `internalca_ca_rotation` in
@@ -505,7 +508,9 @@ pass 1 restarts the services again on every host that has not recorded its compl
 and pass 2 continues from wherever it stopped, including an interrupted switch on the CA
 host - which is why, while one is pending, the installer accepts no run other than pass
 2. A regular upgrade after an interrupted pass 2 re-signs identities with the new CA but
-keeps trusting the previous one until pass 2 is run again.
+keeps trusting the previous one until pass 2 is run again. Once pass 2 has completed,
+running it again is refused with a note that there is nothing left to do - do not
+answer that by preparing another rotation.
 
 **After the rotation.** As with a reset, copies of an FWO identity held outside the FWO
 hosts - a client certificate imported into a browser, see [Importing the client

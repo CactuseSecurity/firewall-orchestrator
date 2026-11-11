@@ -31,16 +31,38 @@
     - not internalca_rotation_staged | bool
   run_once: true
 
+# Also reached by repeating pass 2 after it has completed: retire-previous-ca.yml removes
+# the rotation state only once every host has dropped the previous CA, so nothing is left
+# to resume. Staging another CA is then the wrong remedy, hence both cases in the message.
 - name: Require a staged CA before activating a rotation
   fail:
     msg: >-
-      internalca_ca_rotation=activate found no next internal CA on {{ internalca_ca_host }}.
-      Run the full upgrade with -e "installation_mode=upgrade internalca_ca_rotation=prepare"
-      first.
+      internalca_ca_rotation=activate found no CA rotation under way on
+      {{ internalca_ca_host }}. If an earlier run with internalca_ca_rotation=activate got
+      this far, that rotation is complete and nothing needs to be repeated. To start a
+      rotation, run the full upgrade with
+      -e "installation_mode=upgrade internalca_ca_rotation=prepare" first.
   when:
     - internalca_ca_rotation == 'activate'
     - not internalca_rotation_staged | bool
     - not internalca_rotation_promoted | bool
+  run_once: true
+
+# Only the CA host can create the next CA. A first pass-1 run limited to other hosts would
+# find nothing to distribute and end successfully without having taken any step. Later
+# runs, once the CA is staged, may be limited to any hosts.
+- name: Require the CA host in the first run of pass 1
+  fail:
+    msg: >-
+      internalca_ca_rotation=prepare has no next internal CA to distribute yet, and
+      {{ internalca_ca_host }}, the only host that can create it, is not part of this run.
+      Include {{ internalca_ca_host }} in the first run of pass 1; later runs may be
+      limited to any hosts.
+  when:
+    - internalca_ca_rotation == 'prepare'
+    - not internalca_rotation_staged | bool
+    - not internalca_rotation_promoted | bool
+    - internalca_ca_host not in ansible_play_hosts
   run_once: true
 
 # Pass 2 ends by withdrawing trust in the previous CA, which strands every host still

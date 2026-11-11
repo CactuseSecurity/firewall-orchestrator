@@ -40,6 +40,65 @@
       {{ test_rotation_ca_local_content.content | b64decode
          | regex_findall('-----BEGIN CERTIFICATE-----') | length }}
 
+# What Apache has actually loaded, not what is on disk: the CA names it sends in its
+# client-certificate request come from the client CA file as of its last reload. This is
+# how a missing reload shows - a file already narrowed to the new CA while Apache still
+# accepts identities of the previous one. No client identity is presented, so the
+# handshake itself is expected to be refused.
+- name: Read the client CAs Apache advertises after the rotation step
+  command:
+    argv:
+      - openssl
+      - s_client
+      - -connect
+      - "{{ api_network_listening_ip_address }}:{{ api_web_port }}"
+      - -CAfile
+      - "{{ internalca_trust_bundle }}"
+    stdin: ""
+  register: test_rotation_apache_handshake
+  changed_when: false
+  failed_when: false
+  timeout: 60
+  when:
+    - "'apiserver' in group_names"
+    - graphql_api_requires_client_certificate | bool
+
+# The section between the header and the next one: "Requested Signature Algorithms" with
+# TLS 1.3, "Client Certificate Types" with TLS 1.2. Split rather than matched with a
+# capturing regex, because Ansible escapes the backslash of a back-reference.
+- name: Collect the client CAs Apache advertises
+  set_fact:
+    test_rotation_apache_client_cas: >-
+      {{
+        test_rotation_after_ca_header.split('Requested Signature Algorithms')[0]
+        .split('Client Certificate Types')[0]
+      }}
+  vars:
+    test_rotation_after_ca_header: >-
+      {{
+        (test_rotation_apache_handshake.stdout | default('')).split('Acceptable client certificate CA names')[1:]
+        | first | default('')
+      }}
+  when:
+    - "'apiserver' in group_names"
+    - graphql_api_requires_client_certificate | bool
+
+- name: Verify Apache advertises the internal CA in force
+  assert:
+    that:
+      - test_rotation_apache_client_cas | trim | length > 0
+      - >-
+        test_rotation_apache_client_cas
+        is search('(?m)CN ?= ?' ~ (test_rotation_ca_info.subject.commonName | regex_escape) ~ '$')
+    fail_msg: >-
+      After internalca_ca_rotation={{ internalca_ca_rotation }} Apache on
+      {{ inventory_hostname }} does not advertise the internal CA in force
+      "{{ test_rotation_ca_info.subject.commonName }}" for client certificates. Advertised:
+      {{ test_rotation_apache_client_cas | default('') }}
+  when:
+    - "'apiserver' in group_names"
+    - graphql_api_requires_client_certificate | bool
+
 - name: Verify the client identity is signed by the internal CA in force
   assert:
     that:
@@ -95,6 +154,20 @@
           Pass 1 must stage a CA with its own name beside
           "{{ test_rotation_ca_info.subject.commonName }}" and record that
           {{ inventory_hostname }} trusts it, so pass 2 can tell that pass 1 completed here.
+
+    - name: Verify Apache advertises the staged internal CA after pass 1
+      assert:
+        that:
+          - >-
+            test_rotation_apache_client_cas
+            is search('(?m)CN ?= ?' ~ (test_rotation_next_info.subject.commonName | regex_escape) ~ '$')
+        fail_msg: >-
+          Apache on {{ inventory_hostname }} has not loaded the staged internal CA
+          "{{ test_rotation_next_info.subject.commonName }}" as a client CA, so pass 2 would
+          lock out every FWO client it re-signs. Advertised: {{ test_rotation_apache_client_cas }}
+      when:
+        - "'apiserver' in group_names"
+        - graphql_api_requires_client_certificate | bool
 
     - name: Create a directory for the staged CA test identity on the CA host
       tempfile:
@@ -262,3 +335,22 @@
           {{ internalca_ca_certificate_local }}, the operating-system rotation anchor
           {{ 'present' if test_rotation_os_anchor.stat.exists else 'absent' }} and leftover
           state {{ test_rotation_leftovers.results | selectattr('stat.exists') | map(attribute='item') | list }}.
+
+    # The negative counterpart of the check that Apache advertises the CA in force: none of
+    # the CAs this installation has retired may still be accepted for client certificates.
+    # Matched as whole names, because the unsuffixed pre-9.5.0 name is a prefix of every
+    # suffixed one.
+    - name: Verify Apache no longer accepts client identities of a retired internal CA
+      assert:
+        that:
+          - >-
+            test_rotation_apache_client_cas
+            is not search('(?m)CN ?= ?' ~ (item | regex_escape) ~ '$')
+        fail_msg: >-
+          Apache on {{ inventory_hostname }} still advertises the retired internal CA
+          "{{ item }}" for client certificates after internalca_ca_rotation=activate, so it
+          was not reloaded after the previous CA was withdrawn.
+      loop: "{{ hostvars[internalca_ca_host].internalca_previous_ca_common_names | default([], true) }}"
+      when:
+        - "'apiserver' in group_names"
+        - graphql_api_requires_client_certificate | bool

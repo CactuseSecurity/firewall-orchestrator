@@ -194,6 +194,27 @@ jobs:
             -e "installation_mode=upgrade internalca_ca_rotation=prepare" \
             --tags certificates,integrationtests
 
+      # The refusal pass 2 depends on: without a pass-1 record for every host it must stop
+      # before switching anything. The markers are set aside, pass 2 has to fail, and the
+      # staged CA must still be staged rather than switched to; the next step is the
+      # matching allowed case once the markers are back.
+      - name: Verify CA rotation pass 2 refuses a host that has not recorded pass 1
+        if: ${{ matrix.integration && success() }}
+        run: |
+          cd ${{ github.workspace }}
+          ca_dir=/usr/local/fworch/etc/secrets/ca
+          sudo mv "$ca_dir/rotation" "$RUNNER_TEMP/rotation-markers"
+          if ./scripts/run-playbook-with-sudo.sh site.yml \
+            -e force_install=true \
+            -e "installation_mode=upgrade internalca_ca_rotation=activate" \
+            --tags certificates; then
+            echo "CA rotation pass 2 ran although no host had recorded pass 1" >&2
+            exit 1
+          fi
+          sudo mv "$RUNNER_TEMP/rotation-markers" "$ca_dir/rotation"
+          sudo test -f "$ca_dir/next-ca.crt"
+          sudo test ! -e "$ca_dir/previous-ca.crt"
+
       - name: Run Ansible CA rotation pass 2 (activate) with integration tests
         if: ${{ matrix.integration && success() }}
         run: |

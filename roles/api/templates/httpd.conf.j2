@@ -22,15 +22,10 @@
 	Timeout 3600
 	ProxyTimeout 3600
 
-	# terminate https incoming calls and proxy to http
-	ProxyPass /api http://{{ api_local_listening_ip_address }}:{{ api_port }}/
+	# terminate https incoming calls and proxy to http,
+	# upgrade=websocket lets mod_proxy_http tunnel the websocket connections of graphql subscriptions
+	ProxyPass /api http://{{ api_local_listening_ip_address }}:{{ api_port }}/ upgrade=websocket
 	ProxyPassReverse /api http://{{ api_local_listening_ip_address }}:{{ api_port }}/
-
-    # WebSocket support for GraphQL subscriptions
-	RewriteEngine on
-	RewriteCond %{HTTP:Upgrade} websocket [NC]
-	RewriteCond %{HTTP:Connection} upgrade [NC]
-	RewriteRule ^/?(.*) "ws://{{ api_local_listening_ip_address }}:{{ api_port }}/v1/graphql" [P,L]
 
 	ErrorLog /var/log/{{ webserver_package_name }}/error.log
 	TransferLog /var/log/{{ webserver_package_name }}/access.log

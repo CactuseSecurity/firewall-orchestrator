@@ -6,33 +6,27 @@
 # While a CA rotation is under way the file carries the second internal CA as well, so
 # Apache accepts client identities of both and the trust bundle assembled from it below
 # covers both. The CA in force stays first: x509_certificate_info - the expiry check and
-# the integration tests - reads the first certificate of a file. Written in one task per
-# case, like the trust bundle, so the file stays byte-identical to its previous content
-# whenever no rotation is under way.
+# the integration tests - reads the first certificate of a file. Outside a rotation the
+# content is the issuer's certificate file unchanged, so the file stays byte-identical to
+# its previous content and a regular upgrade reports no change.
 - name: Install internal CA certificate for FWO components
   copy:
-    content: "{{ hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode }}"
+    content: >-
+      {{ internalca_local_ca_pem if internalca_local_partner_pem | length == 0 else internalca_local_rotation_pem }}
     dest: "{{ internalca_ca_certificate_local }}"
     owner: root
     group: "{{ fworch_group }}"
     mode: "0644"
-  register: internalca_ca_local_single
+  vars:
+    internalca_local_ca_pem: "{{ hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode }}"
+    internalca_local_partner_pem: "{{ hostvars[internalca_ca_host].internalca_rotation_partner_pem | default('') | b64decode }}"
+    # A YAML literal block, so the PEM blocks are separated by real line endings: Ansible
+    # escapes backslashes inside expressions, so a '\n' there would be written literally.
+    internalca_local_rotation_pem: |
+      {{ internalca_local_ca_pem | trim }}
+      {{ internalca_local_partner_pem | trim }}
+  register: internalca_ca_local_anchor
   become: true
-  when: hostvars[internalca_ca_host].internalca_rotation_partner_pem | default('') | length == 0
-
-- name: Install both internal CA certificates of a rotation for FWO components
-  copy:
-    # A YAML literal block, so the PEM blocks are separated by real line endings.
-    content: |
-      {{ hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode | trim }}
-      {{ hostvars[internalca_ca_host].internalca_rotation_partner_pem | b64decode | trim }}
-    dest: "{{ internalca_ca_certificate_local }}"
-    owner: root
-    group: "{{ fworch_group }}"
-    mode: "0644"
-  register: internalca_ca_local_rotation
-  become: true
-  when: hostvars[internalca_ca_host].internalca_rotation_partner_pem | default('') | length > 0
 
 # FWO clients that use the configured trust bundle need both the internal CA and,
 # when configured, the issuer of a retained customer-managed Apache certificate.
@@ -82,14 +76,16 @@
     - internalca_peer_ca_certificate == internalca_ca_certificate_local
 
 # The second internal CA of a rotation gets an anchor file of its own: update-ca-certificates
-# links only the first certificate of each file into /etc/ssl/certs.
+# links only the first certificate of each file into /etc/ssl/certs. World-readable like
+# every other anchor there, the internal CA's included: it is a public certificate, and
+# unprivileged processes such as the FWO services resolve the hash links to this file.
 - name: Install the second internal CA of a rotation on Debian trust store
   copy:
     content: "{{ hostvars[internalca_ca_host].internalca_rotation_partner_pem | b64decode }}"
     dest: "/usr/local/share/ca-certificates/{{ internalca_ca_rotation_trust_anchor }}"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR - public CA certificate in the OS trust store, must be world-readable
   register: internalca_debian_rotation_anchor
   become: true
   when:
@@ -153,13 +149,14 @@
     - ansible_facts['os_family'] == 'RedHat'
     - internalca_peer_ca_certificate == internalca_ca_certificate_local
 
+# World-readable for the same reason as the Debian anchor above.
 - name: Install the second internal CA of a rotation on RedHat trust store
   copy:
     content: "{{ hostvars[internalca_ca_host].internalca_rotation_partner_pem | b64decode }}"
     dest: "/etc/pki/ca-trust/source/anchors/{{ internalca_ca_rotation_trust_anchor }}"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR - public CA certificate in the OS trust store, must be world-readable
   register: internalca_redhat_rotation_anchor
   become: true
   when:
@@ -198,8 +195,7 @@
   set_fact:
     internalca_internal_ca_trust_changed: >-
       {{
-        internalca_ca_local_single.changed | default(false)
-        or internalca_ca_local_rotation.changed | default(false)
+        internalca_ca_local_anchor.changed
         or internalca_debian_ca_anchor.changed | default(false)
         or internalca_debian_rotation_anchor.changed | default(false)
         or internalca_debian_rotation_anchor_retired.changed | default(false)

@@ -28,22 +28,18 @@
       host. Run the full upgrade with
       -e "installation_mode=upgrade internalca_ca_rotation=activate" again.
 
-- name: Retire the internal CA that was switched away from
-  file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - "{{ internalca_previous_ca_certificate }}"
-    - "{{ internalca_ca_rotation_marker_dir }}"
+# The rotation state on the CA host is what lets an interrupted pass 2 resume, so it is
+# removed only after every host has dropped the previous CA and reloaded Apache. Until
+# then the trust set is narrowed in memory: install-trust.yml reads the second CA from
+# this fact, not from previous-ca.crt. A run interrupted anywhere before the removal
+# below still finds the switch recorded, and rerunning pass 2 installs both CAs again and
+# then retires the previous one as on the first attempt.
+- name: Drop the previous internal CA from the trust set
+  set_fact:
+    internalca_rotation_partner_pem: ""
   delegate_to: "{{ internalca_ca_host }}"
+  delegate_facts: true
   run_once: true
-  become: true
-
-- name: Read the CA rotation state after retiring the previous CA
-  include_tasks: read-ca-rotation-state.yml
-
-- name: Read the internal CA trust set after retiring the previous CA
-  include_tasks: read-ca-trust-set.yml
 
 - name: Install the internal CA trust anchor without the previous CA
   include_tasks: install-trust.yml
@@ -60,3 +56,20 @@
   when:
     - internalca_internal_ca_trust_changed | default(false) | bool
     - (webserver_package_name ~ '.service') in fworch_installed_services
+
+# previous-ca.crt first: its absence is what marks the rotation as complete. Markers left
+# behind by an interruption between the two removals are harmless, because they name the
+# fingerprint of a CA no later rotation stages again.
+- name: Retire the internal CA that was switched away from
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ internalca_previous_ca_certificate }}"
+    - "{{ internalca_ca_rotation_marker_dir }}"
+  delegate_to: "{{ internalca_ca_host }}"
+  run_once: true
+  become: true
+
+- name: Read the CA rotation state after retiring the previous CA
+  include_tasks: read-ca-rotation-state.yml

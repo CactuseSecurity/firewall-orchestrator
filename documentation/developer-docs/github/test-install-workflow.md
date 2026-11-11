@@ -67,21 +67,27 @@ The flagged entries run, in order:
 4. the Ansible `--tags integrationtests` cleanup step
 5. pass 1 of a CA rotation,
    `-e "installation_mode=upgrade internalca_ca_rotation=prepare" --tags certificates,integrationtests`
-6. pass 2 of a CA rotation,
+6. a pass 2 that has to be refused: the pass-1 records are set aside,
+   the run must fail and the staged CA must still be staged
+7. pass 2 of a CA rotation,
    `-e "installation_mode=upgrade internalca_ca_rotation=activate" --tags certificates,integrationtests`
-7. a certificate reset upgrade,
+8. a certificate reset upgrade,
    `-e "installation_mode=upgrade internalca_reset_certificates=true"`
 
-Steps 5 and 6 are limited to the certificate play and the tests: a
+Steps 5 to 7 are limited to the certificate play and the tests: a
 rotation restarts the services caching its anchors and identities
 itself, so the tag-limited form is the one an operator may also use.
-Each runs the tests inside the same invocation, because they check the
-state that pass has to leave behind - after pass 1 both CAs are trusted
-everywhere, proven by presenting a client identity of the staged CA to
-the API, and after pass 2 the previous CA is trusted nowhere. A failure
-is followed by a certificate diagnostics step.
+Steps 5 and 7 run the tests inside the same invocation, because they
+check the state that pass has to leave behind. After pass 1 both CAs
+are trusted everywhere, proven by presenting a client identity of the
+staged CA to the API, and Apache advertises both as client CAs. After
+pass 2 the previous CA is trusted nowhere, and Apache advertises no
+retired CA any more - which shows that it was reloaded, not only that
+the file changed. Step 6 is the negative counterpart of step 7: pass 2
+must not switch while a host has not recorded pass 1. A failure is
+followed by a certificate diagnostics step.
 
-Step 7 is a full run rather than a tag-limited one on purpose:
+Step 8 is a full run rather than a tag-limited one on purpose:
 `roles/tests-integration` asserts on facts the reset itself produces —
 which CA was retired, which identities were reissued, which
 customer-managed pairs were left untouched — and those exist only inside

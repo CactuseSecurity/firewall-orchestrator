@@ -182,7 +182,8 @@ follow-up, the recovery from an interrupted reset, and the detailed ownership ru
 
 Replaces the internal CA in two upgrade runs, keeping TLS between all FWO components
 working throughout. Pass 1 creates the next CA and makes every host trust both CAs;
-repeat it until it has reached every host:
+repeat it until it has reached every host. Its first run must include the CA host (the
+first middleware server), because only that host can create the next CA:
 
 ```console
 ./scripts/run-playbook-with-sudo.sh site.yml -e "installation_mode=upgrade internalca_ca_rotation=prepare"

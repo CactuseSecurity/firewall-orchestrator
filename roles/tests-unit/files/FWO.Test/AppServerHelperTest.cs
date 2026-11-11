@@ -24,6 +24,46 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ConstructAppServerNameFromDns_UsesNameOfInjectedLookup()
+        {
+            ModellingAppServer appServer = new() { Name = "from-file", Ip = "10.0.0.1/32", IpEnd = "10.0.0.1/32" };
+
+            string name = await AppServerHelper.ConstructAppServerNameFromDns(appServer, CreateNamingConvention(),
+                reverseDnsLookup: _ => Task.FromResult("app-srv-1"));
+
+            Assert.That(name, Is.EqualTo("app-srv-1"));
+            Assert.That(appServer.Name, Is.EqualTo("app-srv-1"));
+        }
+
+        [Test]
+        public async Task ConstructAppServerNameFromDns_ConstructsMissingName_WhenIpIsNotResolvable()
+        {
+            ModellingAppServer appServer = new() { Name = "", Ip = "10.0.0.1/32", IpEnd = "10.0.0.1/32" };
+
+            string name = await AppServerHelper.ConstructAppServerNameFromDns(appServer, CreateNamingConvention(),
+                reverseDnsLookup: _ => Task.FromResult(""));
+
+            Assert.That(name, Is.EqualTo("srv-10.0.0.1"));
+        }
+
+        [Test]
+        public async Task ConstructAppServerNameFromDns_DoesNotLookUpRanges()
+        {
+            int lookups = 0;
+            ModellingAppServer appServer = new() { Name = "range-1", Ip = "10.0.0.0/32", IpEnd = "10.0.0.255/32" };
+
+            string name = await AppServerHelper.ConstructAppServerNameFromDns(appServer, CreateNamingConvention(),
+                reverseDnsLookup: _ =>
+                {
+                    ++lookups;
+                    return Task.FromResult("app-srv-1");
+                });
+
+            Assert.That(name, Is.EqualTo("range-1"));
+            Assert.That(lookups, Is.EqualTo(0));
+        }
+
+        [Test]
         public void ConstructAppServerName_UsesPrefixAndIp_WhenNameMissing()
         {
             ModellingAppServer appServer = new()
@@ -141,6 +181,46 @@ namespace FWO.Test
             string name = AppServerHelper.ConstructSanitizedAppServerName(appServer, CreateNamingConvention());
 
             Assert.That(name, Is.EqualTo("net-10.0.0.0_24"));
+        }
+
+        [Test]
+        public void ConstructOwnedIpName_UsesAppServerPrefix_ForHostWithoutEnd()
+        {
+            string name = AppServerHelper.ConstructOwnedIpName(null, "10.0.0.5/32", null, CreateNamingConvention());
+
+            Assert.That(name, Is.EqualTo("srv-10.0.0.5"));
+        }
+
+        [Test]
+        public void ConstructOwnedIpName_UsesNetworkPrefix_ForRangeSpanningOneNetwork()
+        {
+            string name = AppServerHelper.ConstructOwnedIpName(null, "10.0.1.0/32", "10.0.1.255/32", CreateNamingConvention());
+
+            Assert.That(name, Is.EqualTo("net-10.0.1.0/24"));
+        }
+
+        [Test]
+        public void ConstructOwnedIpName_UsesIpRangePrefix_ForRange()
+        {
+            string name = AppServerHelper.ConstructOwnedIpName("", "10.0.1.90/32", "10.0.1.99/32", CreateNamingConvention());
+
+            Assert.That(name, Is.EqualTo("rng-10.0.1.90-10.0.1.99"));
+        }
+
+        [Test]
+        public void ConstructOwnedIpName_KeepsGivenName()
+        {
+            string name = AppServerHelper.ConstructOwnedIpName("dns-server", "10.0.6.10/32", "10.0.6.10/32", CreateNamingConvention());
+
+            Assert.That(name, Is.EqualTo("dns-server"));
+        }
+
+        [Test]
+        public void ConstructOwnedIpName_OmitsPrefix_WithDefaultNamingConvention()
+        {
+            string name = AppServerHelper.ConstructOwnedIpName(null, "10.0.0.32/32", "10.0.0.63/32", new ModellingNamingConvention());
+
+            Assert.That(name, Is.EqualTo("10.0.0.32/27"));
         }
 
         [Test]

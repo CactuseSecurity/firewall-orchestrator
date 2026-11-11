@@ -582,7 +582,7 @@ namespace FWO.Test
 
             await InvokePrivateTask(component, "CheckImplTasks");
             Assert.That(GetMember<bool>(component, "DisplayInfo"), Is.True);
-            Assert.That(apiConnection.Queries, Does.Contain(NetworkAnalysisQueries.pathAnalysis));
+            Assert.That(apiConnection.Queries, Does.Contain(PathAnalysisQueries.pathAnalysis));
 
             await InvokePrivateTask(typeof(DisplayImplTaskTable), component, "ContinueImplPhase", implTask);
         }

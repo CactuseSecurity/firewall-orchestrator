@@ -31,6 +31,10 @@ IMPORTER_USER_NAME = "importer"  # TODO: move to config file?
 FWO_CONFIG_FILENAME = BASE_DIR + "/etc/fworch.json"
 MAIN_KEY_FILE = BASE_DIR + "/etc/secrets/main_key"
 IMPORTER_PWD_FILE = BASE_DIR + "/etc/secrets/importer_pwd"
+# SSH host keys of firewalls imported over SSH (Cisco ASA); maintained by the operator, created empty by the installer
+SSH_KNOWN_HOSTS_FILE = BASE_DIR + "/etc/ssh_known_hosts"
+# alert code for an SSH host key that is unknown or has changed, see AlertCode.SshHostKeyRejected in FWO.Data
+ALERT_CODE_SSH_HOST_KEY_REJECTED = 19
 IMPORT_TMP_PATH = BASE_DIR + "/tmp/import"  # noqa: S108
 DEFAULT_SECTION_HEADER_TEXT = "section without name"
 _graphql_query_path = os.getenv("FWO_GRAPHQL_QUERY_PATH", BASE_DIR + "/fwo-api-calls/")
@@ -48,6 +52,8 @@ GRAPHQL_QUERY_PATH = _graphql_query_path
 # >25.000 rules exceed this limit
 API_CALL_CHUNK_SIZE = 1000
 RULE_NUM_NUMERIC_STEPS = 1024.0
+# importer setting: skip rules with features the normalized model cannot represent (default) instead of failing
+IMPORT_SKIP_UNSUPPORTED_RULES_KEY = "importSkipUnsupportedRules"
 
 EMPTY_NORMALIZED_FW_CONFIG_JSON_DICT: dict[str, list[Any]] = {  # TYPING: DO NOT USE THIS!!!!
     "network_objects": [],

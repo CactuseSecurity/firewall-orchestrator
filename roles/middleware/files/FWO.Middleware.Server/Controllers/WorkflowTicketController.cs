@@ -32,7 +32,9 @@ public class WorkflowTicketController : ControllerBase
     }
 
     /// <summary>
-    /// Creates a new workflow ticket.
+    /// Creates a new workflow ticket. Each addressObjects entry must supply exactly one address
+    /// representation: ipHost, ipNetwork, or a two-entry ipRange. Address text follows the shared
+    /// FWO parser, and CIDRs are normalized to inclusive bounds.
     /// </summary>
     /// <remarks>
     /// The request is limited to the expensive-endpoint body limit. The endpoint returns <c>400</c> for oversized

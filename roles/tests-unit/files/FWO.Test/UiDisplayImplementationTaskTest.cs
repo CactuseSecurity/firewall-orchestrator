@@ -34,6 +34,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DisplayObjectAndServiceElements_UseFlowIdsAndValueFallbacks()
+        {
+            DisplayImplementationTask component = new();
+            SetMember(component, "userConfig", CreateUserConfig());
+
+            string objectGroupDisplay = (string)GetPrivateMethod(typeof(DisplayImplementationTask), "DisplayObjectElement")
+                .Invoke(component, [new NwObjectElement { FlowNetworkGroupId = 42 }])!;
+            string objectValueDisplay = (string)GetPrivateMethod(typeof(DisplayImplementationTask), "DisplayObjectElement")
+                .Invoke(component, [new NwObjectElement { GroupName = "network-group" }])!;
+            string serviceObjectDisplay = (string)GetPrivateMethod(typeof(DisplayImplementationTask), "DisplayServiceElement")
+                .Invoke(component, [new NwServiceElement { FlowServiceObjectId = 44 }])!;
+            string serviceValueDisplay = (string)GetPrivateMethod(typeof(DisplayImplementationTask), "DisplayServiceElement")
+                .Invoke(component, [new NwServiceElement { GroupName = "service-group" }])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(objectGroupDisplay, Is.EqualTo("42"));
+                Assert.That(objectValueDisplay, Is.EqualTo("network-group"));
+                Assert.That(serviceObjectDisplay, Is.EqualTo("44"));
+                Assert.That(serviceValueDisplay, Is.EqualTo("service-group"));
+            });
+        }
+
+        [Test]
         public void DisplayDevice_ReturnsAllWhenRequestUsesAllDevices()
         {
             DisplayImplementationTask component = new();
@@ -68,6 +92,42 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AssignOwner_WhenBusyDoesNothing()
+        {
+            DisplayImplementationTask component = new();
+            SetMember(component, "WorkInProgress", true);
+            SetMember(component, nameof(DisplayImplementationTask.WfHandler), new WfHandler());
+
+            await InvokePrivateTask(typeof(DisplayImplementationTask), component, "AssignOwner");
+
+            Assert.That(GetMember<bool>(component, "WorkInProgress"), Is.True);
+        }
+
+        [Test]
+        public void SetTargetDatesValid_StoresValidationState()
+        {
+            DisplayImplementationTask component = new();
+
+            GetPrivateMethod(typeof(DisplayImplementationTask), "SetTargetDatesValid").Invoke(component, [false]);
+
+            Assert.That(GetMember<bool>(component, "targetDatesValid"), Is.False);
+        }
+
+        [Test]
+        public async Task ConfPromoteImplTask_ForwardsTargetState()
+        {
+            WfImplTask implTask = new() { Id = 99, StateId = 1 };
+            WfHandler handler = new() { ActImplTask = implTask, ActStateMatrix = new StateMatrix() };
+            DisplayImplementationTask component = new();
+            SetMember(component, nameof(DisplayImplementationTask.WfHandler), handler);
+
+            await InvokePrivateTask(typeof(DisplayImplementationTask), component, "ConfPromoteImplTask",
+                new WfStatefulObject { StateId = 4 });
+
+            Assert.That(implTask.StateId, Is.EqualTo(4));
+        }
+
+        [Test]
         public void OnParametersSetAsync_InitializesCachedFields()
         {
             DisplayImplementationTask component = new();
@@ -77,14 +137,25 @@ namespace FWO.Test
             reqTask.SetAddInfo(AdditionalInfoKeys.GrpName, "group-a");
             WfImplTask implTask = new()
             {
-                Id = 99, TicketId = 10, ReqTaskId = 20, TaskType = WfTaskType.access.ToString(), DeviceId = 66,
-                RuleAction = 3, Tracking = 4, Comments = [new WfCommentDataHelper(new WfComment { CommentText = "first comment" })]
+                Id = 99,
+                TicketId = 10,
+                ReqTaskId = 20,
+                TaskType = WfTaskType.access.ToString(),
+                DeviceId = 66,
+                RuleAction = 3,
+                Tracking = 4,
+                Comments = [new WfCommentDataHelper(new WfComment { CommentText = "first comment" })]
             };
             WfTicket ticket = new() { Id = 10, Tasks = [reqTask] };
             WfHandler handler = new()
             {
-                DisplayImplTaskMode = true, DisplayImplTaskCommentMode = true, ActReqTask = reqTask,
-                ActImplTask = implTask, ActTicket = ticket, TicketList = [ticket], Devices = [new Device { Id = 66, Name = "gw-66" }]
+                DisplayImplTaskMode = true,
+                DisplayImplTaskCommentMode = true,
+                ActReqTask = reqTask,
+                ActImplTask = implTask,
+                ActTicket = ticket,
+                TicketList = [ticket],
+                Devices = [new Device { Id = 66, Name = "gw-66" }]
             };
             SetMatrix(handler, WfTaskType.access.ToString(), CreateMatrix());
             SetMember(component, "userConfig", userConfig);
@@ -141,7 +212,8 @@ namespace FWO.Test
             {
                 ActImplTask = new WfImplTask
                 {
-                    Id = 99, TaskType = WfTaskType.access.ToString(),
+                    Id = 99,
+                    TaskType = WfTaskType.access.ToString(),
                     ImplElements = [new WfImplElement { Id = 1, ImplTaskId = 99, Field = ElemFieldType.service.ToString(), Port = 0, ProtoId = 6, ServiceId = null }]
                 }
             });
@@ -185,8 +257,9 @@ namespace FWO.Test
             SetMember(component, "userConfig", CreateUserConfig());
 
             GetPrivateMethod(typeof(DisplayImplementationTask), "InitAddComment").Invoke(component, []);
-            bool readOnlyAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DisplayConnection.ToString() });
-            bool hiddenAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() });
+            ConfiguredTaskActions actions = new();
+            bool readOnlyAction = InvokePrivateBool(actions, "CanShowAction", new WfStateAction { ActionType = StateActionTypes.DisplayConnection.ToString() });
+            bool hiddenAction = InvokePrivateBool(actions, "CanShowAction", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() });
 
             Assert.Multiple(() =>
             {
@@ -208,8 +281,9 @@ namespace FWO.Test
             GetPrivateMethod(typeof(DisplayImplementationTask), "InitAddComment").Invoke(component, kNoArgs);
             GetPrivateMethod(typeof(DisplayImplementationTask), "InitPromoteImplTask").Invoke(component, kNoArgs);
             await (Task)GetPrivateMethod(typeof(DisplayImplementationTask), "SaveImplTask").Invoke(component, kNoArgs)!;
-            bool readOnlyAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DisplayConnection.ToString() });
-            bool changingAction = InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() });
+            ConfiguredTaskActions actions = new();
+            bool readOnlyAction = InvokePrivateBool(actions, "CanShowAction", new WfStateAction { ActionType = StateActionTypes.DisplayConnection.ToString() });
+            bool changingAction = InvokePrivateBool(actions, "CanShowAction", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() });
 
             Assert.Multiple(() =>
             {
@@ -220,8 +294,8 @@ namespace FWO.Test
                 Assert.That(changingAction, Is.False);
             });
 
-            handler.ReadOnlyMode = false;
-            Assert.That(InvokePrivateBool(component, "CanShowConfiguredActionButton", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() }), Is.True);
+            SetMember(actions, nameof(ConfiguredTaskActions.AllowStateChangingActions), true);
+            Assert.That(InvokePrivateBool(actions, "CanShowAction", new WfStateAction { ActionType = StateActionTypes.DoNothing.ToString() }), Is.True);
         }
 
         [Test]
@@ -264,7 +338,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task DisplayImplementationTask_PerformAction_ExecutesNormalPath()
+        public async Task ConfiguredTaskActions_ImplementationTask_ExecutesNormalPath()
         {
             WfReqTask reqTask = new() { Id = 20, TaskType = WfTaskType.generic.ToString() };
             WfImplTask implTask = new()
@@ -288,10 +362,35 @@ namespace FWO.Test
             IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler,
                 new WfStateDict(), Roles.Implementer);
 
-            await component.InvokeAsync(() => InvokePrivateTask(typeof(DisplayImplementationTask), component.Instance,
+            ConfiguredTaskActions actionComponent = component.FindComponent<ConfiguredTaskActions>().Instance;
+            await component.InvokeAsync(() => InvokePrivateTask(typeof(ConfiguredTaskActions), actionComponent,
                 "PerformAction", new WfStateAction()));
 
             Assert.That(GetMember<bool>(component.Instance, "WorkInProgress"), Is.False);
+        }
+
+        [Test]
+        public async Task DisplayImplementationTask_AfterConfiguredAction_HandlesUnavailableReload()
+        {
+            WfReqTask reqTask = new() { Id = 20, TaskType = WfTaskType.generic.ToString() };
+            WfImplTask implTask = new() { Id = 30, ReqTaskId = reqTask.Id, TaskType = WfTaskType.generic.ToString() };
+            reqTask.ImplementationTasks = [implTask];
+            WfHandler handler = new()
+            {
+                DisplayImplTaskMode = true,
+                ActReqTask = reqTask,
+                ActImplTask = implTask,
+                ActTicket = new WfTicket { Tasks = [reqTask] }
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler,
+                new WfStateDict(), Roles.Implementer);
+
+            await component.InvokeAsync(() => InvokePrivateTask(typeof(DisplayImplementationTask), component.Instance,
+                "AfterConfiguredAction"));
+
+            Assert.That(handler.ActImplTask.Id, Is.EqualTo(implTask.Id));
         }
 
         [Test]
@@ -618,6 +717,57 @@ namespace FWO.Test
                 Assert.That(component.Markup, Does.Contain("SG-ImplGroup"));
                 Assert.That(component.Markup, Does.Not.Contain("HiddenObjectName"));
                 Assert.That(component.Markup, Does.Not.Contain("HiddenServiceName"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayImplementationTask_GroupModifyReadOnlyDisplaysRequestedChanges()
+        {
+            WfImplTask implTask = new()
+            {
+                Id = 22,
+                Title = "Modify groups",
+                TaskType = WfTaskType.group_modify.ToString(),
+                StateId = 1,
+                ImplElements =
+                [
+                new WfImplElement
+                {
+                    Id = 1,
+                    ImplTaskId = 22,
+                    Field = ElemFieldType.source.ToString(),
+                    NetworkId = 42,
+                    GroupName = "AR-RequestedGroup",
+                    Name = "HiddenRequestedObjectName"
+                },
+                new WfImplElement
+                {
+                    Id = 2,
+                    ImplTaskId = 22,
+                    Field = ElemFieldType.service.ToString(),
+                    ServiceId = 44,
+                    GroupName = "SG-RequestedGroup",
+                    Name = "HiddenRequestedServiceName"
+                }
+                ]
+            };
+            WfHandler handler = new()
+            {
+                DisplayImplTaskMode = true,
+                EditImplTaskMode = false,
+                ActImplTask = implTask,
+                ActReqTask = new WfReqTask(),
+                Devices = []
+            };
+            WfStateDict states = new() { Name = { [1] = "Open" } };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler, states, Roles.Implementer);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("AR-RequestedGroup"));
+                Assert.That(component.Markup, Does.Contain("SG-RequestedGroup"));
             });
         }
 

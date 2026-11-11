@@ -1,0 +1,582 @@
+@using FWO.Data.Workflow
+@using FWO.Data
+@using FWO.Data.Flow
+@using FWO.Ui.Display
+@using FWO.Ui.Shared
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+<PopUp Title="@ApprovalTaskViewTitle" Show="@Display" Size="PopupSize.XLarge" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            List<List<WfReqTask>> taskGroups = GetTaskGroups().ToList();
+            bool accessToggleShown = false;
+            @foreach (List<WfReqTask> taskGroup in taskGroups)
+            {
+                WfReqTask task = taskGroup[0];
+                @if (IsAccessTask(task) && !accessToggleShown)
+                {
+                    accessToggleShown = true;
+                    <div class="d-flex justify-content-end mb-3">
+                        <button type="button" class="btn btn-sm btn-primary approval-task-display-toggle" @onclick="ToggleAccessElementDisplay">
+                            @(DisplayService.DisplayButton(userConfig, NextDisplayModeTextKey(), Icons.Swap))
+                        </button>
+                    </div>
+                }
+                <Collapse StartToggled="@(!IsAccessTask(task))" Style="secondary" UseHtmlTitle="true" TitleWithHtml="@TaskHeader(task, taskGroup)">
+                    <div class="card-body">
+                        <CascadingValue Value="@CreateTaskViewContext()">
+                            @if (IsAccessTask(task))
+                            {
+                                <ApprovalTaskAccessBody Task="task" TaskGroup="taskGroup" />
+                            }
+                            else if (IsGroupTask(task))
+                            {
+                                <ApprovalGroupTaskBody Task="task" TaskGroup="taskGroup" />
+                            }
+                            else if (task.TaskType == WfTaskType.generic.ToString())
+                            {
+                                <ApprovalGenericTaskBody Task="task" TaskGroup="taskGroup" />
+                            }
+                            else if (task.TaskType == WfTaskType.new_interface.ToString())
+                            {
+                                <ApprovalInterfaceTaskBody Task="task" TaskGroup="taskGroup" />
+                            }
+                            else
+                            {
+                                <ApprovalObjectTaskBody Task="task" TaskGroup="taskGroup" />
+                            }
+                        </CascadingValue>
+                    </div>
+                </Collapse>
+            }
+        }
+    </Body>
+    <Footer>
+        <div class="row w-100 align-items-center">
+            <div class="col-sm-4"></div>
+            <div class="col-sm-4 d-flex justify-content-center">
+                <div class="btn-group">
+                    @foreach (WfStateAction action in OfferedActions)
+                    {
+                        @if (WfHandler.CanPerformActionOnActTicket(action))
+                        {
+                            <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => RunWithProgress(() => PerformTicketAction(action))">@action.ButtonText</button>
+                        }
+                    }
+                </div>
+            </div>
+            <div class="col-sm-4 d-flex justify-content-end">
+                <div class="btn-group">
+                    @if (CanPromoteTicket)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => RunWithProgress(PromoteTicket)">
+                            @(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
+                    }
+                    @if (ShowCancel)
+                    {
+                        <button type="button" class="btn btn-sm btn-secondary approval-task-details-close" @onclick="Close">
+                            @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-sm btn-primary approval-task-details-close" @onclick="Close">
+                            @(userConfig.GetText("ok"))</button>
+                    }
+                </div>
+            </div>
+        </div>
+    </Footer>
+</PopUp>
+<RuleActionEditor @bind-Display="displayRuleActionEditor" SelectedRuleAction="selectedRuleAction"
+    RuleActions="ruleActions" Saved="SaveRuleAction" />
+<OwnerEditor @bind-Display="displayOwnerEditor" SelectedOwner="selectedOwner"
+    Owners="GetOwnerOptions()" Saved="SaveOwner" />
+<TrackingEditor @bind-Display="displayTrackingEditor" SelectedTracking="selectedTracking"
+    Trackings="trackings" Saved="SaveTracking" />
+<ManagementEditor @bind-Display="displayManagementEditor" SelectedManagement="selectedManagement"
+    Managements="ManagementOptions" Saved="SaveManagement" />
+<TargetDatesEditor @bind-Display="displayTargetDatesEditor"
+    Model="targetDatesEditorModel"
+    AllowCreateTimeObjectTask="CanCreateTimeObjectTask"
+    CreateTimeObjectTaskRequested="OpenCreateTimeObjectTaskEditor"
+    Saved="SaveTargetDates" />
+<TimeObjectTaskEditor @bind-Display="displayTimeObjectTaskEditor"
+    Model="newTimeObjectTaskModel"
+    ShowBeginDate="@AccessTaskVisibility.ShowValidFrom"
+    ShowEndDate="@AccessTaskVisibility.ShowValidTo"
+    Saved="CreateTimeObjectTask" />
+<TextEditor @bind-Display="displayTextEditor" Text="@textEditorValue" TextKey="@textEditorKey"
+    Multiline="@textEditorMultiline" Rows="5" Saved="SaveText" />
+<ApprovalTaskElementsEditor @bind-Display="displayElementsEditor" Task="@(editingElementsTask ?? new WfReqTask())"
+    FieldKey="@editingElementsField" TicketTasks="WfHandler.ActTicket.Tasks" IpProtos="ipProtocols"
+    SelectableIpProtos="selectableIpProtocols" Saved="SaveElements" CreateObjectTaskRequested="OpenObjectTaskEditor" />
+<ApprovalObjectTaskEditor Display="displayObjectTaskEditor" DisplayChanged="HandleObjectTaskEditorDisplayChanged"
+    Task="newObjectTask" ObjectKind="newObjectTaskKind" IsModify="objectTaskIsModify" SelectableIpProtos="selectableIpProtocols"
+    DisplayIpProtos="ipProtocols" Saved="SaveObjectTask" />
+<TimeObjectTaskDeleteConfirmation @bind-Display="displayDeleteFormerTimeObjectTask"
+    Title="@(userConfig.GetText("delete_time_object_task"))"
+    Message="@(userConfig.GetText("delete_time_object_task_message"))"
+    Confirmed="DeleteFormerTimeObjectTask" />
+<TimeObjectTaskDeleteConfirmation @bind-Display="displayDeleteObjectTask"
+    Title="@(userConfig.GetText("delete_task"))" Message="@(userConfig.GetText("delete_unreferenced_object_task_message"))"
+    Confirmed="DeleteObjectTask" />
+<PromoteObject @bind-Promote="displayTaskPromotion" CloseParent="CloseTaskPromotion"
+    CancelParent="CancelTaskPromotion" ObjectName="@WfHandler.ActReqTask.Title"
+    Save="PromoteSelectedTask" StatefulObject="WfHandler.ActReqTask"
+    StateMatrix="WfHandler.ActStateMatrix" States="States" />
+<InProgress Display="workInProgress" />
+
+@code {
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public WfHandler WfHandler { get; set; } = new();
+    [Parameter] public WfStateDict States { get; set; } = new();
+    [Parameter] public Func<WfReqTask, string, Task> EditField { get; set; } = (_, _) => Task.CompletedTask;
+    [Parameter] public IReadOnlyList<WfStateAction> OfferedActions { get; set; } = [];
+    [Parameter] public Func<WfStateAction, Task> PerformTicketAction { get; set; } = _ => Task.CompletedTask;
+    [Parameter] public bool CanPromoteTicket { get; set; }
+    [Parameter] public bool CanPromoteTasks { get; set; }
+    [Parameter] public bool ShowCancel { get; set; }
+    [Parameter] public Func<Task> PromoteTicket { get; set; } = DefaultInit.DoNothing;
+    [Parameter] public Func<Task> Closed { get; set; } = DefaultInit.DoNothing;
+
+    private readonly ApprovalTaskDetailsEditorService editorService = new();
+
+    private string ApprovalTaskViewTitle
+    {
+        get
+        {
+            string requester = WfHandler.ActTicket.Requester?.Name ?? "";
+            string metadata = $"{userConfig.GetText("id")}: {WfHandler.ActTicket.Id}, {userConfig.GetText("state")}: {States.GetName(WfHandler.ActTicket.StateId)}";
+            if (!string.IsNullOrWhiteSpace(requester))
+            {
+                metadata += $", {userConfig.GetText("requester")}: {requester}";
+            }
+            return $"{userConfig.GetText("ticket")}: {WfHandler.ActTicket.Title} ({metadata})";
+        }
+    }
+
+    private string TaskDisplayTitle(WfReqTask task)
+    {
+        string taskType = string.IsNullOrWhiteSpace(task.TaskType)
+            ? userConfig.GetText("task")
+            : userConfig.GetText(task.TaskType);
+        return string.IsNullOrWhiteSpace(task.Title) ? taskType : $"{taskType}: {task.Title}";
+    }
+
+    private RenderFragment TaskHeader(WfReqTask task, IEnumerable<WfReqTask> taskGroup) => builder =>
+    {
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "d-flex align-items-center flex-wrap gap-2");
+        builder.OpenElement(2, "small");
+        builder.AddAttribute(3, "class", "text-dark mr-2 text-nowrap");
+        builder.AddContent(4, $"{userConfig.GetText("id")}: {TaskIds(taskGroup)}");
+        builder.CloseElement();
+        if (CanShowTaskPromotion(task))
+        {
+            builder.OpenElement(5, "button");
+            builder.AddAttribute(6, "type", "button");
+            builder.AddAttribute(7, "class", "btn btn-sm btn-warning");
+            builder.AddAttribute(8, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this,
+                () => RunWithProgress(() => OpenTaskPromotion(task))));
+            builder.AddEventStopPropagationAttribute(9, "onclick", true);
+            builder.AddContent(10, DisplayService.DisplayButton(userConfig, "promote", Icons.ChangeState));
+            builder.CloseElement();
+        }
+        if (CanEdit(taskGroup, WorkflowEditableFieldKeys.Title))
+        {
+            builder.OpenElement(11, "button");
+            builder.AddAttribute(12, "type", "button");
+            builder.AddAttribute(13, "class", "btn btn-sm btn-secondary");
+            builder.AddAttribute(14, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this,
+                () => OpenTextEditor(task, WorkflowEditableFieldKeys.Title, task.Title)));
+            builder.AddEventStopPropagationAttribute(15, "onclick", true);
+            builder.AddContent(16, DisplayService.DisplayButton(userConfig, "edit", Icons.Edit));
+            builder.CloseElement();
+        }
+        builder.OpenElement(17, "strong");
+        builder.AddAttribute(18, "class", "mr-2");
+        builder.AddContent(19, TaskDisplayTitle(task));
+        builder.CloseElement();
+        if (taskGroup.Count() > 1)
+        {
+            builder.OpenElement(20, "span");
+            builder.AddAttribute(21, "class", "badge badge-secondary ml-2");
+            builder.AddContent(22, taskGroup.Count());
+            builder.CloseElement();
+        }
+        builder.OpenElement(23, "span");
+        builder.AddAttribute(24, "class", "ml-auto");
+        builder.AddContent(25, States.GetName(task.StateId));
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private bool CanShowTaskPromotion(WfReqTask task)
+    {
+        return CanPromoteTasks && !WfHandler.ReadOnlyMode && WfHandler.CanActOnReqTaskInCurrentPhase(task);
+    }
+
+    private bool displayTaskPromotion;
+
+    private async Task OpenTaskPromotion(WfReqTask task)
+    {
+        WfHandler.SelectReqTaskPopUp(task, ObjAction.displayPromote);
+        displayTaskPromotion = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Task CloseTaskPromotion()
+    {
+        displayTaskPromotion = false;
+        return Task.CompletedTask;
+    }
+
+    private bool CancelTaskPromotion()
+    {
+        displayTaskPromotion = false;
+        return true;
+    }
+
+    private async Task PromoteSelectedTask(WfStatefulObject task)
+    {
+        await WfHandler.PromoteReqTask(task);
+        displayTaskPromotion = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private AccessTaskFieldVisibilityConfig AccessTaskVisibility => editorService.AccessTaskVisibility;
+    internal ApprovalTaskElementDisplayMode accessElementDisplayMode
+    {
+        get => editorService.accessElementDisplayMode;
+        set => editorService.accessElementDisplayMode = value;
+    }
+
+    internal List<IpProtocol> ipProtocols
+    {
+        get => editorService.ipProtocols;
+        set => editorService.ipProtocols = value;
+    }
+    internal List<IpProtocol> selectableIpProtocols
+    {
+        get => editorService.selectableIpProtocols;
+        set => editorService.selectableIpProtocols = value;
+    }
+    internal List<RuleAction> ruleActions
+    {
+        get => editorService.ruleActions;
+        set => editorService.ruleActions = value;
+    }
+    internal List<Tracking> trackings
+    {
+        get => editorService.trackings;
+        set => editorService.trackings = value;
+    }
+
+    internal bool displayOwnerEditor
+    {
+        get => editorService.displayOwnerEditor;
+        set => editorService.displayOwnerEditor = value;
+    }
+    internal WfReqTask? editingOwnerTask
+    {
+        get => editorService.editingOwnerTask;
+        set => editorService.editingOwnerTask = value;
+    }
+    internal FwoOwner selectedOwner
+    {
+        get => editorService.selectedOwner;
+        set => editorService.selectedOwner = value;
+    }
+    internal bool displayRuleActionEditor
+    {
+        get => editorService.displayRuleActionEditor;
+        set => editorService.displayRuleActionEditor = value;
+    }
+    internal WfReqTask? editingRuleActionTask
+    {
+        get => editorService.editingRuleActionTask;
+        set => editorService.editingRuleActionTask = value;
+    }
+    internal RuleAction? selectedRuleAction
+    {
+        get => editorService.selectedRuleAction;
+        set => editorService.selectedRuleAction = value;
+    }
+    internal bool displayTrackingEditor
+    {
+        get => editorService.displayTrackingEditor;
+        set => editorService.displayTrackingEditor = value;
+    }
+    internal WfReqTask? editingTrackingTask
+    {
+        get => editorService.editingTrackingTask;
+        set => editorService.editingTrackingTask = value;
+    }
+    internal Tracking? selectedTracking
+    {
+        get => editorService.selectedTracking;
+        set => editorService.selectedTracking = value;
+    }
+    internal bool displayManagementEditor
+    {
+        get => editorService.displayManagementEditor;
+        set => editorService.displayManagementEditor = value;
+    }
+    internal WfReqTask? editingManagementTask
+    {
+        get => editorService.editingManagementTask;
+        set => editorService.editingManagementTask = value;
+    }
+    internal Management? selectedManagement
+    {
+        get => editorService.selectedManagement;
+        set => editorService.selectedManagement = value;
+    }
+    internal bool displayTargetDatesEditor
+    {
+        get => editorService.displayTargetDatesEditor;
+        set => editorService.displayTargetDatesEditor = value;
+    }
+    internal WfReqTask? editingTargetDatesTask
+    {
+        get => editorService.editingTargetDatesTask;
+        set => editorService.editingTargetDatesTask = value;
+    }
+    internal WfReqTask? formerTimeObjectTask
+    {
+        get => editorService.formerTimeObjectTask;
+        set => editorService.formerTimeObjectTask = value;
+    }
+    internal long? formerTimeObjectSelectorId
+    {
+        get => editorService.formerTimeObjectSelectorId;
+        set => editorService.formerTimeObjectSelectorId = value;
+    }
+    internal TargetDatesEditorModel targetDatesEditorModel
+    {
+        get => editorService.targetDatesEditorModel;
+        set => editorService.targetDatesEditorModel = value;
+    }
+    internal bool displayTimeObjectTaskEditor
+    {
+        get => editorService.displayTimeObjectTaskEditor;
+        set => editorService.displayTimeObjectTaskEditor = value;
+    }
+    internal TargetDatesEditorModel newTimeObjectTaskModel
+    {
+        get => editorService.newTimeObjectTaskModel;
+        set => editorService.newTimeObjectTaskModel = value;
+    }
+    internal bool displayDeleteFormerTimeObjectTask
+    {
+        get => editorService.displayDeleteFormerTimeObjectTask;
+        set => editorService.displayDeleteFormerTimeObjectTask = value;
+    }
+    internal bool displayTextEditor
+    {
+        get => editorService.displayTextEditor;
+        set => editorService.displayTextEditor = value;
+    }
+    internal bool displayElementsEditor
+    {
+        get => editorService.displayElementsEditor;
+        set => editorService.displayElementsEditor = value;
+    }
+    internal WfReqTask? editingElementsTask
+    {
+        get => editorService.editingElementsTask;
+        set => editorService.editingElementsTask = value;
+    }
+    internal string editingElementsField
+    {
+        get => editorService.editingElementsField;
+        set => editorService.editingElementsField = value;
+    }
+    internal bool displayObjectTaskEditor
+    {
+        get => editorService.displayObjectTaskEditor;
+        set => editorService.displayObjectTaskEditor = value;
+    }
+    internal bool objectTaskIsModify
+    {
+        get => editorService.objectTaskIsModify;
+        set => editorService.objectTaskIsModify = value;
+    }
+    internal WfReqTask newObjectTask
+    {
+        get => editorService.newObjectTask;
+        set => editorService.newObjectTask = value;
+    }
+    internal ObjectTaskKind newObjectTaskKind
+    {
+        get => editorService.newObjectTaskKind;
+        set => editorService.newObjectTaskKind = value;
+    }
+    internal bool displayDeleteObjectTask
+    {
+        get => editorService.displayDeleteObjectTask;
+        set => editorService.displayDeleteObjectTask = value;
+    }
+    internal WfReqTask? pendingObjectTask
+    {
+        get => editorService.pendingObjectTask;
+        set => editorService.pendingObjectTask = value;
+    }
+    internal bool workInProgress
+    {
+        get => editorService.workInProgress;
+        set => editorService.workInProgress = value;
+    }
+    internal WfReqTask? editingTextTask
+    {
+        get => editorService.editingTextTask;
+        set => editorService.editingTextTask = value;
+    }
+    internal string textEditorKey
+    {
+        get => editorService.textEditorKey;
+        set => editorService.textEditorKey = value;
+    }
+    internal string textEditorValue
+    {
+        get => editorService.textEditorValue;
+        set => editorService.textEditorValue = value;
+    }
+    internal bool textEditorMultiline
+    {
+        get => editorService.textEditorMultiline;
+        set => editorService.textEditorMultiline = value;
+    }
+
+    private List<FwoOwner> GetOwnerOptions() => editorService.OwnerOptions();
+    private List<Management> ManagementOptions => editorService.ManagementOptions;
+    private bool CanCreateTimeObjectTask => editorService.CanCreateTimeObjectTask;
+
+    protected override void OnParametersSet()
+    {
+        ConfigureEditorService();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ConfigureEditorService();
+        await editorService.InitializeAsync(apiConnection);
+    }
+
+    private void ConfigureEditorService() => editorService.Configure(WfHandler, userConfig, RefreshAfterOperation);
+
+    private IEnumerable<List<WfReqTask>> GetTaskGroups()
+    {
+        ConfigureEditorService();
+        return editorService.GetTaskGroups();
+    }
+
+    private static bool IsAccessTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsAccessTask(task);
+
+    private static bool IsGroupTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsGroupTask(task);
+
+    private ApprovalTaskViewContext CreateTaskViewContext()
+    {
+        ConfigureEditorService();
+        return editorService.CreateTaskViewContext();
+    }
+
+    private bool CanEdit(IEnumerable<WfReqTask> tasks, string fieldKey)
+    {
+        ConfigureEditorService();
+        return editorService.CanEdit(tasks, fieldKey);
+    }
+
+    internal Task OpenOwnerEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenOwnerEditor(task));
+    internal Task OpenRuleActionEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenRuleActionEditor(task));
+    internal Task OpenTrackingEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenTrackingEditor(task));
+    internal Task OpenManagementEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenManagementEditor(task));
+    internal Task OpenTargetDatesEditor(WfReqTask task, string fieldKey) => RunEditorOperation(() => editorService.OpenTargetDatesEditor(task, fieldKey));
+    private Task OpenCreateTimeObjectTaskEditor() => RunEditorOperation(editorService.OpenCreateTimeObjectTaskEditor);
+    private Task OpenTextEditor(WfReqTask task, string fieldKey, string value) => RunEditorOperation(() => editorService.OpenTextEditor(task, fieldKey, value));
+    internal Task OpenElementsEditor(WfReqTask task, string fieldKey) => RunEditorOperation(() => editorService.OpenElementsEditor(task, fieldKey));
+    internal Task OpenGroupMembersEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenGroupMembersEditor(task));
+    internal Task OpenExistingObjectTaskEditor(WfReqTask task) => RunEditorOperation(() => editorService.OpenExistingObjectTaskEditor(task));
+    private Task OpenObjectTaskEditor() => RunEditorOperation(editorService.OpenObjectTaskEditor);
+
+    private Task SaveObjectTask(WfReqTask task) => InvokeEditor(() => editorService.SaveObjectTask(task));
+    private Task HandleObjectTaskEditorDisplayChanged(bool display) => InvokeEditor(() => editorService.HandleObjectTaskEditorDisplayChanged(display));
+    internal Task SaveObjectTaskCore(WfReqTask task) => InvokeEditor(() => editorService.SaveObjectTaskCore(task));
+    private Task DeleteObjectTask() => InvokeEditor(editorService.DeleteObjectTask);
+    private Task SaveElements(string fieldKey, IReadOnlyList<NwObjectElement> sources, IReadOnlyList<NwObjectElement> destinations, IReadOnlyList<NwServiceElement> services) => InvokeEditor(() => editorService.SaveElements(fieldKey, sources, destinations, services));
+    internal Task SaveElementsCore(string fieldKey, IReadOnlyList<NwObjectElement> sources, IReadOnlyList<NwObjectElement> destinations, IReadOnlyList<NwServiceElement> services) => InvokeEditor(() => editorService.SaveElementsCore(fieldKey, sources, destinations, services));
+    internal bool IsObjectTaskReferenced(WfReqTask task) => InvokeEditor(() => editorService.IsObjectTaskReferenced(task));
+    private Task RunWithProgress(Func<Task> action) => InvokeEditor(() => editorService.RunWithProgress(action));
+    private Task RefreshAfterOperation() => RefreshAfterOperationCore();
+
+    private async Task RefreshAfterOperationCore()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (InvalidOperationException)
+        {
+            // Unit tests can invoke callbacks before the component has a render handle.
+        }
+    }
+
+    private Task SaveRuleAction(RuleAction? ruleAction) => InvokeEditor(() => editorService.SaveRuleAction(ruleAction));
+    internal Task SaveRuleActionCore(RuleAction? ruleAction) => InvokeEditor(() => editorService.SaveRuleActionCore(ruleAction));
+    private Task SaveOwner(FwoOwner owner) => InvokeEditor(() => editorService.SaveOwner(owner));
+    internal Task SaveOwnerCore(FwoOwner owner) => InvokeEditor(() => editorService.SaveOwnerCore(owner));
+    private Task SaveTracking(Tracking? tracking) => InvokeEditor(() => editorService.SaveTracking(tracking));
+    internal Task SaveTrackingCore(Tracking? tracking) => InvokeEditor(() => editorService.SaveTrackingCore(tracking));
+    private Task SaveManagement(Management? management) => InvokeEditor(() => editorService.SaveManagement(management));
+    internal Task SaveManagementCore(Management? management) => InvokeEditor(() => editorService.SaveManagementCore(management));
+    private Task SaveTargetDates(TargetDatesEditorModel model) => InvokeEditor(() => editorService.SaveTargetDates(model));
+    private Task CreateTimeObjectTask(TargetDatesEditorModel model) => InvokeEditor(() => editorService.CreateTimeObjectTask(model));
+    private Task DeleteFormerTimeObjectTask() => InvokeEditor(editorService.DeleteFormerTimeObjectTask);
+    internal void InitializeNewObjectTaskState(WfReqTask task) => InvokeEditor(() => editorService.InitializeNewObjectTaskState(task));
+    internal bool ShouldOfferFormerTimeObjectDeletion(TargetDatesEditorModel model) => InvokeEditor(() => editorService.ShouldOfferFormerTimeObjectDeletion(model));
+    internal IEnumerable<WfReqTask> GetTasksToUpdate(WfReqTask task) => InvokeEditor(() => editorService.GetTasksToUpdate(task));
+    internal void ApplyTimeObjectModel(TargetDatesEditorModel model) => InvokeEditor(() => editorService.ApplyTimeObjectModel(model));
+    private Task SaveText(string value) => InvokeEditor(() => editorService.SaveText(value));
+    internal Task SaveTextCore(string value) => InvokeEditor(() => editorService.SaveTextCore(value));
+    private static string TaskIds(IEnumerable<WfReqTask> tasks) => ApprovalTaskDetailsEditorService.TaskIds(tasks);
+    internal bool CanEditTimeObject(IEnumerable<WfReqTask> tasks) => InvokeEditor(() => editorService.CanEditTimeObject(tasks));
+    internal string EditableTimeObjectField(IEnumerable<WfReqTask> tasks) => InvokeEditor(() => editorService.EditableTimeObjectField(tasks));
+    private void ToggleAccessElementDisplay() => InvokeEditor(editorService.ToggleAccessElementDisplay);
+    private string NextDisplayModeTextKey() => InvokeEditor(editorService.NextDisplayModeTextKey);
+
+    private Task InvokeEditor(Func<Task> operation)
+    {
+        ConfigureEditorService();
+        return operation();
+    }
+
+    private T InvokeEditor<T>(Func<T> operation)
+    {
+        ConfigureEditorService();
+        return operation();
+    }
+
+    private void InvokeEditor(Action operation)
+    {
+        ConfigureEditorService();
+        operation();
+    }
+
+    private async Task RunEditorOperation(Func<Task> operation)
+    {
+        ConfigureEditorService();
+        await operation();
+    }
+
+    private async void Close()
+    {
+        Display = false;
+        await DisplayChanged.InvokeAsync(false);
+        await Closed();
+    }
+}

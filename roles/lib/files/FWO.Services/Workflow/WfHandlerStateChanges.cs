@@ -65,7 +65,7 @@ namespace FWO.Services.Workflow
             bool emailBundleFlushAttempted = false;
             try
             {
-                if (!await PromoteTicket(ticket))
+                if (!CheckActTicketChangeable() || !await PromoteTicket(ticket))
                 {
                     return false;
                 }
@@ -73,10 +73,7 @@ namespace FWO.Services.Workflow
                 BeginWorkflowEmailBundle();
                 emailBundleStarted = true;
 
-                // Creation itself is guarded by the implementation phase's
-                // configured lowest input state. Do not suppress it merely
-                // because this caller is in the request phase.
-                await UpdateRequestTasksFromTicket(true, approvalComment: ticket.OptComment());
+                await UpdateRequestTasksFromTicket(approvalComment: ticket.OptComment());
                 // In the request phase, task actions execute in middleware and
                 // may promote the task and ticket further. The UI still holds
                 // the pre-action task state here, so deriving the ticket from
@@ -125,7 +122,7 @@ namespace FWO.Services.Workflow
                 BeginWorkflowEmailBundle();
                 emailBundleStarted = true;
 
-                await UpdateRequestTasksFromTicket(false, targetTicketStateId: targetTicketStateId,
+                await UpdateRequestTasksFromTicket(targetTicketStateId: targetTicketStateId,
                     approvalComment: ticket.OptComment());
                 ActTicket.StateId = targetTicketStateId;
                 await UpdateActTicketState();
@@ -182,14 +179,22 @@ namespace FWO.Services.Workflow
         {
             try
             {
-                List<WfReqTask> requestTasks = GetBundledRequestTasks(ActReqTask, ActReqTask.StateId);
+                List<WfReqTask> requestTasks = GetBundledRequestTasks(ActReqTask);
                 foreach (WfReqTask requestTask in requestTasks)
                 {
+                    if (requestTask.Id != ActReqTask.Id && requestTask.StateId >= reqTask.StateId)
+                    {
+                        continue;
+                    }
                     // ActReqTask is a working copy; use it for the selected task and the
                     // ticket instance for its bundled siblings so every task is persisted
                     // and its request-task actions are executed independently.
                     WfReqTask taskToPromote = requestTask.Id == ActReqTask.Id ? ActReqTask : requestTask;
                     await PromoteSingleReqTask(taskToPromote, reqTask.StateId, setStartedHandler);
+                    StateMatrix reqTaskMatrix = stateMatrixDict.Matrices.TryGetValue(taskToPromote.TaskType, out StateMatrix? configuredMatrix)
+                        ? configuredMatrix
+                        : ActStateMatrix;
+                    await UpdateReqTaskAndApprovalStatesFromTicket(taskToPromote, reqTaskMatrix, taskToPromote.StateId);
                 }
                 await UpdateActTicketStateFromReqTasks();
                 DisplayPromoteReqTaskMode = false;
@@ -232,6 +237,34 @@ namespace FWO.Services.Workflow
             }
         }
 
+        /// <summary>
+        /// Keeps a bundled request-task group together when an automatic task action promotes one
+        /// request task. Tasks that already reached a later state are deliberately left untouched.
+        /// </summary>
+        private async Task PromoteLaggingBundledRequestTasks(int targetStateId, UiUser? currentHandler)
+        {
+            foreach (WfReqTask bundledTask in GetBundledRequestTasks(ActReqTask)
+                .Where(task => task.Id != ActReqTask.Id && task.StateId < targetStateId))
+            {
+                bundledTask.StateId = targetStateId;
+                bundledTask.CurrentHandler = currentHandler;
+                if (bundledTask.Start == null && ActReqTask.Start != null)
+                {
+                    bundledTask.Start = ActReqTask.Start;
+                }
+                if (dbAcc != null)
+                {
+                    StateMatrix bundledTaskMatrix = stateMatrixDict.Matrices[bundledTask.TaskType];
+                    AuditUnexpectedStateTransition(bundledTask, WfObjectScopes.RequestTask, bundledTaskMatrix);
+                    await dbAcc.UpdateReqTaskStateInDb(bundledTask);
+                }
+                SyncActTicketFromReqTask(bundledTask);
+
+                StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[bundledTask.TaskType];
+                await UpdateReqTaskAndApprovalStatesFromTicket(bundledTask, reqTaskMatrix, targetStateId);
+            }
+        }
+
         public async Task PromoteImplTask(WfStatefulObject implTask, NotificationPlaceholderData? placeholderData = null)
         {
             try
@@ -256,71 +289,123 @@ namespace FWO.Services.Workflow
 
         public async Task AutoPromote(WfStatefulObject statefulObject, WfObjectScopes scope, int? toStateId)
         {
-            bool promotePossible = false;
-            if (toStateId != null)
+            if (!PrepareApprovalForAutoPromotion(statefulObject, scope))
             {
-                statefulObject.StateId = (int)toStateId;
-                Log.WriteDebug("AutoPromote", $"Using configured target state {statefulObject.StateId} for {scope} id {GetStatefulObjectId(statefulObject)}.");
-                promotePossible = true;
-            }
-            else
-            {
-                List<int> possibleStates = ActStateMatrix.getAllowedTransitions(statefulObject.StateId, true);
-                if (possibleStates.Count >= 1)
-                {
-                    statefulObject.StateId = possibleStates[0];
-                    Log.WriteDebug("AutoPromote", $"Using fallback target state {statefulObject.StateId} for {scope} id {GetStatefulObjectId(statefulObject)} from allowed transitions [{string.Join(", ", possibleStates)}].");
-                    promotePossible = true;
-                }
+                return;
             }
 
-            if (promotePossible)
+            if (!TrySetAutoPromotionState(statefulObject, scope, toStateId))
             {
-                switch (scope)
-                {
-                    case WfObjectScopes.Ticket:
-                        SetTicketEnv((WfTicket)statefulObject);
-                        if (Phase == WorkflowPhases.request)
-                        {
-                            await PromoteTicket(statefulObject);
-                        }
-                        else
-                        {
-                            await PromoteTasksAndTicket(statefulObject);
-                        }
-                        break;
-                    case WfObjectScopes.RequestTask:
-                        SetReqTaskEnv((WfReqTask)statefulObject);
-                        ActReqTask.StateId = statefulObject.StateId;
-                        ActReqTask.CurrentHandler = statefulObject.CurrentHandler;
-                        await UpdateActReqTaskState();
-                        // A request-task auto-promote can bypass the approval
-                        // phase. Synchronize pending approvals to their own
-                        // approval outcome before deriving the parent ticket.
-                        StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[ActReqTask.TaskType];
-                        await UpdateReqTaskAndApprovalStatesFromTicket(ActReqTask, reqTaskMatrix, ActReqTask.StateId);
-                        await UpdateActTicketStateFromReqTasks();
-                        break;
-                    case WfObjectScopes.ImplementationTask:
-                        SetImplTaskEnv((WfImplTask)statefulObject);
-                        ActImplTask.StateId = statefulObject.StateId;
-                        ActImplTask.CurrentHandler = statefulObject.CurrentHandler;
-                        await UpdateActImplTaskState();
-                        break;
-                    case WfObjectScopes.Approval:
-                        if (SetReqTaskEnv(((WfApproval)statefulObject).TaskId))
-                        {
-                            await SetApprovalEnv();
-                            StateMatrix approvalTaskMatrix = stateMatrixDict.Matrices[ActReqTask.TaskType];
-                            statefulObject.StateId = GetApprovalStateForRequestTask(statefulObject.StateId, approvalTaskMatrix);
-                            await ApproveTask(statefulObject);
-                        }
-                        break;
-                    default:
-                        break;
-                }
-                Log.WriteDebug("AutoPromote", $"Done for {scope} id {GetStatefulObjectId(statefulObject)} with state {statefulObject.StateId}.");
+                return;
             }
+
+            await ApplyAutoPromotion(statefulObject, scope);
+            Log.WriteDebug("AutoPromote", $"Done for {scope} id {GetStatefulObjectId(statefulObject)} with state {statefulObject.StateId}.");
+        }
+
+        private bool PrepareApprovalForAutoPromotion(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            if (scope != WfObjectScopes.Approval)
+            {
+                return true;
+            }
+
+            if (statefulObject is not WfApproval approval || !SetReqTaskEnv(approval.TaskId))
+            {
+                return false;
+            }
+
+            WfApproval? storedApproval = ActReqTask.Approvals.FirstOrDefault(candidate => candidate.Id == approval.Id);
+            // An automatic action may arrive after another action has already
+            // completed this approval. Never select a different pending approval
+            // or overwrite the completed one in that case.
+            return storedApproval != null && storedApproval.StateId < ActStateMatrix.LowestEndState;
+        }
+
+        private bool TrySetAutoPromotionState(WfStatefulObject statefulObject, WfObjectScopes scope, int? toStateId)
+        {
+            if (toStateId.HasValue)
+            {
+                statefulObject.StateId = toStateId.Value;
+                Log.WriteDebug("AutoPromote", $"Using configured target state {statefulObject.StateId} for {scope} id {GetStatefulObjectId(statefulObject)}.");
+                return true;
+            }
+
+            List<int> possibleStates = ActStateMatrix.getAllowedTransitions(statefulObject.StateId, true);
+            if (possibleStates.Count == 0)
+            {
+                return false;
+            }
+
+            statefulObject.StateId = possibleStates[0];
+            Log.WriteDebug("AutoPromote", $"Using fallback target state {statefulObject.StateId} for {scope} id {GetStatefulObjectId(statefulObject)} from allowed transitions [{string.Join(", ", possibleStates)}].");
+            return true;
+        }
+
+        private async Task ApplyAutoPromotion(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            switch (scope)
+            {
+                case WfObjectScopes.Ticket:
+                    SetTicketEnv((WfTicket)statefulObject);
+                    await PromoteTicketOrTasksAndTicket(statefulObject);
+                    break;
+                case WfObjectScopes.RequestTask:
+                    await PromoteRequestTask(statefulObject);
+                    break;
+                case WfObjectScopes.ImplementationTask:
+                    await PromoteImplementationTask(statefulObject);
+                    break;
+                case WfObjectScopes.Approval:
+                    await PromoteApproval((WfApproval)statefulObject);
+                    break;
+            }
+        }
+
+        private async Task PromoteTicketOrTasksAndTicket(WfStatefulObject statefulObject)
+        {
+            if (Phase == WorkflowPhases.request)
+            {
+                await PromoteTicket(statefulObject);
+                return;
+            }
+
+            await PromoteTasksAndTicket(statefulObject);
+        }
+
+        private async Task PromoteRequestTask(WfStatefulObject statefulObject)
+        {
+            SetReqTaskEnv((WfReqTask)statefulObject);
+            ActReqTask.StateId = statefulObject.StateId;
+            ActReqTask.CurrentHandler = statefulObject.CurrentHandler;
+            await UpdateActReqTaskState();
+            // A request-task auto-promote can bypass the approval phase. Synchronize pending approvals
+            // to their own approval outcome before deriving the parent ticket.
+            StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[ActReqTask.TaskType];
+            await UpdateReqTaskAndApprovalStatesFromTicket(ActReqTask, reqTaskMatrix, ActReqTask.StateId);
+            await PromoteLaggingBundledRequestTasks(ActReqTask.StateId, statefulObject.CurrentHandler);
+            await UpdateActTicketStateFromReqTasks();
+        }
+
+        private async Task PromoteImplementationTask(WfStatefulObject statefulObject)
+        {
+            SetImplTaskEnv((WfImplTask)statefulObject);
+            ActImplTask.StateId = statefulObject.StateId;
+            ActImplTask.CurrentHandler = statefulObject.CurrentHandler;
+            await UpdateActImplTaskState();
+        }
+
+        private async Task PromoteApproval(WfApproval approval)
+        {
+            if (!SetReqTaskEnv(approval.TaskId))
+            {
+                return;
+            }
+
+            await SetApprovalEnv(approval, false);
+            StateMatrix approvalTaskMatrix = stateMatrixDict.Matrices[ActReqTask.TaskType];
+            approval.StateId = GetApprovalStateForRequestTask(approval.StateId, approvalTaskMatrix);
+            await ApproveTask(approval);
         }
 
         /// <summary>
@@ -479,7 +564,7 @@ namespace FWO.Services.Workflow
             }
             if (syncImplementationTasks)
             {
-                await AutoCreateOrUpdateImplTasks();
+                await SyncImplTaskStatesAfterApproval();
             }
             if (dbAcc != null)
             {
@@ -544,12 +629,11 @@ namespace FWO.Services.Workflow
             SyncActTicketFromReqTask(ActReqTask);
         }
 
-        private async Task<bool> UpdateRequestTasksFromTicket(bool createImplTasks = true, bool triggerActions = true,
+        private async Task<bool> UpdateRequestTasksFromTicket(bool triggerActions = true,
             int? targetTicketStateId = null, string? approvalComment = null)
         {
             bool requestTaskActionsChangedState = false;
             List<WfReqTask> requestTasks = [.. ActTicket.Tasks];
-            List<WfReqTask> requestTasksNeedingInitialImplTasks = [];
             int synchronizationTicketStateId = targetTicketStateId ?? ActTicket.StateId;
             // Read the stored ticket once for the whole loop: every task and approval below needs the same
             // pre-change snapshot for the change history, and none of them is affected by another's write.
@@ -572,15 +656,6 @@ namespace FWO.Services.Workflow
                     requestTaskActionsChangedState = true;
                     Log.WriteDebug("UpdateRequestTasksFromTicket", $"Request task {reqtask.Id} changed from {oldReqTaskState} to {reqtask.StateId}.");
                 }
-                if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !IsPlanningPhaseActive(stateMatrixDict.Matrices[reqtask.TaskType])
-                    && RequestTaskNeedsInitialImplTasks(reqtask))
-                {
-                    requestTasksNeedingInitialImplTasks.Add(reqtask);
-                }
-            }
-            foreach (WfReqTask reqtask in await RequestTasksForInitialImplCreation(requestTasksNeedingInitialImplTasks))
-            {
-                await AutoCreateImplTasks(reqtask);
             }
             return requestTaskActionsChangedState;
         }
@@ -762,13 +837,12 @@ namespace FWO.Services.Workflow
         private async Task UpdateReqTaskStatesFromActImplTask(bool triggerActions = true,
             NotificationPlaceholderData? placeholderData = null)
         {
-            int selectedRequestTaskState = ActReqTask.StateId;
             SyncReqTaskStopTime(ActReqTask);
             WfTicket? storedTicket = dbAcc != null ? await dbAcc.LoadPreviousTicket(ActReqTask.TicketId) : null;
             await UpdateReqTaskStateFromImplTasks(ActReqTask, triggerActions, storedTicket, placeholderData);
 
-            List<WfReqTask> bundledTasks = [.. GetBundledRequestTasks(ActReqTask, selectedRequestTaskState)
-                .Where(task => task.Id != ActReqTask.Id)];
+            List<WfReqTask> bundledTasks = [.. GetBundledRequestTasks(ActReqTask)
+                .Where(task => task.Id != ActReqTask.Id && task.StateId < ActReqTask.StateId)];
             foreach (WfReqTask bundledTask in bundledTasks)
             {
                 bundledTask.StateId = ActReqTask.StateId;

@@ -1,5 +1,193 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.2 - 11.11.2026
+- dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
+
+
+## 9.9.1 - 05.11.2026
+- request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent
+- workflow UI: the promotion-mode setting now also supports action-buttons-only in addition to ticket, task and combined promotion
+- workflow UI: approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks
+- workflow UI: classic approval editing now respects the configured approver-allowed ticket and task fields
+- workflow: object and service task references are preserved when approval-task elements are edited, and affected access-task snapshots are refreshed after changes to their defining tasks
+
+## 9.9.0 - 04.11.2026
+- Azure Firewall importer re-activated: fetches the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API instead of only accepting normalized configs
+  - login with a service principal (client credentials flow); client id and secret are taken from the additional credential, otherwise from the import credential; tenant and subscription from the management's cloud settings, the resource group from the config path
+  - the firewall policy of a device is its local rulebase name, otherwise the device name; each policy becomes a rulebase, each device a gateway
+  - uses api version 2026-01-01 and falls back to 2024-05-01 for clouds that do not support it yet; the version used is stored in the native config
+  - imports network rules of filter rule collections incl. inline addresses, ranges, service tags, FQDNs, IP groups and Kubernetes selector groups; NAT and application rules are not imported yet
+  - imports parent policies (policy hierarchy, also from other resource groups or subscriptions) as own rulebases; the gateway starts with the topmost parent's rulebase, followed by the child policies as sections, as Azure processes inherited rules first
+  - IP groups are listed for the management's subscription; referenced IP groups of other subscriptions (e.g. of parent policies) are fetched individually by their resource id, so read access on these groups suffices
+  - rules are ordered by rule collection group and rule collection priority
+- Azure gateway autodiscovery: Azure managements can now be autodiscovered (scheduled and manually); the Azure Firewalls of the subscription whose firewall policy lies in the configured resource group are proposed as gateways with the policy name as local rulebase; firewalls with classic rules are skipped
+- new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
+- performance: database indices for the foreign key columns of the request and modelling schemas that the workflow and modelling relationships filter on (e.g. ticket tasks, request and implementation elements, comments, connection objects and services, interface usage), speeding up ticket and requested interfaces pages (#5644)
+  - requested interfaces page: loads a slim interface list incl. the using connections and all ticket states with one chunked query instead of one query per interface and per ticket; interface details are loaded when an interface is opened
+  - owner report implementation state: reads ticket states in batches without task metadata and stops after finding the newest completed ticket
+- fix: scheduled middleware jobs no longer shift by one hour after a switch between summer and winter time (#5653)
+  - intervals of whole days (e.g. app data import every 24 h, daily check, compliance check every 1440 min) run at the configured wall-clock time
+  - whole-hour intervals that divide a day (2, 3, 4, 6, 8, 12 h) run at fixed wall-clock hours of each day; all other intervals keep a fixed interval in absolute time
+  - existing daily schedules in the hour skipped in spring run at the first valid time after the gap (03:00), even when rescheduled shortly after the previous run; a future first run of a day schedule inside the gap is skipped to retain the configured time on later days; a start time in the hour repeated in autumn runs once
+  - scheduled reports: a report due in the skipped hour is generated after the gap instead of being skipped, a report due in the repeated hour is generated only once
+  - the "Trigger scheduled" log message shows the next run with its UTC offset
+- request workflow: the Check Point LayerGuard section name is configurable at every device-specific-settings level with optional, repeatable source- and destination-zone placeholders; fixed names avoid zone-matrix resolution (#5626)
+- request workflow: change history entries always name their authenticated author (GHSA-6g84, usergroupresolver-001). Readers no longer show the free-text changer of a row written by a user but the login name of its user id (preset from the session; the UI passes it for admin sessions), or the id when the reader may not see that user. The audit-proof REST endpoint (`workflow/getAuditProofCriticalChanges`) only reports flagged changes written by a known user other than the ticket's requester, and the modelling history shows the resolved name as well
+
+## 9.8.7 - 04.11.2026
+- request workflow: rule positioning can calculate and persist semantic positions for Check Point access-rule implementation tasks; the selectable layer-guard algorithm places new rules at the end of the uniquely matched zone-pair section
+- compliance: auto-calculated undefined-internal zones now cover complete IPv6 networks instead of only the first address of each remaining network
+- modelling and workflow: shared IP range parsing accepts dotted IPv4 netmasks such as `10.0.2.0/255.255.255.0` in addition to prefix lengths
+- middleware REST API: resolvePathDevices takes sources and destinations in the shared address format `ipHost`, `ipNetwork` or the two-entry `ipRange`, up to 500 entries each (#5587)
+  - breaking: `ipStart` and `ipEnd` are no longer accepted
+- middleware REST API: getFlowComplianceState and getPolicyIds report all validation errors at once with the request path of each, in the format `{"errors": [{"path": ..., "message": ...}]}` (#5587)
+  - breaking: the 400 body was plain text naming only the first error; an explicit `null` for `source`, `destination`, `service` or `policies` is now rejected
+- path analysis: the routing based query passed source and destination to the swapped arguments of devices_in_path; the result is unchanged, as the function is symmetric (#5587)
+- help: new page on the path analysis REST API (#5587)
+- middleware REST API: new modelling endpoints (#5268)
+  - `modelling/getAvailableInterfacesForApp`: published interfaces an application may use (public ones, restricted ones the
+    application is permitted for, and its own), with app servers, app roles, network areas, other network groups, services
+    and service groups resolved
+  - `modelling/getAppRolesPerApp`: app roles of an application (without AppZones) with their app servers
+  - `modelling/getNetworkAreas`: network areas with their subnets, filterable by id string with `*` and `?` wildcards
+  - admins and auditors see every application, modellers only their own (other applications: 404); modellers get network
+    areas only if one of their applications may use common services (otherwise 403). Addresses use compact notation (host
+    IP, CIDR network, `ip1-ip2` range), services `port/protocol` or `portStart-portEnd/protocol`
+  - API permissions: the middleware may read the permitted owners of restricted interfaces
+- fix: owner active rule notification (daily check and app import) and rule expiry notification ignore disabled rules
+
+## 9.8.6 - 02.11.2026
+- dependencies: update NuGet packages (AngleSharp to 1.9.1, Quartz to 4.7.0, Scalar.AspNetCore to 2.18.7, SoPro.FancyTable to 1.1.0)
+- UI (FancyTable): the new sort, hide, clear search and column filter labels of SoPro.FancyTable 1.1.0 are localized (German and English) instead of always showing English
+- compliance: the check of a rule fails closed (GHSA-f36h-2vqp-p8fm). A criterion that throws, a criterion with invalid or empty content (MinimumCIDRLength, ForbidZonesAsSource/-Destination) and network objects whose IP address cannot be parsed now make the rule not compliant with a "not assessable" violation naming the criterion or object, instead of compliant; the remaining criteria are still checked. Stored violations of a criterion that could not be evaluated are kept instead of being marked removed. This also applies to the conditional auto-promote policy check of the workflow
+- API: Hasura no longer infers function permissions (`api_HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS` default `false`); every tracked SQL function lists the roles that may call it. Reporter and recertifier lose the select permission on `device_type`, so they can no longer list the devices and managements of other tenants via `get_visible_devices_per_tenant`/`get_visible_managements_per_tenant` (GHSA-8gr4-j8hq-4m35)
+- importer (Cisco ASA): breaking: the SHA-1 SSH key exchange `diffie-hellman-group14-sha1` is only offered when the new device specific setting "Allow SHA-1 SSH key exchange" (`sshLegacyKeyExchange`, Global, device type, management, default off) is switched on. A device that offers nothing else fails to import with an error naming the setting; the upgrade lists the ASA managements
+- installer: the loopback logins of the database roles `fwo_ro`, `fworch`, `dbbackupusers` and `confexporter` need a password (`md5` instead of `trust` in pg_hba.conf). These roles have no password by default, so local tools that connected over 127.0.0.1 without one (e.g. a `pg_dump -h localhost` backup as `dbbackup`) have to set a password or use the Unix socket
+- installer: the read-only LDAP account can no longer read password hashes (`userPassword`); the upgrade changes the access rule offline with `slapmodify`
+- installer: Chrome for the PDF generation moves from `/usr/local/fworch/bin` (writable for the fworch user) to the root owned `/usr/local/lib/fworch`; an existing installation is moved there by the upgrade. The installer no longer runs it as root, and `/etc/profile.d/custom_path.sh`, which put `/usr/local/fworch/bin` first in the path of every login shell, is removed
+- installer: `scripts/run-playbook-with-sudo.sh` validates the temporary sudoers entry with visudo before installing it and always removes it again; secrets (importer password, main key, LDAP service passwords) no longer appear in installer output
+- middleware: the password policy is enforced when users are added and passwords are changed or reset through the REST API, not only in the UI
+- API permissions: reports, report schedules, report templates and report notifications created by non-admin roles always belong to the creating user, and updates can no longer hand them to another user
+- modelling: imported distinguished names (app data import) are only assigned roles if they exist in the directory that owns them; the workflow action "Update modelling" only marks connections, app roles and service groups of the owners of the request tasks
+- exports: all CSV exports double quotes and neutralise cells that start like a spreadsheet formula (=, +, -, @, tab, CR); the JSON rule export escapes section headers; customised start page texts are sanitised; tooltips encode their text
+- importer: FortiOS API tokens are sent in the Authorization header instead of the URL; credential fields of FortiOS users, the ASA enable password hash and FortiManager session ids no longer reach the native config, error texts or logs; a failed FortiManager logout no longer discards a fetched configuration; Check Point MDS imports with global assignments keep the global policy structure; failed writes of group memberships and changelog entries fail the import
+- robustness: an unparseable mail recipient no longer stops the mail to the others; invalid custom fields of a rule no longer abort the variance analysis; a failed full rule-owner reinitialisation restores the previous mappings; the FortiManager autodiscovery uses one API session
+- login page: infrastructure errors are no longer shown before authentication; JWT key import errors no longer log the key; the CI version gate and the log data import escape line breaks of file names
+
+## 9.8.5 - 29.10.2026
+- installer: after an operating system upgrade to a new PostgreSQL major version (e.g. Debian 12 -> 13: 15 -> 17) the upgrade stops before changing PostgreSQL and names the steps to migrate the database (`pg_upgradecluster` on Debian/Ubuntu, `postgresql-setup --upgrade` on Red Hat/Rocky) instead of failing on a missing postgresql.conf; documentation/installer/server-upgrade.md describes the migration (#5598)
+- installer: the importer and customizing script python venvs are rebuilt when they were created for another python version (e.g. 3.11 -> 3.13 after an operating system upgrade), instead of failing with `No module named 'pip'` or leaving the importer without its packages (#5599)
+- installer: remove the unused Docker role, the move of the API from Docker to Podman and the Docker handling of upgrade and uninstall; the ignored parameter `docker_network` is gone (#5519)
+  - breaking: upgrades have to start from 9.0.16 or newer (was 8.0). An installation from 8.0 to 9.0.15 upgrades with v9.8.4 first, which still moves the API to Podman; the installer stops such an upgrade before changing anything and names the way
+  - an upgrade also stops while the API still runs in Docker (a running or enabled Docker API service, or a Docker container `fworch-api` next to an installed Docker engine - the `docker` command of `podman-docker` does not count, and an installed Docker engine that cannot be asked for the container stops it as well), which v9.8.4 leaves behind when it deferred the move to Podman; a stopped Docker API unit left by a completed move is removed
+- installer tests: the check that the upgrade floor is not below the oldest database migration never failed, because the regex backreference it used arrived as a control character in the assertion
+- installer tests: every task around an intended failure of a negative integration test starts with "expected to fail: ", directly before and after the red output, so the run log tells intended failures from real ones (#5545)
+- importer (Check Point): transport errors of API calls name the reason (e.g. TLS handshake failure, certificate error, refused connection, unparsable proxy url) and whether certificate checking is on; user info in urls (`user:password@`, e.g. proxy credentials) is redacted from the error text, which ends up in alerts and logs
+- request workflow: the Tufin SecureChange ticket templates move from the ticket system (Settings - External ticket templates) to the device specific settings
+  - new settings `scTemplate<TaskType><Part>` per SecureChange task type (AccessRequest, NetworkObjectModify) and template part (ticket, tasks, object, object short, IP, network group, service, ICMP, IP protocol), on the levels Global, device type and management, in the new section "SecureChange ticket templates"
+  - an empty template part uses the shipped template (only the AccessRequest ticket and task text are shipped, as before in the default ticket system), so a later correction of it applies
+  - a SecureChange ticket uses the templates of the management of its request tasks; request tasks of managements with different templates are no longer bundled into one ticket. The templates are resolved when the external request is created and stored with it, as before
+  - the ticket system dialog no longer shows or stores templates for SecureChange systems (URL, credentials, timeouts and requester lookup stay there); other ticket system types keep their templates
+  - the upgrade moves the templates of the SecureChange systems: those of the system most managements route their changes to (Settings - Firewall config changes) become the global values, managements routing a change category to another SecureChange system get its differing templates on their own level. Parts equal to the shipped template are not stored. The ticket systems are backed up once in `device_specific_config_backup` (version `9.8.5 extTicketSystems`, without authorization values)
+  - breaking: an AccessRequest template that was missing on a SecureChange system (ticket creation failed before) is now replaced by the shipped one
+  - a task type whose ticket or task template is empty (no setting and no shipped template, e.g. NetworkObjectModify) is refused with a configuration error before a request is created, as when its template was missing before
+  - service group tasks routed to SecureChange are refused with a configuration error; SecureChange only modifies groups of network objects. Before, they created a ticket without tasks. Their templates (NetworkServiceCreate, NetworkServiceUpdate) were never used and are not migrated; they remain in the backup
+## 9.8.4 - 29.10.2026
+- installer: no longer opens the unauthenticated rsyslog TCP receiver on port 514 and removes it from existing installations; no component used it. The rsyslog rules only route messages of local inputs into the fworch log files, so remote senders cannot forge audit or alert entries (GHSA-rfvm-mccf-7q26). Remote senders that pointed at port 514 have to be configured on a separate log server
+- importer: sub-managements set to "do not import" are skipped by the import of their super manager instead of having all their rules and objects marked removed (FortiManager ADOMs, Check Point domains; GHSA-hj46-639g-mxq2). A forced import still imports them
+- importer: remove the retention cleanup of old imports. It never worked since 9.0 and rolled back every import of a management that had not been imported within the data retention time; deleting old import_control rows would also cascade into rules and objects that are still in use. The data retention time remains unenforced, as the settings help already states
+- report filter: nesting of brackets and not is limited to 100 levels and filters to 10000 characters, long and/or chains no longer use the stack; the REST call Report/Get validates its IP, service and text values and returns 400 for invalid values or filters (GHSA-cx2c-86rr-65r7)
+- external ticket systems (Tufin SecureChange, Check Point): all values inserted into the JSON templates (reason, comments, subject, requester, group, object and service names, ...) are JSON-escaped, so quotes, backslashes or placeholder names in requester text can neither break the request nor add fields to it (GHSA-79jw-fv66-39cw)
+- certificate checking: while the certificate check of firewall connections, external ticket systems or the email server is switched off (kept on upgrades from versions before 9.7.1), admins see a warning at the top of every page and the database upgrade prints a SECURITY WARNING listing the unchecked switches; "suppress certificate warnings" is off for new installations; documentation/certificates.md describes how to add the CA of an external system to the host trust stores (GHSA-xg2m-2m7v-v6hm)
+- workflow and notification emails: placeholder values (app and interface names, requester, reason, user name, ...) and the user-provided content are HTML-encoded in HTML bodies, and line breaks never reach the subject header; the workflow action endpoint takes the user name from the caller's token, drops caller-provided reason and requester, accepts link targets only below the configured UI host name and caps the length of the caller-provided values; recertification check emails with HTML body encode owner and rule names as well (GHSA-3w6m-jf7x-mw7m)
+- reporting: the HTML export (download, PDF, HTML report emails) of owner recertification, ticket and statistics reports HTML-encodes owner ids and names, ticket, task and implementation task titles, requester, state names, add-info values and header, approver groups and device names (GHSA-74j3-qvhf-5p4m)
+- importer: firewall API session tokens and credentials no longer reach error texts, alerts, data issues or the importer log: Check Point errors omit the request headers (X-chkp-sid), FortiManager errors and debug output redact the session and password, FortiOS transport errors no longer echo the URL with the access token, and session ids are only logged as a short fingerprint; all Check Point API sessions of an import (objects, rules, MDS and global domain) are logged out also after an error, and the normalization no longer opens an unused API session (GHSA-vmp8-pwg3-h2qv)
+- importer (Cisco ASA): the SSH host key of the device is checked against /usr/local/fworch/etc/ssh_known_hosts on the importer host (created empty by the installer, never overwritten) unless "check certificates of firewall connections" is switched off; an unknown or changed key, or a missing known hosts file, fails the import at once, before any credential is sent, and without retries. **Breaking for installations with that check switched on: add the verified host keys of all ASA devices before upgrading** (see documentation/certificates.md) (GHSA-m77f-vf77-96ww)
+  - breaking: this breaks ASA imports on installations that have "check certificates of firewall connections" switched on. Fresh installs have it on by default. Those imports fail after the upgrade until the verified host keys are added. The upgrade lists the affected ASA managements, and until their next successful import admins see them in a warning at the top of every page together with the instructions.
+- middleware REST API: every list endpoint is paged with one central page size (#5561)
+  - new setting "Max objects per REST API response page" (`maxRestResponseObjectLimit`, Settings - Defaults,
+    default 10000, at least 100, at most 100000) is the maximum and default `limit` of all list endpoints. It replaces the fixed
+    limits (`getIpDataForOwners` 10000, Flow catalog object lists 1000, group lists 250, `getImplTaskTargets` 1000)
+    and is read at request time
+  - new paging (`limit`, `offset`, deterministic order, response header `X-Has-More`, 400 for a limit outside 1 to
+    the maximum or a negative offset) for `Rule/GetRulesByFilter` and `workflow/getAuditProofCriticalChanges`
+    (`options.limit`/`options.offset`), `owners/get`, `User/Get` and `Group/Get`, `Members`, `Memberships`,
+    `Resolve` (root keys) and `GET User`, `GET Tenant`, `GET Group`, `GET Compliance/designatedZoneMatrix/zones`
+    (query parameters). `GetRulesByFilter` returns the number of rules of the page in `result.count`
+  - breaking change for API clients that do not page: these endpoints return at most `maxRestResponseObjectLimit`
+    objects per request; clients getting fewer objects see no difference. Flow catalog group lists now return up
+    to 10000 groups per page instead of 250. LDAP member, membership and user lists and the user, tenant and
+    group lists are now ordered (by dn resp. id)
+  - `Rule/GetRulesByFilter`, `owners/get`, `getAuditProofCriticalChanges`, `designatedZoneMatrix/zones` and the
+    user, tenant and LDAP lists (`GET User`, `User/Get`, `GET Tenant`, `GET Group`, `Group/Get`, `Members`,
+    `Memberships`, `Resolve`) now use the rate limit policy for expensive requests (at most 2 concurrent requests per
+    user)
+  - the UI reads every page of the user, tenant and LDAP group lists, so it shows complete lists as before; a list
+    that still has further pages after 1000 pages is reported as an error instead of being shown incomplete
+
+## 9.8.3 - 26.10.2026
+- modelling: new setting "Network Areas excluded from Common Services" - network areas listed there are not offered for selection in common services and cannot be added to them; existing common services containing such an area can only be saved after removing it (#5406)
+- modelling: fix destination area check using the "in Source" flag of common network areas instead of "in Destination"
+- request workflow: the device specific settings autoPlanImplementation and autoPlanImplementationForRules (renamed from planImplementation and planImplementationOverrideForRules) decide which implementation tasks are created automatically, independently of the planning phase
+  - rule tasks (access, rule_modify, rule_delete) need both settings, all other task types autoPlanImplementation; the default of autoPlanImplementationForRules is false
+  - devices entered in the request take precedence over the path analysis algorithm; if the action finds no target, one implementation task without gateway is created
+  - breaking: implementation tasks are only created by the state action "create implementation tasks", no longer when a ticket leaves the approval phase; the action follows the auto plan settings. installation and upgrade provide the action unless one of this type already exists, but do not attach it: an administrator has to attach it to the state in which tickets enter the implementation (e.g. "approved", without approval phase the state ending the request phase), otherwise no implementation tasks are created automatically. With scope ticket it runs once all request tasks have passed the approval, with scope request task at every approved request task
+  - the device specific settings page warns if rules are planned automatically without path analysis algorithm or manually without active planning phase
+  - interface requests from modelling still get their implementation task when they are created, independently of the action and the auto plan settings
+- Workflow Customizing: the option "auto-create implementation tasks" is split up: the new setting reqDeviceInput (never, enter device in request, one task for all devices) and the new path analysis algorithms "For each device" and "First device (if available)"; consider bundling and display bundled tasks as one are grouped as bundling options
+- path analysis REST endpoint resolvePathDevices: the device selections "for each device" and "first device (if available)" are no path analysis, so they can neither be requested nor serve as configured default (400 like none)
+- the upgrade translates reqAutoCreateImplTasks into reqDeviceInput and the path analysis algorithm and removes the old config key; with an active planning phase of access tasks reqDeviceInput becomes "never", as the device field was hidden there before (if the planning phase is switched off later, set "Devices in request" in Workflow Customizing); the auto plan settings are not derived from the planning phases, an administrator sets them (default: auto plan Yes, for rules No)
+  - "after path analysis" ran the routing based path analysis independently of the configured algorithm; now the configured algorithm applies, which is "None" unless changed, so no gateway is found. Select "Network Zone Tree", or attach a path analysis action writing the found devices to the device list before "create implementation tasks" (devices in the request take precedence)
+  - "for each device" and "only for one device" replace the configured path analysis algorithm; a previously configured "Network Zone Tree" is then no longer the default of resolvePathDevices, so callers have to pass the algorithm
+  - if the auto plan settings cannot be read, the defaults apply (auto plan Yes, for rules No)
+- dependencies: update NuGet packages (AngleSharp to 1.8.6, bunit to 2.13.3, MailKit to 4.18.2, Microsoft.AspNetCore.Authentication.JwtBearer to 10.0.14, Microsoft.AspNetCore.Components to 10.0.14, Microsoft.AspNetCore.Mvc.Testing to 10.0.14, Microsoft.AspNetCore.OpenApi to 10.0.14, Microsoft.OpenApi to 2.13.0, Microsoft.Playwright to 1.64.1, MimeKit to 4.18.2, PuppeteerSharp to 25.15.0, Quartz to 4.6.2, RestSharp to 114.1.0, RestSharp.Serializers.NewtonsoftJson to 114.1.0, Scalar.AspNetCore to 2.18.3)
+- dependencies: remove explicit System.Security.Cryptography.Pkcs pin from FWO.Mail; MimeKit 4.18.2 now references the patched 10.0.13 (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx)
+
+## 9.8.2 - 24.10.2026
+- middleware REST API: `getAddressObjects`, `getDesignatedZoneMatrixZones` and `resolveZonesForObjects`
+  now return each inclusive address range as the two-entry `ipRange` instead of separate `ipStart`
+  and `ipEnd` fields; `getAddressObjects` returns an empty range for non-IP objects such as FQDNs
+- workflow API: `createTicket` now creates object-create request tasks for submitted new network objects, services and time objects
+- workflow UI: network and service group modification tasks provide management-aware selectors for existing groups,
+  member add/remove editing, and read-only display of the requested changes
+- workflow configuration transfer: export selected phases with a custom file name; import as a new configuration or merge into an existing one
+- workflow configuration packages include referenced state names and `automatic_only` semantics; missing states are created, equivalent existing states are reused, and conflicting state IDs are rejected before import changes are made
+- stored secrets (import credentials, LDAP and email passwords) are now encrypted with authentication (AES-256-CBC with HMAC-SHA256, encrypt-then-MAC) in the new format `fwo-v2:...` (#5476). Before, a wrong main key was only detected by an invalid padding, so about 1 in 250 decryptions with a wrong key (e.g. after a restore with another main key) returned a garbage secret that was then sent to LDAP, mail or ticket servers instead of failing with "Could not decrypt secret"
+  - the UI, middleware, importer and database read both formats; the installer (install and upgrade) re-encrypts all secrets stored in the old format, the UI re-encrypts a secret in the old format when it is saved
+  - the importer no longer uses the stored ciphertext as password when a secret in the new format cannot be decrypted, the import fails instead
+  - versions before 9.8.2 cannot read the new format, so a downgrade requires re-entering the secrets
+- fix owner recertification failing with "Object reference not set to an instance of an object" when an owner's app roles contain app servers without a name (#5572)
+  - ip addresses added to an owner in the owner settings and the demo owner data are now stored with a name built from the app server naming convention; the upgrade names existing app servers without a name the same way
+  - report links to app roles, groups and network areas whose names share a prefix now point to the right object
+
+## 9.8.1 - 20.10.2026
+- enforces immediate revocation: when an admin reduces a user's permissions, that user's open UI sessions now end at once instead of when the access token expires
+- autodiscovery: alerts and alert log lines no longer contain the import credential secret of the super management; the upgrade removes it from existing alerts. Rotate the credentials of super managements used with autodiscovery, and purge old middleware logs where possible
+- new REST endpoint `POST /api/pathAnalysis/resolvePathDevices` (roles admin, auditor): returns the firewall devices on the paths between every source and every destination, deduplicated and unordered, together with the algorithm and zone matrix actually used. This makes the network zone tree path analysis callable
+  - sources and destinations: 1 to 100 entries each, given as inclusive range (`ipStart`, `ipEnd`) or CIDR network (`ipNetwork`), IPv4 and IPv6; networks with host bits and IPv4 written as IPv6 are rejected
+  - options: `algorithm` (currently `networkZoneTree`), `matrixId` (only together with `networkZoneTree`) and a filter on device id and name; omitted options fall back to the configured algorithm and designated zone matrix
+  - 400 reports every invalid key at once, including a configured default that cannot be used (algorithm none, no designated matrix); 404 a requested matrix that does not exist or holds no configured zones; 500 an unusable designated matrix
+- the network zone tree analyzer rejects a zone matrix holding no configured zones instead of reporting no device since the auto calculated zones alone describe no path
+- new shared request building block for IP address blocks (`IpRangeOrNetworkRequest`) with the address rules of flow compliance, for reuse by further endpoints
+- UI report scheduling: help text and input tooltip for recipient email addresses now list all supported separators: comma ( , ), semicolon ( ; ) and vertical bar ( | )
+- Refresh-token rotation now behaves predictably under concurrent requests, and an unreachable API during authentication is reported as a retryable 503. Before, it came back as a 400 with the raw transport error.
+- dependencies: update NuGet packages (AngleSharp to 1.8.5, bunit to 2.12.5, PuppeteerSharp to 25.14.0, Quartz to 4.6.0)
+
+## 9.8.0 - 20.10.2026
+- main release of features from 9.7.2ff including bugfixing and security fixes
+
+## 9.7.7 - 19.10.2026
+- middleware REST API: unify address inputs for `getAddressObjectId`, `getFlowComplianceState`,
+  `resolveZonesForObjects` and `createTicket.addressObjects`. Each address now uses exactly one of
+  `ipHost`, `ipNetwork` or the two-entry `ipRange`; values follow the shared FWO IP parser and CIDRs
+  are normalized to inclusive bounds. Breaking change: the legacy request fields `ipStart` and
+  `ipEnd` were removed, so clients must migrate start/end pairs to one of the new representations.
+  Response payloads and persisted workflow start/end bounds are unchanged
+- First step towards replacing BlazorTable with FancyTable: the FancyTable based rules report from #5198 is added as a separate preview on a new Monitoring page that only shows up in Debug builds. The productive RulesReport.razor is unchanged.
+
+## 9.7.6 - 18.10.26
+- various sanitizing fixes for XSS (cross site scripting) in reporting, welcome message, and modelling
+
 ## 9.7.5 - 16.10.2026
 - request workflow: the task types create object and modify object support time objects with name, start and end time
   - new element field `time` with columns start_time, end_time, time_obj_id (reqelement, implelement) and flow_timeobj_id (reqelement)
@@ -381,7 +569,6 @@
   does not report the managements it has not reached as deleted
 - middleware: jobs get up to 2 minutes to unwind on shutdown; the systemd unit fworch-middleware now allows
   180 seconds (TimeoutStopSec) before killing the process
-
 ## 9.5.10 - 29.09.2026
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
 - add DTOs for hierarchical provisioning configuration

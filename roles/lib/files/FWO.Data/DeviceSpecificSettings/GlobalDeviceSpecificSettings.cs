@@ -9,6 +9,8 @@ public class GlobalDeviceSpecificSettings
 
     public ProvisioningPositioningAlgorithm PositioningAlgorithm { get; set; } = ProvisioningPositioningAlgorithm.DefaultEndOfRulebase;
 
+    public string CheckPointLayerGuardSectionNameTemplate { get; set; } = CheckPointLayerGuardSettingDefaults.kSectionNameTemplate;
+
     public ProvisioningLoggingMode RuleLoggingOverride { get; set; } = ProvisioningLoggingMode.Log;
 
     public ProvisioningObjectCreationMode ServiceObjectCreation { get; set; } = ProvisioningObjectCreationMode.Supermanager;
@@ -46,9 +48,64 @@ public class GlobalDeviceSpecificSettings
     /// </summary>
     public string ImporterHostName { get; set; } = "";
 
-    public bool PlanImplementation { get; set; } = true;
+    /// <summary>
+    /// Whether the importer also offers the SHA-1 SSH key exchange diffie-hellman-group14-sha1, which current
+    /// OpenSSH disables. Off by default; only for devices that offer nothing better (Cisco ASA).
+    /// </summary>
+    public bool SshLegacyKeyExchange { get; set; } = false;
 
-    public bool PlanImplementationOverrideForRules { get; set; } = true;
+    /// <summary>
+    /// Whether the implementation tasks of a request task are created automatically once the request task is
+    /// approved. When false, a planner creates them. Applies to every task type; rule tasks additionally need
+    /// <see cref="AutoPlanImplementationForRules"/>.
+    /// </summary>
+    public bool AutoPlanImplementation { get; set; } = true;
+
+    /// <summary>
+    /// Whether the implementation tasks of rule tasks (access, rule_modify, rule_delete) are created automatically.
+    /// Only effective together with <see cref="AutoPlanImplementation"/>; when false, a planner creates them.
+    /// </summary>
+    public bool AutoPlanImplementationForRules { get; set; } = false;
+
+    /// <summary>
+    /// Returns whether the implementation tasks of a kind of task are created automatically: rule tasks need both auto
+    /// plan settings, every other task type <see cref="AutoPlanImplementation"/>.
+    /// </summary>
+    /// <param name="isRuleTask">True for access, rule_modify and rule_delete tasks.</param>
+    public bool IsAutoPlanned(bool isRuleTask)
+    {
+        return AutoPlanImplementation && (!isRuleTask || AutoPlanImplementationForRules);
+    }
+
+    /// <summary>
+    /// Returns the implementation mode of a kind of task: <see cref="ImplementationModeOverrideForRules"/> for rule
+    /// tasks, <see cref="ImplementationMode"/> for objects. Each setting stands alone, there is no fallback between
+    /// them. Undefined counts as Automatic, the compiled default.
+    /// </summary>
+    /// <param name="isRuleTask">True for access, rule_modify and rule_delete tasks.</param>
+    public ProvisioningImplementationMode GetImplementationMode(bool isRuleTask)
+    {
+        if (!isRuleTask)
+        {
+            return ImplementationMode == ProvisioningImplementationMode.Undefined ? ProvisioningImplementationMode.Automatic : ImplementationMode;
+        }
+        return ImplementationModeOverrideForRules switch
+        {
+            ProvisioningRuleImplementationMode.Manual => ProvisioningImplementationMode.Manual,
+            ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem => ProvisioningImplementationMode.RerouteToExternalTicketSystem,
+            _ => ProvisioningImplementationMode.Automatic
+        };
+    }
+
+    /// <summary>
+    /// Returns whether a kind of task is handed to an external ticket system, i.e. its implementation mode is
+    /// external ticket system. Whether such a system is selected tells <see cref="RerouteToExternalTicketSystem"/>.
+    /// </summary>
+    /// <param name="isRuleTask">True for access, rule_modify and rule_delete tasks.</param>
+    public bool UsesExternalTicketSystem(bool isRuleTask)
+    {
+        return GetImplementationMode(isRuleTask) == ProvisioningImplementationMode.RerouteToExternalTicketSystem;
+    }
 
     public bool ModellingCreateAppZones { get; set; } = true;
 
@@ -61,6 +118,26 @@ public class GlobalDeviceSpecificSettings
     public string ModellingConnectionIdTemplate { get; set; } = "FWOC{ID}";
 
     public string Templates { get; set; } = "{}";
+
+    /// <summary>Whether the server certificate of the firewall management is checked when writing to the firewall.</summary>
+    public bool FwWriteCheckCertificates { get; set; } = true;
+
+    /// <summary>Whether the policy is installed on the gateway after a firewall write.</summary>
+    public bool FwWriteInstallPolicy { get; set; } = false;
+
+    /// <summary>Whether objects, services and groups are deleted on the firewall; rules are always deleted when a task says so.</summary>
+    public bool FwWriteDeleteObjects { get; set; } = false;
+
+    /// <summary>Endpoint overrides ("METHOD path") per firewall write operation; a missing or empty entry uses the shipped default.</summary>
+    public Dictionary<FirewallWriteOperation, string> FwWriteEndpoints { get; set; } = [];
+
+    /// <summary>Body template overrides per firewall write operation; a missing or empty entry uses the shipped default.</summary>
+    public Dictionary<FirewallWriteOperation, string> FwWriteTemplates { get; set; } = [];
+
+    /// <summary>
+    /// Tufin SecureChange ticket template overrides per task type; a missing task type or an empty part uses the shipped default.
+    /// </summary>
+    public Dictionary<SCTaskType, ExternalTicketTemplate> SecureChangeTemplates { get; set; } = [];
 
     /// <summary>Creates global settings.</summary>
     public GlobalDeviceSpecificSettings() => Scope.ScopeType = DeviceSpecificScopeType.Global;

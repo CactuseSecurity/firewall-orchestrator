@@ -22,13 +22,28 @@ namespace FWO.Test
         [
             (typeof(FlowComplianceController), nameof(FlowComplianceController.GetFlowComplianceState)),
             (typeof(ApplicationAddressesController), nameof(ApplicationAddressesController.Get)),
+            (typeof(ModellingObjectsController), nameof(ModellingObjectsController.GetAvailableInterfacesForApp)),
+            (typeof(ModellingObjectsController), nameof(ModellingObjectsController.GetAppRolesPerApp)),
+            (typeof(ModellingObjectsController), nameof(ModellingObjectsController.GetNetworkAreas)),
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetAddressObjects)),
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetAddressGroups)),
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetServiceObjects)),
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetServiceGroups)),
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetTimeObjects)),
             (typeof(WorkflowImplTaskTargetController), nameof(WorkflowImplTaskTargetController.GetImplTaskTargets)),
-            (typeof(WorkflowTicketController), nameof(WorkflowTicketController.CreateTicket))
+            (typeof(WorkflowTicketController), nameof(WorkflowTicketController.CreateTicket)),
+            (typeof(PathAnalysisController), nameof(PathAnalysisController.ResolvePathDevices)),
+            (typeof(ReportController), nameof(ReportController.Get)),
+            (typeof(RuleController), nameof(RuleController.GetRulesByFilter)),
+            (typeof(OwnersController), nameof(OwnersController.Get)),
+            (typeof(WorkflowChangeHistoryController), nameof(WorkflowChangeHistoryController.GetAuditProofCriticalChanges)),
+            (typeof(UserController), nameof(UserController.Get)),
+            (typeof(TenantController), nameof(TenantController.Get)),
+            (typeof(GroupController), nameof(GroupController.Get)),
+            (typeof(GroupController), nameof(GroupController.GetMembers)),
+            (typeof(GroupController), nameof(GroupController.GetMemberships)),
+            (typeof(GroupController), nameof(GroupController.ResolveMembers)),
+            (typeof(WorkflowController), nameof(WorkflowController.ExecuteActions))
         ];
 
         [Test]
@@ -212,15 +227,20 @@ namespace FWO.Test
         {
             foreach ((Type controller, string method) in kExpensiveEndpoints)
             {
-                MethodInfo endpoint = controller.GetMethod(method)!;
-                EnableRateLimitingAttribute? rateLimiting = endpoint.GetCustomAttribute<EnableRateLimitingAttribute>();
-                RequestSizeLimitAttribute? sizeLimit = endpoint.GetCustomAttribute<RequestSizeLimitAttribute>();
-
-                Assert.Multiple(() =>
+                // overloads such as the GET list and the POST search of the user and group controllers are checked each
+                List<MethodInfo> endpoints = [.. controller.GetMethods().Where(candidate => candidate.Name == method)];
+                Assert.That(endpoints, Is.Not.Empty, $"{controller.Name}.{method}");
+                foreach (MethodInfo endpoint in endpoints)
                 {
-                    Assert.That(rateLimiting?.PolicyName, Is.EqualTo(ApiRateLimiting.kExpensivePolicy), $"{controller.Name}.{method}");
-                    Assert.That(sizeLimit, Is.Not.Null, $"{controller.Name}.{method}");
-                });
+                    EnableRateLimitingAttribute? rateLimiting = endpoint.GetCustomAttribute<EnableRateLimitingAttribute>();
+                    RequestSizeLimitAttribute? sizeLimit = endpoint.GetCustomAttribute<RequestSizeLimitAttribute>();
+
+                    Assert.Multiple(() =>
+                    {
+                        Assert.That(rateLimiting?.PolicyName, Is.EqualTo(ApiRateLimiting.kExpensivePolicy), $"{controller.Name}.{method}");
+                        Assert.That(sizeLimit, Is.Not.Null, $"{controller.Name}.{method}");
+                    });
+                }
             }
         }
 

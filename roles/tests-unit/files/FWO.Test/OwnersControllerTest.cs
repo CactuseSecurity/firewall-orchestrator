@@ -22,6 +22,7 @@ namespace FWO.Test
         private static readonly string[] kModellerRole = [Roles.Modeller];
         private static readonly string[] kAdminAndModellerRoles = [Roles.Admin, Roles.Modeller];
         private static readonly string[] kOwnerResponseTypes = ["standard", "infrastructure", "infrastructure"];
+        private static readonly List<int> kFirstTwoOwnerIds = [1, 2];
 
         [Test]
         public void GetUsesApiOwnersRoute()
@@ -394,6 +395,79 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetRequestsOneOwnerMoreThanThePageAndReportsFurtherOwners()
+        {
+            OwnersApiConnection apiConnection = new()
+            {
+                Owners =
+                [
+                    new FwoOwner { Id = 1, Name = "a" },
+                    new FwoOwner { Id = 2, Name = "b" },
+                    new FwoOwner { Id = 3, Name = "c" }
+                ]
+            };
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { Limit = 2, Offset = 4 });
+
+            List<GetOwnerResponse> owners = (List<GetOwnerResponse>)((OkObjectResult)result.Result!).Value!;
+            string variables = SerializeVariables(apiConnection.Variables);
+            Assert.Multiple(() =>
+            {
+                Assert.That(owners.Select(owner => owner.Id), Is.EqualTo(kFirstTwoOwnerIds));
+                Assert.That(controller.HttpContext.Response.Headers["X-Has-More"].ToString(), Is.EqualTo("true"));
+                Assert.That(variables, Does.Contain("\"limit\":3"));
+                Assert.That(variables, Does.Contain("\"offset\":4"));
+            });
+        }
+
+        [Test]
+        public async Task GetWithoutLimitRequestsAPageOfTheConfiguredMaximum()
+        {
+            OwnersApiConnection apiConnection = new() { Owners = [new FwoOwner { Id = 1, Name = "a" }] };
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin), new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 150 });
+
+            await controller.Get(new GetOwnersRequest());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(SerializeVariables(apiConnection.Variables), Does.Contain("\"limit\":151"));
+                Assert.That(controller.HttpContext.Response.Headers["X-Has-More"].ToString(), Is.EqualTo("false"));
+            });
+        }
+
+        [TestCase(0, null)]
+        [TestCase(151, null)]
+        [TestCase(null, -1)]
+        public async Task GetRejectsPagingOutOfRangeWithoutQueryingTheApi(int? limit, int? offset)
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin), new SimulatedGlobalConfig { MaxRestResponseObjectLimit = 150 });
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { Limit = limit, Offset = offset });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(((BadRequestObjectResult)result.Result!).Value!.ToString(), Does.StartWith("Invalid paging"));
+                Assert.That(apiConnection.Query, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void RequestAcceptsTheRootPagingKeys()
+        {
+            GetOwnersRequest request = JsonSerializer.Deserialize<GetOwnersRequest>("{\"limit\":5,\"offset\":10}")!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(request.Limit, Is.EqualTo(5));
+                Assert.That(request.Offset, Is.EqualTo(10));
+                Assert.That(new GetOwnersRequest().Limit, Is.Null);
+            });
+        }
+
+        [Test]
         public async Task GetReturnsInternalServerErrorWhenApiThrows()
         {
             OwnersApiConnection apiConnection = new() { ThrowOnQuery = true };
@@ -409,9 +483,9 @@ namespace FWO.Test
             });
         }
 
-        private static OwnersController CreateController(ApiConnection apiConnection, ClaimsPrincipal user)
+        private static OwnersController CreateController(ApiConnection apiConnection, ClaimsPrincipal user, SimulatedGlobalConfig? globalConfig = null)
         {
-            return new OwnersController(apiConnection)
+            return new OwnersController(apiConnection, globalConfig ?? new SimulatedGlobalConfig())
             {
                 ControllerContext = new ControllerContext
                 {

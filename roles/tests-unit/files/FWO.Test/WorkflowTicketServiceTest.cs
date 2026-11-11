@@ -245,8 +245,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -287,6 +286,9 @@ internal class WorkflowTicketServiceTest
             ]
         }, 77);
 
+        WfReqTaskWriter accessTask = apiConnection.LastTicketWriter!.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString());
+        List<WfReqTaskWriter> objectTasks = [.. apiConnection.LastTicketWriter.Tasks.Where(task => task.TaskType == WfTaskType.object_create.ToString())];
+        List<string> expectedObjectFields = [ElemFieldType.source.ToString(), ElemFieldType.service.ToString(), ElemFieldType.time.ToString()];
         Assert.Multiple(() =>
         {
             Assert.That(response.Status, Is.EqualTo("draft"));
@@ -298,26 +300,34 @@ internal class WorkflowTicketServiceTest
             Assert.That(apiConnection.SentQueries, Contains.Item(RequestQueries.newTicket));
             Assert.That(apiConnection.SentQueries, Contains.Item(RequestQueries.getTicketById));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
-            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(1));
+            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(4));
+            Assert.That(objectTasks, Has.Count.EqualTo(3));
             Assert.That(GetVariable(apiConnection.NewTicketVariables, "preWorkflowTicketReference"), Is.EqualTo("Ticket-12345"));
             Assert.That(apiConnection.CreatedTicket!.PreWorkflowTicketReference, Is.EqualTo("Ticket-12345"));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TaskType, Is.EqualTo(WfTaskType.access.ToString()));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].RuleAction, Is.EqualTo(1));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList, Has.Count.EqualTo(3));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList.All(element => element.NetworkId == null && element.ServiceId == null), Is.True);
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList.Single(element => element.Field == ElemFieldType.service.ToString()).ProtoId, Is.EqualTo(expectedProtocolId));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].NetworkGroupId, Is.Null);
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].ServiceGroupId, Is.Null);
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate, Is.Not.Null);
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate, Is.Not.Null);
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate!.Value.Kind, Is.EqualTo(expectedDateTimeKind));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate!.Value.Kind, Is.EqualTo(expectedDateTimeKind));
+            Assert.That(accessTask.RuleAction, Is.EqualTo(1));
+            Assert.That(accessTask.Elements.WfElementList, Has.Count.EqualTo(4));
+            Assert.That(accessTask.Elements.WfElementList.All(element => element.NetworkId == null && element.ServiceId == null), Is.True);
+            Assert.That(accessTask.Elements.WfElementList.Single(element => element.Field == ElemFieldType.service.ToString()).ProtoId, Is.EqualTo(expectedProtocolId));
+            Assert.That(accessTask.NetworkGroupId, Is.Null);
+            Assert.That(accessTask.ServiceGroupId, Is.Null);
+            Assert.That(accessTask.TargetBeginDate, Is.Not.Null);
+            Assert.That(accessTask.TargetEndDate, Is.Not.Null);
+            Assert.That(accessTask.TargetBeginDate!.Value.Kind, Is.EqualTo(expectedDateTimeKind));
+            Assert.That(accessTask.TargetEndDate!.Value.Kind, Is.EqualTo(expectedDateTimeKind));
             Assert.That(apiConnection.CreatedTicket!.Reason, Is.EqualTo("Ticket-level notes"));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].FreeText, Is.EqualTo("Task description"));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].Reason, Is.EqualTo("Business approved.\nTask reason"));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("-3"));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeStart"), Is.EqualTo(""));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeEnd"), Is.EqualTo(""));
+            Assert.That(accessTask.FreeText, Is.EqualTo("Task description"));
+            Assert.That(accessTask.Reason, Is.EqualTo("Business approved.\nTask reason"));
+            Assert.That(accessTask.Elements.WfElementList.Single(element => element.Field == ElemFieldType.time.ToString()).TimeObjId, Is.Null);
+            Assert.That(accessTask.GetAddInfoValue("timeStart"), Is.EqualTo(""));
+            Assert.That(accessTask.GetAddInfoValue("timeEnd"), Is.EqualTo(""));
+            Assert.That(objectTasks.Select(task => task.Elements.WfElementList.Single().Field),
+                Is.EquivalentTo(expectedObjectFields));
+            Assert.That(objectTasks.Single(task => task.Elements.WfElementList.Single().Field == ElemFieldType.source.ToString())
+                .Elements.WfElementList.Single().IpString, Is.EqualTo("192.0.2.10/32"));
+            Assert.That(objectTasks.Single(task => task.Elements.WfElementList.Single().Field == ElemFieldType.service.ToString())
+                .Elements.WfElementList.Single().ProtoId, Is.EqualTo(expectedProtocolId));
+            Assert.That(objectTasks.Single(task => task.Elements.WfElementList.Single().Field == ElemFieldType.time.ToString())
+                .Elements.WfElementList.Single().StartTime, Is.Not.Null);
         });
     }
 
@@ -346,7 +356,7 @@ internal class WorkflowTicketServiceTest
             Title = "Allow HTTPS to app server",
             AddressObjects =
             [
-                new CreateTicketRequest.CreateAddressObjectRequest { Id = -1, Name = "app-server-1", IpStart = "192.0.2.10", IpEnd = "192.0.2.10" }
+                new CreateTicketRequest.CreateAddressObjectRequest { Id = -1, Name = "app-server-1", IpHost = "192.0.2.10" }
             ],
             ServiceObjects =
             [
@@ -411,8 +421,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "server",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             TimeObjects =
@@ -436,11 +445,12 @@ internal class WorkflowTicketServiceTest
             ]
         }, 77);
 
+        WfReqTaskWriter accessTask = apiConnection.LastTicketWriter!.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString());
         Assert.Multiple(() =>
         {
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
-            Assert.That(apiConnection.LastTicketWriter!.Tasks[0].TargetBeginDate, Is.Null);
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate,
+            Assert.That(accessTask.TargetBeginDate, Is.Null);
+            Assert.That(accessTask.TargetEndDate,
                 Is.EqualTo(new DateTime(2026, 12, 31, 23, 59, 59, 999, DateTimeKind.Unspecified).AddTicks(9999)));
         });
     }
@@ -491,7 +501,8 @@ internal class WorkflowTicketServiceTest
             Assert.That(elements.Count(element => element.Field == ElemFieldType.service.ToString()), Is.EqualTo(2));
             Assert.That(elements.Single(element => element.FlowServiceObjectId == 303).FlowServiceObjectId, Is.EqualTo(303));
             Assert.That(elements.Single(element => element.FlowServiceGroupId == 303).FlowServiceGroupId, Is.EqualTo(303));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("404"));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList
+                .Single(element => element.Field == ElemFieldType.time.ToString()).FlowTimeObjectId, Is.EqualTo(404));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate, Is.EqualTo(startTime));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate, Is.EqualTo(endTime));
         });
@@ -520,8 +531,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             Rules =
@@ -560,8 +570,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -591,7 +600,7 @@ internal class WorkflowTicketServiceTest
         {
             Assert.That(response.Status, Is.EqualTo("draft"));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
-            WfReqElementWriter serviceElement = apiConnection.LastTicketWriter!.Tasks[0].Elements.WfElementList
+            WfReqElementWriter serviceElement = apiConnection.LastTicketWriter!.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString()).Elements.WfElementList
                 .Single(element => element.Field == ElemFieldType.service.ToString());
             Assert.That(serviceElement.ProtoId, Is.EqualTo(-1));
             Assert.That(serviceElement.Port, Is.Null);
@@ -622,8 +631,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -679,8 +687,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -710,7 +717,7 @@ internal class WorkflowTicketServiceTest
         {
             Assert.That(response.Status, Is.EqualTo("draft"));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
-            WfReqElementWriter serviceElement = apiConnection.LastTicketWriter!.Tasks[0].Elements.WfElementList
+            WfReqElementWriter serviceElement = apiConnection.LastTicketWriter!.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString()).Elements.WfElementList
                 .Single(element => element.Field == ElemFieldType.service.ToString());
             Assert.That(serviceElement.Port, Is.EqualTo(443));
             Assert.That(serviceElement.PortEnd, Is.Null);
@@ -740,8 +747,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             AddressGroups =
@@ -828,8 +834,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -899,8 +904,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1043,8 +1047,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1184,8 +1187,7 @@ internal class WorkflowTicketServiceTest
                     {
                         Id = -1,
                         Name = "app-server-1",
-                        IpStart = "192.0.2.10",
-                        IpEnd = "192.0.2.10"
+                        IpHost = "192.0.2.10"
                     }
                 ],
                 ServiceObjects =
@@ -1269,8 +1271,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1300,8 +1301,8 @@ internal class WorkflowTicketServiceTest
         {
             Assert.That(response.Status, Is.EqualTo("draft"));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
-            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(1));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].RuleAction, Is.EqualTo(2));
+            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(3));
+            Assert.That(apiConnection.LastTicketWriter.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString()).RuleAction, Is.EqualTo(2));
         });
     }
 
@@ -1329,8 +1330,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1378,12 +1378,13 @@ internal class WorkflowTicketServiceTest
         {
             Assert.That(response.Status, Is.EqualTo("draft"));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
-            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(3));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.GrpName), Is.EqualTo("app-servers"));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[1].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[1].GetAddInfoValue(AdditionalInfoKeys.GrpName), Is.EqualTo("web-services"));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[2].TaskType, Is.EqualTo(WfTaskType.access.ToString()));
+            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(5));
+            Assert.That(apiConnection.LastTicketWriter.Tasks.Count(task => task.TaskType == WfTaskType.object_create.ToString()), Is.EqualTo(2));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[2].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[2].GetAddInfoValue(AdditionalInfoKeys.GrpName), Is.EqualTo("app-servers"));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[3].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[3].GetAddInfoValue(AdditionalInfoKeys.GrpName), Is.EqualTo("web-services"));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[4].TaskType, Is.EqualTo(WfTaskType.access.ToString()));
         });
     }
 
@@ -1416,8 +1417,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1466,10 +1466,12 @@ internal class WorkflowTicketServiceTest
         {
             Assert.That(response.Status, Is.EqualTo("draft"));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
-            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(3));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TaskType, Is.EqualTo(WfTaskType.access.ToString()));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[1].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[2].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(5));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TaskType, Is.EqualTo(WfTaskType.object_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[1].TaskType, Is.EqualTo(WfTaskType.object_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[2].TaskType, Is.EqualTo(WfTaskType.access.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[3].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[4].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
         });
     }
 
@@ -1500,8 +1502,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1550,10 +1551,12 @@ internal class WorkflowTicketServiceTest
         {
             Assert.That(response.Status, Is.EqualTo("draft"));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
-            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(3));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[1].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[2].TaskType, Is.EqualTo(WfTaskType.access.ToString()));
+            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(5));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TaskType, Is.EqualTo(WfTaskType.object_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[1].TaskType, Is.EqualTo(WfTaskType.object_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[2].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[3].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[4].TaskType, Is.EqualTo(WfTaskType.access.ToString()));
         });
     }
 
@@ -1594,8 +1597,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1647,7 +1649,7 @@ internal class WorkflowTicketServiceTest
             Assert.That(response.Status, Is.EqualTo("draft"));
             Assert.That(response.TicketId, Is.EqualTo(100));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
-            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(3));
+            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(5));
             Assert.That(apiConnection.CreatedTicket!.Requester?.DbId, Is.EqualTo(77));
             Assert.That(apiConnection.CreatedTicket.AdditionalInfo, Does.Contain("\"requestorName\":\"Payload Requester\""));
             Assert.That(apiConnection.CreatedTicket.AdditionalInfo, Does.Contain("\"requestorId\":\"payload-requester\""));
@@ -1655,10 +1657,10 @@ internal class WorkflowTicketServiceTest
             Assert.That(apiConnection.CreatedTicket.AdditionalInfo, Does.Contain("\"requestContactId\":\"bob\""));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.RequestorName), Is.Empty);
             Assert.That(apiConnection.LastTicketWriter.Tasks[2].GetAddInfoValue(AdditionalInfoKeys.RequestContactName), Is.Empty);
-            Assert.That(apiConnection.CreatedTicket.Tasks[2].Owners, Has.Count.EqualTo(1));
-            Assert.That(apiConnection.CreatedTicket.Tasks[2].Owners[0].Owner.Id, Is.EqualTo(42));
-            Assert.That(apiConnection.LastTicketWriter!.Tasks[2].Owners.WfOwnerList, Has.Count.EqualTo(1));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[2].Owners.WfOwnerList[0].OwnerId, Is.EqualTo(42));
+            Assert.That(apiConnection.CreatedTicket.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString()).Owners, Has.Count.EqualTo(1));
+            Assert.That(apiConnection.CreatedTicket.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString()).Owners[0].Owner.Id, Is.EqualTo(42));
+            Assert.That(apiConnection.LastTicketWriter!.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString()).Owners.WfOwnerList, Has.Count.EqualTo(1));
+            Assert.That(apiConnection.LastTicketWriter.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString()).Owners.WfOwnerList[0].OwnerId, Is.EqualTo(42));
         });
     }
 
@@ -1715,8 +1717,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1787,8 +1788,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1927,8 +1927,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2028,8 +2027,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2093,8 +2091,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2124,8 +2121,9 @@ internal class WorkflowTicketServiceTest
         {
             Assert.That(response.Status, Is.EqualTo("draft"));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
-            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(1));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList[2].ProtoId, Is.EqualTo(17));
+            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(3));
+            Assert.That(apiConnection.LastTicketWriter.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString())
+                .Elements.WfElementList[2].ProtoId, Is.EqualTo(17));
         });
     }
 
@@ -2155,8 +2153,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = 0,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2215,8 +2212,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2273,8 +2269,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2394,8 +2389,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2519,8 +2513,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2588,8 +2581,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2660,8 +2652,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2732,8 +2723,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2804,8 +2794,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2875,8 +2864,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2992,8 +2980,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -3070,8 +3057,7 @@ internal class WorkflowTicketServiceTest
         {
             Id = -1,
             Name = "app-server-1",
-            IpStart = "192.0.2.10",
-            IpEnd = "192.0.2.10"
+            IpHost = "192.0.2.10"
         };
     }
 

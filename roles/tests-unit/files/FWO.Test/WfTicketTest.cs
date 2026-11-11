@@ -8,6 +8,10 @@ namespace FWO.Test
     [TestFixture]
     internal class WfTicketTest
     {
+        private const int kRequestingOwnerId = 7;
+        private static readonly List<long> kNoTicketIds = [];
+        private static readonly List<int> kRequestingOwnerIds = [kRequestingOwnerId];
+
         [Test]
         public void HighestTaskNumber_ReturnsMax()
         {
@@ -145,6 +149,20 @@ namespace FWO.Test
             bool visible = ticket.IsVisibleForOwner([], [7], 99);
 
             Assert.That(visible, Is.True);
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, true)]
+        public void IsEditableForOwner_IncludesRequestingOwnerOnlyWhenAsked(bool includeRequestingOwner, bool expected)
+        {
+            WfTicket ticket = new();
+            WfReqTask reqTask = new();
+            reqTask.SetAddInfo(AdditionalInfoKeys.ReqOwner, kRequestingOwnerId.ToString());
+            ticket.Tasks.Add(reqTask);
+
+            bool editable = ticket.IsEditableForOwner(kNoTicketIds, kRequestingOwnerIds, 99, includeRequestingOwner);
+
+            Assert.That(editable, Is.EqualTo(expected));
         }
 
         [Test]

@@ -5,6 +5,7 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using FWO.Services.RulePositioning;
 using RestSharp;
 using System.Text.Json;
 
@@ -47,7 +48,8 @@ namespace FWO.Services.Workflow
 
 
         public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<UserGroup>? userGroups = null, bool useInMwServer = false,
-            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null, IWorkflowRecipientResolver? workflowRecipientResolver = null)
+            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null, IWorkflowRecipientResolver? workflowRecipientResolver = null,
+            IRulePositioningWorkflowCaller? rulePositioningWorkflowCaller = null)
         {
             this.apiConnection = apiConnection;
             this.wfHandler = wfHandler;
@@ -55,6 +57,9 @@ namespace FWO.Services.Workflow
             UserGroups = userGroups;
             this.requestedRulePolicyChecker = requestedRulePolicyChecker ?? wfHandler.RequestedRulePolicyChecker;
             this.workflowRecipientResolver = workflowRecipientResolver ?? wfHandler.WorkflowRecipientResolver;
+            this.rulePositioningWorkflowCaller = useInMwServer
+                ? rulePositioningWorkflowCaller ?? ServiceProvider.Services?.GetService(typeof(IRulePositioningWorkflowCaller)) as IRulePositioningWorkflowCaller
+                : null;
         }
 
         public async Task Init()
@@ -86,7 +91,7 @@ namespace FWO.Services.Workflow
         }
 
         public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null,
-            NotificationPlaceholderData? placeholderData = null)
+            NotificationPlaceholderData? placeholderData = null, WfReqTask? creatingRequestTask = null)
         {
             if (!statefulObject.StateChanged())
             {
@@ -107,7 +112,9 @@ namespace FWO.Services.Workflow
                 return;
             }
 
+            using IDisposable graphCacheScope = RulePositioningGraphCacheScope.Begin();
             await RecordStateChangeExecution(statefulObject, scope);
+            await ActivateRulePositioningForCreation(statefulObject, scope, creatingRequestTask);
 
             if (scope == WfObjectScopes.Ticket)
             {
@@ -616,7 +623,7 @@ namespace FWO.Services.Workflow
             }
 
             string timeObjectPrecision = FlowIntegrationConfig.Parse(wfHandler.userConfig.ReqFlowIntegration).TimeObjectPrecision;
-            FlowDbCreator flowDbCreator = new(apiConnection, timeObjectPrecision);
+            FlowDbCreator flowDbCreator = new(apiConnection, timeObjectPrecision, wfHandler.userConfig.ReqTimeObjectOriginSuffixes);
             bool? success = await flowDbCreator.CreateFlowInFlowDb(action, statefulObject, scope, owner, ticketId);
             if (success != null)
             {
@@ -631,8 +638,10 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Creates the implementation tasks still missing for the ticket of the stateful object, using the same
-        /// logic as the automatic creation. Bundles from a preceding bundle tasks action are taken into account.
+        /// Creates the implementation tasks still missing, using the same logic as the automatic creation: in the
+        /// ticket scope for every open request task of the ticket, in the request task scope only for that task, a
+        /// bundled task together with its bundle once every member has reached the state. Bundles from a preceding
+        /// bundle tasks action are taken into account.
         /// </summary>
         /// <param name="action">The executed action.</param>
         /// <param name="statefulObject">Ticket or request task the action is attached to.</param>
@@ -645,7 +654,8 @@ namespace FWO.Services.Workflow
                 Log.WriteWarning("Create Implementation Tasks", $"Action '{action.Name}' found no ticket request tasks.");
                 return;
             }
-            int createdCount = await wfHandler.CreateMissingImplTasksForTicket(ticket);
+            WfReqTask? scopeTask = scope == WfObjectScopes.RequestTask ? statefulObject as WfReqTask : null;
+            int createdCount = await wfHandler.CreateMissingImplTasksForTicket(ticket, scopeTask);
             Log.WriteDebug("Create Implementation Tasks", $"Action '{action.Name}' created {createdCount} implementation tasks for ticket {ticket.Id}.");
         }
 
@@ -659,7 +669,7 @@ namespace FWO.Services.Workflow
             }
 
             BundleTasksActionParams bundleParams = BundleTasksActionParams.FromExternalParams(action.ExternalParams);
-            List<ComplianceNetworkZone> networkZones = await LoadBundleNetworkZones(bundleParams);
+            List<NetworkZone> networkZones = await LoadBundleNetworkZones(bundleParams);
             RequestTaskBundler bundler = new();
             LogUnresolvedCleanZoneTasks(action, ticket.Tasks, bundleParams, networkZones, bundler);
             Dictionary<long, string> bundleAssignments = bundler.BuildBundleAssignments(ticket.Tasks, bundleParams.BundleType,
@@ -705,7 +715,7 @@ namespace FWO.Services.Workflow
         /// Logs clean-zone bundling candidates whose source or destination IPs do not resolve to configured zones.
         /// </summary>
         private static void LogUnresolvedCleanZoneTasks(WfStateAction action, IEnumerable<WfReqTask> requestTasks,
-            BundleTasksActionParams bundleParams, List<ComplianceNetworkZone> networkZones, RequestTaskBundler bundler)
+            BundleTasksActionParams bundleParams, List<NetworkZone> networkZones, RequestTaskBundler bundler)
         {
             List<long> unresolvedTaskIds = bundler.FindTasksWithUnresolvedCleanZones(requestTasks, bundleParams.CleanZones, networkZones);
             if (unresolvedTaskIds.Count > 0)
@@ -723,7 +733,7 @@ namespace FWO.Services.Workflow
                 + $"{string.Join(", ", unresolvedTaskIds)} because source or destination IPs could not be resolved to configured matrix zones.";
         }
 
-        private async Task<List<ComplianceNetworkZone>> LoadBundleNetworkZones(BundleTasksActionParams bundleParams)
+        private async Task<List<NetworkZone>> LoadBundleNetworkZones(BundleTasksActionParams bundleParams)
         {
             if (!bundleParams.CleanZones || bundleParams.PolicyId == null || bundleParams.PolicyId <= 0)
             {
@@ -740,7 +750,7 @@ namespace FWO.Services.Workflow
                 return [];
             }
 
-            return await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId.Value }) ?? [];
+            return await apiConnection.SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId.Value }) ?? [];
         }
 
         private WfTicket? GetTicketForBundling(WfStatefulObject statefulObject, WfObjectScopes scope)

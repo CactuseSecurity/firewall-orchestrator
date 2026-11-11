@@ -16,6 +16,13 @@ namespace FWO.Config.Api.Data
 
     public class ConfigData : ICloneable
     {
+        /// <summary>Config key of the certificate checking switch for firewall connections.</summary>
+        public const string kImportCheckCertificatesKey = "importCheckCertificates";
+        /// <summary>Config key of the certificate checking switch for external ticket systems.</summary>
+        public const string kExtTicketSystemsCheckCertificatesKey = "extTicketSystemsCheckCertificates";
+        /// <summary>Config key of the certificate checking switch for the email server.</summary>
+        public const string kEmailCheckCertificatesKey = "emailCheckCertificates";
+
         public readonly bool Editable;
 
         [JsonProperty("DefaultLanguage"), JsonPropertyName("DefaultLanguage")]
@@ -74,11 +81,11 @@ namespace FWO.Config.Api.Data
         /// Whether TLS certificates of all firewall management connections are checked: importer, autodiscovery
         /// and Check Point change requests.
         /// </summary>
-        [JsonProperty("importCheckCertificates"), JsonPropertyName("importCheckCertificates")]
+        [JsonProperty(kImportCheckCertificatesKey), JsonPropertyName(kImportCheckCertificatesKey)]
         public bool ImportCheckCertificates { get; set; } = true;
 
         [JsonProperty("importSuppressCertificateWarnings"), JsonPropertyName("importSuppressCertificateWarnings")]
-        public bool ImportSuppressCertificateWarnings { get; set; } = true;
+        public bool ImportSuppressCertificateWarnings { get; set; } = false;
 
         [JsonProperty("autoDiscoverSleepTime"), JsonPropertyName("autoDiscoverSleepTime")]
         public int AutoDiscoverSleepTime { get; set; } = 24;
@@ -88,6 +95,13 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("fwApiElementsPerFetch"), JsonPropertyName("fwApiElementsPerFetch")]
         public int FwApiElementsPerFetch { get; set; } = 150;
+
+        /// <summary>
+        /// Whether the importer skips rules using features it cannot represent (e.g. Azure geo-location filters)
+        /// with a warning instead of failing the import.
+        /// </summary>
+        [JsonProperty("importSkipUnsupportedRules"), JsonPropertyName("importSkipUnsupportedRules")]
+        public bool ImportSkipUnsupportedRules { get; set; } = true;
 
         [Obsolete("Use notification entries with NotificationClient.ImportChange instead.")]
         [JsonProperty("impChangeNotifyRecipients"), JsonPropertyName("impChangeNotifyRecipients")]
@@ -235,7 +249,7 @@ namespace FWO.Config.Api.Data
         /// <summary>
         /// Whether the TLS certificate of the email server is checked (StartTls and Tls only).
         /// </summary>
-        [JsonProperty("emailCheckCertificates"), JsonPropertyName("emailCheckCertificates")]
+        [JsonProperty(kEmailCheckCertificatesKey), JsonPropertyName(kEmailCheckCertificatesKey)]
         public bool EmailCheckCertificates { get; set; } = true;
 
         [JsonProperty("useDummyEmailAddress"), JsonPropertyName("useDummyEmailAddress")]
@@ -268,6 +282,26 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importScriptTimeout"), JsonPropertyName("importScriptTimeout")]
         public int ImportScriptTimeout { get; set; } = 60;
 
+        [JsonProperty("maxRestResponseObjectLimit"), JsonPropertyName("maxRestResponseObjectLimit")]
+        public int MaxRestResponseObjectLimit { get; set; } = GlobalConst.kDefaultMaxRestResponseObjectLimit;
+
+        /// <summary>
+        /// Returns the usable page size of the REST list endpoints for a configured maxRestResponseObjectLimit:
+        /// a value below 1 selects the default, a value from 1 to below <see cref="GlobalConst.kMinRestResponseObjectLimit"/>
+        /// the minimum and a value above <see cref="GlobalConst.kMaxRestResponseObjectLimitCeiling"/> the ceiling, so the
+        /// setting can neither disable nor lift the result cap, nor make clients reading whole lists send one request per
+        /// few items.
+        /// </summary>
+        /// <param name="configuredLimit">Configured maximum page size.</param>
+        public static int GetUsableMaxRestResponseObjectLimit(int configuredLimit)
+        {
+            if (configuredLimit < 1)
+            {
+                return GlobalConst.kDefaultMaxRestResponseObjectLimit;
+            }
+            return Math.Clamp(configuredLimit, GlobalConst.kMinRestResponseObjectLimit, GlobalConst.kMaxRestResponseObjectLimitCeiling);
+        }
+
         [JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]
         public string ReqAvailableTaskTypes { get; set; } = "";
 
@@ -292,6 +326,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqFlowIntegration"), JsonPropertyName("reqFlowIntegration")]
         public string ReqFlowIntegration { get; set; } = System.Text.Json.JsonSerializer.Serialize(new FlowIntegrationConfig());
 
+        [JsonProperty("reqTimeObjectOriginSuffixes"), JsonPropertyName("reqTimeObjectOriginSuffixes")]
+        public string ReqTimeObjectOriginSuffixes { get; set; } = "{\"requester\":\"\",\"approver\":\"\"}";
+
         [JsonProperty("reqAllowManualOwnerAdmin"), JsonPropertyName("reqAllowManualOwnerAdmin")]
         public bool AllowManualOwnerAdmin { get; set; } = false;
 
@@ -301,8 +338,11 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqCreateRequestTaskSortConfig"), JsonPropertyName("reqCreateRequestTaskSortConfig")]
         public string ReqCreateRequestTaskSortConfig { get; set; } = System.Text.Json.JsonSerializer.Serialize(new CreateRequestTaskSortConfig());
 
-        [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
-        public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
+        /// <summary>
+        /// Whether and how the requester enters the affected devices in an access request task.
+        /// </summary>
+        [JsonProperty("reqDeviceInput"), JsonPropertyName("reqDeviceInput")]
+        public ReqDeviceInputOptions ReqDeviceInput { get; set; } = ReqDeviceInputOptions.never;
 
         [JsonProperty("reqConsiderBundling"), JsonPropertyName("reqConsiderBundling")]
         public bool ReqConsiderBundling { get; set; } = false;
@@ -325,6 +365,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reqAllowedChangesByApprover"), JsonPropertyName("reqAllowedChangesByApprover")]
         public string ReqAllowedChangesByApprover { get; set; } = System.Text.Json.JsonSerializer.Serialize(new ApproverAllowedChangesConfig());
+
+        [JsonProperty("reqApprovalEditMode"), JsonPropertyName("reqApprovalEditMode")]
+        public ApprovalEditMode ReqApprovalEditMode { get; set; } = ApprovalEditMode.Classic;
 
         [JsonProperty("reqImplicitApprovalComment"), JsonPropertyName("reqImplicitApprovalComment")]
         public string ReqImplicitApprovalComment { get; set; } = "Automatically approved because the request task was promoted beyond the approval phase.";
@@ -458,6 +501,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modUpdatableObjAreas"), JsonPropertyName("modUpdatableObjAreas")]
         public string ModUpdatableObjAreas { get; set; } = "";
 
+        [JsonProperty("modComSvcExcludedAreas"), JsonPropertyName("modComSvcExcludedAreas")]
+        public string ModComSvcExcludedAreas { get; set; } = "";
+
         [JsonProperty("modAppServerTypes"), JsonPropertyName("modAppServerTypes")]
         public string ModAppServerTypes { get; set; } = "";
 
@@ -575,7 +621,7 @@ namespace FWO.Config.Api.Data
         /// <summary>
         /// Whether TLS certificates of all external ticket systems are checked.
         /// </summary>
-        [JsonProperty("extTicketSystemsCheckCertificates"), JsonPropertyName("extTicketSystemsCheckCertificates")]
+        [JsonProperty(kExtTicketSystemsCheckCertificatesKey), JsonPropertyName(kExtTicketSystemsCheckCertificatesKey)]
         public bool ExtTicketSystemsCheckCertificates { get; set; } = true;
 
         /// <summary>
@@ -585,6 +631,29 @@ namespace FWO.Config.Api.Data
         public ExternalCertificateChecks GetExternalCertificateChecks()
         {
             return new ExternalCertificateChecks(ImportCheckCertificates, ExtTicketSystemsCheckCertificates);
+        }
+
+        /// <summary>
+        /// Lists the certificate checking switches that are off, so that the connections they cover accept any
+        /// server certificate. Upgraded installations keep a switch off when it was off before.
+        /// </summary>
+        /// <returns>The config keys of the switches that are off, in a fixed order; empty when all are on.</returns>
+        public List<string> GetUncheckedCertificateSwitches()
+        {
+            List<string> uncheckedSwitches = [];
+            if (!ImportCheckCertificates)
+            {
+                uncheckedSwitches.Add(kImportCheckCertificatesKey);
+            }
+            if (!ExtTicketSystemsCheckCertificates)
+            {
+                uncheckedSwitches.Add(kExtTicketSystemsCheckCertificatesKey);
+            }
+            if (!EmailCheckCertificates)
+            {
+                uncheckedSwitches.Add(kEmailCheckCertificatesKey);
+            }
+            return uncheckedSwitches;
         }
 
         [JsonProperty("modExtraConfigs"), JsonPropertyName("modExtraConfigs")]

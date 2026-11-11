@@ -123,7 +123,7 @@ namespace FWO.Test
         [Test]
         public async Task GetRulesByFilter_ShouldLogRejectedResultWhenFilterSelectionIsInvalid()
         {
-            RuleController controller = new(new SimulatedApiConnection())
+            RuleController controller = new(new SimulatedApiConnection(), new SimulatedGlobalConfig())
             {
                 ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = CreateCaller("portal-svc", "17") } }
             };
@@ -145,7 +145,7 @@ namespace FWO.Test
         public async Task GetRulesByFilter_ShouldLogErrorResultWithRequestTimeWhenRuleQueryFails()
         {
             FailingRuleQueryApiConnection apiConnection = new();
-            RuleController controller = new(apiConnection)
+            RuleController controller = new(apiConnection, new SimulatedGlobalConfig())
             {
                 ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = CreateCaller("portal-svc", "17") } }
             };

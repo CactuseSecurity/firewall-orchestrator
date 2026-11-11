@@ -1,5 +1,6 @@
 using System.Reflection;
 using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -21,6 +22,11 @@ namespace FWO.Test
         private static readonly ConfigItem[] kCreateObjectsSeparatelyItems =
         [
             new() { Key = "reqCreateObjectsSeparately", Value = "True", User = 0 }
+        ];
+        private static readonly ConfigItem[] kChangedPathAnalysisItems =
+        [
+            new() { Key = "pathAnalysisAlgorithm", Value = "3", User = 0 },
+            new() { Key = "reqDeviceInput", Value = "oneTaskForAllDevices", User = 0 }
         ];
         private static readonly ConfigItem[] ModIconifyFalseConfigItem =
         [
@@ -127,17 +133,17 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Update_KeepsDefaultEnum_WhenConfigContainsUnknownAutoCreateImplTaskOption()
+        public void Update_KeepsDefaultEnum_WhenConfigContainsUnknownDeviceInputOption()
         {
             SimulatedUserConfig userConfig = new();
-            userConfig.ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.never;
+            userConfig.ReqDeviceInput = ReqDeviceInputOptions.never;
 
             InvokeUpdate(userConfig,
             [
-                new() { Key = "reqAutoCreateImplTasks", Value = "999", User = 0 }
+                new() { Key = "reqDeviceInput", Value = "999", User = 0 }
             ]);
 
-            Assert.That(userConfig.ReqAutoCreateImplTasks, Is.EqualTo(AutoCreateImplTaskOptions.never));
+            Assert.That(userConfig.ReqDeviceInput, Is.EqualTo(ReqDeviceInputOptions.never));
         }
 
         [Test]
@@ -216,6 +222,26 @@ namespace FWO.Test
 
             Assert.That(userConfig.ReqOwnerBased, Is.True);
             Assert.That(userConfig.ReqVisibilityBased, Is.True);
+        }
+
+        [Test]
+        public async Task WithCurrentConfigItems_ReadsChangedValuesAndKeepsLanguageData()
+        {
+            using GlobalConfig startupConfig = new();
+            using UserConfigApiConnection apiConnection = new(kChangedPathAnalysisItems);
+
+            using (GlobalConfig currentConfig = await startupConfig.WithCurrentConfigItemsAsync(apiConnection))
+            {
+                Assert.Multiple(() =>
+                {
+                    Assert.That(currentConfig.PathAnalysisAlgorithm, Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmForEachDevice));
+                    Assert.That(currentConfig.ReqDeviceInput, Is.EqualTo(ReqDeviceInputOptions.oneTaskForAllDevices));
+                    Assert.That(currentConfig.LangDict, Is.SameAs(startupConfig.LangDict));
+                    Assert.That(startupConfig.PathAnalysisAlgorithm, Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNone), "startup config unchanged");
+                });
+            }
+
+            Assert.That(apiConnection.IsDisposed, Is.False);
         }
 
         [Test]
@@ -607,8 +633,11 @@ namespace FWO.Test
                 Assert.That(config.ShowDeadline, Is.True);
                 Assert.That(config.ShowReason, Is.True);
                 Assert.That(config.ShowComments, Is.False);
+                Assert.That(config.HandlerDisplayMode, Is.EqualTo(TicketHandlerDisplayMode.None));
                 Assert.That(config.AccessTask.ShowManagement, Is.True);
                 Assert.That(config.AccessTask.ShowOwner, Is.True);
+                Assert.That(config.AccessTask.ShowRuleAction, Is.True);
+                Assert.That(config.AccessTask.ShowTracking, Is.True);
                 Assert.That(config.AccessTask.ShowValidFrom, Is.True);
                 Assert.That(config.AccessTask.ShowValidTo, Is.True);
                 Assert.That(config.AccessTask.ShowReason, Is.True);
@@ -635,16 +664,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public void TicketFieldVisibilityConfig_ParsesHandlerDisplayMode()
+        {
+            TicketFieldVisibilityConfig config = TicketFieldVisibilityConfig.Parse(
+                "{\"handlerDisplayMode\":2}");
+
+            Assert.That(config.HandlerDisplayMode, Is.EqualTo(TicketHandlerDisplayMode.AllActiveTasks));
+            Assert.That(TicketFieldVisibilityConfig.Parse(config.ToConfigValue()).HandlerDisplayMode,
+                Is.EqualTo(TicketHandlerDisplayMode.AllActiveTasks));
+        }
+
+        [Test]
         public void TicketFieldVisibilityConfig_ParsesAccessTaskFields()
         {
             TicketFieldVisibilityConfig config = TicketFieldVisibilityConfig.Parse(
-                "{\"accessTask\":{\"management\":false,\"owner\":false,\"validFrom\":false,\"validTo\":true,\"reason\":false,\"freeText\":true,\"comments\":false}}");
+                "{\"accessTask\":{\"management\":false,\"owner\":false,\"ruleAction\":false,\"tracking\":false,\"validFrom\":false,\"validTo\":true,\"reason\":false,\"freeText\":true,\"comments\":false}}");
 
             Assert.Multiple(() =>
             {
                 Assert.That(config.AccessTask.ShowReason, Is.False);
                 Assert.That(config.AccessTask.ShowManagement, Is.False);
                 Assert.That(config.AccessTask.ShowOwner, Is.False);
+                Assert.That(config.AccessTask.ShowRuleAction, Is.False);
+                Assert.That(config.AccessTask.ShowTracking, Is.False);
                 Assert.That(config.AccessTask.ShowValidFrom, Is.False);
                 Assert.That(config.AccessTask.ShowValidTo, Is.True);
                 Assert.That(config.AccessTask.ShowFreeText, Is.True);

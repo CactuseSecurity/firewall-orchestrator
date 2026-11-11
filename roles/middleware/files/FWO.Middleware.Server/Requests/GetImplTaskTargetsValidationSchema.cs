@@ -1,3 +1,5 @@
+using FWO.Middleware.Server.Services;
+
 namespace FWO.Middleware.Server.Requests;
 
 /// <summary>
@@ -54,7 +56,7 @@ public static class GetImplTaskTargetsValidationSchema
 
     private static readonly List<RequestKeyDefinition> kRootKeys =
     [
-        new RequestKeyDefinition("managementId", "Database id of the management the request task belongs to. Required and greater than 0."),
+        new RequestKeyDefinition("managementId", "Database id of the management the request task belongs to, greater than 0. Omitted or null resolves the targets of all managements (admin only). Defaults to null."),
         new RequestKeyDefinition("isServiceObject", "True for services, false for network objects; selects serviceObjectCreation or addressObjectCreation. Defaults to false."),
         new RequestKeyDefinition("isTimeObject", "True for time objects; selects timeObjectCreation. Must not be true together with isServiceObject. Defaults to false."),
         new RequestKeyDefinition("options", "Optional output options. Defaults to {}.")
@@ -63,8 +65,8 @@ public static class GetImplTaskTargetsValidationSchema
     private static readonly List<RequestKeyDefinition> kOptionsKeys =
     [
         new RequestKeyDefinition("filter", "Optional response filter. Omitted or null applies no restriction."),
-        new RequestKeyDefinition("limit", $"Optional page size between 1 and {GetImplTaskTargetsOptions.kMaxLimit}. Omitted or null returns a page of {GetImplTaskTargetsOptions.kMaxLimit} targets; the X-Has-More response header tells whether further targets follow."),
-        new RequestKeyDefinition("offset", "Optional number of targets to skip, not negative. Omitted or null skips no target.")
+        new RequestKeyDefinition("limit", $"Optional page size. {ListPaging.kLimitDescription}"),
+        new RequestKeyDefinition("offset", $"Optional. {ListPaging.kOffsetDescription}")
     ];
 
     private static readonly List<RequestKeyDefinition> kFilterKeys =

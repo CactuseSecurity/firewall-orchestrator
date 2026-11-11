@@ -245,7 +245,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Execute_ReturnsWhenNoImportsNeedNotification()
+        public async Task Execute_ReturnsWhenNoNotificationsConfigured()
         {
             EmptyListJobApiConnection apiConnection = new();
             SimulatedGlobalConfig globalConfig = new()
@@ -258,7 +258,8 @@ namespace FWO.Test
 
             Assert.That(apiConnection.Queries, Has.Count.GreaterThanOrEqualTo(3));
             Assert.That(apiConnection.Queries, Does.Contain(ConfigQueries.getConfigItemsByUser));
-            Assert.That(apiConnection.Queries, Does.Contain(ReportQueries.getImportsToNotifyForRuleChanges));
+            Assert.That(apiConnection.Queries, Does.Contain(NotificationQueries.getNotifications));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(ReportQueries.getImportsToNotifyForRuleChanges), "imports are only queried if notifications are configured");
         }
 
         [Test]

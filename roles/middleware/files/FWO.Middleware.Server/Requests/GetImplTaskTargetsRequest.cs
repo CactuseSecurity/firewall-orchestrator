@@ -1,5 +1,4 @@
 using System.Text.Json;
-using FWO.Middleware.Server.OpenApi;
 using System.Text.Json.Serialization;
 
 namespace FWO.Middleware.Server.Requests;
@@ -17,14 +16,10 @@ public sealed class GetImplTaskTargetsRequest : IRequestWithRootAdditionalData
     private GetImplTaskTargetsOptions options = new();
 
     /// <summary>
-    /// Gets or sets the database id of the management the request task belongs to. Required and greater than 0.
+    /// Gets or sets the database id of the management the request task belongs to, greater than 0. Omitted or
+    /// <c>null</c> resolves the targets of all managements, like an object task without management (e.g. ordered
+    /// through the REST interface); only an admin may ask for all managements. Defaults to <c>null</c>.
     /// </summary>
-    /// <remarks>
-    /// Nullable rather than required for the deserializer, so an omitted key is reported together with every
-    /// other error of the request instead of on its own. <see cref="OpenApiRequiredAttribute"/> keeps the key
-    /// mandatory in the generated schema.
-    /// </remarks>
-    [OpenApiRequired]
     [JsonPropertyName("managementId")]
     public int? ManagementId { get; set; }
 
@@ -68,13 +63,6 @@ public sealed class GetImplTaskTargetsRequest : IRequestWithRootAdditionalData
 public sealed class GetImplTaskTargetsOptions : IRequestWithAdditionalData
 {
     /// <summary>
-    /// Maximum and default number of target managements returned per request. It is high because a target is
-    /// small, so a client that does not page still receives every sub-management of all but very large
-    /// super-managements in one page.
-    /// </summary>
-    public const int kMaxLimit = 1000;
-
-    /// <summary>
     /// Gets or sets the optional response filter. When omitted or <c>null</c> no response field restricts the
     /// result.
     /// </summary>
@@ -82,13 +70,13 @@ public sealed class GetImplTaskTargetsOptions : IRequestWithAdditionalData
     public ImplTaskTargetFilter? Filter { get; set; }
 
     /// <summary>
-    /// Gets or sets the maximum number of target managements to return, between 1 and <see cref="kMaxLimit"/>.
-    /// When omitted or <c>null</c>, a page of <see cref="kMaxLimit"/> targets is returned. Together with
-    /// <see cref="Offset"/> it pages the ordered result; the <c>X-Has-More</c> response header tells whether
-    /// further targets follow.
+    /// Gets or sets the maximum number of target managements to return, between 1 and the configured
+    /// <c>maxRestResponseObjectLimit</c> (default 10000). When omitted or <c>null</c>, a page of that size is
+    /// returned. Together with <see cref="Offset"/> it pages the ordered result; the <c>X-Has-More</c> response
+    /// header tells whether further targets follow.
     /// </summary>
     [JsonPropertyName("limit")]
-    public int? Limit { get; set; } = kMaxLimit;
+    public int? Limit { get; set; }
 
     /// <summary>
     /// Gets or sets the optional number of target managements to skip before the first returned one. Must not be

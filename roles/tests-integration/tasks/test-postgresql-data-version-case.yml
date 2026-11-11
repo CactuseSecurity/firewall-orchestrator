@@ -1,0 +1,56 @@
+---
+# One case of test-postgresql-cluster-guard.yml for the RedHat data directory layout.
+# A loop cannot run a block with rescue, so each case is included on its own.
+#
+# Inputs:
+#   test_pg_data_case    - data_version written to PG_VERSION (empty: no PG_VERSION) and
+#                          expected_message (empty: the guard must let the case through)
+#   test_pg_cluster_root - the temporary directory the data directory is created in
+- name: Set the data directory and the log prefix of this case
+  set_fact:
+    test_pg_data_dir: "{{ test_pg_cluster_root.path }}/data"
+    # only the rejecting cases are expected to fail, see tasks/main.yml
+    test_pg_data_prefix: "{{ 'expected to fail: ' if test_pg_data_case.expected_message | length > 0 else '' }}"
+
+- name: Start the case from an empty data directory
+  file:
+    path: "{{ test_pg_data_dir }}"
+    state: "{{ item }}"
+    mode: "0700"
+  loop:
+    - absent
+    - directory
+
+- name: Write the version the data was left in
+  copy:
+    content: "{{ test_pg_data_case.data_version }}\n"
+    dest: "{{ test_pg_data_dir }}/PG_VERSION"
+    mode: "0600"
+  when: test_pg_data_case.data_version | length > 0
+
+- name: "{{ test_pg_data_prefix }}data version guard on PG_VERSION {{ test_pg_data_case.data_version | default('missing', true) }}"
+  block:
+    - name: "{{ test_pg_data_prefix }}data version guard on PG_VERSION {{ test_pg_data_case.data_version | default('missing', true) }}"
+      include_tasks: "{{ role_path }}/../database/tasks/validate-postgresql-data-version.yml"
+      vars:
+        pg_version: "{{ test_pg_cluster_new_version }}"
+        postgresql_data_dir: "{{ test_pg_data_dir }}"
+    - set_fact:
+        test_pg_data_message: ""
+  rescue:
+    - name: "{{ test_pg_data_prefix }}rejection of PG_VERSION {{ test_pg_data_case.data_version | default('missing', true) }} caught"
+      set_fact:
+        test_pg_data_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert the guard decision on PG_VERSION {{ test_pg_data_case.data_version | default('missing', true) }}
+  assert:
+    that:
+      - (test_pg_data_message | length > 0) == (test_pg_data_case.expected_message | length > 0)
+      - test_pg_data_case.expected_message in test_pg_data_message
+      - "'\n' not in test_pg_data_message"
+    fail_msg: >-
+      The PostgreSQL data version guard on PostgreSQL {{ test_pg_cluster_new_version }} with
+      data in the "{{ test_pg_data_case.data_version | default('missing', true) }}" format
+      had to {{ 'reject it naming "' ~ test_pg_data_case.expected_message ~ '"'
+      if test_pg_data_case.expected_message | length > 0 else 'let it through' }}, but
+      {{ ('failed with: ' ~ test_pg_data_message) if test_pg_data_message | length > 0 else 'let it through' }}.

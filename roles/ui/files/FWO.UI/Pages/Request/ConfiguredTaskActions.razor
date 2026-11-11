@@ -1,0 +1,89 @@
+@using FWO.Basics
+@using FWO.Data
+@using FWO.Data.Workflow
+@using FWO.Services.Workflow
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<div class="btn-group">
+    @foreach (WfStateAction action in OfferedActions)
+    {
+            @if (CanShowAction(action))
+        {
+            <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+        }
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    public Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter]
+    public WfHandler WfHandler { get; set; } = new();
+
+    [Parameter]
+    public List<WfStateAction> OfferedActions { get; set; } = [];
+
+    [Parameter]
+    public bool AllowStateChangingActions { get; set; }
+
+    [Parameter]
+    public WfStatefulObject Target { get; set; } = new WfReqTask();
+
+    [Parameter]
+    public WfObjectScopes Scope { get; set; }
+
+    [Parameter]
+    public FwoOwner? Owner { get; set; }
+
+    [Parameter]
+    public long? TicketId { get; set; }
+
+    [Parameter]
+    public Func<Task> AfterAction { get; set; } = () => Task.CompletedTask;
+
+    [Parameter]
+    public bool WorkInProgress { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> WorkInProgressChanged { get; set; }
+
+    private bool CanShowAction(WfStateAction action)
+    {
+        return WfStateAction.IsReadonlyType(action.ActionType)
+            || (AllowStateChangingActions && WfHandler.CanPerformActionOnActTicket(action));
+    }
+
+    private async Task PerformAction(WfStateAction action)
+    {
+        if (WorkInProgress)
+        {
+            return;
+        }
+
+        WorkInProgress = true;
+        await WorkInProgressChanged.InvokeAsync(true);
+        try
+        {
+            if (WfHandler.ActionHandler == null)
+            {
+                return;
+            }
+
+            await WfHandler.ActionHandler.PerformAction(action, Target, Scope, Owner, TicketId);
+            await AfterAction();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("action"), "", true);
+        }
+        finally
+        {
+            WorkInProgress = false;
+            await WorkInProgressChanged.InvokeAsync(false);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+}

@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 using FWO.Services;
 using FWO.Services.Workflow;
@@ -12,6 +13,12 @@ namespace FWO.Test
     [TestFixture]
     internal class WfHandlerImplTasksTest
     {
+        /// <summary>
+        /// Plans every task type automatically, so the tests check the targets independently of the defaults.
+        /// </summary>
+        private static readonly GlobalDeviceSpecificSettings kAllAutoPlanned = new() { AutoPlanImplementationForRules = true };
+        private static readonly int[] kExpectedDeviceIds = [21, 22];
+
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix? matrix = null)
         {
             FieldInfo? field = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -166,6 +173,30 @@ namespace FWO.Test
             {
                 Assert.That(handler.ActReqTask.ImplementationTasks, Has.Count.EqualTo(1));
                 Assert.That(handler.ActReqTask.ImplementationTasks[0], Is.SameAs(handler.ActImplTask));
+            });
+        }
+
+        [Test]
+        public async Task AddImplTask_ActivatesRulePositioningThroughCreationSeam()
+        {
+            WfReqTask requestTask = CreatePositioningRequestTask(11, [21]);
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig(),
+                ActReqTask = requestTask,
+                ActImplTask = new WfImplTask(requestTask) { DeviceId = 21, StateId = 4 },
+                ActTicket = new WfTicket { Id = 7, Tasks = { requestTask } }
+            };
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            SetDbAccess(handler, new ImplTaskCreationApiConnection(handler.ActTicket), caller);
+
+            await handler.AddImplTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.CalculationCount, Is.EqualTo(1));
+                Assert.That(caller.LastRequestTask, Is.SameAs(requestTask));
+                Assert.That(requestTask.ImplementationTasks, Has.Count.EqualTo(1));
             });
         }
 
@@ -359,8 +390,9 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.enterInReqTask },
-                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask },
+                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }],
+                AutoPlanSettingsOverride = kAllAutoPlanned
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
             reqTask.SetDeviceList([WfReqTaskBase.kAllDevicesId]);
@@ -375,8 +407,9 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices },
-                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices },
+                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }],
+                AutoPlanSettingsOverride = kAllAutoPlanned
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
             reqTask.SetDeviceList([WfReqTaskBase.kAllDevicesId]);
@@ -388,12 +421,13 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AutoCreateImplTasks_OneTaskForAllDevices_TreatsEmptySelectionAsCombinedTask()
+        public async Task AutoCreateImplTasks_NoEnteredDeviceAndNoAlgorithm_CreatesFallbackTaskWithoutDevice()
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices },
-                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices },
+                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }],
+                AutoPlanSettingsOverride = kAllAutoPlanned
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
 
@@ -408,8 +442,9 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices },
-                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices },
+                Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }],
+                AutoPlanSettingsOverride = kAllAutoPlanned
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.access.ToString(), StateId = 4, Title = "Access" };
             reqTask.SetDeviceList([new Device { Id = 3 }, new Device { Id = 5 }]);
@@ -424,7 +459,7 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
-                userConfig = new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.forEachDevice },
+                userConfig = new SimulatedUserConfig(),
                 Devices = [new Device { Id = 3, Name = "FW-1" }, new Device { Id = 5, Name = "FW-2" }]
             };
             WfReqTask reqTask = new() { TaskType = WfTaskType.group_create.ToString(), StateId = 4, Title = "Group" };
@@ -437,7 +472,149 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AutoCreateOrUpdateImplTasks_IgnoresMissingPlanningPhaseInStateMatrix()
+        public async Task AutoCreateAccessImplTasks_ActivatesOncePerNewGatewayAndNotOnRerun()
+        {
+            WfReqTask requestTask = CreatePositioningRequestTask(11, [21, 22]);
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask },
+                Devices = [new Device { Id = 21 }, new Device { Id = 22 }],
+                AutoPlanSettingsOverride = kAllAutoPlanned,
+                ActTicket = new WfTicket { Id = 7, Tasks = { requestTask } }
+            };
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            ImplTaskCreationApiConnection apiConnection = new(handler.ActTicket);
+            SetDbAccess(handler, apiConnection, caller);
+
+            await InvokeAutoCreateImplTasks(handler, requestTask);
+            await InvokeAutoCreateImplTasks(handler, requestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(requestTask.ImplementationTasks.Select(task => task.DeviceId), Is.EqualTo(new int?[] { 21, 22 }));
+                Assert.That(apiConnection.InsertCount, Is.EqualTo(2));
+                Assert.That(caller.CalculationCount, Is.EqualTo(2));
+                Assert.That(caller.Calls.Select(call => call.ImplementationTask.DeviceId), Is.EqualTo(new int?[] { 21, 22 }));
+            });
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task AutoCreateAccessImplTasks_CombinedOrAllDeviceTaskDoesNotActivateRulePositioning(bool allDevices)
+        {
+            WfReqTask requestTask = CreatePositioningRequestTask(
+                11,
+                allDevices ? [WfReqTaskBase.kAllDevicesId] : []);
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices },
+                AutoPlanSettingsOverride = kAllAutoPlanned,
+                ActTicket = new WfTicket { Id = 7, Tasks = { requestTask } }
+            };
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            ImplTaskCreationApiConnection apiConnection = new(handler.ActTicket);
+            SetDbAccess(handler, apiConnection, caller);
+
+            await InvokeAutoCreateImplTasks(handler, requestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.InsertCount, Is.EqualTo(1));
+                Assert.That(requestTask.ImplementationTasks.Single().DeviceId, Is.Null);
+                Assert.That(caller.CalculationCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task BundledAccessTasks_ActivateOncePerPersistedTaskWithMergedGatewaySelection()
+        {
+            WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
+            WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
+            firstTask.ManagementId = 11;
+            secondTask.ManagementId = 11;
+            firstTask.SetDeviceList([21]);
+            secondTask.SetDeviceList([22]);
+            WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
+            handler.userConfig.ReqDeviceInput = ReqDeviceInputOptions.enterInReqTask;
+            handler.Devices = [new Device { Id = 21 }, new Device { Id = 22 }];
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            ImplTaskCreationApiConnection apiConnection = new(handler.ActTicket);
+            SetDbAccess(handler, apiConnection, caller);
+
+            List<WfReqTask> effectiveTasks = await InvokeRequestTasksForInitialImplCreation(handler, [firstTask, secondTask]);
+            await InvokeAutoCreateImplTasks(handler, effectiveTasks.Single());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.InsertCount, Is.EqualTo(2));
+                Assert.That(caller.CalculationCount, Is.EqualTo(2));
+                Assert.That(caller.Calls.All(call => call.RequestTask.Id == firstTask.Id), Is.True);
+                Assert.That(caller.Calls.All(call => call.RequestTask.GetDeviceList().SequenceEqual(kExpectedDeviceIds)), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task DelegatedCreation_ResolvesMergedBundleContextFromLoadedTicket()
+        {
+            WfReqTask firstTask = CreatePositioningRequestTask(11, [21]);
+            WfReqTask secondTask = CreatePositioningRequestTask(12, [22]);
+            firstTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-11-12");
+            secondTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-11-12");
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqConsiderBundling = true },
+                ActTicket = new WfTicket { Id = 7, Tasks = { firstTask, secondTask } }
+            };
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            ActionHandler actionHandler = new(new ImplTaskCreationApiConnection(handler.ActTicket), handler, null, true, null, null, caller);
+            await actionHandler.Init([new WfState { Id = 4 }]);
+            WfImplTask implementationTask = new(firstTask) { Id = 401, DeviceId = 22 };
+            implementationTask.MarkCreatedStateChanged(4);
+
+            await actionHandler.DoStateChangeActions(implementationTask, WfObjectScopes.ImplementationTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(caller.CalculationCount, Is.EqualTo(1));
+                Assert.That(caller.LastRequestTask!.Id, Is.EqualTo(firstTask.Id));
+                Assert.That(caller.LastRequestTask.GetDeviceList(), Is.EqualTo(kExpectedDeviceIds));
+            });
+        }
+
+        [Test]
+        public void ResolveRulePositioningRequestTask_UsesOnlySafeParentFallbacks()
+        {
+            WfReqTask activeTicketTask = CreatePositioningRequestTask(11, [21]);
+            WfReqTask listedTask = CreatePositioningRequestTask(12, [22]);
+            WfReqTask activeRequestTask = CreatePositioningRequestTask(13, [23]);
+            activeRequestTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "active-only-bundle");
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig { ReqConsiderBundling = true },
+                ActTicket = new WfTicket { Id = 7, Tasks = { activeTicketTask } },
+                TicketList = [new WfTicket { Id = 8, Tasks = { listedTask } }],
+                ActReqTask = activeRequestTask
+            };
+
+            WfReqTask? fromActiveTicket = handler.ResolveRulePositioningRequestTask(new WfImplTask { ReqTaskId = 11 });
+            WfReqTask? fromTicketList = handler.ResolveRulePositioningRequestTask(new WfImplTask { ReqTaskId = 12 });
+            WfReqTask? fromActiveRequest = handler.ResolveRulePositioningRequestTask(new WfImplTask { ReqTaskId = 13 });
+            WfReqTask? missing = handler.ResolveRulePositioningRequestTask(new WfImplTask { ReqTaskId = 99 });
+            handler.userConfig.ReqConsiderBundling = false;
+            WfReqTask? withoutBundling = handler.ResolveRulePositioningRequestTask(new WfImplTask { ReqTaskId = 11 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(fromActiveTicket, Is.SameAs(activeTicketTask));
+                Assert.That(fromTicketList, Is.SameAs(listedTask));
+                Assert.That(fromActiveRequest, Is.SameAs(activeRequestTask));
+                Assert.That(missing, Is.Null);
+                Assert.That(withoutBundling, Is.SameAs(activeTicketTask));
+            });
+        }
+
+        [Test]
+        public async Task SyncImplTaskStatesAfterApproval_CreatesNoImplTasks()
         {
             WfReqTask reqTask = new()
             {
@@ -452,7 +629,7 @@ namespace FWO.Test
                 Phase = WorkflowPhases.request,
                 userConfig = new SimulatedUserConfig
                 {
-                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices
+                    ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices
                 },
                 MasterStateMatrix = new StateMatrix
                 {
@@ -475,19 +652,19 @@ namespace FWO.Test
                 MinTicketCompleted = 99
             });
 
-            await InvokeAutoCreateOrUpdateImplTasks(handler);
+            await InvokeSyncImplTaskStatesAfterApproval(handler);
 
-            Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
+            Assert.That(reqTask.ImplementationTasks, Is.Empty, "only the action creates implementation tasks");
         }
 
         [Test]
-        public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingFalse_CreatesPerRequestTask()
+        public async Task CreateImplTasksAction_ConsiderBundlingFalse_CreatesPerRequestTask()
         {
             WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
             WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
             WfHandler handler = CreateBundlingHandler(considerBundling: false, firstTask, secondTask);
 
-            await InvokeAutoCreateOrUpdateImplTasks(handler);
+            await handler.CreateMissingImplTasksForTicket(handler.ActTicket);
 
             Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
             Assert.That(secondTask.ImplementationTasks, Has.Count.EqualTo(1));
@@ -496,14 +673,14 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingTrue_MergesBundledRequestTasks()
+        public async Task CreateImplTasksAction_ConsiderBundlingTrue_MergesBundledRequestTasks()
         {
             WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
             WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
             WfReqTask unbundledTask = CreateBundledAccessTask(13, "", "src-3");
             WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask, unbundledTask);
 
-            await InvokeAutoCreateOrUpdateImplTasks(handler);
+            await handler.CreateMissingImplTasksForTicket(handler.ActTicket);
 
             Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
             Assert.That(secondTask.ImplementationTasks, Is.Empty);
@@ -514,14 +691,14 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingTrue_SkipsBundleWhenAnyBundledTaskAlreadyHasImplTask()
+        public async Task CreateImplTasksAction_ConsiderBundlingTrue_SkipsBundleWhenAnyBundledTaskAlreadyHasImplTask()
         {
             WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
             WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
             secondTask.ImplementationTasks.Add(new WfImplTask { Id = 21, ReqTaskId = secondTask.Id });
             WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
 
-            await InvokeAutoCreateOrUpdateImplTasks(handler);
+            await handler.CreateMissingImplTasksForTicket(handler.ActTicket);
 
             Assert.Multiple(() =>
             {
@@ -586,7 +763,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingTrue_DeduplicatesCommonElements()
+        public async Task CreateImplTasksAction_ConsiderBundlingTrue_DeduplicatesCommonElements()
         {
             WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "shared-source");
             firstTask.Elements[0].IpString = "10.0.0.1";
@@ -596,7 +773,7 @@ namespace FWO.Test
             secondTask.Elements.Add(CreateBundleElement(12, ElemFieldType.destination, "dst-2", "10.0.1.2"));
             WfHandler handler = CreateBundlingHandler(considerBundling: true, firstTask, secondTask);
 
-            await InvokeAutoCreateOrUpdateImplTasks(handler);
+            await handler.CreateMissingImplTasksForTicket(handler.ActTicket);
 
             Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
             Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name),
@@ -604,7 +781,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task UpdateRequestTasksFromTicket_ConsiderBundlingTrue_MergesBundledRequestTasks()
+        public async Task UpdateRequestTasksFromTicket_CreatesNoImplTasks()
         {
             WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");
             WfReqTask secondTask = CreateBundledAccessTask(12, "bundle-11-12", "src-2");
@@ -612,10 +789,11 @@ namespace FWO.Test
 
             await InvokeUpdateRequestTasksFromTicket(handler);
 
-            Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
-            Assert.That(secondTask.ImplementationTasks, Is.Empty);
-            Assert.That(firstTask.ImplementationTasks[0].ReqTaskId, Is.EqualTo(11));
-            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-1", "src-2" }));
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstTask.ImplementationTasks, Is.Empty, "only the action creates implementation tasks");
+                Assert.That(secondTask.ImplementationTasks, Is.Empty);
+            });
         }
 
         [Test]
@@ -727,15 +905,17 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateImplTasks", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingMethodException(typeof(WfHandler).FullName, "AutoCreateImplTasks");
-            Task task = (Task)(method.Invoke(handler, [reqTask]) ?? throw new InvalidOperationException("AutoCreateImplTasks returned null."));
+            object[] arguments = [reqTask];
+            Task task = (Task)(method.Invoke(handler, arguments) ?? throw new InvalidOperationException("AutoCreateImplTasks returned null."));
             await task;
         }
 
-        private static async Task InvokeAutoCreateOrUpdateImplTasks(WfHandler handler)
+        private static async Task InvokeSyncImplTaskStatesAfterApproval(WfHandler handler)
         {
-            MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateOrUpdateImplTasks", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new MissingMethodException(typeof(WfHandler).FullName, "AutoCreateOrUpdateImplTasks");
-            Task task = (Task)(method.Invoke(handler, []) ?? throw new InvalidOperationException("AutoCreateOrUpdateImplTasks returned null."));
+            MethodInfo method = typeof(WfHandler).GetMethod("SyncImplTaskStatesAfterApproval", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(typeof(WfHandler).FullName, "SyncImplTaskStatesAfterApproval");
+            object[] arguments = [];
+            Task task = (Task)(method.Invoke(handler, arguments) ?? throw new InvalidOperationException("SyncImplTaskStatesAfterApproval returned null."));
             await task;
         }
 
@@ -743,7 +923,8 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingMethodException(typeof(WfHandler).FullName, "UpdateRequestTasksFromTicket");
-            Task task = (Task)(method.Invoke(handler, [true, true, null, null]) ?? throw new InvalidOperationException("UpdateRequestTasksFromTicket returned null."));
+            object[] arguments = [true, null!, null!];
+            Task task = (Task)(method.Invoke(handler, arguments) ?? throw new InvalidOperationException("UpdateRequestTasksFromTicket returned null."));
             await task;
         }
 
@@ -773,15 +954,35 @@ namespace FWO.Test
             field?.SetValue(handler, dbAccess);
         }
 
+        private static void SetDbAccess(
+            WfHandler handler,
+            SimulatedApiConnection apiConnection,
+            RecordingRulePositioningWorkflowCaller caller)
+        {
+            ActionHandler actionHandler = new(apiConnection, handler, null, true, null, null, caller);
+            actionHandler.Init([new WfState { Id = 4 }]).GetAwaiter().GetResult();
+            WfDbAccess dbAccess = new(
+                DefaultInit.DoNothing,
+                handler.userConfig,
+                apiConnection,
+                actionHandler,
+                false,
+                WorkflowPhases.request,
+                false);
+            FieldInfo? field = typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance);
+            field?.SetValue(handler, dbAccess);
+        }
+
         private static WfHandler CreateBundlingHandler(bool considerBundling, params WfReqTask[] requestTasks)
         {
             WfHandler handler = new()
             {
                 userConfig = new SimulatedUserConfig
                 {
-                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices,
+                    ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices,
                     ReqConsiderBundling = considerBundling
                 },
+                AutoPlanSettingsOverride = kAllAutoPlanned,
                 MasterStateMatrix = new StateMatrix
                 {
                     LowestEndState = 3,
@@ -808,7 +1009,7 @@ namespace FWO.Test
             {
                 userConfig = new SimulatedUserConfig
                 {
-                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices
+                    ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices
                 },
                 MasterStateMatrix = new StateMatrix
                 {
@@ -851,6 +1052,22 @@ namespace FWO.Test
                 reqTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, bundleId);
             }
             return reqTask;
+        }
+
+        private static WfReqTask CreatePositioningRequestTask(long id, List<int> gatewayIds)
+        {
+            WfReqTask requestTask = new()
+            {
+                Id = id,
+                TicketId = 7,
+                StateId = 4,
+                Title = $"Access {id}",
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                ManagementId = 11
+            };
+            requestTask.SetDeviceList(gatewayIds);
+            return requestTask;
         }
 
         private static WfReqElement CreateBundleElement(long taskId, ElemFieldType field, string name, string ip)

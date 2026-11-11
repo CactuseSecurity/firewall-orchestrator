@@ -95,6 +95,35 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task DisplayTicket_InitSaveTicketIgnoresTicketTheUserMayNotChange()
+        {
+            WfHandler handler = new()
+            {
+                RestrictToResponsibleRequests = true,
+                ActTicket = new WfTicket
+                {
+                    Id = 10,
+                    Title = "Ticket",
+                    Priority = 1,
+                    Editable = false,
+                    Tasks = [new WfReqTask { Id = 1, Title = "Task" }]
+                }
+            };
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.request);
+            SetMember(component, "selectedPriority", new WfPriority { NumPrio = 2, Name = "High" });
+
+            bool canSave = InvokePrivateBool(component, "CanSaveActTicket");
+            await InvokePrivateTask(component, "InitSaveTicket");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(canSave, Is.False);
+                Assert.That(handler.ActTicket.Priority, Is.EqualTo(1));
+                Assert.That(handler.DisplaySaveTicketMode, Is.False);
+            });
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public async Task DisplayTicket_AddCommentIsDisabledForReadOnlyUsers(bool readOnly)
@@ -103,6 +132,7 @@ namespace FWO.Test
             WfHandler handler = new()
             {
                 ReadOnlyMode = readOnly,
+                EditTicketMode = !readOnly,
                 DisplayTicketMode = true,
                 ActTicket = new WfTicket { Id = 10, Title = "Ticket" }
             };
@@ -114,12 +144,18 @@ namespace FWO.Test
             IRenderedComponent<DisplayTicket> component = RenderDisplayTicket(context, handler, WorkflowPhases.planning, new WfStateDict());
             string addCommentText = userConfig.GetText("add_comment");
 
-            AngleSharp.Dom.IElement addCommentButton = component.FindAll("button").Single(button => button.InnerHtml.Contains(addCommentText));
+            AngleSharp.Dom.IElement[] addCommentButtons = component.FindAll("button")
+                .Where(button => button.InnerHtml.Contains(addCommentText))
+                .ToArray();
             await component.InvokeAsync(() => GetPrivateMethod(typeof(DisplayTicket), "InitAddComment").Invoke(component.Instance, null));
 
             Assert.Multiple(() =>
             {
-                Assert.That(addCommentButton.HasAttribute("disabled"), Is.EqualTo(readOnly));
+                Assert.That(addCommentButtons, Has.Length.EqualTo(readOnly ? 0 : 1));
+                if (!readOnly)
+                {
+                    Assert.That(addCommentButtons[0].HasAttribute("disabled"), Is.False);
+                }
                 Assert.That(handler.DisplayTicketCommentMode, Is.EqualTo(!readOnly));
             });
         }
@@ -228,6 +264,7 @@ namespace FWO.Test
             };
             WfHandler handler = new()
             {
+                EditTicketMode = true,
                 ActTicket = new WfTicket { Id = 10, Title = "Ticket" }
             };
             DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.approval, userConfig: userConfig);
@@ -370,6 +407,7 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
+                EditTicketMode = true,
                 ActTicket = new WfTicket { Id = 10, Title = "Ticket", StateId = 2 },
                 MasterStateMatrix = new StateMatrix
                 {
@@ -396,6 +434,7 @@ namespace FWO.Test
         {
             WfHandler handler = new()
             {
+                EditTicketMode = true,
                 ActTicket = new WfTicket
                 {
                     Id = 10,
@@ -439,6 +478,88 @@ namespace FWO.Test
             {
                 Assert.That(handler.DisplayPromoteTicketMode, Is.True);
                 Assert.That(handler.DisplaySaveTicketMode, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task DisplayTicket_ApprovalEditorCallbacksSwitchBetweenDetailsAndClassicEditor()
+        {
+            WfReqTask task = new() { Id = 15, TaskType = WfTaskType.access.ToString() };
+            WfHandler handler = new() { ActTicket = new WfTicket { Id = 10, Tasks = [task] } };
+        UiRequestWorkflowTest.SetMatrix(handler, task.TaskType, new StateMatrix());
+            int resetCalls = 0;
+        await using BunitContext context = new();
+        IRenderedComponent<DisplayTicket> rendered = RenderDisplayTicket(context, handler, WorkflowPhases.approval,
+            new WfStateDict());
+        DisplayTicket component = rendered.Instance;
+        SetMember(component, nameof(DisplayTicket.ResetParent), () =>
+            {
+                resetCalls++;
+                return Task.CompletedTask;
+            });
+            SetMember(component, "displayApprovalTaskDetailsView", true);
+
+            await InvokePrivateTask(component, "OpenApprovalAccessTaskEditor", task, WorkflowEditableFieldKeys.Reason);
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<string?>(component, "approvalAccessTaskField"), Is.EqualTo(WorkflowEditableFieldKeys.Reason));
+                Assert.That(GetMember<bool>(component, "displayApprovalTaskDetailsView"), Is.False);
+                Assert.That(handler.ActReqTask.Id, Is.EqualTo(task.Id));
+            });
+
+            await InvokePrivateTask(component, "CloseApprovalAccessTaskEditor");
+            await InvokePrivateTask(component, "CloseApprovalTaskDetailsView");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<string?>(component, "approvalAccessTaskField"), Is.Null);
+            Assert.That(resetCalls, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task DisplayTicket_OpenApprovalTicketPromotionInitializesPromotionPopup()
+        {
+            WfHandler handler = new() { ActTicket = new WfTicket { Id = 10 } };
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayTicket> rendered = RenderDisplayTicket(
+                context, handler, WorkflowPhases.approval, new WfStateDict());
+
+            await InvokePrivateTask(rendered.Instance, "OpenApprovalTicketPromotion");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayPromoteTicketMode, Is.True);
+                Assert.That(handler.DisplaySaveTicketMode, Is.False);
+            });
+        }
+
+        [Test]
+        public void DisplayTicket_CanSaveTicketChangesForApprovalViewRequiresAccessViewAndEditMode()
+        {
+            ApproverAllowedChangesConfig allowedChanges = new();
+            allowedChanges.SetTicketField(WorkflowEditableFieldKeys.Title, true);
+            RequestWorkflowUserConfig userConfig = new()
+            {
+                ReqApprovalEditMode = ApprovalEditMode.AccessTaskView,
+                ReqAllowedChangesByApprover = allowedChanges.ToConfigValue()
+            };
+            WfHandler handler = new()
+            {
+                EditTicketMode = true,
+                ActTicket = new WfTicket { Id = 10, StateId = 0 },
+                MasterStateMatrix = new StateMatrix { Matrix = { [0] = [1] }, LowestEndState = 5 }
+            };
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.approval, userConfig: userConfig);
+
+            bool allowed = InvokePrivateBool(component, "CanSaveTicketChangesForApprovalView");
+            handler.ReadOnlyMode = true;
+            bool readOnly = InvokePrivateBool(component, "CanSaveTicketChangesForApprovalView");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(allowed, Is.True);
+                Assert.That(readOnly, Is.False);
             });
         }
 

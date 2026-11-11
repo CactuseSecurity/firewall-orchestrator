@@ -1,0 +1,20 @@
+query getGatewayRulebaseLinks($gwId: Int!) {
+  device(where: { dev_id: { _eq: $gwId } }) {
+    id: dev_id
+    package_name
+    rulebase_links(where: { removed: { _is_null: true }, is_global: { _eq: false } }) {
+      gw_id
+      from_rule_id
+      from_rulebase_id
+      link_type
+      is_initial
+      is_global
+      is_section
+      rulebase {
+        id
+        name
+        uid
+      }
+    }
+  }
+}

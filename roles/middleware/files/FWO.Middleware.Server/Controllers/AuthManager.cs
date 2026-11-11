@@ -18,6 +18,9 @@ using System.Text;
 
 namespace FWO.Middleware.Server.Controllers
 {
+    /// <summary>
+    /// Authenticates users against the connected LDAPs and issues, validates and revokes their tokens.
+    /// </summary>
     class AuthManager
     {
         private readonly JwtWriter jwtWriter;
@@ -476,7 +479,7 @@ namespace FWO.Middleware.Server.Controllers
         /// <summary>
         /// Generates a SHA256 hash of the refresh token for secure storage
         /// </summary>
-        private static string GenerateTokenHash(string token)
+        internal static string GenerateTokenHash(string token)
         {
             byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
             return Convert.ToBase64String(hash);

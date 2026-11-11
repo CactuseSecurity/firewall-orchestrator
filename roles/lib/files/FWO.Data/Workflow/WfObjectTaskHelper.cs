@@ -33,6 +33,7 @@ namespace FWO.Data.Workflow
         /// Maximum number of search hits, matching the row limit of the requester permission.
         /// </summary>
         public const int kSearchLimit = 50;
+        public const int kGroupMemberLimit = 500;
 
         /// <summary>
         /// Object types offered by the search: network, host, machines_range and ip_range (see stm_obj_typ).
@@ -88,6 +89,30 @@ namespace FWO.Data.Workflow
         public static bool IsObjectTask(WfTaskType taskType)
         {
             return taskType == WfTaskType.object_create || taskType == WfTaskType.object_modify;
+        }
+
+        /// <summary>
+        /// Determines whether a request task already contains a persisted Flow DB reference.
+        /// </summary>
+        /// <param name="task">Request task to inspect.</param>
+        /// <returns><c>true</c> when the task or one of its elements references Flow DB.</returns>
+        public static bool HasFlowDbReference(WfReqTask task)
+        {
+            return task.FlowAccessId is > 0 || task.Elements.Any(HasFlowDbReference);
+        }
+
+        /// <summary>
+        /// Determines whether a request element already contains a persisted Flow DB reference.
+        /// </summary>
+        /// <param name="element">Request element to inspect.</param>
+        /// <returns><c>true</c> when one of the element's Flow DB reference fields is set.</returns>
+        public static bool HasFlowDbReference(WfElementBase element)
+        {
+            return element.FlowNetworkObjectId is > 0
+                || element.FlowNetworkGroupId is > 0
+                || element.FlowServiceObjectId is > 0
+                || element.FlowServiceGroupId is > 0
+                || element.FlowTimeObjectId is > 0;
         }
 
         /// <summary>
@@ -333,6 +358,58 @@ namespace FWO.Data.Workflow
         {
             return task.Elements.FirstOrDefault(element => element.RequestAction == RequestAction.create.ToString()
                 || element.RequestAction == RequestAction.modify.ToString());
+        }
+
+        /// <summary>
+        /// Returns the current requested element for an element that references a ticket-local object task.
+        /// The access element remains the persisted snapshot; this method only supplies the current value for
+        /// display and other read-only projections.
+        /// </summary>
+        /// <param name="element">The persisted request element.</param>
+        /// <param name="tasks">The tasks of the ticket containing the referenced object task.</param>
+        /// <returns>The current requested element when the reference can be resolved; otherwise the original element.</returns>
+        public static WfReqElement ResolveReferencedElement(WfReqElement element, IEnumerable<WfReqTask> tasks)
+        {
+            if (element.ObjectTaskId is not > 0)
+            {
+                return element;
+            }
+
+            long objectTaskId = element.ObjectTaskId.GetValueOrDefault();
+            WfReqTask? objectTask = tasks.FirstOrDefault(task => task.Id == objectTaskId);
+            if (objectTask == null || !IsObjectTask(objectTask.TaskType))
+            {
+                return element;
+            }
+
+            WfReqElement? requested = GetRequestedElement(objectTask);
+            if (requested == null || !IsReferencedFieldMatch(element.Field, requested.Field))
+            {
+                return element;
+            }
+
+            WfReqElement resolved = new(requested);
+            if (resolved.IpString == null && resolved.Cidr != null)
+            {
+                resolved.IpString = resolved.Cidr.CidrString;
+            }
+            if (resolved.IpEnd == null && resolved.CidrEnd != null)
+            {
+                resolved.IpEnd = resolved.CidrEnd.CidrString;
+            }
+            resolved.Field = element.Field;
+            return resolved;
+        }
+
+        private static bool IsReferencedFieldMatch(string accessField, string objectField)
+        {
+            if (accessField == objectField)
+            {
+                return true;
+            }
+
+            return (accessField is nameof(ElemFieldType.source) or nameof(ElemFieldType.destination))
+                && (objectField is nameof(ElemFieldType.source) or nameof(ElemFieldType.destination));
         }
 
         /// <summary>

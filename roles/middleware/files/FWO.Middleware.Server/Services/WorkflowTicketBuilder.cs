@@ -33,8 +33,12 @@ internal sealed class WorkflowTicketBuilder
         Dictionary<string, int> ruleActionIds, Dictionary<string, int> protocolIds, FlowReferenceCatalog flowReferences)
     {
         TicketBuildContext context = new();
-        Dictionary<long, WorkflowTicketEntity> entities = BuildEntityIndex(request, protocolIds, context);
+        IReadOnlyDictionary<string, string> timeObjectOriginSuffixes =
+            TimeObjectNamingHelper.ParseSuffixes(globalConfig.ReqTimeObjectOriginSuffixes);
+        Dictionary<long, WorkflowTicketEntity> entities =
+            BuildEntityIndex(request, protocolIds, context, timeObjectOriginSuffixes);
         List<WfReqTask> tasks = [];
+        tasks.AddRange(BuildObjectTasks(request, entities, ticketStateId, context));
         tasks.AddRange(BuildGroupTasks(request, entities, ticketStateId, flowReferences, context));
         tasks.AddRange(BuildRuleTasks(request, entities, ticketStateId, ownersById, ruleActionIds, flowReferences, context));
         if (context.ValidationErrors.Count > 0)
@@ -54,6 +58,87 @@ internal sealed class WorkflowTicketBuilder
             AdditionalInfo = BuildTicketAdditionalInfo(request),
             Locked = true,
             Tasks = tasks
+        };
+    }
+
+    private static List<WfReqTask> BuildObjectTasks(CreateTicketRequest request,
+        Dictionary<long, WorkflowTicketEntity> entities, int ticketStateId, TicketBuildContext context)
+    {
+        List<WfReqTask> tasks = [];
+        foreach (CreateTicketRequest.CreateAddressObjectRequest addressObject in request.AddressObjects)
+        {
+            AddObjectTask(tasks, entities, addressObject.Id, ticketStateId, context);
+        }
+        foreach (CreateTicketRequest.CreateServiceObjectRequest serviceObject in request.ServiceObjects)
+        {
+            AddObjectTask(tasks, entities, serviceObject.Id, ticketStateId, context);
+        }
+        foreach (CreateTicketRequest.CreateTimeObjectRequest timeObject in request.TimeObjects)
+        {
+            AddObjectTask(tasks, entities, timeObject.Id, ticketStateId, context);
+        }
+        return tasks;
+    }
+
+    private static void AddObjectTask(List<WfReqTask> tasks, Dictionary<long, WorkflowTicketEntity> entities,
+        long entityId, int ticketStateId, TicketBuildContext context)
+    {
+        if (!entities.TryGetValue(entityId, out WorkflowTicketEntity? entity))
+        {
+            return;
+        }
+
+        tasks.Add(new WfReqTask
+        {
+            WorkflowEntityId = entity.Id,
+            Title = entity.DisplayName,
+            TaskNumber = context.TaskNumber++,
+            TaskType = WfTaskType.object_create.ToString(),
+            RequestAction = RequestAction.create.ToString(),
+            StateId = ticketStateId,
+            AdditionalInfo = null,
+            Elements = [BuildObjectElement(entity)],
+            Approvals = [BuildApproval(ticketStateId)],
+            Locked = true
+        });
+    }
+
+    private static WfReqElement BuildObjectElement(WorkflowTicketEntity entity)
+    {
+        return entity.Kind switch
+        {
+            WorkflowTicketEntityKind.AddressObject => new WfReqElement
+            {
+                ObjectTaskEntityId = entity.Id,
+                Field = ElemFieldType.source.ToString(),
+                RequestAction = entity.LeafRequestAction,
+                Name = entity.DisplayName,
+                IpString = entity.IpStart,
+                IpEnd = entity.IpEnd
+            },
+            WorkflowTicketEntityKind.ServiceObject => new WfReqElement
+            {
+                ObjectTaskEntityId = entity.Id,
+                Field = ElemFieldType.service.ToString(),
+                RequestAction = entity.LeafRequestAction,
+                Name = entity.DisplayName,
+                Port = entity.PortStart,
+                PortEnd = entity.PortEnd,
+                ProtoId = entity.ProtocolId
+            },
+            WorkflowTicketEntityKind.TimeObject => new WfReqElement
+            {
+                ObjectTaskEntityId = entity.Id,
+                Field = ElemFieldType.time.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                Name = entity.DisplayName,
+                StartTime = entity.TimeStart,
+                EndTime = entity.TimeEnd,
+                TimeObjId = null,
+                TimeObjectEntityId = entity.Id < 0 ? entity.Id : null,
+                FlowTimeObjectId = entity.Id > 0 ? entity.Id : null
+            },
+            _ => throw new ArgumentException($"Entity kind {entity.Kind} cannot be emitted as an object task.")
         };
     }
 
@@ -82,7 +167,8 @@ internal sealed class WorkflowTicketBuilder
     /// Builds all group/entity lookup entries and checks for duplicate ids.
     /// </summary>
     private static Dictionary<long, WorkflowTicketEntity> BuildEntityIndex(CreateTicketRequest request,
-        Dictionary<string, int> protocolIds, TicketBuildContext context)
+        Dictionary<string, int> protocolIds, TicketBuildContext context,
+        IReadOnlyDictionary<string, string> timeObjectOriginSuffixes)
     {
         Dictionary<long, WorkflowTicketEntity> entities = [];
 
@@ -144,13 +230,31 @@ internal sealed class WorkflowTicketBuilder
             }
         }
 
+        AddTimeObjectEntities(request, entities, context, timeObjectOriginSuffixes);
+
+        return entities;
+    }
+
+    private static void AddTimeObjectEntities(CreateTicketRequest request,
+        Dictionary<long, WorkflowTicketEntity> entities, TicketBuildContext context,
+        IReadOnlyDictionary<string, string> timeObjectOriginSuffixes)
+    {
         for (int index = 0; index < request.TimeObjects.Count; index++)
         {
             try
             {
                 CreateTicketRequest.CreateTimeObjectRequest timeObject = request.TimeObjects[index];
                 long entityId = ParseLocalEntityId(timeObject.Id, "time object");
-                AddEntity(entities, entityId, WorkflowTicketEntity.FromTimeObject(entityId, timeObject));
+                WorkflowTicketEntity entity = WorkflowTicketEntity.FromTimeObject(entityId, timeObject);
+                if (entityId < 0)
+                {
+                    entity = entity with
+                    {
+                        DisplayName = TimeObjectNamingHelper.BuildDisplayName(
+                            entity.DisplayName, TimeObjectOrigin.Requester, timeObjectOriginSuffixes)
+                    };
+                }
+                AddEntity(entities, entityId, entity);
             }
             catch (ArgumentException exception)
             {
@@ -158,8 +262,6 @@ internal sealed class WorkflowTicketBuilder
                 AddValidationError(context.ValidationErrors, $"timeObjects[{index}]", exception);
             }
         }
-
-        return entities;
     }
 
     private static List<WfReqTask> BuildRuleTasks(CreateTicketRequest request, Dictionary<long, WorkflowTicketEntity> entities,
@@ -224,6 +326,7 @@ internal sealed class WorkflowTicketBuilder
         }
         return new WfReqTask
         {
+            WorkflowEntityId = group.Id,
             Title = groupEntity.DisplayName,
             TaskNumber = taskNumber,
             TaskType = WfTaskType.group_create.ToString(),
@@ -248,6 +351,7 @@ internal sealed class WorkflowTicketBuilder
         }
         return new WfReqTask
         {
+            WorkflowEntityId = group.Id,
             Title = groupEntity.DisplayName,
             TaskNumber = taskNumber,
             TaskType = WfTaskType.group_create.ToString(),
@@ -321,6 +425,22 @@ internal sealed class WorkflowTicketBuilder
             return null;
         }
 
+        if (timeEntity != null)
+        {
+            elements.Add(new WfReqElement
+            {
+                Field = ElemFieldType.time.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                Name = timeEntity.DisplayName,
+                StartTime = timeEntity.TimeStart,
+                EndTime = timeEntity.TimeEnd,
+                ObjectTaskEntityId = timeEntity.Id,
+                TimeObjId = null,
+                TimeObjectEntityId = timeEntity.Id < 0 ? timeEntity.Id : null,
+                FlowTimeObjectId = timeEntity.Id > 0 ? timeEntity.Id : null
+            });
+        }
+
         return new WfReqTask
         {
             Title = string.IsNullOrWhiteSpace(rule.Name) ? request.Title : rule.Name,
@@ -334,7 +454,7 @@ internal sealed class WorkflowTicketBuilder
             FreeText = rule.Description,
             TargetBeginDate = timeEntity?.TimeStart,
             TargetEndDate = timeEntity?.TimeEnd,
-            AdditionalInfo = BuildAdditionalInfo(timeEntity),
+            AdditionalInfo = null,
             Elements = elements,
             Approvals = [BuildApproval(taskContext.TicketStateId)],
             Owners = taskOwner == null ? [] : [new() { Owner = taskOwner }],
@@ -463,6 +583,7 @@ internal sealed class WorkflowTicketBuilder
             {
                 WorkflowTicketEntityKind.ServiceObject => new WfReqElement
                 {
+                    ObjectTaskEntityId = entity.Id,
                     Field = field.ToString(),
                     RequestAction = entity.LeafRequestAction,
                     Name = entity.DisplayName,
@@ -472,6 +593,7 @@ internal sealed class WorkflowTicketBuilder
                 },
                 WorkflowTicketEntityKind.ServiceGroup => new WfReqElement
                 {
+                    ObjectTaskEntityId = entity.Id,
                     Field = field.ToString(),
                     RequestAction = RequestAction.create.ToString(),
                     Name = entity.DisplayName,
@@ -487,6 +609,7 @@ internal sealed class WorkflowTicketBuilder
             {
                 WorkflowTicketEntityKind.AddressObject => new WfReqElement
                 {
+                    ObjectTaskEntityId = entity.Id,
                     Field = field.ToString(),
                     RequestAction = entity.LeafRequestAction,
                     Name = entity.DisplayName,
@@ -495,6 +618,7 @@ internal sealed class WorkflowTicketBuilder
                 },
                 WorkflowTicketEntityKind.AddressGroup => new WfReqElement
                 {
+                    ObjectTaskEntityId = entity.Id,
                     Field = field.ToString(),
                     RequestAction = RequestAction.create.ToString(),
                     Name = entity.DisplayName,
@@ -528,6 +652,7 @@ internal sealed class WorkflowTicketBuilder
         {
             WorkflowTicketEntityKind.AddressObject => new WfReqElement
             {
+                ObjectTaskEntityId = entity.Id,
                 Field = field.ToString(),
                 RequestAction = entity.LeafRequestAction,
                 Name = entity.DisplayName,
@@ -536,6 +661,7 @@ internal sealed class WorkflowTicketBuilder
             },
             WorkflowTicketEntityKind.ServiceObject => new WfReqElement
             {
+                ObjectTaskEntityId = entity.Id,
                 Field = field.ToString(),
                 RequestAction = entity.LeafRequestAction,
                 Name = entity.DisplayName,
@@ -598,16 +724,6 @@ internal sealed class WorkflowTicketBuilder
             StateId = stateId,
             InitialApproval = true
         };
-    }
-
-    private static string BuildAdditionalInfo(WorkflowTicketEntity? timeEntity)
-    {
-        Dictionary<string, string> additionalInfo = new();
-        if (timeEntity != null)
-        {
-            additionalInfo[AdditionalInfoKeys.TimeObjectId] = timeEntity.Id.ToString(CultureInfo.InvariantCulture);
-        }
-        return JsonSerializer.Serialize(additionalInfo);
     }
 
     private static long ParseLocalEntityId(long id, string entityType)

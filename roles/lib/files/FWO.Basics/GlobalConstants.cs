@@ -21,10 +21,7 @@ namespace FWO.Basics
         public const int kGlobLibraryWidth = kSidebarLeftWidth + 400;
         public const int kObjLibraryWidth = kSidebarLeftWidth + 300;
         public const int kSidebarRightWidth = 300;
-        public const int kDaysToMilliseconds = 86400000;
-        public const int kHoursToMilliseconds = 3600000;
         public const int kMinutesToMilliseconds = 60000;
-        public const int kSecondsToMilliseconds = 1000;
         public const int kDaysPerWeek = 7;
         public const int kMonthsPerYear = 12;
         public const int kMaxPortNumber = 65535;
@@ -33,6 +30,12 @@ namespace FWO.Basics
         public const int kDefaultLogTimeRangeInSeconds = kDaysPerWeek * (int)TimeSpan.SecondsPerDay;
         // an import script is waited for with a timeout in milliseconds which has to fit into an int
         public const int kMaxImportScriptTimeoutMinutes = int.MaxValue / kMinutesToMilliseconds;
+        // page size of the REST list endpoints, configurable as maxRestResponseObjectLimit
+        public const int kDefaultMaxRestResponseObjectLimit = 10000;
+        // lowest configurable page size, so clients reading a whole list (e.g. the UI) need few requests per list
+        public const int kMinRestResponseObjectLimit = 100;
+        // highest configurable page size, so the setting cannot lift the result cap of the REST list endpoints
+        public const int kMaxRestResponseObjectLimitCeiling = 100000;
         public const int kOwnerResponsibleTypeMain = 1;
         public const int kOwnerResponsibleTypeSupporting = 2;
         public const int kOwnerResponsibleTypeOptionalEscalation = 3;
@@ -79,6 +82,8 @@ namespace FWO.Basics
         public const string kComplianceCheck = "complianceCheck";
         public const long kPathAnalysisAlgorithmNone = 1;
         public const long kPathAnalysisAlgorithmNetworkZoneTree = 2;
+        public const long kPathAnalysisAlgorithmForEachDevice = 3;
+        public const long kPathAnalysisAlgorithmFirstDevice = 4;
 
         public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
         public const int kLdapInternalId = 1;
@@ -99,8 +104,9 @@ namespace FWO.Basics
         public const string kStyleDeleted = "color: red; text-decoration: line-through red;";
         public const string kStyleAdded = "color: green; text-decoration: bold;";
 
-        public const string ChromeBinPathLinux = "/usr/local/fworch/bin";
-        public const string ChromiumHeadlessBinPathLinux = "/usr/local/fworch/bin/chromium-headless";
+        // root owned, outside the fworch home; keep in step with fworch_browser_dir (inventory/group_vars/all.yml)
+        public const string ChromeBinPathLinux = "/usr/local/lib/fworch";
+        public const string ChromiumHeadlessBinPathLinux = "/usr/local/lib/fworch/chromium-headless";
         public const string TestPDFFilePath = "pdffile.pdf";
         public const string TestPDFHtmlTemplate = "<html><body><h1>test</h1><h2>test mit puppteer</h2></body></html>";
 

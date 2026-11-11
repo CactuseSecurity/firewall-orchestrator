@@ -54,4 +54,20 @@ public sealed class GetOwnersRequest
     /// </summary>
     [JsonPropertyName("showOnlyActiveState")]
     public bool? ShowOnlyActiveState { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum number of owners returned, between 1 and the configured
+    /// <c>maxRestResponseObjectLimit</c> (default 10000). When omitted or null, a page of that size is returned.
+    /// Owners are ordered by name and id, so <c>limit</c> and <c>offset</c> page the result deterministically; the
+    /// <c>X-Has-More</c> response header tells whether further owners follow.
+    /// </summary>
+    [JsonPropertyName("limit")]
+    public int? Limit { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of owners skipped before the first returned owner, at least 0. When omitted or null,
+    /// no owner is skipped.
+    /// </summary>
+    [JsonPropertyName("offset")]
+    public int? Offset { get; set; }
 }

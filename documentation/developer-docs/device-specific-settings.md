@@ -21,6 +21,7 @@ remains effective and is shown as a dormant override that can be cleared there.
 | --- | --- | --- | --- | --- |
 | installOn | enum | ANY | All | All |
 | positioningAlgorithm | enum | DefaultEndOfRulebase | All | All |
+| checkPointLayerGuardSectionNameTemplate | string | `[@@SOURCE_ZONE@@] -> [@@DESTINATION_ZONE@@]` | All | All |
 | ruleLoggingOverride | enum | log | All | All |
 | serviceObjectCreation | enum | Supermanager | All | Global to manager |
 | addressObjectCreation | enum | Supermanager | All | Global to manager |
@@ -37,8 +38,9 @@ remains effective and is shown as a dormant override that can be cleared there.
 | ownerIdCustomFieldName | string | OwnerId | Global, device type, manager | Global to manager |
 | changeIdCustomFieldName | string | ChangeId | Global, device type, manager | Global to manager |
 | importerHostName | string | empty (every importer is responsible) | Global, device type, manager | Global to manager |
-| planImplementation | boolean | true | All | All |
-| planImplementationOverrideForRules | boolean | true | All | All |
+| sshLegacyKeyExchange | bool | false | Global, device type, manager | Global to manager |
+| autoPlanImplementation | boolean | true | All | All |
+| autoPlanImplementationForRules | boolean | false | All | All |
 | modellingCreateAppZones | boolean | true | Global, device type, manager | Global to manager |
 | modellingImplementNetworkAreaObjects | boolean | false | Global, device type, manager | Global to manager |
 | modellingDynIpLabelsVisibleAsGroups | boolean | true | Global, device type, manager | Global to manager |
@@ -62,6 +64,16 @@ Positioning offers `DefaultEndOfRulebase`, `cpInlineLayerPerZonePair`, `endOfZon
 `endOfAppSection`, `endOfAppSectionDistinguishCommonServices`, and
 `allowCategoryEndOfAppSectionDistinguishCommonServices`.
 
+For the Check Point LayerGuard algorithm, `checkPointLayerGuardSectionNameTemplate`
+defines the firewall section name. It accepts only the exact placeholders
+`@@SOURCE_ZONE@@` and `@@DESTINATION_ZONE@@`; either may be omitted or repeated any
+number of times. Unknown placeholders and unmatched `@@` delimiters invalidate the
+configuration. Only the referenced sides are resolved: each must have complete
+coverage and exactly one persisted zone. A fixed template therefore needs no zone
+matrix lookup. The rendered name is trimmed and uppercased once, while interior
+whitespace remains significant. The value inherits through Global > device type >
+manager > gateway like the other settings.
+
 `modellingConnectionIdField` offers `Name`, `Comment`, and `CustomField`: the field of
 a provisioned object that carries the ID of the modelling connection, formatted by
 `modellingConnectionIdTemplate`.
@@ -69,11 +81,16 @@ a provisioned object that carries the ID of the modelling connection, formatted 
 `importerHostName` is the host name of the server whose importer imports the
 managements of a level; it replaces the former column `management.importer_hostname`.
 The importer resolves it for each management along Global > device type > management
-(query `deviceSpecificSettings/getImporterHostName.graphql`; the Hasura role `importer`
-may read only this setting). An importer imports a management if the effective value is
+(query `deviceSpecificSettings/getImporterSettings.graphql`; the Hasura role `importer`
+may read only `importerHostName` and `sshLegacyKeyExchange`). An importer imports a management if the effective value is
 empty or equals its own host name. The compiled default is empty, so with a single
 importer nothing has to be configured; with several distributed importers set the host
 on the levels that each importer is responsible for.
+
+`sshLegacyKeyExchange` makes the Cisco ASA importer offer the SHA-1 key exchange
+`diffie-hellman-group14-sha1` in addition to the OpenSSH defaults. It is off by default since
+9.8.6; before, every ASA connection offered it. A device that offers nothing else fails with an
+error naming this setting.
 
 ## Upgrade to 9.7.4
 
@@ -94,6 +111,31 @@ system is configured in the external ticket systems, former `TufinSc` levels rer
 it via `rerouteToExternalTicketSystem`; otherwise select the ticket system on those
 levels after upgrading. `ruleCategory` becomes `commonServiceSeparation` (`common_service`
 is `true`, `app` is `false`).
+
+### Automatic creation of implementation tasks (since 9.8.3)
+
+`autoPlanImplementation` and `autoPlanImplementationForRules` (formerly `planImplementation` and
+`planImplementationOverrideForRules`, renamed by the 9.8.3 upgrade with their values) decide which implementation
+tasks the state action "Create implementation tasks" creates; nothing else creates them automatically, and the
+planning phase plays no role for it. Rule tasks (access, rule_modify, rule_delete) need both settings, every other
+task type `autoPlanImplementation`. The action resolves the values of the gateway (access and rule changes) or the
+target management (object tasks) along the hierarchy above; without gateway the global values apply.
+
+The 9.8.3 upgrade translates the former workflow option `reqAutoCreateImplTasks` into `reqDeviceInput` and the path
+analysis algorithm only (`reqDeviceInput` becomes `never` where the planning phase of access tasks is active, as the
+request form hid the device field there); it does not derive the auto plan settings from the planning phases. Stored values are kept
+under the new names, otherwise the defaults apply (`autoPlanImplementation` Yes, `autoPlanImplementationForRules`
+No), and an administrator sets them. Levels that the 9.7.4 upgrade set to `planImplementation = false` (former mode
+`None`) are planned manually afterwards. If the action cannot read the settings, these defaults apply.
+
+The former option `afterPathAnalysis` ran `RoutingBasedPathAnalyzer` regardless of `pathAnalysisAlgorithm`. It becomes
+`reqDeviceInput = never` and keeps the configured algorithm, which is `None` (1) unless changed, so no gateway is
+found. Select `Network Zone Tree`, or attach a `PathAnalysis` action with `WriteToDeviceList` before "Create
+implementation tasks": devices in the request take precedence over the algorithm. `forEachDevice` and
+`onlyForOneDevice` overwrite `pathAnalysisAlgorithm` with 3 or 4; a configured `Network Zone Tree` then no longer serves
+as default of `resolvePathDevices`. Installation and upgrade provide
+the action unless one of this type already exists, but do not attach it; an administrator attaches it to a state,
+e.g. "approved".
 
 The upgrade moves `management.importer_hostname` into `importerHostName` and then drops
 the column. The most common non-empty host name becomes the global value (unless a global

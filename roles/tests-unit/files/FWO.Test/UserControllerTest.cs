@@ -18,6 +18,8 @@ namespace FWO.Test
     [TestFixture]
     internal class UserControllerTest
     {
+        private static readonly List<int> kFirstTwoUserIds = [3, 5];
+        private static readonly List<int> kLastUserId = [9];
         private const int kUserLdapId = 2;
         private const int kOtherLdapId = 3;
         private const string kUserSearchPath = "ou=users,dc=fworch,dc=internal";
@@ -94,7 +96,7 @@ namespace FWO.Test
         {
             UserApiConnection apiConnection = new() { Users = [user] };
             List<Ldap> readOnlyLdapOfUser = [new Ldap { Id = kUserLdapId }];
-            UserController controller = new(readOnlyLdapOfUser, apiConnection)
+            UserController controller = new(readOnlyLdapOfUser, apiConnection, new SimulatedGlobalConfig())
             {
                 ControllerContext = new ControllerContext
                 {
@@ -141,7 +143,7 @@ namespace FWO.Test
             };
             UserController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
-            List<UserGetReturnParameters> result = await controller.Get();
+            List<UserGetReturnParameters> result = (await controller.Get(new PagingParameters())).Value!;
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].UserId, Is.EqualTo(7));
@@ -149,15 +151,60 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetPagesTheUsersOrderedByIdAndSetsTheHasMoreHeader()
+        {
+            UserControllerTestApiConnection apiConnection = new()
+            {
+                Users =
+                [
+                    new() { DbId = 9, Name = "third" },
+                    new() { DbId = 3, Name = "first" },
+                    new() { DbId = 5, Name = "second" }
+                ]
+            };
+            UserController firstPageController = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+            UserController lastPageController = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            List<UserGetReturnParameters> firstPage = (await firstPageController.Get(new PagingParameters { Limit = 2 })).Value!;
+            List<UserGetReturnParameters> lastPage = (await lastPageController.Get(new PagingParameters { Limit = 2, Offset = 2 })).Value!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstPage.Select(user => user.UserId), Is.EqualTo(kFirstTwoUserIds));
+                Assert.That(firstPageController.HttpContext.Response.Headers["X-Has-More"].ToString(), Is.EqualTo("true"));
+                Assert.That(lastPage.Select(user => user.UserId), Is.EqualTo(kLastUserId));
+                Assert.That(lastPageController.HttpContext.Response.Headers["X-Has-More"].ToString(), Is.EqualTo("false"));
+            });
+        }
+
+        [TestCase(0, null)]
+        [TestCase(GlobalConst.kDefaultMaxRestResponseObjectLimit + 1, null)]
+        [TestCase(null, -1)]
+        public async Task GetRejectsPagingOutOfRange(int? limit, int? offset)
+        {
+            UserController controller = CreateController(new UserControllerTestApiConnection(), PrincipalWithRoles(Roles.Admin));
+
+            ActionResult<List<UserGetReturnParameters>> users = await controller.Get(new PagingParameters { Limit = limit, Offset = offset });
+            ActionResult<List<LdapUserGetReturnParameters>> ldapUsers = await controller.Get(new LdapUserGetParameters { LdapId = 99, Limit = limit, Offset = offset });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(users.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(((BadRequestObjectResult)users.Result!).Value, Is.TypeOf<ValidationProblemDetails>());
+                Assert.That(ldapUsers.Result, Is.TypeOf<BadRequestObjectResult>());
+            });
+        }
+
+        [Test]
         public async Task GetLdapUsersReturnsEmptyListForUnknownLdap()
         {
             UserController controller = CreateController(new UserControllerTestApiConnection(), PrincipalWithRoles(Roles.Admin));
 
-            List<LdapUserGetReturnParameters> result = await controller.Get(new LdapUserGetParameters
+            List<LdapUserGetReturnParameters> result = (await controller.Get(new LdapUserGetParameters
             {
                 LdapId = 99,
                 SearchPattern = "user"
-            });
+            })).Value!;
 
             Assert.That(result, Is.Empty);
         }
@@ -175,7 +222,7 @@ namespace FWO.Test
             {
                 LdapId = 2,
                 UserDn = "uid=newuser,dc=fworch,dc=internal",
-                Password = "password",
+                Password = "long-enough-password",
                 TenantId = 1
             });
 
@@ -198,7 +245,7 @@ namespace FWO.Test
             {
                 LdapId = 2,
                 UserDn = "uid=newuser,dc=fworch,dc=internal",
-                Password = "password",
+                Password = "long-enough-password",
                 TenantId = 1
             });
 
@@ -360,6 +407,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DeleteAllGroupsAndRolesEndsTheSessionsOfTheUser()
+        {
+            UserControllerTestApiConnection apiConnection = new()
+            {
+                Users = [new() { DbId = 42, Dn = "uid=user,ou=users,dc=fworch,dc=internal" }]
+            };
+            TestableLdap roleLdap = new(new RecordingLdapClient())
+            {
+                Id = kUserLdapId,
+                Addresses = ["ldap.example.test"],
+                Port = 389,
+                SearchUser = "cn=search,dc=fworch,dc=internal",
+                SearchUserPwd = LdapTestSupport.CreateEncryptedSecret("searchpwd"),
+                WriteUser = "cn=write,dc=fworch,dc=internal",
+                WriteUserPwd = "writepwd",
+                UserSearchPath = kUserSearchPath,
+                RoleSearchPath = "ou=roles,dc=fworch,dc=internal"
+            };
+            UserController controller = CreateController(new List<Ldap> { roleLdap }, apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            bool result = await controller.DeleteAllGroupsAndRoles(new UserDeleteAllEntriesParameters
+            {
+                UserId = 42
+            });
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.revokeRefreshTokensOfUsers));
+        }
+
+        [Test]
         public async Task ChangePasswordRejectsAuditorModeBeforeUserLookup()
         {
             UserControllerTestApiConnection apiConnection = new();
@@ -472,7 +549,7 @@ namespace FWO.Test
             {
                 LdapId = 2,
                 UserDn = "uid=newuser,ou=users,dc=fworch,dc=internal",
-                Password = "password",
+                Password = "long-enough-password",
                 Email = "new@test",
                 TenantId = 1
             });
@@ -508,7 +585,7 @@ namespace FWO.Test
             {
                 LdapId = 0,
                 UserDn = "uid=newuser,ou=users,dc=fworch,dc=internal",
-                Password = "password",
+                Password = "long-enough-password",
                 TenantId = 1
             });
 
@@ -687,7 +764,7 @@ namespace FWO.Test
             int result = await controller.Add(new UserAddParameters
             {
                 UserDn = "uid=newuser,ou=users,dc=fworch,dc=internal",
-                Password = "password",
+                Password = "long-enough-password",
                 TenantId = 1
             });
 
@@ -715,7 +792,7 @@ namespace FWO.Test
             {
                 LdapId = kOtherLdapId,
                 UserDn = "uid=newuser,ou=users,dc=fworch,dc=internal",
-                Password = "password",
+                Password = "long-enough-password",
                 TenantId = 1
             });
 
@@ -750,6 +827,52 @@ namespace FWO.Test
             Assert.That(apiConnection.ReturnIdQueryCount, Is.EqualTo(1));
             Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.updateUserPasswordChange));
             Assert.That(ldapClient.ModifyCalls, Has.Count.EqualTo(1));
+        }
+
+        /// <summary>
+        /// The password policy is enforced by the middleware, not only by the UI (fwo-ui-actionfilter-002).
+        /// </summary>
+        [Test]
+        public async Task PasswordEndpointsRejectPasswordsViolatingThePolicy()
+        {
+            RecordingLdapClient ldapClient = new();
+            UiUser[] users = [CreateUser(42)];
+            UserControllerTestApiConnection apiConnection = new() { Users = users };
+            UserController controller = CreateController(
+                new List<Ldap> { CreateWritableLdap(2, ldapClient) },
+                apiConnection,
+                PrincipalWithRoles(Roles.Admin));
+
+            int addResult = await controller.Add(new UserAddParameters
+            {
+                LdapId = 2,
+                UserDn = "uid=newuser,ou=users,dc=fworch,dc=internal",
+                Password = "short",
+                TenantId = 1
+            });
+            ActionResult<string> changeResult = await controller.ChangePassword(new UserChangePasswordParameters
+            {
+                UserId = 42,
+                LdapId = 2,
+                OldPassword = "old-password",
+                NewPassword = "short"
+            });
+            ActionResult<string> resetResult = await controller.ResetPassword(new UserResetPasswordParameters
+            {
+                UserId = 42,
+                LdapId = 2,
+                NewPassword = "short"
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(addResult, Is.Zero);
+                Assert.That(changeResult.Value, Is.Not.Empty);
+                Assert.That(resetResult.Result, Is.TypeOf<ObjectResult>());
+                Assert.That(ldapClient.AddedEntries, Is.Empty);
+                Assert.That(ldapClient.ModifyCalls, Is.Empty);
+                Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.updateUserPasswordChange));
+            });
         }
 
         [Test]
@@ -906,7 +1029,7 @@ namespace FWO.Test
 
         private static UserController CreateController(List<Ldap> ldaps, ApiConnection apiConnection, ClaimsPrincipal user)
         {
-            return new UserController(ldaps, apiConnection)
+            return new UserController(ldaps, apiConnection, new SimulatedGlobalConfig())
             {
                 ControllerContext = new ControllerContext
                 {

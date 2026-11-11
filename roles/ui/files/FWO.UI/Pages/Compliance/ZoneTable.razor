@@ -3,11 +3,11 @@
 @inject UserConfig userConfig
 @inject NetworkZoneService networkZoneService
 
-<Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ComplianceNetworkZone" 
+<Table TableClass="table table-sm table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="NetworkZone" 
 		Items="NetworkZones.Where(zone => object.Equals(zone.Superzone, Superzone))">
 	@if(!ReadonlyMode)
 	{
-		<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("actions"))" Context="networkZone">
+		<Column TableItem="NetworkZone" Title="@(userConfig.GetText("actions"))" Context="networkZone">
 			<Template>
 				<div class="btn-group">
 					<button type="button" class="btn btn-sm btn-warning" @onclick="() => networkZoneService.InvokeOnEditZone(networkZone)">@(userConfig.GetText("edit"))</button>
@@ -16,10 +16,10 @@
 			</Template>
 		</Column>
 	}
-	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("id"))" Field="@(networkZone => networkZone.Id)" Sortable="true" Filterable="true" />
-	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("name"))" Field="@(networkZone => networkZone.Name)" Sortable="true" Filterable="true" />
-	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("description"))" Field="@(networkZone => networkZone.Description)" Sortable="true" Filterable="true" />
-	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("ip_addresses"))" Context="networkZone">
+	<Column TableItem="NetworkZone" Title="@(userConfig.GetText("id"))" Field="@(networkZone => networkZone.Id)" Sortable="true" Filterable="true" />
+	<Column TableItem="NetworkZone" Title="@(userConfig.GetText("name"))" Field="@(networkZone => networkZone.Name)" Sortable="true" Filterable="true" />
+	<Column TableItem="NetworkZone" Title="@(userConfig.GetText("description"))" Field="@(networkZone => networkZone.Description)" Sortable="true" Filterable="true" />
+	<Column TableItem="NetworkZone" Title="@(userConfig.GetText("ip_addresses"))" Context="networkZone">
 		<Template>
 			<ExpandableList Elements="networkZone.IPRanges" Context="ipRange">
 				<ElementTemplate>
@@ -28,7 +28,7 @@
 			</ExpandableList>
 		</Template>
 	</Column>
-	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("allowed_comm_srcs"))" Context="networkZone">
+	<Column TableItem="NetworkZone" Title="@(userConfig.GetText("allowed_comm_srcs"))" Context="networkZone">
 		<Template>
 			<ExpandableList Elements="networkZone.AllowedCommunicationSources" Context="sourceZone">
 				<ElementTemplate>
@@ -37,7 +37,7 @@
 			</ExpandableList>
 		</Template>
 	</Column>
-	<Column TableItem="ComplianceNetworkZone" Title="@(userConfig.GetText("allowed_comm_dests"))" Context="networkZone">
+	<Column TableItem="NetworkZone" Title="@(userConfig.GetText("allowed_comm_dests"))" Context="networkZone">
 		<Template>
 			<ExpandableList Elements="networkZone.AllowedCommunicationDestinations" Context="destinationZone">
 				<ElementTemplate>
@@ -48,11 +48,11 @@
 	</Column>
 	@if(SubzonesPossible())
 	{
-		<DetailTemplate TableItem="ComplianceNetworkZone" Context="networkZone">
+		<DetailTemplate TableItem="NetworkZone" Context="networkZone">
 			<div class="mb-1">@(userConfig.GetText("subzones")):</div>
 			@if (networkZone.Subzones.Length > 0)
 			{
-				ComplianceNetworkZone zone = networkZone;
+				NetworkZone zone = networkZone;
 				<ZoneTable Superzone="zone" NetworkZones="NetworkZones" />
 			}
 			else
@@ -67,10 +67,10 @@
 @code
 {
 	[Parameter]
-	public ComplianceNetworkZone? Superzone { get; set; } = null;
+	public NetworkZone? Superzone { get; set; } = null;
 
 	[Parameter]
-	public List<ComplianceNetworkZone> NetworkZones { get; set; } = [];
+	public List<NetworkZone> NetworkZones { get; set; } = [];
 
 	[Parameter]
 	public bool ReadonlyMode { get; set; } = false;

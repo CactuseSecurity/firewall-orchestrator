@@ -1,7 +1,6 @@
 using FWO.Data;
 using FWO.Data.Workflow;
 using NetTools;
-using System.Net;
 
 namespace FWO.Services.Workflow
 {
@@ -10,7 +9,7 @@ namespace FWO.Services.Workflow
         private const string BundleIdPrefix = "bundle-";
 
         public Dictionary<long, string> BuildBundleAssignments(IEnumerable<WfReqTask> requestTasks, BundleTaskType bundleType,
-            bool cleanZones = false, IEnumerable<ComplianceNetworkZone>? networkZones = null)
+            bool cleanZones = false, IEnumerable<NetworkZone>? networkZones = null)
         {
             return bundleType switch
             {
@@ -23,9 +22,9 @@ namespace FWO.Services.Workflow
         /// Returns clean-zone bundling candidate task ids whose source or destination IPs do not resolve to configured zones.
         /// </summary>
         public List<long> FindTasksWithUnresolvedCleanZones(IEnumerable<WfReqTask> requestTasks, bool cleanZones,
-            IEnumerable<ComplianceNetworkZone>? networkZones = null)
+            IEnumerable<NetworkZone>? networkZones = null)
         {
-            List<ComplianceNetworkZone> zoneList = networkZones?.ToList() ?? [];
+            List<NetworkZone> zoneList = networkZones?.ToList() ?? [];
             if (!cleanZones || zoneList.Count == 0)
             {
                 return [];
@@ -40,10 +39,10 @@ namespace FWO.Services.Workflow
         }
 
         private Dictionary<long, string> BuildTwoOutOfThreeAssignments(IEnumerable<WfReqTask> requestTasks, bool cleanZones,
-            IEnumerable<ComplianceNetworkZone>? networkZones)
+            IEnumerable<NetworkZone>? networkZones)
         {
             Dictionary<long, string> assignments = [];
-            List<ComplianceNetworkZone> zoneList = networkZones?.ToList() ?? [];
+            List<NetworkZone> zoneList = networkZones?.ToList() ?? [];
             foreach (RequestTaskBundleSignature signature in BundleTwoOutOfThree(requestTasks.Select(task =>
                     RequestTaskBundleSignature.FromTask(task, cleanZones, zoneList)))
                 .Where(signature => signature.RequestTaskIds.Count > 1))
@@ -116,7 +115,7 @@ namespace FWO.Services.Workflow
             public HashSet<string> SourceZoneKeys { get; private set; } = [];
             public HashSet<string> DestinationZoneKeys { get; private set; } = [];
 
-            public static RequestTaskBundleSignature FromTask(WfReqTask task, bool cleanZones, List<ComplianceNetworkZone> networkZones)
+            public static RequestTaskBundleSignature FromTask(WfReqTask task, bool cleanZones, List<NetworkZone> networkZones)
             {
                 return new RequestTaskBundleSignature
                 {
@@ -224,16 +223,14 @@ namespace FWO.Services.Workflow
             }
 
             private static HashSet<string> ZoneKeys(IEnumerable<WfReqElement> elements, ElemFieldType field, bool cleanZones,
-                List<ComplianceNetworkZone> networkZones)
+                List<NetworkZone> networkZones)
             {
                 if (!cleanZones || networkZones.Count == 0)
                 {
                     return [];
                 }
 
-                List<IPAddressRange> ranges = [.. elements
-                    .Where(element => element.Field == field.ToString())
-                    .SelectMany(ElementIpRanges)];
+                List<IPAddressRange> ranges = WfReqElement.GetIpRanges(elements, field);
                 if (ranges.Count == 0)
                 {
                     return [];
@@ -252,47 +249,7 @@ namespace FWO.Services.Workflow
                 return [.. ranges.Select(range => new List<IPAddressRange> { new(range.Begin, range.End) })];
             }
 
-            private static IEnumerable<IPAddressRange> ElementIpRanges(WfReqElement element)
-            {
-                IPAddressRange? ipRange = ParseIpRange(element.IpString, element.IpEnd);
-                if (ipRange != null)
-                {
-                    yield return ipRange;
-                    yield break;
-                }
-
-                ipRange = ParseIpRange(element.Cidr?.CidrString, element.CidrEnd?.CidrString);
-                if (ipRange != null)
-                {
-                    yield return ipRange;
-                }
-            }
-
-            private static IPAddressRange? ParseIpRange(string? start, string? end)
-            {
-                if (string.IsNullOrWhiteSpace(start))
-                {
-                    return null;
-                }
-
-                try
-                {
-                    if (!string.IsNullOrWhiteSpace(end)
-                        && IPAddress.TryParse(start, out IPAddress? startIp)
-                        && IPAddress.TryParse(end, out IPAddress? endIp))
-                    {
-                        return new(startIp, endIp);
-                    }
-
-                    return IPAddressRange.Parse(start);
-                }
-                catch (Exception)
-                {
-                    return null;
-                }
-            }
-
-            private static string ZoneKey(ComplianceNetworkZone zone)
+            private static string ZoneKey(NetworkZone zone)
             {
                 return zone.Id > 0 ? zone.Id.ToString() : zone.Name;
             }

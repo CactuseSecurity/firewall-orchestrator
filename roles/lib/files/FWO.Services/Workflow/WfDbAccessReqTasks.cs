@@ -50,7 +50,7 @@ namespace FWO.Services.Workflow
                     foreach (var approval in reqtask.Approvals)
                     {
                         approval.TaskId = returnId;
-                        await AddApprovalToDb(approval, reqtask.TicketId, storedTicket?.Requester);
+                        approval.Id = await AddApprovalToDb(approval, reqtask.TicketId, storedTicket?.Requester);
                     }
                     foreach (var owner in reqtask.Owners)
                     {
@@ -214,7 +214,9 @@ namespace FWO.Services.Workflow
                 ["reason"] = reqtask.Reason,
                 ["additionalInfo"] = reqtask.AdditionalInfo,
                 ["freeText"] = reqtask.FreeText,
-                ["managementId"] = reqtask.ManagementId
+                ["managementId"] = reqtask.ManagementId,
+                ["serviceGroupId"] = reqtask.ServiceGroupId,
+                ["networkGroupId"] = reqtask.NetworkGroupId
             };
         }
 
@@ -235,6 +237,7 @@ namespace FWO.Services.Workflow
                 {
                     if (element.Id == 0)
                     {
+                        element.TaskId = reqtask.Id;
                         element.Id = await AddReqElementToDb(element);
                     }
                     else
@@ -323,6 +326,7 @@ namespace FWO.Services.Workflow
             var variables = BuildElementBaseVariables(element, element.Cidr, element.CidrEnd);
             variables["requestAction"] = element.RequestAction;
             variables["taskId"] = element.TaskId;
+            variables["objectTaskId"] = element.ObjectTaskId;
             variables["deviceId"] = element.DeviceId;
             variables["flowNwObjId"] = element.FlowNetworkObjectId;
             variables["flowNwGrpId"] = element.FlowNetworkGroupId;

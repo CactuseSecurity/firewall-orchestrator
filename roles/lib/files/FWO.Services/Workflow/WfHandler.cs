@@ -226,9 +226,10 @@ namespace FWO.Services.Workflow
             AllOwners = await activeApiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             await stateMatrixDict.Init(Phase, activeApiConnection, states);
             MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
+            await LoadOwnerScope(activeApiConnection, ownerIds);
             if (fetchData)
             {
-                TicketList = await dbAcc.FetchTickets(MasterStateMatrix, ownerIds, allStates, fullTickets, GetVisibilityTicketFilter());
+                TicketList = await FetchTicketList(ownerIds, allStates, fullTickets);
             }
             ReloadTasks = !fullTickets;
             PrioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(userConfig.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
@@ -251,19 +252,6 @@ namespace FWO.Services.Workflow
             }
         }
 
-        public void FilterForRequester()
-        {
-            List<WfTicket> filteredTicketList = [];
-            foreach (var ticket in TicketList)
-            {
-                if (userConfig.User.DbId == ticket.Requester?.DbId)
-                {
-                    filteredTicketList.Add(ticket);
-                }
-            }
-            TicketList = filteredTicketList;
-        }
-
         public StateMatrix StateMatrix(string taskType)
         {
             try
@@ -275,6 +263,26 @@ namespace FWO.Services.Workflow
                 DisplayMessageInUi(exception, userConfig.GetText("state_matrix"), "", true);
                 return new();
             }
+        }
+
+        /// <summary>
+        /// Returns whether the ticket-level promotion control is available in the current phase.
+        /// The request phase is always promoted from the ticket.
+        /// </summary>
+        public bool CanPromoteTicketInCurrentPhase()
+        {
+            return Phase == WorkflowPhases.request
+                || MasterStateMatrix.PromotionMode is PromotionMode.Ticket or PromotionMode.Both;
+        }
+
+        /// <summary>
+        /// Returns whether task-level promotion controls are available in the current phase.
+        /// The request phase is always promoted from the ticket.
+        /// </summary>
+        public bool CanPromoteTaskInCurrentPhase()
+        {
+            return Phase != WorkflowPhases.request
+                && MasterStateMatrix.PromotionMode is PromotionMode.Task or PromotionMode.Both;
         }
 
         /// <summary>

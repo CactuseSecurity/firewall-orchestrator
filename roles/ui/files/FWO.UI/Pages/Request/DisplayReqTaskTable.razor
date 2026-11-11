@@ -32,9 +32,18 @@
                                     <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => await ShowApprovals(context)">
                                         @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
                                 }
-                                @if (canActOnTask && IsEditable(context))
+                                @if (!ReadOnlyDisplay && canActOnTask && IsEditable(context))
                                 {
-                                    @if (CanEditReqTaskInPhase(context))
+                                    @if (Phase > WorkflowPhases.request
+                                        && WfHandler.MasterStateMatrix.PromotionMode == PromotionMode.Ticket)
+                                    {
+                                        @if (CanEditReqTaskInApproval(context))
+                                        {
+                                            <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await EditReqTaskForApproval(context)">
+                                                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                                        }
+                                    }
+                                    else if (CanEditReqTaskInPhase(context))
                                     {
                                         <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await EditReqTask(context)">
                                             @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
@@ -56,7 +65,7 @@
                                             }
                                         }
                                     }
-                                    else if (Phase > WorkflowPhases.request)
+                                    else if (Phase > WorkflowPhases.request && WfHandler.CanPromoteTaskInCurrentPhase())
                                     {
                                         @if (context.StateId < taskStateMatrix.LowestStartedState)
                                         {
@@ -108,7 +117,7 @@
                         @(context.CurrentHandler?.Name)
                     </Template>
                 </Column>
-                @if(Phase == WorkflowPhases.approval)
+                @if(Phase == WorkflowPhases.approval && TicketFieldVisibility.ShowDeadline)
                 {
                     <Column TableItem="WfReqTask" Title="@(userConfig.GetText("approval_deadline"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" >
                         <Template>
@@ -139,7 +148,9 @@
     }
 }
 
-<DisplayRequestTask Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" StartImplPhase="StartImplPhase"/>
+@* Keep the editor instance while its draft is being validated. TaskType is mutable
+   form data and must not recreate the editor when SaveReqTask prepares the task. *@
+<DisplayRequestTask @key="@($"{WfHandler.DisplayReqTaskMode}-{WfHandler.ActReqTask.Id}-{FocusField}")" Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" StartImplPhase="StartImplPhase" FocusField="FocusField"/>
 <AssignObject @bind-Display="WfHandler.DisplayAssignReqTaskMode" ResetParent="Reset" StatefulObject="WfHandler.ActReqTask" Assign="WfHandler.AssignReqTaskGroup" AssignBack="WfHandler.AssignReqTaskBack" ObjectName="@WfHandler.ActReqTask.Title" RoleList="validRoles"/>
 <DeleteObject @bind-Display="WfHandler.DisplayDeleteReqTaskMode" ResetParent="Reset" Delete="WfHandler.ConfDeleteReqTask" ObjectName="@WfHandler.ActReqTask.Title"/>
 
@@ -167,7 +178,14 @@
     [Parameter]
     public Func<WfImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
+    [Parameter]
+    public bool ReadOnlyDisplay { get; set; } = false;
+
+    [Parameter]
+    public string? FocusField { get; set; }
+
     static List<string> validRoles = new (){Roles.Planner};
+    private TicketFieldVisibilityConfig TicketFieldVisibility => TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility);
 
 
     private async Task Reset()
@@ -179,6 +197,7 @@
 
     private async Task ShowReqTask(WfReqTask reqTask)
     {
+        WfHandler.ResetReqTaskActions();
         await WfHandler.SelectReqTask(reqTask, ObjAction.display, true);
     }
 
@@ -189,7 +208,14 @@
 
     private async Task EditReqTask(WfReqTask reqTask)
     {
+        WfHandler.ResetReqTaskActions();
         await WfHandler.SelectReqTask(reqTask, ObjAction.edit, true);
+    }
+
+    private async Task EditReqTaskForApproval(WfReqTask reqTask)
+    {
+        WfHandler.ResetReqTaskActions();
+        await WfHandler.SelectReqTask(reqTask, ObjAction.approve, true);
     }
 
     private void DeleteReqTask(WfReqTask reqTask)
@@ -244,6 +270,27 @@
 
         StateMatrix taskStateMatrix = WfHandler.StateMatrix(reqTask.TaskType);
         return reqTask.StateId < taskStateMatrix.LowestEndState;
+    }
+
+    private bool CanEditReqTaskInApproval(WfReqTask reqTask)
+    {
+        if (Phase != WorkflowPhases.approval || WfHandler.ReadOnlyMode)
+        {
+            return false;
+        }
+
+        WfTaskType taskType = Enum.TryParse(reqTask.TaskType, out WfTaskType parsedTaskType)
+            ? parsedTaskType
+            : WfTaskType.access;
+        ApproverAllowedChangesConfig allowedChanges = ApproverAllowedChangesConfig.Parse(userConfig.ReqAllowedChangesByApprover);
+        return ApproverAllowedChangesAccess.CanSaveTaskChanges(allowedChanges, new()
+        {
+            IsApprovalPhase = true,
+            ApproveReqTaskMode = true,
+            ReadOnlyMode = false,
+            TaskType = taskType,
+            HasImplementationTasks = reqTask.ImplementationTasks.Count > 0
+        });
     }
 
     private bool CanChangeReqTaskStructure()

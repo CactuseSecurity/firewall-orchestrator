@@ -1,727 +1,425 @@
 using System.Text.Json;
 using FWO.Middleware.Server.Requests;
-using Microsoft.AspNetCore.Mvc;
+using FWO.Middleware.Server.Responses;
 using NUnit.Framework;
 
 namespace FWO.Test;
 
+/// <summary>
+/// Tests the request contract of the flow compliance endpoints: the policy id request without keys, the address,
+/// service and policy lists of the flow compliance state request, the aggregation of every error of one request,
+/// and the unchanged plain text messages of the service range check the flow catalog still uses.
+/// </summary>
 [TestFixture]
+[Parallelizable]
 internal class FlowComplianceValidationTest
 {
-    [Test]
-    public void GetPolicyIds_AllowsEmptyBody()
-    {
-        GetPolicyIdsRequest request = JsonSerializer.Deserialize<GetPolicyIdsRequest>("{}")!;
-
-        bool valid = FlowComplianceRequestValidator.TryValidatePolicyIds(request, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
+    private const string kValidFlowJson = """
         {
-            Assert.That(valid, Is.True);
-            Assert.That(errorResult, Is.Null);
-        });
-    }
-
-    [Test]
-    public void GetFlowComplianceState_RejectsEveryOversizedListTogether()
-    {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = Enumerable.Range(0, FlowComplianceRequestValidator.kMaxRangeEntries + 1)
-                .Select(_ => new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1", IpEnd = "10.0.0.1" })
-                .ToList(),
-            Policies = Enumerable.Range(1, FlowComplianceRequestValidator.kMaxPolicies + 1).ToList()
-        };
-
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
-        string message = ((BadRequestObjectResult)errorResult!).Value!.ToString()!;
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(message, Does.Contain("'source'"));
-            Assert.That(message, Does.Contain("'policies'"));
-            Assert.That(message, Does.Not.Contain("'destination'"));
-        });
-    }
-
-    [Test]
-    public void GetFlowComplianceState_AllowsListsAtTheMaximum()
-    {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Policies = Enumerable.Range(1, FlowComplianceRequestValidator.kMaxPolicies).ToList()
-        };
-
-        Assert.That(FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out _), Is.True);
-    }
-
-    [Test]
-    public void GetFlowComplianceState_AllowsExpectedShape()
-    {
-        string json = """
-        {
-          "source": [{"ipStart":"10.0.0.1","ipEnd":"10.0.0.2"}],
-          "destination": [{"ipStart":"10.0.1.1","ipEnd":"10.0.1.2"}],
+          "source": [{"ipRange":["10.0.0.1","10.0.0.2"]}],
+          "destination": [{"ipHost":"10.0.1.1"}],
           "service": [{"portStart":443,"portEnd":443,"protocol":"TCP"}],
           "policies": [1,2]
         }
         """;
 
-        GetFlowComplianceStateRequest request = JsonSerializer.Deserialize<GetFlowComplianceStateRequest>(json)!;
+    private static readonly List<string> kNullListPaths = ["source", "destination", "service", "policies"];
+    private static readonly List<string> kUnknownPolicyIdKeys = ["alpha", "zulu"];
+    private static readonly List<string> kAggregatedPaths =
+        ["source[0]", "destination[1]", "service[0].protocol", "service[1].portEnd", "policies[0]", "typo"];
+    private static readonly List<string> kOutOfRangePortPaths = ["service[0].portStart", "service[0].portEnd"];
 
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.True);
-            Assert.That(errorResult, Is.Null);
-        });
-    }
-
+    /// <summary>Verifies a missing body is accepted, because the endpoint takes no input.</summary>
     [Test]
-    public void GetFlowComplianceState_AllowsPortZero()
+    public void ValidatePolicyIds_NullRequest_HasNoErrors()
     {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1", IpEnd = "10.0.0.2" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 0, PortEnd = 0, Protocol = "TCP" }],
-            Policies = [1]
-        };
+        RequestValidationErrorResponse result = FlowComplianceRequestValidator.ValidatePolicyIds(null);
 
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.True);
-            Assert.That(errorResult, Is.Null);
-        });
+        Assert.That(result.Errors, Is.Empty);
     }
 
+    /// <summary>Verifies an empty object is accepted.</summary>
     [Test]
-    public void GetFlowComplianceState_ExpandsIpv4Network()
+    public void ValidatePolicyIds_EmptyObject_HasNoErrors()
     {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "10.0.0.0/24" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "10.0.1.0/25" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [1]
-        };
+        RequestValidationErrorResponse result = FlowComplianceRequestValidator.ValidatePolicyIds(
+            JsonSerializer.Deserialize<GetPolicyIdsRequest>("{}"));
 
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.True);
-            Assert.That(errorResult, Is.Null);
-            Assert.That(request.Source[0].IpStart, Is.EqualTo("10.0.0.0"));
-            Assert.That(request.Source[0].IpEnd, Is.EqualTo("10.0.0.255"));
-            Assert.That(request.Destination[0].IpStart, Is.EqualTo("10.0.1.0"));
-            Assert.That(request.Destination[0].IpEnd, Is.EqualTo("10.0.1.127"));
-        });
+        Assert.That(result.Errors, Is.Empty);
     }
 
+    /// <summary>Verifies every unknown key is reported under its own path, in ordinal order.</summary>
     [Test]
-    public void GetFlowComplianceState_ExpandsIpv6Network()
+    public void ValidatePolicyIds_UnknownKeys_ReportsEachKeyInOrdinalOrder()
     {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "2001:db8::/126" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "2001:db8:1::/64" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [1]
-        };
-
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+        RequestValidationErrorResponse result = FlowComplianceRequestValidator.ValidatePolicyIds(
+            JsonSerializer.Deserialize<GetPolicyIdsRequest>("""{"zulu":1,"alpha":true}"""));
 
         Assert.Multiple(() =>
         {
-            Assert.That(valid, Is.True);
-            Assert.That(errorResult, Is.Null);
-            Assert.That(request.Source[0].IpStart, Is.EqualTo("2001:db8::"));
-            Assert.That(request.Source[0].IpEnd, Is.EqualTo("2001:db8::3"));
-            Assert.That(request.Destination[0].IpStart, Is.EqualTo("2001:db8:1::"));
-            Assert.That(request.Destination[0].IpEnd, Is.EqualTo("2001:db8:1:0:ffff:ffff:ffff:ffff"));
+            Assert.That(result.Errors.Select(error => error.Path), Is.EqualTo(kUnknownPolicyIdKeys));
+            Assert.That(result.Errors[0].Message, Does.StartWith("'alpha' is not supported."));
+            Assert.That(result.Errors[0].Message, Does.Contain(FlowComplianceRequestValidationSchema.kPolicyIdsEndpointName));
         });
     }
 
+    /// <summary>Verifies a missing body is rejected with a help text naming every root key.</summary>
     [Test]
-    public void GetFlowComplianceState_ExpandsWholeAddressSpaceNetworks()
+    public void ValidateFlowComplianceState_NullRequest_ReportsRootKeys()
     {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "0.0.0.0/0" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "::/0" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [1]
-        };
+        RequestValidationErrorResponse result = FlowComplianceRequestValidator.ValidateFlowComplianceState(null);
 
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
+        Assert.That(result.Errors, Has.Count.EqualTo(1));
         Assert.Multiple(() =>
         {
-            Assert.That(valid, Is.True);
-            Assert.That(errorResult, Is.Null);
-            Assert.That(request.Source[0].IpStart, Is.EqualTo("0.0.0.0"));
-            Assert.That(request.Source[0].IpEnd, Is.EqualTo("255.255.255.255"));
-            Assert.That(request.Destination[0].IpStart, Is.EqualTo("::"));
-            Assert.That(request.Destination[0].IpEnd, Is.EqualTo("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
+            Assert.That(result.Errors[0].Path, Is.Empty);
+            Assert.That(result.Errors[0].Message, Does.StartWith("getFlowComplianceState requires a request body."));
+            Assert.That(result.Errors[0].Message, Does.Contain("'source':").And.Contain("'policies':"));
         });
     }
 
-    [TestCase("10.0.0.1/33")]
-    [TestCase("2001:db8::1/129")]
-    [TestCase("10.0.0.1/not-a-prefix")]
-    public void GetFlowComplianceState_RejectsInvalidNetworkPrefix(string ipNetwork)
-    {
-        bool valid = TryValidateSourceNetwork(ipNetwork, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("invalid"));
-        });
-    }
-
+    /// <summary>Verifies a request using every key passes.</summary>
     [Test]
-    public void GetFlowComplianceState_RejectsIpv4MappedIpv6Network()
+    public void ValidateFlowComplianceState_ExpectedShape_HasNoErrors()
     {
-        bool valid = TryValidateSourceNetwork("::ffff:192.0.2.0/120", out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("IPv4-mapped IPv6"));
-        });
+        Assert.That(ValidateJson(kValidFlowJson).Errors, Is.Empty);
     }
 
+    /// <summary>Verifies omitted lists default to empty lists and pass.</summary>
     [Test]
-    public void GetFlowComplianceState_RejectsIpv4CompatibleIpv6Network()
+    public void ValidateFlowComplianceState_EmptyObject_HasNoErrors()
     {
-        bool valid = TryValidateSourceNetwork("::192.0.2.0/120", out ActionResult? errorResult);
+        GetFlowComplianceStateRequest request = Deserialize("{}");
 
         Assert.Multiple(() =>
         {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("IPv4-compatible IPv6"));
+            Assert.That(request.Source, Is.Empty);
+            Assert.That(request.Destination, Is.Empty);
+            Assert.That(request.Service, Is.Empty);
+            Assert.That(request.Policies, Is.Empty);
+            Assert.That(FlowComplianceRequestValidator.ValidateFlowComplianceState(request).Errors, Is.Empty);
         });
     }
 
+    /// <summary>Verifies an explicit null replaces the empty default and is rejected for every list.</summary>
     [Test]
-    public void TryValidateIpRange_RejectsIpv4CompatibleIpv6Bound()
+    public void ValidateFlowComplianceState_NullLists_ReportsEachList()
     {
-        bool valid = FlowComplianceRequestValidator.TryValidateIpRange(
-            "::192.0.2.10",
-            "::192.0.2.11",
-            "address",
-            0,
-            out string? errorMessage);
+        RequestValidationErrorResponse result = ValidateJson(
+            """{"source":null,"destination":null,"service":null,"policies":null}""");
 
         Assert.Multiple(() =>
         {
-            Assert.That(valid, Is.False);
-            Assert.That(errorMessage, Does.Contain("IPv4-compatible IPv6"));
-        });
-    }
-
-    [Test]
-    public void TryValidateIpRange_RejectsIpv4CompatibleIpv6BoundCarryingHostMask()
-    {
-        bool valid = FlowComplianceRequestValidator.TryValidateIpRange(
-            "::192.0.2.10/128",
-            "::192.0.2.10/128",
-            "address",
-            0,
-            out string? errorMessage);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorMessage, Does.Contain("IPv4-compatible IPv6"));
-        });
-    }
-
-    [TestCase("::", "::")]
-    [TestCase("::1", "::1")]
-    public void TryValidateIpRange_AcceptsIpv6AddressesWithLeadingZeroBytes(string ipStart, string ipEnd)
-    {
-        // '::' and '::1' share the 96 leading zero bits of the IPv4-compatible form but denote no IPv4 address.
-        bool valid = FlowComplianceRequestValidator.TryValidateIpRange(ipStart, ipEnd, "address", 0, out string? errorMessage);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.True);
-            Assert.That(errorMessage, Is.Null);
-        });
-    }
-
-    [Test]
-    public void TryValidateIpRange_RejectsIpv4MappedIpv6Bound()
-    {
-        bool valid = FlowComplianceRequestValidator.TryValidateIpRange(
-            "::ffff:192.0.2.10",
-            "::ffff:192.0.2.11",
-            "address",
-            0,
-            out string? errorMessage);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorMessage, Does.Contain("IPv4-mapped IPv6"));
-        });
-    }
-
-    [TestCase("10.0.0.0")]
-    [TestCase("2001:db8::")]
-    [TestCase("/24")]
-    [TestCase("10.0.0.0/24/24")]
-    public void GetFlowComplianceState_RejectsNetworkWithoutSinglePrefixSeparator(string ipNetwork)
-    {
-        bool valid = TryValidateSourceNetwork(ipNetwork, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("requires a valid CIDR network"));
-        });
-    }
-
-    [TestCase("10.0.0.1/24", "10.0.0.0/24")]
-    [TestCase("2001:db8::1/126", "2001:db8::/126")]
-    public void GetFlowComplianceState_RejectsNetworkWithHostBits(string ipNetwork, string expectedSuggestion)
-    {
-        bool valid = TryValidateSourceNetwork(ipNetwork, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must not set host bits"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain(expectedSuggestion));
-        });
-    }
-
-    [Test]
-    public void GetFlowComplianceState_NetworkErrorNamesTheEntryOnlyOnce()
-    {
-        bool valid = TryValidateSourceNetwork("10.0.0.1/33", out ActionResult? errorResult);
-        string message = ((BadRequestObjectResult)errorResult!).Value?.ToString() ?? string.Empty;
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(message, Does.StartWith("'source' entry at index 0 "));
-            Assert.That(message, Does.Not.Contain("''"));
-        });
-    }
-
-    [Test]
-    public void GetFlowComplianceState_RejectsNetworkTogetherWithRangeBounds()
-    {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source =
-            [
-                new GetFlowComplianceStateRequest.IpRangeRequest
-                {
-                    IpNetwork = "10.0.0.0/24",
-                    IpStart = "10.0.0.1",
-                    IpEnd = "10.0.0.2"
-                }
-            ],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [1]
-        };
-
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("not both"));
-        });
-    }
-
-    [Test]
-    public void GetFlowComplianceState_RejectsEntryWithoutNetworkAndRangeBounds()
-    {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest()],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [1]
-        };
-
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("requires non-empty 'ipStart' and 'ipEnd', or a non-empty 'ipNetwork'"));
-        });
-    }
-
-    [Test]
-    public void GetFlowComplianceState_AllowsHostMaskedRangeBoundsAndNormalizesRequest()
-    {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1/32", IpEnd = "10.0.0.2/32" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "2001:db8::1/128", IpEnd = "2001:db8::2/128" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [1]
-        };
-
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.True);
-            Assert.That(errorResult, Is.Null);
-            Assert.That(request.Source[0].IpStart, Is.EqualTo("10.0.0.1"));
-            Assert.That(request.Source[0].IpEnd, Is.EqualTo("10.0.0.2"));
-            Assert.That(request.Destination[0].IpStart, Is.EqualTo("2001:db8::1"));
-            Assert.That(request.Destination[0].IpEnd, Is.EqualTo("2001:db8::2"));
-        });
-    }
-
-    [Test]
-    public void GetFlowComplianceState_RejectsBroaderMaskedRangeBounds()
-    {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1/24", IpEnd = "10.0.0.2" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [1]
-        };
-
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("Only '/32' is allowed"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("use 'ipNetwork'"));
-        });
-    }
-
-    [TestCase("10.0.0.1/32", "10.0.0.2/32")]
-    [TestCase("2001:db8::1/128", "2001:db8::2/128")]
-    public void TryValidateIpRange_AllowsHostMaskedBounds(string ipStart, string ipEnd)
-    {
-        bool valid = FlowComplianceRequestValidator.TryValidateIpRange(ipStart, ipEnd, "address", 0, out string? errorMessage);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.True);
-            Assert.That(errorMessage, Is.Null);
-        });
-    }
-
-    [TestCase("10.0.0.1/24", "10.0.0.2/32", "Only '/32' is allowed")]
-    [TestCase("10.0.0.1/255.255.255.0", "10.0.0.2", "Only '/32' is allowed")]
-    [TestCase("2001:db8::1/64", "2001:db8::2/128", "Only '/128' is allowed")]
-    public void TryValidateIpRange_RejectsBroaderMaskedBounds(string ipStart, string ipEnd, string expectedDetail)
-    {
-        bool valid = FlowComplianceRequestValidator.TryValidateIpRange(ipStart, ipEnd, "address", 0, out string? errorMessage);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorMessage, Does.Contain(expectedDetail));
-            Assert.That(errorMessage, Does.Contain("'ipStart'"));
-        });
-    }
-
-    [Test]
-    public void TryValidateIpRange_AllowsIpv6RangeBounds()
-    {
-        bool valid = FlowComplianceRequestValidator.TryValidateIpRange("2001:db8::1", "2001:db8::2", "address", 0, out string? errorMessage);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.True);
-            Assert.That(errorMessage, Is.Null);
+            Assert.That(result.Errors.Select(error => error.Path), Is.EqualTo(kNullListPaths));
+            Assert.That(result.Errors.All(error => error.Message.Contains("must not be null")), Is.True);
         });
     }
 
     /// <summary>
-    /// Validates a request whose only source entry is the supplied CIDR network.
+    /// Verifies every oversized list is reported once and the entries of an oversized list are not checked one by one.
     /// </summary>
-    private static bool TryValidateSourceNetwork(string ipNetwork, out ActionResult? errorResult)
+    [Test]
+    public void ValidateFlowComplianceState_OversizedLists_ReportsListsWithoutCheckingEntries()
     {
         GetFlowComplianceStateRequest request = new()
         {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = ipNetwork }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [1]
+            Source = Enumerable.Range(0, FlowComplianceRequestValidationSchema.kMaxRangeEntries + 1)
+                .Select(_ => (AddressInputRequest?)new AddressInputRequest { IpHost = "not-an-address" })
+                .ToList(),
+            Policies = Enumerable.Range(0, FlowComplianceRequestValidationSchema.kMaxPolicies + 1).ToList()
         };
 
-        return FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out errorResult);
-    }
-
-    [Test]
-    public void GetFlowComplianceState_RejectsUnknownRootKey()
-    {
-        string json = """
-        {
-          "source": [],
-          "destination": [],
-          "service": [],
-          "policies": [],
-          "typo": true
-        }
-        """;
-
-        GetFlowComplianceStateRequest request = JsonSerializer.Deserialize<GetFlowComplianceStateRequest>(json)!;
-
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+        RequestValidationErrorResponse result = FlowComplianceRequestValidator.ValidateFlowComplianceState(request);
 
         Assert.Multiple(() =>
         {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("getFlowComplianceState"));
+            Assert.That(result.Errors, Has.Count.EqualTo(2));
+            Assert.That(result.Errors[0].Path, Is.EqualTo("source"));
+            Assert.That(result.Errors[0].Message,
+                Does.Contain($"must not exceed {FlowComplianceRequestValidationSchema.kMaxRangeEntries} entries"));
+            Assert.That(result.Errors[1].Path, Is.EqualTo("policies"));
+            Assert.That(result.Errors[1].Message,
+                Does.Contain($"must not exceed {FlowComplianceRequestValidationSchema.kMaxPolicies} entries"));
         });
     }
 
+    /// <summary>Verifies lists at their maximum size pass.</summary>
     [Test]
-    public void GetFlowComplianceState_RejectsUnknownNestedServiceKey()
-    {
-        string json = """
-        {
-          "source": [],
-          "destination": [],
-          "service": [{"portStart":443,"portEnd":443,"protocol":"TCP","typo":true}],
-          "policies": [1]
-        }
-        """;
-
-        GetFlowComplianceStateRequest request = JsonSerializer.Deserialize<GetFlowComplianceStateRequest>(json)!;
-
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("service"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'portStart'"));
-        });
-    }
-
-    [Test]
-    public void GetFlowComplianceState_RejectsMissingIpBounds()
-    {
-        string json = """
-        {
-          "source": [{"ipStart":"10.0.0.1"}],
-          "destination": [{"ipStart":"10.0.1.1","ipEnd":"10.0.1.2"}],
-          "service": [{"portStart":443,"portEnd":443,"protocol":"TCP"}],
-          "policies": [1]
-        }
-        """;
-
-        GetFlowComplianceStateRequest request = JsonSerializer.Deserialize<GetFlowComplianceStateRequest>(json)!;
-
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'source'"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'ipStart'"));
-        });
-    }
-
-    [Test]
-    public void GetFlowComplianceState_RejectsMissingServiceProtocol()
-    {
-        string json = """
-        {
-          "source": [{"ipStart":"10.0.0.1","ipEnd":"10.0.0.2"}],
-          "destination": [{"ipStart":"10.0.1.1","ipEnd":"10.0.1.2"}],
-          "service": [{"portStart":443,"portEnd":443}],
-          "policies": [1]
-        }
-        """;
-
-        GetFlowComplianceStateRequest request = JsonSerializer.Deserialize<GetFlowComplianceStateRequest>(json)!;
-
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'service'"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'protocol'"));
-        });
-    }
-
-    [Test]
-    public void GetFlowComplianceState_RejectsUnparseableIpAddress()
+    public void ValidateFlowComplianceState_ListsAtTheMaximum_HaveNoErrors()
     {
         GetFlowComplianceStateRequest request = new()
         {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "banana", IpEnd = "10.0.0.2" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [1]
+            Source = Enumerable.Range(0, FlowComplianceRequestValidationSchema.kMaxRangeEntries)
+                .Select(_ => (AddressInputRequest?)new AddressInputRequest { IpHost = "10.0.0.1" })
+                .ToList(),
+            Policies = Enumerable.Range(1, FlowComplianceRequestValidationSchema.kMaxPolicies).ToList()
         };
 
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+        Assert.That(FlowComplianceRequestValidator.ValidateFlowComplianceState(request).Errors, Is.Empty);
+    }
 
+    /// <summary>Verifies every supported address representation of both address families passes.</summary>
+    [TestCase("""{"ipHost":"10.0.0.10"}""")]
+    [TestCase("""{"ipHost":"2001:db8::10"}""")]
+    [TestCase("""{"ipNetwork":"10.0.0.0/24"}""")]
+    [TestCase("""{"ipNetwork":"10.0.0.5/24"}""")]
+    [TestCase("""{"ipNetwork":"2001:db8::/126"}""")]
+    [TestCase("""{"ipNetwork":"0.0.0.0/0"}""")]
+    [TestCase("""{"ipNetwork":"::/0"}""")]
+    [TestCase("""{"ipRange":["10.0.0.1","10.0.0.2"]}""")]
+    [TestCase("""{"ipRange":["2001:db8::1","2001:db8::ffff"]}""")]
+    public void ValidateFlowComplianceState_SupportedAddress_HasNoErrors(string addressJson)
+    {
+        Assert.That(ValidateJson(WithSource(addressJson)).Errors, Is.Empty);
+    }
+
+    /// <summary>
+    /// Verifies an invalid address is reported once under its entry path, with the path named only once in the message.
+    /// </summary>
+    [TestCase("""{"ipNetwork":"10.0.0.1/33"}""")]
+    [TestCase("""{"ipNetwork":"2001:db8::1/129"}""")]
+    [TestCase("""{"ipNetwork":"10.0.0.1/not-a-prefix"}""")]
+    [TestCase("""{"ipNetwork":"010.0.0.0/24"}""")]
+    [TestCase("""{"ipNetwork":"fe80::%3/64"}""")]
+    [TestCase("""{"ipNetwork":"::ffff:192.0.2.0/120"}""")]
+    [TestCase("""{"ipNetwork":"10.0.0.0/24/24"}""")]
+    [TestCase("""{"ipRange":["10.0.0.1/32","10.0.0.2"]}""")]
+    [TestCase("""{"ipRange":["banana","10.0.0.2"]}""")]
+    [TestCase("""{"ipRange":["10.0.0.1","::1"]}""")]
+    [TestCase("""{"ipRange":["10.0.0.2","10.0.0.1"]}""")]
+    [TestCase("""{"ipRange":["10.0.0.1"]}""")]
+    [TestCase("""{"ipNetwork":"10.0.0.0/24","ipRange":["10.0.0.1","10.0.0.2"]}""")]
+    [TestCase("{}")]
+    public void ValidateFlowComplianceState_InvalidAddress_ReportsEntryPathOnce(string addressJson)
+    {
+        RequestValidationErrorResponse result = ValidateJson(WithSource(addressJson));
+
+        Assert.That(result.Errors, Has.Count.EqualTo(1));
         Assert.Multiple(() =>
         {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'ipStart'"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("index 0"));
+            Assert.That(result.Errors[0].Path, Is.EqualTo("source[0]"));
+            Assert.That(result.Errors[0].Message, Does.StartWith("'source[0]' "));
+            Assert.That(result.Errors[0].Message, Does.Not.Contain("'source[0]' 'source[0]'"));
         });
     }
 
+    /// <summary>Verifies a null address entry is reported with the address keys it accepts.</summary>
     [Test]
-    public void GetFlowComplianceState_RejectsMixedAddressFamilies()
+    public void ValidateFlowComplianceState_NullAddressEntry_ReportsAddressKeys()
     {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1", IpEnd = "::1" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [1]
-        };
+        RequestValidationErrorResponse result = ValidateJson(WithSource("null"));
 
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
+        Assert.That(result.Errors, Has.Count.EqualTo(1));
         Assert.Multiple(() =>
         {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("same address family"));
+            Assert.That(result.Errors[0].Path, Is.EqualTo("source[0]"));
+            Assert.That(result.Errors[0].Message, Does.Contain("exactly one").And.Contain("'ipHost'"));
         });
     }
 
-    [Test]
-    public void GetFlowComplianceState_AllowsIpv6Ranges()
+    /// <summary>Verifies the removed legacy address keys are reported as unsupported under the entry path.</summary>
+    [TestCase("ipStart")]
+    [TestCase("ipEnd")]
+    public void ValidateFlowComplianceState_RemovedLegacyAddressKey_IsUnsupported(string legacyKey)
     {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "2001:db8::1", IpEnd = "2001:db8::ffff" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [1]
-        };
+        RequestValidationErrorResponse result = ValidateJson(WithSource($$"""{"{{legacyKey}}":"10.0.0.1"}"""));
 
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+        RequestValidationError? legacyKeyError = result.Errors.SingleOrDefault(error => error.Path == $"source[0].{legacyKey}");
+        Assert.That(legacyKeyError, Is.Not.Null);
+        Assert.That(legacyKeyError!.Message, Does.Contain("is not supported").And.Contain("'ipHost'"));
+    }
+
+    /// <summary>Verifies the port bounds themselves pass.</summary>
+    [TestCase(0, 0)]
+    [TestCase(0, 65535)]
+    [TestCase(65535, 65535)]
+    public void ValidateFlowComplianceState_PortsAtTheBounds_HaveNoErrors(int portStart, int portEnd)
+    {
+        Assert.That(ValidateJson(WithService(portStart, portEnd, "TCP")).Errors, Is.Empty);
+    }
+
+    /// <summary>Verifies an empty or missing protocol is reported under the protocol path.</summary>
+    [TestCase("""{"portStart":443,"portEnd":443,"protocol":""}""")]
+    [TestCase("""{"portStart":443,"portEnd":443,"protocol":"  "}""")]
+    [TestCase("""{"portStart":443,"portEnd":443}""")]
+    public void ValidateFlowComplianceState_EmptyProtocol_ReportsProtocolPath(string serviceJson)
+    {
+        RequestValidationErrorResponse result = ValidateJson(WithServiceJson(serviceJson));
+
+        Assert.That(result.Errors, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Errors[0].Path, Is.EqualTo("service[0].protocol"));
+            Assert.That(result.Errors[0].Message, Is.EqualTo("'service[0].protocol' must not be empty."));
+        });
+    }
+
+    /// <summary>Verifies a port outside the allowed range is reported under its own path.</summary>
+    [TestCase(-1, 443, "service[0].portStart")]
+    [TestCase(443, 65536, "service[0].portEnd")]
+    public void ValidateFlowComplianceState_PortOutsideRange_ReportsPortPath(int portStart, int portEnd, string expectedPath)
+    {
+        RequestValidationErrorResponse result = ValidateJson(WithService(portStart, portEnd, "TCP"));
+
+        Assert.That(result.Errors, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Errors[0].Path, Is.EqualTo(expectedPath));
+            Assert.That(result.Errors[0].Message, Is.EqualTo($"'{expectedPath}' must be between 0 and 65535."));
+        });
+    }
+
+    /// <summary>Verifies both ports outside the range are reported together.</summary>
+    [Test]
+    public void ValidateFlowComplianceState_BothPortsOutsideRange_ReportsBothPorts()
+    {
+        RequestValidationErrorResponse result = ValidateJson(WithService(-1, 70000, "TCP"));
+
+        Assert.That(result.Errors.Select(error => error.Path), Is.EqualTo(kOutOfRangePortPaths));
+    }
+
+    /// <summary>Verifies a start port above the end port is reported under the end port path.</summary>
+    [Test]
+    public void ValidateFlowComplianceState_DescendingPorts_ReportsEndPort()
+    {
+        RequestValidationErrorResponse result = ValidateJson(WithService(1024, 443, "TCP"));
+
+        Assert.That(result.Errors, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Errors[0].Path, Is.EqualTo("service[0].portEnd"));
+            Assert.That(result.Errors[0].Message, Does.Contain("must not be lower than"));
+        });
+    }
+
+    /// <summary>Verifies a null service entry is reported with the service keys it accepts.</summary>
+    [Test]
+    public void ValidateFlowComplianceState_NullServiceEntry_ReportsServiceKeys()
+    {
+        RequestValidationErrorResponse result = ValidateJson(WithServiceJson("null"));
+
+        Assert.That(result.Errors, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Errors[0].Path, Is.EqualTo("service[0]"));
+            Assert.That(result.Errors[0].Message, Does.Contain("'protocol':").And.Contain("'portStart':").And.Contain("'portEnd':"));
+        });
+    }
+
+    /// <summary>Verifies an unknown service key is reported under the path of its entry.</summary>
+    [Test]
+    public void ValidateFlowComplianceState_UnknownServiceKey_ReportsEntryPath()
+    {
+        RequestValidationErrorResponse result = ValidateJson(
+            WithServiceJson("""{"portStart":443,"portEnd":443,"protocol":"TCP","typo":true}"""));
+
+        Assert.That(result.Errors, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Errors[0].Path, Is.EqualTo("service[0].typo"));
+            Assert.That(result.Errors[0].Message, Does.Contain("is not supported by 'service[0]'"));
+        });
+    }
+
+    /// <summary>Verifies a policy id that is not greater than 0 is reported under its entry path with its value.</summary>
+    [TestCase(0)]
+    [TestCase(-1)]
+    public void ValidateFlowComplianceState_NonPositivePolicyId_ReportsEntryPath(int policyId)
+    {
+        RequestValidationErrorResponse result = ValidateJson($$"""{"policies":[1,{{policyId}}]}""");
+
+        Assert.That(result.Errors, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Errors[0].Path, Is.EqualTo("policies[1]"));
+            Assert.That(result.Errors[0].Message,
+                Is.EqualTo($"'policies[1]' must be a policy id greater than 0, but is {policyId}."));
+        });
+    }
+
+    /// <summary>Verifies an unknown root key is reported with the valid root keys.</summary>
+    [Test]
+    public void ValidateFlowComplianceState_UnknownRootKey_ReportsRootKeys()
+    {
+        RequestValidationErrorResponse result = ValidateJson("""{"typo":true}""");
+
+        Assert.That(result.Errors, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Errors[0].Path, Is.EqualTo("typo"));
+            Assert.That(result.Errors[0].Message, Does.Contain("the request root").And.Contain("'service':"));
+        });
+    }
+
+    /// <summary>Verifies errors in every part of the request are reported together instead of stopping at the first.</summary>
+    [Test]
+    public void ValidateFlowComplianceState_ErrorsEverywhere_ReportsAllTogether()
+    {
+        RequestValidationErrorResponse result = ValidateJson("""
+            {
+              "source": [{"ipHost":"banana"}],
+              "destination": [{"ipHost":"10.0.1.1"},{"ipNetwork":"10.0.0.1/33"}],
+              "service": [{"portStart":443,"portEnd":443,"protocol":""},{"portStart":443,"portEnd":80,"protocol":"TCP"}],
+              "policies": [0],
+              "typo": true
+            }
+            """);
+
+        Assert.That(result.Errors.Select(error => error.Path), Is.EqualTo(kAggregatedPaths));
+    }
+
+    /// <summary>Verifies the flow catalog check accepts a valid range.</summary>
+    [Test]
+    public void TryValidateServiceRange_ValidRange_HasNoError()
+    {
+        bool valid = FlowComplianceRequestValidator.TryValidateServiceRange(0, 65535, "service", 0, out string? errorMessage);
 
         Assert.Multiple(() =>
         {
             Assert.That(valid, Is.True);
-            Assert.That(errorResult, Is.Null);
+            Assert.That(errorMessage, Is.Null);
         });
     }
 
-    [Test]
-    public void GetFlowComplianceState_RejectsDescendingIpRange()
+    /// <summary>Verifies the flow catalog check keeps its plain text messages unchanged.</summary>
+    [TestCase(-1, 443, "'service' entry at index 2 has an invalid 'portStart' value. Allowed range is 0-65535.")]
+    [TestCase(443, 65536, "'service' entry at index 2 has an invalid 'portEnd' value. Allowed range is 0-65535.")]
+    [TestCase(1024, 443, "'service' entry at index 2 must satisfy 'portStart' <= 'portEnd'.")]
+    public void TryValidateServiceRange_InvalidRange_KeepsFlowCatalogMessage(int portStart, int portEnd, string expectedMessage)
     {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.2", IpEnd = "10.0.0.1" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [1]
-        };
-
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+        bool valid = FlowComplianceRequestValidator.TryValidateServiceRange(portStart, portEnd, "service", 2, out string? errorMessage);
 
         Assert.Multiple(() =>
         {
             Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'ipStart' <= 'ipEnd'"));
+            Assert.That(errorMessage, Is.EqualTo(expectedMessage));
         });
     }
 
-    [TestCase(-5, 443, "portStart")]
-    [TestCase(443, 70000, "portEnd")]
-    public void GetFlowComplianceState_RejectsPortsOutsideAllowedRange(int portStart, int portEnd, string expectedField)
+    private static GetFlowComplianceStateRequest Deserialize(string json)
     {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1", IpEnd = "10.0.0.2" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = portStart, PortEnd = portEnd, Protocol = "TCP" }],
-            Policies = [1]
-        };
-
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain(expectedField));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("0-65535"));
-        });
+        return JsonSerializer.Deserialize<GetFlowComplianceStateRequest>(json)!;
     }
 
-    [Test]
-    public void GetFlowComplianceState_RejectsDescendingPortRange()
+    private static RequestValidationErrorResponse ValidateJson(string json)
     {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1", IpEnd = "10.0.0.2" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 1024, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [1]
-        };
-
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'portStart' <= 'portEnd'"));
-        });
+        return FlowComplianceRequestValidator.ValidateFlowComplianceState(Deserialize(json));
     }
 
-    [TestCase(0)]
-    [TestCase(-1)]
-    public void GetFlowComplianceState_RejectsNonPositivePolicyIds(int policyId)
+    /// <summary>Builds a request that is valid except for its only source entry.</summary>
+    private static string WithSource(string addressJson)
     {
-        GetFlowComplianceStateRequest request = new()
-        {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1", IpEnd = "10.0.0.2" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
-            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
-            Policies = [policyId]
-        };
+        return $$"""{"source":[{{addressJson}}],"destination":[{"ipHost":"10.0.1.1"}],"policies":[1]}""";
+    }
 
-        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+    /// <summary>Builds a request that is valid except for its only service entry.</summary>
+    private static string WithServiceJson(string serviceJson)
+    {
+        return $$"""{"source":[{"ipHost":"10.0.0.1"}],"service":[{{serviceJson}}],"policies":[1]}""";
+    }
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(valid, Is.False);
-            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("'policies'"));
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("positive integers"));
-        });
+    private static string WithService(int portStart, int portEnd, string protocol)
+    {
+        return WithServiceJson($$"""{"portStart":{{portStart}},"portEnd":{{portEnd}},"protocol":"{{protocol}}"}""");
     }
 }

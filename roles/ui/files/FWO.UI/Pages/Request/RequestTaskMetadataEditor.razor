@@ -1,4 +1,5 @@
 @using FWO.Ui.Display
+@using FWO.Data.Flow
 
 @inject UserConfig userConfig
 
@@ -24,8 +25,8 @@
         </div>
     </div>
 
-    @if ((TaskType == WfTaskType.access && ShowField(WorkflowEditableFieldKeys.Management)) || TaskType == WfTaskType.rule_modify || TaskType == WfTaskType.rule_delete || TaskType == WfTaskType.group_create
-        || WfObjectTaskHelper.IsObjectTask(TaskType))
+    @if ((TaskType == WfTaskType.access && ShowField(WorkflowEditableFieldKeys.Management)) || TaskType == WfTaskType.rule_modify || TaskType == WfTaskType.rule_delete
+        || WfObjectTaskHelper.IsManagementObjectTask(TaskType.ToString()))
     {
         <div class="col-sm-3">
             <div class="form-group row">
@@ -99,12 +100,41 @@
         }
         @if (ShowField(WorkflowEditableFieldKeys.ValidFrom) || ShowField(WorkflowEditableFieldKeys.ValidTo))
         {
-        <DisplayTaskTargetDates @bind-TargetBeginDate="WfHandler.ActReqTask.TargetBeginDate"
-            @bind-TargetEndDate="WfHandler.ActReqTask.TargetEndDate"
-            CanEditTargetBeginDate="CanEditField(WorkflowEditableFieldKeys.ValidFrom)"
-            CanEditTargetEndDate="CanEditField(WorkflowEditableFieldKeys.ValidTo)"
-            TargetDatesValidChanged="TargetDatesValidChanged"
-            ShowOnlyFlowTimeObjectSelection="true" />
+            <div class="col-12">
+                <div class="row">
+                    @if (!WfHandler.ReadOnlyMode
+                        && (CanEditField(WorkflowEditableFieldKeys.ValidFrom) || CanEditField(WorkflowEditableFieldKeys.ValidTo)))
+                    {
+                        <TimeObjectSelector FlowIntegration="FlowIntegration"
+                            SelectedId="SelectedFlowTimeObjectId"
+                            SelectedName="@SelectedFlowTimeObjectName"
+                            TicketTimeObjects="TicketTimeObjects"
+                            SelectedIdChanged="OnFlowTimeObjectIdChanged"
+                            SelectedNameChanged="OnFlowTimeObjectNameChanged"
+                            TimeObjectSelected="OnFlowTimeObjectSelected" />
+                    }
+                    @if (WfHandler.ReadOnlyMode)
+                    {
+                        <div class="col-sm-3">
+                            <div class="form-group row mt-2">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("time_object")):</label>
+                                <div class="col-sm-8">
+                                    <label class="col-sm-12 h-100 border bg-secondary">@SelectedFlowTimeObjectDisplayName</label>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <DisplayTaskTargetDates TargetBeginDate="EffectiveTimeObjectBeginDate"
+                        TargetBeginDateChanged="OnTargetBeginDateChanged"
+                        TargetEndDate="EffectiveTimeObjectEndDate"
+                        TargetEndDateChanged="OnTargetEndDateChanged"
+                        CanEditTargetBeginDate="CanEditDateOnly(WorkflowEditableFieldKeys.ValidFrom)"
+                        CanEditTargetEndDate="CanEditDateOnly(WorkflowEditableFieldKeys.ValidTo)"
+                        TargetDatesValidChanged="TargetDatesValidChanged"
+                        ShowTargetBeginDate="ShowField(WorkflowEditableFieldKeys.ValidFrom)"
+                        ShowTargetEndDate="ShowField(WorkflowEditableFieldKeys.ValidTo)" />
+                </div>
+            </div>
         }
     }
     else if (TaskType == WfTaskType.rule_delete || TaskType == WfTaskType.rule_modify)
@@ -177,18 +207,6 @@
             </div>
         </div>
     }
-    else if (TaskType == WfTaskType.group_create)
-    {
-        <div class="col-sm-6">
-            <div class="form-group row">
-                <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-                <div class="col-sm-11">
-                    <input type="text" class="form-control form-control-sm" readonly="@(!CanEditField(WorkflowEditableFieldKeys.Name))"
-                        value="@GroupName" @onchange="GroupNameChangedFromInput" />
-                </div>
-            </div>
-        </div>
-    }
 </div>
 
 @code
@@ -228,7 +246,6 @@
     private Device? RuleDevice { get; set; }
     private FwoOwner? Owner { get; set; }
     private FwoOwner? RequestingOwner { get; set; }
-    private string? GroupName { get; set; }
     private IEnumerable<Device> SelectedDevices { get; set; } = [];
     private readonly List<Device> selectableDevices = [];
     private Device? allDevicesOption;
@@ -239,16 +256,71 @@
     public Device? CurrentRuleDevice => RuleDevice;
     public FwoOwner? CurrentOwner => Owner;
     public FwoOwner? CurrentRequestingOwner => RequestingOwner;
-    public string? CurrentGroupName => GroupName;
     public IEnumerable<Device> CurrentSelectedDevices => SelectedDevices;
     public IEnumerable<FwoOwner> NewInterfaceOwnerOptions => WfHandler.AllOwners.Where(owner => owner.Id != 0);
     public IEnumerable<FwoOwner> RequestingOwnerOptions => userConfig.CanUseAnyRole(Roles.Admin)
         ? NewInterfaceOwnerOptions
         : NewInterfaceOwnerOptions.Where(owner => userConfig.User.Ownerships.Contains(owner.Id));
-    public bool NeedsManualDeviceSelection => !IsPlanningPhaseActive()
-        && (userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask
-            || userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.oneTaskForAllDevices);
+    // The device field is offered whenever configured; entered devices take precedence over the path analysis
+    // when the implementation tasks are created, independently of the planning phase.
+    public bool NeedsManualDeviceSelection => userConfig.ReqDeviceInput != ReqDeviceInputOptions.never;
     public IEnumerable<Device> SelectableDevices => selectableDevices;
+
+    private WfReqElement? SelectedTimeObjectElement => TimeObjectElementHelper.Find(WfHandler.ActReqTask.Elements);
+    private WfReqElement? EffectiveTimeObjectElement => TimeObjectReferenceResolver.FindParallelTimeElement(
+        WfHandler.ActTicket.Tasks, WfHandler.ActReqTask, null, null) ?? SelectedTimeObjectElement;
+    private DateTime? EffectiveTimeObjectBeginDate => EffectiveTimeObjectElement?.StartTime ?? WfHandler.ActReqTask.TargetBeginDate;
+    private DateTime? EffectiveTimeObjectEndDate => EffectiveTimeObjectElement?.EndTime ?? WfHandler.ActReqTask.TargetEndDate;
+    private long? SelectedFlowTimeObjectId
+    {
+        get
+        {
+            long? selectorId = TimeObjectElementHelper.GetSelectorId(SelectedTimeObjectElement);
+            if (selectorId.HasValue)
+            {
+                return selectorId;
+            }
+
+            WfReqElement? parallelTimeElement = TimeObjectReferenceResolver.FindParallelTimeElement(
+                WfHandler.ActTicket.Tasks,
+                WfHandler.ActReqTask,
+                null,
+                null);
+            return parallelTimeElement == null
+                ? null
+                : TimeObjectReferenceResolver.GetSelectorId(parallelTimeElement);
+        }
+    }
+    private string SelectedFlowTimeObjectName
+    {
+        get
+        {
+            string? elementName = SelectedTimeObjectElement?.Name;
+            if (!string.IsNullOrWhiteSpace(elementName))
+            {
+                return elementName;
+            }
+
+            return TimeObjectReferenceResolver.FindParallelTimeElement(
+                WfHandler.ActTicket.Tasks,
+                WfHandler.ActReqTask,
+                SelectedFlowTimeObjectId,
+                null)?.Name ?? "";
+        }
+    }
+    private string SelectedFlowTimeObjectDisplayName => SelectedFlowTimeObjectName;
+    private FlowIntegrationConfig FlowIntegration => FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration);
+    private bool CanEditDateOnly(string fieldKey) => EffectiveTimeObjectElement == null && CanEditField(fieldKey);
+    private IReadOnlyList<FlowTimeObject> TicketTimeObjects => [.. TimeObjectReferenceResolver.GetTicketTimeElements(WfHandler.ActTicket.Tasks)
+        .Select(element => new FlowTimeObject
+        {
+            Id = TimeObjectReferenceResolver.GetSelectorId(element),
+            Name = element.Name ?? "",
+            StartTime = element.StartTime,
+            EndTime = element.EndTime
+        })
+        .Where(timeObject => timeObject.Id != 0)
+        .DistinctBy(timeObject => timeObject.Id)];
 
     protected override void OnParametersSet()
     {
@@ -268,7 +340,6 @@
         RuleDevice = WfHandler.Devices.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.GetRuleDeviceId());
         Owner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
         RequestingOwner = RequestingOwnerOptions.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
-        GroupName = WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
 
         List<int> selectedDeviceIds = WfHandler.ActReqTask.GetDeviceList().ToList();
         if ((selectedDeviceIds.Count == 0 && NeedsManualDeviceSelection)
@@ -340,11 +411,6 @@
         selectableDevices.AddRange(WfHandler.Devices);
     }
 
-    private bool IsPlanningPhaseActive()
-    {
-        return WfHandler.ActStateMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool isActive) && isActive;
-    }
-
     private Task OnTaskTypeChanged(WfTaskType value)
     {
         TaskType = value;
@@ -375,9 +441,66 @@
         return Task.CompletedTask;
     }
 
-    private Task GroupNameChangedFromInput(ChangeEventArgs args)
+    private Task OnFlowTimeObjectIdChanged(long? value)
     {
-        GroupName = args.Value?.ToString();
+        if (value is long selectorId && selectorId != 0)
+        {
+            WfReqElement timeElement = TimeObjectElementHelper.GetOrCreate(WfHandler.ActReqTask);
+            if (selectorId > 0)
+            {
+                TimeObjectElementHelper.SetReference(timeElement, selectorId);
+            }
+            else
+            {
+                WfReqTask? ticketTimeObjectTask = TimeObjectReferenceResolver.FindParallelTimeTask(
+                    WfHandler.ActTicket.Tasks, WfHandler.ActReqTask, selectorId, null);
+                if (ticketTimeObjectTask != null)
+                    TimeObjectElementHelper.SetTicketTaskReference(timeElement, ticketTimeObjectTask.Id);
+            }
+        }
+        else
+        {
+            WfReqElement? timeElement = SelectedTimeObjectElement;
+            if (timeElement != null)
+            {
+                WfHandler.ActReqTask.Elements.Remove(timeElement);
+                if (timeElement.Id > 0)
+                    WfHandler.ActReqTask.RemovedElements.Add(timeElement);
+            }
+            WfHandler.ActReqTask.TargetBeginDate = null;
+            WfHandler.ActReqTask.TargetEndDate = null;
+        }
         return Task.CompletedTask;
     }
+
+    private Task OnTargetBeginDateChanged(DateTime? value)
+    {
+        WfHandler.ActReqTask.TargetBeginDate = value;
+        if (SelectedTimeObjectElement != null)
+            SelectedTimeObjectElement.StartTime = value;
+        return Task.CompletedTask;
+    }
+
+    private Task OnTargetEndDateChanged(DateTime? value)
+    {
+        WfHandler.ActReqTask.TargetEndDate = value;
+        if (SelectedTimeObjectElement != null)
+            SelectedTimeObjectElement.EndTime = value;
+        return Task.CompletedTask;
+    }
+
+    private async Task OnFlowTimeObjectSelected(FlowTimeObject timeObject)
+    {
+        await OnTargetBeginDateChanged(timeObject.StartTime);
+        await OnTargetEndDateChanged(timeObject.EndTime);
+        await TargetDatesValidChanged.InvokeAsync(true);
+    }
+
+    private Task OnFlowTimeObjectNameChanged(string? value)
+    {
+        if (SelectedTimeObjectElement != null)
+            SelectedTimeObjectElement.Name = value;
+        return Task.CompletedTask;
+    }
+
 }

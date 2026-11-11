@@ -1,5 +1,8 @@
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.ExternalSystems.FirewallWrite;
+using FWO.ExternalSystems.Tufin.SecureChange;
+using FWO.Services.RulePositioning.CheckPoint;
 using System.Globalization;
 
 namespace FWO.Ui.Pages.Settings
@@ -13,17 +16,32 @@ namespace FWO.Ui.Pages.Settings
         Text,
         TemplateText,
         StringList,
-        ExtTicketSystem
+        ExtTicketSystem,
+        FirewallEndpoint,
+        FirewallTemplate,
+        SecureChangeTemplate
+    }
+
+    /// <summary>Section of the settings page a field is shown in.</summary>
+    public enum DeviceSpecificFieldSection
+    {
+        General,
+        FirewallWrite,
+        SecureChange
     }
 
     /// <summary>
     /// One selectable option for a SingleSelect field. Value is the name of the underlying data-layer enum member,
     /// TextKey the UI text key of its display name.
     /// </summary>
-    public sealed class DeviceSpecificFieldOption(string value, string textKey)
+    public sealed class DeviceSpecificFieldOption(string value, string textKey,
+        DeviceSpecificScopeType maxLevel = DeviceSpecificScopeType.Gateway)
     {
         public string Value { get; } = value;
         public string TextKey { get; } = textKey;
+
+        /// <summary>Deepest level the option is offered at, e.g. external ticket system only up to the management.</summary>
+        public DeviceSpecificScopeType MaxLevel { get; } = maxLevel;
     }
 
     /// <summary>
@@ -36,6 +54,21 @@ namespace FWO.Ui.Pages.Settings
         public required DeviceSpecificSettingKey Key { get; init; }
         public required string LabelTextKey { get; init; }
         public required string HelpTextKey { get; init; }
+
+        /// <summary>Optional second label part, e.g. the firewall write operation an endpoint or template belongs to.</summary>
+        public string? LabelDetailTextKey { get; init; }
+
+        public DeviceSpecificFieldSection Section { get; init; } = DeviceSpecificFieldSection.General;
+
+        /// <summary>
+        /// Default shipped for a device type (by id, null at Global), shown while the value is empty and restored by
+        /// "Reset to default". Null for fields without shipped defaults.
+        /// </summary>
+        public Func<int?, string?>? ShippedDefault { get; init; }
+
+        /// <summary>Only shown at Global and for device types supported by the firewall write library.</summary>
+        public bool FirewallWriteOnly { get; init; } = false;
+
         public DeviceSpecificFieldKind Kind { get; init; } = DeviceSpecificFieldKind.SingleSelect;
         public List<DeviceSpecificFieldOption> Options { get; init; } = [];
 
@@ -59,8 +92,22 @@ namespace FWO.Ui.Pages.Settings
         /// <summary>Whether the field is offered at the given level.</summary>
         public bool AppliesToLevel(DeviceSpecificScopeType level) => level >= MinLevel && level <= MaxLevel;
 
+        /// <summary>
+        /// Returns the options offered at a level. The current value stays in the list even if it is not offered at
+        /// the level, so a value stored before the option was restricted is shown as it is and can be changed.
+        /// </summary>
+        /// <param name="level">Level of the edited node.</param>
+        /// <param name="currentValue">Value shown in the editor.</param>
+        public List<DeviceSpecificFieldOption> OptionsForLevel(DeviceSpecificScopeType level, string currentValue) =>
+            [.. Options.Where(option => level <= option.MaxLevel || option.Value == currentValue)];
+
         /// <summary>Whether the field is offered on the node's current device path.</summary>
-        public bool AppliesTo(DeviceSpecificNode node) => AppliesToLevel(node.Level) && (!FortinetOnly || node.IsFortinet || node.Level == DeviceSpecificScopeType.Global);
+        public bool AppliesTo(DeviceSpecificNode node) => AppliesToLevel(node.Level)
+            && (!FortinetOnly || node.IsFortinet || node.Level == DeviceSpecificScopeType.Global)
+            && (!FirewallWriteOnly || node.Level == DeviceSpecificScopeType.Global || node.SupportsFirewallWrite);
+
+        /// <summary>The default shipped for the node's device type, or null if there is none.</summary>
+        public string? ShippedDefaultFor(DeviceSpecificNode node) => ShippedDefault?.Invoke(node.DeviceTypeId);
     }
 
     /// <summary>
@@ -84,6 +131,12 @@ namespace FWO.Ui.Pages.Settings
 
         /// <summary>True for nodes at or below a Fortinet device type.</summary>
         public bool IsFortinet { get; init; }
+
+        /// <summary>Device type of the node; null for Global.</summary>
+        public int? DeviceTypeId { get; init; }
+
+        /// <summary>True for nodes at or below a device type the firewall write library can write to.</summary>
+        public bool SupportsFirewallWrite => DeviceTypeId is int deviceTypeId && FirewallVendors.FromDeviceTypeId(deviceTypeId) != FirewallVendor.Unsupported;
 
         public string Id => $"{Level}:{Scope.ObjectKey}";
         public DeviceSpecificScopeType Level => Scope.ScopeType;
@@ -131,29 +184,70 @@ namespace FWO.Ui.Pages.Settings
             { "dss_owner_id_custom_field_name", "H5199d" },
             { "dss_change_id_custom_field_name", "H5199e" },
             { "dss_reroute_to_external_ticket_system", "H5199f" },
-            { "dss_plan_implementation", "H5199g" },
-            { "dss_plan_implementation_override_for_rules", "H5199h" },
+            { "dss_auto_plan_implementation", "H5199g" },
+            { "dss_auto_plan_implementation_for_rules", "H5199h" },
             { "dss_modelling_create_app_zones", "H5199i" },
             { "dss_modelling_implement_network_area_objects", "H5199j" },
             { "dss_modelling_dyn_ip_labels_visible_as_groups", "H5199k" },
             { "dss_importer_host_name", "H5199l" },
+            { "dss_ssh_legacy_key_exchange", "H5199x" },
             { "dss_logging", "H5190" },
             { "dss_service_object_creation", "H5191" },
             { "dss_address_object_creation", "H5192" },
             { "dss_rule_type", "H5193" },
             { "dss_templates", "H5194" },
             { "dss_positioning_algorithm", "H5195" },
+            { "dss_cp_layer_guard_section_name_template", "H5199y" },
             { "dss_common_service_separation", "H5196" },
             { "dss_zone_from", "H5198" },
             { "dss_zone_to", "H5199" },
             { "dss_modelling_connection_id_field", "H5199m" },
             { "dss_modelling_connection_id_template", "H5199m" },
+            { "dss_fw_write_check_certificates", "H5199n" },
+            { "dss_fw_write_install_policy", "H5199o" },
+            { "dss_fw_write_delete_objects", "H5199t" },
+            { "dss_fw_write_endpoint", "H5199p" },
+            { "dss_fw_write_template", "H5199q" },
+            { "ext_ticket_template", "H5595" },
+            { "ext_task_template", "H5596" },
+            { "ext_obj_template", "H5596a" },
+            { "ext_obj_short_template", "H5596b" },
+            { "ext_ip_template", "H5596c" },
+            { "ext_nwgroup_template", "H5596d" },
+            { "ext_service_template", "H5596e" },
+            { "ext_icmp_template", "H5596f" },
+            { "ext_ip_protocol_template", "H5596g" },
+        };
+
+        /// <summary>Label text keys of the SecureChange template parts, as on the former external ticket template editor.</summary>
+        private static readonly Dictionary<SecureChangeTemplatePart, string> SecureChangeTemplatePartTextKeys = new()
+        {
+            { SecureChangeTemplatePart.Ticket, "ext_ticket_template" },
+            { SecureChangeTemplatePart.Tasks, "ext_task_template" },
+            { SecureChangeTemplatePart.Object, "ext_obj_template" },
+            { SecureChangeTemplatePart.ObjectShort, "ext_obj_short_template" },
+            { SecureChangeTemplatePart.Ip, "ext_ip_template" },
+            { SecureChangeTemplatePart.NwObjGroup, "ext_nwgroup_template" },
+            { SecureChangeTemplatePart.Service, "ext_service_template" },
+            { SecureChangeTemplatePart.Icmp, "ext_icmp_template" },
+            { SecureChangeTemplatePart.IpProtocol, "ext_ip_protocol_template" },
         };
 
         private static readonly List<DeviceSpecificFieldOption> BoolOptions =
         [
             new(bool.TrueString, "yes"),
             new(bool.FalseString, "no")
+        ];
+
+        /// <summary>
+        /// Implementation modes for rules: an external ticket system takes over whole managements, so a gateway offers
+        /// automatic and manual only.
+        /// </summary>
+        private static readonly List<DeviceSpecificFieldOption> RuleImplementationModeOptions =
+        [
+            new(nameof(ProvisioningRuleImplementationMode.Automatic), "dss_opt_automatic"),
+            new(nameof(ProvisioningRuleImplementationMode.Manual), "dss_opt_manual"),
+            new(nameof(ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem), "dss_opt_reroute", DeviceSpecificScopeType.Management)
         ];
 
         /// <summary>Localized editors; config may store deeper overrides than the UI offers (MaxLevel).</summary>
@@ -170,7 +264,9 @@ namespace FWO.Ui.Pages.Settings
                     (ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection, "dss_opt_cp_end_of_app_section"),
                     (ProvisioningPositioningAlgorithm.CheckPointEndOfAppSectionDistinguishCommonServices, "dss_opt_cp_end_of_app_section_common_svc"),
                     (ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "dss_opt_default_end_of_rulebase"),
+                    (ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection, "dss_opt_cp_layer_guard_end_of_zone_pair_section"),
                     (ProvisioningPositioningAlgorithm.AllowCategoryEndOfAppSectionDistinguishCommonServices, "dss_opt_allow_category"))),
+            CheckPointLayerGuardSectionNameTemplateField(),
             EnumField(DeviceSpecificSettingKeys.RuleLoggingOverride, "dss_logging", s => s.RuleLoggingOverride,
                 EnumOptions(
                     (ProvisioningLoggingMode.Log, "dss_opt_log"),
@@ -207,22 +303,21 @@ namespace FWO.Ui.Pages.Settings
                 maxLevel: DeviceSpecificScopeType.Management),
             TextField(DeviceSpecificSettingKeys.RuleZoneToOverride, "dss_zone_to", s => s.RuleZoneToOverride, fortinetOnly: true,
                 maxLevel: DeviceSpecificScopeType.Management),
+            // objects belong to a management, so their implementation mode is set up to the management only
             EnumField(DeviceSpecificSettingKeys.ImplementationMode, "dss_implementation_mode", s => s.ImplementationMode,
                 EnumOptions(
                     (ProvisioningImplementationMode.Automatic, "dss_opt_automatic"),
                     (ProvisioningImplementationMode.Manual, "dss_opt_manual"),
-                    (ProvisioningImplementationMode.RerouteToExternalTicketSystem, "dss_opt_reroute"))),
+                    (ProvisioningImplementationMode.RerouteToExternalTicketSystem, "dss_opt_reroute")), maxLevel: DeviceSpecificScopeType.Management),
             EnumField(DeviceSpecificSettingKeys.ImplementationModeOverrideForRules, "dss_implementation_mode_override_for_rules", s => s.ImplementationModeOverrideForRules,
-                EnumOptions(
-                    (ProvisioningRuleImplementationMode.Automatic, "dss_opt_automatic"),
-                    (ProvisioningRuleImplementationMode.Manual, "dss_opt_manual"),
-                    (ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem, "dss_opt_reroute"))),
+                RuleImplementationModeOptions),
             new()
             {
                 Key = DeviceSpecificSettingKeys.RerouteToExternalTicketSystem,
                 LabelTextKey = "dss_reroute_to_external_ticket_system",
                 HelpTextKey = HelpKey("dss_reroute_to_external_ticket_system"),
                 Kind = DeviceSpecificFieldKind.ExtTicketSystem,
+                MaxLevel = DeviceSpecificScopeType.Management,
                 Read = s => s.RerouteToExternalTicketSystem?.ToString(CultureInfo.InvariantCulture) ?? "",
                 SetOverride = SetExtTicketSystemOverride
             },
@@ -241,8 +336,10 @@ namespace FWO.Ui.Pages.Settings
             TextField(DeviceSpecificSettingKeys.OwnerIdCustomFieldName, "dss_owner_id_custom_field_name", s => s.OwnerIdCustomFieldName, maxLevel: DeviceSpecificScopeType.Management),
             TextField(DeviceSpecificSettingKeys.ChangeIdCustomFieldName, "dss_change_id_custom_field_name", s => s.ChangeIdCustomFieldName, maxLevel: DeviceSpecificScopeType.Management),
             TextField(DeviceSpecificSettingKeys.ImporterHostName, "dss_importer_host_name", s => s.ImporterHostName, maxLevel: DeviceSpecificScopeType.Management),
-            BoolField(DeviceSpecificSettingKeys.PlanImplementation, "dss_plan_implementation", s => s.PlanImplementation),
-            BoolField(DeviceSpecificSettingKeys.PlanImplementationOverrideForRules, "dss_plan_implementation_override_for_rules", s => s.PlanImplementationOverrideForRules),
+            BoolField(DeviceSpecificSettingKeys.SshLegacyKeyExchange, "dss_ssh_legacy_key_exchange", s => s.SshLegacyKeyExchange,
+                DeviceSpecificScopeType.Management),
+            BoolField(DeviceSpecificSettingKeys.AutoPlanImplementation, "dss_auto_plan_implementation", s => s.AutoPlanImplementation),
+            BoolField(DeviceSpecificSettingKeys.AutoPlanImplementationForRules, "dss_auto_plan_implementation_for_rules", s => s.AutoPlanImplementationForRules),
             BoolField(DeviceSpecificSettingKeys.ModellingCreateAppZones, "dss_modelling_create_app_zones", s => s.ModellingCreateAppZones,
                 DeviceSpecificScopeType.Management),
             BoolField(DeviceSpecificSettingKeys.ModellingImplementNetworkAreaObjects, "dss_modelling_implement_network_area_objects", s => s.ModellingImplementNetworkAreaObjects,
@@ -258,7 +355,127 @@ namespace FWO.Ui.Pages.Settings
                 maxLevel: DeviceSpecificScopeType.Management),
             TextField(DeviceSpecificSettingKeys.Templates, "dss_templates", s => s.Templates, DeviceSpecificFieldKind.TemplateText,
                 minLevel: DeviceSpecificScopeType.DeviceType, maxLevel: DeviceSpecificScopeType.DeviceType),
+            .. FirewallWriteFields(),
+            .. SecureChangeTemplateFields(),
         ];
+
+        /// <summary>Text key of the label of a firewall write operation, e.g. "dss_fw_op_host_create".</summary>
+        public static string OperationTextKey(FirewallWriteOperation operation) => SnakeCaseTextKey("dss_fw_op", operation.ToString());
+
+        /// <summary>Text key of the label of a SecureChange task type, e.g. "dss_sc_task_access_request".</summary>
+        public static string SecureChangeTaskTextKey(SCTaskType taskType) => SnakeCaseTextKey("dss_sc_task", taskType.ToString());
+
+        /// <summary>Appends a CamelCase name to a prefix in snake case, e.g. "dss_fw_op" and "HostCreate" to "dss_fw_op_host_create".</summary>
+        private static string SnakeCaseTextKey(string prefix, string name)
+        {
+            System.Text.StringBuilder textKey = new(prefix);
+            foreach (char character in name)
+            {
+                if (char.IsUpper(character))
+                {
+                    textKey.Append('_');
+                }
+                textKey.Append(char.ToLowerInvariant(character));
+            }
+            return textKey.ToString();
+        }
+
+        /// <summary>
+        /// Fields of the firewall write library: certificate checks, policy installation and object deletion, then endpoint and body
+        /// template per operation. Endpoints and templates show the default shipped for the device type while empty.
+        /// </summary>
+        private static List<DeviceSpecificFieldDefinition> FirewallWriteFields()
+        {
+            List<DeviceSpecificFieldDefinition> fields =
+            [
+                BoolField(FirewallWriteSettingKeys.CheckCertificates, "dss_fw_write_check_certificates", s => s.FwWriteCheckCertificates,
+                    DeviceSpecificScopeType.Management, DeviceSpecificFieldSection.FirewallWrite),
+                BoolField(FirewallWriteSettingKeys.InstallPolicy, "dss_fw_write_install_policy", s => s.FwWriteInstallPolicy,
+                    section: DeviceSpecificFieldSection.FirewallWrite),
+                BoolField(FirewallWriteSettingKeys.DeleteObjects, "dss_fw_write_delete_objects", s => s.FwWriteDeleteObjects,
+                    section: DeviceSpecificFieldSection.FirewallWrite)
+            ];
+            foreach (FirewallWriteOperation operation in Enum.GetValues<FirewallWriteOperation>())
+            {
+                fields.Add(FirewallWriteField(FirewallWriteSettingKeys.Endpoints[operation], operation, DeviceSpecificFieldKind.FirewallEndpoint,
+                    s => s.FwWriteEndpoints, deviceTypeId => deviceTypeId is int id ? FirewallWriteDefaults.GetEndpoint(id, operation) : null));
+                fields.Add(FirewallWriteField(FirewallWriteSettingKeys.Templates[operation], operation, DeviceSpecificFieldKind.FirewallTemplate,
+                    s => s.FwWriteTemplates, deviceTypeId => deviceTypeId is int id ? FirewallWriteDefaults.GetTemplate(id, operation) : null));
+            }
+            return fields;
+        }
+
+        /// <summary>
+        /// Fields of the Tufin SecureChange ticket templates: one per task type and template part, offered from Global down to
+        /// the management. Templates show the shipped default while empty; most parts have none.
+        /// </summary>
+        private static IEnumerable<DeviceSpecificFieldDefinition> SecureChangeTemplateFields() =>
+            SecureChangeTemplateSettingKeys.Keys.Select(entry => SecureChangeTemplateField(entry.Value, entry.Key.TaskType, entry.Key.Part));
+
+        private static DeviceSpecificFieldDefinition SecureChangeTemplateField(DeviceSpecificSettingKey<string> key, SCTaskType taskType,
+            SecureChangeTemplatePart part)
+        {
+            string textKey = SecureChangeTemplatePartTextKeys[part];
+            return new()
+            {
+                Key = key,
+                LabelTextKey = textKey,
+                LabelDetailTextKey = SecureChangeTaskTextKey(taskType),
+                HelpTextKey = HelpKey(textKey),
+                Kind = DeviceSpecificFieldKind.SecureChangeTemplate,
+                Section = DeviceSpecificFieldSection.SecureChange,
+                MaxLevel = DeviceSpecificScopeType.Management,
+                ShippedDefault = _ => SCTemplateDefaults.Get(taskType, part),
+                Read = s => (string)key.DtoGetter!(s),
+                SetOverride = (changes, value) => changes.Set(key, value)
+            };
+        }
+
+        private static DeviceSpecificFieldDefinition FirewallWriteField(DeviceSpecificSettingKey<string> key, FirewallWriteOperation operation,
+            DeviceSpecificFieldKind kind, Func<GlobalDeviceSpecificSettings, Dictionary<FirewallWriteOperation, string>> store,
+            Func<int?, string?> shippedDefault)
+        {
+            string textKey = kind == DeviceSpecificFieldKind.FirewallEndpoint ? "dss_fw_write_endpoint" : "dss_fw_write_template";
+            return new()
+            {
+                Key = key,
+                LabelTextKey = textKey,
+                LabelDetailTextKey = OperationTextKey(operation),
+                HelpTextKey = HelpKey(textKey),
+                Kind = kind,
+                Section = DeviceSpecificFieldSection.FirewallWrite,
+                FirewallWriteOnly = true,
+                MinLevel = DeviceSpecificScopeType.DeviceType,
+                ShippedDefault = shippedDefault,
+                Read = s => store(s).GetValueOrDefault(operation, ""),
+                SetOverride = (changes, value) => changes.Set(key, ValidateFirewallWriteValue(kind, value))
+            };
+        }
+
+        /// <summary>Endpoints must have the form "METHOD path"; an empty value stands for the shipped default.</summary>
+        private static string ValidateFirewallWriteValue(DeviceSpecificFieldKind kind, string value)
+        {
+            if (kind == DeviceSpecificFieldKind.FirewallEndpoint && !string.IsNullOrWhiteSpace(value))
+            {
+                return FirewallWriteEndpoint.Parse(value).ToString();
+            }
+            return value;
+        }
+
+        /// <summary>
+        /// The endpoint value after its method or path was changed in the editor. While the value is empty, the part that
+        /// was not changed is taken from the shipped default, so changing one part takes the default over for editing.
+        /// </summary>
+        /// <param name="value">Current value; empty stands for the shipped default.</param>
+        /// <param name="shippedDefault">Default shipped for the device type, if any.</param>
+        /// <param name="method">New method, or null if the path was changed.</param>
+        /// <param name="path">New path, or null if the method was changed.</param>
+        public static string ChangeEndpoint(string value, string? shippedDefault, string? method = null, string? path = null)
+        {
+            string baseValue = string.IsNullOrWhiteSpace(value) ? shippedDefault ?? "" : value;
+            (string currentMethod, string currentPath) = FirewallWriteEndpoint.SplitSetting(baseValue);
+            return FirewallWriteEndpoint.CombineSetting(method ?? currentMethod, path ?? currentPath);
+        }
 
         /// <summary>Returns the field definition of a setting key, or null if the key is not edited in the UI.</summary>
         public static DeviceSpecificFieldDefinition? FindField(DeviceSpecificSettingKey key) => Fields.FirstOrDefault(f => f.Key == key);
@@ -303,16 +520,17 @@ namespace FWO.Ui.Pages.Settings
                 DeviceType deviceType = group.First().DeviceType;
                 bool isFortinet = deviceType.Manufacturer == FortinetManufacturer;
                 DeviceSpecificNode deviceTypeNode = NewNode(persisted, DeviceSpecificScopePath.ForDeviceType(deviceType),
-                    deviceType.NameVersion(), global, isFortinet);
+                    deviceType.NameVersion(), global, isFortinet, deviceType.Id);
 
                 foreach (Management management in group.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase))
                 {
                     DeviceSpecificNode managementNode = NewNode(persisted, DeviceSpecificScopePath.ForManagement(management),
-                        management.Name, deviceTypeNode, isFortinet);
+                        management.Name, deviceTypeNode, isFortinet, deviceType.Id);
 
                     foreach (Device device in management.Devices.OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase))
                     {
-                        NewNode(persisted, DeviceSpecificScopePath.ForGateway(management, device), device.Name ?? ObjectKey(device.Id), managementNode, isFortinet);
+                        NewNode(persisted, DeviceSpecificScopePath.ForGateway(management, device), device.Name ?? ObjectKey(device.Id), managementNode, isFortinet,
+                            deviceType.Id);
                     }
                 }
             }
@@ -330,13 +548,22 @@ namespace FWO.Ui.Pages.Settings
             DeviceSpecificScopePath path,
             string name,
             DeviceSpecificNode? parent,
-            bool isFortinet)
+            bool isFortinet,
+            int? deviceTypeId = null)
         {
             DeviceSpecificSettingsScope scope = persisted.TryGetValue((path.ScopeType, path.ObjectKey), out DeviceSpecificSettingsScope? stored)
                 ? stored
                 : new() { ScopeType = path.ScopeType, ObjectKey = path.ObjectKey, DisplayName = name };
 
-            DeviceSpecificNode node = new() { Scope = scope, Path = path, Name = name, Parent = parent, IsFortinet = isFortinet };
+            DeviceSpecificNode node = new()
+            {
+                Scope = scope,
+                Path = path,
+                Name = name,
+                Parent = parent,
+                IsFortinet = isFortinet,
+                DeviceTypeId = deviceTypeId
+            };
             parent?.Children.Add(node);
             return node;
         }
@@ -380,11 +607,35 @@ namespace FWO.Ui.Pages.Settings
                 SetOverride = (changes, value) => changes.Set(key, value)
             };
 
+        /// <summary>Creates the LayerGuard section name field with its template validation.</summary>
+        private static DeviceSpecificFieldDefinition CheckPointLayerGuardSectionNameTemplateField() => new()
+        {
+            Key = DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate,
+            LabelTextKey = "dss_cp_layer_guard_section_name_template",
+            HelpTextKey = HelpKey("dss_cp_layer_guard_section_name_template"),
+            Kind = DeviceSpecificFieldKind.Text,
+            Read = settings => settings.CheckPointLayerGuardSectionNameTemplate,
+            SetOverride = (changes, value) => changes.Set(
+                DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate,
+                ValidateCheckPointLayerGuardSectionNameTemplate(value))
+        };
+
+        private static string ValidateCheckPointLayerGuardSectionNameTemplate(string value)
+        {
+            if (!CheckPointSectionNameTemplate.Parse(value).IsSuccess)
+            {
+                throw new ArgumentException("The Check Point LayerGuard section name template is invalid.",
+                    DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.DatabaseKey);
+            }
+            return value;
+        }
+
         private static DeviceSpecificFieldDefinition BoolField(
             DeviceSpecificSettingKey<bool> key,
             string textKey,
             Func<GlobalDeviceSpecificSettings, bool> get,
-            DeviceSpecificScopeType maxLevel = DeviceSpecificScopeType.Gateway) => new()
+            DeviceSpecificScopeType maxLevel = DeviceSpecificScopeType.Gateway,
+            DeviceSpecificFieldSection section = DeviceSpecificFieldSection.General) => new()
             {
                 Key = key,
                 LabelTextKey = textKey,
@@ -392,6 +643,8 @@ namespace FWO.Ui.Pages.Settings
                 Kind = DeviceSpecificFieldKind.SingleSelect,
                 Options = BoolOptions,
                 MaxLevel = maxLevel,
+                Section = section,
+                FirewallWriteOnly = section == DeviceSpecificFieldSection.FirewallWrite,
                 Read = s => get(s).ToString(),
                 SetOverride = (changes, value) => changes.Set(key, bool.Parse(value))
             };

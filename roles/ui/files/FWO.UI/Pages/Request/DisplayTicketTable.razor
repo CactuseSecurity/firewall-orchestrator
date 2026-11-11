@@ -18,6 +18,7 @@
                     @if (CanEditTicketInPhase(context))
                     {
                         <button type="button" class="btn btn-sm btn-warning" @onclick="async () => await EditTicket(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await ShowTicketDetails(context)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                     }
                     else
                     {
@@ -65,12 +66,23 @@
         {
             <Column TableItem="WfTicket" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true" />
         }
+        @if (TicketFieldVisibility.HandlerDisplayMode != TicketHandlerDisplayMode.None)
+        {
+            <Column TableItem="WfTicket" Title="@(userConfig.GetText("current_handlers"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+                <Template>
+                    @(DisplayHandlers(context))
+                </Template>
+            </Column>
+        }
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("created"))" Field="@(x => x.CreationDate)" Sortable="true" Filterable="true" />
-        <Column TableItem="WfTicket" Title="@(userConfig.GetText("closed"))" Field="@(x => x.CompletionDate)" Sortable="true" Filterable="true" />
+        @if (Overview)
+        {
+            <Column TableItem="WfTicket" Title="@(userConfig.GetText("closed"))" Field="@(x => x.CompletionDate)" Sortable="true" Filterable="true" />
+        }
     </Table>
 </div>
 
-<DisplayTicket Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" 
+<DisplayTicket Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" OpenApprovalTaskDetails="openApprovalTaskDetails"
     StartPhase="StartPhase" StartImplPhase="StartImplPhase"/>
 
 
@@ -106,6 +118,7 @@
 
     private async Task Reset()
     {
+        openApprovalTaskDetails = false;
         WfHandler.ResetTicketActions();
         await ResetParent();
         StateHasChanged();
@@ -113,20 +126,80 @@
 
     private async Task ShowTicketDetails(WfTicket ticket)
     {
+        openApprovalTaskDetails = false;
         await WfHandler.SelectTicket(ticket, ObjAction.display, true);
     }
 
     private async Task AddTicket()
     {
+        openApprovalTaskDetails = false;
         await WfHandler.SelectTicket(new (){ Requester = userConfig.User }, ObjAction.add);
     }
 
     private async Task EditTicket(WfTicket ticket)
     {
+        openApprovalTaskDetails = UseApprovalTaskDetailsView;
         await WfHandler.SelectTicket(ticket, ObjAction.edit, true);
     }
 
     private TicketFieldVisibilityConfig TicketFieldVisibility => TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility);
+
+    private string DisplayHandlers(WfTicket ticket)
+    {
+        IEnumerable<UiUser?> handlers = TicketFieldVisibility.HandlerDisplayMode == TicketHandlerDisplayMode.CurrentPhase
+            ? GetCurrentPhaseHandlers(ticket)
+            : GetAllActiveTaskHandlers(ticket);
+
+        return string.Join(", ", handlers
+            .Where(handler => handler != null)
+            .GroupBy(HandlerKey)
+            .Select(group => group.First()!.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name)));
+    }
+
+    private IEnumerable<UiUser?> GetCurrentPhaseHandlers(WfTicket ticket)
+    {
+        foreach (WfReqTask task in ticket.Tasks.Where(IsInCurrentPhase))
+        {
+            if (Phase < WorkflowPhases.implementation)
+            {
+                yield return task.CurrentHandler;
+            }
+            else
+            {
+                foreach (WfImplTask implTask in task.ImplementationTasks.Where(IsInCurrentPhase))
+                {
+                    yield return implTask.CurrentHandler;
+                }
+            }
+        }
+    }
+
+    private IEnumerable<UiUser?> GetAllActiveTaskHandlers(WfTicket ticket)
+    {
+        foreach (WfReqTask task in ticket.Tasks.Where(task => task.StateId < WfHandler.MasterStateMatrix.MinTicketCompleted))
+        {
+            yield return task.CurrentHandler;
+            foreach (WfImplTask implTask in task.ImplementationTasks)
+            {
+                yield return implTask.CurrentHandler;
+            }
+        }
+    }
+
+    private bool IsInCurrentPhase(WfStatefulObject statefulObject)
+    {
+        StateMatrix matrix = WfHandler.StateMatrix(
+            statefulObject is WfReqTask task ? task.TaskType : ((WfImplTask)statefulObject).TaskType);
+        return statefulObject.StateId >= matrix.LowestInputState && statefulObject.StateId < matrix.LowestEndState;
+    }
+
+    private static string HandlerKey(UiUser? handler)
+    {
+        return handler?.DbId > 0
+            ? $"id:{handler.DbId}"
+            : $"dn:{handler?.Dn ?? handler?.Name ?? ""}";
+    }
 
     /// <summary>
     /// Checks whether the dialogs for changing tickets are offered: on a phase page also to read-only users,
@@ -139,12 +212,19 @@
 
     /// <summary>
     /// Checks whether the ticket is open for changes in this phase. Read-only users open it in the same dialog,
-    /// where saving stays reserved to the phase roles.
+    /// where saving stays reserved to the phase roles. In the request phase, users who may save only get it for tickets
+    /// they may change.
     /// </summary>
     private bool CanEditTicketInPhase(WfTicket ticket)
     {
         return CanOpenChangeDialogs()
+            && (Phase != WorkflowPhases.request || ticket.Editable || WfHandler.ReadOnlyMode)
             && ticket.StateId >= WfHandler.MasterStateMatrix.LowestInputState
             && ticket.StateId < WfHandler.MasterStateMatrix.LowestEndState;
     }
+
+    private bool UseApprovalTaskDetailsView => Phase == WorkflowPhases.approval
+        && userConfig.ReqApprovalEditMode == ApprovalEditMode.AccessTaskView;
+
+    private bool openApprovalTaskDetails;
 }

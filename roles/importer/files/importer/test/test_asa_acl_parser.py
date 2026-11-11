@@ -20,6 +20,7 @@ from fw_modules.ciscoasa9.asa_normalize import normalize_config
 from fw_modules.ciscoasa9.asa_parser import parse_asa_config
 from fw_modules.ciscoasa9.asa_rule import create_rule_from_acl_entry, resolve_network_reference_for_rule
 from fwo_exceptions import FwoImporterError
+from fwo_redaction import REDACTED_VALUE
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 
@@ -359,3 +360,12 @@ def test_consecutive_service_group_members_are_all_kept() -> None:
     nested_refs: dict[str, list[str]] = {group.name: group.nested_refs for group in config.service_object_groups}
     assert nested_refs["ALL_GROUPS"] == ["G1", "G2", "G3"]
     assert nested_refs["ALL_OBJECTS"] == ["S1", "S2", "S3"]
+
+
+def test_enable_password_hash_is_not_kept_in_the_native_config() -> None:
+    password_hash = "fwoSweepEnableHash123"  # noqa: S105
+    config = parse_asa_config(f"hostname fw1\nenable password {password_hash} pbkdf2\n")
+
+    assert config.enable_password.password == REDACTED_VALUE
+    assert config.enable_password.encryption_function == "pbkdf2"
+    assert password_hash not in config.model_dump_json()

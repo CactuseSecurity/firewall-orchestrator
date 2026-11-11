@@ -30,10 +30,11 @@ namespace FWO.Test
         private static readonly List<int?> kBothSubManagements = [kFirstSubManagementId, kSecondSubManagementId];
         private static readonly List<int?> kSuperManagementOnly = [kSuperManagementId];
         private static readonly List<int?> kNoManagement = [null];
-        private static readonly List<int?> kExistingAndSecondSubManagement = [null, kSecondSubManagementId];
+        private static readonly List<int?> kExistingAndSecondSubManagement = [kFirstSubManagementId, kSecondSubManagementId];
         private static readonly List<int?> kAllGateways = [1, 2, 3];
         private static readonly List<int?> kRemainingGateways = [2, 3];
         private static readonly List<int> kOffsetsOfTwoSinglePages = [0, 1];
+        private static readonly List<int> kGatewayIds = [1, 2, 3];
 
         private static InMemoryDeviceSpecificSettingsApiConnection CreateApi(ProvisioningObjectCreationMode globalMode)
         {
@@ -48,9 +49,9 @@ namespace FWO.Test
             return api;
         }
 
-        private static WfHandler CreateMiddlewareHandler(InMemoryDeviceSpecificSettingsApiConnection api, AutoCreateImplTaskOptions option = AutoCreateImplTaskOptions.never)
+        private static WfHandler CreateMiddlewareHandler(InMemoryDeviceSpecificSettingsApiConnection api)
         {
-            return new WfHandler(new SimulatedUserConfig { ReqAutoCreateImplTasks = option }, api, WorkflowPhases.planning, null);
+            return new WfHandler(new SimulatedUserConfig(), api, WorkflowPhases.planning, null);
         }
 
         /// <summary>
@@ -117,6 +118,26 @@ namespace FWO.Test
             ((StateMatrixDict)field.GetValue(handler)!).Matrices[taskType] = matrix;
         }
 
+        private static void SetDbAccess(
+            WfHandler handler,
+            SimulatedApiConnection apiConnection,
+            RecordingRulePositioningWorkflowCaller caller)
+        {
+            ActionHandler actionHandler = new(apiConnection, handler, null, true, null, null, caller);
+            actionHandler.Init([new WfState { Id = kOpenStateId }]).GetAwaiter().GetResult();
+            WfDbAccess dbAccess = new(
+                DefaultInit.DoNothing,
+                handler.userConfig,
+                apiConnection,
+                actionHandler,
+                false,
+                WorkflowPhases.planning,
+                false);
+            FieldInfo field = typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(nameof(WfHandler), "dbAcc");
+            field.SetValue(handler, dbAccess);
+        }
+
         private static List<int?> ManagementIds(WfReqTask reqTask)
         {
             return [.. reqTask.ImplementationTasks.Select(implTask => implTask.ManagementId)];
@@ -159,9 +180,42 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ObjectTask_WithoutRequestManagementKeepsSingleTaskWithoutManagement()
+        public async Task ObjectTask_WithoutRequestManagementUsesEveryHierarchyInMiddleware()
         {
             WfHandler handler = CreateMiddlewareHandler(CreateApi(ProvisioningObjectCreationMode.Submanager));
+            WfReqTask reqTask = CreateGroupTask(null);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ManagementIds(reqTask), Is.EqualTo(kBothSubManagements));
+                Assert.That(reqTask.ImplementationTasks[0].Title, Is.EqualTo("New group: " + kFirstSubName));
+            });
+        }
+
+        [Test]
+        public async Task ObjectTask_WithoutRequestManagementInUiAsksTheMiddlewareForAllManagements()
+        {
+            ImplTaskTargetMiddlewareClient middlewareClient = new(CreateApi(ProvisioningObjectCreationMode.Submanager));
+            WfHandler handler = CreateUiHandler(middlewareClient);
+            WfReqTask reqTask = CreateGroupTask(null);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ManagementIds(reqTask), Is.EqualTo(kBothSubManagements), "the same targets as in the middleware");
+                Assert.That(middlewareClient.Calls.Single().ManagementId, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task ObjectTask_WithoutRequestManagementFallsBackToSingleTaskWhenResolutionFails()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Submanager);
+            api.FailingQuery = FWO.Api.Client.Queries.DeviceQueries.getManagementHierarchy;
+            WfHandler handler = CreateMiddlewareHandler(api);
             WfReqTask reqTask = CreateGroupTask(null);
 
             await InvokeAutoCreateImplTasks(handler, reqTask);
@@ -170,11 +224,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ObjectTask_PersistedCreationDoesNotActivateRulePositioning()
+        {
+            WfReqTask reqTask = CreateGroupTask(null);
+            reqTask.TicketId = 5;
+            WfTicket ticket = new() { Id = 5, Tasks = { reqTask } };
+            WfHandler handler = new()
+            {
+                userConfig = new SimulatedUserConfig(),
+                ActTicket = ticket
+            };
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            ImplTaskCreationApiConnection apiConnection = new(ticket);
+            SetDbAccess(handler, apiConnection, caller);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.InsertCount, Is.EqualTo(1));
+                Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
+                Assert.That(caller.CalculationCount, Is.Zero);
+            });
+        }
+
+        [Test]
         public async Task ObjectTask_RerunSkipsManagementsWithExistingTasks()
         {
             WfHandler handler = CreateMiddlewareHandler(CreateApi(ProvisioningObjectCreationMode.Submanager));
-            WfReqTask reqTask = CreateGroupTask(kFirstSubManagementId);
-            reqTask.ImplementationTasks.Add(new WfImplTask { Id = 100, TaskNumber = 1, ManagementId = null });
+            WfReqTask reqTask = CreateGroupTask(kSuperManagementId);
+            reqTask.ImplementationTasks.Add(new WfImplTask { Id = 100, TaskNumber = 1, ManagementId = kFirstSubManagementId });
 
             await InvokeAutoCreateImplTasks(handler, reqTask);
 
@@ -391,8 +470,11 @@ namespace FWO.Test
         [Test]
         public async Task AccessTask_RerunSkipsGatewaysWithExistingTasks()
         {
-            WfHandler handler = CreateMiddlewareHandler(CreateApi(ProvisioningObjectCreationMode.Supermanager), AutoCreateImplTaskOptions.forEachDevice);
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Supermanager);
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateMiddlewareHandler(api);
             handler.Devices = CreateDevices();
+            handler.PathAnalyzerOverride = new FixedPathAnalyzer(kGatewayIds);
             WfReqTask reqTask = CreateAccessTask(kSuperManagementId);
             reqTask.ImplementationTasks.Add(new WfImplTask { Id = 100, TaskNumber = 1, DeviceId = 1 });
 
@@ -440,7 +522,9 @@ namespace FWO.Test
         [Test]
         public async Task CreateMissingImplTasksForTicket_DoesNotDuplicateGenericTasksOnRerun()
         {
-            WfHandler handler = CreateMiddlewareHandler(CreateApi(ProvisioningObjectCreationMode.Supermanager));
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Supermanager);
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateMiddlewareHandler(api);
             SetMatrix(handler, WfTaskType.rule_delete.ToString(), new StateMatrix { MinTicketCompleted = kCompletedStateId });
             WfReqTask ruleDeleteTask = new() { Id = 11, TaskType = WfTaskType.rule_delete.ToString(), StateId = kOpenStateId, Title = "Delete rule" };
             WfTicket ticket = new() { Id = 5, Tasks = [ruleDeleteTask] };
@@ -485,11 +569,10 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AccessTask_AfterPathAnalysisCreatesTaskForEveryFoundGateway()
+        public async Task AccessTask_PathAnalysisToolCreatesTaskForEveryFoundGateway()
         {
             PathAnalysisApiConnection api = new(CreateDevices());
-            WfHandler handler = new(new SimulatedUserConfig { ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.afterPathAnalysis },
-                api, WorkflowPhases.planning, null)
+            WfHandler handler = new(new SimulatedUserConfig(), api, WorkflowPhases.planning, null)
             {
                 Devices = CreateDevices()
             };
@@ -497,7 +580,7 @@ namespace FWO.Test
             reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.source.ToString(), Cidr = new Cidr("10.0.0.1/32") });
             reqTask.Elements.Add(new WfReqElement { Field = ElemFieldType.destination.ToString(), Cidr = new Cidr("10.0.1.1/32") });
 
-            await InvokeAutoCreateImplTasks(handler, reqTask);
+            await handler.CreateAccessImplTasksFromPathAnalysis(reqTask);
 
             Assert.Multiple(() =>
             {
@@ -529,8 +612,10 @@ namespace FWO.Test
                         IsSuccessStatusCode = false
                     };
                 }
-                List<Management> targets = await new ImplTaskManagementResolver(middlewareApi)
-                    .ResolveObjectTargets(parameters.ManagementId, ToKind(parameters));
+                ImplTaskManagementResolver resolver = new(middlewareApi);
+                List<Management> targets = parameters.ManagementId is int managementId
+                    ? await resolver.ResolveObjectTargets(managementId, ToKind(parameters))
+                    : await resolver.ResolveObjectTargetsOfAllManagements(ToKind(parameters));
                 List<Management> page = [.. targets.Skip(parameters.Options.Offset).Take(PageSize)];
                 bool hasMore = AlwaysHasMore || parameters.Options.Offset + page.Count < targets.Count;
                 List<HeaderParameter> headers = [new HeaderParameter(ImplTaskTargetPaging.kHasMoreHeader, hasMore ? "true" : "false")];
@@ -562,7 +647,7 @@ namespace FWO.Test
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null,
                 FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
-                if (query == FWO.Api.Client.Queries.NetworkAnalysisQueries.pathAnalysis)
+                if (query == FWO.Api.Client.Queries.PathAnalysisQueries.pathAnalysis)
                 {
                     return Task.FromResult((QueryResponseType)(object)foundDevices);
                 }

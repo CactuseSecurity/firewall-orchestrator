@@ -93,7 +93,7 @@ WITH phase_data AS (
     JOIN tmp_state_matrix_seed c ON c.config_key = mk.config_key
     CROSS JOIN LATERAL jsonb_each((c.config_value::jsonb)->'config_value') AS phase
 )
-INSERT INTO request.state_matrix_phase (name, phase, active, lowest_input_state, lowest_start_state, lowest_end_state, phase_visibility_mode)
+INSERT INTO request.state_matrix_phase (name, phase, active, lowest_input_state, lowest_start_state, lowest_end_state, phase_visibility_mode, promotion_mode)
 SELECT
     phase_name,
     phase,
@@ -101,7 +101,8 @@ SELECT
     (phase_config->>'lowest_input_state')::int,
     (phase_config->>'lowest_start_state')::int,
     (phase_config->>'lowest_end_state')::int,
-    COALESCE(phase_config->>'phase_visibility_mode', 'AnyTask')
+    COALESCE(phase_config->>'phase_visibility_mode', 'AnyTask'),
+    COALESCE(phase_config->>'promotion_mode', 'Both')
 FROM phase_data
 ON CONFLICT (name) DO UPDATE SET
     phase = EXCLUDED.phase,
@@ -109,7 +110,8 @@ ON CONFLICT (name) DO UPDATE SET
     lowest_input_state = EXCLUDED.lowest_input_state,
     lowest_start_state = EXCLUDED.lowest_start_state,
     lowest_end_state = EXCLUDED.lowest_end_state,
-    phase_visibility_mode = EXCLUDED.phase_visibility_mode;
+    phase_visibility_mode = EXCLUDED.phase_visibility_mode,
+    promotion_mode = EXCLUDED.promotion_mode;
 
 WITH phase_data AS (
     SELECT
@@ -232,3 +234,9 @@ ON CONFLICT (phase_matrix_id, from_state_id) DO UPDATE SET
 
 DROP TABLE IF EXISTS pg_temp.tmp_state_matrix_key;
 DROP TABLE IF EXISTS pg_temp.tmp_state_matrix_seed;
+
+-- Implementation tasks are only created automatically by the state action "Create implementation tasks". It is
+-- provided once, but not attached to a state: an administrator decides where it runs, e.g. at the state approved.
+INSERT INTO request.action (name, action_type, scope, task_type, phase, event, button_text, external_parameters)
+SELECT 'Create implementation tasks', 'CreateImplTasks', 'Ticket', '', '', 'OnSet', '', ''
+WHERE NOT EXISTS (SELECT 1 FROM request.action WHERE action_type = 'CreateImplTasks');

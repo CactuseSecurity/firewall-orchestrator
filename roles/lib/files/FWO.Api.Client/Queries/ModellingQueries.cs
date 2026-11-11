@@ -126,6 +126,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string getAppZones;
         public static readonly string getApplicationIpAddresses;
         public static readonly string getAppZonesByAppId;
+        public static readonly string getAvailableInterfacesForApp;
+        public static readonly string getAppRolesPerApp;
+        public static readonly string getNetworkAreas;
 
         public static readonly string getOwnersForRuleOwnerNameField;
         public static readonly string getOwnersForRuleOwnerNameFieldFilteredByOwner;
@@ -166,7 +169,7 @@ namespace FWO.Api.Client.Queries
                 getConnectionIdsForAppServer = GetQueryText("modelling/getConnectionIdsForAppServer.graphql");
 
                 getPublishedInterfaces = connectionDetailsFragment + GetQueryText("modelling/getPublishedInterfaces.graphql");
-                getRequestedInterfaces = connectionDetailsFragment + GetQueryText("modelling/getRequestedInterfaces.graphql");
+                getRequestedInterfaces = GetQueryText("modelling/getRequestedInterfaces.graphql");
                 getConnectionById = connectionDetailsFragment + GetQueryText("modelling/getConnectionById.graphql");
                 getConnectionForNotification = GetQueryText("modelling/getConnectionForNotification.graphql");
                 getConnections = connectionDetailsFragment + GetQueryText("modelling/getConnections.graphql");
@@ -257,6 +260,9 @@ namespace FWO.Api.Client.Queries
                 getAppZones = appServerDetailsFragment + GetQueryText("modelling/getAppZones.graphql");
                 getApplicationIpAddresses = GetQueryText("modelling/getApplicationIpAddresses.graphql");
                 getAppZonesByAppId = appServerDetailsFragment + GetQueryText("modelling/getAppZonesByAppId.graphql");
+                getAvailableInterfacesForApp = GetQueryText("modelling/getAvailableInterfacesForApp.graphql");
+                getAppRolesPerApp = GetQueryText("modelling/getAppRolesPerApp.graphql");
+                getNetworkAreas = GetQueryText("modelling/getNetworkAreas.graphql");
 
                 getOwnersForRuleOwnerNameField = GetQueryText("modelling/getOwnersForRuleOwnerNameField.graphql");
                 getOwnersForRuleOwnerNameFieldFilteredByOwner = GetQueryText("modelling/getOwnersForRuleOwnerNameFieldFilteredByOwner.graphql");

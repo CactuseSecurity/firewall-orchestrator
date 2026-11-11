@@ -21,6 +21,9 @@ namespace FWO.Test
     {
         private static readonly string[] kExpectedBothRuleNames = ["Source", "Destination"];
         private static readonly string[] kExpectedZeroMinPrefixRuleNames = ["Source", "AnySource"];
+        private static readonly string[] kFirstPageRuleNames = ["Source"];
+        private static readonly string[] kSecondPageRuleNames = ["Destination"];
+        private static readonly string[] kBothPageRuleNames = ["Source", "Destination"];
 
         [Test]
         public async Task GetRulesByFilter_ShouldWorkWithOwnerId()
@@ -378,9 +381,135 @@ namespace FWO.Test
             AssertRelationFiltersActiveAndRemoved(RuleQueries.getActiveRulesByOwner, "rule_services");
         }
 
-        private static RuleController CreateController(ApiConnection apiConnection, string requestId)
+        [Test]
+        public void ActiveRulesByOwnerQuery_ShouldExcludeDisabledAndRemovedRules()
         {
-            RuleController controller = new(apiConnection);
+            string ruleArguments = RemoveWhitespace(ExtractRelationArguments(RuleQueries.getActiveRulesByOwner, "firewall_rule"));
+            string ruleOwnerArguments = RemoveWhitespace(ExtractRuleOwnerFilter(RuleQueries.getActiveRulesByOwner));
+            string topLevelRuleArguments = ruleArguments.Replace(ruleOwnerArguments, "", StringComparison.Ordinal);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(topLevelRuleArguments, Does.Contain("rule_disabled:{_eq:false}"));
+                Assert.That(topLevelRuleArguments, Does.Contain("removed:{_is_null:true}"));
+                Assert.That(topLevelRuleArguments, Does.Contain("access_rule:{_eq:true}"));
+            });
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_PagesTheIpMatchesOrderedByRuleId()
+        {
+            RuleController firstPageController = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-page-1");
+            RuleController secondPageController = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-page-2");
+
+            RulesByFilterResponse firstPage = ExtractResponse(await firstPageController.GetRulesByFilter(BuildBothFieldsRequest(1, null), "req-page-1"));
+            RulesByFilterResponse secondPage = ExtractResponse(await secondPageController.GetRulesByFilter(BuildBothFieldsRequest(1, 1), "req-page-2"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstPage.Result.Rules.Select(rule => rule.Name), Is.EqualTo(kFirstPageRuleNames));
+                Assert.That(firstPage.Result.Count, Is.EqualTo(1));
+                Assert.That(HasMoreHeader(firstPageController), Is.EqualTo("true"));
+                Assert.That(secondPage.Result.Rules.Select(rule => rule.Name), Is.EqualTo(kSecondPageRuleNames));
+                Assert.That(HasMoreHeader(secondPageController), Is.EqualTo("false"));
+            });
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_TakesTheMaximumPageSizeFromTheConfiguration()
+        {
+            SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = GlobalConst.kMinRestResponseObjectLimit };
+            RuleController controller = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-config", globalConfig);
+            RuleController tooLargeController = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-config", globalConfig);
+
+            RulesByFilterResponse response = ExtractResponse(await controller.GetRulesByFilter(BuildBothFieldsRequest(null, null), "req-config"));
+            ActionResult<RulesByFilterResponse> tooLarge = await tooLargeController.GetRulesByFilter(
+                BuildBothFieldsRequest(GlobalConst.kMinRestResponseObjectLimit + 1, null), "req-config");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.Result.Rules.Select(rule => rule.Name), Is.EqualTo(kBothPageRuleNames));
+                Assert.That(HasMoreHeader(controller), Is.EqualTo("false"));
+                Assert.That(((BadRequestObjectResult)tooLarge.Result!).Value?.ToString(),
+                    Does.Contain($"between 1 and {GlobalConst.kMinRestResponseObjectLimit}"));
+            });
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_PagesTheOwnerRuleIdsBeforeFetchingDetails()
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-owner-page");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    Query = new RulesByFilterQuery { OwnerId = 42 },
+                    Options = new RulesByFilterOptions { Offset = 1 }
+                }, "req-owner-page");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.Result.Count, Is.EqualTo(0));
+                Assert.That(response.Result.Rules, Is.Empty);
+                Assert.That(HasMoreHeader(controller), Is.EqualTo("false"));
+            });
+        }
+
+        [TestCase(0, null)]
+        [TestCase(GlobalConst.kDefaultMaxRestResponseObjectLimit + 1, null)]
+        [TestCase(null, -1)]
+        public async Task GetRulesByFilter_RejectsPagingOutOfRange(int? limit, int? offset)
+        {
+            RuleController controller = CreateController(new BranchingApiConnection(), "req-invalid-paging");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(BuildBothFieldsRequest(limit, offset), "req-invalid-paging");
+
+            BadRequestObjectResult badRequest = actionResult.Result as BadRequestObjectResult
+                ?? throw new AssertionException("Expected a bad request.");
+            Assert.That(badRequest.Value?.ToString(), Does.StartWith("Invalid paging"));
+        }
+
+        [Test]
+        public void GetRulesByFilter_RequestDefaultsTheOptionsToAnEmptyObject()
+        {
+            RulesByFilterRequest request = JsonSerializer.Deserialize<RulesByFilterRequest>("{\"query\":{\"ownerId\":1}}", kWebJsonOptions)!;
+            RulesByFilterRequest pagedRequest = JsonSerializer.Deserialize<RulesByFilterRequest>("{\"options\":{\"limit\":3,\"offset\":6}}", kWebJsonOptions)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(request.Options, Is.Not.Null);
+                Assert.That(request.Options!.Limit, Is.Null);
+                Assert.That(request.Options.Offset, Is.Null);
+                Assert.That(pagedRequest.Options!.Limit, Is.EqualTo(3));
+                Assert.That(pagedRequest.Options.Offset, Is.EqualTo(6));
+            });
+        }
+
+        private static readonly JsonSerializerOptions kWebJsonOptions = new(JsonSerializerDefaults.Web);
+
+        private static RulesByFilterRequest BuildBothFieldsRequest(int? limit, int? offset)
+        {
+            return new RulesByFilterRequest
+            {
+                RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                Query = new RulesByFilterQuery
+                {
+                    IpAddress = "10.1.2.3",
+                    Filter = new RuleFilter { Action = "any", MinPrefixLength = 24, InField = "both" }
+                },
+                Options = new RulesByFilterOptions { Limit = limit, Offset = offset }
+            };
+        }
+
+        private static string HasMoreHeader(ControllerBase controller)
+        {
+            return controller.HttpContext.Response.Headers["X-Has-More"].ToString();
+        }
+
+        private static RuleController CreateController(ApiConnection apiConnection, string requestId, SimulatedGlobalConfig? globalConfig = null)
+        {
+            RuleController controller = new(apiConnection, globalConfig ?? new SimulatedGlobalConfig());
             controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext()
@@ -435,6 +564,45 @@ namespace FWO.Test
 
             Assert.Fail($"Could not find closing ')' for '{marker}' in the query.");
             return string.Empty;
+        }
+
+        /// <summary>
+        /// Extracts the nested rule_owners filter object so top-level rule filters can be checked separately.
+        /// </summary>
+        private static string ExtractRuleOwnerFilter(string query)
+        {
+            const string marker = "rule_owners:";
+            int startIndex = query.IndexOf(marker, StringComparison.Ordinal);
+            int braceStart = startIndex < 0 ? -1 : query.IndexOf('{', startIndex);
+            if (braceStart < 0)
+            {
+                Assert.Fail($"Could not find '{marker}' filter in the query.");
+            }
+
+            int depth = 0;
+            for (int index = braceStart; index < query.Length; ++index)
+            {
+                if (query[index] == '{')
+                {
+                    ++depth;
+                }
+                else if (query[index] == '}')
+                {
+                    --depth;
+                    if (depth == 0)
+                    {
+                        return query.Substring(startIndex, index - startIndex + 1);
+                    }
+                }
+            }
+
+            Assert.Fail($"Could not find closing '}}' for '{marker}' in the query.");
+            return string.Empty;
+        }
+
+        private static string RemoveWhitespace(string text)
+        {
+            return string.Concat(text.Where(character => !char.IsWhiteSpace(character)));
         }
 
         private sealed class BranchingApiConnection : ApiConnection

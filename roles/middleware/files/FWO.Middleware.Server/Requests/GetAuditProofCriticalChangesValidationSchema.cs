@@ -1,3 +1,5 @@
+using FWO.Middleware.Server.Services;
+
 namespace FWO.Middleware.Server.Requests;
 
 /// <summary>
@@ -32,6 +34,16 @@ public static class GetAuditProofCriticalChangesValidationSchema
     /// </summary>
     public const string kFilterPath = "options.filter";
 
+    /// <summary>
+    /// JSON path of the page size key.
+    /// </summary>
+    public const string kLimitPath = "options.limit";
+
+    /// <summary>
+    /// JSON path of the paging offset key.
+    /// </summary>
+    public const string kOffsetPath = "options.offset";
+
     private static readonly List<RequestKeyDefinition> kRootKeys =
     [
         new RequestKeyDefinition("ticketId", "Database id of the workflow ticket. Required and greater than 0."),
@@ -40,7 +52,9 @@ public static class GetAuditProofCriticalChangesValidationSchema
 
     private static readonly List<RequestKeyDefinition> kOptionsKeys =
     [
-        new RequestKeyDefinition("filter", "Optional response filter. Omitted or null applies no restriction.")
+        new RequestKeyDefinition("filter", "Optional response filter. Omitted or null applies no restriction."),
+        new RequestKeyDefinition("limit", $"Optional page size of the changes, which are ordered newest first. {ListPaging.kLimitDescription}"),
+        new RequestKeyDefinition("offset", $"Optional. {ListPaging.kOffsetDescription}")
     ];
 
     private static readonly List<RequestKeyDefinition> kFilterKeys =

@@ -21,6 +21,7 @@ namespace FWO.Ui.Services
         MiddlewareClient middlewareClient,
         UserConfig userConfig,
         GlobalConfig globalConfig,
+        UiSessionTracker sessionTracker,
         Action<Exception?, string, string, bool> displayMessageInUi)
     {
         public List<UiLdapConnection> ConnectedLdaps { get; set; } = [];
@@ -822,6 +823,7 @@ namespace FWO.Ui.Services
                 {
                     UiUsers.Remove(ActUser);
                     DeleteMode = false;
+                    sessionTracker.RequestSessionCheck();
 
                     Log.WriteAudit(
                         Title: $"Users Settings",

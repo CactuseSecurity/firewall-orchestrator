@@ -40,6 +40,29 @@ namespace FWO.Test.Mocks
             IsSuccessStatusCode = true
         };
 
+        /// <summary>
+        /// Answer of the session check; by default the session is live.
+        /// </summary>
+        public RestResponse<bool> SessionCheckResponse { get; set; } = CreateSessionCheckResponse(HttpStatusCode.OK, "true");
+        public Exception? SessionCheckException { get; set; }
+        public int CheckSessionCallCount { get; private set; }
+        public SessionCheckParameters? LastSessionCheckRequest { get; private set; }
+
+        /// <summary>
+        /// Builds an answer of the session check that arrived with the given status and content.
+        /// </summary>
+        public static RestResponse<bool> CreateSessionCheckResponse(HttpStatusCode statusCode, string? content)
+        {
+            return new RestResponse<bool>(new RestRequest())
+            {
+                StatusCode = statusCode,
+                Content = content,
+                Data = content == "true",
+                ResponseStatus = ResponseStatus.Completed,
+                IsSuccessStatusCode = statusCode == HttpStatusCode.OK
+            };
+        }
+
         public MockMiddlewareClient() : base("http://localhost/")
         {
         }
@@ -130,6 +153,21 @@ namespace FWO.Test.Mocks
                 ResponseStatus = ResponseStatus.Error,
                 IsSuccessStatusCode = false
             };
+        }
+
+        public override async Task<RestResponse<bool>> CheckSession(SessionCheckParameters parameters)
+        {
+            CheckSessionCallCount++;
+            LastSessionCheckRequest = parameters;
+
+            await Task.CompletedTask;
+
+            if (SessionCheckException != null)
+            {
+                throw SessionCheckException;
+            }
+
+            return SessionCheckResponse;
         }
 
         public void Reset()

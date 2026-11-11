@@ -1,4 +1,5 @@
 ﻿@using System.Text.Json
+@using FWO.Data.Workflow
 @using FWO.Services.Workflow
 
 
@@ -62,6 +63,21 @@
                         <input id="cbx_show_ticket_comments" type="checkbox" @bind="ticketFieldVisibilityConfig.ShowComments" />
                         <label for="cbx_show_ticket_comments" class="col-form-label">@(userConfig.GetText("comments"))</label>
                     </div>
+                    <div class="form-group col-12 col-md-8 col-xl-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5556"))">
+                        <div class="row align-items-center">
+                            <label for="sel_ticket_handler_display_mode" class="col-form-label col-6">@(userConfig.GetText("displayed_handlers_in_ticket_list"))</label>
+                            <div class="col-6">
+                                <Dropdown Id="sel_ticket_handler_display_mode" ElementType="TicketHandlerDisplayMode"
+                                          @bind-SelectedElement="ticketFieldVisibilityConfig.HandlerDisplayMode"
+                                          ElementToString="TicketHandlerDisplayModeText"
+                                          Elements="Enum.GetValues<TicketHandlerDisplayMode>()">
+                                    <ElementTemplate Context="mode">
+                                        @(TicketHandlerDisplayModeText(mode))
+                                    </ElementTemplate>
+                                </Dropdown>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -76,6 +92,14 @@
                     <div class="form-group col-6 col-md-4 col-xl-2">
                         <input id="cbx_show_access_task_owner" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowOwner" />
                         <label for="cbx_show_access_task_owner" class="col-form-label">@(userConfig.GetText("owner"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_rule_action" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowRuleAction" />
+                        <label for="cbx_show_access_task_rule_action" class="col-form-label">@(userConfig.GetText("rule_action"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_tracking" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowTracking" />
+                        <label for="cbx_show_access_task_tracking" class="col-form-label">@(userConfig.GetText("track"))</label>
                     </div>
                     <div class="form-group col-6 col-md-4 col-xl-2">
                         <input id="cbx_show_access_task_valid_from" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowValidFrom" />
@@ -100,6 +124,7 @@
                 </div>
             </div>
         </div>
+        <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5563"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqPriorities")):</label>
             <div class="col-sm-9">
@@ -192,12 +217,24 @@
                 <input id="cbx_activate_path_analysis" type="checkbox" @bind="configData!.ReqActivatePathAnalysis">
             </div>
         </div>
+        <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5576"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowedChangesByApprover")):</label>
             <div class="col-sm-4">
                 <button type="button" class="btn btn-sm btn-warning" @onclick="() => editAllowedChangesByApproverMode = true">
                     @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
                 </button>
+            </div>
+            <label class="col-form-label col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5576a"))">@(userConfig.GetText("approval_edit_mode")):</label>
+            <div class="col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5576a"))">
+                <Dropdown Id="sel_approval_edit_mode" ElementType="ApprovalEditMode"
+                          @bind-SelectedElement="configData!.ReqApprovalEditMode"
+                          ElementToString="ApprovalEditModeText"
+                          Elements="Enum.GetValues<ApprovalEditMode>()">
+                    <ElementTemplate Context="mode">
+                        @(ApprovalEditModeText(mode))
+                    </ElementTemplate>
+                </Dropdown>
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5582a"))">
@@ -206,17 +243,40 @@
                 <textarea id="txt_implicit_approval_comment" class="form-control" rows="2" @bind="configData!.ReqImplicitApprovalComment"></textarea>
             </div>
         </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5566") + "\r\n" + userConfig.PureLine("H5571") + "\r\n" +
-                userConfig.PureLine("H5572") + "\r\n" + userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5574") + "\r\n" +
-                userConfig.PureLine("H5577") + "\r\n" + userConfig.PureLine("H5575"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAutoCreateImplTasks")):</label>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5576b"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("time_object_origin_suffixes")):</label>
+            <div class="col-sm-2">
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => editTimeObjectOriginSuffixesMode = true">
+                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                </button>
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5566a") + "\r\n" + userConfig.PureLine("H5571") + "\r\n" + userConfig.PureLine("H5574") + "\r\n" +
+                userConfig.PureLine("H5577"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqDeviceInput")):</label>
             <div class="col-sm-3">
-                <Dropdown ElementType="AutoCreateImplTaskOptions" @bind-SelectedElement="configData!.ReqAutoCreateImplTasks" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(AutoCreateImplTaskOptions)).Cast<AutoCreateImplTaskOptions>()" >
+                <Dropdown ElementType="ReqDeviceInputOptions" @bind-SelectedElement="configData!.ReqDeviceInput" ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues<ReqDeviceInputOptions>()" >
                     <ElementTemplate Context="opt">
                         @(userConfig.GetText(opt.ToString()))
                     </ElementTemplate>
                 </Dropdown>
             </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5580") + "\r\n" + userConfig.PureLine("H5575") + "\r\n" +
+                userConfig.PureLine("H5573") + "\r\n" + userConfig.PureLine("H5572"))">
+            <label for="pathAnalysisAlgorithm" class="col-form-label col-sm-3">@(userConfig.GetText("path_analysis_algorithm")):</label>
+            <div class="col-sm-3">
+                <select id="pathAnalysisAlgorithm" class="form-select form-select-sm" @bind="configData!.PathAnalysisAlgorithm">
+                    @foreach (PathAnalysisAlgorithm algorithm in pathAnalysisAlgorithms)
+                    {
+                        <option value="@algorithm.Id">@AlgorithmDisplayName(algorithm)</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5566"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqBundlingOptions")):</label>
             <label for="cbx_consider_bundling" class="col-form-label col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5578"))">@(userConfig.GetText("reqConsiderBundling")):</label>
             <div class="col-sm-1" data-toggle="tooltip" title="@(userConfig.PureLine("H5578"))">
                 <input id="cbx_consider_bundling" type="checkbox" @bind="configData!.ReqConsiderBundling">
@@ -232,25 +292,6 @@
                 <input id="cbx_create_objects_separately" type="checkbox" @bind="configData!.ReqCreateObjectsSeparately">
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5580"))">
-            <label for="pathAnalysisAlgorithm" class="col-form-label col-sm-3">@(userConfig.GetText("path_analysis_algorithm")):</label>
-            <div class="col-sm-3">
-                <select id="pathAnalysisAlgorithm" class="form-select form-select-sm" @bind="configData!.PathAnalysisAlgorithm">
-                    @foreach (PathAnalysisAlgorithm algorithm in pathAnalysisAlgorithms)
-                    {
-                        <option value="@algorithm.Id">@algorithm.Name</option>
-                    }
-                </select>
-            </div>
-        </div>
-        @if (!IsPathAnalysisSelectionValid())
-        {
-            <div class="form-group row">
-                <div class="col-sm-9 offset-sm-3">
-                    <span class="text-warning"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U5504"))</span>
-                </div>
-            </div>
-        }
     </form>
 
     <hr />
@@ -273,6 +314,7 @@ else
 {
     <AllowedChangesByApprover @bind-Display="editAllowedChangesByApproverMode" ConfigValue="@configData.ReqAllowedChangesByApprover" ConfigValueChanged="HandleAllowedChangesByApproverChanged" />
     <FlowIntegration @bind-Display="editFlowIntegrationMode" ConfigValue="@configData.ReqFlowIntegration" ConfigValueChanged="HandleFlowIntegrationChanged" />
+    <TimeObjectOriginSuffixes @bind-Display="editTimeObjectOriginSuffixesMode" ConfigValue="@configData.ReqTimeObjectOriginSuffixes" ConfigValueChanged="HandleTimeObjectOriginSuffixesChanged" />
     <CreateRequestTaskSortConfigPopup @bind-Display="editCreateRequestTaskSortConfigMode" ConfigValue="@configData.ReqCreateRequestTaskSortConfig" ConfigValueChanged="HandleCreateRequestTaskSortConfigChanged" DisplayMessageInUi="DisplayMessageInUi" />
 }
 
@@ -287,6 +329,7 @@ else
     private bool InitComplete = false;
     private bool editAllowedChangesByApproverMode = false;
     private bool editFlowIntegrationMode = false;
+    private bool editTimeObjectOriginSuffixesMode = false;
     private bool editCreateRequestTaskSortConfigMode = false;
 
     private List<WfState> states = [];
@@ -300,6 +343,7 @@ else
     private List<WfPriority> prioList = [];
     private int? selectedApiTicketInitialStateId;
     private List<PathAnalysisAlgorithm> pathAnalysisAlgorithms = [];
+    private const string kAlgorithmTextPrefix = "path_algo_";
 
     protected override async Task OnInitializedAsync()
     {
@@ -323,7 +367,9 @@ else
                 taskTypesActiveDict.Add(type, availableTaskTypes.Contains(type));
             }
             prioList = System.Text.Json.JsonSerializer.Deserialize<List<WfPriority>>(configData.ReqPriorities) ?? throw new JsonException("Config data could not be parsed.");
-            pathAnalysisAlgorithms = await apiConnection.SendQueryAsync<List<PathAnalysisAlgorithm>>(PathAnalysisAlgorithmQueries.getPathAnalysisAlgorithms) ?? [];
+            List<PathAnalysisAlgorithm> algorithms = await apiConnection.SendQueryAsync<List<PathAnalysisAlgorithm>>(PathAnalysisQueries.getPathAnalysisAlgorithms) ?? [];
+            // by id: none first, then the path analyses and the device selections in the order they were added
+            pathAnalysisAlgorithms = [.. algorithms.OrderBy(algorithm => algorithm.Id)];
             InitComplete = true;
         }
         catch (Exception exception)
@@ -346,6 +392,27 @@ else
         }
 
         return $"{state.Name} ({state.Id})";
+    }
+
+    private string TicketHandlerDisplayModeText(TicketHandlerDisplayMode mode)
+    {
+        return userConfig.GetText(mode switch
+        {
+            TicketHandlerDisplayMode.None => "ticket_handler_display_mode_none",
+            TicketHandlerDisplayMode.CurrentPhase => "ticket_handler_display_mode_current_phase",
+            TicketHandlerDisplayMode.AllActiveTasks => "ticket_handler_display_mode_all_active_tasks",
+            _ => "undefined"
+        });
+    }
+
+    private string ApprovalEditModeText(ApprovalEditMode mode)
+    {
+        return userConfig.GetText(mode switch
+        {
+            ApprovalEditMode.Classic => "approval_edit_mode_classic",
+            ApprovalEditMode.AccessTaskView => "approval_edit_mode_access_task_view",
+            _ => "undefined"
+        });
     }
 
     private async Task Save()
@@ -382,18 +449,13 @@ else
     }
 
     /// <summary>
-    /// Checks that the automatic creation after path analysis has a path analysis algorithm to work with.
+    /// Returns the localized name of a path analysis algorithm, derived from its API name. An algorithm without API
+    /// name, e.g. added to the database manually, keeps its stored name.
     /// </summary>
-    /// <remarks>
-    /// Only drives a hint, saving stays possible: the workflow still runs the routing based path analysis,
-    /// so the algorithm has no effect yet, and installations upgraded with "after path analysis" carry the
-    /// default None.
-    /// </remarks>
-    private bool IsPathAnalysisSelectionValid()
+    private string AlgorithmDisplayName(PathAnalysisAlgorithm algorithm)
     {
-        return configData == null
-            || configData.ReqAutoCreateImplTasks != AutoCreateImplTaskOptions.afterPathAnalysis
-            || configData.PathAnalysisAlgorithm != GlobalConst.kPathAnalysisAlgorithmNone;
+        string? apiName = PathAnalysisAlgorithmNames.GetName(algorithm.Id);
+        return apiName == null ? algorithm.Name : userConfig.GetText(kAlgorithmTextPrefix + apiName);
     }
 
     private void ValidateApiTicketInitialStateSelection()
@@ -448,6 +510,27 @@ else
             singleValueConfig.ReqFlowIntegration = configValue;
             await globalConfig.WriteToDatabase(singleValueConfig, apiConnection);
             configData.ReqFlowIntegration = configValue;
+            DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+
+    private async Task HandleTimeObjectOriginSuffixesChanged(string configValue)
+    {
+        try
+        {
+            if (configData == null)
+            {
+                throw new ArgumentException("Time-object origin suffix settings were updated before the settings page was initialized.");
+            }
+
+            ConfigData singleValueConfig = await globalConfig.GetEditableConfig();
+            singleValueConfig.ReqTimeObjectOriginSuffixes = configValue;
+            await globalConfig.WriteToDatabase(singleValueConfig, apiConnection);
+            configData.ReqTimeObjectOriginSuffixes = configValue;
             DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)

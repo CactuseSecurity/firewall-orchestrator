@@ -51,10 +51,14 @@ The policy is a repository setting, not part of the code. Keep it in sync with t
 - When you rename one of these workflows or add another `pull_request_target` workflow, add its path to the policy.
   Otherwise GitHub does not run it and its required check never reports. The blocked runs are listed under
   *Settings → Actions → Policy insights*.
+- `pull_request_target` runs the workflow file of the default branch `main`, not the one on `develop`. After a
+  rename, the policy must therefore allow both the old and the new path until the rename has reached `main`,
+  normally with the next stable release. Remove the old path only then.
 - [`scripts/ci/test_workflow_security_policy.py`](../../../scripts/ci/test_workflow_security_policy.py) fails when
-  the workflows triggered by `pull_request_target` differ from `ACTIONS_POLICY_PULL_REQUEST_TARGET_WORKFLOWS`.
-  Update that list together with the policy. The test cannot read the policy itself, so it only reminds you to
-  change the policy.
+  the workflows (`*.yml` and `*.yaml`) triggered by `pull_request_target` differ from
+  `ACTIONS_POLICY_PULL_REQUEST_TARGET_WORKFLOWS`. That list describes the workflows of the checked-out branch, so
+  it does not contain old paths that the policy still keeps for `main`. Update it together with the policy. The
+  test cannot read the policy itself, so it only reminds you to change the policy.
 - Keep the workflow path condition. The rule is an allow-list of events: without the condition, all other workflows
   could only be triggered by `pull_request_target`.
 - To check the policy, push to a pull request and open *Policy insights*. Runs that the policy allows do not appear

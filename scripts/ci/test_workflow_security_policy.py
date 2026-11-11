@@ -25,9 +25,12 @@ TRUSTED_SOURCE_GATE_STEP_NAME = "Gate trusted PR sources"
 PULL_REQUEST_CHECKOUT_STEP_NAME = "Checkout PR head"
 CHECKOUT_ACTION = "actions/checkout"
 ALLOWED_PULL_REQUEST_CODE_SECRETS = frozenset({"SONAR_TOKEN"})
+# GitHub runs workflow files with either suffix.
+WORKFLOW_SUFFIXES = (".yml", ".yaml")
 # Workflow paths that the repository Actions policy "Allow PR_target" exempts from the default block of
-# pull_request_target by GitHub. Keep in sync with the policy, see section "Required Actions policy" in
-# documentation/developer-docs/github/sonarcloud-workflow.md.
+# pull_request_target by GitHub, as they exist on this branch. pull_request_target runs the workflow file of the
+# default branch main, so after a rename the policy keeps the old path as well until the rename has reached main.
+# See section "Required Actions policy" in documentation/developer-docs/github/sonarcloud-workflow.md.
 ACTIONS_POLICY_PULL_REQUEST_TARGET_WORKFLOWS = frozenset(
     {".github/workflows/sonarcloud-pr.yml", ".github/workflows/version-gate.yml"}
 )
@@ -77,9 +80,9 @@ WorkflowLoader.add_implicit_resolver(  # pyright: ignore[reportUnknownMemberType
 )
 
 
-def active_workflow_paths() -> list[Path]:
-    """Return all workflows GitHub would run (disabled ones are not named *.yml)."""
-    return sorted(WORKFLOW_DIRECTORY.glob("*.yml"))
+def active_workflow_paths(workflow_directory: Path = WORKFLOW_DIRECTORY) -> list[Path]:
+    """Return all workflows GitHub would run: *.yml and *.yaml (disabled ones carry another suffix)."""
+    return sorted(path for suffix in WORKFLOW_SUFFIXES for path in workflow_directory.glob(f"*{suffix}"))
 
 
 def read_workflow(path: Path) -> str:
@@ -359,6 +362,12 @@ def test_merge_ref_checkout_counts_as_pull_request_code() -> None:
     assert runs_pull_request_code_privileged(text)
 
 
+def test_active_workflow_paths_finds_yml_and_yaml_but_not_disabled_workflows(tmp_path: Path) -> None:
+    for name in ("build.yml", "gate.yaml", "old.yml.disabled", "notes.md"):
+        (tmp_path / name).write_text("on: push\n", encoding="utf-8")
+    assert active_workflow_paths(tmp_path) == [tmp_path / "build.yml", tmp_path / "gate.yaml"]
+
+
 def test_sonar_pull_request_workflow_is_the_only_privileged_pull_request_build() -> None:
     assert privileged_pull_request_workflows() == [SONAR_PR_WORKFLOW_PATH]
 
@@ -366,8 +375,9 @@ def test_sonar_pull_request_workflow_is_the_only_privileged_pull_request_build()
 def test_pull_request_target_workflows_match_the_actions_policy() -> None:
     assert pull_request_target_workflows() == ACTIONS_POLICY_PULL_REQUEST_TARGET_WORKFLOWS, (
         "GitHub blocks pull_request_target unless the repository Actions policy 'Allow PR_target' lists the workflow. "
-        "Update the policy's workflow paths (Settings > Actions > Policies) and "
-        "ACTIONS_POLICY_PULL_REQUEST_TARGET_WORKFLOWS together, see "
+        "Add new workflow paths to the policy (Settings > Actions > Policies) and update "
+        "ACTIONS_POLICY_PULL_REQUEST_TARGET_WORKFLOWS. pull_request_target runs the workflow files of the default "
+        "branch main: on a rename, keep the old path in the policy until the rename has reached main. See "
         "documentation/developer-docs/github/sonarcloud-workflow.md, 'Required Actions policy'."
     )
 

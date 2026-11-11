@@ -8,6 +8,7 @@ using FWO.Middleware.Client;
 using FWO.Services.EventMediator.Events;
 using FWO.Test.Mocks;
 using FWO.Ui.Pages.Settings;
+using FWO.Ui.Services;
 using NUnit.Framework;
 using RestSharp;
 using System.Net;
@@ -245,6 +246,10 @@ namespace FWO.Test
             await InvokePrivateTask(component, "OnInitializedAsync");
             SetMember(component, "actRole", GetMember<List<Role>>(component, "roles")[0]);
             SetMember(component, "RemoveUserMode", true);
+            UiSessionTracker sessionTracker = new();
+            int sessionChecks = 0;
+            sessionTracker.SessionCheckRequested += () => sessionChecks++;
+            SetMember(component, "SessionTracker", sessionTracker);
 
             UiUser userToRemove = GetMember<List<Role>>(component, "roles")[0].Users[0];
             await InvokePrivateTask(component, "RemoveUser", userToRemove);
@@ -256,6 +261,7 @@ namespace FWO.Test
                 Assert.That(GetMember<bool>(component, "RemoveUserMode"), Is.False);
                 Assert.That(GetMember<List<Role>>(component, "roles")[0].Users, Is.Empty);
                 Assert.That(eventMediator.PublishedEvents, Has.Count.EqualTo(1));
+                Assert.That(sessionChecks, Is.EqualTo(1), "the sessions of the removed user have to be checked at once");
             });
         }
 
@@ -306,6 +312,7 @@ namespace FWO.Test
             userConfig.User.Dn = "uid=role-test-user,ou=users,dc=fworch,dc=internal";
 
             SetMember(component, "middlewareClient", middlewareClient);
+            SetMember(component, "SessionTracker", new UiSessionTracker());
             SetMember(component, "apiConnection", new SimulatedApiConnection());
             SetMember(component, "userConfig", userConfig);
             SetMember(component, "EventMediator", eventMediator);

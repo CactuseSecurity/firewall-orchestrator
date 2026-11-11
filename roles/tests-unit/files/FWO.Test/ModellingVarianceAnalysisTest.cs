@@ -9,6 +9,7 @@ using FWO.Services;
 using FWO.Services.Modelling;
 using FWO.Services.Workflow;
 using NUnit.Framework;
+using System.Reflection;
 using NUnit.Framework.Legacy;
 
 namespace FWO.Test
@@ -18,6 +19,8 @@ namespace FWO.Test
     {
         const string stdRecogOpt = "{\"nwRegardIp\":true,\"nwRegardName\":false,\"nwRegardGroupName\":false,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true,\"svcSplitPortRanges\":true}";
         const string oppRecogOpt = "{\"nwRegardIp\":false,\"nwRegardName\":true,\"nwRegardGroupName\":true,\"nwResolveGroup\":true,\"nwSeparateGroupAnalysis\":false,\"svcRegardPortAndProt\":false,\"svcRegardName\":true,\"svcRegardGroupName\":true,\"svcResolveGroup\":false,\"svcSplitPortRanges\":false}";
+        const string noIpRecogOpt = "{\"nwRegardIp\":false,\"nwRegardName\":true,\"nwRegardGroupName\":false,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true,\"svcSplitPortRanges\":true}";
+        const string nameAndIpRecogOpt = "{\"nwRegardIp\":true,\"nwRegardName\":true,\"nwRegardGroupName\":false,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true,\"svcSplitPortRanges\":true}";
         const string grpNameRecogOpt = "{\"nwRegardIp\":true,\"nwRegardName\":false,\"nwRegardGroupName\":true,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true,\"svcSplitPortRanges\":true}";
 
         static readonly SimulatedUserConfig userConfig = new()
@@ -701,6 +704,259 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestAnalyseRules_DetectsGroupMemberWithDifferingIp()
+        {
+            ModellingVarianceResult result = await AnalyseAppRoleWithChangedMemberIp(stdRecogOpt);
+
+            ClassicAssert.AreEqual(1, result.DifferingAppRoles[1].Count);
+            ModellingAppRole differingAppRole = result.DifferingAppRoles[1][0];
+            ClassicAssert.AreEqual("AR504711-001", differingAppRole.IdString);
+            ClassicAssert.AreEqual(1, differingAppRole.SurplusAppServers.Count);
+            ClassicAssert.AreEqual("AppServerUnchanged", differingAppRole.SurplusAppServers[0].Content.Name);
+            ClassicAssert.AreEqual("1.2.3.4", differingAppRole.SurplusAppServers[0].Content.Ip);
+            ClassicAssert.AreEqual(2, differingAppRole.AppServers.Count);
+            ClassicAssert.AreEqual("AppServerUnchanged", differingAppRole.AppServers[0].Content.Name);
+            ClassicAssert.IsTrue(differingAppRole.AppServers[0].Content.NotImplemented);
+            ClassicAssert.AreEqual("AppServerOld", differingAppRole.AppServers[1].Content.Name);
+            ClassicAssert.IsFalse(differingAppRole.AppServers[1].Content.NotImplemented);
+            ClassicAssert.AreEqual(1, result.AppRoleStats.AppRolesDifferenceCount);
+        }
+
+        [Test]
+        public async Task TestAnalyseRules_IgnoresGroupMemberIpIfNotRegarded()
+        {
+            ModellingVarianceResult result = await AnalyseAppRoleWithChangedMemberIp(noIpRecogOpt);
+
+            ClassicAssert.AreEqual(0, result.DifferingAppRoles[1].Count);
+            ClassicAssert.AreEqual(0, result.AppRoleStats.AppRolesDifferenceCount);
+            ClassicAssert.AreEqual(1, result.AppRoleStats.AppRolesOk);
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_ReplacesGroupMemberWithDifferingIp()
+        {
+            List<ModellingConnection> connections = [CreateConnectionWithChangedMemberIp()];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(stdRecogOpt), Application, DefaultInit.DoNothing);
+
+            List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(connections);
+
+            WfReqTask? addTask = taskList.FirstOrDefault(t => t.Title == "Update AppRole: AR504711-001: Add Members");
+            WfReqTask? removeTask = taskList.FirstOrDefault(t => t.Title == "Update AppRole: AR504711-001: Remove Members");
+            Assert.That(addTask, Is.Not.Null);
+            Assert.That(removeTask, Is.Not.Null);
+            // the existing object keeps its ip, as it may be used elsewhere: a new object is created under an ip suffixed name
+            WfReqElement newMember = addTask!.Elements.First(e => e.RequestAction == RequestAction.create.ToString());
+            ClassicAssert.AreEqual("AppServerUnchanged_1.2.3.5", newMember.Name);
+            ClassicAssert.AreEqual("1.2.3.5/32", newMember.IpString);
+            ClassicAssert.IsNull(newMember.NetworkId);
+            ClassicAssert.AreEqual(1, addTask.Elements.Count(e => e.RequestAction == RequestAction.create.ToString()));
+            ClassicAssert.AreEqual(RequestAction.unchanged.ToString(), addTask.Elements.First(e => e.Name == "AppServerOld").RequestAction);
+            WfReqElement oldMember = removeTask!.Elements.First(e => e.RequestAction == RequestAction.delete.ToString());
+            ClassicAssert.AreEqual("AppServerUnchanged", oldMember.Name);
+            ClassicAssert.AreEqual("1.2.3.4", oldMember.IpString);
+            ClassicAssert.AreEqual(1, removeTask.Elements.Count(e => e.RequestAction == RequestAction.delete.ToString()));
+            ClassicAssert.AreEqual(RequestAction.unchanged.ToString(), removeTask.Elements.First(e => e.Name == "AppServerUnchanged_1.2.3.5").RequestAction);
+            ClassicAssert.AreEqual(0, taskList.SelectMany(t => t.Elements).Count(e => e.RequestAction == RequestAction.modify.ToString()));
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_DuplicateNameDoesNotRemoveMatchingMember()
+        {
+            ModellingConnection connection = CreateConnectionWithChangedMemberIp();
+            ModellingAppRole appRole = connection.SourceAppRoles[0].Content;
+            // AppServerUnchanged is modelled twice: once with the production ip, once with a new ip
+            appRole.AppServers =
+            [
+                new() { Content = new() { Id = 953, Name = "AppServerUnchanged", Ip = "1.2.3.4/32", IpEnd = "1.2.3.4/32" } },
+                .. appRole.AppServers
+            ];
+            List<ModellingConnection> connections = [connection];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(stdRecogOpt), Application, DefaultInit.DoNothing);
+
+            List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(connections);
+
+            List<WfReqElement> appRoleElements = [.. taskList.Where(t => t.Title.StartsWith("Update AppRole: AR504711-001")).SelectMany(t => t.Elements)];
+            ClassicAssert.AreEqual(0, appRoleElements.Count(e => e.RequestAction == RequestAction.delete.ToString()));
+            ClassicAssert.AreEqual(1, appRoleElements.Count(e => e.RequestAction == RequestAction.create.ToString()
+                && e.Name == "AppServerUnchanged_1.2.3.5" && e.IpString == "1.2.3.5/32"));
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_NewMembersWithSameNameGetIpSuffix()
+        {
+            ModellingConnection connection = CreateConnectionWithChangedMemberIp();
+            ModellingAppRole appRole = connection.SourceAppRoles[0].Content;
+            appRole.IdString = "AR504711-099";
+            appRole.AppServers =
+            [
+                new() { Content = new() { Id = 958, Name = "NewDup", Ip = "10.9.9.1/32", IpEnd = "10.9.9.1/32" } },
+                new() { Content = new() { Id = 959, Name = "NewDup", Ip = "10.9.9.2/32", IpEnd = "10.9.9.2/32" } }
+            ];
+            List<ModellingConnection> connections = [connection];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(stdRecogOpt), Application, DefaultInit.DoNothing);
+
+            List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(connections);
+
+            WfReqTask? createTask = taskList.FirstOrDefault(t => t.Title == "New AppRole: AR504711-099");
+            Assert.That(createTask, Is.Not.Null);
+            ClassicAssert.AreEqual(2, createTask!.Elements.Count);
+            ClassicAssert.AreEqual("NewDup", createTask.Elements[0].Name);
+            ClassicAssert.AreEqual(RequestAction.create.ToString(), createTask.Elements[0].RequestAction);
+            ClassicAssert.AreEqual("NewDup_10.9.9.2", createTask.Elements[1].Name);
+            ClassicAssert.AreEqual("10.9.9.2/32", createTask.Elements[1].IpString);
+            ClassicAssert.AreEqual(RequestAction.create.ToString(), createTask.Elements[1].RequestAction);
+        }
+
+        [Test]
+        public async Task TestAnalyseRules_IpSuffixedNameCountsAsSameNameIfNamesRegarded()
+        {
+            ModellingConnection connection = CreateConnectionWithChangedMemberIp();
+            ModellingAppRole appRole = connection.SourceAppRoles[0].Content;
+            appRole.AppServers =
+            [
+                new() { Content = new() { Id = 954, Name = "AppServerUnchanged", Ip = "1.2.3.4/32", IpEnd = "1.2.3.4/32" } },
+                new() { Content = new() { Id = 955, Name = "AppServerOld_1.0.0.0", Ip = "1.0.0.0/32", IpEnd = "1.0.0.0/32" } }
+            ];
+            List<ModellingConnection> connections = [connection];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(nameAndIpRecogOpt), Application, DefaultInit.DoNothing);
+
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new());
+
+            ClassicAssert.AreEqual(0, result.DifferingAppRoles[1].Count);
+            ClassicAssert.AreEqual(1, result.AppRoleStats.AppRolesOk);
+        }
+
+        [Test]
+        public async Task TestAnalyseRules_DifferingNameIsIgnoredIfOnlyIpRegarded()
+        {
+            ModellingConnection connection = CreateConnectionWithChangedMemberIp();
+            ModellingAppRole appRole = connection.SourceAppRoles[0].Content;
+            appRole.AppServers =
+            [
+                new() { Content = new() { Id = 956, Name = "RenamedServer", Ip = "1.2.3.4/32", IpEnd = "1.2.3.4/32" } },
+                new() { Content = new() { Id = 957, Name = "AppServerOld", Ip = "1.0.0.0/32", IpEnd = "1.0.0.0/32" } }
+            ];
+            List<ModellingConnection> connections = [connection];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(stdRecogOpt), Application, DefaultInit.DoNothing);
+
+            ModellingVarianceResult ipOnlyResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new());
+            ModellingVarianceAnalysis nameAndIpAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(nameAndIpRecogOpt), Application, DefaultInit.DoNothing);
+            ModellingVarianceResult nameAndIpResult = await nameAndIpAnalysis.AnalyseRulesVsModelledConnections(connections, new());
+
+            ClassicAssert.AreEqual(0, ipOnlyResult.DifferingAppRoles[1].Count);
+            ClassicAssert.AreEqual(1, nameAndIpResult.DifferingAppRoles[1].Count);
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_UnchangedMembersKeepExistingName()
+        {
+            ModellingConnection connection = CreateConnectionWithChangedMemberIp();
+            ModellingAppRole appRole = connection.SourceAppRoles[0].Content;
+            // RenamedServer matches the existing member AppServerUnchanged by ip, NewServer forces an update of the group
+            appRole.AppServers =
+            [
+                new() { Content = new() { Id = 960, Name = "RenamedServer", Ip = "1.2.3.4/32", IpEnd = "1.2.3.4/32" } },
+                new() { Content = new() { Id = 961, Name = "AppServerOld", Ip = "1.0.0.0/32", IpEnd = "1.0.0.0/32" } },
+                new() { Content = new() { Id = 962, Name = "NewServer", Ip = "10.9.9.9/32", IpEnd = "10.9.9.9/32" } }
+            ];
+            List<ModellingConnection> connections = [connection];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(stdRecogOpt), Application, DefaultInit.DoNothing);
+
+            List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(connections);
+
+            WfReqTask? addTask = taskList.FirstOrDefault(t => t.Title == "Update AppRole: AR504711-001: Add Members");
+            Assert.That(addTask, Is.Not.Null);
+            List<WfReqElement> unchangedMembers = [.. addTask!.Elements.Where(e => e.RequestAction == RequestAction.unchanged.ToString())];
+            ClassicAssert.AreEqual(2, unchangedMembers.Count);
+            ClassicAssert.AreEqual("AppServerUnchanged", unchangedMembers[0].Name);
+            ClassicAssert.AreEqual("1.2.3.4", unchangedMembers[0].IpString);
+            ClassicAssert.AreEqual("AppServerOld", unchangedMembers[1].Name);
+            ClassicAssert.AreEqual(0, taskList.SelectMany(t => t.Elements).Count(e => e.Name == "RenamedServer"));
+            ClassicAssert.AreEqual(0, taskList.Count(t => t.Title == "Update AppRole: AR504711-001: Remove Members"));
+        }
+
+        [Test]
+        public void TestIsSameGroupMember_ExistingIpSuffixedNameMatchesModelledName()
+        {
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(nameAndIpRecogOpt), Application, DefaultInit.DoNothing);
+            // state after a replacement: the firewall object got the ip suffixed name, the modelled app server keeps its name
+            ModellingAppServer existingReplacement = new() { Name = "AppServerX_1.2.3.5", Ip = "1.2.3.5/32", IpEnd = "1.2.3.5/32" };
+            ModellingAppServer existingOld = new() { Name = "AppServerX", Ip = "1.2.3.4/32", IpEnd = "1.2.3.4/32" };
+            ModellingAppServer otherSuffix = new() { Name = "AppServerX_1.2.3.6", Ip = "1.2.3.5/32", IpEnd = "1.2.3.5/32" };
+            ModellingAppServer modelled = new() { Name = "AppServerX", Ip = "1.2.3.5/32", IpEnd = "1.2.3.5/32" };
+
+            ClassicAssert.IsTrue(InvokeIsSameGroupMember(varianceAnalysis, existingReplacement, modelled));
+            ClassicAssert.IsTrue(InvokeIsSameGroupMember(varianceAnalysis, modelled, existingReplacement));
+            ClassicAssert.IsFalse(InvokeIsSameGroupMember(varianceAnalysis, existingOld, modelled));
+            ClassicAssert.IsFalse(InvokeIsSameGroupMember(varianceAnalysis, otherSuffix, modelled));
+        }
+
+        private static bool InvokeIsSameGroupMember(ModellingVarianceAnalysis varianceAnalysis, ModellingAppServer appServer1, ModellingAppServer appServer2)
+        {
+            MethodInfo method = typeof(ModellingVarianceAnalysis).GetMethod("IsSameGroupMember", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            object[] arguments = [appServer1, appServer2];
+            return (bool)method.Invoke(varianceAnalysis, arguments)!;
+        }
+
+        [Test]
+        public async Task TestAnalyseModelledConnectionsForRequest_IgnoresGroupMemberIpIfNotRegarded()
+        {
+            List<ModellingConnection> connections = [CreateConnectionWithChangedMemberIp()];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(noIpRecogOpt), Application, DefaultInit.DoNothing);
+
+            List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(connections);
+
+            ClassicAssert.AreEqual(0, taskList.Count(t => t.Title.StartsWith("Update AppRole: AR504711-001")));
+        }
+
+        private async Task<ModellingVarianceResult> AnalyseAppRoleWithChangedMemberIp(string recognitionOption)
+        {
+            List<ModellingConnection> connections = [CreateConnectionWithChangedMemberIp()];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, CreateUserConfigForMemberIp(recognitionOption), Application, DefaultInit.DoNothing);
+            return await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new());
+        }
+
+        private static SimulatedUserConfig CreateUserConfigForMemberIp(string recognitionOption)
+        {
+            return new()
+            {
+                ModNamingConvention = userConfig.ModNamingConvention,
+                ModRolloutResolveServiceGroups = true,
+                CreateAppZones = false,
+                RuleRecognitionOption = recognitionOption,
+                ModSpecUserAreas = userConfig.ModSpecUserAreas,
+                ModRolloutNatHeuristic = false
+            };
+        }
+
+        /// <summary>
+        /// Same members as the production group AR504711-001, but AppServerUnchanged has a different ip
+        /// and AppServerOld uses another notation of the same ip.
+        /// </summary>
+        private static ModellingConnection CreateConnectionWithChangedMemberIp()
+        {
+            ModellingAppRole appRole = new()
+            {
+                Id = 950,
+                Name = "AppRoleIpChanged",
+                IdString = "AR504711-001",
+                AppServers =
+                [
+                    new() { Content = new() { Id = 951, Name = "AppServerUnchanged", Ip = "1.2.3.5/32", IpEnd = "1.2.3.5/32" } },
+                    new() { Content = new() { Id = 952, Name = "AppServerOld", Ip = "1.0.0.0/32", IpEnd = "1.0.0.0/32" } }
+                ]
+            };
+            return new()
+            {
+                Id = 950,
+                Name = "ConnIpChanged",
+                SourceAppRoles = [new() { Content = appRole }],
+                DestinationAppServers = [new() { Content = AS3 }],
+                Services = [new() { Content = new() { Id = 950, Name = "Service950", Port = 950, ProtoId = 6 } }]
+            };
+        }
+
+        [Test]
         public async Task TestAnalyseRulesSpecialUserObjects()
         {
             List<ModellingConnection> Connections = [Connection4];
@@ -810,7 +1066,7 @@ namespace FWO.Test
                 ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
                 ClassicAssert.AreEqual("Conn3", result.RuleDifferences[0].ModelledConnection.Name);
                 ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
-                ClassicAssert.AreEqual(12, result.UnModelledRules[1].Count);
+                ClassicAssert.AreEqual(14, result.UnModelledRules[1].Count);
                 ClassicAssert.AreEqual("FWOC1", result.UnModelledRules[1][0].Name);
                 ClassicAssert.AreEqual("xxxFWOC2yyy", result.UnModelledRules[1][1].Name);
             }
@@ -1008,6 +1264,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestAnalyseRuleStatusSpecialUserObjectWithoutIp()
+        {
+            ModellingConnection connSpecUserWithoutIp = new()
+            {
+                Id = 12,
+                Name = "Conn12",
+                SourceAppServers = [new() { Content = AS1 }],
+                SourceAreas = [new() { Content = new ModellingNetworkArea() { Id = 1, Name = "NA-SpecUserArea" } }],
+                DestinationAppRoles = [new() { Content = AR3 }],
+                Services = [new() { Content = Svc1 }],
+                ExtraConfigs = [new() { ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObjWithoutIp" }]
+            };
+
+            List<ModellingConnection> connections = [connSpecUserWithoutIp];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
+
+            ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+            ClassicAssert.AreEqual(0, result.RuleDifferences.Count);
+        }
+
+        [Test]
         public async Task TestAnalyseRuleStatusSingleSpecialUserDoesNotMatchMultipleAreas()
         {
             ModellingConnection connWithMultipleAreas = new()
@@ -1064,6 +1342,32 @@ namespace FWO.Test
                     userConfig.ModUpdatableObjAreas = "";
                 }
             }
+        }
+
+        [Test]
+        public async Task TestAnalyseRuleStatusMultipleIpLessSpecialUserObjectsOutsideSpecialTypeAllowList()
+        {
+            ModellingConnection connWithIpLessHostObjects = new()
+            {
+                Id = 15,
+                Name = "Conn15",
+                SourceAppServers = [new() { Content = AS1 }],
+                SourceAreas = [new() { Content = new ModellingNetworkArea() { Id = 1, Name = "NA-SpecUserArea" } }],
+                DestinationAppRoles = [new() { Content = AR3 }],
+                Services = [new() { Content = Svc1 }],
+                ExtraConfigs =
+                [
+                    new() { ExtraConfigType = "IDA_user", ExtraConfigText = "HostObjWithoutIp1" },
+                    new() { ExtraConfigType = "IDA_user", ExtraConfigText = "HostObjWithoutIp2" }
+                ]
+            };
+
+            List<ModellingConnection> connections = [connWithIpLessHostObjects];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
+
+            ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+            ClassicAssert.AreEqual(0, result.RuleDifferences.Count);
         }
 
         [Test]
@@ -1150,13 +1454,14 @@ namespace FWO.Test
             Assert.That(apiWithRules.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiWithRules.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
 
+            // an empty result is the correct answer once a mapping exists, so no marker query follows
             RuleOwnerPreFilterRoutingApiConn apiWithoutRules = new() { ReturnRuleOwnerRules = false };
             ModellingVarianceAnalysis analysisWithoutRules = new(apiWithoutRules, extStateHandler, config, Application, DefaultInit.DoNothing);
 
             await analysisWithoutRules.AnalyseRulesVsModelledConnections([], new(), false);
 
             Assert.That(apiWithoutRules.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
-            Assert.That(apiWithoutRules.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+            Assert.That(apiWithoutRules.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
         }
 
         [Test]
@@ -1170,22 +1475,6 @@ namespace FWO.Test
 
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
-        }
-
-        [Test]
-        public async Task TestNameFieldRuleOwnerPreFilterFindsDeletedConnectionForRequestFlow()
-        {
-            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
-            RuleOwnerPreFilterDeletedConnectionApiConn apiConnection = new();
-            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
-
-            List<WfReqTask> taskList = await analysis.AnalyseModelledConnectionsForRequest([]);
-
-            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
-            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
-            Assert.That(taskList, Has.Some.Matches<WfReqTask>(task =>
-                task.TaskType == WfTaskType.rule_delete.ToString()
-                && task.Title == "Delete Rule: FWOC5047"));
         }
 
         [Test]
@@ -1213,7 +1502,32 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TestNameFieldRuleOwnerPreFilterSkippedForPendingRuleOwnerMappingWithoutManagementScope()
+        public async Task TestNameFieldRuleOwnerPreFilterFindsDeletedConnectionForRequestFlow()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterDeletedConnectionApiConn apiConnection = new();
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            ModellingConnection deletedConnection = new()
+            {
+                Id = 5047,
+                Name = "DeletedConn5047",
+                Removed = true,
+                Services = [new() { Content = Svc1 }],
+                ExtraConfigs = [new() { ExtraConfigType = "Doku_Reason", ExtraConfigText = "deleted model reference" }]
+            };
+
+            List<WfReqTask> taskList = await analysis.AnalyseModelledConnectionsForRequest([deletedConnection]);
+
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
+            Assert.That(taskList, Has.Some.Matches<WfReqTask>(task =>
+                task.TaskType == WfTaskType.rule_delete.ToString()
+                && task.Title == "Delete Rule: FWOC5047"));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedForPendingRuleOwnerMapping()
         {
             SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
             RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasPendingRuleOwnerMappingImport = true };
@@ -1221,7 +1535,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1239,7 +1553,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1257,7 +1571,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1276,7 +1590,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1290,7 +1604,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1325,6 +1639,316 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
 
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedWhileRebuildRunning()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasRunningRuleOwnerRebuild = true };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getRunningRuleOwnerRebuild));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterFallsBackWhenNoMappingExists()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                ReturnRuleOwnerRules = false,
+                HasAnyActiveRuleOwnerMapping = false
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterWaitsForPendingMappingWhenAllowed()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                ClearPendingAfterStateReads = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            Assert.That(apiConnection.PrefilterStateReads, Is.GreaterThan(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterDoesNotWaitWithoutPermission()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                ClearPendingAfterStateReads = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.PrefilterStateReads, Is.EqualTo(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterDoesNotWaitWhenWaitTimeIsZero()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 0;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                ClearPendingAfterStateReads = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            Assert.That(apiConnection.PrefilterStateReads, Is.EqualTo(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterStopsWaitingWhenCancelled()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasPendingRuleOwnerMappingImport = true };
+            using CancellationTokenSource tokenSource = new();
+            tokenSource.Cancel();
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask,
+                CancellationToken = tokenSource.Token
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            Assert.That(apiConnection.PrefilterStateReads, Is.EqualTo(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestPreFilterFallbackIsReportedOncePerAnalysisOverSeveralManagements()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                ManagementCount = 2,
+                HasRunningRuleOwnerRebuild = true
+            };
+            int userMessages = 0;
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application,
+                (_, _, _, _) => userMessages++);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(userMessages, Is.EqualTo(1), "the user is told once, not once per management");
+            Assert.That(apiConnection.LoggedReasons, Has.Count.EqualTo(1), "the same reason is logged once, not once per management");
+            Assert.That(apiConnection.PrefilterStateReads, Is.EqualTo(1), "the state is read once and reused");
+            Assert.That(apiConnection.Queries.Count(query => query == RuleQueries.getModelledRulesByManagementName), Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task TestPreFilterFallbackIsNotWrittenToDbLogWhenTurnedOff()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasRunningRuleOwnerRebuild = true };
+            int userMessages = 0;
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application,
+                (_, _, _, _) => userMessages++)
+            {
+                LogPrefilterFallbackToDb = false
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            // the background job: the fall back still happens, only the database log is left out
+            Assert.That(apiConnection.LoggedReasons, Is.Empty);
+            Assert.That(userMessages, Is.EqualTo(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestRuleOwnerMappingIsWaitedForOnlyOncePerAnalysis()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                ManagementCount = 2,
+                HasPendingRuleOwnerMappingImport = true
+            };
+            int delays = 0;
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) =>
+                {
+                    delays++;
+                    return Task.CompletedTask;
+                }
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            // 10 seconds at a 2 second poll interval, and only for the first management
+            Assert.That(delays, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task TestSharedRuleOwnerWaitStateWaitsAndReportsOnceOverSeveralOwners()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasPendingRuleOwnerMappingImport = true };
+            RuleOwnerWaitState sharedState = new();
+            int delays = 0;
+            int userMessages = 0;
+
+            // a report over two owners: one analysis per owner, one state for the report
+            for (int ownerIndex = 0; ownerIndex < 2; ownerIndex++)
+            {
+                ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application,
+                    (_, _, _, _) => userMessages++)
+                {
+                    DelayAsync = (_, _) =>
+                    {
+                        delays++;
+                        return Task.CompletedTask;
+                    },
+                    WaitState = sharedState
+                };
+                await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(delays, Is.EqualTo(5), "the backlog does not drain, so only the first owner waits");
+                Assert.That(userMessages, Is.EqualTo(1), "the user is told once per report, not once per owner");
+                Assert.That(apiConnection.LoggedReasons, Has.Count.EqualTo(1), "the same reason is logged once per report");
+                Assert.That(apiConnection.Queries.Count(query => query == RuleQueries.getModelledRulesByManagementName), Is.EqualTo(2),
+                    "every owner still falls back to the marker query");
+            });
+        }
+
+        [Test]
+        public async Task TestRuleOwnerWaitStateIsPerAnalysisByDefault()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasPendingRuleOwnerMappingImport = true };
+            int delays = 0;
+            int userMessages = 0;
+
+            // separate requests, such as two popups opened one after the other, keep their own state
+            for (int request = 0; request < 2; request++)
+            {
+                ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application,
+                    (_, _, _, _) => userMessages++)
+                {
+                    DelayAsync = (_, _) =>
+                    {
+                        delays++;
+                        return Task.CompletedTask;
+                    }
+                };
+                await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(delays, Is.EqualTo(10));
+                Assert.That(userMessages, Is.EqualTo(2));
+                Assert.That(apiConnection.LoggedReasons, Has.Count.EqualTo(2));
+            });
+        }
+
+        [Test]
+        public async Task TestPreFilterFallbackNamesTheRebuildThatStartedWhileWaiting()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 4;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                ClearPendingAfterStateReads = 1,
+                StartRebuildAfterStateReads = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            // the backlog cleared but a rebuild took over, so that is what has to be recorded
+            Assert.That(apiConnection.LoggedReasons, Has.Exactly(1).Contains("reinitialize"));
+            Assert.That(apiConnection.LoggedReasons, Has.None.Contains("still waiting"));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        private static readonly List<int> kNonNameFieldMappingSources =
+        [
+            (int)OwnerMappingSourceStm.IpBased,
+            (int)OwnerMappingSourceStm.CustomField,
+            (int)OwnerMappingSourceStm.Disabled
+        ];
+
+        [Test]
+        public async Task TestRuleOwnerPrefilterStateNotReadForOtherMappingSources()
+        {
+            foreach (int source in kNonNameFieldMappingSources)
+            {
+                SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+                config.OwnerSoruceMappingID = source;
+                RuleOwnerPreFilterRoutingApiConn apiConnection = new();
+                ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+                await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+                Assert.That(apiConnection.Queries, Does.Not.Contain(ImportQueries.getPendingRuleAffectingImports));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+                Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+            }
+        }
+
+        [Test]
+        public void TestRuleOwnerPrefilterStateQueriesCheckRebuildAgeAndPolicyChanges()
+        {
+            Assert.That(ImportQueries.getRunningRuleOwnerRebuild, Does.Contain("stop_time: {_is_null: true}"));
+            Assert.That(ImportQueries.getRunningRuleOwnerRebuild, Does.Contain("start_time: {_gt: $rebuildCutoff}"));
+            Assert.That(ImportQueries.getPendingRuleAffectingImports, Does.Contain("policy_changes_found: {_eq: true}"));
+            Assert.That(ImportQueries.getPendingRuleAffectingImports, Does.Contain("rule_owner_mapping_done: {_eq: false}"));
+            Assert.That(OwnerQueries.getAnyActiveRuleOwnerMapping, Does.Contain("removed: {_is_null: true}"));
+            Assert.That(OwnerQueries.getAnyActiveRuleOwnerMapping, Does.Contain("limit: 1"));
+        }
+
         private static SimulatedUserConfig CreateNameFieldPreFilterUserConfig()
         {
             return new()
@@ -1346,6 +1970,13 @@ namespace FWO.Test
             public int? PendingRuleOwnerMappingMgmId { get; init; }
             public List<int> RelevantImportSubManagementIds { get; init; } = [];
             public bool HasMissingRuleOwnerPreFilterCompletenessMapping { get; init; } = false;
+            public bool HasRunningRuleOwnerRebuild { get; init; } = false;
+            public bool HasAnyActiveRuleOwnerMapping { get; init; } = true;
+            public int PrefilterStateReads { get; private set; }
+            public int ClearPendingAfterStateReads { get; init; } = int.MaxValue;
+            public int ManagementCount { get; init; } = 1;
+            public int StartRebuildAfterStateReads { get; init; } = int.MaxValue;
+            public List<string> LoggedReasons { get; } = [];
 
             public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
                 string query,
@@ -1360,23 +1991,44 @@ namespace FWO.Test
 
                 if (responseType == typeof(List<ManagementReport>) && query == ReportQueries.getRelevantImportIdsAtTime)
                 {
-                    return (QueryResponseType)(object)new List<ManagementReport>
-                    {
+                    List<ManagementReport> managementReports =
+                    [
                         new()
                         {
                             Id = 1,
-                            SubManagements = RelevantImportSubManagementIds.Select(id => new Management { Id = id }).ToList(),
-                            Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } }
+                            Import = new()
+                            {
+                                ImportAggregate = new()
+                                {
+                                    ImportAggregateMax = new()
+                                    {
+                                        RelevantImportId = 1
+                                    }
+                                }
+                            },
+                            SubManagements = RelevantImportSubManagementIds
+                                .Select(id => new Management { Id = id })
+                                .ToList()
                         }
-                    };
+                    ];
+
+                    return (QueryResponseType)(object)managementReports;
                 }
 
                 if (responseType == typeof(List<Management>))
                 {
-                    return (QueryResponseType)(object)new List<Management>
+                    List<Management> managements = [];
+                    for (int managementId = 1; managementId <= ManagementCount; managementId++)
                     {
-                        new() { Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}" }
-                    };
+                        managements.Add(new()
+                        {
+                            Id = managementId,
+                            Name = $"Checkpoint{managementId}",
+                            ExtMgtData = $"{{\"id\":\"{managementId}\",\"name\":\"CheckpointExt\"}}"
+                        });
+                    }
+
+                    return (QueryResponseType)(object)managements;
                 }
 
                 if (responseType == typeof(List<ModellingNetworkArea>))
@@ -1397,13 +2049,42 @@ namespace FWO.Test
 
                     return (QueryResponseType)(object)new List<ModellingConnection>();
                 }
+                if (responseType == typeof(List<RuleOwner>) && query == OwnerQueries.getAnyActiveRuleOwnerMapping)
+                {
+                    List<RuleOwner> mapping = HasAnyActiveRuleOwnerMapping ? [new() { RuleId = 1 }] : [];
+                    return (QueryResponseType)(object)mapping;
+                }
+
+                if (responseType == typeof(ReturnIdWrapper))
+                {
+                    // AddLogEntry carries the fallback reason as suspectedCause
+                    object? cause = variables?.GetType().GetProperty("suspectedCause")?.GetValue(variables);
+                    if (cause != null)
+                    {
+                        LoggedReasons.Add(cause.ToString() ?? "");
+                    }
+
+                    return (QueryResponseType)(object)new ReturnIdWrapper();
+                }
+
+                if (responseType == typeof(List<ImportControl>) && query == ImportQueries.getRunningRuleOwnerRebuild)
+                {
+                    bool rebuilding = HasRunningRuleOwnerRebuild || PrefilterStateReads >= StartRebuildAfterStateReads;
+                    List<ImportControl> rebuild = rebuilding ? [new() { ControlId = 9 }] : [];
+                    return (QueryResponseType)(object)rebuild;
+                }
+
                 if (responseType == typeof(List<ImportControl>))
                 {
-                    List<ImportControl> imports = [];
-                    if (HasPendingRuleOwnerMappingImport)
+                    if (query == ImportQueries.getPendingRuleAffectingImports)
                     {
-                        imports.Add(new() { ControlId = 1, MgmId = PendingRuleOwnerMappingMgmId });
+                        PrefilterStateReads++;
                     }
+
+                    bool stillPending = HasPendingRuleOwnerMappingImport && PrefilterStateReads <= ClearPendingAfterStateReads;
+                    List<ImportControl> imports = stillPending
+                        ? [new() { ControlId = 1, MgmId = PendingRuleOwnerMappingMgmId }]
+                        : [];
                     return (QueryResponseType)(object)imports;
                 }
 
@@ -1432,11 +2113,11 @@ namespace FWO.Test
                         return (QueryResponseType)(object)completenessRules;
                     }
 
-                    List<Rule> modelledRules = query == RuleQueries.getModelledRulesByRuleOwnerNameField && !ReturnRuleOwnerRules
+                    List<Rule> rules = query == RuleQueries.getModelledRulesByRuleOwnerNameField && !ReturnRuleOwnerRules
                         ? []
                         : [new() { Id = 1, Name = "FWOC1", MgmtId = 1 }];
 
-                    return (QueryResponseType)(object)modelledRules;
+                    return (QueryResponseType)(object)rules;
                 }
 
                 throw new NotImplementedException(query);
@@ -1447,7 +2128,11 @@ namespace FWO.Test
         {
             private const int kDeletedConnectionId = 5047;
 
-            public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
+                string query,
+                object? variables = null,
+                string? operationName = null,
+                QueryChunkingOptions? chunkingOptions = null)
             {
                 await DefaultInit.DoNothing();
 
@@ -1457,11 +2142,11 @@ namespace FWO.Test
                     List<Rule> rules =
                     [
                         new()
-                        {
-                            Id = kDeletedConnectionId,
-                            Name = "FWOC5047",
-                            MgmtId = 1
-                        }
+                {
+                    Id = kDeletedConnectionId,
+                    Name = "FWOC5047",
+                    MgmtId = 1
+                }
                     ];
                     return (QueryResponseType)(object)rules;
                 }
@@ -1472,12 +2157,12 @@ namespace FWO.Test
                     List<ModellingConnection> connections =
                     [
                         new()
-                        {
-                            Id = kDeletedConnectionId,
-                            Name = "DeletedConn5047",
-                            Removed = true,
-                            Services = [new() { Content = Svc1 }]
-                        }
+                {
+                    Id = kDeletedConnectionId,
+                    Name = "DeletedConn5047",
+                    Removed = true,
+                    Services = [new() { Content = Svc1 }]
+                }
                     ];
                     return (QueryResponseType)(object)connections;
                 }
@@ -1559,14 +2244,16 @@ namespace FWO.Test
             {
                 await DefaultInit.DoNothing();
                 Type responseType = typeof(QueryResponseType);
-                if (responseType == typeof(List<ManagementReport>) && query == ReportQueries.getRelevantImportIdsAtTime)
+                if (responseType == typeof(List<ManagementReport>))
                 {
-                    return (QueryResponseType)(object)new List<ManagementReport>
+                    if (query == ReportQueries.getRelevantImportIdsAtTime)
                     {
-                        new() { Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } } }
-                    };
+                        return (QueryResponseType)(object)new List<ManagementReport>
+                        {
+                            new() { Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } } }
+                        };
+                    }
                 }
-
                 if (responseType == typeof(List<Management>))
                 {
                     return (QueryResponseType)(object)new List<Management>

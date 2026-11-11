@@ -17,6 +17,9 @@ namespace FWO.Data.Workflow
             DeviceId = element.DeviceId;
             IpString = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null;
             IpEnd = element.CidrEnd != null && element.CidrEnd.Valid ? element.CidrEnd.CidrString : null;
+            // an input without time zone is local time; written without offset, the database would read it in its own time zone
+            StartTime = element.StartTime?.ToUniversalTime();
+            EndTime = element.EndTime?.ToUniversalTime();
             if (!IpProtocol.HasPorts(element.ProtoId))
             {
                 Port = null;

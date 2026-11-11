@@ -14,19 +14,21 @@ public sealed class TimeObjectResponse
     public long Id { get; set; }
 
     /// <summary>
-    /// Gets the Name value.
+    /// Gets the Name value. For time objects created by the request workflow the name shows the period as it
+    /// was requested, in the local time of the request, while StartTime and EndTime are in UTC. With a time
+    /// zone offset the name can therefore state a different day than the timestamps.
     /// </summary>
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets the StartTime value.
+    /// Gets the StartTime value in UTC. This is the authoritative start of the period, see Name.
     /// </summary>
     [JsonPropertyName("startTime")]
     public string StartTime { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets the EndTime value.
+    /// Gets the EndTime value in UTC. This is the authoritative end of the period, see Name.
     /// </summary>
     [JsonPropertyName("endTime")]
     public string EndTime { get; set; } = string.Empty;

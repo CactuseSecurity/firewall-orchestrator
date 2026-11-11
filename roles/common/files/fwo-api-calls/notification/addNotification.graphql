@@ -22,6 +22,8 @@ mutation addNotification(
   $initialOffsetAfterDeadline: Int
   $offsetAfterDeadline: Int
   $repetitionsAfterDeadline: Int
+  $logging: String
+  $active: Boolean!
   ) {
   insert_notification(objects: {
     notification_client: $client
@@ -47,6 +49,8 @@ mutation addNotification(
     initial_offset_after_deadline: $initialOffsetAfterDeadline
     repeat_offset_after_deadline: $offsetAfterDeadline
     repetitions_after_deadline: $repetitionsAfterDeadline
+    logging: $logging
+    active: $active
   }) {
     returning {
       newId: id

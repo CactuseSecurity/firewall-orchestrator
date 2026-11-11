@@ -13,7 +13,6 @@ Hasura permissions are based on roles. Table permissions are defined on a per-ro
 1) create roles (role based access control, RBAC)
     - admin - full admin - able to change tables management, device, stm_...: full access for insert, select, update, delete
     - reporters - able to request reports: no insert, update, delete for "data tables" like management, rule, object, ...:  select access restricted via functions returning visible mgmts or devices
-    - fw-admin - able to document changes: to be defined later
 
 2) use stored procedures to create set of ids
 ~~~console
@@ -143,8 +142,7 @@ insert into hdb_catalog.hdb_permission (table_schema, table_name, role_name, per
         "clearing_import_ran",
         "force_initial_import",
         "config_path",
-        "hide_in_gui",
-        "importer_hostname"
+        "hide_in_gui"
     ],
     "computed_fields": [],
     "allow_aggregations": true
@@ -241,7 +239,6 @@ public       | management | reporters | select    | {
     "columns": [
         "mgm_id",
         ...
-        "importer_hostname"
     ],
     "computed_fields": [],
     "allow_aggregations": false

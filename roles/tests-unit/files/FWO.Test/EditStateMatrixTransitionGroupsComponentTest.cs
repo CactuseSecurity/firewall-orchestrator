@@ -2,6 +2,7 @@ using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Ui.Pages.Settings;
+using Microsoft.AspNetCore.Components;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using System.Reflection;
@@ -124,6 +125,119 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task OnParametersSet_LoadsGroupsAndOpensRequestedGroup()
+        {
+            RecordingWorkflowApiConnection api = new();
+            StateMatrixTransitionGroup group = new() { Id = 8, Name = "Requested", VisibilityGroupId = null, Exclusive = true };
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup> { group });
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup> { new() { Id = 3, Name = "Visible" } });
+            EditStateMatrixTransitionGroups component = new();
+            SetProperty(component, "apiConnection", api);
+            SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "Display", true);
+            SetProperty(component, "TransitionGroupIdToEdit", 8);
+
+            await InvokeAsync(component, "OnParametersSetAsync");
+
+            StateMatrixTransitionGroup editGroup = GetField<StateMatrixTransitionGroup>(component, "editGroup");
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetField<List<StateMatrixTransitionGroup>>(component, "transitionGroups"), Has.Count.EqualTo(1));
+                Assert.That(GetField<List<WorkflowVisibilityGroup>>(component, "visibilityGroups"), Has.Count.EqualTo(1));
+                Assert.That(GetField<bool>(component, "EditMode"), Is.True);
+                Assert.That(editGroup.Name, Is.EqualTo("Requested"));
+                Assert.That(editGroup.Exclusive, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task OnParametersSet_ReportsRefreshErrors()
+        {
+            EditStateMatrixTransitionGroups component = new();
+            Exception? reportedException = null;
+            SetProperty(component, "apiConnection", new RecordingWorkflowApiConnection());
+            SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "Display", true);
+            SetProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, _, _, _) => reportedException = exception));
+
+            await InvokeAsync(component, "OnParametersSetAsync");
+
+            Assert.That(reportedException, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task OnParametersSet_DoesNotRefreshWhileAlreadyDisplayed()
+        {
+            RecordingWorkflowApiConnection api = new();
+            EditStateMatrixTransitionGroups component = new();
+            SetProperty(component, "apiConnection", api);
+            SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "Display", true);
+
+            await InvokeAsync(component, "OnParametersSetAsync");
+            int initialCallCount = api.Calls.Count;
+            await InvokeAsync(component, "OnParametersSetAsync");
+
+            Assert.That(api.Calls, Has.Count.EqualTo(initialCallCount));
+        }
+
+        [Test]
+        public async Task DeleteGroup_DeletesRefreshesAndRaisesChangedEvent()
+        {
+            RecordingWorkflowApiConnection api = new();
+            api.Respond(RequestQueries.deleteStateMatrixTransitionGroup, new ReturnId { NewId = 8 });
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup>());
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups, new List<WorkflowVisibilityGroup>());
+            EditStateMatrixTransitionGroups component = new();
+            bool changed = false;
+            SetProperty(component, "apiConnection", api);
+            SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "TransitionGroupsChanged", EventCallback.Factory.Create(new object(), () => changed = true));
+            StateMatrixTransitionGroup group = new() { Id = 8, Name = "To delete" };
+
+            Invoke(component, "RequestDeleteGroup", group);
+            Assert.That(GetProperty<string>(component, "DeleteGroupMessage"), Does.Contain("To delete"));
+            await InvokeAsync(component, "DeleteGroup");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetField<bool>(component, "DeleteMode"), Is.True);
+                Assert.That(changed, Is.True);
+                Assert.That(api.Calls.Any(call => call.Query == RequestQueries.deleteStateMatrixTransitionGroup), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task DeleteGroup_ReportsApiErrors()
+        {
+            EditStateMatrixTransitionGroups component = new();
+            Exception? reportedException = null;
+            SetProperty(component, "apiConnection", new RecordingWorkflowApiConnection());
+            SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, _, _, _) => reportedException = exception));
+            Invoke(component, "RequestDeleteGroup", new StateMatrixTransitionGroup { Id = 8, Name = "To delete" });
+
+            await InvokeAsync(component, "DeleteGroup");
+
+            Assert.That(reportedException, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task Save_ReportsApiErrors()
+        {
+            EditStateMatrixTransitionGroups component = new();
+            Exception? reportedException = null;
+            SetProperty(component, "apiConnection", new RecordingWorkflowApiConnection());
+            SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, _, _, _) => reportedException = exception));
+            SetField(component, "editGroup", new StateMatrixTransitionGroup { Name = "Group" });
+
+            await InvokeAsync(component, "Save");
+
+            Assert.That(reportedException, Is.Not.Null);
+        }
+
+        [Test]
         public void StateDisplayName_ContainsNameAndId()
         {
             Assert.That(InvokeStatic("StateDisplayName", new WfState { Id = 42, Name = "Done" }), Is.EqualTo("Done (42)"));
@@ -140,6 +254,24 @@ namespace FWO.Test
                 Assert.That(Invoke(component, "VisibilityGroupName", 3), Is.EqualTo("Visible"));
                 Assert.That(Invoke(component, "VisibilityGroupName", 99), Is.EqualTo("-"));
                 Assert.That(Invoke(component, "VisibilityGroupName", new object?[] { null }), Is.EqualTo("-"));
+            });
+        }
+
+        [Test]
+        public void DisplayAndRenderExclusiveFlag_HandleOptionalValues()
+        {
+            EditStateMatrixTransitionGroups component = new();
+            SimulatedUserConfig userConfig = new();
+            SetProperty(component, "userConfig", userConfig);
+            StateMatrixTransitionGroup visibleGroup = new() { VisibilityGroupId = 3, Exclusive = true };
+            StateMatrixTransitionGroup hiddenGroup = new() { VisibilityGroupId = null, Exclusive = true };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(Invoke(component, "DisplayPhase", "   "), Is.EqualTo(userConfig.GetText("all")));
+                Assert.That(Invoke(component, "DisplayPhase", "request"), Is.EqualTo(userConfig.GetText("request")));
+                Assert.That(InvokeStatic("RenderExclusiveFlag", visibleGroup)?.ToString(), Is.Not.Empty);
+                Assert.That(InvokeStatic("RenderExclusiveFlag", hiddenGroup)?.ToString(), Is.Empty);
             });
         }
 
@@ -269,6 +401,30 @@ namespace FWO.Test
             Invoke(component, "CloseEditor");
 
             Assert.That(GetField<bool>(component, "EditMode"), Is.False);
+        }
+
+        [Test]
+        public async Task CloseEditorView_ClosesEditorOrDirectPopup()
+        {
+            EditStateMatrixTransitionGroups component = new();
+            SetField(component, "EditMode", true);
+            await InvokeAsync(component, "CloseEditorView");
+            Assert.That(GetField<bool>(component, "EditMode"), Is.False);
+
+            bool displayChanged = true;
+            SetProperty(component, "Display", true);
+            SetProperty(component, "TransitionGroupIdToEdit", 8);
+            SetProperty(component, "DisplayChanged", EventCallback.Factory.Create<bool>(new object(), value => displayChanged = value));
+            SetField(component, "EditMode", true);
+
+            await InvokeAsync(component, "CloseEditorView");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Display, Is.False);
+                Assert.That(displayChanged, Is.False);
+                Assert.That(GetField<bool>(component, "EditMode"), Is.False);
+            });
         }
 
         private static object? InvokeStatic(string methodName, params object?[] parameters)

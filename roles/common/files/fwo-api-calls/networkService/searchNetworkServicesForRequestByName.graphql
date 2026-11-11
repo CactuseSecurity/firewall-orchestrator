@@ -1,0 +1,24 @@
+query searchNetworkServicesForRequestByName(
+  $mgmId: Int!
+  $svcTypeIds: [Int!]!
+  $pattern: String!
+  $limit: Int!
+) {
+  firewall_nw_service(
+    where: {
+      mgm_id: { _eq: $mgmId }
+      svc_typ_id: { _in: $svcTypeIds }
+      active: { _eq: true }
+      removed: { _is_null: true }
+      svc_name: { _ilike: $pattern }
+    }
+    order_by: [{ svc_name: asc }, { svc_id: asc }]
+    limit: $limit
+  ) {
+    svc_id
+    svc_name
+    ip_proto_id
+    svc_port
+    svc_port_end
+  }
+}

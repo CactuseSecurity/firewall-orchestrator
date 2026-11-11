@@ -61,8 +61,8 @@ Therefore upgrades to database tables and permissions now need to be handled as 
 
 ### HTTP_PROXY
 - value: "{{ http_proxy }}"
-- description: allows outbound connections for the docker container via a proxy.
+- description: allows outbound connections for the Hasura container via a proxy.
 
 ### HTTPS_PROXY
 - value: "{{ https_proxy }}"
-- description: allows outbound connections for the docker container via a proxy.
+- description: allows outbound connections for the Hasura container via a proxy.

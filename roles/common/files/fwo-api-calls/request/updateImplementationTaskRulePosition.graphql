@@ -1,0 +1,11 @@
+mutation updateImplementationTaskRulePosition(
+  $id: bigint!
+  $rulePosition: jsonb
+) {
+  update_request_impltask_by_pk(
+    pk_columns: { id: $id }
+    _set: { rule_position: $rulePosition }
+  ) {
+    UpdatedIdLong: id
+  }
+}

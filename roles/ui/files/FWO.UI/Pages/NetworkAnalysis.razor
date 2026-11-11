@@ -1,5 +1,6 @@
 ﻿
 @using NetTools
+@using FWO.Services.PathAnalysis
 @using System.Net
 @using FWO.Services
 
@@ -7,7 +8,7 @@
 @inject UserConfig userConfig
 
 @page "/network_analysis"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Planner}, {Roles.Auditor}")]
 
 <h3>@(userConfig.GetText("network_analysis"))</h3>
 
@@ -72,7 +73,7 @@
         string result = "";
         if (CheckIpAdresses(source, destination))
         {
-            result = await PathAnalysis.GetDeviceNamesForSinglePath(source, destination, apiConnection);
+            result = await RoutingBasedPathAnalyzer.GetDeviceNamesForSinglePath(source, destination, apiConnection);
         }
         workInProgress = false;
         return result;

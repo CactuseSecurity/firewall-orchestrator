@@ -5,6 +5,7 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using FWO.Services.RulePositioning;
 using RestSharp;
 using System.Text.Json;
 
@@ -17,7 +18,7 @@ namespace FWO.Services.Workflow
         private readonly ApiConnection apiConnection;
         private readonly WfHandler wfHandler;
         private readonly bool useInMwServer = false;
-        private readonly IRequestedRulePolicyChecker? requestedRulePolicyChecker;
+        private IRequestedRulePolicyChecker? requestedRulePolicyChecker;
         private readonly IWorkflowRecipientResolver? workflowRecipientResolver;
         private string? ScopedUserTo { get; set; } = "";
         private string? ScopedUserCc { get; set; } = "";
@@ -30,10 +31,25 @@ namespace FWO.Services.Workflow
         private static readonly object MiddlewareDelegationLock = new();
         private static readonly Dictionary<string, DateTime> MiddlewareDelegations = [];
         private static readonly TimeSpan MiddlewareDelegationDeduplicationWindow = TimeSpan.FromSeconds(5);
+        /// <summary>
+        /// Collector of the active workflow email bundle. While set, matching request task emails are
+        /// captured instead of sent, until the bundle is flushed.
+        /// </summary>
+        public WorkflowEmailBundleCollector? EmailBundleCollector { get; set; }
+
+        private List<WfReqTask>? RequestTaskEmailBundle { get; set; }
+
+        /// <summary>
+        /// Number of actions delegated to the middleware while the current bundle was active. Only the
+        /// middleware knows whether an action captured an email, so this counter is what tells the client
+        /// that a flush can have something to send at all.
+        /// </summary>
+        private int BundledDelegations { get; set; }
 
 
         public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<UserGroup>? userGroups = null, bool useInMwServer = false,
-            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null, IWorkflowRecipientResolver? workflowRecipientResolver = null)
+            IRequestedRulePolicyChecker? requestedRulePolicyChecker = null, IWorkflowRecipientResolver? workflowRecipientResolver = null,
+            IRulePositioningWorkflowCaller? rulePositioningWorkflowCaller = null)
         {
             this.apiConnection = apiConnection;
             this.wfHandler = wfHandler;
@@ -41,6 +57,9 @@ namespace FWO.Services.Workflow
             UserGroups = userGroups;
             this.requestedRulePolicyChecker = requestedRulePolicyChecker ?? wfHandler.RequestedRulePolicyChecker;
             this.workflowRecipientResolver = workflowRecipientResolver ?? wfHandler.WorkflowRecipientResolver;
+            this.rulePositioningWorkflowCaller = useInMwServer
+                ? rulePositioningWorkflowCaller ?? ServiceProvider.Services?.GetService(typeof(IRulePositioningWorkflowCaller)) as IRulePositioningWorkflowCaller
+                : null;
         }
 
         public async Task Init()
@@ -71,7 +90,8 @@ namespace FWO.Services.Workflow
             return offeredActions;
         }
 
-        public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
+        public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null,
+            NotificationPlaceholderData? placeholderData = null, WfReqTask? creatingRequestTask = null)
         {
             if (!statefulObject.StateChanged())
             {
@@ -83,7 +103,7 @@ namespace FWO.Services.Workflow
             {
                 try
                 {
-                    await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId));
+                    await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId, placeholderData: placeholderData));
                 }
                 finally
                 {
@@ -92,12 +112,96 @@ namespace FWO.Services.Workflow
                 return;
             }
 
+            using IDisposable graphCacheScope = RulePositioningGraphCacheScope.Begin();
+            await RecordStateChangeExecution(statefulObject, scope);
+            await ActivateRulePositioningForCreation(statefulObject, scope, creatingRequestTask);
+
+            if (scope == WfObjectScopes.Ticket)
+            {
+                await SetScope(statefulObject, scope);
+            }
+
             List<WfStateAction> onSetActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnSet, true);
             List<WfStateAction> onLeaveActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnLeave, false);
             statefulObject.ResetStateChanged();
 
-            await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, owner, ticketId, userGrpDn);
-            await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, owner, ticketId, userGrpDn);
+            StateActionExecutionContext context = new(owner, ticketId, userGrpDn, placeholderData);
+            await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, context);
+            await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, context);
+        }
+
+        /// <summary>
+        /// Sends the captured emails of the active bundle, one email per bundle key group. Emails in the
+        /// collector were suppressed at their state action, so this is their only delivery. Only the groups
+        /// that were actually delivered leave the collector: whatever remains is an email that was not sent,
+        /// which the caller can retry individually or report. A failed delivery is raised rather than
+        /// swallowed, because the state change it belongs to is already committed.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">At least one bundle group could not be delivered</exception>
+        public async Task FlushEmailBundleCollector()
+        {
+            if (EmailBundleCollector == null || EmailBundleCollector.PendingItems.Count == 0)
+            {
+                return;
+            }
+
+            WorkflowEmailBundleCollector collector = EmailBundleCollector;
+            collector.IsFlushing = true;
+            List<WorkflowEmailBundleItem> deliveredItems = [];
+            int failedGroupCount = 0;
+            try
+            {
+                foreach (IGrouping<string, WorkflowEmailBundleItem> group in collector.PendingItems.GroupBy(item => item.BundleKey))
+                {
+                    if (await SendBundledEmailGroup(group))
+                    {
+                        deliveredItems.AddRange(group);
+                    }
+                    else
+                    {
+                        ++failedGroupCount;
+                    }
+                }
+            }
+            finally
+            {
+                RequestTaskEmailBundle = null;
+                collector.PendingItems.RemoveAll(deliveredItems.Contains);
+                collector.IsFlushing = false;
+            }
+
+            if (failedGroupCount > 0)
+            {
+                throw new InvalidOperationException($"{failedGroupCount} bundled workflow email(s) could not be delivered.");
+            }
+        }
+
+        /// <summary>
+        /// Sends the single email that covers one bundle key group.
+        /// </summary>
+        /// <param name="group">Captured emails sharing one bundle key</param>
+        /// <returns>true if the email was delivered</returns>
+        private async Task<bool> SendBundledEmailGroup(IGrouping<string, WorkflowEmailBundleItem> group)
+        {
+            WorkflowEmailBundleItem item = group.OrderBy(bundleItem => bundleItem.RequestTask.TaskNumber).First();
+            RequestTaskEmailBundle = BuildRequestTaskEmailBundle(group);
+            try
+            {
+                return await TrySendEmail(item.Action, item.RequestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
+            }
+            finally
+            {
+                RequestTaskEmailBundle = null;
+            }
+        }
+
+        private static List<WfReqTask> BuildRequestTaskEmailBundle(IEnumerable<WorkflowEmailBundleItem> bundleItems)
+        {
+            return bundleItems
+                .Select(item => item.RequestTask)
+                .DistinctBy(task => task.Id)
+                .OrderBy(task => task.TaskNumber)
+                .ToList();
         }
 
         private List<WfStateAction> StateActionsForEvent(WfStatefulObject statefulObject, WfObjectScopes scope, StateActionEvents actionEvent, bool currentState)
@@ -105,14 +209,26 @@ namespace FWO.Services.Workflow
             return [.. GetRelevantActions(statefulObject, scope, currentState).Where(action => action.Event == actionEvent.ToString())];
         }
 
+        private sealed record StateActionExecutionContext(FwoOwner? Owner, long? TicketId, string? UserGrpDn,
+            NotificationPlaceholderData? PlaceholderData);
+
         private async Task PerformStateActions(List<WfStateAction> actions, StateActionEvents actionEvent, WfStatefulObject statefulObject,
-            WfObjectScopes scope, FwoOwner? owner, long? ticketId, string? userGrpDn)
+            WfObjectScopes scope, StateActionExecutionContext context)
         {
             foreach (var action in actions.Where(IsActionInCurrentPhase))
             {
                 string stateText = actionEvent == StateActionEvents.OnLeave ? statefulObject.ChangedFrom().ToString() : statefulObject.StateId.ToString();
                 Log.WriteDebug("DoStateChangeActions", $"Perform {actionEvent} action '{action.Name}' ({action.ActionType}) for {scope} state {stateText}.");
-                await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
+                try
+                {
+                    await PerformAction(action, statefulObject, scope, context.Owner, context.TicketId, context.UserGrpDn, context.PlaceholderData);
+                }
+                catch (Exception exc)
+                {
+                    Log.WriteError("DoStateChangeActions",
+                        $"Failed to execute {actionEvent} action '{action.Name}' ({action.ActionType}) for {scope} state {stateText} in phase {wfHandler.Phase}.", exc);
+                    throw;
+                }
             }
         }
 
@@ -152,12 +268,12 @@ namespace FWO.Services.Workflow
         }
 
         public async Task PerformAction(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope,
-            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
+            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null, NotificationPlaceholderData? placeholderData = null)
         {
             if (scope != WfObjectScopes.None && !useInMwServer && wfHandler.MiddlewareClient != null && !WfStateAction.IsReadonlyType(action.ActionType))
             {
                 Log.WriteDebug("PerformAction", $"Delegating action '{action.Name}' ({action.ActionType}) to middleware.");
-                await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId, action.Id));
+                await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId, action.Id, placeholderData));
                 return;
             }
 
@@ -168,6 +284,10 @@ namespace FWO.Services.Workflow
                     if (toState == null || states.FirstOrDefault(x => x.Id == toState) != null)
                     {
                         await wfHandler.AutoPromote(statefulObject, scope, toState);
+                        if (WfStateAction.HasConfirmUiMessage(action.ExternalParams))
+                        {
+                            wfHandler.DisplayMessage(null, action.Name, BuildAutoPromoteMessage(statefulObject), false);
+                        }
                     }
                     break;
                 case nameof(StateActionTypes.AddApproval):
@@ -185,13 +305,16 @@ namespace FWO.Services.Workflow
                     await CallExternal(action);
                     break;
                 case nameof(StateActionTypes.SendEmail):
-                    await SendEmail(action, statefulObject, scope, owner, userGrpDn);
+                    await SendEmail(action, statefulObject, scope, owner, userGrpDn, placeholderData);
                     break;
                 case nameof(StateActionTypes.CreateFlow):
                     await CreateFlow(action, statefulObject, scope, owner, ticketId);
                     break;
                 case nameof(StateActionTypes.BundleTasks):
                     await BundleTasks(action, statefulObject, scope, owner, ticketId);
+                    break;
+                case nameof(StateActionTypes.CreateImplTasks):
+                    await CreateImplTasks(action, statefulObject, scope);
                     break;
                 case nameof(StateActionTypes.UpdateConnectionOwner):
                     await UpdateConnectionOwner(owner, ticketId);
@@ -220,7 +343,7 @@ namespace FWO.Services.Workflow
         }
 
         public async Task<bool> PerformActionById(int actionId, WfStatefulObject statefulObject, WfObjectScopes scope,
-            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
+            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null, NotificationPlaceholderData? placeholderData = null)
         {
             WfStateAction? action = GetOfferedActions(statefulObject, scope, wfHandler.Phase).FirstOrDefault(action => action.Id == actionId);
             if (action == null)
@@ -228,11 +351,12 @@ namespace FWO.Services.Workflow
                 Log.WriteError("Workflow Actions", $"Action id {actionId} is not offered for {scope} in state {statefulObject.StateId} and phase {wfHandler.Phase}.");
                 return false;
             }
-            await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
+            await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn, placeholderData);
             return true;
         }
 
-        private WorkflowActionParameters BuildWorkflowActionParameters(WfStatefulObject statefulObject, WfObjectScopes scope, long? ticketId, int actionId = 0)
+        private WorkflowActionParameters BuildWorkflowActionParameters(WfStatefulObject statefulObject, WfObjectScopes scope, long? ticketId, int actionId = 0,
+            NotificationPlaceholderData? placeholderData = null)
         {
             return new()
             {
@@ -244,8 +368,59 @@ namespace FWO.Services.Workflow
                 NewStateId = statefulObject.StateId,
                 StateChangedByCreation = statefulObject.StateChangedByCreation(),
                 Phase = wfHandler.Phase.ToString(),
-                ExecutionMode = wfHandler.userConfig.ExecutionMode
+                ExecutionMode = wfHandler.userConfig.ExecutionMode,
+                NotificationPlaceholders = placeholderData,
+                EmailBundleId = wfHandler.WorkflowEmailBundleId ?? ""
             };
+        }
+
+        /// <summary>
+        /// Records the state whose actions are about to run, for every state change executed inside the
+        /// middleware server.
+        /// </summary>
+        /// <remarks>
+        /// SEC-06: claimStateChangeExecution refuses a request naming the state an object's actions last
+        /// ran for, and that is what stops a replay. The comparison only holds while the recorded state
+        /// keeps up with the object. Not every state change passes through the action endpoint - the
+        /// external request chain promotes a request task from inside the middleware, for one - so
+        /// without this write the record would go on naming a state the object had long left, and the
+        /// next legitimate move back into that state would be taken for a replay and execute nothing.
+        /// Only executions inside the middleware server write here: a user role has no permission on the
+        /// table, and a client that delegates to the endpoint has its transition recorded by the claim
+        /// there. The write is unguarded, because it decides nothing - it only keeps the record current
+        /// for the claim that does.
+        /// A failure is logged and swallowed. The state is already persisted and the actions are about to
+        /// run, so aborting a state change over a bookkeeping write would turn a lost guard into a broken
+        /// promote. What is lost is one transition that could be executed twice, which is where this
+        /// stood before the record existed.
+        /// </remarks>
+        /// <param name="statefulObject">The object whose state changed, still carrying the state it left.</param>
+        /// <param name="scope">Scope of that object.</param>
+        private async Task RecordStateChangeExecution(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            long objectId = GetStatefulObjectId(statefulObject, scope);
+            if (!useInMwServer || objectId <= 0)
+            {
+                return;
+            }
+
+            try
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.recordStateChangeExecution, new
+                {
+                    objectScope = scope.ToString(),
+                    objectId,
+                    fromStateId = statefulObject.ChangedFrom(),
+                    toStateId = statefulObject.StateId,
+                    executedBy = wfHandler.userConfig.User.Dn,
+                    executedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Workflow Actions", $"The executed state change of {scope} {objectId} could not be recorded. " +
+                    "A later move back into this state may be taken for a replay and execute nothing.", exception);
+            }
         }
 
         private async Task ExecuteInMiddleware(WorkflowActionParameters parameters)
@@ -260,6 +435,13 @@ namespace FWO.Services.Workflow
             Log.WriteDebug("Workflow Actions", $"Delegating action execution to middleware. Scope: {parameters.Scope}, ActionId: {parameters.ActionId}, ObjectId: {parameters.ObjectId}, TicketId: {parameters.TicketId}, State: {parameters.OldStateId}->{parameters.NewStateId}, Phase: {parameters.Phase}.");
             try
             {
+                // Counted on attempt, not on success: a failing response can still have captured emails
+                // middleware side, so the bundle must stay flushable.
+                if (!string.IsNullOrWhiteSpace(parameters.EmailBundleId))
+                {
+                    ++BundledDelegations;
+                }
+
                 RestResponse<WorkflowActionResult> response = await wfHandler.MiddlewareClient!.ExecuteWorkflowActions(parameters);
                 DisplayWorkflowActionMessages(response.Data?.Messages);
                 if (!response.IsSuccessful || response.Data?.Success != true)
@@ -276,12 +458,65 @@ namespace FWO.Services.Workflow
             }
         }
 
+        /// <summary>
+        /// Starts counting the delegations of a new bundle. Called when a bundle is opened, so a flush of
+        /// the previous one cannot make this one look populated.
+        /// </summary>
+        public void ResetBundledDelegations()
+        {
+            BundledDelegations = 0;
+        }
+
+        /// <summary>
+        /// Requests a middleware-side flush for the active workflow email bundle. Skipped when no action
+        /// carrying the bundle id reached the middleware, because then no collector can exist there and the
+        /// round trip could only produce a delivery error for emails that were never captured.
+        /// </summary>
+        public async Task FlushWorkflowEmailBundleInMiddleware(long ticketId)
+        {
+            if (wfHandler.MiddlewareClient == null || string.IsNullOrWhiteSpace(wfHandler.WorkflowEmailBundleId)
+                || BundledDelegations == 0)
+            {
+                return;
+            }
+
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                ObjectId = ticketId,
+                TicketId = ticketId,
+                Phase = wfHandler.Phase.ToString(),
+                ExecutionMode = wfHandler.userConfig.ExecutionMode,
+                EmailBundleId = wfHandler.WorkflowEmailBundleId,
+                EmailBundleFlushOnly = true
+            };
+
+            RestResponse<WorkflowActionResult> response = await wfHandler.MiddlewareClient.ExecuteWorkflowActions(parameters);
+            DisplayWorkflowActionMessages(response.Data?.Messages);
+            if (!response.IsSuccessful || response.Data?.Success != true)
+            {
+                string details = response.Data?.ErrorMessage ?? response.ErrorMessage ?? response.Content ?? "";
+                throw new InvalidOperationException($"Middleware email bundle flush failed. {details}");
+            }
+        }
+
+        /// <summary>
+        /// Displays the messages the middleware returned. A message carrying a text key is shown in the
+        /// language of this handler's user, because the middleware resolves its texts in the default
+        /// language only; a message without one is shown as sent.
+        /// </summary>
         private void DisplayWorkflowActionMessages(List<WorkflowActionMessage>? messages)
         {
             foreach (WorkflowActionMessage message in messages ?? [])
             {
-                wfHandler.DisplayMessage(null, message.Title, message.Message, message.ErrorFlag);
+                wfHandler.DisplayMessage(null, LocalizeWorkflowActionText(message.TitleTextKey, message.Title),
+                    LocalizeWorkflowActionText(message.MessageTextKey, message.Message), message.ErrorFlag);
             }
+        }
+
+        private string LocalizeWorkflowActionText(string textKey, string sentText)
+        {
+            return string.IsNullOrWhiteSpace(textKey) ? sentText : wfHandler.userConfig.GetText(textKey);
         }
 
         private string BuildMiddlewareDelegationKey(WorkflowActionParameters parameters)
@@ -356,6 +591,24 @@ namespace FWO.Services.Workflow
             };
         }
 
+        /// <summary>
+        /// Builds the message shown after a flow creation. A creation refused for data the requester wrote names
+        /// that data, so that the reason does not stay in the workflow log alone.
+        /// </summary>
+        /// <param name="success">Whether all prepared flow payloads were persisted.</param>
+        /// <param name="refusals">What the flow creation refused, empty when it failed for another reason.</param>
+        private string BuildFlowCreationMessage(bool success, IReadOnlyList<FlowCreationRefusal> refusals)
+        {
+            string message = wfHandler.userConfig.GetText(success ? "flow_creation_succeeded" : "flow_creation_failed");
+            List<string> reasons =
+            [
+                .. refusals
+                    .Select(refusal => $"{wfHandler.userConfig.GetText(refusal.ReasonTextKey)}: {refusal.RefusedValue}")
+                    .Distinct()
+            ];
+            return reasons.Count == 0 ? message : $"{message} {string.Join(" ", reasons)}";
+        }
+
         public async Task CreateFlow(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, long? ticketId)
         {
             if (!wfHandler.userConfig.ReqUseFlowDb)
@@ -370,7 +623,7 @@ namespace FWO.Services.Workflow
             }
 
             string timeObjectPrecision = FlowIntegrationConfig.Parse(wfHandler.userConfig.ReqFlowIntegration).TimeObjectPrecision;
-            FlowDbCreator flowDbCreator = new(apiConnection, timeObjectPrecision);
+            FlowDbCreator flowDbCreator = new(apiConnection, timeObjectPrecision, wfHandler.userConfig.ReqTimeObjectOriginSuffixes);
             bool? success = await flowDbCreator.CreateFlowInFlowDb(action, statefulObject, scope, owner, ticketId);
             if (success != null)
             {
@@ -378,10 +631,32 @@ namespace FWO.Services.Workflow
                 if (resultStateParams?.ConfirmUiMessage == true)
                 {
                     wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("CreateFlow"),
-                        wfHandler.userConfig.GetText((bool)success ? "flow_creation_succeeded" : "flow_creation_failed"), !(bool)success);
+                        BuildFlowCreationMessage((bool)success, flowDbCreator.Refusals), !(bool)success);
                 }
                 await PromoteAfterActionResult(action.ExternalParams, (bool)success, statefulObject, scope);
             }
+        }
+
+        /// <summary>
+        /// Creates the implementation tasks still missing, using the same logic as the automatic creation: in the
+        /// ticket scope for every open request task of the ticket, in the request task scope only for that task, a
+        /// bundled task together with its bundle once every member has reached the state. Bundles from a preceding
+        /// bundle tasks action are taken into account.
+        /// </summary>
+        /// <param name="action">The executed action.</param>
+        /// <param name="statefulObject">Ticket or request task the action is attached to.</param>
+        /// <param name="scope">Scope of the stateful object.</param>
+        public async Task CreateImplTasks(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            WfTicket? ticket = GetTicketForBundling(statefulObject, scope);
+            if (ticket == null)
+            {
+                Log.WriteWarning("Create Implementation Tasks", $"Action '{action.Name}' found no ticket request tasks.");
+                return;
+            }
+            WfReqTask? scopeTask = scope == WfObjectScopes.RequestTask ? statefulObject as WfReqTask : null;
+            int createdCount = await wfHandler.CreateMissingImplTasksForTicket(ticket, scopeTask);
+            Log.WriteDebug("Create Implementation Tasks", $"Action '{action.Name}' created {createdCount} implementation tasks for ticket {ticket.Id}.");
         }
 
         public async Task BundleTasks(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, long? ticketId)
@@ -394,7 +669,7 @@ namespace FWO.Services.Workflow
             }
 
             BundleTasksActionParams bundleParams = BundleTasksActionParams.FromExternalParams(action.ExternalParams);
-            List<ComplianceNetworkZone> networkZones = await LoadBundleNetworkZones(bundleParams);
+            List<NetworkZone> networkZones = await LoadBundleNetworkZones(bundleParams);
             RequestTaskBundler bundler = new();
             LogUnresolvedCleanZoneTasks(action, ticket.Tasks, bundleParams, networkZones, bundler);
             Dictionary<long, string> bundleAssignments = bundler.BuildBundleAssignments(ticket.Tasks, bundleParams.BundleType,
@@ -415,13 +690,32 @@ namespace FWO.Services.Workflow
                 }
             }
             Log.WriteInfo("Bundle Tasks", $"Bundled {bundleAssignments.Count} request tasks for flow creation.");
+            if (bundleParams.ConfirmUiMessage)
+            {
+                int bundleCount = bundleAssignments.Values.Distinct().Count();
+                wfHandler.DisplayMessage(null, action.Name, BuildBundleTasksMessage(bundleAssignments.Count, bundleCount), false);
+            }
+        }
+
+        private string BuildAutoPromoteMessage(WfStatefulObject statefulObject)
+        {
+            string? configuredStateName = states.FirstOrDefault(state => state.Id == statefulObject.StateId)?.Name;
+            string stateName = string.IsNullOrWhiteSpace(configuredStateName)
+                ? statefulObject.StateId.ToString()
+                : configuredStateName;
+            return $"{wfHandler.userConfig.GetText("auto_promoted_to")}{stateName}";
+        }
+
+        private string BuildBundleTasksMessage(int taskCount, int bundleCount)
+        {
+            return $"{taskCount}{wfHandler.userConfig.GetText("tasks_bundled_into")}{bundleCount}";
         }
 
         /// <summary>
         /// Logs clean-zone bundling candidates whose source or destination IPs do not resolve to configured zones.
         /// </summary>
         private static void LogUnresolvedCleanZoneTasks(WfStateAction action, IEnumerable<WfReqTask> requestTasks,
-            BundleTasksActionParams bundleParams, List<ComplianceNetworkZone> networkZones, RequestTaskBundler bundler)
+            BundleTasksActionParams bundleParams, List<NetworkZone> networkZones, RequestTaskBundler bundler)
         {
             List<long> unresolvedTaskIds = bundler.FindTasksWithUnresolvedCleanZones(requestTasks, bundleParams.CleanZones, networkZones);
             if (unresolvedTaskIds.Count > 0)
@@ -439,7 +733,7 @@ namespace FWO.Services.Workflow
                 + $"{string.Join(", ", unresolvedTaskIds)} because source or destination IPs could not be resolved to configured matrix zones.";
         }
 
-        private async Task<List<ComplianceNetworkZone>> LoadBundleNetworkZones(BundleTasksActionParams bundleParams)
+        private async Task<List<NetworkZone>> LoadBundleNetworkZones(BundleTasksActionParams bundleParams)
         {
             if (!bundleParams.CleanZones || bundleParams.PolicyId == null || bundleParams.PolicyId <= 0)
             {
@@ -456,7 +750,7 @@ namespace FWO.Services.Workflow
                 return [];
             }
 
-            return await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId.Value }) ?? [];
+            return await apiConnection.SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId.Value }) ?? [];
         }
 
         private WfTicket? GetTicketForBundling(WfStatefulObject statefulObject, WfObjectScopes scope)
@@ -548,9 +842,9 @@ namespace FWO.Services.Workflow
         private List<WfStateAction> GetRelevantActions(WfStatefulObject statefulObject, WfObjectScopes scope, bool toState = true)
         {
             List<WfStateAction> stateActions = [];
+            int searchedStateId = toState ? statefulObject.StateId : statefulObject.ChangedFrom();
             try
             {
-                int searchedStateId = toState ? statefulObject.StateId : statefulObject.ChangedFrom();
                 foreach (var action in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions.Select(a => a.Action) ?? throw new KeyNotFoundException("Unknown stateId:" + searchedStateId))
                 {
                     if (action.Scope == scope.ToString()
@@ -563,8 +857,8 @@ namespace FWO.Services.Workflow
             }
             catch (Exception exc)
             {
-                // unknown stateId probably by misconfiguration
-                Log.WriteError("Get relevant actions", $"Exception thrown and ignored: ", exc);
+                Log.WriteError("Get relevant actions",
+                    $"Failed to resolve actions for scope {scope}, state {searchedStateId}, phase {wfHandler.Phase}.", exc);
             }
             return stateActions;
         }

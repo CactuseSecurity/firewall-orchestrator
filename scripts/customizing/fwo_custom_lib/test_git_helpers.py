@@ -384,7 +384,8 @@ def isolate_from_host_git_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     """Make the test see the unattended host the middleware runs on: git without an identity."""
     home_path: Path = tmp_path / "home"
     home_path.mkdir()
-    monkeypatch.setenv("HOME", str(home_path))
+    monkeypatch.setenv("HOME", str(home_path))  # Linux path
+    monkeypatch.setenv("USERPROFILE", str(home_path))  # Windows path
     monkeypatch.setenv("XDG_CONFIG_HOME", str(home_path / ".config"))
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     for identity_variable in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL"):
@@ -428,8 +429,8 @@ def test_rebase_onto_remote_reports_the_rebase_error_when_there_is_nothing_to_ab
     repo_mock: Mock = Mock()
     repo_mock.active_branch.name = "main"
     repo_mock.git.diff.return_value = ""
-    rebase_error = git.GitCommandError("git rebase FETCH_HEAD", 1, b"could not apply the deletion")
-    abort_error = git.GitCommandError("git rebase --abort", 128, b"fatal: No rebase in progress?")
+    rebase_error: git.GitCommandError = git.GitCommandError("git rebase FETCH_HEAD", 1, b"could not apply the deletion")
+    abort_error: git.GitCommandError = git.GitCommandError("git rebase --abort", 128, b"fatal: No rebase in progress?")
 
     def fail_rebase(*args: str, **_: object) -> None:
         raise abort_error if "--abort" in args else rebase_error

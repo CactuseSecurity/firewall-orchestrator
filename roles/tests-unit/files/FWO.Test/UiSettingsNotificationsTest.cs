@@ -1,5 +1,8 @@
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Data;
 using FWO.Ui.Pages.Settings;
 using NUnit.Framework;
 using System.Collections;
@@ -63,6 +66,17 @@ namespace FWO.Test
                 throw new MissingMemberException(typeof(SettingsNotifications).FullName, "globalConfig");
             }
             prop.SetValue(component, globalConfig);
+        }
+
+        private static void SetInjectedService(SettingsNotifications component, Type serviceType, object service)
+        {
+            PropertyInfo? prop = typeof(SettingsNotifications).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .FirstOrDefault(p => p.PropertyType == serviceType);
+            if (prop == null)
+            {
+                throw new MissingMemberException(typeof(SettingsNotifications).FullName, serviceType.Name);
+            }
+            prop.SetValue(component, service);
         }
 
         private static IList CreateInitiatorList()
@@ -300,6 +314,57 @@ namespace FWO.Test
             GetPrivateMethod("PrepareConfigData").Invoke(component, null);
 
             Assert.That(configData.NotificationLanguage, Is.EqualTo("French"));
+        }
+
+        [Test]
+        public async Task Save_PersistsPreparedConfigAndClearsPendingInitiatorChanges()
+        {
+            SettingsNotifications component = new();
+            SimulatedGlobalConfig globalConfig = new();
+            SettingsNotificationsApiConnection apiConnection = new();
+            SetInjectedGlobalConfig(component, globalConfig);
+            SetInjectedService(component, typeof(ApiConnection), apiConnection);
+            SetInjectedService(component, typeof(UserConfig), new SimulatedUserConfig());
+
+            IList initiatorKeys = CreateInitiatorList();
+            IList initiatorKeysToAdd = CreateInitiatorList();
+            IList initiatorKeysToDelete = CreateInitiatorList();
+            initiatorKeysToAdd.Add(CreateInitiatorEntry("custom", "Custom text"));
+            SetPrivateField(component, "configData", new ConfigData { RuleExpiryEmailBody = "Updated body" });
+            SetPrivateField(component, "initiatorKeys", initiatorKeys);
+            SetPrivateField(component, "initiatorKeysToAdd", initiatorKeysToAdd);
+            SetPrivateField(component, "initiatorKeysToDelete", initiatorKeysToDelete);
+
+            await (Task)GetPrivateMethod("Save").Invoke(component, null)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.LastConfigItems.Any(item => item.Key == "ruleExpiryEmailBody" && item.Value == "Updated body"), Is.True);
+                Assert.That(GetPrivateField<IList>(component, "initiatorKeysToAdd"), Is.Empty);
+                Assert.That(GetPrivateField<IList>(component, "initiatorKeysToDelete"), Is.Empty);
+            });
+        }
+
+        private sealed class SettingsNotificationsApiConnection : SimulatedApiConnection
+        {
+            public int UpsertConfigCallCount { get; private set; }
+            public List<ConfigItem> LastConfigItems { get; private set; } = [];
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
+                string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == ConfigQueries.upsertConfigItems)
+                {
+                    UpsertConfigCallCount++;
+                    PropertyInfo configItemsProperty = variables?.GetType().GetProperty("config_items")
+                        ?? throw new ArgumentException("Missing config_items variable.");
+                    LastConfigItems = ((IEnumerable<ConfigItem>)configItemsProperty.GetValue(variables)!).ToList();
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
+
+                throw new NotImplementedException($"Unexpected query: {query}");
+            }
         }
     }
 }

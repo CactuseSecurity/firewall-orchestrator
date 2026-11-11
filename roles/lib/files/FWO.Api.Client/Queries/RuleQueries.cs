@@ -13,6 +13,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string natRuleOverviewFragments;
         public static readonly string natRuleDetailsFragments;
         public static readonly string natRuleDetailsForReportFragments;
+        public static readonly string natRuleOverviewForChangeReportFragments;
+        public static readonly string natRuleDetailsForChangeReportFragments;
 
         public static readonly string getRuleOverview;
         public static readonly string getRuleDetails;
@@ -31,7 +33,8 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string countRules;
         public static readonly string countActiveRules;
-        public static readonly string getRulesWithViolationsInTimespanByChunk;
+        public static readonly string countActiveRulesForOwnerMapping;
+        public static readonly string getActiveRulesByUids;
         public static readonly string getRulesWithCurrentViolationsByChunk;
         public static readonly string getRulesForSelectedManagements;
         public static readonly string getRulesForOwnerMappingCustomField;
@@ -105,6 +108,12 @@ namespace FWO.Api.Client.Queries
                     GetQueryText("user/fragments/userDetailsChangesNew.graphql") +
                     GetQueryText("rule/fragments/ruleDetailsChangesOld.graphql") +
                     GetQueryText("rule/fragments/ruleDetailsChangesNew.graphql");
+                natRuleOverviewForChangeReportFragments = ruleOverviewForChangeReportFragments +
+                    GetQueryText("rule/fragments/natRuleOverviewChangesOld.graphql") +
+                    GetQueryText("rule/fragments/natRuleOverviewChangesNew.graphql");
+                natRuleDetailsForChangeReportFragments = ruleDetailsForChangeReportFragments +
+                    GetQueryText("rule/fragments/natRuleDetailsChangesOld.graphql") +
+                    GetQueryText("rule/fragments/natRuleDetailsChangesNew.graphql");
 
                 getRuleOverview = ruleOverviewFragments + GetQueryText("rule/getRuleOverview.graphql");
                 getRuleDetails = ruleDetailsFragments + GetQueryText("rule/getRuleDetails.graphql");
@@ -118,11 +127,12 @@ namespace FWO.Api.Client.Queries
                 getModelledRulesByManagementComment = ruleDetailsForReportFragments + GetQueryText("report/getModelledRulesByManagementComment.graphql");
                 getNatRuleOverview = natRuleOverviewFragments + GetQueryText("rule/getNatRuleOverview.graphql");
                 getNatRuleDetails = natRuleDetailsFragments + GetQueryText("rule/getNatRuleDetails.graphql");
-                getRulesWithViolationsInTimespanByChunk = ruleDetailsFragments + GetQueryText("rule/getRulesWithViolationsInTimespanByChunk.graphql");
+                getActiveRulesByUids = ruleDetailsFragments + GetQueryText("rule/getActiveRulesByUids.graphql");
                 getRulesWithCurrentViolationsByChunk = ruleDetailsFragments + GetQueryText("rule/getRulesWithCurrentViolationsByChunk.graphql");
                 getRulesForSelectedManagements = ruleDetailsFragments + GetQueryText("rule/getRulesForSelectedManagements.graphql");
                 countRules = GetQueryText("rule/countRules.graphql");
                 countActiveRules = GetQueryText("rule/countActiveRules.graphql");
+                countActiveRulesForOwnerMapping = GetQueryText("rule/countActiveRulesForOwnerMapping.graphql");
                 getRulesForOwnerMappingCustomField = GetQueryText("rule/getRulesForOwnerMappingCustomField.graphql");
                 getRulesForOwnerMappingNameField = GetQueryText("rule/getRulesForOwnerMappingNameField.graphql");
                 getRulesForOwnerMappingIpBased = GetQueryText("rule/getRulesForOwnerMappingIpBased.graphql");

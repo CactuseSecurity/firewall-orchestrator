@@ -2,7 +2,7 @@
 @using FWO.Ui.Pages.NetworkModelling
 @using FWO.Ui.Display
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.Modeller}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -13,50 +13,11 @@
         @if (WfHandler.DisplayImplTaskMode)
         {
             <form>
-                <div class="form-group row">
-                    <div class="col-sm-2">
-                        <div class="form-group row">
-                            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("impl_task_id")):</label>
-                            <div class="col-sm-6">
-                                <label class="col-sm-12 border bg-secondary">@WfHandler.ActImplTask.Id</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-10">
-                        <div class="form-group row">
-                            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("title"))*:</label>
-                            <div class="col-sm-11">
-                                <input type="text" class="form-control form-control-sm" readonly="@(!WfHandler.EditImplTaskMode)" @bind="WfHandler.ActImplTask.Title" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group row mt-2">
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state")):</label>
-                            <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@States.GetName(WfHandler.ActImplTask.StateId)</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-5 col-form-label col-form-label-sm">@(userConfig.GetText("implementer")):</label>
-                            <div class="col-sm-7">
-                                <label class="col-sm-12 h-100 border bg-secondary">@WfHandler.ActImplTask.CurrentHandler?.Name</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-3">
-                        <div class="form-group row">
-                            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("assigned")):</label>
-                            <div class="col-sm-8">
-                                <label class="col-sm-12 h-100 border bg-secondary">@(new DistName(WfHandler.ActImplTask.AssignedGroup).UserName)</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <TaskHeader IdLabelKey="impl_task_id" HandlerLabelKey="implementer" TaskId="@WfHandler.ActImplTask.Id"
+                    @bind-Title="WfHandler.ActImplTask.Title" StateName="@States.GetName(WfHandler.ActImplTask.StateId)"
+                    HandlerName="@WfHandler.ActImplTask.CurrentHandler?.Name"
+                    AssignedGroup="@WfHandler.ActImplTask.AssignedGroup"
+                    CanEditTitle="WfHandler.EditImplTaskMode" />
                 <div class="form-group row mt-2">
                     <div class="col-sm-3">
                         <div class="form-group row">
@@ -84,6 +45,17 @@
                                     {
                                         <label class="col-sm-12 h-100 border bg-secondary">@DisplayDevice()</label>
                                     }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if(WfObjectTaskHelper.IsManagementObjectTask(WfHandler.ActImplTask.TaskType))
+                    {
+                        <div class="col-sm-3">
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("management")):</label>
+                                <div class="col-sm-8">
+                                    <label class="col-sm-12 h-100 border bg-secondary">@(WfHandler.GetImplTaskManagementName(WfHandler.ActImplTask, WfHandler.ActReqTask.ManagementId))</label>
                                 </div>
                             </div>
                         </div>
@@ -131,7 +103,8 @@
                             </div>
                         </div>
                     }
-                    else if(WfHandler.ActImplTask.TaskType == WfTaskType.group_create.ToString())
+                    else if(WfHandler.ActImplTask.TaskType == WfTaskType.group_create.ToString()
+                        || WfHandler.ActImplTask.TaskType == WfTaskType.group_modify.ToString())
                     {
                         <div class="col-sm-6">
                             <div class="form-group row">
@@ -201,13 +174,14 @@
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
                         Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
                         Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                        IpProtos="ipProtos" TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
+                        IpProtos="displayIpProtos" SelectableIpProtos="selectableIpProtos" TaskId="WfHandler.ActImplTask.Id" TicketTasks="WfHandler.ActTicket.Tasks" EditMode="WfHandler.EditImplTaskMode" />
                 }
                 else if(WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString())
                 {
                     <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
                 }
-                else if(WfHandler.ActImplTask.TaskType == WfTaskType.group_create.ToString())
+                else if(WfHandler.ActImplTask.TaskType == WfTaskType.group_create.ToString()
+                    || WfHandler.ActImplTask.TaskType == WfTaskType.group_modify.ToString())
                 {
                     <div class="col-sm-4 mt-2">
                         @if (WfHandler.EditImplTaskMode)
@@ -219,7 +193,7 @@
                             else
                             {
                                 <ServiceSelector Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                                    IpProtos="ipProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false"/>
+                                    IpProtos="selectableIpProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false"/>
                             }
                         }
                         else
@@ -241,11 +215,16 @@
                         }
                     </div>
                 }
+                else if(WfObjectTaskHelper.IsObjectTask(WfHandler.ActImplTask.TaskType))
+                {
+                    <DisplayObjectTaskElement ReqTask="WfHandler.ActReqTask" IsModify="@(WfHandler.ActImplTask.TaskType == WfTaskType.object_modify.ToString())"
+                        ManagementId="WfHandler.ActReqTask.ManagementId" EditMode="false" DisplayIpProtos="displayIpProtos" />
+                }
 
                 <div class="form-group row mt-2">
                     <div class="col-sm-1">
                         <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
-                        @if(WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode)
+                        @if((WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode) && !WfHandler.ReadOnlyMode)
                         {
                             <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
                                 @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
@@ -263,34 +242,33 @@
             <div class="d-flex flex-fill justify-content-start">
             </div>
             <div class="d-flex flex-fill justify-content-center px-4">
-                <div class="btn-group">
-                    @foreach(var action in offeredActions)
-                    {
-                        @if(CanShowConfiguredActionButton(action))
-                        {
-                            <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
-                        }
-                    }
-                </div>
+                <ConfiguredTaskActions WfHandler="WfHandler" OfferedActions="offeredActions"
+                    AllowStateChangingActions="@(!WfHandler.ReadOnlyMode && Phase != WorkflowPhases.request && (WfHandler.EditImplTaskMode || WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode))"
+                    Target="WfHandler.ActImplTask"
+                    Scope="WfObjectScopes.ImplementationTask" Owner="actOwner"
+                    TicketId="WfHandler.ActReqTask.TicketId" AfterAction="AfterConfiguredAction"
+                    @bind-WorkInProgress="WorkInProgress" />
             </div>
             <div class="d-flex flex-fill justify-content-end">
                 <div class="btn-group">
                     @if (WfHandler.EditImplTaskMode)
                     {
-                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}")">
                             <Authorized>
-                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplTask">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                                <button type="button" class="btn btn-sm btn-primary" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="SaveImplTask">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                             </NotAuthorized>
                         </ExecutionModeAuthorizeView>
                     }
-                    else if ((WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode) && !newOwnerAssigned)
+                    else if ((WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode)
+                        && WfHandler.CanPromoteTaskInCurrentPhase() && !newOwnerAssigned)
                     {
-                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}")">
                             <Authorized>
-                                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
+                                @* a reviewer opening the implementation phase read-only must not promote the task *@
+                                <button type="button" class="btn btn-sm btn-primary" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                             </Authorized>
                             <NotAuthorized>
                                 <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
@@ -351,7 +329,8 @@
 
     private List<RuleAction> ruleActions = [];
     private List<Tracking> trackings = [];
-    private List<IpProtocol> ipProtos = [];
+    private List<IpProtocol> displayIpProtos = [];
+    private List<IpProtocol> selectableIpProtos = [];
     
     private List<NwObjectElement> actSources = [];
     private List<NwObjectElement> actDestinations = [];
@@ -387,8 +366,10 @@
         {
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
-            ipProtos = ProtocolDisplayHelper.CustomSortProtocols(
-                await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols),
+            List<IpProtocol> protocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
+            displayIpProtos = ProtocolDisplayHelper.CustomSortProtocols(protocols, null, false);
+            selectableIpProtos = ProtocolDisplayHelper.CustomSortProtocols(
+                ProtocolDisplayHelper.GetSelectableProtocols(protocols),
                 ProtocolDisplayHelper.ParseProtocolNames(userConfig.ReducedProtocolSetProtocols),
                 userConfig.ReducedProtocolSet);
             firstParamSet = true;
@@ -489,7 +470,7 @@
         {
             return element.FlowServiceObjectId?.ToString() ?? element.FlowServiceGroupId?.ToString() ?? "";
         }
-        return DisplayBase.DisplayService(element, ipProtos);
+        return DisplayBase.DisplayService(element, displayIpProtos);
     }
 
     private static bool HasId(long? id)
@@ -514,33 +495,21 @@
         return true;
     }
 
-    private async Task PerformAction(WfStateAction action)
+    private async Task AfterConfiguredAction()
     {
-        if (WorkInProgress)
+        long implementationTaskId = WfHandler.ActImplTask.Id;
+        if (await WfHandler.ReloadActTicket())
         {
-            return;
-        }
-        WorkInProgress = true;
-        try
-        {
-            if(WfHandler.ActionHandler != null)
+            WfImplTask? refreshedTask = WfHandler.ActTicket.Tasks
+                .SelectMany(task => task.ImplementationTasks)
+                .FirstOrDefault(task => task.Id == implementationTaskId);
+            if (refreshedTask != null)
             {
-                await WfHandler.ActionHandler.PerformAction(action, WfHandler.ActImplTask, WfObjectScopes.ImplementationTask, actOwner, WfHandler.ActReqTask.TicketId);
+                WfHandler.SetImplTaskEnv(refreshedTask);
+                await InitComments();
             }
         }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("action"), "", true);
-        }
-        finally
-        {
-            WorkInProgress = false;
-        }
-    }
-
-    private bool CanShowConfiguredActionButton(WfStateAction action)
-    {
-        return WfHandler.EditImplTaskMode || WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode || WfStateAction.IsReadonlyType(action.ActionType);
+        await InvokeAsync(StateHasChanged);
     }
 
     private void RequestAssignOwner()
@@ -573,6 +542,10 @@
 
     private void InitAddComment()
     {
+        if (WfHandler.ReadOnlyMode)
+        {
+            return;
+        }
         WfHandler.SetImplTaskPopUpOpt(ObjAction.displayComment);
     }
 
@@ -651,6 +624,10 @@
 
     private async Task SaveImplTask()
     {
+        if (WfHandler.ReadOnlyMode)
+        {
+            return;
+        }
         if (WorkInProgress)
         {
             return;
@@ -758,6 +735,10 @@
 
     private void InitPromoteImplTask()
     {
+        if (WfHandler.ReadOnlyMode)
+        {
+            return;
+        }
         WfHandler.SetImplTaskPopUpOpt(ObjAction.displayPromote);
     }
 

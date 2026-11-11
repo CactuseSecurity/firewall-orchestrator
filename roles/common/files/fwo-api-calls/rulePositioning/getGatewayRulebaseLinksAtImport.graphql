@@ -1,0 +1,36 @@
+query getGatewayRulebaseLinksAtImport($gatewayId: Int!, $importId: bigint!, $linkLimit: Int!) {
+  device(where: { dev_id: { _eq: $gatewayId } }, limit: 2) {
+    dev_id
+    mgm_id
+    rulebase_links(
+      limit: $linkLimit
+      where: {
+        created: { _lte: $importId }
+        _or: [
+          { removed: { _is_null: true } }
+          { removed: { _gt: $importId } }
+        ]
+      }
+      order_by: { id: asc }
+    ) {
+      id
+      gw_id
+      from_rule_id
+      from_rulebase_id
+      to_rulebase_id
+      link_type
+      is_initial
+      is_global
+      is_section
+      created
+      removed
+      rule {
+        rule_id
+        mgm_id
+        rulebase_id
+        rule_create
+        removed
+      }
+    }
+  }
+}

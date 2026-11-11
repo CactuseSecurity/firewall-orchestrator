@@ -1,7 +1,8 @@
-﻿@inject UserConfig userConfig
+@using FWO.Basics
+@inject UserConfig userConfig
 
 <div class="form-group row">
-    <label class="col-form-label col-sm-3">@(userConfig.GetText("application")):</label>&nbsp;
+    <label class="col-form-label col-sm-3">@(userConfig.GetText("owner")):</label>&nbsp;
     @if(Apps.Count == 1)
     {
         <label class="col-form-label text-primary col-sm-8">@((MarkupString)ModellingHandlerBase.DisplayApp(userConfig, SelectedOwner))</label>
@@ -12,7 +13,7 @@
             <Dropdown ElementType="FwoOwner" ElementToString="@(a => a.Display(userConfig.GetText("common_service")))"
                     SelectedElement="SelectedOwner" SelectedElementChanged="SelectedOwnerChanged" Elements="Apps" Nullable="Nullable">
                 <ElementTemplate Context="app">
-                    @((MarkupString)(WithConnectionStatus ? ModellingHandlerBase.DisplayApp(userConfig, app) : app.Display(userConfig.GetText("common_service"))))
+                    @((MarkupString)(WithConnectionStatus ? ModellingHandlerBase.DisplayApp(userConfig, app) : HtmlOutputEncoder.EncodeText(app.Display(userConfig.GetText("common_service")))))
                 </ElementTemplate>
             </Dropdown>
         </div>

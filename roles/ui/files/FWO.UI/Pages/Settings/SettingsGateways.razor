@@ -2,7 +2,7 @@
 @using System.Security.Authentication
 
 @page "/settings/gateways"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -155,7 +155,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                 </Authorized>
@@ -210,7 +210,7 @@
                 throw new AuthenticationException("not_authorized");
             }
 
-            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
+            if (jwt.ContainsAllowedRole(Roles.Admin))
             {
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
             }

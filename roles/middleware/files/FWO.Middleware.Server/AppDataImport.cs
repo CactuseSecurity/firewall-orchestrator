@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -10,6 +11,7 @@ using FWO.Services;
 using FWO.Services.Modelling;
 using Novell.Directory.Ldap;
 using System.Data;
+using System.Net;
 using System.Text.Json;
 
 namespace FWO.Middleware.Server
@@ -39,12 +41,18 @@ namespace FWO.Middleware.Server
         private const string LevelFile = "Import File";
         private const string LevelApp = "App";
         private const string LevelAppServer = "App Server";
+        private readonly Func<IPAddress, Task<string>> reverseDnsLookup;
 
         /// <summary>
         /// Constructor for App Data Import
         /// </summary>
-        public AppDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : base(apiConnection, globalConfig)
-        { }
+        /// <param name="apiConnection">GraphQL API connection.</param>
+        /// <param name="globalConfig">Global configuration.</param>
+        /// <param name="reverseDnsLookup">Reverse lookup for the app server names, defaults to <see cref="IpOperations.DnsReverseLookUpPreferredAsync"/>.</param>
+        public AppDataImport(ApiConnection apiConnection, GlobalConfig globalConfig, Func<IPAddress, Task<string>>? reverseDnsLookup = null) : base(apiConnection, globalConfig)
+        {
+            this.reverseDnsLookup = reverseDnsLookup ?? IpOperations.DnsReverseLookUpPreferredAsync;
+        }
 
         /// <summary>
         /// Dispose method to clean up resources.
@@ -73,10 +81,12 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Run the App Data Import
         /// </summary>
-        public async Task<List<string>> Run()
+        /// <param name="cancellationToken">Stops before the next source or app; missing apps are then not deactivated.</param>
+        public async Task<List<string>> Run(CancellationToken cancellationToken = default)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
+            cancellationToken.ThrowIfCancellationRequested();
+            NamingConvention = ModellingNamingConvention.FromJson(globalConfig.ModNamingConvention);
             List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
             userConfig.Dispose();
             userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
@@ -86,19 +96,30 @@ namespace FWO.Middleware.Server
             await InitResponsibleTypes();
             await InitOwnerLifeCycleStates();
             hasImmediateAppDecommNotificationForImport = await LoadHasImmediateAppDecommNotification();
+            cancellationToken.ThrowIfCancellationRequested();
             List<string> failedImports = [];
             var ownerChangeTracker = new OwnerChangeImportTracker(apiConnection);
 
-            foreach (var importfilePathAndName in importfilePathAndNames)
+            try
             {
-                string importSourcePath = FWO.Basics.ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
-                List<string> validatedImportFiles = ValidateConfiguredImportSource(importSourcePath);
-                string scriptPath = importSourcePath + ".py";
-                if (validatedImportFiles.Contains(scriptPath) && !RunImportScript(scriptPath, globalConfig.ImportAppDataScriptArgs))
+                foreach (var importfilePathAndName in importfilePathAndNames)
                 {
-                    Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying to import from existing file.");
+                    cancellationToken.ThrowIfCancellationRequested();
+                    string importSourcePath = FWO.Basics.ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
+                    List<string> validatedImportFiles = ValidateConfiguredImportSource(importSourcePath);
+                    string scriptPath = importSourcePath + ".py";
+                    if (validatedImportFiles.Contains(scriptPath) && !RunImportScript(scriptPath, globalConfig.ImportAppDataScriptArgs))
+                    {
+                        Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying to import from existing file.");
+                    }
+                    await ImportSingleSource(importSourcePath + ".json", failedImports, ownerChangeTracker, cancellationToken);
                 }
-                await ImportSingleSource(importSourcePath + ".json", failedImports, ownerChangeTracker);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // close the owner import control as unsuccessful instead of leaving it open
+                await ownerChangeTracker.CompleteImport(false);
+                throw;
             }
 
             await ownerChangeTracker.CompleteImport(failedImports.Count == 0);
@@ -142,7 +163,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task ImportSingleSource(string importfileName, List<string> failedImports, OwnerChangeImportTracker ownerChangeTracker)
+        private async Task ImportSingleSource(string importfileName, List<string> failedImports, OwnerChangeImportTracker ownerChangeTracker, CancellationToken cancellationToken)
         {
             try
             {
@@ -151,8 +172,12 @@ namespace FWO.Middleware.Server
                 if (importedOwnerData != null && importedOwnerData.Owners != null)
                 {
                     ImportedApps = importedOwnerData.Owners;
-                    await ImportApps(importfileName, ownerChangeTracker);
+                    await ImportApps(importfileName, ownerChangeTracker, cancellationToken);
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exc)
             {
@@ -163,7 +188,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task ImportApps(string importfileName, OwnerChangeImportTracker ownerChangeTracker)
+        private async Task ImportApps(string importfileName, OwnerChangeImportTracker ownerChangeTracker, CancellationToken cancellationToken)
         {
             int successCounter = 0;
             int failCounter = 0;
@@ -173,6 +198,7 @@ namespace FWO.Middleware.Server
             ExistingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithNetworks);
             foreach (var incomingApp in ImportedApps)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (await SaveApp(incomingApp, ownerChangeTracker))
                 {
                     ++successCounter;
@@ -182,6 +208,8 @@ namespace FWO.Middleware.Server
                     ++failCounter;
                 }
             }
+            // deactivating apps missing from the import is only valid after all imported apps were saved
+            cancellationToken.ThrowIfCancellationRequested();
             string? importSource = ImportedApps.FirstOrDefault()?.ImportSource;
             if (importSource != null)
             {
@@ -387,12 +415,11 @@ namespace FWO.Middleware.Server
             }
 
             string trimmedIdentifier = importedIdentifier.Trim();
-            if (LooksLikeDistinguishedName(trimmedIdentifier))
-            {
-                return trimmedIdentifier;
-            }
-
-            string? resolvedDn = await ResolveImportedResponsibleIdentifierToDn(trimmedIdentifier);
+            // a dn is taken only if it names an existing entry of the directory that owns it: the import assigns
+            // workflow roles to it, so it must not grant them to an arbitrary or foreign dn
+            string? resolvedDn = LooksLikeDistinguishedName(trimmedIdentifier)
+                ? await ResolveImportedDistinguishedName(trimmedIdentifier)
+                : await ResolveImportedResponsibleIdentifierToDn(trimmedIdentifier);
             if (!string.IsNullOrWhiteSpace(resolvedDn))
             {
                 return resolvedDn.Trim();
@@ -404,6 +431,26 @@ namespace FWO.Middleware.Server
             string warningText = $"App \"{appLabel}\": could not resolve imported user id \"{trimmedIdentifier}\" from field \"{fieldName}\". Skipping entry.";
             Log.WriteWarning(LogMessageTitle, warningText);
             await AddLogEntry(1, LevelApp, warningText);
+            return null;
+        }
+
+        /// <summary>
+        /// Checks an imported distinguished name against the directories: it is accepted only if an entry with that
+        /// name exists in the connected LDAP whose search paths own it. A directory that cannot be asked throws, so
+        /// that the app fails and keeps its responsibles instead of losing them as if the entry were gone.
+        /// </summary>
+        /// <param name="distinguishedName">Imported distinguished name of a user or group.</param>
+        /// <returns>The distinguished name as stored in the directory if found; otherwise null.</returns>
+        protected virtual async Task<string?> ResolveImportedDistinguishedName(string distinguishedName)
+        {
+            foreach (Ldap ldap in connectedLdaps.Where(ldap => LdapDnNamespace.IsOwnedBy(connectedLdaps, ldap.Id, distinguishedName)))
+            {
+                LdapEntry? entry = await ldap.ReadEntryIfExists(distinguishedName);
+                if (!string.IsNullOrWhiteSpace(entry?.Dn) && LdapDnNamespace.IsOwnedBy(connectedLdaps, ldap.Id, entry.Dn))
+                {
+                    return entry.Dn;
+                }
+            }
             return null;
         }
 
@@ -483,7 +530,7 @@ namespace FWO.Middleware.Server
             List<FwoNotification> notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(
                 NotificationQueries.getNotifications,
                 new { client = NotificationClient.AppDecomm.ToString() });
-            return notifications.Any(notification => notification.Deadline == NotificationDeadline.None);
+            return notifications.Any(notification => notification.Active && notification.Deadline == NotificationDeadline.None);
         }
 
         private static bool LooksLikeDistinguishedName(string identifier)
@@ -515,6 +562,7 @@ namespace FWO.Middleware.Server
                 await ApplyRolesToResponsibles(responsibles, rolesToSetByType);
                 foreach (var appServer in incomingApp.AppServers)
                 {
+                    await PrepareIncomingAppServer(appServer);
                     await NewAppServer(appServer, appId, incomingApp.ImportSource);
                 }
             }
@@ -883,7 +931,16 @@ namespace FWO.Middleware.Server
             {
                 return true;
             }
-            await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
+            try
+            {
+                await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
+            }
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
+            {
+                // Only needed for later email resolution; losing it must not fail the app
+                // or skip its recertification setup. Reported by the warning below.
+                Log.WriteDebug(LogMessageTitle, $"Upsert of imported user \"{uiUser.Dn}\" could not reach the API: {exception.Message}");
+            }
             if (uiUser.DbId <= 0)
             {
                 Log.WriteWarning(LogMessageTitle, $"Resolved imported user \"{uiUser.Dn}\" could not be written to uiuser.");
@@ -903,21 +960,23 @@ namespace FWO.Middleware.Server
             bool inputLooksLikeDn = LooksLikeDistinguishedName(userDn);
             foreach (Ldap ldap in connectedLdaps)
             {
-                if (!inputLooksLikeDn
-                    && (string.IsNullOrEmpty(ldap.UserSearchPath)
-                        || !userDn.Contains(ldap.UserSearchPath, StringComparison.OrdinalIgnoreCase)))
+                // a dn names a user only in the directory that owns it (GHSA-695m-f6mv-9g72)
+                if (inputLooksLikeDn
+                    ? !LdapDnNamespace.IsOwnedBy(connectedLdaps, ldap.Id, userDn)
+                    : string.IsNullOrEmpty(ldap.UserSearchPath) || !userDn.Contains(ldap.UserSearchPath, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
                 LdapEntry? ldapUser = await ldap.GetUserDetailsFromLdap(userDn);
-                if (ldapUser != null && !Ldap.IsGroupEntry(ldapUser))
+                if (ldapUser != null && !Ldap.IsGroupEntry(ldapUser) && LdapDnNamespace.IsOwnedBy(connectedLdaps, ldap.Id, ldapUser.Dn))
                 {
                     // add data from ldap entry to uiUser
                     return new()
                     {
                         LdapConnection = new UiLdapConnection() { Id = ldap.Id },
                         Dn = ldapUser.Dn,
+                        DirectoryObjectId = LdapDirectoryObjectId.GetFrom(ldapUser),
                         Name = Ldap.GetName(ldapUser),
                         Firstname = Ldap.GetFirstName(ldapUser),
                         Lastname = Ldap.GetLastName(ldapUser),
@@ -1058,14 +1117,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                if (incomingAppServer.IpEnd == "")
-                {
-                    incomingAppServer.IpEnd = incomingAppServer.Ip;
-                }
-                if (globalConfig.DnsLookup)
-                {
-                    incomingAppServer.Name = await BuildAppServerName(incomingAppServer);
-                }
+                await PrepareIncomingAppServer(incomingAppServer);
                 ModellingAppServer? existingAppServer = ExistingAppServers.FirstOrDefault(x => x.Ip.IpAsCidr() == incomingAppServer.Ip.IpAsCidr() && x.IpEnd.IpAsCidr() == incomingAppServer.IpEnd.IpAsCidr());
                 if (existingAppServer == null)
                 {
@@ -1109,11 +1161,28 @@ namespace FWO.Middleware.Server
             }
         }
 
+        /// <summary>
+        /// Completes an incoming app server before it is saved, for new and existing apps alike: a missing ip end is set
+        /// to the ip, and with dns lookup switched on the name is built from the dns name.
+        /// </summary>
+        /// <param name="incomingAppServer">The imported app server, completed in place.</param>
+        private async Task PrepareIncomingAppServer(ModellingImportAppServer incomingAppServer)
+        {
+            if (incomingAppServer.IpEnd == "")
+            {
+                incomingAppServer.IpEnd = incomingAppServer.Ip;
+            }
+            if (globalConfig.DnsLookup)
+            {
+                incomingAppServer.Name = await BuildAppServerName(incomingAppServer);
+            }
+        }
+
         private async Task<string> BuildAppServerName(ModellingImportAppServer appServer)
         {
             try
             {
-                return await AppServerHelper.ConstructAppServerNameFromDns(appServer.ToModellingAppServer(), NamingConvention, globalConfig.OverwriteExistingNames, true);
+                return await AppServerHelper.ConstructAppServerNameFromDns(appServer.ToModellingAppServer(), NamingConvention, globalConfig.OverwriteExistingNames, true, reverseDnsLookup);
             }
             catch (Exception exc)
             {

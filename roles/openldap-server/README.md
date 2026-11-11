@@ -17,15 +17,15 @@ The variables that can be passed to this role and a brief description about
 them are as follows:
 
 ```console
-openldap_serverdomain_name: fworch.internal    # The domain prefix for ldap
-openldap_serverrootpw:                         # The password for admin user (Manager) for openldap is now randomly generated
-openldap_serverenable_ssl: true                # To enable/disable ssl for the ldap
-openldap_servercountry: US                     # The self signed ssl certificate parameters
-openldap_serverstate: Oregon
-openldap_serverlocation: Portland
-openldap_serverorganization: IT
-openldap_serverservices: ldap://127.0.0.1/ ldaps:///   # Derived from SSL setting
+openldap_server_domain_name: fworch.internal   # The domain prefix for ldap
+openldap_server_rootpw:                        # The password for admin user (Manager) for openldap is now randomly generated
+openldap_server_enable_ssl: true               # To enable/disable ssl for the ldap
+distributed_install: false                     # Restrict listeners to IPv4 and IPv6 loopback addresses
+openldap_server_services: ldap://127.0.0.1/ ldap://[::1]/ ldaps://127.0.0.1/ ldaps://[::1]/
 ```
+
+The TLS certificate and key are issued by the `internalCA` role, not by this
+role. See `documentation/certificates.md`.
 
 ## Example: Configure an OpenLDAP server with SSL
 
@@ -37,10 +37,6 @@ openldap_serverservices: ldap://127.0.0.1/ ldaps:///   # Derived from SSL settin
     openldap_server_domain_name: fworch.internal
     openldap_server_rootpw: <randomly generated>
     openldap_server_enable_ssl: true
-    openldap_server_country: US
-    openldap_server_state: Oregon
-    openldap_server_location: Portland
-    openldap_server_organization: IT
 ```
 
 ## Dependencies
@@ -50,6 +46,9 @@ None
 ## Notes
 
 - The role writes `SLAPD_SERVICES` to the OS-specific service defaults file.
+- With `distributed_install: false`, LDAP and LDAPS listen only on `127.0.0.1`
+  and `::1`. Setting it to `true` preserves the distributed-install listener
+  behavior.
 - The systemd drop-in consumes that value so the listener configuration is
   defined in one place.
 - The systemd drop-in starts `slapd` with `-d0` only for systemd `Type=notify`

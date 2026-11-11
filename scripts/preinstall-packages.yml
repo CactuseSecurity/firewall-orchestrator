@@ -39,34 +39,11 @@
         - ldap-utils
         - openssl
 
-########## docker for api ##################
+########## podman for api ##################
 
-    - name: adding docker apt signing key
-      get_url:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        dest: /etc/apt/trusted.gpg.d/docker.asc
-        force: yes
-        mode: "0644"
-      environment: "{{ proxy_env }}"
-
-    - name: add docker repo
-      lineinfile:
-        path: "/etc/apt/sources.list.d/docker.list"
-        create: yes
-        regexp: 'download.docker.com'
-        line: "deb [arch={{ linux_architecture }}] https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }} {{ ansible_facts['lsb']['codename'] | lower }} stable"
-
-    - name: apt update
-      apt: update_cache=true
-      environment: "{{ proxy_env }}"
-
-    - name: install docker specific packages from specific repo
+    - name: install podman for the Hasura container
       package:
-         name: "{{ item }}"
-      loop:
-        - docker-ce
-        - docker-ce-cli
-        - containerd.io
+         name: podman
 
 ########## dotnet ##################
 
@@ -97,6 +74,7 @@
         get_url:
           url: "https://packages.microsoft.com/config/{{ ansible_facts['distribution']|lower }}/{{ distribution_version }}/{{ dotnet_deb_name }}"
           dest: "{{ middleware_server_base_dir }}/{{ dotnet_deb_name }}"
+          checksum: "sha256:{{ dotnet_ms_repo_package_sha256[ansible_facts['distribution'] | lower ~ '/' ~ distribution_version] }}"
           mode: "0644"
 
       - name: install ms package list

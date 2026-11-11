@@ -10,6 +10,8 @@ namespace FWO.Report.Filter
         ServiceNegated,
         Source,
         Destination,
+        SourceType,
+        DestinationType,
         Service,
         Protocol,
         DestinationPort,

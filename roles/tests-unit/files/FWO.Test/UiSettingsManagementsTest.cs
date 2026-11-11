@@ -61,7 +61,7 @@ namespace FWO.Test
                         Hostname = "sample.example.org",
                         Port = 443,
                         DeviceType = new DeviceType { Id = 12, Name = "FortiManager", Version = "7", Manufacturer = "Fortinet", IsManagement = true },
-                        ImportCredential = new ImportCredential { Id = 1, Name = "Sample cred" }
+                        ImportCredential = new Credential { Id = 1, Name = "Sample cred" }
                     },
                     new Management
                     {
@@ -70,7 +70,7 @@ namespace FWO.Test
                         Hostname = "regular.example.org",
                         Port = 8443,
                         DeviceType = new DeviceType { Id = 10, Name = "FortiGate", Version = "7", Manufacturer = "Fortinet", IsManagement = true },
-                        ImportCredential = new ImportCredential { Id = 1, Name = "Sample cred" }
+                        ImportCredential = new Credential { Id = 1, Name = "Sample cred" }
                     }
                 ],
                 DeviceTypes =
@@ -80,7 +80,7 @@ namespace FWO.Test
                 ],
                 Credentials =
                 [
-                    new ImportCredential { Id = 1, Name = "Sample cred" }
+                    new Credential { Id = 1, Name = "Sample cred" }
                 ]
             };
 
@@ -96,7 +96,7 @@ namespace FWO.Test
                 Assert.That(apiConnection.Queries[2], Is.EqualTo(DeviceQueries.getCredentials));
                 Assert.That(GetMember<List<Management>>(component, "managements"), Has.Count.EqualTo(2));
                 Assert.That(GetMember<List<DeviceType>>(component, "deviceTypes"), Has.Count.EqualTo(2));
-                Assert.That(GetMember<List<ImportCredential>>(component, "credentials"), Has.Count.EqualTo(1));
+                Assert.That(GetMember<List<Credential>>(component, "credentials"), Has.Count.EqualTo(1));
                 Assert.That(GetMember<List<Management>>(component, "sampleManagements"), Has.Count.EqualTo(1));
                 Assert.That(GetMember<bool>(component, "showCleanupButton"), Is.True);
             });
@@ -142,7 +142,7 @@ namespace FWO.Test
                 ],
                 Credentials =
                 [
-                    new ImportCredential { Id = 5, Name = "Read cred" }
+                    new Credential { Id = 5, Name = "Read cred" }
                 ]
             };
 
@@ -157,7 +157,7 @@ namespace FWO.Test
                 Assert.That(apiConnection.Queries[1], Is.EqualTo(DeviceQueries.getDeviceTypeDetails));
                 Assert.That(apiConnection.Queries[2], Is.EqualTo(DeviceQueries.getCredentialsWithoutSecrets));
                 Assert.That(GetMember<List<Management>>(component, "managements"), Has.Count.EqualTo(2));
-                Assert.That(GetMember<List<ImportCredential>>(component, "credentials"), Has.Count.EqualTo(1));
+                Assert.That(GetMember<List<Credential>>(component, "credentials"), Has.Count.EqualTo(1));
             });
         }
 
@@ -212,7 +212,7 @@ namespace FWO.Test
                 ],
                 Credentials =
                 [
-                    new ImportCredential { Id = 5, Name = "Read cred" }
+                    new Credential { Id = 5, Name = "Read cred" }
                 ]
             };
 
@@ -243,7 +243,7 @@ namespace FWO.Test
                 Hostname = "",
                 Port = 443,
                 DeviceType = GetMember<List<DeviceType>>(component, "deviceTypes")[0],
-                ImportCredential = GetMember<List<ImportCredential>>(component, "credentials")[0]
+                ImportCredential = GetMember<List<Credential>>(component, "credentials")[0]
             });
 
             await wrapper.InvokeAsync(async () => await InvokePrivateTask(component, "Save"));
@@ -274,7 +274,7 @@ namespace FWO.Test
                 ],
                 Credentials =
                 [
-                    new ImportCredential { Id = 5, Name = "Read cred" }
+                    new Credential { Id = 5, Name = "Read cred" }
                 ]
             };
 
@@ -305,7 +305,7 @@ namespace FWO.Test
                 Hostname = "valid.example.org",
                 Port = 0,
                 DeviceType = GetMember<List<DeviceType>>(component, "deviceTypes")[0],
-                ImportCredential = GetMember<List<ImportCredential>>(component, "credentials")[0]
+                ImportCredential = GetMember<List<Credential>>(component, "credentials")[0]
             });
 
             await wrapper.InvokeAsync(async () => await InvokePrivateTask(component, "Save"));
@@ -335,7 +335,7 @@ namespace FWO.Test
                 ],
                 Credentials =
                 [
-                    new ImportCredential { Id = 5, Name = "Read cred" }
+                    new Credential { Id = 5, Name = "Read cred" }
                 ]
             };
 
@@ -372,7 +372,7 @@ namespace FWO.Test
                 Port = 443,
                 ConfigPath = "",
                 DeviceType = GetMember<List<DeviceType>>(component, "deviceTypes")[0],
-                ImportCredential = GetMember<List<ImportCredential>>(component, "credentials")[0]
+                ImportCredential = GetMember<List<Credential>>(component, "credentials")[0]
             });
 
             await wrapper.InvokeAsync(async () => await InvokePrivateTask(component, "Save"));
@@ -401,7 +401,7 @@ namespace FWO.Test
                 ],
                 Credentials =
                 [
-                    new ImportCredential { Id = 5, Name = "Read cred" }
+                    new Credential { Id = 5, Name = "Read cred" }
                 ],
                 UpdateManagementResult = new ReturnId { UpdatedId = 1 }
             };
@@ -431,7 +431,7 @@ namespace FWO.Test
                 Hostname = "existing-mgmt-updated.example.org",
                 Port = 8443,
                 DeviceType = GetMember<List<DeviceType>>(component, "deviceTypes")[0],
-                ImportCredential = GetMember<List<ImportCredential>>(component, "credentials")[0]
+                ImportCredential = GetMember<List<Credential>>(component, "credentials")[0]
             });
 
             await wrapper.InvokeAsync(async () => await InvokePrivateTask(component, "Save"));
@@ -461,7 +461,7 @@ namespace FWO.Test
                 ],
                 Credentials =
                 [
-                    new ImportCredential { Id = 5, Name = "Read cred" }
+                    new Credential { Id = 5, Name = "Read cred" }
                 ],
                 NewManagementResult = new ReturnIdWrapper
                 {
@@ -497,8 +497,7 @@ namespace FWO.Test
                 Hostname = "new-management.example.org",
                 Port = 443,
                 DeviceType = GetMember<List<DeviceType>>(component, "deviceTypes")[0],
-                ImportCredential = GetMember<List<ImportCredential>>(component, "credentials")[0],
-                ImporterHostname = "importer.example.org",
+                ImportCredential = GetMember<List<Credential>>(component, "credentials")[0],
                 DebugLevel = 3
             });
 
@@ -595,7 +594,7 @@ namespace FWO.Test
                 Hostname = $"{name}.example.org",
                 Port = 443,
                 DeviceType = new DeviceType { Id = 10, Name = "FortiGate", Version = "7", Manufacturer = "Fortinet", IsManagement = true },
-                ImportCredential = new ImportCredential { Id = 5, Name = "Read cred" },
+                ImportCredential = new Credential { Id = 5, Name = "Read cred" },
                 Devices = devices ?? []
             };
         }
@@ -708,7 +707,7 @@ namespace FWO.Test
             public List<object?> Variables { get; } = [];
             public List<Management> Managements { get; set; } = [];
             public List<DeviceType> DeviceTypes { get; set; } = [];
-            public List<ImportCredential> Credentials { get; set; } = [];
+            public List<Credential> Credentials { get; set; } = [];
             public ReturnIdWrapper NewManagementResult { get; set; } = new();
             public ReturnId UpdateManagementResult { get; set; } = new();
             public ReturnId DeleteManagementResult { get; set; } = new();
@@ -736,9 +735,9 @@ namespace FWO.Test
                 }
 
                 if ((query == DeviceQueries.getCredentials || query == DeviceQueries.getCredentialsWithoutSecrets) &&
-                    typeof(QueryResponseType) == typeof(List<ImportCredential>))
+                    typeof(QueryResponseType) == typeof(List<Credential>))
                 {
-                    return Task.FromResult((QueryResponseType)(object)Credentials.Select(item => new ImportCredential(item)).ToList());
+                    return Task.FromResult((QueryResponseType)(object)Credentials.Select(item => new Credential(item)).ToList());
                 }
 
                 if (query == DeviceQueries.getDeviceDetails && typeof(QueryResponseType) == typeof(List<Device>))

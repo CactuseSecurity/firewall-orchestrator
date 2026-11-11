@@ -50,6 +50,26 @@ namespace FWO.Services.Workflow
             stateMatrix.AcceptChanges(changes.TransitionSortOrders);
         }
 
+        /// <summary>
+        /// Returns the active workflow phases whose configured state range contains the given state id.
+        /// </summary>
+        public static List<WorkflowPhases> GetMatchingActiveWorkflowPhases(StateMatrixConfigurationSnapshot stateMatrix, int stateId)
+        {
+            List<WorkflowPhases> matchingPhases = [];
+            foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
+            {
+                if (stateMatrix.Matrices.TryGetValue(phase, out StateMatrix? matrix)
+                    && matrix.Active
+                    && stateId >= matrix.LowestInputState
+                    && stateId < matrix.LowestEndState)
+                {
+                    matchingPhases.Add(phase);
+                }
+            }
+
+            return matchingPhases;
+        }
+
         private static StateMatrixConfigurationSnapshot BuildSnapshot(WorkflowConfiguration configuration)
         {
             Dictionary<WorkflowPhases, StateMatrix> matrices = [];
@@ -83,6 +103,8 @@ namespace FWO.Services.Workflow
             StateMatrix matrix = new()
             {
                 Active = false,
+                VisibilityMode = PhaseVisibilityMode.AnyTask,
+                PromotionMode = PromotionMode.Both,
                 LowestInputState = 0,
                 LowestStartedState = 0,
                 LowestEndState = 0,
@@ -128,6 +150,12 @@ namespace FWO.Services.Workflow
             return new StateMatrix
             {
                 Active = phaseData.Active,
+                VisibilityMode = Enum.IsDefined(phaseData.VisibilityMode)
+                    ? phaseData.VisibilityMode
+                    : PhaseVisibilityMode.AnyTask,
+                PromotionMode = Enum.IsDefined(phaseData.PromotionMode)
+                    ? phaseData.PromotionMode
+                    : PromotionMode.Both,
                 LowestInputState = phaseData.LowestInputState,
                 LowestStartedState = phaseData.LowestStartState,
                 LowestEndState = phaseData.LowestEndState,
@@ -217,6 +245,8 @@ namespace FWO.Services.Workflow
                         name = binding.PhaseMatrixName,
                         phase = phase.ToString(),
                         active = matrix.Active,
+                        phase_visibility_mode = matrix.VisibilityMode.ToString(),
+                        promotion_mode = matrix.PromotionMode.ToString(),
                         lowest_input_state = matrix.LowestInputState,
                         lowest_start_state = matrix.LowestStartedState,
                         lowest_end_state = matrix.LowestEndState
@@ -334,6 +364,8 @@ namespace FWO.Services.Workflow
         private static bool HasEqualPhaseValues(StateMatrix left, StateMatrix right)
         {
             return left.Active == right.Active
+                && left.VisibilityMode == right.VisibilityMode
+                && left.PromotionMode == right.PromotionMode
                 && left.LowestInputState == right.LowestInputState
                 && left.LowestStartedState == right.LowestStartedState
                 && left.LowestEndState == right.LowestEndState;

@@ -6,7 +6,7 @@
 
 
 @page "/settings/managements"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -38,7 +38,7 @@
                 <div class="btn-group">
                     <button type="button" class="btn btn-sm btn-success" @onclick="() => Clone(context)">@(userConfig.GetText("clone"))</button>
                     <button type="button" class="btn btn-sm btn-warning" @onclick="() => Edit(context)">@(userConfig.GetText("edit"))</button>
-                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")" Context="ctx">
+                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")" Context="ctx">
                         <Authorized Context="authState">
                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDelete(context)">@(userConfig.GetText("delete"))</button>
                             @if (context.DeviceType.CanBeSupermanager() || context.DeviceType.CanBeAutodiscovered(context))
@@ -89,7 +89,6 @@
             </Template>
         </Column>
 
-        <Column TableItem="Management" Title="@(userConfig.GetText("importer_host"))" Field="@(x => x.ImporterHostname)" Sortable="true" Filterable="true" />
         <Column TableItem="Management" Title="@(userConfig.GetText("import_enabled"))" Field="@(x => x.ImportDisabled)" Sortable="true">
             <Template>
                 @((!context.ImportDisabled).ShowAsHtml())
@@ -174,7 +173,7 @@
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5116"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("readonly_credential_mgm"))*:</label>
                         <div class="col-sm-8">
-                            <Dropdown ElementType="ImportCredential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ImportCredential" Elements="credentials">
+                            <Dropdown ElementType="Credential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ImportCredential" Elements="credentials">
                                 <ElementTemplate Context="cred">
                                     @cred.Name
                                 </ElementTemplate>
@@ -184,7 +183,7 @@
                     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5117"))">
                         <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("write_credential")):</label>
                         <div class="col-sm-8">
-                            <Dropdown ElementType="ImportCredential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ExportCredential" Elements="credentials" Nullable="true" NoneSelectedText="">
+                            <Dropdown ElementType="Credential" ElementToString="@(c => c.Name)" @bind-SelectedElement="actManagement.ExportCredential" Elements="credentials" Nullable="true" NoneSelectedText="">
                                 <ElementTemplate Context="cred">
                                     @cred.Name
                                 </ElementTemplate>
@@ -220,12 +219,6 @@
                         </div>
                     </div>
                 }
-                <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5120"))">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("importer_host")):</label>
-                    <div class="col-sm-8">
-                        <input type="text" class="form-control form-control-sm" @bind="actManagement.ImporterHostname" />
-                    </div>
-                </div>
                 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5121"))">
                     <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("debug_level")) (0-9):</label>
                     <div class="col-sm-8">
@@ -258,7 +251,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(userConfig.GetText("save"))</button>
                 </Authorized>
@@ -286,7 +279,7 @@
     private List<Management> managements = [];
     private List<Management> sampleManagements = [];
     private List<DeviceType> deviceTypes = [];
-    private List<ImportCredential> credentials = [];
+    private List<Credential> credentials = [];
 
     private ITable<Management>? table;
 
@@ -335,7 +328,7 @@
                 throw new AuthenticationException("not_authorized");
             }
 
-            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
+            if (jwt.ContainsAllowedRole(Roles.Admin))
             {
                 managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
             }
@@ -348,13 +341,13 @@
 
             deviceTypes = await apiConnection.SendQueryAsync<List<DeviceType>>(DeviceQueries.getDeviceTypeDetails);
 
-            if (jwt.ContainsAllowedRole(Roles.Admin) || jwt.ContainsAllowedRole(Roles.FwAdmin))
+            if (jwt.ContainsAllowedRole(Roles.Admin))
             {
-                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentials);
+                credentials = await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentials);
             }
             else
             {
-                credentials = await apiConnection.SendQueryAsync<List<ImportCredential>>(DeviceQueries.getCredentialsWithoutSecrets);
+                credentials = await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentialsWithoutSecrets);
             }
         }
         catch (System.Exception exception)
@@ -449,7 +442,7 @@
         newManagement = new Management()
         {
             DeviceType = deviceTypes.Count > 0 ? deviceTypes.First() : new DeviceType(), 
-            ImportCredential = credentials.Count > 0 ? credentials.First() : new ImportCredential()
+            ImportCredential = credentials.Count > 0 ? credentials.First() : new Credential()
         };
         Edit(newManagement);
     }
@@ -508,7 +501,6 @@
                 cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
                 cloudTenantId = actManagement.CloudTenantId,                        
                 superManager = actManagement.SuperManagerId,
-                importerHostname = actManagement.ImporterHostname,
                 debugLevel = actManagement.DebugLevel,
                 comment = actManagement.Comment,
                 extMgtData = actManagement.ExtMgtData,
@@ -555,7 +547,6 @@
                 cloudSubscriptionId = actManagement.CloudSubscriptionId,                        
                 cloudTenantId = actManagement.CloudTenantId,                        
                 superManager = actManagement.SuperManagerId,
-                importerHostname = actManagement.ImporterHostname,
                 debugLevel = actManagement.DebugLevel,
                 comment = actManagement.Comment,
                 extMgtData = actManagement.ExtMgtData,
@@ -633,7 +624,7 @@
         {
             workInProgress = true;
             StateHasChanged();
-            AutoDiscoveryBase actAutodiscovery = new AutoDiscoveryBase(superManagement, apiConnection);
+            AutoDiscoveryBase actAutodiscovery = new AutoDiscoveryBase(superManagement, apiConnection, userConfig.ImportCheckCertificates);
             actActions = actAutodiscovery.ConvertToActions(await actAutodiscovery.Run());
             int ChangeCounter = actActions.Count();
             await AddAutoDiscoverLogEntry(0, userConfig.GetText("manual_autodiscovery"), (ChangeCounter > 0 ? ChangeCounter + userConfig.GetText("changes_found") : userConfig.GetText("found_no_changes")), superManagement.Id);

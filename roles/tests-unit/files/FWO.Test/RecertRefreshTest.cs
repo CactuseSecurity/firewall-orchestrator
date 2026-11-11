@@ -50,6 +50,21 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void RecalcRecerts_CanceledBeforeClearing_KeepsOpenRecerts()
+        {
+            using CancellationTokenSource cancellationTokenSource = new();
+            RecordingRecertRefreshApiConnection apiConnection = new()
+            {
+                OnManagementsQuery = cancellationTokenSource.Cancel
+            };
+            apiConnection.Owners.Add(new FwoOwner { Id = 1, Name = "Owner A" });
+            apiConnection.Managements.Add(new Management { Id = 10, Name = "Mgmt A" });
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await RecertRefresh.RecalcRecerts(apiConnection, cancellationTokenSource.Token));
+            Assert.That(apiConnection.CountQuery(RecertQueries.clearOpenRecerts), Is.EqualTo(0));
+        }
+
         private static List<RecertificationBase> CreateOpenRecerts(int ownerId, int managementId)
         {
             return new List<RecertificationBase>
@@ -79,6 +94,7 @@ namespace FWO.Test
             public List<Management> Managements { get; } = new();
             public Dictionary<(int OwnerId, int ManagementId), List<RecertificationBase>> OpenRecertsByOwnerAndManagement { get; } = new();
             public string RefreshStatus { get; set; } = "Materialized view refreshed successfully";
+            public Action? OnManagementsQuery { get; set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
@@ -91,6 +107,7 @@ namespace FWO.Test
 
                 if (query == DeviceQueries.getManagementDetailsWithoutSecrets && typeof(QueryResponseType) == typeof(List<Management>))
                 {
+                    OnManagementsQuery?.Invoke();
                     return Task.FromResult((QueryResponseType)(object)Managements);
                 }
 

@@ -1,10 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 #firewall-orchestrator installer
 
 set -e
 
-#install required packages
-apt-get install -y git ansible ssh sudo
+# install required packages (Ansible itself comes from the pinned installer venv
+# below, not the distro package, so ansible-core meets the collection floor)
+apt-get install -y git ssh sudo
 
 #generate ssh key
 # ssh-keygen -b 4096
@@ -18,5 +19,6 @@ apt-get install -y git ansible ssh sudo
 #clone repository and install firewall-orchestrator
 git clone https://github.com/CactuseSecurity/firewall-orchestrator
 cd firewall-orchestrator
-ansible-galaxy collection install -r collections/requirements.yml -p collections --force
+# installs the pinned Ansible + collections into a venv and leaves it active
+source scripts/install-ansible-from-venv.sh
 ./scripts/run-playbook-with-sudo.sh site.yml

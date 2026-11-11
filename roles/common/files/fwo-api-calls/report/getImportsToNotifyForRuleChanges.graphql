@@ -2,7 +2,8 @@ query getImportsToNotifyForRuleChanges {
   import_control(where: {
     is_initial_import: {_eq: false}
     successful_import: {_eq: true}
-    policy_changes_found: {_eq: true}
+    # not policy_changes_found: that also covers rule changes that are not security-relevant
+    security_relevant_changes_counter: {_gt: 0}
     notification_done: {_eq: false}
     mgm_id: {_is_null: false}
   } order_by: {stop_time: asc}) {

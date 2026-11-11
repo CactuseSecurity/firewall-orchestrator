@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 __version__ = "2025-11-20-01"
 # revision history:
 # 2025-11-20-01, initial version
 
 import json
-import logging
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from scripts.customizing.fwo_custom_lib.app_data_models import Owner
+if TYPE_CHECKING:
+    import logging
+
+    from scripts.customizing.fwo_custom_lib.app_data_models import Owner
 
 
 def transform_owner_dict_to_list(app_data: dict[str, Owner]) -> dict[str, list[dict[str, Any]]]:

@@ -81,8 +81,11 @@ class AsaProtocolGroup(BaseModel):
 class EndpointKind(BaseModel):
     kind: Literal[
         "any",
+        "any6",
         "host",
+        "hostv6",
         "subnet",
+        "subnetv6",
         "object",
         "object-group",
         "service",
@@ -105,6 +108,7 @@ class AccessListEntry(BaseModel):
     dst_port: EndpointKind  # Changed to use EndpointKind for kind and value
     inactive: bool = False  # Added field for inactive flag
     description: str | None = None
+    time_range: str | None = None  # name of the time-range restricting when the entry applies
 
 
 class AccessList(BaseModel):

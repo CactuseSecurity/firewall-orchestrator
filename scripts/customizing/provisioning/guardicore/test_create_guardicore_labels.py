@@ -353,6 +353,8 @@ def test_guardicore_label_auth_and_fetch_helpers(monkeypatch: MonkeyPatch):
     args.guardicore_password = "password"
     module.require_guardicore_fields(args)
 
+    seen_identities: list[tuple[str, str] | None] = []
+
     def fake_login_fwo(
         user: str,
         password: str,
@@ -360,8 +362,10 @@ def test_guardicore_label_auth_and_fetch_helpers(monkeypatch: MonkeyPatch):
         verify_ssl: bool | str,
         timeout: int,
         error_cls: type[Exception],
+        client_identity: tuple[str, str] | None = None,
     ) -> str:
         del user, password, middleware_url, verify_ssl, timeout, error_cls
+        seen_identities.append(client_identity)
         return "login-jwt"
 
     monkeypatch.setattr(module, "login_fwo", fake_login_fwo)
@@ -370,6 +374,8 @@ def test_guardicore_label_auth_and_fetch_helpers(monkeypatch: MonkeyPatch):
     args.fwo_password = "password"
     args.fwo_middleware_url = "https://middleware"
     assert module.get_fwo_jwt(args, True) == "login-jwt"
+    assert module.get_fwo_jwt(args, True, ("cert.pem", "key.pem")) == "login-jwt"
+    assert seen_identities == [None, ("cert.pem", "key.pem")]
 
     def fake_login_guardicore(
         user: str,

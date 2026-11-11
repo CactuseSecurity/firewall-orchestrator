@@ -3,7 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from scripts.customizing.log_data_import.import_log_data_from_git import LogDataEntry, convert_csv_file, convert_row
+from scripts.customizing.log_data_import.import_log_data_from_git import (
+    LogDataEntry,
+    RejectedFile,
+    SingleLineLogFilter,
+    convert_csv_file,
+    convert_row,
+)
 
 VALID_ROW: dict[str, str] = {
     "App ID": "APP-1",
@@ -47,15 +53,35 @@ def test_convert_csv_file_logs_invalid_rows_and_rejects_the_file(tmp_path: Path)
     original_level: int = logger.level
     logger.addHandler(collector)
     logger.setLevel(logging.WARNING)
+    rejected: RejectedFile = RejectedFile()
 
     try:
         with pytest.raises(ValueError, match=r"1 row\(s\) could not be converted"):
-            convert_csv_file(csv_file, tmp_path, logger)
+            convert_csv_file(csv_file, tmp_path, rejected, logger)
     finally:
         logger.removeHandler(collector)
         logger.setLevel(original_level)
 
     assert any("ignoring logs.csv line 3" in message for message in collector.messages)
+    assert rejected.row_count == 1
+    assert rejected.examples == ["line 3: Port is only valid with Protocol 6 or 17"]
+
+
+@pytest.mark.parametrize("blanked_column", ["App ID", "Src IP", "Dst IP"])
+def test_convert_row_rejects_a_blank_mandatory_value(blanked_column: str) -> None:
+    incomplete_row: dict[str, str] = {**VALID_ROW, blanked_column: "   "}
+
+    with pytest.raises(ValueError, match="must be present"):
+        convert_row(incomplete_row)
+
+
+@pytest.mark.parametrize("log_count", ["0", "-5"])
+def test_convert_row_rejects_a_log_count_below_one(log_count: str) -> None:
+    """A flow logged zero or fewer times carries no information the importer could store."""
+    unlogged_row: dict[str, str] = {**VALID_ROW, "Log count": log_count}
+
+    with pytest.raises(ValueError, match="must be present"):
+        convert_row(unlogged_row)
 
 
 class LogMessageCollector(logging.Handler):
@@ -67,3 +93,16 @@ class LogMessageCollector(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         self.messages.append(self.format(record))
+
+
+def test_single_line_log_filter_escapes_line_breaks_from_repository_names(caplog: pytest.LogCaptureFixture) -> None:
+    logger: logging.Logger = logging.getLogger("fwo-log-data-import-test")
+    logger.addFilter(SingleLineLogFilter())
+    forged_name: str = "a.csv\n2026-01-01 ERROR forged line\r"
+
+    with caplog.at_level(logging.WARNING, logger=logger.name):
+        logger.warning("ignoring %s: %s", forged_name, "bad row")
+
+    assert len(caplog.records) == 1
+    assert "\n" not in caplog.text.strip()
+    assert "a.csv\\n2026-01-01 ERROR forged line\\r: bad row" in caplog.text

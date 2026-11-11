@@ -19,6 +19,7 @@ namespace FWO.Services
 
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
+        private readonly FlowHashRecalculator flowHashRecalculator;
 
         /// <summary>
         /// Creates a new flow sync service with API access.
@@ -27,6 +28,7 @@ namespace FWO.Services
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
+            flowHashRecalculator = new FlowHashRecalculator(apiConnection);
         }
 
         /// <summary>
@@ -53,10 +55,52 @@ namespace FWO.Services
         }
 
         /// <summary>
+        /// Fetches the flow data and makes sure its hashes match the current hash logic. If they do not,
+        /// the hashes stored in the flow database are recalculated and the flow data is fetched again.
+        /// </summary>
+        /// <returns>The consistent flow data, or null if the hashes could not be brought in line.</returns>
+        private async Task<FlowSyncFlowData?> GetConsistentFlowDataAsync(int mgmId)
+        {
+            FlowSyncFlowData flowData = await GetFlowSyncDataAsync(mgmId);
+            List<FlowHashInconsistency> inconsistencies = flowData.GetHashInconsistencies();
+
+            if (inconsistencies.Count == 0)
+            {
+                return flowData;
+            }
+
+            Log.WriteWarning(LogMessageTitle, $"Hash inconsistencies found for management {mgmId}, recalculating flow hashes. " +
+                $"Inconsistent entries: {FlowHashInconsistency.Describe(inconsistencies)}");
+
+            FlowHashRecalculationOutcome outcome = await flowHashRecalculator.RecalculateFlowHashesAsync(flowData);
+
+            if (outcome != FlowHashRecalculationOutcome.Updated)
+            {
+                Log.WriteError(LogMessageTitle, $"Flow hashes could not be recalculated, skipping management {mgmId}. " +
+                    $"Inconsistent entries: {FlowHashInconsistency.Describe(inconsistencies)}");
+                return null;
+            }
+
+            flowData = await GetFlowSyncDataAsync(mgmId);
+            List<FlowHashInconsistency> remainingInconsistencies = flowData.GetHashInconsistencies();
+
+            if (remainingInconsistencies.Count > 0)
+            {
+                Log.WriteError(LogMessageTitle, $"Hash inconsistencies remain after recalculation, skipping management {mgmId}. " +
+                    $"Inconsistent entries: {FlowHashInconsistency.Describe(remainingInconsistencies)}");
+                return null;
+            }
+
+            return flowData;
+        }
+
+        /// <summary>
         /// Main entry point: discovers pending imports and synchronizes each management.
         /// </summary>
-        public async Task<bool> Run()
+        /// <param name="cancellationToken">Stops before the next management or sync phase; imports of completely synchronized managements are still marked as done.</param>
+        public async Task<bool> Run(CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(FlowQueries.getPendingFlowSyncImports);
 
             if (pendingImports == null || pendingImports.Count == 0)
@@ -102,19 +146,33 @@ namespace FWO.Services
 
             HashSet<int> successfullySyncedManagementIds = [];
 
-            foreach (int mgmId in managementIdsToSync)
+            try
             {
-                try
+                foreach (int mgmId in managementIdsToSync)
                 {
-                    if (await SyncManagementAsync(mgmId, useManagementNamesForFlow))
+                    cancellationToken.ThrowIfCancellationRequested();
+                    try
                     {
-                        successfullySyncedManagementIds.Add(mgmId);
+                        if (await SyncManagementAsync(mgmId, useManagementNamesForFlow, cancellationToken))
+                        {
+                            successfullySyncedManagementIds.Add(mgmId);
+                        }
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception exception)
+                    {
+                        Log.WriteError(LogMessageTitle, $"Flow sync failed for management {mgmId}.", exception);
                     }
                 }
-                catch (Exception exception)
-                {
-                    Log.WriteError(LogMessageTitle, $"Flow sync failed for management {mgmId}.", exception);
-                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // a partially synchronized management stays pending and is synchronized again in the next run
+                await CompletePendingImportsAsync(pendingImportsByManagement, superMgmToSubMgmIds, successfullySyncedManagementIds);
+                throw;
             }
 
             await CompletePendingImportsAsync(pendingImportsByManagement, superMgmToSubMgmIds, successfullySyncedManagementIds);
@@ -132,7 +190,7 @@ namespace FWO.Services
         /// Synchronizes a single management: fetches normalized objects, calculates hashes,
         /// inserts missing flows, and updates mappings.
         /// </summary>
-        private async Task<bool> SyncManagementAsync(int mgmId, bool useManagementNamesForFlow)
+        private async Task<bool> SyncManagementAsync(int mgmId, bool useManagementNamesForFlow, CancellationToken cancellationToken)
         {
             var managementData = (await apiConnection.SendQueryAsync<List<FlowSyncManagementData>>(FlowQueries.getFlowSyncManagementData, new { mgmId }))?.FirstOrDefault();
 
@@ -142,29 +200,36 @@ namespace FWO.Services
                 return false;
             }
 
-            var flowData = await GetFlowSyncDataAsync(mgmId);
+            cancellationToken.ThrowIfCancellationRequested();
+            var flowData = await GetConsistentFlowDataAsync(mgmId);
 
-            if (flowData.HasHashInconsistencies())
+            if (flowData == null)
             {
-                Log.WriteError(LogMessageTitle, $"Hash inconsistencies found for management {mgmId}.");
                 return false;
             }
 
             // Process simple objects first, as they are used in groups and accesses
+            cancellationToken.ThrowIfCancellationRequested();
             await ProcessNetworkObjectsAsync(mgmId, managementData.NetworkObjects.Where(o => o.Type.Name != ObjectType.Group), flowData, useManagementNamesForFlow);
+            cancellationToken.ThrowIfCancellationRequested();
             await ProcessServiceObjectsAsync(mgmId, managementData.ServiceObjects.Where(s => s.Type.Name != ServiceType.Group), flowData, useManagementNamesForFlow);
+            cancellationToken.ThrowIfCancellationRequested();
             await ProcessTimeObjectsAsync(mgmId, managementData.TimeObjects, flowData, useManagementNamesForFlow);
             // Refresh flow data to include newly inserted objects
+            cancellationToken.ThrowIfCancellationRequested();
             flowData = await GetFlowSyncDataAsync(mgmId);
             // Process groups next, as they are used in accesses
             await ProcessNetworkGroupsAsync(mgmId, managementData.NetworkObjects.Where(o => o.Type.Name == ObjectType.Group), flowData, useManagementNamesForFlow);
+            cancellationToken.ThrowIfCancellationRequested();
             await ProcessServiceGroupsAsync(mgmId, managementData.ServiceObjects.Where(s => s.Type.Name == ServiceType.Group), flowData, useManagementNamesForFlow);
             // Refresh flow data to include newly inserted groups
+            cancellationToken.ThrowIfCancellationRequested();
             flowData = await GetFlowSyncDataAsync(mgmId);
             // Finally, process accesses which reference all object types
             await ProcessRulesAsync(mgmId, managementData.Rules, flowData);
 
             // remove flow mappings from all normalized entries that are set to removed
+            cancellationToken.ThrowIfCancellationRequested();
             await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateFlowMappingsForRemoved, new { mgmId });
 
             return true;
@@ -236,8 +301,10 @@ namespace FWO.Services
                     newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow network objects for management {mgmId}. Skipped (non-technical): {skippedNwObjects}.");
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow network objects for management {mgmId}.");
             }
+
+            LogSkipped(mgmId, skippedNwObjects, "network objects", "non-technical");
 
             // update normalized objects with flow mappings and flow_active status
             if (newFLowMappings.Count != 0)
@@ -277,7 +344,7 @@ namespace FWO.Services
                 {
                     NwObjHash = hash,
                     IpStart = obj.IP,
-                    IpEnd = obj.IpEnd,
+                    IpEnd = NormalizeNwObjectIpEnd(obj),
                     State = FlowState.Implemented,
                     RemovedDate = null,
                     ShowInRequestModule = true,
@@ -347,8 +414,10 @@ namespace FWO.Services
                     newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow service objects for management {mgmId}. Skipped (missing proto): {skippedSvcObjects}.");
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow service objects for management {mgmId}.");
             }
+
+            LogSkipped(mgmId, skippedSvcObjects, "service objects", "missing proto");
 
             // update normalized services with flow mappings and flow_active status
             if (newFLowMappings.Count != 0)
@@ -388,7 +457,7 @@ namespace FWO.Services
                 {
                     Name = useManagementNamesForFlow ? svc.Name : null,
                     PortStart = svc.DestinationPort,
-                    PortEnd = svc.DestinationPortEnd,
+                    PortEnd = NormalizeSvcObjectPortEnd(svc),
                     IpProtoId = svc.ProtoId!.Value,
                     SvcObjHash = hash,
                     State = FlowState.Implemented,
@@ -454,8 +523,10 @@ namespace FWO.Services
                     newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow time objects for management {mgmId}. Skipped (neither start nor end time specified): {skippedTimeObjects}.");
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedObjects.Count} new flow time objects for management {mgmId}.");
             }
+
+            LogSkipped(mgmId, skippedTimeObjects, "time objects", "neither start nor end time specified");
 
             if (newFLowMappings.Count != 0)
             {
@@ -565,8 +636,10 @@ namespace FWO.Services
                     newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedGroups.Count} new flow network groups for management {mgmId}. Skipped (contains non-technical or empty): {skippedNwGroups}.");
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedGroups.Count} new flow network groups for management {mgmId}.");
             }
+
+            LogSkipped(mgmId, skippedNwGroups, "network groups", "contains non-technical or empty");
 
             // update normalized objects with flow mappings and flow_active status
             if (newFLowMappings.Count != 0)
@@ -679,8 +752,10 @@ namespace FWO.Services
                     newFLowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedGroups.Count} new flow service groups for management {mgmId}. Skipped (contains non-technical or empty): {skippedSvcGroups}.");
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedGroups.Count} new flow service groups for management {mgmId}.");
             }
+
+            LogSkipped(mgmId, skippedSvcGroups, "service groups", "contains non-technical or empty");
 
             // update normalized services with flow mappings and flow_active status
             if (newFLowMappings.Count != 0)
@@ -791,8 +866,10 @@ namespace FWO.Services
                     newFlowMappings.GetValueOrDefault(inserted.Hash, []).ForEach(m => m.FlowId = inserted.Id);
                 }
 
-                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedAccesses.Count} new flow accesses for management {mgmId}. Skipped: {skippedRules}.");
+                Log.WriteInfo(LogMessageTitle, $"Inserted {insertedAccesses.Count} new flow accesses for management {mgmId}.");
             }
+
+            LogSkipped(mgmId, skippedRules, "rules", "no deterministic hash for one of the referenced objects");
 
             // update normalized rules with flow mappings
             if (newFlowMappings.Count != 0)
@@ -832,8 +909,18 @@ namespace FWO.Services
                 return false; // Skip non-IP objects (e.g. FQDNs) - they need to be manually created
             }
 
-            hash = FlowHashGenerator.GenerateNwObjectHash(obj.IP, obj.IpEnd);
+            hash = FlowHashGenerator.GenerateNwObjectHash(obj.IP, NormalizeNwObjectIpEnd(obj));
             return true;
+        }
+
+        /// <summary>
+        /// Returns the range end of a network object, treating a missing end as a single host address.
+        /// obj_ip_end is only mandatory for network, host and machines_range objects, so any other type
+        /// carrying an IP would otherwise fail hash generation.
+        /// </summary>
+        private static string NormalizeNwObjectIpEnd(NetworkObject obj)
+        {
+            return string.IsNullOrWhiteSpace(obj.IpEnd) ? obj.IP ?? "" : obj.IpEnd;
         }
 
         /// <summary>
@@ -847,7 +934,15 @@ namespace FWO.Services
                 // objects without protocol are not supported - flow svcobjects require a protocol to be meaningful
                 return false;
             }
-            if (!svc.DestinationPort.HasValue || !svc.DestinationPortEnd.HasValue)
+            var portEnd = NormalizeSvcObjectPortEnd(svc);
+            if (svc.ProtoId.Value == GlobalConst.kAnyIpProtocolId
+                && !svc.DestinationPort.HasValue
+                && !portEnd.HasValue)
+            {
+                hash = FlowHashGenerator.GenerateSvcObjectHash(svc.ProtoId.Value, null, null);
+                return true;
+            }
+            if (!svc.DestinationPort.HasValue || !portEnd.HasValue)
             {
                 if (flowData.SvcObjectHashes.TryGetValue(svc.Id, out var storedHash) && !string.IsNullOrWhiteSpace(storedHash))
                 {
@@ -857,8 +952,18 @@ namespace FWO.Services
                 return false;
             }
 
-            hash = FlowHashGenerator.GenerateSvcObjectHash(svc.ProtoId.Value, svc.DestinationPort.Value, svc.DestinationPortEnd.Value);
+            hash = FlowHashGenerator.GenerateSvcObjectHash(svc.ProtoId.Value, svc.DestinationPort.Value, portEnd.Value);
             return true;
+        }
+
+        /// <summary>
+        /// Returns the port range end of a service, treating a missing end as a single port.
+        /// Most importers leave svc_port_end empty for single-port services, which would otherwise
+        /// exclude the service and every rule referencing it from the flow data.
+        /// </summary>
+        private static int? NormalizeSvcObjectPortEnd(NetworkService svc)
+        {
+            return svc.DestinationPortEnd ?? svc.DestinationPort;
         }
 
         /// <summary>
@@ -942,6 +1047,13 @@ namespace FWO.Services
                 }
                 if (!TryGetFlowSvcObjectHash(member.Object, flowData, out var memberHash))
                 {
+                    return false;
+                }
+                if (!flowData.SvcObjects.ContainsKey(memberHash))
+                {
+                    // technical member services should have been previously inserted; skip the group
+                    // rather than aborting the whole management sync
+                    Log.WriteWarning(LogMessageTitle, $"Skipping service group {group.Id} because member {member.Id} has no corresponding flow object. Hash: {memberHash}");
                     return false;
                 }
                 memberHashes.Add(memberHash);
@@ -1183,6 +1295,18 @@ namespace FWO.Services
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Reports how many entries were left out of the flow data and why. Logged outside the insert branches
+        /// so that a management whose entries were all skipped is still visible in the log.
+        /// </summary>
+        private static void LogSkipped(int mgmId, int skippedCount, string entryType, string reason)
+        {
+            if (skippedCount > 0)
+            {
+                Log.WriteInfo(LogMessageTitle, $"Skipped {skippedCount} {entryType} for management {mgmId} ({reason}).");
+            }
         }
 
         /// <summary>

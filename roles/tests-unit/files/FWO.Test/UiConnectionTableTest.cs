@@ -1,6 +1,7 @@
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Config.Api;
+using FWO.Basics;
 using FWO.Ui.Shared;
 using NUnit.Framework;
 using System.Collections.Generic;
@@ -494,5 +495,24 @@ namespace FWO.Test
 
             Assert.That(result, Is.True);
         }
+
+        [Test]
+        public void IsVisibleToOwner_ReturnsFalse_WhenInterfaceOwnerIsMissing()
+        {
+            ConnectionTable table = new();
+            SetComponentParameter(table, nameof(ConnectionTable.Application), new FwoOwner { Id = 1 });
+
+            ModellingConnection conn = new()
+            {
+                InterfacePermission = InterfacePermissions.Restricted.ToString(),
+                App = null!
+            };
+
+            MethodInfo isVisibleToOwner = GetInstanceMethod("IsVisibleToOwner", typeof(ModellingConnection));
+            bool result = (bool)isVisibleToOwner.Invoke(table, [conn])!;
+
+            Assert.That(result, Is.False);
+        }
+
     }
 }

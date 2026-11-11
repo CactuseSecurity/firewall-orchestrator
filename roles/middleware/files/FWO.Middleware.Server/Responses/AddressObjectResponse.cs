@@ -20,22 +20,17 @@ public sealed class AddressObjectResponse
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets the Type value calculated from the IpStart and IpEnd values.
+    /// Gets the Type value calculated from the IP range.
     /// </summary>
     [JsonPropertyName("type")]
     public string Type { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets the IpStart value.
+    /// Gets the inclusive IP range as its first and last maskless address, or an empty list for
+    /// non-IP objects such as FQDNs.
     /// </summary>
-    [JsonPropertyName("ipStart")]
-    public string IpStart { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets the IpEnd value.
-    /// </summary>
-    [JsonPropertyName("ipEnd")]
-    public string IpEnd { get; set; } = string.Empty;
+    [JsonPropertyName("ipRange")]
+    public List<string> IpRange { get; set; } = [];
 
     /// <summary>
     /// Gets the State value.

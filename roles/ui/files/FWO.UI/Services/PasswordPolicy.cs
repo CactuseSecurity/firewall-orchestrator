@@ -1,43 +1,15 @@
-using System.Text.RegularExpressions;
 using FWO.Config.Api;
 
 namespace FWO.Ui.Services
 {
     public static class PasswordPolicy
     {
+        /// <summary>
+        /// Checks a password against the configured policy, with error texts in the user's language.
+        /// </summary>
         public static bool CheckPolicy(string pw, GlobalConfig globalConfig, UserConfig userConfig, out string errorMsg)
         {
-            errorMsg = "";
-            if (pw.Length < globalConfig.PwMinLength)
-            {
-                errorMsg = userConfig.GetText("E5411") + globalConfig.PwMinLength;
-                return false;
-            }
-            if (globalConfig.PwUpperCaseRequired && !pw.Any(char.IsUpper))
-            {
-                errorMsg = userConfig.GetText("E5412");
-                return false;
-            }
-            if (globalConfig.PwLowerCaseRequired && !pw.Any(char.IsLower))
-            {
-                errorMsg = userConfig.GetText("E5413");
-                return false;
-            }
-            if (globalConfig.PwNumberRequired && !pw.Any(char.IsDigit))
-            {
-                errorMsg = userConfig.GetText("E5414");
-                return false;
-            }
-            if (globalConfig.PwSpecialCharactersRequired)
-            {
-                Regex rgx = new Regex("[!?(){}=~$%&#*-+.,_]");
-                if (!rgx.IsMatch(pw))
-                {
-                    errorMsg = userConfig.GetText("E5415");
-                    return false;
-                }
-            }
-            return true;
+            return PasswordPolicyValidator.CheckPolicy(pw, globalConfig, userConfig, out errorMsg);
         }
     }
 }

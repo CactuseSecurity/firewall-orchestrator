@@ -11,7 +11,7 @@
 @if(AppRoleHandler != null && Display)
 {
     <PopUp Title="@(AppRoleHandler.ReadOnly ? "" : (AppRoleHandler.AddMode ? userConfig.GetText("add_app_role") : userConfig.GetText("edit_app_role")))"
-           Size="PopupSize.Auto" Show="@Display" OnClose="Close" FooterCssClass="d-flex justify-content-between">
+           Size="PopupSize.Auto" Show="@Display" OnClose="Close" FooterCssClass="@(AppRoleHandler.AddMode ? "d-flex justify-content-end" : "d-flex justify-content-between")">
         <Body>
             @if(AppRoleHandler.NamingConvention.NetworkAreaRequired)
             {
@@ -97,8 +97,7 @@
                             {
                                 <OrderByDropdown CssClass="bg-secondary" @ref="orderByDropdown" TCollectionItem="ModellingAppServer" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" CustomSort="true" />
                                 <div class="dropzone-scrollable dropzone bg-secondary @GetDynamicHeightScrollableAppserverClass()"
-                                     ondragover="event.preventDefault();"
-                                     ondragstart="event.dataTransfer.setData('', event.target.id);"
+                                     @ondragover:preventDefault="true"
                                      @ondrop="HandleServerDrop">
                                     <EditList ElementType="ModellingAppServer" Elements="ModellingAppServerWrapper.Resolve(AppRoleHandler.ActAppRole.AppServers)" ElementsToAdd="AppRoleHandler.AppServerToAdd" ElementsToDelete="AppRoleHandler.AppServerToDelete" StdLayout="false" ElementsRemoved="OnAppServerRemovedFromEditList">
                                         <Display>

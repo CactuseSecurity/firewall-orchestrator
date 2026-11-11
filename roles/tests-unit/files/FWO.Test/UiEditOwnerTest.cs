@@ -8,7 +8,9 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services.EventMediator;
+using FWO.Services.EventMediator.Events;
 using FWO.Services.EventMediator.Interfaces;
+using FWO.Test.Mocks;
 using FWO.Ui.Pages.Settings;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -58,6 +60,11 @@ namespace FWO.Test
             property.SetValue(component, value);
         }
 
+        private static string? GetStringVariable(object? variables, string name)
+        {
+            return variables?.GetType().GetProperty(name)?.GetValue(variables) as string;
+        }
+
         private static IRenderedComponent<EditOwner> RenderEditOwner(
             BunitContext context,
             FwoOwner owner,
@@ -65,7 +72,8 @@ namespace FWO.Test
             List<OwnerResponsibleType>? responsibleTypes = null,
             List<FwoOwner>? existingOwners = null,
             List<OwnerLifeCycleState>? ownerLifeCycleStates = null,
-            EditOwnerTestApiConn? apiConn = null)
+            EditOwnerTestApiConn? apiConn = null,
+            IEventMediator? eventMediator = null)
         {
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
@@ -75,7 +83,7 @@ namespace FWO.Test
             context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<UserConfig>(new EditOwnerTestUserConfig());
             context.Services.AddSingleton<DomEventService>();
-            context.Services.AddSingleton<IEventMediator>(new EventMediator());
+            context.Services.AddSingleton<IEventMediator>(eventMediator ?? new EventMediator());
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<EditOwner>(child => child
@@ -351,6 +359,68 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task EditOwner_AddNetworkOwners_StoresNameForEveryIp()
+        {
+            await using BunitContext context = new();
+            EditOwnerTestApiConn apiConn = new();
+            FwoOwner owner = new() { Id = 9, Name = "Owner E" };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, apiConn: apiConn);
+
+            List<NwObjectElement> ipsToAdd = new()
+            {
+                new NwObjectElement("10.0.6.10/32", 0),
+                new NwObjectElement("10.0.1.128/32-10.0.1.255/32", 0)
+            };
+            SetPrivateField(editOwner.Instance, "IpsToAdd", ipsToAdd);
+
+            await (Task)GetPrivateMethod("AddNetworkOwners").Invoke(editOwner.Instance, null)!;
+
+            List<string?> names = apiConn.NetworkOwnershipVariables.ConvertAll(variables => GetStringVariable(variables, "name"));
+            Assert.That(names, Is.EqualTo(new List<string?> { "10.0.6.10", "10.0.1.128/25" }));
+        }
+
+        [Test]
+        public async Task EditOwner_ReinitializeRuleOwnerMapping_MarksTheRebuildAsTriggeredByChange()
+        {
+            await using BunitContext context = new();
+            RecordingEventMediator eventMediator = new();
+            FwoOwner owner = new() { Id = 7, Name = "Owner C", OwnerLifeCycleStateId = 1 };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, eventMediator: eventMediator);
+
+            List<NwObjectElement> currentIps = [new("10.0.0.2/32", 1)];
+            SetPrivateField(editOwner.Instance, "OriginalOwnedIpKeys", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "10.0.0.1/32|10.0.0.1/32" });
+            SetPrivateField(editOwner.Instance, "ActIpAddresses", currentIps);
+
+            Task reinitialize = (Task)GetPrivateMethod("ReinitializeRuleOwnerMappingIfNeeded").Invoke(editOwner.Instance, null)!;
+
+            // the publish is synchronous, so the event is recorded before the method awaits the rebuild
+            PublishedEventRecord published = eventMediator.PublishedEvents.Single();
+            UpdateRuleOwnerMappingEventArgs args = ((UpdateRuleOwnerMappingEvent)published.Event).EventArgs;
+            args.Completion!.SetResult(true);
+            await reinitialize;
+
+            Assert.That(published.Name, Is.EqualTo("UpdateOwnerRuleMappings"));
+            Assert.That(args.isFullReInitialize, Is.True);
+            // without this flag the rebuild the admin just asked for is reported as drift of the incremental
+            // mapping, because HasRelevantOwnerMappingChanges is true exactly when the rebuilt state will
+            // differ from the stored one - see IndicatesDrift in UpdateRuleOwnerMappingBase
+            Assert.That(args.TriggeredByChange, Is.True);
+        }
+
+        [Test]
+        public async Task EditOwner_ReinitializeRuleOwnerMapping_PublishesNothing_WhenNoMappingRelevantChange()
+        {
+            await using BunitContext context = new();
+            RecordingEventMediator eventMediator = new();
+            FwoOwner owner = new() { Id = 8, Name = "Owner D", OwnerLifeCycleStateId = 1 };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, eventMediator: eventMediator);
+
+            await (Task)GetPrivateMethod("ReinitializeRuleOwnerMappingIfNeeded").Invoke(editOwner.Instance, null)!;
+
+            Assert.That(eventMediator.PublishedEvents, Is.Empty);
+        }
+
+        [Test]
         public async Task EditOwner_GetDecommDateAfterLifecycleChange_SetsDateForDeactivateAndClearsForReactivate()
         {
             await using BunitContext context = new();
@@ -482,6 +552,7 @@ namespace FWO.Test
         public int GetOwnerRecertCalls { get; private set; }
         public int RecertifyOwnerCalls { get; private set; }
         public int SetOwnerLastRecertCalls { get; private set; }
+        public List<object?> NetworkOwnershipVariables { get; } = [];
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
@@ -511,10 +582,15 @@ namespace FWO.Test
                 });
             }
 
+            if (query == OwnerQueries.newNetworkOwnership)
+            {
+                NetworkOwnershipVariables.Add(variables);
+                return Task.FromResult(Activator.CreateInstance<QueryResponseType>());
+            }
+
             if (query == OwnerQueries.deleteOwnerResponsibles
                 || query == OwnerQueries.newOwnerResponsibles
                 || query == OwnerQueries.newRuleOwnership
-                || query == OwnerQueries.newNetworkOwnership
                 || query == OwnerQueries.deleteRuleOwnership
                 || query == OwnerQueries.deleteNetworkOwnership)
             {

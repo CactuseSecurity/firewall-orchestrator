@@ -1,3 +1,4 @@
+@using FWO.Basics
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Display
@@ -46,7 +47,7 @@
                     <button type="button" class="btn btn-sm btn-success" @onclick="SearchNwObject">
                         @(DisplayService.DisplayButton(userConfig, "search_nw_object", Icons.Search))</button>
                 }
-                <button type="button" class="btn btn-sm btn-success" disabled="@(!ConnHandler.IsOwner)" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
+                <button type="button" class="btn btn-sm btn-success" disabled="@(!ConnHandler.CanOpenAppRoleEditor())" @onclick="() => {ConnHandler.CreateAppRole(); ConnHandlerChanged.InvokeAsync(ConnHandler);}">
                     @(DisplayService.DisplayButton(userConfig, "add_app_role", Icons.Add))</button>
                 @if(selectedNwElems.Count == 1)
                 {
@@ -54,10 +55,10 @@
                     {
                         if(!(ResolveAppRole(selectedNwElems[0].Value)?.IsDeleted ?? true))
                         {
-                            <button type="button" class="btn btn-sm btn-warning" disabled="@(!ConnHandler.IsOwner)" @onclick="async () =>
+                            <button type="button" class="btn btn-sm btn-warning" disabled="@(!ConnHandler.CanOpenAppRoleEditor())" @onclick="async () =>
                                 {ConnHandler.EditAppRole(ResolveAppRole(selectedNwElems[0].Value)); await ResetNw();}">
                                 @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                            <button type="button" class="btn btn-sm btn-danger" disabled="@(!ConnHandler.IsOwner)" @onclick="async () =>
+                            <button type="button" class="btn btn-sm btn-danger" disabled="@(!ConnHandler.CanModifyAppRoles())" @onclick="async () =>
                                 {await ConnHandler.RequestDeleteAppRole(ResolveAppRole(selectedNwElems[0].Value)); await ResetNw();}">
                                 @(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
                         }
@@ -220,7 +221,7 @@
     <ConfirmDelete @bind-Display="ConnHandler.RemovePreselectedInterfaceMode" PerformAction="async () => await WrapAsync(ConnHandler.RemovePreselectedInterface)"
         Title="@userConfig.GetText("remove_connection")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
     <SearchNwObject @bind-Display="SearchNwObjectMode" @bind-ObjectList="ConnHandler.AvailableSelectedObjects"
-        Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectableNwObjects" OnClose="OnSearchNwObjectClose" />
+        Application="ConnHandler.Application" Refresh="ConnHandler.RefreshSelectableNwObjects" HiddenObjectIds="ConnHandler.ComSvcHiddenAreaIds" OnClose="OnSearchNwObjectClose" />
     <ConfirmDelete @bind-Display="ConnHandler.RemoveNwObjectMode" PerformAction="async () => await WrapAsync(ConnHandler.RemoveNwGrpObject)"
         Title="@userConfig.GetText("remove_nw_object")" DeleteMessage="@ConnHandler.Message" AllowedRoles="@Roles.Modeller" Remove="true" Enabled="ConnHandler.IsOwner"/>
     <RequestInterfacePopup @bind-Display="SelectAppMode" Apps="ConnHandler.AllApps" RequestingOwner="ConnHandler.Application" RefreshParent="async () => await WrapAsync(ConnHandler.RefreshPreselectedInterfaces)"/>
@@ -292,7 +293,7 @@
 
     private string DisplayInterfaceWithIcon(ModellingConnection interf)
     {
-        return $"<span class=\"{Icons.Interface}\"></span> " + ConnHandler?.DisplayInterface(interf);
+        return $"<span class=\"{Icons.Interface}\"></span> " + HtmlOutputEncoder.EncodeText(ConnHandler?.DisplayInterface(interf));
     }
 
     private async Task ReplaceInterface()

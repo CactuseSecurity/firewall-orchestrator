@@ -12,6 +12,8 @@ fragment stateMatrixConfigurationDetails on request_workflow_configuration {
       name
       phase
       active
+      phase_visibility_mode
+      promotion_mode
       lowest_input_state
       lowest_start_state
       lowest_end_state

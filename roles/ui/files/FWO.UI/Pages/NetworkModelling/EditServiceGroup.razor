@@ -52,8 +52,7 @@
                             else
                             {
                                 <div class="minheight-dropzone bg-secondary dropzone" dropzone="move"
-                                    ondragover="event.preventDefault();"
-                                    ondragstart="event.dataTransfer.setData('', event.target.id);"
+                                    @ondragover:preventDefault="true"
                                     @ondrop="HandleSvcDrop">
                                     <EditList ElementType="ModellingService" Elements="Array.ConvertAll(SvcGroupHandler.ActServiceGroup.Services.ToArray(), wrapper => wrapper.Content)" ElementsToAdd="SvcGroupHandler.SvcToAdd" ElementsToDelete="SvcGroupHandler.SvcToDelete" StdLayout="false">
                                         <Display>

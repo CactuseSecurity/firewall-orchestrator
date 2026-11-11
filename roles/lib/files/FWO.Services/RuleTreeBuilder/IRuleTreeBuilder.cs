@@ -26,9 +26,11 @@ namespace FWO.Services.RuleTreeBuilder
 
         /// <summary>
         /// Builds a rule tree from normalized rulebases and rulebase links and returns
-        /// the flattened rules that reports render.
+        /// the flattened rules that reports render. Rulebases contained in <paramref name="referencedRulebaseIds"/>
+        /// are listed completely elsewhere and appear only as a reference row (without rules, sections and inline layers).
         /// </summary>
-        List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links, int managementId, int deviceId, bool suppressEmptyHeaders = false);
+        List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links, int managementId, int deviceId, bool suppressEmptyHeaders = false,
+            IReadOnlySet<int>? referencedRulebaseIds = null);
 
         /// <summary>
         /// Clears cached trees and flattened rows from previous report generations.

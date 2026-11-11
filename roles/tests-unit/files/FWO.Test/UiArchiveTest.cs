@@ -158,7 +158,6 @@ namespace FWO.Test
         }
 
         [TestCase(Roles.Auditor)]
-        [TestCase(Roles.FwAdmin)]
         [TestCase(Roles.ReporterViewAll)]
         public async Task EveryRoleThatSeesAllReportsFetchesThemUnrestricted(string role)
         {

@@ -1,0 +1,38 @@
+@inject UserConfig userConfig
+
+@* A bool cannot be bound to a select with @bind (Blazor's bool binding only works for checkboxes),
+   so the value is rendered and parsed as "true"/"false" explicitly. *@
+<select id="@Id" class="form-select form-select-sm" value="@(ManagementRulebaseView ? kManagementView : kGatewayView)" @onchange="OnChange">
+    <option value="@kGatewayView">@(userConfig.GetText("gateway_rules_view"))</option>
+    <option value="@kManagementView">@(userConfig.GetText("management_rulebases_view"))</option>
+</select>
+
+@code
+{
+    private const string kGatewayView = "false";
+    private const string kManagementView = "true";
+
+    /// <summary>
+    /// Html id of the select element.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// True for the management rulebases view, false for the gateway rules view.
+    /// </summary>
+    [Parameter]
+    public bool ManagementRulebaseView { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ManagementRulebaseViewChanged { get; set; }
+
+    /// <summary>
+    /// Parses the selected option and reports the new view.
+    /// </summary>
+    private async Task OnChange(ChangeEventArgs args)
+    {
+        ManagementRulebaseView = args.Value?.ToString() == kManagementView;
+        await ManagementRulebaseViewChanged.InvokeAsync(ManagementRulebaseView);
+    }
+}

@@ -26,6 +26,14 @@
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
 
+    - name: create the runtime directory for dotnet commands run as {{ fworch_user }}
+      file:
+        path: "{{ dotnet_xdg_runtime_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0700"
+
     - name: install dotnet needed for both ui and middleware servers
       include_tasks: install_dot_net.yml
 

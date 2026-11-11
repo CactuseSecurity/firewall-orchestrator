@@ -3,11 +3,15 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
 using NUnit.Framework;
 using Quartz;
-using Quartz.Impl.Matchers;
+
+// Quartz 4 returns ValueTask from IScheduler/ISchedulerFactory. The NSubstitute arrange calls below
+// only record the invocation - the returned instance is never awaited, so CA2012 does not apply.
+#pragma warning disable CA2012
 
 namespace FWO.Test
 {
@@ -26,15 +30,21 @@ namespace FWO.Test
 
             JobExecutionTracker tracker = new();
             await tracker.JobWasExecuted(CreateExecutionContext(alphaJob), null);
-            await tracker.JobWasExecuted(CreateExecutionContext(betaJob), new JobExecutionException(new InvalidOperationException("boom"), refireImmediately: false));
+            await tracker.JobWasExecuted(CreateExecutionContext(betaJob), new JobExecutionException(new InvalidOperationException("boom")));
 
+            ITrigger alphaTrigger = CreateSimpleTrigger();
+            ITrigger betaTrigger = CreateCronTrigger();
             IScheduler scheduler = Substitute.For<IScheduler>();
-            scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup(), CancellationToken.None)
-                .Returns(Task.FromResult<IReadOnlyCollection<JobKey>>(new List<JobKey> { betaJob, alphaJob }));
-            scheduler.GetTriggersOfJob(alphaJob, CancellationToken.None)
-                .Returns(Task.FromResult<IReadOnlyCollection<ITrigger>>(new List<ITrigger> { CreateSimpleTrigger() }));
-            scheduler.GetTriggersOfJob(betaJob, CancellationToken.None)
-                .Returns(Task.FromResult<IReadOnlyCollection<ITrigger>>(new List<ITrigger> { CreateCronTrigger() }));
+            scheduler.QueryJobs(Arg.Is<JobQuery>(query => query.Take == PagedQuery.All), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult([CreateJobHeader(betaJob), CreateJobHeader(alphaJob)])));
+            scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == alphaJob && query.Take == PagedQuery.All), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult([CreateTriggerHeader(alphaTrigger, alphaJob)])));
+            scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == betaJob && query.Take == PagedQuery.All), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult([CreateTriggerHeader(betaTrigger, betaJob)])));
+            scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.Count == 1 && keys.Contains(alphaTrigger.Key)), CancellationToken.None)
+                .Returns(ValueTask.FromResult<List<ITrigger>>([alphaTrigger]));
+            scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.Count == 1 && keys.Contains(betaTrigger.Key)), CancellationToken.None)
+                .Returns(ValueTask.FromResult<List<ITrigger>>([betaTrigger]));
 
             SchedulerController controller = CreateController(scheduler, tracker);
 
@@ -56,6 +66,68 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetJobs_DescribesCalendarIntervalTriggerInDays()
+        {
+            JobKey dailyJob = new("daily-job", "group-c");
+            ITrigger dailyTrigger = TriggerBuilder.Create()
+                .WithIdentity("daily-trigger")
+                .ForJob(dailyJob)
+                .StartNow()
+                .WithCalendarIntervalSchedule(schedule => schedule.WithInterval(2, IntervalUnit.Day))
+                .Build();
+            List<JobHeader> jobHeaders = [CreateJobHeader(dailyJob)];
+            List<TriggerHeader> triggerHeaders = [CreateTriggerHeader(dailyTrigger, dailyJob)];
+            List<ITrigger> triggers = [dailyTrigger];
+            IScheduler scheduler = Substitute.For<IScheduler>();
+            scheduler.QueryJobs(Arg.Is<JobQuery>(query => query.Take == PagedQuery.All), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult(jobHeaders)));
+            scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == dailyJob && query.Take == PagedQuery.All), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult(triggerHeaders)));
+            scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.Count == 1 && keys.Contains(dailyTrigger.Key)), CancellationToken.None)
+                .Returns(ValueTask.FromResult(triggers));
+
+            SchedulerController controller = CreateController(scheduler, new JobExecutionTracker());
+
+            List<SchedulerJobInfo> jobs = (await controller.GetJobs()).ToList();
+
+            Assert.That(jobs, Has.Count.EqualTo(1));
+            Assert.That(jobs[0].IntervalDescription, Is.EqualTo("2d"));
+        }
+
+        /// <summary>
+        /// Generated hours-of-day cron schedules retain their configured interval in the monitor.
+        /// </summary>
+        [TestCase(2)]
+        [TestCase(3)]
+        [TestCase(4)]
+        [TestCase(6)]
+        [TestCase(8)]
+        [TestCase(12)]
+        public async Task GetJobs_DescribesHoursOfDayTriggerInHours(int intervalHours)
+        {
+            JobKey job = new("hours-job");
+            DateTimeOffset now = new(2027, 3, 27, 12, 0, 0, TimeSpan.Zero);
+            ITrigger trigger = WallClockSchedule.CreateTrigger(new TriggerKey("hours-trigger"), job,
+                new DateTime(2027, 1, 1, 6, 15, 0), TimeSpan.FromHours(intervalHours), now, TimeZoneInfo.Utc);
+            List<JobHeader> jobHeaders = [CreateJobHeader(job)];
+            List<TriggerHeader> triggerHeaders = [CreateTriggerHeader(trigger, job)];
+            List<ITrigger> triggers = [trigger];
+            IScheduler scheduler = Substitute.For<IScheduler>();
+            scheduler.QueryJobs(Arg.Is<JobQuery>(query => query.Take == PagedQuery.All), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult(jobHeaders)));
+            scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == job && query.Take == PagedQuery.All), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult(triggerHeaders)));
+            scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.Count == 1 && keys.Contains(trigger.Key)), CancellationToken.None)
+                .Returns(ValueTask.FromResult(triggers));
+            SchedulerController controller = CreateController(scheduler, new JobExecutionTracker());
+
+            List<SchedulerJobInfo> jobs = (await controller.GetJobs()).ToList();
+
+            Assert.That(jobs, Has.Count.EqualTo(1));
+            Assert.That(jobs[0].IntervalDescription, Is.EqualTo($"{intervalHours}h"));
+        }
+
+        [Test]
         public async Task Run_ReturnsBadRequestWhenJobNameIsMissing()
         {
             SchedulerController controller = CreateController(Substitute.For<IScheduler>(), new JobExecutionTracker());
@@ -70,8 +142,8 @@ namespace FWO.Test
         public async Task Run_ReturnsNotFoundWhenJobDoesNotExist()
         {
             IScheduler scheduler = Substitute.For<IScheduler>();
-            scheduler.CheckExists(new JobKey("missing-job"), CancellationToken.None)
-                .Returns(Task.FromResult(false));
+            scheduler.Exists(new JobKey("missing-job"), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(false));
 
             SchedulerController controller = CreateController(scheduler, new JobExecutionTracker());
 
@@ -85,23 +157,45 @@ namespace FWO.Test
         public async Task Run_TriggersExistingJob()
         {
             IScheduler scheduler = Substitute.For<IScheduler>();
-            scheduler.CheckExists(new JobKey("trigger-job"), CancellationToken.None)
-                .Returns(Task.FromResult(true));
-            scheduler.TriggerJob(new JobKey("trigger-job"), CancellationToken.None)
-                .Returns(Task.CompletedTask);
+            scheduler.Exists(new JobKey("trigger-job"), CancellationToken.None)
+                .Returns(_ => ValueTask.FromResult(true));
+            scheduler.TriggerJob(new JobKey("trigger-job"), null, CancellationToken.None)
+                .Returns(_ => ValueTask.CompletedTask);
 
             SchedulerController controller = CreateController(scheduler, new JobExecutionTracker());
 
             ActionResult<bool> result = await controller.Run(new SchedulerJobTriggerParameters { JobName = "trigger-job" });
 
             Assert.That(result.Value, Is.True);
-            await scheduler.Received(1).TriggerJob(new JobKey("trigger-job"), CancellationToken.None);
+            await scheduler.Received(1).TriggerJob(new JobKey("trigger-job"), null, CancellationToken.None);
+        }
+
+        [Test]
+        public void GetJobs_IsReadableByAdminAndAuditor()
+        {
+            Assert.That(GetAuthorizedRoles(nameof(SchedulerController.GetJobs)), Is.EquivalentTo(kReadRoles));
+        }
+
+        [Test]
+        public void Run_IsAdminOnly()
+        {
+            Assert.That(GetAuthorizedRoles(nameof(SchedulerController.Run)), Is.EquivalentTo(kRunRoles));
+        }
+
+        private static readonly List<string> kReadRoles = [Roles.Admin, Roles.Auditor];
+        private static readonly List<string> kRunRoles = [Roles.Admin];
+
+        private static List<string> GetAuthorizedRoles(string actionName)
+        {
+            AuthorizeAttribute attribute = typeof(SchedulerController).GetMethod(actionName)!
+                .GetCustomAttributes(typeof(AuthorizeAttribute), false).Cast<AuthorizeAttribute>().Single();
+            return [.. (attribute.Roles ?? "").Split(',').Select(role => role.Trim())];
         }
 
         private static SchedulerController CreateController(IScheduler scheduler, JobExecutionTracker tracker)
         {
             ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
-            schedulerFactory.GetScheduler().Returns(Task.FromResult(scheduler));
+            schedulerFactory.GetScheduler().Returns(_ => ValueTask.FromResult(scheduler));
             return new SchedulerController(schedulerFactory, tracker);
         }
 
@@ -113,6 +207,35 @@ namespace FWO.Test
             IJobExecutionContext context = Substitute.For<IJobExecutionContext>();
             context.JobDetail.Returns(jobDetail);
             return context;
+        }
+
+        private static JobHeader CreateJobHeader(JobKey jobKey)
+        {
+            return new JobHeader(jobKey, "", nameof(IJob), false, false, false, false);
+        }
+
+        private static PagedResult<T> CreatePagedResult<T>(List<T> items)
+        {
+            return new PagedResult<T>(items, false, items.Count);
+        }
+
+        private static TriggerHeader CreateTriggerHeader(ITrigger trigger, JobKey jobKey)
+        {
+            return new TriggerHeader(
+                trigger.Key,
+                jobKey,
+                trigger.Description ?? "",
+                trigger.GetType().Name,
+                TriggerState.Normal,
+                trigger.StartTimeUtc,
+                trigger.EndTimeUtc,
+                trigger.NextFireTimeUtc,
+                trigger.PreviousFireTimeUtc,
+                trigger.CalendarName ?? "",
+                trigger.Priority,
+                "",
+                "",
+                0);
         }
 
         private static ITrigger CreateSimpleTrigger()
@@ -134,3 +257,4 @@ namespace FWO.Test
         }
     }
 }
+#pragma warning restore CA2012

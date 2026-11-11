@@ -76,23 +76,29 @@ def main(
         return
 
     jwt: str | None
+    refresh_token: str | None
 
     try:
         json_data = json.loads(json_raw)
         jwt = json_data["AccessToken"]
+        refresh_token = json_data.get("RefreshToken") or None
     except Exception:
         FWOLogger.error("JWT could not be parsed")
         return
 
     # check if jwt is parsed
     if jwt is None:
+        FWOLogger.error("login response did not contain an AccessToken")
         return
 
-    fwo_api = FwoApi(fwo_api_base_url, jwt)
+    fwo_api = FwoApi(fwo_api_base_url, jwt, refresh_token, user_management_api_base_url)
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # suppress ssl warnings only
-    verify_certificates = fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
+    # the command line can only force certificate checking on, never switch the configured value off
+    verify_certificates = (
+        bool(verify_certificates) or fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
+    )
     suppress_certificate_warnings = fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
     if not suppress_certificate_warnings:
         warnings.resetwarnings()
@@ -111,10 +117,8 @@ def main(
     import_management(
         mgm_id,
         fwo_api_call,
-        verify_certificates,
         limit,
         clear_management_data,
-        suppress_certificate_warnings,
         file,
         suppress_consistency_check,
     )

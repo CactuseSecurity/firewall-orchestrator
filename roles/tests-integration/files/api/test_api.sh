@@ -33,7 +33,6 @@ query showDevice {
       mgmName
       clearingImportRan
       configPath
-      importerHostname
       sshHostname
       sshPort
     }

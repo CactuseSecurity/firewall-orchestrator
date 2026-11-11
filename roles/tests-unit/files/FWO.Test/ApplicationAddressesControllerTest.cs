@@ -285,7 +285,8 @@ internal class ApplicationAddressesControllerTest
                 "\"_or\":[{\"name\":{\"_ilike\":\"application %\"}},{\"name\":{\"_ilike\":\"%second application%\"}}]"));
             Assert.That(variables, Does.Contain("{\"app_id_external\":{\"_ilike\":\"app-%\"}}"));
             Assert.That(variables, Does.Not.Contain("\"_or\":[{\"app_id_external\""));
-            Assert.That(variables, Does.Contain("\"limit\":20"));
+            // one application more than the page size is requested to detect further applications
+            Assert.That(variables, Does.Contain("\"limit\":21"));
             Assert.That(variables, Does.Contain("\"offset\":5"));
         });
     }
@@ -408,6 +409,26 @@ internal class ApplicationAddressesControllerTest
 
         ValidationProblemDetails validationProblem = (ValidationProblemDetails)((ObjectResult)result.Result!).Value!;
         Assert.That(validationProblem.Errors.Keys, Does.Contain("options.limit"));
+    }
+
+    [Test]
+    public async Task GetTakesTheDefaultPageSizeAndTheMaximumFromTheConfiguration()
+    {
+        ApplicationAddressesApiConnection apiConnection = new();
+        SimulatedGlobalConfig globalConfig = new() { MaxRestResponseObjectLimit = 150 };
+        ApplicationAddressesController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin), globalConfig);
+        ApplicationAddressesController tooLargeController = CreateController(new ApplicationAddressesApiConnection(), PrincipalWithRoles(Roles.Admin), globalConfig);
+
+        await controller.Get(new GetApplicationAddressesRequest());
+        ActionResult<List<ApplicationAddressResponse>> tooLarge = await tooLargeController.Get(
+            new GetApplicationAddressesRequest { Options = new() { Limit = 151 } });
+
+        ValidationProblemDetails validationProblem = (ValidationProblemDetails)((ObjectResult)tooLarge.Result!).Value!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(SerializeVariables(apiConnection.LastApplicationVariables), Does.Contain("\"limit\":151"));
+            Assert.That(validationProblem.Errors["options.limit"][0], Does.Contain("between 1 and 150"));
+        });
     }
 
     [Test]
@@ -536,9 +557,45 @@ internal class ApplicationAddressesControllerTest
         }).ToList();
     }
 
-    private static ApplicationAddressesController CreateController(ApiConnection apiConnection, ClaimsPrincipal user)
+    [TestCase(2, "true")]
+    [TestCase(3, "false")]
+    public async Task GetReturnsOnePageAndTellsWhetherFurtherApplicationsFollow(int limit, string expectedHasMore)
     {
-        return new ApplicationAddressesController(apiConnection)
+        ApplicationAddressesApiConnection apiConnection = new()
+        {
+            Owners = Enumerable.Range(1, 3).Select(id => new FwoOwner { Id = id, Name = $"app-{id}" }).ToList()
+        };
+        ApplicationAddressesController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+        ActionResult<List<ApplicationAddressResponse>> result = await controller.Get(new GetApplicationAddressesRequest
+        {
+            Options = new GetApplicationAddressesOptions { Limit = limit }
+        });
+
+        List<ApplicationAddressResponse> responses = (List<ApplicationAddressResponse>)((OkObjectResult)result.Result!).Value!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(responses, Has.Count.EqualTo(Math.Min(limit, 3)));
+            Assert.That(controller.Response.Headers[ListPaging.kHasMoreHeader].ToString(), Is.EqualTo(expectedHasMore));
+        });
+    }
+
+    [Test]
+    public async Task GetWithExplicitNullLimitRequestsTheDefaultPage()
+    {
+        ApplicationAddressesApiConnection apiConnection = new();
+        ApplicationAddressesController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+        await controller.Get(new GetApplicationAddressesRequest { Options = new GetApplicationAddressesOptions { Limit = null } });
+
+        Assert.That(SerializeVariables(apiConnection.LastApplicationVariables),
+            Does.Contain($"\"limit\":{GlobalConst.kDefaultMaxRestResponseObjectLimit + 1}"));
+    }
+
+    private static ApplicationAddressesController CreateController(ApiConnection apiConnection, ClaimsPrincipal user,
+        SimulatedGlobalConfig? globalConfig = null)
+    {
+        return new ApplicationAddressesController(apiConnection, globalConfig ?? new SimulatedGlobalConfig())
         {
             ControllerContext = new ControllerContext
             {
@@ -571,7 +628,7 @@ internal class ApplicationAddressesControllerTest
 
     private static int GetMaxLimit()
     {
-        return GetControllerConstant("kMaxLimit");
+        return GlobalConst.kDefaultMaxRestResponseObjectLimit;
     }
 
     private static int GetMaxFilterValues()

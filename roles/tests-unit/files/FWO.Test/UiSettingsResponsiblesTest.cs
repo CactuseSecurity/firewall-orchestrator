@@ -1,8 +1,15 @@
+using AngleSharp.Dom;
+using Bunit;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Ui.Pages.Settings;
+using FWO.Ui.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System;
 using System.Reflection;
@@ -59,6 +66,50 @@ namespace FWO.Test
                 throw new MissingMemberException(typeof(SettingsResponsibles).FullName, "apiConnection");
             }
             prop.SetValue(component, apiConnection);
+        }
+
+        [TestCase(Roles.Auditor, false)]
+        [TestCase(Roles.Admin, true)]
+        public void Render_EditOpensForAdminAndAuditorButOnlyAdminCanWrite(string role, bool writeAllowed)
+        {
+            using BunitContext context = new();
+            SettingsResponsiblesTestApiConn apiConn = new();
+            apiConn.ResponsibleTypes.Add(new OwnerResponsibleType { Id = 10, Name = "Main", Active = true, SortOrder = 10 });
+            apiConn.ResponsibleTypes.Add(new OwnerResponsibleType { Id = 20, Name = "Old", Active = false, SortOrder = 20 });
+            EditOwnerTestUserConfig userConfig = new() { ModIconify = false, AllowManualOwnerAdmin = true };
+            userConfig.User.Roles = [role];
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddLocalization();
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(role));
+
+            IRenderedComponent<SettingsResponsibles> page = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<SettingsResponsibles>()).FindComponent<SettingsResponsibles>();
+
+            page.WaitForAssertion(() =>
+            {
+                Assert.That(FindButtons(page, userConfig.GetText("add_responsible_type")).Single().HasAttribute("disabled"), Is.False);
+                Assert.That(FindButtons(page, userConfig.GetText("edit")).All(button => !button.HasAttribute("disabled")), Is.True);
+                Assert.That(FindButtons(page, userConfig.GetText("delete")).Single().HasAttribute("disabled"), Is.EqualTo(!writeAllowed));
+                Assert.That(FindButtons(page, userConfig.GetText("reactivate")).Single().HasAttribute("disabled"), Is.EqualTo(!writeAllowed));
+            });
+
+            FindButtons(page, userConfig.GetText("edit"))[0].Click();
+
+            page.WaitForAssertion(() =>
+            {
+                Assert.That(GetPrivateField<bool>(page.Instance, "EditMode"), Is.True);
+                Assert.That(FindButtons(page, userConfig.GetText("save")).Single().HasAttribute("disabled"), Is.EqualTo(!writeAllowed));
+            });
+        }
+
+        private static List<IElement> FindButtons(IRenderedComponent<SettingsResponsibles> page, string text)
+        {
+            return [.. page.FindAll("button").Where(button => button.TextContent.Trim() == text)];
         }
 
         [Test]

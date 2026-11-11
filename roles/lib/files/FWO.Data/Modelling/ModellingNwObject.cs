@@ -1,3 +1,4 @@
+using FWO.Basics;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
@@ -34,7 +35,7 @@ namespace FWO.Data.Modelling
 
         public override string DisplayHtml()
         {
-            string tooltip = $"data-toggle=\"tooltip\" title=\"{TooltipText}\"";
+            string tooltip = $"data-toggle=\"tooltip\" title=\"{HtmlOutputEncoder.EncodeAttribute(TooltipText)}\"";
             return $"<span class=\"{(IsDeleted ? "text-danger" : "")}\" {(IsDeleted && TooltipText != "" ? tooltip : "")}>{(IsDeleted ? "<i>" : "")}{base.DisplayHtml()}{(IsDeleted ? "</i>" : "")}</span>";
         }
     }

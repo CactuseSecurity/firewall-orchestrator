@@ -69,7 +69,8 @@ namespace FWO.Test
                     .Add(p => p.ShowTotalCount, true)));
 
             Assert.That(cut.Markup, Does.Contain("Search"));
-            Assert.That(cut.Markup, Does.Contain("2 / 2"));
+            Assert.That(cut.Markup, Does.Not.Contain("2 / 2"));
+            Assert.That(cut.FindAll("table"), Is.Empty);
             Assert.That(cut.Find("input").GetAttribute("value"), Is.EqualTo(""));
 
             cut.Find("input").Input("one");

@@ -12,6 +12,8 @@ namespace FWO.Basics
         public const string kEnglish = "English";
         public const string kUserRolesSelection = "user_roles";
         public const int kTenant0Id = 1;
+        // tenant ids are generated from 1 upwards, so no tenant has this id
+        public const int kUnresolvedTenantId = 0;
 
         public const int kSessionExpirationTimeDefault = 720; // 60 * 12
 
@@ -19,14 +21,21 @@ namespace FWO.Basics
         public const int kGlobLibraryWidth = kSidebarLeftWidth + 400;
         public const int kObjLibraryWidth = kSidebarLeftWidth + 300;
         public const int kSidebarRightWidth = 300;
-        public const int kDaysToMilliseconds = 86400000;
-        public const int kHoursToMilliseconds = 3600000;
         public const int kMinutesToMilliseconds = 60000;
-        public const int kSecondsToMilliseconds = 1000;
         public const int kDaysPerWeek = 7;
+        public const int kMonthsPerYear = 12;
         public const int kMaxPortNumber = 65535;
+        public const int kAnyIpProtocolId = -1;
+        // log time range of a log data import file which does not name its own (one week)
+        public const int kDefaultLogTimeRangeInSeconds = kDaysPerWeek * (int)TimeSpan.SecondsPerDay;
         // an import script is waited for with a timeout in milliseconds which has to fit into an int
         public const int kMaxImportScriptTimeoutMinutes = int.MaxValue / kMinutesToMilliseconds;
+        // page size of the REST list endpoints, configurable as maxRestResponseObjectLimit
+        public const int kDefaultMaxRestResponseObjectLimit = 10000;
+        // lowest configurable page size, so clients reading a whole list (e.g. the UI) need few requests per list
+        public const int kMinRestResponseObjectLimit = 100;
+        // highest configurable page size, so the setting cannot lift the result cap of the REST list endpoints
+        public const int kMaxRestResponseObjectLimitCeiling = 100000;
         public const int kOwnerResponsibleTypeMain = 1;
         public const int kOwnerResponsibleTypeSupporting = 2;
         public const int kOwnerResponsibleTypeOptionalEscalation = 3;
@@ -38,6 +47,7 @@ namespace FWO.Basics
 
         public const string kAutodiscovery = "autodiscovery";
         public const string kDailyCheck = "dailycheck";
+        public const string kWorkflow = "workflow";
         public const string kUi = "ui";
         public const string kCertification = "Certification";
         public const string kImportAppData = "importAppData";
@@ -46,7 +56,14 @@ namespace FWO.Basics
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kImportZoneMatrixData = "importZoneMatrixData";
         public const string kVarianceAnalysis = "varianceAnalysis";
+        public const string kVarianceRuleOwnerPrefilter = "varianceRuleOwnerPrefilter";
         public const string kManual = "manual";
+        // change_history.module: names the subsystem that wrote a history row and therefore
+        // which enum its object_type has to be read against. Workflow rows use the same literal as
+        // their change_source, because the workflow module has exactly one provenance. Keeping it a
+        // single constant avoids two identical literals that would silently drift apart.
+        public const string kModuleModelling = "modelling";
+        public const string kModuleWorkflow = "workflow";
         public const string kCSV_ = "CSV_";
         public const string kDoku_ = "Doku_";
         public const string k_user = "_user";
@@ -59,20 +76,37 @@ namespace FWO.Basics
         public const string kPlaceholderMarker = "@@";
         public const string kModellerGroup = "ModellerGroup_";
         public const string kImportChangeNotify = "importChangeNotify";
+        public const string kSystemUser = "system";
+        public const string kRuleOwnerMapping = "ruleOwnerMapping";
         public const string kExternalRequest = "externalRequest";
         public const string kComplianceCheck = "complianceCheck";
+        public const long kPathAnalysisAlgorithmNone = 1;
+        public const long kPathAnalysisAlgorithmNetworkZoneTree = 2;
+        public const long kPathAnalysisAlgorithmForEachDevice = 3;
+        public const long kPathAnalysisAlgorithmFirstDevice = 4;
+
         public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
         public const int kLdapInternalId = 1;
         public const string kDummyAppRole = "DummyAppRole";
         public const string kUndefinedText = "(undefined text)";
 
         public const string kStyleHighlightedRed = "color: red;";
+
+        /// <summary>
+        /// Content security policy of an exported report or notification document.
+        /// The export is a self contained document: it carries its styles inline and loads nothing else,
+        /// so everything but inline styling is denied. This keeps a reference that was smuggled into a
+        /// stored value from being fetched - by the headless browser that renders the pdf, and by the
+        /// browser of whoever opens the exported html afterwards.
+        /// </summary>
+        public const string kExportContentSecurityPolicy = "default-src 'none'; style-src 'unsafe-inline'; font-src 'none'; img-src 'none'; script-src 'none'; frame-src 'none'; connect-src 'none'";
         public const string kStyleHighlightedGreen = "color: green;";
         public const string kStyleDeleted = "color: red; text-decoration: line-through red;";
         public const string kStyleAdded = "color: green; text-decoration: bold;";
 
-        public const string ChromeBinPathLinux = "/usr/local/fworch/bin";
-        public const string ChromiumHeadlessBinPathLinux = "/usr/local/fworch/bin/chromium-headless";
+        // root owned, outside the fworch home; keep in step with fworch_browser_dir (inventory/group_vars/all.yml)
+        public const string ChromeBinPathLinux = "/usr/local/lib/fworch";
+        public const string ChromiumHeadlessBinPathLinux = "/usr/local/lib/fworch/chromium-headless";
         public const string TestPDFFilePath = "pdffile.pdf";
         public const string TestPDFHtmlTemplate = "<html><body><h1>test</h1><h2>test mit puppteer</h2></body></html>";
 
@@ -101,7 +135,17 @@ namespace FWO.Basics
         public const string Host = "host";
         public const string Network = "network";
         public const string IPRange = "ip_range";
+        public const string DynamicNetObj = "dynamic_net_obj";
         public const string AccessRole = "access-role";
+        public const string Domain = "domain";
+
+        /// <summary>
+        /// Determines whether a network object has an address range that is resolved only at policy evaluation time.
+        /// </summary>
+        public static bool IsDynamicallyResolvedObject(string objectTypeName)
+        {
+            return objectTypeName == DynamicNetObj || objectTypeName == Domain || objectTypeName == AccessRole;
+        }
     }
 
     public struct ServiceType
@@ -147,6 +191,7 @@ namespace FWO.Basics
         public const string CONN_NUMBER = "@@CONN_NUMBER@@";
         public const string CONTENT = "@@CONTENT@@";
         public const string COUNT = "@@COUNT@@";
+        public const string DATE = "@@DATE@@";
         public const string DAYS = "@@DAYS@@";
         public const string DESTINATIONS = "@@DESTINATIONS@@";
         public const string FAIL_NUMBER = "@@FAIL_NUMBER@@";
@@ -191,6 +236,7 @@ namespace FWO.Basics
 
     public enum OwnerMappingSourceStm
     {
+        Disabled = 0,
         IpBased = 1,
         CustomField = 2,
         NameField = 3,

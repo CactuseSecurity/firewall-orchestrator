@@ -3,7 +3,7 @@
 @using System.Text.Json.Serialization;
 @using FWO.Ui.Services;
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
@@ -112,7 +112,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-danger" @onclick="Save">@(userConfig.GetText("save"))</button>
                 </Authorized>

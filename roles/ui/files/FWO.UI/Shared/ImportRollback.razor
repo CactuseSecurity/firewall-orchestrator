@@ -1,7 +1,7 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<PopUp Title="@(userConfig.GetText("rollback_import") + ": " + ManagementId)" Show="@RollbackMode" Size=PopupSize.Small OnClose="() => RollbackMode = false">
+<PopUp Title="@(userConfig.GetText("rollback_import") + ": " + ManagementId)" Show="@RollbackMode" Size=PopupSize.Small OnClose="() => { RollbackMode = false; fullRollbackConfirmed = false; }">
     <Body>
         @if (RollbackMode)
         {
@@ -12,6 +12,11 @@
             else
             {
                 <p>@(userConfig.GetText("U5106"))</p>
+                <div class="alert alert-danger" role="alert">@(userConfig.GetText("U5109"))</div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="fullRollbackConfirm" @bind="fullRollbackConfirmed">
+                    <label class="form-check-label" for="fullRollbackConfirm">@(userConfig.GetText("U5110"))</label>
+                </div>
             }
         }
     </Body>
@@ -25,7 +30,7 @@
                     }
                     else
                     {
-                        <button type="button" class="btn btn-sm btn-danger" @onclick="async () => { await FullMgmRollback(); RollbackMode = false; await Closing.InvokeAsync(RollbackMode); }">@(userConfig.GetText("full_rollback"))</button>
+                        <button type="button" class="btn btn-sm btn-danger" disabled="@(!fullRollbackConfirmed)" @onclick="async () => { await FullMgmRollback(); RollbackMode = false; fullRollbackConfirmed = false; await Closing.InvokeAsync(RollbackMode); }">@(userConfig.GetText("full_rollback"))</button>
                     }
                 </Authorized>
                 <NotAuthorized>
@@ -61,9 +66,12 @@
 
     private bool workInProgress = false;
 
+    private bool fullRollbackConfirmed = false;
+
     private void Cancel()
     {
         RollbackMode = false;
+        fullRollbackConfirmed = false;
         Closing.InvokeAsync(RollbackMode);
     }
 
@@ -121,6 +129,10 @@
 
     private async Task FullMgmRollback()
     {
+        if (!userConfig.FullRollbackAllowed)
+        {
+            return;
+        }
         try
         {
             RollbackMode = false;
@@ -183,6 +195,12 @@
 
     private async Task deleteLatestConfigOfManagement(int mgmId)
     {
+        // guard the destructive latest-config deletion independently of the calling path:
+        // this row is only removed here as part of a full rollback, which requires the setting.
+        if (!userConfig.FullRollbackAllowed)
+        {
+            return;
+        }
         try
         {
             var variablesdeleteLatestConfigOfManagement = new { mgmId = ManagementId };

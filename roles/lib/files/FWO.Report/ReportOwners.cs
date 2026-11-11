@@ -19,7 +19,7 @@ namespace FWO.Report
         private List<OwnerResponsibleType> ownerResponsibleTypes = [];
         private string OwnerLifeCycleStateIdHeader => $"{userConfig.GetText("owner_lc_state")} {userConfig.GetText("id")}";
         private string OwnerLifeCycleStateNameHeader => $"{userConfig.GetText("owner_lc_state")} {userConfig.GetText("name")}";
-        private IEnumerable<FwoOwner> OrderedOwners => ReportData.OwnerData
+        private IEnumerable<FwoOwner> OrderedOwners => GetDisplayedOwnerData()
             .Select(ownerReport => ownerReport.Owner)
             .OrderBy(owner => owner.ExtAppId ?? "")
             .ThenBy(owner => owner.Name);

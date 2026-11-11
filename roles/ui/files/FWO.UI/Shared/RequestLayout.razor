@@ -15,7 +15,7 @@
                 <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("requests"))</h5>
                 </li>
-                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                     <li class="nav-item px-2">
                         <NavLink class="nav-link" href="request/ticketsoverview">
                             <span class="@Icons.Tickets"></span> @(userConfig.GetText("tickets"))
@@ -32,7 +32,7 @@
                         </li>
                     </ExecutionModeAuthorizeView>
                 }
-                @if(stateMatrix.PhaseActive[WorkflowPhases.request])
+                @if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.request, out bool requestActive) && requestActive)
                 {
                     <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Auditor}")">
                         <li class="nav-item px-2">
@@ -42,7 +42,7 @@
                         </li>
                     </ExecutionModeAuthorizeView>
                 }
-                @if(stateMatrix.PhaseActive[WorkflowPhases.approval])
+                @if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalActive) && approvalActive)
                 {
                     <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.Auditor}")">
                         <li class="nav-item px-2">
@@ -52,9 +52,9 @@
                         </li>
                     </ExecutionModeAuthorizeView>
                 }
-                @if(stateMatrix.PhaseActive[WorkflowPhases.planning])
+                @if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool planningActive) && planningActive)
                 {
-                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.Auditor}, {Roles.FwAdmin}")">
+                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.Auditor}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/plannings">
                                 <span class="@Icons.Planning"></span> @(userConfig.GetText("plannings"))
@@ -62,9 +62,9 @@
                         </li>
                     </ExecutionModeAuthorizeView>
                 }
-                @if(stateMatrix.PhaseActive[WorkflowPhases.implementation])
+                @if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.implementation, out bool implementationActive) && implementationActive)
                 {
-                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Auditor}, {Roles.FwAdmin}")">
+                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Auditor}")">
                         <li class="nav-item px-2">
                             <NavLink class="nav-link" href="request/implementations">
                                 <span class="@Icons.Implementation"></span> @(userConfig.GetText("implementations"))
@@ -72,7 +72,7 @@
                         </li>
                     </ExecutionModeAuthorizeView>
                 }
-                @if(stateMatrix.PhaseActive[WorkflowPhases.review])
+                @if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.review, out bool reviewActive) && reviewActive)
                 {
                     <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Reviewer}, {Roles.Auditor}")">
                         <li class="nav-item px-2">

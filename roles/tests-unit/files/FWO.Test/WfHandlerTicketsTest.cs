@@ -15,8 +15,12 @@ namespace FWO.Test
     internal class WfHandlerTicketsTest
     {
         private static readonly long[] kVisibleRequestTaskIds = [11];
+        private static readonly long[] kAllRequestTaskIds = [11, 12];
         private static readonly int[] kExclusiveVisibilityGroupIds = [1, 2, 4, 5, 6];
         private static readonly long[] kImplTaskIds = [21, 22];
+        private const int kOwnAppId = 5;
+        private const int kForeignAppId = 9;
+        private static readonly List<int> kOwnAppIds = [kOwnAppId];
 
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix matrix)
         {
@@ -31,11 +35,20 @@ namespace FWO.Test
             userConfig.ReqVisibilityBased = true;
         }
 
+        private static T InvokePrivate<T>(WfHandler handler, string methodName, params object?[] arguments)
+        {
+            MethodInfo method = typeof(WfHandler).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException($"Method '{methodName}' not found.");
+            return (T)(method.Invoke(handler, arguments) ?? throw new InvalidOperationException($"Method '{methodName}' returned null."));
+        }
+
         private sealed class TicketTestApiConn : SimulatedApiConnection
         {
             public WfTicket Ticket { get; set; } = new();
             public List<WfTicket> Tickets { get; set; } = [];
             public List<long> RegisteredTicketIds { get; set; } = [];
+            public object? LastTicketQueryVariables { get; private set; }
+            public string? LastTicketQuery { get; private set; }
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -48,8 +61,18 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)Ticket);
                 }
-                if (query == RequestQueries.getTicketsByParameters || query == RequestQueries.getTickets || query == RequestQueries.getFullTickets)
+                if (query == RequestQueries.updateTicket)
                 {
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = Ticket.Id });
+                }
+                if (query == RequestQueries.getTicketsByParameters || query == RequestQueries.getTickets
+                    || query == RequestQueries.getFullTickets || query == RequestQueries.getFullTicketsByTicketState)
+                {
+                    if (query == RequestQueries.getTicketsByParameters)
+                    {
+                        LastTicketQuery = query;
+                        LastTicketQueryVariables = variables;
+                    }
                     return Task.FromResult((T)(object)Tickets);
                 }
                 if (query == ConfigQueries.getConfigItemsByUser)
@@ -74,15 +97,27 @@ namespace FWO.Test
             }
         }
 
-        private static WfHandler CreateHandlerWithDbAccess(TicketTestApiConn apiConn, UserConfig userConfig)
+        private static WfHandler CreateHandlerWithDbAccess(TicketTestApiConn apiConn, UserConfig userConfig, bool systemContext = false,
+            WorkflowPhases phase = WorkflowPhases.request)
         {
-            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), apiConn, null!, WorkflowPhases.request);
+            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), apiConn, null!, phase)
+            {
+                SystemContext = systemContext
+            };
             ActionHandler actionHandler = new(apiConn, handler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, phase);
             FieldInfo? dbAccField = typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(dbAccField, Is.Not.Null);
             dbAccField!.SetValue(handler, dbAccess);
             return handler;
+        }
+
+        private static T GetQueryValue<T>(object? variables, string propertyName)
+        {
+            Assert.That(variables, Is.Not.Null);
+            object? value = variables!.GetType().GetProperty(propertyName)?.GetValue(variables);
+            Assert.That(value, Is.Not.Null, $"{propertyName} was not set on the query variables.");
+            return (T)value!;
         }
 
         [Test]
@@ -408,6 +443,59 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ResolveTicket_SystemContext_KeepsTasksThatVisibilityGroupsWouldHide()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = CreateGroupTaggedTicket() };
+            UserConfig userConfig = new();
+            EnableVisibilityChecks(userConfig);
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, userConfig, systemContext: true);
+            ApplyGroupTaggedMatrices(handler);
+
+            WfTicket? ticket = await handler.ResolveTicket(7);
+
+            Assert.That(ticket, Is.Not.Null);
+            Assert.That(ticket!.Tasks.Select(task => task.Id), Is.EqualTo(kAllRequestTaskIds));
+        }
+
+        [Test]
+        public async Task ResolveTicket_UserContextWithoutGroups_StillDropsInvisibleTasks()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = CreateGroupTaggedTicket() };
+            UserConfig userConfig = new();
+            EnableVisibilityChecks(userConfig);
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, userConfig);
+            ApplyGroupTaggedMatrices(handler);
+
+            WfTicket? ticket = await handler.ResolveTicket(7);
+
+            Assert.That(ticket, Is.Null);
+        }
+
+        /// <summary>
+        /// Ticket whose every request task sits in a state tagged with a visibility group, so a caller
+        /// without that group sees nothing of it. Shape of the ticket the external request chain fails on.
+        /// </summary>
+        private static WfTicket CreateGroupTaggedTicket()
+        {
+            return new WfTicket
+            {
+                Id = 7,
+                StateId = 10,
+                Tasks =
+                [
+                    new WfReqTask { Id = 11, TaskNumber = 1, TaskType = WfTaskType.access.ToString(), StateId = 21 },
+                    new WfReqTask { Id = 12, TaskNumber = 2, TaskType = WfTaskType.access.ToString(), StateId = 21 }
+                ]
+            };
+        }
+
+        private static void ApplyGroupTaggedMatrices(WfHandler handler)
+        {
+            handler.MasterStateMatrix = new StateMatrix { StateVisibilityGroupIds = { [10] = [3] } };
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix { StateVisibilityGroupIds = { [21] = [3] } });
+        }
+
+        [Test]
         public async Task SelectTicket_ReturnsWithoutReloading_WhenTicketIsNotOwnerVisible()
         {
             TicketTestApiConn apiConn = new()
@@ -457,6 +545,117 @@ namespace FWO.Test
 
             Assert.That(handler.ActTicket.Id, Is.EqualTo(99));
             Assert.That(handler.TicketList[0].Tasks, Is.Empty);
+        }
+
+        private static WfTicket CreateTicketOwnedBy(int ownerId)
+        {
+            return new WfTicket
+            {
+                Id = 7,
+                StateId = 10,
+                Tasks =
+                [
+                    new WfReqTask
+                    {
+                        Id = 11,
+                        TaskType = WfTaskType.access.ToString(),
+                        StateId = 10,
+                        Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = ownerId } }]
+                    }
+                ]
+            };
+        }
+
+        private static WfHandler CreateOwnerBasedApprovalHandler(TicketTestApiConn apiConn)
+        {
+            UserConfig userConfig = new() { ReqOwnerBased = true };
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, userConfig, phase: WorkflowPhases.approval);
+            handler.AllOwners = [new FwoOwner { Id = kOwnAppId }, new FwoOwner { Id = kForeignAppId }];
+            return handler;
+        }
+
+        [Test]
+        public async Task ResolveTicket_OwnerBasedPhaseHidesTicketOfAppOutsideScope()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = CreateTicketOwnedBy(kForeignAppId) };
+            WfHandler handler = CreateOwnerBasedApprovalHandler(apiConn);
+            await handler.LoadOwnerScope(apiConn, kOwnAppIds);
+
+            WfTicket? ticket = await handler.ResolveTicket(7);
+
+            Assert.That(ticket, Is.Null);
+        }
+
+        [Test]
+        public async Task HandleInjectedTicketId_OwnerBasedPhaseDoesNotOpenTicketOfAppOutsideScope()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = CreateTicketOwnedBy(kForeignAppId) };
+            WfHandler handler = CreateOwnerBasedApprovalHandler(apiConn);
+            handler.MasterStateMatrix = new StateMatrix { LowestEndState = 20 };
+            await handler.LoadOwnerScope(apiConn, kOwnAppIds);
+
+            string phase = await handler.HandleInjectedTicketId(WorkflowPhases.approval, 7);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(phase, Is.Empty);
+                Assert.That(handler.EditTicketMode, Is.False);
+                Assert.That(handler.ActTicket.Id, Is.Not.EqualTo(7));
+            });
+        }
+
+        [Test]
+        public async Task ReloadActReqTask_OwnerBasedPhaseDoesNotReloadTicketOfAppOutsideScope()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = CreateTicketOwnedBy(kForeignAppId) };
+            WfHandler handler = CreateOwnerBasedApprovalHandler(apiConn);
+            await handler.LoadOwnerScope(apiConn, kOwnAppIds);
+            handler.ActReqTask = new WfReqTask { Id = 11, TicketId = 7 };
+
+            bool reloaded = await handler.ReloadActReqTask();
+
+            Assert.That(reloaded, Is.False);
+        }
+
+        [Test]
+        public async Task ResolveTicket_OwnerBasedPhaseAllowsTicketOfAppInScope()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = CreateTicketOwnedBy(kOwnAppId) };
+            WfHandler handler = CreateOwnerBasedApprovalHandler(apiConn);
+            await handler.LoadOwnerScope(apiConn, kOwnAppIds);
+
+            WfTicket? ticket = await handler.ResolveTicket(7);
+
+            Assert.That(ticket, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task ResolveTicket_OwnerBasedPhaseShowsInterfaceRequestToRequestingAppWithoutChangeRight()
+        {
+            // only the request phase lets the requesting app change its interface request
+            WfTicket interfaceTicket = CreateTicketOwnedBy(kForeignAppId);
+            interfaceTicket.Tasks[0].SetAddInfo(AdditionalInfoKeys.ReqOwner, kOwnAppId.ToString());
+            TicketTestApiConn apiConn = new() { Ticket = interfaceTicket };
+            WfHandler handler = CreateOwnerBasedApprovalHandler(apiConn);
+            await handler.LoadOwnerScope(apiConn, kOwnAppIds);
+
+            WfTicket? ticket = await handler.ResolveTicket(7);
+
+            Assert.That(ticket, Is.Not.Null);
+            Assert.That(ticket!.Editable, Is.False);
+        }
+
+        [Test]
+        public async Task ResolveTicket_OwnerBasedWithoutScopeResolvesTicketsOfAllApps()
+        {
+            // modelling and monitoring do not scope the handler, e.g. to process interface requests of other apps
+            TicketTestApiConn apiConn = new() { Ticket = CreateTicketOwnedBy(kForeignAppId) };
+            WfHandler handler = CreateOwnerBasedApprovalHandler(apiConn);
+            await handler.LoadOwnerScope(apiConn, null);
+
+            WfTicket? ticket = await handler.ResolveTicket(7);
+
+            Assert.That(ticket, Is.Not.Null);
         }
 
         [Test]
@@ -722,6 +921,99 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CanViewImplTask_AllowsTaskAssignedToCurrentUser()
+        {
+            UserConfig userConfig = new();
+            userConfig.User.Dn = "uid=approver,ou=users,dc=fworch";
+            userConfig.User.WorkflowVisibilityGroupIds = [3];
+            EnableVisibilityChecks(userConfig);
+            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), null!, null!, WorkflowPhases.approval);
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                StateVisibilityGroupIds =
+                {
+                    [21] = [99]
+                }
+            });
+            WfImplTask implTask = new()
+            {
+                Id = 22,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 21,
+                CurrentHandler = new UiUser { Dn = userConfig.User.Dn }
+            };
+
+            bool visible = InvokePrivate<bool>(handler, "CanViewImplTask", implTask, new HashSet<int>());
+
+            Assert.That(visible, Is.True);
+        }
+
+        [Test]
+        public void CanViewApproval_ReturnsTrueWhenVisibilityChecksAreDisabled()
+        {
+            WfHandler handler = new();
+            WfApproval approval = new() { Id = 31, StateId = 41 };
+
+            bool visible = InvokePrivate<bool>(handler, "CanViewApproval", approval, new StateMatrix(), new HashSet<int>());
+
+            Assert.That(visible, Is.True);
+        }
+
+        [Test]
+        public void CanViewApproval_AllowsApprovalAssignedToCurrentUser()
+        {
+            UserConfig userConfig = new();
+            userConfig.User.Dn = "uid=approver,ou=users,dc=fworch";
+            userConfig.User.WorkflowVisibilityGroupIds = [3];
+            EnableVisibilityChecks(userConfig);
+            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), null!, null!, WorkflowPhases.approval);
+            WfApproval approval = new()
+            {
+                Id = 31,
+                StateId = 41,
+                ApproverDn = userConfig.User.Dn
+            };
+
+            bool visible = InvokePrivate<bool>(handler, "CanViewApproval", approval, new StateMatrix(), new HashSet<int>());
+
+            Assert.That(visible, Is.True);
+        }
+
+        [Test]
+        public void IsExplicitApprovalAssignment_MatchesUserDnOrGroup()
+        {
+            UserConfig userConfig = new();
+            userConfig.User.Dn = "uid=approver,ou=users,dc=fworch";
+            userConfig.User.Groups = ["cn=approvers,dc=fworch"];
+            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), null!, null!, WorkflowPhases.approval);
+            WfApproval userApproval = new() { ApproverDn = userConfig.User.Dn };
+            WfApproval groupApproval = new() { ApproverGroup = userConfig.User.Groups[0] };
+            WfApproval unrelatedApproval = new() { ApproverDn = "uid=other,ou=users,dc=fworch", ApproverGroup = "cn=other,dc=fworch" };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(handler, "IsExplicitApprovalAssignment", userApproval), Is.True);
+                Assert.That(InvokePrivate<bool>(handler, "IsExplicitApprovalAssignment", groupApproval), Is.True);
+                Assert.That(InvokePrivate<bool>(handler, "IsExplicitApprovalAssignment", unrelatedApproval), Is.False);
+            });
+        }
+
+        [Test]
+        public void IsAssignedToCurrentUserDn_HandlesNullAndMatchingDn()
+        {
+            UserConfig userConfig = new();
+            userConfig.User.Dn = "uid=approver,ou=users,dc=fworch";
+            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), null!, null!, WorkflowPhases.approval);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokePrivate<bool>(handler, "IsAssignedToCurrentUserDn", userConfig.User.Dn), Is.True);
+                Assert.That(InvokePrivate<bool>(handler, "IsAssignedToCurrentUserDn", "uid=other,ou=users,dc=fworch"), Is.False);
+                Assert.That(InvokePrivate<bool>(handler, "IsAssignedToCurrentUserDn", (string?)null), Is.False);
+            });
+        }
+
+        [Test]
         public void GetWorkflowExclusiveVisibilityGroupIds_MergesMasterAndPhaseMatrices()
         {
             WfHandler handler = new();
@@ -822,6 +1114,70 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetOpenTickets_UsesWeeksIntervalForCreatedFrom()
+        {
+            TicketTestApiConn apiConn = new()
+            {
+                Tickets =
+                [
+                    new WfTicket
+                    {
+                        Id = 7,
+                        StateId = 10
+                    }
+                ]
+            };
+            UserConfig userConfig = new();
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, userConfig);
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                LowestInputState = 3,
+                LowestEndState = 9
+            });
+
+            List<WfTicket> tickets = await handler.GetOpenTickets(WfTaskType.access.ToString(), 2, SchedulerInterval.Weeks);
+
+            Assert.That(tickets, Has.Count.EqualTo(1));
+            Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTicketsByParameters));
+            Assert.That(GetQueryValue<DateTime>(apiConn.LastTicketQueryVariables, "createdFrom"), Is.EqualTo(DateTime.Now.Date.AddDays(-14)));
+            Assert.That(apiConn.LastTicketQueryVariables!.GetType().GetProperty("createdUntil")!.GetValue(apiConn.LastTicketQueryVariables), Is.Null);
+            Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "fromState"), Is.EqualTo(3));
+            Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "toState"), Is.EqualTo(9));
+        }
+
+        [Test]
+        public async Task GetOpenTickets_UsesMonthsIntervalForCreatedFrom()
+        {
+            TicketTestApiConn apiConn = new()
+            {
+                Tickets =
+                [
+                    new WfTicket
+                    {
+                        Id = 7,
+                        StateId = 10
+                    }
+                ]
+            };
+            UserConfig userConfig = new();
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, userConfig);
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                LowestInputState = 3,
+                LowestEndState = 9
+            });
+
+            List<WfTicket> tickets = await handler.GetOpenTickets(WfTaskType.access.ToString(), 2, SchedulerInterval.Months);
+
+            Assert.That(tickets, Has.Count.EqualTo(1));
+            Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTicketsByParameters));
+            Assert.That(GetQueryValue<DateTime>(apiConn.LastTicketQueryVariables, "createdFrom"), Is.EqualTo(DateTime.Now.Date.AddMonths(-2)));
+            Assert.That(apiConn.LastTicketQueryVariables!.GetType().GetProperty("createdUntil")!.GetValue(apiConn.LastTicketQueryVariables), Is.Null);
+            Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "fromState"), Is.EqualTo(3));
+            Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "toState"), Is.EqualTo(9));
+        }
+
+        [Test]
         public void SetTicketEnv_SetsActiveTicketAndCollectsImplementationTasks()
         {
             WfHandler handler = new()
@@ -848,6 +1204,41 @@ namespace FWO.Test
                 Assert.That(handler.AllTicketImplTasks.Select(task => task.Id), Is.EqualTo(kImplTaskIds));
                 Assert.That(handler.AllTicketImplTasks.All(task => task.TicketId == 7), Is.True);
                 Assert.That(handler.AllTicketImplTasks.All(task => task.ReqTaskId == 11), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ReloadActTicket_RefreshesActiveTicketAndTicketList()
+        {
+            WfTicket refreshedTicket = new()
+            {
+                Id = 7,
+                Title = "Refreshed ticket",
+                Tasks =
+                {
+                    new WfReqTask
+                    {
+                        Id = 11,
+                        ImplementationTasks = { new WfImplTask { Id = 21 } }
+                    }
+                }
+            };
+            TicketTestApiConn apiConn = new() { Ticket = refreshedTicket };
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, new UserConfig());
+            WfTicket oldTicket = new() { Id = 7, Title = "Old ticket" };
+            handler.ActTicket = oldTicket;
+            handler.TicketList.Add(oldTicket);
+            long[] expectedImplTaskIds = [21L];
+
+            bool reloaded = await handler.ReloadActTicket();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(reloaded, Is.True);
+                Assert.That(handler.ActTicket, Is.SameAs(refreshedTicket));
+                Assert.That(handler.ActTicket.Title, Is.EqualTo("Refreshed ticket"));
+                Assert.That(handler.TicketList.Single(), Is.SameAs(refreshedTicket));
+                Assert.That(handler.AllTicketImplTasks.Select(task => task.Id), Is.EqualTo(expectedImplTaskIds));
             });
         }
 
@@ -925,6 +1316,79 @@ namespace FWO.Test
             long ticketId = await handler.SaveTicket(new WfStatefulObject { StateId = 5 });
 
             Assert.That(ticketId, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void ShouldSynchronizeRequestTasks_OnlyForExistingTicketsOutsideRequestPhase()
+        {
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.approval,
+                ActTicket = new WfTicket { StateId = 1 }
+            };
+            MethodInfo? method = typeof(WfHandler).GetMethod("ShouldSynchronizeRequestTasks", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            bool approvalPhase = (bool)method!.Invoke(handler, [0])!;
+            handler.Phase = WorkflowPhases.request;
+            bool requestPhase = (bool)method.Invoke(handler, [0])!;
+            handler.Phase = WorkflowPhases.approval;
+            handler.AddTicketMode = true;
+            bool newTicket = (bool)method.Invoke(handler, [0])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(approvalPhase, Is.True);
+                Assert.That(requestPhase, Is.False);
+                Assert.That(newTicket, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task SaveTicket_UpdatesExistingTicketThroughDatabasePath()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = new WfTicket { Id = 7, StateId = 1 } };
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, new UserConfig());
+            WfTicket ticket = new() { Id = 7, StateId = 1 };
+            handler.ActTicket = ticket;
+            handler.TicketList.Add(ticket);
+
+            long ticketId = await handler.SaveTicket(new WfStatefulObject { StateId = 1 });
+
+            Assert.That(ticketId, Is.EqualTo(7));
+        }
+
+        [Test]
+        public async Task SynchronizeRequestTasks_SetsTicketBackToRequestedTarget()
+        {
+            WfHandler handler = new()
+            {
+                ActTicket = new WfTicket { Id = 7, StateId = 1 }
+            };
+            MethodInfo? method = typeof(WfHandler).GetMethod("SynchronizeRequestTasks", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            object[] arguments = [6, null!];
+            await (Task)(method!.Invoke(handler, arguments) ?? throw new InvalidOperationException("Method not found."));
+
+            Assert.That(handler.ActTicket.StateId, Is.EqualTo(6));
+        }
+
+        [Test]
+        public async Task UpdateRequestTasksAndTicket_LeavesTicketWhenNoTaskStateChanged()
+        {
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.approval,
+                ActTicket = new WfTicket { Id = 7, StateId = 6 }
+            };
+            MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksAndTicket", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+
+            object[] arguments = [null!];
+            await (Task)(method!.Invoke(handler, arguments) ?? throw new InvalidOperationException("Method not found."));
+
+            Assert.That(handler.ActTicket.StateId, Is.EqualTo(6));
         }
 
         [Test]

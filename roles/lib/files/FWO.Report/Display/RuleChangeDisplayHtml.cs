@@ -11,6 +11,9 @@ namespace FWO.Ui.Display
 {
     public class RuleChangeDisplayHtml : RuleDisplayHtml
     {
+        private const string kLineBreak = "<br>";
+        private static readonly string[] kLineBreakSeparators = [kLineBreak];
+
         public RuleChangeDisplayHtml(UserConfig userConfig) : base(userConfig)
         { }
 
@@ -185,6 +188,69 @@ namespace FWO.Ui.Display
             }
         }
 
+        /// <summary>
+        /// Displays the translated source of a NAT rule change.
+        /// </summary>
+        /// <param name="ruleChange">NAT rule change.</param>
+        /// <param name="location">Output location defining how object links are built.</param>
+        /// <param name="reportType">Report type the objects are linked for.</param>
+        /// <returns>The translated source, for modified rules as difference between old and new version.</returns>
+        public string DisplayTranslatedSource(RuleChange ruleChange, OutputLocation location, ReportType reportType)
+        {
+            switch (ruleChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(DisplayTranslatedSource(ruleChange.OldRule, location, 0, GlobalConst.kStyleDeleted, reportType));
+                case 'I': return OutputHtmlAdded(DisplayTranslatedSource(ruleChange.NewRule, location, 0, GlobalConst.kStyleAdded, reportType));
+                case 'C':
+                    return DisplayArrayDiff(DisplayTranslatedSource(ruleChange.OldRule, location, 0, "", reportType),
+                                                  DisplayTranslatedSource(ruleChange.NewRule, location, 0, "", reportType),
+                                                  ruleChange.OldRule.NatData.TranslatedSourceNegated, ruleChange.NewRule.NatData.TranslatedSourceNegated);
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+            }
+        }
+
+        /// <summary>
+        /// Displays the translated destination of a NAT rule change.
+        /// </summary>
+        /// <param name="ruleChange">NAT rule change.</param>
+        /// <param name="location">Output location defining how object links are built.</param>
+        /// <param name="reportType">Report type the objects are linked for.</param>
+        /// <returns>The translated destination, for modified rules as difference between old and new version.</returns>
+        public string DisplayTranslatedDestination(RuleChange ruleChange, OutputLocation location, ReportType reportType)
+        {
+            switch (ruleChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(DisplayTranslatedDestination(ruleChange.OldRule, location, 0, GlobalConst.kStyleDeleted, reportType));
+                case 'I': return OutputHtmlAdded(DisplayTranslatedDestination(ruleChange.NewRule, location, 0, GlobalConst.kStyleAdded, reportType));
+                case 'C':
+                    return DisplayArrayDiff(DisplayTranslatedDestination(ruleChange.OldRule, location, 0, "", reportType),
+                                                  DisplayTranslatedDestination(ruleChange.NewRule, location, 0, "", reportType),
+                                                  ruleChange.OldRule.NatData.TranslatedDestinationNegated, ruleChange.NewRule.NatData.TranslatedDestinationNegated);
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+            }
+        }
+
+        /// <summary>
+        /// Displays the translated services of a NAT rule change.
+        /// </summary>
+        /// <param name="ruleChange">NAT rule change.</param>
+        /// <param name="location">Output location defining how service links are built.</param>
+        /// <param name="reportType">Report type the services are linked for.</param>
+        /// <returns>The translated services, for modified rules as difference between old and new version.</returns>
+        public string DisplayTranslatedServices(RuleChange ruleChange, OutputLocation location, ReportType reportType)
+        {
+            switch (ruleChange.ChangeAction)
+            {
+                case 'D': return OutputHtmlDeleted(DisplayTranslatedService(ruleChange.OldRule, location, 0, GlobalConst.kStyleDeleted, reportType));
+                case 'I': return OutputHtmlAdded(DisplayTranslatedService(ruleChange.NewRule, location, 0, GlobalConst.kStyleAdded, reportType));
+                case 'C':
+                    return DisplayArrayDiff(DisplayTranslatedService(ruleChange.OldRule, location, 0, "", reportType),
+                                                  DisplayTranslatedService(ruleChange.NewRule, location, 0, "", reportType),
+                                                  ruleChange.OldRule.NatData.TranslatedServiceNegated, ruleChange.NewRule.NatData.TranslatedServiceNegated);
+                default: ThrowErrorUnknowChangeAction(ruleChange.ChangeAction); return "";
+            }
+        }
+
         public string DisplayAction(RuleChange ruleChange)
         {
             switch (ruleChange.ChangeAction)
@@ -233,9 +299,9 @@ namespace FWO.Ui.Display
         {
             switch (objectChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(objectChange.OldObject.Uid);
-                case 'I': return OutputHtmlAdded(objectChange.NewObject.Uid);
-                case 'C': return DisplayDiff(objectChange.OldObject.Uid, objectChange.NewObject.Uid);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(objectChange.OldObject.Uid));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(objectChange.NewObject.Uid));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(objectChange.OldObject.Uid), HtmlOutputEncoder.EncodeText(objectChange.NewObject.Uid));
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
@@ -244,9 +310,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Uid);
-                case 'I': return OutputHtmlAdded(serviceChange.NewService.Uid);
-                case 'C': return DisplayDiff(serviceChange.OldService.Uid, serviceChange.NewService.Uid);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Uid));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(serviceChange.NewService.Uid));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Uid), HtmlOutputEncoder.EncodeText(serviceChange.NewService.Uid));
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
@@ -277,9 +343,9 @@ namespace FWO.Ui.Display
         {
             switch (objectChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(objectChange.OldObject.Comment);
-                case 'I': return OutputHtmlAdded(objectChange.NewObject.Comment);
-                case 'C': return DisplayDiff(objectChange.OldObject.Comment, objectChange.NewObject.Comment);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(objectChange.OldObject.Comment));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(objectChange.NewObject.Comment));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(objectChange.OldObject.Comment), HtmlOutputEncoder.EncodeText(objectChange.NewObject.Comment));
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
@@ -288,9 +354,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Comment);
-                case 'I': return OutputHtmlAdded(serviceChange.NewService.Comment);
-                case 'C': return DisplayDiff(serviceChange.OldService.Comment, serviceChange.NewService.Comment);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Comment));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(serviceChange.NewService.Comment));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Comment), HtmlOutputEncoder.EncodeText(serviceChange.NewService.Comment));
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
@@ -299,9 +365,9 @@ namespace FWO.Ui.Display
         {
             switch (userChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(userChange.OldUser.Comment);
-                case 'I': return OutputHtmlAdded(userChange.NewUser.Comment);
-                case 'C': return DisplayDiff(userChange.OldUser.Comment, userChange.NewUser.Comment);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(userChange.OldUser.Comment));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(userChange.NewUser.Comment));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(userChange.OldUser.Comment), HtmlOutputEncoder.EncodeText(userChange.NewUser.Comment));
                 default: ThrowErrorUnknowChangeAction(userChange.ChangeAction); return "";
             }
         }
@@ -365,9 +431,9 @@ namespace FWO.Ui.Display
         {
             switch (objectChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(objectChange.OldObject.Type.Name);
-                case 'I': return OutputHtmlAdded(objectChange.NewObject.Type.Name);
-                case 'C': return DisplayDiff(objectChange.OldObject.Type.Name, objectChange.NewObject.Type.Name);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(objectChange.OldObject.Type.Name));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(objectChange.NewObject.Type.Name));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(objectChange.OldObject.Type.Name), HtmlOutputEncoder.EncodeText(objectChange.NewObject.Type.Name));
                 default: ThrowErrorUnknowChangeAction(objectChange.ChangeAction); return "";
             }
         }
@@ -376,9 +442,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Type.Name);
-                case 'I': return OutputHtmlAdded(serviceChange.NewService.Type.Name);
-                case 'C': return DisplayDiff(serviceChange.OldService.Type.Name, serviceChange.NewService.Type.Name);
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Type.Name));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(serviceChange.NewService.Type.Name));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Type.Name), HtmlOutputEncoder.EncodeText(serviceChange.NewService.Type.Name));
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
@@ -409,9 +475,9 @@ namespace FWO.Ui.Display
         {
             switch (serviceChange.ChangeAction)
             {
-                case 'D': return OutputHtmlDeleted(serviceChange.OldService.Protocol?.Name ?? "");
-                case 'I': return OutputHtmlAdded(serviceChange.NewService.Protocol?.Name ?? "");
-                case 'C': return DisplayDiff(serviceChange.OldService.Protocol?.Name ?? "", serviceChange.NewService.Protocol?.Name ?? "");
+                case 'D': return OutputHtmlDeleted(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Protocol?.Name ?? ""));
+                case 'I': return OutputHtmlAdded(HtmlOutputEncoder.EncodeText(serviceChange.NewService.Protocol?.Name ?? ""));
+                case 'C': return DisplayDiff(HtmlOutputEncoder.EncodeText(serviceChange.OldService.Protocol?.Name ?? ""), HtmlOutputEncoder.EncodeText(serviceChange.NewService.Protocol?.Name ?? ""));
                 default: ThrowErrorUnknowChangeAction(serviceChange.ChangeAction); return "";
             }
         }
@@ -427,8 +493,16 @@ namespace FWO.Ui.Display
             }
         }
 
-        private string DisplayDiff(string oldElement, string newElement)
+        /// <summary>
+        /// Renders the difference between two element texts.
+        /// </summary>
+        /// <param name="oldElement">Text before the change, may be null for columns that are nullable in the database.</param>
+        /// <param name="newElement">Text after the change, may be null for columns that are nullable in the database.</param>
+        /// <returns>The rendered difference.</returns>
+        private string DisplayDiff(string? oldElement, string? newElement)
         {
+            oldElement ??= "";
+            newElement ??= "";
             if (oldElement == newElement)
             {
                 return oldElement;
@@ -440,59 +514,98 @@ namespace FWO.Ui.Display
             }
         }
 
-        private string DisplayArrayDiff(string oldElement, string newElement, bool oldNegated, bool newNegated)
+        /// <summary>
+        /// Renders the difference between two element lists.
+        /// </summary>
+        /// <param name="oldElement">List before the change, may be null for columns that are nullable in the database.</param>
+        /// <param name="newElement">List after the change, may be null for columns that are nullable in the database.</param>
+        /// <param name="oldNegated">Negation state before the change.</param>
+        /// <param name="newNegated">Negation state after the change.</param>
+        /// <returns>The rendered difference.</returns>
+        private string DisplayArrayDiff(string? oldElement, string? newElement, bool oldNegated, bool newNegated)
         {
+            oldElement ??= "";
+            newElement ??= "";
             if (oldElement == newElement)
             {
                 return oldElement;
             }
+
+            string oldText = StripParagraphMarkup(oldElement);
+            string newText = StripParagraphMarkup(newElement);
+            List<string> unchanged = [];
+            List<string> deleted = [];
+            List<string> added = [];
+
+            if (oldNegated != newNegated)
+            {
+                deleted.Add(SetStyle(oldText, GlobalConst.kStyleDeleted));
+                added.Add(SetStyle(newText, GlobalConst.kStyleAdded));
+            }
             else
             {
-                oldElement = oldElement.Replace("<p>", "");
-                oldElement = oldElement.Replace("</p>", "");
-                oldElement = oldElement.Replace("\r\n", "");
-                newElement = newElement.Replace("<p>", "");
-                newElement = newElement.Replace("</p>", "");
-                newElement = newElement.Replace("\r\n", "");
-                List<string> unchanged = [];
-                List<string> added = [];
-                List<string> deleted = [];
+                AnalyzeStyledElements(oldText, newText, unchanged, deleted, added);
+            }
 
-                if (oldNegated != newNegated)
+            return RenderDiffGroups(unchanged, deleted, added);
+        }
+
+        /// <summary>
+        /// Removes the paragraph markup and line breaks the comparison must ignore.
+        /// </summary>
+        /// <param name="element">Rendered element text.</param>
+        /// <returns>The text without paragraph markup.</returns>
+        private static string StripParagraphMarkup(string element)
+        {
+            return element.Replace("<p>", "").Replace("</p>", "").Replace("\r\n", "");
+        }
+
+        /// <summary>
+        /// Sorts the line break separated elements into unchanged, deleted and added, styling the changed ones.
+        /// </summary>
+        /// <param name="oldElement">List before the change.</param>
+        /// <param name="newElement">List after the change.</param>
+        /// <param name="unchanged">Receives the elements present before and after the change.</param>
+        /// <param name="deleted">Receives the styled elements only present before the change.</param>
+        /// <param name="added">Receives the styled elements only present after the change.</param>
+        private static void AnalyzeStyledElements(string oldElement, string newElement, List<string> unchanged, List<string> deleted, List<string> added)
+        {
+            string[] oldAr = oldElement.Split(kLineBreakSeparators, StringSplitOptions.RemoveEmptyEntries);
+            string[] newAr = newElement.Split(kLineBreakSeparators, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string item in oldAr)
+            {
+                if (newAr.Contains(item))
                 {
-                    deleted.Add(SetStyle(oldElement, GlobalConst.kStyleDeleted));
-                    added.Add(SetStyle(newElement, GlobalConst.kStyleAdded));
+                    unchanged.Add(item);
                 }
                 else
                 {
-                    string[] separatingStrings = ["<br>"];
-                    string[] oldAr = oldElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
-                    string[] newAr = newElement.Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
-
-                    foreach (var item in oldAr)
-                    {
-                        if (newAr.Contains(item))
-                        {
-                            unchanged.Add(item);
-                        }
-                        else
-                        {
-                            deleted.Add(SetStyle(item, GlobalConst.kStyleDeleted));
-                        }
-                    }
-                    foreach (var item in newAr)
-                    {
-                        if (!oldAr.Contains(item))
-                        {
-                            added.Add(SetStyle(item, GlobalConst.kStyleAdded));
-                        }
-                    }
+                    deleted.Add(SetStyle(item, GlobalConst.kStyleDeleted));
                 }
-
-                return (unchanged.Count > 0 ? $"<p>{string.Join("<br>", unchanged)}<br></p>" : "")
-                       + (deleted.Count > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"{GlobalConst.kStyleDeleted}\">{string.Join("<br>", deleted)}<br></p>" : "")
-                       + (added.Count > 0 ? $"{userConfig.GetText("added")}: <p style=\"{GlobalConst.kStyleAdded}\">{string.Join("<br>", added)}</p>" : "");
             }
+            foreach (string item in newAr)
+            {
+                if (!oldAr.Contains(item))
+                {
+                    added.Add(SetStyle(item, GlobalConst.kStyleAdded));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Renders the sorted diff groups as report html.
+        /// </summary>
+        /// <param name="unchanged">Elements present before and after the change.</param>
+        /// <param name="deleted">Styled elements only present before the change.</param>
+        /// <param name="added">Styled elements only present after the change.</param>
+        /// <returns>The rendered difference.</returns>
+        private string RenderDiffGroups(List<string> unchanged, List<string> deleted, List<string> added)
+        {
+            string unchangedHtml = unchanged.Count > 0 ? $"<p>{string.Join(kLineBreak, unchanged)}<br></p>" : "";
+            string deletedHtml = deleted.Count > 0 ? $"{userConfig.GetText("deleted")}: <p style=\"{GlobalConst.kStyleDeleted}\">{string.Join(kLineBreak, deleted)}<br></p>" : "";
+            string addedHtml = added.Count > 0 ? $"{userConfig.GetText("added")}: <p style=\"{GlobalConst.kStyleAdded}\">{string.Join(kLineBreak, added)}</p>" : "";
+            return unchangedHtml + deletedHtml + addedHtml;
         }
 
         private static string OutputHtmlDeleted(string? input)

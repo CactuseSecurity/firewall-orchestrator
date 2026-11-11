@@ -12,7 +12,7 @@ query getRulesForSelectedManagementsByChunk(
     limit: $limit
     offset: $offset
     order_by: { rule_uid: asc }
-    where: { mgm_id: { _in: $mgm_ids } removed: { _is_null: true } }
+    where: { mgm_id: { _in: $mgm_ids } removed: { _is_null: true } access_rule: { _eq: true } }
   ){
     rule_src
     rule_dst
@@ -28,6 +28,7 @@ query getRulesForSelectedManagementsByChunk(
       risk_score
       policy_id
       criterion_id
+      violation_type
       criterion: criterion{
         id
         name

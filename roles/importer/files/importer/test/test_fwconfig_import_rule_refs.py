@@ -6,8 +6,11 @@ from fwo_api_call import FwoApiCall
 from model_controllers.fwconfig_import_rule import FwConfigImportRule, RefType
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import ManagementController
+from models.fwconfig_normalized import FwConfigNormalized
 from models.import_state import ImportState
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
+from models.rulebase import Rulebase
+from pytest_mock import MockerFixture
 from services.uid2id_mapper import Uid2IdMapper
 
 
@@ -103,3 +106,86 @@ class TestFwconfigImportRuleRefs:
         assert {"_and": [{"rule_id": {"_eq": 100}}, {"zone_id": {"_eq": 40}}]} in refs_to_remove[RefType.SRC_ZONE]
         assert {"_and": [{"rule_id": {"_eq": 100}}, {"zone_id": {"_eq": 41}}]} in refs_to_remove[RefType.DST_ZONE]
         assert {"_and": [{"rule_id": {"_eq": 100}}, {"time_obj_id": {"_eq": 50}}]} in refs_to_remove[RefType.TIME]
+
+    def test_add_new_refs_forces_all_refs_for_xlate_fk_repoint_uid(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        # F52: a NAT "original" rule repointed to a new rule_id (F45) keeps identical content
+        # to its previous version, so without force_all_refs_rule_uids the content-equality
+        # check in add_new_refs would treat its refs as unchanged and never insert them for
+        # the new row, leaving it with no src/dst/svc/zone refs.
+        rule = build_rule("orig-uid")
+        rulebase = Rulebase(uid="rb-uid", name="Rulebase", mgm_uid="mgm-uid", rules={"orig-uid": rule})
+        prev_rulebase = Rulebase(uid="rb-uid", name="Rulebase", mgm_uid="mgm-uid", rules={"orig-uid": rule})
+        fwconfig_import_rule.normalized_config = FwConfigNormalized(rulebases=[rulebase])
+        prev_config = FwConfigNormalized(rulebases=[prev_rulebase])
+
+        fake_refs = {
+            RefType.SRC: [("src", None)],
+            RefType.DST: [],
+            RefType.SVC: [],
+            RefType.NWOBJ_RESOLVED: [],
+            RefType.SVC_RESOLVED: [],
+            RefType.USER_RESOLVED: [],
+            RefType.SRC_ZONE: [],
+            RefType.DST_ZONE: [],
+            RefType.TIME: [],
+        }
+        fwconfig_import_rule.get_rule_refs = unittest.mock.Mock(return_value=fake_refs)
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = unittest.mock.Mock(return_value=100)
+        fwconfig_import_rule.uid2id_mapper.get_network_object_id = unittest.mock.Mock(return_value=10)
+        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(
+            return_value={"data": {f"insert_{ref_type.value}": {"affected_rows": 0} for ref_type in RefType}}
+        )
+
+        fwconfig_import_rule.add_new_refs(prev_config, {"orig-uid"})
+
+        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        rule_froms = query_variables["ruleFroms"]
+
+        assert len(rule_froms) == 1
+        assert rule_froms[0]["rule_id"] == 100
+        assert rule_froms[0]["obj_id"] == 10
+
+    def test_remove_outdated_refs_forces_all_refs_for_xlate_fk_repoint_uid(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        # F52: without force_all_refs_rule_uids, remove_outdated_refs would treat the unchanged
+        # rule content as "not removed or changed" and leave the old row's refs (now pointing at
+        # a superseded rule_id) active in the database.
+        rule = build_rule("orig-uid")
+        rulebase = Rulebase(uid="rb-uid", name="Rulebase", mgm_uid="mgm-uid", rules={"orig-uid": rule})
+        prev_rulebase = Rulebase(uid="rb-uid", name="Rulebase", mgm_uid="mgm-uid", rules={"orig-uid": rule})
+        fwconfig_import_rule.normalized_config = FwConfigNormalized(rulebases=[rulebase])
+        prev_config = FwConfigNormalized(rulebases=[prev_rulebase])
+
+        fake_refs = {
+            RefType.SRC: [("src", None)],
+            RefType.DST: [],
+            RefType.SVC: [],
+            RefType.NWOBJ_RESOLVED: [],
+            RefType.SVC_RESOLVED: [],
+            RefType.USER_RESOLVED: [],
+            RefType.SRC_ZONE: [],
+            RefType.DST_ZONE: [],
+            RefType.TIME: [],
+        }
+        fwconfig_import_rule.get_rule_refs = unittest.mock.Mock(return_value=fake_refs)
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = unittest.mock.Mock(return_value=100)
+        fwconfig_import_rule.uid2id_mapper.get_network_object_id = unittest.mock.Mock(return_value=10)
+        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(
+            return_value={"data": {f"update_{ref_type.value}": {"affected_rows": 0} for ref_type in RefType}}
+        )
+
+        fwconfig_import_rule.remove_outdated_refs(prev_config, {"orig-uid"})
+
+        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        rule_froms = query_variables["ruleFroms"]
+
+        assert len(rule_froms) == 1
+        assert rule_froms[0]["_and"][0]["rule_id"]["_eq"] == 100
+        assert rule_froms[0]["_and"][1]["obj_id"]["_eq"] == 10

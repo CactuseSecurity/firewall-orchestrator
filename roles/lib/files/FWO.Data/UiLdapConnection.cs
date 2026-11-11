@@ -23,6 +23,16 @@ namespace FWO.Data
             }
         }
 
+        /// <summary>
+        /// The servers as one text for display and input, separated by commas.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public string AddressText
+        {
+            get => string.Join(", ", Addresses);
+            set => Addresses = ParseAddresses(value);
+        }
+
         public UiLdapConnection()
         { }
 
@@ -49,7 +59,7 @@ namespace FWO.Data
             {
                 Id = this.Id,
                 Name = this.Name,
-                Address = this.Address,
+                Addresses = [.. this.Addresses],
                 Port = this.Port,
                 Type = this.Type,
                 PatternLength = this.PatternLength,

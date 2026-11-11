@@ -100,9 +100,26 @@ namespace FWO.Data.Report
             return allObjects;
         }
 
+        /// <summary>
+        /// Returns the id of the report object representing the given modelling object, or 0 if the report does not list it.
+        /// Matches id and report name exactly, so objects whose names share a prefix or whose names are missing are told apart.
+        /// </summary>
         public long ResolveObjId(ModellingNwObject networkObject)
         {
-            return AllObjects.FirstOrDefault(x => x.Name.StartsWith(networkObject.Name))?.Id ?? 0;
+            string reportName = GetReportObjectName(networkObject);
+            return AllObjects.FirstOrDefault(x => x.Id == networkObject.Id && x.Name == reportName)?.Id ?? 0;
+        }
+
+        /// <summary>
+        /// Returns the name the report object list uses for a modelling object: groups carry their id string, app servers their plain name.
+        /// </summary>
+        private static string GetReportObjectName(ModellingNwObject networkObject)
+        {
+            if (networkObject is ModellingNwGroup nwGroup)
+            {
+                return nwGroup.ToNetworkObjectGroup(false, false).Name;
+            }
+            return networkObject.Name ?? "";
         }
 
         public long ResolveSvcId(ModellingSvcObject serviceObject)
@@ -188,14 +205,14 @@ namespace FWO.Data.Report
             }
             else
             {
-                return string.Join(", ", appServers.ConvertAll(a => DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(a))));
+                return string.Join(", ", appServers.ConvertAll(a => HtmlOutputEncoder.EncodeText(DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(a)))));
             }
         }
 
         private static string DisplayAppServerWithDiff(ModellingAppServer appServer, bool forExport, bool surplus = false)
         {
             string styleOrClass = $"{(forExport ? "style" : "class")}=\"{StyleOrCssClass(appServer, forExport, surplus)}\"";
-            return $"<span {styleOrClass}>{DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(appServer))}</span>";
+            return $"<span {styleOrClass}>{HtmlOutputEncoder.EncodeText(DisplayBase.DisplayIpWithName(ModellingAppServer.ToNetworkObject(appServer)))}</span>";
         }
 
         private static string StyleOrCssClass(ModellingAppServer appServer, bool forExport, bool surplus)

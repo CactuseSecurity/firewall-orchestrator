@@ -1,11 +1,13 @@
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
+using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Services;
 using FWO.Services.Modelling;
 using FWO.Basics;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -325,6 +327,83 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ReplaceLinks_DoesNothingWhenInterfaceIsNotUsed()
+        {
+            ModellingConnectionHandler handler = CreateHandler(new ModellingConnection { Id = 22 });
+
+            await InvokeAsync(handler, "ReplaceLinks");
+
+            Assert.That(handler.UsingConnections, Is.Empty);
+        }
+
+        [Test]
+        public async Task ReplaceInterface_DoesNothingWhenReplacementHandlerIsMissing()
+        {
+            ModellingConnectionHandler handler = CreateHandler(new ModellingConnection { Id = 30 });
+
+            await handler.ReplaceInterface(null!, null!);
+
+            Assert.That(handler.ReplaceMode, Is.False);
+        }
+
+        [Test]
+        public async Task DeleteRequestedInterface_ReturnsFalseWhenInterfaceIsUsed()
+        {
+            ModellingConnectionHandler handler = CreateHandler(new ModellingConnection { Id = 23 });
+            handler.UsingConnections.Add(new ModellingConnection { Id = 24 });
+
+            bool deleted = await InvokeAsync<bool>(handler, "DeleteRequestedInterface");
+
+            Assert.That(deleted, Is.False);
+        }
+
+        [Test]
+        public async Task UpdateTicket_DoesNothingWhenTicketIsMissing()
+        {
+            ModellingConnectionHandler handler = CreateHandler(new ModellingConnection { Id = 25, TicketId = null });
+
+            await InvokeAsync(handler, "UpdateTicket", null, null, null);
+
+            Assert.That(handler.ActConn.TicketId, Is.Null);
+        }
+
+        [Test]
+        public void RequestRemovePreselectedInterface_PreparesConfirmation()
+        {
+            ModellingConnectionHandler handler = CreateHandler(new ModellingConnection { Id = 26 });
+            ModellingConnection selected = new() { Id = 27, Name = "SelectedInterface" };
+
+            handler.RequestRemovePreselectedInterface(selected);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.RemovePreselectedInterfaceMode, Is.True);
+                Assert.That(handler.Message, Does.Contain("SelectedInterface"));
+            });
+        }
+
+        [Test]
+        public async Task RemovePreselectedInterface_RemovesSelectionAfterSuccessfulDelete()
+        {
+            ModellingConnection selected = new() { Id = 28, Name = "SelectedInterface" };
+            ModellingConnectionHandler handler = new ModellingConnectionHandler(
+                new PreselectedInterfaceApiConn(), userConfig, Application, [new ModellingConnection { Id = 29 }],
+                new ModellingConnection { Id = 29 }, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true)
+            {
+                PreselectedInterfaces = [selected]
+            };
+            handler.RequestRemovePreselectedInterface(selected);
+
+            await handler.RemovePreselectedInterface();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.PreselectedInterfaces, Is.Empty);
+                Assert.That(handler.RemovePreselectedInterfaceMode, Is.False);
+            });
+        }
+
+        [Test]
         public void DisplayInterface_UsesOwnerForDisplayName()
         {
             ModellingConnection connection = new() { Id = 10 };
@@ -473,6 +552,38 @@ namespace FWO.Test
         private static ModellingServiceGroupWrapper WrapServiceGroup(int id, string name)
         {
             return new ModellingServiceGroupWrapper { Content = new ModellingServiceGroup { Id = id, Name = name } };
+        }
+
+        private static MethodInfo GetPrivateMethod(string name)
+        {
+            return typeof(ModellingConnectionHandler).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ModellingConnectionHandler).FullName, name);
+        }
+
+        private static async Task InvokeAsync(ModellingConnectionHandler handler, string name, params object?[] arguments)
+        {
+            await (Task)(GetPrivateMethod(name).Invoke(handler, arguments)
+                ?? throw new InvalidOperationException($"Private method '{name}' returned null."));
+        }
+
+        private static async Task<T> InvokeAsync<T>(ModellingConnectionHandler handler, string name, params object?[] arguments)
+        {
+            return (T)(await (Task<T>)(GetPrivateMethod(name).Invoke(handler, arguments)
+                ?? throw new InvalidOperationException($"Private method '{name}' returned null.")))!;
+        }
+
+        private sealed class PreselectedInterfaceApiConn : SimulatedApiConnection
+        {
+            public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null,
+                FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (typeof(T) == typeof(ReturnId) && query == ModellingQueries.removeSelectedConnectionFromApp)
+                {
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
+                }
+
+                throw new AssertionException($"Unexpected query: {query}");
+            }
         }
     }
 }

@@ -31,15 +31,17 @@ namespace FWO.Middleware.Server.Jobs
         /// <summary>
         /// Execute the job
         /// </summary>
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
             Log.WriteDebug(LogMessageTitle, "Job started");
 
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 using (ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig))
                 {
-                    List<string> failedRequests = await externalRequestSender.Run();
+                    List<string> failedRequests = await externalRequestSender.Run(cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     if (failedRequests.Count > 0)
                     {
@@ -49,13 +51,17 @@ namespace FWO.Middleware.Server.Jobs
                     Log.WriteDebug(LogMessageTitle, "Job completed successfully");
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ExternalRequestJob)} stopped.");
+            }
             catch (Exception exc)
             {
                 Log.WriteError(LogMessageTitle, "Job failed", exc);
                 await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, "External Request", GlobalConst.kExternalRequest, AlertCode.ExternalRequest, exc);
 
                 // Mark job as failed but don't refire immediately
-                throw new JobExecutionException(exc, refireImmediately: false);
+                throw new JobExecutionException(exc);
             }
         }
 

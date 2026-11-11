@@ -22,7 +22,6 @@ fragment subManagements on management {
       importDisabled: do_not_import
       local_rulebase_name: local_rulebase_name
     }
-    importerHostname: importer_hostname
     import_credential {
       ...ImportCredentialDetails
     }

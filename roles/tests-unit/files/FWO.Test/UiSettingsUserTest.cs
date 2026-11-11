@@ -132,7 +132,7 @@ namespace FWO.Test
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
-                if (query == AuthQueries.getUserByDbId)
+                if (query == AuthQueries.getOwnUser)
                 {
                     object users = new List<UiUser>
                     {

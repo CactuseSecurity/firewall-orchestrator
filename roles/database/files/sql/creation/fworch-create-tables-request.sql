@@ -4,7 +4,7 @@
 -- create schema
 create schema request;
 
-CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service', 'rule', 'modelled_source', 'modelled_destination');
+CREATE TYPE rule_field_enum AS ENUM ('source', 'destination', 'service', 'rule', 'modelled_source', 'modelled_destination', 'time');
 CREATE TYPE action_enum AS ENUM ('create', 'delete', 'modify', 'unchanged', 'addAfterCreation');
 
 -- create tables
@@ -61,7 +61,12 @@ create table request.reqelement
 	flow_nwobj_id bigint,
 	flow_nwgrp_id bigint,
 	flow_svcobj_id bigint,
-	flow_svcgrp_id bigint
+	flow_svcgrp_id bigint,
+	start_time Timestamp with time zone,
+	end_time Timestamp with time zone,
+	time_obj_id bigint,
+	flow_timeobj_id bigint,
+	object_task_id bigint
 );
 
 create table request.approval 
@@ -98,9 +103,11 @@ create table request.ticket
     reason text,
 	external_ticket_id varchar,
 	external_ticket_source int,
+	pre_workflow_ticket_reference varchar,
 	ticket_deadline Timestamp,
 	ticket_priority int,
-	locked boolean NOT NULL DEFAULT FALSE
+	locked boolean NOT NULL DEFAULT FALSE,
+	additional_info varchar
 );
 
 create table request.comment 
@@ -187,7 +194,9 @@ create table request.state_matrix_phase
     active boolean NOT NULL DEFAULT FALSE,
     lowest_input_state int NOT NULL,
     lowest_start_state int NOT NULL,
-    lowest_end_state int NOT NULL
+    lowest_end_state int NOT NULL,
+    phase_visibility_mode varchar NOT NULL DEFAULT 'AnyTask',
+    promotion_mode varchar NOT NULL DEFAULT 'Both'
 );
 
 create table request.workflow_configuration_phase
@@ -266,7 +275,11 @@ create table request.implelement
     original_nat_id bigint,
 	rule_uid varchar,
 	group_name varchar,
-	name varchar
+	name varchar,
+	start_time Timestamp with time zone,
+	end_time Timestamp with time zone,
+	time_obj_id bigint,
+	object_task_id bigint
 );
 
 create table request.impltask
@@ -291,5 +304,33 @@ create table request.impltask
 	recent_handler int,
 	assigned_group varchar,
 	target_begin_date Timestamp,
-	target_end_date Timestamp
+	target_end_date Timestamp,
+	mgm_id int, -- management the task is implemented on; NULL means the management of the request task
+	rule_position jsonb
+);
+
+-- Records which state the workflow actions of an object were last executed for, so that
+-- re-submitting an already executed transition cannot fire its side effects (mail, external
+-- request, flow creation) a second time. The object's state is persisted by the caller before the
+-- actions are requested, so the request alone cannot say whether it is the first one for that
+-- transition; this row is what makes the execution claimable exactly once.
+-- The guard compares to_state_id only. from_state_id is kept for the audit trail but is taken from
+-- the request body and never established against the state the object actually held, so it must not
+-- decide whether a claim is granted - otherwise a replay could re-arm the guard by naming a
+-- different origin state.
+-- One row per object is enough: a replay repeats the state the object was last moved into, while
+-- legitimately entering a state again requires leaving it first, which records the state it was
+-- left for here in between. That holds because every execution of state-change actions inside the
+-- middleware writes this row, not only the ones requested through the action endpoint - a request
+-- task promoted by the external request chain writes it too. A row that lagged behind the object
+-- would turn the next legitimate move back into a refusal.
+create table request.state_change_execution
+(
+    object_scope Varchar NOT NULL,
+    object_id bigint NOT NULL,
+    from_state_id int NOT NULL,
+    to_state_id int NOT NULL,
+    executed_at Timestamp with time zone NOT NULL DEFAULT now(),
+    executed_by Varchar,
+    CONSTRAINT state_change_execution_pkey PRIMARY KEY (object_scope, object_id)
 );

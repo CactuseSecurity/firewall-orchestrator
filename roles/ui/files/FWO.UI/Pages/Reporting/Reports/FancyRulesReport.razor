@@ -1,0 +1,568 @@
+@using FWO.Report
+@using FWO.Report.Data
+@using FWO.Ui.Display
+@using FWO.Services.RuleTreeBuilder
+@inject UserConfig userConfig
+@inject IRuleTreeBuilder ruleTreeBuilder
+@inject IJSRuntime jsRuntime
+
+@* Preview of RulesReport based on FancyTable. Currently only used on the debug-only monitoring page. *@
+
+@foreach (var management in Managements)
+{
+    @if (management.ContainsRules())
+    {
+        <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
+            @if (Recertification || SelectedReportType.IsRulebaseReport())
+            {
+                @foreach (var rulebase in management.Rulebases)
+                {
+                    var rulebaseRules = ReportRules.GetRulesByRulebaseId(rulebase.Id, management);
+                    @if (rulebaseRules.Length > 0)
+                    {
+                        <Collapse Title="@rulebase.Name" Style="@("secondary")" StartToggled="true">
+                            <RuleBaseReport Recertification="Recertification" ReadonlyMode="ReadonlyMode" SelectedReportType="SelectedReportType"
+                                            Rules="[.. rulebaseRules]" @bind-SelectedRules="SelectedRules" RulesPerPage="RulesPerPage" />
+                        </Collapse>
+                    }
+                }
+            }
+            else
+            {
+                @foreach (var device in management.Devices)
+                {
+                    @if (device.ContainsRules())
+                    {
+                        <div id="@DeviceReportExtensions.GetRuleTreeAnchorId(management.Id, device.Id)">
+                        <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false" Class="py-1">
+                            <FancyTreeTable TItem="RuleReportTreeRow"
+                                            Items="@GetRuleRows(management, device)"
+                                            Columns="_ruleColumns"
+                                            ChildItemsSelector="row => row.Children"
+                                            HasChildrenSelector="row => row.Children.Count > 0"
+                                            InitiallyExpandedSelector="row => row.IsInitiallyExpanded"
+                                            Texts="_ruleTableTexts"
+                                            TreeActionsContainerClass="sticky-collapse"
+                                            TreeActionsTemplate="RuleTreeActionsTemplate"
+                                            RowTemplate="CustomRowTemplate"
+                                            RowTemplateSelector="context => context.Item.IsStructuralHeader || context.Item.IsRulebaseReference"
+                                            EnableColumnReordering="true"
+                                            EnableColumnResizing="true" />
+                        </Collapse>
+                        </div>
+                    }
+                }
+            }
+        </Collapse>
+    }
+}
+
+@code
+{
+    private RenderFragment<FancyTreeTableContext<RuleReportTreeRow>> RuleTreeActionsTemplate => context =>
+    @<div>
+        <button name="btnCollapseAll"
+                @onclick="context.CollapseAll"
+                disabled="@(!context.CanCollapseAny)"
+                class="d-inline-flex btn btn-sm bg-dark-subtle px-4 pt-2 border-2 border-dark-subtle">
+            <i class="bi bi-arrows-collapse"></i>
+        </button>
+        <button name="btnExpandAll"
+                @onclick="context.ExpandAll"
+                disabled="@(!context.CanExpandAny)"
+                class="btn btn-sm bg-dark-subtle px-4 pt-2 border-2 border-dark-subtle">
+            <i class="bi bi-arrows-expand"></i>
+        </button>
+    </div>;
+
+    private RenderFragment<FancyRowContext<RuleReportTreeRow>> CustomRowTemplate => context =>
+        context.Item.IsRulebaseReference ? RulebaseReferenceTemplate(context) : SectionHeaderTemplate(context);
+
+    private RenderFragment<FancyRowContext<RuleReportTreeRow>> RulebaseReferenceTemplate => context => @<tr>
+        <td class="bg-light" colspan="@context.VisibleColumnCount">
+            <span class="font-weight-bold">@(context.Item.Node.Header)</span> -
+            @(userConfig.GetText("rulebase_listed_above")):
+            <button type="button" class="btn btn-link btn-sm p-0 align-baseline"
+                    @onclick="() => ScrollToRuleTree(context.Item.ManagementId, context.Item.ReferencedTreeId)">
+                @(context.Item.ReferencedTreeName)
+            </button>
+        </td>
+    </tr>;
+
+    private RenderFragment<FancyRowContext<RuleReportTreeRow>> SectionHeaderTemplate => context => @<tr class="table-warning fw-bold">
+        <td colspan="@context.VisibleColumnCount">
+            <button type="button"
+                    class="btn btn-link btn-sm text-decoration-none p-0 me-2"
+                    @onclick="() => context.ToggleNode.InvokeAsync()"
+                    aria-label="@(context.IsExpanded ? context.CollapseLabel : context.ExpandLabel)"
+                    aria-expanded="@context.IsExpanded">
+                <i class="bi @(context.IsExpanded ? "bi-caret-down-fill" : "bi-caret-right-fill")"></i>
+            </button>
+            @if (!string.IsNullOrEmpty(context.Item.Rule.DisplayOrderNumberString))
+            {
+                <span class="me-2">@context.Item.Rule.DisplayOrderNumberString</span>
+            }
+            @context.Item.SectionHeaderTitle
+            <span class="ms-2 text-muted">(@CountRealRuleDescendants(context.Item) @(userConfig.GetText("rules")))</span>
+        </td>
+    </tr>;
+
+    #region Parameters
+
+    [Parameter]
+    public List<ManagementReport> Managements { get; set; } = new();
+
+    [Parameter]
+    public bool ReadonlyMode { get; set; } = false;
+
+    [Parameter]
+    public bool Recertification { get; set; } = false;
+
+    [Parameter]
+    public int RulesPerPage { get; set; }
+
+    [Parameter]
+    public ReportType SelectedReportType { get; set; }
+
+    [Parameter]
+    public List<Rule> SelectedRules { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<List<Rule>> SelectedRulesChanged { get; set; }
+
+    [Parameter]
+    public int Width { get; set; }
+
+    [Parameter]
+    public EventCallback<int> WidthChanged { get; set; }
+
+    #endregion
+
+    #region Consts - Private
+
+    private const string kActiveCellClass = "table-active";
+    private const int kColumnMinWidth = 150;
+
+    private static readonly ColumnBehavior kFixedColumn = new(Hideable: false, Resizable: false, Reorderable: false);
+    private static readonly ColumnBehavior kFlexibleColumn = new(Hideable: true, Resizable: true, Reorderable: true);
+    private static readonly ColumnBehavior kNotHideableColumn = new(Hideable: false, Resizable: true, Reorderable: true);
+
+    #endregion
+
+    #region Fields
+
+    private NatRuleDisplayHtml? _ruleDisplay;
+    private FancyTableTexts _ruleTableTexts = FancyTableTexts.Default;
+    private IReadOnlyList<FancyColumn<RuleReportTreeRow>> _ruleColumns = [];
+    private readonly Dictionary<(int managementId, int deviceId), IReadOnlyList<RuleReportTreeRow>> _ruleRowsByDevice = [];
+    private ReportType _cachedReportType = ReportType.Undefined;
+    private List<object> _cachedReportInstances = [];
+
+    #endregion
+
+    #region Properties - Private
+
+    private bool ShowLastModifiedAfterLastHit => SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules;
+    private bool ShowLastHitColumn => ReportTypeGroups.IsRuleReport(SelectedReportType);
+
+    #endregion
+
+    #region Methods - Overrides
+
+    /// <summary>
+    /// Initializes the rule display helper, the localized table texts and the columns.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        _ruleDisplay = new NatRuleDisplayHtml(userConfig);
+        _ruleTableTexts = FancyTableTextFactory.Create(userConfig);
+        RefreshColumns();
+    }
+
+    /// <summary>
+    /// Rebuilds columns and rows only if the report type or the report data changed.
+    /// </summary>
+    protected override void OnParametersSet()
+    {
+        if (_cachedReportType != SelectedReportType)
+        {
+            RefreshColumns();
+        }
+
+        List<object> reportInstances = CollectReportInstances();
+        if (!reportInstances.SequenceEqual(_cachedReportInstances, ReferenceEqualityComparer.Instance))
+        {
+            RefreshRuleRows(reportInstances);
+        }
+    }
+
+    #endregion
+
+    #region Methods - Private
+
+    /// <summary>
+    /// Scrolls to the rule tree that lists a referenced rulebase completely (management rulebases view).
+    /// </summary>
+    private async Task ScrollToRuleTree(int managementId, int treeId)
+    {
+        await jsRuntime.InvokeVoidAsync("scrollToElementAndHighlight", DeviceReportExtensions.GetRuleTreeAnchorId(managementId, treeId));
+    }
+
+    /// <summary>
+    /// Returns the name of a rule tree (start rulebase in management rulebases view) of the management.
+    /// </summary>
+    private static string GetRuleTreeName(ManagementReport management, int treeId)
+    {
+        return management.Devices.FirstOrDefault(device => device.Id == treeId)?.Name ?? "";
+    }
+
+    /// <summary>
+    /// Builds the columns shown for the selected report type.
+    /// </summary>
+    private IReadOnlyList<FancyColumn<RuleReportTreeRow>> BuildRuleColumns()
+    {
+        List<FancyColumn<RuleReportTreeRow>> columns =
+        [
+            CreateNumberColumn(),
+        ];
+
+        AddLeadingColumns(columns);
+        AddRuleContentColumns(columns);
+        AddActionColumns(columns);
+        AddTrailingColumns(columns);
+        return columns;
+    }
+
+    /// <summary>
+    /// Adds the report type specific columns shown directly after the rule number (last hit, compliance).
+    /// </summary>
+    private void AddLeadingColumns(List<FancyColumn<RuleReportTreeRow>> columns)
+    {
+        if (ShowLastModifiedAfterLastHit)
+        {
+            columns.Add(CreateMarkupColumn("last_hit_pre", userConfig.GetText("last_hit"),
+                row => RuleDisplayHtml.DisplayLastHit(row.Rule.Metadata),
+                row => row.Rule.Metadata.LastHit?.ToString("O") ?? string.Empty, kFixedColumn));
+            columns.Add(CreateMarkupColumn("last_modified_pre", userConfig.GetText("last_modified"),
+                row => RuleDisplayBase.DisplayLastModified(row.Rule),
+                row => row.Rule.LastModified?.ToString("O") ?? string.Empty, kFixedColumn));
+        }
+
+        if (SelectedReportType.IsComplianceReport())
+        {
+            columns.Add(CreateMarkupColumn("compliance", userConfig.GetText("compliance"),
+                row => RuleDisplayHtml.DisplayIsCompliant(row.Rule, GetActLocation()),
+                row => row.Rule.Compliance.ToString(), kFixedColumn));
+            columns.Add(CreateMarkupColumn("violation_details", userConfig.GetText("violation_details"),
+                row => RuleDisplayHtml.DisplayViolationDetails(row.Rule),
+                row => row.Rule.ViolationDetails, kFixedColumn));
+        }
+    }
+
+    /// <summary>
+    /// Adds the name, zone, source, destination and service columns.
+    /// </summary>
+    private void AddRuleContentColumns(List<FancyColumn<RuleReportTreeRow>> columns)
+    {
+        columns.Add(CreateTextColumn("name", userConfig.GetText("name"), row => row.DisplayName, kFlexibleColumn));
+        columns.Add(CreateMarkupColumn("source_zone", userConfig.GetText("source_zone"),
+            row => RuleDisplayHtml.DisplaySourceZones(row.Rule),
+            row => string.Join(", ", row.Rule.RuleFromZones.Select(zone => zone.Content.Name)), kFlexibleColumn));
+        columns.Add(CreateMarkupColumn("source", userConfig.GetText("source"),
+            row => _ruleDisplay?.DisplaySource(row.Rule, GetActLocation(), SelectedReportType) ?? string.Empty,
+            row => row.Rule.Source, kFlexibleColumn));
+        columns.Add(CreateMarkupColumn("destination_zone", userConfig.GetText("destination_zone"),
+            row => RuleDisplayHtml.DisplayDestinationZones(row.Rule),
+            row => string.Join(", ", row.Rule.RuleToZones.Select(zone => zone.Content.Name)), kFlexibleColumn));
+        columns.Add(CreateMarkupColumn("destination", userConfig.GetText("destination"),
+            row => _ruleDisplay?.DisplayDestination(row.Rule, GetActLocation(), SelectedReportType) ?? string.Empty,
+            row => row.Rule.Destination, kFlexibleColumn));
+        columns.Add(CreateMarkupColumn("services", userConfig.GetText("services"),
+            row => _ruleDisplay?.DisplayServices(row.Rule, GetActLocation(), SelectedReportType) ?? string.Empty,
+            row => row.Rule.Service, kFlexibleColumn));
+    }
+
+    /// <summary>
+    /// Adds the translation columns for NAT reports, otherwise the action and track columns.
+    /// </summary>
+    private void AddActionColumns(List<FancyColumn<RuleReportTreeRow>> columns)
+    {
+        if (SelectedReportType == ReportType.NatRules)
+        {
+            columns.Add(CreateMarkupColumn("trans_source", userConfig.GetText("trans_source"),
+                row => _ruleDisplay?.DisplayTranslatedSource(row.Rule, GetActLocation()) ?? string.Empty,
+                row => row.Rule.NatData.TranslatedSource ?? string.Empty, kFlexibleColumn, kActiveCellClass));
+            columns.Add(CreateMarkupColumn("trans_destination", userConfig.GetText("trans_destination"),
+                row => _ruleDisplay?.DisplayTranslatedDestination(row.Rule, GetActLocation()) ?? string.Empty,
+                row => row.Rule.NatData.TranslatedDestination ?? string.Empty, kFlexibleColumn, kActiveCellClass));
+            columns.Add(CreateMarkupColumn("trans_services", userConfig.GetText("trans_services"),
+                row => _ruleDisplay?.DisplayTranslatedService(row.Rule, GetActLocation()) ?? string.Empty,
+                row => row.Rule.NatData.TranslatedService ?? string.Empty, kFlexibleColumn, kActiveCellClass));
+        }
+        else
+        {
+            columns.Add(CreateTextColumn("action", userConfig.GetText("action"), row => row.Rule.Action, kFlexibleColumn));
+            columns.Add(CreateTextColumn("track", userConfig.GetText("track"), row => row.Rule.Track, kFlexibleColumn));
+        }
+    }
+
+    /// <summary>
+    /// Adds the enabled, enforcing devices, uid, comment, last modified and last hit columns.
+    /// </summary>
+    private void AddTrailingColumns(List<FancyColumn<RuleReportTreeRow>> columns)
+    {
+        columns.Add(CreateMarkupColumn("enabled", userConfig.GetText("enabled"),
+            row => RuleDisplayHtml.DisplayEnabled(row.Rule, GetActLocation()),
+            row => row.Rule.Disabled.ToString(), kFlexibleColumn));
+        columns.Add(CreateMarkupColumn("enforcing_devices", userConfig.GetText("enforcing_devices"),
+            row => RuleDisplayHtml.DisplayEnforcingGateways(row.Rule, GetActLocation(), SelectedReportType),
+            row => string.Join(", ", row.Rule.EnforcingGateways.Select(device => device.Content.Name)), kNotHideableColumn));
+        columns.Add(CreateTextColumn("uid", userConfig.GetText("uid"), row => row.Rule.Uid ?? string.Empty, kFlexibleColumn, "minw-200"));
+        columns.Add(CreateTextColumn("comment", userConfig.GetText("comment"), row => row.Rule.Comment ?? string.Empty, kFlexibleColumn));
+
+        if (!ShowLastModifiedAfterLastHit)
+        {
+            columns.Add(CreateMarkupColumn("last_modified", userConfig.GetText("last_modified"),
+                row => RuleDisplayBase.DisplayLastModified(row.Rule),
+                row => row.Rule.LastModified?.ToString("O") ?? string.Empty, kFlexibleColumn));
+        }
+
+        if (ShowLastHitColumn)
+        {
+            columns.Add(CreateMarkupColumn("last_hit", userConfig.GetText("last_hit"),
+                row => RuleDisplayHtml.DisplayLastHit(row.Rule.Metadata),
+                row => row.Rule.Metadata.LastHit?.ToString("O") ?? string.Empty, kNotHideableColumn, "minw-80"));
+        }
+    }
+
+    /// <summary>
+    /// Creates the rule number column, which displays the dotted hierarchical number but sorts by the
+    /// numeric display order, so that e.g. 1.2 precedes 1.10.
+    /// </summary>
+    private FancyColumn<RuleReportTreeRow> CreateNumberColumn()
+    {
+        return CreateTextColumn("number", userConfig.GetText("number"), row => row.Rule.DisplayOrderNumberString, kFixedColumn,
+            sortValueSelector: row => row.Rule.DisplayOrderNumber);
+    }
+
+    /// <summary>
+    /// Creates a plain text column, which is displayed and searched by the same value. It is sorted by
+    /// this value too, unless a separate sort value selector is given.
+    /// </summary>
+    private static FancyColumn<RuleReportTreeRow> CreateTextColumn(string key, string title, Func<RuleReportTreeRow, string> valueSelector,
+        ColumnBehavior behavior, string? cellClass = null, Func<RuleReportTreeRow, IComparable?>? sortValueSelector = null)
+    {
+        return new FancyColumn<RuleReportTreeRow>
+        {
+            Key = key,
+            Title = title,
+            Sortable = true,
+            Searchable = true,
+            Hideable = behavior.Hideable,
+            CellClass = cellClass,
+            ValueSelector = valueSelector,
+            SortValueSelector = sortValueSelector ?? (row => valueSelector(row)),
+            Resizable = behavior.Resizable,
+            Reorderable = behavior.Reorderable,
+            MinWidth = kColumnMinWidth
+        };
+    }
+
+    /// <summary>
+    /// Creates a column displaying html markup, which is searched and sorted by a separate plain text value.
+    /// </summary>
+    private static FancyColumn<RuleReportTreeRow> CreateMarkupColumn(string key, string title, Func<RuleReportTreeRow, string> markupSelector,
+        Func<RuleReportTreeRow, string> sortValueSelector, ColumnBehavior behavior, string? cellClass = null)
+    {
+        return new FancyColumn<RuleReportTreeRow>
+        {
+            Key = key,
+            Title = title,
+            Sortable = true,
+            Searchable = true,
+            Hideable = behavior.Hideable,
+            CellClass = cellClass,
+            ValueSelector = sortValueSelector,
+            SearchTextSelector = row => sortValueSelector(row),
+            SortValueSelector = row => sortValueSelector(row),
+            CellTemplate = CreateMarkupCell(markupSelector),
+            Resizable = behavior.Resizable,
+            Reorderable = behavior.Reorderable,
+            MinWidth = kColumnMinWidth
+        };
+    }
+
+    /// <summary>
+    /// Creates a cell template rendering the selected html markup.
+    /// </summary>
+    private static RenderFragment<RuleReportTreeRow> CreateMarkupCell(Func<RuleReportTreeRow, string> markupSelector)
+    {
+        return row => builder => builder.AddMarkupContent(0, markupSelector(row));
+    }
+
+    /// <summary>
+    /// Returns the output location used by the rule display helpers.
+    /// </summary>
+    private OutputLocation GetActLocation()
+    {
+        return Recertification ? OutputLocation.certification : OutputLocation.report;
+    }
+
+    /// <summary>
+    /// Rebuilds the columns for the currently selected report type.
+    /// </summary>
+    private void RefreshColumns()
+    {
+        _ruleColumns = BuildRuleColumns();
+        _cachedReportType = SelectedReportType;
+    }
+
+    /// <summary>
+    /// Rebuilds the tree rows of all devices of all managements.
+    /// </summary>
+    private void RefreshRuleRows(List<object> reportInstances)
+    {
+        _ruleRowsByDevice.Clear();
+
+        foreach (ManagementReport management in Managements)
+        {
+            foreach (DeviceReport device in management.Devices)
+            {
+                _ruleRowsByDevice[(management.Id, device.Id)] = BuildRuleRows(management, device);
+            }
+        }
+
+        _cachedReportInstances = reportInstances;
+    }
+
+    /// <summary>
+    /// Collects the report and rule tree instances the rows are built from. Regenerating a report replaces
+    /// these instances, so comparing them by reference detects new report data even if ids and counts are unchanged.
+    /// </summary>
+    private List<object> CollectReportInstances()
+    {
+        List<object> instances = [Managements];
+
+        foreach (ManagementReport management in Managements)
+        {
+            instances.Add(management);
+
+            foreach (DeviceReport device in management.Devices)
+            {
+                instances.Add(device);
+
+                if (ruleTreeBuilder.RuleTreeCache.TryGetValue((management.Id, device.Id), out RuleTreeItem? ruleTree))
+                {
+                    instances.Add(ruleTree);
+                }
+            }
+        }
+
+        return instances;
+    }
+
+    /// <summary>
+    /// Returns the cached tree rows of a device.
+    /// </summary>
+    private IReadOnlyList<RuleReportTreeRow> GetRuleRows(ManagementReport managementReport, DeviceReport deviceReport)
+    {
+        return _ruleRowsByDevice.GetValueOrDefault((managementReport.Id, deviceReport.Id), []);
+    }
+
+    /// <summary>
+    /// Builds the tree rows of a device from the rule tree built by the rule tree builder.
+    /// </summary>
+    private IReadOnlyList<RuleReportTreeRow> BuildRuleRows(ManagementReport managementReport, DeviceReport deviceReport)
+    {
+        if (!ruleTreeBuilder.RuleTreeCache.TryGetValue((managementReport.Id, deviceReport.Id), out RuleTreeItem? ruleTree))
+        {
+            return [];
+        }
+
+        return MapTreeNodes(ruleTree.Children, managementReport, deviceReport);
+    }
+
+    /// <summary>
+    /// Maps rule tree nodes to tree rows. Inline layer roots are flattened into their parent level.
+    /// </summary>
+    private IReadOnlyList<RuleReportTreeRow> MapTreeNodes(IEnumerable<RuleTreeItem> nodes, ManagementReport managementReport, DeviceReport deviceReport)
+    {
+        List<RuleReportTreeRow> rows = [];
+
+        foreach (RuleTreeItem node in nodes)
+        {
+            if (node.IsInlineLayerRoot)
+            {
+                rows.AddRange(MapTreeNodes(node.Children, managementReport, deviceReport));
+                continue;
+            }
+
+            if (node.Data == null)
+            {
+                continue;
+            }
+
+            node.Data.DeviceName = deviceReport.Name ?? string.Empty;
+            int referencedTreeId = node.IsRulebaseReference ? deviceReport.ReferencedRulebaseTreeIds.GetValueOrDefault(node.ReferencedRulebaseId) : 0;
+            rows.Add(new RuleReportTreeRow(node, MapTreeNodes(node.Children, managementReport, deviceReport))
+            {
+                ManagementId = managementReport.Id,
+                ReferencedTreeId = referencedTreeId,
+                ReferencedTreeName = node.IsRulebaseReference ? GetRuleTreeName(managementReport, referencedTreeId) : string.Empty
+            });
+        }
+
+        return rows;
+    }
+
+    /// <summary>
+    /// Counts the real rules below a row, ignoring structural headers and rulebase references.
+    /// </summary>
+    private static int CountRealRuleDescendants(RuleReportTreeRow row)
+    {
+        int count = row.Node.IsRule ? 1 : 0;
+
+        foreach (RuleReportTreeRow child in row.Children)
+        {
+            count += CountRealRuleDescendants(child);
+        }
+
+        return count;
+    }
+
+    #endregion
+
+    #region Nested Types
+
+    /// <summary>
+    /// Defines which interactions a column supports.
+    /// </summary>
+    private readonly record struct ColumnBehavior(bool Hideable, bool Resizable, bool Reorderable);
+
+    /// <summary>
+    /// Row of the FancyTreeTable wrapping a rule tree node and its mapped children.
+    /// </summary>
+    private sealed class RuleReportTreeRow
+    {
+        public RuleReportTreeRow(RuleTreeItem node, IReadOnlyList<RuleReportTreeRow> children)
+        {
+            Node = node;
+            Rule = node.Data!;
+            Children = children;
+        }
+
+        public RuleTreeItem Node { get; }
+        public Rule Rule { get; }
+        public IReadOnlyList<RuleReportTreeRow> Children { get; }
+        public bool IsInitiallyExpanded => Node.IsExpanded;
+        public bool IsStructuralHeader => Node.IsSectionHeader || Node.IsOrderedLayerHeader || Node.IsPolicyHeader;
+        public bool IsRulebaseReference => Node.IsRulebaseReference;
+        public int ManagementId { get; init; }
+        public int ReferencedTreeId { get; init; }
+        public string ReferencedTreeName { get; init; } = string.Empty;
+        public string DisplayName => IsStructuralHeader || IsRulebaseReference ? string.Empty : Rule.Name ?? string.Empty;
+        public string SectionHeaderTitle => Rule.SectionHeader ?? string.Empty;
+    }
+
+    #endregion
+}

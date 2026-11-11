@@ -1,13 +1,17 @@
-import logging
+from __future__ import annotations
+
 import os
 import shutil
 import stat
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote, urlsplit, urlunsplit
 
 import git
+
+if TYPE_CHECKING:
+    import logging
 
 # git must fail instead of waiting for an answer nobody can give it: the scripts run unattended,
 # so a credential prompt would block the calling import until the middleware is restarted.

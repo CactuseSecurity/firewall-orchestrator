@@ -115,7 +115,35 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ImportComplianceMatrix_PublishesMiddlewareSuccess()
+        public async Task ImportAppServersFromCsv_AcceptsSpacesAroundRangeSeparator()
+        {
+            string csv = string.Join(Environment.NewLine,
+            [
+                "App-Server-Name,External-App-ID,App-Server-Typ,App-IP-Address-Range",
+                "Server1,App1,TypeA,10.0.0.1 - 10.0.0.2"
+            ]);
+            RecordingEventMediator mediator = new();
+            using TestMiddlewareClient middlewareClient = new();
+            FileUploadService service = CreateService(mediator, middlewareClient);
+            byte[] csvBytes = Encoding.UTF8.GetBytes(csv);
+            await service.ReadFileToBytes(CreateInputFileChangeEventArgs("apps.csv", "text/csv", csvBytes, csvBytes.Length));
+
+            await service.ImportAppServersFromCSV("apps.csv");
+
+            AppServerImportEvent importEvent = (AppServerImportEvent)mediator.PublishedEvents
+                .Last(eventItem => eventItem.Name == nameof(FileUploadService.ImportAppServersFromCSV)).Event;
+            AppServerImportEventArgs eventArgs = importEvent.EventArgs
+                ?? throw new AssertionException("Missing app server import event args.");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(eventArgs.Errors.Select(error => error.Message), Does.Not.Contain("E5423"));
+                Assert.That(eventArgs.Errors.Any(error => error.Message?.Contains("owner_appserver_notfound") == true), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ImportMatrix_PublishesMiddlewareSuccess()
         {
             RecordingEventMediator mediator = new();
             using TestMiddlewareClient middlewareClient = new();
@@ -123,21 +151,21 @@ namespace FWO.Test
             FileUploadService service = CreateService(mediator, middlewareClient);
             await service.ReadFileToBytes(CreateInputFileChangeEventArgs("matrix.csv", "text/csv", Encoding.UTF8.GetBytes("matrix-data"), "matrix-data".Length));
 
-            await service.ImportComplianceMatrix("matrix.csv");
+            await service.ImportMatrix("matrix.csv");
 
-            FileUploadEvent importEvent = (FileUploadEvent)mediator.PublishedEvents.Last(eventItem => eventItem.Name == nameof(FileUploadService.ImportComplianceMatrix)).Event;
+            FileUploadEvent importEvent = (FileUploadEvent)mediator.PublishedEvents.Last(eventItem => eventItem.Name == nameof(FileUploadService.ImportMatrix)).Event;
             FileUploadEventArgs eventArgs = importEvent.EventArgs ?? throw new AssertionException("Missing file upload event args.");
 
             Assert.Multiple(() =>
             {
-                Assert.That(mediator.PublishedEvents.Any(eventItem => eventItem.Name == nameof(FileUploadService.ImportComplianceMatrix)), Is.True);
+                Assert.That(mediator.PublishedEvents.Any(eventItem => eventItem.Name == nameof(FileUploadService.ImportMatrix)), Is.True);
                 Assert.That(eventArgs.Success, Is.True);
                 Assert.That(eventArgs.Data, Is.EqualTo("Ok: imported"));
             });
         }
 
         [Test]
-        public async Task ImportComplianceMatrix_PublishesMiddlewareError()
+        public async Task ImportMatrix_PublishesMiddlewareError()
         {
             RecordingEventMediator mediator = new();
             using TestMiddlewareClient middlewareClient = new();
@@ -145,9 +173,9 @@ namespace FWO.Test
             FileUploadService service = CreateService(mediator, middlewareClient);
             await service.ReadFileToBytes(CreateInputFileChangeEventArgs("matrix.csv", "text/csv", Encoding.UTF8.GetBytes("matrix-data"), "matrix-data".Length));
 
-            await service.ImportComplianceMatrix("matrix.csv");
+            await service.ImportMatrix("matrix.csv");
 
-            FileUploadEvent importEvent = (FileUploadEvent)mediator.PublishedEvents.Last(eventItem => eventItem.Name == nameof(FileUploadService.ImportComplianceMatrix)).Event;
+            FileUploadEvent importEvent = (FileUploadEvent)mediator.PublishedEvents.Last(eventItem => eventItem.Name == nameof(FileUploadService.ImportMatrix)).Event;
             FileUploadEventArgs eventArgs = importEvent.EventArgs ?? throw new AssertionException("Missing file upload event args.");
 
             Assert.Multiple(() =>

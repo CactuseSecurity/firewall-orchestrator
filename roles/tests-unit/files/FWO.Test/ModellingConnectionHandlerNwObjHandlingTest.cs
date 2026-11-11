@@ -19,6 +19,24 @@ namespace FWO.Test
         static readonly SimulatedUserConfig userConfig = new();
         static readonly Action<Exception?, string, string, bool> DisplayMessageInUi = DefaultInit.DoNothing;
         static readonly FwoOwner Application = new() { Id = 1, Name = "TestApp" };
+        // SimulatedUserConfig.GetText echoes unknown keys, so this is "<title key>:<message key>".
+        // E9015 would be the network-object placement error, which does not apply to role checks.
+        private const string kExpectedForbiddenMessage = "change_app_role_forbidden:E9030";
+        // NetworkAreaUseAllowed only reads the list it is handed, so these are safe to
+        // share across the parallelizable tests below.
+        private static readonly List<ModellingNetworkArea> kAreaIdOne = [new ModellingNetworkArea { Id = 1 }];
+        private static readonly List<ModellingNetworkArea> kAreaIdTwo = [new ModellingNetworkArea { Id = 2 }];
+        private static readonly List<long> kOnlyAllowedAreaId = [6];
+        private static readonly List<long> kOnlySelectedAreaId = [7];
+        private static readonly List<long> kExcludedAndSelectedAreaIds = [kExcludedAreaId, 7];
+        private static readonly List<long> kExcludedAreaIds = [kExcludedAreaId];
+        private const long kExcludedAreaId = 5;
+        private static readonly List<ModellingNetworkArea> kExcludedArea = [new ModellingNetworkArea { Id = kExcludedAreaId }];
+        private static readonly List<ModellingNetworkArea> kDstOnlyArea = [new ModellingNetworkArea { Id = 3, Name = "AreaDstOnly", IdString = "NA3" }];
+        private static readonly List<string> kExpectedExcludedAreaSaveMessages = ["Edit Common Service:Excluded areas in common service: AreaExcluded"];
+        private static readonly List<string> kExpectedExcludedAreasSaveMessages = ["Edit Common Service:Excluded areas in common service: AreaExcluded, AreaExcluded2"];
+        private const string kExcludedAreaSaveMessagePrefix = "Edit Common Service:Excluded areas in common service";
+        private const long kSecondExcludedAreaId = 8;
 
         [Test]
         public void RefreshSelectableNwObjects_IncludesCommonSelectedRolesAndServers()
@@ -53,6 +71,167 @@ namespace FWO.Test
             ClassicAssert.IsTrue(handler.AvailableNwElems.Contains(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.Network, 20)));
             ClassicAssert.IsTrue(handler.AvailableNwElems.Contains(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppRole, 30)));
             ClassicAssert.IsTrue(handler.AvailableNwElems.Contains(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppServer, 40)));
+        }
+
+        /// <summary>
+        /// Only the modeller role may change modelling data. Admin deliberately has no
+        /// write access here even though it may view modelling reports, so this test
+        /// pins that rule down rather than leaving it implicit.
+        /// </summary>
+        [Test]
+        public void CanModifyAppRoles_AllowsOnlyOwningModellers()
+        {
+            ModellingConnection connection = new() { Id = 101 };
+            SimulatedUserConfig auditorConfig = new();
+            auditorConfig.User.Roles = new List<string> { Roles.Auditor };
+            ModellingConnectionHandler auditorHandler = CreateHandler(connection, auditorConfig);
+
+            SimulatedUserConfig adminConfig = new();
+            adminConfig.User.Roles = new List<string> { Roles.Admin };
+            ModellingConnectionHandler adminHandler = CreateHandler(connection, adminConfig);
+
+            SimulatedUserConfig modellerConfig = new();
+            modellerConfig.User.Roles = new List<string> { Roles.Modeller };
+            ModellingConnectionHandler modellerHandler = CreateHandler(connection, modellerConfig);
+
+            ClassicAssert.IsFalse(auditorHandler.CanModifyAppRoles());
+            ClassicAssert.IsFalse(adminHandler.CanModifyAppRoles());
+            ClassicAssert.IsTrue(modellerHandler.CanModifyAppRoles());
+
+            modellerHandler.IsOwner = false;
+
+            ClassicAssert.IsFalse(modellerHandler.CanModifyAppRoles());
+        }
+
+        /// <summary>
+        /// Auditors and admins may try out the add dialog, but the dialog handler must not let them save.
+        /// </summary>
+        [TestCase(Roles.Auditor)]
+        [TestCase(Roles.Admin)]
+        public void CreateAppRole_OpensTryOutEditorForAuditorAndAdmin(string role)
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateRoleHandler(102, role, messages);
+
+            handler.CreateAppRole();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.CanOpenAppRoleEditor(), Is.True);
+                Assert.That(handler.AddAppRoleMode, Is.True);
+                Assert.That(handler.EditAppRoleMode, Is.True);
+                Assert.That(handler.AppRoleHandler?.IsOwner, Is.False);
+                Assert.That(messages, Is.Empty);
+            });
+        }
+
+        /// <summary>
+        /// Auditors and admins may try out the edit dialog, but the dialog handler must not let them save.
+        /// </summary>
+        [TestCase(Roles.Auditor)]
+        [TestCase(Roles.Admin)]
+        public void EditAppRole_OpensTryOutEditorForAuditorAndAdmin(string role)
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateRoleHandler(103, role, messages);
+
+            handler.EditAppRole(new ModellingAppRole() { Id = 1 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.AddAppRoleMode, Is.False);
+                Assert.That(handler.EditAppRoleMode, Is.True);
+                Assert.That(handler.AppRoleHandler?.IsOwner, Is.False);
+                Assert.That(messages, Is.Empty);
+            });
+        }
+
+        /// <summary>
+        /// An owning modeller gets a dialog handler which may save.
+        /// </summary>
+        [Test]
+        public void CreateAppRole_LetsOwningModellerSave()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateRoleHandler(106, Roles.Modeller, messages);
+
+            handler.CreateAppRole();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.EditAppRoleMode, Is.True);
+                Assert.That(handler.AppRoleHandler?.IsOwner, Is.True);
+                Assert.That(messages, Is.Empty);
+            });
+        }
+
+        /// <summary>
+        /// Users without access to the application must not open the dialogs and are told why,
+        /// instead of nothing happening silently.
+        /// </summary>
+        [Test]
+        public void AppRoleEditors_ReportForbiddenForNonOwner()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateRoleHandler(107, Roles.Modeller, messages);
+            handler.IsOwner = false;
+
+            handler.CreateAppRole();
+            handler.EditAppRole(new ModellingAppRole() { Id = 1 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.CanOpenAppRoleEditor(), Is.False);
+                Assert.That(handler.AddAppRoleMode, Is.False);
+                Assert.That(handler.EditAppRoleMode, Is.False);
+                Assert.That(messages, Is.EqualTo(new List<string> { kExpectedForbiddenMessage, kExpectedForbiddenMessage }));
+            });
+        }
+
+        /// <summary>
+        /// Deleting is persisted immediately, so there is nothing to try out: it stays forbidden for auditors
+        /// and reports the reason instead of silently doing nothing.
+        /// </summary>
+        [Test]
+        public async Task RequestDeleteAppRole_ReportsForbiddenInsteadOfSilentlyDoingNothing()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateAuditorHandler(104, messages);
+
+            await handler.RequestDeleteAppRole(new ModellingAppRole() { Id = 1 });
+
+            ClassicAssert.IsFalse(handler.DeleteAppRoleMode);
+            ClassicAssert.AreEqual(1, messages.Count);
+            ClassicAssert.AreEqual(kExpectedForbiddenMessage, messages[0]);
+        }
+
+        /// <summary>
+        /// A null application role is not an authorization problem, so it stays silent.
+        /// </summary>
+        [Test]
+        public void AppRoleActions_StayQuietForMissingAppRole()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateAuditorHandler(105, messages);
+
+            handler.EditAppRole(null);
+
+            ClassicAssert.IsEmpty(messages);
+        }
+
+        private static ModellingConnectionHandler CreateAuditorHandler(int connectionId, List<string> messages)
+        {
+            return CreateRoleHandler(connectionId, Roles.Auditor, messages);
+        }
+
+        private static ModellingConnectionHandler CreateRoleHandler(int connectionId, string role, List<string> messages)
+        {
+            ModellingConnection connection = new() { Id = connectionId };
+            SimulatedUserConfig roleConfig = new();
+            roleConfig.User.Roles = new List<string> { role };
+            List<ModellingConnection> connections = [connection];
+            Action<Exception?, string, string, bool> displayMessage = (_, title, text, _) => messages.Add($"{title}:{text}");
+            return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), roleConfig, Application, connections, connection, false, false, displayMessage, DefaultInit.DoNothing, true);
         }
 
         [Test]
@@ -135,7 +314,7 @@ namespace FWO.Test
             };
             ModellingConnectionHandler handler = CreateHandler(connection);
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 1 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdOne, Direction.Source, out var reason);
 
             ClassicAssert.IsFalse(result);
             ClassicAssert.AreEqual("Edit Connection", reason.Title);
@@ -152,7 +331,7 @@ namespace FWO.Test
             };
             ModellingConnectionHandler handler = CreateHandler(connection);
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 1 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdOne, Direction.Source, out var reason);
 
             ClassicAssert.IsFalse(result);
             ClassicAssert.AreEqual("Edit Interface", reason.Title);
@@ -170,7 +349,7 @@ namespace FWO.Test
             ModellingConnectionHandler handler = CreateHandler(connection);
             handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 100 }];
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 1 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdOne, Direction.Source, out var reason);
 
             ClassicAssert.IsTrue(result);
             ClassicAssert.AreEqual("Edit Common Service", reason.Title);
@@ -184,7 +363,7 @@ namespace FWO.Test
             ModellingConnectionHandler handler = CreateHandler(connection);
             handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 1 }];
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 1 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdOne, Direction.Source, out var reason);
 
             ClassicAssert.IsTrue(result);
             ClassicAssert.AreEqual("Edit Connection", reason.Title);
@@ -197,7 +376,7 @@ namespace FWO.Test
             ModellingConnectionHandler handler = CreateHandler(connection);
             handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 1 }];
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 2 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdTwo, Direction.Source, out var reason);
 
             ClassicAssert.IsFalse(result);
             ClassicAssert.AreEqual("Common areas not allowed", reason.Text);
@@ -317,7 +496,7 @@ namespace FWO.Test
             };
             ModellingConnectionHandler handler = CreateHandler(connection);
             handler.DstReadOnly = false;
-            handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 3, UseInSrc = false }];
+            handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 3, UseInDst = false }];
 
             handler.AreasToDestination(
             [
@@ -449,6 +628,265 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, handler.DstAppRolesToAdd[0].Id);
         }
 
+        /// <summary>
+        /// Verifies that an existing app role cannot open without a recoverable network area.
+        /// </summary>
+        [TestCase(1, false)]
+        [TestCase(2, false)]
+        [TestCase(4, true)]
+        public void EditAppRole_OnlyOpensWhenAreaCanBeDerived(int fixedPartLength, bool expectedDialogState)
+        {
+            int messageCount = 0;
+            ModellingConnectionHandler handler = CreateHandlerForConvention(fixedPartLength, () => messageCount++);
+
+            handler.EditAppRole(new ModellingAppRole { Id = 1, IdString = "AR12-001", Name = "Role1" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.EditAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(handler.AppRoleHandler, Is.Not.Null);
+                Assert.That(messageCount, Is.EqualTo(expectedDialogState ? 0 : 1));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that the read only dialog of an existing app role stays closed without a recoverable network area,
+        /// as it would otherwise show an empty area and an empty app server library.
+        /// </summary>
+        [TestCase(1, false)]
+        [TestCase(4, true)]
+        public void DisplayAppRole_OnlyOpensWhenAreaCanBeDerived(int fixedPartLength, bool expectedDialogState)
+        {
+            int messageCount = 0;
+            ModellingConnectionHandler handler = CreateHandlerForConvention(fixedPartLength, () => messageCount++);
+
+            handler.DisplayAppRole(new ModellingAppRole { Id = 1, IdString = "AR12-001", Name = "Role1" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(handler.EditAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(messageCount, Is.EqualTo(expectedDialogState ? 0 : 1));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a new app role cannot be created without a usable naming convention, as neither the
+        /// area specific identifier could be proposed nor could the created app role be opened again afterwards.
+        /// </summary>
+        [TestCase(2, false)]
+        [TestCase(4, true)]
+        public void CreateAppRole_OnlyOpensWhenAreaCanBeConverted(int fixedPartLength, bool expectedDialogState)
+        {
+            int messageCount = 0;
+            ModellingConnectionHandler handler = CreateHandlerForConvention(fixedPartLength, () => messageCount++);
+
+            handler.CreateAppRole();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.EditAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(handler.AddAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(handler.DisplayAppRoleMode, Is.False);
+                Assert.That(messageCount, Is.EqualTo(expectedDialogState ? 0 : 1));
+            });
+        }
+
+        [Test]
+        public void AreasToDestination_IgnoresSourceFlagOfCommonAreaConfig()
+        {
+            ModellingConnection connection = new() { Id = 30 };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.DstReadOnly = false;
+            handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 3, UseInSrc = false, UseInDst = true }];
+
+            handler.AreasToDestination(kDstOnlyArea);
+
+            ClassicAssert.AreEqual(1, handler.DstAreasToAdd.Count);
+        }
+
+        [Test]
+        public void NetworkAreaUseAllowed_BlocksExcludedAreaInCommonService()
+        {
+            ModellingConnection connection = new() { Id = 31, IsCommonService = true };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId];
+
+            bool result = handler.NetworkAreaUseAllowed(kExcludedArea, Direction.Source, out var reason);
+
+            ClassicAssert.IsFalse(result);
+            ClassicAssert.AreEqual("Edit Common Service", reason.Title);
+            ClassicAssert.AreEqual("Area excluded from common services", reason.Text);
+        }
+
+        [Test]
+        public void NetworkAreaUseAllowed_AllowsExcludedAreaOnNormalConnection()
+        {
+            ModellingConnection connection = new() { Id = 32 };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = kExcludedAreaId }];
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId];
+
+            bool result = handler.NetworkAreaUseAllowed(kExcludedArea, Direction.Source, out var reason);
+
+            ClassicAssert.IsTrue(result);
+            ClassicAssert.AreEqual("", reason.Text);
+        }
+
+        [Test]
+        public void AreasToSourceAndDestination_SkipExcludedAreaInCommonService()
+        {
+            ModellingConnection connection = new() { Id = 33, IsCommonService = true };
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.SrcReadOnly = false;
+            handler.DstReadOnly = false;
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId];
+            List<ModellingNetworkArea> areas =
+            [
+                new ModellingNetworkArea { Id = kExcludedAreaId, Name = "AreaExcluded", IdString = "NA5" },
+                new ModellingNetworkArea { Id = 6, Name = "AreaAllowed", IdString = "NA6" }
+            ];
+
+            handler.AreasToSource(areas);
+            handler.AreasToDestination(areas);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.SrcAreasToAdd.Select(a => a.Id), Is.EqualTo(kOnlyAllowedAreaId));
+                Assert.That(handler.DstAreasToAdd.Select(a => a.Id), Is.EqualTo(kOnlyAllowedAreaId));
+            });
+        }
+
+        [Test]
+        public void RefreshSelectableNwObjects_HidesExcludedAreasOnlyInCommonService()
+        {
+            ModellingConnectionHandler comSvcHandler = CreateHandlerWithExcludedArea(new() { Id = 34, IsCommonService = true });
+            ModellingConnectionHandler connHandler = CreateHandlerWithExcludedArea(new() { Id = 35 });
+
+            comSvcHandler.RefreshSelectableNwObjects();
+            connHandler.RefreshSelectableNwObjects();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(comSvcHandler.AvailableNwElems.Select(e => e.Value), Is.EqualTo(kOnlySelectedAreaId));
+                Assert.That(connHandler.AvailableNwElems.Select(e => e.Value), Is.EquivalentTo(kExcludedAndSelectedAreaIds));
+            });
+        }
+
+        [Test]
+        public void ComSvcHiddenAreaIds_ContainExcludedAreasOnlyForCommonService()
+        {
+            ModellingConnectionHandler comSvcHandler = CreateHandlerWithExcludedArea(new() { Id = 39, IsCommonService = true });
+            ModellingConnectionHandler connHandler = CreateHandlerWithExcludedArea(new() { Id = 40 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(comSvcHandler.ComSvcHiddenAreaIds, Is.EquivalentTo(kExcludedAreaIds));
+                Assert.That(connHandler.ComSvcHiddenAreaIds, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task Save_BlocksCommonServiceStillContainingExcludedArea()
+        {
+            List<string> messages = [];
+            ModellingConnection connection = new()
+            {
+                Id = 36,
+                IsCommonService = true,
+                DestinationAreas = [WrapArea(kExcludedAreaId, "AreaExcluded")]
+            };
+            ModellingConnectionHandler handler = CreateHandlerCollectingMessages(connection, messages);
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId];
+
+            bool result = await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.False);
+                Assert.That(messages, Is.EqualTo(kExpectedExcludedAreaSaveMessages));
+            });
+        }
+
+        [Test]
+        public async Task Save_NamesEachRemainingExcludedAreaOnce()
+        {
+            List<string> messages = [];
+            ModellingConnection connection = new()
+            {
+                Id = 38,
+                IsCommonService = true,
+                SourceAreas = [WrapArea(kExcludedAreaId, "AreaExcluded"), WrapArea(6, "AreaAllowed")],
+                DestinationAreas = [WrapArea(kExcludedAreaId, "AreaExcluded")]
+            };
+            ModellingConnectionHandler handler = CreateHandlerCollectingMessages(connection, messages);
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId, kSecondExcludedAreaId];
+            handler.DstAreasToAdd.Add(new ModellingNetworkArea { Id = kSecondExcludedAreaId, Name = "AreaExcluded2", IdString = "NA8" });
+
+            bool result = await handler.Save();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.False);
+                Assert.That(messages, Is.EqualTo(kExpectedExcludedAreasSaveMessages));
+            });
+        }
+
+        [Test]
+        public async Task Save_PassesExcludedAreaCheckWhenAreaIsRemoved()
+        {
+            List<string> messages = [];
+            ModellingNetworkAreaWrapper excludedArea = WrapArea(kExcludedAreaId, "AreaExcluded");
+            ModellingConnection connection = new()
+            {
+                Id = 37,
+                IsCommonService = true,
+                SourceAreas = [excludedArea]
+            };
+            ModellingConnectionHandler handler = CreateHandlerCollectingMessages(connection, messages);
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId];
+            handler.SrcAreasToDelete.Add(excludedArea.Content);
+
+            await handler.Save();
+
+            Assert.That(messages, Has.None.StartsWith(kExcludedAreaSaveMessagePrefix));
+        }
+
+        [Test]
+        public async Task InitAvailableNWObjects_ReadsExcludedAreasFromConfig()
+        {
+            SimulatedUserConfig config = new() { ModComSvcExcludedAreas = "[{\"area_id\":5,\"use_in_src\":true,\"use_in_dst\":true}]" };
+            ModellingConnection connection = new() { Id = 38, IsCommonService = true };
+            ModellingConnectionHandler handler = new(new EmptyNwObjectsApiConn(), config, Application, [connection], connection, false, false,
+                DisplayMessageInUi, DefaultInit.DoNothing, true);
+
+            await handler.InitAvailableNWObjects();
+
+            Assert.That(handler.ComSvcExcludedAreaIds, Is.EquivalentTo(kExcludedAreaIds));
+        }
+
+        /// <summary>
+        /// Builds a connection handler using a network area naming convention with the given fixed part length.
+        /// </summary>
+        /// <param name="fixedPartLength">fixed part length of the naming convention</param>
+        /// <param name="countMessage">called for every message the handler reports</param>
+        /// <returns>the connection handler to test the app role dialogs with</returns>
+        private static ModellingConnectionHandler CreateHandlerForConvention(int fixedPartLength, Action countMessage)
+        {
+            SimulatedUserConfig config = new()
+            {
+                ModNamingConvention = $"{{\"networkAreaRequired\":true,\"fixedPartLength\":{fixedPartLength},\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\"}}"
+            };
+            // Saving an application role requires an owning modeller (CanModifyAppRoles).
+            // These cases cover whether the area can be converted, not who may convert it, so
+            // the user is given that role to exercise the regular editing path.
+            config.User.Roles = new List<string> { Roles.Modeller };
+            ModellingConnection connection = new() { Id = 21 };
+            List<ModellingConnection> connections = new() { connection };
+            return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), config, Application, connections, connection, false,
+                false, (_, _, _, _) => countMessage(), DefaultInit.DoNothing, true);
+        }
+
         private static ModellingConnectionHandler CreateHandler(ModellingConnection connection)
         {
             return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);
@@ -484,6 +922,43 @@ namespace FWO.Test
         private static ModellingNwGroupWrapper WrapNwGroup(long id, string name)
         {
             return new ModellingNwGroupWrapper { Content = new ModellingNwGroup { Id = id, Name = name, IdString = $"GR{id}" } };
+        }
+
+        /// <summary>
+        /// Builds a connection handler offering the excluded area as common area and another area as selected object.
+        /// </summary>
+        /// <param name="connection">the connection to edit</param>
+        /// <returns>the prepared connection handler</returns>
+        private static ModellingConnectionHandler CreateHandlerWithExcludedArea(ModellingConnection connection)
+        {
+            ModellingConnectionHandler handler = CreateHandler(connection);
+            handler.ComSvcExcludedAreaIds = [kExcludedAreaId];
+            handler.AvailableCommonAreas = [WrapArea(kExcludedAreaId, "AreaExcluded")];
+            handler.AvailableSelectedObjects = [new ModellingNwGroupWrapper { Content = new ModellingNwGroup { Id = 7, Name = "Area7", GroupType = (int)ModellingTypes.ModObjectType.NetworkArea } }];
+            return handler;
+        }
+
+        /// <summary>
+        /// Builds a connection handler recording every message as "title:text".
+        /// </summary>
+        /// <param name="connection">the connection to edit</param>
+        /// <param name="messages">receives the reported messages</param>
+        /// <returns>the connection handler</returns>
+        private static ModellingConnectionHandler CreateHandlerCollectingMessages(ModellingConnection connection, List<string> messages)
+        {
+            return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), userConfig, Application, [connection], connection, false, false,
+                (_, title, text, _) => messages.Add($"{title}:{text}"), DefaultInit.DoNothing, true);
+        }
+
+        /// <summary>
+        /// Answers all queries for available network objects with empty lists.
+        /// </summary>
+        private sealed class EmptyNwObjectsApiConn : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                return Task.FromResult(Activator.CreateInstance<QueryResponseType>());
+            }
         }
     }
 }

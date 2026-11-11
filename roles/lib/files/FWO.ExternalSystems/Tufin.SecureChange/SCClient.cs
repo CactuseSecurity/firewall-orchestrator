@@ -10,7 +10,12 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
     {
         readonly ExternalTicketSystem TicketSystem;
 
-        public SCClient(ExternalTicketSystem ticketSystem) : base(ticketSystem.Url, ticketSystem.ResponseTimeout)
+        /// <summary>
+        /// Creates a client for the SecureChange API of the given ticket system.
+        /// </summary>
+        /// <param name="ticketSystem">The ticket system to connect to.</param>
+        /// <param name="checkCertificates">Whether the server certificate is checked (global setting for ticket systems).</param>
+        public SCClient(ExternalTicketSystem ticketSystem, bool checkCertificates) : base(ticketSystem.Url, ticketSystem.ResponseTimeout, checkCertificates: checkCertificates)
         {
             TicketSystem = ticketSystem;
         }
@@ -18,7 +23,11 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
         public virtual async Task<RestResponse<int>> RestCall(RestRequest request, string restEndPoint)
         {
             request.AddHeader("Content-Type", "application/json");
-            request.AddHeader("Authorization", TicketSystem.Authorization);
+            // built from the credential of the ticket system right before the calls (ExternalTicketAuthorization.ResolveHeader)
+            if (TicketSystem.AuthorizationHeader != "")
+            {
+                request.AddHeader("Authorization", TicketSystem.AuthorizationHeader);
+            }
             request.AddHeader("Accept", "application/json");
 
             // Debugging SecureChange API call

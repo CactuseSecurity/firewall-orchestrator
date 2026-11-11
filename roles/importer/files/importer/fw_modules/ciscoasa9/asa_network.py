@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     )
 from fwo_log import FWOLogger
 from models.networkobject import NetworkObject
-from netaddr import IPAddress, IPNetwork
+from netaddr import AddrFormatError, IPAddress, IPNetwork
 
 
 def create_network_host(name: str, ip_address: str, comment: str | None, ip_version: int) -> NetworkObject:
@@ -72,8 +72,8 @@ def create_network_subnet(
     if ip_version == 6:  # noqa: PLR2004
         # ip_address is expected to be in CIDR notation for IPv6
         network = IPNetwork(ip_address, version=6)
-        ip_start = IPNetwork(f"{IPAddress(network.first)}/128", version=6)
-        ip_end = IPNetwork(f"{IPAddress(network.last)}/128", version=6)
+        ip_start = IPNetwork(f"{IPAddress(network.first, version=6)}/128", version=6)
+        ip_end = IPNetwork(f"{IPAddress(network.last, version=6)}/128", version=6)
     else:
         if subnet_mask is None:
             raise ValueError("Subnet mask is required for IPv4 subnet objects.")
@@ -332,6 +332,48 @@ def get_network_group_member(
     return network_object
 
 
+def get_subnet_endpoint_address(endpoint: EndpointKind, network_objects: dict[str, NetworkObject]) -> str:
+    """
+    Get the network address of a subnet endpoint; with "names" enabled the address may be a name alias.
+
+    Raises:
+        ValueError: if the address is neither an IPv4 address nor a defined name
+
+    """
+    if endpoint.value in network_objects:
+        alias_ip = network_objects[endpoint.value].obj_ip
+        if alias_ip is None:
+            raise ValueError(f"Subnet address '{endpoint.value}' refers to an object without address.")
+        return str(alias_ip.ip)
+    try:
+        return str(IPAddress(endpoint.value, version=4))
+    except (AddrFormatError, ValueError) as error:
+        raise ValueError(f"Subnet address '{endpoint.value}' is neither an IPv4 address nor a defined name.") from error
+
+
+def get_ipv6_or_host_rule_endpoint(endpoint: EndpointKind, network_objects: dict[str, NetworkObject]) -> NetworkObject:
+    """
+    Get or create the network object for a host (IPv4 or name alias), IPv6 host, IPv6 prefix or any6 endpoint.
+
+    Raises:
+        ValueError: if a host is neither an IPv4 address nor a defined name
+
+    """
+    if endpoint.kind == "any6":
+        return network_objects.get("any6") or create_network_subnet("any6", "::/0", None, None, ip_version=6)
+    if endpoint.value in network_objects:
+        return network_objects[endpoint.value]
+    if endpoint.kind == "hostv6":
+        return create_network_host(endpoint.value, endpoint.value, None, ip_version=6)
+    if endpoint.kind == "subnetv6":
+        return create_network_subnet(endpoint.value, endpoint.value, None, None, ip_version=6)
+    try:
+        IPAddress(endpoint.value, version=4)
+    except (AddrFormatError, ValueError) as error:
+        raise ValueError(f"Host '{endpoint.value}' is neither an IPv4 address nor a defined name.") from error
+    return create_network_host(endpoint.value, endpoint.value, None, ip_version=4)
+
+
 def get_network_rule_endpoint(endpoint: EndpointKind, network_objects: dict[str, NetworkObject]) -> NetworkObject:
     """
     Get network object for a rule endpoint. If it does not exist, create it.
@@ -344,22 +386,20 @@ def get_network_rule_endpoint(endpoint: EndpointKind, network_objects: dict[str,
         NetworkObject instance
 
     """
-    network_object = None
-    if endpoint.kind == "host":
-        # Single host IP (e.g., 'host 10.0.0.1')
-        ref = endpoint.value
-        if ref in network_objects:
-            return network_objects[ref]
-        network_object = create_network_host(endpoint.value, endpoint.value, None, ip_version=4)
+    if endpoint.kind in ("host", "hostv6", "subnetv6", "any6"):
+        network_object = get_ipv6_or_host_rule_endpoint(endpoint, network_objects)
+        if network_object.obj_uid in network_objects:
+            return network_objects[network_object.obj_uid]
     elif endpoint.kind == "subnet":
         # Subnet with mask (e.g., '10.0.0.0 255.255.255.0')
         # Object name is subnet in CIDR notation
-        ref = str(IPNetwork(f"{endpoint.value}/{endpoint.mask}"))
-        if ref in network_objects:
-            return network_objects[ref]
         if endpoint.mask is None:
             raise ValueError("Subnet mask is required for subnet endpoint kind.")
-        network_object = create_network_subnet(ref, endpoint.value, endpoint.mask, None, ip_version=4)
+        address = get_subnet_endpoint_address(endpoint, network_objects)
+        ref = str(IPNetwork(f"{address}/{endpoint.mask}"))
+        if ref in network_objects:
+            return network_objects[ref]
+        network_object = create_network_subnet(ref, address, endpoint.mask, None, ip_version=4)
     elif endpoint.kind == "any":
         # 'any' keyword (0.0.0.0 - 255.255.255.255)
         if "any" in network_objects:

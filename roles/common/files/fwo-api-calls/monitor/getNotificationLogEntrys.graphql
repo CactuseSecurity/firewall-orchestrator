@@ -1,0 +1,16 @@
+query getNotificationLogEntrys($limit: Int!, $offset: Int!, $where: notification_log_bool_exp) {
+  notification_log(where: $where, limit: $limit, offset: $offset, order_by: [{ timestamp: desc }, { id: desc }]) {
+    id
+    timestamp
+    notification_id
+    notification_type
+    to
+    cc
+    bcc
+    subject
+    deadline_type
+    deadline
+    status
+    error
+  }
+}

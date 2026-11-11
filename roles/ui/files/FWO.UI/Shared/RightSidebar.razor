@@ -499,7 +499,7 @@
             // for ReportAppRules we need to make sure we use the correct role (esp. modeller instead of reporter)
             AuthenticationState authenticationState = await authenticationStateTask;
             gotAllObjects = await apiConnection.RunWithBestRoleForReport(authenticationState.User,
-                CurrentReport!.ReportType, FetchReportObjects);
+                CurrentReport!.ReportType, FetchReportObjects, userConfig.GetExplicitlyDeniedRoles(CurrentReport!.ReportType));
         }
 
         if (!gotAllObjects)

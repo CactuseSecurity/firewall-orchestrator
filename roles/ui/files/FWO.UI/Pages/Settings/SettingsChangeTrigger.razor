@@ -24,6 +24,13 @@
         </div>
         <EditNotifications Client="NotificationClient.ImportChange" />
         <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5484a"))">
+            <h5>
+                @(userConfig.GetText("nat_change_notification_sub"))
+            </h5>
+        </div>
+        <EditNotifications Client="NotificationClient.ImportNatChange" />
+        <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5483"))">
             <label for="cbx_change_notify_active" class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyActive")):</label>
             <div class="col-sm-1">
@@ -61,6 +68,12 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("updateRuleOwnerMappingSleepTime")):</label>
             <div class="col-sm-2">
                 <input type="number" min="0" @bind="configData!.UpdateRuleOwnerMappingSleepTime" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5485d"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("varianceNameFieldWaitTime")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.VarianceNameFieldWaitTime" />
             </div>
         </div>
         <hr />

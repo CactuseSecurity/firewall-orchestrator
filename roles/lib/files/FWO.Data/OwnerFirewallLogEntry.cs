@@ -17,6 +17,24 @@ namespace FWO.Data
         [JsonProperty("protocol_name"), JsonPropertyName("protocol_name")]
         public NetworkProtocol? Protocol { get; set; }
 
+        [JsonProperty("source_metadata"), JsonPropertyName("source_metadata")]
+        public IpMetadata? SourceMetadata { get; set; }
+
+        [JsonProperty("destination_metadata"), JsonPropertyName("destination_metadata")]
+        public IpMetadata? DestinationMetadata { get; set; }
+
+        public string SourceAppIdsDisplay => string.Join(", ", SourceMetadata?.AppIds ?? []);
+
+        public string DestinationAppIdsDisplay => string.Join(", ", DestinationMetadata?.AppIds ?? []);
+
+        public string SourceAreaIdsDisplay => string.Join(", ", SourceMetadata?.AreaIds ?? []);
+
+        public string DestinationAreaIdsDisplay => string.Join(", ", DestinationMetadata?.AreaIds ?? []);
+
+        public string SourceDnsDisplay => SourceMetadata?.Dns ?? "";
+
+        public string DestinationDnsDisplay => DestinationMetadata?.Dns ?? "";
+
         /// <summary>
         /// Source address without the single host mask the logging schema enforces.
         /// </summary>

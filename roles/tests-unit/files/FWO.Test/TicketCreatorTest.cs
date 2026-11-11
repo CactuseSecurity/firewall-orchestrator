@@ -40,6 +40,8 @@ namespace FWO.Test
             public WfTicket TicketById { get; set; } = new();
             public List<WfExtState> ExtStates { get; set; } = [];
             public WfTicketWriter? LastTicketWriter { get; private set; }
+            public int FailingTicketReads { get; set; }
+            public int NewImplTaskCount { get; private set; }
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
@@ -82,8 +84,21 @@ namespace FWO.Test
                     lastCreatedTicket = BuildCreatedTicket(variables, ++nextId, LastTicketWriter);
                     return Task.FromResult((T)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId { NewIdLong = lastCreatedTicket.Id }] });
                 }
+                if (query == MonitorQueries.getOpenAlerts)
+                {
+                    return Task.FromResult((T)(object)new List<Alert>());
+                }
+                if (query == MonitorQueries.addAlert || query == ModellingQueries.addHistoryEntry || query == ModellingQueries.addHistoryEntryAsService)
+                {
+                    return Task.FromResult((T)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId { NewIdLong = ++nextId }] });
+                }
                 if (query == RequestQueries.getTicketById)
                 {
+                    if (FailingTicketReads > 0)
+                    {
+                        FailingTicketReads--;
+                        throw new InvalidOperationException("ticket could not be read");
+                    }
                     WfTicket ticket = TicketById.Id > 0 ? TicketById : lastCreatedTicket;
                     return Task.FromResult((T)(object)ticket);
                 }
@@ -101,6 +116,11 @@ namespace FWO.Test
                     || query == RequestQueries.addCommentToImplTask
                     || query == RequestQueries.addCommentToTicket)
                 {
+                    return Task.FromResult((T)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId { NewIdLong = ++nextId }] });
+                }
+                if (query == RequestQueries.newImplementationTask)
+                {
+                    NewImplTaskCount++;
                     return Task.FromResult((T)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId { NewIdLong = ++nextId }] });
                 }
                 if (query == RequestQueries.newComment)
@@ -217,6 +237,46 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// Review finding F11: when a saved ticket cannot be read back, the comments of its request tasks must not be
+        /// attached to the in-memory copy, whose request tasks have no ids.
+        /// </summary>
+        [Test]
+        public async Task CreateTicket_SkipsRequestTaskCommentsWhenTheSavedTicketCannotBeRead()
+        {
+            TicketCreatorTestApiConn apiConn = new() { FailingTicketReads = 2 };
+            TicketCreator ticketCreator = CreateTicketCreator(apiConn);
+
+            List<WfReqTask> reqTasks = [CreateCommentedTask()];
+
+            WfTicket ticket = await ticketCreator.CreateTicket(new FwoOwner { Id = 7, Name = "App" }, reqTasks, "Request title", 7);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ticket.Id, Is.GreaterThan(0));
+                Assert.That(GetPrivateField<WfHandler>(ticketCreator, "wfHandler").LastSaveReloadFailed, Is.True);
+                Assert.That(apiConn.Queries, Does.Not.Contain(RequestQueries.addCommentToReqTask));
+            });
+        }
+
+        [Test]
+        public async Task CreateTicket_AddsRequestTaskCommentsAfterReadingTheSavedTicketAgain()
+        {
+            TicketCreatorTestApiConn apiConn = new() { FailingTicketReads = 1 };
+            TicketCreator ticketCreator = CreateTicketCreator(apiConn);
+
+            List<WfReqTask> reqTasks = [CreateCommentedTask()];
+
+            WfTicket ticket = await ticketCreator.CreateTicket(new FwoOwner { Id = 7, Name = "App" }, reqTasks, "Request title", 7);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ticket.Id, Is.GreaterThan(0));
+                Assert.That(GetPrivateField<WfHandler>(ticketCreator, "wfHandler").LastSaveReloadFailed, Is.True);
+                Assert.That(apiConn.Queries, Does.Contain(RequestQueries.addCommentToReqTask));
+            });
+        }
+
         [Test]
         public async Task CreateTicket_CopiesRequestTasksOwnersApprovalsAndComments()
         {
@@ -268,6 +328,42 @@ namespace FWO.Test
                 Assert.That(writtenTask.Locked, Is.True);
                 Assert.That(writtenTask.Owners.WfOwnerList.Single().OwnerId, Is.EqualTo(owner.Id));
                 Assert.That(writtenTask.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ReqOwner), Is.EqualTo(requestingOwner.Id));
+            });
+        }
+
+        [Test]
+        public async Task CreateRequestNewInterfaceTicket_CreatesOneImplTaskWithRequesterComment()
+        {
+            TicketCreatorTestApiConn apiConn = new();
+            TicketCreator ticketCreator = CreateTicketCreator(apiConn);
+            FwoOwner owner = new() { Id = 7, Name = "Target" };
+            FwoOwner requestingOwner = new() { Id = 9, Name = "Requester app" };
+
+            await ticketCreator.CreateRequestNewInterfaceTicket(owner, requestingOwner, "if-test", "reason");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.NewImplTaskCount, Is.EqualTo(1));
+                Assert.That(apiConn.Queries, Does.Contain(RequestQueries.addCommentToImplTask));
+            });
+        }
+
+        [Test]
+        public async Task CreateNewInterfaceImplTask_CreatesOnlyOneTaskForNewInterfaces()
+        {
+            WfHandler handler = new();
+            WfReqTask interfaceTask = new() { Id = 1, TaskType = WfTaskType.new_interface.ToString(), StateId = 49 };
+            WfReqTask accessTask = new() { Id = 2, TaskType = WfTaskType.access.ToString(), StateId = 49 };
+
+            await handler.CreateNewInterfaceImplTask(interfaceTask);
+            await handler.CreateNewInterfaceImplTask(interfaceTask);
+            await handler.CreateNewInterfaceImplTask(accessTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(interfaceTask.ImplementationTasks, Has.Count.EqualTo(1));
+                Assert.That(interfaceTask.ImplementationTasks.Single().DeviceId, Is.Null);
+                Assert.That(accessTask.ImplementationTasks, Is.Empty);
             });
         }
 
@@ -433,6 +529,18 @@ namespace FWO.Test
         {
             FieldInfo? field = instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
             return field != null ? (TValue)field.GetValue(instance)! : throw new MissingFieldException(instance.GetType().FullName, fieldName);
+        }
+
+        private static WfReqTask CreateCommentedTask()
+        {
+            return new WfReqTask
+            {
+                Title = "Allow web",
+                TaskNumber = 2,
+                TaskType = WfTaskType.access.ToString(),
+                ManagementId = 5,
+                Comments = [new WfCommentDataHelper(new WfComment { CommentText = "task comment" })]
+            };
         }
 
         private static TicketCreator CreateTicketCreator(TicketCreatorTestApiConn apiConn)

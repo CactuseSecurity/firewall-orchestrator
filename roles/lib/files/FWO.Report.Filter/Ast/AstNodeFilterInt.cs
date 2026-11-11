@@ -50,10 +50,14 @@ namespace FWO.Report.Filter.Ast
         private void ExtractDestinationPortFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<int>(query, "dport", Operator.Kind, semanticValue);
-            query.RuleWhereStatement += "rule_services: { service: { svcgrp_flats: { serviceBySvcgrpFlatMemberId: { svc_port: {_lte" +
-                ": $" + queryVarName + "}, svc_port_end: {_gte: $" + queryVarName + " } } } } }";
-            query.ConnectionWhereStatement += $"_or: [ {{ service_connections: {{service: {{ port: {{ _lte: ${queryVarName} }}, port_end: {{ _gte: ${queryVarName} }} }} }} }}, " +
-                $"{{ service_group_connections: {{service_group: {{ service_service_groups: {{ service: {{ port: {{ _lte: ${queryVarName} }}, port_end: {{ _gte: ${queryVarName} }} }} }} }} }} }} ]";
+            string ruleAnyServiceFilter = BuildCanonicalAnyServiceFilter("ip_proto_id", "svc_port", "svc_port_end");
+            string connectionAnyServiceFilter = BuildCanonicalAnyServiceFilter("proto_id", "port", "port_end");
+            string rulePortRangeFilter = $"{{ svc_port: {{ _lte: ${queryVarName} }}, svc_port_end: {{ _gte: ${queryVarName} }} }}";
+            string connectionPortRangeFilter = $"{{ port: {{ _lte: ${queryVarName} }}, port_end: {{ _gte: ${queryVarName} }} }}";
+
+            query.RuleWhereStatement += $"rule_services: {{ service: {{ svcgrp_flats: {{ serviceBySvcgrpFlatMemberId: {{ _or: [ {rulePortRangeFilter}, {ruleAnyServiceFilter} ] }} }} }} }}";
+            query.ConnectionWhereStatement += $"_or: [ {{ service_connections: {{ service: {{ _or: [ {connectionPortRangeFilter}, {connectionAnyServiceFilter} ] }} }} }}, " +
+                $"{{ service_group_connections: {{ service_group: {{ service_service_groups: {{ service: {{ _or: [ {connectionPortRangeFilter}, {connectionAnyServiceFilter} ] }} }} }} }} }} ]";
         }
 
         private void ExtractUnusedFilter(DynGraphqlQuery query)

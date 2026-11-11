@@ -333,6 +333,15 @@ jobs:
           sudo apachectl configtest || true
           sudo tail -n 100 /var/log/apache2/error.log || true
 
+      # The UI blocks before it listens until its config subscription delivers, so a broken API
+      # websocket path only shows up as a 503 from Apache - its own log says why.
+      - name: Collect UI diagnostics after a failure
+        if: ${{ matrix.integration && failure() }}
+        run: |
+          sudo systemctl status fworch-ui --no-pager || true
+          sudo journalctl -u fworch-ui --no-pager -n 200 || true
+          sudo tail -n 200 /var/log/fworch/ui.log || true
+
 
   launcher-guard-tests:
     name: Launcher guard regression tests

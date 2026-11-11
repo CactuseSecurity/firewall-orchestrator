@@ -23,9 +23,16 @@
 	ProxyTimeout 3600
 
 	# terminate https incoming calls and proxy to http,
-	# upgrade=websocket lets mod_proxy_http tunnel the websocket connections of graphql subscriptions
-	ProxyPass /api http://{{ api_local_listening_ip_address }}:{{ api_port }}/ upgrade=websocket
-	ProxyPassReverse /api http://{{ api_local_listening_ip_address }}:{{ api_port }}/
+	# upgrade=websocket lets mod_proxy_http tunnel the websocket connections of graphql subscriptions.
+	# Both sides end in a slash: with "/api" against ".../" a request for /api/v1/graphql reaches
+	# hasura as //v1/graphql, which plain http tolerates but the subscription websocket does not -
+	# and the UI waits for its first config subscription message before it starts listening.
+	ProxyPass /api/ http://{{ api_local_listening_ip_address }}:{{ api_port }}/ upgrade=websocket
+	ProxyPassReverse /api/ http://{{ api_local_listening_ip_address }}:{{ api_port }}/
+	# keep the documented bare /api entry point (hasura root) reachable
+	<IfModule mod_alias.c>
+		RedirectMatch "^/api$" "/api/"
+	</IfModule>
 
 	ErrorLog /var/log/{{ webserver_package_name }}/error.log
 	TransferLog /var/log/{{ webserver_package_name }}/access.log

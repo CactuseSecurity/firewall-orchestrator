@@ -3,6 +3,7 @@
 ## 9.9.2 - 11.11.2026
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.2 (denial-of-service fixes in validator and parser).
+- installer: enforce a minimum .NET runtime (`dotnet_min_runtime_version`, currently 10.0.15, the .NET 10.0.15 security release) for middleware and UI on install and upgrade (#5692). A host runtime below it is upgraded through apt/dnf, otherwise the installation stops with instructions (`dotnet_runtime_upgrade_below_minimum=false` never upgrades)
 
 
 ## 9.9.1 - 05.11.2026

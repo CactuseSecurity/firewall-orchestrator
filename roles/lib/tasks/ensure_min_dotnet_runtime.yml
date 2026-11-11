@@ -1,0 +1,105 @@
+# Enforces dotnet_min_runtime_version on install and upgrade.
+#
+# The SDK is installed with state: present, so on the apt and dnf paths an upgrade of FWO keeps the
+# 10.0.x runtime the host already has, and raising the ASP.NET Core package references alone does not
+# bring runtime security fixes to the host. Below the minimum, the dotnet packages installed through
+# the package manager are upgraded from the configured sources (apt pins such as the Microsoft origin
+# on the Ubuntu fallback still apply), unless dotnet_runtime_upgrade_below_minimum is false. A runtime
+# that is still below the minimum afterwards stops the installation. A runtime that meets the
+# minimum changes nothing.
+- name: read the installed dotnet runtimes
+  command: dotnet --list-runtimes
+  register: dotnet_runtimes_before
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: evaluate the installed dotnet runtimes
+  include_tasks: evaluate_dotnet_runtime_versions.yml
+  vars:
+    dotnet_runtime_listing: "{{ dotnet_runtimes_before.stdout | default('') }}"
+
+- name: upgrade the dotnet packages to reach runtime {{ dotnet_min_runtime_version }}
+  when:
+    - dotnet_runtime_shortfall | length > 0
+    - dotnet_runtime_upgrade_below_minimum | bool
+  environment: "{{ proxy_env }}"
+  block:
+    - name: gather installed package facts for the dotnet runtime upgrade
+      package_facts:
+        manager: auto
+
+    - name: select the installed dotnet packages of channel {{ dotnet_version }}
+      set_fact:
+        dotnet_runtime_upgrade_packages: >-
+          {{ dotnet_runtime_package_names
+             | select('in', ansible_facts['packages'] | default({}))
+             | list }}
+
+    - name: upgrade the dotnet packages with apt
+      apt:
+        name: "{{ dotnet_runtime_upgrade_packages }}"
+        state: latest
+        update_cache: true
+      register: dotnet_runtime_upgrade_apt
+      when:
+        - ansible_facts['os_family'] == 'Debian'
+        - dotnet_runtime_upgrade_packages | length > 0
+
+    - name: upgrade the dotnet packages with dnf
+      dnf:
+        name: "{{ dotnet_runtime_upgrade_packages }}"
+        state: latest
+        update_cache: true
+      register: dotnet_runtime_upgrade_dnf
+      when:
+        - ansible_facts['os_family'] == 'RedHat'
+        - dotnet_runtime_upgrade_packages | length > 0
+
+    - name: remember that the dotnet runtime was upgraded
+      set_fact:
+        dotnet_runtime_upgraded: >-
+          {{ (dotnet_runtime_upgrade_apt is changed) or (dotnet_runtime_upgrade_dnf is changed) }}
+
+    - name: read the dotnet runtimes after the upgrade
+      command: dotnet --list-runtimes
+      register: dotnet_runtimes_after
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: evaluate the dotnet runtimes after the upgrade
+      include_tasks: evaluate_dotnet_runtime_versions.yml
+      vars:
+        dotnet_runtime_listing: "{{ dotnet_runtimes_after.stdout | default('') }}"
+
+# In check mode the upgrade above is only reported, so the runtime cannot have changed yet.
+- name: require dotnet runtime {{ dotnet_min_runtime_version }} or newer
+  assert:
+    that: dotnet_runtime_shortfall | length == 0
+    fail_msg: >-
+      {{ dotnet_runtime_shortfall | join(' and ') }} {{ dotnet_min_runtime_version }} or newer is required,
+      but this host provides {{ dotnet_runtime_shortfall_installed | default('none', true) }}.
+      {% if not dotnet_runtime_upgrade_below_minimum | bool %}
+      The upgrade was not attempted because dotnet_runtime_upgrade_below_minimum is false.
+      {%- elif dotnet_runtime_upgrade_packages | default([]) | length == 0 %}
+      No {{ dotnet_runtime_package_names | join('/') }} package is installed through the package manager,
+      so the installer cannot upgrade this runtime (installed manually, with dotnet-install.sh, or on an
+      architecture other than x86_64).
+      {%- else %}
+      Upgrading {{ dotnet_runtime_upgrade_packages | join(', ') }} from the configured package sources did not
+      provide it (offline mirror not yet synchronized, or the distribution has not published it yet).
+      {%- endif %}
+      Update the .NET {{ dotnet_version }} runtime of this host to {{ dotnet_min_runtime_version }} or newer
+      (Microsoft.AspNetCore.App and Microsoft.NETCore.App, check with "dotnet --list-runtimes") and run the
+      installer again. The {{ product_name }} middleware and UI use the runtime of the host, so its security fixes
+      do not ship with {{ product_name }}.
+    quiet: true
+  vars:
+    # "<framework> <version>" of every installed runtime of the frameworks below the minimum
+    dotnet_runtime_shortfall_installed: >-
+      {{ dotnet_runtime_evaluated_listing.splitlines()
+         | select('search', '^(' ~ (dotnet_runtime_shortfall | map('regex_escape') | join('|')) ~ ') ')
+         | map('regex_replace', '\s*\[.*$', '')
+         | join(', ') }}
+  when: not (ansible_check_mode and (dotnet_runtime_upgraded | default(false) | bool))

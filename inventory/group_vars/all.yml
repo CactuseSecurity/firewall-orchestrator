@@ -596,6 +596,21 @@ importer_testonly_password: "not4production"
 dotnet_deb_name: "packages-microsoft-prod.deb"
 dotnet_rpm_name: "packages-microsoft-prod.rpm"
 dotnet_version: "10.0"
+# Minimum patch of the .NET runtime (channel dotnet_version) on middleware and UI hosts. Both are published
+# framework-dependent and run on the shared frameworks of the host, so raising the ASP.NET Core package
+# references does not bring runtime security fixes to existing installations. Raise this together with
+# security-relevant ASP.NET Core bumps; install and upgrade then enforce it (roles/lib/tasks/ensure_min_dotnet_runtime.yml)
+dotnet_min_runtime_version: "10.0.15"
+dotnet_required_shared_frameworks:
+  - Microsoft.NETCore.App
+  - Microsoft.AspNetCore.App
+# Below the minimum, upgrade these packages (only those installed) from the configured apt/dnf sources.
+# false: never change the dotnet packages, stop the installation with instructions instead
+dotnet_runtime_upgrade_below_minimum: true
+dotnet_runtime_package_names:
+  - "dotnet-sdk-{{ dotnet_version }}"
+  - "aspnetcore-runtime-{{ dotnet_version }}"
+  - "dotnet-runtime-{{ dotnet_version }}"
 # dotnet-install.sh (used on Debian >= 13/testing and as Ubuntu fallback) is pinned to a commit of
 # github.com/dotnet/install-scripts and verified by checksum before it is executed
 dotnet_install_script_commit: "5147e32300a8e908f5d737c8cff63a76b4b63531"

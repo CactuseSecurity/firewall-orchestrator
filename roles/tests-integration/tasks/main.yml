@@ -163,6 +163,11 @@
     - ansible_facts['distribution'] | lower == 'ubuntu'
     - ansible_facts['distribution_major_version'] is version('22', '>=')
 
+# On the hosts where roles/lib installs dotnet for the middleware and the UI.
+- name: Dotnet runtime minimum testing
+  import_tasks: test-dotnet-runtime-minimum.yml
+  when: "['frontends', 'middlewareserver'] | intersect(group_names) | length > 0"
+
 - name: Apache intermediate chain configuration testing
   import_tasks: test-apache-intermediate-chain.yml
   when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"

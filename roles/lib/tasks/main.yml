@@ -37,6 +37,9 @@
     - name: install dotnet needed for both ui and middleware servers
       include_tasks: install_dot_net.yml
 
+    - name: enforce the minimum dotnet runtime version
+      include_tasks: ensure_min_dotnet_runtime.yml
+
     # this is still buggy:
     # - name: remove dotnet packages older than target version
     #   include_tasks: remove-old-dotnet-versions.yml

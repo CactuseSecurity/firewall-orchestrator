@@ -12,6 +12,11 @@
   - "last import" queries (rollback, import status, daily check, last complete/successful import) only consider configuration imports
 
 ## 9.9.1 - 09.11.2026
+## 9.9.2 - 11.11.2026
+- dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
+
+
+## 9.9.1 - 05.11.2026
 - request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent
 - workflow UI: the promotion-mode setting now also supports action-buttons-only in addition to ticket, task and combined promotion
 - workflow UI: approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks

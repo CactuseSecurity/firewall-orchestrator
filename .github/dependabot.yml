@@ -13,6 +13,11 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    groups:
+      # init and analyze share one pinned SHA in codeql-analysis.yml, so separate PRs conflict
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
     assignees:
       - Laennart
 

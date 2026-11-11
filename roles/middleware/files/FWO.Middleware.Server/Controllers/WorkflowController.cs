@@ -13,6 +13,7 @@ using FWO.Services;
 using FWO.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers
@@ -29,7 +30,12 @@ namespace FWO.Middleware.Server.Controllers
         private readonly List<Ldap> ldaps;
         private readonly JwtWriter jwtWriter;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
-        private static readonly KeyedAsyncLock<long> TicketActionLocks = new();
+        // A ticket promotion can fan out into one action request per request task. Do not cap
+        // callers for one ticket: the ticket itself determines the fan-out size. Keep the global
+        // key cap and the per-owner distinct-ticket cap as flood protection.
+        private static readonly KeyedAsyncLock<long> TicketActionLocks = new(
+            maxCallersPerKey: int.MaxValue,
+            maxCallersPerOwnerAndKey: int.MaxValue);
         private static readonly WorkflowEmailBundleStore EmailBundleStore = new();
         private static readonly List<string> kNoGroups = [];
         private const string kStateChangeRefusalTitleKey = "actions";
@@ -53,6 +59,8 @@ namespace FWO.Middleware.Server.Controllers
         /// <returns>true if the workflow action execution was handled</returns>
         [HttpPost("Actions")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}")]
+        [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+        [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
         public async Task<WorkflowActionResult> ExecuteActions([FromBody] WorkflowActionParameters parameters)
         {
             WorkflowActionResult result = new();
@@ -203,7 +211,6 @@ namespace FWO.Middleware.Server.Controllers
             {
                 return result;
             }
-
             WfTicket? ticket = await ResolveWorkflowTicket(wfHandler, lockTicketId, result);
             if (ticket == null)
             {
@@ -505,6 +512,12 @@ namespace FWO.Middleware.Server.Controllers
 
         private static bool ValidatePersistedStateTransition(WorkflowActionParameters parameters, WfStatefulObject statefulObject, WorkflowActionResult result)
         {
+            if (parameters.StateChangedByCreation && parameters.OldStateId != 0)
+            {
+                SetWarning(result, "State-change action execution rejected because a creation transition named a nonzero old state.");
+                return false;
+            }
+
             if (parameters.OldStateId == parameters.NewStateId)
             {
                 SetWarning(result, $"State-change action execution rejected because no state change was requested.");
@@ -557,7 +570,7 @@ namespace FWO.Middleware.Server.Controllers
                     parameters.NotificationPlaceholders);
             }
 
-            MarkStateChanged(statefulObject, parameters.OldStateId, parameters.NewStateId);
+            MarkStateChanged(statefulObject, parameters.OldStateId, parameters.NewStateId, parameters.StateChangedByCreation);
             await wfHandler.ActionHandler!.DoStateChangeActions(statefulObject, scope, owner, actionTicketId, userGrpDn, parameters.NotificationPlaceholders);
             return true;
         }
@@ -828,8 +841,14 @@ namespace FWO.Middleware.Server.Controllers
             return (null, null, null, null);
         }
 
-        private static void MarkStateChanged(WfStatefulObject statefulObject, int oldStateId, int newStateId)
+        private static void MarkStateChanged(WfStatefulObject statefulObject, int oldStateId, int newStateId, bool stateChangedByCreation)
         {
+            if (stateChangedByCreation)
+            {
+                statefulObject.MarkCreatedStateChanged(newStateId);
+                return;
+            }
+
             statefulObject.StateId = oldStateId;
             statefulObject.ResetStateChanged();
             statefulObject.StateId = newStateId;

@@ -65,7 +65,8 @@ create table request.reqelement
 	start_time Timestamp with time zone,
 	end_time Timestamp with time zone,
 	time_obj_id bigint,
-	flow_timeobj_id bigint
+	flow_timeobj_id bigint,
+	object_task_id bigint
 );
 
 create table request.approval 
@@ -194,7 +195,8 @@ create table request.state_matrix_phase
     lowest_input_state int NOT NULL,
     lowest_start_state int NOT NULL,
     lowest_end_state int NOT NULL,
-    phase_visibility_mode varchar NOT NULL DEFAULT 'AnyTask'
+    phase_visibility_mode varchar NOT NULL DEFAULT 'AnyTask',
+    promotion_mode varchar NOT NULL DEFAULT 'Both'
 );
 
 create table request.workflow_configuration_phase
@@ -276,7 +278,8 @@ create table request.implelement
 	name varchar,
 	start_time Timestamp with time zone,
 	end_time Timestamp with time zone,
-	time_obj_id bigint
+	time_obj_id bigint,
+	object_task_id bigint
 );
 
 create table request.impltask
@@ -302,7 +305,8 @@ create table request.impltask
 	assigned_group varchar,
 	target_begin_date Timestamp,
 	target_end_date Timestamp,
-	mgm_id int -- management the task is implemented on; NULL means the management of the request task
+	mgm_id int, -- management the task is implemented on; NULL means the management of the request task
+	rule_position jsonb
 );
 
 -- Records which state the workflow actions of an object were last executed for, so that

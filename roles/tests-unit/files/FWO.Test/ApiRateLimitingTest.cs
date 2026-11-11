@@ -22,6 +22,9 @@ namespace FWO.Test
         [
             (typeof(FlowComplianceController), nameof(FlowComplianceController.GetFlowComplianceState)),
             (typeof(ApplicationAddressesController), nameof(ApplicationAddressesController.Get)),
+            (typeof(ModellingObjectsController), nameof(ModellingObjectsController.GetAvailableInterfacesForApp)),
+            (typeof(ModellingObjectsController), nameof(ModellingObjectsController.GetAppRolesPerApp)),
+            (typeof(ModellingObjectsController), nameof(ModellingObjectsController.GetNetworkAreas)),
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetAddressObjects)),
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetAddressGroups)),
             (typeof(FlowCatalogController), nameof(FlowCatalogController.GetServiceObjects)),
@@ -39,7 +42,8 @@ namespace FWO.Test
             (typeof(GroupController), nameof(GroupController.Get)),
             (typeof(GroupController), nameof(GroupController.GetMembers)),
             (typeof(GroupController), nameof(GroupController.GetMemberships)),
-            (typeof(GroupController), nameof(GroupController.ResolveMembers))
+            (typeof(GroupController), nameof(GroupController.ResolveMembers)),
+            (typeof(WorkflowController), nameof(WorkflowController.ExecuteActions))
         ];
 
         [Test]

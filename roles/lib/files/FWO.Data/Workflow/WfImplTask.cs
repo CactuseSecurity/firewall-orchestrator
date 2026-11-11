@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using FWO.Data.RulePositioning;
 using Newtonsoft.Json;
 
 namespace FWO.Data.Workflow
@@ -29,6 +30,9 @@ namespace FWO.Data.Workflow
         [JsonProperty("comments"), JsonPropertyName("comments")]
         public List<WfCommentDataHelper> Comments { get; set; } = [];
 
+        [JsonProperty("rule_position"), JsonPropertyName("rule_position")]
+        public RulePosition? RulePosition { get; set; }
+
 
         public List<WfImplElement> RemovedElements { get; set; } = [];
         public long TicketId { get; set; }
@@ -46,6 +50,7 @@ namespace FWO.Data.Workflow
             ManagementId = implTask.ManagementId;
             ImplElements = implTask.ImplElements;
             Comments = implTask.Comments;
+            RulePosition = implTask.RulePosition?.DeepCopy();
             RemovedElements = implTask.RemovedElements;
             TicketId = implTask.TicketId;
         }

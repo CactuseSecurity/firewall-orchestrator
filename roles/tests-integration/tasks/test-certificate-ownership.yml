@@ -140,9 +140,9 @@
     internalca_reset_guard_task_name: >-
       Refuse an unsafe reset when the retired CA name cannot be determined
 
-- name: Test rejection of a reset without recoverable ownership information
+- name: "expected to fail: certificate reset without recoverable ownership information is refused"
   block:
-    - name: Run the certificate reset ownership preflight with no recoverable issuer
+    - name: "expected to fail: certificate reset without recoverable ownership information is refused"
       include_tasks: "{{ role_path }}/../internalCA/tasks/require-reset-retired-ca-name.yml"
       vars:
         internalca_reset_certificates: true
@@ -159,7 +159,7 @@
   # can fail - an undefined variable above all - looks exactly the same to a bare rescue,
   # and would report the destructive path as refused when it was never reached.
   rescue:
-    - name: Record rejection of the unsafe certificate reset
+    - name: "expected to fail: rejection of the unsafe certificate reset caught"
       set_fact:
         test_ownership_missing_retired_ca_name_rejected: >-
           {{ ansible_failed_task.name == internalca_reset_guard_task_name }}
@@ -207,58 +207,70 @@
     internalca_apache_certificate: /test/fwo-issued.crt
     internalca_apache_private_key: /test/fwo-issued.key
 
-- name: Resolve the Apache identity with issuance switched off by the operator
-  include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
-  vars:
-    internalca_existing_apache_configuration: /test/fworch-ui.conf
-    internalca_existing_apache_certificate: /test/operator.crt
-    internalca_existing_apache_private_key: /test/operator.key
-    internalca_issue_apache_certificate: false
-    internalca_preserve_apache_certificate: false
-
-- name: Verify the operator's own Apache identity is what the vhosts will name
-  assert:
-    that:
-      - internalca_apache_certificate == '/test/operator.crt'
-      - internalca_apache_private_key == '/test/operator.key'
-    fail_msg: >-
-      With internalca_issue_apache_certificate set to false the FWO Apache vhosts still name
-      {{ internalca_apache_certificate }}, which this run does not create. Apache would refuse
-      to start on the next upgrade of a host whose identity FWO was told to keep away from.
-
-- name: Seed the FWO default Apache identity for the ownership-detection case
+# Extra vars outrank set_fact, so on a host whose operator passes the Apache identity with -e
+# neither the seed above nor the production task under test can change it. The cases below
+# cannot be observed there; the operator's explicit paths are what every vhost names anyway.
+- name: Detect whether the Apache identity paths are pinned by extra vars
   set_fact:
-    internalca_apache_certificate: /test/fwo-issued.crt
-    internalca_apache_private_key: /test/fwo-issued.key
+    test_ownership_apache_identity_pinned: >-
+      {{ internalca_apache_certificate != '/test/fwo-issued.crt'
+         or internalca_apache_private_key != '/test/fwo-issued.key' }}
 
-# Ownership detection rewrites the paths itself, and along with them the intermediate chain.
-# Doing it twice would be harmless here but would hide a later change that stopped it.
-- name: Resolve the Apache identity when ownership detection already retained it
-  include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
-  vars:
-    internalca_existing_apache_configuration: /test/fworch-ui.conf
-    internalca_existing_apache_certificate: /test/operator.crt
-    internalca_existing_apache_private_key: /test/operator.key
-    internalca_issue_apache_certificate: false
-    internalca_preserve_apache_certificate: true
+- name: Test the Apache issuance opt-out
+  when: not (test_ownership_apache_identity_pinned | bool)
+  block:
+    - name: Resolve the Apache identity with issuance switched off by the operator
+      include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
+      vars:
+        internalca_existing_apache_configuration: /test/fworch-ui.conf
+        internalca_existing_apache_certificate: /test/operator.crt
+        internalca_existing_apache_private_key: /test/operator.key
+        internalca_issue_apache_certificate: false
+        internalca_preserve_apache_certificate: false
 
-- name: Resolve the Apache identity on a host FWO does issue for
-  include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
-  vars:
-    internalca_existing_apache_configuration: /test/fworch-ui.conf
-    internalca_existing_apache_certificate: /test/operator.crt
-    internalca_existing_apache_private_key: /test/operator.key
-    internalca_issue_apache_certificate: true
-    internalca_preserve_apache_certificate: false
+    - name: Verify the operator's own Apache identity is what the vhosts will name
+      assert:
+        that:
+          - internalca_apache_certificate == '/test/operator.crt'
+          - internalca_apache_private_key == '/test/operator.key'
+        fail_msg: >-
+          With internalca_issue_apache_certificate set to false the FWO Apache vhosts still name
+          {{ internalca_apache_certificate }}, which this run does not create. Apache would refuse
+          to start on the next upgrade of a host whose identity FWO was told to keep away from.
 
-- name: Verify the issued identity is left alone in both other cases
-  assert:
-    that:
-      - internalca_apache_certificate == '/test/fwo-issued.crt'
-      - internalca_apache_private_key == '/test/fwo-issued.key'
-    fail_msg: >-
-      The Apache identity was redirected at the installed vhost paths on a host where FWO
-      issues the identity itself, or where ownership detection had already retained it.
+    - name: Seed the FWO default Apache identity for the ownership-detection case
+      set_fact:
+        internalca_apache_certificate: /test/fwo-issued.crt
+        internalca_apache_private_key: /test/fwo-issued.key
+
+    # Ownership detection rewrites the paths itself, and along with them the intermediate chain.
+    # Doing it twice would be harmless here but would hide a later change that stopped it.
+    - name: Resolve the Apache identity when ownership detection already retained it
+      include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
+      vars:
+        internalca_existing_apache_configuration: /test/fworch-ui.conf
+        internalca_existing_apache_certificate: /test/operator.crt
+        internalca_existing_apache_private_key: /test/operator.key
+        internalca_issue_apache_certificate: false
+        internalca_preserve_apache_certificate: true
+
+    - name: Resolve the Apache identity on a host FWO does issue for
+      include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
+      vars:
+        internalca_existing_apache_configuration: /test/fworch-ui.conf
+        internalca_existing_apache_certificate: /test/operator.crt
+        internalca_existing_apache_private_key: /test/operator.key
+        internalca_issue_apache_certificate: true
+        internalca_preserve_apache_certificate: false
+
+    - name: Verify the issued identity is left alone in both other cases
+      assert:
+        that:
+          - internalca_apache_certificate == '/test/fwo-issued.crt'
+          - internalca_apache_private_key == '/test/fwo-issued.key'
+        fail_msg: >-
+          The Apache identity was redirected at the installed vhost paths on a host where FWO
+          issues the identity itself, or where ownership detection had already retained it.
 
 - name: Restore the Apache identity paths after the issuance opt-out test
   set_fact:

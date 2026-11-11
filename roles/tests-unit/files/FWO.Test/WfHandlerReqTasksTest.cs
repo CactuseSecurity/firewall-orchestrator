@@ -1,9 +1,9 @@
 using FWO.Data;
+using FWO.Services;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data.Flow;
 using FWO.Data.Workflow;
-using FWO.Services;
 using FWO.Services.Workflow;
 using NUnit.Framework;
 using System.Reflection;
@@ -532,6 +532,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddReqTask_ApprovalOverrideAddsTaskToLockedTicket()
+        {
+            WfHandler handler = new();
+            handler.ActTicket = new WfTicket { Id = 7, Locked = true };
+            handler.ActReqTask = new WfReqTask
+            {
+                TicketId = 7,
+                TaskNumber = 1,
+                TaskType = WfTaskType.object_create.ToString(),
+                Locked = true,
+                Approvals = [new WfApproval { StateId = 3 }]
+            };
+
+            await handler.AddReqTask(allowLockedApprovalUpdate: true);
+
+            Assert.That(handler.ActTicket.Tasks, Has.Count.EqualTo(1));
+        }
+
+        [Test]
         public async Task ChangeReqTask_ReplacesTaskByTaskNumber()
         {
             WfHandler handler = new();
@@ -676,6 +695,41 @@ namespace FWO.Test
                 Assert.That(handler.ActTicket.Tasks[0].StateId, Is.EqualTo(2));
                 Assert.That(handler.DisplayReqTaskMode, Is.True);
                 Assert.That(handler.EditReqTaskMode, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task StartWorkOnReqTask_InApprovalPhase_AutoMovesPendingApprovalWithTask()
+        {
+            WfHandler handler = new() { Phase = WorkflowPhases.approval };
+            handler.userConfig.User.Dn = "cn=approver";
+            string taskType = WfTaskType.access.ToString();
+            StateMatrix matrix = new()
+            {
+                Matrix = new Dictionary<int, List<int>> { [0] = [2] },
+                LowestStartedState = 2,
+                LowestEndState = 10
+            };
+            SetMatrix(handler, taskType, matrix);
+            WfApproval approval = new() { Id = 31, StateId = 0 };
+            WfReqTask reqTask = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = taskType,
+                StateId = 0,
+                Approvals = [approval]
+            };
+            handler.ActTicket = new WfTicket { Id = 7, Tasks = { reqTask } };
+            handler.TicketList.Add(handler.ActTicket);
+
+            await handler.StartWorkOnReqTask(reqTask, ObjAction.approve);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.StateId, Is.EqualTo(2));
+                Assert.That(handler.ActReqTask.Approvals.Single().StateId, Is.EqualTo(2));
+                Assert.That(handler.ActTicket.Tasks.Single().StateId, Is.EqualTo(2));
             });
         }
 
@@ -853,6 +907,19 @@ namespace FWO.Test
                 Assert.That(handler.ActTicket.Tasks, Has.Count.EqualTo(1));
                 Assert.That(handler.DisplayDeleteReqTaskMode, Is.False);
             });
+        }
+
+        [Test]
+        public async Task ConfDeleteReqTask_ApprovalOverrideRemovesTaskFromLockedTicket()
+        {
+            WfHandler handler = new();
+            WfReqTask reqTask = new() { Id = 11 };
+            handler.ActTicket = new WfTicket { Locked = true, Tasks = { reqTask } };
+            handler.ActReqTask = reqTask;
+
+            await handler.ConfDeleteReqTask(allowLockedApprovalUpdate: true);
+
+            Assert.That(handler.ActTicket.Tasks, Is.Empty);
         }
 
         [Test]

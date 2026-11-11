@@ -334,7 +334,7 @@ internal class NetworkZoneTreeAlgorithmTest
     public void FindDevicesInPaths_WithoutAutoCalculatedZones_TreatsEveryZoneAsConfigured()
     {
         MatrixData matrix = BuildMatrix();
-        List<ComplianceNetworkZone> onlyConfigured =
+        List<NetworkZone> onlyConfigured =
             [.. matrix.Zones.Where(zone => !zone.IsAutoCalculatedInternetZone && !zone.IsAutoCalculatedUndefinedInternalZone)];
         MatrixData withoutSpecialZones = new()
         {
@@ -371,7 +371,7 @@ internal class NetworkZoneTreeAlgorithmTest
 
     private static MatrixData BuildMatrix()
     {
-        List<ComplianceNetworkZone> zones = [];
+        List<NetworkZone> zones = [];
         zones.Add(Zone(kZoneAId, "Zone A"));
         zones.Add(Zone(kZoneBId, "Zone B"));
         zones.Add(Zone(kZoneCId, "Zone C"));
@@ -412,19 +412,19 @@ internal class NetworkZoneTreeAlgorithmTest
         };
     }
 
-    private static ComplianceNetworkZone Zone(int id, string name)
+    private static NetworkZone Zone(int id, string name)
     {
-        return new ComplianceNetworkZone { Id = id, Name = name };
+        return new NetworkZone { Id = id, Name = name };
     }
 
-    private static ComplianceNetworkZone InternetZone(int id)
+    private static NetworkZone InternetZone(int id)
     {
-        return new ComplianceNetworkZone { Id = id, Name = "Internet", IsAutoCalculatedInternetZone = true };
+        return new NetworkZone { Id = id, Name = "Internet", IsAutoCalculatedInternetZone = true };
     }
 
-    private static ComplianceNetworkZone UndefinedInternalZone(int id)
+    private static NetworkZone UndefinedInternalZone(int id)
     {
-        return new ComplianceNetworkZone
+        return new NetworkZone
         {
             Id = id,
             Name = "Undefined internal",

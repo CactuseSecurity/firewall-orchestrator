@@ -1,0 +1,17 @@
+fragment reqTaskOverviewWithHandlers on request_reqtask {
+  ...reqTaskOverview
+  current_handler: uiuser {
+    uiuser_id
+    uuid
+    uiuser_username
+    uiuser_email
+  }
+  implementation_tasks: impltasks {
+    current_handler: uiuser {
+      uiuser_id
+      uuid
+      uiuser_username
+      uiuser_email
+    }
+  }
+}

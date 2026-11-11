@@ -1,5 +1,4 @@
-using FWO.Basics;
-using FWO.Data;
+using FWO.Services.PathAnalysis;
 using FWO.Data.Workflow;
 using System.Text.Json;
 
@@ -238,16 +237,26 @@ namespace FWO.Services.Workflow
                 ActReqTask.StateId = actPossibleStates[0];
                 if (Phase == WorkflowPhases.approval)
                 {
-                    await SetApprovalEnv();
-                    List<int> nextApprovalState = ActStateMatrix.getAllowedTransitions(ActApproval.StateId);
-                    if (nextApprovalState.Count == 1 && nextApprovalState[0] >= ActStateMatrix.LowestStartedState && nextApprovalState[0] < ActStateMatrix.LowestEndState)
+                    WfApproval? pendingApproval = ActReqTask.Approvals
+                        .FirstOrDefault(approval => approval.StateId < ActStateMatrix.LowestEndState);
+                    if (pendingApproval != null)
                     {
-                        ActApproval.StateId = nextApprovalState[0];
-                        await UpdateActApproval();
+                        await SetApprovalEnv(pendingApproval, false);
+                        List<int> nextApprovalState = ActStateMatrix.getAllowedTransitions(ActApproval.StateId);
+                        if (nextApprovalState.Count == 1 && nextApprovalState[0] >= ActStateMatrix.LowestStartedState && nextApprovalState[0] < ActStateMatrix.LowestEndState)
+                        {
+                            ActApproval.StateId = nextApprovalState[0];
+                            await UpdateActApproval();
+                        }
                     }
                 }
             }
+            if (ActReqTask.Start == null && ActReqTask.StateId >= ActStateMatrix.LowestStartedState)
+            {
+                ActReqTask.Start = DateTime.Now;
+            }
             await UpdateActReqTaskState();
+            await PromoteLaggingBundledRequestTasks(ActReqTask.StateId, ActReqTask.CurrentHandler);
             await UpdateActTicketStateFromReqTasks();
             SetReqTaskMode(action);
         }
@@ -296,9 +305,13 @@ namespace FWO.Services.Workflow
             DisplayAssignReqTaskMode = false;
         }
 
-        public async Task AddReqTask()
+        /// <summary>
+        /// Adds the active request task to the ticket.
+        /// </summary>
+        /// <param name="allowLockedApprovalUpdate">Allows the dedicated approval editor to add a task to a locked ticket.</param>
+        public async Task AddReqTask(bool allowLockedApprovalUpdate = false)
         {
-            if (ActTicket.Locked || !CheckActTicketChangeable())
+            if ((ActTicket.Locked && !allowLockedApprovalUpdate) || !CheckActTicketChangeable())
             {
                 return;
             }
@@ -337,7 +350,8 @@ namespace FWO.Services.Workflow
         /// <param name="allowLockedApprovalUpdate">Allows the explicitly permitted approval-phase field update on a locked task.</param>
         public async Task ChangeReqTask(bool allowLockedApprovalUpdate = false)
         {
-            if ((ActReqTask.Locked && !allowLockedApprovalUpdate) || !CheckActTicketChangeable())
+            if ((ActReqTask.Locked && !allowLockedApprovalUpdate)
+                || !CheckActTicketChangeable())
             {
                 return;
             }
@@ -363,9 +377,22 @@ namespace FWO.Services.Workflow
             ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.TaskNumber == ActReqTask.TaskNumber)] = ActReqTask;
         }
 
-        public async Task ConfDeleteReqTask()
+        /// <summary>
+        /// Deletes the active request task from the ticket.
+        /// </summary>
+        public Task ConfDeleteReqTask()
         {
-            if (ActTicket.Locked || !CheckActTicketChangeable())
+            return ConfDeleteReqTask(false);
+        }
+
+        /// <summary>
+        /// Deletes the active request task from the ticket, optionally bypassing the locked-ticket guard
+        /// for the dedicated approval editor.
+        /// </summary>
+        /// <param name="allowLockedApprovalUpdate">Allows the dedicated approval editor to delete a task from a locked ticket.</param>
+        public async Task ConfDeleteReqTask(bool allowLockedApprovalUpdate)
+        {
+            if ((ActTicket.Locked && !allowLockedApprovalUpdate) || !CheckActTicketChangeable())
             {
                 DisplayDeleteReqTaskMode = false;
                 return;

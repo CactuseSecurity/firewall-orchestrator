@@ -96,6 +96,13 @@ namespace FWO.Config.Api.Data
         [JsonProperty("fwApiElementsPerFetch"), JsonPropertyName("fwApiElementsPerFetch")]
         public int FwApiElementsPerFetch { get; set; } = 150;
 
+        /// <summary>
+        /// Whether the importer skips rules using features it cannot represent (e.g. Azure geo-location filters)
+        /// with a warning instead of failing the import.
+        /// </summary>
+        [JsonProperty("importSkipUnsupportedRules"), JsonPropertyName("importSkipUnsupportedRules")]
+        public bool ImportSkipUnsupportedRules { get; set; } = true;
+
         [Obsolete("Use notification entries with NotificationClient.ImportChange instead.")]
         [JsonProperty("impChangeNotifyRecipients"), JsonPropertyName("impChangeNotifyRecipients")]
         public string ImpChangeNotifyRecipients { get; set; } = "";
@@ -319,6 +326,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqFlowIntegration"), JsonPropertyName("reqFlowIntegration")]
         public string ReqFlowIntegration { get; set; } = System.Text.Json.JsonSerializer.Serialize(new FlowIntegrationConfig());
 
+        [JsonProperty("reqTimeObjectOriginSuffixes"), JsonPropertyName("reqTimeObjectOriginSuffixes")]
+        public string ReqTimeObjectOriginSuffixes { get; set; } = "{\"requester\":\"\",\"approver\":\"\"}";
+
         [JsonProperty("reqAllowManualOwnerAdmin"), JsonPropertyName("reqAllowManualOwnerAdmin")]
         public bool AllowManualOwnerAdmin { get; set; } = false;
 
@@ -355,6 +365,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reqAllowedChangesByApprover"), JsonPropertyName("reqAllowedChangesByApprover")]
         public string ReqAllowedChangesByApprover { get; set; } = System.Text.Json.JsonSerializer.Serialize(new ApproverAllowedChangesConfig());
+
+        [JsonProperty("reqApprovalEditMode"), JsonPropertyName("reqApprovalEditMode")]
+        public ApprovalEditMode ReqApprovalEditMode { get; set; } = ApprovalEditMode.Classic;
 
         [JsonProperty("reqImplicitApprovalComment"), JsonPropertyName("reqImplicitApprovalComment")]
         public string ReqImplicitApprovalComment { get; set; } = "Automatically approved because the request task was promoted beyond the approval phase.";

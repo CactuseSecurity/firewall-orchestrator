@@ -145,9 +145,10 @@
     internalca_apache_chain_intermediates_path: "{{ test_apache_chain_directory.path }}/intermediate.crt"
     internalca_apache_chain_root_path: "{{ test_apache_chain_directory.path }}/root.crt"
 
-- name: Verify the preflight rejects an unrelated Apache root
+- name: "expected to fail: preflight rejects an unrelated Apache root"
   block:
-    - include_tasks: "{{ role_path }}/../internalCA/tasks/validate-apache-intermediates.yml"
+    - name: "expected to fail: preflight rejects an unrelated Apache root"
+      include_tasks: "{{ role_path }}/../internalCA/tasks/validate-apache-intermediates.yml"
       vars:
         internalca_apache_chain_leaf_path: "{{ test_apache_chain_directory.path }}/leaf.crt"
         internalca_apache_chain_intermediates_path: "{{ test_apache_chain_directory.path }}/intermediate.crt"
@@ -155,7 +156,8 @@
     - set_fact:
         test_apache_invalid_chain_rejected: false
   rescue:
-    - set_fact:
+    - name: "expected to fail: rejection of the unrelated Apache root caught"
+      set_fact:
         test_apache_invalid_chain_rejected: true
   become: true
 
@@ -282,9 +284,10 @@
 
 # openssl accepts DER, the .NET clients do not. A bundle assembled from one would look
 # healthy to every openssl based check and leave the retained endpoint unvalidatable.
-- name: Assemble a trust bundle from a DER encoded peer certificate
+- name: "expected to fail: trust bundle assembly rejects a DER encoded peer certificate"
   block:
-    - include_tasks:
+    - name: "expected to fail: trust bundle assembly rejects a DER encoded peer certificate"
+      include_tasks:
         file: "{{ role_path }}/../internalCA/tasks/assemble-trust-bundle.yml"
       vars:
         internalca_bundle_internal_ca_path: "{{ test_apache_chain_directory.path }}/root.crt"
@@ -294,7 +297,7 @@
       set_fact:
         test_der_peer_ca_accepted: true
   rescue:
-    - name: Record that the DER encoded peer certificate was rejected
+    - name: "expected to fail: rejection of the DER encoded peer certificate caught"
       set_fact:
         test_der_peer_ca_accepted: false
 

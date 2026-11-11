@@ -1,249 +1,209 @@
-using Microsoft.AspNetCore.Mvc;
+using FWO.Middleware.Server.Responses;
+using System.Diagnostics.CodeAnalysis;
 
 namespace FWO.Middleware.Server.Requests;
 
 /// <summary>
-/// Represents the FlowComplianceRequestValidator type.
+/// Validates the flow compliance requests (<c>getFlowComplianceState</c> and <c>getPolicyIds</c>) completely
+/// and reports every detected error in one result.
 /// </summary>
 public static class FlowComplianceRequestValidator
 {
-    private const int MinimumPort = 0;
-    private const int MaximumPort = 65535;
-    private const string GetPolicyIdsEndpointName = "getPolicyIds";
-    private const string GetFlowComplianceStateEndpointName = "getFlowComplianceState";
-
-    /// <summary>Maximum number of entries in each of 'source', 'destination' and 'service'.</summary>
-    public const int kMaxRangeEntries = 100;
-
-    /// <summary>Maximum number of entries in 'policies'.</summary>
-    public const int kMaxPolicies = 100;
-
-    private static readonly RequestRootValidationSchema PolicyIdsRootSchema = new(
-        GetPolicyIdsEndpointName,
-        []);
-
-    private static readonly RequestRootValidationSchema FlowComplianceRootSchema = new(
-        GetFlowComplianceStateEndpointName,
-        [
-            new RequestKeyDefinition("source", $"Source IP ranges to evaluate, at most {kMaxRangeEntries} entries."),
-            new RequestKeyDefinition("destination", $"Destination IP ranges to evaluate, at most {kMaxRangeEntries} entries."),
-            new RequestKeyDefinition("service", $"Service ports and protocols to evaluate, at most {kMaxRangeEntries} entries."),
-            new RequestKeyDefinition("policies", $"Policy ids to evaluate, at most {kMaxPolicies} entries.")
-        ]);
-
-    private static readonly RequestKeyDefinition[] AddressKeys =
-    [
-        new("ipHost", "One maskless IPv4 or IPv6 address."),
-        new("ipNetwork", "One IPv4 or IPv6 CIDR network; host bits are normalized."),
-        new("ipRange", "Two maskless addresses defining an inclusive range.")
-    ];
-
-    private static readonly RequestKeyDefinition[] ServiceRangeKeys =
-    [
-        new("portStart", "Start port of the service range."),
-        new("portEnd", "End port of the service range."),
-        new("protocol", "Protocol name or id of the service range.")
-    ];
-
     /// <summary>
-    /// Performs the TryValidatePolicyIds operation.
+    /// Validates a policy id request, which accepts no keys.
     /// </summary>
-    public static bool TryValidatePolicyIds(GetPolicyIdsRequest request, out ActionResult? errorResult)
+    /// <param name="request">Request to validate, or null when no body was supplied.</param>
+    /// <returns>All detected errors; empty when the request is valid.</returns>
+    /// <remarks>A missing body is accepted, because the endpoint takes no input.</remarks>
+    public static RequestValidationErrorResponse ValidatePolicyIds(GetPolicyIdsRequest? request)
     {
-        return RequestRootValidator.TryValidate(request, PolicyIdsRootSchema, out errorResult);
+        RequestValidationErrorResponse result = new();
+        if (request == null)
+        {
+            return result;
+        }
+        foreach (string key in (request.AdditionalData ?? []).Keys.Order(StringComparer.Ordinal))
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(key,
+                $"'{key}' is not supported. {FlowComplianceRequestValidationSchema.kPolicyIdsEndpointName} accepts an empty object only."));
+        }
+        return result;
     }
 
     /// <summary>
-    /// Performs the TryValidateFlowComplianceState operation.
+    /// Validates a flow compliance state request without stopping at the first error.
     /// </summary>
-    public static bool TryValidateFlowComplianceState(GetFlowComplianceStateRequest request, out ActionResult? errorResult)
+    /// <param name="request">Request to validate, or null when no body was supplied.</param>
+    /// <returns>All detected errors; empty when the request is valid.</returns>
+    public static RequestValidationErrorResponse ValidateFlowComplianceState(GetFlowComplianceStateRequest? request)
     {
-        if (!RequestRootValidator.TryValidate(request, FlowComplianceRootSchema, out errorResult))
+        RequestValidationErrorResponse result = new();
+        if (request == null)
         {
-            return false;
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(FlowComplianceRequestValidationSchema.kRootPath,
+                $"{FlowComplianceRequestValidationSchema.kFlowComplianceStateEndpointName} requires a request body. Valid root keys: " +
+                FlowComplianceRequestValidationSchema.DescribeKeys(FlowComplianceRequestValidationSchema.RootKeys)));
+            return result;
         }
-
-        if (!TryValidateEntryCounts(request, out errorResult))
-        {
-            return false;
-        }
-
-        if (!TryValidateItemList(request.Source, "source", AddressKeys, TryValidateAddress, out errorResult))
-        {
-            return false;
-        }
-
-        if (!TryValidateItemList(request.Destination, "destination", AddressKeys, TryValidateAddress, out errorResult))
-        {
-            return false;
-        }
-
-        if (!TryValidateItemList(request.Service, "service", ServiceRangeKeys, TryValidateServiceRange, out errorResult))
-        {
-            return false;
-        }
-
-        if (!TryValidatePolicies(request.Policies, out errorResult))
-        {
-            return false;
-        }
-
-        errorResult = null;
-        return true;
+        ValidateAddressList(request.Source, FlowComplianceRequestValidationSchema.kSourcePath, result);
+        ValidateAddressList(request.Destination, FlowComplianceRequestValidationSchema.kDestinationPath, result);
+        ValidateServiceList(request.Service, result);
+        ValidatePolicies(request.Policies, result);
+        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.AdditionalData, FlowComplianceRequestValidationSchema.kRootPath,
+            FlowComplianceRequestValidationSchema.RootKeys, result);
+        return result;
     }
 
     /// <summary>
-    /// Validates a single service range using the same semantics as flow compliance requests.
+    /// Validates a single service range of the flow catalog lookup.
     /// </summary>
+    /// <param name="portStart">First port of the range.</param>
+    /// <param name="portEnd">Last port of the range.</param>
+    /// <param name="collectionName">Name of the list the range belongs to, used in the error message.</param>
+    /// <param name="itemIndex">Position of the range in that list, used in the error message.</param>
+    /// <param name="errorMessage">The first error found, or null when the range is valid.</param>
+    /// <returns>True when both ports are allowed and the start port is not above the end port.</returns>
+    /// <remarks>
+    /// Kept for <c>FlowCatalogController</c>, which still reports plain text errors; its messages must stay unchanged.
+    /// The port rule itself is shared with <see cref="ValidateService"/> through <see cref="IsValidPort"/>.
+    /// </remarks>
     public static bool TryValidateServiceRange(int portStart, int portEnd, string collectionName, int itemIndex, out string? errorMessage)
     {
-        (bool isValid, string? validationError) = ValidateServiceRange(portStart, portEnd, collectionName, itemIndex);
-        errorMessage = validationError;
-        return isValid;
-    }
-
-    private static bool TryValidateItemList<TItem>(
-        IEnumerable<TItem> items,
-        string collectionName,
-        IReadOnlyList<RequestKeyDefinition> allowedKeys,
-        Func<TItem, string, int, (bool IsValid, string? ErrorMessage)> semanticValidator,
-        out ActionResult? errorResult)
-        where TItem : IRequestWithAdditionalData
-    {
-        int index = 0;
-        foreach (TItem? item in items)
+        string entry = $"'{collectionName}' entry at index {itemIndex}";
+        string allowedRange = $"{FlowComplianceRequestValidationSchema.kMinPort}-{FlowComplianceRequestValidationSchema.kMaxPort}";
+        if (!IsValidPort(portStart))
         {
-            if (item is null)
-            {
-                errorResult = new BadRequestObjectResult($"'{collectionName}' cannot contain null entries.");
-                return false;
-            }
-
-            if (!TryValidateNestedItem(item, collectionName, allowedKeys, semanticValidator, index, out errorResult))
-            {
-                return false;
-            }
-
-            index++;
+            errorMessage = $"{entry} has an invalid 'portStart' value. Allowed range is {allowedRange}.";
         }
-
-        errorResult = null;
-        return true;
-    }
-
-    private static bool TryValidateNestedItem<TItem>(
-        TItem item,
-        string collectionName,
-        IReadOnlyList<RequestKeyDefinition> allowedKeys,
-        Func<TItem, string, int, (bool IsValid, string? ErrorMessage)> semanticValidator,
-        int itemIndex,
-        out ActionResult? errorResult)
-        where TItem : IRequestWithAdditionalData
-    {
-        if (item.AdditionalData is { Count: > 0 })
+        else if (!IsValidPort(portEnd))
         {
-            errorResult = RequestValidationMessageBuilder.BuildAllowedKeysError($"{collectionName} entry at index {itemIndex}", allowedKeys);
-            return false;
+            errorMessage = $"{entry} has an invalid 'portEnd' value. Allowed range is {allowedRange}.";
         }
-
-        switch (item)
+        else if (portStart > portEnd)
         {
-            case GetFlowComplianceStateRequest.ServiceRangeRequest serviceRange
-                when string.IsNullOrWhiteSpace(serviceRange.Protocol):
-                errorResult = new BadRequestObjectResult($"'{collectionName}' entries require non-empty 'protocol'.");
-                return false;
+            errorMessage = $"{entry} must satisfy 'portStart' <= 'portEnd'.";
         }
-
-        (bool isValid, string? errorMessage) = semanticValidator(item, collectionName, itemIndex);
-        if (!isValid)
+        else
         {
-            errorResult = new BadRequestObjectResult(errorMessage);
-            return false;
+            errorMessage = null;
         }
-
-        errorResult = null;
-        return true;
-    }
-
-    private static (bool IsValid, string? ErrorMessage) TryValidateAddress(GetFlowComplianceStateRequest.IpRangeRequest address, string collectionName, int itemIndex)
-    {
-        string context = $"'{collectionName}' entry at index {itemIndex}";
-        bool isValid = AddressInputNormalizer.TryValidateAndNormalize(
-            address,
-            context,
-            out NormalizedAddressBounds normalizedBounds,
-            out string? errorMessage);
-        if (isValid)
-        {
-            address.NormalizedIpStart = normalizedBounds.IpStart;
-            address.NormalizedIpEnd = normalizedBounds.IpEnd;
-        }
-
-        return (isValid, errorMessage);
-    }
-
-    private static (bool IsValid, string? ErrorMessage) TryValidateServiceRange(GetFlowComplianceStateRequest.ServiceRangeRequest serviceRange, string collectionName, int itemIndex)
-    {
-        return ValidateServiceRange(serviceRange.PortStart, serviceRange.PortEnd, collectionName, itemIndex);
-    }
-
-    private static (bool IsValid, string? ErrorMessage) ValidateServiceRange(int portStart, int portEnd, string collectionName, int itemIndex)
-    {
-        if (portStart < MinimumPort || portStart > MaximumPort)
-        {
-            return (false, $"'{collectionName}' entry at index {itemIndex} has an invalid 'portStart' value. Allowed range is {MinimumPort}-{MaximumPort}.");
-        }
-
-        if (portEnd < MinimumPort || portEnd > MaximumPort)
-        {
-            return (false, $"'{collectionName}' entry at index {itemIndex} has an invalid 'portEnd' value. Allowed range is {MinimumPort}-{MaximumPort}.");
-        }
-
-        if (portStart > portEnd)
-        {
-            return (false, $"'{collectionName}' entry at index {itemIndex} must satisfy 'portStart' <= 'portEnd'.");
-        }
-
-        return (true, null);
+        return errorMessage == null;
     }
 
     /// <summary>
-    /// Rejects oversized lists before any item is validated or evaluated; every exceeded list is reported together.
+    /// Rejects a null or oversized address list and validates every entry under its own request path.
     /// </summary>
-    private static bool TryValidateEntryCounts(GetFlowComplianceStateRequest request, out ActionResult? errorResult)
+    /// <remarks>Entries of an oversized list are not checked one by one, so the error count stays bounded.</remarks>
+    private static void ValidateAddressList(List<AddressInputRequest?>? addresses, string path, RequestValidationErrorResponse result)
     {
-        List<string> errors = [];
-        AddEntryCountError(errors, "source", request.Source.Count, kMaxRangeEntries);
-        AddEntryCountError(errors, "destination", request.Destination.Count, kMaxRangeEntries);
-        AddEntryCountError(errors, "service", request.Service.Count, kMaxRangeEntries);
-        AddEntryCountError(errors, "policies", request.Policies.Count, kMaxPolicies);
-        errorResult = errors.Count == 0 ? null : new BadRequestObjectResult(string.Join(" ", errors));
-        return errors.Count == 0;
-    }
-
-    private static void AddEntryCountError(List<string> errors, string collectionName, int count, int maxEntries)
-    {
-        if (count > maxEntries)
+        if (!ValidateListSize(addresses, path, FlowComplianceRequestValidationSchema.kMaxRangeEntries, result))
         {
-            errors.Add($"'{collectionName}' must not contain more than {maxEntries} entries.");
+            return;
+        }
+        for (int index = 0; index < addresses.Count; index++)
+        {
+            AddressInputRequestValidator.Validate(addresses[index], $"{path}[{index}]", result);
         }
     }
 
-    private static bool TryValidatePolicies(IEnumerable<int> policies, out ActionResult? errorResult)
+    /// <summary>
+    /// Rejects a null or oversized service list and validates every entry under its own request path.
+    /// </summary>
+    private static void ValidateServiceList(List<GetFlowComplianceStateRequest.ServiceRangeRequest?>? services, RequestValidationErrorResponse result)
     {
-        int index = 0;
-        foreach (int policyId in policies)
+        string path = FlowComplianceRequestValidationSchema.kServicePath;
+        if (!ValidateListSize(services, path, FlowComplianceRequestValidationSchema.kMaxRangeEntries, result))
         {
-            if (policyId <= 0)
+            return;
+        }
+        for (int index = 0; index < services.Count; index++)
+        {
+            ValidateService(services[index], $"{path}[{index}]", result);
+        }
+    }
+
+    /// <summary>
+    /// Adds every error of one service entry: a null entry, unsupported keys, an empty protocol, ports outside
+    /// the allowed range and a start port above the end port.
+    /// </summary>
+    private static void ValidateService(GetFlowComplianceStateRequest.ServiceRangeRequest? service, string path, RequestValidationErrorResponse result)
+    {
+        if (service == null)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(path,
+                $"'{path}' must be an object with the following keys: "
+                + FlowComplianceRequestValidationSchema.DescribeKeys(FlowComplianceRequestValidationSchema.ServiceKeys)));
+            return;
+        }
+        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(service.AdditionalData, path,
+            FlowComplianceRequestValidationSchema.ServiceKeys, result);
+        if (string.IsNullOrWhiteSpace(service.Protocol))
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError($"{path}.protocol",
+                $"'{path}.protocol' must not be empty."));
+        }
+        if (!IsValidPort(service.PortStart))
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError($"{path}.portStart",
+                $"'{path}.portStart' must be between {FlowComplianceRequestValidationSchema.kMinPort} and {FlowComplianceRequestValidationSchema.kMaxPort}."));
+        }
+        if (!IsValidPort(service.PortEnd))
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError($"{path}.portEnd",
+                $"'{path}.portEnd' must be between {FlowComplianceRequestValidationSchema.kMinPort} and {FlowComplianceRequestValidationSchema.kMaxPort}."));
+        }
+        else if (service.PortStart > service.PortEnd)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError($"{path}.portEnd",
+                $"'{path}.portEnd' must not be lower than 'portStart'."));
+        }
+    }
+
+    /// <summary>
+    /// Rejects a null or oversized policy list and every policy id that is not greater than 0.
+    /// </summary>
+    private static void ValidatePolicies(List<int>? policies, RequestValidationErrorResponse result)
+    {
+        string path = FlowComplianceRequestValidationSchema.kPoliciesPath;
+        if (!ValidateListSize(policies, path, FlowComplianceRequestValidationSchema.kMaxPolicies, result))
+        {
+            return;
+        }
+        for (int index = 0; index < policies.Count; index++)
+        {
+            if (policies[index] <= 0)
             {
-                errorResult = new BadRequestObjectResult($"'policies' entries must be positive integers. Invalid value at index {index}.");
-                return false;
+                string entryPath = $"{path}[{index}]";
+                result.Errors.Add(AggregatedRequestKeyValidation.BuildError(entryPath,
+                    $"'{entryPath}' must be a policy id greater than 0, but is {policies[index]}."));
             }
-
-            index++;
         }
+    }
 
-        errorResult = null;
+    /// <summary>
+    /// Adds an error for a null list or a list with more than <paramref name="maxEntries"/> entries.
+    /// </summary>
+    /// <returns>True when the list is not null and its entries should be validated one by one.</returns>
+    private static bool ValidateListSize<TItem>([NotNullWhen(true)] List<TItem>? items, string path, int maxEntries, RequestValidationErrorResponse result)
+    {
+        if (items == null)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(path,
+                $"'{path}' must not be null. Omit it or use an empty list."));
+            return false;
+        }
+        if (items.Count > maxEntries)
+        {
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(path,
+                $"'{path}' must not exceed {maxEntries} entries."));
+            return false;
+        }
         return true;
     }
+
+    /// <summary>
+    /// Checks one port against the range allowed for service entries.
+    /// </summary>
+    private static bool IsValidPort(int port) => port >= FlowComplianceRequestValidationSchema.kMinPort
+        && port <= FlowComplianceRequestValidationSchema.kMaxPort;
 }

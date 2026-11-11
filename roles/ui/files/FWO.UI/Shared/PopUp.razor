@@ -1,3 +1,5 @@
+@inject UserConfig userConfig
+
 @if (Show)
 {
     <div class="modal-backdrop popup-outer">
@@ -12,7 +14,7 @@
                                 <HelpLink Page="@HelpPage" />
                             }
                         </div>
-                        <button type="button" class="popup-close" @onclick="Close">
+                        <button type="button" class="popup-close" aria-label="@(userConfig.PureLine("close"))" @onclick="Close">
                             <span class="@Icons.Close"></span>
                         </button>
                     </div>

@@ -100,10 +100,29 @@ function onPopupPointerDown(event) {
 
     const header = event.target.closest(kPopupHeaderSelector);
     const movedDialog = header?.closest(kPopupDialogSelector);
-    if (!movedDialog || !movedDialog.classList.contains(kPopupMovableClass) || event.target.closest(kPopupInteractiveSelector)) {
+    if (!movedDialog?.classList.contains(kPopupMovableClass) || event.target.closest(kPopupInteractiveSelector)) {
         return;
     }
     startPopupMove(movedDialog, header, event);
 }
 
+// A pinned dialog keeps its pixel position and size when the window shrinks (docking devtools, split
+// screen, rotating a tablet), so its header and close button could end up outside the viewport.
+// Shrink it to the viewport and move it fully back in; unpinned dialogs are centered by CSS anyway.
+function fitPinnedPopupsIntoViewport() {
+    document.querySelectorAll(`${kPopupDialogSelector}[data-fwo-pinned="true"]`).forEach((dialog) => {
+        if (dialog.offsetWidth > window.innerWidth) {
+            dialog.style.width = `${window.innerWidth}px`;
+        }
+        if (dialog.offsetHeight > window.innerHeight) {
+            dialog.style.height = `${window.innerHeight}px`;
+        }
+        const maxLeft = Math.max(window.innerWidth - dialog.offsetWidth, 0);
+        const maxTop = Math.max(window.innerHeight - dialog.offsetHeight, 0);
+        dialog.style.left = `${Math.min(Math.max(dialog.offsetLeft, 0), maxLeft)}px`;
+        dialog.style.top = `${Math.min(Math.max(dialog.offsetTop, 0), maxTop)}px`;
+    });
+}
+
 document.addEventListener("pointerdown", onPopupPointerDown);
+window.addEventListener("resize", fitPinnedPopupsIntoViewport);

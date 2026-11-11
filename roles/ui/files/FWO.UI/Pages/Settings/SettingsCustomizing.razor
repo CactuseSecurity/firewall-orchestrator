@@ -59,7 +59,7 @@
                 </div>
             </div>
         </SettingsRow>
-        <SettingsRow LabelKey="displayed_handlers_in_ticket_list" TooltipKey="H5556" LabelFor="sel_ticket_handler_display_mode">
+        <SettingsRow LabelKey="displayed_handlers_in_ticket_list" TooltipKey="H5556" LabelFor="dropdown-input-sel_ticket_handler_display_mode">
             <div class="settings-input-md">
                 <Dropdown Id="sel_ticket_handler_display_mode" ElementType="TicketHandlerDisplayMode"
                           @bind-SelectedElement="ticketFieldVisibilityConfig.HandlerDisplayMode"
@@ -190,7 +190,7 @@
                 @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
             </button>
         </SettingsRow>
-        <SettingsRow LabelKey="approval_edit_mode" TooltipKey="H5576a" LabelFor="sel_approval_edit_mode">
+        <SettingsRow LabelKey="approval_edit_mode" TooltipKey="H5576a" LabelFor="dropdown-input-sel_approval_edit_mode">
             <div class="settings-input-md">
                 <Dropdown Id="sel_approval_edit_mode" ElementType="ApprovalEditMode"
                           @bind-SelectedElement="configData!.ReqApprovalEditMode"

@@ -3,7 +3,7 @@
 @inject UserConfig userConfig
 
 @* editor for the rule owner mapping source settings, shared by every settings page offering them *@
-<SettingsRow LabelKey="source" LabelFor="ownerMappingSourceDropdown">
+<SettingsRow LabelKey="source" LabelFor="dropdown-input-ownerMappingSourceDropdown">
     <div class="settings-input-md">
         @* not nullable: "Disabled" is the selection for "no owner mapping", so the selection must never be empty *@
         <Dropdown ElementType="OwnerMappingSourceStm?" ElementToString="GetOwnerMappingSourceText" SelectedElement="@Handler.SelectedSource"
@@ -48,7 +48,7 @@
 }
 @if (Handler.SelectedSource != OwnerMappingSourceStm.Disabled)
 {
-    <SettingsRow LabelKey="ruleOwnerMappingLogLevel" TooltipKey="H5916" LabelFor="ruleOwnerMappingLogLevelDropdown">
+    <SettingsRow LabelKey="ruleOwnerMappingLogLevel" TooltipKey="H5916" LabelFor="dropdown-input-ruleOwnerMappingLogLevelDropdown">
         <div class="settings-input-md">
             <Dropdown ElementType="RuleOwnerMappingLogLevel?" ElementToString="GetLogLevelText" SelectedElement="@Handler.LogLevel"
                       SelectedElementChanged="@(level => { Handler.LogLevel = level ?? RuleOwnerMappingLogLevel.Warning; StateHasChanged(); })"

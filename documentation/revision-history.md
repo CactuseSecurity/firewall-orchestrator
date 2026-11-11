@@ -14,6 +14,7 @@
 ## 9.9.1 - 09.11.2026
 ## 9.9.2 - 11.11.2026
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
+- dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.2 (denial-of-service fixes in validator and parser).
 
 
 ## 9.9.1 - 05.11.2026

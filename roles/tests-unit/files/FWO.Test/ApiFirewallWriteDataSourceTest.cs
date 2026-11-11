@@ -39,6 +39,77 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GatewayWithoutExplicitManagementLoadsOwnerAndGatewaySettings()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = Api();
+            WfImplTask task = Task(WfTaskType.group_delete);
+            task.ManagementId = null;
+
+            FirewallWriteContext context = await new ApiFirewallWriteDataSource(api).LoadContext(task);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.Management.Id, Is.EqualTo(kManagementId));
+                Assert.That(context.Gateway?.Id, Is.EqualTo(kGatewayId));
+                Assert.That(context.GetEndpoint(FirewallWriteOperation.Publish), Is.EqualTo("POST gateway-publish"));
+            }
+        }
+
+        [Test]
+        public void ExplicitManagementThatDiffersFromGatewayOwnerFailsBeforeManagementOrSettingsRead()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = Api();
+            WfImplTask task = Task(WfTaskType.group_delete);
+            task.ManagementId = kManagementId + 1;
+
+            FirewallWriteException? exception = Assert.ThrowsAsync<FirewallWriteException>(
+                () => new ApiFirewallWriteDataSource(api).LoadContext(task));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(exception?.Error.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(api.Calls.Select(call => call.Query),
+                    Is.EqualTo(new[] { FWO.Api.Client.Queries.DeviceQueries.getImplementationTaskGatewayTarget }));
+            }
+        }
+
+        [Test]
+        public void MissingGatewayTargetFailsBeforeManagementOrSettingsRead()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = Api();
+            WfImplTask task = Task(WfTaskType.group_delete);
+            task.DeviceId = kGatewayId + 1;
+
+            FirewallWriteException? exception = Assert.ThrowsAsync<FirewallWriteException>(
+                () => new ApiFirewallWriteDataSource(api).LoadContext(task));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(exception?.Error.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(api.Calls.Select(call => call.Query),
+                    Is.EqualTo(new[] { FWO.Api.Client.Queries.DeviceQueries.getImplementationTaskGatewayTarget }));
+            }
+        }
+
+        [Test]
+        public void DuplicateGatewayTargetsFailBeforeManagementOrSettingsRead()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = Api();
+            Device gateway = api.Managements[0].Devices[0];
+            api.Managements[0].Devices = [gateway, new Device(gateway)];
+
+            FirewallWriteException? exception = Assert.ThrowsAsync<FirewallWriteException>(
+                () => new ApiFirewallWriteDataSource(api).LoadContext(Task(WfTaskType.group_delete)));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(exception?.Error.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(api.Calls.Select(call => call.Query),
+                    Is.EqualTo(new[] { FWO.Api.Client.Queries.DeviceQueries.getImplementationTaskGatewayTarget }));
+            }
+        }
+
+        [Test]
         public async Task LoadsPackageAndLayerFromTheGatewayRulebaseLinks()
         {
             InMemoryDeviceSpecificSettingsApiConnection api = Api();
@@ -76,6 +147,7 @@ namespace FWO.Test
         {
             WfImplTask withoutManagement = Task(WfTaskType.group_delete);
             withoutManagement.ManagementId = null;
+            withoutManagement.DeviceId = null;
             WfImplTask unknownManagement = Task(WfTaskType.group_delete);
             unknownManagement.ManagementId = 999;
             WfImplTask foreignGateway = Task(WfTaskType.group_delete);

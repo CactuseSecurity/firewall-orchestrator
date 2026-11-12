@@ -18,18 +18,22 @@
                     @if (IsRuleImplementationTask(implementationTask))
                     {
                         <div class="form-group row">
-                            @ReadOnlyValue(userConfig.GetText("management"), ManagementName(implementationTask), edit: () => OpenManagementEditor(implementationTask))
-                            @ReadOnlyValue(userConfig.GetText("device"), DeviceName(implementationTask), edit: () => OpenDeviceEditor(implementationTask))
+                            @ReadOnlyValue(userConfig.GetText("management"), ManagementName(implementationTask),
+                                edit: CanEditImplementationTask(implementationTask) ? () => OpenManagementEditor(implementationTask) : null)
+                            @ReadOnlyValue(userConfig.GetText("device"), DeviceName(implementationTask),
+                                edit: CanEditImplementationTask(implementationTask) ? () => OpenDeviceEditor(implementationTask) : null)
                             @if (HasFreeText(implementationTask))
                             {
-                                @ReadOnlyValue(userConfig.GetText("free_text"), implementationTask.FreeText ?? "", "col-xl-6 col-lg-6 mb-2", CanEditFreeText(implementationTask) ? () => OpenFreeTextEditor(implementationTask) : null)
+                                @ReadOnlyValue(userConfig.GetText("free_text"), implementationTask.FreeText ?? "", "col-xl-6 col-lg-6 mb-2",
+                                    CanEditImplementationTask(implementationTask) && CanEditFreeText(implementationTask) ? () => OpenFreeTextEditor(implementationTask) : null)
                             }
                         </div>
                     }
                     else if (WfObjectTaskHelper.IsManagementObjectTask(implementationTask.TaskType))
                     {
                         <div class="form-group row">
-                            @ReadOnlyValue(userConfig.GetText("management"), ManagementName(implementationTask), edit: () => OpenManagementEditor(implementationTask))
+                            @ReadOnlyValue(userConfig.GetText("management"), ManagementName(implementationTask),
+                                edit: CanEditImplementationTask(implementationTask) ? () => OpenManagementEditor(implementationTask) : null)
                         </div>
                     }
                     else if (implementationTask.TaskType == WfTaskType.new_interface.ToString())
@@ -45,7 +49,8 @@
                     @if (!IsRuleImplementationTask(implementationTask) && HasFreeText(implementationTask))
                     {
                         <div class="form-group row">
-                            @ReadOnlyValue(userConfig.GetText("free_text"), implementationTask.FreeText ?? "", "col-xl-6 col-lg-6 mb-2", CanEditFreeText(implementationTask) ? () => OpenFreeTextEditor(implementationTask) : null)
+                            @ReadOnlyValue(userConfig.GetText("free_text"), implementationTask.FreeText ?? "", "col-xl-6 col-lg-6 mb-2",
+                                CanEditImplementationTask(implementationTask) && CanEditFreeText(implementationTask) ? () => OpenFreeTextEditor(implementationTask) : null)
                         </div>
                     }
                     <div class="form-group row">
@@ -77,7 +82,7 @@
                     {
                         <div class="form-group row">
                             @ReadOnlyValue(userConfig.GetText("name"), GroupName(implementationTask), "col-xl-6 col-lg-6 mb-2",
-                                () => OpenNameEditor(implementationTask))
+                                CanEditImplementationTask(implementationTask) ? () => OpenNameEditor(implementationTask) : null)
                         </div>
                         <div class="form-group row">
                             @ImplementationMembersValue(implementationTask)
@@ -97,10 +102,13 @@
                                 <DisplayObjectTaskElement ReqTask="@CreateEditorTask(implementationTask)"
                                     IsModify="false" EditMode="false" DisplayIpProtos="ipProtocols">
                                     <ObjectNamePrefix>
-                                        <button type="button" class="btn btn-sm btn-secondary mr-2"
-                                            @onclick="() => OpenNameEditor(implementationTask)">
-                                            @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
-                                        </button>
+                                        @if (CanEditImplementationTask(implementationTask))
+                                        {
+                                            <button type="button" class="btn btn-sm btn-secondary mr-2"
+                                                @onclick="() => OpenNameEditor(implementationTask)">
+                                                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                                            </button>
+                                        }
                                     </ObjectNamePrefix>
                                 </DisplayObjectTaskElement>
                             </div>
@@ -115,7 +123,7 @@
 <ManagementEditor @bind-Display="displayManagementEditor" SelectedManagement="@selectedManagement"
     Managements="@WfHandler.Managements" Saved="SaveManagement" />
 <DeviceEditor @bind-Display="displayDeviceEditor" SelectedDevice="@selectedDevice"
-    Devices="@WfHandler.Devices" Saved="SaveDevice" />
+    Devices="@AvailableDevices(WfHandler.ActImplTask)" Saved="SaveDevice" />
 <TextEditor @bind-Display="displayTextEditor" Text="@textEditorValue" TextKey="free_text"
     Multiline="true" Saved="SaveFreeText" />
 <TextEditor @bind-Display="displayNameEditor" Text="@nameEditorValue" TextKey="name"
@@ -166,6 +174,10 @@
 
     private Task OpenManagementEditor(WfImplTask implementationTask)
     {
+        if (!CanEditImplementationTask(implementationTask))
+        {
+            return Task.CompletedTask;
+        }
         WfHandler.SelectImplTask(implementationTask, ObjAction.edit);
         selectedManagement = WfHandler.Managements.FirstOrDefault(management => management.Id == EffectiveManagementId(implementationTask));
         displayManagementEditor = true;
@@ -174,6 +186,10 @@
 
     private Task OpenFreeTextEditor(WfImplTask implementationTask)
     {
+        if (!CanEditImplementationTask(implementationTask))
+        {
+            return Task.CompletedTask;
+        }
         WfHandler.SelectImplTask(implementationTask, ObjAction.edit);
         textEditorValue = implementationTask.FreeText ?? "";
         displayTextEditor = true;
@@ -182,6 +198,10 @@
 
     private Task OpenNameEditor(WfImplTask implementationTask)
     {
+        if (!CanEditImplementationTask(implementationTask))
+        {
+            return Task.CompletedTask;
+        }
         WfHandler.SelectImplTask(implementationTask, ObjAction.edit);
         nameEditorValue = IsGroupTask(implementationTask) ? GroupName(implementationTask) : ObjectName(implementationTask);
         displayNameEditor = true;
@@ -190,6 +210,10 @@
 
     private Task OpenDeviceEditor(WfImplTask implementationTask)
     {
+        if (!CanEditImplementationTask(implementationTask))
+        {
+            return Task.CompletedTask;
+        }
         WfHandler.SelectImplTask(implementationTask, ObjAction.edit);
         selectedDevice = WfHandler.Devices.FirstOrDefault(device => device.Id == implementationTask.DeviceId);
         displayDeviceEditor = true;
@@ -340,7 +364,12 @@
 
     private async Task SaveManagement(Management? management)
     {
-        WfHandler.ActImplTask.ManagementId = management?.Id;
+        WfImplTask implementationTask = WfHandler.ActImplTask;
+        implementationTask.ManagementId = management?.Id;
+        if (!IsDeviceCompatible(implementationTask, FindDevice(implementationTask.DeviceId)))
+        {
+            implementationTask.DeviceId = null;
+        }
         await SaveImplementationTask();
     }
 
@@ -377,12 +406,30 @@
 
     private async Task SaveDevice(Device? device)
     {
-        WfHandler.ActImplTask.DeviceId = device?.Id;
+        WfImplTask implementationTask = WfHandler.ActImplTask;
+        if (!IsDeviceCompatible(implementationTask, device))
+        {
+            return;
+        }
+
+        if (device?.Management?.Id > 0 && !ConfiguredManagementId(implementationTask).HasValue)
+        {
+            implementationTask.ManagementId = device.Management.Id;
+        }
+        implementationTask.DeviceId = device?.Id;
         await SaveImplementationTask();
     }
 
     private async Task SaveImplementationTask()
     {
+        if (!CanEditImplementationTask(WfHandler.ActImplTask))
+        {
+            return;
+        }
+        if (!IsDeviceCompatible(WfHandler.ActImplTask, FindDevice(WfHandler.ActImplTask.DeviceId)))
+        {
+            return;
+        }
         if (CreationMode)
         {
             int index = ImplementationTasks.FindIndex(task => task.TaskNumber == WfHandler.ActImplTask.TaskNumber);
@@ -426,7 +473,7 @@
         builder.AddAttribute(9, "class", "ms-auto");
         builder.AddContent(10, States.GetName(implementationTask.StateId));
         builder.CloseElement();
-        if (!CreationMode)
+        if (!CreationMode && CanEditImplementationTask(implementationTask))
         {
             builder.OpenElement(11, "button");
             builder.AddAttribute(12, "type", "button");
@@ -585,6 +632,11 @@
 
     private static bool CanEditFreeText(WfImplTask implementationTask) => !WfObjectTaskHelper.IsManagementObjectTask(implementationTask.TaskType);
 
+    private bool CanEditImplementationTask(WfImplTask implementationTask) =>
+        !WfHandler.ReadOnlyMode
+        && WfHandler.CanActOnReqTaskInCurrentPhase(RequestTask)
+        && (CreationMode || WfHandler.CanActOnImplTaskInCurrentPhase(implementationTask));
+
     private static string RuleUid(WfImplTask implementationTask)
     {
         return implementationTask.ImplElements
@@ -598,16 +650,15 @@
 
     private string GroupName(WfImplTask implementationTask)
     {
-        string requestGroupName = RequestTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
-        if (!string.IsNullOrWhiteSpace(requestGroupName))
-        {
-            return requestGroupName;
-        }
-
-        return implementationTask.ImplElements
+        string implementationGroupName = implementationTask.ImplElements
+            .Where(element => element.Field == ElemFieldType.source.ToString()
+                || element.Field == ElemFieldType.service.ToString())
             .Select(element => element.GroupName ?? element.Name)
             .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name))
             ?? "";
+        return !string.IsNullOrWhiteSpace(implementationGroupName)
+            ? implementationGroupName
+            : RequestTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
     }
 
     private string ObjectName(WfImplTask implementationTask)
@@ -635,6 +686,32 @@
         }
 
         return RequestTask.ManagementId;
+    }
+
+    private List<Device> AvailableDevices(WfImplTask implementationTask)
+    {
+        int? managementId = EffectiveManagementId(implementationTask);
+        return managementId is int id && id > 0
+            ? WfHandler.Devices.Where(device => device.Management?.Id == id).ToList()
+            : WfHandler.Devices;
+    }
+
+    private int? ConfiguredManagementId(WfImplTask implementationTask)
+    {
+        return implementationTask.ManagementId ?? RequestTask.ManagementId;
+    }
+
+    private Device? FindDevice(int? deviceId)
+    {
+        return deviceId is int id && id > 0
+            ? WfHandler.Devices.FirstOrDefault(device => device.Id == id)
+            : null;
+    }
+
+    private bool IsDeviceCompatible(WfImplTask implementationTask, Device? device)
+    {
+        int? managementId = ConfiguredManagementId(implementationTask);
+        return device == null || managementId is not int id || device.Management?.Id == id;
     }
 
     private string DeviceName(WfImplTask implementationTask)

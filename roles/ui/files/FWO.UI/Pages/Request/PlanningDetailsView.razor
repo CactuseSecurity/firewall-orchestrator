@@ -145,6 +145,9 @@
 
     private bool RequestTaskDetailsExpanded(WfReqTask requestTask) => !collapsedRequestTaskDetails.Contains(requestTask.Id);
 
+    private bool CanMutateRequestTask(WfReqTask requestTask) =>
+        !WfHandler.ReadOnlyMode && WfHandler.CanActOnReqTaskInCurrentPhase(requestTask);
+
     private void ToggleRequestTaskDetails(WfReqTask requestTask)
     {
         if (!collapsedRequestTaskDetails.Add(requestTask.Id))
@@ -169,6 +172,10 @@
 
     private async Task OpenImplementationTaskCreation(WfReqTask requestTask)
     {
+        if (!CanMutateRequestTask(requestTask))
+        {
+            return;
+        }
         WfHandler.SelectReqTask(requestTask, ObjAction.display);
         WfImplTask implementationTask = new(requestTask, false)
         {
@@ -184,8 +191,23 @@
 
     private async Task OpenDeleteConfirmation(WfImplTask implementationTask)
     {
+        if (!CanMutateImplementationTask(implementationTask))
+        {
+            return;
+        }
         WfHandler.SelectImplTaskPopUp(implementationTask, ObjAction.displayDelete);
         await InvokeAsync(StateHasChanged);
+    }
+
+    private bool CanMutateImplementationTask(WfImplTask implementationTask)
+    {
+        WfReqTask? requestTask = WfHandler.ActTicket.Tasks.FirstOrDefault(task =>
+            task.ImplementationTasks.Any(candidate =>
+                ReferenceEquals(candidate, implementationTask)
+                || (implementationTask.Id != 0 && candidate.Id == implementationTask.Id)));
+        return requestTask != null
+            && CanMutateRequestTask(requestTask)
+            && WfHandler.CanActOnImplTaskInCurrentPhase(implementationTask);
     }
 
     private string PlanningViewTitle
@@ -227,15 +249,18 @@
         builder.AddContent(16, DisplayService.DisplayButton(userConfig, "details",
             RequestTaskDetailsExpanded(requestTask) ? Icons.CollapseUp : Icons.CollapseDown));
         builder.CloseElement();
-        builder.OpenElement(17, "button");
-        builder.AddAttribute(18, "type", "button");
-        builder.AddAttribute(19, "class", "btn btn-sm btn-success ml-2");
-        builder.AddAttribute(20, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this,
-            () => OpenImplementationTaskCreation(requestTask)));
-        builder.AddEventStopPropagationAttribute(21, "onclick", true);
-        builder.AddContent(22, DisplayService.DisplayButtonWithTooltip(userConfig, "add", Icons.Add,
-            userConfig.GetText("implementation")));
-        builder.CloseElement();
+        if (CanMutateRequestTask(requestTask))
+        {
+            builder.OpenElement(17, "button");
+            builder.AddAttribute(18, "type", "button");
+            builder.AddAttribute(19, "class", "btn btn-sm btn-success ml-2");
+            builder.AddAttribute(20, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this,
+                () => OpenImplementationTaskCreation(requestTask)));
+            builder.AddEventStopPropagationAttribute(21, "onclick", true);
+            builder.AddContent(22, DisplayService.DisplayButtonWithTooltip(userConfig, "add", Icons.Add,
+                userConfig.GetText("implementation")));
+            builder.CloseElement();
+        }
         builder.CloseElement();
     };
 }

@@ -15,14 +15,15 @@
         }
     </Body>
     <Footer>
-        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">
+        <button type="button" class="btn btn-sm btn-primary" disabled="@WorkInProgress" @onclick="Save">
             @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
         </button>
-        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">
+        <button type="button" class="btn btn-sm btn-secondary" disabled="@WorkInProgress" @onclick="Close">
             @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
         </button>
     </Footer>
 </PopUp>
+<InProgress Display="WorkInProgress" />
 
 @code
 {
@@ -37,6 +38,7 @@
 
     private readonly List<WfImplTask> implementationTasks = [];
     private WfImplTask? initializedTask;
+    private bool WorkInProgress;
 
     protected override void OnParametersSet()
     {
@@ -54,9 +56,23 @@
 
     private async Task Save()
     {
-        await WfHandler.AddImplTask();
-        Close();
-        await ResetParent();
+        if (WorkInProgress)
+        {
+            return;
+        }
+
+        WorkInProgress = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await WfHandler.AddImplTask();
+            Close();
+            await ResetParent();
+        }
+        finally
+        {
+            WorkInProgress = false;
+        }
     }
 
     private void Close()

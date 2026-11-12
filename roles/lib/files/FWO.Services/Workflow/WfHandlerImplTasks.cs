@@ -208,6 +208,10 @@ namespace FWO.Services.Workflow
 
         public async Task AddImplTask()
         {
+            if (ReadOnlyMode || !CanActOnReqTaskInCurrentPhase(ActReqTask))
+            {
+                return;
+            }
             if (dbAcc != null)
             {
                 ActImplTask.Id = await dbAcc.AddImplTaskToDb(ActImplTask, ActReqTask);
@@ -217,6 +221,12 @@ namespace FWO.Services.Workflow
 
         public async Task ChangeImplTask()
         {
+            if (ReadOnlyMode
+                || !CanActOnReqTaskInCurrentPhase(ActReqTask)
+                || !CanActOnImplTaskInCurrentPhase(ActImplTask))
+            {
+                return;
+            }
             if (dbAcc != null)
             {
                 await dbAcc.UpdateImplTaskInDb(ActImplTask, ActReqTask);
@@ -247,6 +257,12 @@ namespace FWO.Services.Workflow
 
         public async Task ConfDeleteImplTask()
         {
+            if (ReadOnlyMode
+                || !CanActOnReqTaskInCurrentPhase(ActReqTask)
+                || !CanActOnImplTaskInCurrentPhase(ActImplTask))
+            {
+                return;
+            }
             if (dbAcc != null)
             {
                 await dbAcc.DeleteImplTaskFromDb(ActImplTask);

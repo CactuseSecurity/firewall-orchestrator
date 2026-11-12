@@ -14,8 +14,10 @@ internal sealed class ImplTaskCreationApiConnection(WfTicket storedTicket) : Sim
     private long nextImplementationElementId = 500;
 
     public int InsertCount { get; private set; }
+    public TaskCompletionSource? InsertStarted { get; set; }
+    public TaskCompletionSource? ReleaseInsert { get; set; }
 
-    public override Task<T> SendQueryAsync<T>(
+    public override async Task<T> SendQueryAsync<T>(
         string query,
         object? variables = null,
         string? operationName = null,
@@ -23,30 +25,35 @@ internal sealed class ImplTaskCreationApiConnection(WfTicket storedTicket) : Sim
     {
         if (query == RequestQueries.getTicketById)
         {
-            return Task.FromResult((T)(object)storedTicket);
+            return (T)(object)storedTicket;
         }
         if (query == RequestQueries.newImplementationTask)
         {
             InsertCount++;
-            return Task.FromResult((T)(object)new ReturnIdWrapper
+            InsertStarted?.TrySetResult();
+            if (ReleaseInsert != null)
+            {
+                await ReleaseInsert.Task;
+            }
+            return (T)(object)new ReturnIdWrapper
             {
                 ReturnIds = [new ReturnId { NewIdLong = ++nextImplementationTaskId }]
-            });
+            };
         }
         if (query == RequestQueries.newImplementationElement)
         {
-            return Task.FromResult((T)(object)new ReturnIdWrapper
+            return (T)(object)new ReturnIdWrapper
             {
                 ReturnIds = [new ReturnId { NewIdLong = ++nextImplementationElementId }]
-            });
+            };
         }
         if (query == ModellingQueries.addHistoryEntry || query == ModellingQueries.addHistoryEntryAsService)
         {
-            return Task.FromResult((T)(object)new ReturnIdWrapper());
+            return (T)(object)new ReturnIdWrapper();
         }
         if (query == RequestQueries.recordStateChangeExecution)
         {
-            return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
+            return (T)(object)new ReturnId { AffectedRows = 1 };
         }
         throw new InvalidOperationException($"Unexpected implementation-task creation query: {query}");
     }

@@ -5,7 +5,7 @@ namespace FWO.Middleware.Server.Responses;
 /// <summary>
 /// Represents the ServiceObjectResponse type.
 /// </summary>
-public sealed class ServiceObjectResponse
+public class ServiceObjectResponse
 {
     /// <summary>
     /// Gets the Id value.

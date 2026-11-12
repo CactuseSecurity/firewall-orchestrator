@@ -1,5 +1,9 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.3 - 11.11.2026
+- middleware REST API: `getAddressGroups` and `getServiceGroups` accept `filter.includeTechnicalDetails=true` to include each member's standalone address or service object fields; omitted, null or false keep the existing compact id/name response, and address details can be combined with separated zone groups
+
+
 ## 9.9.2 - 10.11.2026
 - importer: last hits are read by a separate rule hit import instead of the regular import (#3297)
   - the regular import no longer reads or writes last hits (Check Point no longer requests hits), so unchanged Check Point configurations no longer leave last hits outdated

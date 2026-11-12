@@ -78,8 +78,9 @@ public class RulePositioningManagerTest
         context.ParentRequestTask.ManagementId = requestManagementId;
         context.ParentRequestTask.OnManagement = new Management { Id = requestManagementId };
         RecordingStrategy strategy = CheckPointStrategy();
+        List<IRulePositioningStrategy> strategies = [strategy];
 
-        RulePositioningResult result = await new RulePositioningManager([strategy])
+        RulePositioningResult result = await new RulePositioningManager(strategies)
             .CalculateAsync(context, CancellationToken.None);
 
         Assert.That(result, Is.TypeOf<RulePositioningSuccess>());
@@ -95,8 +96,9 @@ public class RulePositioningManagerTest
         context.ParentRequestTask.ManagementId = requestManagementId;
         context.ParentRequestTask.OnManagement = new Management { Id = requestManagementId };
         RecordingStrategy strategy = CheckPointStrategy();
+        List<IRulePositioningStrategy> strategies = [strategy];
 
-        RulePositioningResult result = await new RulePositioningManager([strategy])
+        RulePositioningResult result = await new RulePositioningManager(strategies)
             .CalculateAsync(context, CancellationToken.None);
 
         AssertFailure(result, RulePositioningFailureCategory.InvalidInput);

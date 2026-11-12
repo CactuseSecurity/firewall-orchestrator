@@ -12,6 +12,9 @@ namespace FWO.Test
     [Parallelizable]
     internal class ApiFirewallWriteDataSourceTest
     {
+        private static readonly List<string> kGatewayTargetQueries =
+            [FWO.Api.Client.Queries.DeviceQueries.getImplementationTaskGatewayTarget];
+
         private static InMemoryDeviceSpecificSettingsApiConnection Api()
         {
             InMemoryDeviceSpecificSettingsApiConnection api = new();
@@ -69,7 +72,7 @@ namespace FWO.Test
             {
                 Assert.That(exception?.Error.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
                 Assert.That(api.Calls.Select(call => call.Query),
-                    Is.EqualTo(new[] { FWO.Api.Client.Queries.DeviceQueries.getImplementationTaskGatewayTarget }));
+                    Is.EqualTo(kGatewayTargetQueries));
             }
         }
 
@@ -87,7 +90,7 @@ namespace FWO.Test
             {
                 Assert.That(exception?.Error.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
                 Assert.That(api.Calls.Select(call => call.Query),
-                    Is.EqualTo(new[] { FWO.Api.Client.Queries.DeviceQueries.getImplementationTaskGatewayTarget }));
+                    Is.EqualTo(kGatewayTargetQueries));
             }
         }
 
@@ -105,7 +108,7 @@ namespace FWO.Test
             {
                 Assert.That(exception?.Error.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
                 Assert.That(api.Calls.Select(call => call.Query),
-                    Is.EqualTo(new[] { FWO.Api.Client.Queries.DeviceQueries.getImplementationTaskGatewayTarget }));
+                    Is.EqualTo(kGatewayTargetQueries));
             }
         }
 

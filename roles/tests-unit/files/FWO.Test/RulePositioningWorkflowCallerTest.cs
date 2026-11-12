@@ -225,6 +225,7 @@ internal class RulePositioningWorkflowCallerTest
         (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
         WfReqTask persistedParent = TicketTask(kRequestTaskId, 3, kManagementId);
         WfReqTask earlier = TicketTask(51, 1, kManagementId);
+        List<WfReqTask> expectedTicketTasks = [earlier, persistedParent];
         api.Ticket = new WfTicket
         {
             Id = requestTask.TicketId,
@@ -246,7 +247,7 @@ internal class RulePositioningWorkflowCallerTest
             Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.Stored));
             Assert.That(api.TicketReads, Is.EqualTo(1));
             Assert.That(strategy.Context!.ParentRequestTask, Is.SameAs(requestTask));
-            Assert.That(strategy.Context.TicketRequestTasks, Is.EqualTo([earlier, persistedParent]));
+            Assert.That(strategy.Context.TicketRequestTasks, Is.EqualTo(expectedTicketTasks));
             Assert.That(strategy.Context.TicketRequestTasks, Is.Not.SameAs(api.Ticket.Tasks));
         });
     }
@@ -265,6 +266,7 @@ internal class RulePositioningWorkflowCallerTest
         implementationTask.ManagementId = implementationManagementId;
         WfReqTask persistedParent = TicketTask(kRequestTaskId, 3, kManagementId);
         WfReqTask earlier = TicketTask(51, 1, kManagementId);
+        List<WfReqTask> expectedTicketTasks = [earlier, persistedParent];
         api.Ticket = new WfTicket
         {
             Id = requestTask.TicketId,
@@ -287,7 +289,7 @@ internal class RulePositioningWorkflowCallerTest
         {
             Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.Stored));
             Assert.That(strategy.Context!.TargetManagement.Id, Is.EqualTo(kGatewayManagementId));
-            Assert.That(strategy.Context.TicketRequestTasks, Is.EqualTo([earlier, persistedParent]));
+            Assert.That(strategy.Context.TicketRequestTasks, Is.EqualTo(expectedTicketTasks));
             Assert.That(api.TicketReads, Is.EqualTo(1));
         });
     }

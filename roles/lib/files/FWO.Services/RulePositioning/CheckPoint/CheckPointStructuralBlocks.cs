@@ -661,11 +661,19 @@ public abstract class CheckPointBoundaryBlock : IPositioningBlock<CheckPointPosi
 
         ProvisioningPositioningAlgorithm algorithm =
             context.CalculationContext.EffectiveSettings.PositioningAlgorithm;
-        CheckPointRulePosition position = scope.Section != null
-            ? ResolveSectionScope(scope, algorithm)
-            : ScopeRules(scope).Count > 0
-                ? ResolvePopulatedScope(scope, algorithm)
-                : ResolveEmptyLayer(scope, algorithm);
+        CheckPointRulePosition position;
+        if (scope.Section != null)
+        {
+            position = ResolveSectionScope(scope, algorithm);
+        }
+        else if (ScopeRules(scope).Count > 0)
+        {
+            position = ResolvePopulatedScope(scope, algorithm);
+        }
+        else
+        {
+            position = ResolveEmptyLayer(scope, algorithm);
+        }
         return Task.FromResult<PositioningBlockResult<CheckPointBlockValue>>(
             new PositioningBlockSuccess<CheckPointBlockValue>(new CheckPointPositionValue(position)));
     }

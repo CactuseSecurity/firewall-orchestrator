@@ -104,10 +104,11 @@ namespace FWO.Test
         }
 
         [TestCase("id", true, true)]
-        [TestCase("name", true, false)]
+        [TestCase("name", true, true)]
         [TestCase("state", true, true)]
         [TestCase("requester", false, true)]
-        [TestCase("start_time", true, false)]
+        [TestCase("start_time", true, true)]
+        [TestCase("end_time", true, true)]
         [TestCase("type", false, false)]
         [TestCase("tasks", false, false)]
         [TestCase("actions", false, false)]
@@ -124,6 +125,9 @@ namespace FWO.Test
         }
 
         [TestCase("id", "Equals,NotEquals")]
+        [TestCase("name", "Equals,NotEquals,StartsWith")]
+        [TestCase("start_time", "Equals,NotEquals,GreaterThan,GreaterThanOrEqual,LessThan,LessThanOrEqual,Between,IsEmpty,IsNotEmpty")]
+        [TestCase("end_time", "Equals,NotEquals,GreaterThan,GreaterThanOrEqual,LessThan,LessThanOrEqual,Between,IsEmpty,IsNotEmpty")]
         [TestCase("state", "Equals,NotEquals,Contains,NotContains,StartsWith,EndsWith,IsEmpty,IsNotEmpty")]
         [TestCase("requester", "Equals,NotEquals,Contains,NotContains,StartsWith,EndsWith,IsEmpty,IsNotEmpty")]
         public void FilterPopup_OffersOnlyOperatorsTheServerSupports(string columnKey, string expectedOperators)
@@ -135,6 +139,37 @@ namespace FWO.Test
 
             List<string?> offeredOperators = [.. component.FindAll($"{header} select option").Select(option => option.GetAttribute("value"))];
             Assert.That(string.Join(",", offeredOperators), Is.EqualTo(expectedOperators));
+        }
+
+        [Test]
+        public void DateFilter_Between_SendsBothDaysToTheServer()
+        {
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { CreateTicket() });
+            string header = "th[data-column-key='start_time']";
+
+            component.Find($"{header} button.fancy-filter-button").Click();
+            component.Find($"{header} select").Change(nameof(FancyColumnFilterOperator.Between));
+            List<IElement> dateInputs = [.. component.FindAll($"{header} input[type=date]")];
+            dateInputs[0].Input("2026-11-01");
+            dateInputs[1].Input("2026-11-10");
+            component.Find($"{header} button.btn-primary").Click();
+
+            FancyColumnFilter filter = requests[^1].ColumnFilters.Single();
+            Assert.That((filter.Key, filter.Operator, filter.Value, filter.ValueTo),
+                Is.EqualTo(("start_time", FancyColumnFilterOperator.Between, "2026-11-01", "2026-11-10")));
+        }
+
+        [Test]
+        public void Render_ShowsStartTimeAsBefore()
+        {
+            WfTicket ticket = CreateTicket();
+            ticket.CreationDate = new DateTime(2026, 11, 10, 8, 30, 0);
+
+            IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { ticket });
+
+            List<string?> columnKeys = [.. component.FindAll("thead th").Select(header => header.GetAttribute("data-column-key"))];
+            IElement startCell = component.FindAll("tbody tr td")[columnKeys.IndexOf("start_time")];
+            Assert.That(startCell.TextContent.Trim(), Is.EqualTo(ticket.CreationDate.ToString()));
         }
 
         [Test]

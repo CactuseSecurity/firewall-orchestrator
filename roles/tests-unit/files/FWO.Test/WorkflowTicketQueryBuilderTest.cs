@@ -19,6 +19,9 @@ namespace FWO.Test
         private static readonly List<int> kStateIds = [200, 210, 600];
         private static readonly Dictionary<int, string> kStateNames = new() { [200] = "To Implement", [210] = "In Implementation", [600] = "Done" };
         private static readonly List<FancyColumnFilter> kNoFilters = [];
+        private static readonly List<string> kNameFields = ["title", "title", "title", "approver_group"];
+        private static readonly List<string> kStartFields = ["date_created", "start", "start", "date_opened"];
+        private static readonly List<string> kEndFields = ["date_completed", "stop", "stop", "approval_date"];
 
         private static FancyItemsRequest Request(string search = "", string? sortKey = null, bool ascending = true, FancyColumnFilter? filter = null, int page = 1)
         {
@@ -63,6 +66,28 @@ namespace FWO.Test
         private static string Negated(string condition)
         {
             return Normalize("{\"_not\":" + condition + "}");
+        }
+
+        /// <summary>
+        /// Builds the expected condition comparing the given fields of ticket, request task, implementation task and approval.
+        /// </summary>
+        private static string AnyLevelCondition(List<string> fields, string comparison)
+        {
+            return Normalize("{\"_or\":["
+                + "{\"" + fields[0] + "\":" + comparison + "},"
+                + "{\"reqtasks\":{\"" + fields[1] + "\":" + comparison + "}},"
+                + "{\"reqtasks\":{\"impltasks\":{\"" + fields[2] + "\":" + comparison + "}}},"
+                + "{\"reqtasks\":{\"approvals\":{\"" + fields[3] + "\":" + comparison + "}}}]}");
+        }
+
+        private static string NameCondition(string comparison)
+        {
+            return AnyLevelCondition(kNameFields, comparison);
+        }
+
+        private static string DateCondition(List<string> fields, string comparison)
+        {
+            return AnyLevelCondition(fields, comparison);
         }
 
         [Test]
@@ -196,6 +221,87 @@ namespace FWO.Test
         public void Filter_TextOrUnknownColumn_AddsNoCondition(string columnKey)
         {
             WorkflowTicketQuery query = Build(Request(filter: new FancyColumnFilter(columnKey, FancyColumnFilterOperator.Contains, "x")));
+
+            Assert.That(JsonNode.Parse(ToJson(query.Where))!["_and"]!.AsArray(), Has.Count.EqualTo(2));
+        }
+
+        [TestCase(FancyColumnFilterOperator.Equals, """{"_ilike":"rule"}""")]
+        [TestCase(FancyColumnFilterOperator.StartsWith, """{"_ilike":"rule%"}""")]
+        public void NameFilter_SupportedOperator_ComparesTitlesOnAllLevels(FancyColumnFilterOperator filterOperator, string comparison)
+        {
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("name", filterOperator, " rule "))));
+
+            Assert.That(condition, Is.EqualTo(NameCondition(comparison)));
+        }
+
+        [Test]
+        public void NameFilter_NotEquals_NegatesEqualsCondition()
+        {
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("name", FancyColumnFilterOperator.NotEquals, "rule"))));
+
+            Assert.That(condition, Is.EqualTo(Negated(NameCondition("""{"_ilike":"rule"}"""))));
+        }
+
+        [TestCase(FancyColumnFilterOperator.EndsWith)]
+        [TestCase(FancyColumnFilterOperator.NotContains)]
+        [TestCase(FancyColumnFilterOperator.IsEmpty)]
+        [TestCase(FancyColumnFilterOperator.IsNotEmpty)]
+        public void NameFilter_UnsupportedOperator_AddsNoCondition(FancyColumnFilterOperator filterOperator)
+        {
+            WorkflowTicketQuery query = Build(Request(filter: new FancyColumnFilter("name", filterOperator, "rule")));
+
+            Assert.That(JsonNode.Parse(ToJson(query.Where))!["_and"]!.AsArray(), Has.Count.EqualTo(2));
+        }
+
+        [TestCase(FancyColumnFilterOperator.Equals, """{"_gte":"2026-11-10","_lt":"2026-11-11"}""")]
+        [TestCase(FancyColumnFilterOperator.GreaterThan, """{"_gte":"2026-11-11"}""")]
+        [TestCase(FancyColumnFilterOperator.GreaterThanOrEqual, """{"_gte":"2026-11-10"}""")]
+        [TestCase(FancyColumnFilterOperator.LessThan, """{"_lt":"2026-11-10"}""")]
+        [TestCase(FancyColumnFilterOperator.LessThanOrEqual, """{"_lt":"2026-11-11"}""")]
+        [TestCase(FancyColumnFilterOperator.IsNotEmpty, """{"_is_null":false}""")]
+        public void StartTimeFilter_ComparesDayOnAllLevels(FancyColumnFilterOperator filterOperator, string comparison)
+        {
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("start_time", filterOperator, "2026-11-10"))));
+
+            Assert.That(condition, Is.EqualTo(DateCondition(kStartFields, comparison)));
+        }
+
+        [TestCase(FancyColumnFilterOperator.NotEquals, """{"_gte":"2026-11-10","_lt":"2026-11-11"}""")]
+        [TestCase(FancyColumnFilterOperator.IsEmpty, """{"_is_null":false}""")]
+        public void EndTimeFilter_NegatedOperator_NegatesConditionOnAllLevels(FancyColumnFilterOperator filterOperator, string comparison)
+        {
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("end_time", filterOperator, "2026-11-10"))));
+
+            Assert.That(condition, Is.EqualTo(Negated(DateCondition(kEndFields, comparison))));
+        }
+
+        [TestCase("2026-11-01", "2026-11-10")]
+        [TestCase("2026-11-10", "2026-11-01")]
+        public void DateFilter_Between_IncludesBothDaysInAnyOrder(string value, string valueTo)
+        {
+            FancyColumnFilter filter = new("end_time", FancyColumnFilterOperator.Between, value, valueTo);
+
+            string condition = ExtraCondition(Build(Request(filter: filter)));
+
+            Assert.That(condition, Is.EqualTo(DateCondition(kEndFields, """{"_gte":"2026-11-01","_lt":"2026-11-11"}""")));
+        }
+
+        [Test]
+        public void DateFilter_LastRepresentableDay_EndsAtInfinity()
+        {
+            string condition = ExtraCondition(Build(Request(filter: new FancyColumnFilter("start_time", FancyColumnFilterOperator.LessThanOrEqual, "9999-12-31"))));
+
+            Assert.That(condition, Is.EqualTo(DateCondition(kStartFields, """{"_lt":"infinity"}""")));
+        }
+
+        [TestCase(FancyColumnFilterOperator.Equals, "10.11.2026", null)]
+        [TestCase(FancyColumnFilterOperator.Equals, "", null)]
+        [TestCase(FancyColumnFilterOperator.Between, "2026-11-01", null)]
+        [TestCase(FancyColumnFilterOperator.Between, "2026-11-01", "x")]
+        [TestCase(FancyColumnFilterOperator.Contains, "2026-11-01", null)]
+        public void DateFilter_InvalidValueOrOperator_AddsNoCondition(FancyColumnFilterOperator filterOperator, string value, string? valueTo)
+        {
+            WorkflowTicketQuery query = Build(Request(filter: new FancyColumnFilter("start_time", filterOperator, value, valueTo)));
 
             Assert.That(JsonNode.Parse(ToJson(query.Where))!["_and"]!.AsArray(), Has.Count.EqualTo(2));
         }

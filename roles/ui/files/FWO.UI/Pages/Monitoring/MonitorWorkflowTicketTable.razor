@@ -108,16 +108,23 @@
     private static readonly RenderFragment kNoToolbar = _ => { };
 
     // Sorting and filtering run on the server, so a column offers them only where WorkflowTicketQueryBuilder supports them.
-    // Text filters are only offered for the requester, which is a single lookup per ticket: a "contains" match over all
+    // All text operators are only offered for the requester, which is a single lookup per ticket: a "contains" match over all
     // levels cannot use an index and is too slow on many tickets.
     private static readonly ColumnBehavior kServerColumn = new(Hideable: true, Resizable: true, Sortable: true, Filterable: true);
-    private static readonly ColumnBehavior kSortOnlyColumn = kServerColumn with { Filterable = false };
     private static readonly ColumnBehavior kFilterOnlyColumn = kServerColumn with { Sortable = false };
     private static readonly ColumnBehavior kDisplayColumn = kServerColumn with { Sortable = false, Filterable = false };
 
     // The id filter compares ids exactly (see WorkflowTicketQueryBuilder), so text operators like "contains" are not offered.
     private static readonly IReadOnlyList<FancyColumnFilterOperator> kExactFilterOperators = [FancyColumnFilterOperator.Equals, FancyColumnFilterOperator.NotEquals];
     private static readonly ColumnBehavior kIdColumn = kServerColumn with { FilterOperators = kExactFilterOperators };
+
+    // The name filter compares the titles of all levels, so only operators matching from the start of the title are offered.
+    private static readonly IReadOnlyList<FancyColumnFilterOperator> kNameFilterOperators =
+        [FancyColumnFilterOperator.Equals, FancyColumnFilterOperator.NotEquals, FancyColumnFilterOperator.StartsWith];
+    private static readonly ColumnBehavior kNameColumn = kServerColumn with { FilterOperators = kNameFilterOperators };
+
+    // Date columns get a date picker and the comparison operators; the filter compares the day only.
+    private static readonly ColumnBehavior kDateColumn = kServerColumn with { FilterType = FancyColumnFilterType.Date };
 
     #endregion
 
@@ -200,21 +207,22 @@
                 CellTemplate = ActionsCellTemplate
             },
             CreateColumn("id", userConfig.GetText("id"), row => row.Id.ToString(), kIdColumn, row => row.Id),
-            CreateColumn("type", userConfig.GetText("type"), row => GetKindText(row.Kind), kServerColumn),
-            CreateColumn("name", userConfig.GetText("name"), row => row.Name, kServerColumn),
+            CreateColumn("type", userConfig.GetText("type"), row => GetKindText(row.Kind), kDisplayColumn),
+            CreateColumn("name", userConfig.GetText("name"), row => row.Name, kNameColumn),
             CreateColumn("tasks", userConfig.GetText("tasks"), row => row.TaskCount?.ToString() ?? "", kDisplayColumn, row => row.TaskCount),
             CreateColumn("requester", userConfig.GetText("requester"), row => row.Requester, kFilterOnlyColumn),
             CreateColumn("state", userConfig.GetText("state"), row => ResolveStateName(row.StateId), kServerColumn, cellTemplate: StateCellTemplate),
-            CreateColumn("start_time", userConfig.GetText("start_time"), row => row.Start?.ToString() ?? "", kServerColumn, row => row.Start),
-            CreateColumn("end_time", userConfig.GetText("end_time"), row => row.End?.ToString() ?? "", kServerColumn, row => row.End)
+            CreateColumn("start_time", userConfig.GetText("start_time"), row => row.Start, kDateColumn, row => row.Start),
+            CreateColumn("end_time", userConfig.GetText("end_time"), row => row.End, kDateColumn, row => row.End)
         ];
     }
 
     /// <summary>
-    /// Creates a text column; whether it can be sorted and filtered comes from its behavior. It is sorted by the displayed
-    /// text, unless a separate sort value selector is given. An optional cell template replaces the displayed text.
+    /// Creates a column; whether it can be sorted and filtered, and how it is filtered, comes from its behavior. It is sorted
+    /// by the displayed value, unless a separate sort value selector is given. An optional cell template replaces the displayed value.
+    /// Date columns return the date itself, as the date filter compares the value and not its text.
     /// </summary>
-    private static FancyColumn<WorkflowTreeRow> CreateColumn(string key, string title, Func<WorkflowTreeRow, string> valueSelector,
+    private static FancyColumn<WorkflowTreeRow> CreateColumn(string key, string title, Func<WorkflowTreeRow, object?> valueSelector,
         ColumnBehavior behavior, Func<WorkflowTreeRow, IComparable?>? sortValueSelector = null, RenderFragment<WorkflowTreeRow>? cellTemplate = null)
     {
         return new FancyColumn<WorkflowTreeRow>
@@ -225,11 +233,12 @@
             Searchable = false,
             Hideable = behavior.Hideable,
             ValueSelector = valueSelector,
-            SortValueSelector = sortValueSelector ?? (row => valueSelector(row)),
+            SortValueSelector = sortValueSelector ?? (row => valueSelector(row) as IComparable),
             CellTemplate = cellTemplate,
             Resizable = behavior.Resizable,
             Filterable = behavior.Filterable,
             FilterOperators = behavior.FilterOperators,
+            FilterType = behavior.FilterType,
             MinWidth = kColumnMinWidth
         };
     }
@@ -327,10 +336,10 @@
     #region Nested Types
 
     /// <summary>
-    /// Defines which interactions a column supports. Filter operators are all operators if null.
+    /// Defines which interactions a column supports. Filter operators are all operators of the filter type if null.
     /// </summary>
     private readonly record struct ColumnBehavior(bool Hideable, bool Resizable, bool Sortable, bool Filterable,
-        IReadOnlyList<FancyColumnFilterOperator>? FilterOperators = null);
+        IReadOnlyList<FancyColumnFilterOperator>? FilterOperators = null, FancyColumnFilterType FilterType = FancyColumnFilterType.Text);
 
     /// <summary>
     /// Kind of workflow object shown in a tree row.

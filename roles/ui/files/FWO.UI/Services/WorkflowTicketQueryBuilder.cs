@@ -14,8 +14,10 @@ namespace FWO.Ui.Services
     /// The state and id columns compare ids, so the database can answer them quickly; the id column only supports
     /// "equals" and "does not equal", other operators on it are ignored. The requester column
     /// compares the user name of the ticket's requester only, a lookup by primary key in the small user table.
-    /// Free text search and other text filters are not offered, as a "contains" match over all levels is too slow
-    /// on many tickets. A filter matches if any level of a ticket (ticket, request task, implementation task, approval)
+    /// The name column compares the titles (the approver group of approvals) with "equals" and "starts with" only;
+    /// the start and end time columns compare the day of the dates with the date operators.
+    /// Free text search and "contains" filters over all levels are not offered, as they are too slow on many tickets.
+    /// A filter matches if any level of a ticket (ticket, request task, implementation task, approval)
     /// matches; negated operators mean that no level matches.
     /// </summary>
     public static class WorkflowTicketQueryBuilder
@@ -35,6 +37,14 @@ namespace FWO.Ui.Services
         private const string kAscending = "asc";
         private const string kDescending = "desc";
         private const string kWildcard = "%";
+        private const string kGte = "_gte";
+        private const string kLt = "_lt";
+        private const string kDayFormat = "yyyy-MM-dd";
+        private const string kAfterLastDay = "infinity";
+
+        private static readonly LevelFields kNameFields = new(kTitle, kTitle, kTitle, "approver_group");
+        private static readonly LevelFields kStartFields = new("date_created", "start", "start", "date_opened");
+        private static readonly LevelFields kEndFields = new("date_completed", "stop", "stop", "approval_date");
 
         private static readonly Dictionary<string, object> kNoMatchCondition = new() { ["id"] = new Dictionary<string, object> { ["_is_null"] = true } };
         private static readonly Dictionary<string, object> kDefaultOrder = new() { ["id"] = kDescending };
@@ -104,6 +114,9 @@ namespace FWO.Ui.Services
                 "state" => StateCondition(MatchingStateIds(positiveOperator, value, stateNames)),
                 "id" => IdFilterCondition(positiveOperator, value),
                 "requester" => RequesterCondition(TextComparison(positiveOperator, value)),
+                "name" => NameCondition(positiveOperator, value),
+                "start_time" => DateCondition(kStartFields, positiveOperator, value, filter.ValueTo),
+                "end_time" => DateCondition(kEndFields, positiveOperator, value, filter.ValueTo),
                 _ => null
             };
 
@@ -215,6 +228,92 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
+        /// The name column shows the title of the ticket, request task or implementation task and the approver group of an
+        /// approval. Only "equals" and "starts with" are supported, other operators are ignored like by the table itself.
+        /// </summary>
+        private static Dictionary<string, object>? NameCondition(FancyColumnFilterOperator positiveOperator, string value)
+        {
+            if (positiveOperator != FancyColumnFilterOperator.Equals && positiveOperator != FancyColumnFilterOperator.StartsWith)
+            {
+                return null;
+            }
+
+            return AnyLevelCondition(kNameFields, TextComparison(positiveOperator, value));
+        }
+
+        /// <summary>
+        /// Compares the day of a date on all levels. The table sends the days as invariant "yyyy-MM-dd" strings; filters
+        /// with another format or an unsupported operator are ignored like by the table itself.
+        /// </summary>
+        private static Dictionary<string, object>? DateCondition(LevelFields fields, FancyColumnFilterOperator positiveOperator, string value, string? valueTo)
+        {
+            Dictionary<string, object>? comparison = positiveOperator == FancyColumnFilterOperator.IsNotEmpty
+                ? new Dictionary<string, object> { ["_is_null"] = false }
+                : DayComparison(positiveOperator, value, valueTo);
+            return comparison == null ? null : AnyLevelCondition(fields, comparison);
+        }
+
+        /// <summary>
+        /// Translates a date operator into a range of timestamps: a day reaches from its start up to the start of the next day.
+        /// </summary>
+        private static Dictionary<string, object>? DayComparison(FancyColumnFilterOperator positiveOperator, string value, string? valueTo)
+        {
+            if (!TryParseDay(value, out DateOnly day))
+            {
+                return null;
+            }
+
+            return positiveOperator switch
+            {
+                FancyColumnFilterOperator.Equals => DayRange(day, day),
+                FancyColumnFilterOperator.GreaterThan => Comparison(kGte, StartOfNextDay(day)),
+                FancyColumnFilterOperator.GreaterThanOrEqual => Comparison(kGte, StartOfDay(day)),
+                FancyColumnFilterOperator.LessThan => Comparison(kLt, StartOfDay(day)),
+                FancyColumnFilterOperator.LessThanOrEqual => Comparison(kLt, StartOfNextDay(day)),
+                FancyColumnFilterOperator.Between when TryParseDay(valueTo, out DateOnly dayTo) => day <= dayTo ? DayRange(day, dayTo) : DayRange(dayTo, day),
+                _ => null
+            };
+        }
+
+        private static Dictionary<string, object> DayRange(DateOnly firstDay, DateOnly lastDay)
+        {
+            return new Dictionary<string, object> { [kGte] = StartOfDay(firstDay), [kLt] = StartOfNextDay(lastDay) };
+        }
+
+        private static bool TryParseDay(string? value, out DateOnly day)
+        {
+            return DateOnly.TryParseExact(value?.Trim(), kDayFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out day);
+        }
+
+        private static string StartOfDay(DateOnly day)
+        {
+            return day.ToString(kDayFormat, CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// The last representable day has no next day, so PostgreSQL's "infinity" timestamp ends it.
+        /// </summary>
+        private static string StartOfNextDay(DateOnly day)
+        {
+            return day == DateOnly.MaxValue ? kAfterLastDay : StartOfDay(day.AddDays(1));
+        }
+
+        /// <summary>
+        /// Matches if the field of the ticket, of a request task, of an implementation task or of an approval matches.
+        /// </summary>
+        private static Dictionary<string, object> AnyLevelCondition(LevelFields fields, Dictionary<string, object> comparison)
+        {
+            List<object> alternatives =
+            [
+                Field(fields.Ticket, comparison),
+                Nested(kReqTasks, Field(fields.ReqTask, comparison)),
+                Nested(kReqTasks, Nested(kImplTasks, Field(fields.ImplTask, comparison))),
+                Nested(kReqTasks, Nested(kApprovals, Field(fields.Approval, comparison)))
+            ];
+            return new Dictionary<string, object> { [kOr] = alternatives };
+        }
+
+        /// <summary>
         /// The requester exists only on the ticket, so the filter compares the user name of the ticket's requester.
         /// </summary>
         private static Dictionary<string, object> RequesterCondition(Dictionary<string, object> comparison)
@@ -236,5 +335,10 @@ namespace FWO.Ui.Services
         {
             return new Dictionary<string, object> { [relationship] = condition };
         }
+
+        /// <summary>
+        /// Names of the field a column compares on each level of a ticket.
+        /// </summary>
+        private sealed record LevelFields(string Ticket, string ReqTask, string ImplTask, string Approval);
     }
 }

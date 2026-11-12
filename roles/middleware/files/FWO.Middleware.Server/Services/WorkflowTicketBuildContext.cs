@@ -5,7 +5,8 @@ using FWO.Middleware.Server.Responses;
 
 namespace FWO.Middleware.Server.Services;
 
-internal sealed record RuleTaskLookups(Dictionary<int, FwoOwner> OwnersById, Dictionary<string, int> RuleActionIds);
+internal sealed record RuleTaskLookups(Dictionary<int, FwoOwner> OwnersById, Dictionary<string, int> RuleActionIds,
+    Dictionary<string, int> TrackingIds);
 
 internal sealed class TicketBuildContext
 {

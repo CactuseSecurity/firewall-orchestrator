@@ -25610,6 +25610,16 @@
                   }
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "track_id",
+                      "track_name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [

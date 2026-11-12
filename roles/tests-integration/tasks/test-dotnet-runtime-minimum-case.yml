@@ -1,0 +1,17 @@
+---
+- name: "Evaluate the dotnet runtime listing: {{ dotnet_runtime_minimum_case.case }}"
+  include_tasks: "{{ dotnet_runtime_evaluation }}"
+  vars:
+    dotnet_version: "10.0"
+    dotnet_min_runtime_version: "10.0.15"
+    dotnet_required_shared_frameworks:
+      - Microsoft.NETCore.App
+      - Microsoft.AspNetCore.App
+    dotnet_runtime_listing: "{{ dotnet_runtime_minimum_case.listing }}"
+
+- name: "Assert the frameworks below the minimum: {{ dotnet_runtime_minimum_case.case }}"
+  assert:
+    that: dotnet_runtime_shortfall == dotnet_runtime_minimum_case.expected_shortfall
+    fail_msg: >-
+      {{ dotnet_runtime_minimum_case.case }}: expected {{ dotnet_runtime_minimum_case.expected_shortfall }}
+      below 10.0.15, the evaluation returned {{ dotnet_runtime_shortfall }}

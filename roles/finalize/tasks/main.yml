@@ -140,20 +140,29 @@
     state: reloaded
   become: true
 
+# also catches a service left on the old runtime by an earlier run that upgraded the runtime and then failed
+- name: find middleware and UI processes running on a dotnet runtime below {{ dotnet_min_runtime_version }}
+  include_tasks: find_service_on_outdated_dotnet_runtime.yml
+  loop: >-
+    {{ ([product_name ~ '-middleware'] if 'middlewareserver' in group_names else [])
+       + ([product_name ~ '-ui'] if 'frontends' in group_names else []) }}
+  loop_control:
+    loop_var: dotnet_service_name
+
 - name: finally restart MW
   ansible.builtin.systemd:
     name: "{{ product_name }}-middleware"
     state: restarted
     daemon_reload: true
   become: true
-  when: "'middlewareserver' in group_names and (mw_deploy_changed | default(false) or internalca_client_identity_changed | default(false))"
+  when: "'middlewareserver' in group_names and (mw_deploy_changed | default(false) or internalca_client_identity_changed | default(false) or dotnet_runtime_upgraded | default(false) | bool or (product_name ~ '-middleware') in dotnet_services_on_outdated_runtime | default([]))"
 
 - name: finally restart UI
   ansible.builtin.systemd:
     name: "{{ product_name }}-ui"
     state: restarted
   become: true
-  when: "'frontends' in group_names and (ui_deploy_changed | default(false) or internalca_client_identity_changed | default(false))"
+  when: "'frontends' in group_names and (ui_deploy_changed | default(false) or internalca_client_identity_changed | default(false) or dotnet_runtime_upgraded | default(false) | bool or (product_name ~ '-ui') in dotnet_services_on_outdated_runtime | default([]))"
 
 # the importer is deliberately not started here: it has to come up after every task which restarts
 # one of its dependencies, and the plays which follow this role still restart the middleware and

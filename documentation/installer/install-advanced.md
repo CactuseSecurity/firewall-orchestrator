@@ -160,6 +160,38 @@ The installer stops before changing anything on an operating system release it d
 
 The resulting installation is not supported. The supported releases are defined by `supported_os_minimum_major_versions` in `inventory/group_vars/all.yml`.
 
+### Parameter "dotnet_runtime_upgrade_below_minimum" and the minimum .NET runtime
+
+The middleware and the UI are published framework-dependent and run on the .NET runtime of the host
+(`Microsoft.AspNetCore.App` and `Microsoft.NETCore.App`), not on the ASP.NET Core package versions FWO is built
+with. Runtime security fixes therefore only reach an installation when the host's runtime is updated.
+
+On every installation and upgrade, the installer checks `dotnet --list-runtimes` against `dotnet_min_runtime_version`
+in `inventory/group_vars/all.yml`. One runtime of the `dotnet_version` channel at or above the minimum per framework is
+enough, because the services roll forward to the highest installed patch.
+
+- The runtime meets the minimum: nothing is changed. Middleware or UI are only restarted if their running process
+  still uses a runtime below the minimum (read from `/proc/<pid>/maps`), for example after an earlier run upgraded
+  the runtime and then failed before the restart.
+- The runtime is below the minimum and the dotnet packages (`dotnet-sdk-10.0`, `aspnetcore-runtime-10.0`,
+  `dotnet-runtime-10.0`) were installed through apt or dnf: those packages are upgraded from the configured package
+  sources, honouring existing apt pins such as the Microsoft origin of the Ubuntu fallback. Middleware and UI are
+  restarted at the end of the run.
+- The runtime is still below the minimum afterwards, for example because an offline mirror is not synchronized yet,
+  or .NET was installed manually or with `dotnet-install.sh`: the installation stops with a message naming the
+  installed and the required versions. Update the host's .NET runtime and run the installer again.
+
+To never let the installer change the dotnet packages (for example on air-gapped hosts with a change process for
+OS packages), stop with that message instead of upgrading:
+
+```console
+./scripts/run-playbook-with-sudo.sh site.yml -e "dotnet_runtime_upgrade_below_minimum=false"
+```
+
+`dotnet_min_runtime_version` is raised together with security-relevant ASP.NET Core package updates. Release notes
+then name the enforced minimum. If only package references are raised, they must not claim that the runtime fixes
+ship with FWO.
+
 ### Parameter "internalca_reset_certificates" to rotate FWO-managed certificates
 
 Use this one-shot switch only with `installation_mode=upgrade` to generate a new

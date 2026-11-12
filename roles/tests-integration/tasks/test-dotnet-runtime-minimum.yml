@@ -1,0 +1,155 @@
+---
+# Drives roles/lib/tasks/evaluate_dotnet_runtime_versions.yml itself with literal
+# `dotnet --list-runtimes` listings, then checks that the runtime of this host meets the
+# minimum the installer enforced. The same is done for the runtime the running middleware and
+# UI processes loaded (roles/lib/tasks/evaluate_loaded_dotnet_runtimes.yml). Changes nothing;
+# only reading the process maps needs become.
+#
+# The listings and the minimum are literal, not derived from the inventory: a regression
+# that accepts an old runtime must not turn these cases green.
+- name: Set the dotnet runtime minimum test inputs
+  set_fact:
+    dotnet_runtime_evaluation: "{{ role_path }}/../lib/tasks/evaluate_dotnet_runtime_versions.yml"
+    dotnet_runtime_minimum_cases:
+      - case: both frameworks at the minimum
+        expected_shortfall: []
+        listing: |
+          Microsoft.AspNetCore.App 10.0.15 [/usr/lib/dotnet/shared/Microsoft.AspNetCore.App]
+          Microsoft.NETCore.App 10.0.15 [/usr/lib/dotnet/shared/Microsoft.NETCore.App]
+      - case: an old patch beside a newer one
+        expected_shortfall: []
+        listing: |
+          Microsoft.AspNetCore.App 10.0.9 [/usr/share/dotnet/shared/Microsoft.AspNetCore.App]
+          Microsoft.AspNetCore.App 10.0.20 [/usr/share/dotnet/shared/Microsoft.AspNetCore.App]
+          Microsoft.NETCore.App 10.0.9 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+          Microsoft.NETCore.App 10.0.16 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+      - case: both frameworks one patch below
+        expected_shortfall: [Microsoft.NETCore.App, Microsoft.AspNetCore.App]
+        listing: |
+          Microsoft.AspNetCore.App 10.0.14 [/usr/lib/dotnet/shared/Microsoft.AspNetCore.App]
+          Microsoft.NETCore.App 10.0.14 [/usr/lib/dotnet/shared/Microsoft.NETCore.App]
+      - case: only ASP.NET Core below, compared as version and not as text
+        expected_shortfall: [Microsoft.AspNetCore.App]
+        listing: |
+          Microsoft.AspNetCore.App 10.0.2 [/usr/lib/dotnet/shared/Microsoft.AspNetCore.App]
+          Microsoft.NETCore.App 10.0.100 [/usr/lib/dotnet/shared/Microsoft.NETCore.App]
+      - case: newer runtimes of other channels only
+        expected_shortfall: [Microsoft.NETCore.App, Microsoft.AspNetCore.App]
+        listing: |
+          Microsoft.AspNetCore.App 11.0.1 [/usr/share/dotnet/shared/Microsoft.AspNetCore.App]
+          Microsoft.NETCore.App 100.0.30 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+          Microsoft.NETCore.App 9.0.30 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+      - case: preview build of the channel
+        expected_shortfall: [Microsoft.NETCore.App, Microsoft.AspNetCore.App]
+        listing: |
+          Microsoft.AspNetCore.App 10.0.0-rc.2.25502.107 [/usr/share/dotnet/shared/Microsoft.AspNetCore.App]
+          Microsoft.NETCore.App 10.0.0-rc.2.25502.107 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+      - case: no runtime at all
+        expected_shortfall: [Microsoft.NETCore.App, Microsoft.AspNetCore.App]
+        listing: ""
+
+- name: Verify the dotnet runtime evaluation for every case
+  include_tasks: test-dotnet-runtime-minimum-case.yml
+  loop: "{{ dotnet_runtime_minimum_cases }}"
+  loop_control:
+    loop_var: dotnet_runtime_minimum_case
+
+- name: Read the dotnet runtimes of this host
+  command: dotnet --list-runtimes
+  register: test_dotnet_host_runtimes
+  changed_when: false
+  failed_when: false
+
+- name: Evaluate the dotnet runtimes of this host
+  include_tasks: "{{ dotnet_runtime_evaluation }}"
+  vars:
+    dotnet_runtime_listing: "{{ test_dotnet_host_runtimes.stdout | default('') }}"
+
+- name: Assert that this host runs dotnet {{ dotnet_min_runtime_version }} or newer
+  assert:
+    that: dotnet_runtime_shortfall | length == 0
+    fail_msg: >-
+      The installer finished, but {{ dotnet_runtime_shortfall | join(' and ') }} is below
+      {{ dotnet_min_runtime_version }} on this host: {{ test_dotnet_host_runtimes.stdout_lines | default([]) | join('; ') }}
+
+# Drives roles/lib/tasks/evaluate_loaded_dotnet_runtimes.yml with literal /proc/<pid>/maps excerpts.
+# finalize restarts middleware and UI when it finds them on a framework below the minimum.
+- name: Set the loaded dotnet runtime test inputs
+  set_fact:
+    dotnet_loaded_runtime_evaluation: "{{ role_path }}/../lib/tasks/evaluate_loaded_dotnet_runtimes.yml"
+    dotnet_loaded_runtime_cases:
+      - case: process on the minimum
+        expected_below_minimum: []
+        maps: |
+          7f1c2a000000-7f1c2a1f0000 r-xp 00000000 08:01 1311 /usr/lib/dotnet/shared/Microsoft.NETCore.App/10.0.15/libcoreclr.so
+          7f1c2b000000-7f1c2b010000 r--s 00000000 08:01 1422 /usr/lib/dotnet/shared/Microsoft.AspNetCore.App/10.0.15/Microsoft.AspNetCore.dll
+          7f1c2c000000-7f1c2c021000 r-xp 00000000 08:01 1501 /usr/lib/x86_64-linux-gnu/libssl.so.3
+      - case: process on the old runtime after the package upgrade removed it
+        expected_below_minimum: [Microsoft.AspNetCore.App 10.0.9, Microsoft.NETCore.App 10.0.9]
+        maps: |
+          7f1c2a000000-7f1c2a1f0000 r-xp 00000000 08:01 1311 /usr/lib/dotnet/shared/Microsoft.NETCore.App/10.0.9/libcoreclr.so (deleted)
+          7f1c2a200000-7f1c2a2f0000 r-xp 00000000 08:01 1312 /usr/lib/dotnet/shared/Microsoft.NETCore.App/10.0.9/libclrjit.so (deleted)
+          7f1c2b000000-7f1c2b010000 r--s 00000000 08:01 1422 /usr/lib/dotnet/shared/Microsoft.AspNetCore.App/10.0.9/Microsoft.AspNetCore.dll (deleted)
+      - case: only the core runtime loaded so far, compared as version and not as text
+        expected_below_minimum: [Microsoft.NETCore.App 10.0.2]
+        maps: |
+          7f1c2a000000-7f1c2a1f0000 r-xp 00000000 08:01 1311 /usr/share/dotnet/shared/Microsoft.NETCore.App/10.0.2/libcoreclr.so
+      - case: newer patch than the minimum
+        expected_below_minimum: []
+        maps: |
+          7f1c2a000000-7f1c2a1f0000 r-xp 00000000 08:01 1311 /usr/share/dotnet/shared/Microsoft.NETCore.App/10.0.100/libcoreclr.so
+      - case: preview build
+        expected_below_minimum: [Microsoft.NETCore.App 10.0.0-rc.2.25502.107]
+        maps: |
+          7f1c2a000000-7f1c2a1f0000 r-xp 00000000 08:01 1311 /usr/share/dotnet/shared/Microsoft.NETCore.App/10.0.0-rc.2.25502.107/libcoreclr.so
+      - case: no dotnet framework mapped
+        expected_below_minimum: []
+        maps: |
+          55d0c0a00000-55d0c0a21000 r-xp 00000000 08:01 901 /usr/bin/sleep
+      - case: no process
+        expected_below_minimum: []
+        maps: ""
+
+- name: Verify the loaded dotnet runtime evaluation for every case
+  include_tasks: test-dotnet-loaded-runtime-case.yml
+  loop: "{{ dotnet_loaded_runtime_cases }}"
+  loop_control:
+    loop_var: dotnet_loaded_runtime_case
+
+# A process still in ExecStartPre has no main PID yet and is skipped.
+- name: Read the main processes of middleware and UI
+  command: systemctl show --property=MainPID --value {{ item }}
+  register: test_dotnet_service_main_pids
+  changed_when: false
+  failed_when: false
+  loop: >-
+    {{ ([product_name ~ '-middleware'] if 'middlewareserver' in group_names else [])
+       + ([product_name ~ '-ui'] if 'frontends' in group_names else []) }}
+
+- name: Read the memory maps of the running middleware and UI processes
+  slurp:
+    src: "/proc/{{ item.stdout | trim }}/maps"
+  register: test_dotnet_service_maps
+  become: true
+  failed_when: false
+  loop: "{{ test_dotnet_service_main_pids.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stdout | default('0', true) | trim | int > 0
+
+- name: Evaluate the dotnet runtime loaded by the running middleware and UI processes
+  include_tasks: "{{ dotnet_loaded_runtime_evaluation }}"
+  vars:
+    dotnet_process_maps: >-
+      {{ test_dotnet_service_maps.results
+         | selectattr('content', 'defined')
+         | map(attribute='content')
+         | map('b64decode')
+         | join('\n') }}
+
+- name: Assert that middleware and UI run on dotnet {{ dotnet_min_runtime_version }} or newer
+  assert:
+    that: dotnet_loaded_runtimes_below_minimum | length == 0
+    fail_msg: >-
+      The installer finished, but a running middleware or UI process still uses
+      {{ dotnet_loaded_runtimes_below_minimum | join(', ') }}, below {{ dotnet_min_runtime_version }}

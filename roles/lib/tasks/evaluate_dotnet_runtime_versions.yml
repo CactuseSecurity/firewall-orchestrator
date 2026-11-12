@@ -1,0 +1,33 @@
+# Decides whether the .NET runtimes listed by `dotnet --list-runtimes` meet dotnet_min_runtime_version.
+#
+# Input:  dotnet_runtime_listing  - stdout of `dotnet --list-runtimes` (may be empty)
+# Output: dotnet_runtime_shortfall - the required shared frameworks without a runtime of the
+#                                    dotnet_version channel at or above the minimum (empty when met)
+#         dotnet_runtime_evaluated_listing - the listing the decision was taken on
+#
+# Middleware and UI are published framework-dependent, so Kestrel, hosting and authentication come
+# from the shared frameworks of the host. A framework-dependent app rolls forward to the highest
+# installed patch of its major.minor, so one runtime of the channel at or above the minimum is enough.
+#
+# Touches nothing on the host, so roles/tests-integration drives it with literal listings.
+- name: decide which required dotnet shared frameworks are below {{ dotnet_min_runtime_version }}
+  set_fact:
+    dotnet_runtime_shortfall: >-
+      {{ dotnet_required_shared_frameworks
+         | reject('in', dotnet_frameworks_meeting_minimum)
+         | list }}
+    dotnet_runtime_evaluated_listing: "{{ dotnet_runtime_listing | default('') }}"
+  vars:
+    # one "<framework> <version>" entry per runtime of the dotnet_version channel; preview builds
+    # (10.0.0-rc.2...) are in the channel but compare below every release of it
+    dotnet_channel_runtimes: >-
+      {{ (dotnet_runtime_listing | default('')).splitlines()
+         | map('regex_search', '^(\S+)\s+(' ~ (dotnet_version | regex_escape) ~ '\.\S+)\s', '\1', '\2')
+         | select
+         | list }}
+    dotnet_frameworks_meeting_minimum: >-
+      {{ dotnet_channel_runtimes
+         | selectattr(1, 'version', dotnet_min_runtime_version, '>=')
+         | map('first')
+         | unique
+         | list }}

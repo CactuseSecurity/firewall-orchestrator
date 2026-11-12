@@ -1,0 +1,40 @@
+# Adds dotnet_service_name to dotnet_services_on_outdated_runtime when its running process still uses a
+# shared framework below dotnet_min_runtime_version.
+#
+# roles/lib upgrades the host runtime and sets dotnet_runtime_upgraded only in the run that changed the
+# packages. When that run fails before this role, the next run finds the host runtime current and would
+# leave a service running on the old framework. Reading the runtime the process actually loaded closes
+# that gap. Read-only: the restart itself is done by the caller.
+- name: read the main process of {{ dotnet_service_name }}
+  command: systemctl show --property=MainPID --value {{ dotnet_service_name }}
+  register: dotnet_service_main_pid
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: read the memory map of the {{ dotnet_service_name }} process
+  slurp:
+    src: "/proc/{{ dotnet_service_main_pid.stdout | trim }}/maps"
+  register: dotnet_service_maps
+  become: true
+  # the process may exit between both reads; an unreadable map leaves the restart decision to the other conditions
+  failed_when: false
+  when: dotnet_service_main_pid.stdout | default('0', true) | trim | int > 0
+
+- name: evaluate the dotnet runtime loaded by {{ dotnet_service_name }}
+  include_tasks: "{{ role_path }}/../lib/tasks/evaluate_loaded_dotnet_runtimes.yml"
+  vars:
+    dotnet_process_maps: >-
+      {{ dotnet_service_maps.content | b64decode if dotnet_service_maps.content is defined else '' }}
+
+- name: remember that {{ dotnet_service_name }} runs on an outdated dotnet runtime
+  set_fact:
+    dotnet_services_on_outdated_runtime: "{{ dotnet_services_on_outdated_runtime | default([]) + [dotnet_service_name] }}"
+  when: dotnet_loaded_runtimes_below_minimum | length > 0
+
+- name: report the outdated dotnet runtime of {{ dotnet_service_name }}
+  debug:
+    msg: >-
+      {{ dotnet_service_name }} still runs on {{ dotnet_loaded_runtimes_below_minimum | join(', ') }},
+      below {{ dotnet_min_runtime_version }}, and is restarted
+  when: dotnet_loaded_runtimes_below_minimum | length > 0

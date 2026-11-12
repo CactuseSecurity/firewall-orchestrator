@@ -237,12 +237,13 @@ public class CheckPointStructuralBlocksTest
     {
         Rulebase layer = StructuralRulebase(1, "layer-1", "Network");
         Rulebase sectionRulebase = StructuralRulebase(2, "section-blank", sectionName);
-        CheckPointPositioningContext context = Context(Snapshot(
-            [layer, sectionRulebase],
-            [
-                Link(null, null, 1, RulebaseLinkTypes.Ordered, isInitial: true),
-                SectionLink(1, 2)
-            ]));
+        List<Rulebase> rulebases = [layer, sectionRulebase];
+        List<RulebaseLink> links =
+        [
+            Link(null, null, 1, RulebaseLinkTypes.Ordered, isInitial: true),
+            SectionLink(1, 2)
+        ];
+        CheckPointPositioningContext context = Context(Snapshot(rulebases, links));
         EndOfBlock root = new(new CheckPointSectionScopeBlock(
             InitialLayer(),
             CheckPointSectionSelector.ByUid("section-blank")));

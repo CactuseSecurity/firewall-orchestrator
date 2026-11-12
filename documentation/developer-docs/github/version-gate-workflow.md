@@ -242,6 +242,11 @@ tag is pushed, and any direct push that bypassed the required check.
   version is closed, so it has to be immutable, and the recovery advice above rests on it: it is
   why a tag on the wrong commit is answered by moving to the next version rather than by
   re-tagging.
+- The repository Actions policy **Allow PR_target** must allow `pull_request_target` for
+  `.github/workflows/version-gate.yml`. From 2 December 2026, GitHub blocks this event in public
+  repositories by default. Without the policy, the gate does not run and the refresh workflow has
+  nothing to re-run. See
+  [SonarCloud workflows: Required Actions policy](sonarcloud-workflow.md#required-actions-policy).
 
 No new secrets, apps or environments are required.
 

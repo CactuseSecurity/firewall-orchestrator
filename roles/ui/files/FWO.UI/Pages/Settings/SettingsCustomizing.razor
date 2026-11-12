@@ -218,29 +218,54 @@
             </div>
         </div>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5576"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("reqAllowedChangesByApprover")):</label>
-            <div class="col-sm-4">
-                <button type="button" class="btn btn-sm btn-warning" @onclick="() => editAllowedChangesByApproverMode = true">
-                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
-                </button>
+        <div class="form-group row">
+            <div class="col-sm-6 form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5576"))">
+                <label class="col-form-label col-sm-6">@(userConfig.GetText("reqAllowedChangesByApprover")):</label>
+                <div class="col-sm-6">
+                    <button type="button" class="btn btn-sm btn-warning" @onclick="() => editAllowedChangesByApproverMode = true">
+                        @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                    </button>
+                </div>
             </div>
-            <label class="col-form-label col-sm-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5576a"))">@(userConfig.GetText("approval_edit_mode")):</label>
-            <div class="col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5576a"))">
-                <Dropdown Id="sel_approval_edit_mode" ElementType="ApprovalEditMode"
-                          @bind-SelectedElement="configData!.ReqApprovalEditMode"
-                          ElementToString="ApprovalEditModeText"
-                          Elements="Enum.GetValues<ApprovalEditMode>()">
-                    <ElementTemplate Context="mode">
-                        @(ApprovalEditModeText(mode))
-                    </ElementTemplate>
-                </Dropdown>
+            <div class="col-sm-6 form-group row">
+                <label for="cbx_allow_owner_changes_by_planner" class="col-form-label col-sm-8">@(userConfig.GetText("reqAllowOwnerChangesByPlanner")):</label>
+                <div class="col-sm-4">
+                    <input id="cbx_allow_owner_changes_by_planner" type="checkbox" @bind="configData!.ReqAllowOwnerChangesByPlanner">
+                </div>
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5582a"))">
             <label for="txt_implicit_approval_comment" class="col-form-label col-sm-3">@(userConfig.GetText("reqImplicitApprovalComment")):</label>
             <div class="col-sm-9">
                 <textarea id="txt_implicit_approval_comment" class="form-control" rows="2" @bind="configData!.ReqImplicitApprovalComment"></textarea>
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <div class="col-sm-6 form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5576a"))">
+                <label class="col-form-label col-sm-6">@(userConfig.GetText("approval_edit_mode")):</label>
+                <div class="col-sm-6">
+                    <Dropdown Id="sel_approval_edit_mode" ElementType="ApprovalEditMode"
+                              @bind-SelectedElement="configData!.ReqApprovalEditMode"
+                              ElementToString="ApprovalEditModeText"
+                              Elements="Enum.GetValues<ApprovalEditMode>()">
+                        <ElementTemplate Context="mode">
+                            @(ApprovalEditModeText(mode))
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+            <div class="col-sm-6 form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5576c"))">
+                <label class="col-form-label col-sm-6">@(userConfig.GetText("planning_edit_mode")):</label>
+                <div class="col-sm-6">
+                    <Dropdown Id="sel_planning_edit_mode" ElementType="PlannerEditMode"
+                              @bind-SelectedElement="configData!.ReqPlannerEditMode"
+                              ElementToString="PlannerEditModeText"
+                              Elements="Enum.GetValues<PlannerEditMode>()">
+                        <ElementTemplate Context="mode">
+                            @(PlannerEditModeText(mode))
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
             </div>
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5576b"))">
@@ -411,6 +436,16 @@ else
         {
             ApprovalEditMode.Classic => "approval_edit_mode_classic",
             ApprovalEditMode.AccessTaskView => "approval_edit_mode_access_task_view",
+            _ => "undefined"
+        });
+    }
+
+    private string PlannerEditModeText(PlannerEditMode mode)
+    {
+        return userConfig.GetText(mode switch
+        {
+            PlannerEditMode.Classic => "planning_edit_mode_classic",
+            PlannerEditMode.PlanningView => "planning_edit_mode_planning_view",
             _ => "undefined"
         });
     }

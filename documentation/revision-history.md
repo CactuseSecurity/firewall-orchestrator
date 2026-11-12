@@ -87,6 +87,7 @@
 ## 9.8.7 - 02.11.2026
 ## 9.9.3 - 11.11.2026
 - middleware REST API: `getAddressGroups` and `getServiceGroups` accept `filter.includeTechnicalDetails=true` to include each member's standalone address or service object fields; omitted, null or false keep the existing compact id/name response, and address details can be combined with separated zone groups
+- UI fix: links from rule report objects to the right sidebar work again on the first click and no longer jump to another page on a following click (#4919). The per-page API role is now determined from the current page with every request instead of a navigation handler, which had broken the browser's in-page navigation
 
 
 ## 9.9.2 - 10.11.2026
@@ -94,6 +95,7 @@
 - dependencies: update ASP.NET Core packages to 10.0.15 (Microsoft.AspNetCore.Authentication.JwtBearer, Microsoft.AspNetCore.Components, Microsoft.AspNetCore.Mvc.Testing, Microsoft.AspNetCore.OpenApi), .NET 10.0.15 security release
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.2 (denial-of-service fixes in validator and parser).
+- workflow UI: planning-phase tickets can use a dedicated planning view that groups request tasks with their implementation tasks, keeps request-task details read-only, and allows planners to create, edit and delete implementation tasks; the view also supports configurable offered actions and optional owner changes
 
 
 ## 9.9.1 - 05.11.2026

@@ -18,35 +18,24 @@
     <hr />
     <div class="row">
         <div class="col-sm-12">
-            <div class="form-group row">
-                <div class="form-group row col-sm-6" data-toggle="tooltip" title="@(userConfig.PureLine("H5426a"))">
-                    <label class="col-form-label col-sm-6">@(userConfig.GetText("externalRequestSleepTime")):</label>
-                    <div class="col-sm-4">
-                        <input type="number" min="0" @bind="configData!.ExternalRequestSleepTime" />
+            <form onsubmit="return false">
+                <SettingsRow LabelKey="externalRequestSleepTime" TooltipKey="H5426a" LabelFor="externalRequestSleepTime">
+                    <input id="externalRequestSleepTime" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.ExternalRequestSleepTime" />
+                </SettingsRow>
+                <SettingsRow LabelKey="externalRequestWaitCycles" TooltipKey="H5426b" LabelFor="externalRequestWaitCycles">
+                    <input id="externalRequestWaitCycles" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.ExternalRequestWaitCycles" />
+                </SettingsRow>
+                <SettingsRow LabelKey="externalRequestStartAt" TooltipKey="H5427a" LabelFor="externalRequestStartTime">
+                    <input id="externalRequestStartTime" type="time" step="60" class="form-control form-control-sm w-auto" @bind="extReqStartTime" />
+                    <input type="date" class="form-control form-control-sm w-auto" @bind="extReqStartDate" />
+                </SettingsRow>
+                <SettingsRow LabelKey="check_certificates" TooltipKey="H5593d" LabelFor="cbx_ext_ticket_check_certificates">
+                    <div class="form-check form-switch">
+                        <input id="cbx_ext_ticket_check_certificates" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ExtTicketSystemsCheckCertificates" />
                     </div>
-                </div>
-                <div class="form-group row col-sm-6" data-toggle="tooltip" title="@(userConfig.PureLine("H5426b"))">
-                    <label class="col-form-label col-sm-6">@(userConfig.GetText("externalRequestWaitCycles")):</label>
-                    <div class="col-sm-4">
-                        <input type="number" min="0" @bind="configData!.ExternalRequestWaitCycles" />
-                    </div>
-                </div>
-            </div>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5427a"))">
-                <label class="col-form-label col-sm-3">@(userConfig.GetText("externalRequestStartAt")):</label>
-                <div class="col-sm-4">
-                    <div class="row">
-                        <input type="time" step="60" class="ml-13 col-sm-5" @bind="extReqStartTime" />
-                        <input type="date" class="col-sm-5" @bind="extReqStartDate" />
-                    </div>
-                </div>
-            </div>
-            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5593d"))">
-                <label for="cbx_ext_ticket_check_certificates" class="col-form-label col-sm-3">@(userConfig.GetText("check_certificates")):</label>
-                <div class="col-sm-1">
-                    <input id="cbx_ext_ticket_check_certificates" type="checkbox" @bind="configData!.ExtTicketSystemsCheckCertificates" />
-                </div>
-            </div>
+                </SettingsRow>
+            </form>
+            <hr />
             <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     <button type="button" class="btn btn-sm btn-primary" @onclick="SaveServiceData">@(userConfig.GetText("save"))</button>

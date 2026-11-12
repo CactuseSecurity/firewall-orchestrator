@@ -56,11 +56,6 @@ header {
         right: 50%;
     }
 
-.radioSpace {
-    margin-right: 10px;
-    margin-left: 20px;
-}
-
 .managementSelect {
     position: relative;
     width: 100%;
@@ -95,14 +90,6 @@ header {
 
 .nav-link.active {
     font-weight: bold;
-}
-
-.modern-close {
-    display: inline-block;
-    border: none;
-    background-color: white;
-    font-weight: bold;
-    font-size: large;
 }
 
 .no-border {
@@ -458,11 +445,6 @@ thead {
     }
 }
 
-.radioSpace {
-    margin-right: 10px;
-    margin-left: 20px;
-}
-
 .draggable-item {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -518,21 +500,24 @@ max-width: 99%;
     padding-bottom: 30px;
 } */
 
+/* The .modal-body box of a popup scrolls in both directions (see PopUp.razor.css). A responsive table
+    wrapper inside it must not become a scroll container of its own, the sticky table headers would
+    then stick to the wrapper instead of the popup. */
 div.modal-body > div.table-responsive {
-    overflow-x: inherit;
+    overflow-x: visible;
 }
 
 div.modal-body > * > div.table-responsive {
-    overflow-x: inherit;
+    overflow-x: visible;
 }
 
-/* The scroll container of a table in a popup is the .modal-content box itself. A sticky offset is
-    resolved against the content box of the scroll container, so a header pinned at the generic
-    top: -1px would come to rest below the top padding of the popup and the rows would scroll
-    through the gap above it. Compensating that padding pins the header to the top edge of the popup.
+/* The scroll container of a table in a popup is its .modal-body box (see PopUp.razor.css). A sticky
+    offset is resolved against the content box of the scroll container, so a header pinned at the
+    generic top: -1px would come to rest below the top padding of the body and the rows would scroll
+    through the gap above it. Compensating that padding pins the header to the top edge of the body.
     The fallback keeps the declaration valid (and the header sticky) if the variable ever goes away. */
 div.modal-content .sticky-header thead {
-    top: calc(-1px - var(--fwo-modal-content-padding-top, 0px));
+    top: calc(-1px - var(--fwo-modal-body-padding-top, 0px));
 }
 
 .small-helptext {
@@ -633,4 +618,126 @@ div.modal-content .sticky-header thead {
 
 .approval-task-network-table-technical .approval-task-zone-column {
     width: 50%;
+}
+
+/* Settings forms (Shared/SettingsRow.razor): every row of a settings page shares one label column
+    and one value column, so all inputs of a page start at the same position. Inputs use the small
+    Bootstrap controls to match the height of the Dropdown component, their width is set with the
+    settings-input-* classes instead of grid columns. */
+.settings-row {
+    display: grid;
+    grid-template-columns: minmax(14rem, 24rem) minmax(0, 1fr);
+    column-gap: 1.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.settings-row-top {
+    align-items: start;
+}
+
+.settings-row-top > .settings-label {
+    padding-top: 0.25rem;
+}
+
+.settings-label {
+    margin: 0;
+}
+
+.settings-value {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: calc(1.5em + 0.5rem + 2px);
+}
+
+.settings-input-sm {
+    width: 8rem;
+}
+
+.settings-input-md {
+    width: 20rem;
+}
+
+.settings-input-lg {
+    width: 100%;
+    max-width: 40rem;
+}
+
+/* Several checkboxes of one setting: the label of each box wraps next to its box. */
+.settings-check-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: 0.25rem 1rem;
+    width: 100%;
+    max-width: 60rem;
+}
+
+.settings-check-grid > .form-check {
+    margin: 0;
+}
+
+.settings-value > .form-switch {
+    margin: 0;
+    min-height: 0;
+}
+
+.settings-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+@media (max-width: 767.98px) {
+    .settings-row {
+        grid-template-columns: minmax(0, 1fr);
+        row-gap: 0.25rem;
+    }
+}
+
+/* Checkboxes of one setting split into titled groups (e.g. the excluded address ranges). */
+.settings-check-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.settings-check-group-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+/* Label/value pairs nested inside the value column of a settings row. */
+.settings-subgrid {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.25rem 1rem;
+    align-items: center;
+    justify-items: start;
+}
+
+/* A few short options of one setting side by side (e.g. radio buttons). */
+.settings-check-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.5rem;
+}
+
+.settings-check-inline > .form-check {
+    margin: 0;
+}
+
+/* Inside an input group Bootstrap stretches every control, a fixed width class has to opt out. */
+.input-group > .settings-input-sm {
+    flex: 0 0 8rem;
+}
+
+/* Switches, check boxes and radio buttons (and their labels, which toggle them) are clickable, so they
+    show the pointer cursor. Bootstrap's more specific :disabled rules keep the default cursor for
+    disabled controls. */
+.form-check-input,
+.form-check-label {
+    cursor: pointer;
 }

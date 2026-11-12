@@ -1,0 +1,57 @@
+@inject UserConfig userConfig
+
+<div class="settings-row @(AlignTop ? "settings-row-top" : "")" data-toggle="tooltip" title="@TooltipText">
+    <label class="settings-label" for="@LabelFor">@LabelText</label>
+    <div class="settings-value">
+        @ChildContent
+    </div>
+</div>
+
+@code
+{
+    /// <summary>
+    /// Text key of the label shown in the label column.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string LabelKey { get; set; } = "";
+
+    /// <summary>
+    /// Text key of the tooltip shown for the whole row. No tooltip is rendered without it.
+    /// </summary>
+    [Parameter]
+    public string? TooltipKey { get; set; }
+
+    /// <summary>
+    /// Already localized tooltip text, for tooltips combining several text keys. Takes precedence over TooltipKey.
+    /// </summary>
+    [Parameter]
+    public string? Tooltip { get; set; }
+
+    /// <summary>
+    /// Marks the label with an asterisk, used for settings the user can overwrite in the personal settings.
+    /// </summary>
+    [Parameter]
+    public bool Marked { get; set; }
+
+    /// <summary>
+    /// Id of the input the label belongs to.
+    /// </summary>
+    [Parameter]
+    public string? LabelFor { get; set; }
+
+    /// <summary>
+    /// Aligns the label with the first line of a multi-line value (text areas, checkbox groups).
+    /// </summary>
+    [Parameter]
+    public bool AlignTop { get; set; }
+
+    /// <summary>
+    /// The input element(s) shown in the value column.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string LabelText => $"{userConfig.GetText(LabelKey)}{(Marked ? "*" : "")}:";
+
+    private string? TooltipText => Tooltip ?? (string.IsNullOrEmpty(TooltipKey) ? null : userConfig.PureLine(TooltipKey));
+}

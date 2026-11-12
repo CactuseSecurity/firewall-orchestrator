@@ -16,79 +16,44 @@
 @if (configData != null)
 {
     <form onsubmit="return false">
-
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5484"))">
-            <h5>
-                @(userConfig.GetText("change_notification_sub"))
-            </h5>
-        </div>
+        <h5 data-toggle="tooltip" title="@(userConfig.PureLine("H5484"))">@(userConfig.GetText("change_notification_sub"))</h5>
         <EditNotifications Client="NotificationClient.ImportChange" />
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5484a"))">
-            <h5>
-                @(userConfig.GetText("nat_change_notification_sub"))
-            </h5>
-        </div>
+        <h5 data-toggle="tooltip" title="@(userConfig.PureLine("H5484a"))">@(userConfig.GetText("nat_change_notification_sub"))</h5>
         <EditNotifications Client="NotificationClient.ImportNatChange" />
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5483"))">
-            <label for="cbx_change_notify_active" class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyActive")):</label>
-            <div class="col-sm-1">
-                <input id="cbx_change_notify_active" type="checkbox" class="w-100" @bind="configData!.ImpChangeNotifyActive" />
+        <SettingsRow LabelKey="impChangeNotifyActive" TooltipKey="H5483" LabelFor="cbx_change_notify_active">
+            <div class="form-check form-switch">
+                <input id="cbx_change_notify_active" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ImpChangeNotifyActive" />
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5851"))">
-            <label for="cbx_change_notify_active" class="col-form-label col-sm-4">@(userConfig.GetText("U1004")):</label>
-            <div class="col-sm-1">
-                <input id="cbx_change_notify_active" type="checkbox" class="w-100" @bind="configData!.ImpChangeIncludeObjectChanges" />
+        </SettingsRow>
+        <SettingsRow LabelKey="U1004" TooltipKey="H5851" LabelFor="cbx_change_include_object_changes">
+            <div class="form-check form-switch">
+                <input id="cbx_change_include_object_changes" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ImpChangeIncludeObjectChanges" />
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5485"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifySleepTime")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.ImpChangeNotifySleepTime" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5486"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyStartAt")):</label>
-            <div class="col-sm-4">
-                <div class="row">
-                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="impChangeNotifyStartTime" />
-                    <input type="date" class="col-sm-5" @bind="impChangeNotifyStartDate" />
-                </div>
-            </div>
-        </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="impChangeNotifySleepTime" TooltipKey="H5485" LabelFor="impChangeNotifySleepTime">
+            <input id="impChangeNotifySleepTime" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.ImpChangeNotifySleepTime" />
+        </SettingsRow>
+        <SettingsRow LabelKey="impChangeNotifyStartAt" TooltipKey="H5486" LabelFor="impChangeNotifyStartTime">
+            <input id="impChangeNotifyStartTime" type="time" step="60" class="form-control form-control-sm w-auto" @bind="impChangeNotifyStartTime" />
+            <input type="date" class="form-control form-control-sm w-auto" @bind="impChangeNotifyStartDate" />
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5483a"))">
-            <h5>
-                @(userConfig.GetText("H5486b"))
-            </h5>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5485a"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("updateRuleOwnerMappingSleepTime")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.UpdateRuleOwnerMappingSleepTime" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5485d"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("varianceNameFieldWaitTime")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.VarianceNameFieldWaitTime" />
-            </div>
-        </div>
+        <h5 data-toggle="tooltip" title="@(userConfig.PureLine("H5483a"))">@(userConfig.GetText("H5486b"))</h5>
+        <SettingsRow LabelKey="updateRuleOwnerMappingSleepTime" TooltipKey="H5485a" LabelFor="updateRuleOwnerMappingSleepTime">
+            <input id="updateRuleOwnerMappingSleepTime" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.UpdateRuleOwnerMappingSleepTime" />
+        </SettingsRow>
+        <SettingsRow LabelKey="varianceNameFieldWaitTime" TooltipKey="H5485d" LabelFor="varianceNameFieldWaitTime">
+            <input id="varianceNameFieldWaitTime" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.VarianceNameFieldWaitTime" />
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5485c"))">
-            <h5>
-                @(userConfig.GetText("H5485c"))
-            </h5>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5485b"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("flowSyncSleepTime")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.FlowSyncSleepTime" />
-            </div>
-        </div>
+        <h5 data-toggle="tooltip" title="@(userConfig.PureLine("H5485c"))">@(userConfig.GetText("H5485c"))</h5>
+        <SettingsRow LabelKey="flowSyncSleepTime" TooltipKey="H5485b" LabelFor="flowSyncSleepTime">
+            <input id="flowSyncSleepTime" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.FlowSyncSleepTime" />
+        </SettingsRow>
     </form>
+
     <hr />
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>

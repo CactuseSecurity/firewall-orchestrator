@@ -1,19 +1,21 @@
+@inject UserConfig userConfig
+
 @if (Show)
 {
     <div class="modal-backdrop popup-outer">
         <div class="modal-open" tabindex="-1">
-            <div class="@(SizeClass())">
+            <div class="popup-dialog @(SizeClass()) @(AdjustClass())">
                 <div class="modal-content @(SizeClassContent())">
-                    <div class="modal-header justify-content-between">
-                        <div style="display:flex;align-items:center;gap:0.2rem;">
+                    <div class="modal-header popup-header justify-content-between">
+                        <div class="popup-title">
                             <h5 class="mb-0">@Title</h5>
                             @if (!string.IsNullOrWhiteSpace(HelpPage))
                             {
                                 <HelpLink Page="@HelpPage" />
                             }
                         </div>
-                        <button type="button" class="modern-close" @onclick="Close">
-                            <span>&times;</span>
+                        <button type="button" class="popup-close" aria-label="@(userConfig.PureLine("close"))" @onclick="Close">
+                            <span class="@Icons.Close"></span>
                         </button>
                     </div>
                     <div class="modal-body">
@@ -28,6 +30,10 @@
                             @Footer
                         </div>
                     </div>
+                }
+                @if (CanResize)
+                {
+                    <div class="popup-resize-handle" aria-hidden="true"></div>
                 }
             </div>
         </div>
@@ -62,6 +68,40 @@
 
     [Parameter]
     public string FooterCssClass { get; set; } = "modal-footer";
+
+    /// <summary>
+    /// Allows the user to drag the popup around by its header. Ignored for full screen popups.
+    /// </summary>
+    [Parameter]
+    public bool Movable { get; set; } = true;
+
+    /// <summary>
+    /// Allows the user to resize the popup with the handle in its lower right corner (see wwwroot/js/popup.js).
+    /// Ignored for full screen and extra small popups.
+    /// </summary>
+    [Parameter]
+    public bool Resizable { get; set; } = true;
+
+    private bool CanMove => Movable && Size != PopupSize.FullScreen;
+
+    private bool CanResize => Resizable && Size != PopupSize.FullScreen && Size != PopupSize.XSmall;
+
+    /// <summary>
+    /// Marks the dialog for the delegated move and resize handlers in wwwroot/js/popup.js.
+    /// </summary>
+    private string AdjustClass()
+    {
+        List<string> adjustClasses = [];
+        if (CanMove)
+        {
+            adjustClasses.Add("popup-movable");
+        }
+        if (CanResize)
+        {
+            adjustClasses.Add("popup-resizable");
+        }
+        return string.Join(" ", adjustClasses);
+    }
 
     private string SizeClass()
     {

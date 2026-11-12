@@ -1,4 +1,8 @@
+using AngleSharp.Dom;
 using Bunit;
+using Microsoft.Extensions.DependencyInjection;
+using FWO.Config.Api;
+using FWO.Basics;
 using FWO.Ui.Services;
 using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Components;
@@ -11,6 +15,10 @@ namespace FWO.Test
     internal class UiPopUpComponentTest
     {
         private const string kCenterClass = "custom-modal-center";
+        private const string kMovableClass = "popup-movable";
+        private const string kResizableClass = "popup-resizable";
+        private const string kCloseTextKey = "close";
+        private const string kResizeHandleSelector = ".popup-dialog > .popup-resize-handle";
 
         private static readonly PopupSize[] kCenteredSizes =
         [
@@ -29,7 +37,7 @@ namespace FWO.Test
         [Test]
         public async Task SizeClass_CentersEveryNonFullScreenPopup()
         {
-            await using BunitContext context = new();
+            await using BunitContext context = CreateContext();
 
             foreach (PopupSize size in kCenteredSizes)
             {
@@ -47,7 +55,7 @@ namespace FWO.Test
         [Test]
         public async Task SizeClass_KeepsSizeSpecificClass()
         {
-            await using BunitContext context = new();
+            await using BunitContext context = CreateContext();
             Dictionary<PopupSize, string> expectedClasses = new()
             {
                 { PopupSize.Auto, "custom-modal-auto" },
@@ -72,7 +80,7 @@ namespace FWO.Test
         [Test]
         public async Task SizeClassContent_KeepsSizeSpecificContentClass()
         {
-            await using BunitContext context = new();
+            await using BunitContext context = CreateContext();
             Dictionary<PopupSize, string> expectedClasses = new()
             {
                 { PopupSize.Auto, "custom-modal-content-auto" },
@@ -97,7 +105,7 @@ namespace FWO.Test
         [Test]
         public async Task Footer_IsSiblingOfContentAndOmittedForXSmall()
         {
-            await using BunitContext context = new();
+            await using BunitContext context = CreateContext();
 
             IRenderedComponent<PopUp> popup = RenderPopUp(context, PopupSize.Small);
             Assert.That(popup.FindAll(".modal-content .custom-modal-footer"), Is.Empty);
@@ -105,6 +113,99 @@ namespace FWO.Test
 
             popup = RenderPopUp(context, PopupSize.XSmall);
             Assert.That(popup.FindAll(".custom-modal-footer"), Is.Empty);
+        }
+
+        /// <summary>
+        /// The header is the first child of the content box and not part of the scrolling body, so it
+        /// stays visible (and usable as drag handle) while the body scrolls.
+        /// </summary>
+        [Test]
+        public async Task Header_StaysOutsideTheScrollingBody()
+        {
+            await using BunitContext context = CreateContext();
+
+            foreach (PopupSize size in kCenteredSizes.Append(PopupSize.FullScreen))
+            {
+                IRenderedComponent<PopUp> popup = RenderPopUp(context, size);
+                IElement content = popup.Find(".modal-content");
+                Assert.That(popup.FindAll(".modal-body .modal-header"), Is.Empty, $"The header of popup size {size} scrolls with the body.");
+                Assert.That(content.FirstElementChild?.ClassList, Does.Contain("popup-header"), $"Popup size {size} does not start with its header.");
+            }
+        }
+
+        /// <summary>
+        /// The close button in the header shows the shared close icon and closes the popup.
+        /// </summary>
+        [Test]
+        public async Task CloseButton_ShowsCloseIconAndClosesPopup()
+        {
+            await using BunitContext context = CreateContext();
+            bool closed = false;
+
+            IRenderedComponent<PopUp> popup = context.Render<PopUp>(parameters => parameters
+                .Add(p => p.Show, true)
+                .Add(p => p.Title, "TestPopup")
+                .Add(p => p.OnClose, () => closed = true));
+            IElement closeButton = popup.Find(".popup-header > button.popup-close");
+
+            Assert.That(closeButton.QuerySelector("span")?.ClassName, Is.EqualTo(Icons.Close));
+            Assert.That(closeButton.GetAttribute("aria-label"), Is.EqualTo(new SimulatedUserConfig().PureLine(kCloseTextKey)),
+                "The icon-only close button needs an accessible name.");
+            closeButton.Click();
+            Assert.Multiple(() =>
+            {
+                Assert.That(closed, Is.True);
+                Assert.That(popup.FindAll(".popup-dialog"), Is.Empty);
+            });
+        }
+
+        /// <summary>
+        /// Every popup but the full screen one can be moved, the extra small confirmation popups are
+        /// not resizable, because their content box has a fixed maximum height.
+        /// </summary>
+        [Test]
+        public async Task AdjustClass_MarksMovableAndResizablePopups()
+        {
+            await using BunitContext context = CreateContext();
+
+            foreach (PopupSize size in kCenteredSizes)
+            {
+                IRenderedComponent<PopUp> popup = RenderPopUp(context, size);
+                string[] dialogClasses = (popup.Find(".modal-open > div").GetAttribute("class") ?? "").Split(' ');
+                bool expectResizable = size != PopupSize.XSmall;
+                Assert.That(dialogClasses, Contains.Item(kMovableClass), $"Popup size {size} is not movable.");
+                Assert.That(dialogClasses.Contains(kResizableClass), Is.EqualTo(expectResizable),
+                    $"Popup size {size} has the wrong resize behavior.");
+                Assert.That(popup.FindAll(kResizeHandleSelector), Has.Count.EqualTo(expectResizable ? 1 : 0),
+                    $"Popup size {size} has the wrong number of resize handles.");
+            }
+
+            string[] fullScreenClasses = RenderDialogClass(context, PopupSize.FullScreen).Split(' ');
+            Assert.That(fullScreenClasses, Has.No.Member(kMovableClass));
+            Assert.That(fullScreenClasses, Has.No.Member(kResizableClass));
+        }
+
+        /// <summary>
+        /// Both behaviors can be switched off per popup.
+        /// </summary>
+        [Test]
+        public async Task AdjustClass_RespectsDisabledParameters()
+        {
+            await using BunitContext context = CreateContext();
+
+            IRenderedComponent<PopUp> popup = RenderPopUp(context, PopupSize.Large, movable: false, resizable: false);
+            string[] dialogClasses = (popup.Find(".modal-open > div").GetAttribute("class") ?? "").Split(' ');
+
+            Assert.That(dialogClasses, Has.No.Member(kMovableClass));
+            Assert.That(dialogClasses, Has.No.Member(kResizableClass));
+            Assert.That(popup.FindAll(kResizeHandleSelector), Is.Empty);
+        }
+
+        private static BunitContext CreateContext()
+        {
+            BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            return context;
         }
 
         private static string RenderDialogClass(BunitContext context, PopupSize size)
@@ -117,11 +218,13 @@ namespace FWO.Test
             return RenderPopUp(context, size).Find(".modal-content").GetAttribute("class") ?? "";
         }
 
-        private static IRenderedComponent<PopUp> RenderPopUp(BunitContext context, PopupSize size)
+        private static IRenderedComponent<PopUp> RenderPopUp(BunitContext context, PopupSize size, bool movable = true, bool resizable = true)
         {
             return context.Render<PopUp>(parameters => parameters
                 .Add(p => p.Show, true)
                 .Add(p => p.Size, size)
+                .Add(p => p.Movable, movable)
+                .Add(p => p.Resizable, resizable)
                 .Add(p => p.Title, "TestPopup")
                 .Add(p => p.Body, (RenderFragment)(builder => builder.AddMarkupContent(0, "<span>body</span>")))
                 .Add(p => p.Footer, (RenderFragment)(builder => builder.AddMarkupContent(0, "<span>footer</span>"))));

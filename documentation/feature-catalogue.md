@@ -92,6 +92,7 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | Implementation tasks created by the state action "Create implementation tasks", controlled per gateway and management by device specific settings | 9.8.3 |
 | Tufin SecureChange ticket templates as device specific settings (global, per device type and per management) | 9.8.5 |
 | Semantic rule positioning for Check Point access-rule implementation tasks | 9.8.7 |
+| Approval-phase task details view with resolved, technical and read-only displays, configurable field editing, and task-specific editors | 9.9.1 |
 
 ## Recertification
 

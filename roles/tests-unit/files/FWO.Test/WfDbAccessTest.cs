@@ -30,6 +30,12 @@ namespace FWO.Test
             public long UpdatedTicketId { get; set; } = 101;
             public long UpdatedApprovalId { get; set; } = 301;
             public bool ThrowOnNewTicket { get; set; }
+            public string ActRole { get; set; } = "";
+
+            public override string GetActRole()
+            {
+                return ActRole;
+            }
             public bool ReturnNullNewTicketIds { get; set; }
             public long NewCommentId { get; set; } = 601;
             public long NewImplTaskId { get; set; } = 401;
@@ -63,6 +69,7 @@ namespace FWO.Test
             public int DeleteReqTaskCallCount { get; private set; }
             public int NewReqElementCallCount { get; private set; }
             public int UpdateReqElementCallCount { get; private set; }
+            public int UpdateReqElementObjectTaskIdCallCount { get; private set; }
             public int DeleteReqElementCallCount { get; private set; }
             public int NewImplTaskCallCount { get; private set; }
             public int UpdateImplTaskCallCount { get; private set; }
@@ -285,6 +292,11 @@ namespace FWO.Test
                 if (query == RequestQueries.updateRequestElement)
                 {
                     UpdateReqElementCallCount++;
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedReqElementId });
+                }
+                if (query == RequestQueries.updateRequestElementObjectTaskId)
+                {
+                    UpdateReqElementObjectTaskIdCallCount++;
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedReqElementId });
                 }
                 if (query == RequestQueries.deleteRequestElement)
@@ -512,6 +524,106 @@ namespace FWO.Test
                 Assert.That(JsonConvert.SerializeObject(apiConn.AlertVariables[0]), Does.Contain("Ticket 101 was saved"));
                 Assert.That(historyEntry, Does.Contain("Initial workflow actions failed"));
                 Assert.That(historyEntry, Does.Contain(WfTicketCreationResult.kActionsFailed));
+            });
+        }
+
+        [Test]
+        public async Task LinkTicketTimeObjectTasks_UsesBuilderCorrelationInsteadOfMatchingValues()
+        {
+            WfDbAccessTestApiConn apiConnection = new();
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConnection, WorkflowPhases.request);
+            WfReqTask sourceAccessTask = new()
+            {
+                TaskNumber = 1,
+                TaskType = WfTaskType.access.ToString(),
+                Elements = [new WfReqElement
+                {
+                    Field = ElemFieldType.time.ToString(),
+                    TimeObjectEntityId = -8,
+                    Name = "selected-time"
+                }]
+            };
+            WfReqTask sourceObjectTask = new()
+            {
+                TaskNumber = 2,
+                TaskType = WfTaskType.object_create.ToString(),
+                Elements = [new WfReqElement
+                {
+                    Field = ElemFieldType.time.ToString(),
+                    TimeObjectEntityId = -8,
+                    Name = "selected-time"
+                }]
+            };
+            WfReqTask savedAccessTask = new()
+            {
+                Id = 110,
+                TaskNumber = 1,
+                TaskType = WfTaskType.access.ToString(),
+                Elements = [new WfReqElement { Id = 111, Field = ElemFieldType.time.ToString() }]
+            };
+            WfReqTask savedObjectTask = new() { Id = 210, TaskNumber = 2, TaskType = WfTaskType.object_create.ToString() };
+
+            MethodInfo method = typeof(WfDbAccess).GetMethod("LinkTicketTimeObjectTasks", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            await (Task)method.Invoke(dbAccess,
+                [new WfTicket { Tasks = [sourceAccessTask, sourceObjectTask] },
+                 new WfTicket { Tasks = [savedAccessTask, savedObjectTask] }])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(TimeObjectElementHelper.Find(savedAccessTask.Elements)?.ObjectTaskId, Is.EqualTo(210));
+                Assert.That(apiConnection.UpdateReqElementObjectTaskIdCallCount, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task LinkTicketObjectTasks_UsesLocalEntityCorrelationForAccessElements()
+        {
+            WfDbAccessTestApiConn apiConnection = new();
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConnection, WorkflowPhases.request);
+            WfReqTask sourceObjectTask = new()
+            {
+                WorkflowEntityId = -8,
+                TaskNumber = 1,
+                TaskType = WfTaskType.object_create.ToString(),
+                Elements = [new WfReqElement
+                {
+                    Field = ElemFieldType.source.ToString(),
+                    ObjectTaskEntityId = -8
+                }]
+            };
+            WfReqTask sourceAccessTask = new()
+            {
+                TaskNumber = 2,
+                TaskType = WfTaskType.access.ToString(),
+                Elements =
+                [
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), FlowNetworkObjectId = 17 },
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), ObjectTaskEntityId = -8 }
+                ]
+            };
+            WfReqTask savedObjectTask = new() { Id = 210, TaskNumber = 1, TaskType = WfTaskType.object_create.ToString() };
+            WfReqTask savedAccessTask = new()
+            {
+                Id = 110,
+                TaskNumber = 2,
+                TaskType = WfTaskType.access.ToString(),
+                Elements =
+                [
+                    new WfReqElement { Id = 111, Field = ElemFieldType.source.ToString(), FlowNetworkObjectId = 17 },
+                    new WfReqElement { Id = 112, Field = ElemFieldType.source.ToString() }
+                ]
+            };
+
+            MethodInfo method = typeof(WfDbAccess).GetMethod("LinkTicketObjectTasks", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            await (Task)method.Invoke(dbAccess,
+                [new WfTicket { Tasks = [sourceObjectTask, sourceAccessTask] },
+                 new WfTicket { Tasks = [savedObjectTask, savedAccessTask] }])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(savedAccessTask.Elements[0].ObjectTaskId, Is.Null);
+                Assert.That(savedAccessTask.Elements[1].ObjectTaskId, Is.EqualTo(210));
+                Assert.That(apiConnection.UpdateReqElementObjectTaskIdCallCount, Is.EqualTo(1));
             });
         }
 
@@ -1405,6 +1517,46 @@ namespace FWO.Test
             await dbAccess.UpdateReqTaskInDb(reqTask);
 
             Assert.That(apiConn.UpdateReqTaskCallCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task UpdateReqTaskInDb_AllowsMetadataUpdateWhenTaskAlreadyReferencesFlowDb()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedReqTaskId = 100,
+                Ticket = new WfTicket
+                {
+                    Id = 77,
+                    Tasks =
+                    [
+                        new WfReqTask
+                        {
+                            Id = 100,
+                            FlowAccessId = 901,
+                            Elements = [new WfReqElement { FlowNetworkObjectId = 902 }]
+                        }
+                    ]
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+
+            await dbAccess.UpdateReqTaskInDb(new WfReqTask
+            {
+                Id = 100,
+                TicketId = 77,
+                Title = "stale editor value"
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.UpdateReqTaskCallCount, Is.EqualTo(1));
+                Assert.That(apiConn.UpdateReqElementCallCount, Is.EqualTo(0));
+            });
         }
 
         [Test]
@@ -3093,6 +3245,29 @@ namespace FWO.Test
             {
                 Assert.That(apiConn.LastHistoryQuery, Is.EqualTo(ModellingQueries.addHistoryEntry));
                 Assert.That(apiConn.LastHistoryVariables?.GetType().GetProperty("changerId"), Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task LogWorkflowChange_PassesTheAdminsOwnId_InAnAdminUiSession()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket { Id = 101, Title = "Old title", Requester = new UiUser { DbId = 7 } },
+                ActRole = Roles.Admin
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval, "admin-user", true, kCallerUserId);
+
+            await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Corrected title" });
+
+            // Hasura applies no changer_id preset to the admin role: without the id the row could neither be
+            // attributed nor confirmed as audit-proof critical, and ChangerId of a middleware caller is ignored
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.LastHistoryQuery, Is.EqualTo(ModellingQueries.addHistoryEntryAsService));
+                Assert.That(HistoryRawValue(apiConn, "changerId"), Is.EqualTo("42"));
+                Assert.That(HistoryRawValue(apiConn, "auditProofCritical"), Is.EqualTo("true"));
             });
         }
 

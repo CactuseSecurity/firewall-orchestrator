@@ -207,6 +207,14 @@ else
     private bool ShowLifecycleDeactivatedRequestedInterfaces { get; set; } = false;
     private const string TicketStateFilterAll = "all";
     private const string TicketStateFilterAllOpen = "all_open";
+    private const int kTicketIdChunkSize = 500;
+    private static readonly QueryChunkingOptions TicketIdChunkingOptions = new()
+    {
+        Enabled = true,
+        ChunkVariableName = "ids",
+        ChunkSize = kTicketIdChunkSize,
+        MergeMode = ChunkMergeMode.TopLevelArrayConcat
+    };
     private string SelectedTicketStateFilter { get; set; } = TicketStateFilterAll;
     private List<string> TicketStateFilterOptions { get; set; } = [TicketStateFilterAll, TicketStateFilterAllOpen];
     private ModellingConnectionHandler? DisplayConnHandler { get; set; }
@@ -261,15 +269,16 @@ else
         try
         {
             await EnsureStateMatrixInitialized();
-            RequestedInterfaces = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
+            List<ModellingRequestedInterface> requestedInterfaces = await apiConnection.SendQueryAsync<List<ModellingRequestedInterface>>(
                 ModellingQueries.getRequestedInterfaces,
                 new { showRemoved = ShowRemovedRequestedInterfaces });
+            RequestedInterfaces = [.. requestedInterfaces];
             List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             OwnersById = owners.ToDictionary(owner => owner.Id, owner => owner);
             List<OwnerLifeCycleState> ownerLifeCycleStates = await apiConnection.SendQueryAsync<List<OwnerLifeCycleState>>(OwnerQueries.getOwnerLifeCycleStates);
             OwnerLifeCycleActiveById = ownerLifeCycleStates.ToDictionary(state => state.Id, state => state.ActiveState);
             await states.Init(apiConnection);
-            await ResolveUsedByConnections();
+            ResolveUsedByConnections();
             await ResolveRequestingAppsFromTickets();
             BuildRequestedInterfaceRows();
             RebuildTicketStateFilterOptions();
@@ -465,6 +474,11 @@ else
         return userConfig.GetText("active");
     }
 
+    /// <summary>
+    /// Reads state, creation date and requesting app of the interface tickets with one (chunked) query
+    /// that only loads the ticket fields and task infos needed here, instead of one full ticket per id.
+    /// Tickets are processed in the order of the interface list, so the first task found for a connection wins.
+    /// </summary>
     private async Task ResolveRequestingAppsFromTickets()
     {
         RequestingAppByConnectionId = [];
@@ -474,17 +488,25 @@ else
             .Where(connection => connection.TicketId != null)
             .Select(connection => connection.TicketId!.Value)
             .Distinct()];
+        if (ticketIds.Count == 0)
+        {
+            return;
+        }
+
+        List<WfTicket> tickets = await apiConnection.SendQueryAsync<List<WfTicket>>(
+            RequestQueries.getTicketOverviewsByIds, new { ids = ticketIds }, chunkingOptions: TicketIdChunkingOptions);
+        Dictionary<long, WfTicket> ticketsById = [];
+        foreach (WfTicket ticket in tickets)
+        {
+            ticketsById.TryAdd(ticket.Id, ticket);
+        }
 
         foreach (long ticketId in ticketIds)
         {
-            ApiResponse<WfTicket> ticketResponse = await apiConnection.SendQuerySafeAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
-            if (ticketResponse.HasErrors || ticketResponse.Result?.Tasks == null)
+            if (ticketsById.TryGetValue(ticketId, out WfTicket? ticket))
             {
-                continue;
+                ResolveRequestingAppsFromTicket(ticket);
             }
-
-            WfTicket ticket = ticketResponse.Result;
-            ResolveRequestingAppsFromTicket(ticket);
         }
     }
 
@@ -525,13 +547,16 @@ else
         }
     }
 
-    private async Task ResolveUsedByConnections()
+    /// <summary>
+    /// Maps each requested interface to the ids of the active connections using it.
+    /// The ids come with the interface list (used_by_connections), so no query per interface is needed.
+    /// </summary>
+    private void ResolveUsedByConnections()
     {
         UsedByConnectionIdsByInterfaceId = [];
         foreach (ModellingConnection requestedInterface in RequestedInterfaces)
         {
-            List<ModellingConnection> usingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
-                ModellingQueries.getInterfaceUsers, new { id = requestedInterface.Id });
+            List<ModellingConnection> usingConnections = (requestedInterface as ModellingRequestedInterface)?.UsedByConnections ?? [];
             List<int> usingConnectionIds = usingConnections
                 .Select(connection => connection.Id).Distinct().OrderBy(id => id).ToList();
             UsedByConnectionIdsByInterfaceId[requestedInterface.Id] = usingConnectionIds.Count > 0
@@ -539,20 +564,46 @@ else
         }
     }
 
+    /// <summary>
+    /// Loads the complete connection (objects, services, permitted owners) for the popups, as the list only holds
+    /// the overview fields. The owners resolved by the list query are kept, as they contain the state information.
+    /// </summary>
+    private async Task<ModellingConnection> LoadFullConnection(ModellingConnection connection)
+    {
+        List<ModellingConnection> connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
+            ModellingQueries.getConnectionById, new { id = connection.Id });
+        ModellingConnection? fullConnection = connections.FirstOrDefault();
+        if (fullConnection == null)
+        {
+            return connection;
+        }
+        fullConnection.App = connection.App;
+        fullConnection.ProposedApp = connection.ProposedApp;
+        return fullConnection;
+    }
+
     private async Task DisplayInterface(ModellingConnection connection)
     {
-        FwoOwner? application = connection.App;
-        if ((application == null || application.Id <= 0) && connection.AppId != null &&
-            OwnersById.TryGetValue(connection.AppId.Value, out FwoOwner? resolvedOwner))
+        try
         {
-            application = resolvedOwner;
+            ModellingConnection fullConnection = await LoadFullConnection(connection);
+            FwoOwner? application = fullConnection.App;
+            if ((application == null || application.Id <= 0) && fullConnection.AppId != null &&
+                OwnersById.TryGetValue(fullConnection.AppId.Value, out FwoOwner? resolvedOwner))
+            {
+                application = resolvedOwner;
+            }
+            application ??= new();
+            DisplayConnHandler = new ModellingConnectionHandler(
+                apiConnection, userConfig, application, RequestedInterfaces, fullConnection,
+                false, true, DisplayMessageInUi, DefaultInit.DoNothing, false);
+            await DisplayConnHandler.Init();
+            ShowDisplayPopup = true;
         }
-        application ??= new();
-        DisplayConnHandler = new ModellingConnectionHandler(
-            apiConnection, userConfig, application, RequestedInterfaces, connection,
-            false, true, DisplayMessageInUi, DefaultInit.DoNothing, false);
-        await DisplayConnHandler.Init();
-        ShowDisplayPopup = true;
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("requested_interface"), "", true);
+        }
     }
 
     private bool CanRejectInterface(ModellingConnection connection)
@@ -576,19 +627,27 @@ else
 
     private async Task RejectInterface(ModellingConnection connection)
     {
-        RejectRequestingApp = GetRequestingApp(connection);
-        FwoOwner? application = connection.App;
-        if ((application == null || application.Id <= 0) && connection.AppId != null &&
-            OwnersById.TryGetValue(connection.AppId.Value, out FwoOwner? resolvedOwner))
+        try
         {
-            application = resolvedOwner;
+            RejectRequestingApp = GetRequestingApp(connection);
+            ModellingConnection fullConnection = await LoadFullConnection(connection);
+            FwoOwner? application = fullConnection.App;
+            if ((application == null || application.Id <= 0) && fullConnection.AppId != null &&
+                OwnersById.TryGetValue(fullConnection.AppId.Value, out FwoOwner? resolvedOwner))
+            {
+                application = resolvedOwner;
+            }
+            application ??= new();
+            RejectConnHandler = new ModellingConnectionHandler(
+                apiConnection, userConfig, application, RequestedInterfaces, fullConnection,
+                false, false, DisplayMessageInUi, DefaultInit.DoNothing, false);
+            await RejectConnHandler.Init();
+            ShowRejectPopup = true;
         }
-        application ??= new();
-        RejectConnHandler = new ModellingConnectionHandler(
-            apiConnection, userConfig, application, RequestedInterfaces, connection,
-            false, false, DisplayMessageInUi, DefaultInit.DoNothing, false);
-        await RejectConnHandler.Init();
-        ShowRejectPopup = true;
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("reject"), "", true);
+        }
     }
 
     private async Task RejectRemovedInterfaceTickets()

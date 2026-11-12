@@ -21,6 +21,12 @@ For a feature-centric, thematically grouped view see
 - Rule-based reports (rules, resolved/technical, unused, NAT, recertification, app rules and change reports) show rule labels in html, pdf, csv, json and the UI, configurable under Settings - Reporting.
 - Label-based modelling: labels can be used as source and destination of connections, interfaces and common services, switched on by the new global setting "Label-based Modelling".
 
+### 9.9.1 - 05.11.2026
+- Workflow state matrices can configure whether phases after request are promoted from the ticket, from individual tasks, or both. The request phase remains ticket-driven.
+- Access-task elements reference their ticket-local object-create task, keeping object changes consistent.
+- Approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks.
+- The promotion-mode setting supports an action-buttons-only option in addition to ticket, task and combined promotion.
+
 ### 9.9.0 — 04.11.2026
 - Azure Firewall import module fetches firewall policies (network rules) and IP groups directly via the Azure Resource Manager API (api version 2026-01-01 with fallback to 2024-05-01).
 - Azure parent policies (policy hierarchy) are imported; their rules precede the rules of the child policy.
@@ -159,4 +165,3 @@ For a feature-centric, thematically grouped view see
 - Complete 80K-line rework of FWO:
   - Database changes to deduplicate rules (rule-to-gateway mapping now 1:n via `rulebase` and `rulebase_link` tables).
   - Import module migrated from mixed python/pgsql to pure python.
-

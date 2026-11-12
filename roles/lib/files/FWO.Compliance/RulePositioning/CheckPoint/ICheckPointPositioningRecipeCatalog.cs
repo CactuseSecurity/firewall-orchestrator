@@ -16,7 +16,7 @@ public interface ICheckPointPositioningRecipeCatalog
     PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>, CheckPointRecipeSelectionFailureCategory> SelectRecipe(
         ProvisioningPositioningAlgorithm positioningAlgorithm,
         CheckPointLayerGuardZonePairPositioningInput positioningInput,
-        CreationRuleZoneInput zoneInput);
+        string normalizedSectionName);
 }
 
 /// <summary>Maps Check Point recipe selection failures to fixed caller-safe diagnostics.</summary>
@@ -49,7 +49,7 @@ public sealed class CheckPointPositioningRecipeCatalog : ICheckPointPositioningR
     public PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>, CheckPointRecipeSelectionFailureCategory> SelectRecipe(
         ProvisioningPositioningAlgorithm positioningAlgorithm,
         CheckPointLayerGuardZonePairPositioningInput positioningInput,
-        CreationRuleZoneInput zoneInput)
+        string normalizedSectionName)
     {
         if (!SupportsAlgorithm(positioningAlgorithm))
         {
@@ -61,7 +61,7 @@ public sealed class CheckPointPositioningRecipeCatalog : ICheckPointPositioningR
         PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>,
             CheckPointLayerGuardZonePairRecipeFailureCategory> result = CheckPointLayerGuardZonePairRecipeFactory.Create(
             positioningInput,
-            zoneInput);
+            normalizedSectionName);
         return result.TryGetValue(out PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>? recipe)
             ? PositioningResult<PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>,
                 CheckPointRecipeSelectionFailureCategory>.Success(recipe)

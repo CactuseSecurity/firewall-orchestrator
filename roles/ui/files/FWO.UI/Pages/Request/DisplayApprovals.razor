@@ -37,7 +37,10 @@
                         </Template>
                     </Column>                    
                     <Column TableItem="WfApproval" Title="@(userConfig.GetText("opened"))" Field="@(x => x.DateOpened)" Sortable="true" Filterable="true" />
-                    <Column TableItem="WfApproval" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true" />
+                    @if (TicketFieldVisibility.ShowDeadline)
+                    {
+                        <Column TableItem="WfApproval" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true" />
+                    }
                     <Column TableItem="WfApproval" Title="@(userConfig.GetText("assigned"))" Field="@(x => x.AssignedGroup)" Sortable="true" Filterable="true" >
                         <Template>
                             @(new DistName(context.AssignedGroup).UserName)
@@ -103,6 +106,7 @@
     static List<string> validRoles = new (){Roles.Approver};
     private bool WorkInProgress = false;
     private bool IsReadOnly => ReadOnlyMode ?? WfHandler.ReadOnlyMode;
+    private TicketFieldVisibilityConfig TicketFieldVisibility => TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility);
 
     private static string DisplayApprover(string? approverDn)
     {

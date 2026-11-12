@@ -10,6 +10,7 @@
 - dependencies: update ASP.NET Core packages to 10.0.15 (Microsoft.AspNetCore.Authentication.JwtBearer, Microsoft.AspNetCore.Components, Microsoft.AspNetCore.Mvc.Testing, Microsoft.AspNetCore.OpenApi), .NET 10.0.15 security release
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.2 (denial-of-service fixes in validator and parser).
+- workflow UI: planning-phase tickets can use a dedicated planning view that groups request tasks with their implementation tasks, keeps request-task details read-only, and allows planners to create, edit and delete implementation tasks; the view also supports configurable offered actions and optional owner changes
 
 
 ## 9.9.1 - 05.11.2026

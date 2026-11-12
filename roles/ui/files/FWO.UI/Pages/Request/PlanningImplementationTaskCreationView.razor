@@ -1,0 +1,83 @@
+@using FWO.Data
+@using FWO.Data.Workflow
+@using FWO.Ui.Display
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("implementation") + ": " + userConfig.GetText(RequestTask.TaskType))" Show="@Display" Size="PopupSize.XLarge" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <PlanningImplementationTaskDetails ImplementationTasks="implementationTasks"
+                RequestTask="RequestTask" WfHandler="WfHandler" States="States" Phase="@Phase"
+                CreationMode="true" ResetParent="Refresh" />
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" disabled="@WorkInProgress" @onclick="Save">
+            @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" disabled="@WorkInProgress" @onclick="Close">
+            @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
+        </button>
+    </Footer>
+</PopUp>
+<InProgress Display="WorkInProgress" />
+
+@code
+{
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public WfReqTask RequestTask { get; set; } = new();
+    [Parameter] public WfImplTask ImplementationTask { get; set; } = new();
+    [Parameter] public WfHandler WfHandler { get; set; } = new();
+    [Parameter] public WfStateDict States { get; set; } = new();
+    [Parameter] public WorkflowPhases Phase { get; set; } = WorkflowPhases.planning;
+    [Parameter] public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
+
+    private readonly List<WfImplTask> implementationTasks = [];
+    private WfImplTask? initializedTask;
+    private bool WorkInProgress;
+
+    protected override void OnParametersSet()
+    {
+        if (!Display || ReferenceEquals(initializedTask, ImplementationTask))
+        {
+            return;
+        }
+
+        initializedTask = ImplementationTask;
+        implementationTasks.Clear();
+        implementationTasks.Add(ImplementationTask);
+    }
+
+    private Task Refresh() => InvokeAsync(StateHasChanged);
+
+    private async Task Save()
+    {
+        if (WorkInProgress)
+        {
+            return;
+        }
+
+        WorkInProgress = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await WfHandler.AddImplTask();
+            Close();
+            await ResetParent();
+        }
+        finally
+        {
+            WorkInProgress = false;
+        }
+    }
+
+    private void Close()
+    {
+        WfHandler.ResetImplTaskActions();
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+}

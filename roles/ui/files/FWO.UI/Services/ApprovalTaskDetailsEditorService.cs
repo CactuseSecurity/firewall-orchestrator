@@ -37,6 +37,11 @@ internal sealed class ApprovalTaskDetailsEditorService
     internal WfHandler WfHandler => context.WfHandler;
     internal UserConfig userConfig => context.UserConfig;
 
+    /// <summary>Disables all request-task editors while retaining their shared details presentation.</summary>
+    internal bool ReadOnlyDisplay { get; set; }
+
+    internal bool PlannerOwnerChangesAllowed { get; set; }
+
     internal void Configure(WfHandler wfHandler, UserConfig config, Func<Task> refresh)
     {
         context.Configure(wfHandler, config, refresh);
@@ -299,7 +304,7 @@ internal sealed class ApprovalTaskDetailsEditorService
         new ApprovalTaskViewActions
         {
             CanEdit = CanEdit,
-            CanEditTimeObject = timeObjectEditor.CanEditTimeObject,
+            CanEditTimeObject = tasks => !ReadOnlyDisplay && timeObjectEditor.CanEditTimeObject(tasks),
             EditableTimeObjectField = timeObjectEditor.EditableTimeObjectField,
             EditOwner = metadataEditor.OpenOwnerEditor,
             EditRuleAction = metadataEditor.OpenRuleActionEditor,
@@ -314,11 +319,22 @@ internal sealed class ApprovalTaskDetailsEditorService
 
     internal bool CanEdit(IEnumerable<WfReqTask> tasks, string fieldKey)
     {
+        bool plannerOwnerEdit = PlannerOwnerChangesAllowed && fieldKey == WorkflowEditableFieldKeys.Owner;
+        if (ReadOnlyDisplay && !plannerOwnerEdit)
+        {
+            return false;
+        }
+
         List<WfReqTask> taskList = tasks.ToList();
         if (taskList.Count == 0
             || taskList.Any(task => !context.WfHandler.CanActOnReqTaskInCurrentPhase(task)))
         {
             return false;
+        }
+
+        if (plannerOwnerEdit)
+        {
+            return context.WfHandler.Phase == WorkflowPhases.planning && !context.WfHandler.ReadOnlyMode;
         }
 
         WfReqTask firstTask = taskList.First();

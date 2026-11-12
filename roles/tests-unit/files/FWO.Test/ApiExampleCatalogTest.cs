@@ -184,8 +184,39 @@ public class ApiExampleCatalogTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(addressGroup.Members.Select(member => member.Id), Does.Contain(addressObject.Id));
-            Assert.That(serviceGroup.Members.Select(member => member.Id), Does.Contain(serviceObject.Id));
+            AddressGroupResponse.AddressGroupMemberResponse addressMember = addressGroup.Members.Single();
+            ServiceGroupResponse.ServiceGroupMemberResponse serviceMember = serviceGroup.Members.Single();
+            Assert.That(addressMember.Id, Is.EqualTo(addressObject.Id));
+            Assert.That(addressMember.Name, Is.EqualTo(addressObject.Name));
+            Assert.That(addressMember.Type, Is.EqualTo(addressObject.Type));
+            Assert.That(addressMember.IpRange, Is.EqualTo(addressObject.IpRange));
+            Assert.That(addressMember.State, Is.EqualTo(addressObject.State));
+            Assert.That(addressMember.ShowInRequest, Is.EqualTo(addressObject.ShowInRequest));
+            Assert.That(addressMember.IncludeTechnicalDetails, Is.True);
+            Assert.That(serviceMember.Id, Is.EqualTo(serviceObject.Id));
+            Assert.That(serviceMember.Name, Is.EqualTo(serviceObject.Name));
+            Assert.That(serviceMember.PortStart, Is.EqualTo(serviceObject.PortStart));
+            Assert.That(serviceMember.PortEnd, Is.EqualTo(serviceObject.PortEnd));
+            Assert.That(serviceMember.Protocol, Is.EqualTo(serviceObject.Protocol));
+            Assert.That(serviceMember.State, Is.EqualTo(serviceObject.State));
+            Assert.That(serviceMember.ShowInRequest, Is.EqualTo(serviceObject.ShowInRequest));
+            Assert.That(serviceMember.IncludeTechnicalDetails, Is.True);
+        });
+    }
+
+    /// <summary>
+    /// Verifies the group filter example opts into member technical details.
+    /// </summary>
+    [Test]
+    public void FlowCatalogGroupFilterExampleEnablesTechnicalDetails()
+    {
+        Assert.That(catalog.TryGetExample(typeof(FlowCatalogGroupFilter), out object? example), Is.True);
+
+        FlowCatalogGroupFilter filter = (FlowCatalogGroupFilter)example!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(filter.VisibleInRequest, Is.True);
+            Assert.That(filter.IncludeTechnicalDetails, Is.True);
         });
     }
 
@@ -209,10 +240,10 @@ public class ApiExampleCatalogTest
     }
 
     /// <summary>
-    /// Verifies the address group request example documents the default response shape.
+    /// Verifies the address group request example documents detailed members without zone separation.
     /// </summary>
     [Test]
-    public void AddressGroupRequestExampleKeepsZoneSeparationDisabled()
+    public void AddressGroupRequestExampleDocumentsDetailedMembersWithoutZoneSeparation()
     {
         Assert.That(catalog.TryGetExample(typeof(GetAddressGroupsRequest), out object? example), Is.True);
 
@@ -224,8 +255,10 @@ public class ApiExampleCatalogTest
             Assert.That(request.Option, Is.Not.Null);
             Assert.That(request.Option!.SeparateZoneGroups, Is.False);
             Assert.That(request.Filter!.VisibleInRequest, Is.True);
+            Assert.That(request.Filter.IncludeTechnicalDetails, Is.True);
             Assert.That(json, Does.Contain("\"separateZoneGroups\":false"));
             Assert.That(json, Does.Contain("\"visibleInRequest\":true"));
+            Assert.That(json, Does.Contain("\"includeTechnicalDetails\":true"));
         });
     }
 

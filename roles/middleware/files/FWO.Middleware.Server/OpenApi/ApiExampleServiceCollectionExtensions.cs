@@ -176,16 +176,17 @@ public sealed class VisibleInRequestFilterExample : ApiExampleProvider<VisibleIn
 
 /// <summary>
 /// Provides a typed example for <see cref="GetAddressGroupsRequest"/>.
-/// The example documents the default response shape, so zone separation is switched off.
+/// The example documents detailed members without changing the flat group response shape.
 /// </summary>
 public sealed class GetAddressGroupsRequestExample : ApiExampleProvider<GetAddressGroupsRequest>
 {
     /// <inheritdoc />
     public override GetAddressGroupsRequest GetExample() => new()
     {
-        Filter = new VisibleInRequestFilter
+        Filter = new FlowCatalogGroupFilter
         {
-            VisibleInRequest = true
+            VisibleInRequest = true,
+            IncludeTechnicalDetails = true
         },
         Option = new AddressGroupsOption
         {
@@ -424,7 +425,12 @@ public sealed class AddressGroupResponseExample : ApiExampleProvider<AddressGrou
             new AddressGroupResponse.AddressGroupMemberResponse
             {
                 Id = 1001,
-                Name = "app-server-1"
+                Name = "app-server-1",
+                Type = "host",
+                IpRange = ["192.0.2.10", "192.0.2.10"],
+                State = "active",
+                ShowInRequest = true,
+                IncludeTechnicalDetails = true
             }
         ]
     };
@@ -496,7 +502,13 @@ public sealed class ServiceGroupResponseExample : ApiExampleProvider<ServiceGrou
             new ServiceGroupResponse.ServiceGroupMemberResponse
             {
                 Id = 3001,
-                Name = "https"
+                Name = "https",
+                PortStart = 443,
+                PortEnd = 443,
+                Protocol = "tcp",
+                State = "active",
+                ShowInRequest = true,
+                IncludeTechnicalDetails = true
             }
         ]
     };

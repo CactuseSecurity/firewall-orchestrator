@@ -13,6 +13,11 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    groups:
+      # init and analyze share one pinned SHA in codeql-analysis.yml, so separate PRs conflict
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
     assignees:
       - Laennart
 
@@ -26,11 +31,18 @@ updates:
     assignees:
       - SolidProgramming
 
+  # importer and scripts requirements are installed together in CI, so shared
+  # pins (graphql-core, requests, urllib3, ...) must be bumped in one PR
   - package-ecosystem: "pip"
-    directory: "/roles/importer/files/importer"
+    directories:
+      - "/roles/importer/files/importer"
+      - "/scripts"
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    groups:
+      importer-and-scripts:
+        group-by: dependency-name
     cooldown:
       default-days: 30
       include:
@@ -39,6 +51,12 @@ updates:
       # scrapli >=2026.5 is the native libscrapli rewrite (scrapli 2); the ASA importer still uses the scrapli 1 API
       - dependency-name: "scrapli"
         versions: [">=2026.5"]
+      # python-dateutil >=4 requires Python >=3.11; the installer and importer still support Python 3.10
+      - dependency-name: "python-dateutil"
+        versions: [">=4"]
+      # pre-commit >=4.7 requires Python >=3.11; the installer and importer still support Python 3.10
+      - dependency-name: "pre-commit"
+        versions: [">=4.7"]
     assignees:
       - Laennart
 
@@ -55,6 +73,9 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    # scripts/ is covered together with the importer above
+    exclude-paths:
+      - "scripts/**"
     ignore:
       # ansible >=13 requires Python >=3.12, unavailable on Debian 12 (see requirements.txt)
       - dependency-name: "ansible"

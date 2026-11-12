@@ -72,6 +72,21 @@ namespace FWO.Test
         }
 
         [Test]
+        public void TotalCount_IsPassedToThePager()
+        {
+            List<WfTicket> tickets = [CreateTicket()];
+            Func<FancyItemsRequest, CancellationToken, Task<FancyItemsResult<WfTicket>>> loadTickets = (request, _) =>
+                Task.FromResult(new FancyItemsResult<WfTicket>(tickets, true) { TotalCount = 3 * kDefaultPageSize + 1 });
+
+            IRenderedComponent<MonitorWorkflowTicketTable> component = context.Render<MonitorWorkflowTicketTable>(parameters =>
+                parameters.Add(p => p.LoadTickets, loadTickets).Add(p => p.StateNames, kStateNames));
+
+            List<string> pageButtons = [.. component.FindAll(".fancy-pagination .btn-group button")
+                .Select(button => button.TextContent.Trim()).Where(text => int.TryParse(text, out _))];
+            Assert.That(string.Join(",", pageButtons), Is.EqualTo("1,2,3,4"));
+        }
+
+        [Test]
         public void SortHeaderClick_SendsSortKey()
         {
             IRenderedComponent<MonitorWorkflowTicketTable> component = RenderTable(new List<WfTicket> { CreateTicket() });

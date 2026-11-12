@@ -166,12 +166,12 @@
     #region Methods - Private
 
     /// <summary>
-    /// Loads one page of tickets and maps them to tree rows.
+    /// Loads one page of tickets and maps them to tree rows, keeping the number of all matching tickets for the pager.
     /// </summary>
     private async ValueTask<FancyItemsResult<WorkflowTreeRow>> LoadRowsAsync(FancyItemsRequest request, CancellationToken cancellationToken)
     {
         FancyItemsResult<WfTicket> result = await LoadTickets(request, cancellationToken);
-        return new FancyItemsResult<WorkflowTreeRow>(BuildTicketRows(result.Items), result.HasMore);
+        return new FancyItemsResult<WorkflowTreeRow>(BuildTicketRows(result.Items), result.HasMore) { TotalCount = result.TotalCount };
     }
 
     /// <summary>

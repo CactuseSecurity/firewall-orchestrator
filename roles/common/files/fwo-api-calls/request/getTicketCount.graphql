@@ -1,0 +1,7 @@
+query getTicketCount($where: request_ticket_bool_exp!) {
+  request_ticket_aggregate(where: $where) {
+    aggregate {
+      count
+    }
+  }
+}

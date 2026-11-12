@@ -28,6 +28,7 @@ namespace FWO.Test
     {
         private const int kPageSize = 10;
         private static readonly List<FancyColumnFilter> kNoFilters = [];
+        private static readonly List<FancyColumnFilter> kIdFilter = [new FancyColumnFilter("id", FancyColumnFilterOperator.Equals, "3")];
         private static readonly object[] kAccessTaskTypeSelection = [new WfTaskType?[] { WfTaskType.access }];
 
         private static MethodInfo GetPrivateMethod(string name)
@@ -218,6 +219,71 @@ namespace FWO.Test
         private static List<WfTicket> CreateTickets(int count)
         {
             return [.. Enumerable.Range(1, count).Select(id => new WfTicket { Id = id, Title = $"Ticket {id}", StateId = 1 })];
+        }
+
+        private static int CountQueries(MonitorWorkflowApiConn apiConn)
+        {
+            return apiConn.Variables.Count(query => query.Query == RequestQueries.getTicketCount);
+        }
+
+        [Test]
+        public async Task LoadTicketPage_ReturnsCountOfAllMatchingTicketsWithTheSameWhere()
+        {
+            MonitorWorkflowApiConn apiConn = new() { Tickets = CreateTickets(3 * kPageSize + 2) };
+            MonitorWorkflow component = CreateComponent(apiConn);
+
+            FancyItemsResult<WfTicket> result = await LoadTicketPage(component, PageRequest());
+
+            object countVariables = apiConn.Variables.Single(query => query.Query == RequestQueries.getTicketCount).Variables;
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.TotalCount, Is.EqualTo(3 * kPageSize + 2));
+                Assert.That(JsonSerializer.Serialize(GetVariable<Dictionary<string, object>>(countVariables, "where")), Is.EqualTo(WhereJson(apiConn)));
+            });
+        }
+
+        [Test]
+        public async Task LoadTicketPage_PageOrSortChange_ReusesCount()
+        {
+            MonitorWorkflowApiConn apiConn = new() { Tickets = CreateTickets(3 * kPageSize) };
+            MonitorWorkflow component = CreateComponent(apiConn);
+            await LoadTicketPage(component, PageRequest());
+
+            FancyItemsResult<WfTicket> secondPage = await LoadTicketPage(component, PageRequest(page: 2));
+            FancyItemsResult<WfTicket> sorted = await LoadTicketPage(component, new FancyItemsRequest("", "name", false, kNoFilters, 1, kPageSize));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(CountQueries(apiConn), Is.EqualTo(1));
+                Assert.That(secondPage.TotalCount, Is.EqualTo(3 * kPageSize));
+                Assert.That(sorted.TotalCount, Is.EqualTo(3 * kPageSize));
+            });
+        }
+
+        [Test]
+        public async Task LoadTicketPage_ColumnFilterChange_CountsAgain()
+        {
+            MonitorWorkflowApiConn apiConn = new() { Tickets = CreateTickets(kPageSize) };
+            MonitorWorkflow component = CreateComponent(apiConn);
+            await LoadTicketPage(component, PageRequest());
+
+            await LoadTicketPage(component, new FancyItemsRequest("", null, true, kIdFilter, 1, kPageSize));
+
+            Assert.That(CountQueries(apiConn), Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task LoadTicketPage_AfterRefresh_CountsAgain()
+        {
+            MonitorWorkflowApiConn apiConn = new() { Tickets = CreateTickets(kPageSize) };
+            MonitorWorkflow component = CreateComponent(apiConn);
+            await LoadTicketPage(component, PageRequest());
+
+            object[] arguments = [false];
+            await (Task)GetPrivateMethod("RefreshTicketTable").Invoke(component, arguments)!;
+            await LoadTicketPage(component, PageRequest());
+
+            Assert.That(CountQueries(apiConn), Is.EqualTo(2));
         }
 
         [Test]
@@ -914,6 +980,10 @@ namespace FWO.Test
                 int offset = variables == null ? 0 : GetVariable<int>(variables, "offset");
                 int limit = variables == null ? Tickets.Count : GetVariable<int>(variables, "limit");
                 return Task.FromResult((QueryResponseType)(object)Tickets.Skip(offset).Take(limit).ToList());
+            }
+            if (typeof(QueryResponseType) == typeof(AggregateCount) && query == RequestQueries.getTicketCount)
+            {
+                return Task.FromResult((QueryResponseType)(object)new AggregateCount { Aggregate = new Aggregate { Count = Tickets.Count } });
             }
             if (typeof(QueryResponseType) == typeof(List<Device>) && query == DeviceQueries.getDeviceDetails)
             {

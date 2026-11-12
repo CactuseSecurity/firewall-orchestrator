@@ -62,7 +62,7 @@ namespace FWO.Data.Workflow
             Title = reqtask.Title;
             ReqTaskId = reqtask.Id;
             TaskNumber = 0;
-            StateId = 0;
+            StateId = reqtask.StateId;
             TaskType = reqtask.TaskType;
             ImplAction = reqtask.RequestAction;
             RuleAction = reqtask.RuleAction;

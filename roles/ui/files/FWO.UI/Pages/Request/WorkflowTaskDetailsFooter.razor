@@ -1,0 +1,65 @@
+@using FWO.Data.Workflow
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<div class="row w-100 align-items-center">
+    <div class="col-sm-4"></div>
+    <div class="col-sm-4 d-flex justify-content-center">
+        <ConfiguredTaskActions OfferedActions="OfferedActions"
+            ActionVisibility="CanShowAction"
+            ActionRequested="PerformAction"
+            @bind-WorkInProgress="WorkInProgress" />
+    </div>
+    <div class="col-sm-4 d-flex justify-content-end">
+        <div class="btn-group">
+            @if (CanPromoteTicket)
+            {
+                <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="RequestPromotion">
+                    @(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
+            }
+            @if (ShowCancel)
+            {
+                <button type="button" class="btn btn-sm btn-secondary @CloseButtonClass" @onclick="Close">
+                    @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-sm btn-primary @CloseButtonClass" @onclick="Close">
+                    @(userConfig.GetText("ok"))</button>
+            }
+        </div>
+    </div>
+</div>
+<InProgress Display="WorkInProgress" />
+
+@code {
+    [Parameter] public IReadOnlyList<WfStateAction> OfferedActions { get; set; } = [];
+    [Parameter] public Func<WfStateAction, bool> CanShowAction { get; set; } = _ => true;
+    [Parameter] public Func<WfStateAction, Task> PerformAction { get; set; } = _ => Task.CompletedTask;
+    [Parameter] public bool CanPromoteTicket { get; set; }
+    [Parameter] public Func<Task> PromoteTicket { get; set; } = DefaultInit.DoNothing;
+    [Parameter] public bool ShowCancel { get; set; }
+    [Parameter] public Func<Task> Close { get; set; } = DefaultInit.DoNothing;
+    [Parameter] public string CloseButtonClass { get; set; } = "workflow-task-details-close";
+
+    private bool WorkInProgress { get; set; }
+
+    private async Task RequestPromotion()
+    {
+        if (WorkInProgress)
+        {
+            return;
+        }
+
+        WorkInProgress = true;
+        try
+        {
+            await PromoteTicket();
+        }
+        finally
+        {
+            WorkInProgress = false;
+        }
+    }
+}

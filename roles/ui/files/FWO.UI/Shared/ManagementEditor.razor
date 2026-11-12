@@ -1,0 +1,63 @@
+@using FWO.Data
+@using FWO.Ui.Display
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("edit_management"))" Show="@Display" Size="PopupSize.Medium" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <Dropdown ElementType="Management" SelectedElement="selectedManagement" SelectedElementChanged="ManagementChanged"
+                ElementToString="@(management => management.Name)" Elements="Managements" Nullable="true">
+                <ElementTemplate Context="management">
+                    @management.Name
+                </ElementTemplate>
+            </Dropdown>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+    </Footer>
+</PopUp>
+
+@code {
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public Management? SelectedManagement { get; set; }
+    [Parameter] public List<Management> Managements { get; set; } = [];
+    [Parameter] public EventCallback<Management?> Saved { get; set; }
+
+    private Management? selectedManagement;
+    private bool initialized;
+
+    protected override void OnParametersSet()
+    {
+        if (!Display || initialized)
+        {
+            return;
+        }
+
+        selectedManagement = Managements.FirstOrDefault(management => management.Id == SelectedManagement?.Id);
+        initialized = true;
+    }
+
+    private Task ManagementChanged(Management management)
+    {
+        selectedManagement = management;
+        return Task.CompletedTask;
+    }
+
+    private async Task Save()
+    {
+        await Saved.InvokeAsync(selectedManagement);
+        Close();
+    }
+
+    private void Close()
+    {
+        initialized = false;
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+}

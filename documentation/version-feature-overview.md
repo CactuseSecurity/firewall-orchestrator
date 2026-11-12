@@ -270,4 +270,12 @@ For a feature-centric, thematically grouped view see
 - Azure parent policies (policy hierarchy) are imported; their rules precede the rules of the child policy.
 - Azure gateway autodiscovery: finds the Azure Firewalls of the subscription and maps each to its firewall policy.
 - New importer setting "Skip unsupported rules": rules that cannot be represented (currently Azure geo-location filters) are skipped with a warning or fail the import.
+
+### 9.9.1 - 05.11.2026
+- Workflow state matrices can configure whether phases after request are promoted from the ticket, from individual tasks, or both. The request phase remains ticket-driven.
+- Access-task elements reference their ticket-local object-create task, keeping object changes consistent.
+- Approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks.
+- The promotion-mode setting supports an action-buttons-only option in addition to ticket, task and combined promotion.
+
+### 9.9.2 - 11.11.2026
 - Workflow monitoring shows tickets in a paged tree table with their request tasks, implementation tasks and approvals; column filters (state, id, requester) and sorting run in the database across all tickets, and the state column shows an icon for each default workflow state.

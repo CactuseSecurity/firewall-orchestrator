@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # library for all FWORCH API calls in importer module
-import datetime
+import datetime as dt
 import json
 import time
 import traceback
@@ -73,7 +73,7 @@ class FwoApiCall:
 
     # this mgm field is used by mw dailycheck scheduler
     def log_import_attempt(self, mgm_id: int, successful: bool):
-        now = datetime.datetime.now().isoformat()
+        now = dt.datetime.now().isoformat()
         query_variables: dict[str, Any] = {
             "mgmId": mgm_id,
             "timeStamp": now,
@@ -163,7 +163,7 @@ class FwoApiCall:
 
         try:
             query_variables: dict[str, Any] = {
-                "stopTime": datetime.datetime.now().isoformat(),
+                "stopTime": dt.datetime.now().isoformat(),
                 "importId": import_id,
                 "success": success,
                 "changesFound": import_stats.get_total_change_number() > 0,
@@ -350,7 +350,7 @@ class FwoApiCall:
                 ack_variables: dict[str, Any] = {
                     "userId": 0,
                     "alertId": alert["alert_id"],
-                    "ackTimeStamp": datetime.datetime.now().isoformat(),
+                    "ackTimeStamp": dt.datetime.now().isoformat(),
                 }
                 _ = self.api.call(ack_alert_mutation, query_variables=ack_variables)
 

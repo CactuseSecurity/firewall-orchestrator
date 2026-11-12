@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import traceback
 from enum import Enum
 from typing import TYPE_CHECKING, Any
@@ -802,7 +802,7 @@ class FwConfigImportObject:
 
         nw_objs: list[dict[str, Any]] = []
         svc_objs: list[dict[str, Any]] = []
-        import_time = datetime.datetime.now().isoformat()
+        import_time = dt.datetime.now().isoformat()
         change_typ = 3  # standard
         change_logger = ChangeLogger()
 

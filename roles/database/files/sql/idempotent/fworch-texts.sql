@@ -99,7 +99,7 @@ INSERT INTO txt VALUES ('Both',                  'German',   'beides');
 INSERT INTO txt VALUES ('Both',                  'English',  'both');
 INSERT INTO txt VALUES ('Task',                  'German',   'Aufgabe');
 INSERT INTO txt VALUES ('Task',                  'English',  'Task');
-INSERT INTO txt VALUES ('ActionButtonsOnly',     'German',   'Nur Aktionsschaltflächen');
+INSERT INTO txt VALUES ('ActionButtonsOnly',     'German',   'Nur Aktionsschaltfl&auml;chen');
 INSERT INTO txt VALUES ('ActionButtonsOnly',     'English',  'Action buttons only');
 INSERT INTO txt VALUES ('RequestedConnections', 'German',   'Beantragte Verbindungen');
 INSERT INTO txt VALUES ('RequestedConnections', 'English',  'Requested Connections');
@@ -643,6 +643,22 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
     <li>Azure Firewall: Der Import liest die Netzwerkregeln der Firewall-Richtlinien und die IP-Gruppen nun direkt &uuml;ber die Azure Resource Manager API (Service Principal mit Leserechten). Die Ressourcengruppe wird als Konfigurationspfad angegeben, die Richtlinie &uuml;ber den Ger&auml;tenamen oder den lokalen Regelwerksnamen des Ger&auml;ts zugeordnet. Genutzt wird die API-Version 2026-01-01, bei Clouds ohne diese Version automatisch 2024-05-01. Kubernetes-Selektorgruppen werden als dynamische Quellobjekte importiert. &Uuml;bergeordnete Richtlinien (Richtlinienhierarchie) werden mit importiert und ihre Regeln vor denen der untergeordneten Richtlinie angezeigt. Die Autodiscovery findet die Azure Firewalls als Gateways und ordnet ihnen ihre Richtlinie zu. NAT- und Applikationsregeln werden noch nicht importiert. Regeln mit Geo-Location-Filtern werden mit einer Warnung &uuml;bersprungen; mit der neuen Import-Einstellung &quot;Nicht unterst&uuml;tzte Regeln &uuml;berspringen&quot; kann stattdessen ein Abbruch des Imports eingestellt werden.</li>
     <li>Regeltreffer-Import: Der letzte Treffer (last hit) der Regeln wird nicht mehr beim regul&auml;ren Import gelesen, sondern von einem eigenen, zeitgesteuerten Regeltreffer-Import, auch wenn sich die Konfiguration nicht ge&auml;ndert hat. Intervall (Minuten, Stunden oder Tage) und Startzeit sind in den Importer-Einstellungen einstellbar (Standard: t&auml;glich um 00:00 Uhr). Der letzte Treffer wird nun je Gateway gespeichert: Check Point liefert ihn je Gateway, FortiManager je Policy Package (gespeichert f&uuml;r alle Gateways des Packages). L&auml;uft gerade ein Import des Managements, wird es bis zum n&auml;chsten Intervall &uuml;bersprungen.</li>
+    <li>F&uuml;r die Planungsphase gibt es eine eigene Planungsansicht. Sie zeigt jeden Antrags-Auftrag mit seinen Implementierungs-Auftr&auml;gen, l&auml;sst die Antragsdetails unver&auml;nderlich und bietet f&uuml;r Implementierungs-Auftr&auml;ge eigene Bearbeitungs-, Erzeugungs- und L&ouml;schfunktionen. Die Planungsansicht kann &uuml;ber den Bearbeitungsmodus der Planung aktiviert werden; optional darf der Planer auch den Verantwortlichen &auml;ndern.</li>
+    <li>Implementierungs-Auftr&auml;ge entstehen nur noch &uuml;ber die Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot;, die z.B. beim Status &quot;genehmigt&quot; eingeh&auml;ngt wird. Installation und Upgrade legen sie an, h&auml;ngen sie aber nicht ein: das muss ein Administrator tun, sonst entstehen keine Implementierungs-Auftr&auml;ge automatisch. Welche Auftr&auml;ge sie anlegt, legen die ger&auml;tespezifischen Einstellungen &quot;Umsetzung automatisch planen&quot; und &quot;Umsetzung f&uuml;r Regeln automatisch planen&quot; fest, unabh&auml;ngig von der Planungsphase; das Upgrade leitet sie nicht aus den Planungsphasen ab, bitte pr&uuml;fen (Standard f&uuml;r Regeln: Nein). Im Antrag angegebene Ger&auml;te haben Vorrang vor dem Pfadanalyse-Algorithmus, der nun auch &quot;F&uuml;r jedes Ger&auml;t&quot; und &quot;Erstes Ger&auml;t (falls vorhanden)&quot; bietet. Findet die Aktion kein Ziel, entsteht ein Implementierungs-Auftrag ohne Gateway. Die Workflow-Anpassungen fassen die B&uuml;ndelungsoptionen zusammen.</li>
+    <li>Neuer REST-Aufruf <code>resolvePathDevices</code>: ermittelt die Firewalls auf den Pfaden zwischen Quell- und Zieladressen (Hosts, Bereiche oder Netze, je bis zu 500) mit dem Network-Zone-Tree-Algorithmus. Algorithmus und Zonenmatrix k&ouml;nnen angegeben werden, sonst gelten die Einstellungen. Die Antwort nennt jedes Ger&auml;t einmal sowie den verwendeten Algorithmus und die verwendete Matrix.</li>
+    <li>Die ger&auml;tespezifischen Einstellungen bieten einen ausw&auml;hlbaren Check-Point-Layer-Guard-Positionierungsalgorithmus. Beim Erzeugen eines gateway-spezifischen Implementierungs-Auftrags f&uuml;r eine neue Zugriffsregel speichert er die semantische Position am Ende der eindeutig ermittelten Zonenpaar-Sektion.</li>
+    <li>Auftr&auml;ge vom Typ &quot;Gruppe &auml;ndern&quot; k&ouml;nnen bestehende Netzwerk- und Dienstgruppen suchen und bearbeiten. Mitglieder werden vorbef&uuml;llt, k&ouml;nnen zum Entfernen markiert und durch neue Netzwerkobjekte oder Dienste erg&auml;nzt werden.</li>
+    <li>Workflow-Konfigurationen k&ouml;nnen mit frei w&auml;hlbarem Dateinamen und ausgew&auml;hlten Phasen exportiert werden. Beim Import kann eine neue Konfiguration angelegt oder eine bestehende erweitert werden. Verwendete Status werden mit Namen und Automatik-Eigenschaft &uuml;bertragen; vorhandene Status und Gruppen werden nicht unbemerkt &uuml;berschrieben.</li>
+    <li>Neue Bibliothek zum direkten Schreiben von Implementierungs-Auftr&auml;gen auf Firewalls (Check Point, FortiManager, FortiOS, OPNsense, Azure; noch nicht aktiviert). Endpunkt und JSON-Vorlage jeder Operation (Objekte, Services, Gruppen, Regeln, Ver&ouml;ffentlichen, Policy-Installation) sind in den ger&auml;tespezifischen Einstellungen &auml;nderbar und lassen sich auf die mitgelieferte Vorgabe zur&uuml;cksetzen; die Zertifikatspr&uuml;fung ist je Manager abschaltbar. Objekte, Services und Gruppen werden nur gel&ouml;scht, wenn dies ausdr&uuml;cklich eingeschaltet ist.</li>
+    <li>Modellierung: In den Modellierungs-Einstellungen k&ouml;nnen Netzwerkareas festgelegt werden, die nicht in Common Services verwendet werden d&uuml;rfen. Sie werden bei der Bearbeitung von Common Services nicht zur Auswahl angeboten.</li>
+    <li>Solange die Zertifikatspr&uuml;fung f&uuml;r eine Verbindungsart ausgeschaltet ist, sehen Administratoren oben auf jeder Seite eine Warnung, und ein Upgrade gibt eine Warnung aus. Der Cisco ASA-Importer pr&uuml;ft den SSH-Host-Key des Ger&auml;ts gegen /usr/local/fworch/etc/ssh_known_hosts auf dem Importer-Server; ist die Zertifikatspr&uuml;fung der Firewall-Verbindungen aktiv, m&uuml;ssen die gepr&uuml;ften Host-Keys vor dem Upgrade dort eingetragen werden. Bis dahin listet eine Warnung f&uuml;r Administratoren die betroffenen Managements mit einer Anleitung auf.</li>
+    <li>Syslog nimmt keine Log-Meldungen mehr &uuml;ber das Netzwerk an (TCP-Port 514); Firewall Orchestrator protokolliert nur lokal.</li>
+    <li>Die Ticket-Vorlagen f&uuml;r Tufin SecureChange sind nun ger&auml;tespezifische Einstellungen und k&ouml;nnen global, je Ger&auml;tetyp und je Management angepasst werden. Das Upgrade &uuml;bernimmt die bisher beim Ticketsystem gespeicherten Vorlagen.</li>
+    <li>Die Compliance-Pr&uuml;fung schl&auml;gt sicher fehl: ein nicht auswertbares Kriterium macht die Regel nicht bewertbar statt konform. Weitere Sicherheitsh&auml;rtung u.a. der API-Berechtigungen, der Passwortrichtlinie in der Middleware, der CSV- und HTML-Exporte und des Installers. Der Cisco-ASA-Importer bietet den SHA-1-SSH-Schl&uuml;sselaustausch nur noch an, wenn die ger&auml;tespezifische Einstellung &quot;SHA-1-SSH-Schl&uuml;sselaustausch erlauben&quot; eingeschaltet ist.</li>
+    <li>Die Aktion &quot;Implementierungs-Auftr&auml;ge erzeugen&quot; beachtet die Umsetzungsmodi: der Umsetzungsmodus f&uuml;r Objekte gilt nur f&uuml;r Objekte, der f&uuml;r Regeln nur f&uuml;r Regeln, und nur Ziele mit Modus automatisch erhalten Implementierungs-Auftr&auml;ge. Antrags-Auftr&auml;ge eines Managements mit Modus externes Ticketsystem erhalten keine. Bei Objekt-Auftr&auml;gen entscheidet die Objektanlage-Einstellung des Managements, auf dem der Auftrag gestellt wird; Auftr&auml;ge ohne Management (&quot;Alle&quot; oder aus der REST-Schnittstelle) werden auf alle Managements verteilt. Im Auftrags-Scope bearbeitet die Aktion nur diesen Auftrag, geb&uuml;ndelte erst, wenn alle Auftr&auml;ge des B&uuml;ndels so weit sind. Die ger&auml;tespezifischen Einstellungen weisen auf unwirksame oder widerspr&uuml;chliche Einstellungen zu Umsetzungsmodus, externem Ticketsystem und Objektanlage hin.</li>
+    <li>Neue REST-Aufrufe der Modellierung: <code>getAvailableInterfacesForApp</code> liefert die ver&ouml;ffentlichten Schnittstellen, die eine Anwendung nutzen darf, mit aufgel&ouml;sten Netzwerk- und Dienstobjekten; <code>getAppRolesPerApp</code> liefert die App-Rollen einer Anwendung und <code>getNetworkAreas</code> die Netzwerkareas mit ihren Subnetzen. Modellierer erhalten nur Daten ihrer eigenen Anwendungen, Netzwerkareas nur, wenn eine ihrer Anwendungen Common Services nutzen darf.</li>
+    <li>In der Genehmigungsphase gibt es eine neue Detailansicht f&uuml;r Tickets: Zugriffs-, Objekt-, Gruppen- und Zeitobjekt-Auftr&auml;ge werden als Karten mit aufgel&ouml;sten oder technischen Details angezeigt. Je nach erlaubten &Auml;nderungen k&ouml;nnen einzelne Felder &uuml;ber eigene Bearbeitungsdialoge ge&auml;ndert werden; Zeitobjekte werden aus der Flow DB oder aus demselben Ticket ausgew&auml;hlt und mit der konfigurierten Genauigkeit dargestellt.</li>
+    <li>Neuer Report-Typ &quot;Changes: NAT&quot; zeigt &Auml;nderungen an NAT-Regeln mit urspr&uuml;nglicher und umgesetzter Quelle, Ziel und Dienst. In den FW-&Auml;nderungstrigger-Einstellungen k&ouml;nnen eigene Email-Benachrichtigungen &uuml;ber NAT-Regel&auml;nderungen (inklusive &Auml;nderungen an in NAT-Regeln verwendeten Objekten) mit diesem Report angelegt werden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -650,6 +666,22 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
     <li>Azure Firewall: the importer now reads the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API (service principal with reader role). The resource group is entered as config path, the policy is mapped via the device name or the device''s local rulebase name. API version 2026-01-01 is used, falling back to 2024-05-01 automatically for clouds without it. Kubernetes selector groups are imported as dynamic source objects. Parent policies (policy hierarchy) are imported as well, their rules are shown before the rules of the child policy. The autodiscovery finds the Azure Firewalls as gateways and maps them to their policy. NAT and application rules are not imported yet. Rules with geo-location filters are skipped with a warning; the new importer setting &quot;Skip unsupported rules&quot; lets the import fail instead.</li>
     <li>Rule hit import: the last hit of the rules is no longer read by the regular import but by a separate, scheduled rule hit import, also if the configuration has not changed. Interval (minutes, hours or days) and start time can be set in the importer settings (default: daily at 00:00). The last hit is now stored per gateway: Check Point reports it per gateway, FortiManager per policy package (stored for all gateways of the package). If an import of the management is running, it is skipped until the next interval.</li>
+    <li>A dedicated planning view is available for the planning phase. It shows each request task together with its implementation tasks, keeps the request-task details read-only, and provides dedicated editing, creation and deletion functions for implementation tasks. The planning view can be enabled through the planning edit-mode setting; optionally, planners may also change the owner.</li>
+    <li>Implementation tasks are only created by the action &quot;Create implementation tasks&quot;, attached e.g. to the state &quot;approved&quot;. Installation and upgrade provide it but do not attach it: an administrator has to, otherwise no implementation tasks are created automatically. Which tasks it creates is defined by the device specific settings &quot;Auto plan implementation&quot; and &quot;Auto plan implementation for rules&quot;, independently of the planning phase; the upgrade does not derive them from the planning phases, so please check them (default for rules: No). Devices entered in the request take precedence over the path analysis algorithm, which now also offers &quot;For each device&quot; and &quot;First device (if available)&quot;. If the action finds no target, one implementation task without gateway is created. Workflow Customizing groups the bundling options.</li>
+    <li>New REST call <code>resolvePathDevices</code>: determines the firewalls on the paths between source and destination addresses (hosts, ranges or networks, up to 500 each) using the network zone tree algorithm. Algorithm and zone matrix can be specified, otherwise the settings apply. The response lists each device once together with the algorithm and matrix used.</li>
+    <li>The device specific settings offer a selectable Check Point layer-guard positioning algorithm. When a gateway-specific implementation task for a new access rule is created, it stores the semantic position at the end of the uniquely matched zone-pair section.</li>
+    <li>&quot;Modify group&quot; tasks can search for and edit existing network and service groups. Members are prefilled, can be marked for removal, and can be supplemented with new network objects or services.</li>
+    <li>Workflow configurations can be exported with a custom file name and selected phases. During import, a new configuration can be created or an existing one can be extended. Referenced states are transferred with their names and automatic-only property; existing states and groups are not silently overwritten.</li>
+    <li>New library for writing implementation tasks directly to firewalls (Check Point, FortiManager, FortiOS, OPNsense, Azure; not activated yet). The endpoint and JSON template of every operation (objects, services, groups, rules, publish, policy installation) can be changed in the device specific settings and reset to the shipped default; certificate checks can be switched off per manager. Objects, services and groups are only deleted if this is switched on explicitly.</li>
+    <li>Modelling: network areas which must not be used in common services can be defined in the modelling settings. They are not offered for selection when editing common services.</li>
+    <li>While certificate checking is switched off for a connection type, admins see a warning at the top of every page and an upgrade prints a warning. The Cisco ASA importer checks the SSH host key of the device against /usr/local/fworch/etc/ssh_known_hosts on the importer host; with certificate checking of firewall connections active, add the verified host keys there before upgrading. Until then, a warning for admins lists the affected managements with instructions.</li>
+    <li>Syslog no longer accepts log messages from the network (TCP port 514); Firewall Orchestrator only logs locally.</li>
+    <li>The Tufin SecureChange ticket templates are now device specific settings and can be adapted globally, per device type and per management. The upgrade takes over the templates stored with the ticket system so far.</li>
+    <li>The compliance check fails closed: a criterion that cannot be evaluated makes the rule not assessable instead of compliant. Further security hardening, among others of the API permissions, the password policy in the middleware, CSV and HTML exports and the installer. The Cisco ASA importer only offers the SHA-1 SSH key exchange when the device specific setting &quot;Allow SHA-1 SSH key exchange&quot; is switched on.</li>
+    <li>The action &quot;Create implementation tasks&quot; follows the implementation modes: the implementation mode for objects applies to objects only, the one for rules to rules only, and only targets with mode automatic get implementation tasks. Request tasks of a management with mode external ticket system get none. For object tasks the object creation setting of the management the task is ordered on decides; tasks without management (&quot;All&quot; or from the REST interface) are spread over all managements. In the request task scope the action handles only that task, bundled tasks once every task of the bundle has reached the state. The device specific settings point out ineffective or contradicting settings of implementation mode, external ticket system and object creation.</li>
+    <li>New modelling REST calls: <code>getAvailableInterfacesForApp</code> returns the published interfaces an application may use, with resolved network and service objects; <code>getAppRolesPerApp</code> returns the app roles of an application and <code>getNetworkAreas</code> the network areas with their subnets. Modellers only get data of their own applications, and network areas only if one of their applications may use common services.</li>
+    <li>The approval phase now provides a ticket details view: access, object, group, and time-object tasks are shown as cards with resolved or technical details. Depending on the allowed changes, individual fields can be edited through dedicated dialogs; time objects are selected from the Flow DB or from the same ticket and displayed with the configured precision.</li>
+    <li>New report type &quot;Changes: NAT&quot; shows NAT rule changes with original and translated source, destination and service. Separate email notifications about NAT rule changes (including changes of objects used in NAT rules) with this report can be defined in the FW change trigger settings.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -1215,6 +1247,16 @@ INSERT INTO txt VALUES ('action', 				'German', 	'Aktion');
 INSERT INTO txt VALUES ('action', 				'English', 	'Action');
 INSERT INTO txt VALUES ('rule_action', 			'German', 	'Regel-Aktion');
 INSERT INTO txt VALUES ('rule_action', 			'English', 	'Rule Action');
+INSERT INTO txt VALUES ('rule_position', 		'German', 	'Regelposition');
+INSERT INTO txt VALUES ('rule_position', 		'English', 	'Rule Position');
+INSERT INTO txt VALUES ('rule_position_before_rule', 	'German', 	'Vor Regel {0}');
+INSERT INTO txt VALUES ('rule_position_before_rule', 	'English', 	'Before rule {0}');
+INSERT INTO txt VALUES ('rule_position_behind_rule', 	'German', 	'Hinter Regel {0}');
+INSERT INTO txt VALUES ('rule_position_behind_rule', 	'English', 	'Behind rule {0}');
+INSERT INTO txt VALUES ('rule_position_at_start_of_layer', 	'German', 	'Am Anfang von Layer {0}');
+INSERT INTO txt VALUES ('rule_position_at_start_of_layer', 	'English', 	'At beginning of layer {0}');
+INSERT INTO txt VALUES ('rule_position_at_end_of_layer', 	'German', 	'Am Ende von Layer {0}');
+INSERT INTO txt VALUES ('rule_position_at_end_of_layer', 	'English', 	'At end of layer {0}');
 INSERT INTO txt VALUES ('create',		        'German', 	'Anlegen');
 INSERT INTO txt VALUES ('create',		        'English', 	'Create');
 INSERT INTO txt VALUES ('modify',		        'German', 	'&Auml;ndern');
@@ -2343,7 +2385,7 @@ INSERT INTO txt VALUES ('assess_invalid_ip',    'German',   'Netzwerkobjekte in 
 INSERT INTO txt VALUES ('assess_invalid_ip',    'English',  'Network objects in source or destination with an IP address that cannot be parsed');
 INSERT INTO txt VALUES ('assess_criterion_failed', 'German', 'Kriterium konnte nicht ausgewertet werden');
 INSERT INTO txt VALUES ('assess_criterion_failed', 'English', 'Criterion could not be evaluated');
-INSERT INTO txt VALUES ('assess_criterion_invalid', 'German', 'Kriterium hat einen ungültigen oder leeren Inhalt');
+INSERT INTO txt VALUES ('assess_criterion_invalid', 'German', 'Kriterium hat einen ung&uuml;ltigen oder leeren Inhalt');
 INSERT INTO txt VALUES ('assess_criterion_invalid', 'English', 'Criterion has invalid or empty content');
 
 -- settings
@@ -2991,6 +3033,8 @@ INSERT INTO txt VALUES ('reqShowCompliance',    'German',   'Compliance-Modul an
 INSERT INTO txt VALUES ('reqShowCompliance',    'English',  'Show Compliance Module');
 INSERT INTO txt VALUES ('reqAllowedChangesByApprover','German', 'Erlaubte &Auml;nderungen durch Genehmiger');
 INSERT INTO txt VALUES ('reqAllowedChangesByApprover','English','Allowed changes by approver');
+INSERT INTO txt VALUES ('reqAllowOwnerChangesByPlanner','German','Eigent&uuml;mer&auml;nderungen durch Planer erlauben');
+INSERT INTO txt VALUES ('reqAllowOwnerChangesByPlanner','English','Allow owner changes by planner');
 INSERT INTO txt VALUES ('reqImplicitApprovalComment','German', 'Kommentar f&uuml;r implizite Genehmigung');
 INSERT INTO txt VALUES ('reqImplicitApprovalComment','English','Implicit approval comment');
 INSERT INTO txt VALUES ('ticket_fields',        'German',   'Ticket-Felder');
@@ -3901,15 +3945,21 @@ INSERT INTO txt VALUES ('approval_edit_mode_classic', 'German', 'Klassisch');
 INSERT INTO txt VALUES ('approval_edit_mode_classic', 'English', 'Classic');
 INSERT INTO txt VALUES ('approval_edit_mode_access_task_view', 'German', 'Ansicht der Zugriffsaufgaben');
 INSERT INTO txt VALUES ('approval_edit_mode_access_task_view', 'English', 'Access task view');
+INSERT INTO txt VALUES ('planning_edit_mode', 'German', 'Bearbeitungsmodus Planung');
+INSERT INTO txt VALUES ('planning_edit_mode', 'English', 'Planning edit mode');
+INSERT INTO txt VALUES ('planning_edit_mode_classic', 'German', 'Klassisch');
+INSERT INTO txt VALUES ('planning_edit_mode_classic', 'English', 'Classic');
+INSERT INTO txt VALUES ('planning_edit_mode_planning_view', 'German', 'Planungsansicht');
+INSERT INTO txt VALUES ('planning_edit_mode_planning_view', 'English', 'Planning view');
 INSERT INTO txt VALUES ('approval_access_task_view', 'German', 'Zugriffsaufgaben');
 INSERT INTO txt VALUES ('approval_access_task_view', 'English', 'Access tasks');
 INSERT INTO txt VALUES ('edit_access_task', 'German', 'Zugriffsaufgabe bearbeiten');
 INSERT INTO txt VALUES ('edit_access_task', 'English', 'Edit access task');
-INSERT INTO txt VALUES ('resolved_view', 'German', 'Aufgelöste Ansicht');
+INSERT INTO txt VALUES ('resolved_view', 'German', 'Aufgel&ouml;ste Ansicht');
 INSERT INTO txt VALUES ('resolved_view', 'English', 'Resolved view');
 INSERT INTO txt VALUES ('technical_view', 'German', 'Technische Ansicht');
 INSERT INTO txt VALUES ('technical_view', 'English', 'Technical view');
-INSERT INTO txt VALUES ('unresolved_groups_view', 'German', 'Ansicht mit nicht aufgelösten Gruppen');
+INSERT INTO txt VALUES ('unresolved_groups_view', 'German', 'Ansicht mit nicht aufgel&ouml;sten Gruppen');
 INSERT INTO txt VALUES ('unresolved_groups_view', 'English', 'Unresolved groups view');
 
 INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
@@ -4468,25 +4518,25 @@ INSERT INTO txt VALUES ('export_phases',           'German',   'Zu exportierende
 INSERT INTO txt VALUES ('export_phases',           'English',  'Phases to export');
 INSERT INTO txt VALUES ('export_file_name',        'German',   'Name der Exportdatei');
 INSERT INTO txt VALUES ('export_file_name',        'English',  'Export file name');
-INSERT INTO txt VALUES ('unselect_all',            'German',   'Alle abwählen');
+INSERT INTO txt VALUES ('unselect_all',            'German',   'Alle abw&auml;hlen');
 INSERT INTO txt VALUES ('unselect_all',            'English',  'Unselect all');
 INSERT INTO txt VALUES ('import_as_new_configuration', 'German',  'Als neue Konfiguration importieren');
 INSERT INTO txt VALUES ('import_as_new_configuration', 'English', 'Import as new configuration');
-INSERT INTO txt VALUES ('add_to_configuration',    'German',   'Zu Konfiguration hinzufügen');
+INSERT INTO txt VALUES ('add_to_configuration',    'German',   'Zu Konfiguration hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_to_configuration',    'English',  'Add to configuration');
 INSERT INTO txt VALUES ('imported_states',         'German',   'Importierte Status');
 INSERT INTO txt VALUES ('imported_states',         'English',  'Imported states');
-INSERT INTO txt VALUES ('created_transition_groups', 'German',  'Erstellte Übergangsgruppen');
+INSERT INTO txt VALUES ('created_transition_groups', 'German',  'Erstellte &Uuml;bergangsgruppen');
 INSERT INTO txt VALUES ('created_transition_groups', 'English', 'Created transition groups');
 INSERT INTO txt VALUES ('created_visibility_groups', 'German',  'Erstellte Sichtbarkeitsgruppen');
 INSERT INTO txt VALUES ('created_visibility_groups', 'English', 'Created visibility groups');
-INSERT INTO txt VALUES ('added_phases',             'German',   'Hinzugefügte Phasen');
+INSERT INTO txt VALUES ('added_phases',             'German',   'Hinzugef&uuml;gte Phasen');
 INSERT INTO txt VALUES ('added_phases',             'English',  'Added phases');
-INSERT INTO txt VALUES ('merged_phases',            'German',   'Zusammengeführte Phasen');
+INSERT INTO txt VALUES ('merged_phases',            'German',   'Zusammengef&uuml;hrte Phasen');
 INSERT INTO txt VALUES ('merged_phases',            'English',  'Merged phases');
-INSERT INTO txt VALUES ('added_derived_states',     'German',   'Hinzugefügte abgeleitete Status');
+INSERT INTO txt VALUES ('added_derived_states',     'German',   'Hinzugef&uuml;gte abgeleitete Status');
 INSERT INTO txt VALUES ('added_derived_states',     'English',  'Added derived states');
-INSERT INTO txt VALUES ('added_transition_group_links', 'German', 'Hinzugefügte Übergangsgruppen-Verknüpfungen');
+INSERT INTO txt VALUES ('added_transition_group_links', 'German', 'Hinzugef&uuml;gte &Uuml;bergangsgruppen-Verkn&uuml;pfungen');
 INSERT INTO txt VALUES ('added_transition_group_links', 'English', 'Added transition-group links');
 INSERT INTO txt VALUES ('phases',                'German',   'Phasen');
 INSERT INTO txt VALUES ('phases',                'English',  'Phases');
@@ -7819,6 +7869,8 @@ INSERT INTO txt VALUES ('H5576a', 'German', 'Bearbeitungsmodus Genehmigung: Im k
 INSERT INTO txt VALUES ('H5576a', 'English', 'Approval edit mode: In classic mode, the existing ticket and task editing remains unchanged. In access-task view mode, the ticket is displayed read-only; access, object, group, and time-object tasks are shown as cards and changes are made through the task details view. Access elements can be displayed resolved, technically, or with groups left unresolved. Edit buttons appear only for enabled fields that are editable in the current state.');
 INSERT INTO txt VALUES ('H5576b', 'German', 'Suffixe der Zeitobjekt-Herkunft: Optionale Suffixe werden an Zeitobjektnamen angeh&auml;ngt, um ihre Herkunft zu kennzeichnen, zum Beispiel die Antragstellung oder eine &Auml;nderung durch einen Genehmiger. Leere Werte f&uuml;gen kein Suffix hinzu.');
 INSERT INTO txt VALUES ('H5576b', 'English', 'Time-object origin suffixes: Optional suffixes are appended to time-object names to identify their origin, for example the request creation or a change by an approver. Empty values add no suffix.');
+INSERT INTO txt VALUES ('H5576c', 'German', 'Bearbeitungsmodus Planung: Im klassischen Modus bleibt die bisherige Ticket- und Auftragsbearbeitung erhalten. In der Planungsansicht werden die Auftr&auml;ge als Karten dargestellt und die zugeh&ouml;rigen Implementierungsauftr&auml;ge aufgeklappt angezeigt.');
+INSERT INTO txt VALUES ('H5576c', 'English', 'Planning edit mode: In classic mode, the existing ticket and task editing remains unchanged. In planning view, request tasks are shown as cards and their implementation tasks are expanded by default.');
 INSERT INTO txt VALUES ('H5577', 'German',  'Ein Auftrag f&uuml;r alle Ger&auml;te: Wie bei Ger&auml;t im Antrag eingeben wird die Ger&auml;teauswahl bereits im Antrag gepflegt. Der Unterschied ist nur: Falls dort Alle gew&auml;hlt ist, wird genau ein Implementierungs-Auftrag angelegt statt eines pro vorhandenem Ger&auml;t.');
 INSERT INTO txt VALUES ('H5577', 'English', 'One task for all devices: As with Enter device in request, the device selection is already maintained in the request. The only difference is this: if all is selected there, exactly one implementation task is created instead of one per existing device.');
 INSERT INTO txt VALUES ('H5578', 'German',  'B&uuml;ndelung ber&uuml;cksichtigen: Wenn aktiviert, werden automatisch erzeugte Implementierungs-Auftr&auml;ge f&uuml;r Antrags-Auftr&auml;ge mit derselben Flow-B&uuml;ndel-ID auf einem zusammengef&uuml;hrten Auftrag erzeugt. Auftr&auml;ge ohne B&uuml;ndel-ID werden weiterhin einzeln behandelt.');

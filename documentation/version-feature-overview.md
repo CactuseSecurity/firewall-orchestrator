@@ -278,3 +278,6 @@ For a feature-centric, thematically grouped view see
 - The promotion-mode setting supports an action-buttons-only option in addition to ticket, task and combined promotion.
 
 ### 9.9.2 - 11.11.2026
+
+### 9.9.3 - 12.11.2026
+- Installer enforces a minimum .NET runtime for middleware and UI (`dotnet_min_runtime_version`, currently 10.0.15): an older host runtime is upgraded through apt/dnf, otherwise the installation stops with instructions.

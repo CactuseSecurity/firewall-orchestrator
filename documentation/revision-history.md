@@ -1,11 +1,14 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.3 - 12.11.2026
+- installer: enforce a minimum .NET runtime (`dotnet_min_runtime_version`, currently 10.0.15, the .NET 10.0.15 security release) for middleware and UI on install and upgrade (#5692). A host runtime below it is upgraded through apt/dnf, otherwise the installation stops with instructions (`dotnet_runtime_upgrade_below_minimum=false` never upgrades). Middleware and UI processes still running on an older runtime are restarted, also on a later run.
+
+
 ## 9.9.2 - 10.11.2026
 - dependencies: update NuGet packages (AngleSharp 1.10.1, bunit 2.15.2, IPNetwork2 5.0.1, Microsoft.AspNetCore.Http 2.3.14, Microsoft.NET.Test.Sdk 18.11.1, Quartz 4.7.3, Scalar.AspNetCore 2.20.0, SoPro.FancyTable 1.5.0)
 - dependencies: update ASP.NET Core packages to 10.0.15 (Microsoft.AspNetCore.Authentication.JwtBearer, Microsoft.AspNetCore.Components, Microsoft.AspNetCore.Mvc.Testing, Microsoft.AspNetCore.OpenApi), .NET 10.0.15 security release
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.2 (denial-of-service fixes in validator and parser).
-- installer: enforce a minimum .NET runtime (`dotnet_min_runtime_version`, currently 10.0.15, the .NET 10.0.15 security release) for middleware and UI on install and upgrade (#5692). A host runtime below it is upgraded through apt/dnf, otherwise the installation stops with instructions (`dotnet_runtime_upgrade_below_minimum=false` never upgrades)
 
 
 ## 9.9.1 - 05.11.2026

@@ -170,7 +170,9 @@ On every installation and upgrade, the installer checks `dotnet --list-runtimes`
 in `inventory/group_vars/all.yml`. One runtime of the `dotnet_version` channel at or above the minimum per framework is
 enough, because the services roll forward to the highest installed patch.
 
-- The runtime meets the minimum: nothing is changed and no service is restarted.
+- The runtime meets the minimum: nothing is changed. Middleware or UI are only restarted if their running process
+  still uses a runtime below the minimum (read from `/proc/<pid>/maps`), for example after an earlier run upgraded
+  the runtime and then failed before the restart.
 - The runtime is below the minimum and the dotnet packages (`dotnet-sdk-10.0`, `aspnetcore-runtime-10.0`,
   `dotnet-runtime-10.0`) were installed through apt or dnf: those packages are upgraded from the configured package
   sources, honouring existing apt pins such as the Microsoft origin of the Ubuntu fallback. Middleware and UI are

@@ -1,0 +1,30 @@
+# Decides whether a running .NET process still uses a shared framework below dotnet_min_runtime_version.
+#
+# Input:  dotnet_process_maps - content of /proc/<pid>/maps of the process (may be empty)
+# Output: dotnet_loaded_runtimes_below_minimum - "<framework> <version>" of every required shared
+#                                                framework the process loaded below the minimum
+#                                                (empty when it runs on a current runtime)
+#
+# A process keeps the framework it loaded at start, so upgrading the host runtime only takes effect
+# after a restart. The framework files are mapped from shared/<framework>/<version>/, and the path
+# stays in the map with a " (deleted)" suffix after the package upgrade removed that directory.
+#
+# Touches nothing on the host, so roles/tests-integration drives it with literal maps.
+- name: decide which loaded dotnet shared frameworks are below {{ dotnet_min_runtime_version }}
+  set_fact:
+    dotnet_loaded_runtimes_below_minimum: >-
+      {{ dotnet_loaded_runtimes
+         | rejectattr(1, 'version', dotnet_min_runtime_version, '>=')
+         | map('join', ' ')
+         | unique
+         | sort
+         | list }}
+  vars:
+    # one [framework, version] pair per mapped file of a required shared framework
+    dotnet_loaded_runtimes: >-
+      {{ (dotnet_process_maps | default('')).splitlines()
+         | map('regex_search',
+               '/shared/(' ~ (dotnet_required_shared_frameworks | map('regex_escape') | join('|')) ~ ')/([^/\s]+)/',
+               '\1', '\2')
+         | select
+         | list }}

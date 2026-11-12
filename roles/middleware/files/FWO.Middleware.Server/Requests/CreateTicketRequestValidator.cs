@@ -138,6 +138,8 @@ public static class CreateTicketRequestValidator
         AddRequiredError(rule.Action, $"{path}.action", result);
         ValidateShortString(rule.Predicate, $"{path}.predicate", result);
         ValidateShortString(rule.Action, $"{path}.action", result);
+        AddRequiredError(rule.Logging, $"{path}.logging", result);
+        ValidateShortString(rule.Logging, $"{path}.logging", result);
         ValidateShortString(rule.Name, $"{path}.name", result);
         ValidateText(rule.Description, $"{path}.description", result);
         ValidateText(rule.Reason, $"{path}.reason", result);

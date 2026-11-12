@@ -36661,7 +36661,8 @@
                       "locked",
                       "additional_info"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   }
                 },
                 {

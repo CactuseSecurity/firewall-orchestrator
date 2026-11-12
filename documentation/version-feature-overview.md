@@ -278,3 +278,4 @@ For a feature-centric, thematically grouped view see
 - The promotion-mode setting supports an action-buttons-only option in addition to ticket, task and combined promotion.
 
 ### 9.9.2 - 11.11.2026
+- Workflow monitoring shows tickets in a paged tree table with their request tasks, implementation tasks and approvals; column filters (state, id, requester) and sorting run in the database across all tickets, and the state column shows an icon for each default workflow state.

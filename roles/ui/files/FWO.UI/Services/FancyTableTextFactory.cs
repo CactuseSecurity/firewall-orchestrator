@@ -51,7 +51,14 @@ namespace FWO.Ui.Services
                 FilterOperatorStartsWithLabel = userConfig.GetText("filter_op_starts_with"),
                 FilterOperatorEndsWithLabel = userConfig.GetText("filter_op_ends_with"),
                 FilterOperatorIsEmptyLabel = userConfig.GetText("filter_op_is_empty"),
-                FilterOperatorIsNotEmptyLabel = userConfig.GetText("filter_op_is_not_empty")
+                FilterOperatorIsNotEmptyLabel = userConfig.GetText("filter_op_is_not_empty"),
+                FilterOperatorGreaterThanLabel = userConfig.GetText("filter_op_greater_than"),
+                FilterOperatorGreaterThanOrEqualLabel = userConfig.GetText("filter_op_greater_than_or_equal"),
+                FilterOperatorLessThanLabel = userConfig.GetText("filter_op_less_than"),
+                FilterOperatorLessThanOrEqualLabel = userConfig.GetText("filter_op_less_than_or_equal"),
+                FilterOperatorBetweenLabel = userConfig.GetText("filter_op_between"),
+                FilterValueFromLabel = userConfig.GetText("filter_value_from"),
+                FilterValueToLabel = userConfig.GetText("filter_value_to")
             };
         }
     }

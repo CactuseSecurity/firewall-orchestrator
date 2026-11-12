@@ -1,0 +1,267 @@
+@using FWO.Data.Workflow
+@using FWO.Data
+@using FWO.Ui.Services
+@using FWO.Ui.Pages.Request
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+<PopUp Title="@PlanningViewTitle" Show="@Display" Size="PopupSize.XLarge" OnClose="ClosePopup">
+    <Body>
+        @if (Display)
+        {
+            @foreach (WfReqTask requestTask in WfHandler.ActTicket.Tasks.OrderBy(task => task.Id))
+            {
+                <div class="mb-1">
+                    <Collapse @key="requestTask.Id" StartToggled="false" Style="secondary" UseHtmlTitle="true"
+                              TitleWithHtml="@RequestTaskHeader(requestTask)" ContentClass="p-1">
+                        <div>
+                            @if (RequestTaskDetailsExpanded(requestTask))
+                            {
+                                <div class="ms-2 mb-1">
+                                    <CascadingValue Value="@CreateTaskViewContext()">
+                                        @if (IsAccessTask(requestTask))
+                                        {
+                                            <ApprovalTaskAccessBody Task="requestTask" TaskGroup="@(new List<WfReqTask> { requestTask })" />
+                                        }
+                                        else if (IsGroupTask(requestTask))
+                                        {
+                                            <ApprovalGroupTaskBody Task="requestTask" TaskGroup="@(new List<WfReqTask> { requestTask })" />
+                                        }
+                                        else if (requestTask.TaskType == WfTaskType.generic.ToString())
+                                        {
+                                            <ApprovalGenericTaskBody Task="requestTask" TaskGroup="@(new List<WfReqTask> { requestTask })" />
+                                        }
+                                        else if (requestTask.TaskType == WfTaskType.new_interface.ToString())
+                                        {
+                                            <ApprovalInterfaceTaskBody Task="requestTask" TaskGroup="@(new List<WfReqTask> { requestTask })" />
+                                        }
+                                        else
+                                        {
+                                            <ApprovalObjectTaskBody Task="requestTask" TaskGroup="@(new List<WfReqTask> { requestTask })" />
+                                        }
+                                    </CascadingValue>
+                                </div>
+                            }
+                            <div class="ms-2">
+                                <PlanningImplementationTaskDetails ImplementationTasks="requestTask.ImplementationTasks"
+                                    RequestTask="requestTask" WfHandler="WfHandler" States="States" Phase="@Phase" ResetParent="Reset"
+                                    DeleteImplementationTask="@OpenDeleteConfirmation" />
+                            </div>
+                        </div>
+                    </Collapse>
+                </div>
+            }
+        }
+    </Body>
+    <Footer>
+        <WorkflowTaskDetailsFooter OfferedActions="OfferedActions"
+            CanShowAction="CanShowOfferedAction"
+            PerformAction="PerformTicketAction"
+            CanPromoteTicket="CanPromoteTicket"
+            PromoteTicket="PromoteTicket"
+            ShowCancel="ShowCancel"
+            Close="Close" />
+    </Footer>
+</PopUp>
+<PlanningImplementationTaskCreationView @bind-Display="displayImplementationTaskCreation"
+    RequestTask="@creationRequestTask" ImplementationTask="@creationImplementationTask"
+    WfHandler="WfHandler" States="States" Phase="@Phase" ResetParent="Reset" />
+<DeleteObject @bind-Display="WfHandler.DisplayDeleteImplTaskMode" ResetParent="Reset"
+    Delete="WfHandler.ConfDeleteImplTask" ObjectName="@WfHandler.ActImplTask.Title" />
+<OwnerEditor @bind-Display="editorService.displayOwnerEditor" SelectedOwner="editorService.selectedOwner"
+    Owners="editorService.OwnerOptions()" Saved="SaveOwner" />
+
+@code
+{
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public WfHandler WfHandler { get; set; } = new();
+    [Parameter] public WfStateDict States { get; set; } = new();
+    [Parameter] public WorkflowPhases Phase { get; set; } = WorkflowPhases.planning;
+    [Parameter] public IReadOnlyList<WfStateAction> OfferedActions { get; set; } = [];
+    [Parameter] public Func<WfStateAction, Task> PerformTicketAction { get; set; } = _ => Task.CompletedTask;
+    [Parameter] public bool CanPromoteTicket { get; set; }
+    [Parameter] public Func<Task> PromoteTicket { get; set; } = DefaultInit.DoNothing;
+    [Parameter] public bool ShowCancel { get; set; }
+    [Parameter] public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
+    [Parameter] public Func<Task> Closed { get; set; } = DefaultInit.DoNothing;
+
+    private readonly ApprovalTaskDetailsEditorService editorService = new();
+    private readonly HashSet<long> collapsedRequestTaskDetails = [];
+    private long collapsedDetailsTicketId = -1;
+    private bool displayImplementationTaskCreation;
+    private WfReqTask creationRequestTask = new();
+    private WfImplTask creationImplementationTask = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        editorService.Configure(WfHandler, userConfig, ResetParent);
+        editorService.ReadOnlyDisplay = true;
+        editorService.PlannerOwnerChangesAllowed = userConfig.ReqAllowOwnerChangesByPlanner;
+        await editorService.InitializeAsync(apiConnection);
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!Display)
+        {
+            collapsedDetailsTicketId = -1;
+            collapsedRequestTaskDetails.Clear();
+            return;
+        }
+
+        if (WfHandler.ActTicket.Id == collapsedDetailsTicketId)
+        {
+            return;
+        }
+
+        collapsedDetailsTicketId = WfHandler.ActTicket.Id;
+        collapsedRequestTaskDetails.Clear();
+        foreach (WfReqTask requestTask in WfHandler.ActTicket.Tasks)
+        {
+            collapsedRequestTaskDetails.Add(requestTask.Id);
+        }
+    }
+
+    private ApprovalTaskViewContext CreateTaskViewContext()
+    {
+        editorService.Configure(WfHandler, userConfig, ResetParent);
+        editorService.PlannerOwnerChangesAllowed = userConfig.ReqAllowOwnerChangesByPlanner;
+        return editorService.CreateTaskViewContext();
+    }
+
+    private Task SaveOwner(FwoOwner owner) => editorService.SaveOwner(owner);
+
+    private bool CanShowOfferedAction(WfStateAction action)
+    {
+        return WfHandler.CanPerformActionOnActTicket(action)
+            && (!WfHandler.ReadOnlyMode || WfStateAction.IsReadonlyType(action.ActionType));
+    }
+
+    private static bool IsAccessTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsAccessTask(task);
+
+    private static bool IsGroupTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsGroupTask(task);
+
+    private bool RequestTaskDetailsExpanded(WfReqTask requestTask) => !collapsedRequestTaskDetails.Contains(requestTask.Id);
+
+    private bool CanMutateRequestTask(WfReqTask requestTask) =>
+        !WfHandler.ReadOnlyMode && WfHandler.CanActOnReqTaskInCurrentPhase(requestTask);
+
+    private void ToggleRequestTaskDetails(WfReqTask requestTask)
+    {
+        if (!collapsedRequestTaskDetails.Add(requestTask.Id))
+        {
+            collapsedRequestTaskDetails.Remove(requestTask.Id);
+        }
+    }
+
+    private async Task Close()
+    {
+        await DisplayChanged.InvokeAsync(false);
+        await Closed();
+    }
+
+    private void ClosePopup() => _ = Close();
+
+    private async Task Reset()
+    {
+        WfHandler.ResetImplTaskActions();
+        await ResetParent();
+    }
+
+    private async Task OpenImplementationTaskCreation(WfReqTask requestTask)
+    {
+        if (!CanMutateRequestTask(requestTask))
+        {
+            return;
+        }
+        WfHandler.SelectReqTask(requestTask, ObjAction.display);
+        WfImplTask implementationTask = new(requestTask, false)
+        {
+            TaskNumber = requestTask.HighestImplTaskNumber() + 1,
+            ManagementId = requestTask.ManagementId
+        };
+        WfHandler.SelectImplTask(implementationTask, ObjAction.add);
+        creationRequestTask = requestTask;
+        creationImplementationTask = WfHandler.ActImplTask;
+        displayImplementationTaskCreation = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OpenDeleteConfirmation(WfImplTask implementationTask)
+    {
+        if (!CanMutateImplementationTask(implementationTask))
+        {
+            return;
+        }
+        WfHandler.SelectImplTaskPopUp(implementationTask, ObjAction.displayDelete);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool CanMutateImplementationTask(WfImplTask implementationTask)
+    {
+        WfReqTask? requestTask = WfHandler.ActTicket.Tasks.FirstOrDefault(task =>
+            task.ImplementationTasks.Any(candidate =>
+                ReferenceEquals(candidate, implementationTask)
+                || (implementationTask.Id != 0 && candidate.Id == implementationTask.Id)));
+        return requestTask != null
+            && CanMutateRequestTask(requestTask)
+            && WfHandler.CanActOnImplTaskInCurrentPhase(implementationTask);
+    }
+
+    private string PlanningViewTitle
+    {
+        get
+        {
+            string requester = WfHandler.ActTicket.Requester?.Name ?? "";
+            string metadata = $"{userConfig.GetText("id")}: {WfHandler.ActTicket.Id}, {userConfig.GetText("state")}: {States.GetName(WfHandler.ActTicket.StateId)}";
+            if (!string.IsNullOrWhiteSpace(requester))
+            {
+                metadata += $", {userConfig.GetText("requester")}: {requester}";
+            }
+            return $"{userConfig.GetText("ticket")}: {WfHandler.ActTicket.Title} ({metadata})";
+        }
+    }
+
+    private RenderFragment RequestTaskHeader(WfReqTask requestTask) => builder =>
+    {
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "d-flex align-items-center flex-wrap gap-2");
+        builder.OpenElement(2, "small");
+        builder.AddAttribute(3, "class", "text-dark mr-2 text-nowrap");
+        builder.AddContent(4, $"{userConfig.GetText("id")}: {requestTask.Id}");
+        builder.CloseElement();
+        builder.OpenElement(5, "strong");
+        builder.AddAttribute(6, "class", "mr-2");
+        builder.AddContent(7, string.IsNullOrWhiteSpace(requestTask.Title) ? userConfig.GetText("task") : requestTask.Title);
+        builder.CloseElement();
+        builder.OpenElement(8, "span");
+        builder.AddAttribute(9, "class", "ms-auto");
+        builder.AddContent(10, States.GetName(requestTask.StateId));
+        builder.CloseElement();
+        builder.OpenElement(11, "button");
+        builder.AddAttribute(12, "type", "button");
+        builder.AddAttribute(13, "class", "btn btn-sm btn-light ml-2");
+        builder.AddAttribute(14, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this,
+            () => ToggleRequestTaskDetails(requestTask)));
+        builder.AddEventStopPropagationAttribute(15, "onclick", true);
+        builder.AddContent(16, DisplayService.DisplayButton(userConfig, "details",
+            RequestTaskDetailsExpanded(requestTask) ? Icons.CollapseUp : Icons.CollapseDown));
+        builder.CloseElement();
+        if (CanMutateRequestTask(requestTask))
+        {
+            builder.OpenElement(17, "button");
+            builder.AddAttribute(18, "type", "button");
+            builder.AddAttribute(19, "class", "btn btn-sm btn-success ml-2");
+            builder.AddAttribute(20, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this,
+                () => OpenImplementationTaskCreation(requestTask)));
+            builder.AddEventStopPropagationAttribute(21, "onclick", true);
+            builder.AddContent(22, DisplayService.DisplayButtonWithTooltip(userConfig, "add", Icons.Add,
+                userConfig.GetText("implementation")));
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+}
+

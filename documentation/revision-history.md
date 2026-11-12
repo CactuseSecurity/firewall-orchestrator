@@ -1,11 +1,8 @@
 # Firewall Orchestrator Revision History
 
-## 9.9.3 - 11.11.2026
+## 9.9.3 - 12.11.2026
 - middleware REST API: `getAddressGroups` and `getServiceGroups` accept `filter.includeTechnicalDetails=true` to include each member's standalone address or service object fields; omitted, null or false keep the existing compact id/name response, and address details can be combined with separated zone groups
 - UI fix: links from rule report objects to the right sidebar work again on the first click and no longer jump to another page on a following click (#4919). The per-page API role is now determined from the current page with every request instead of a navigation handler, which had broken the browser's in-page navigation
-
-
-## 9.9.2 - 10.11.2026
 - importer: last hits are read by a separate rule hit import instead of the regular import (#3297)
   - the regular import no longer reads or writes last hits (Check Point no longer requests hits), so unchanged Check Point configurations no longer leave last hits outdated
   - the new middleware scheduler "ImportRuleHitsJob" requests a rule hit import for every imported top-level management (table `rule_hit_import_request`); the responsible importer runs it right after the configuration import of the management and removes the request
@@ -16,7 +13,6 @@
   - manual run: `import_mgm.py -m <mgm_id> --rule_hits`
   - "last import" queries (rollback, import status, daily check, last complete/successful import) only consider configuration imports
 
-## 9.9.1 - 09.11.2026
 ## 9.9.2 - 11.11.2026
 - dependencies: update NuGet packages (AngleSharp 1.10.1, bunit 2.15.2, IPNetwork2 5.0.1, Microsoft.AspNetCore.Http 2.3.14, Microsoft.NET.Test.Sdk 18.11.1, Quartz 4.7.3, Scalar.AspNetCore 2.20.0, SoPro.FancyTable 1.5.0)
 - dependencies: update ASP.NET Core packages to 10.0.15 (Microsoft.AspNetCore.Authentication.JwtBearer, Microsoft.AspNetCore.Components, Microsoft.AspNetCore.Mvc.Testing, Microsoft.AspNetCore.OpenApi), .NET 10.0.15 security release

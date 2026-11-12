@@ -85,6 +85,7 @@ public sealed class CreateTicketRequestExample : ApiExampleProvider<CreateTicket
             {
                 Predicate = CreateTicketPredicates.kCreate,
                 Action = "accept",
+                Logging = CreateTicketRequest.CreateTicketRuleRequest.kDefaultLogging,
                 Name = "Allow app HTTPS",
                 SourceObjects = [-1],
                 DestinationGroups = [-3],

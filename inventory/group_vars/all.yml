@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.9.2"
+product_version: "9.9.3"
 # The oldest product version an upgrade may start from, enforced by
 # roles/common/tasks/validate-upgrade-source-version.yml before anything touches the
 # installation. A source below it needs upgrade steps this repository no longer carries:

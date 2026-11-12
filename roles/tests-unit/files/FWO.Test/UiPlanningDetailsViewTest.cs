@@ -35,7 +35,8 @@ internal sealed class UiPlanningDetailsViewTest
         return context;
     }
 
-    public void PlanningDetailsView_FiltersReadOnlyAndStateChangingActions()
+    [Test]
+    public static void PlanningDetailsView_FiltersReadOnlyAndStateChangingActions()
     {
         WfHandler handler = new()
         {
@@ -63,7 +64,8 @@ internal sealed class UiPlanningDetailsViewTest
         });
     }
 
-    public void PlanningDetailsView_InitializesRequestDetailsCollapsedAndTogglesIndependently()
+    [Test]
+    public static void PlanningDetailsView_InitializesRequestDetailsCollapsedAndTogglesIndependently()
     {
         WfReqTask first = new() { Id = 11, TaskType = WfTaskType.access.ToString() };
         WfReqTask second = new() { Id = 12, TaskType = WfTaskType.generic.ToString() };
@@ -92,7 +94,8 @@ internal sealed class UiPlanningDetailsViewTest
         });
     }
 
-    public async Task PlanningDetailsView_PreparesImplementationCreationAndDeleteActions()
+    [Test]
+    public static async Task PlanningDetailsView_PreparesImplementationCreationAndDeleteActions()
     {
         WfImplTask existing = new() { Id = 21, TaskNumber = 3, TaskType = WfTaskType.access.ToString() };
         WfReqTask requestTask = new()
@@ -124,7 +127,8 @@ internal sealed class UiPlanningDetailsViewTest
         Assert.That(handler.DisplayDeleteImplTaskMode, Is.True);
     }
 
-    public async Task PlanningDetailsView_HidesMutationActionsOutsideActionableStates()
+    [Test]
+    public static async Task PlanningDetailsView_HidesMutationActionsOutsideActionableStates()
     {
         string taskType = WfTaskType.access.ToString();
         WfImplTask implementationTask = new() { Id = 21, TaskType = taskType, StateId = 1 };
@@ -160,7 +164,8 @@ internal sealed class UiPlanningDetailsViewTest
         Assert.That(UiRequestWorkflowTest.InvokePrivateBool(component, "CanMutateImplementationTask", implementationTask), Is.False);
     }
 
-    public void PlanningDetailsView_HeaderUsesTicketMetadata()
+    [Test]
+    public static void PlanningDetailsView_HeaderUsesTicketMetadata()
     {
         WfReqTask task = new() { Id = 11, Title = "Allow web", StateId = 2, TaskType = WfTaskType.access.ToString() };
         PlanningDetailsView component = new();
@@ -182,7 +187,8 @@ internal sealed class UiPlanningDetailsViewTest
         });
     }
 
-    public async Task PlanningDetailsView_RendersRequestAndImplementationHeadersWithDetailsCollapsed()
+    [Test]
+    public static async Task PlanningDetailsView_RendersRequestAndImplementationHeadersWithDetailsCollapsed()
     {
         WfReqTask requestTask = new()
         {
@@ -212,7 +218,8 @@ internal sealed class UiPlanningDetailsViewTest
         });
     }
 
-    public async Task PlanningDetailsView_RendersAllRequestTaskBodyVariantsAfterExpansion()
+    [Test]
+    public static async Task PlanningDetailsView_RendersAllRequestTaskBodyVariantsAfterExpansion()
     {
         List<WfReqTask> tasks =
         [
@@ -250,7 +257,8 @@ internal sealed class UiPlanningDetailsViewTest
         });
     }
 
-    public async Task PlanningDetailsView_CloseInvokesBothParentCallbacks()
+    [Test]
+    public static async Task PlanningDetailsView_CloseInvokesBothParentCallbacks()
     {
         bool? displayChanged = null;
         bool closed = false;
@@ -277,7 +285,8 @@ internal sealed class UiPlanningDetailsViewTest
         });
     }
 
-    public async Task PlanningDetailsView_ResetClearsImplementationActionsAndRefreshesParent()
+    [Test]
+    public static async Task PlanningDetailsView_ResetClearsImplementationActionsAndRefreshesParent()
     {
         WfHandler handler = new()
         {

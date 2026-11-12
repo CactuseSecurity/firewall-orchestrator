@@ -33,7 +33,8 @@ internal sealed class UiEditorComponentsTest
         return context;
     }
 
-    public async Task Collapse_StartsCollapsedAndUsesConfiguredHeaderAndContentClasses()
+    [Test]
+    public static async Task Collapse_StartsCollapsedAndUsesConfiguredHeaderAndContentClasses()
     {
         await using BunitContext context = CreateContext();
 
@@ -56,7 +57,7 @@ internal sealed class UiEditorComponentsTest
     }
 
     [Test]
-    public async Task Collapse_ToggleShowsConfiguredContent()
+    public static async Task Collapse_ToggleShowsConfiguredContent()
     {
         await using BunitContext context = CreateContext();
 
@@ -71,7 +72,7 @@ internal sealed class UiEditorComponentsTest
     }
 
     [Test]
-    public async Task DeviceEditor_InitializesWithTheSelectedDevice()
+    public static async Task DeviceEditor_InitializesWithTheSelectedDevice()
     {
         Device selected = new() { Id = 2, Name = "Firewall B" };
         List<Device> devices =
@@ -90,7 +91,7 @@ internal sealed class UiEditorComponentsTest
     }
 
     [Test]
-    public async Task DeviceEditor_CancelClosesWithoutSaving()
+    public static async Task DeviceEditor_CancelClosesWithoutSaving()
     {
         Device? saved = null;
         bool? displayChanged = null;
@@ -120,7 +121,7 @@ internal sealed class UiEditorComponentsTest
     }
 
     [Test]
-    public async Task DeviceEditor_DoesNotRenderWhenHidden()
+    public static async Task DeviceEditor_DoesNotRenderWhenHidden()
     {
         await using BunitContext context = CreateContext();
         IRenderedComponent<DeviceEditor> cut = context.Render<DeviceEditor>(parameters => parameters
@@ -131,7 +132,7 @@ internal sealed class UiEditorComponentsTest
     }
 
     [Test]
-    public async Task DeviceEditor_AllowsSelectingAndSavingAnotherDevice()
+    public static async Task DeviceEditor_AllowsSelectingAndSavingAnotherDevice()
     {
         Device first = new() { Id = 1, Name = "Firewall A" };
         Device second = new() { Id = 2, Name = "Firewall B" };
@@ -167,7 +168,7 @@ internal sealed class UiEditorComponentsTest
     }
 
     [Test]
-    public async Task DeviceEditor_SavesNullWhenNoDeviceIsSelected()
+    public static async Task DeviceEditor_SavesNullWhenNoDeviceIsSelected()
     {
         Device? saved = new Device { Id = 1 };
 
@@ -187,7 +188,7 @@ internal sealed class UiEditorComponentsTest
     }
 
     [Test]
-    public async Task DeviceEditor_ReinitializesAfterClosingAndReopening()
+    public static async Task DeviceEditor_ReinitializesAfterClosingAndReopening()
     {
         Device first = new() { Id = 1, Name = "Firewall A" };
         Device second = new() { Id = 2, Name = "Firewall B" };

@@ -5,6 +5,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Data.Workflow;
 using FWO.Services;
@@ -17,6 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 using NUnit.Framework;
 using System.Reflection;
+using System.Text.Json.Nodes;
 
 namespace FWO.Test;
 
@@ -37,7 +39,8 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
         return context;
     }
 
-    public void PlanningImplementationTaskDetails_SelectsOnlyRequestedObjectElement()
+    [Test]
+    public static void PlanningImplementationTaskDetails_SelectsOnlyRequestedObjectElement()
     {
         List<WfImplElement> elements =
         [
@@ -55,7 +58,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public void PlanningImplementationTaskDetails_TruncatesGroupContent()
+    public static void PlanningImplementationTaskDetails_TruncatesGroupContent()
     {
         object[] groupArguments = [kGroupContents];
         string result = (string)UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "TruncatedGroupContent")
@@ -69,7 +72,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public void PlanningImplementationTaskDetails_ResolvesRuleActionAndTrackingIds()
+    public static void PlanningImplementationTaskDetails_ResolvesRuleActionAndTrackingIds()
     {
         PlanningImplementationTaskDetails component = new();
         UiRequestWorkflowTest.SetMember(component, "ruleActions", new List<RuleAction> { new() { Id = 4, Name = "allow" } });
@@ -90,7 +93,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public void RulePositionDisplayHelper_FormatsKnownRulePositions()
+    public static void RulePositionDisplayHelper_FormatsKnownRulePositions()
     {
         WfImplTask belowTask = new()
         {
@@ -120,7 +123,43 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public void PlanningImplementationTaskDetails_UsesImplementationDeviceInTitle()
+    public static void RulePositionDisplayHelper_FormatsFallbackPositions()
+    {
+        PositioningUserConfig userConfig = new();
+        string empty = RulePositionDisplayHelper.Format(null, userConfig);
+        string unknown = RulePositionDisplayHelper.Format(
+            new UnknownRulePosition(
+                "vendor_position",
+                1,
+                ProvisioningPositioningAlgorithm.DefaultEndOfRulebase,
+                new JsonObject { ["vendor_value"] = "value" }),
+            userConfig);
+        string bottom = RulePositionDisplayHelper.Format(
+            new CheckPointRulePosition(
+                "layer-1",
+                CheckPointPositionAnchorKind.Bottom,
+                null,
+                ProvisioningPositioningAlgorithm.DefaultEndOfRulebase),
+            userConfig);
+        string above = RulePositionDisplayHelper.Format(
+            new CheckPointRulePosition(
+                "layer-1",
+                CheckPointPositionAnchorKind.Above,
+                "rule-42",
+                ProvisioningPositioningAlgorithm.DefaultEndOfRulebase),
+            userConfig);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(empty, Is.Empty);
+            Assert.That(unknown, Does.Contain("vendor_value"));
+            Assert.That(bottom, Does.Contain("layer-1"));
+            Assert.That(above, Does.Contain("rule-42"));
+        });
+    }
+
+    [Test]
+    public static void PlanningImplementationTaskDetails_UsesImplementationDeviceInTitle()
     {
         PlanningImplementationTaskDetails component = new();
         SimulatedUserConfig userConfig = new();
@@ -140,7 +179,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public void PlanningImplementationTaskDetails_CoversTaskTypeAndDisplayHelpers()
+    public static void PlanningImplementationTaskDetails_CoversTaskTypeAndDisplayHelpers()
     {
         PlanningImplementationTaskDetails component = new();
         UiRequestWorkflowTest.SetMember(component, "userConfig", new SimulatedUserConfig());
@@ -190,7 +229,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public void PlanningImplementationTaskDetails_MutationGateRequiresActionableRequestAndImplementationStates()
+    public static void PlanningImplementationTaskDetails_MutationGateRequiresActionableRequestAndImplementationStates()
     {
         string taskType = WfTaskType.access.ToString();
         WfReqTask requestTask = new() { Id = 11, TaskType = taskType, StateId = 1 };
@@ -218,7 +257,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public async Task PlanningImplementationTaskDetails_RendersGenericTaskAndPlannerHeaderStyle()
+    public static async Task PlanningImplementationTaskDetails_RendersGenericTaskAndPlannerHeaderStyle()
     {
         WfImplTask task = new()
         {
@@ -253,7 +292,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public async Task PlanningImplementationTaskDetails_RendersRuleGroupObjectAndTimeBranches()
+    public static async Task PlanningImplementationTaskDetails_RendersRuleGroupObjectAndTimeBranches()
     {
         List<WfImplTask> tasks =
         [
@@ -315,7 +354,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public async Task PlanningImplementationTaskDetails_SavesEditableFieldsInCreationMode()
+    public static async Task PlanningImplementationTaskDetails_SavesEditableFieldsInCreationMode()
     {
         WfReqTask requestTask = new() { Id = 11, TaskType = WfTaskType.generic.ToString() };
         WfHandler handler = UiRequestWorkflowTest.CreateWorkflowHandler(
@@ -352,7 +391,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public async Task PlanningImplementationTaskDetails_RejectsCrossManagementDevice()
+    public static async Task PlanningImplementationTaskDetails_RejectsCrossManagementDevice()
     {
         WfReqTask requestTask = new() { Id = 11, TaskType = WfTaskType.generic.ToString() };
         WfHandler handler = UiRequestWorkflowTest.CreateWorkflowHandler(
@@ -402,7 +441,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public async Task PlanningImplementationTaskDetails_ClearsDeviceWhenManagementChanges()
+    public static async Task PlanningImplementationTaskDetails_ClearsDeviceWhenManagementChanges()
     {
         WfReqTask requestTask = new() { Id = 11, TaskType = WfTaskType.generic.ToString() };
         WfHandler handler = UiRequestWorkflowTest.CreateWorkflowHandler(
@@ -444,7 +483,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public async Task PlanningImplementationTaskDetails_OpensManagementFreeTextAndDeviceEditors()
+    public static async Task PlanningImplementationTaskDetails_OpensManagementFreeTextAndDeviceEditors()
     {
         WfReqTask requestTask = new() { Id = 11, TaskType = WfTaskType.generic.ToString() };
         WfHandler handler = UiRequestWorkflowTest.CreateWorkflowHandler(
@@ -489,7 +528,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public async Task PlanningImplementationTaskDetails_SavesGroupAndTimeObjectNames()
+    public static async Task PlanningImplementationTaskDetails_SavesGroupAndTimeObjectNames()
     {
         WfReqTask requestTask = new() { Id = 11, TaskType = WfTaskType.group_create.ToString() };
         requestTask.SetAddInfo(AdditionalInfoKeys.GrpName, "request-group");
@@ -554,7 +593,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public void PlanningImplementationTaskDetails_ResolvesServiceRowsAndManagementFallbacks()
+    public static void PlanningImplementationTaskDetails_ResolvesServiceRowsAndManagementFallbacks()
     {
         PlanningImplementationTaskDetails component = new();
         Management management = new() { Id = 4, Name = "Management A" };
@@ -593,7 +632,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public void PlanningImplementationTaskDetails_ConvertsServiceElements()
+    public static void PlanningImplementationTaskDetails_ConvertsServiceElements()
     {
         WfImplTask task = new()
         {
@@ -624,6 +663,8 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
             {
                 "rule_position_behind_rule" => "Behind rule {0}",
                 "rule_position_at_start_of_layer" => "At beginning of layer {0}",
+                "rule_position_before_rule" => "Before rule {0}",
+                "rule_position_at_end_of_layer" => "At end of layer {0}",
                 _ => key
             };
         }

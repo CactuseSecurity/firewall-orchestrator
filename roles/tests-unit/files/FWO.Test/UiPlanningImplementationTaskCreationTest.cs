@@ -35,7 +35,8 @@ internal sealed class UiPlanningImplementationTaskCreationTest
         return context;
     }
 
-    public async Task PlanningImplementationTaskCreationView_ClosesAndResetsActions()
+    [Test]
+    public static async Task PlanningImplementationTaskCreationView_ClosesAndResetsActions()
     {
         bool? displayChanged = null;
         WfHandler handler = new();
@@ -56,7 +57,7 @@ internal sealed class UiPlanningImplementationTaskCreationTest
     }
 
     [Test]
-    public void PlanningImplementationTaskCreationView_TracksTheDisplayedTask()
+    public static void PlanningImplementationTaskCreationView_TracksTheDisplayedTask()
     {
         WfImplTask implementationTask = new() { Id = 21, TaskType = WfTaskType.generic.ToString() };
         PlanningImplementationTaskCreationView component = new();
@@ -71,7 +72,7 @@ internal sealed class UiPlanningImplementationTaskCreationTest
     }
 
     [Test]
-    public void PlanningImplementationTaskCreationView_HandlesDisplayAndParameterGuards()
+    public static void PlanningImplementationTaskCreationView_HandlesDisplayAndParameterGuards()
     {
         WfImplTask first = new() { Id = 21, TaskType = WfTaskType.generic.ToString() };
         WfImplTask second = new() { Id = 22, TaskType = WfTaskType.generic.ToString() };
@@ -92,7 +93,7 @@ internal sealed class UiPlanningImplementationTaskCreationTest
     }
 
     [Test]
-    public async Task PlanningImplementationTaskCreationView_SavesTaskAndRefreshesParent()
+    public static async Task PlanningImplementationTaskCreationView_SavesTaskAndRefreshesParent()
     {
         WfReqTask requestTask = new() { Id = 11, TaskType = WfTaskType.generic.ToString() };
         WfHandler handler = UiRequestWorkflowTest.CreateWorkflowHandler(
@@ -131,7 +132,7 @@ internal sealed class UiPlanningImplementationTaskCreationTest
     }
 
     [Test]
-    public async Task PlanningImplementationTaskCreationView_IgnoresConcurrentSave()
+    public static async Task PlanningImplementationTaskCreationView_IgnoresConcurrentSave()
     {
         string taskType = WfTaskType.access.ToString();
         WfReqTask requestTask = new() { Id = 11, TicketId = 7, TaskType = taskType, StateId = 1 };

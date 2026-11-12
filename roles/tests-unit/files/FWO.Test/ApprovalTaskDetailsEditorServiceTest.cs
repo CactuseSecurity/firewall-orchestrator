@@ -23,7 +23,8 @@ namespace FWO.Test;
 [TestFixture]
 internal sealed class ApprovalTaskDetailsEditorServiceTest
 {
-    public void ApprovalTaskDetailsEditorService_AllowsOnlyOwnerChangesForPlannerInReadOnlyMode()
+    [Test]
+    public static void ApprovalTaskDetailsEditorService_AllowsOnlyOwnerChangesForPlannerInReadOnlyMode()
     {
         WfReqTask task = new() { Id = 11, StateId = 2, TaskType = WfTaskType.access.ToString() };
         WfHandler handler = UiRequestWorkflowTest.CreateWorkflowHandler(WorkflowPhases.planning, task.TaskType, new WfTicket { Tasks = [task] });
@@ -44,7 +45,7 @@ internal sealed class ApprovalTaskDetailsEditorServiceTest
     }
 
     [Test]
-    public void ApprovalTaskDetailsEditorService_DoesNotAllowPlannerOwnerChangesOutsidePlanning()
+    public static void ApprovalTaskDetailsEditorService_DoesNotAllowPlannerOwnerChangesOutsidePlanning()
     {
         WfReqTask task = new() { Id = 11, StateId = 2, TaskType = WfTaskType.access.ToString() };
         WfHandler handler = UiRequestWorkflowTest.CreateWorkflowHandler(WorkflowPhases.approval, task.TaskType, new WfTicket { Tasks = [task] });
@@ -54,6 +55,23 @@ internal sealed class ApprovalTaskDetailsEditorServiceTest
         service.PlannerOwnerChangesAllowed = true;
 
         Assert.That(service.CanEdit(new List<WfReqTask> { task }, WorkflowEditableFieldKeys.Owner), Is.False);
+    }
+
+    [Test]
+    public static void ApprovalTaskDetailsEditorService_RejectsEmptyAndNonActionableTasks()
+    {
+        WfReqTask task = new() { Id = 11, StateId = 10, TaskType = WfTaskType.access.ToString() };
+        WfHandler handler = UiRequestWorkflowTest.CreateWorkflowHandler(WorkflowPhases.planning, task.TaskType, new WfTicket { Tasks = [task] });
+        ApprovalTaskDetailsEditorService service = new();
+        service.Configure(handler, new SimulatedUserConfig(), DefaultInit.DoNothing);
+        List<WfReqTask> noTasks = [];
+        List<WfReqTask> nonActionableTasks = [task];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(service.CanEdit(noTasks, WorkflowEditableFieldKeys.Title), Is.False);
+            Assert.That(service.CanEdit(nonActionableTasks, WorkflowEditableFieldKeys.Title), Is.False);
+        });
     }
 
 }

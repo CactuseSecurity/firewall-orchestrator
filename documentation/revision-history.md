@@ -2,6 +2,7 @@
 
 ## 9.9.3 - 11.11.2026
 - request workflow: rule-positioning and firewall-write operations resolve gateway-bound implementation tasks against the gateway's management and reject inconsistent task data
+- middleware REST API: `getAddressGroups` and `getServiceGroups` accept `filter.includeTechnicalDetails=true` to include each member's standalone address or service object fields; omitted, null or false keep the existing compact id/name response, and address details can be combined with separated zone groups
 
 
 ## 9.9.2 - 10.11.2026

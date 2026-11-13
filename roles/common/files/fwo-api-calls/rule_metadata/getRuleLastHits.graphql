@@ -1,0 +1,24 @@
+query getRuleLastHits(
+  $where: firewall_rule_metadata_bool_exp!
+  $hitWhere: firewall_rule_hit_bool_exp!
+  $limit: Int!
+  $offset: Int!
+  $gatewayLimit: Int!
+) {
+  firewall_rule_metadata(where: $where, order_by: { rule_metadata_id: asc }, limit: $limit, offset: $offset) {
+    rule_metadata_id
+    mgm_id
+    rule_uid
+    rule_last_hit
+    rules(where: { removed: { _is_null: true } }, order_by: { rule_id: desc }, limit: 1) {
+      rule_name
+    }
+    rule_hits(where: $hitWhere, order_by: { dev_id: asc }, limit: $gatewayLimit) {
+      dev_id
+      rule_last_hit
+      device {
+        dev_name
+      }
+    }
+  }
+}

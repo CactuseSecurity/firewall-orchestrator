@@ -1,0 +1,61 @@
+@page "/help/API/rulelasthits"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+
+@section sidebar {
+    @{
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml");
+    }
+}
+
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("rule_last_hits")</h3>
+    @(Html.Raw(userConfig.GetText("H6937")))
+
+    <br>
+    <h4>@userConfig.GetText("examples")</h4>
+
+    <small class="small-helptext">
+        @(Html.Raw(userConfig.GetText("H6938")))
+    </small>
+
+    <pre class="code-block" data-lang="json">
+<code>
+{
+    "managementId": 5,
+    "options": {
+        "limit": 500,
+        "offset": 0,
+        "filter": {
+            "lastHitBefore": "2026-01-01T00:00:00Z"
+        }
+    }
+}
+</code>
+    </pre>
+
+    <pre class="code-block" data-lang="json">
+<code>
+{
+    "rules": [
+        {
+            "mgmId": 5,
+            "ruleUid": "c0a8d1f2-5b7e-4f0a-9d3c-2e6b8a1f4c7d",
+            "ruleName": "allow web",
+            "lastHit": "2025-11-30T22:14:05Z",
+            "gateways": [
+                { "devId": 51, "gatewayName": "gw-berlin", "lastHit": "2025-11-30T22:14:05Z" },
+                { "devId": 52, "gatewayName": "gw-hamburg", "lastHit": "2025-10-02T08:30:00Z" }
+            ],
+            "gatewaysTruncated": false
+        }
+    ]
+}
+</code>
+    </pre>
+</div>

@@ -8,7 +8,7 @@
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
-<PopUp Title="@ApprovalTaskViewTitle" Show="@Display" Size="PopupSize.XLarge" OnClose="Close">
+<PopUp Title="@ApprovalTaskViewTitle" Show="@Display" Size="PopupSize.XLarge" OnClose="ClosePopup">
     <Body>
         @if (Display)
         {
@@ -56,39 +56,14 @@
         }
     </Body>
     <Footer>
-        <div class="row w-100 align-items-center">
-            <div class="col-sm-4"></div>
-            <div class="col-sm-4 d-flex justify-content-center">
-                <div class="btn-group">
-                    @foreach (WfStateAction action in OfferedActions)
-                    {
-                        @if (WfHandler.CanPerformActionOnActTicket(action))
-                        {
-                            <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => RunWithProgress(() => PerformTicketAction(action))">@action.ButtonText</button>
-                        }
-                    }
-                </div>
-            </div>
-            <div class="col-sm-4 d-flex justify-content-end">
-                <div class="btn-group">
-                    @if (CanPromoteTicket)
-                    {
-                        <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => RunWithProgress(PromoteTicket)">
-                            @(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
-                    }
-                    @if (ShowCancel)
-                    {
-                        <button type="button" class="btn btn-sm btn-secondary approval-task-details-close" @onclick="Close">
-                            @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
-                    }
-                    else
-                    {
-                        <button type="button" class="btn btn-sm btn-primary approval-task-details-close" @onclick="Close">
-                            @(userConfig.GetText("ok"))</button>
-                    }
-                </div>
-            </div>
-        </div>
+        <WorkflowTaskDetailsFooter OfferedActions="OfferedActions"
+            CanShowAction="CanPerformTicketAction"
+            PerformAction="PerformTicketAction"
+            CanPromoteTicket="CanPromoteTicket"
+            PromoteTicket="PromoteTicket"
+            ShowCancel="ShowCancel"
+            Close="Close"
+            CloseButtonClass="workflow-task-details-close approval-task-details-close" />
     </Footer>
 </PopUp>
 <RuleActionEditor @bind-Display="displayRuleActionEditor" SelectedRuleAction="selectedRuleAction"
@@ -145,6 +120,8 @@
     [Parameter] public Func<Task> Closed { get; set; } = DefaultInit.DoNothing;
 
     private readonly ApprovalTaskDetailsEditorService editorService = new();
+
+    private bool CanPerformTicketAction(WfStateAction action) => WfHandler.CanPerformActionOnActTicket(action);
 
     private string ApprovalTaskViewTitle
     {
@@ -573,10 +550,12 @@
         await operation();
     }
 
-    private async void Close()
+    private async Task Close()
     {
         Display = false;
         await DisplayChanged.InvokeAsync(false);
         await Closed();
     }
+
+    private void ClosePopup() => _ = Close();
 }

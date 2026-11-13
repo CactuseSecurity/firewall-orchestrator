@@ -110,7 +110,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -220,7 +220,31 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
+      # The repository's global.json, the installer's SDK pin (derived from dotnet_version) and the
+      # setup-dotnet version of sonarcloud-pr.yml must name the same .NET major.minor version. Otherwise CI builds
+      # with a different SDK than an installation does (#5700).
+      - name: Check that the .NET SDK pins match dotnet_version
+        run: |
+          set -euo pipefail
+          inventory_version="$(sed -n 's/^dotnet_version:[[:space:]]*"\{0,1\}\([0-9][0-9.]*\)"\{0,1\}[[:space:]]*$/\1/p' inventory/group_vars/all.yml)"
+          global_json_version="$(jq -r '.sdk.version' global.json)"
+          sonar_pr_version="$(sed -n "s/^[[:space:]]*dotnet-version:[[:space:]]*'\{0,1\}\([0-9][0-9.]*\)\.x'\{0,1\}[[:space:]]*$/\1/p" .github/workflows/sonarcloud-pr.yml)"
+          echo "dotnet_version in inventory/group_vars/all.yml: ${inventory_version:-<missing>}"
+          echo "sdk.version in global.json: ${global_json_version}"
+          echo "dotnet-version in sonarcloud-pr.yml: ${sonar_pr_version:-<missing>}.x"
+          if [ -z "$inventory_version" ] || [ -z "$sonar_pr_version" ]; then
+            echo "::error::Could not read dotnet_version or the sonarcloud-pr.yml dotnet-version"
+            exit 1
+          fi
+          if [[ "$global_json_version" != "${inventory_version}".* ]]; then
+            echo "::error file=global.json::sdk.version ${global_json_version} does not match dotnet_version ${inventory_version}"
+            exit 1
+          fi
+          if [ "$sonar_pr_version" != "$inventory_version" ]; then
+            echo "::error file=.github/workflows/sonarcloud-pr.yml::dotnet-version ${sonar_pr_version}.x does not match dotnet_version ${inventory_version}"
+            exit 1
+          fi
       # The installer publishes middleware and UI in Release, while the other workflows build Debug. Warnings are
       # errors, so a warning that only occurs in Release (e.g. a variable used only inside #if DEBUG) would break
       # every installation unnoticed (GHSA-9j26-vffp-8f83).

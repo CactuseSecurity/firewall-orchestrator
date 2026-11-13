@@ -103,6 +103,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Not global-json-file: this workflow comes from the base branch, the checkout from the PR head, and
+      # setup-dotnet fails when a PR branch predates the global.json in the repository root. The builds below
+      # still pick the SDK through the checked-out global.json. The test-install workflow keeps this version
+      # in line with dotnet_version.
       - name: Set up .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:

@@ -21,6 +21,28 @@
     @(userConfig.GetText("U5317"))<br>
     @(userConfig.GetText("H5501"))
     <hr />
+    @if (configData != null)
+    {
+        <form onsubmit="return false">
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5540b"))">
+                <label class="col-form-label col-sm-4" for="whileSetActionSleepTime">@(userConfig.GetText("whileSetActionSleepTime")):</label>
+                <div class="col-sm-2">
+                    <input id="whileSetActionSleepTime" type="number" min="0" @bind="configData!.WhileSetActionSleepTime" />
+                </div>
+                <div class="col-sm-2">
+                    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                        <Authorized>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveWhileSetActionSleepTime" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                        </NotAuthorized>
+                    </ExecutionModeAuthorizeView>
+                </div>
+            </div>
+        </form>
+        <hr />
+    }
     <button type="button" class="btn btn-sm btn-success" @onclick="AddAction">@(DisplayService.DisplayButton(userConfig, "add_action", Icons.Add))</button>
     <br><br>
     <div class="m-2 vheight75">
@@ -98,6 +120,7 @@ else
     private List<string> availableModIntegrationStateNames = [];
     private EditActionPopup? editActionPopup;
     private WfStateAction? deleteActionTarget;
+    private ConfigData? configData;
 
     private bool DeleteActionMode = false;
     private bool InitComplete = false;
@@ -115,9 +138,9 @@ else
             actions = await apiConnection.SendQueryAsync<List<WfStateAction>>(RequestQueries.getActions);
             states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
             policies = await apiConnection.SendQueryAsync<List<CompliancePolicy>>(ComplianceQueries.getPolicies);
-            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            configData = await globalConfig.GetEditableConfig();
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
-            availableModIntegrationStateNames = ModIntegrationStateConfig.Parse(editableConfig.ModIntegrationStates)
+            availableModIntegrationStateNames = ModIntegrationStateConfig.Parse(configData.ModIntegrationStates)
                 .Select(state => state.Name)
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct()
@@ -127,6 +150,26 @@ else
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    /// <summary>
+    /// Saves the interval of the state actions with event "While set"; the middleware reschedules its job on the change.
+    /// </summary>
+    private async Task SaveWhileSetActionSleepTime()
+    {
+        try
+        {
+            if (configData == null)
+            {
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+            await globalConfig.WriteToDatabase(configData, apiConnection);
+            DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
     }
 

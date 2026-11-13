@@ -280,15 +280,7 @@ namespace FWO.Services.Workflow
             switch (action.ActionType)
             {
                 case nameof(StateActionTypes.AutoPromote):
-                    int? toState = await GetAutoPromoteTargetState(action.ExternalParams, statefulObject, scope);
-                    if (toState == null || states.FirstOrDefault(x => x.Id == toState) != null)
-                    {
-                        await wfHandler.AutoPromote(statefulObject, scope, toState);
-                        if (WfStateAction.HasConfirmUiMessage(action.ExternalParams))
-                        {
-                            wfHandler.DisplayMessage(null, action.Name, BuildAutoPromoteMessage(statefulObject), false);
-                        }
-                    }
+                    await PerformAutoPromote(action, statefulObject, scope);
                     break;
                 case nameof(StateActionTypes.AddApproval):
                     await SetScope(statefulObject, scope);

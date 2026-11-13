@@ -116,6 +116,28 @@ namespace FWO.Middleware.Server.Services
             return new Releaser(this, key, owner, entry);
         }
 
+        /// <summary>
+        /// Acquires the lock for the given key only if it is free right now, without waiting for it.
+        /// </summary>
+        /// <param name="key">Key to serialize on.</param>
+        /// <param name="owner">Identity of the caller the per-owner cap is counted for.</param>
+        /// <returns>A handle that releases the lock when disposed, or null if the key is held or a cap is exceeded.</returns>
+        public IDisposable? TryAcquireImmediately(TKey key, string owner)
+        {
+            LockEntry? entry = TryAddReference(key, owner);
+            if (entry == null)
+            {
+                return null;
+            }
+
+            if (!entry.Semaphore.Wait(0))
+            {
+                RemoveReference(key, owner, entry);
+                return null;
+            }
+            return new Releaser(this, key, owner, entry);
+        }
+
         private LockEntry? TryAddReference(TKey key, string owner)
         {
             lock (entriesLock)

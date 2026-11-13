@@ -88,6 +88,8 @@ builder.Services.AddHostedService<InternalApiTokenRefreshService>();
 
 // Register config listeners as singletons (activated at startup)
 builder.Services.AddSingleton<ExternalRequestSchedulerService>();
+builder.Services.AddSingleton<WorkflowTicketLocks>();
+builder.Services.AddSingleton<WhileSetActionSchedulerService>();
 builder.Services.AddSingleton<AutoDiscoverSchedulerService>();
 builder.Services.AddSingleton<DailyCheckSchedulerService>();
 builder.Services.AddSingleton<ImportAppDataSchedulerService>();
@@ -241,6 +243,7 @@ app.MapControllers();
 
 // Activate config listeners so they attach subscriptions after startup
 app.Services.GetRequiredService<ExternalRequestSchedulerService>();
+app.Services.GetRequiredService<WhileSetActionSchedulerService>();
 app.Services.GetRequiredService<AutoDiscoverSchedulerService>();
 app.Services.GetRequiredService<DailyCheckSchedulerService>();
 app.Services.GetRequiredService<ImportAppDataSchedulerService>();

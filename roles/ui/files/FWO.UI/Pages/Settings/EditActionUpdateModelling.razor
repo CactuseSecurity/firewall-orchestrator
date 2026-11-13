@@ -2,30 +2,24 @@
 
 @inject UserConfig userConfig
 
-<div class="col-sm-4">
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5529"))">
-        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("modIntegrationStates")):</label>
-        <div class="col-sm-8">
-            <Dropdown ElementType="string"
-                      SelectedElement="selectedModIntegrationState"
-                      SelectedElementChanged="OnIntegrationStateChanged"
-                      ElementToString="@(state => state)"
-                      Elements="AvailableModIntegrationStateNames"
-                      Nullable="true"
-                      NoneSelectedText="@(userConfig.GetText("none"))">
-                <ElementTemplate Context="state">
-                    @state
-                </ElementTemplate>
-            </Dropdown>
-        </div>
-    </div>
+<div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5529"))">
+    <label class="form-label small mb-1">@(userConfig.GetText("modIntegrationStates")):</label>
+    <Dropdown ElementType="string"
+              SelectedElement="selectedModIntegrationState"
+              SelectedElementChanged="OnIntegrationStateChanged"
+              ElementToString="@(state => state)"
+              Elements="AvailableModIntegrationStateNames"
+              Nullable="true"
+              NoneSelectedText="@(userConfig.GetText("none"))">
+        <ElementTemplate Context="state">
+            @state
+        </ElementTemplate>
+    </Dropdown>
 </div>
-<div class="col-sm-4">
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5534"))">
-        <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmUpdateModelling">@(userConfig.GetText("confirm_modelling_update")):</label>
-        <div class="col-sm-2">
-            <input id="confirmUpdateModelling" class="form-check-input mt-2" type="checkbox" checked="@actConfirmUpdateModelling" @onchange="OnConfirmChanged" />
-        </div>
+<div class="col-sm-6 mb-2 d-flex align-items-end" data-toggle="tooltip" title="@(userConfig.PureLine("H5534"))">
+    <div class="form-check mb-1">
+        <input id="confirmUpdateModelling" class="form-check-input" type="checkbox" checked="@actConfirmUpdateModelling" @onchange="OnConfirmChanged" />
+        <label class="form-check-label small" for="confirmUpdateModelling">@(userConfig.GetText("confirm_modelling_update"))</label>
     </div>
 </div>
 

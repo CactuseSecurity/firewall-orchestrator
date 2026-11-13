@@ -3,116 +3,109 @@
 
 @inject UserConfig userConfig
 
-<div class="col-sm-4">
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5522"))">
-        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("to_state")):</label>
-        <div class="col-sm-8">
-            <Dropdown ElementType="WfState"
-                      ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
-                      SelectedElement="selectedToState"
-                      SelectedElementChanged="OnToStateChanged"
-                      Elements="statesPlus">
-                <ElementTemplate Context="state">
-                    @DisplayService.DisplayStateWithId(userConfig, state)
-                </ElementTemplate>
-            </Dropdown>
-        </div>
-    </div>
+<div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5522"))">
+    <label class="form-label small mb-1">@(userConfig.GetText("to_state")):</label>
+    <Dropdown ElementType="WfState"
+              ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
+              SelectedElement="selectedToState"
+              SelectedElementChanged="OnToStateChanged"
+              Elements="statesPlus">
+        <ElementTemplate Context="state">
+            @DisplayService.DisplayStateWithId(userConfig, state)
+        </ElementTemplate>
+    </Dropdown>
 </div>
 @if (selectedToState.Id == ConditionalState.Id)
 {
-    <div class="col-sm-4">
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
-            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("to_be_called")):</label>
-            <div class="col-sm-8">
-                <Dropdown ElementType="ToBeCalled"
-                          SelectedElement="selectedToBeCalled"
-                          SelectedElementChanged="OnToBeCalledChanged"
-                          ElementToString="@(t => userConfig.GetText(t.ToString()))"
-                          Elements="Enum.GetValues(typeof(ToBeCalled)).Cast<ToBeCalled>()">
-                    <ElementTemplate Context="callTarget">
-                        @(userConfig.GetText(callTarget.ToString()))
-                    </ElementTemplate>
-                </Dropdown>
-            </div>
-        </div>
+    <div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
+        <label class="form-label small mb-1">@(userConfig.GetText("to_be_called")):</label>
+        <Dropdown ElementType="ToBeCalled"
+                  SelectedElement="selectedToBeCalled"
+                  SelectedElementChanged="OnToBeCalledChanged"
+                  ElementToString="@(t => userConfig.GetText(t.ToString()))"
+                  Elements="Enum.GetValues(typeof(ToBeCalled)).Cast<ToBeCalled>()">
+            <ElementTemplate Context="callTarget">
+                @(userConfig.GetText(callTarget.ToString()))
+            </ElementTemplate>
+        </Dropdown>
     </div>
     @if (selectedToBeCalled == ToBeCalled.PolicyCheck)
     {
-        <div class="form-group row mt-2">
-            <div class="col-sm-8">
-                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
-                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("policies")):</label>
-                    <div class="col-sm-10">
-                        <Dropdown ElementType="CompliancePolicy"
-                                  Multiselect="true"
-                                  SelectedElements="selectedPolicies"
-                                  SelectedElementsChanged="OnPoliciesChanged"
-                                  ElementToString="@(p => p.Name)"
-                                  Elements="Policies">
-                            <ElementTemplate Context="policy">
-                                @policy.Name
-                            </ElementTemplate>
-                        </Dropdown>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-4">
-                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
-                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("checkResultLabel")):</label>
-                    <div class="col-sm-8">
-                        <input type="text"
-                               class="form-control form-control-sm"
-                               value="@actConditionalAutoPromoteParams.CheckResultLabel"
-                               @onchange="OnCheckResultLabelChanged" />
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="form-group row mt-2">
-            <div class="col-sm-4">
-                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
-                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("ifCompliantState")):</label>
-                    <div class="col-sm-8">
-                        <Dropdown ElementType="WfState"
-                                  ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
-                                  SelectedElement="selectedStateOk"
-                                  SelectedElementChanged="OnStateOkChanged"
-                                  Elements="statesPlus.Where(x => x.Id != ConditionalState.Id)">
-                            <ElementTemplate Context="state">
-                                @DisplayService.DisplayStateWithId(userConfig, state)
-                            </ElementTemplate>
-                        </Dropdown>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-4">
-                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
-                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("ifNotCompliantState")):</label>
-                    <div class="col-sm-8">
-                        <Dropdown ElementType="WfState"
-                                  ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
-                                  SelectedElement="selectedStateNotOk"
-                                  SelectedElementChanged="OnStateNotOkChanged"
-                                  Elements="statesPlus.Where(x => x.Id != ConditionalState.Id)">
-                            <ElementTemplate Context="state">
-                                @DisplayService.DisplayStateWithId(userConfig, state)
-                            </ElementTemplate>
-                        </Dropdown>
-                    </div>
-                </div>
-            </div>
+        <div class="col-sm-12 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
+            <label class="form-label small mb-1">@(userConfig.GetText("policies")):</label>
+            <Dropdown ElementType="CompliancePolicy"
+                      Multiselect="true"
+                      SelectedElements="selectedPolicies"
+                      SelectedElementsChanged="OnPoliciesChanged"
+                      ElementToString="@(p => p.Name)"
+                      Elements="Policies">
+                <ElementTemplate Context="policy">
+                    @policy.Name
+                </ElementTemplate>
+            </Dropdown>
         </div>
     }
+    <div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine(CheckHelpTextKey))">
+        <label class="form-label small mb-1">@(userConfig.GetText(PassedStateTextKey)):</label>
+        <Dropdown ElementType="WfState"
+                  ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
+                  SelectedElement="selectedStateOk"
+                  SelectedElementChanged="OnStateOkChanged"
+                  Elements="conditionalTargetStates">
+            <ElementTemplate Context="state">
+                @DisplayService.DisplayStateWithId(userConfig, state)
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+    <div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine(CheckHelpTextKey))">
+        <label class="form-label small mb-1">@(userConfig.GetText(NotPassedStateTextKey)):</label>
+        <Dropdown ElementType="WfState"
+                  ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
+                  SelectedElement="selectedStateNotOk"
+                  SelectedElementChanged="OnStateNotOkChanged"
+                  Elements="conditionalTargetStates">
+            <ElementTemplate Context="state">
+                @DisplayService.DisplayStateWithId(userConfig, state)
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+    <div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5540a"))">
+        <label class="form-label small mb-1">@(userConfig.GetText("errorState")):</label>
+        <Dropdown ElementType="WfState"
+                  ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
+                  SelectedElement="selectedErrorState"
+                  SelectedElementChanged="OnErrorStateChanged"
+                  Elements="States"
+                  Nullable="true"
+                  NoneSelectedText="@(userConfig.GetText("None"))">
+            <ElementTemplate Context="state">
+                @DisplayService.DisplayStateWithId(userConfig, state)
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+    <div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5540a"))">
+        <label class="form-label small mb-1" for="conditionalTimeoutMinutes">@(userConfig.GetText("timeout_minutes")):</label>
+        <input id="conditionalTimeoutMinutes" type="number" min="1" class="form-control form-control-sm"
+               value="@timeoutMinutes" @onchange="OnTimeoutChanged" />
+    </div>
+    <div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine(CheckHelpTextKey))">
+        <label class="form-label small mb-1" for="conditionalCheckResultLabel">@(userConfig.GetText("checkResultLabel")):</label>
+        <input id="conditionalCheckResultLabel"
+               type="text"
+               class="form-control form-control-sm"
+               value="@actConditionalAutoPromoteParams.CheckResultLabel"
+               @onchange="OnCheckResultLabelChanged" />
+    </div>
 }
-<div class="col-sm-4">
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
-        <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmAutoPromoteMessage">@(userConfig.GetText("confirm_action_message")):</label>
-        <div class="col-sm-2">
-            <input id="confirmAutoPromoteMessage" class="form-check-input mt-2" type="checkbox" checked="@confirmUiMessage" @onchange="OnConfirmMessageChanged" />
+@if (ConfirmMessageApplies)
+{
+    <div class="col-sm-6 mb-2 d-flex align-items-end" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
+        <div class="form-check mb-1">
+            <input id="confirmAutoPromoteMessage" class="form-check-input" type="checkbox" checked="@confirmUiMessage" @onchange="OnConfirmMessageChanged" />
+            <label class="form-check-label small" for="confirmAutoPromoteMessage">@(userConfig.GetText("confirm_action_message"))</label>
         </div>
     </div>
-</div>
+}
 
 @code {
     [Parameter]
@@ -128,12 +121,25 @@
     private ConditionalAutoPromoteParams actConditionalAutoPromoteParams = new();
     private static WfState AutomaticState = new() { Id = WfStateAction.AutomaticStateId, Name = "automatic" };
     private static WfState ConditionalState = new() { Id = -2, Name = "Conditional" };
+    private static readonly WfState RemainState = new() { Id = WfStateAction.RemainStateId, Name = "remain" };
     private WfState selectedToState = AutomaticState;
     private WfState selectedStateOk = AutomaticState;
     private WfState selectedStateNotOk = AutomaticState;
+    private WfState? selectedErrorState;
+    private int? timeoutMinutes;
     private bool confirmUiMessage;
     private ToBeCalled selectedToBeCalled = ToBeCalled.PolicyCheck;
     private List<WfState> statesPlus = [];
+    private List<WfState> conditionalTargetStates = [];
+
+    /// <summary>
+    /// A confirmation via UI message needs a user who triggers the action, which actions with event "While set" do not have.
+    /// </summary>
+    private bool ConfirmMessageApplies => ActAction.Event != nameof(StateActionEvents.WhileSet);
+
+    private string CheckHelpTextKey => selectedToBeCalled == ToBeCalled.RolloutCheck ? "H5540" : "H5528";
+    private string PassedStateTextKey => selectedToBeCalled == ToBeCalled.RolloutCheck ? "ifImportedState" : "ifCompliantState";
+    private string NotPassedStateTextKey => selectedToBeCalled == ToBeCalled.RolloutCheck ? "ifNotImportedState" : "ifNotCompliantState";
 
     protected override void OnParametersSet()
     {
@@ -143,9 +149,20 @@
             ConditionalState,
             .. States
         ];
+        conditionalTargetStates =
+        [
+            RemainState,
+            AutomaticState,
+            .. States
+        ];
 
         ResetLocalState();
         LoadFromExternalParams();
+        if (confirmUiMessage && !ConfirmMessageApplies)
+        {
+            confirmUiMessage = false;
+            UpdateExternalParams();
+        }
     }
 
     private void ResetLocalState()
@@ -154,6 +171,8 @@
         selectedToState = AutomaticState;
         selectedStateOk = AutomaticState;
         selectedStateNotOk = AutomaticState;
+        selectedErrorState = null;
+        timeoutMinutes = null;
         selectedPolicies = [];
         selectedToBeCalled = ToBeCalled.PolicyCheck;
         confirmUiMessage = false;
@@ -172,8 +191,10 @@
             selectedToBeCalled = conditionalParams.ToBeCalled;
             selectedPolicies = Policies.Where(p => conditionalParams.PolicyIds.Contains(p.Id)).ToList();
             selectedToState = ConditionalState;
-            selectedStateOk = statesPlus.Where(x => x.Id != ConditionalState.Id).FirstOrDefault(x => x.Id == conditionalParams.IfCompliantState) ?? AutomaticState;
-            selectedStateNotOk = statesPlus.Where(x => x.Id != ConditionalState.Id).FirstOrDefault(x => x.Id == conditionalParams.IfNotCompliantState) ?? AutomaticState;
+            selectedStateOk = conditionalTargetStates.FirstOrDefault(x => x.Id == conditionalParams.IfCompliantState) ?? AutomaticState;
+            selectedStateNotOk = conditionalTargetStates.FirstOrDefault(x => x.Id == conditionalParams.IfNotCompliantState) ?? AutomaticState;
+            selectedErrorState = States.FirstOrDefault(state => state.Id == conditionalParams.ErrorState);
+            timeoutMinutes = conditionalParams.ErrorConditions.TimeoutMinutes;
             confirmUiMessage = conditionalParams.ConfirmUiMessage;
             return;
         }
@@ -224,6 +245,23 @@
         return Task.CompletedTask;
     }
 
+    private Task OnErrorStateChanged(WfState? state)
+    {
+        selectedErrorState = state;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Takes a positive number of minutes as timeout; an empty or other value removes the timeout.
+    /// </summary>
+    private Task OnTimeoutChanged(ChangeEventArgs changeEventArgs)
+    {
+        timeoutMinutes = int.TryParse(changeEventArgs.Value?.ToString(), out int minutes) && minutes > 0 ? minutes : null;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
     private Task OnConfirmMessageChanged(ChangeEventArgs changeEventArgs)
     {
         confirmUiMessage = bool.TryParse(changeEventArgs.Value?.ToString(), out bool checkedValue) && checkedValue;
@@ -233,9 +271,10 @@
 
     private void UpdateExternalParams()
     {
+        bool confirm = confirmUiMessage && ConfirmMessageApplies;
         if (selectedToState.Id != ConditionalState.Id)
         {
-            ActAction.ExternalParams = confirmUiMessage
+            ActAction.ExternalParams = confirm
                 ? JsonSerializer.Serialize(new SimpleAutoPromoteParams { ToStateId = selectedToState.Id, ConfirmUiMessage = true })
                 : selectedToState.Id.ToString();
             return;
@@ -246,7 +285,9 @@
         actConditionalAutoPromoteParams.CheckResultLabel = actConditionalAutoPromoteParams.CheckResultLabel?.Trim() ?? "";
         actConditionalAutoPromoteParams.IfCompliantState = selectedStateOk.Id;
         actConditionalAutoPromoteParams.IfNotCompliantState = selectedStateNotOk.Id;
-        actConditionalAutoPromoteParams.ConfirmUiMessage = confirmUiMessage;
+        actConditionalAutoPromoteParams.ErrorState = selectedErrorState?.Id;
+        actConditionalAutoPromoteParams.ErrorConditions = new ConditionalErrorConditions { TimeoutMinutes = timeoutMinutes };
+        actConditionalAutoPromoteParams.ConfirmUiMessage = confirm;
         ActAction.ExternalParams = JsonSerializer.Serialize(actConditionalAutoPromoteParams);
     }
 }

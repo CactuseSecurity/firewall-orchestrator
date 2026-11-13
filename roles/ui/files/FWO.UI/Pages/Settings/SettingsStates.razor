@@ -257,14 +257,7 @@ else
                         }
                         if (conditionalParams != null)
                         {
-                            if (conditionalParams.IfCompliantState >= 0)
-                            {
-                                usedStateIds.Add(conditionalParams.IfCompliantState);
-                            }
-                            if (conditionalParams.IfNotCompliantState >= 0)
-                            {
-                                usedStateIds.Add(conditionalParams.IfNotCompliantState);
-                            }
+                            AddConditionalTargetStates(conditionalParams);
                         }
                     }
                 }
@@ -279,6 +272,15 @@ else
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Marks the target states of a conditional auto-forward as used; pseudo states (negative ids) are skipped.
+    /// </summary>
+    private void AddConditionalTargetStates(ConditionalAutoPromoteParams conditionalParams)
+    {
+        List<int?> targetStateIds = [conditionalParams.IfCompliantState, conditionalParams.IfNotCompliantState, conditionalParams.ErrorState];
+        usedStateIds.AddRange(targetStateIds.Where(stateId => stateId >= 0).Select(stateId => stateId!.Value));
     }
 
     private void AddState()

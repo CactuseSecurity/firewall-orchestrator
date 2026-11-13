@@ -25,6 +25,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string getTicketById;
         public static readonly string getTicketOverviewsByIds;
         public static readonly string getTicketStatesByIds;
+        public static readonly string getTicketIdsByStates;
+        public static readonly string getStateChangeExecution;
         public static readonly string getTicketRequesterId;
         public static readonly string getAuditProofCriticalChangesForTicket;
         public static readonly string getWorkflowTaskHistoryForTicket;
@@ -134,6 +136,8 @@ namespace FWO.Api.Client.Queries
                 getTicketById = ticketDetailsFragment + GetQueryText("request/getTicketById.graphql");
                 getTicketOverviewsByIds = GetQueryText("request/getTicketOverviewsByIds.graphql");
                 getTicketStatesByIds = GetQueryText("request/getTicketStatesByIds.graphql");
+                getTicketIdsByStates = GetQueryText("request/getTicketIdsByStates.graphql");
+                getStateChangeExecution = GetQueryText("request/getStateChangeExecution.graphql");
                 getTicketRequesterId = GetQueryText("request/getTicketRequesterId.graphql");
                 getAuditProofCriticalChangesForTicket = GetQueryText("request/getAuditProofCriticalChangesForTicket.graphql");
                 getWorkflowTaskHistoryForTicket = GetQueryText("request/getWorkflowTaskHistoryForTicket.graphql");

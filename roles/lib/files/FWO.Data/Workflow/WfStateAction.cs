@@ -32,7 +32,10 @@ namespace FWO.Data.Workflow
         None = 0,
         OnSet = 1,
         OnLeave = 2,
-        // WhileSet = 3,
+        /// <summary>
+        /// Performed periodically by the middleware as long as the object is in the state.
+        /// </summary>
+        WhileSet = 3,
         OfferButton = 4,
         OwnerChange = 10,
         OnAssignment = 15
@@ -40,7 +43,11 @@ namespace FWO.Data.Workflow
 
     public enum ToBeCalled
     {
-        PolicyCheck = 1
+        PolicyCheck = 1,
+        /// <summary>
+        /// Checks that every management involved in the ticket has been imported after the implementation.
+        /// </summary>
+        RolloutCheck = 2
     }
 
     public enum BundleTaskType
@@ -51,6 +58,11 @@ namespace FWO.Data.Workflow
     public class WfStateAction
     {
         public const int AutomaticStateId = -1;
+
+        /// <summary>
+        /// Target state of a conditional auto-forward that keeps the object in its current state.
+        /// </summary>
+        public const int RemainStateId = -3;
 
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -210,6 +222,44 @@ namespace FWO.Data.Workflow
 
         [JsonProperty("if_not_compliant_state"), JsonPropertyName("if_not_compliant_state")]
         public int IfNotCompliantState { get; set; }
+
+        /// <summary>
+        /// State the object is moved into when one of the error conditions applies. Without an error state the
+        /// error conditions are not checked.
+        /// </summary>
+        [JsonProperty("error_state"), JsonPropertyName("error_state")]
+        public int? ErrorState { get; set; }
+
+        private ConditionalErrorConditions errorConditions = new();
+
+        /// <summary>
+        /// Conditions checked before the check is called. The first one that applies moves the object into the
+        /// error state, and the check is not called.
+        /// </summary>
+        [JsonProperty("error_conditions"), JsonPropertyName("error_conditions")]
+        public ConditionalErrorConditions ErrorConditions
+        {
+            get => errorConditions;
+            set => errorConditions = value ?? new();
+        }
+    }
+
+    /// <summary>
+    /// Error conditions of a conditional auto-forward.
+    /// </summary>
+    public class ConditionalErrorConditions
+    {
+        /// <summary>
+        /// Maximum time in minutes the object may stay in the state. Empty or not positive: no timeout.
+        /// </summary>
+        [JsonProperty("timeout_minutes"), JsonPropertyName("timeout_minutes")]
+        public int? TimeoutMinutes { get; set; }
+
+        /// <summary>
+        /// True when a timeout is configured.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public bool HasTimeout => TimeoutMinutes > 0;
     }
 
     public class SimpleAutoPromoteParams

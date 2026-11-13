@@ -7,38 +7,30 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 
-<div class="col-sm-4">
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
-        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("attached_content")):</label>
-        <div class="col-sm-8">
-            <Dropdown ElementType="EmailAttachedContent"
-                      SelectedElement="actAttachedContent"
-                      SelectedElementChanged="OnAttachedContentChanged"
-                      ElementToString="@(c => userConfig.GetText(c.ToString()))"
-                      Elements="Enum.GetValues(typeof(EmailAttachedContent)).Cast<EmailAttachedContent>()">
-                <ElementTemplate Context="content">
-                    @(userConfig.GetText(content.ToString()))
-                </ElementTemplate>
-            </Dropdown>
-        </div>
-    </div>
+<div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5527"))">
+    <label class="form-label small mb-1">@(userConfig.GetText("attached_content")):</label>
+    <Dropdown ElementType="EmailAttachedContent"
+              SelectedElement="actAttachedContent"
+              SelectedElementChanged="OnAttachedContentChanged"
+              ElementToString="@(c => userConfig.GetText(c.ToString()))"
+              Elements="Enum.GetValues(typeof(EmailAttachedContent)).Cast<EmailAttachedContent>()">
+        <ElementTemplate Context="content">
+            @(userConfig.GetText(content.ToString()))
+        </ElementTemplate>
+    </Dropdown>
 </div>
-<div class="col-sm-4">
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5530"))">
-        <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmSentMail">@(userConfig.GetText("confirm_sent_mail")):</label>
-        <div class="col-sm-2">
-            <input id="confirmSentMail" class="form-check-input mt-2" type="checkbox" checked="@actConfirmSentMail" @onchange="OnConfirmSentMailChanged" />
-        </div>
+<div class="col-sm-6 mb-2 d-flex align-items-end" data-toggle="tooltip" title="@(userConfig.PureLine("H5530"))">
+    <div class="form-check mb-1">
+        <input id="confirmSentMail" class="form-check-input" type="checkbox" checked="@actConfirmSentMail" @onchange="OnConfirmSentMailChanged" />
+        <label class="form-check-label small" for="confirmSentMail">@(userConfig.GetText("confirm_sent_mail"))</label>
     </div>
 </div>
 @if (ActAction.Scope == WfObjectScopes.RequestTask.ToString())
 {
-    <div class="col-sm-4">
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5539"))">
-            <label class="col-sm-10 col-form-label col-form-label-sm" for="bundleRequestTasksByType">@(userConfig.GetText("bundle_request_tasks_by_type")):</label>
-            <div class="col-sm-2">
-                <input id="bundleRequestTasksByType" class="form-check-input mt-2" type="checkbox" checked="@actBundleRequestTasksByType" @onchange="OnBundleRequestTasksByTypeChanged" />
-            </div>
+    <div class="col-sm-6 mb-2 d-flex align-items-end" data-toggle="tooltip" title="@(userConfig.PureLine("H5539"))">
+        <div class="form-check mb-1">
+            <input id="bundleRequestTasksByType" class="form-check-input" type="checkbox" checked="@actBundleRequestTasksByType" @onchange="OnBundleRequestTasksByTypeChanged" />
+            <label class="form-check-label small" for="bundleRequestTasksByType">@(userConfig.GetText("bundle_request_tasks_by_type"))</label>
         </div>
     </div>
 }

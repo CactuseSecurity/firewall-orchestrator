@@ -9,10 +9,10 @@
         @if (EditActionMode)
         {
             <h5 class="mt-1">@(userConfig.GetText("general"))</h5>
-            <EditActionGeneral ActAction="actAction" AvailableTaskTypes="AvailableTaskTypes" ActionTypeChanged="ActionTypeChanged" ScopeChanged="ScopeChanged" />
+            <EditActionGeneral ActAction="actAction" AvailableTaskTypes="AvailableTaskTypes" ActionTypeChanged="ActionTypeChanged" ScopeChanged="ScopeChanged" EventChanged="EventChanged" />
             <hr />
             <h5 class="mt-1">@(userConfig.GetText("action_specific"))</h5>
-            <div class="form-group row col-sm-12 mt-2">
+            <div class="row mt-2">
                 @switch (actAction.ActionType)
                 {
                     case nameof(StateActionTypes.AutoPromote):
@@ -22,27 +22,21 @@
                         <EditActionAddApproval ActAction="actAction" States="States" UserAndGroupList="UserAndGroupList" />
                         break;
                     case nameof(StateActionTypes.SetAlert):
-                        <div class="col-sm-12">
-                            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5524"))">
-                                <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("message_text")):</label>
-                                <input type="text" class="col-sm-10" @bind="message" />
-                            </div>
+                        <div class="col-sm-12 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5524"))">
+                            <label class="form-label small mb-1" for="actionAlertMessage">@(userConfig.GetText("message_text")):</label>
+                            <input id="actionAlertMessage" type="text" class="form-control form-control-sm" @bind="message" />
                         </div>
                         break;
                     case nameof(StateActionTypes.TrafficPathAnalysis):
-                        <div class="col-sm-4">
-                            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5526"))">
-                                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("option")):</label>
-                                <div class="col-sm-8">
-                                    <Dropdown ElementType="PathAnalysisOptions" @bind-SelectedElement="actPathAnalysisParams.Option"
-                                            ElementToString="@(o => userConfig.GetText(o.ToString()))"
-                                            Elements="Enum.GetValues(typeof(PathAnalysisOptions)).Cast<PathAnalysisOptions>()">
-                                        <ElementTemplate Context="opt">
-                                            @(userConfig.GetText(opt.ToString()))
-                                        </ElementTemplate>
-                                    </Dropdown>
-                                </div>
-                            </div>
+                        <div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5526"))">
+                            <label class="form-label small mb-1">@(userConfig.GetText("option")):</label>
+                            <Dropdown ElementType="PathAnalysisOptions" @bind-SelectedElement="actPathAnalysisParams.Option"
+                                      ElementToString="@(o => userConfig.GetText(o.ToString()))"
+                                      Elements="Enum.GetValues(typeof(PathAnalysisOptions)).Cast<PathAnalysisOptions>()">
+                                <ElementTemplate Context="opt">
+                                    @(userConfig.GetText(opt.ToString()))
+                                </ElementTemplate>
+                            </Dropdown>
                         </div>
                         break;
                     case nameof(StateActionTypes.SendEmail):
@@ -171,6 +165,14 @@
     }
 
     private void ScopeChanged(string? _)
+    {
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Renders the action specific settings again, as some of them depend on the event.
+    /// </summary>
+    private void EventChanged(string? _)
     {
         StateHasChanged();
     }

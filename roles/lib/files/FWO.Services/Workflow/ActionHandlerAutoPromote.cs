@@ -1,6 +1,7 @@
 using FWO.Api.Client.Queries;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using System.Globalization;
 using System.Text.Json;
 
 
@@ -8,7 +9,43 @@ namespace FWO.Services.Workflow
 {
     public partial class ActionHandler
     {
-        private async Task<int?> GetAutoPromoteTargetState(string externalParams, WfStatefulObject statefulObject, WfObjectScopes scope)
+        /// <summary>
+        /// Text key of the ticket comment written when an object is moved into the error state after a timeout.
+        /// </summary>
+        public const string kAutoPromoteTimeoutTextKey = "auto_promote_timeout";
+
+        private const string kAutoPromoteLogTitle = "AutoPromote";
+        private const string kCommentDateFormat = "yyyy-MM-dd HH:mm:ss";
+
+        /// <summary>
+        /// Clock used to measure how long an object has been in its state.
+        /// </summary>
+        public TimeProvider Clock { get; set; } = TimeProvider.System;
+
+        private async Task PerformAutoPromote(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            AutoPromoteDecision decision = await GetAutoPromoteDecision(action.ExternalParams, statefulObject, scope);
+            if (decision.RemainsInState)
+            {
+                Log.WriteDebug(kAutoPromoteLogTitle, $"Action '{action.Name}' keeps {scope} {GetStatefulObjectId(statefulObject, scope)} in state {statefulObject.StateId}.");
+                return;
+            }
+
+            int? toState = decision.ToStateId;
+            if (toState != null && !states.Any(state => state.Id == toState))
+            {
+                return;
+            }
+
+            await wfHandler.AutoPromote(statefulObject, scope, toState);
+            await AddAutoPromoteComment(decision.TicketComment);
+            if (WfStateAction.HasConfirmUiMessage(action.ExternalParams))
+            {
+                wfHandler.DisplayMessage(null, action.Name, BuildAutoPromoteMessage(statefulObject), false);
+            }
+        }
+
+        private async Task<AutoPromoteDecision> GetAutoPromoteDecision(string externalParams, WfStatefulObject statefulObject, WfObjectScopes scope)
         {
             if (!WfStateAction.TryParseAutoPromoteParams(externalParams, out int? toState, out ConditionalAutoPromoteParams? conditionalParams))
             {
@@ -17,18 +54,121 @@ namespace FWO.Services.Workflow
 
             if (conditionalParams == null)
             {
-                return toState;
+                return new AutoPromoteDecision(toState);
             }
 
-            return await EvaluateConditionalAutoPromote(conditionalParams, statefulObject, scope) ? conditionalParams.IfCompliantState : conditionalParams.IfNotCompliantState;
+            AutoPromoteDecision? errorDecision = await CheckErrorConditions(conditionalParams, statefulObject, scope);
+            if (errorDecision != null)
+            {
+                return errorDecision;
+            }
+
+            ConditionalCheckResult checkResult = await EvaluateConditionalAutoPromote(conditionalParams, statefulObject, scope);
+            int targetState = checkResult.Passed ? conditionalParams.IfCompliantState : conditionalParams.IfNotCompliantState;
+            return ConditionalDecision(targetState, checkResult.TicketComment, statefulObject);
         }
 
-        private Task<bool> EvaluateConditionalAutoPromote(ConditionalAutoPromoteParams conditionalParams, WfStatefulObject statefulObject, WfObjectScopes scope)
+        /// <summary>
+        /// A conditional target equal to the current state keeps the object where it is, so that a periodically
+        /// performed action neither moves the object into its own state nor comments the ticket on every run.
+        /// </summary>
+        private static AutoPromoteDecision ConditionalDecision(int targetState, string? ticketComment, WfStatefulObject statefulObject)
+        {
+            return targetState == statefulObject.StateId
+                ? AutoPromoteDecision.Remain
+                : new AutoPromoteDecision(targetState, ticketComment);
+        }
+
+        private async Task<AutoPromoteDecision?> CheckErrorConditions(ConditionalAutoPromoteParams conditionalParams, WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            if (conditionalParams.ErrorState is not int errorState)
+            {
+                return null;
+            }
+
+            string? timeoutComment = await CheckTimeout(conditionalParams.ErrorConditions, statefulObject, scope);
+            return timeoutComment == null ? null : ConditionalDecision(errorState, timeoutComment, statefulObject);
+        }
+
+        /// <summary>
+        /// Checks whether the object has been in its state for longer than the configured timeout.
+        /// </summary>
+        /// <returns>The ticket comment documenting the timeout, or null when no timeout applies.</returns>
+        private async Task<string?> CheckTimeout(ConditionalErrorConditions errorConditions, WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            if (!errorConditions.HasTimeout)
+            {
+                return null;
+            }
+
+            DateTime? stateEntry = await GetStateEntryTime(statefulObject, scope);
+            if (stateEntry is not DateTime enteredAt)
+            {
+                return null;
+            }
+
+            int timeoutMinutes = errorConditions.TimeoutMinutes!.Value;
+            TimeSpan timeInState = Clock.GetUtcNow().UtcDateTime - enteredAt.ToUniversalTime();
+            if (timeInState < TimeSpan.FromMinutes(timeoutMinutes))
+            {
+                return null;
+            }
+
+            string enteredAtText = enteredAt.ToLocalTime().ToString(kCommentDateFormat, CultureInfo.InvariantCulture);
+            Log.WriteInfo(kAutoPromoteLogTitle, $"{scope} {GetStatefulObjectId(statefulObject, scope)} is in state {statefulObject.StateId} " +
+                $"since {enteredAtText}, longer than the timeout of {timeoutMinutes} minutes.");
+            return string.Format(CultureInfo.InvariantCulture, wfHandler.userConfig.GetText(kAutoPromoteTimeoutTextKey), timeoutMinutes, enteredAtText);
+        }
+
+        /// <summary>
+        /// Returns the time the object entered its current state, taken from the state change the middleware
+        /// recorded when it executed the state actions.
+        /// </summary>
+        /// <returns>The time, or null when no state change into the current state is recorded.</returns>
+        private async Task<DateTime?> GetStateEntryTime(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            long objectId = GetStatefulObjectId(statefulObject, scope);
+            if (objectId <= 0)
+            {
+                return null;
+            }
+
+            try
+            {
+                List<WfStateChangeExecution> executions = await apiConnection.SendQueryAsync<List<WfStateChangeExecution>>(
+                    RequestQueries.getStateChangeExecution, new { objectScope = scope.ToString(), objectId }) ?? [];
+                WfStateChangeExecution? execution = executions.FirstOrDefault(candidate => candidate.ToStateId == statefulObject.StateId);
+                if (execution == null)
+                {
+                    Log.WriteDebug(kAutoPromoteLogTitle, $"No recorded state change of {scope} {objectId} into state {statefulObject.StateId}.");
+                    return null;
+                }
+                return execution.ExecutedAt.ToLocalTime();
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning(kAutoPromoteLogTitle, $"State entry time of {scope} {objectId} could not be read: {exception.Message}");
+                return null;
+            }
+        }
+
+        private async Task AddAutoPromoteComment(string? commentText)
+        {
+            if (string.IsNullOrWhiteSpace(commentText) || wfHandler.ActTicket.Id <= 0)
+            {
+                return;
+            }
+            await wfHandler.ConfAddCommentToTicket(commentText);
+        }
+
+        private async Task<ConditionalCheckResult> EvaluateConditionalAutoPromote(ConditionalAutoPromoteParams conditionalParams, WfStatefulObject statefulObject, WfObjectScopes scope)
         {
             return conditionalParams.ToBeCalled switch
             {
-                ToBeCalled.PolicyCheck => ExecutePolicyCheck(conditionalParams.PolicyIds, conditionalParams.CheckResultLabel, statefulObject, scope),
-                _ => Task.FromResult(false)
+                ToBeCalled.PolicyCheck => new ConditionalCheckResult(
+                    await ExecutePolicyCheck(conditionalParams.PolicyIds, conditionalParams.CheckResultLabel, statefulObject, scope)),
+                ToBeCalled.RolloutCheck => await ExecuteRolloutCheck(conditionalParams.CheckResultLabel, statefulObject, scope),
+                _ => new ConditionalCheckResult(false)
             };
         }
 
@@ -64,7 +204,7 @@ namespace FWO.Services.Workflow
 
                 bool isCompliant = await requestedRulePolicyChecker.AreRequestTasksCompliant(selectedPolicyIds, policyCheckTasks);
                 Log.WriteDebug("Policy Check", $"Requested-rule policy check completed with result '{isCompliant}'.");
-                await AttachPolicyCheckResultLabel(requestedRuleTasks, checkResultLabel, isCompliant);
+                await AttachCheckResultLabel(requestedRuleTasks, checkResultLabel, isCompliant);
                 return isCompliant;
             }
             catch (Exception exc)
@@ -74,14 +214,24 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private async Task AttachPolicyCheckResultLabel(IEnumerable<WfReqTask> requestTasks, string checkResultLabel, bool isCompliant)
+        /// <summary>
+        /// Stores the check result under the label in the additional info of the request tasks. Tasks already
+        /// carrying the result are left alone, so that a periodically performed check does not write them again.
+        /// </summary>
+        private async Task AttachCheckResultLabel(IEnumerable<WfReqTask> requestTasks, string checkResultLabel, bool passed)
         {
             if (string.IsNullOrWhiteSpace(checkResultLabel))
             {
                 return;
             }
 
-            await wfHandler.SetAddInfoInReqTasks(requestTasks, checkResultLabel.Trim(), isCompliant.ToString().ToLowerInvariant());
+            string label = checkResultLabel.Trim();
+            string result = passed.ToString().ToLowerInvariant();
+            List<WfReqTask> changedTasks = [.. requestTasks.Where(task => task.GetAddInfoValue(label) != result)];
+            if (changedTasks.Count > 0)
+            {
+                await wfHandler.SetAddInfoInReqTasks(changedTasks, label, result);
+            }
         }
 
         private async Task<List<WfReqTask>> GetRequestedRuleTasksForCallingTicket(WfStatefulObject statefulObject, WfObjectScopes scope)

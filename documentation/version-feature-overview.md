@@ -278,3 +278,5 @@ For a feature-centric, thematically grouped view see
 - The promotion-mode setting supports an action-buttons-only option in addition to ticket, task and combined promotion.
 
 ### 9.9.2 - 11.11.2026
+- New state action event "While set": the middleware performs such actions periodically (configurable interval, default 10 minutes) as long as a ticket is in the state.
+- The conditional auto-forward offers a "Rollout check" (all involved managements imported after the implementation), an optional error state with a timeout checked first, and the target "Remain in state".

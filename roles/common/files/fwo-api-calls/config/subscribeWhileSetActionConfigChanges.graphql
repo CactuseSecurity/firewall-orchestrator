@@ -1,0 +1,6 @@
+subscription subscribeWhileSetActionConfigChanges {
+  config(where: { config_key: { _eq: "whileSetActionSleepTime" } }) {
+    config_key
+    config_value
+  }
+}

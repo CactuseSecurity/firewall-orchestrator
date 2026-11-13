@@ -109,6 +109,8 @@ INSERT INTO txt VALUES ('OnSet',			    'German', 	'Beim Erreichen');
 INSERT INTO txt VALUES ('OnSet',			    'English', 	'On set');
 INSERT INTO txt VALUES ('OnLeave',			    'German', 	'Beim Verlassen');
 INSERT INTO txt VALUES ('OnLeave',			    'English', 	'On leave');
+INSERT INTO txt VALUES ('WhileSet',			    'German', 	'Solange gesetzt');
+INSERT INTO txt VALUES ('WhileSet',			    'English', 	'While set');
 INSERT INTO txt VALUES ('OfferButton',			'German', 	'Schaltfl&auml;che anbieten');
 INSERT INTO txt VALUES ('OfferButton',			'English', 	'Offer button');
 INSERT INTO txt VALUES ('OwnerChange',			'German', 	'Eigent&uuml;merwechsel');
@@ -657,6 +659,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Neue REST-Aufrufe der Modellierung: <code>getAvailableInterfacesForApp</code> liefert die ver&ouml;ffentlichten Schnittstellen, die eine Anwendung nutzen darf, mit aufgel&ouml;sten Netzwerk- und Dienstobjekten; <code>getAppRolesPerApp</code> liefert die App-Rollen einer Anwendung und <code>getNetworkAreas</code> die Netzwerkareas mit ihren Subnetzen. Modellierer erhalten nur Daten ihrer eigenen Anwendungen, Netzwerkareas nur, wenn eine ihrer Anwendungen Common Services nutzen darf.</li>
     <li>In der Genehmigungsphase gibt es eine neue Detailansicht f&uuml;r Tickets: Zugriffs-, Objekt-, Gruppen- und Zeitobjekt-Auftr&auml;ge werden als Karten mit aufgel&ouml;sten oder technischen Details angezeigt. Je nach erlaubten &Auml;nderungen k&ouml;nnen einzelne Felder &uuml;ber eigene Bearbeitungsdialoge ge&auml;ndert werden; Zeitobjekte werden aus der Flow DB oder aus demselben Ticket ausgew&auml;hlt und mit der konfigurierten Genauigkeit dargestellt.</li>
     <li>Neuer Report-Typ &quot;Changes: NAT&quot; zeigt &Auml;nderungen an NAT-Regeln mit urspr&uuml;nglicher und umgesetzter Quelle, Ziel und Dienst. In den FW-&Auml;nderungstrigger-Einstellungen k&ouml;nnen eigene Email-Benachrichtigungen &uuml;ber NAT-Regel&auml;nderungen (inklusive &Auml;nderungen an in NAT-Regeln verwendeten Objekten) mit diesem Report angelegt werden.</li>
+    <li>Neues Ereignis &quot;Solange gesetzt&quot; f&uuml;r Status-Aktionen: Die Middleware f&uuml;hrt solche Aktionen in einem einstellbaren Intervall (Standard 10 Minuten) aus, solange ein Ticket im Status ist. Die bedingte automatische Weiterleitung bietet zus&auml;tzlich die &quot;Rollout-Pr&uuml;fung&quot;, die wartet, bis alle betroffenen Managements nach Abschluss der Implementierung erfolgreich importiert wurden, einen Status bei Fehler mit vorab gepr&uuml;fter Zeit&uuml;berschreitung sowie den Zielstatus &quot;Im Status bleiben&quot;.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -678,6 +681,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>New modelling REST calls: <code>getAvailableInterfacesForApp</code> returns the published interfaces an application may use, with resolved network and service objects; <code>getAppRolesPerApp</code> returns the app roles of an application and <code>getNetworkAreas</code> the network areas with their subnets. Modellers only get data of their own applications, and network areas only if one of their applications may use common services.</li>
     <li>The approval phase now provides a ticket details view: access, object, group, and time-object tasks are shown as cards with resolved or technical details. Depending on the allowed changes, individual fields can be edited through dedicated dialogs; time objects are selected from the Flow DB or from the same ticket and displayed with the configured precision.</li>
     <li>New report type &quot;Changes: NAT&quot; shows NAT rule changes with original and translated source, destination and service. Separate email notifications about NAT rule changes (including changes of objects used in NAT rules) with this report can be defined in the FW change trigger settings.</li>
+    <li>New event &quot;While set&quot; for state actions: the middleware performs such actions in a configurable interval (default 10 minutes) as long as a ticket is in the state. The conditional auto-forward additionally offers the &quot;Rollout check&quot;, which waits until all affected managements have been imported successfully after the implementation was completed, an error state with a timeout checked first, and the target &quot;Remain in state&quot;.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -1455,10 +1459,28 @@ INSERT INTO txt VALUES ('successState',         'German',   'Status bei Erfolg')
 INSERT INTO txt VALUES ('successState',         'English',  'Success state');
 INSERT INTO txt VALUES ('errorState',           'German',   'Status bei Fehler');
 INSERT INTO txt VALUES ('errorState',           'English',  'Error state');
+INSERT INTO txt VALUES ('ifImportedState',      'German',   'Falls importiert Status');
+INSERT INTO txt VALUES ('ifImportedState',      'English',  'If imported state');
+INSERT INTO txt VALUES ('ifNotImportedState',   'German',   'Falls nicht importiert Status');
+INSERT INTO txt VALUES ('ifNotImportedState',   'English',  'If not imported state');
+INSERT INTO txt VALUES ('remain_in_state',      'German',   'Im Status bleiben');
+INSERT INTO txt VALUES ('remain_in_state',      'English',  'Remain in state');
+INSERT INTO txt VALUES ('timeout_minutes',      'German',   'Zeit&uuml;berschreitung nach (Minuten)');
+INSERT INTO txt VALUES ('timeout_minutes',      'English',  'Timeout after (minutes)');
+INSERT INTO txt VALUES ('auto_promote_timeout', 'German',   'Zeit&uuml;berschreitung: seit {1} l&auml;nger als {0} Minuten im Status, daher in den Status bei Fehler verschoben.');
+INSERT INTO txt VALUES ('auto_promote_timeout', 'English',  'Timeout: in the state since {1} for more than {0} minutes, therefore moved into the error state.');
+INSERT INTO txt VALUES ('rollout_check_ok',     'German',   'Rollout-Pr&uuml;fung erfolgreich: alle beteiligten Managements wurden nach Abschluss der Implementierung ({0}) importiert: {1}');
+INSERT INTO txt VALUES ('rollout_check_ok',     'English',  'Rollout check successful: all involved managements were imported after the implementation was completed ({0}): {1}');
+INSERT INTO txt VALUES ('rollout_check_ok_no_mgmt', 'German', 'Rollout-Pr&uuml;fung erfolgreich: das Ticket betrifft kein Management.');
+INSERT INTO txt VALUES ('rollout_check_ok_no_mgmt', 'English', 'Rollout check successful: the ticket does not involve any management.');
+INSERT INTO txt VALUES ('rollout_check_missing', 'German',  'Rollout-Pr&uuml;fung: f&uuml;r folgende Managements wurde noch kein nach Abschluss der Implementierung ({0}) gestarteter Import erfolgreich beendet: {1}');
+INSERT INTO txt VALUES ('rollout_check_missing', 'English', 'Rollout check: no import started after the implementation was completed ({0}) has finished successfully yet for: {1}');
 INSERT INTO txt VALUES ('checkResultLabel',     'German',   'Pr&uuml;fergebnis-Label');
 INSERT INTO txt VALUES ('checkResultLabel',     'English',  'Check result label');
 INSERT INTO txt VALUES ('PolicyCheck',          'German',   'Policy-Pr&uuml;fung');
 INSERT INTO txt VALUES ('PolicyCheck',          'English',  'Policy Check');
+INSERT INTO txt VALUES ('RolloutCheck',         'German',   'Rollout-Pr&uuml;fung');
+INSERT INTO txt VALUES ('RolloutCheck',         'English',  'Rollout Check');
 INSERT INTO txt VALUES ('free_text', 			'German', 	'Freitext');
 INSERT INTO txt VALUES ('free_text', 			'English', 	'Free Text');
 INSERT INTO txt VALUES ('back_to_ticket', 		'German', 	'Zur&uuml;ck zum Ticket');
@@ -2887,6 +2909,8 @@ INSERT INTO txt VALUES ('externalRequestSleepTime','German','Externes Auftrags-I
 INSERT INTO txt VALUES ('externalRequestSleepTime','English','External Request sleep time (in seconds)');
 INSERT INTO txt VALUES ('externalRequestStartAt',  'German','Externer Auftrags-Start');
 INSERT INTO txt VALUES ('externalRequestStartAt',  'English','External Request start at');
+INSERT INTO txt VALUES ('whileSetActionSleepTime','German','Intervall der Aktionen &quot;Solange gesetzt&quot; (in Minuten)');
+INSERT INTO txt VALUES ('whileSetActionSleepTime','English','Interval of &quot;While set&quot; actions (in minutes)');
 INSERT INTO txt VALUES ('externalRequestWaitCycles','German','Anzahl Wartezyklen');
 INSERT INTO txt VALUES ('externalRequestWaitCycles','English','Number wait cycles');
 INSERT INTO txt VALUES ('autoDiscoverSleepTime','German', 	'Autodiscover-Intervall (in Stunden)');
@@ -7639,11 +7663,13 @@ INSERT INTO txt VALUES ('H5511', 'German',  'Allgemeine Parameter f&uuml;r alle 
 INSERT INTO txt VALUES ('H5511', 'English', 'General parameters for all action types: Here it can be defined, under which conditions an action should be performed.');
 INSERT INTO txt VALUES ('H5512', 'German',  'Name: Der Name, unter dem die Aktion den Status zugeordnet wird (da intern eine Id verarbeitet wird, sind auch doppelt vergebene Namen m&ouml;glich).');
 INSERT INTO txt VALUES ('H5512', 'English', 'Name: The name to be found in the state assignment (as internally the Id is processed, duplicate names are possible).');
-INSERT INTO txt VALUES ('H5513', 'German',  'Ereignis: Es wird zwischen drei Ereignistypen unterschieden: Bei "Beim Erreichen" wird die Aktion beim Erreichen, bei "Beim Verlassen" beim Verlassen des zugeordneten Status ausgel&ouml;st.
+INSERT INTO txt VALUES ('H5513', 'German',  'Ereignis: Es wird zwischen folgenden Ereignistypen unterschieden: Bei "Beim Erreichen" wird die Aktion beim Erreichen, bei "Beim Verlassen" beim Verlassen des zugeordneten Status ausgel&ouml;st.
+    Bei "Solange gesetzt" f&uuml;hrt die Middleware die Aktion im Intervall der Aktionen "Solange gesetzt" wiederholt aus, solange sich das Objekt in dem zugeordneten Status befindet. Aktuell werden so nur Aktionen mit Geltungsbereich Ticket ausgef&uuml;hrt. Gedacht ist dies f&uuml;r Aktionen, die auf etwas warten, z.B. die bedingte automatische Weiterleitung mit Rollout-Pr&uuml;fung. F&uuml;r die automatische Weiterleitung wird dabei keine Best&auml;tigung per UI-Meldung angeboten, da kein Benutzer beteiligt ist.
     Bei "Schaltfl&auml;che anbieten" wird eine Schaltfl&auml;che zur manuellen Ausf&uuml;hrung in dem ausgew&auml;hlten Objekttyp eingeblendet, solange der zugeordnete Status besteht. In diesem Fall ist auch der auf der Schaltfl&auml;che erscheinende Text auszuf&uuml;llen.
     F&uuml;r den Objekttyp Genehmigung ist die Einblendung von Schaltfl&auml;chen (noch) nicht vorgesehen.
 ');
-INSERT INTO txt VALUES ('H5513', 'English', 'Event: It has to be distinguished between three event types:  For "On set" the action is performed, if the target state is reached, for "On leave", if this state is left.
+INSERT INTO txt VALUES ('H5513', 'English', 'Event: It has to be distinguished between the following event types:  For "On set" the action is performed, if the target state is reached, for "On leave", if this state is left.
+    With "While set" the middleware performs the action repeatedly in the interval of the "While set" actions, as long as the object is in the assigned state. Currently only actions with scope ticket are performed this way. It is intended for actions that wait for something, e.g. the conditional auto-forward with rollout check. For the auto-forward no confirmation via UI message is offered then, as no user is involved.
     With "Offer button" a button for manual execution is displayed in the selected object type as long as it is in the assigned state. In this case also the text for the button has to be filled.
     For approval objects the display of buttons is not provided (yet).
 ');
@@ -7685,15 +7711,17 @@ INSERT INTO txt VALUES ('H5527', 'German',  'Email verschicken: Es kann zwischen
 INSERT INTO txt VALUES ('H5527', 'English', 'Send Email: There are different options for the direct recipients and optionally for the recipients in Cc to be chosen.
     Furtheron subject and body of the email message have to be defined here. Attached Content defines which workflow content is included in the email: as a file for layouts with attachments, or in place of the @@CONTENT@@ placeholder for layouts without attachments.
 ');
-INSERT INTO txt VALUES ('H5528', 'German',  'Bedingt: W&auml;hlt einen Pr&uuml;faufruf aus. Fuer "Policy-Pr&uuml;fung" wird eine Mehrfachauswahl der verfuegbaren Policies angeboten.
+INSERT INTO txt VALUES ('H5528', 'German',  'Bedingt: W&auml;hlt einen Pr&uuml;faufruf aus: "Policy-Pr&uuml;fung" oder "Rollout-Pr&uuml;fung". Fuer "Policy-Pr&uuml;fung" wird eine Mehrfachauswahl der verfuegbaren Policies angeboten.
     Optional kann ein Label gesetzt werden; dann wird dieses mit dem Pr&uuml;fergebnis "true" oder "false" in den AdditionalInfo der gepr&uuml;ften Request Tasks gespeichert.
-    Gepr&uuml;ft werden nur die in den Request Tasks des aufrufenden Tickets angeforderten Regeln. Der Status "Falls konform" wird nur verwendet, wenn alle ausgew&auml;hlten Policies ohne Verstoss pr&uuml;fen.
+    Bei der Policy-Pr&uuml;fung werden nur die in den Request Tasks des aufrufenden Tickets angeforderten Regeln gepr&uuml;ft. Der Status "Falls konform" wird nur verwendet, wenn alle ausgew&auml;hlten Policies ohne Verstoss pr&uuml;fen.
     Andernfalls wird "Falls nicht konform" verwendet.
+    Als Zielstatus kann auch "Im Status bleiben" gew&auml;hlt werden: Das Objekt bleibt dann im aktuellen Status, z.B. um die Pr&uuml;fung mit dem Ereignis "Solange gesetzt" sp&auml;ter zu wiederholen. Ein Zielstatus gleich dem aktuellen Status wirkt ebenso.
 ');
-INSERT INTO txt VALUES ('H5528', 'English', 'Conditional: Select a check to execute. For "Policy Check", a multiselect of the available policies is shown.
-    You can optionally set a label; if set, that label is stored with the check result "true" or "false" in the AdditionalInfo of the checked request tasks. 
-    Only the rules requested in the request tasks of the calling ticket are checked. The "If compliant state" target is used only if all selected policies pass without violations.
+INSERT INTO txt VALUES ('H5528', 'English', 'Conditional: Select a check to execute: "Policy Check" or "Rollout Check". For "Policy Check", a multiselect of the available policies is shown.
+    You can optionally set a label; if set, that label is stored with the check result "true" or "false" in the AdditionalInfo of the checked request tasks.
+    For the policy check, only the rules requested in the request tasks of the calling ticket are checked. The "If compliant state" target is used only if all selected policies pass without violations.
     Otherwise, the "If not compliant state" target is used.
+    "Remain in state" can be selected as target as well: the object then stays in its current state, e.g. to repeat the check later with the event "While set". A target equal to the current state has the same effect.
 ');
 INSERT INTO txt VALUES ('H5529', 'German',  'Modellierung aktualisieren: Hier kann einer der unter Modellierungseinstellungen definierten Integrationsstatus ausgew&auml;hlt werden. Der Wert "Keine(r/s)" bedeutet, dass kein Modellierungsstatus gesetzt wird.');
 INSERT INTO txt VALUES ('H5529', 'English', 'Update Modelling: Select one of the integration states defined in the modelling settings. The value "None" means that no modelling state is set.');
@@ -7727,6 +7755,18 @@ INSERT INTO txt VALUES ('H5538', 'German',  'Die Aktions&uuml;bersicht zeigt zus
 INSERT INTO txt VALUES ('H5538', 'English', 'The action overview additionally shows how many states use each action. The edit dialog is split into "General", "Action specific", and "Using states"; the linked states are listed there and can be added or removed directly.');
 INSERT INTO txt VALUES ('H5539', 'German',  'Request Tasks nach Task-Typ b&uuml;ndeln: Wenn aktiviert und Beantragte Verbindungen als angeh&auml;ngter Inhalt gew&auml;hlt ist, enth&auml;lt die Email alle passenden Request Tasks desselben Task-Typs. Eine automatische Einmal-Ausl&ouml;sung pro Task-Typ erfolgt nur, wenn der Workflow die Email-Aktionen gesammelt ausf&uuml;hrt, aktuell im Internal-Work-OnSet-Ablauf. In anderen Abl&auml;ufen beeinflusst die Option den Email-Inhalt, aber nicht zwingend die Anzahl der ausgel&ouml;sten Statusaktionen.');
 INSERT INTO txt VALUES ('H5539', 'English', 'Bundle request tasks by task type: If enabled and Requested Connections is selected as attached content, the email contains all matching request tasks of the same task type. Automatic single delivery per task type is only applied when the workflow executes email actions through a collector, currently in the Internal Work OnSet flow. In other flows, the option affects the email content but does not necessarily reduce the number of triggered state actions.');
+INSERT INTO txt VALUES ('H5540', 'German',  'Rollout-Pr&uuml;fung: Pr&uuml;ft, ob jedes in den Implementierungs-Auftr&auml;gen (bzw. im fachlichen Auftrag ohne Implementierungs-Auftr&auml;ge) des Tickets betroffene Management von einem Import erfolgreich importiert wurde, der nach Abschluss der Implementierung (sp&auml;testes Ende der Implementierungs-Auftr&auml;ge) gestartet ist. Untergeordnete Managements gelten mit dem Import ihres &uuml;bergeordneten Managements als importiert.
+    Typischerweise wird die Aktion (Geltungsbereich Ticket, Ereignis "Solange gesetzt") dem Status zugeordnet, der "alle Implementierungen erledigt" bedeutet, z.B. "Implementiert". Liegen alle Importe vor, wird das Ticket in den Status "Falls importiert" verschoben. F&uuml;r "Falls nicht importiert" wird "Im Status bleiben" gew&auml;hlt, damit bis zum n&auml;chsten Lauf gewartet wird. Ein Status bei Fehler mit Zeit&uuml;berschreitung (sollte mindestens zwei Import-Intervalle abdecken) begrenzt das Warten.
+    Beim Verschieben wird das Ergebnis als Kommentar am Ticket festgehalten. Benachrichtigungen und Alarme werden als Aktionen ("Email verschicken", "Alarm ausl&ouml;sen") der Zielstatus eingerichtet.');
+INSERT INTO txt VALUES ('H5540', 'English', 'Rollout check: Checks whether every management affected by the implementation tasks of the ticket (resp. by the request task if it has no implementation tasks) has been imported successfully by an import started after the implementation was completed (latest end of the implementation tasks). Sub-managements count as imported with the import of their super management.
+    Typically the action (scope ticket, event "While set") is attached to the state meaning "all implementations done", e.g. "Implemented". If all imports are found, the ticket is moved into the "If imported state". For "If not imported state" select "Remain in state", so that the check waits for the next run. An error state with a timeout (should cover at least two import intervals) limits the waiting time.
+    When the ticket is moved, the result is recorded as a ticket comment. Notifications and alerts are set up as actions ("Send email", "Set alert") of the target states.');
+INSERT INTO txt VALUES ('H5540a', 'German',  'Status bei Fehler und Fehlerbedingungen: Ist ein Status bei Fehler gesetzt, werden vor dem Pr&uuml;faufruf die Fehlerbedingungen gepr&uuml;ft. Trifft eine zu, wird das Objekt in den Status bei Fehler verschoben, ohne dass die Pr&uuml;fung aufgerufen wird.
+    Aktuell gibt es die Bedingung Zeit&uuml;berschreitung: Das Objekt ist l&auml;nger als die angegebenen Minuten im aktuellen Status. Die Zeit wird ab dem von der Middleware aufgezeichneten Statuswechsel gemessen; ohne aufgezeichneten Wechsel in den aktuellen Status greift die Zeit&uuml;berschreitung nicht. Die Zeit&uuml;berschreitung wird als Kommentar am Ticket festgehalten.');
+INSERT INTO txt VALUES ('H5540a', 'English', 'Error state and error conditions: If an error state is set, the error conditions are checked before the check is called. If one of them applies, the object is moved into the error state without calling the check.
+    Currently there is the condition timeout: the object has been in its current state for longer than the given minutes. The time is measured from the state change recorded by the middleware; without a recorded change into the current state the timeout does not apply. The timeout is recorded as a ticket comment.');
+INSERT INTO txt VALUES ('H5540b', 'German',  'Intervall der Aktionen "Solange gesetzt" (in Minuten): legt fest, wie oft die Middleware die Aktionen mit dem Ereignis "Solange gesetzt" ausf&uuml;hrt (Standard 10). Mit 0 werden diese Aktionen nicht ausgef&uuml;hrt.');
+INSERT INTO txt VALUES ('H5540b', 'English', 'Interval of "While set" actions (in minutes): defines how often the middleware performs the actions with the event "While set" (default 10). With 0 these actions are not performed.');
 INSERT INTO txt VALUES ('H5541', 'German',  'In der Status-Matrix werden die verarbeitbaren Status pro Phase und Tasktyp festgelegt.
     Es gibt eine Master-Matrix, welche die Eigenschaften auf Ticket-Ebene beschreibt, sowie und f&uuml;r jeden Tasktyp separate Matrizen.
     Oberhalb der Konfigurationsauswahl k&ouml;nnen Sichtbarkeitsgruppen und &Uuml;bergangsgruppen bearbeitet sowie neue leere Konfigurationen oder Kopien einer ausgew&auml;hlten Konfiguration angelegt werden. Nur inaktive Konfigurationen k&ouml;nnen gel&ouml;scht werden; nicht mehr verwendete Phasenmatrizen werden dabei ebenfalls entfernt. Mitglieder von Sichtbarkeitsgruppen k&ouml;nnen als DN eingegeben oder &uuml;ber die Benutzer- und Gruppensuche ausgew&auml;hlt werden. Beim L&ouml;schen einer Sichtbarkeitsgruppe wird ihre Zuordnung zu &Uuml;bergangsgruppen entfernt. Beim L&ouml;schen einer &Uuml;bergangsgruppe werden auch ihre &Uuml;berg&auml;nge und Phasenzuordnungen gel&ouml;scht. Genau eine Konfiguration ist aktiv und wird zur Laufzeit verwendet.

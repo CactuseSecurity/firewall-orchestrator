@@ -1,0 +1,14 @@
+# Reads the last executed state change of a workflow object. When its target state is the current state of the
+# object, its execution time tells since when the object is in that state.
+
+query getStateChangeExecution($objectScope: String!, $objectId: bigint!) {
+  request_state_change_execution(
+    where: { object_scope: { _eq: $objectScope }, object_id: { _eq: $objectId } }
+  ) {
+    object_scope
+    object_id
+    from_state_id
+    to_state_id
+    executed_at
+  }
+}

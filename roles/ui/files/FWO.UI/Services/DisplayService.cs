@@ -69,6 +69,11 @@ namespace FWO.Ui.Services
                 return userConfig.GetText("Conditional");
             }
 
+            if (state.Id == WfStateAction.RemainStateId)
+            {
+                return userConfig.GetText("remain_in_state");
+            }
+
             return state.Name;
         }
 

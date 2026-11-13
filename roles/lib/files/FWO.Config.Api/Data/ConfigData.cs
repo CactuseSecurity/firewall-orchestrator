@@ -146,6 +146,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("externalRequestStartAt"), JsonPropertyName("externalRequestStartAt")]
         public DateTime ExternalRequestStartAt { get; set; } = DateTime.Now;
 
+        /// <summary>
+        /// Interval in minutes in which the middleware performs the state actions with event "While set".
+        /// </summary>
+        [JsonProperty("whileSetActionSleepTime"), JsonPropertyName("whileSetActionSleepTime")]
+        public int WhileSetActionSleepTime { get; set; } = 10;
+
         [JsonProperty("recertificationMode"), JsonPropertyName("recertificationMode")]
         public RecertificationMode RecertificationMode { get; set; } = RecertificationMode.RuleByRule;
 

@@ -19,6 +19,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getConfigItemByKey;
         public static readonly string subscribeAutodiscoveryConfigChanges;
         public static readonly string subscribeExternalRequestConfigChanges;
+        public static readonly string subscribeWhileSetActionConfigChanges;
         public static readonly string subscribeDailyCheckConfigChanges;
         public static readonly string subscribeFlowRequestConfigChanges;
         public static readonly string subscribeImportAppDataConfigChanges;
@@ -52,6 +53,7 @@ namespace FWO.Api.Client.Queries
                 upsertConfigItems = GetQueryText("config/upsertConfigItems.graphql");
                 subscribeAutodiscoveryConfigChanges = GetQueryText("config/subscribeAutodiscoveryConfigChanges.graphql");
                 subscribeExternalRequestConfigChanges = GetQueryText("config/subscribeExternalRequestConfigChanges.graphql");
+                subscribeWhileSetActionConfigChanges = GetQueryText("config/subscribeWhileSetActionConfigChanges.graphql");
                 subscribeDailyCheckConfigChanges = GetQueryText("config/subscribeDailyCheckConfigChanges.graphql");
                 subscribeFlowRequestConfigChanges = GetQueryText("config/subscribeFlowRequestConfigChanges.graphql");
                 subscribeImportAppDataConfigChanges = GetQueryText("config/subscribeImportAppDataConfigChanges.graphql");

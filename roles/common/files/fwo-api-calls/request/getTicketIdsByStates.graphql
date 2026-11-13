@@ -1,0 +1,6 @@
+query getTicketIdsByStates($stateIds: [Int!]!) {
+  request_ticket(where: { state_id: { _in: $stateIds } }, order_by: { id: asc }) {
+    id
+    state_id
+  }
+}

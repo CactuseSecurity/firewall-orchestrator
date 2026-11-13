@@ -12,6 +12,7 @@
   - Check Point: hits are fetched per gateway (`hits-settings.target`); global layers of a multi-domain server are not covered. FortiManager: the last hit of the policy package is stored for every gateway using the package
   - manual run: `import_mgm.py -m <mgm_id> --rule_hits`
   - "last import" queries (rollback, import status, daily check, last complete/successful import) only consider configuration imports
+- installer: pin the .NET SDK to `dotnet_version` (10.0) with a `global.json` below `/usr/local/fworch`, so a newer major SDK installed alongside (e.g. .NET 11 on GitHub runners) no longer builds the middleware, UI and unit tests; the repository and the CI workflows use the same pin, and the test-install workflow checks that all pins match (#5700)
 
 ## 9.9.2 - 11.11.2026
 - dependencies: update NuGet packages (AngleSharp 1.10.1, bunit 2.15.2, IPNetwork2 5.0.1, Microsoft.AspNetCore.Http 2.3.14, Microsoft.NET.Test.Sdk 18.11.1, Quartz 4.7.3, Scalar.AspNetCore 2.20.0, SoPro.FancyTable 1.5.0)

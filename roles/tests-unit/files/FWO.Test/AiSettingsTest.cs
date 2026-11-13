@@ -166,6 +166,55 @@ internal class AiSettingsTest
     }
 
     /// <summary>
+    /// Verifies that the switches of the AI functions are read ignoring case, and are off for a missing or unreadable
+    /// value, so that a function is only offered once it is switched on. Their keys are among those the harness reads.
+    /// </summary>
+    [TestCase("True", true)]
+    [TestCase("true", true)]
+    [TestCase(" TRUE ", true)]
+    [TestCase("False", false)]
+    [TestCase("1", false)]
+    [TestCase("yes", false)]
+    [TestCase("", false)]
+    [TestCase(null, false)]
+    public void FromConfigValues_ReadsSwitchesOffUnlessTrue(string? value, bool expected)
+    {
+        Dictionary<string, string?> configValues = new()
+        {
+            [AiSettings.kChatKey] = value,
+            [AiSettings.kReasonCheckKey] = value
+        };
+
+        AiSettings settings = AiSettings.FromConfigValues(configValues);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(settings.ChatEnabled, Is.EqualTo(expected));
+            Assert.That(settings.ReasonCheckEnabled, Is.EqualTo(expected));
+            Assert.That(AiSettings.kKeys, Does.Contain(AiSettings.kChatKey));
+            Assert.That(AiSettings.kKeys, Does.Contain(AiSettings.kReasonCheckKey));
+        });
+    }
+
+    /// <summary>
+    /// Verifies that each switch is read from its own config key.
+    /// </summary>
+    [Test]
+    public void FromConfigValues_ReadsEachSwitchFromItsKey()
+    {
+        Dictionary<string, string?> configValues = new()
+        {
+            [AiSettings.kChatKey] = "True",
+            [AiSettings.kReasonCheckKey] = "False"
+        };
+
+        AiSettings settings = AiSettings.FromConfigValues(configValues);
+
+        Assert.That(settings.ChatEnabled, Is.True);
+        Assert.That(settings.ReasonCheckEnabled, Is.False);
+    }
+
+    /// <summary>
     /// Verifies that OAuth 2.0 needs a credential too, but no API key.
     /// </summary>
     [Test]
@@ -289,12 +338,18 @@ internal class AiSettingsTest
         settings.CompactionReserveTokens = 25000;
         settings.AuthMethod = AiAuthMethod.OAuth2ClientCredentials;
         settings.TokenUrl = $" {kTokenUrl} ";
+        settings.ChatEnabled = true;
+        settings.ReasonCheckEnabled = true;
 
         config.SetAiSettings(settings);
         AiSettings readBack = config.GetAiSettings();
 
         Assert.Multiple(() =>
         {
+            Assert.That(config.AiChatEnabled, Is.True);
+            Assert.That(config.AiReasonCheckEnabled, Is.True);
+            Assert.That(readBack.ChatEnabled, Is.True);
+            Assert.That(readBack.ReasonCheckEnabled, Is.True);
             Assert.That(config.AiModel, Is.EqualTo(kModel));
             Assert.That(config.AiEndpoint, Is.EqualTo(kHttpsEndpoint));
             Assert.That(config.AiTokenUrl, Is.EqualTo(kTokenUrl));
@@ -330,6 +385,10 @@ internal class AiSettingsTest
             Assert.That(fromConfig.MaxIterationsPerRequest, Is.EqualTo(defaults.MaxIterationsPerRequest));
             Assert.That(fromConfig.MaxConsecutiveErrorsPerRequest, Is.EqualTo(defaults.MaxConsecutiveErrorsPerRequest));
             Assert.That(fromConfig.CompactionReserveTokens, Is.EqualTo(defaults.CompactionReserveTokens));
+            Assert.That(fromConfig.ChatEnabled, Is.False);
+            Assert.That(fromConfig.ReasonCheckEnabled, Is.False);
+            Assert.That(defaults.ChatEnabled, Is.False);
+            Assert.That(defaults.ReasonCheckEnabled, Is.False);
         });
     }
 

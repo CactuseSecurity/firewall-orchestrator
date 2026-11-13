@@ -90,7 +90,8 @@ public sealed class AiSettingsRefresher
         try
         {
             agentFactories.SetFactory(createAgentFactory(settings));
-            logger.LogInformation("Applied the AI settings: provider {Provider}, model {Model}.", settings.Values.Provider, settings.Values.Model);
+            logger.LogInformation("Applied the AI settings: provider {Provider}, model {Model}, chat {ChatEnabled}, reason check {ReasonCheckEnabled}.",
+                settings.Values.Provider, settings.Values.Model, settings.Values.ChatEnabled, settings.Values.ReasonCheckEnabled);
         }
         catch (Exception exception)
         {

@@ -24,6 +24,7 @@ public sealed class FwoAgentFactory : IDisposable
     private readonly IChatClient agentLoopClient;
     private readonly IChatReducer historyReducer;
     private readonly ChatClientAgent sharedAgent;
+    private readonly AgentSettings agentSettings;
     private readonly ILoggerFactory? loggerFactory;
     private readonly Func<HttpMessageHandler>? mcpHandlerFactory;
     private bool disposed;
@@ -59,6 +60,7 @@ public sealed class FwoAgentFactory : IDisposable
         {
             int reserveTokens = ValidateAgentSettings(agentSettings, contextWindowTokens);
             AgentSettings settings = agentSettings.CreateSnapshot();
+            this.agentSettings = settings;
             this.loggerFactory = loggerFactory;
             this.mcpHandlerFactory = mcpHandlerFactory;
             historyReducer = HistoryCompaction.CreateReducer(providerClient, contextWindowTokens, reserveTokens);
@@ -74,7 +76,8 @@ public sealed class FwoAgentFactory : IDisposable
 
     /// <summary>
     /// Creates the agent running the turns of a user with the user's JWT. It connects to the MCP server only when a
-    /// turn runs, so creating it per request is cheap.
+    /// turn runs, so creating it per request is cheap. It refuses the turns of AI functions that are switched off in the
+    /// agent settings of the factory, see <see cref="AgentFeatureGate"/>.
     /// </summary>
     /// <param name="userConnection">MCP endpoint and the provider of the user's JWT</param>
     /// <exception cref="ObjectDisposedException">The factory has been disposed.</exception>
@@ -82,7 +85,7 @@ public sealed class FwoAgentFactory : IDisposable
     {
         ArgumentNullException.ThrowIfNull(userConnection);
         ObjectDisposedException.ThrowIf(disposed, this);
-        return new FwoUserAgent(sharedAgent, historyReducer, userConnection, mcpHandlerFactory, loggerFactory);
+        return new FwoUserAgent(sharedAgent, historyReducer, agentSettings, userConnection, mcpHandlerFactory, loggerFactory);
     }
 
     /// <summary>

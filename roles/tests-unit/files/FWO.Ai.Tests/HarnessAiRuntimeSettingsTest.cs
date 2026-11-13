@@ -101,6 +101,31 @@ internal class HarnessAiRuntimeSettingsTest
     }
 
     /// <summary>
+    /// Verifies that the switches of the AI functions are passed on to the agent settings, and that switching one
+    /// changes the settings, so that the refresher replaces the agent factory.
+    /// </summary>
+    [TestCase(true, false)]
+    [TestCase(false, true)]
+    [TestCase(true, true)]
+    public void ToAgentSettings_PassesSwitchesOnAndHasSameValuesComparesThem(bool chatEnabled, bool reasonCheckEnabled)
+    {
+        AiSettings switchedSettings = CreateSettings(AiProvider.OpenAi);
+        switchedSettings.ChatEnabled = chatEnabled;
+        switchedSettings.ReasonCheckEnabled = reasonCheckEnabled;
+        AiRuntimeSettings runtimeSettings = new(switchedSettings, kApiKey);
+
+        AgentSettings agentSettings = runtimeSettings.ToAgentSettings();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(agentSettings.ChatEnabled, Is.EqualTo(chatEnabled));
+            Assert.That(agentSettings.ReasonCheckEnabled, Is.EqualTo(reasonCheckEnabled));
+            Assert.That(runtimeSettings.HasSameValues(new AiRuntimeSettings(CreateSettings(AiProvider.OpenAi), kApiKey)), Is.False);
+            Assert.That(runtimeSettings.HasSameValues(new AiRuntimeSettings(switchedSettings, kApiKey)), Is.True);
+        });
+    }
+
+    /// <summary>
     /// Verifies that OAuth 2.0 gives the provider the client credentials with the token URL instead of an API key.
     /// </summary>
     [Test]

@@ -70,7 +70,6 @@ insert into config (config_key, config_value, config_user) VALUES ('creationTole
 insert into config (config_key, config_value, config_user) VALUES ('ruleOwnershipMode', 'mixed', 0);
 insert into config (config_key, config_value, config_user) VALUES ('allowServerInConn', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('allowServiceInConn', 'True', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modAiReasonCheck', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiProvider', 'None', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiModel', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiEndpoint', '', 0);
@@ -82,6 +81,8 @@ insert into config (config_key, config_value, config_user) VALUES ('aiMaxConsecu
 insert into config (config_key, config_value, config_user) VALUES ('aiCompactionReserveTokens', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiAuthMethod', 'ApiKey', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiTokenUrl', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('aiChat', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('aiReasonCheck', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importAppDataStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importAppDataSleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataStartAt', '00:00:00', 0);

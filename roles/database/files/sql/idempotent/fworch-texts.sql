@@ -657,7 +657,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Neue REST-Aufrufe der Modellierung: <code>getAvailableInterfacesForApp</code> liefert die ver&ouml;ffentlichten Schnittstellen, die eine Anwendung nutzen darf, mit aufgel&ouml;sten Netzwerk- und Dienstobjekten; <code>getAppRolesPerApp</code> liefert die App-Rollen einer Anwendung und <code>getNetworkAreas</code> die Netzwerkareas mit ihren Subnetzen. Modellierer erhalten nur Daten ihrer eigenen Anwendungen, Netzwerkareas nur, wenn eine ihrer Anwendungen Common Services nutzen darf.</li>
     <li>In der Genehmigungsphase gibt es eine neue Detailansicht f&uuml;r Tickets: Zugriffs-, Objekt-, Gruppen- und Zeitobjekt-Auftr&auml;ge werden als Karten mit aufgel&ouml;sten oder technischen Details angezeigt. Je nach erlaubten &Auml;nderungen k&ouml;nnen einzelne Felder &uuml;ber eigene Bearbeitungsdialoge ge&auml;ndert werden; Zeitobjekte werden aus der Flow DB oder aus demselben Ticket ausgew&auml;hlt und mit der konfigurierten Genauigkeit dargestellt.</li>
     <li>Neuer Report-Typ &quot;Changes: NAT&quot; zeigt &Auml;nderungen an NAT-Regeln mit urspr&uuml;nglicher und umgesetzter Quelle, Ziel und Dienst. In den FW-&Auml;nderungstrigger-Einstellungen k&ouml;nnen eigene Email-Benachrichtigungen &uuml;ber NAT-Regel&auml;nderungen (inklusive &Auml;nderungen an in NAT-Regeln verwendeten Objekten) mit diesem Report angelegt werden.</li>
-    <li>Modellierung: Die fachliche Begr&uuml;ndung einer Verbindung, die Beschreibung einer Schnittstelle oder die Begr&uuml;ndung einer Schnittstellennutzung kann per Schaltfl&auml;che von einer KI bewertet werden (stichhaltig, unzureichend, nicht stichhaltig), mit R&uuml;ckfragen an den Antragsteller und einem Verbesserungsvorschlag. Die Funktion wird in den Modellierungseinstellungen aktiviert und ben&ouml;tigt den KI-Server mit einem konfigurierten KI-Anbieter.</li>
+    <li>Modellierung: Die fachliche Begr&uuml;ndung einer Verbindung, die Beschreibung einer Schnittstelle oder die Begr&uuml;ndung einer Schnittstellennutzung kann per Schaltfl&auml;che von einer KI bewertet werden (stichhaltig, unzureichend, nicht stichhaltig), mit R&uuml;ckfragen an den Antragsteller und einem Verbesserungsvorschlag. Die Funktion wird in den KI-Einstellungen eingeschaltet und ben&ouml;tigt den KI-Server mit einem konfigurierten KI-Anbieter.</li>
     <li>KI-Anbieter, Modell, Endpunkt und die Grenzen der Agentenschleife des KI-Servers werden auf der neuen Seite Einstellungen - KI-Einstellungen gepflegt. Der API-Schl&uuml;ssel wird als Zugangsdaten in der Zugangsdatenverwaltung gespeichert. F&uuml;r einen OpenAI-kompatiblen Server kann sich der KI-Server auch mit OAuth 2.0 (Client Credentials) anmelden: er holt ein Zugriffstoken von der Token-URL und sendet es als Bearer-Token.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
@@ -680,7 +680,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>New modelling REST calls: <code>getAvailableInterfacesForApp</code> returns the published interfaces an application may use, with resolved network and service objects; <code>getAppRolesPerApp</code> returns the app roles of an application and <code>getNetworkAreas</code> the network areas with their subnets. Modellers only get data of their own applications, and network areas only if one of their applications may use common services.</li>
     <li>The approval phase now provides a ticket details view: access, object, group, and time-object tasks are shown as cards with resolved or technical details. Depending on the allowed changes, individual fields can be edited through dedicated dialogs; time objects are selected from the Flow DB or from the same ticket and displayed with the configured precision.</li>
     <li>New report type &quot;Changes: NAT&quot; shows NAT rule changes with original and translated source, destination and service. Separate email notifications about NAT rule changes (including changes of objects used in NAT rules) with this report can be defined in the FW change trigger settings.</li>
-    <li>Modelling: The functional reason of a connection, the description of an interface or the reason of an interface usage can be assessed by an AI at the push of a button (genuine, insufficient, not genuine), with questions to the requester and a proposal for improvement. The feature is activated in the modelling settings and needs the AI server with a configured AI provider.</li>
+    <li>Modelling: The functional reason of a connection, the description of an interface or the reason of an interface usage can be assessed by an AI at the push of a button (genuine, insufficient, not genuine), with questions to the requester and a proposal for improvement. The feature is switched on in the AI settings and needs the AI server with a configured AI provider.</li>
     <li>The AI provider, model, endpoint and the limits of the agent loop of the AI server are maintained on the new page Settings - AI Settings. The API key is stored as a credential in the credential management. For an OpenAI compatible server the AI server can log in with OAuth 2.0 (client credentials) too: it gets an access token from the token URL and sends it as bearer token.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
@@ -2527,6 +2527,12 @@ INSERT INTO txt VALUES ('ai_context_window_tokens', 'German', 'Kontextfenster (T
 INSERT INTO txt VALUES ('ai_context_window_tokens', 'English', 'Context window (tokens)');
 INSERT INTO txt VALUES ('ai_max_output_tokens', 'German', 	'Max. Ausgabe-Tokens');
 INSERT INTO txt VALUES ('ai_max_output_tokens', 'English', 	'Max. output tokens');
+INSERT INTO txt VALUES ('ai_functions',         'German', 	'KI-Funktionen');
+INSERT INTO txt VALUES ('ai_functions',         'English', 	'AI functions');
+INSERT INTO txt VALUES ('ai_chat',              'German', 	'KI-Chat');
+INSERT INTO txt VALUES ('ai_chat',              'English', 	'AI chat');
+INSERT INTO txt VALUES ('ai_reason_check',      'German', 	'KI-Pr&uuml;fung der Begr&uuml;ndung');
+INSERT INTO txt VALUES ('ai_reason_check',      'English', 	'AI check of reason');
 INSERT INTO txt VALUES ('ai_agent_loop',        'German', 	'Agentenschleife');
 INSERT INTO txt VALUES ('ai_agent_loop',        'English', 	'Agent loop');
 INSERT INTO txt VALUES ('ai_max_iterations',    'German', 	'Max. Modellanfragen pro Frage');
@@ -3375,8 +3381,6 @@ INSERT INTO txt VALUES ('allowServerInConn',    'German', 	'Server in Verbindung
 INSERT INTO txt VALUES ('allowServerInConn',    'English', 	'Allow Servers in Connection');
 INSERT INTO txt VALUES ('allowServiceInConn',   'German', 	'Einfache Dienste in Verbindung erlauben');
 INSERT INTO txt VALUES ('allowServiceInConn',   'English', 	'Allow Simple Services in Connection');
-INSERT INTO txt VALUES ('modAiReasonCheck',     'German', 	'KI-Pr&uuml;fung der Begr&uuml;ndung');
-INSERT INTO txt VALUES ('modAiReasonCheck',     'English', 	'AI Check of Reason');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'German', 	'Max. Anzahl Zeilen in &Uuml;bersicht');
 INSERT INTO txt VALUES ('overviewDisplayLines', 'English', 	'Max. Number of Rows in Overview');
 INSERT INTO txt VALUES ('reducedProtocolSet',   'German',   'Reduzierten Protokollset darstellen');
@@ -7472,6 +7476,18 @@ INSERT INTO txt VALUES ('H5383', 'German',  'Token-URL: Vollst&auml;ndige URL de
     Pflichtfeld bei OAuth 2.0. Sie muss https verwenden, au&szlig;er bei einer Loopback-Adresse; das Zertifikat wird immer gepr&uuml;ft.');
 INSERT INTO txt VALUES ('H5383', 'English', 'Token URL: full URL of the token endpoint for OAuth 2.0, for Keycloak e.g. https://sso.example.com/realms/&lt;realm&gt;/protocol/openid-connect/token.
     Required for OAuth 2.0. It must use https unless it is a loopback address; its certificate is always checked.');
+INSERT INTO txt VALUES ('H5384', 'German',  'Hier wird festgelegt, welche KI-Funktionen die Nutzer verwenden k&ouml;nnen; alle sind standardm&auml;&szlig;ig ausgeschaltet und ben&ouml;tigen einen konfigurierten KI-Anbieter.
+    Der KI-Server lehnt Anfragen an eine ausgeschaltete Funktion ab, auch wenn sie nicht &uuml;ber die Oberfl&auml;che gestellt werden.');
+INSERT INTO txt VALUES ('H5384', 'English', 'These switches define which AI functions the users can use; all of them are switched off by default and need a configured AI provider.
+    The AI server refuses requests to a function that is switched off, also if they do not come from the user interface.');
+INSERT INTO txt VALUES ('H5385', 'German',  'KI-Chat: Erlaubt den Nutzern, dem KI-Assistenten eigene Fragen zu stellen und seine Werkzeugaufrufe zu best&auml;tigen. Der Assistent arbeitet mit den Rechten
+    des fragenden Nutzers; die Fragen und die Daten, die er dazu liest, werden an den konfigurierten KI-Anbieter gesendet.');
+INSERT INTO txt VALUES ('H5385', 'English', 'AI chat: allows the users to ask the AI assistant questions of their own and to confirm its tool calls. The assistant works with the rights
+    of the asking user; the questions and the data it reads for them are sent to the configured AI provider.');
+INSERT INTO txt VALUES ('H5386', 'German',  'KI-Pr&uuml;fung der Begr&uuml;ndung: Zeigt im Bearbeiten-Dialog von Verbindungen und Schnittstellen der Modellierung eine Schaltfl&auml;che, mit der die fachliche
+    Begr&uuml;ndung bzw. Schnittstellenbeschreibung von einer KI bewertet werden kann. Die Begr&uuml;ndung und die Elemente der Verbindung werden dabei an den konfigurierten KI-Anbieter gesendet.');
+INSERT INTO txt VALUES ('H5386', 'English', 'AI check of reason: shows a button in the edit dialog of connections and interfaces in the modelling, with which the functional reason or interface
+    description can be assessed by an AI. The reason and the elements of the connection are sent to the configured AI provider.');
 INSERT INTO txt VALUES ('H5401', 'German',  'Der Admin kann verschiedene Standardwerte definieren, die dann f&uuml;r alle Nutzer gelten.<br>
     Manche von ihnen k&ouml;nnen in den individuellen Nutzereinstellungen &uuml;berschrieben werden.
 ');
@@ -8144,8 +8160,6 @@ INSERT INTO txt VALUES ('H5603', 'German',  'Server in Verbindung erlauben: Steu
 INSERT INTO txt VALUES ('H5603', 'English', 'Allow Servers in Connection: Controls, if App Servers are offered in the Library besides the App Roles for direct use in the connections.');
 INSERT INTO txt VALUES ('H5604', 'German',  'Einfache Dienste in Verbindung erlauben: Steuert, ob in der Bibliothek neben den Servicegruppen auch einfache Services zur direkten Verwendung in den Verbindungen angeboten werden.');
 INSERT INTO txt VALUES ('H5604', 'English', 'Allow Simple Services in Connection: Controls, if simple Services are offered in the Library besides the Service Groups for direct use in the connections.');
-INSERT INTO txt VALUES ('H5604a', 'German',  'KI-Pr&uuml;fung der Begr&uuml;ndung: Zeigt im Bearbeiten-Dialog von Verbindungen und Schnittstellen eine Schaltfl&auml;che, mit der die fachliche Begr&uuml;ndung bzw. Schnittstellenbeschreibung von einer KI bewertet werden kann. Daf&uuml;r muss der KI-Server (KI-Assistent) installiert und ein KI-Anbieter in den <a href="/help/settings/ai">KI-Einstellungen</a> konfiguriert sein. Die Begr&uuml;ndung und die Elemente der Verbindung werden dabei an den konfigurierten KI-Anbieter gesendet. Standardm&auml;&szlig;ig deaktiviert.');
-INSERT INTO txt VALUES ('H5604a', 'English', 'AI Check of Reason: Shows a button in the edit dialog of connections and interfaces, with which the functional reason or interface description can be assessed by an AI. This requires the AI server (AI assistant) to be installed with an AI provider configured in the <a href="/help/settings/ai">AI settings</a>. The reason and the elements of the connection are sent to the configured AI provider. Deactivated by default.');
 INSERT INTO txt VALUES ('H5605', 'German',  'Max. Anzahl Zeilen in &Uuml;bersicht: Definiert die Zeilenzahl innerhalb eines Eintrags in der &Uuml;bersichtstabelle der Verbindungen, ab der die Elemente eingeklappt dargestellt werden.
     Wird vom Administrator allgemein vorausgew&auml;hlt, kann aber vom Nutzer in den pers&ouml;nlichen Einstellungen &uuml;berschrieben werden.
 ');

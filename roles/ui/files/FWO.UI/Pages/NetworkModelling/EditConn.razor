@@ -59,7 +59,7 @@
                         title="@(ConnHandler.ActConn.IsRequested ? userConfig.PureLine("U9012") : "")" @bind="ConnHandler.ActConn.Reason" />
                     }
                 </div>
-                @if(userConfig.ModAiReasonCheck)
+                @if(userConfig.AiReasonCheckEnabled)
                 {
                     <div class="form-group row me-auto">
                         <div class="col-sm-9 offset-sm-3 p-0">

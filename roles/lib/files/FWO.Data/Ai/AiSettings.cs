@@ -45,9 +45,10 @@ namespace FWO.Data.Ai
     }
 
     /// <summary>
-    /// Settings of the AI provider and of the agent loop of the AI harness (FWO.Ai.Harness), stored as global config
-    /// items (config_user 0) under the keys below. Edited on the AI settings page of the UI and read by the AI harness
-    /// with its technical user. Secrets are not part of the settings: they reference a credential of the credential
+    /// Settings of the AI provider, of the agent loop of the AI harness (FWO.Ai.Harness) and the switches of the AI
+    /// functions offered to the users, stored as global config items (config_user 0) under the keys below. Edited on the
+    /// AI settings page of the UI and read by the AI harness with its technical user, which refuses the runs of a function
+    /// that is switched off. Secrets are not part of the settings: they reference a credential of the credential
     /// store (<see cref="CredentialId"/>), whose secret is the API key, or for OAuth 2.0 (<see cref="AuthMethod"/>) whose
     /// user name is the client id and whose secret is the client secret.
     /// </summary>
@@ -89,6 +90,12 @@ namespace FWO.Data.Ai
         /// <summary>Config key of <see cref="TokenUrl"/>.</summary>
         public const string kTokenUrlKey = "aiTokenUrl";
 
+        /// <summary>Config key of <see cref="ChatEnabled"/>.</summary>
+        public const string kChatKey = "aiChat";
+
+        /// <summary>Config key of <see cref="ReasonCheckEnabled"/>.</summary>
+        public const string kReasonCheckKey = "aiReasonCheck";
+
         /// <summary>
         /// Default maximum number of model requests offering the tools per turn. Lower than the default of
         /// Microsoft.Extensions.AI (40), to bound the cost of a single turn.
@@ -110,7 +117,8 @@ namespace FWO.Data.Ai
         public static readonly IReadOnlyList<string> kKeys =
         [
             kProviderKey, kModelKey, kEndpointKey, kCredentialIdKey, kContextWindowTokensKey, kMaxOutputTokensKey,
-            kMaxIterationsPerRequestKey, kMaxConsecutiveErrorsPerRequestKey, kCompactionReserveTokensKey, kAuthMethodKey, kTokenUrlKey
+            kMaxIterationsPerRequestKey, kMaxConsecutiveErrorsPerRequestKey, kCompactionReserveTokensKey, kAuthMethodKey, kTokenUrlKey,
+            kChatKey, kReasonCheckKey
         ];
 
         /// <summary>Provider to talk to; <see cref="AiProvider.None"/> if the AI functions are not available.</summary>
@@ -155,6 +163,18 @@ namespace FWO.Data.Ai
         /// </summary>
         public int CompactionReserveTokens { get; set; }
 
+        /// <summary>
+        /// Whether the users may chat with the AI assistant: ask questions of their own and answer its tool approval
+        /// requests. Off by default.
+        /// </summary>
+        public bool ChatEnabled { get; set; }
+
+        /// <summary>
+        /// Whether modellers may let the AI assistant check the functional reason of a connection, an interface or an
+        /// interface usage. Off by default.
+        /// </summary>
+        public bool ReasonCheckEnabled { get; set; }
+
         /// <summary>Whether an AI provider is configured.</summary>
         public bool IsConfigured => Provider != AiProvider.None;
 
@@ -197,6 +217,8 @@ namespace FWO.Data.Ai
             settings.MaxIterationsPerRequest = ReadNumber(configValues, kMaxIterationsPerRequestKey, settings.MaxIterationsPerRequest);
             settings.MaxConsecutiveErrorsPerRequest = ReadNumber(configValues, kMaxConsecutiveErrorsPerRequestKey, settings.MaxConsecutiveErrorsPerRequest);
             settings.CompactionReserveTokens = ReadNumber(configValues, kCompactionReserveTokensKey, settings.CompactionReserveTokens);
+            settings.ChatEnabled = ReadSwitch(configValues, kChatKey);
+            settings.ReasonCheckEnabled = ReadSwitch(configValues, kReasonCheckKey);
             return settings;
         }
 
@@ -350,6 +372,16 @@ namespace FWO.Data.Ai
         {
             string text = ReadText(configValues, key);
             return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) ? number : defaultValue;
+        }
+
+        /// <summary>
+        /// Reads a switch stored as True or False, ignoring case; off for a missing or unreadable value, so that a
+        /// function is only offered once it is switched on.
+        /// </summary>
+        private static bool ReadSwitch(IReadOnlyDictionary<string, string?> configValues, string key)
+        {
+            string text = ReadText(configValues, key);
+            return bool.TryParse(text, out bool switchedOn) && switchedOn;
         }
     }
 }

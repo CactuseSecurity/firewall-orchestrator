@@ -13,7 +13,8 @@ namespace FWO.Ai.Harness.Agent;
 /// may call for this run only, and closes the connection when the run ends. The harness is stateless: a run takes the
 /// conversation the client sends (see <see cref="TurnInput"/>), compacts its history once it exceeds the context
 /// window, and ends with the conversation for the next run (see <see cref="ConversationSnapshot"/>). A tool not marked read-only
-/// runs only once its <see cref="ToolApprovalRequestContent"/> has been answered.
+/// runs only once its <see cref="ToolApprovalRequestContent"/> has been answered. A turn of an AI function that is switched
+/// off is refused before it reaches the MCP server or the AI provider (see <see cref="AgentFeatureGate"/>).
 /// </summary>
 public sealed class FwoUserAgent : DelegatingAIAgent
 {
@@ -24,6 +25,7 @@ public sealed class FwoUserAgent : DelegatingAIAgent
     internal const string kInstructionsPromptName = "fwo_agent_instructions";
 
     private readonly IChatReducer historyReducer;
+    private readonly AgentSettings agentSettings;
     private readonly McpConnectionSettings userConnection;
     private readonly Func<HttpMessageHandler>? mcpHandlerFactory;
     private readonly ILoggerFactory? loggerFactory;
@@ -34,15 +36,17 @@ public sealed class FwoUserAgent : DelegatingAIAgent
     /// </summary>
     /// <param name="sharedAgent">Agent shared by all users, running the turns; it keeps no history</param>
     /// <param name="historyReducer">Compacts the history of a run, see <see cref="HistoryCompaction"/></param>
+    /// <param name="agentSettings">Settings of the factory, deciding which AI functions the user may run; not changed later</param>
     /// <param name="userConnection">MCP endpoint and the provider of the user's JWT</param>
     /// <param name="mcpHandlerFactory">Creates the handler sending the MCP requests of a run, e.g. of a test server;
     /// a new <see cref="SocketsHttpHandler"/> per run if null</param>
     /// <param name="loggerFactory">Logger factory of the MCP clients and of failed runs</param>
-    internal FwoUserAgent(AIAgent sharedAgent, IChatReducer historyReducer, McpConnectionSettings userConnection,
-        Func<HttpMessageHandler>? mcpHandlerFactory, ILoggerFactory? loggerFactory)
+    internal FwoUserAgent(AIAgent sharedAgent, IChatReducer historyReducer, AgentSettings agentSettings,
+        McpConnectionSettings userConnection, Func<HttpMessageHandler>? mcpHandlerFactory, ILoggerFactory? loggerFactory)
         : base(sharedAgent)
     {
         this.historyReducer = historyReducer;
+        this.agentSettings = agentSettings;
         this.userConnection = userConnection;
         this.mcpHandlerFactory = mcpHandlerFactory;
         this.loggerFactory = loggerFactory;
@@ -66,6 +70,7 @@ public sealed class FwoUserAgent : DelegatingAIAgent
     /// </summary>
     /// <exception cref="ArgumentException">The run has no valid new user input, see <see cref="TurnInput.Read"/>.</exception>
     /// <exception cref="NotSupportedException">The AG-UI input declares client tools.</exception>
+    /// <exception cref="AgentFeatureDisabledException">The AI function of the run is switched off.</exception>
     protected override async IAsyncEnumerable<AgentResponseUpdate> RunCoreStreamingAsync(IEnumerable<ChatMessage> messages,
         AgentSession? session = null, AgentRunOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -78,14 +83,15 @@ public sealed class FwoUserAgent : DelegatingAIAgent
     }
 
     /// <summary>
-    /// Reads the turn input, connects to the MCP server, loads the user's tools and the instructions, compacts the
-    /// history if needed, runs the turn on the shared agent with the history and the new input, and returns the
-    /// conversation for the next run.
+    /// Reads the turn input, refuses it if its AI function is switched off, connects to the MCP server, loads the user's
+    /// tools and the instructions, compacts the history if needed, runs the turn on the shared agent with the history and
+    /// the new input, and returns the conversation for the next run.
     /// </summary>
     private async IAsyncEnumerable<AgentResponseUpdate> RunTurnAsync(IEnumerable<ChatMessage> messages, AgentSession? session,
         AgentRunOptions? options, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         TurnInput turnInput = TurnInput.Read(messages, options);
+        AgentFeatureGate.EnsureSwitchedOn(turnInput, agentSettings);
         await using FwoMcpConnection mcpConnection = await FwoMcpConnection.ConnectAsync(userConnection, mcpHandlerFactory?.Invoke(),
             loggerFactory, cancellationToken);
         List<ChatMessage> newMessages = await turnInput.GetNewMessagesAsync(mcpConnection, cancellationToken);
@@ -105,13 +111,19 @@ public sealed class FwoUserAgent : DelegatingAIAgent
     }
 
     /// <summary>
-    /// Moves to the next update and logs a failure of the run; a cancellation is not logged.
+    /// Moves to the next update and logs a failure of the run; a cancellation is not logged, a run of an AI function that
+    /// is switched off only as warning, as it is a refusal, not an error of the harness.
     /// </summary>
     private async Task<bool> MoveNextLoggingFailureAsync(IAsyncEnumerator<AgentResponseUpdate> enumerator)
     {
         try
         {
             return await enumerator.MoveNextAsync();
+        }
+        catch (AgentFeatureDisabledException exception)
+        {
+            logger.LogWarning("Refused a run of the FWO agent: {Reason}", exception.Message);
+            throw;
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

@@ -22,6 +22,7 @@ See [Deployment](#deployment) for how the installer deploys it.
 | Instructions | The MCP prompt `fwo_agent_instructions`, got with the user's JWT for each run and sent as instructions (system prompt) |
 | Agent loop | Function invocation of Microsoft.Extensions.AI, configured by the harness |
 | Tool confirmation | AG-UI interrupt for every tool that is not read-only, answered by a resume entry |
+| AI functions | Chat and reason check, switched on and off in the AI settings; runs of a function switched off are refused (`AgentFeatureGate`) |
 | Context compaction | Summary of the older history by the model, triggered by the estimated size of the history |
 
 ## AG-UI endpoint
@@ -99,6 +100,23 @@ may get and checks the arguments. Arguments are strings; at most 16 arguments an
 accepted, the values are bounded by the request body limit only. A run naming a prompt sends the conversation so far
 and no new user message. The prompts a user may get are listed by the MCP server itself (`prompts/list`), not by the
 harness.
+
+### AI functions
+
+The AI settings switch two functions on and off: the chat (`aiChat`) and the reason check (`aiReasonCheck`), both off
+by default (see [Settings](#settings)). Right after reading the input of a run (`TurnInput`), before connecting to the
+MCP server, the agent checks the function the run belongs to (`AgentFeatureGate`):
+
+- the MCP prompt `check_connection_reason` belongs to the reason check (`AgentFeatureGate.kReasonCheckPromptName`; keep
+  it in step with the MCP server and with `ConnectionReasonCheck.kPromptName` of the client, `ClientConformanceTest`
+  checks it),
+- everything else belongs to the chat: a new user message, the answers to tool approvals and any other MCP prompt. A
+  new prompt without a switch of its own is thus refused while the chat is off (fail closed).
+
+A run of a function switched off fails with `RUN_ERROR` (`AgentFeatureDisabledException`, logged as warning) and reaches
+neither the MCP server nor the AI provider. The switches hold for every client of the AG-UI endpoint, not only for the
+UI, which hides the functions that are off. A change of a switch replaces the agent factory like any other change of
+the AI settings.
 
 ### Tool confirmation
 
@@ -225,6 +243,8 @@ AI settings (`FWO.Data.Ai.AiSettings`, config keys in `AiSettings.kKeys`):
 | Max iterations | `aiMaxIterationsPerRequest` | Model requests per user turn (default 10), see [Agent loop](#agent-loop) |
 | Max consecutive errors | `aiMaxConsecutiveErrorsPerRequest` | Failed tool call rounds in a row before a turn fails (default 3) |
 | Compaction reserve | `aiCompactionReserveTokens` | 0 for a quarter of the context window; must be smaller than the context window and larger than the max output tokens if those are set |
+| AI chat | `aiChat` | `True` lets the users chat with the agent, see [AI functions](#ai-functions); off (`False`) by default and for any other value |
+| AI check of reason | `aiReasonCheck` | `True` lets modellers run the reason check of a connection; off (`False`) by default and for any other value |
 
 The settings page checks the settings the way the harness does (`AiSettings.Validate`) and does not store invalid ones.
 The harness checks them again when it reads them: without a provider, or with settings it cannot use, every run fails
@@ -319,7 +339,8 @@ The unit tests are in `roles/tests-unit/files/FWO.Ai.Tests`. They run the harnes
 test server, with a scripted chat client instead of a real AI provider, both directly (`FwoUserAgent`) and through the
 AG-UI endpoint on a second test server (`HarnessServerTest`). `HarnessTurnInputTest`, `HarnessConversationFilterTest`
 and `HarnessConversationSnapshotTest` test what a run takes from the conversation, what it sends to the provider and
-what it returns. A strict mode of the scripted chat client rejects requests the way
+what it returns. `HarnessAgentFeatureGateTest` tests the switches of the AI functions, in the agent and through the
+AG-UI endpoint. A strict mode of the scripted chat client rejects requests the way
 the providers do (`ProviderHistoryRules`).
 `HarnessFwoAiConfigReaderTest`, `HarnessFwoAiSettingsSourceTest`, `HarnessAiSettingsRefresherTest`,
 `HarnessAgentFactoryHolderTest` and `HarnessTechnicalUserLoginTest` test reading and applying the AI settings;

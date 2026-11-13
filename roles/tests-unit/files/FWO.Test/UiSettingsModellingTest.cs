@@ -573,6 +573,8 @@ namespace FWO.Test
             {
                 IRenderedComponent<SettingsModelling> page = wrapper.FindComponent<SettingsModelling>();
                 Assert.That(page.Find("#cbx_allow_server_in_conn"), Is.Not.Null);
+                // the AI reason check is switched on the AI settings page
+                Assert.That(page.FindAll("#cbx_ai_reason_check"), Is.Empty);
             });
 
             IRenderedComponent<SettingsModelling> component = wrapper.FindComponent<SettingsModelling>();

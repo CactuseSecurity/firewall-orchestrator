@@ -214,7 +214,7 @@ namespace FWO.Test
         public async Task EditConn_AiReasonCheckOn_ChecksTheReasonOfTheConnection(bool readOnly)
         {
             await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
-            userConfig.ModAiReasonCheck = true;
+            userConfig.AiReasonCheckEnabled = true;
             userConfig.User.Language = "German";
             ScriptedChatClient chatClient = RegisterAiReasonCheckServices(context);
             ModellingConnection connection = new() { Name = "conn", Reason = "nightly backup", IsInterface = true };
@@ -237,7 +237,7 @@ namespace FWO.Test
         public async Task EditConn_AiReasonCheckOnWithoutReason_DisablesTheCheck()
         {
             await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
-            userConfig.ModAiReasonCheck = true;
+            userConfig.AiReasonCheckEnabled = true;
             RegisterAiReasonCheckServices(context);
             ModellingConnection connection = new() { Name = "conn", Reason = "" };
             ModellingConnectionHandler handler = CreateConnectionHandler(new SimulatedApiConnection(), userConfig, connection, readOnly: true);
@@ -251,7 +251,7 @@ namespace FWO.Test
         public async Task EditConn_AiReasonCheckOnEditingWithoutReason_ShowsMessageInsteadOfRunning()
         {
             await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
-            userConfig.ModAiReasonCheck = true;
+            userConfig.AiReasonCheckEnabled = true;
             ScriptedChatClient chatClient = RegisterAiReasonCheckServices(context);
             ModellingConnection connection = new() { Name = "conn", Reason = "" };
             ModellingConnectionHandler handler = CreateConnectionHandler(new SimulatedApiConnection(), userConfig, connection, readOnly: false);

@@ -185,7 +185,8 @@ internal class UiSettingsAiTest
             Provider = AiProvider.Anthropic,
             Model = $" {kModel} ",
             CredentialId = kApiKeyCredentialId,
-            ContextWindowTokens = 200000
+            ContextWindowTokens = 200000,
+            ChatEnabled = true
         });
 
         await InvokePrivateTask(component, "Save");
@@ -199,7 +200,30 @@ internal class UiSettingsAiTest
             Assert.That(storedValues[AiSettings.kModelKey], Is.EqualTo(kModel));
             Assert.That(storedValues[AiSettings.kCredentialIdKey], Is.EqualTo(kApiKeyCredentialId.ToString()));
             Assert.That(storedValues[AiSettings.kContextWindowTokensKey], Is.EqualTo("200000"));
+            Assert.That(storedValues[AiSettings.kChatKey], Is.EqualTo("True").IgnoreCase);
             Assert.That(AiSettings.FromConfigValues(storedValues).Provider, Is.EqualTo(AiProvider.Anthropic));
+            Assert.That(AiSettings.FromConfigValues(storedValues).ChatEnabled, Is.True);
+            Assert.That(AiSettings.FromConfigValues(storedValues).ReasonCheckEnabled, Is.False);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the page shows the stored switches of the AI functions, each in its own checkbox.
+    /// </summary>
+    [TestCase(true, false)]
+    [TestCase(false, true)]
+    public async Task SettingsAi_ShowsSwitchesOfAiFunctions(bool chatEnabled, bool reasonCheckEnabled)
+    {
+        SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+        globalConfig.AiChatEnabled = chatEnabled;
+        globalConfig.AiReasonCheckEnabled = reasonCheckEnabled;
+        await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), globalConfig);
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+        wrapper.WaitForAssertion(() =>
+        {
+            Assert.That(wrapper.Find("#aiChat").HasAttribute("checked"), Is.EqualTo(chatEnabled));
+            Assert.That(wrapper.Find("#aiReasonCheck").HasAttribute("checked"), Is.EqualTo(reasonCheckEnabled));
         });
     }
 

@@ -245,7 +245,7 @@ internal class HarnessHistoryCompactionTest
     {
         await using WebApplication app = await McpTestServer.Start();
         ScriptedChatClient chatClient = CreateAnsweringClient();
-        AgentSettings agentSettings = new();
+        AgentSettings agentSettings = new() { ChatEnabled = true };
         using FwoAgentFactory factory = CreateFactory(app, chatClient, agentSettings);
         FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, Roles.Reporter);
 
@@ -273,7 +273,7 @@ internal class HarnessHistoryCompactionTest
     {
         await using WebApplication app = await McpTestServer.Start();
         ScriptedChatClient chatClient = CreateAnsweringClient();
-        using FwoAgentFactory factory = CreateFactory(app, chatClient, new AgentSettings { CompactionReserveTokens = kLargeReserveTokens });
+        using FwoAgentFactory factory = CreateFactory(app, chatClient, new AgentSettings { CompactionReserveTokens = kLargeReserveTokens, ChatEnabled = true });
         FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, Roles.Reporter);
 
         await RunTurnsAsync(agent, kTurnsBelowLargeReserve + 1);
@@ -291,7 +291,7 @@ internal class HarnessHistoryCompactionTest
     {
         await using WebApplication app = await McpTestServer.Start();
         ScriptedChatClient chatClient = CreateAnsweringClient(summarizerFails: true);
-        using FwoAgentFactory factory = CreateFactory(app, chatClient, new AgentSettings());
+        using FwoAgentFactory factory = CreateFactory(app, chatClient, new AgentSettings { ChatEnabled = true });
         FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, Roles.Reporter);
 
         List<ChatMessage> conversation = await RunTurnsAsync(agent, kAgentTurns);

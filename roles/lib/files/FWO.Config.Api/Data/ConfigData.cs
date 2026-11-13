@@ -382,13 +382,6 @@ namespace FWO.Config.Api.Data
         [JsonProperty("allowServiceInConn"), JsonPropertyName("allowServiceInConn")]
         public bool AllowServiceInConn { get; set; } = true;
 
-        /// <summary>
-        /// Whether modellers can let the AI assistant check the functional reason of a connection or interface.
-        /// Needs the AI server with a configured AI provider.
-        /// </summary>
-        [JsonProperty("modAiReasonCheck"), JsonPropertyName("modAiReasonCheck")]
-        public bool ModAiReasonCheck { get; set; } = false;
-
         /// <summary>AI provider of the AI harness, see <see cref="AiSettings.Provider"/>.</summary>
         [JsonProperty(AiSettings.kProviderKey), JsonPropertyName(AiSettings.kProviderKey)]
         public AiProvider AiProvider { get; set; } = AiProvider.None;
@@ -432,6 +425,17 @@ namespace FWO.Config.Api.Data
         /// <summary>Compaction reserve of the agent, see <see cref="AiSettings.CompactionReserveTokens"/>.</summary>
         [JsonProperty(AiSettings.kCompactionReserveTokensKey), JsonPropertyName(AiSettings.kCompactionReserveTokensKey)]
         public int AiCompactionReserveTokens { get; set; } = 0;
+
+        /// <summary>Whether the users may chat with the AI assistant, see <see cref="AiSettings.ChatEnabled"/>.</summary>
+        [JsonProperty(AiSettings.kChatKey), JsonPropertyName(AiSettings.kChatKey)]
+        public bool AiChatEnabled { get; set; } = false;
+
+        /// <summary>
+        /// Whether modellers may let the AI assistant check the functional reason of a connection or interface, see
+        /// <see cref="AiSettings.ReasonCheckEnabled"/>.
+        /// </summary>
+        [JsonProperty(AiSettings.kReasonCheckKey), JsonPropertyName(AiSettings.kReasonCheckKey)]
+        public bool AiReasonCheckEnabled { get; set; } = false;
 
         [JsonProperty("overviewDisplayLines"), JsonPropertyName("overviewDisplayLines")]
         public int OverviewDisplayLines { get; set; } = 3;

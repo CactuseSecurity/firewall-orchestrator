@@ -176,7 +176,7 @@ internal class HarnessUnansweredToolCallFilterTest
             Strict = true,
             Fallback = (_, _, _) => Task.FromResult(ScriptedChatClient.CreateFunctionCallResponse($"{kCallIdPrefix}{++callNumber}", HarnessTestSetup.kCurrentUserTool))
         };
-        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, new AgentSettings { MaxIterationsPerRequest = kMaxIterationsPerRequest });
+        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, new AgentSettings { MaxIterationsPerRequest = kMaxIterationsPerRequest, ChatEnabled = true });
         FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, Roles.Reporter);
 
         List<AgentResponseUpdate> updates = await HarnessTestSetup.RunStreamingAsync(agent, kQuestion);
@@ -211,7 +211,7 @@ internal class HarnessUnansweredToolCallFilterTest
         ScriptedChatClient chatClient = new ScriptedChatClient { Strict = true }
             .RespondWithFunctionCall(kAnsweredCallId, HarnessTestSetup.kCurrentUserTool)
             .Respond((_, _, _) => Task.FromResult(new ChatResponse(textWithCall)));
-        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, new AgentSettings { MaxIterationsPerRequest = kSingleIteration });
+        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, new AgentSettings { MaxIterationsPerRequest = kSingleIteration, ChatEnabled = true });
         FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, Roles.Reporter);
 
         List<AgentResponseUpdate> updates = await HarnessTestSetup.RunStreamingAsync(agent, kQuestion);

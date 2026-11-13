@@ -161,7 +161,7 @@ internal class HarnessFwoAgentFactoryTest
             AccessTokenProvider = _ => ValueTask.FromResult(accessToken)
         };
         ScriptedChatClient chatClient = new ScriptedChatClient().RespondWithText(kAnswer);
-        using FwoAgentFactory factory = new(chatClient, kContextWindowTokens, new AgentSettings());
+        using FwoAgentFactory factory = new(chatClient, kContextWindowTokens, new AgentSettings { ChatEnabled = true });
 
         await factory.CreateUserAgent(mcpSettings).RunAsync(kQuestion);
 
@@ -265,7 +265,7 @@ internal class HarnessFwoAgentFactoryTest
     {
         await using WebApplication app = await McpTestServer.Start();
         ScriptedChatClient chatClient = new ScriptedChatClient().RespondWithText(kAnswer);
-        AgentSettings agentSettings = new() { MaxIterationsPerRequest = kConfiguredIterations };
+        AgentSettings agentSettings = new() { MaxIterationsPerRequest = kConfiguredIterations, ChatEnabled = true };
         using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, agentSettings);
         agentSettings.MaxIterationsPerRequest = kChangedIterations;
         agentSettings.CompactionReserveTokens = 0;
@@ -373,7 +373,7 @@ internal class HarnessFwoAgentFactoryTest
         FailingTokenProvider tokenProvider = new(McpTestServer.CreateMiddlewareToken(Roles.Reporter));
         ScriptedChatClient chatClient = new ScriptedChatClient()
             .Respond((_, _, _) => tokenProvider.FailFromNowOn(ScriptedChatClient.CreateFunctionCallResponse(kCallId, HarnessTestSetup.kCurrentUserTool)));
-        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, new AgentSettings { MaxConsecutiveErrorsPerRequest = kNoErrorsAllowed });
+        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, new AgentSettings { MaxConsecutiveErrorsPerRequest = kNoErrorsAllowed, ChatEnabled = true });
         FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, tokenProvider.GetTokenAsync);
         List<AgentResponseUpdate> updates = new();
 

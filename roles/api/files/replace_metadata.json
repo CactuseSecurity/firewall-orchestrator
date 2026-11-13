@@ -7783,7 +7783,9 @@
                               "aiMaxConsecutiveErrorsPerRequest",
                               "aiCompactionReserveTokens",
                               "aiAuthMethod",
-                              "aiTokenUrl"
+                              "aiTokenUrl",
+                              "aiChat",
+                              "aiReasonCheck"
                             ]
                           }
                         }

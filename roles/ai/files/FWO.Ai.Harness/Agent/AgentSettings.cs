@@ -3,8 +3,8 @@ using FWO.Data.Ai;
 namespace FWO.Ai.Harness.Agent;
 
 /// <summary>
-/// Settings of the agents created by an <see cref="FwoAgentFactory"/>: agent loop and history compaction, taken from
-/// the AI settings of the UI (see <see cref="Settings.AiRuntimeSettings"/>).
+/// Settings of the agents created by an <see cref="FwoAgentFactory"/>: agent loop, history compaction and the AI
+/// functions the users may run, taken from the AI settings of the UI (see <see cref="Settings.AiRuntimeSettings"/>).
 /// </summary>
 public class AgentSettings
 {
@@ -39,6 +39,19 @@ public class AgentSettings
     /// if that is set; a quarter of the context window if null.
     /// </summary>
     public int? CompactionReserveTokens { get; set; }
+
+    /// <summary>
+    /// Whether the users may chat with the agent: send texts of their own, answer tool approval requests and run MCP
+    /// prompts other than the reason check. Off by default, so that a run is refused unless the function is switched on
+    /// (see <see cref="AgentFeatureGate"/>).
+    /// </summary>
+    public bool ChatEnabled { get; set; }
+
+    /// <summary>
+    /// Whether the users may run the reason check, the MCP prompt <see cref="AgentFeatureGate.kReasonCheckPromptName"/>.
+    /// Off by default.
+    /// </summary>
+    public bool ReasonCheckEnabled { get; set; }
 
     /// <summary>
     /// Returns the compaction reserve for the given context window, see <see cref="CompactionReserveTokens"/>.

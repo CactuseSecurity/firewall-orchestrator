@@ -45,6 +45,11 @@ internal sealed class TurnInput
     internal IReadOnlyList<ChatMessage> History { get; }
 
     /// <summary>
+    /// Name of the MCP prompt the run names as new input, null for a run sending a text or answering approval requests.
+    /// </summary>
+    internal string? PromptName => prompt?.Name;
+
+    /// <summary>
     /// Reads the input of a turn from the messages of a run and, for an AG-UI run, from the AG-UI input the hosting
     /// passes in the run options.
     /// </summary>

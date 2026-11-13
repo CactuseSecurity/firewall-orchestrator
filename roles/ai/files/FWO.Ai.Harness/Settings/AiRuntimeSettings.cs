@@ -81,7 +81,7 @@ public sealed class AiRuntimeSettings
     }
 
     /// <summary>
-    /// Returns the settings of the agent loop and the compaction.
+    /// Returns the settings of the agent loop, the compaction and the AI functions the users may run.
     /// </summary>
     public AgentSettings ToAgentSettings()
     {
@@ -89,7 +89,9 @@ public sealed class AiRuntimeSettings
         {
             MaxIterationsPerRequest = Values.MaxIterationsPerRequest,
             MaxConsecutiveErrorsPerRequest = Values.MaxConsecutiveErrorsPerRequest,
-            CompactionReserveTokens = Values.CompactionReserveTokens > 0 ? Values.CompactionReserveTokens : null
+            CompactionReserveTokens = Values.CompactionReserveTokens > 0 ? Values.CompactionReserveTokens : null,
+            ChatEnabled = Values.ChatEnabled,
+            ReasonCheckEnabled = Values.ReasonCheckEnabled
         };
     }
 
@@ -120,12 +122,13 @@ public sealed class AiRuntimeSettings
     }
 
     /// <summary>
-    /// Returns all values that decide about the agent factory, for <see cref="HasSameValues"/>.
+    /// Returns all values that decide about the agent factory, for <see cref="HasSameValues"/>; the switches of the AI
+    /// functions too, as the factory hands them to its agents.
     /// </summary>
-    private (AiProvider, string, string, int, int, int, int, int, int, AiAuthMethod, string, string?, string?, string?) GetComparableValues()
+    private (AiProvider, string, string, int, int, int, int, int, int, AiAuthMethod, string, string?, string?, string?, bool, bool) GetComparableValues()
     {
         return (Values.Provider, Values.Model, Values.Endpoint, Values.CredentialId, Values.ContextWindowTokens, Values.MaxOutputTokens,
             Values.MaxIterationsPerRequest, Values.MaxConsecutiveErrorsPerRequest, Values.CompactionReserveTokens, Values.AuthMethod,
-            Values.TokenUrl, ClientId, Secret, Problem);
+            Values.TokenUrl, ClientId, Secret, Problem, Values.ChatEnabled, Values.ReasonCheckEnabled);
     }
 }

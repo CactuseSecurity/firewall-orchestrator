@@ -40,6 +40,16 @@ internal class ClientConformanceTest
     }
 
     /// <summary>
+    /// Verifies that the harness switches the reason check of the client on and off by the prompt name the client sends,
+    /// which the MCP server offers (see <see cref="ListPrompts_OffersConnectionReasonCheckWithEveryClientArgument"/>).
+    /// </summary>
+    [Test]
+    public void ReasonCheckPromptName_MatchesFeatureGateOfHarness()
+    {
+        Assert.That(AgentFeatureGate.kReasonCheckPromptName, Is.EqualTo(ConnectionReasonCheck.kPromptName));
+    }
+
+    /// <summary>
     /// Verifies that the limits and the language pattern of the client are the ones of the MCP server.
     /// </summary>
     [Test]

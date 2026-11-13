@@ -28,7 +28,9 @@ namespace FWO.Config.Api.Data
                 MaxOutputTokens = config.AiMaxOutputTokens,
                 MaxIterationsPerRequest = config.AiMaxIterationsPerRequest,
                 MaxConsecutiveErrorsPerRequest = config.AiMaxConsecutiveErrorsPerRequest,
-                CompactionReserveTokens = config.AiCompactionReserveTokens
+                CompactionReserveTokens = config.AiCompactionReserveTokens,
+                ChatEnabled = config.AiChatEnabled,
+                ReasonCheckEnabled = config.AiReasonCheckEnabled
             };
         }
 
@@ -52,6 +54,8 @@ namespace FWO.Config.Api.Data
             config.AiMaxIterationsPerRequest = settings.MaxIterationsPerRequest;
             config.AiMaxConsecutiveErrorsPerRequest = settings.MaxConsecutiveErrorsPerRequest;
             config.AiCompactionReserveTokens = settings.CompactionReserveTokens;
+            config.AiChatEnabled = settings.ChatEnabled;
+            config.AiReasonCheckEnabled = settings.ReasonCheckEnabled;
         }
 
         /// <summary>

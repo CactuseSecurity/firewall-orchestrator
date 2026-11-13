@@ -87,6 +87,20 @@
         </div>
     </div>
     <hr />
+    <h5>@(userConfig.GetText("ai_functions"))</h5>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5385"))">
+        <label for="aiChat" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_chat")):</label>
+        <div class="col-sm-1">
+            <input id="aiChat" type="checkbox" class="w-100" @bind="aiSettings.ChatEnabled" />
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5386"))">
+        <label for="aiReasonCheck" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_reason_check")):</label>
+        <div class="col-sm-1">
+            <input id="aiReasonCheck" type="checkbox" class="w-100" @bind="aiSettings.ReasonCheckEnabled" />
+        </div>
+    </div>
+    <hr />
     <h5>@(userConfig.GetText("ai_agent_loop"))</h5>
     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5378"))">
         <label for="aiMaxIterations" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_max_iterations")):</label>

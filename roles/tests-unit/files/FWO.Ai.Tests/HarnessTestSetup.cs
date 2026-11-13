@@ -61,10 +61,21 @@ internal static class HarnessTestSetup
     /// Creates a factory with the given provider client and the context window of the tests, whose user agents call
     /// the MCP server of the given test server.
     /// </summary>
+    /// <param name="mcpApp">Test server running the MCP server pipeline</param>
+    /// <param name="providerClient">Chat client standing in for the AI provider</param>
+    /// <param name="agentSettings">Settings of the agents; the defaults with all AI functions switched on if null</param>
     internal static FwoAgentFactory CreateFactory(WebApplication mcpApp, IChatClient providerClient, AgentSettings? agentSettings = null)
     {
-        return new FwoAgentFactory(providerClient, kContextWindowTokens, agentSettings ?? new AgentSettings(),
+        return new FwoAgentFactory(providerClient, kContextWindowTokens, agentSettings ?? CreateAgentSettingsWithAllFeatures(),
             mcpHandlerFactory: () => mcpApp.GetTestServer().CreateHandler());
+    }
+
+    /// <summary>
+    /// Creates the default agent settings with all AI functions switched on, which are off by default.
+    /// </summary>
+    internal static AgentSettings CreateAgentSettingsWithAllFeatures()
+    {
+        return new AgentSettings { ChatEnabled = true, ReasonCheckEnabled = true };
     }
 
     /// <summary>

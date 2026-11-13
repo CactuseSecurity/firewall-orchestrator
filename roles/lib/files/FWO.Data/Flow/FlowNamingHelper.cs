@@ -294,6 +294,33 @@ namespace FWO.Data.Flow
         }
 
         /// <summary>
+        /// Returns the selected duplicate name only when its management is the highest-precedence mapping.
+        /// </summary>
+        public static string? ResolveMissingNameFromDuplicateSelection(
+            string? currentName,
+            string? selectedName,
+            int selectedManagementId,
+            IEnumerable<int> mappedManagementIds,
+            IReadOnlyList<int>? managementRanking)
+        {
+            return IsHighestPrecedenceManagement(selectedManagementId, mappedManagementIds, managementRanking)
+                ? ResolveMissingNameFromDuplicateSelection(currentName, selectedName)
+                : null;
+        }
+
+        /// <summary>
+        /// Determines whether a management is the highest-precedence one among the flow object's mappings.
+        /// </summary>
+        public static bool IsHighestPrecedenceManagement(
+            int managementId,
+            IEnumerable<int> mappedManagementIds,
+            IReadOnlyList<int>? managementRanking)
+        {
+            List<int> rankedManagementIds = NormalizeManagementRanking(managementRanking, mappedManagementIds);
+            return rankedManagementIds.Count > 0 && rankedManagementIds[0] == managementId;
+        }
+
+        /// <summary>
         /// Resolves the preferred display name for a flow object by checking managements in ranking order first,
         /// then active candidates across all managements, then any remaining candidate, and finally the fallback.
         /// </summary>

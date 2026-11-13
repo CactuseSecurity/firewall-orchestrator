@@ -5,6 +5,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
 using FWO.Services;
+using FWO.Services.FlowSync;
 using Quartz;
 
 namespace FWO.Middleware.Server.Jobs

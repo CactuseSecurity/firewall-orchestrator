@@ -62,6 +62,24 @@ fwo_endpoint_hostname: ""
 # ui_server_alias: fwo.example.com fwo-alt.example.com
 
 
+### Ansible collection sources for this installation
+# Read before Galaxy downloads by both install-ansible-from-venv.sh and
+# run-playbook-with-sudo.sh. Leave both settings absent to keep Ansible's defaults.
+# The list gives the search order. Every listed name needs a URL below; names contain
+# only lowercase letters, digits and underscores and start with a letter.
+# URLs must end in /. Only url is accepted here: supply authentication through
+# ANSIBLE_GALAXY_SERVER_ARTIFACTORY_TOKEN (or USERNAME/PASSWORD) in the environment.
+# Existing ANSIBLE_GALAXY_* environment values override these settings for the run.
+# For Artifactory, <repo-key> is the key of an Ansible remote repository proxying
+# https://galaxy.ansible.com; list the keys with
+# https://artifactory.example.com/artifactory/api/repositories?packageType=ansible
+# fwo_galaxy_server_list:
+#   - artifactory
+# fwo_galaxy_servers:
+#   artifactory:
+#     url: https://artifactory.example.com/artifactory/api/ansible/<repo-key>/
+
+
 ### Administrator-managed Apache certificates
 # Set when this installation keeps its own certificate on an FWO Apache endpoint instead
 # of one from the internal CA. The issuing root goes here - FWO adds it to its trust

@@ -81,6 +81,21 @@ require_ansible_core() {
     fi
 }
 
+# Print the Python interpreter Ansible runs on, as reported by 'ansible --version'
+# ("python version = 3.x ... (/path/to/python)"). That interpreter has PyYAML, which
+# ansible-core depends on; the python3 on the PATH need not (e.g. Ansible from pipx).
+# Falls back to python3 when the output carries no executable interpreter path.
+get_ansible_python() {
+    local ansible_python
+    ansible_python="$(ansible --version 2>/dev/null | sed -n 's/^[[:space:]]*python version = .*(\([^()]*\))[[:space:]]*$/\1/p' | head -1)" || true
+
+    if [[ -n "$ansible_python" && -x "$ansible_python" ]]; then
+        printf '%s\n' "$ansible_python"
+    else
+        printf '%s\n' "python3"
+    fi
+}
+
 # Return the configured collection search paths, with the environment override Ansible
 # itself honors taking precedence. The repository config supplies the standard fallback
 # paths when no override is present.
@@ -201,10 +216,13 @@ ensure_collections() {
     fi
 
     echo "Refreshing required Ansible collections from $requirements_file ..."
-    if ! ansible-galaxy collection install -r "$requirements_file" -p collections --force; then
+    local galaxy_runner galaxy_python
+    galaxy_runner="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/run_installer_galaxy.py"
+    galaxy_python="$(get_ansible_python)"
+    if ! "$galaxy_python" "$galaxy_runner" --settings "$install_settings_file" collection install -r "$requirements_file" -p collections --force; then
         echo "Failed to install the required Ansible collections." >&2
         echo "Install them manually before running the playbook:" >&2
-        echo "    ansible-galaxy collection install -r $requirements_file -p collections --force" >&2
+        echo "    $galaxy_python scripts/run_installer_galaxy.py collection install -r $requirements_file -p collections --force" >&2
         exit 1
     fi
 }

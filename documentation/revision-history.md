@@ -16,6 +16,7 @@
 
 
 ## 9.9.1 - 05.11.2026
+- installer: Ansible collection sources such as Artifactory can be configured per installation with `fwo_galaxy_server_list` and `fwo_galaxy_servers` in `fwo-install-settings.yml`; bootstrap and subsequent collection downloads use these settings, with environment overrides and credentials kept separate
 - request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent
 - workflow UI: the promotion-mode setting now also supports action-buttons-only in addition to ticket, task and combined promotion
 - workflow UI: approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks

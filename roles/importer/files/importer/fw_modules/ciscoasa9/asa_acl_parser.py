@@ -4,6 +4,11 @@ Strict parser for ASA extended access-list entries.
 Every token of an entry must be understood. Unknown, truncated or unsupported syntax raises an
 AsaConfigParseError, which fails the import: a guessed meaning (e.g. "any" for an address that was not
 understood) could make the imported policy more permissive than the real one.
+
+One deliberate exception: the source port of a permit entry is skipped with a warning, and the entry is
+imported for all source ports. This makes the imported rule more permissive than the real one. The source
+port of a deny entry still fails the import, because a deny widened to all source ports would hide traffic
+the firewall permits.
 """
 
 from __future__ import annotations
@@ -20,8 +25,10 @@ from fw_modules.ciscoasa9.asa_models import (
     EndpointKind,
 )
 from fwo_exceptions import FwoImporterError
+from fwo_log import FWOLogger
 
 PORT_OPERATORS = ("eq", "neq", "lt", "gt", "range")
+PORT_PROTOCOLS = ("tcp", "udp", "6", "17")  # protocols with ports; ASA rejects source ports for all others
 OPTION_KEYWORDS = ("log", "time-range", "inactive")
 ICMP_PROTOCOLS = ("icmp", "icmp6")
 ICMP_TYPE_NAMES = (
@@ -79,6 +86,8 @@ MAX_PORT = 65535
 ACL_HEADER_TOKENS = 2  # "access-list" NAME
 LINE_NUMBER_TOKENS = 2  # optional "line" N
 ENDPOINT_WITH_ARGUMENT_TOKENS = 2  # e.g. "host" A.B.C.D or A.B.C.D MASK
+PORT_OPERATOR_TOKENS = 2  # e.g. "eq" PORT
+RANGE_OPERATOR_TOKENS = 3  # "range" START END
 IPV4_PATTERN = re.compile(r"\d{1,3}(?:\.\d{1,3}){3}")
 IPV4_ALL_BITS = 0xFFFFFFFF
 
@@ -127,8 +136,12 @@ def parse_access_list_entry(
     Syntax: access-list NAME [line N] extended {permit|deny} PROTOCOL SOURCE [SOURCE_PORT] DESTINATION
             [PORT | ICMP_TYPE] [log [LEVEL] [interval SECS] | log disable | log default] [time-range NAME] [inactive]
 
+    SOURCE_PORT is skipped with a warning in permit entries; the entry is imported for all source ports.
+    In deny entries it is rejected, because a deny widened to all source ports would hide traffic the firewall permits.
+
     Raises:
-        AsaConfigParseError: for unknown, truncated or unsupported syntax (e.g. source ports, interface addresses)
+        AsaConfigParseError: for unknown, truncated or unsupported syntax (e.g. interface addresses, source ports
+            in deny entries)
 
     """
     parts = line.split()
@@ -140,7 +153,7 @@ def parse_access_list_entry(
     protocol, pos = _parse_protocol(parts, pos + 1, protocol_groups, svc_objects, svc_obj_groups)
     service_group_names = {group.name for group in svc_obj_groups}
     src, pos = parse_endpoint(parts, pos)
-    _reject_source_port(parts, pos, service_group_names)
+    src_port, pos = _parse_source_port(parts, pos, protocol, protocol_groups, service_group_names, action, line)
     dst, pos = parse_endpoint(parts, pos)
     dst_port, pos = _parse_destination_service(parts, pos, protocol)
     inactive, time_range = _parse_options(parts, pos)
@@ -150,6 +163,7 @@ def parse_access_list_entry(
         action="permit" if action == "permit" else "deny",
         protocol=protocol,
         src=src,
+        src_port=src_port,
         dst=dst,
         dst_port=dst_port,
         inactive=inactive,
@@ -223,16 +237,53 @@ def _parse_protocol(
     return EndpointKind(kind="protocol", value=keyword.lower()), pos + 1
 
 
-def _reject_source_port(parts: list[str], pos: int, service_group_names: set[str]) -> None:
-    """Source ports cannot be imported; ignoring them would widen the entry to all source ports."""
+def _parse_source_port(
+    parts: list[str],
+    pos: int,
+    protocol: EndpointKind,
+    protocol_groups: list[AsaProtocolGroup],
+    service_group_names: set[str],
+    action: str,
+    line: str,
+) -> tuple[str | None, int]:
+    """
+    Parse an optional source port; returns (source port construct as written or None, next position).
+
+    Source ports are not imported into the rule: the rule matches all source ports, so it is wider than the real one.
+    This is only acceptable for permit entries, where the widening over-reports what the firewall permits.
+    A widened deny entry would under-report it (and shadow later permits), so source ports in deny entries are rejected.
+    The construct is kept in the entry so that entries differing only in their source port get different rule uids.
+    """
     if pos >= len(parts):
-        return
+        return None, pos
     keyword = parts[pos].lower()
-    if keyword in PORT_OPERATORS:
-        construct = " ".join(parts[pos : pos + 2])
-        raise AsaConfigParseError(f"unsupported source port '{construct}'", pos)
-    if keyword == "object-group" and pos + 1 < len(parts) and parts[pos + 1] in service_group_names:
-        raise AsaConfigParseError(f"unsupported source port object-group '{parts[pos + 1]}'", pos)
+    if keyword == "neq":
+        # neq is not representable as a destination port, but a skipped source port only needs to be valid
+        _port_number(_expect_token(parts, pos + 1, "port after 'neq'"), pos + 1)
+        end = pos + PORT_OPERATOR_TOKENS
+    elif keyword in PORT_OPERATORS:
+        _, end = _parse_port_operator(parts, pos)
+    elif keyword == "object-group" and pos + 1 < len(parts) and parts[pos + 1] in service_group_names:
+        end = pos + ENDPOINT_WITH_ARGUMENT_TOKENS
+    else:
+        return None, pos
+    construct = " ".join(parts[pos:end])
+    if not _has_port_protocol(protocol, protocol_groups):
+        raise AsaConfigParseError(f"source port '{construct}' requires protocol tcp or udp", pos)
+    if action == "deny":
+        raise AsaConfigParseError(f"unsupported source port '{construct}' in deny entry", pos)
+    FWOLogger.warning(f"ignoring source port '{construct}' in '{line}' - the entry is imported for all source ports")
+    return construct, end
+
+
+def _has_port_protocol(protocol: EndpointKind, protocol_groups: list[AsaProtocolGroup]) -> bool:
+    """Ports exist only for tcp and udp; a protocol object-group qualifies if all its protocols do."""
+    if protocol.kind == "protocol":
+        return protocol.value in PORT_PROTOCOLS
+    if protocol.kind == "protocol-group":
+        group = next(group for group in protocol_groups if group.name == protocol.value)
+        return bool(group.protocols) and all(p.lower() in PORT_PROTOCOLS for p in group.protocols)
+    return False
 
 
 def _parse_destination_service(parts: list[str], pos: int, protocol: EndpointKind) -> tuple[EndpointKind, int]:

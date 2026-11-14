@@ -1,6 +1,7 @@
 fragment ruleOverview on firewall_rule {
   rule_id
   rule_uid
+  mgm_id
   dev_id
   rule_action
   rulebase_id
@@ -19,6 +20,11 @@ fragment ruleOverview on firewall_rule {
     rule_created
     rule_first_hit
     rule_last_hit
+    rule_hits {
+      dev_id
+      rule_last_hit
+      device { dev_name }
+    }
     created_import { start_time }
   }
   rule_src_neg

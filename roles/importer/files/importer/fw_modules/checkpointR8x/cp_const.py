@@ -2,7 +2,8 @@ details_level = "standard"
 details_level_objects = "standard"
 details_level_group_objects = "full"
 use_object_dictionary = True
-with_hits = True
+# hits are read by the rule hit import only (cp_rule_hits.py), not by the regular import
+with_hits = False
 
 dummy_ip = "0.0.0.0/32"
 

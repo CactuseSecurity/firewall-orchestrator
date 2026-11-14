@@ -1,0 +1,6 @@
+query getRuleHitImportRequests {
+  rule_hit_import_request(order_by: { mgm_id: asc }) {
+    mgm_id
+    requested_at
+  }
+}

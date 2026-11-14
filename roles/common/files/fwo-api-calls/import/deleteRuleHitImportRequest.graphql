@@ -1,0 +1,5 @@
+mutation deleteRuleHitImportRequest($mgmId: Int!) {
+  delete_rule_hit_import_request(where: { mgm_id: { _eq: $mgmId } }) {
+    affected_rows
+  }
+}

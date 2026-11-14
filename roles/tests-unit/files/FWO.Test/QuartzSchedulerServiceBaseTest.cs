@@ -229,6 +229,37 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RuleHitImportScheduler_SchedulesTriggerWithConfiguredUnit()
+        {
+            IScheduler scheduler = Substitute.For<IScheduler>();
+            ConfigureQuartzScheduler(scheduler);
+            ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
+            schedulerFactory.GetScheduler().Returns(_ => new ValueTask<IScheduler>(scheduler));
+            CapturingApiConnection apiConnection = new();
+            using TestApplicationLifetime appLifetime = new();
+            DateTime configuredStart = DateTime.Now.Date.AddDays(1);
+
+            _ = new ImportRuleHitsSchedulerService(schedulerFactory, apiConnection, new SimulatedGlobalConfig(), appLifetime);
+            appLifetime.Start();
+            await WaitUntil(() => apiConnection.ConfigUpdateHandler != null);
+
+            apiConnection.Emit(CreateRuleHitImportConfig(2, "Days", configuredStart));
+            await WaitUntil(async () => await ScheduleTriggerCallCount(scheduler) == 1);
+
+            ICalendarIntervalTrigger scheduledTrigger = scheduler.ReceivedCalls()
+                .Where(call => call.GetMethodInfo().Name == nameof(IScheduler.ScheduleJob))
+                .Select(call => call.GetArguments()[0])
+                .OfType<ICalendarIntervalTrigger>()
+                .Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(scheduledTrigger.RepeatInterval, Is.EqualTo(2));
+                Assert.That(scheduledTrigger.RepeatIntervalUnit, Is.EqualTo(IntervalUnit.Day));
+                Assert.That(scheduledTrigger.StartTimeUtc, Is.EqualTo(new DateTimeOffset(configuredStart)));
+            });
+        }
+
+        [Test]
         public async Task ReportSchedulerService_StartsAndSchedulesRecurringTrigger()
         {
             IScheduler scheduler = Substitute.For<IScheduler>();
@@ -296,6 +327,16 @@ namespace FWO.Test
             [
                 new() { Key = "externalRequestSleepTime", Value = sleepTime.ToString(CultureInfo.InvariantCulture) },
                 new() { Key = "externalRequestStartAt", Value = startAt.ToString("O", CultureInfo.InvariantCulture) }
+            ];
+        }
+
+        private static List<ConfigItem> CreateRuleHitImportConfig(int sleepTime, string sleepTimeUnit, DateTime startAt)
+        {
+            return
+            [
+                new() { Key = "importRuleHitsSleepTime", Value = sleepTime.ToString(CultureInfo.InvariantCulture) },
+                new() { Key = "importRuleHitsSleepTimeUnit", Value = sleepTimeUnit },
+                new() { Key = "importRuleHitsStartAt", Value = startAt.ToString("O", CultureInfo.InvariantCulture) }
             ];
         }
 

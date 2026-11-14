@@ -37,6 +37,22 @@ namespace FWO.Data
                 : value;
         }
 
+        /// <summary>
+        /// Gets or sets the last hit per gateway, as far as the caller may see the gateways. Empty when the query
+        /// does not select the hits; gateways without a hit have no entry.
+        /// </summary>
+        [JsonProperty("rule_hits"), JsonPropertyName("rule_hits")]
+        public List<RuleHit> RuleHits { get; set; } = [];
+
+        /// <summary>
+        /// Returns the last hit of the rule on one gateway, or null when the rule has no hit there.
+        /// </summary>
+        /// <param name="deviceId">Database id of the gateway.</param>
+        public DateTime? GetGatewayLastHit(int deviceId)
+        {
+            return RuleHits.FirstOrDefault(hit => hit.DeviceId == deviceId)?.LastHit;
+        }
+
         [JsonProperty("recertification"), JsonPropertyName("recertification")]
         public List<Recertification> RuleRecertification { get; set; } = [];
 

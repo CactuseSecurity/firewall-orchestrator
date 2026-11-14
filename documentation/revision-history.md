@@ -4,6 +4,24 @@
 - request workflow: rule-positioning and firewall-write operations resolve gateway-bound implementation tasks against the gateway's management and reject inconsistent task data
 - middleware REST API: `getAddressGroups` and `getServiceGroups` accept `filter.includeTechnicalDetails=true` to include each member's standalone address or service object fields; omitted, null or false keep the existing compact id/name response, and address details can be combined with separated zone groups
 - UI fix: links from rule report objects to the right sidebar work again on the first click and no longer jump to another page on a following click (#4919). The per-page API role is now determined from the current page with every request instead of a navigation handler, which had broken the browser's in-page navigation
+- importer: last hits are read by a separate rule hit import instead of the regular import (#3297)
+  - the regular import no longer reads or writes last hits (Check Point no longer requests hits), so unchanged Check Point configurations no longer leave last hits outdated
+  - the new middleware scheduler "ImportRuleHitsJob" requests a rule hit import for every imported top-level management (table `rule_hit_import_request`); the responsible importer runs it right after the configuration import of the management and removes the request
+  - schedule: new importer settings `importRuleHitsSleepTime`, `importRuleHitsSleepTimeUnit` (minutes, hours, days) and `importRuleHitsStartAt`; default once a day at 00:00, 0 switches it off
+  - the run holds the import lock of the management as `import_control` row of the new import type 5 "rule hit", which never counts as configuration change; a management locked by a running import is skipped until the next request; failures raise an import error alert
+  - last hits are stored per gateway in the new table `firewall.rule_hit`; `rule_metadata.rule_last_hit` keeps the latest hit across all gateways and never moves backwards, so reports and filters are unchanged
+  - Check Point: hits are fetched per gateway (`hits-settings.target`); global layers of a multi-domain server are not covered. FortiManager: the last hit of the policy package is stored for every gateway using the package
+  - manual run: `import_mgm.py -m <mgm_id> --rule_hits`
+  - "last import" queries (rollback, import status, daily check, last complete/successful import) only consider configuration imports
+- middleware REST API: new endpoint `POST /api/Rule/GetRuleLastHits` returns the last hits of the rules of a management, aggregated and per gateway (#5670)
+  - roles: admin, auditor, reporter, reporter-viewall, recertifier. Callers other than admin, auditor and reporter-viewall only get managements and gateways visible to their tenant (a management that is not visible answers with an empty list); callers of a tenant other than tenant0 get no rule names
+  - filters in `options.filter`: `mgmId`, `ruleUid`, `ruleName`, `lastHitAfter`, `lastHitBefore`, `neverHit`, `devId`, `gatewayName`; paging with `options.limit` / `options.offset` and the `X-Has-More` header, at most 1000 gateways per rule (`gatewaysTruncated`)
+  - expensive rate-limit policy and request body size limit; validation returns all key-level errors together
+- reports: rule reports show the last hit per gateway (#5669)
+  - rules listed below a gateway (Rules, Resolved, Technical, NAT, Unused; UI and HTML/PDF export) show the last hit on that gateway instead of the latest hit across all gateways: "no hits" for a rule never hit on a gateway that reports hits, "unsupported" for a gateway whose management does not report hits. Where the hit on the gateway is not known, the latest hit across all gateways is shown as before: for a gateway without any imported hit (e.g. before the first rule hit import) and for a rule of another management (global rules) without a hit on the gateway. The management rulebases view, the recertification report, the `lasthit` filter and the unused-rules cut-off keep using the latest hit across all gateways
+  - the rule details list the last hit of every gateway
+  - new column `stm_dev_typ.dev_typ_supports_rule_hits`, set for Check Point R8x, Check Point MDS R8x, FortiADOM and FortiManager
+  - Hasura: `firewall.rule_hit` is readable for auditor and reporter-viewall, and for reporter, recertifier and modeller restricted to their visible gateways (tenant0 sees all)
 - installer: pin the .NET SDK to `dotnet_version` (10.0) with a `global.json` below `/usr/local/fworch`, so a newer major SDK installed alongside (e.g. .NET 11 on GitHub runners) no longer builds the middleware, UI and unit tests; the repository and the CI workflows use the same pin, and the test-install workflow checks that all pins match (#5700)
 
 

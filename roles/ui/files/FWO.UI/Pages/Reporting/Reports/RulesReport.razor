@@ -75,7 +75,7 @@
                                 {
                                     <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("last_hit"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Metadata.LastHit)" Sortable="false" Filterable="false">
                                         <Template>
-                                            @((MarkupString)RuleDisplayHtml.DisplayLastHit(ruleTreeItem.Data!.Metadata))
+                                            @((MarkupString)_ruleDisplay.DisplayLastHit(ruleTreeItem.Data!.Metadata, GatewayHitContext.For(management, device, ruleTreeItem.Data!, ManagementRulebaseView)))
                                         </Template>
                                     </Column>
                                     @if (_showLastModifiedAfterLastHit && _emptyColumns[13] == false)
@@ -225,7 +225,7 @@
                                 {
                                     <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("last_hit"))" Field="@(r => r.Data.Metadata.LastHit)" Sortable="true" Hideable="true" Class="minw-80">
                                         <Template>
-                                            @((MarkupString)RuleDisplayHtml.DisplayLastHit(ruleTreeItem.Data.Metadata))
+                                            @((MarkupString)_ruleDisplay.DisplayLastHit(ruleTreeItem.Data.Metadata, GatewayHitContext.For(management, device, ruleTreeItem.Data, ManagementRulebaseView)))
                                         </Template>
                                     </Column>
                                 }
@@ -286,6 +286,13 @@
 
     [Parameter]
     public bool Recertification { get; set; } = false;
+
+    /// <summary>
+    /// True if the report lists every rulebase once per management. The last hit column then shows the latest
+    /// hit across all gateways instead of the hit on the gateway the rules are listed below.
+    /// </summary>
+    [Parameter]
+    public bool ManagementRulebaseView { get; set; } = false;
 
     /// <summary>
     /// Scrolls to the rule tree that lists a referenced rulebase completely (management rulebases view).

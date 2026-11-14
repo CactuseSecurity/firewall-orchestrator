@@ -35,11 +35,13 @@ namespace FWO.Report.Filter
                         id: mgm_id
                         uid: mgm_uid
                         name: mgm_name
+                        deviceType: stm_dev_typ {{ id: dev_typ_id supportsRuleHits: dev_typ_supports_rule_hits }}
                         devices ({GetDeviceWhereFilter(query, filter)})
                         {{
                             id: dev_id
                             name: dev_name
                             uid: dev_uid
+                            importedRuleHits: rule_hits(limit: 1) {{ dev_id }}
                             {query.OpenRuleBaseTable}
                                 where: {{ {GetDeviceLinkWhereStatement(query)} }}
                             ) {{
@@ -137,11 +139,13 @@ namespace FWO.Report.Filter
                         id: mgm_id
                         uid: mgm_uid
                         name: mgm_name
+                        deviceType: stm_dev_typ {{ id: dev_typ_id supportsRuleHits: dev_typ_supports_rule_hits }}
                         devices ({GetDeviceWhereFilter(query, filter)})
                         {{
                             id: dev_id
                             name: dev_name
                             uid: dev_uid
+                            importedRuleHits: rule_hits(limit: 1) {{ dev_id }}
                             rulebase_links(
                                 where: {{ {GetDeviceLinkWhereStatement(query)} }}
                             ) {{
@@ -210,11 +214,13 @@ namespace FWO.Report.Filter
                         id: mgm_id
                         uid: mgm_uid
                         name: mgm_name
+                        deviceType: stm_dev_typ {{ id: dev_typ_id supportsRuleHits: dev_typ_supports_rule_hits }}
                         devices ({GetDeviceWhereFilter(filter.ReportParams.DeviceFilter)})
                         {{
                             id: dev_id
                             name: dev_name
                             uid: dev_uid
+                            importedRuleHits: rule_hits(limit: 1) {{ dev_id }}
                             rulebase_links(
                                 where: {{ {query.NatRulebaseLinkWhereStatement} }}
                             ) {{

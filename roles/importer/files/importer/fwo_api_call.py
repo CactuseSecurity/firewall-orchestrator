@@ -5,11 +5,11 @@ import datetime
 import json
 import time
 import traceback
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import fwo_const
 from fwo_api import FwoApi
-from fwo_exceptions import FwoApiFailedLockImportError
+from fwo_exceptions import FwoApiFailedLockImportError, FwoApiFailureError, FwoApiWriteError
 from fwo_log import FWOLogger
 from query_analyzer import QueryAnalyzer
 
@@ -20,6 +20,14 @@ if TYPE_CHECKING:
     from models.import_state import ImportState
 
 # NOTE: we cannot import ImportState(Controller) here due to circular refs
+
+
+def is_import_lock_conflict(lock_result: dict[str, Any]) -> bool:
+    """Return whether an import lock mutation failed because another import of the management is running."""
+    errors: Any = lock_result.get("errors")
+    if not isinstance(errors, list):
+        return False
+    return any(fwo_const.IMPORT_LOCK_INDEX_NAME in str(error) for error in cast("list[Any]", errors))
 
 
 class FwoApiCall:
@@ -88,16 +96,18 @@ class FwoApiCall:
         self,
         mgm_details: ManagementController,
         is_initial_import: int,
+        import_type_id: int = fwo_const.IMPORT_TYPE_RULE,
     ) -> int:
         import_id = -1
         mgm_id = mgm_details.mgm_id
+        lock_result: dict[str, Any] = {}
         try:  # set import lock
             lock_mutation = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/addImportForMgm.graphql"])
             lock_result = self.api.call(
                 lock_mutation,
                 query_variables={
                     "mgmId": mgm_id,
-                    "importTypeId": 1,
+                    "importTypeId": import_type_id,
                     "isInitialImport": is_initial_import,
                 },
             )
@@ -105,7 +115,16 @@ class FwoApiCall:
                 import_id = lock_result["data"]["insert_import_control"]["returning"][0]["control_id"]
             return import_id
         except Exception:
-            FWOLogger.error("import_management - failed to get import lock for management id " + str(mgm_id))
+            if import_type_id == fwo_const.IMPORT_TYPE_RULE_HIT and is_import_lock_conflict(lock_result):
+                # a running import holds the lock: the rule hits are refreshed with the next scheduled request
+                FWOLogger.info(f"rule hit import - management id {mgm_id} is locked by another import, skipping")
+                raise FwoApiFailedLockImportError(
+                    f"fwo_api: failed to get rule hit import lock for management id {mgm_id}"
+                ) from None
+            FWOLogger.error(
+                f"import_management - failed to get import lock for management id {mgm_id}: "
+                f"{lock_result.get('errors', traceback.format_exc())!s}"
+            )
             if import_id == -1:
                 self.create_data_issue(
                     mgm_id=mgm_id,
@@ -126,6 +145,27 @@ class FwoApiCall:
                     "fwo_api: failed to get import lock for management id " + str(mgm_id)
                 ) from None
             return import_id
+
+    def get_rule_hit_import_requests(self) -> set[int]:
+        """Return the ids of all managements with a pending rule hit import request."""
+        request_query = FwoApi.get_graphql_code(
+            [fwo_const.GRAPHQL_QUERY_PATH + "import/getRuleHitImportRequests.graphql"]
+        )
+        result = self.api.call(request_query, query_variables={})
+        if "errors" in result:
+            raise FwoApiFailureError(f"failed to get rule hit import requests: {result['errors']!s}")
+        return {request["mgm_id"] for request in result["data"]["rule_hit_import_request"]}
+
+    def delete_rule_hit_import_request(self, mgm_id: int) -> None:
+        """Remove the pending rule hit import request of a management."""
+        delete_mutation = FwoApi.get_graphql_code(
+            [fwo_const.GRAPHQL_QUERY_PATH + "import/deleteRuleHitImportRequest.graphql"]
+        )
+        result = self.api.call(delete_mutation, query_variables={"mgmId": mgm_id})
+        if "errors" in result:
+            raise FwoApiWriteError(
+                f"failed to delete rule hit import request of management {mgm_id}: {result['errors']!s}"
+            )
 
     def count_rule_changes_per_import(self, import_id: int):
         change_count_query = FwoApi.get_graphql_code(

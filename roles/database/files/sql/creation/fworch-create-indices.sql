@@ -101,6 +101,7 @@ Create index "IX_Relationship78" on "changelog_rule" ("control_id");
 Create unique index "kundennetze_akey" on "tenant_network" using btree ("tenant_net_id","tenant_id");
 Create unique index "rule_from_unique_index" on "rule_from" using btree ("rule_id","obj_id","user_id");
 Create index "import_control_start_time_idx" on "import_control" using btree ("start_time");
+Create index IF NOT EXISTS "idx_rule_hit_dev_id" on firewall."rule_hit" ("dev_id");
 
 
 Create index "IX_relationship23" on "rule" ("action_id");

@@ -18,6 +18,14 @@
     <Detail Title="@(userConfig.GetText("last_modified"))" Data="@(RuleDisplayBase.DisplayLastModified(Rule))" />
     <Detail Title="@(userConfig.GetText("first_hit"))" Data="@Rule.Metadata?.FirstHit?.ToString()" />
     <Detail Title="@(userConfig.GetText("last_hit"))" Data="@Rule.Metadata?.LastHit?.ToString()" />
+    @if(Rule.Metadata!.RuleHits.Count > 0)
+    {
+        <Detail Title="@(userConfig.GetText("last_hit_per_gateway"))" Data=":" />
+        @foreach(var hit in GetGatewayHits())
+        {
+            <Detail Title="@(hit.Gateway?.Name ?? hit.DeviceId.ToString())" Data="@(hit.LastHit.ToString())" />
+        }
+    }
     <Detail Title="@(userConfig.GetText("last_certify_date"))" Data="@Rule.Metadata?.LastCertified?.ToString()" />
     <Detail Title="@(userConfig.GetText("last_recertifier"))" Data="@GetLastRecertifier()" />
     <Detail Title="@(userConfig.GetText("decert_date"))" Data="@Rule.Metadata?.DecertificationDate?.ToString()" />
@@ -36,6 +44,13 @@
 
     [Parameter]
     public bool Extended { get; set; } = false;
+
+    private IEnumerable<RuleHit> GetGatewayHits()
+    {
+        return Rule.Metadata.RuleHits
+            .OrderBy(hit => hit.Gateway?.Name ?? "", StringComparer.OrdinalIgnoreCase)
+            .ThenBy(hit => hit.DeviceId);
+    }
 
     private string GetLastRecertifier()
     {

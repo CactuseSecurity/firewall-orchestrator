@@ -9,9 +9,9 @@
 <div class="btn-group">
     @foreach (WfStateAction action in OfferedActions)
     {
-            @if (CanShowAction(action))
+        @if (ShouldShowAction(action))
         {
-            <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => PerformAction(action)">@action.ButtonText</button>
+            <button type="button" class="btn btn-sm btn-dark" @onclick:preventDefault @onclick="() => RequestAction(action)">@action.ButtonText</button>
         }
     }
 </div>
@@ -24,7 +24,13 @@
     public WfHandler WfHandler { get; set; } = new();
 
     [Parameter]
-    public List<WfStateAction> OfferedActions { get; set; } = [];
+    public IReadOnlyList<WfStateAction> OfferedActions { get; set; } = [];
+
+    [Parameter]
+    public Func<WfStateAction, bool>? ActionVisibility { get; set; }
+
+    [Parameter]
+    public Func<WfStateAction, Task>? ActionRequested { get; set; }
 
     [Parameter]
     public bool AllowStateChangingActions { get; set; }
@@ -56,6 +62,16 @@
             || (AllowStateChangingActions && WfHandler.CanPerformActionOnActTicket(action));
     }
 
+    private bool ShouldShowAction(WfStateAction action)
+    {
+        return ActionVisibility?.Invoke(action) ?? CanShowAction(action);
+    }
+
+    private Task RequestAction(WfStateAction action)
+    {
+        return PerformAction(action);
+    }
+
     private async Task PerformAction(WfStateAction action)
     {
         if (WorkInProgress)
@@ -67,12 +83,19 @@
         await WorkInProgressChanged.InvokeAsync(true);
         try
         {
-            if (WfHandler.ActionHandler == null)
+            if (ActionRequested != null)
             {
-                return;
+                await ActionRequested(action);
             }
+            else
+            {
+                if (WfHandler.ActionHandler == null)
+                {
+                    return;
+                }
 
-            await WfHandler.ActionHandler.PerformAction(action, Target, Scope, Owner, TicketId);
+                await WfHandler.ActionHandler.PerformAction(action, Target, Scope, Owner, TicketId);
+            }
             await AfterAction();
         }
         catch (Exception exception)

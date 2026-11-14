@@ -50,16 +50,23 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
         {
             cancellationToken.ThrowIfCancellationRequested();
             (Device Gateway, Management Management) target = await LoadTargetAsync(
-                implementationTask.DeviceId!.Value,
-                RulePositioningContextValidator.EffectiveManagementId(requestTask, implementationTask));
+                requestTask,
+                implementationTask);
             cancellationToken.ThrowIfCancellationRequested();
             DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> settings =
                 await settingsManager.LoadLevelAsync<GatewayDeviceSpecificSettings>(
                     DeviceSpecificScopePath.ForGateway(target.Management, target.Gateway));
             cancellationToken.ThrowIfCancellationRequested();
+            if (settings.Settings.PositioningAlgorithm ==
+                    ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection &&
+                requestTask.ManagementId is not > 0)
+            {
+                return LoggedOutcome(
+                    implementationTask.Id,
+                    RulePositioningWorkflowStatus.NotApplicable);
+            }
             IReadOnlyCollection<WfReqTask>? ticketTasks = await LoadTicketTasksIfRequiredAsync(
                 requestTask,
-                target.Management.Id,
                 settings.Settings.PositioningAlgorithm,
                 cancellationToken);
             RulePositioningConfiguration? configuration = await LoadConfigurationIfRequiredAsync(
@@ -127,10 +134,9 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
             currentConfig.GetText("internet_local_zone"));
     }
 
-    /// <summary>Loads and validates the management-specific ticket slice only for ticket-aware positioning.</summary>
+    /// <summary>Loads and validates the request-management ticket slice only for ticket-aware positioning.</summary>
     private async Task<IReadOnlyCollection<WfReqTask>?> LoadTicketTasksIfRequiredAsync(
         WfReqTask requestTask,
-        int managementId,
         ProvisioningPositioningAlgorithm algorithm,
         CancellationToken cancellationToken)
     {
@@ -138,6 +144,7 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
         {
             return null;
         }
+        int managementId = requestTask.ManagementId ?? 0;
         if (requestTask.TicketId <= 0 || managementId <= 0)
         {
             throw new InvalidOperationException("The rule-positioning ticket context is invalid.");
@@ -173,18 +180,22 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
         return RulePositioningContextValidator.IsApplicable(requestTask, implementationTask);
     }
 
-    /// <summary>Loads exactly one gateway and validates its effective management.</summary>
+    /// <summary>Loads exactly one gateway and resolves its canonical target management.</summary>
     private async Task<(Device Gateway, Management Management)> LoadTargetAsync(
-        int gatewayId,
-        int effectiveManagementId)
+        WfReqTask requestTask,
+        WfImplTask implementationTask)
     {
+        int gatewayId = implementationTask.DeviceId!.Value;
         List<Device> gateways = await apiConnection.SendQueryAsync<List<Device>>(
-            DeviceQueries.getRulePositioningTarget,
+            DeviceQueries.getImplementationTaskGatewayTarget,
             new { gatewayId });
-        if (gateways.Count != 1
-            || gateways[0].Id != gatewayId
-            || gateways[0].Management == null
-            || gateways[0].Management.Id != effectiveManagementId)
+        if (gateways.Count != 1 ||
+            !WfImplTaskTargetManagementResolver.TryResolveManagementId(
+                requestTask,
+                implementationTask,
+                gateways[0],
+                out int managementId) ||
+            gateways[0].Management.Id != managementId)
         {
             throw new InvalidOperationException("The rule-positioning target is unavailable or inconsistent.");
         }

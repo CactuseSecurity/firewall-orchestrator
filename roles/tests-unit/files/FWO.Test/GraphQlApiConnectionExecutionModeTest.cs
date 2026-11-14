@@ -8,6 +8,118 @@ namespace FWO.Test
     [TestFixture]
     public class GraphQlApiConnectionExecutionModeTest
     {
+        private static readonly List<string> ModellingPageRoles = [Roles.Modeller, Roles.Admin, Roles.Auditor];
+        private static readonly List<string> ReportPageRoles = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Admin, Roles.Auditor];
+        private static readonly List<string> ReporterOnlyPageRoles = [Roles.Reporter];
+        private static readonly List<string> NoPageRoles = [];
+
+        private static ClaimsPrincipal CreateReporterModeller()
+        {
+            return new(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.Role, Roles.Reporter),
+                new Claim(ClaimTypes.Role, Roles.Modeller)
+            ], "test", ClaimTypes.Name, ClaimTypes.Role));
+        }
+
+        [Test]
+        public void SetAmbientRoleProviderResolvesTheRolesAtTheTimeOfTheRequest()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            ClaimsPrincipal user = CreateReporterModeller();
+            connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
+            List<string> currentPageRoles = ModellingPageRoles;
+
+            connection.SetAmbientRoleProvider(user, () => currentPageRoles);
+            string roleOnModellingPage = connection.GetActRole();
+            currentPageRoles = ReporterOnlyPageRoles;
+            string roleOnReportPage = connection.GetActRole();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(roleOnModellingPage, Is.EqualTo(Roles.Modeller));
+                Assert.That(roleOnReportPage, Is.EqualTo(Roles.Reporter));
+            });
+        }
+
+        [Test]
+        public void SetAmbientRoleProviderPrefersTheFirstAcceptedRoleOfTheUser()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            ClaimsPrincipal user = CreateReporterModeller();
+            connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
+
+            connection.SetAmbientRoleProvider(user, () => ReportPageRoles);
+
+            Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Reporter));
+        }
+
+        [Test]
+        public void SetAmbientRoleKeepsTheTargetRolesItWasGiven()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            ClaimsPrincipal user = CreateReporterModeller();
+            connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
+            List<string> targetRoles = [.. ModellingPageRoles];
+
+            connection.SetAmbientRole(user, targetRoles);
+            targetRoles.Clear();
+
+            Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Modeller));
+        }
+
+        [Test]
+        public void SetAmbientRoleProviderWithoutAcceptedRolesFallsBackToBaselineRole()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            ClaimsPrincipal user = CreateReporterModeller();
+            connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
+
+            connection.SetAmbientRoleProvider(user, () => NoPageRoles);
+
+            Assert.That(connection.GetActRole(), Is.Empty);
+        }
+
+        [Test]
+        public void SetAmbientRoleProviderFailureFallsBackToBaselineRole()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            ClaimsPrincipal user = CreateReporterModeller();
+            connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
+
+            connection.SetAmbientRoleProvider(user, () => throw new InvalidOperationException("navigation manager gone"));
+
+            string role = "not resolved";
+            Assert.DoesNotThrow(() => role = connection.GetActRole());
+            Assert.That(role, Is.Empty);
+        }
+
+        [Test]
+        public void SetExecutionModeClearsTheAmbientRoleProvider()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            ClaimsPrincipal user = CreateReporterModeller();
+            connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
+            connection.SetAmbientRoleProvider(user, () => ModellingPageRoles);
+
+            connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
+
+            Assert.That(connection.GetActRole(), Is.Empty);
+        }
+
+        [Test]
+        public void ExplicitRoleTakesPrecedenceOverAmbientRoleProvider()
+        {
+            using GraphQlApiConnection connection = new("http://localhost");
+            ClaimsPrincipal user = CreateReporterModeller();
+            connection.SetExecutionMode(user, GlobalConst.kUserRolesSelection);
+            connection.SetAmbientRoleProvider(user, () => ModellingPageRoles);
+
+            connection.SetRole(Roles.Reporter);
+
+            Assert.That(connection.GetActRole(), Is.EqualTo(Roles.Reporter));
+        }
+
         [Test]
         public void SetBestRoleUsesRoleClaims()
         {

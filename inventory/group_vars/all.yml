@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.9.2"
+product_version: "9.9.3"
 # The oldest product version an upgrade may start from, enforced by
 # roles/common/tasks/validate-upgrade-source-version.yml before anything touches the
 # installation. A source below it needs upgrade steps this repository no longer carries:
@@ -623,6 +623,17 @@ dotnet_mode: "Release"
 # get a runtime directory of their own (owner only, as the XDG base directory spec requires)
 dotnet_xdg_runtime_dir: "{{ fworch_home }}/.xdg-runtime"
 dotnet_env: "{{ proxy_env | combine({'XDG_RUNTIME_DIR': dotnet_xdg_runtime_dir}) }}"
+# Without a global.json the dotnet commands build with the newest SDK on the host, so a newer major SDK installed
+# alongside (e.g. preinstalled on CI runners or from the Microsoft repository) would build the net{{ dotnet_version }}
+# projects. This pin keeps every dotnet build/test/publish below {{ fworch_home }} on the {{ dotnet_version }} SDK
+# (any feature band and patch). Keep the global.json in the repository root at the same major.minor version -
+# the test-install workflow checks that.
+dotnet_sdk_global_json_file: "{{ fworch_home }}/global.json"
+dotnet_sdk_global_json:
+  sdk:
+    version: "{{ dotnet_version }}.100"
+    rollForward: "latestFeature"
+    allowPrerelease: false
 debug_level: "1"
 lib_dir: "{{ fworch_home }}/lib/files"
 lib_tmp_dir: "{{ fworch_home }}/lib/tmp"

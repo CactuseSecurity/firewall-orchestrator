@@ -4,8 +4,8 @@
 
 <div class="w-100 card @Class" style="border: transparent;">
     <div class="btn-group btn-group-sm w-100">
-        <button type="button" class="btn btn-@Style" @onclick="ToggleCollapse"> <span class="@(show ? Icons.CollapseUp : Icons.CollapseDown)"></span> </button>
-        <div class="btn btn-sm btn-@Style text-start" style="width: calc(100% - 50px) !important; opacity:0.65; cursor: default; pointer-events: none;">            
+        <button type="button" class="btn btn-@Style @HeaderClass" @onclick="ToggleCollapse"> <span class="@(show ? Icons.CollapseUp : Icons.CollapseDown)"></span> </button>
+        <div class="btn btn-sm btn-@Style @HeaderClass text-start" style="width: calc(100% - 50px) !important; opacity:0.65; cursor: default; pointer-events: none;">
           @if (UseHtmlTitle)
             {
                <div style="pointer-events: auto;">
@@ -18,7 +18,7 @@
             }        
         </div>
     </div>
-    <div class="@(show ? "collapse.show" : "collapse") p-2">
+    <div class="@(show ? "collapse.show" : "collapse") @ContentClass">
         @ChildContent
     </div>
 </div>
@@ -45,6 +45,12 @@
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string ContentClass { get; set; } = "p-2";
+
+    [Parameter]
+    public string HeaderClass { get; set; } = "";
 
     [Parameter]
     public RenderFragment? TitleWithHtml { get; set; }

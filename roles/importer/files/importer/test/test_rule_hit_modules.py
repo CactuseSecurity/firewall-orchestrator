@@ -18,6 +18,11 @@ if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
     from pytest_mock import MockerFixture
 
+# The device type seed belongs to the source checkout and is not copied to deployed importer installations.
+DEVICE_TYPE_SEED_FILE = (
+    Path(__file__).resolve().parents[4] / "database" / "files" / "sql" / "creation" / "fworch-fill-stm.sql"
+)
+
 
 def test_modules_without_rule_hits_reject_reading_them(import_state_controller: ImportStateController) -> None:
     module = CiscoAsa9Common()
@@ -51,8 +56,9 @@ def test_regular_checkpoint_import_does_not_request_hits(import_state_controller
 
 def test_device_types_flagged_for_rule_hits_match_the_modules(mocker: MockerFixture) -> None:
     """Reports read stm_dev_typ.dev_typ_supports_rule_hits; it must mirror supports_rule_hits() of the modules."""
-    sql_dir = Path(__file__).resolve().parents[4] / "database" / "files" / "sql" / "creation"
-    seed = (sql_dir / "fworch-fill-stm.sql").read_text(encoding="utf-8")
+    if not DEVICE_TYPE_SEED_FILE.is_file():
+        pytest.skip("Device type seed requires the source checkout")
+    seed = DEVICE_TYPE_SEED_FILE.read_text(encoding="utf-8")
     flag_update = re.search(r"SET dev_typ_supports_rule_hits = TRUE WHERE dev_typ_id IN \(([\d, ]+)\)", seed)
     assert flag_update is not None
     flagged_ids = {int(dev_typ_id) for dev_typ_id in flag_update.group(1).split(",")}

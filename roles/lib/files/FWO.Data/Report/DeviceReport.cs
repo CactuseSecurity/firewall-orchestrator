@@ -38,7 +38,7 @@ namespace FWO.Data.Report
         /// <summary>
         /// Keeps <see cref="ImportedRuleHits"/> out of what Newtonsoft.Json writes.
         /// </summary>
-        public bool ShouldSerializeImportedRuleHits()
+        public static bool ShouldSerializeImportedRuleHits()
         {
             return false;
         }

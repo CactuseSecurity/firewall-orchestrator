@@ -28,7 +28,7 @@ namespace FWO.Data.Report
         /// <summary>
         /// Keeps <see cref="DeviceType"/> out of what Newtonsoft.Json writes.
         /// </summary>
-        public bool ShouldSerializeDeviceType()
+        public static bool ShouldSerializeDeviceType()
         {
             return false;
         }

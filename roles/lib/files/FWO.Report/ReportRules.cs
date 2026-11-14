@@ -777,7 +777,7 @@ namespace FWO.Report
                         }
                         else
                         {
-                            AppendRuleHtml(ref report, row.Data, chapterNumber, ruleDisplayHtml);
+                            AppendRuleHtml(ref report, row.Data, chapterNumber, ruleDisplayHtml, GatewayHitContext.For(managementReport, device, Query.ManagementRulebaseView));
                         }
                     }
                 }
@@ -828,7 +828,7 @@ namespace FWO.Report
                 + $"<a href=\"#{anchorId}\">{HtmlOutputEncoder.EncodeText(listingTreeName)}</a></td></tr>");
         }
 
-        private void AppendRuleHtml(ref StringBuilder report, Rule rule, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
+        private void AppendRuleHtml(ref StringBuilder report, Rule rule, int chapterNumber, RuleDisplayHtml ruleDisplayHtml, GatewayHitContext? gateway = null)
         {
             report.AppendLine("<tr>");
             if (!ReportType.IsRulebaseReport())
@@ -840,12 +840,12 @@ namespace FWO.Report
                 report.AppendLine($"<td>{RuleDisplayHtml.DisplayNextRecert(rule.Metadata)}</td>");
                 report.AppendLine($"<td>{RuleDisplayHtml.DisplayOwner(rule.Metadata)}</td>");
                 report.AppendLine($"<td>{RuleDisplayHtml.DisplayRecertIpMatches(rule.Metadata)}</td>");
-                report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule.Metadata)}</td>");
+                report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule.Metadata, gateway)}</td>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayLastModified(rule)}</td>");
             }
             if (ReportType == ReportType.UnusedRules)
             {
-                report.AppendLine($"<td>{RuleDisplayHtml.DisplayLastHit(rule.Metadata)}</td>");
+                report.AppendLine($"<td>{ruleDisplayHtml.DisplayLastHit(rule.Metadata, gateway)}</td>");
                 report.AppendLine($"<td>{RuleDisplayBase.DisplayLastModified(rule)}</td>");
             }
             report.AppendLine($"<td>{RuleDisplayHtml.DisplayName(rule)}</td>");

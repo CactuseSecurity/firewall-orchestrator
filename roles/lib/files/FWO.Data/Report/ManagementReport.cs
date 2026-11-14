@@ -16,6 +16,23 @@ namespace FWO.Data.Report
         [JsonProperty("name"), JsonPropertyName("name")]
         public string Name { get; set; } = "";
 
+        /// <summary>
+        /// Gets or sets the device type of the management; rule reports read from it whether the management
+        /// reports rule hits. Null when the query did not select it. Read from the API only: it is not part of
+        /// the report exports.
+        /// </summary>
+        [JsonProperty("deviceType"), JsonPropertyName("deviceType")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWriting)]
+        public DeviceType? DeviceType { get; set; }
+
+        /// <summary>
+        /// Keeps <see cref="DeviceType"/> out of what Newtonsoft.Json writes.
+        /// </summary>
+        public bool ShouldSerializeDeviceType()
+        {
+            return false;
+        }
+
         [JsonProperty("devices"), JsonPropertyName("devices")]
         public DeviceReport[] Devices { get; set; } = [];
 

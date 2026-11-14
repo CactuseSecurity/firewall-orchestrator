@@ -35,6 +35,7 @@ namespace FWO.Report.Filter
                         id: mgm_id
                         uid: mgm_uid
                         name: mgm_name
+                        deviceType: stm_dev_typ {{ id: dev_typ_id supportsRuleHits: dev_typ_supports_rule_hits }}
                         devices ({GetDeviceWhereFilter(query, filter)})
                         {{
                             id: dev_id
@@ -137,6 +138,7 @@ namespace FWO.Report.Filter
                         id: mgm_id
                         uid: mgm_uid
                         name: mgm_name
+                        deviceType: stm_dev_typ {{ id: dev_typ_id supportsRuleHits: dev_typ_supports_rule_hits }}
                         devices ({GetDeviceWhereFilter(query, filter)})
                         {{
                             id: dev_id
@@ -210,6 +212,7 @@ namespace FWO.Report.Filter
                         id: mgm_id
                         uid: mgm_uid
                         name: mgm_name
+                        deviceType: stm_dev_typ {{ id: dev_typ_id supportsRuleHits: dev_typ_supports_rule_hits }}
                         devices ({GetDeviceWhereFilter(filter.ReportParams.DeviceFilter)})
                         {{
                             id: dev_id

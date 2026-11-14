@@ -49,3 +49,9 @@ VALUES
     ('importRuleHitsSleepTimeUnit', 'Days', 0),
     ('importRuleHitsStartAt', '00:00:00', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
+
+-- per-gateway last hits in reports (#5669): reports tell a gateway without hits ("no hits") from a gateway
+-- whose management does not report hits ("unsupported"). Set for the management types whose importer module
+-- reads rule hits: Check Point R8x (9), FortiADOM 5ff (11), FortiManager 5ff (12), Check Point MDS R8x (13)
+ALTER TABLE stm_dev_typ ADD COLUMN IF NOT EXISTS dev_typ_supports_rule_hits Boolean NOT NULL Default FALSE;
+UPDATE stm_dev_typ SET dev_typ_supports_rule_hits = TRUE WHERE dev_typ_id IN (9, 11, 12, 13) AND NOT dev_typ_supports_rule_hits;

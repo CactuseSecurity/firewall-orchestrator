@@ -217,10 +217,33 @@ namespace FWO.Ui.Display
 
         public static string DisplayLastHit(RuleMetadata ruleMetadata)
         {
-            if (ruleMetadata.LastHit == null)
-                return "";
-            else
-                return DateOnly.FromDateTime(ruleMetadata.LastHit.Value).ToString("yyyy-MM-dd");
+            return ruleMetadata.LastHit == null ? "" : FormatHitDate(ruleMetadata.LastHit.Value);
+        }
+
+        /// <summary>
+        /// Displays the last hit of a rule as html. Without a gateway it is the latest hit across all gateways.
+        /// Below a gateway it is the hit on that gateway; a missing hit is shown as "no hits", or as
+        /// "unsupported" when the management of the gateway does not report hits.
+        /// </summary>
+        /// <param name="ruleMetadata">Metadata of the rule including its hits per gateway.</param>
+        /// <param name="gateway">Gateway the rule is listed below, or null for the latest hit across all gateways.</param>
+        public string DisplayLastHit(RuleMetadata ruleMetadata, GatewayHitContext? gateway)
+        {
+            if (gateway is not GatewayHitContext hitContext)
+            {
+                return DisplayLastHit(ruleMetadata);
+            }
+            if (!hitContext.SupportsRuleHits)
+            {
+                return HtmlOutputEncoder.EncodeText(userConfig.GetText("rule_hits_unsupported"));
+            }
+            DateTime? gatewayLastHit = ruleMetadata.GetGatewayLastHit(hitContext.DeviceId);
+            return gatewayLastHit == null ? HtmlOutputEncoder.EncodeText(userConfig.GetText("no_rule_hits")) : FormatHitDate(gatewayLastHit.Value);
+        }
+
+        private static string FormatHitDate(DateTime lastHit)
+        {
+            return DateOnly.FromDateTime(lastHit).ToString("yyyy-MM-dd");
         }
 
         public static string DisplayLastRecertifier(RuleMetadata ruleMetadata)

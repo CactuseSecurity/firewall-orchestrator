@@ -16,6 +16,11 @@
   - roles: admin, auditor, reporter, reporter-viewall, recertifier. Callers other than admin, auditor and reporter-viewall only get managements and gateways visible to their tenant (a management that is not visible answers with an empty list); callers of a tenant other than tenant0 get no rule names
   - filters in `options.filter`: `mgmId`, `ruleUid`, `ruleName`, `lastHitAfter`, `lastHitBefore`, `neverHit`, `devId`, `gatewayName`; paging with `options.limit` / `options.offset` and the `X-Has-More` header, at most 1000 gateways per rule (`gatewaysTruncated`)
   - expensive rate-limit policy and request body size limit; validation returns all key-level errors together
+- reports: rule reports show the last hit per gateway (#5669)
+  - rules listed below a gateway (Rules, Resolved, Technical, NAT, Unused; UI and HTML/PDF export) show the last hit on that gateway instead of the latest hit across all gateways: "no hits" for a rule never hit on a gateway that reports hits, "unsupported" for a gateway whose management does not report hits. The management rulebases view, the recertification report, the `lasthit` filter and the unused-rules cut-off keep using the latest hit across all gateways
+  - the rule details list the last hit of every gateway
+  - new column `stm_dev_typ.dev_typ_supports_rule_hits`, set for Check Point R8x, Check Point MDS R8x, FortiADOM and FortiManager
+  - Hasura: `firewall.rule_hit` is readable for auditor and reporter-viewall, and for reporter, recertifier, modeller and requester restricted to their visible gateways (tenant0 sees all)
 - installer: pin the .NET SDK to `dotnet_version` (10.0) with a `global.json` below `/usr/local/fworch`, so a newer major SDK installed alongside (e.g. .NET 11 on GitHub runners) no longer builds the middleware, UI and unit tests; the repository and the CI workflows use the same pin, and the test-install workflow checks that all pins match (#5700)
 
 ## 9.9.2 - 11.11.2026

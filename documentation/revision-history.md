@@ -1,6 +1,5 @@
 # Firewall Orchestrator Revision History
 
-## 9.9.3 - 12.11.2026
 ## 9.9.3 - 11.11.2026
 - request workflow: rule-positioning and firewall-write operations resolve gateway-bound implementation tasks against the gateway's management and reject inconsistent task data
 - middleware REST API: `getAddressGroups` and `getServiceGroups` accept `filter.includeTechnicalDetails=true` to include each member's standalone address or service object fields; omitted, null or false keep the existing compact id/name response, and address details can be combined with separated zone groups
@@ -19,13 +18,14 @@
   - filters in `options.filter`: `mgmId`, `ruleUid`, `ruleName`, `lastHitAfter`, `lastHitBefore`, `neverHit`, `devId`, `gatewayName`; paging with `options.limit` / `options.offset` and the `X-Has-More` header, at most 1000 gateways per rule (`gatewaysTruncated`)
   - expensive rate-limit policy and request body size limit; validation returns all key-level errors together
 - reports: rule reports show the last hit per gateway (#5669)
-  - rules listed below a gateway (Rules, Resolved, Technical, NAT, Unused; UI and HTML/PDF export) show the last hit on that gateway instead of the latest hit across all gateways: "no hits" for a rule never hit on a gateway that reports hits, "unsupported" for a gateway whose management does not report hits. The management rulebases view, the recertification report, the `lasthit` filter and the unused-rules cut-off keep using the latest hit across all gateways
+  - rules listed below a gateway (Rules, Resolved, Technical, NAT, Unused; UI and HTML/PDF export) show the last hit on that gateway instead of the latest hit across all gateways: "no hits" for a rule never hit on a gateway that reports hits, "unsupported" for a gateway whose management does not report hits. Where the hit on the gateway is not known, the latest hit across all gateways is shown as before: for a gateway without any imported hit (e.g. before the first rule hit import) and for a rule of another management (global rules) without a hit on the gateway. The management rulebases view, the recertification report, the `lasthit` filter and the unused-rules cut-off keep using the latest hit across all gateways
   - the rule details list the last hit of every gateway
   - new column `stm_dev_typ.dev_typ_supports_rule_hits`, set for Check Point R8x, Check Point MDS R8x, FortiADOM and FortiManager
-  - Hasura: `firewall.rule_hit` is readable for auditor and reporter-viewall, and for reporter, recertifier, modeller and requester restricted to their visible gateways (tenant0 sees all)
+  - Hasura: `firewall.rule_hit` is readable for auditor and reporter-viewall, and for reporter, recertifier and modeller restricted to their visible gateways (tenant0 sees all)
 - installer: pin the .NET SDK to `dotnet_version` (10.0) with a `global.json` below `/usr/local/fworch`, so a newer major SDK installed alongside (e.g. .NET 11 on GitHub runners) no longer builds the middleware, UI and unit tests; the repository and the CI workflows use the same pin, and the test-install workflow checks that all pins match (#5700)
 
-## 9.9.2 - 11.11.2026
+
+## 9.9.2 - 10.11.2026
 - dependencies: update NuGet packages (AngleSharp 1.10.1, bunit 2.15.2, IPNetwork2 5.0.1, Microsoft.AspNetCore.Http 2.3.14, Microsoft.NET.Test.Sdk 18.11.1, Quartz 4.7.3, Scalar.AspNetCore 2.20.0, SoPro.FancyTable 1.5.0)
 - dependencies: update ASP.NET Core packages to 10.0.15 (Microsoft.AspNetCore.Authentication.JwtBearer, Microsoft.AspNetCore.Components, Microsoft.AspNetCore.Mvc.Testing, Microsoft.AspNetCore.OpenApi), .NET 10.0.15 security release
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).

@@ -21613,58 +21613,6 @@
                     ],
                     "filter": {}
                   }
-                },
-                {
-                  "role": "requester",
-                  "permission": {
-                    "columns": [
-                      "dev_id",
-                      "rule_last_hit",
-                      "rule_metadata_id"
-                    ],
-                    "filter": {
-                      "_or": [
-                        {
-                          "_exists": {
-                            "_table": {
-                              "name": "tenant",
-                              "schema": "public"
-                            },
-                            "_where": {
-                              "_and": [
-                                {
-                                  "tenant_id": {
-                                    "_eq": "x-hasura-tenant-id"
-                                  }
-                                },
-                                {
-                                  "tenant_id": {
-                                    "_eq": 1
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        {
-                          "_and": [
-                            {
-                              "dev_id": {
-                                "_in": "x-hasura-visible-devices"
-                              }
-                            },
-                            {
-                              "device": {
-                                "mgm_id": {
-                                  "_in": "x-hasura-visible-managements"
-                                }
-                              }
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  }
                 }
               ],
               "update_permissions": [

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using FWO.Basics;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -18,7 +19,7 @@ namespace FWO.Test
             "The Hasura metadata is not reachable in this environment, so the rule_hit select permissions cannot be checked.";
         private const string kSchema = "firewall";
         private const string kTable = "rule_hit";
-        private const string kRuleTable = "rule";
+        private const string kRuleMetadataTable = "rule_metadata";
         private const string kUnrestricted = "{}";
 
         /// <summary>
@@ -36,18 +37,17 @@ namespace FWO.Test
 
         private static readonly Dictionary<string, string> kExpectedFilters = new()
         {
-            ["auditor"] = kUnrestricted,
-            ["importer"] = kUnrestricted,
-            ["middleware-server"] = kUnrestricted,
-            ["modeller"] = kTenantScopedFilter,
-            ["recertifier"] = kTenantScopedFilter,
-            ["reporter"] = kTenantScopedFilter,
-            ["reporter-viewall"] = kUnrestricted,
-            ["requester"] = kTenantScopedFilter
+            [Roles.Auditor] = kUnrestricted,
+            [Roles.Importer] = kUnrestricted,
+            [Roles.MiddlewareServer] = kUnrestricted,
+            [Roles.Modeller] = kTenantScopedFilter,
+            [Roles.Recertifier] = kTenantScopedFilter,
+            [Roles.Reporter] = kTenantScopedFilter,
+            [Roles.ReporterViewAll] = kUnrestricted
         };
 
         private static readonly List<string> kHitColumns = ["dev_id", "rule_last_hit", "rule_metadata_id"];
-        private static readonly List<string> kWritingRoles = ["importer"];
+        private static readonly List<string> kWritingRoles = [Roles.Importer];
         private static readonly List<string> kWritePermissionKinds = ["insert_permissions", "update_permissions", "delete_permissions"];
 
         private static readonly Lazy<FileInfo?> kMetadataFileInfo = new(LocateMetadata);
@@ -99,16 +99,21 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// The rule fragments of the reports select the hits, so every role that reads rules needs the select
-        /// permission; without it the rule queries of that role fail as a whole.
+        /// The rule fragments of the reports select the hits below the rule metadata, so every role that reads
+        /// rule metadata needs the select permission; without it the rule queries of that role fail as a whole.
+        /// A role that cannot read rule metadata cannot run these fragments and gets no access to the hits.
         /// </summary>
         [Test]
-        public void RuleHitSelect_CoversEveryRoleThatReadsRules()
+        public void RuleHitSelect_IsGrantedToExactlyTheRolesThatReadRuleMetadata()
         {
-            List<string> ruleRoles = [.. ReadPermissions(kRuleTable, "select_permissions").Select(RoleOf)];
+            List<string> ruleMetadataRoles = [.. ReadPermissions(kRuleMetadataTable, "select_permissions").Select(RoleOf)];
             List<string> hitRoles = [.. ReadPermissions(kTable, "select_permissions").Select(RoleOf)];
 
-            Assert.That(ruleRoles.Except(hitRoles), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(hitRoles, Is.EquivalentTo(ruleMetadataRoles));
+                Assert.That(hitRoles, Does.Not.Contain(Roles.Requester));
+            });
         }
 
         /// <summary>

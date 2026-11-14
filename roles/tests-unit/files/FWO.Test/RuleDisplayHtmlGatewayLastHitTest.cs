@@ -25,6 +25,9 @@ namespace FWO.Test
             + "{\"dev_id\":52,\"rule_last_hit\":\"2025-10-01T08:30:00+00:00\"}]}";
 
         private const string kManagementJson = "{\"id\":5,\"deviceType\":{\"id\":9,\"supportsRuleHits\":true}}";
+        private const string kDeviceJson = "{\"id\":51,\"importedRuleHits\":[{\"dev_id\":51}]}";
+        private const int kManagementId = 5;
+        private const int kSuperManagementId = 4;
 
         private static readonly DateTime kAggregatedLastHit = new(2026, 11, 1, 10, 0, 0, DateTimeKind.Utc);
         private static readonly DateTime kGatewayLastHit = new(2025, 10, 1, 8, 30, 0, DateTimeKind.Utc);
@@ -87,17 +90,89 @@ namespace FWO.Test
         [Test]
         public void GatewayContextIsOnlyUsedWhereRulesAreListedPerGatewayWithKnownSupport()
         {
-            DeviceReport device = new() { Id = kHitGatewayId };
-            ManagementReport supporting = new() { DeviceType = new DeviceType { SupportsRuleHits = true } };
-            ManagementReport notSupporting = new() { DeviceType = new DeviceType() };
-            ManagementReport withoutDeviceType = new();
+            DeviceReport device = CreateGatewayWithImportedHits(kHitGatewayId);
+            ManagementReport supporting = CreateSupportingManagement();
+            ManagementReport notSupporting = new() { Id = kManagementId, DeviceType = new DeviceType() };
+            ManagementReport withoutDeviceType = new() { Id = kManagementId };
+            Rule rule = new() { MgmtId = kManagementId };
 
             Assert.Multiple(() =>
             {
-                Assert.That(GatewayHitContext.For(supporting, device), Is.EqualTo(new GatewayHitContext(kHitGatewayId, true)));
-                Assert.That(GatewayHitContext.For(notSupporting, device), Is.EqualTo(new GatewayHitContext(kHitGatewayId, false)));
-                Assert.That(GatewayHitContext.For(supporting, device, true), Is.Null);
-                Assert.That(GatewayHitContext.For(withoutDeviceType, device), Is.Null);
+                Assert.That(GatewayHitContext.For(supporting, device, rule), Is.EqualTo(new GatewayHitContext(kHitGatewayId, true)));
+                Assert.That(GatewayHitContext.For(notSupporting, device, rule), Is.EqualTo(new GatewayHitContext(kHitGatewayId, false)));
+                Assert.That(GatewayHitContext.For(supporting, device, rule, true), Is.Null);
+                Assert.That(GatewayHitContext.For(withoutDeviceType, device, rule), Is.Null);
+            });
+        }
+
+        [Test]
+        public void AGatewayWithoutAnyImportedHitShowsTheLatestHitAcrossAllGatewaysInsteadOfNoHits()
+        {
+            RuleDisplayHtml display = new(new SimulatedUserConfig());
+            ManagementReport supporting = CreateSupportingManagement();
+            ManagementReport notSupporting = new() { Id = kManagementId, DeviceType = new DeviceType() };
+            DeviceReport gatewayWithoutHits = new() { Id = kOtherGatewayId };
+            Rule rule = new() { MgmtId = kManagementId, Metadata = CreateMetadata() };
+
+            GatewayHitContext? context = GatewayHitContext.For(supporting, gatewayWithoutHits, rule);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(context, Is.Null);
+                Assert.That(display.DisplayLastHit(rule.Metadata, context), Is.EqualTo("2026-11-01"));
+                Assert.That(display.DisplayLastHit(rule.Metadata, context), Is.Not.EqualTo(kNoHitsKey));
+                Assert.That(GatewayHitContext.For(notSupporting, gatewayWithoutHits, rule), Is.EqualTo(new GatewayHitContext(kOtherGatewayId, false)),
+                    "a management that does not report hits stays unsupported");
+            });
+        }
+
+        [Test]
+        public void ARuleOfAnotherManagementIsOnlyShownPerGatewayWhenItHasAHitThere()
+        {
+            RuleDisplayHtml display = new(new SimulatedUserConfig());
+            ManagementReport supporting = CreateSupportingManagement();
+            Rule globalRule = new() { MgmtId = kSuperManagementId, Metadata = CreateMetadata() };
+            Rule ownRule = new() { MgmtId = kManagementId, Metadata = CreateMetadata() };
+            Rule ruleWithoutManagementId = new() { Metadata = CreateMetadata() };
+            DeviceReport hitGateway = CreateGatewayWithImportedHits(kHitGatewayId);
+            DeviceReport otherGateway = CreateGatewayWithImportedHits(kOtherGatewayId);
+
+            GatewayHitContext? unknownHit = GatewayHitContext.For(supporting, otherGateway, globalRule);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(unknownHit, Is.Null);
+                Assert.That(display.DisplayLastHit(globalRule.Metadata, unknownHit), Is.EqualTo("2026-11-01"));
+                Assert.That(GatewayHitContext.For(supporting, hitGateway, globalRule), Is.EqualTo(new GatewayHitContext(kHitGatewayId, true)));
+                Assert.That(display.DisplayLastHit(ownRule.Metadata, GatewayHitContext.For(supporting, otherGateway, ownRule)), Is.EqualTo(kNoHitsKey));
+                Assert.That(display.DisplayLastHit(ruleWithoutManagementId.Metadata, GatewayHitContext.For(supporting, otherGateway, ruleWithoutManagementId)),
+                    Is.EqualTo(kNoHitsKey));
+            });
+        }
+
+        [Test]
+        public void ImportedRuleHitsOfAGatewayAreReadFromTheApiButNotExported()
+        {
+            DeviceReport newtonsoft = Newtonsoft.Json.JsonConvert.DeserializeObject<DeviceReport>(kDeviceJson)!;
+            DeviceReport systemText = System.Text.Json.JsonSerializer.Deserialize<DeviceReport>(kDeviceJson)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(newtonsoft.HasImportedRuleHits(), Is.True);
+                Assert.That(systemText.HasImportedRuleHits(), Is.True);
+                Assert.That(new DeviceReport().HasImportedRuleHits(), Is.False);
+                Assert.That(Newtonsoft.Json.JsonConvert.SerializeObject(newtonsoft), Does.Not.Contain("importedRuleHits"));
+                Assert.That(System.Text.Json.JsonSerializer.Serialize(systemText), Does.Not.Contain("importedRuleHits"));
+            });
+        }
+
+        [Test]
+        public void RuleReportQueriesSelectWhatTheGatewayContextReads()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(RuleQueries.ruleOverviewFragments, Does.Contain("mgm_id"));
+                Assert.That(RuleQueries.ruleDetailsForReportFragments, Does.Contain("mgm_id"));
             });
         }
 
@@ -153,6 +228,18 @@ namespace FWO.Test
                 Assert.That(RuleQueries.ruleDetailsForReportFragments, Does.Contain("rule_hits"));
                 Assert.That(DeviceQueries.getDeviceTypeDetails, Does.Contain("supportsRuleHits: dev_typ_supports_rule_hits"));
             });
+        }
+
+        private static ManagementReport CreateSupportingManagement()
+        {
+            return new ManagementReport { Id = kManagementId, DeviceType = new DeviceType { SupportsRuleHits = true } };
+        }
+
+        private static DeviceReport CreateGatewayWithImportedHits(int deviceId)
+        {
+            DeviceReport device = new() { Id = deviceId };
+            device.ImportedRuleHits.Add(new RuleHit { DeviceId = deviceId });
+            return device;
         }
 
         private static RuleMetadata CreateMetadata()

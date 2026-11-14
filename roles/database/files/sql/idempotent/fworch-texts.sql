@@ -5835,12 +5835,16 @@ INSERT INTO txt VALUES ('H1154', 'German',  'Regeln: Unbenutzt - Anzeige aller R
     Ger&auml;te, die keine Nutzungsinformation liefern, werden ignoriert. Falls der Reporter auch die Rolle "requester" hat, wird bei Selektion ausgegebener Regeln eine Schaltfl&auml;che zur Erzeugung eines L&ouml;schantrags angeboten.
     Die Auswahl der Regeln richtet sich nach dem j&uuml;ngsten Treffer &uuml;ber alle Gateways. Die Spalte "Letzter Treffer" der Regel-Reports zeigt dagegen den Treffer auf dem Gateway, unter dem die Regel aufgef&uuml;hrt ist:
     "keine Treffer" steht f&uuml;r eine Regel, die auf diesem Gateway nie getroffen wurde, "nicht unterst&uuml;tzt" f&uuml;r ein Gateway, dessen Management keine Treffer liefert.
+    Ist der Treffer auf dem Gateway nicht bekannt, wird wie bisher der j&uuml;ngste Treffer &uuml;ber alle Gateways angezeigt: bei einem Gateway, f&uuml;r das noch gar keine Treffer importiert wurden
+    (z.B. vor dem ersten Regeltreffer-Import oder bei abgeschaltetem Regeltreffer-Import), und bei Regeln eines anderen Managements (globale Regeln) ohne Treffer auf dem Gateway.
     In der Management-Regelwerk-Ansicht und im Rezertifizierungs-Report wird der j&uuml;ngste Treffer &uuml;ber alle Gateways angezeigt. Die Regeldetails listen den letzten Treffer je Gateway auf.
 ');
 INSERT INTO txt VALUES ('H1154', 'English', 'Rules: Unused - display all rules where the last hit lies before a given time.
     Devices delivering no usage information are disregarded. If the reporter also has the requester role, a button to create a delete rule request is offered after selecting reported rules.
     Rules are selected by their latest hit across all gateways. The "Last Hit" column of the rule reports however shows the hit on the gateway the rule is listed below:
     "no hits" stands for a rule that was never hit on this gateway, "unsupported" for a gateway whose management does not report hits.
+    Where the hit on the gateway is not known, the latest hit across all gateways is shown as before: for a gateway without any imported hit
+    (e.g. before the first rule hit import or with the rule hit import switched off), and for rules of another management (global rules) without a hit on the gateway.
     The management rulebases view and the recertification report show the latest hit across all gateways. The rule details list the last hit per gateway.
 ');
 INSERT INTO txt VALUES ('H1155', 'German',  'Regeln: NAT - Anzeige der NAT-Regeln und nicht der Zugriffsregeln. Default-Report-Zeitpunkt: jetzt');

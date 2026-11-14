@@ -75,7 +75,7 @@
                                 {
                                     <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("last_hit"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Metadata.LastHit)" Sortable="false" Filterable="false">
                                         <Template>
-                                            @((MarkupString)_ruleDisplay.DisplayLastHit(ruleTreeItem.Data!.Metadata, GatewayHitContext.For(management, device, ManagementRulebaseView)))
+                                            @((MarkupString)_ruleDisplay.DisplayLastHit(ruleTreeItem.Data!.Metadata, GatewayHitContext.For(management, device, ruleTreeItem.Data!, ManagementRulebaseView)))
                                         </Template>
                                     </Column>
                                     @if (_showLastModifiedAfterLastHit && _emptyColumns[13] == false)
@@ -225,7 +225,7 @@
                                 {
                                     <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("last_hit"))" Field="@(r => r.Data.Metadata.LastHit)" Sortable="true" Hideable="true" Class="minw-80">
                                         <Template>
-                                            @((MarkupString)_ruleDisplay.DisplayLastHit(ruleTreeItem.Data.Metadata, GatewayHitContext.For(management, device, ManagementRulebaseView)))
+                                            @((MarkupString)_ruleDisplay.DisplayLastHit(ruleTreeItem.Data.Metadata, GatewayHitContext.For(management, device, ruleTreeItem.Data, ManagementRulebaseView)))
                                         </Template>
                                     </Column>
                                 }

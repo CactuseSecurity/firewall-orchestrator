@@ -777,7 +777,7 @@ namespace FWO.Report
                         }
                         else
                         {
-                            AppendRuleHtml(ref report, row.Data, chapterNumber, ruleDisplayHtml, GatewayHitContext.For(managementReport, device, Query.ManagementRulebaseView));
+                            AppendRuleHtml(ref report, row.Data, chapterNumber, ruleDisplayHtml, GatewayHitContext.For(managementReport, device, row.Data, Query.ManagementRulebaseView));
                         }
                     }
                 }

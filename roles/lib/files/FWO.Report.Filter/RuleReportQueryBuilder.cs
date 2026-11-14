@@ -41,6 +41,7 @@ namespace FWO.Report.Filter
                             id: dev_id
                             name: dev_name
                             uid: dev_uid
+                            importedRuleHits: rule_hits(limit: 1) {{ dev_id }}
                             {query.OpenRuleBaseTable}
                                 where: {{ {GetDeviceLinkWhereStatement(query)} }}
                             ) {{
@@ -144,6 +145,7 @@ namespace FWO.Report.Filter
                             id: dev_id
                             name: dev_name
                             uid: dev_uid
+                            importedRuleHits: rule_hits(limit: 1) {{ dev_id }}
                             rulebase_links(
                                 where: {{ {GetDeviceLinkWhereStatement(query)} }}
                             ) {{
@@ -218,6 +220,7 @@ namespace FWO.Report.Filter
                             id: dev_id
                             name: dev_name
                             uid: dev_uid
+                            importedRuleHits: rule_hits(limit: 1) {{ dev_id }}
                             rulebase_links(
                                 where: {{ {query.NatRulebaseLinkWhereStatement} }}
                             ) {{

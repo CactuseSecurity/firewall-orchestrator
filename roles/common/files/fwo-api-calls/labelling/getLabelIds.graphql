@@ -1,0 +1,10 @@
+query getLabelIds($keyNames: [String!]!, $values: [String!]!) {
+    labelling_label_value(where: { value: { _in: $values }, label_key: { key_name: { _in: $keyNames } } }) {
+        label_id
+        value
+        label_key {
+            key_name
+            allow_multiple_values
+        }
+    }
+}

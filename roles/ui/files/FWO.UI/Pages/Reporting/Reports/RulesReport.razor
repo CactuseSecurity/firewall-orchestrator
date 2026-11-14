@@ -107,6 +107,15 @@
                                     <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("name"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true" />
                                 }
 
+                                @if (_ruleDisplay.ShowRuleLevelLabels)
+                                {
+                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("rule_labels"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="false" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)RuleDisplayHtml.DisplayRuleLabels(ruleTreeItem.Data!))
+                                        </Template>
+                                    </Column>
+                                }
+
                                 @if (_emptyColumns[2] == false)
                                 {
                                     <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("source_zone"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.RuleFromZones)" Sortable="true" Filterable="false" Hideable="true">
@@ -121,6 +130,15 @@
                                     <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("source"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
                                             @((MarkupString)_ruleDisplay.DisplaySource(ruleTreeItem.Data!, GetActLocation(), SelectedReportType))
+                                        </Template>
+                                    </Column>
+                                }
+
+                                @if (_ruleDisplay.ShowSourceLabelColumn)
+                                {
+                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("source_labels"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="false" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)RuleDisplayHtml.DisplaySourceLabels(ruleTreeItem.Data!))
                                         </Template>
                                     </Column>
                                 }
@@ -139,6 +157,15 @@
                                     <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("destination"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="true" Filterable="false" Hideable="true">
                                         <Template>
                                             @((MarkupString)_ruleDisplay.DisplayDestination(ruleTreeItem.Data!, GetActLocation(), SelectedReportType))
+                                        </Template>
+                                    </Column>
+                                }
+
+                                @if (_ruleDisplay.ShowDestinationLabelColumn)
+                                {
+                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("destination_labels"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Name)" Sortable="false" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)RuleDisplayHtml.DisplayDestinationLabels(ruleTreeItem.Data!))
                                         </Template>
                                     </Column>
                                 }
@@ -348,6 +375,12 @@
     {
         _ruleDisplay = new NatRuleDisplayHtml(userConfig);
         // TODO: are we using NatRuleDisplayHtml for non-NAT rules?
+    }
+
+    protected override void OnParametersSet()
+    {
+        // label columns are only shown if the reported rules carry labels
+        _ruleDisplay?.SetLabelPresence(RuleDisplayBase.RulesOf(Managements));
     }
 
     #endregion

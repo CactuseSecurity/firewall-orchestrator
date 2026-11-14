@@ -96,4 +96,5 @@ fragment ruleOverview on firewall_rule {
     }
   }
   ...ruleEnforcedOnGateways
+  ...ruleLabelsAtReportTime
 }

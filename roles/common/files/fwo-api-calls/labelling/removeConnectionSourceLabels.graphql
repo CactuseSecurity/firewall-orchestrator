@@ -1,0 +1,8 @@
+mutation removeConnectionSourceLabels($connectionId: Int!, $assignments: [labelling_connection_source_label_bool_exp!]!, $removedEventId: bigint!) {
+    update_labelling_connection_source_label(
+        where: { connection_id: { _eq: $connectionId }, removed_event_id: { _is_null: true }, _or: $assignments }
+        _set: { removed_event_id: $removedEventId }
+    ) {
+        affected_rows
+    }
+}

@@ -1,6 +1,8 @@
 using System.Text;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Labelling;
+using FWO.Data.Report;
 using FWO.Config.Api;
 using FWO.Report;
 using FWO.Report.Filter;
@@ -10,6 +12,96 @@ namespace FWO.Ui.Display
     public class RuleDisplayBase(UserConfig userConfig)
     {
         protected UserConfig userConfig = userConfig;
+
+        // whether the reported rules carry labels; until a report sets them, the label columns are shown
+        private bool hasSourceLabels = true;
+        private bool hasDestinationLabels = true;
+        private bool hasRuleLabels = true;
+        private static readonly RuleChange[] kNoRuleChanges = [];
+
+        /// <summary>
+        /// True if the source and destination labels get own columns.
+        /// </summary>
+        public bool ShowSideLabelColumns => userConfig.RuleLabelDisplayMode == RuleLabelDisplayMode.LabelColumns;
+
+        /// <summary>
+        /// True if the source labels column (html) or field (csv, json) is shown: according to the settings, and only
+        /// if a reported rule has source labels, so that reports without labels stay unchanged.
+        /// </summary>
+        public bool ShowSourceLabelColumn => ShowSideLabelColumns && hasSourceLabels;
+
+        /// <summary>
+        /// True if the destination labels column (html) is shown, see <see cref="ShowSourceLabelColumn"/>.
+        /// </summary>
+        public bool ShowDestinationLabelColumn => ShowSideLabelColumns && hasDestinationLabels;
+
+        /// <summary>
+        /// True if csv and json contain the source labels.
+        /// </summary>
+        public bool ShowSourceLabelField => ShowSideLabelFields && hasSourceLabels;
+
+        /// <summary>
+        /// True if csv and json contain the destination labels.
+        /// </summary>
+        public bool ShowDestinationLabelField => ShowSideLabelFields && hasDestinationLabels;
+
+        /// <summary>
+        /// Notes which kinds of labels the reported rules carry, so that only label columns with content are shown.
+        /// </summary>
+        /// <param name="rules">All rules of the report.</param>
+        public void SetLabelPresence(IEnumerable<Rule> rules)
+        {
+            List<Rule> reportedRules = [.. rules];
+            hasSourceLabels = reportedRules.Exists(rule => rule.SourceLabels is { Count: > 0 });
+            hasDestinationLabels = reportedRules.Exists(rule => rule.DestinationLabels is { Count: > 0 });
+            hasRuleLabels = reportedRules.Exists(rule => rule.RuleLabels is { Count: > 0 });
+        }
+
+        /// <summary>
+        /// Notes which kinds of labels the rules before and after the reported changes carry.
+        /// </summary>
+        /// <param name="ruleChanges">All rule changes of the report.</param>
+        public void SetLabelPresence(IEnumerable<RuleChange> ruleChanges)
+        {
+            List<RuleChange> changes = [.. ruleChanges];
+            SetLabelPresence(changes.Select(change => change.OldRule).Concat(changes.Select(change => change.NewRule)));
+        }
+
+        /// <summary>
+        /// All rules of the given managements.
+        /// </summary>
+        public static IEnumerable<Rule> RulesOf(IEnumerable<ManagementReport> managements)
+        {
+            return managements.SelectMany(management => management.Rulebases).SelectMany(rulebase => rulebase.Rules);
+        }
+
+        /// <summary>
+        /// All rule changes of the given managements.
+        /// </summary>
+        public static IEnumerable<RuleChange> RuleChangesOf(IEnumerable<ManagementReport> managements)
+        {
+            return managements.SelectMany(management => management.RuleChanges ?? kNoRuleChanges);
+        }
+
+        /// <summary>
+        /// True if the source and destination labels are shown below the objects of their cell.
+        /// </summary>
+        public bool ShowSideLabelsWithObjects => userConfig.RuleLabelDisplayMode == RuleLabelDisplayMode.LabelsWithObjects;
+
+        /// <summary>
+        /// True if csv and json contain the source and destination labels (as own fields in every mode but objects only).
+        /// </summary>
+        public bool ShowSideLabelFields => userConfig.RuleLabelDisplayMode != RuleLabelDisplayMode.ObjectsOnly;
+
+        /// <summary>
+        /// True if the labels of the rule as a whole get an own column.
+        /// </summary>
+        public bool ShowRuleLevelLabels => userConfig.ShowRuleLevelLabels && hasRuleLabels;
+
+        /// <summary>
+        /// Number of additional label columns of the html tables.
+        /// </summary>
+        public int LabelColumnCount => (ShowSourceLabelColumn ? 1 : 0) + (ShowDestinationLabelColumn ? 1 : 0) + (ShowRuleLevelLabels ? 1 : 0);
 
         private readonly CustomFieldKeyCache changeIdKeyCache = new();
 

@@ -80,4 +80,24 @@ fragment connectionResolvedDetails on modelling_connection {
       ...serviceDetails
     }
   }
+  connection_source_labels(where: { removed_event_id: { _is_null: true } }, order_by: [{ and_group: asc }, { label_id: asc }]) {
+    label_id
+    and_group
+    label_value {
+      value
+      label_key {
+        key_name
+      }
+    }
+  }
+  connection_destination_labels(where: { removed_event_id: { _is_null: true } }, order_by: [{ and_group: asc }, { label_id: asc }]) {
+    label_id
+    and_group
+    label_value {
+      value
+      label_key {
+        key_name
+      }
+    }
+  }
 }

@@ -1,0 +1,5 @@
+mutation addLabelChangeEvent($importControlId: bigint, $originIsUi: Boolean!) {
+    insert_labelling_label_change_event_one(object: { import_control_id: $importControlId, origin_is_ui: $originIsUi }) {
+        id
+    }
+}

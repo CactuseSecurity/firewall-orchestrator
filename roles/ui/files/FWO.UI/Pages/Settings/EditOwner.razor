@@ -10,6 +10,7 @@
 @using FWO.Middleware.Client
 @using FWO.Recert
 @using FWO.Services
+@using FWO.Services.Modelling
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using Newtonsoft.Json
@@ -604,6 +605,7 @@
         await EnsureOwnerResponsibleRolesFromConfig(ActOwner);
         await AddRuleOwners();
         await AddNetworkOwners();
+        await AppServerHelper.AssignOwnerAppLabel(apiConnection, userConfig, ActOwner.Id);
         ExistingOwners.Add(ActOwner);
 
         Log.WriteAudit(
@@ -645,6 +647,8 @@
         await AddRuleOwners();
         await DeleteNetworkOwners();
         await AddNetworkOwners();
+        // the app servers carry the App label of the owner, which follows a changed or removed app id
+        await AppServerHelper.AssignOwnerAppLabel(apiConnection, userConfig, ActOwner.Id);
         ExistingOwners[ExistingOwners.FindIndex(x => x.Id == ActOwner.Id)] = ActOwner;
 
         Log.WriteAudit(

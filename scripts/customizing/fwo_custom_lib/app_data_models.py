@@ -64,18 +64,24 @@ class Appip:
         ip_end: IPAddress,
         ip_type: str,
         name: str,
+        labels: list[dict[str, str]] | None = None,
     ) -> None:
         self.name: str = name
         self.app_id_external: str = app_id_external
         self.ip_start: IPAddress = ip_start
         self.ip_end: IPAddress = ip_end
         self.type: str = ip_type
+        # None leaves the labels of the app server in FWO untouched, an empty list removes them
+        self.labels: list[dict[str, str]] | None = labels
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        app_server_json: dict[str, Any] = {
             "name": self.name,
             "app_id_external": self.app_id_external,
             "ip": str(IPAddress(self.ip_start)),
             "ip_end": str(IPAddress(self.ip_end)),
             "type": self.type,
         }
+        if self.labels is not None:
+            app_server_json["labels"] = self.labels
+        return app_server_json

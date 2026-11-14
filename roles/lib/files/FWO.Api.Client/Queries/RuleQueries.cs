@@ -62,11 +62,14 @@ namespace FWO.Api.Client.Queries
                     GetQueryText("networkService/fragments/networkServiceOverview.graphql") +
                     GetQueryText("user/fragments/userOverview.graphql") +
                     GetQueryText("rule/fragments/ruleEnforcedOnGateways.graphql") +
+                    GetQueryText("rule/fragments/ruleLabelsAtReportTime.graphql") +
                     GetQueryText("rule/fragments/ruleOverview.graphql");
                 ruleOverviewForChangeReportFragments =
                     GetQueryText("networkObject/fragments/networkObjectOverview.graphql") +
                     GetQueryText("networkService/fragments/networkServiceOverview.graphql") +
                     GetQueryText("user/fragments/userOverview.graphql") +
+                    GetQueryText("rule/fragments/ruleLabelsBeforeChange.graphql") +
+                    GetQueryText("rule/fragments/ruleLabelsAfterChange.graphql") +
                     GetQueryText("rule/fragments/ruleOverviewChangesOld.graphql") +
                     GetQueryText("rule/fragments/ruleOverviewChangesNew.graphql") +
                     GetQueryText("networkObject/fragments/networkObjectDetailsChangesOld.graphql") +
@@ -85,6 +88,7 @@ namespace FWO.Api.Client.Queries
                     ObjectQueries.networkServiceDetailsFragment +
                     ObjectQueries.userDetailsFragment +
                     GetQueryText("rule/fragments/ruleEnforcedOnGateways.graphql") +
+                    GetQueryText("rule/fragments/ruleLabelsAtReportTime.graphql") +
                     GetQueryText("rule/fragments/ruleDetailsForReport.graphql");
                 ruleDetailsForAppRuleReportFragments =
                     GetQueryText("networkObject/fragments/networkObjectDetailsForAppRules.graphql") +
@@ -97,6 +101,7 @@ namespace FWO.Api.Client.Queries
                     ObjectQueries.networkObjectDetailsFragment +
                     ObjectQueries.networkServiceDetailsFragment +
                     ObjectQueries.userDetailsFragment +
+                    GetQueryText("rule/fragments/ruleLabelsAtReportTime.graphql") +
                     GetQueryText("rule/fragments/natRuleDetailsForReport.graphql");
                 ruleDetailsForChangeReportFragments =
                     GetQueryText("networkObject/fragments/networkObjectOverview.graphql") +
@@ -106,6 +111,8 @@ namespace FWO.Api.Client.Queries
                     GetQueryText("networkService/fragments/networkServiceDetailsChangesNew.graphql") +
                     GetQueryText("user/fragments/userDetailsChangesOld.graphql") +
                     GetQueryText("user/fragments/userDetailsChangesNew.graphql") +
+                    GetQueryText("rule/fragments/ruleLabelsBeforeChange.graphql") +
+                    GetQueryText("rule/fragments/ruleLabelsAfterChange.graphql") +
                     GetQueryText("rule/fragments/ruleDetailsChangesOld.graphql") +
                     GetQueryText("rule/fragments/ruleDetailsChangesNew.graphql");
                 natRuleOverviewForChangeReportFragments = ruleOverviewForChangeReportFragments +

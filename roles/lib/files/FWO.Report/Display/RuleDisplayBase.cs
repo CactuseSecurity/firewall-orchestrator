@@ -2,6 +2,7 @@ using System.Text;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Config.Api;
+using FWO.Encoders;
 using FWO.Report;
 using FWO.Report.Filter;
 

@@ -46,6 +46,7 @@
 		<ProjectReference Include="..\..\..\ui\files\FWO.UI\FWO.Ui.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Encryption\FWO.Encryption.csproj" />
 		<ProjectReference Include="..\..\..\middleware\files\FWO.Middleware.Server\FWO.Middleware.Server.csproj" />
+		<ProjectReference Include="..\..\..\lib\files\FWO.Encoders\FWO.Encoders.csproj" />
 	</ItemGroup>
 
 </Project>

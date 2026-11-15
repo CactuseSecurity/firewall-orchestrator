@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using System.Text.RegularExpressions;
 using System.Linq;
 using FWO.Basics;
+using FWO.Encoders;
 using FWO.Logging;
 
 namespace FWO.Services

@@ -3,6 +3,7 @@ using FWO.Basics;
 using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data.Report;
+using FWO.Encoders;
 using FWO.Logging;
 using FWO.Report.Data;
 using FWO.Report.Filter;

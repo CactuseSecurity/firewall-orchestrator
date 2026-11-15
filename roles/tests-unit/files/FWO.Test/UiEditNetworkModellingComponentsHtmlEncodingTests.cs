@@ -1,7 +1,7 @@
 using Bunit;
-using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
+using FWO.Encoders;
 using FWO.Services.Modelling;
 using FWO.Ui.Pages.NetworkModelling;
 using FWO.Ui.Shared;

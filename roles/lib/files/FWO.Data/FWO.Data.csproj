@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FWO.Basics\FWO.Basics.csproj" />
     <ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
+    <ProjectReference Include="..\FWO.Encoders\FWO.Encoders.csproj" />
   </ItemGroup>
 
   <ItemGroup>

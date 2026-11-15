@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data.Report;
+using FWO.Encoders;
 using FWO.Logging;
 using FWO.Report.Filter;
 using System.Text;

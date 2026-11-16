@@ -105,9 +105,12 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 return [];
             }
-            FirewallRuleLayerQueryResult result = await apiConnection.SendQueryAsync<FirewallRuleLayerQueryResult>(RuleQueries.getRuleLayers,
-                new { managementId, ruleUids, ruleLimit = FirewallRuleLayers.kMaxRules + 1, linkLimit = FirewallRuleLayers.kMaxSectionLinks + 1 });
-            return FirewallRuleLayers.Resolve(result);
+            // one query per root field: the api connection returns the first root field of a response only
+            List<Rule> rules = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRuleLayers,
+                new { managementId, ruleUids, ruleLimit = FirewallRuleLayers.kMaxRules + 1 });
+            List<RulebaseLink> sectionLinks = await apiConnection.SendQueryAsync<List<RulebaseLink>>(RuleQueries.getSectionLinks,
+                new { managementId, linkLimit = FirewallRuleLayers.kMaxSectionLinks + 1 });
+            return FirewallRuleLayers.Resolve(new FirewallRuleLayerQueryResult { Rules = rules, SectionLinks = sectionLinks });
         }
 
         /// <summary>

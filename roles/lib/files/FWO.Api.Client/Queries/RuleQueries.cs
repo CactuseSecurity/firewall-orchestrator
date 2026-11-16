@@ -21,6 +21,7 @@ namespace FWO.Api.Client.Queries
         // public static readonly string getRuleDetailsForReport;
         public static readonly string getRuleByUid;
         public static readonly string getRuleLayers;
+        public static readonly string getSectionLinks;
         public static readonly string getRuleEnforcingGateways;
         public static readonly string getRuleNetworkObjectDetails;
         public static readonly string getRuleIdsOfImport;
@@ -121,6 +122,7 @@ namespace FWO.Api.Client.Queries
                 getRuleDetails = ruleDetailsFragments + GetQueryText("rule/getRuleDetails.graphql");
                 getRuleByUid = GetQueryText("rule/getRuleByUid.graphql");
                 getRuleLayers = GetQueryText("rule/getRuleLayers.graphql");
+                getSectionLinks = GetQueryText("rule/getSectionLinks.graphql");
                 getRuleEnforcingGateways = GetQueryText("rule/getRuleEnforcingGateways.graphql");
                 getRuleNetworkObjectDetails = ObjectQueries.networkObjectDetailsFragment;
                 getRuleIdsOfImport = GetQueryText("rule/getRuleIdsOfImport.graphql");

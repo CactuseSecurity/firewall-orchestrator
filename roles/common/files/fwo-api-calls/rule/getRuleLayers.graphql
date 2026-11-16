@@ -2,7 +2,6 @@ query getRuleLayers(
   $managementId: Int!
   $ruleUids: [String!]!
   $ruleLimit: Int!
-  $linkLimit: Int!
 ) {
   rules: firewall_rule(
     limit: $ruleLimit
@@ -16,27 +15,6 @@ query getRuleLayers(
   ) {
     rule_uid
     rulebase_id
-    rulebase {
-      id
-      uid
-      name
-    }
-  }
-  sectionLinks: firewall_rulebase_link(
-    limit: $linkLimit
-    where: {
-      is_section: { _eq: true }
-      removed: { _is_null: true }
-      rulebase: { mgm_id: { _eq: $managementId } }
-    }
-    order_by: { id: asc }
-  ) {
-    from_rulebase_id
-    rulebaseByFromRulebaseId {
-      id
-      uid
-      name
-    }
     rulebase {
       id
       uid

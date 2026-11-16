@@ -172,11 +172,13 @@ namespace FWO.Test
             FirewallWriteContext deleteContext = await dataSource.LoadContext(Task(WfTaskType.rule_delete, Rule("a")));
             FirewallWriteContext accessContext = await dataSource.LoadContext(Task(WfTaskType.access, Rule("a")));
             int ruleLayerQueries = api.Calls.Count(call => call.Query == FWO.Api.Client.Queries.RuleQueries.getRuleLayers);
+            int sectionLinkQueries = api.Calls.Count(call => call.Query == FWO.Api.Client.Queries.RuleQueries.getSectionLinks);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(deleteContext.RuleLayerUids["a"], Is.EqualTo("layer-uid"));
                 Assert.That(accessContext.RuleLayerUids, Is.Empty);
                 Assert.That(ruleLayerQueries, Is.EqualTo(1));
+                Assert.That(sectionLinkQueries, Is.EqualTo(1), "each query has one root field, as the api returns the first one only");
             }
         }
 

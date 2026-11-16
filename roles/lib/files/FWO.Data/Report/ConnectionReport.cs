@@ -1,5 +1,6 @@
 using FWO.Basics;
 using FWO.Data.Modelling;
+using FWO.Encoders;
 
 namespace FWO.Data.Report
 {

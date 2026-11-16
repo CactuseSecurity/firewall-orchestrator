@@ -4,6 +4,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
+using FWO.Encoders;
 using FWO.Report;
 using FWO.Report.Data.ViewData;
 using FWO.Report.Filter;

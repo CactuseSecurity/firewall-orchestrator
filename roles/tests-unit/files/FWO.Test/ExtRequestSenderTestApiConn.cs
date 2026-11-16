@@ -13,6 +13,7 @@ namespace FWO.Test
     {
         public List<string> UpdateExtRequestCreation = [];
         public List<string> UpdateExtRequestProcess = [];
+        public List<string> UpdateExtRequestFinal = [];
         public int TriedToGetLdapsForHandleStateChange = 0;
         public bool ManualRequestsOnly = false;
         public List<ExternalRequest>? OpenRequests { get; set; }
@@ -181,6 +182,13 @@ namespace FWO.Test
                 else if (query == ExtRequestQueries.updateExtRequestProcess)
                 {
                     UpdateExtRequestProcess.Add(variables?.ToString() ?? "no variables");
+                    ReturnId returnId = new() { UpdatedIdLong = 1 };
+                    GraphQLResponse<dynamic> response = new() { Data = returnId };
+                    return response.Data;
+                }
+                else if (query == ExtRequestQueries.updateExtRequestFinal)
+                {
+                    UpdateExtRequestFinal.Add(variables?.ToString() ?? "no variables");
                     ReturnId returnId = new() { UpdatedIdLong = 1 };
                     GraphQLResponse<dynamic> response = new() { Data = returnId };
                     return response.Data;

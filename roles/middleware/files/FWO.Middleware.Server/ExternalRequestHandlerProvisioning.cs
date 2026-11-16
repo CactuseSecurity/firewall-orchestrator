@@ -3,6 +3,7 @@ using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using FWO.Services;
 using FWO.Services.Workflow;
 using System.Text.Json;
 
@@ -14,6 +15,7 @@ namespace FWO.Middleware.Server
     public partial class ExternalRequestHandler
     {
         private const string kProvisioningLogTitle = "Provisioning";
+        private const string kWorkflowAlertSource = "workflow";
 
         /// <summary>A firewall write is handled by no external ticket system.</summary>
         private static readonly ExternalTicketSystem kNoExternalTicketSystem = new();
@@ -80,7 +82,8 @@ namespace FWO.Middleware.Server
         /// <param name="ticketId">Ticket of the implementation task.</param>
         /// <param name="implTaskId">Implementation task to write.</param>
         /// <param name="byButton">True if a person pressed a button: the task is written on a Manual target as well.</param>
-        /// <returns>true if the request was created or nothing is to be done; false if the provisioning failed.</returns>
+        /// <returns>true if the request was created or nothing is to be done; false if the provisioning failed or another
+        /// request of the ticket is still being processed, which is reported with an alert.</returns>
         public async Task<bool> ProvisionImplTask(long ticketId, long implTaskId, bool byButton = false)
         {
             try
@@ -94,9 +97,9 @@ namespace FWO.Middleware.Server
                 }
                 if (await HasUnfinishedRequest(ticket.Id))
                 {
-                    Log.WriteWarning(kProvisioningLogTitle, $"Ticket {ticket.Id} still has an external request being processed; " +
-                        $"implementation task {implTaskId} is not written, start it again when the request is finished.");
-                    return true;
+                    await ReportImplTaskNotWritten(ticket, reqTask, implTask,
+                        "another external request of the ticket is still being processed; start it again when that request is finished.");
+                    return false;
                 }
                 ProvisioningWorkItem? item = await wfHandler.BuildProvisioningOfImplTask(ticket, implTaskId, byButton);
                 if (item == null || item.Way != ProvisioningWay.FirewallWrite || item.IsFinished || item.WaitsForPlanning)
@@ -150,6 +153,19 @@ namespace FWO.Middleware.Server
             Log.WriteInfo(kProvisioningLogTitle, $"Created the external request for request task {next.ReqTask.TaskNumber}" +
                 $"{(next.ImplTask == null ? "" : $", implementation task {next.ImplTask.TaskNumber}")} of ticket {ticket.Id}.");
             return true;
+        }
+
+        /// <summary>
+        /// Reports an implementation task that a person started to be written but that is not written now, with a
+        /// workflow alert, as the person gets no other answer; the task keeps its state and can be started again.
+        /// </summary>
+        private async Task ReportImplTaskNotWritten(WfTicket ticket, WfReqTask reqTask, WfImplTask implTask, string reason)
+        {
+            string description = $"Ticket {ticket.Id}, request task {reqTask.Id}, implementation task {implTask.Id}: not written, {reason}";
+            Log.WriteWarning(kProvisioningLogTitle, description);
+            int? managementId = await wfHandler.ResolveImplTaskManagementId(reqTask, implTask) ?? implTask.ManagementId;
+            await AlertHelper.SetAlert(ApiConnection, kProvisioningLogTitle, description, kWorkflowAlertSource, AlertCode.WorkflowAlert,
+                new AlertHelper.AdditionalAlertData { MgmtId = managementId, CompareDesc = true });
         }
 
         /// <summary>
@@ -326,6 +342,10 @@ namespace FWO.Middleware.Server
             return ExtQueryVariable(request, ExternalVarKeys.SingleImplTask) != null;
         }
 
+        /// <summary>Reads one variable of the query variables of a request, see <see cref="ExternalVarKeys"/>.</summary>
+        /// <param name="request">The external request; null gives no value.</param>
+        /// <param name="key">The variable to read.</param>
+        /// <returns>The values of the variable; null if the request has no such variable or its variables cannot be read.</returns>
         internal static List<int>? ExtQueryVariable(ExternalRequest? request, string key)
         {
             if (string.IsNullOrWhiteSpace(request?.ExtQueryVariables))

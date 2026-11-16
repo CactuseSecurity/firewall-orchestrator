@@ -2,8 +2,19 @@
 ALTER TABLE ext_request
     ADD COLUMN IF NOT EXISTS impltask_id bigint;
 
+-- A request keeps its history when its implementation task is deleted: the reference is cleared (ON DELETE SET NULL)
+-- and the sender discards the request. A constraint created by an earlier run with ON DELETE CASCADE is replaced.
 DO $$
 BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'public.ext_request'::regclass
+            AND conname = 'ext_request_impltask_id_foreign_key'
+            AND confdeltype <> 'n'
+    ) THEN
+        ALTER TABLE ext_request DROP CONSTRAINT ext_request_impltask_id_foreign_key;
+    END IF;
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
@@ -12,7 +23,7 @@ BEGIN
     ) THEN
         ALTER TABLE ext_request
             ADD CONSTRAINT ext_request_impltask_id_foreign_key
-            FOREIGN KEY (impltask_id) REFERENCES request.impltask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+            FOREIGN KEY (impltask_id) REFERENCES request.impltask(id) ON UPDATE RESTRICT ON DELETE SET NULL;
     END IF;
 END $$;
 

@@ -104,7 +104,13 @@ namespace FWO.Middleware.Server
                     await ReleaseLock(request);
                     return;
                 }
-                ExtTicketSystem = JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem) ?? throw new JsonException("No Ticket System");
+                ExtTicketSystem = ReadTicketSystem(request);
+                if (ExtTicketSystem == null || !ExtTicketSystem.IsTufinSecureChange())
+                {
+                    await DiscardUnsupportedRequest(request);
+                    await ReleaseLock(request);
+                    return;
+                }
                 if (request.ExtRequestState == ExtStates.ExtReqInitialized.ToString() ||
                     request.ExtRequestState == ExtStates.ExtReqFailed.ToString()) // try again
                 {
@@ -128,6 +134,38 @@ namespace FWO.Middleware.Server
                 Log.WriteError(LogMessageTitle, "Runs into exception: ", exception);
                 FailedRequests.Add(RequestInfo(request));
             }
+        }
+
+        /// <summary>The external ticket system of a request; null if it cannot be read.</summary>
+        private static ExternalTicketSystem? ReadTicketSystem(ExternalRequest request)
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<ExternalTicketSystem>(request.ExtTicketSystem);
+            }
+            catch (JsonException exception)
+            {
+                Log.WriteWarning(LogMessageTitle, $"{RequestInfo(request)}: the external ticket system cannot be read: {exception.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Discards a request that is neither written to the firewall nor handed to Tufin SecureChange, e.g. one of the
+        /// former Check Point ticket path created before the upgrade. It would fail in every cycle and, as the only active
+        /// request of its ticket, block the ticket; discarding it ends it with the reason, the ticket can be implemented
+        /// again by its actions.
+        /// </summary>
+        private async Task DiscardUnsupportedRequest(ExternalRequest request)
+        {
+            request.LastMessage = "This kind of external request is not supported anymore (only Tufin SecureChange and the direct firewall write); " +
+                "the request is discarded. Start the implementation of the ticket again.";
+            request.ExtRequestState = ExtStates.ExtReqDiscarded.ToString();
+            Log.WriteWarning(LogMessageTitle, $"{RequestInfo(request)}: {request.LastMessage}");
+            await UpdateRequestCreation(request);
+            // finishing the request ends its block of the ticket (one active request per ticket)
+            await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestFinal,
+                new { id = request.Id, extRequestState = request.ExtRequestState, finishDate = DateTime.Now });
         }
 
         private async Task ReleaseLock(ExternalRequest request)

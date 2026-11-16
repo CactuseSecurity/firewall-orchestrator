@@ -46,16 +46,19 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <exception cref="FirewallWriteException">Thrown if a side has no current element.</exception>
         public static void EnsureCompleteTargetState(WfImplTask implTask)
         {
+            List<WfImplElement> sources = [.. implTask.ImplElements.Where(element => SourceFields.Contains(element.Field))];
+            List<WfImplElement> destinations = [.. implTask.ImplElements.Where(element => DestinationFields.Contains(element.Field))];
+            List<WfImplElement> services = [.. implTask.ImplElements.Where(FirewallElementValues.IsServiceElement)];
             List<string> emptySides = [];
-            if (Current([.. implTask.ImplElements.Where(element => SourceFields.Contains(element.Field))]).Count == 0)
+            if (Current(sources).Count == 0)
             {
                 emptySides.Add(kSourceSide);
             }
-            if (Current([.. implTask.ImplElements.Where(element => DestinationFields.Contains(element.Field))]).Count == 0)
+            if (Current(destinations).Count == 0)
             {
                 emptySides.Add(kDestinationSide);
             }
-            if (Current([.. implTask.ImplElements.Where(FirewallElementValues.IsServiceElement)]).Count == 0)
+            if (Current(services).Count == 0)
             {
                 emptySides.Add(kServiceSide);
             }

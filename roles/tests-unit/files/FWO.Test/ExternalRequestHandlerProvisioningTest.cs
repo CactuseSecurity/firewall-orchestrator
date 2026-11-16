@@ -47,6 +47,9 @@ namespace FWO.Test
 
             public List<object> CreatedRequests { get; } = [];
 
+            /// <summary>Descriptions of the alerts raised.</summary>
+            public List<string> AlertDescriptions { get; } = [];
+
             public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == ExtRequestQueries.getUnfinishedRequestsOfTicket)
@@ -60,6 +63,15 @@ namespace FWO.Test
                 if (query == ExtRequestQueries.addExtRequest && variables != null)
                 {
                     CreatedRequests.Add(variables);
+                }
+                if (query == MonitorQueries.getOpenAlerts)
+                {
+                    return (QueryResponseType)(object)new List<Alert>();
+                }
+                if (query == MonitorQueries.addAlert)
+                {
+                    AlertDescriptions.Add(variables?.GetType().GetProperty("description")?.GetValue(variables)?.ToString() ?? "");
+                    return (QueryResponseType)(object)new ReturnIdWrapper();
                 }
                 return await base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
             }
@@ -469,7 +481,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ProvisionImplTask_RequestOfTheTicketStillRunning_CreatesNothing()
+        public async Task ProvisionImplTask_RequestOfTheTicketStillRunning_CreatesNothingAndReportsIt()
         {
             ProvisioningApiConn apiConnection = new(Ticket());
             apiConnection.UnfinishedRequests.Add(new ExternalRequest { Id = 3, TicketId = kTicketId });
@@ -479,8 +491,9 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(result, Is.True);
+                Assert.That(result, Is.False, "the person who started it learns that nothing was written");
                 Assert.That(apiConnection.CreatedRequests, Is.Empty);
+                Assert.That(apiConnection.AlertDescriptions.Single(), Does.Contain($"implementation task {kImplTaskId}: not written, another external request"));
             });
         }
 

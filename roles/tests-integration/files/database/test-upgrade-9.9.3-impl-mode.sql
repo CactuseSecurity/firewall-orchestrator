@@ -6,7 +6,8 @@
 -- Automatic, Internal Work, Disabled, disabled managements, other and unknown ticket systems become Manual, values are
 -- only stored where the value in effect differs (including a differing management value and an inherited device type
 -- value), missing categories, missing and unknown managements stay unchanged, the old setting is backed up and removed,
--- and a repeated upgrade keeps an administrator change made in between. The selected systems end up as tufinSecureChange
+-- and a repeated upgrade keeps an administrator change made in between. A reference of external requests created with
+-- ON DELETE CASCADE by an earlier run is replaced by ON DELETE SET NULL. The selected systems end up as tufinSecureChange
 -- by the later conversion of the same upgrade.
 \set ON_ERROR_STOP 1
 BEGIN;
@@ -44,6 +45,11 @@ INSERT INTO stm_dev_typ VALUES (10, 'Check Point', 'R8x'), (11, 'FortiGate', '7'
 CREATE TEMP TABLE management (mgm_id integer PRIMARY KEY, mgm_name varchar, dev_typ_id integer);
 INSERT INTO management VALUES (100, 'mgm100', 10), (101, 'mgm101', 10), (102, 'mgm102', 10), (103, 'mgm103', 11),
     (104, 'mgm104', 10), (105, 'mgm105', 12), (106, 'mgm106', 10), (107, 'mgm107', 10);
+
+-- simulates an earlier run of this upgrade that created the reference of external requests with ON DELETE CASCADE
+ALTER TABLE public.ext_request DROP CONSTRAINT IF EXISTS ext_request_impltask_id_foreign_key;
+ALTER TABLE public.ext_request ADD CONSTRAINT ext_request_impltask_id_foreign_key
+    FOREIGN KEY (impltask_id) REFERENCES request.impltask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 -- @run-upgrade-9.9.3
 
@@ -129,5 +135,12 @@ DELETE FROM expected_values WHERE object_key = '106' AND config_key = 'implement
 
 -- @run-upgrade-9.9.3
 SELECT pg_temp.assert_migration();
+DO $$
+BEGIN
+    IF (SELECT confdeltype FROM pg_constraint WHERE conrelid = 'public.ext_request'::regclass
+            AND conname = 'ext_request_impltask_id_foreign_key') IS DISTINCT FROM 'n' THEN
+        RAISE EXCEPTION 'The reference of an external request to its implementation task must be cleared on delete (ON DELETE SET NULL)';
+    END IF;
+END $$;
 ROLLBACK;
 \echo '9.9.3 implementation mode migration and idempotency checks passed'

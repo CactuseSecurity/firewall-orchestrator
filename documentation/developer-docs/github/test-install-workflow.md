@@ -35,7 +35,7 @@ pull request and every push to develop and main, because Sonar needs their cover
 | Test install on ... | sets up the installer environment like an installation does, runs the sample LDAP seeding tests, installs FWO with demo data, runs the JWT refresh integration test, the Ansible integration tests, and a certificate reset upgrade with the integration tests, see [Install jobs](#install-jobs) |
 | Python unit tests on Python X | installs the installer requirements (proves that the pinned Ansible installs on X) and the importer and scripts requirements, then runs the importer tests and all tests under `scripts` (customizing scripts, version gate, workflow policy) |
 | Python Code Check | ruff, ruff format, pyright for the oldest (3.10) and the newest (3.14) supported Python, see [Python versions](#python-versions) |
-| Release build | builds `roles/FWO.sln` in `Release`, see [Release build](#release-build) |
+| Release build | checks that the .NET SDK pins agree, then builds `roles/FWO.sln` in `Release`, see [Release build](#release-build) |
 | Launcher guard regression tests | tests `scripts/run-playbook-with-sudo.sh` against a stubbed Ansible |
 | Report failed checks to the merged pull request | comments on the merged pull request, see [Checks after a merge](#checks-after-a-merge) |
 
@@ -199,6 +199,29 @@ workflows build `Debug`. As warnings are treated as errors, a warning that only 
 `Release` - for example a variable whose only use is inside `#if DEBUG` - would otherwise only
 surface when an installation fails. The job needs no installation and reports such a break within
 minutes.
+
+Before it builds, the job checks that the .NET SDK pins agree. The
+`sdk.version` in the repository's `global.json` and the `dotnet-version` of
+`sonarcloud-pr.yml` must both match `dotnet_version` in
+`inventory/group_vars/all.yml`, which the installer derives its own
+`global.json` from. A mismatch fails the job with an error that names the
+file to update.
+
+## .NET SDK selection
+
+GitHub-hosted runner images can ship a newer major .NET SDK than FWO
+supports. `dotnet` picks the newest installed SDK unless a `global.json`
+pins it (#5700). Every `actions/setup-dotnet` step in this workflow
+therefore reads the version from the repository's `global.json`
+(`global-json-file`), and the `dotnet` commands in the checkout use the
+same file. The installer writes its own `global.json` below
+`/usr/local/fworch`, so its builds and the JWT integration test on the
+runner use that SDK as well.
+
+`sonarcloud-pr.yml` keeps an explicit `dotnet-version` because it runs
+on `pull_request_target`. The workflow file comes from the base branch
+while the checkout comes from the pull request, so a pull request branch
+without a `global.json` would fail in `setup-dotnet`.
 
 ## Job names and required checks
 

@@ -5,6 +5,7 @@ using FWO.Basics.Enums;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
+using FWO.Encoders;
 using FWO.Services.RuleTreeBuilder;
 using FWO.Logging;
 using FWO.Report.Filter;

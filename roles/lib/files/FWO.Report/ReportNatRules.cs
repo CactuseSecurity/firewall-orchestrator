@@ -1,6 +1,7 @@
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Encoders;
 using FWO.Report.Filter;
 using FWO.Services.RuleTreeBuilder;
 using FWO.Ui.Display;

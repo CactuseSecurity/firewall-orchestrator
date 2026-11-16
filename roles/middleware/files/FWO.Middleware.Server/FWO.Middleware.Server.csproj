@@ -29,6 +29,7 @@
     <ProjectReference Include="..\..\..\lib\files\FWO.ExternalSystems\FWO.ExternalSystems.csproj" />
     <ProjectReference Include="..\..\..\lib\files\FWO.Services\FWO.Services.csproj" />
 	<ProjectReference Include="..\..\..\lib\files\FWO.Compliance\FWO.Compliance.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Encoders\FWO.Encoders.csproj" />
   </ItemGroup>
   
 </Project>

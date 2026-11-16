@@ -3,6 +3,7 @@ using NetTools;
 using FWO.Logging;
 using System.Net;
 using FWO.Basics;
+using FWO.Encoders;
 
 namespace FWO.Data
 {

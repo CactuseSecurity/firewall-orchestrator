@@ -32,7 +32,7 @@ pull request and every push to develop and main, because Sonar needs their cover
 | Job | Contents |
 |---|---|
 | Determine test plan | lists the files the pull request changes, selects the installs and Python versions (`scripts/ci/install_plan.py`, the reasons are in the job summary), and checks the version early, see [Version check before the installs](#version-check-before-the-installs) |
-| Test install on ... | sets up the installer environment like an installation does, runs the sample LDAP seeding tests, installs FWO with demo data, runs the JWT refresh integration test, the Ansible integration tests, and a certificate reset upgrade with the integration tests, see [Install jobs](#install-jobs) |
+| Test install on ... | sets up the installer environment like an installation does, runs the sample LDAP seeding tests, installs FWO with demo data, runs the JWT refresh integration test, the Ansible integration tests, both passes of a CA rotation with their refusal checks, and a certificate reset upgrade with the integration tests, see [Install jobs](#install-jobs) |
 | Python unit tests on Python X | installs the installer requirements (proves that the pinned Ansible installs on X) and the importer and scripts requirements, then runs the importer tests and all tests under `scripts` (customizing scripts, version gate, workflow policy) |
 | Python Code Check | ruff, ruff format, pyright for the oldest (3.10) and the newest (3.14) supported Python, see [Python versions](#python-versions) |
 | Release build | checks that the .NET SDK pins agree, then builds `roles/FWO.sln` in `Release`, see [Release build](#release-build) |
@@ -46,7 +46,7 @@ pull request and every push to develop and main, because Sonar needs their cover
 | C# unit tests (`FWO.Test`, Debug) | SonarCloud PR, SonarCloud | every pull request, every push to develop and main |
 | Importer and scripts unit tests | Python unit tests; also SonarCloud PR for coverage | Python 3.11 on every pull request, every supported version after a merge |
 | Python API availability per version | pyright in Python Code Check | every pull request, 3.10 and 3.14 |
-| Fresh install, JWT, integration tests, certificate reset upgrade | Test install on ... | Ubuntu 24.04 always, 22.04 and 26.04 as in the overview |
+| Fresh install, JWT, integration tests, CA rotation, certificate reset upgrade | Test install on ... | Ubuntu 24.04 always, 22.04 and 26.04 as in the overview |
 | Release configuration compiles | Release build | every run |
 | Version gate | early: Determine test plan; binding: Version gate workflow | every pull request |
 | Static analysis | SonarCloud PR, CodeQL | every pull request |
@@ -173,9 +173,20 @@ Each install job runs, in order:
    the newest SDK of the runner image, which on Ubuntu 22.04 shares `/usr/share/dotnet` with the
    installer's `dotnet-install` fallback and includes a newer major version than FWO supports.
 5. the Ansible `--tags integrationtests` cleanup step
-6. a certificate reset upgrade,
-   `-e "installation_mode=upgrade internalca_reset_certificates=true"`, with
-   `--skip-tags unittests_run`
+6. pass 1 of a CA rotation,
+   `-e "installation_mode=upgrade internalca_ca_rotation=prepare" --tags certificates,integrationtests`
+7. a pass 2 that has to be refused: the pass-1 records are set aside, the run must be refused and
+   the staged CA must still be staged
+8. a regular upgrade over a simulated interrupted switch (a `previous-ca.crt` next to the staged
+   CA), which has to be refused without touching the CA in force
+9. pass 2 of a CA rotation,
+   `-e "installation_mode=upgrade internalca_ca_rotation=activate" --tags certificates,integrationtests`
+10. the refusals after a completed rotation: pass 2 repeated, pass 1 over a simulated incomplete
+    switch, and the switch persisted in the installer settings file (`FWORCH_LOCAL_SETTINGS`);
+    none of them may stage a CA
+11. a certificate reset upgrade,
+    `-e "installation_mode=upgrade internalca_reset_certificates=true"`, with
+    `--skip-tags unittests_run`
 
 `unittests_run` tags only the tasks of `roles/tests-unit` that run the C# and importer unit tests;
 those run in their own jobs instead (see [Where each kind of test runs](#where-each-kind-of-test-runs)).
@@ -183,13 +194,30 @@ Skipping the tag still deploys the test project, which step 4 runs from. To run 
 an installed system, use `--tags unittests`, see
 [install-for-testing.md](../../installer/install-for-testing.md).
 
-Step 6 is a full run rather than a tag-limited one on purpose: `roles/tests-integration` asserts on
+Steps 6 to 10 are limited to the certificate play and the tests: a rotation restarts the services
+caching its anchors and identities itself, so the tag-limited form is the one an operator may also
+use. Steps 6 and 9 run the tests inside the same invocation, because they check the state that pass
+has to leave behind. After pass 1 both CAs are trusted everywhere, proven by presenting a client
+identity of the staged CA to the API, and Apache advertises both as client CAs. After pass 2 the
+previous CA is trusted nowhere, and Apache advertises no retired CA any more - which shows that it
+was reloaded, not only that the file changed. Steps 7, 8 and 10 are the negative counterparts: pass
+2 must not switch while a host has not recorded pass 1, only pass 2 may continue an interrupted
+switch, and a completed rotation can neither be repeated nor followed by a new one while a switch is
+incomplete. Each refused run goes through `scripts/ci/expect-installer-refusal.sh`, which accepts the
+failure only if the output contains that refusal's own message, so a run stopped by an unrelated
+error does not count. The refusal of pass 2 with `--limit` is not covered, because the single-host
+CI inventory has no host a limit could leave out.
+
+Step 11 is a full run rather than a tag-limited one on purpose: `roles/tests-integration` asserts on
 facts the reset itself produces - which CA was retired, which identities were reissued, which
 customer-managed pairs were left untouched - and those exist only inside the invocation that
 performed the rotation. It is also what exercises the force-regeneration paths in
 `roles/internalCA`, and it proves every service still comes up against a CA anchor that changed
-underneath it. A failure is followed by a certificate diagnostics step, a failure of the JWT test
-by a middleware diagnostics step.
+underneath it.
+
+Failures are followed by diagnostics steps: middleware after the JWT test, certificates after the CA
+rotation or the reset upgrade, and the UI log after any failure (a broken API websocket path only
+shows up as a 503 from Apache).
 
 Demo data is off by default since GHSA-3v53-q5h9-pvfh, but the tests rely on it, so every install
 requests it with `-e add_demo_data=yes`.

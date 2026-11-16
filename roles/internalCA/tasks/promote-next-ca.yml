@@ -1,0 +1,104 @@
+---
+# Pass 2 of a CA rotation, on internalca_ca_host: makes the staged CA the CA in force.
+#
+# Each step is safe to repeat, and the order is what makes an interrupted switch
+# resumable. previous-ca.crt is written before the CA in force is overwritten and only
+# when it does not exist yet, so a rerun never mistakes the already switched CA for the
+# previous one. next-ca.crt is removed only after the switch is complete, and while both
+# files exist check-ca-rotation.yml lets nothing but this file run.
+- name: Look for the staged internal CA
+  stat:
+    path: "{{ internalca_next_ca_certificate }}"
+  register: internalca_promote_next_stat
+  become: true
+
+- name: Look for an internal CA already switched away from
+  stat:
+    path: "{{ internalca_previous_ca_certificate }}"
+  register: internalca_promote_previous_stat
+  become: true
+
+- name: Read the internal CA being switched away from
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_ca_certificate }}"
+  register: internalca_promote_previous_info
+  changed_when: false
+  become: true
+  when:
+    - internalca_promote_next_stat.stat.exists
+    - not internalca_promote_previous_stat.stat.exists
+
+- name: Require a subject on the internal CA being switched away from
+  assert:
+    that:
+      - internalca_promote_previous_info.subject.get('commonName', '') | length > 0
+    fail_msg: >-
+      {{ internalca_ca_certificate }} has no common name, so the leaves it signed could
+      not be recognised as FWO-issued once it is retired. Nothing has been switched.
+  when:
+    - internalca_promote_next_stat.stat.exists
+    - not internalca_promote_previous_stat.stat.exists
+
+# Before anything is switched, so the record exists by the time any leaf names it as a
+# retired issuer - on this run and on every later upgrade of a host this run misses.
+- name: Record the internal CA name this rotation retires
+  lineinfile:
+    path: "{{ internalca_retired_ca_names }}"
+    line: "{{ internalca_promote_previous_info.subject.commonName }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when:
+    - internalca_promote_next_stat.stat.exists
+    - not internalca_promote_previous_stat.stat.exists
+
+# Root-only: nothing reads this copy except the installer, which distributes it through
+# read-ca-trust-set.yml as root.
+- name: Keep the internal CA being switched away from trusted
+  copy:
+    src: "{{ internalca_ca_certificate }}"
+    dest: "{{ internalca_previous_ca_certificate }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0600"
+  become: true
+  when:
+    - internalca_promote_next_stat.stat.exists
+    - not internalca_promote_previous_stat.stat.exists
+
+# copy writes each file through a temporary file and a rename, so none of them is ever
+# seen half written. The previous CA key is overwritten here: from now on nothing may
+# be signed by it.
+- name: Switch to the staged internal CA
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: "{{ internalca_next_ca_private_key }}", dest: "{{ internalca_ca_private_key }}", mode: "0600" }
+    - { src: "{{ internalca_next_ca_csr }}", dest: "{{ internalca_ca_csr }}", mode: "0644" }
+    - { src: "{{ internalca_next_ca_certificate }}", dest: "{{ internalca_ca_certificate }}", mode: "0644" }
+  loop_control:
+    label: "{{ item.dest }}"
+  become: true
+  no_log: true
+  when: internalca_promote_next_stat.stat.exists
+
+# The certificate first: its absence is what marks the switch as complete, and the key
+# and signing request are removed on every pass 2 run so a run interrupted in between
+# leaves no copy of the key in force behind.
+- name: Remove the staged internal CA after the switch
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ internalca_next_ca_certificate }}"
+    - "{{ internalca_next_ca_private_key }}"
+    - "{{ internalca_next_ca_csr }}"
+  become: true

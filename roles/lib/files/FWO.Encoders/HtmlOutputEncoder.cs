@@ -2,7 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace FWO.Basics
+namespace FWO.Encoders
 {
     /// <summary>
     /// Encodes values that are written into generated html, for the context they are written into.

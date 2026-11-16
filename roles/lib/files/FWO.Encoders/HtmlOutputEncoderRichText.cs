@@ -2,7 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace FWO.Basics
+namespace FWO.Encoders
 {
     /// <summary>
     /// Renders user formatted free text, such as a connection reason, as html that can only format.

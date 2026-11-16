@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.9.3 - 11.11.2026
+## 9.9.3 - 14.11.2026
 - request workflow: rule-positioning and firewall-write operations resolve gateway-bound implementation tasks against the gateway's management and reject inconsistent task data
 - middleware REST API: `getAddressGroups` and `getServiceGroups` accept `filter.includeTechnicalDetails=true` to include each member's standalone address or service object fields; omitted, null or false keep the existing compact id/name response, and address details can be combined with separated zone groups
 - UI fix: links from rule report objects to the right sidebar work again on the first click and no longer jump to another page on a following click (#4919). The per-page API role is now determined from the current page with every request instead of a navigation handler, which had broken the browser's in-page navigation
@@ -17,6 +17,17 @@
   - objects already present as requested count as created
   - new rules targeting a section are written at the top or bottom of that section
   - provisioning uses the shared target management of implementation tasks (the management of the gateway); a task whose stored management contradicts its gateway is reported with an alert instead of being written, and choosing a gateway in the implementation task view takes over its management
+- importer (Cisco ASA): access-list entries with a source port no longer always fail the import (so far listed as "still not supported" since 9.7.1, GHSA-p8qh-59qx-rjj4)
+  - permit entries are imported for all source ports, and a warning quoting the entry and its source port is logged. The imported rule is therefore more permissive than the real one
+  - deny entries with a source port still fail the import, because a deny widened to all source ports would hide traffic the firewall permits
+- installer: supported two-pass rotation of the internal CA without loss of connectivity between FWO components (#5130)
+  - pass 1 (`-e "installation_mode=upgrade internalca_ca_rotation=prepare"`) stages the next CA on the CA host and makes every host trust both CAs - Apache client CA file, trust bundle and operating-system store - restarting the services that cache their anchors; nothing is re-signed, and the pass can be repeated until every host is reached
+  - pass 2 (`internalca_ca_rotation=activate`) runs against the complete inventory only and refuses to start until every host has confirmed pass 1; it switches to the next CA, re-signs every FWO-managed identity, restarts its consumers and only then withdraws trust in the previous CA
+  - interrupting either pass leaves a working installation and rerunning it resumes; pass 1 is accepted inside the critical CA expiry window, since it is the remedy for it
+- installer: fixed reading the retired internal CA names once more than one is recorded - a second certificate reset, or a reset after a CA rotation, took every FWO-issued Apache and OpenLDAP identity for a customer certificate and stopped the upgrade
+- installer: Apache proxies the UI and the API with `ProxyPass ... upgrade=websocket` instead of rewrite rules. `mod_proxy_http` tunnels the websocket connections itself (Apache 2.4.47 or later), so new installations no longer enable `proxy_wstunnel`; upgraded installations keep the module enabled, unused
+  - API port: websocket connections are only proxied below `/api/`; so far a websocket upgrade request on any path reached `/v1/graphql`
+  - API port: `/api` without a trailing slash is redirected to `/api/`, and requests below `/api/` reach Hasura without a doubled leading slash
 
 
 ## 9.9.2 - 10.11.2026

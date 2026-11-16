@@ -131,11 +131,10 @@ def create_rule_from_acl_entry(
         Normalized rule object
 
     """
-    # Generate unique rule UID by hashing entry dict; time_range is left out when unset, so that
-    # the UIDs of entries without a time-range stay the same as before the field existed
-    rule_uid = fwo_base.generate_hash_from_dict(
-        entry.model_dump(exclude={"time_range"}) if entry.time_range is None else entry.model_dump()
-    )
+    # Generate unique rule UID by hashing entry dict; fields added later are left out when unset, so that
+    # the UIDs of entries not using them stay the same as before the fields existed
+    unset_later_fields = {field for field in ("src_port", "time_range") if getattr(entry, field) is None}
+    rule_uid = fwo_base.generate_hash_from_dict(entry.model_dump(exclude=unset_later_fields))
 
     # Resolve service reference
     svc_ref = resolve_service_reference_for_rule(entry, protocol_groups, service_objects)

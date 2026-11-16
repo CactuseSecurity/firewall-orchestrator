@@ -146,6 +146,12 @@ Alter table "rule_metadata" add constraint "rule_metadata_removed_import_control
   foreign key ("removed") references "import_control" ("control_id") on update restrict on delete restrict;
 ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_management_id_fk FOREIGN KEY (mgm_id) REFERENCES management(mgm_id)
 ON update restrict on delete cascade;
+ALTER TABLE rule_hit ADD CONSTRAINT rule_hit_rule_metadata_id_rule_metadata_fkey FOREIGN KEY (rule_metadata_id) REFERENCES rule_metadata(rule_metadata_id)
+ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE rule_hit ADD CONSTRAINT rule_hit_dev_id_device_fkey FOREIGN KEY (dev_id) REFERENCES device(dev_id)
+ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE rule_hit_import_request ADD CONSTRAINT rule_hit_import_request_mgm_id_management_fkey FOREIGN KEY (mgm_id) REFERENCES management(mgm_id)
+ON UPDATE RESTRICT ON DELETE CASCADE;
 
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_rule_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_device_dev_id foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;

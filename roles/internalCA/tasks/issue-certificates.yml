@@ -86,6 +86,7 @@
         internalca_reset_certificates | bool
         or internalca_certificate_is_expiring | bool
         or internalca_certificate_names_missing | length > 0
+        or internalca_certificate_issuer_retired | bool
       }}
     mode: "0644"
   vars:
@@ -107,6 +108,16 @@
     internalca_certificate_names_missing: >-
       {{ item.item.subject_alt_name | default([], true)
          | difference(internalca_issued_certificate.subject_alt_name | default([], true)) }}
+    # Signed by a CA other than the one in force - the previous CA once pass 2 of a
+    # rotation has switched. Re-signing it is what moves this host onto the new CA, and
+    # it does not depend on how x509_certificate decides that a different issuer warrants
+    # regeneration. Only decided for a certificate that exists: a missing one is issued
+    # anyway.
+    internalca_certificate_issuer_retired: >-
+      {{
+        internalca_issued_certificate.issuer is defined
+        and internalca_issued_certificate.issuer.get('commonName', '') != internalca_ca_common_name
+      }}
   loop: "{{ internalca_certificate_csrs.results }}"
   loop_control:
     index_var: internalca_profile_index

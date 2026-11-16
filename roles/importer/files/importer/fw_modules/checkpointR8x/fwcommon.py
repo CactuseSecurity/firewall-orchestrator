@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
     from model_controllers.management_controller import ManagementController
     from models.import_state import ImportState
+    from models.rule_hit import RuleHit
 
 
 class CheckpointR8xCommon(FwCommon):
@@ -65,6 +66,15 @@ class CheckpointR8xCommon(FwCommon):
         import_state: ImportStateController,
     ) -> tuple[int, FwConfigManagerListController]:
         return get_config(config_in, import_state)
+
+    def supports_rule_hits(self) -> bool:
+        return True
+
+    def get_rule_hits(self, import_state: ImportStateController) -> list[RuleHit]:
+        # imported here: cp_rule_hits builds on the policy and rulebase helpers of this module
+        from fw_modules.checkpointR8x import cp_rule_hits  # noqa: PLC0415
+
+        return cp_rule_hits.get_rule_hits(import_state.state)
 
 
 def get_config(

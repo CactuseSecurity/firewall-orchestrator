@@ -1,0 +1,95 @@
+---
+# Refuses every CA rotation step that could leave a host presenting a certificate one of
+# its peers does not trust. Runs on every host before the CA host changes anything, and
+# the play is any_errors_fatal, so one host failing here stops the switch for all of them.
+
+# An interrupted switch can leave the CA key and certificate of two different CAs in
+# place. Only pass 2 knows how to complete it; any other run would take the mismatch for
+# a damaged CA certificate and self-sign a replacement for the key.
+- name: Refuse to run over an interrupted CA switch
+  fail:
+    msg: >-
+      A previous run with internalca_ca_rotation=activate was interrupted while it
+      switched to the next internal CA. Complete it by running the full upgrade again with
+      -e "installation_mode=upgrade internalca_ca_rotation=activate".
+  when:
+    - internalca_rotation_staged | bool
+    - internalca_rotation_promoted | bool
+    - internalca_ca_rotation != 'activate'
+  run_once: true
+
+- name: Refuse to stage a CA before the previous rotation has completed
+  fail:
+    msg: >-
+      The internal CA was switched by an earlier internalca_ca_rotation=activate run that
+      did not complete, so {{ internalca_previous_ca_certificate }} is still trusted. Run
+      the full upgrade with -e "installation_mode=upgrade internalca_ca_rotation=activate"
+      to finish it before preparing another rotation.
+  when:
+    - internalca_ca_rotation == 'prepare'
+    - internalca_rotation_promoted | bool
+    - not internalca_rotation_staged | bool
+  run_once: true
+
+# Also reached by repeating pass 2 after it has completed: retire-previous-ca.yml removes
+# the rotation state only once every host has dropped the previous CA, so nothing is left
+# to resume. Staging another CA is then the wrong remedy, hence both cases in the message.
+- name: Require a staged CA before activating a rotation
+  fail:
+    msg: >-
+      internalca_ca_rotation=activate found no CA rotation under way on
+      {{ internalca_ca_host }}. If an earlier run with internalca_ca_rotation=activate got
+      this far, that rotation is complete and nothing needs to be repeated. To start a
+      rotation, run the full upgrade with
+      -e "installation_mode=upgrade internalca_ca_rotation=prepare" first.
+  when:
+    - internalca_ca_rotation == 'activate'
+    - not internalca_rotation_staged | bool
+    - not internalca_rotation_promoted | bool
+  run_once: true
+
+# Only the CA host can create the next CA. A first pass-1 run limited to other hosts would
+# find nothing to distribute and end successfully without having taken any step. Later
+# runs, once the CA is staged, may be limited to any hosts.
+- name: Require the CA host in the first run of pass 1
+  fail:
+    msg: >-
+      internalca_ca_rotation=prepare has no next internal CA to distribute yet, and
+      {{ internalca_ca_host }}, the only host that can create it, is not part of this run.
+      Include {{ internalca_ca_host }} in the first run of pass 1; later runs may be
+      limited to any hosts.
+  when:
+    - internalca_ca_rotation == 'prepare'
+    - not internalca_rotation_staged | bool
+    - not internalca_rotation_promoted | bool
+    - internalca_ca_host not in ansible_play_hosts
+  run_once: true
+
+# Pass 2 ends by withdrawing trust in the previous CA, which strands every host still
+# holding a certificate it signed. A host left out by --limit, or dropped as unreachable
+# in an earlier play, would be exactly that host.
+- name: Require every inventory host in the CA switch
+  fail:
+    msg: >-
+      internalca_ca_rotation=activate must run against the complete inventory, because it
+      ends by withdrawing trust in the previous internal CA. Not part of this run:
+      {{ groups['all'] | difference(ansible_play_hosts) | join(', ') }}. Remove --limit, or
+      make these hosts reachable, and run it again.
+  when:
+    - internalca_ca_rotation == 'activate'
+    - groups['all'] | difference(ansible_play_hosts) | length > 0
+  run_once: true
+
+# The marker is written only after the host installed the next CA in every place it
+# reads anchors from and restarted the services that cache them, so it is the one proof
+# that pass 1 is complete on that host. Checked on the host itself, so the message names it.
+- name: Require pass 1 of the CA rotation to have reached this host
+  fail:
+    msg: >-
+      {{ inventory_hostname }} has not confirmed that it trusts the next internal CA, so
+      switching to it now would cut it off from its peers. Run the full upgrade with
+      -e "installation_mode=upgrade internalca_ca_rotation=prepare" until it completes
+      on every host, then activate the rotation.
+  when:
+    - internalca_ca_rotation == 'activate'
+    - not internalca_rotation_marker_current | bool

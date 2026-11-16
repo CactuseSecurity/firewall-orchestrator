@@ -216,17 +216,27 @@
   register: test_fwo_trust_bundle
   become: true
 
+# One internal CA, or two while a CA rotation is under way - counted rather than assumed.
+- name: Read the installed internal CA certificates
+  slurp:
+    src: "{{ internalca_ca_certificate_local }}"
+  register: test_fwo_internal_ca
+  become: true
+
 - name: Assert the installed FWO trust bundle holds every configured anchor
   assert:
     that:
       - >-
         (test_fwo_trust_bundle.content | b64decode
          | regex_findall('-----BEGIN CERTIFICATE-----') | length)
-        == 1 + (test_configured_peer_ca.content | default('') | b64decode
-                | regex_findall('-----BEGIN CERTIFICATE-----') | length)
+        == (test_fwo_internal_ca.content | b64decode
+            | regex_findall('-----BEGIN CERTIFICATE-----') | length)
+           + (test_configured_peer_ca.content | default('') | b64decode
+              | regex_findall('-----BEGIN CERTIFICATE-----') | length)
     fail_msg: >-
-      {{ internalca_trust_bundle }} does not hold the internal CA plus every certificate
-      configured as internalca_peer_ca_certificate.
+      {{ internalca_trust_bundle }} does not hold every internal CA in
+      {{ internalca_ca_certificate_local }} plus every certificate configured as
+      internalca_peer_ca_certificate.
 
 - name: Verify the installed FWO trust bundle parses
   command:

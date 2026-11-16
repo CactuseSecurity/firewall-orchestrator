@@ -14,11 +14,6 @@ namespace FWO.Ui.Services
     public sealed class UiClientAddress
     {
         /// <summary>
-        /// Raised after the address was set.
-        /// </summary>
-        public event Action? Changed;
-
-        /// <summary>
         /// Canonical text of the address, empty as long as it is not known.
         /// </summary>
         public string Value { get; private set; } = "";
@@ -40,7 +35,6 @@ namespace FWO.Ui.Services
         public void Set(string? address)
         {
             Value = ClientAddressFormat.TryParse(address, out IPAddress? parsed) ? ClientAddressFormat.ToText(parsed) : "";
-            Changed?.Invoke();
         }
     }
 }

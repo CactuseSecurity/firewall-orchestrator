@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Config.File;
 using FWO.Logging;
 using System.Net;
@@ -72,7 +73,7 @@ namespace FWO.Middleware.Server
                     Log.WriteWarning(kLogCategory, $"Trusted login client host \"{host}\" could not be resolved and is not exempt: {exception.Message}");
                 }
             }
-            return addresses.ConvertAll(LoginThrottle.Normalize);
+            return addresses.ConvertAll(ClientAddressFormat.Normalize);
         }
 
         private static List<IPAddress> GetLocalAddresses()
@@ -88,7 +89,7 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteWarning(kLogCategory, $"Local addresses could not be read, only loopback is exempt: {exception.Message}");
             }
-            return addresses.ConvertAll(LoginThrottle.Normalize);
+            return addresses.ConvertAll(ClientAddressFormat.Normalize);
         }
 
         private static int PositiveOrDefault(int? value, int defaultValue)
@@ -125,7 +126,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         internal LoginThrottle(LoginThrottleSettings settings, TimeSpan window)
         {
-            trustedClients = settings.TrustedClientAddresses.Select(Normalize).ToHashSet();
+            trustedClients = settings.TrustedClientAddresses.Select(ClientAddressFormat.Normalize).ToHashSet();
             clientAttempts = CreateLimiter(settings.ClientAttemptsPerMinute, window);
             userFailures = CreateLimiter(settings.UserFailuresPerMinute, window);
             userFailuresPerWindow = settings.UserFailuresPerMinute;
@@ -179,7 +180,7 @@ namespace FWO.Middleware.Server
             {
                 return caller;
             }
-            return Normalize(reportedClient);
+            return ClientAddressFormat.Normalize(reportedClient);
         }
 
         /// <summary>
@@ -189,7 +190,7 @@ namespace FWO.Middleware.Server
         /// <returns>True if the address is trusted.</returns>
         public bool IsTrustedClient(IPAddress? address)
         {
-            return address != null && trustedClients.Contains(Normalize(address));
+            return address != null && trustedClients.Contains(ClientAddressFormat.Normalize(address));
         }
 
         /// <summary>
@@ -234,14 +235,6 @@ namespace FWO.Middleware.Server
             return lease.IsAcquired;
         }
 
-        /// <summary>
-        /// Maps IPv4-mapped IPv6 addresses to IPv4 so both notations share one partition.
-        /// </summary>
-        internal static IPAddress Normalize(IPAddress address)
-        {
-            return address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
-        }
-
         /// <inheritdoc />
         public void Dispose()
         {
@@ -249,9 +242,15 @@ namespace FWO.Middleware.Server
             userFailures.Dispose();
         }
 
+        /// <summary>
+        /// Returns the partition key of a client: its normalized address (see <see cref="ClientAddressFormat.Normalize"/>),
+        /// so that both notations of an IPv4 address and an IPv6 address with and without scope id share one partition.
+        /// </summary>
+        /// <param name="client">Client address; null if it is not known.</param>
+        /// <returns>The address text, or <see cref="ClientAddressFormat.kUnknown"/>.</returns>
         private static string ClientKey(IPAddress? client)
         {
-            return client == null ? "unknown" : Normalize(client).ToString();
+            return ClientAddressFormat.Describe(client);
         }
 
         private static string UserKey(string userName, IPAddress? client)

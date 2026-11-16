@@ -12,6 +12,10 @@ namespace FWO.Test
         private static readonly IPAddress kOtherClient = IPAddress.Parse("192.0.2.11");
         private static readonly IPAddress kUiServer = IPAddress.Parse("198.51.100.5");
         private static readonly List<IPAddress> kTrustedUiServer = [kUiServer];
+        private const long kScopeId = 3;
+        private static readonly IPAddress kLinkLocalClient = IPAddress.Parse("fe80::1");
+        private static readonly IPAddress kScopedLinkLocalClient = new(kLinkLocalClient.GetAddressBytes(), kScopeId);
+        private static readonly List<IPAddress> kTrustedLinkLocal = [kLinkLocalClient];
         private static readonly List<string> kTrustedHosts = ["198.51.100.5", " ", "::ffff:198.51.100.6"];
         private static readonly List<string> kUnresolvableHosts = ["unresolvable.invalid"];
 
@@ -125,6 +129,26 @@ namespace FWO.Test
                 Assert.That(Admits(throttle, "alice", kUiServer), Is.False);
                 Assert.That(Admits(throttle, "bob", kUiServer, kClient), Is.True);
             });
+        }
+
+        [Test]
+        public void BeginAttempt_CountsAScopedCallerAndItsReportedAddressInOnePartition()
+        {
+            using LoginThrottle throttle = CreateThrottle(clientAttempts: 1, userFailures: 10, trusted: kTrustedUiServer);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(Admits(throttle, "alice", kScopedLinkLocalClient), Is.True);
+                Assert.That(Admits(throttle, "bob", kUiServer, kLinkLocalClient), Is.False, "the scope id must not open a partition of its own");
+            });
+        }
+
+        [Test]
+        public void IsTrustedClient_IgnoresTheScopeId()
+        {
+            using LoginThrottle throttle = CreateThrottle(clientAttempts: 1, userFailures: 1, trusted: kTrustedLinkLocal);
+
+            Assert.That(throttle.IsTrustedClient(kScopedLinkLocalClient), Is.True);
         }
 
         [Test]

@@ -6,7 +6,7 @@ using System.Security.Claims;
 namespace FWO.Ui.Services
 {
     /// <summary>
-    /// Reports the lifetime, the logged in user and the client address of a Blazor circuit to the <see cref="UiSessionTracker"/>.
+    /// Reports the lifetime and the logged in user of a Blazor circuit to the <see cref="UiSessionTracker"/>.
     /// Registered as scoped service, so one instance exists per circuit.
     /// </summary>
     public sealed class UiSessionCircuitHandler : CircuitHandler, IDisposable
@@ -18,7 +18,6 @@ namespace FWO.Ui.Services
 
         private readonly UiSessionTracker sessionTracker;
         private readonly AuthenticationStateProvider authenticationStateProvider;
-        private readonly UiClientAddress? clientAddress;
         private bool disposed;
 
         /// <summary>
@@ -32,25 +31,17 @@ namespace FWO.Ui.Services
         /// </summary>
         /// <param name="sessionTracker">Tracker collecting all open sessions.</param>
         /// <param name="authenticationStateProvider">Provider of the authentication state of this circuit.</param>
-        /// <param name="clientAddress">Address of the browser of this circuit, set once its root component is initialized.</param>
-        public UiSessionCircuitHandler(UiSessionTracker sessionTracker, AuthenticationStateProvider authenticationStateProvider,
-            UiClientAddress? clientAddress = null)
+        public UiSessionCircuitHandler(UiSessionTracker sessionTracker, AuthenticationStateProvider authenticationStateProvider)
         {
             this.sessionTracker = sessionTracker;
             this.authenticationStateProvider = authenticationStateProvider;
-            this.clientAddress = clientAddress;
             this.authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
-            if (clientAddress != null)
-            {
-                clientAddress.Changed += ApplyClientAddress;
-            }
         }
 
         /// <inheritdoc />
         public override async Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken cancellationToken)
         {
             sessionTracker.Register(SessionId);
-            ApplyClientAddress();
             ApplyUser(await authenticationStateProvider.GetAuthenticationStateAsync());
         }
 
@@ -76,7 +67,7 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        /// Stops listening for authentication state and client address changes and drops the session from the tracker.
+        /// Stops listening for authentication state changes and drops the session from the tracker.
         /// </summary>
         public void Dispose()
         {
@@ -84,10 +75,6 @@ namespace FWO.Ui.Services
             {
                 disposed = true;
                 authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
-                if (clientAddress != null)
-                {
-                    clientAddress.Changed -= ApplyClientAddress;
-                }
                 sessionTracker.Unregister(SessionId);
             }
         }
@@ -108,11 +95,6 @@ namespace FWO.Ui.Services
                         $"Could not read the authentication state of session {SessionId}.", task.Exception);
                 }
             }, TaskScheduler.Default);
-        }
-
-        private void ApplyClientAddress()
-        {
-            sessionTracker.SetClientAddress(SessionId, clientAddress?.Value);
         }
 
         private void ApplyUser(AuthenticationState authenticationState)

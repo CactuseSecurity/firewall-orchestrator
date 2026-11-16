@@ -21,11 +21,6 @@ namespace FWO.Ui.Services
         public string UserDn { get; set; } = "";
 
         /// <summary>
-        /// Address of the browser of the session, empty as long as it is not known.
-        /// </summary>
-        public string ClientAddress { get; set; } = "";
-
-        /// <summary>
         /// Point in time (UTC) at which the session was opened.
         /// </summary>
         public DateTime OpenedAt { get; set; }

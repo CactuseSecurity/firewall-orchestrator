@@ -70,17 +70,5 @@ namespace FWO.Test
                 Assert.That(clientAddress.Description, Is.EqualTo(ClientAddressFormat.kUnknown));
             });
         }
-
-        [Test]
-        public void Set_RaisesChanged()
-        {
-            UiClientAddress clientAddress = new();
-            int changes = 0;
-            clientAddress.Changed += () => changes++;
-
-            clientAddress.Set(kClientAddress);
-
-            Assert.That(changes, Is.EqualTo(1));
-        }
     }
 }

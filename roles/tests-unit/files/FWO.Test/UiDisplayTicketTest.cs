@@ -504,17 +504,17 @@ namespace FWO.Test
         {
             WfReqTask task = new() { Id = 15, TaskType = WfTaskType.access.ToString() };
             WfHandler handler = new() { ActTicket = new WfTicket { Id = 10, Tasks = [task] } };
-        UiRequestWorkflowTest.SetMatrix(handler, task.TaskType, new StateMatrix());
+            UiRequestWorkflowTest.SetMatrix(handler, task.TaskType, new StateMatrix());
             int resetCalls = 0;
-        await using BunitContext context = new();
-        IRenderedComponent<DisplayTicket> rendered = RenderDisplayTicket(context, handler, WorkflowPhases.approval,
-            new WfStateDict());
-        DisplayTicket component = rendered.Instance;
-        SetMember(component, nameof(DisplayTicket.ResetParent), () =>
-            {
-                resetCalls++;
-                return Task.CompletedTask;
-            });
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayTicket> rendered = RenderDisplayTicket(context, handler, WorkflowPhases.approval,
+                new WfStateDict());
+            DisplayTicket component = rendered.Instance;
+            SetMember(component, nameof(DisplayTicket.ResetParent), () =>
+                {
+                    resetCalls++;
+                    return Task.CompletedTask;
+                });
             SetMember(component, "displayApprovalTaskDetailsView", true);
 
             await InvokePrivateTask(component, "OpenApprovalAccessTaskEditor", task, WorkflowEditableFieldKeys.Reason);
@@ -531,7 +531,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(GetMember<string?>(component, "approvalAccessTaskField"), Is.Null);
-            Assert.That(resetCalls, Is.EqualTo(1));
+                Assert.That(resetCalls, Is.EqualTo(1));
             });
         }
 

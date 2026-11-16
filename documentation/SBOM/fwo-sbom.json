@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:543b99c3-f469-4fa4-8617-28efc482ffa4",
+  "serialNumber": "urn:uuid:cd2972e2-f61c-4723-9061-ae3e46f89fd2",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-16T14:52:04Z",
+    "timestamp": "2026-11-16T15:10:11Z",
     "tools": {
       "components": [
         {
@@ -744,20 +744,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/MailKit@4.18.2",
+      "bom-ref": "pkg:nuget/MailKit@5.0.0",
       "authors": [
         {
           "name": "Jeffrey Stedfast"
         }
       ],
       "name": "MailKit",
-      "version": "4.18.2",
+      "version": "5.0.0",
       "description": "An Open Source .NET mail-client library for Windows, Mac, Linux, and mobile platforms such as iOS and Android.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "72615A8FD46BE80FA51EA01E44232BF1D4C6BB6FDA7BDD63ED5DBB894657DA7F2515DECC532C249BD6FAD17499C0086A6465B83312BBFFF8C03177279A4D64F7"
+          "content": "9EFB6F7BA2699BDE8EEBB63325199A80749651D4D4373571CAC9DF971749200C7B03948D0B22826D5AE5689A109D0C9424F9247FB7B6851028889042A3A16B83"
         }
       ],
       "licenses": [
@@ -768,7 +768,7 @@
         }
       ],
       "copyright": ".NET Foundation and Contributors",
-      "purl": "pkg:nuget/MailKit@4.18.2",
+      "purl": "pkg:nuget/MailKit@5.0.0",
       "externalReferences": [
         {
           "url": "http://www.mimekit.net/",
@@ -4094,20 +4094,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/MimeKit@4.18.2",
+      "bom-ref": "pkg:nuget/MimeKit@5.0.0",
       "authors": [
         {
           "name": "Jeffrey Stedfast"
         }
       ],
       "name": "MimeKit",
-      "version": "4.18.2",
+      "version": "5.0.0",
       "description": "An Open Source library for creating and parsing MIME, S/MIME and PGP messages on desktop and mobile platforms.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "57CC8B10D926CD8A4321B34E47B7A74846506C4E407D3331C5859E66910AD20B684D8706D32554F78C09A9A62A1FDD20DC15E723F323DEB5C70E34EA1BE594AC"
+          "content": "773CFE3864995F34457F007A8CAB780FFA51F41AE012C38B7743D47D6F263D72BD45B728DD35FFD339BBE9EDB42426CAF61A3CB283C6926D6A46B1CF9DC8BD18"
         }
       ],
       "licenses": [
@@ -4118,7 +4118,83 @@
         }
       ],
       "copyright": ".NET Foundation and Contributors",
-      "purl": "pkg:nuget/MimeKit@4.18.2",
+      "purl": "pkg:nuget/MimeKit@5.0.0",
+      "externalReferences": [
+        {
+          "url": "https://www.mimekit.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/jstedfast/MimeKit",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/MimeKit.Core@5.0.0",
+      "authors": [
+        {
+          "name": "Jeffrey Stedfast"
+        }
+      ],
+      "name": "MimeKit.Core",
+      "version": "5.0.0",
+      "description": "An Open Source library for creating and parsing MIME messages and Unix mbox files on desktop and mobile platforms.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "304F4310E1808071FACF640935C4A631615A65CD84020A02592A7159D73ED0A25477E431CC4619C20F783CC0B7D24C5190B1BE898A8536D71FCA7E9E0B843EFC"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": ".NET Foundation and Contributors",
+      "purl": "pkg:nuget/MimeKit.Core@5.0.0",
+      "externalReferences": [
+        {
+          "url": "https://www.mimekit.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/jstedfast/MimeKit",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/MimeKit.Cryptography@5.0.0",
+      "authors": [
+        {
+          "name": "Jeffrey Stedfast"
+        }
+      ],
+      "name": "MimeKit.Cryptography",
+      "version": "5.0.0",
+      "description": "An Open Source library for creating and parsing MIME, S/MIME and PGP messages on desktop and mobile platforms.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "C59B8212C7151EACC5D687CE520DBE577313CD1DFE09C777B9C01D7FEAC13E1CDCCC8D6CF6E6B9202961FC0F0E791B7B73A7B2F93A26FE04BDB3FEE893AED825"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": ".NET Foundation and Contributors",
+      "purl": "pkg:nuget/MimeKit.Cryptography@5.0.0",
       "externalReferences": [
         {
           "url": "https://www.mimekit.net/",
@@ -4542,20 +4618,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Scalar.AspNetCore@2.20.0",
+      "bom-ref": "pkg:nuget/Scalar.AspNetCore@3.0.0",
       "authors": [
         {
           "name": "Scalar"
         }
       ],
       "name": "Scalar.AspNetCore",
-      "version": "2.20.0",
+      "version": "3.0.0",
       "description": "Generate beautiful interactive API documentation from OpenAPI/Swagger documents.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "E4A6CE1270366BBDAC36869A1984AA7F794239B10342314CD5359FDB015C2A22309E4C8A9E2A649257A8713064B59EECFF86102674DA26CE0EC0A20FC9380462"
+          "content": "AA872A9118F5381CE529A263DFA3CEF00FA942AED94C02954F3FBE3B75BDA81669B622F10F2BD41E1095D8D2292E19C80BFFA1249347CE7EEBDA90058A485106"
         }
       ],
       "licenses": [
@@ -4565,7 +4641,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/Scalar.AspNetCore@2.20.0",
+      "purl": "pkg:nuget/Scalar.AspNetCore@3.0.0",
       "externalReferences": [
         {
           "url": "https://scalar.com/",
@@ -4859,17 +4935,17 @@
         "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@114.1.0",
         "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.23.0",
         "pkg:nuget/HtmlAgilityPack@1.13.1",
-        "pkg:nuget/MailKit@4.18.2",
+        "pkg:nuget/MailKit@5.0.0",
         "pkg:nuget/Microsoft.AspNetCore.Http@2.3.14",
         "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.14",
-        "pkg:nuget/MimeKit@4.18.2",
+        "pkg:nuget/MimeKit@5.0.0",
         "pkg:nuget/PuppeteerSharp@25.17.1",
         "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.15",
         "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.15",
         "pkg:nuget/Microsoft.OpenApi@2.13.0",
         "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
         "pkg:nuget/Quartz@4.7.3",
-        "pkg:nuget/Scalar.AspNetCore@2.20.0",
+        "pkg:nuget/Scalar.AspNetCore@3.0.0",
         "pkg:nuget/BlazorTable@1.17.0",
         "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.15",
         "pkg:nuget/SoPro.FancyTable@1.7.0",
@@ -4997,9 +5073,9 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/MailKit@4.18.2",
+      "ref": "pkg:nuget/MailKit@5.0.0",
       "dependsOn": [
-        "pkg:nuget/MimeKit@4.18.2"
+        "pkg:nuget/MimeKit.Core@5.0.0"
       ]
     },
     {
@@ -5591,10 +5667,22 @@
       ]
     },
     {
-      "ref": "pkg:nuget/MimeKit@4.18.2",
+      "ref": "pkg:nuget/MimeKit.Core@5.0.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:nuget/MimeKit.Cryptography@5.0.0",
       "dependsOn": [
         "pkg:nuget/BouncyCastle.Cryptography@2.7.0",
+        "pkg:nuget/MimeKit.Core@5.0.0",
         "pkg:nuget/System.Security.Cryptography.Pkcs@10.0.13"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/MimeKit@5.0.0",
+      "dependsOn": [
+        "pkg:nuget/MimeKit.Core@5.0.0",
+        "pkg:nuget/MimeKit.Cryptography@5.0.0"
       ]
     },
     {
@@ -5659,7 +5747,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Scalar.AspNetCore@2.20.0",
+      "ref": "pkg:nuget/Scalar.AspNetCore@3.0.0",
       "dependsOn": []
     },
     {

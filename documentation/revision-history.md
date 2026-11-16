@@ -34,6 +34,7 @@
 - installer: Apache proxies the UI and the API with `ProxyPass ... upgrade=websocket` instead of rewrite rules. `mod_proxy_http` tunnels the websocket connections itself (Apache 2.4.47 or later), so new installations no longer enable `proxy_wstunnel`; upgraded installations keep the module enabled, unused
   - API port: websocket connections are only proxied below `/api/`; so far a websocket upgrade request on any path reached `/v1/graphql`
   - API port: `/api` without a trailing slash is redirected to `/api/`, and requests below `/api/` reach Hasura without a doubled leading slash
+- dependencies: update NuGet packages (AngleSharp 1.10.4, coverlet.collector 10.1.1, MailKit 5.0.0, MimeKit 5.0.0, Microsoft.NET.Test.Sdk 18.12.0, PuppeteerSharp 25.17.1, Scalar.AspNetCore 3.0.0, SoPro.FancyTable 1.7.0)
 
 
 ## 9.9.2 - 10.11.2026

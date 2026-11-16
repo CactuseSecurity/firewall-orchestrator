@@ -37,6 +37,36 @@ namespace FWO.ExternalSystems.FirewallWrite
             SetServiceList(step, services, profile);
         }
 
+        /// <summary>
+        /// Ensures that a rule to modify names its complete target state. A rule is modified by setting its sources,
+        /// destinations and services as whole lists, for every vendor; a task without a current element on one side would
+        /// therefore empty that side of the rule, so it is refused before anything is sent.
+        /// </summary>
+        /// <param name="implTask">The rule_modify implementation task.</param>
+        /// <exception cref="FirewallWriteException">Thrown if a side has no current element.</exception>
+        public static void EnsureCompleteTargetState(WfImplTask implTask)
+        {
+            List<string> emptySides = [];
+            if (Current([.. implTask.ImplElements.Where(element => SourceFields.Contains(element.Field))]).Count == 0)
+            {
+                emptySides.Add(kSourceSide);
+            }
+            if (Current([.. implTask.ImplElements.Where(element => DestinationFields.Contains(element.Field))]).Count == 0)
+            {
+                emptySides.Add(kDestinationSide);
+            }
+            if (Current([.. implTask.ImplElements.Where(FirewallElementValues.IsServiceElement)]).Count == 0)
+            {
+                emptySides.Add(kServiceSide);
+            }
+            if (emptySides.Count > 0)
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                    $"A rule to modify is written as its complete target state, but the task has no current {string.Join(", ", emptySides)} " +
+                    "element; the rule would lose all of them. List every element the rule keeps, not only the changes.");
+            }
+        }
+
         private sealed record NetworkListPlaceholders(string Side, string Full, string ToAdd, string ToRemove, string NameObjects, string Csv,
             string Addresses);
 

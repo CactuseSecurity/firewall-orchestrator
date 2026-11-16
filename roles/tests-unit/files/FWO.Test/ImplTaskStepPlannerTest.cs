@@ -441,7 +441,7 @@ namespace FWO.Test
         public void RuleModify_SplitsAddedAndRemovedElements()
         {
             WfImplTask task = Task(WfTaskType.rule_modify, Rule("uid-1"), Network("add", null), Network("drop", null, action: RequestAction.delete),
-                Network("keep", null, field: ElemFieldType.destination, action: RequestAction.unchanged));
+                Network("keep", null, field: ElemFieldType.destination, action: RequestAction.unchanged), Service("https", kTcp, 443, action: RequestAction.unchanged));
 
             FirewallWriteStep rule = Plan(task).Single();
 
@@ -454,6 +454,60 @@ namespace FWO.Test
                 Assert.That(Value(rule, FirewallWritePlaceholders.RuleSourcesToRemove), Is.EqualTo("[\"drop\"]"));
                 Assert.That(Value(rule, FirewallWritePlaceholders.RuleDestinationsToAdd), Is.EqualTo("[]"));
                 Assert.That(Value(rule, FirewallWritePlaceholders.RuleSourcesCsv), Is.EqualTo("add"));
+            }
+        }
+
+        /// <summary>
+        /// Check Point sets the sources, destinations and services of a rule to modify as whole lists, like every other
+        /// vendor: set-access-rule allows only one action per field and call, so add and remove together are refused.
+        /// </summary>
+        [Test]
+        public void RuleModify_CheckPointSetsTheCompleteTargetState()
+        {
+            WfImplTask task = Task(WfTaskType.rule_modify, Rule("uid-1"), Network("keep", null, action: RequestAction.unchanged),
+                Network("drop", null, action: RequestAction.delete), Network("dst", null, field: ElemFieldType.destination, action: RequestAction.unchanged),
+                Service("https", kTcp, 443, action: RequestAction.unchanged), Service("ssh", kTcp, 22));
+
+            FirewallWriteStep rule = Plan(task).Single();
+            string? template = FirewallWriteDefaults.GetTemplate(FirewallVendors.kCheckPointR8x, FirewallWriteOperation.RuleModify);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(Value(rule, FirewallWritePlaceholders.RuleSources), Is.EqualTo("[\"keep\"]"));
+                Assert.That(Value(rule, FirewallWritePlaceholders.RuleServices), Is.EqualTo("[\"https\",\"ssh\"]"));
+                Assert.That(template, Does.Contain("\"source\":@@RULE_SOURCES@@"));
+                Assert.That(template, Does.Not.Contain("\"add\""));
+                Assert.That(template, Does.Not.Contain("\"remove\""));
+            }
+        }
+
+        [TestCase(ElemFieldType.source)]
+        [TestCase(ElemFieldType.destination)]
+        public void RuleModify_WithoutACurrentElementOnASide_IsRefused(ElemFieldType emptySide)
+        {
+            ElemFieldType otherSide = emptySide == ElemFieldType.source ? ElemFieldType.destination : ElemFieldType.source;
+            WfImplTask onlyRemoved = Task(WfTaskType.rule_modify, Rule("uid-1"), Network("gone", null, field: emptySide, action: RequestAction.delete),
+                Network("other", null, field: otherSide, action: RequestAction.unchanged), Service("https", kTcp, 443, action: RequestAction.unchanged));
+
+            FirewallWriteException? exception = Assert.Throws<FirewallWriteException>(() => Plan(onlyRemoved));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(exception?.Error.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(exception?.Message, Does.Contain($"no current {emptySide}"));
+            }
+        }
+
+        [Test]
+        public void RuleModify_WithoutServices_IsRefusedForEveryVendor()
+        {
+            WfImplTask withoutServices = Task(WfTaskType.rule_modify, Rule("uid-1"), Network("src", null, action: RequestAction.unchanged),
+                Network("dst", null, field: ElemFieldType.destination, action: RequestAction.unchanged));
+
+            using (Assert.EnterMultipleScope())
+            {
+                AssertKind(FirewallWriteErrorKind.InvalidTaskData, () => Plan(withoutServices));
+                AssertKind(FirewallWriteErrorKind.InvalidTaskData, () => Plan(withoutServices, FirewallVendors.kFortiOsGateway));
             }
         }
 
@@ -624,7 +678,9 @@ namespace FWO.Test
             Dictionary<string, string> ruleLayerUids = new() { { "a", "layer-a" }, { "b", "layer-b" } };
             FirewallWriteContext context = WithRuleLayers(FirewallVendors.kCheckPointR8x, ruleLayerUids);
             List<FirewallWriteStep> deleteSteps = ImplTaskStepPlanner.Plan(Task(WfTaskType.rule_delete, Rule("a"), Rule("b")), context, null);
-            FirewallWriteStep modifyStep = ImplTaskStepPlanner.Plan(Task(WfTaskType.rule_modify, Rule("b")), context, null).Single();
+            WfImplTask modifyTask = Task(WfTaskType.rule_modify, Rule("b"), Network("src", null, action: RequestAction.unchanged),
+                Network("dst", null, field: ElemFieldType.destination, action: RequestAction.unchanged), Service("https", kTcp, 443, action: RequestAction.unchanged));
+            FirewallWriteStep modifyStep = ImplTaskStepPlanner.Plan(modifyTask, context, null).Single();
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(Value(deleteSteps[0], FirewallWritePlaceholders.LayerName), Is.EqualTo("layer-a"));

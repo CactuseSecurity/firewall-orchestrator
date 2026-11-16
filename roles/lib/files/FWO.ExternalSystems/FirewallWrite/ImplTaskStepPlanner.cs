@@ -42,7 +42,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 nameof(WfTaskType.group_modify) => PlanGroupModify(implTask, profile),
                 nameof(WfTaskType.group_delete) => [GroupStep(FirewallWriteOperation.GroupDelete, implTask, profile, new List<WfImplElement>())],
                 nameof(WfTaskType.access) => PlanRuleCreate(implTask, profile),
-                nameof(WfTaskType.rule_modify) => [ExistingRuleStep(FirewallWriteOperation.RuleModify, implTask, profile, RuleUid(implTask), context)],
+                nameof(WfTaskType.rule_modify) => PlanRuleModify(implTask, profile, context),
                 nameof(WfTaskType.rule_delete) => PlanRuleDelete(implTask, profile, context),
                 _ => throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported, $"Task type '{implTask.TaskType}' cannot be written to a firewall.")
             };
@@ -273,6 +273,16 @@ namespace FWO.ExternalSystems.FirewallWrite
             List<FirewallWriteStep> steps = MemberObjectSteps(implTask, networkElements, profile);
             steps.Add(RuleStep(FirewallWriteOperation.RuleCreate, implTask, profile, ""));
             return steps;
+        }
+
+        /// <summary>
+        /// Plans the change of an existing rule, written as its complete target state; a task without a current element
+        /// on one side is refused, see <see cref="FirewallRuleValues.EnsureCompleteTargetState"/>.
+        /// </summary>
+        private static List<FirewallWriteStep> PlanRuleModify(WfImplTask implTask, FirewallVendorProfile profile, FirewallWriteContext context)
+        {
+            FirewallRuleValues.EnsureCompleteTargetState(implTask);
+            return [ExistingRuleStep(FirewallWriteOperation.RuleModify, implTask, profile, RuleUid(implTask), context)];
         }
 
         private static List<FirewallWriteStep> PlanRuleDelete(WfImplTask implTask, FirewallVendorProfile profile, FirewallWriteContext context)

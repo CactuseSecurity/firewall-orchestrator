@@ -8,9 +8,30 @@
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
-<PopUp Title="@ApprovalTaskViewTitle" Show="@Display" Size="PopupSize.XLarge" OnClose="ClosePopup">
+<PopUp Title="@ApprovalTaskViewTitle" Show="@Display" Size="@(ListView ? PopupSize.FullScreen : PopupSize.XLarge)" OnClose="ClosePopup">
     <Body>
-        @if (Display)
+        @if (Display && ListView)
+        {
+            List<List<WfReqTask>> listTaskGroups = GetTaskGroups().ToList();
+            @if (listTaskGroups.Any(taskGroup => taskGroup.Any(IsAccessTask)))
+            {
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="button" class="btn btn-sm btn-primary approval-task-display-toggle" @onclick="ToggleAccessElementDisplay">
+                        @(DisplayService.DisplayButton(userConfig, NextDisplayModeTextKey(), Icons.Swap))
+                    </button>
+                </div>
+            }
+            <CascadingValue Value="@CreateTaskViewContext()">
+                @foreach (ApprovalTaskListTable table in ListTables(listTaskGroups))
+                {
+                    <ApprovalTaskListBody @key="table" Table="table" TaskGroups="listTaskGroups" States="States"
+                        ShowActions="@WfHandler.CanPromoteTaskInCurrentPhase()"
+                        CanPromoteTask="CanShowTaskPromotion"
+                        PromoteTask="@(task => RunWithProgress(() => OpenTaskPromotion(task)))" />
+                }
+            </CascadingValue>
+        }
+        else if (Display)
         {
             List<List<WfReqTask>> taskGroups = GetTaskGroups().ToList();
             bool accessToggleShown = false;
@@ -118,6 +139,8 @@
     [Parameter] public bool ShowCancel { get; set; }
     [Parameter] public Func<Task> PromoteTicket { get; set; } = DefaultInit.DoNothing;
     [Parameter] public Func<Task> Closed { get; set; } = DefaultInit.DoNothing;
+    /// <summary>Shows every request task as one table row instead of one card per task.</summary>
+    [Parameter] public bool ListView { get; set; }
 
     private readonly ApprovalTaskDetailsEditorService editorService = new();
 
@@ -451,6 +474,15 @@
     {
         ConfigureEditorService();
         return editorService.GetTaskGroups();
+    }
+
+    /// <summary>Returns the list-view tables that contain at least one task, in display order.</summary>
+    private static List<ApprovalTaskListTable> ListTables(List<List<WfReqTask>> taskGroups)
+    {
+        HashSet<ApprovalTaskListTable> usedTables = [.. taskGroups
+            .Where(taskGroup => taskGroup.Count > 0)
+            .Select(taskGroup => ApprovalTaskListRowBuilder.TableOf(taskGroup[0]))];
+        return [.. Enum.GetValues<ApprovalTaskListTable>().Where(usedTables.Contains)];
     }
 
     private static bool IsAccessTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsAccessTask(task);

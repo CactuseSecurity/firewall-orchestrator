@@ -631,6 +631,32 @@ div.modal-content .sticky-header thead {
     width: 33%;
 }
 
-.approval-task-network-table-technical .approval-task-zone-column {
+.approval-task-network-table-two-columns .approval-task-zone-column {
     width: 50%;
+}
+
+.approval-task-list {
+    overflow-x: auto;
+}
+
+.approval-task-list .approval-task-list-cell {
+    white-space: nowrap;
+    vertical-align: top;
+}
+
+.approval-task-list .approval-task-list-value {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.approval-task-list .approval-task-list-badge {
+    margin-left: 0.75rem;
+}
+
+.approval-task-list .approval-task-list-edit {
+    display: block;
+    width: 100%;
+    color: inherit;
+    text-decoration: underline dotted;
 }

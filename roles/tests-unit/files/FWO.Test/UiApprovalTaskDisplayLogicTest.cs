@@ -4,6 +4,7 @@ using FWO.Data.Flow;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using FWO.Ui.Services;
+using NetTools;
 using NUnit.Framework;
 
 namespace FWO.Test;
@@ -407,6 +408,53 @@ internal class UiApprovalTaskDisplayLogicTest
             mode);
         return [.. logic.RuleElementValues([task], ElemFieldType.source)];
     }
+
+    [TestCase(ApprovalTaskElementDisplayMode.Resolved)]
+    [TestCase(ApprovalTaskElementDisplayMode.Technical)]
+    [TestCase(ApprovalTaskElementDisplayMode.UnresolvedGroups)]
+    public void NetworkElementRows_ShowZonesInEveryMode(ApprovalTaskElementDisplayMode mode)
+    {
+        WfReqTask groupTask = new()
+        {
+            Id = 120,
+            TaskType = WfTaskType.group_create.ToString(),
+            Elements =
+            [
+                new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "member-internal", IpString = "10.1.0.1" },
+                new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "member-dmz", IpString = "172.16.0.1" }
+            ]
+        };
+        WfReqTask accessTask = new()
+        {
+            Id = 121,
+            TaskType = WfTaskType.access.ToString(),
+            Elements =
+            [
+                new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "grp", GroupName = "grp", ObjectTaskId = groupTask.Id },
+                new WfReqElement { Field = ElemFieldType.destination.ToString(), Name = "host", IpString = "10.2.0.1" }
+            ]
+        };
+        WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [groupTask, accessTask] } };
+        ApprovalTaskDisplayLogic logic = new(handler, new SimulatedUserConfig(), [], [], [], kZones, mode);
+        List<WfReqTask> tasks = [accessTask];
+
+        string sourceZones = string.Join(", ", logic.NetworkElementRows(tasks, ElemFieldType.source).Select(row => row.Zone));
+        string destinationZones = string.Join(", ", logic.NetworkElementRows(tasks, ElemFieldType.destination).Select(row => row.Zone));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sourceZones, Does.Contain("internal").And.Contain("dmz"));
+            Assert.That(destinationZones, Is.EqualTo("internal"));
+        });
+    }
+
+    private static readonly IPAddressRange[] kInternalRanges = [IPAddressRange.Parse("10.0.0.0/8")];
+    private static readonly IPAddressRange[] kDmzRanges = [IPAddressRange.Parse("172.16.0.0/12")];
+    private static readonly List<NetworkZone> kZones =
+    [
+        new NetworkZone { Name = "internal", IPRanges = kInternalRanges },
+        new NetworkZone { Name = "dmz", IPRanges = kDmzRanges }
+    ];
 
     private static ApprovalTaskDisplayLogic CreateDisplayLogic(WfHandler handler, SimulatedUserConfig config,
         ApprovalTaskElementDisplayMode mode) => new(handler, config, [], [], [new IpProtocol { Id = 6, Name = "tcp" }], [], mode);

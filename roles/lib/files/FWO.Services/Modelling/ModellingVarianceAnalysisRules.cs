@@ -429,7 +429,7 @@ namespace FWO.Services.Modelling
             {
                 foreach (var nwGroup in networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && !IsArea(n.Object)))
                 {
-                    allProdNwObjects.AddRange([.. nwGroup.Object.ObjectGroupFlats.Where(g => g.Object != null).ToList().ConvertAll(g => g.Object!)]);
+                    allProdNwObjects.AddRange(GetResolvedGroupMembers(nwGroup.Object));
                 }
                 foreach (var appRole in ModellingAppRoleWrapper.Resolve(appRoles))
                 {
@@ -437,6 +437,17 @@ namespace FWO.Services.Modelling
                 }
             }
             CompareNwObjects(allModNwObjects, allProdNwObjects, networkLocations, disregardedLocations, networkObjectComparer);
+        }
+
+        /// <summary>
+        /// Gets the members of a resolved production group. The flat entries of a group also hold the group
+        /// itself and its nested groups, which are no members to compare with the modelled app servers.
+        /// </summary>
+        private static List<NetworkObject> GetResolvedGroupMembers(NetworkObject nwGroup)
+        {
+            return [.. nwGroup.ObjectGroupFlats
+                .Where(flat => flat.Object != null && flat.Object.Type.Name != ObjectType.Group)
+                .Select(flat => flat.Object!)];
         }
 
         private void CompareRemainingNwGroups(NetworkLocation[] networkLocations, List<ModellingAppRoleWrapper> appRoles, List<ModellingNwGroupWrapper> otherGroups, List<NetworkLocation> disregardedLocations)
@@ -496,7 +507,7 @@ namespace FWO.Services.Modelling
             {
                 foreach (var svc in prodServices.Where(n => n.Type.Name == ServiceType.Group))
                 {
-                    allProdServices.AddRange([.. svc.ServiceGroupFlats.ToList().ConvertAll(g => g.Object ?? new())]);
+                    allProdServices.AddRange(GetResolvedGroupMembers(svc));
                 }
                 foreach (var svcGrp in modServiceGroups)
                 {
@@ -504,6 +515,17 @@ namespace FWO.Services.Modelling
                 }
             }
             return CompareSvcObjects(allModServices, allProdServices, prodServices, disregardedServices, networkServiceComparer);
+        }
+
+        /// <summary>
+        /// Gets the members of a resolved production service group. The flat entries of a group also hold the
+        /// group itself and its nested groups, which are no members to compare with the modelled services.
+        /// </summary>
+        private static List<NetworkService> GetResolvedGroupMembers(NetworkService svcGroup)
+        {
+            return [.. svcGroup.ServiceGroupFlats
+                .Where(flat => flat.Object != null && flat.Object.Type.Name != ServiceType.Group)
+                .Select(flat => flat.Object!)];
         }
 
         private bool CompareSvcGroups(List<NetworkService> prodServices, List<NetworkService> modServiceGroups, List<NetworkService> disregardedServices)

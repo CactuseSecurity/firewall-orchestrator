@@ -108,6 +108,10 @@ namespace FWO.Services.Modelling
             }
         }
 
+        /// <summary>
+        /// Writes the result of the last comparison into the state flags of an analysed connection.
+        /// </summary>
+        /// <param name="conn">Connection that was analysed.</param>
         private void SetVarianceFlags(ModellingConnection conn)
         {
             conn.AddProperty(ConState.VarianceChecked.ToString());

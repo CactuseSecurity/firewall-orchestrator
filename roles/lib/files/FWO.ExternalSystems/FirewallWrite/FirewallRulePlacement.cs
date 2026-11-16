@@ -17,9 +17,11 @@ namespace FWO.ExternalSystems.FirewallWrite
 
     /// <summary>
     /// Vendor-neutral position of a rule to create or move. Above and below need the UID of the anchor rule; the layer UID
-    /// is optional and replaces the gateway's rulebase in <see cref="FirewallWritePlaceholders.LayerName"/>.
+    /// is optional and replaces the gateway's rulebase in <see cref="FirewallWritePlaceholders.LayerName"/>. Top and
+    /// bottom with a section UID place the rule at the top or bottom of that section instead of the whole rulebase.
     /// </summary>
-    public sealed record FirewallRulePlacement(FirewallRuleAnchor Anchor, string? AnchorRuleUid = null, string? LayerUid = null)
+    public sealed record FirewallRulePlacement(FirewallRuleAnchor Anchor, string? AnchorRuleUid = null, string? LayerUid = null,
+        string? SectionUid = null)
     {
         private const string kAbove = "above";
         private const string kBelow = "below";
@@ -29,10 +31,12 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         /// <summary>
         /// Renders the position as JSON value for <see cref="FirewallWritePlaceholders.RulePosition"/>:
-        /// "top", "bottom", {"above": uid} or {"below": uid}, the format of the Check Point management API.
+        /// "top", "bottom", {"top": section uid}, {"bottom": section uid}, {"above": uid} or {"below": uid}, the format of
+        /// the Check Point management API.
         /// </summary>
         public string ToJson()
         {
+            string anchorName = Anchor.ToString().ToLowerInvariant();
             if (Anchor is FirewallRuleAnchor.Above or FirewallRuleAnchor.Below)
             {
                 if (string.IsNullOrWhiteSpace(AnchorRuleUid))
@@ -42,7 +46,12 @@ namespace FWO.ExternalSystems.FirewallWrite
                 JsonObject relative = new() { [Anchor == FirewallRuleAnchor.Above ? kAbove : kBelow] = AnchorRuleUid };
                 return relative.ToJsonString();
             }
-            return JsonSerializer.Serialize(Anchor.ToString().ToLowerInvariant());
+            if (!string.IsNullOrWhiteSpace(SectionUid))
+            {
+                JsonObject inSection = new() { [anchorName] = SectionUid };
+                return inSection.ToJsonString();
+            }
+            return JsonSerializer.Serialize(anchorName);
         }
     }
 
@@ -79,7 +88,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 null => null,
                 CheckPointRulePosition checkPointPosition => new FirewallRulePlacement(ToAnchor(checkPointPosition.AnchorKind),
-                    checkPointPosition.AnchorRuleUid, checkPointPosition.LayerUid),
+                    checkPointPosition.AnchorRuleUid, checkPointPosition.LayerUid, checkPointPosition.SectionUid),
                 RulePosition otherPosition => throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
                     $"The rule position type '{otherPosition.PositionType}' of implementation task {implTask.Id} cannot be written to a firewall.")
             };

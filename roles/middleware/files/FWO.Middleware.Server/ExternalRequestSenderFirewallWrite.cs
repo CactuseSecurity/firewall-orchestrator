@@ -78,7 +78,7 @@ namespace FWO.Middleware.Server
             }
             Log.WriteInfo(kFirewallWriteLogTitle, $"Writing implementation task {implTask.Id} of {RequestInfo(request)}");
             request.Attempts++;
-            string gatewaysNote = await EnforcingGatewaysNote(implTask);
+            string gatewaysNote = await EnforcingGatewaysNote(implTask, await extReqHandler.ResolveImplTaskManagementId(implTask));
             List<int>? installOnGatewayIds = ExternalRequestHandler.ExtQueryVariable(request, ExternalVarKeys.InstallOnGateways);
             ModifyFirewallResult result = await modifyFirewall(implTask, installOnGatewayIds);
             request.LastMessage = DescribeResult(result) + gatewaysNote;
@@ -88,7 +88,7 @@ namespace FWO.Middleware.Server
                 return true;
             }
             Log.WriteWarning(kFirewallWriteLogTitle, $"{RequestInfo(request)}, attempt {request.Attempts}: {request.LastMessage}");
-            GlobalDeviceSpecificSettings settings = await extReqHandler.GetRequestSettings(implTask.ManagementId);
+            GlobalDeviceSpecificSettings settings = await extReqHandler.GetRequestSettings(await extReqHandler.ResolveImplTaskManagementId(implTask));
             if (result.IsRetryable && request.Attempts < settings.RequestMaxAttempts)
             {
                 request.ExtRequestState = ExtStates.ExtReqFailed.ToString();
@@ -159,9 +159,9 @@ namespace FWO.Middleware.Server
         /// applies to all of them, not only to the gateway of the task. Empty for other tasks; a failure to read them only
         /// leaves the note out.
         /// </summary>
-        private async Task<string> EnforcingGatewaysNote(WfImplTask implTask)
+        private async Task<string> EnforcingGatewaysNote(WfImplTask implTask, int? targetManagementId)
         {
-            if (!WfTaskBase.IsRuleChangeOrDelete(implTask.TaskType) || implTask.ManagementId is not int managementId)
+            if (!WfTaskBase.IsRuleChangeOrDelete(implTask.TaskType) || targetManagementId is not int managementId)
             {
                 return "";
             }

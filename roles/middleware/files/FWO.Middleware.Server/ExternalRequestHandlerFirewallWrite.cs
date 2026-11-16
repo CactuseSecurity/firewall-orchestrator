@@ -185,6 +185,13 @@ namespace FWO.Middleware.Server
             return (RejectedStates.Contains(coveringRequest.ExtRequestState) ? CoveringResult.Rejected : CoveringResult.Done, writerTaskNumber);
         }
 
+        /// <summary>
+        /// Target management of an implementation task a firewall write request references, see
+        /// <see cref="FWO.Services.Workflow.WfHandler.ResolveImplTaskManagementId"/>; null if it cannot be resolved consistently.
+        /// </summary>
+        /// <param name="implTask">The implementation task of the request.</param>
+        public Task<int?> ResolveImplTaskManagementId(WfImplTask implTask) => wfHandler.ResolveImplTaskManagementId(null, implTask);
+
         private static bool IsFinishedWrite(ExternalRequest request) =>
             DoneStates.Contains(request.ExtRequestState) || RejectedStates.Contains(request.ExtRequestState);
 
@@ -212,8 +219,9 @@ namespace FWO.Middleware.Server
         private async Task LogImplTaskChange(WfReqTask reqTask, WfImplTask implTask, ModellingTypes.ChangeType changeType, string? comment = null)
         {
             (long objId, ModellingTypes.ModObjectType objType) = GetObject(reqTask);
-            string managementName = wfHandler.Managements.FirstOrDefault(management => management.Id == implTask.ManagementId)?.Name
-                ?? $"management {implTask.ManagementId}";
+            int? managementId = await wfHandler.ResolveImplTaskManagementId(reqTask, implTask) ?? implTask.ManagementId;
+            string managementName = wfHandler.Managements.FirstOrDefault(management => management.Id == managementId)?.Name
+                ?? $"management {managementId}";
             await ModellingHandlerBase.LogChange(new LogChangeRequest
             {
                 ChangeType = changeType,

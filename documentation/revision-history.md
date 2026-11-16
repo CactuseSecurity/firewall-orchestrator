@@ -15,6 +15,8 @@
   - new rules of one request task going to the same layer are written once, installed on the gateways of all of these tasks; the other tasks take over the result
   - rules to modify or delete are addressed in their layer according to the import (sections traced up to their layer); their implementation mode is the strictest one of all gateways they take effect on, a manual gateway is reported with an alert; a rule already deleted counts as done once its layer is verified
   - objects already present as requested count as created
+  - new rules targeting a section are written at the top or bottom of that section
+  - provisioning uses the shared target management of implementation tasks (the management of the gateway); a task whose stored management contradicts its gateway is reported with an alert instead of being written, and choosing a gateway in the implementation task view takes over its management
 
 
 ## 9.9.2 - 10.11.2026

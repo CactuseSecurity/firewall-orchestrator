@@ -84,6 +84,13 @@ namespace FWO.Services.Workflow
         /// </summary>
         IReadOnlyList<int> GetRuleEnforcingGateways(WfImplTask implTask);
 
+        /// <summary>
+        /// Target management of an implementation task, see WfImplTaskTargetManagementResolver: the management of its
+        /// gateway, without gateway the one of the task, else of the request task; null if it cannot be resolved
+        /// consistently, e.g. for an unknown gateway or a stored management that differs from the one of the gateway.
+        /// </summary>
+        int? GetTargetManagement(WfReqTask reqTask, WfImplTask implTask);
+
         /// <summary>External ticket system selected for a management; undefined if none is selected.</summary>
         ExternalTicketSystemKind GetExternalTicketSystem(int managementId);
 
@@ -136,7 +143,7 @@ namespace FWO.Services.Workflow
             {
                 workList.AddRequestTask(reqTask, modes);
             }
-            workList.ShareNewRulesOfTheSameRulebase();
+            workList.ShareNewRulesOfTheSameRulebase(modes);
             return workList;
         }
 
@@ -145,11 +152,11 @@ namespace FWO.Services.Workflow
         /// same management be written once, see <see cref="SharedRule"/>. Only tasks the work list writes take part; a
         /// task left to a person keeps its own rule.
         /// </summary>
-        private void ShareNewRulesOfTheSameRulebase()
+        private void ShareNewRulesOfTheSameRulebase(IProvisioningModeSource modes)
         {
             List<IGrouping<(long ReqTaskId, int ManagementId, string RulebaseKey), int>> groups = [.. Enumerable.Range(0, Items.Count)
                 .Where(index => RulebaseKeyOf(Items[index]) != null)
-                .GroupBy(index => (Items[index].ReqTask.Id, ManagementOf(Items[index]), RulebaseKeyOf(Items[index])!))
+                .GroupBy(index => (Items[index].ReqTask.Id, ManagementOf(Items[index], modes), RulebaseKeyOf(Items[index])!))
                 .Where(group => group.Count() > 1)];
             foreach (IGrouping<(long ReqTaskId, int ManagementId, string RulebaseKey), int> group in groups)
             {
@@ -177,7 +184,8 @@ namespace FWO.Services.Workflow
             return string.IsNullOrWhiteSpace(rulebaseKey) ? null : rulebaseKey;
         }
 
-        private static int ManagementOf(ProvisioningWorkItem item) => item.ImplTask?.ManagementId ?? item.ReqTask.ManagementId ?? 0;
+        private static int ManagementOf(ProvisioningWorkItem item, IProvisioningModeSource modes) =>
+            item.ImplTask == null ? item.ReqTask.ManagementId ?? 0 : modes.GetTargetManagement(item.ReqTask, item.ImplTask) ?? 0;
 
         private static readonly HashSet<long> kNoReleasedReqTasks = [];
 
@@ -233,9 +241,14 @@ namespace FWO.Services.Workflow
                 AddRuleImplTask(reqTask, implTask, modes);
                 return;
             }
-            if (implTask.ManagementId is not int managementId || managementId <= 0)
+            // an object implementation task names its target itself; the management of its request task is no fallback
+            if (implTask.ManagementId is not > 0 && implTask.DeviceId is not > 0)
             {
                 Log.WriteDebug(kLogTitle, $"Implementation task {implTask.Id} of request task {reqTask.Id} has no target management to provision.");
+                return;
+            }
+            if (!TryGetTargetManagement(reqTask, implTask, modes, out int managementId))
+            {
                 return;
             }
             bool isFinished = implTask.StateId >= modes.GetImplementationEndState(implTask.TaskType);
@@ -268,10 +281,13 @@ namespace FWO.Services.Workflow
                 Log.WriteDebug(kLogTitle, $"Implementation task {implTask.Id} of request task {reqTask.Id} has no gateway to write the rule to.");
                 return;
             }
+            if (!TryGetTargetManagement(reqTask, implTask, modes, out int managementId))
+            {
+                return;
+            }
             bool isFinished = implTask.StateId >= modes.GetImplementationEndState(implTask.TaskType);
             (ProvisioningImplementationMode mode, int decidingGatewayId) = StrictestRuleMode(gatewayId, implTask, modes);
             bool released = mode == ProvisioningImplementationMode.Manual && releasedReqTaskIds.Contains(reqTask.Id);
-            int managementId = implTask.ManagementId ?? reqTask.ManagementId ?? 0;
             if (mode == ProvisioningImplementationMode.RerouteToExternalTicketSystem)
             {
                 if (!isFinished)
@@ -335,6 +351,38 @@ namespace FWO.Services.Workflow
                 return $"no rule position was calculated for gateway {gatewayId}, so the new rule is not written.";
             }
             return null;
+        }
+
+        /// <summary>
+        /// Resolves the target management of an implementation task. A task with a gateway whose management cannot be
+        /// resolved consistently is reported unless it is finished, as writing it would guess the target; a task without
+        /// any management is left out.
+        /// </summary>
+        private bool TryGetTargetManagement(WfReqTask reqTask, WfImplTask implTask, IProvisioningModeSource modes, out int managementId)
+        {
+            if (modes.GetTargetManagement(reqTask, implTask) is int resolvedManagementId)
+            {
+                managementId = resolvedManagementId;
+                return true;
+            }
+            managementId = implTask.ManagementId ?? reqTask.ManagementId ?? 0;
+            if (implTask.DeviceId is not > 0)
+            {
+                Log.WriteDebug(kLogTitle, $"Implementation task {implTask.Id} of request task {reqTask.Id} has no target management to provision.");
+            }
+            else if (implTask.StateId < modes.GetImplementationEndState(implTask.TaskType))
+            {
+                Gaps.Add(new(reqTask, implTask, managementId, InconsistentTargetReason(implTask)));
+            }
+            return false;
+        }
+
+        private static string InconsistentTargetReason(WfImplTask implTask)
+        {
+            return implTask.ManagementId == null
+                ? $"its gateway {implTask.DeviceId} is not known or has no management."
+                : $"its management {implTask.ManagementId} does not match the management of its gateway {implTask.DeviceId}, " +
+                    "or the gateway is not known; correct the implementation task.";
         }
 
         private static bool IsBeingPlanned(WfReqTask reqTask, IProvisioningModeSource modes)

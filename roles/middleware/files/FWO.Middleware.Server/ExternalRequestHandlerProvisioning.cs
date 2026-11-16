@@ -169,7 +169,7 @@ namespace FWO.Middleware.Server
             bool singleImplTask = false, SharedRule? sharedRule = null)
         {
             Dictionary<string, List<int>> extQueryVariables = [];
-            if (implTask.ManagementId is int managementId)
+            if (await wfHandler.ResolveImplTaskManagementId(reqTask, implTask) is int managementId)
             {
                 extQueryVariables[ExternalVarKeys.ManagementId] = [managementId];
             }

@@ -72,6 +72,7 @@ namespace FWO.Services.Workflow
         private async Task<ProvisioningWorkList> BuildWorkList(WfTicket ticket, List<WfReqTask> reqTasks, HashSet<long> releasedReqTaskIds)
         {
             ResetAutoPlanCache();
+            await EnsureDevicesLoaded();
             await LoadRuleEnforcingGateways(ticket, reqTasks);
             List<int> gatewayIds = [.. ProvisioningGatewayIds(reqTasks).Concat(ruleEnforcingGatewayIds.Values.SelectMany(ids => ids)).Distinct()];
             await EnsureAutoPlanSettings(gatewayIds, ProvisioningManagementIds(reqTasks));
@@ -136,7 +137,6 @@ namespace FWO.Services.Workflow
             }
             try
             {
-                await EnsureDevicesLoaded();
                 foreach (IGrouping<int, WfImplTask> managementTasks in implTasks.GroupBy(ManagementOfRuleTask).Where(group => group.Key > 0))
                 {
                     List<string> ruleUids = [.. managementTasks.SelectMany(implTask => implTask.GetRuleUids()).Distinct()];
@@ -153,8 +153,7 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private int ManagementOfRuleTask(WfImplTask implTask) =>
-            implTask.ManagementId ?? Devices.FirstOrDefault(device => device.Id == implTask.DeviceId)?.Management?.Id ?? 0;
+        private int ManagementOfRuleTask(WfImplTask implTask) => ImplTaskManagementId(null, implTask) ?? 0;
 
         private static List<int> GatewayIdsOfRules(List<string> ruleUids, Dictionary<string, List<Device>> gatewaysByRuleUid)
         {
@@ -176,10 +175,11 @@ namespace FWO.Services.Workflow
             return FirewallVendors.WritesRules(deviceTypeId);
         }
 
-        private static List<int> ProvisioningManagementIds(List<WfReqTask> reqTasks)
+        /// <summary>The managements whose settings the work list needs: of the request tasks and the targets of their implementation tasks.</summary>
+        private List<int> ProvisioningManagementIds(List<WfReqTask> reqTasks)
         {
             IEnumerable<int?> reqTaskManagementIds = reqTasks.Select(task => task.ManagementId);
-            IEnumerable<int?> implTaskManagementIds = reqTasks.SelectMany(task => task.ImplementationTasks).Select(implTask => implTask.ManagementId);
+            IEnumerable<int?> implTaskManagementIds = reqTasks.SelectMany(task => task.ImplementationTasks.Select(implTask => ImplTaskManagementId(task, implTask)));
             return [.. reqTaskManagementIds.Concat(implTaskManagementIds).OfType<int>().Where(id => id > 0).Distinct()];
         }
 
@@ -222,6 +222,11 @@ namespace FWO.Services.Workflow
             public IReadOnlyList<int> GetRuleEnforcingGateways(WfImplTask implTask)
             {
                 return handler.ruleEnforcingGatewayIds.TryGetValue(implTask.Id, out List<int>? gatewayIds) ? gatewayIds : kNoIds;
+            }
+
+            public int? GetTargetManagement(WfReqTask reqTask, WfImplTask implTask)
+            {
+                return handler.ImplTaskManagementId(reqTask, implTask);
             }
 
             public ExternalTicketSystemKind GetExternalTicketSystem(int managementId)

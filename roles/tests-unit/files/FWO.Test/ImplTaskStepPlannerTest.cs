@@ -511,6 +511,9 @@ namespace FWO.Test
             {
                 Assert.That(new FirewallRulePlacement(FirewallRuleAnchor.Top).ToJson(), Is.EqualTo("\"top\""));
                 Assert.That(new FirewallRulePlacement(FirewallRuleAnchor.Below, "u").ToJson(), Is.EqualTo("{\"below\":\"u\"}"));
+                Assert.That(new FirewallRulePlacement(FirewallRuleAnchor.Bottom, SectionUid: "s").ToJson(), Is.EqualTo("{\"bottom\":\"s\"}"));
+                Assert.That(new FirewallRulePlacement(FirewallRuleAnchor.Below, "u", SectionUid: "s").ToJson(), Is.EqualTo("{\"below\":\"u\"}"),
+                    "a rule anchor is more precise than its section");
                 Assert.Throws<InvalidOperationException>(() => new FirewallRulePlacement(FirewallRuleAnchor.Above).ToJson());
                 Assert.That(new EndOfRulebasePlacementProvider().GetPlacement(new WfImplTask()), Is.Null);
             }

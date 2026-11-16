@@ -363,6 +363,35 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
+        /// Returns the target management of an implementation task along <see cref="WfImplTaskTargetManagementResolver"/>:
+        /// the management of its gateway, which a management stored with the task must match; without gateway the
+        /// management of the task, else of the request task. Loads the gateways first if needed.
+        /// </summary>
+        /// <param name="reqTask">Request task of the implementation task; null if unknown.</param>
+        /// <param name="implTask">The implementation task.</param>
+        /// <returns>The management id; null if it cannot be resolved consistently, e.g. for an unknown gateway or a stored
+        /// management that differs from the one of the gateway.</returns>
+        public async Task<int?> ResolveImplTaskManagementId(WfReqTask? reqTask, WfImplTask implTask)
+        {
+            await EnsureDevicesLoaded();
+            return ImplTaskManagementId(reqTask, implTask);
+        }
+
+        /// <summary>
+        /// Target management of an implementation task with the gateways already loaded, see
+        /// <see cref="ResolveImplTaskManagementId"/>.
+        /// </summary>
+        private int? ImplTaskManagementId(WfReqTask? reqTask, WfImplTask implTask)
+        {
+            Device? gateway = implTask.DeviceId is int gatewayId && gatewayId > 0
+                ? Devices.FirstOrDefault(device => device.Id == gatewayId)
+                : null;
+            return WfImplTaskTargetManagementResolver.TryResolveManagementId(reqTask, implTask, gateway, out int managementId)
+                ? managementId
+                : null;
+        }
+
+        /// <summary>
         /// Loads the gateways if they are not loaded yet, which is the case when actions run in the middleware.
         /// </summary>
         private async Task EnsureDevicesLoaded()

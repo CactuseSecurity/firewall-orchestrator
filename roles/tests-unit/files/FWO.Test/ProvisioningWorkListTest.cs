@@ -53,6 +53,18 @@ namespace FWO.Test
                 return EnforcingGateways.TryGetValue(implTask.Id, out List<int>? gatewayIds) ? gatewayIds : kNoGateways;
             }
 
+            /// <summary>
+            /// Target managements by implementation task id, as the shared resolver gives them; null for a task whose
+            /// management cannot be resolved consistently. Other tasks target their own management, else the one of the
+            /// request task.
+            /// </summary>
+            public Dictionary<long, int?> TargetManagements { get; } = [];
+
+            public int? GetTargetManagement(WfReqTask reqTask, WfImplTask implTask)
+            {
+                return TargetManagements.TryGetValue(implTask.Id, out int? managementId) ? managementId : implTask.ManagementId ?? reqTask.ManagementId;
+            }
+
             public ProvisioningImplementationMode GetImplementationMode(int managementId, bool isRuleTask)
             {
                 return managementId switch
@@ -662,6 +674,86 @@ namespace FWO.Test
             ProvisioningWorkList workList = Build(reqTask);
 
             Assert.That(workList.Items.Select(item => item.Rule), Is.All.Null);
+        }
+
+        [Test]
+        public void Build_GatewayTaskWithInconsistentManagement_IsReportedAndNotWritten()
+        {
+            WfReqTask reqTask = NewRuleTask(1, 1);
+            AddRuleImplTask(reqTask, 11, kAutomaticManagementId);
+            AddRuleImplTask(reqTask, 12, kSecondAutomaticGatewayId, stateId: kDoneStateId);
+            FixedModes modes = new();
+            modes.TargetManagements[11] = null;
+            modes.TargetManagements[12] = null;
+
+            List<WfReqTask> reqTasks = [reqTask];
+            ProvisioningWorkList workList = ProvisioningWorkList.Build(reqTasks, modes);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(workList.Items, Is.Empty);
+                Assert.That(workList.Gaps.Single().ImplTask?.Id, Is.EqualTo(11), "a finished task is not reported");
+                Assert.That(workList.Gaps.Single().Reason, Does.Contain($"does not match the management of its gateway {kAutomaticManagementId}"));
+            }
+        }
+
+        [Test]
+        public void Build_GatewayTaskWithoutManagementAndUnknownGateway_IsReported()
+        {
+            WfReqTask reqTask = NewRuleTask(1, 1);
+            WfImplTask implTask = AddRuleImplTask(reqTask, 11, kAutomaticManagementId);
+            implTask.ManagementId = null;
+            FixedModes modes = new();
+            modes.TargetManagements[11] = null;
+
+            List<WfReqTask> reqTasks = [reqTask];
+            ProvisioningWorkList workList = ProvisioningWorkList.Build(reqTasks, modes);
+
+            Assert.That(workList.Gaps.Single().Reason, Does.Contain($"its gateway {kAutomaticManagementId} is not known or has no management"));
+        }
+
+        /// <summary>
+        /// A rule task stored without management belongs to the management of its gateway, not to the one of its request
+        /// task, so it shares the rule with the other tasks on that management.
+        /// </summary>
+        [Test]
+        public void Build_TaskWithoutStoredManagement_SharesTheRuleOnTheManagementOfItsGateway()
+        {
+            const int kOtherRequestManagementId = 9;
+            WfReqTask reqTask = ReqTask(1, 1, kOtherRequestManagementId, nameof(WfTaskType.access));
+            WfImplTask withoutManagement = AddRuleImplTask(reqTask, 11, kAutomaticManagementId);
+            withoutManagement.ManagementId = null;
+            AddRuleImplTask(reqTask, 12, kSecondAutomaticGatewayId);
+            FixedModes modes = new();
+            modes.TargetManagements[11] = kAutomaticManagementId;
+
+            List<WfReqTask> reqTasks = [reqTask];
+            ProvisioningWorkList workList = ProvisioningWorkList.Build(reqTasks, modes);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(workList.Items.Select(item => item.Rule?.WriterTaskNumber), Is.All.EqualTo(1));
+                Assert.That(workList.Gaps, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void Build_ObjectTaskOnAGatewayWithInconsistentManagement_IsReported()
+        {
+            WfReqTask reqTask = ReqTask(1, 1, kAutomaticManagementId);
+            WfImplTask implTask = AddImplTask(reqTask, 11, 1, kAutomaticManagementId);
+            implTask.DeviceId = kSecondAutomaticGatewayId;
+            FixedModes modes = new();
+            modes.TargetManagements[11] = null;
+
+            List<WfReqTask> reqTasks = [reqTask];
+            ProvisioningWorkList workList = ProvisioningWorkList.Build(reqTasks, modes);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(workList.Items, Is.Empty);
+                Assert.That(workList.Gaps.Single().ImplTask?.Id, Is.EqualTo(11));
+            }
         }
 
         [Test]

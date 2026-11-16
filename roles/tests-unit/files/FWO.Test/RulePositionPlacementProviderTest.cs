@@ -34,6 +34,40 @@ namespace FWO.Test
             Assert.That(placement, Is.EqualTo(new FirewallRulePlacement(expectedAnchor, anchorRuleUid, "layer-uid")));
         }
 
+        /// <summary>
+        /// A section-relative position puts the rule at the top or bottom of its section, not of the whole layer, which
+        /// could place an allow rule above the drop rules of other sections.
+        /// </summary>
+        [TestCase(CheckPointPositionAnchorKind.Top, "{\"top\":\"section-uid\"}")]
+        [TestCase(CheckPointPositionAnchorKind.Bottom, "{\"bottom\":\"section-uid\"}")]
+        public void SectionPositionIsWrittenRelativeToItsSection(CheckPointPositionAnchorKind anchorKind, string expectedJson)
+        {
+            CheckPointRulePosition position = new("layer-uid", anchorKind, null, kAlgorithm, "section-uid", "Section A");
+
+            FirewallRulePlacement? placement = new RulePositionPlacementProvider().GetPlacement(TaskWith(position));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(placement?.SectionUid, Is.EqualTo("section-uid"));
+                Assert.That(placement?.LayerUid, Is.EqualTo("layer-uid"));
+                Assert.That(placement?.ToJson(), Is.EqualTo(expectedJson));
+            }
+        }
+
+        [Test]
+        public void PositionWithoutSectionIsWrittenRelativeToTheLayer()
+        {
+            CheckPointRulePosition position = new("layer-uid", CheckPointPositionAnchorKind.Top, null, kAlgorithm);
+
+            FirewallRulePlacement? placement = new RulePositionPlacementProvider().GetPlacement(TaskWith(position));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(placement?.SectionUid, Is.Null);
+                Assert.That(placement?.ToJson(), Is.EqualTo("\"top\""));
+            }
+        }
+
         [Test]
         public void UnknownPositionTypeIsNotWritten()
         {

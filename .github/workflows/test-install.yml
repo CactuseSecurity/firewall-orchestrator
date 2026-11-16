@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       full:
-        description: Run every install and Python version, as after a merge
+        description: "Full run: the same checks as a merge into develop"
         type: boolean
         default: false
         required: true
@@ -145,14 +145,20 @@ jobs:
           cd ${{ github.workspace }}
           ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e add_demo_data=yes --skip-tags integrationtests,unittests_run
 
+      # Runs inside the installation, below the global.json the installer writes to
+      # /usr/local/fworch (dotnet_sdk_global_json_file): dotnet looks for global.json from the current
+      # directory up, not from the project. From the checkout it would build with the newest SDK of
+      # the runner image, which on Ubuntu 22.04 shares /usr/share/dotnet with the installer's
+      # dotnet-install fallback and includes a newer major SDK than FWO supports.
       - name: Run JWT refresh integration tests
+        working-directory: /usr/local/fworch/test/csharp/FWO.Test
         run: |
           sudo -u fworch env \
             RUNNING_ON_GITHUB_ACTIONS=true \
             FWO_RUN_INTEGRATION_TESTS=true \
             FWO_TEST_USERNAME=integration_user_jwt_refresh_test \
             FWO_TEST_PASSWORD=testpassword \
-            dotnet test /usr/local/fworch/test/csharp/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest" --blame-hang-timeout 5m --blame-hang-dump-type none
+            dotnet test FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest" --blame-hang-timeout 5m --blame-hang-dump-type none
 
       - name: Collect middleware diagnostics after JWT test failure
         if: ${{ failure() && needs.plan.outputs.version_ok == 'true' }}

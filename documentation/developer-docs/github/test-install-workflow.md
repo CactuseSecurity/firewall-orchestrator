@@ -168,7 +168,10 @@ Each install job runs, in order:
 2. the sample LDAP seeding regression tests (`scripts/tests/test-sample-auth-data.sh`), which stub
    `ldapmodify` and therefore need neither an installation nor an LDAP server
 3. an install with `--skip-tags integrationtests,unittests_run`
-4. the JWT refresh integration test
+4. the JWT refresh integration test, run from the installed test project so that the installer's
+   `global.json` below `/usr/local/fworch` selects the SDK. From the checkout, `dotnet` would use
+   the newest SDK of the runner image, which on Ubuntu 22.04 shares `/usr/share/dotnet` with the
+   installer's `dotnet-install` fallback and includes a newer major version than FWO supports.
 5. the Ansible `--tags integrationtests` cleanup step
 6. a certificate reset upgrade,
    `-e "installation_mode=upgrade internalca_reset_certificates=true"`, with

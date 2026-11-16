@@ -123,12 +123,13 @@ if [ "${#STAGED_PYRIGHT_FILES[@]}" -gt 0 ]; then
     "${PYTHON_CMD[@]}" -m pyright --pythonpath "$PYTHON_EXECUTABLE" "${STAGED_PYRIGHT_FILES[@]}"
 fi
 
-# Determine changed Dotnet files
+# Determine changed Dotnet files. Keep the paths as they are: dotnet format resolves --include
+# against the current directory (the repository root), not against the "roles" workspace.
 STAGED_ROLES_DOTNET_FORMAT_FILES=()
 while IFS= read -r -d '' staged_file; do
     case "$staged_file" in
         roles/*.cs|roles/*.razor|roles/*.cshtml)
-            STAGED_ROLES_DOTNET_FORMAT_FILES+=("${staged_file#roles/}")
+            STAGED_ROLES_DOTNET_FORMAT_FILES+=("$staged_file")
             ;;
     esac
 done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.cs' '*.razor' '*.cshtml')

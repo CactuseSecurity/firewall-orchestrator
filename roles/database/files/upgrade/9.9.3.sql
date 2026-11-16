@@ -81,3 +81,9 @@ ON CONFLICT DO NOTHING;
 
 -- personal entries are only kept for keys that can be set personally
 DELETE FROM config WHERE config_user <> 0 AND config_key NOT IN (SELECT config_key FROM config_user_key);
+
+-- readers of global settings only read the global rows (config_user 0), as in fworch-views-materialized.sql;
+-- the view keeps its column, so the rule owner views that depend on it stay valid
+CREATE OR REPLACE VIEW v_rule_ownership_mode AS
+    SELECT c.config_value as mode FROM config c
+    WHERE c.config_key = 'ruleOwnershipMode' AND c.config_user = 0;

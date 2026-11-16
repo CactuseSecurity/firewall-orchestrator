@@ -75,7 +75,8 @@ namespace FWO.Config.Api
             }
             else // when only simple read is needed, e.g. during scheduled report in middleware server
             {
-                ConfigItem[] configItems = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { user = UserId });
+                ConfigItem[] rowsOfUser = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { user = UserId });
+                ConfigItem[] configItems = SelectAppliedRows(rowsOfUser);
                 if (configItems.Length > 0)
                 {
                     Update(configItems);
@@ -85,6 +86,11 @@ namespace FWO.Config.Api
             }
         }
 
+        /// <summary>
+        /// Replaces the raw snapshot with the rows of <see cref="UserId"/> received from the config subscription and
+        /// applies them. A user config applies only the rows of personal settings, see <see cref="SelectAppliedRows"/>.
+        /// </summary>
+        /// <param name="configItems">All rows of <see cref="UserId"/> received from the subscription.</param>
         public void SubscriptionUpdateHandler(ConfigItem[] configItems)
         {
             if (_isDisposed) return;
@@ -92,15 +98,18 @@ namespace FWO.Config.Api
             try
             {
                 Log.WriteDebug("Config subscription update", $"New {configItems.Length} config values received from config subscription");
-                RawConfigItems = configItems;
-                ApplySubscriptionUpdate(configItems);
+                ConfigItem[] appliedItems = SelectAppliedRows(configItems);
+                RawConfigItems = appliedItems;
+                ApplySubscriptionUpdate(appliedItems);
             }
             finally { semaphoreSlim.Release(); }
         }
 
         /// <summary>
         /// Merges a partial subscription update into the raw snapshot before applying it.
+        /// A user config applies only the rows of personal settings, see <see cref="SelectAppliedRows"/>.
         /// </summary>
+        /// <param name="configItems">Changed rows of <see cref="UserId"/> received from the subscription.</param>
         public void MergeSubscriptionUpdateHandler(ConfigItem[] configItems)
         {
             if (_isDisposed) return;
@@ -108,10 +117,50 @@ namespace FWO.Config.Api
             try
             {
                 Log.WriteDebug("Config subscription update", $"New {configItems.Length} config values received from config subscription");
-                MergeRawConfigItems(configItems);
-                ApplySubscriptionUpdate(configItems);
+                ConfigItem[] appliedItems = SelectAppliedRows(configItems);
+                MergeRawConfigItems(appliedItems);
+                ApplySubscriptionUpdate(appliedItems);
             }
             finally { semaphoreSlim.Release(); }
+        }
+
+        /// <summary>
+        /// Selects the rows of <see cref="UserId"/> that this config applies. The global config (user 0) applies all of
+        /// its rows. Readers of global settings only read the global rows, so a user config applies only the rows of
+        /// personal settings (keys of the properties marked with <see cref="UserConfigDataAttribute"/>). A row of the
+        /// user for any other key is ignored, and the global value of that setting stays in effect.
+        /// </summary>
+        /// <param name="rowsOfUser">Rows read for <see cref="UserId"/>.</param>
+        /// <returns>The rows to apply.</returns>
+        private ConfigItem[] SelectAppliedRows(ConfigItem[] rowsOfUser)
+        {
+            if (UserId == 0)
+            {
+                return rowsOfUser;
+            }
+
+            HashSet<string> userConfigKeys = GetUserConfigKeys();
+            ConfigItem[] personalRows = [.. rowsOfUser.Where(configItem => userConfigKeys.Contains(configItem.Key))];
+            if (personalRows.Length < rowsOfUser.Length)
+            {
+                IEnumerable<string> ignoredKeys = rowsOfUser.Select(configItem => configItem.Key).Where(key => !userConfigKeys.Contains(key));
+                Log.WriteWarning("Load User Config Items", $"Settings of user {UserId} that are not personal settings are ignored, the global values apply: {string.Join(", ", ignoredKeys)}");
+            }
+            return personalRows;
+        }
+
+        /// <summary>
+        /// Gets the keys of the settings a user may set personally, i.e. of the properties marked with
+        /// <see cref="UserConfigDataAttribute"/>.
+        /// </summary>
+        /// <returns>The config keys of the personal settings.</returns>
+        protected HashSet<string> GetUserConfigKeys()
+        {
+            return GetType().GetProperties()
+                .Where(property => property.GetCustomAttribute<UserConfigDataAttribute>() != null)
+                .Select(property => property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name)
+                .OfType<string>()
+                .ToHashSet();
         }
 
         private void ApplySubscriptionUpdate(ConfigItem[] configItems)

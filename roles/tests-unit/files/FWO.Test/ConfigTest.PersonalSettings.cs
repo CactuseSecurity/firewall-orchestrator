@@ -7,8 +7,8 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     /// <summary>
-    /// Saving the settings of a user (WriteToDatabase on a user config): only personal settings are written as rows
-    /// of the user.
+    /// Settings of a user: saving them (WriteToDatabase on a user config) writes only personal settings as rows of the
+    /// user, and a user config applies only the rows of personal settings.
     /// </summary>
     internal partial class ConfigTest
     {
@@ -18,16 +18,38 @@ namespace FWO.Test
         private const int kGlobalUnusedToleranceAtLoad = 400;
         private const int kGlobalUnusedToleranceChanged = 500;
         private const int kGlobalUnusedToleranceChangedAgain = 600;
+        private const int kImportSleepTimeOfUserRow = 77;
+        private const int kGlobalImportSleepTime = 88;
         private const string kWelcomeMessageAtLoad = "welcome at load";
         private const string kWelcomeMessageChanged = "welcome changed";
+        private const string kWelcomeMessageOfUserRow = "welcome of a user row";
         private const string kElementsPerFetchKey = "elementsPerFetch";
         private const string kUnusedToleranceKey = "unusedTolerance";
         private const string kWelcomeMessageKey = "welcomeMessage";
+        private const string kImportSleepTimeKey = "importSleepTime";
 
         /// <summary>
         /// Rows of the user at load: none, so every personal setting starts with its global value.
         /// </summary>
         private static readonly ConfigItem[] kNoPersonalRows = [];
+
+        /// <summary>
+        /// Rows of the user for a personal setting and for two global settings, as written outside the permission checks
+        /// of the UI roles (e.g. directly in the database). The global config has a value for welcomeMessage only.
+        /// </summary>
+        private static readonly ConfigItem[] kRowsOfUserWithGlobalSettings =
+        [
+            new() { Key = kElementsPerFetchKey, Value = kEditedElementsPerFetch.ToString(), User = kPersonalSettingsUserId },
+            new() { Key = kWelcomeMessageKey, Value = kWelcomeMessageOfUserRow, User = kPersonalSettingsUserId },
+            new() { Key = kImportSleepTimeKey, Value = kImportSleepTimeOfUserRow.ToString(), User = kPersonalSettingsUserId }
+        ];
+        private static readonly ConfigItem[] kGlobalRowsOfPersonalAndGlobalSettings =
+        [
+            new() { Key = kElementsPerFetchKey, Value = kEditedElementsPerFetch.ToString(), User = 0 },
+            new() { Key = kWelcomeMessageKey, Value = kWelcomeMessageChanged, User = 0 },
+            new() { Key = kImportSleepTimeKey, Value = kGlobalImportSleepTime.ToString(), User = 0 }
+        ];
+        private static readonly string[] kPersonalRowKeys = [kElementsPerFetchKey];
         private static readonly ConfigItem[] kGlobalItemsAtLoad =
         [
             new() { Key = kWelcomeMessageKey, Value = kWelcomeMessageAtLoad, User = 0 },
@@ -179,7 +201,88 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Creates the config of a user without personal rows, on top of a global config with the values at load.
+        /// A user config loaded once (scheduled reports, report and compliance requests in the middleware) applies the
+        /// row of the user for a personal setting and ignores the rows for global settings: a global setting keeps the
+        /// global value, or its default if the global config has none.
+        /// </summary>
+        [Test]
+        public void Constructor_UserConfigAppliesOnlyRowsOfPersonalSettings()
+        {
+            using UserConfigApiConnection apiConnection = new(kRowsOfUserWithGlobalSettings);
+            using UserConfig userConfig = CreatePersonalSettingsUserConfig(apiConnection);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(userConfig.ElementsPerFetch, Is.EqualTo(kEditedElementsPerFetch));
+                Assert.That(userConfig.WelcomeMessage, Is.EqualTo(kWelcomeMessageAtLoad));
+                Assert.That(userConfig.ImportSleepTime, Is.EqualTo(new ConfigData().ImportSleepTime));
+                Assert.That(userConfig.RawConfigItems.Select(item => item.Key), Is.EqualTo(kPersonalRowKeys));
+            });
+        }
+
+        /// <summary>
+        /// The rows of the user received from the subscription (UI session, applied after the global values) change only
+        /// personal settings; global settings keep their global values.
+        /// </summary>
+        [Test]
+        public void SubscriptionUpdate_UserConfigKeepsGlobalValuesOfGlobalSettings()
+        {
+            using UserConfigApiConnection apiConnection = new(kNoPersonalRows);
+            using UserConfig userConfig = CreatePersonalSettingsUserConfig(apiConnection);
+
+            userConfig.SubscriptionUpdateHandler(kRowsOfUserWithGlobalSettings);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(userConfig.ElementsPerFetch, Is.EqualTo(kEditedElementsPerFetch));
+                Assert.That(userConfig.WelcomeMessage, Is.EqualTo(kWelcomeMessageAtLoad));
+                Assert.That(userConfig.ImportSleepTime, Is.EqualTo(new ConfigData().ImportSleepTime));
+                Assert.That(userConfig.RawConfigItems.Select(item => item.Key), Is.EqualTo(kPersonalRowKeys));
+            });
+        }
+
+        /// <summary>
+        /// Merging rows of the user received from a subscription also changes only personal settings.
+        /// </summary>
+        [Test]
+        public void MergeSubscriptionUpdate_UserConfigKeepsGlobalValuesOfGlobalSettings()
+        {
+            using UserConfigApiConnection apiConnection = new(kNoPersonalRows);
+            using UserConfig userConfig = CreatePersonalSettingsUserConfig(apiConnection);
+
+            userConfig.MergeSubscriptionUpdateHandler(kRowsOfUserWithGlobalSettings);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(userConfig.ElementsPerFetch, Is.EqualTo(kEditedElementsPerFetch));
+                Assert.That(userConfig.WelcomeMessage, Is.EqualTo(kWelcomeMessageAtLoad));
+                Assert.That(userConfig.ImportSleepTime, Is.EqualTo(new ConfigData().ImportSleepTime));
+                Assert.That(userConfig.RawConfigItems.Select(item => item.Key), Is.EqualTo(kPersonalRowKeys));
+            });
+        }
+
+        /// <summary>
+        /// The global config (user 0) applies all of its rows, personal and global settings alike.
+        /// </summary>
+        [Test]
+        public void SubscriptionUpdate_GlobalConfigAppliesAllRows()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+
+            globalConfig.SubscriptionUpdateHandler(kGlobalRowsOfPersonalAndGlobalSettings);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(globalConfig.ElementsPerFetch, Is.EqualTo(kEditedElementsPerFetch));
+                Assert.That(globalConfig.WelcomeMessage, Is.EqualTo(kWelcomeMessageChanged));
+                Assert.That(globalConfig.ImportSleepTime, Is.EqualTo(kGlobalImportSleepTime));
+                Assert.That(globalConfig.RawConfigItems, Is.EqualTo(kGlobalRowsOfPersonalAndGlobalSettings));
+            });
+        }
+
+        /// <summary>
+        /// Creates the config of a user with the rows the API connection returns, on top of a global config with the values
+        /// at load.
         /// </summary>
         private static UserConfig CreatePersonalSettingsUserConfig(UserConfigApiConnection apiConnection)
         {

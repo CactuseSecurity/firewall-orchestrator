@@ -194,40 +194,24 @@ namespace FWO.Config.Api
                 ?? throw new ArgumentException($"Config value (with key: {configItem.Key}) is not convertible to {property.PropertyType}.");
         }
 
-        public async Task WriteToDatabase(ConfigData editedData, ApiConnection apiConnection)
+        /// <summary>
+        /// Writes the settings changed in an editable copy to the database and applies them to this config.
+        /// A user config (<see cref="UserId"/> other than 0) writes only personal settings, i.e. the properties marked
+        /// with <see cref="UserConfigDataAttribute"/>, as all other settings are only stored globally.
+        /// </summary>
+        /// <param name="editedData">Editable copy (see <see cref="GetEditableConfig"/>) holding the changed values.</param>
+        /// <param name="apiConnection">API connection used for the write.</param>
+        /// <param name="loadedData">Optional copy of the values <paramref name="editedData"/> was loaded with. If given,
+        /// only values that differ from it are written, so a value that changed elsewhere while the copy was edited (e.g. a
+        /// global value applied to a user config) is not written back. Otherwise the values are compared with this config.</param>
+        public async Task WriteToDatabase(ConfigData editedData, ApiConnection apiConnection, ConfigData? loadedData = null)
         {
             ThrowIfDisposed();
             ConfigItem[] changedItems = [];
             await semaphoreSlim.WaitAsync();
-            List<ConfigItem> configItemChanges = [];
             try
             {
-                foreach (PropertyInfo property in GetType().GetProperties())
-                {
-                    // Is Property storing config value?
-                    if (property.GetCustomAttribute<JsonPropertyNameAttribute>() != null)
-                    {
-                        // Was config value changed?
-                        if (!Equals(property.GetValue(this), property.GetValue(editedData)))
-                        {
-                            string key = property.GetCustomAttribute<JsonPropertyNameAttribute>()!.Name;
-
-                            try
-                            {
-                                TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
-                                string stringValue = converter.ConvertToString(property.GetValue(editedData)
-                                                ?? throw new ArgumentNullException($"Config value (with key: {key}) is null"))
-                                                ?? throw new ArgumentException($"Config value (with key: {key}) is not convertible to {property.PropertyType}.");
-                                // Add config item to the list of changed config items
-                                configItemChanges.Add(new ConfigItem { Key = key, Value = stringValue, User = UserId });
-                            }
-                            catch (Exception exception)
-                            {
-                                Log.WriteError("Load Config Items", $"Config item with key \"{key}\" and value: {property.GetValue(editedData)} could not be stored.", exception);
-                            }
-                        }
-                    }
-                }
+                List<ConfigItem> configItemChanges = CollectChangedItems(editedData, loadedData ?? this);
                 // Update or insert all config item
                 if (configItemChanges.Count > 0)
                 {
@@ -242,6 +226,50 @@ namespace FWO.Config.Api
             {
                 InvokeOnChange(this, changedItems);
             }
+        }
+
+        /// <summary>
+        /// Collects the config items of the edited copy whose value differs from the comparison data.
+        /// A user config only collects personal settings.
+        /// </summary>
+        /// <param name="editedData">Editable copy holding the changed values.</param>
+        /// <param name="comparisonData">Values the edited copy is compared with.</param>
+        /// <returns>The changed config items, stored for <see cref="UserId"/>.</returns>
+        private List<ConfigItem> CollectChangedItems(ConfigData editedData, ConfigData comparisonData)
+        {
+            List<ConfigItem> configItemChanges = [];
+            foreach (PropertyInfo property in GetType().GetProperties())
+            {
+                if (!TryGetConfigKey(property, out string? key) || !IsStoredForUserId(property)
+                    || Equals(property.GetValue(comparisonData), property.GetValue(editedData)))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    TypeConverter converter = TypeDescriptor.GetConverter(property.PropertyType);
+                    string stringValue = converter.ConvertToString(property.GetValue(editedData)
+                                    ?? throw new ArgumentNullException($"Config value (with key: {key}) is null"))
+                                    ?? throw new ArgumentException($"Config value (with key: {key}) is not convertible to {property.PropertyType}.");
+                    configItemChanges.Add(new ConfigItem { Key = key!, Value = stringValue, User = UserId });
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError("Load Config Items", $"Config item with key \"{key}\" and value: {property.GetValue(editedData)} could not be stored.", exception);
+                }
+            }
+            return configItemChanges;
+        }
+
+        /// <summary>
+        /// The global config (user 0) stores every setting; a user config stores only personal settings.
+        /// </summary>
+        /// <param name="property">Config property to check.</param>
+        /// <returns>True if the setting may be stored for <see cref="UserId"/>.</returns>
+        private bool IsStoredForUserId(PropertyInfo property)
+        {
+            return UserId == 0 || property.GetCustomAttribute<UserConfigDataAttribute>() != null;
         }
 
         /// <summary>

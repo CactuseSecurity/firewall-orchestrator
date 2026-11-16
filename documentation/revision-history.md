@@ -34,6 +34,12 @@
 - installer: Apache proxies the UI and the API with `ProxyPass ... upgrade=websocket` instead of rewrite rules. `mod_proxy_http` tunnels the websocket connections itself (Apache 2.4.47 or later), so new installations no longer enable `proxy_wstunnel`; upgraded installations keep the module enabled, unused
   - API port: websocket connections are only proxied below `/api/`; so far a websocket upgrade request on any path reached `/v1/graphql`
   - API port: `/api` without a trailing slash is redirected to `/api/`, and requests below `/api/` reach Hasura without a doubled leading slash
+- settings: values of a single user are only stored for personal settings (#5734)
+  - the new table `config_user_key` lists the keys of the personal settings (the settings of the personal settings page and `maxMessages`). The API accepts values of a user only for these keys and only in the user's own rows (insert and update permissions of all roles except admin and middleware-server); all other settings are only stored globally
+  - upgrade: rows of a user in table `config` for keys that are not personal settings are removed, so the global value of these settings applies to every user
+  - `unusedTolerance`, `creationTolerance`, `recertificationDisplayPeriod`, `overviewDisplayLines` and `resolveNetworkAreas` are now personal settings, as is `reportingPersonalPreferredCollapseState`, which has no global value: a value the user saved on the personal settings page is kept when an admin changes the global settings. So far a change of the global settings replaced it with the global value for the rest of the UI session
+  - reports the middleware generates for a user (scheduled reports, `POST /api/Report/Get`, `POST /api/Compliance/Report`) now also use the user's values of these settings, as they already did for the other personal settings; so far the global values replaced them. Of these settings, only `resolveNetworkAreas` is read while generating a report (network objects of connection and variance analysis reports), so compliance reports are unchanged
+  - the personal settings page saves only the settings changed on the page; a global value that changed while the page was open is no longer saved as the user's value
 
 
 ## 9.9.2 - 10.11.2026

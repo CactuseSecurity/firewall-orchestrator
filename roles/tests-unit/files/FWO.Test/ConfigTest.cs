@@ -546,6 +546,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RuleHitImportSubscription_ContainsTheSchedule()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(ConfigQueries.subscribeImportRuleHitsConfigChanges, Does.Contain("importRuleHitsSleepTime"));
+                Assert.That(ConfigQueries.subscribeImportRuleHitsConfigChanges, Does.Contain("importRuleHitsSleepTimeUnit"));
+                Assert.That(ConfigQueries.subscribeImportRuleHitsConfigChanges, Does.Contain("importRuleHitsStartAt"));
+            });
+        }
+
+        [Test]
+        public void ConfigData_RequestsRuleHitImportsDailyAtMidnightByDefault()
+        {
+            ConfigData configData = new();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(configData.ImportRuleHitsSleepTime, Is.EqualTo(1));
+                Assert.That(configData.ImportRuleHitsSleepTimeUnit, Is.EqualTo(RuleHitImportIntervalUnit.Days));
+                Assert.That(configData.ImportRuleHitsStartAt.TimeOfDay, Is.EqualTo(TimeSpan.Zero));
+            });
+        }
+
+        [Test]
         public void ConfigData_EnablesLogDataReplacementByDefault()
         {
             ConfigData configData = new();

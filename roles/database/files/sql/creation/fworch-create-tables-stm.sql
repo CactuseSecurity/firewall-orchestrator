@@ -37,6 +37,7 @@ Create table "stm_dev_typ"
 	"dev_typ_config_file_users" Varchar,
 	"dev_typ_is_multi_mgmt" Boolean Default FALSE,
 	"is_pure_routing_device" Boolean Default FALSE,
+	"dev_typ_supports_rule_hits" Boolean NOT NULL Default FALSE,
  primary key ("dev_typ_id")
 );
 

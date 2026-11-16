@@ -45,8 +45,10 @@ while read -r key path; do
     continue
   fi
 
-  # Skip if the path is not a Git repo.
-  if ! git -C "${path}" rev-parse --git-dir >/dev/null 2>&1; then
+  # Skip if the submodule is not initialized (e.g. no access to its repository, or a fresh
+  # worktree). Its path then has no .git of its own, and "git -C" would act on the
+  # superproject and check out the submodule branch there.
+  if [[ ! -e "${path}/.git" ]] || ! git -C "${path}" rev-parse --git-dir >/dev/null 2>&1; then
     continue
   fi
 

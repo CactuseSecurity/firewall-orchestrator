@@ -5,11 +5,22 @@ set -euo pipefail
 
 # Resolve repository root; bail out if not inside a Git repo.
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
-if [[ -z "${repo_root}" ]]; then
+git_dir="$(git rev-parse --absolute-git-dir 2>/dev/null || true)"
+if [[ -z "${repo_root}" || -z "${git_dir}" ]]; then
   exit 0
 fi
 
 cd "${repo_root}"
+
+# Git exports GIT_DIR to hooks in a linked worktree (and GIT_WORK_TREE or GIT_INDEX_FILE in
+# some cases). "git -C <submodule>" would inherit them and act on the superproject, e.g.
+# check out the submodule branch there (see githooks(5)). Clear them, so that every git call
+# finds its repository from its directory, and stop if the work tree root no longer leads to
+# the same repository (e.g. "git --git-dir=... --work-tree=..." without a .git in the work tree).
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+if [[ "$(git rev-parse --absolute-git-dir 2>/dev/null || true)" != "${git_dir}" ]]; then
+  exit 0
+fi
 
 # No submodules configured.
 if [[ ! -f .gitmodules ]]; then

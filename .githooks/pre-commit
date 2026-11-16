@@ -15,9 +15,11 @@ PYTHON_HINT="python"
 if [ -f ".venv/Scripts/activate" ]; then
     # Using virtual environment from .venv (Windows)
     source ".venv/Scripts/activate"
+    PYTHON_HINT=".venv/Scripts/python"
 elif [ -f ".venv/bin/activate" ]; then
     # Using virtual environment from .venv (Unix)
     source ".venv/bin/activate"
+    PYTHON_HINT=".venv/bin/python"
 elif [ -d ".venv" ]; then
     # The directory exists but carries no activate script. "python -m venv" leaves
     # exactly this behind when it cannot bootstrap pip - on Debian and Ubuntu that is
@@ -63,7 +65,8 @@ fi
 # Assure ruff and pyright are available
 for python_tool in ruff pyright; do
     if ! "${PYTHON_CMD[@]}" -m "$python_tool" --version >/dev/null 2>&1; then
-        echo "Error: 'python -m $python_tool' is not available. Please install $python_tool in the active environment."
+        echo "Error: '${PYTHON_HINT} -m $python_tool' is not available. Install it with:"
+        echo "  ${PYTHON_HINT} -m pip install -r roles/importer/files/importer/requirements.txt"
         exit 1
     fi
 done
@@ -98,7 +101,7 @@ if [ "$installed_ruff_version" != "$required_ruff_version" ]; then
     echo "Error: Ruff version mismatch."
     echo "Installed ruff is ${installed_ruff_version}, but pyproject.toml requires ${required_ruff_version}."
     echo
-    echo "Fix this by installing the pinned ruff version in the active environment:"
+    echo "Fix this by installing the pinned ruff version in the environment the hook uses:"
     echo "  ${PYTHON_HINT} -m pip install --upgrade ruff==${required_ruff_version}"
     echo "Then rerun:"
     echo "  ${PYTHON_HINT} -m ruff check --fix"

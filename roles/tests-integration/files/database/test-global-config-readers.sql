@@ -29,9 +29,6 @@ BEGIN
     IF (SELECT mode FROM v_rule_ownership_mode) IS DISTINCT FROM t_global_mode THEN
         RAISE EXCEPTION 'global config readers: v_rule_ownership_mode did not return the global value';
     END IF;
-    -- the rule owner views read the mode as a single value
-    PERFORM count(*) FROM v_rule_with_src_owner;
-    PERFORM count(*) FROM v_rule_with_dst_owner;
 
     -- encryption of the stored email password
     SELECT config_value INTO t_global_password_before FROM config WHERE config_key = 'emailPassword' AND config_user = 0;

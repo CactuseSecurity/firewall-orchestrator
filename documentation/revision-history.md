@@ -39,6 +39,7 @@
   - the UI keeps the address of the browser per session and logs it with successful and failed logins, logouts and sessions ended after a revocation
   - middleware REST API: `GetTokenPair` (and the deprecated `Get`) accept `options.clientAddress`, the client a trusted frontend logs in for. It is only accepted from this host and the hosts in `login_trusted_client_hosts`; from any other caller it is ignored. A value that is not a single canonical IP address is answered with `400`
   - behaviour change: logins through the UI are limited per browser address (`login_client_attempts_per_minute`, default 30) instead of being exempt via the address of the UI server. Users behind one shared address (NAT, terminal server, a reverse proxy in front of the UI) share that limit: raise it, or add the proxy to `login_trusted_client_hosts`. The per-user failure limit is unchanged and stays counted per calling host
+- dependencies: update NuGet packages (AngleSharp 1.10.4, coverlet.collector 10.1.1, MailKit 5.0.0, MimeKit 5.0.0, Microsoft.NET.Test.Sdk 18.12.0, PuppeteerSharp 25.17.1, Scalar.AspNetCore 3.0.0, SoPro.FancyTable 1.7.0)
 
 
 ## 9.9.2 - 10.11.2026

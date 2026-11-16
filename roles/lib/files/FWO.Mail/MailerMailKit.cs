@@ -1,5 +1,6 @@
 // source: https://blog.christian-schou.dk/send-emails-with-asp-net-core-with-mailkit/
 
+using MailKit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;

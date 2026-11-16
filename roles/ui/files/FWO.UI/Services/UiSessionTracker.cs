@@ -73,6 +73,16 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
+        /// Stores the address of the browser of a session.
+        /// </summary>
+        /// <param name="sessionId">Identifier of the session.</param>
+        /// <param name="clientAddress">Address of the browser; null or empty if it is not known.</param>
+        public void SetClientAddress(string sessionId, string? clientAddress)
+        {
+            Update(sessionId, session => session.ClientAddress = clientAddress?.Trim() ?? "");
+        }
+
+        /// <summary>
         /// Stores the browser connection state of a session.
         /// </summary>
         /// <param name="sessionId">Identifier of the session.</param>

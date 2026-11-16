@@ -22,7 +22,7 @@ namespace FWO.Ui.Auth
     /// <summary>
     /// Manages the authenticated UI user state based on JWT access and refresh tokens.
     /// </summary>
-    public class AuthStateProvider(TokenService tokenService, IEventMediator eventMediator, NavigationManager navigationManager, ExecutionModeStorage? executionModeStorage = null) : AuthenticationStateProvider
+    public class AuthStateProvider(TokenService tokenService, IEventMediator eventMediator, NavigationManager navigationManager, ExecutionModeStorage? executionModeStorage = null, UiClientAddress? clientAddress = null) : AuthenticationStateProvider
     {
         private enum JwtApplyStatus
         {
@@ -40,6 +40,28 @@ namespace FWO.Ui.Auth
         }
 
         private ClaimsPrincipal user = new(new ClaimsIdentity());
+
+        /// <summary>
+        /// Address of the browser of this session for log messages.
+        /// </summary>
+        private string ClientDescription => clientAddress?.Description ?? ClientAddressFormat.kUnknown;
+
+        /// <summary>
+        /// Builds the login request. The address of the browser is passed on, so that the middleware limits and
+        /// logs the login by it instead of by the address of this UI server.
+        /// </summary>
+        /// <param name="username">Login name supplied by the user.</param>
+        /// <param name="password">Password supplied by the user.</param>
+        /// <returns>The parameters of the login request.</returns>
+        internal AuthenticationTokenGetParameters BuildLoginParameters(string username, string password)
+        {
+            return new AuthenticationTokenGetParameters
+            {
+                Username = username,
+                Password = password,
+                Options = new AuthenticationTokenGetOptions { ClientAddress = clientAddress?.LoginOption }
+            };
+        }
 
         /// <summary>
         /// Returns the current UI authentication state.
@@ -61,7 +83,7 @@ namespace FWO.Ui.Auth
         public async Task<RestResponse<TokenPair>> Authenticate(string username, string password, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig)
         {
             // There is no jwt in session storage. Get one from auth module.
-            AuthenticationTokenGetParameters authenticationParameters = new() { Username = username, Password = password };
+            AuthenticationTokenGetParameters authenticationParameters = BuildLoginParameters(username, password);
             RestResponse<TokenPair> apiAuthResponse = await middlewareClient.AuthenticateUser(authenticationParameters);
 
             if (apiAuthResponse.StatusCode == HttpStatusCode.OK)
@@ -81,7 +103,7 @@ namespace FWO.Ui.Auth
 
                 await ApplyTokenPair(tokenPair, apiConnection, middlewareClient, userConfig);
 
-                Log.WriteAudit(nameof(Authenticate), $"User \"{username}\" with DN: \"{userConfig.User.Dn}\" successfully authenticated.");
+                Log.WriteAudit(nameof(Authenticate), $"User \"{username}\" with DN: \"{userConfig.User.Dn}\" successfully authenticated from client address {ClientDescription}.");
             }
 
             return apiAuthResponse;
@@ -160,7 +182,7 @@ namespace FWO.Ui.Auth
         public async Task EndRevokedSession()
         {
             string userDn = user.FindFirstValue("x-hasura-uuid") ?? "";
-            Log.WriteAudit("Session Revocation", $"Ended the revoked session of user with DN: \"{userDn}\".");
+            Log.WriteAudit("Session Revocation", $"Ended the revoked session of user with DN: \"{userDn}\" from client address {ClientDescription}.");
 
             try
             {

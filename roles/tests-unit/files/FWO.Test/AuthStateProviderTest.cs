@@ -40,6 +40,7 @@ namespace FWO.Test
         private static readonly int[] kExpectedOwnerships = [3, 7];
         private static readonly int[] kExpectedRecertOwnerships = [9];
         private static readonly int[] kExpectedWorkflowVisibilityGroupIds = [2, 4];
+        private const string kClientAddress = "192.0.2.10";
 
         private static readonly FieldInfo JwtPublicKeyField = typeof(ConfigFile).GetField("jwtPublicKey", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
@@ -536,6 +537,50 @@ namespace FWO.Test
             await published.Task;
 
             Assert.That(publishedState?.User.FindFirstValue("x-hasura-uuid"), Is.EqualTo(TestApiConnection.TestUserDn));
+        }
+
+        [Test]
+        public void BuildLoginParameters_PassesTheClientAddressOn()
+        {
+            UiClientAddress clientAddress = new();
+            clientAddress.Set(kClientAddress);
+
+            AuthenticationTokenGetParameters parameters = CreateProviderForLogin(clientAddress).BuildLoginParameters("alice", "secret");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parameters.Username, Is.EqualTo("alice"));
+                Assert.That(parameters.Password, Is.EqualTo("secret"));
+                Assert.That(parameters.Options?.ClientAddress, Is.EqualTo(kClientAddress));
+            });
+        }
+
+        [Test]
+        public void BuildLoginParameters_SendsNoAddressWhileItIsUnknown()
+        {
+            AuthenticationTokenGetParameters parameters = CreateProviderForLogin(new UiClientAddress()).BuildLoginParameters("alice", "secret");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(parameters.Options, Is.Not.Null);
+                Assert.That(parameters.Options?.ClientAddress, Is.Null);
+            });
+        }
+
+        [Test]
+        public void BuildLoginParameters_SendsNoAddressWithoutClientAddressService()
+        {
+            AuthenticationTokenGetParameters parameters = CreateProviderForLogin(null).BuildLoginParameters("alice", "secret");
+
+            Assert.That(parameters.Options?.ClientAddress, Is.Null);
+        }
+
+        private static AuthStateProvider CreateProviderForLogin(UiClientAddress? clientAddress)
+        {
+            MockMiddlewareClient mockMiddlewareClient = new();
+            TokenService tokenService = new(mockMiddlewareClient, new MockProtectedSessionStorage());
+            NavigationManager navigationManager = default!;
+            return new AuthStateProvider(tokenService, new EventMediator(), navigationManager, clientAddress: clientAddress);
         }
 
         private static void SetAuthenticatedUser(AuthStateProvider authStateProvider, string userDn)

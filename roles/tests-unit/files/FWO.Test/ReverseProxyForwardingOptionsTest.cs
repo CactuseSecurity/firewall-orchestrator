@@ -1,4 +1,4 @@
-using FWO.Middleware.Server;
+using FWO.Basics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -10,7 +10,7 @@ using System.Net;
 namespace FWO.Test;
 
 /// <summary>
-/// Tests the middleware forwarding configuration for the local Apache proxy.
+/// Tests the forwarding configuration of the UI and the middleware for the local Apache proxy.
 /// </summary>
 [TestFixture]
 internal class ReverseProxyForwardingOptionsTest

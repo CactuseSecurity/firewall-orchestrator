@@ -34,6 +34,11 @@
 - installer: Apache proxies the UI and the API with `ProxyPass ... upgrade=websocket` instead of rewrite rules. `mod_proxy_http` tunnels the websocket connections itself (Apache 2.4.47 or later), so new installations no longer enable `proxy_wstunnel`; upgraded installations keep the module enabled, unused
   - API port: websocket connections are only proxied below `/api/`; so far a websocket upgrade request on any path reached `/v1/graphql`
   - API port: `/api` without a trailing slash is redirected to `/api/`, and requests below `/api/` reach Hasura without a doubled leading slash
+- logging: UI and middleware log the real client address of logins instead of `127.0.0.1` or the address of the UI server (#5659)
+  - the UI evaluates the `X-Forwarded-For` and `X-Forwarded-Proto` headers of its local Apache reverse proxy, like the middleware already does; only the entry appended by that proxy is used. The UI vhosts now set `X-Forwarded-Proto`
+  - the UI keeps the address of the browser per session and logs it with successful and failed logins, logouts and sessions ended after a revocation
+  - middleware REST API: `GetTokenPair` (and the deprecated `Get`) accept `options.clientAddress`, the client a trusted frontend logs in for. It is only accepted from this host and the hosts in `login_trusted_client_hosts`; from any other caller it is ignored. A value that is not a single canonical IP address is answered with `400`
+  - behaviour change: logins through the UI are limited per browser address (`login_client_attempts_per_minute`, default 30) instead of being exempt via the address of the UI server. Users behind one shared address (NAT, terminal server, a reverse proxy in front of the UI) share that limit: raise it, or add the proxy to `login_trusted_client_hosts`. The per-user failure limit is unchanged and stays counted per calling host
 
 
 ## 9.9.2 - 10.11.2026

@@ -52,6 +52,11 @@ namespace FWO.Test
         private const string kRoleSearchPath = "ou=roles,dc=fworch,dc=internal";
         private const string kRoleUserDn = "uid=login-user,ou=users,dc=fworch,dc=internal";
         private static readonly IPAddress kThrottledClient = IPAddress.Parse("192.0.2.20");
+        private static readonly IPAddress kTrustedCaller = IPAddress.Parse("198.51.100.5");
+        private static readonly List<IPAddress> kTrustedCallers = [kTrustedCaller];
+        private const string kReportedClient = "192.0.2.30";
+        private const string kOtherReportedClient = "192.0.2.31";
+        private const string kClientAddressPath = "options.clientAddress";
 
         [Test]
         public async Task GetAsync_ReturnsAnonymousJwt_WhenCredentialsAreMissing()
@@ -1367,6 +1372,156 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetTokenPair_LimitsTheClientReportedByATrustedCaller()
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 1, userFailures: 10);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle);
+
+            ActionResult<TokenPair> first = await controller.GetTokenPair(CreateLogin("alice", kReportedClient));
+            ActionResult<TokenPair> sameClient = await controller.GetTokenPair(CreateLogin("bob", kReportedClient));
+            ActionResult<TokenPair> otherClient = await controller.GetTokenPair(CreateLogin("carol", kOtherReportedClient));
+            ActionResult<TokenPair> noClient = await controller.GetTokenPair(CreateLogin("dave", null));
+            ActionResult<TokenPair> noClientAgain = await controller.GetTokenPair(CreateLogin("erin", null));
+
+            AssertInvalidCredentials(first.Result);
+            AssertCapacityResult(sameClient.Result, StatusCodes.Status429TooManyRequests, "A0006");
+            AssertInvalidCredentials(otherClient.Result);
+            AssertInvalidCredentials(noClient.Result);
+            AssertInvalidCredentials(noClientAgain.Result);
+        }
+
+        [Test]
+        public async Task GetTokenPair_IgnoresTheClientReportedByAnUntrustedCaller()
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 1, userFailures: 10);
+            AuthenticationTokenController untrustedCaller = CreateControllerForCaller(kThrottledClient, throttle);
+            AuthenticationTokenController trustedCaller = CreateControllerForCaller(kTrustedCaller, throttle);
+
+            ActionResult<TokenPair> first = await untrustedCaller.GetTokenPair(CreateLogin("alice", kReportedClient));
+            ActionResult<TokenPair> otherReportedClient = await untrustedCaller.GetTokenPair(CreateLogin("bob", kOtherReportedClient));
+            ActionResult<TokenPair> trustedReport = await untrustedCaller.GetTokenPair(CreateLogin("carol", kTrustedCaller.ToString()));
+            ActionResult<TokenPair> reportedClientItself = await trustedCaller.GetTokenPair(CreateLogin("dave", kReportedClient));
+
+            AssertInvalidCredentials(first.Result);
+            // the attempts count against the caller, whatever client it reports
+            AssertCapacityResult(otherReportedClient.Result, StatusCodes.Status429TooManyRequests, "A0006");
+            AssertCapacityResult(trustedReport.Result, StatusCodes.Status429TooManyRequests, "A0006");
+            // and the caller did not use up the limit of the client it reported
+            AssertInvalidCredentials(reportedClientItself.Result);
+        }
+
+        [Test]
+        public async Task GetTokenPair_KeepsTheUserFailureLimit_WhenTheReportedClientChanges()
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 100, userFailures: 1);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle);
+
+            ActionResult<TokenPair> failure = await controller.GetTokenPair(CreateLogin("alice", kReportedClient));
+            ActionResult<TokenPair> blocked = await controller.GetTokenPair(CreateLogin("alice", kOtherReportedClient));
+
+            AssertInvalidCredentials(failure.Result);
+            AssertCapacityResult(blocked.Result, StatusCodes.Status429TooManyRequests, "A0006");
+        }
+
+        [TestCase("")]
+        [TestCase(" 192.0.2.30")]
+        [TestCase("192.0.2.30, 192.0.2.31")]
+        [TestCase("192.0.2.30:443")]
+        [TestCase("[2001:db8::1]")]
+        [TestCase("fe80::1%3")]
+        [TestCase("127.1")]
+        [TestCase("ui-srv.example.org")]
+        [TestCase("192.0.2.30\nLogin of user admin succeeded")]
+        public async Task GetTokenPair_RejectsAnInvalidClientAddressBeforeAnyLdapWork(string clientAddress)
+        {
+            TestableLdap ldap = CreateAuthLdap(new RecordingLdapClient());
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 1, userFailures: 1);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle, ldap);
+
+            ActionResult<TokenPair> rejected = await controller.GetTokenPair(CreateLogin("alice", clientAddress));
+            int connectsAfterRejection = ldap.ConnectCount;
+            ActionResult<TokenPair> valid = await controller.GetTokenPair(CreateLogin("alice", kReportedClient));
+
+            AssertClientAddressRejected(rejected.Result);
+            // the rejected request neither reached the directory nor used up a login limit
+            Assert.That(connectsAfterRejection, Is.Zero);
+            AssertInvalidCredentials(valid.Result);
+            Assert.That(ldap.ConnectCount, Is.GreaterThan(0));
+        }
+
+        [Test]
+        public async Task GetTokenPair_RejectsAnInvalidClientAddressOfAnUntrustedCaller()
+        {
+            TestableLdap ldap = CreateAuthLdap(new RecordingLdapClient());
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 1, userFailures: 1);
+            AuthenticationTokenController controller = CreateControllerForCaller(kThrottledClient, throttle, ldap);
+
+            ActionResult<TokenPair> rejected = await controller.GetTokenPair(CreateLogin("alice", "192.0.2.30, 192.0.2.31"));
+
+            AssertClientAddressRejected(rejected.Result);
+            Assert.That(ldap.ConnectCount, Is.Zero);
+        }
+
+        [Test]
+        public async Task GetAsync_LimitsTheClientReportedByATrustedCaller()
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 1, userFailures: 10);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle);
+
+            ActionResult<string> first = await controller.GetAsync(CreateLogin("alice", kReportedClient));
+            ActionResult<string> sameClient = await controller.GetAsync(CreateLogin("bob", kReportedClient));
+            ActionResult<string> otherClient = await controller.GetAsync(CreateLogin("carol", kOtherReportedClient));
+
+            AssertInvalidCredentials(first.Result);
+            AssertCapacityResult(sameClient.Result, StatusCodes.Status429TooManyRequests, "A0006");
+            AssertInvalidCredentials(otherClient.Result);
+        }
+
+        [Test]
+        public async Task GetAsync_RejectsAnInvalidClientAddress()
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 1, userFailures: 1);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle);
+
+            ActionResult<string> rejected = await controller.GetAsync(CreateLogin("alice", "192.0.2.30:443"));
+
+            AssertClientAddressRejected(rejected.Result);
+        }
+
+        [Test]
+        public void ValidateLogin_AcceptsARequestWithoutClientAddress()
+        {
+            Dictionary<string, string[]> withoutParameters = AuthenticationTokenController.ValidateLogin(null, out IPAddress? clientWithoutParameters);
+            Dictionary<string, string[]> withoutOptions = AuthenticationTokenController.ValidateLogin(
+                new AuthenticationTokenGetParameters { Options = null }, out IPAddress? clientWithoutOptions);
+            Dictionary<string, string[]> withDefaults = AuthenticationTokenController.ValidateLogin(
+                new AuthenticationTokenGetParameters(), out IPAddress? clientWithDefaults);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(withoutParameters, Is.Empty);
+                Assert.That(withoutOptions, Is.Empty);
+                Assert.That(withDefaults, Is.Empty);
+                Assert.That(clientWithoutParameters, Is.Null);
+                Assert.That(clientWithoutOptions, Is.Null);
+                Assert.That(clientWithDefaults, Is.Null);
+                Assert.That(new AuthenticationTokenGetParameters().Options, Is.Not.Null, "options default to an empty object");
+            });
+        }
+
+        [Test]
+        public void ValidateLogin_ReturnsTheNormalizedClientAddress()
+        {
+            Dictionary<string, string[]> errors = AuthenticationTokenController.ValidateLogin(CreateLogin("alice", $"::ffff:{kReportedClient}"), out IPAddress? client);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(errors, Is.Empty);
+                Assert.That(client, Is.EqualTo(IPAddress.Parse(kReportedClient)));
+            });
+        }
+
+        [Test]
         public async Task GetAsync_Returns429_WhenClientLimitIsExceeded()
         {
             AuthenticationTokenController controller = CreateThrottledController([], new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 1, userFailures: 10));
@@ -1474,6 +1629,63 @@ namespace FWO.Test
             httpContext.Connection.RemoteIpAddress = kThrottledClient;
             controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
             return controller;
+        }
+
+        /// <summary>
+        /// Builds a controller whose requests come from the given caller and share the given login limits.
+        /// </summary>
+        private static AuthenticationTokenController CreateControllerForCaller(IPAddress caller, LoginThrottle loginThrottle, TestableLdap? ldap = null)
+        {
+            List<Ldap> ldaps = new() { ldap ?? CreateAuthLdap(new RecordingLdapClient()) };
+            AuthenticationTokenController controller = CreateController(ldaps, new RecordingApiConnection(), loginThrottle);
+            DefaultHttpContext httpContext = new();
+            httpContext.Connection.RemoteIpAddress = caller;
+            controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+            return controller;
+        }
+
+        /// <summary>
+        /// Login limits that trust <see cref="kTrustedCaller"/>, like the middleware trusts the UI hosts.
+        /// </summary>
+        private static LoginThrottle CreateTrustingLoginThrottle(int clientAttempts, int userFailures)
+        {
+            return new LoginThrottle(new LoginThrottleSettings
+            {
+                ClientAttemptsPerMinute = clientAttempts,
+                UserFailuresPerMinute = userFailures,
+                TrustedClientAddresses = kTrustedCallers
+            });
+        }
+
+        private static AuthenticationTokenGetParameters CreateLogin(string userName, string? clientAddress)
+        {
+            return new AuthenticationTokenGetParameters
+            {
+                Username = userName,
+                Password = "wrong",
+                Options = new AuthenticationTokenGetOptions { ClientAddress = clientAddress }
+            };
+        }
+
+        /// <summary>
+        /// Asserts that a login reached the directories and failed there, i.e. that no login limit refused it.
+        /// </summary>
+        private static void AssertInvalidCredentials(IActionResult? result)
+        {
+            Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result!).Value, Is.Not.InstanceOf<ValidationProblemDetails>());
+        }
+
+        private static void AssertClientAddressRejected(IActionResult? result)
+        {
+            Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
+            ValidationProblemDetails? problem = ((BadRequestObjectResult)result!).Value as ValidationProblemDetails;
+            Assert.That(problem, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(problem!.Errors.Keys, Is.EquivalentTo(new List<string> { kClientAddressPath }));
+                Assert.That(problem.Errors[kClientAddressPath], Does.Contain(AuthenticationTokenGetOptions.kClientAddressDescription));
+            });
         }
 
         private static LoginThrottle CreateLoginThrottle(int clientAttempts, int userFailures)

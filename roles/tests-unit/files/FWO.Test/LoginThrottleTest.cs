@@ -73,6 +73,90 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BeginAttempt_LimitsTheClientReportedByATrustedCaller()
+        {
+            using LoginThrottle throttle = CreateThrottle(clientAttempts: 1, userFailures: 10, trusted: kTrustedUiServer);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(Admits(throttle, "alice", kUiServer, kClient), Is.True);
+                Assert.That(Admits(throttle, "bob", kUiServer, kClient), Is.False, "the reported client is limited, not the exempt caller");
+                Assert.That(Admits(throttle, "bob", kUiServer, kClient.MapToIPv6()), Is.False, "both notations share one limit");
+                Assert.That(Admits(throttle, "bob", kClient), Is.False, "direct and reported attempts of a client share one limit");
+                Assert.That(Admits(throttle, "bob", kUiServer, kOtherClient), Is.True);
+                Assert.That(Admits(throttle, "carol", kUiServer), Is.True, "without a reported client the caller stays exempt");
+            });
+        }
+
+        [Test]
+        public void BeginAttempt_IgnoresTheClientReportedByAnUntrustedCaller()
+        {
+            using LoginThrottle throttle = CreateThrottle(clientAttempts: 1, userFailures: 10, trusted: kTrustedUiServer);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(Admits(throttle, "alice", kClient, kOtherClient), Is.True);
+                Assert.That(Admits(throttle, "bob", kClient, kUiServer), Is.False, "reporting a trusted address must not lift the limit of the caller");
+                Assert.That(Admits(throttle, "carol", kOtherClient), Is.True, "the limit of the reported client must stay untouched");
+            });
+        }
+
+        [Test]
+        public void BeginAttempt_ExemptsATrustedClientReportedByATrustedCaller()
+        {
+            using LoginThrottle throttle = CreateThrottle(clientAttempts: 1, userFailures: 10, trusted: kTrustedUiServer);
+
+            for (int attempt = 0; attempt < 5; attempt++)
+            {
+                Assert.That(Admits(throttle, $"user{attempt}", kUiServer, kUiServer), Is.True);
+            }
+        }
+
+        [Test]
+        public void BeginAttempt_KeepsUserFailuresKeyedByTheCaller_WhenTheReportedClientChanges()
+        {
+            using LoginThrottle throttle = CreateThrottle(clientAttempts: 100, userFailures: 1, trusted: kTrustedUiServer);
+
+            Fail(throttle, "alice", kUiServer, kClient);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(Admits(throttle, "alice", kUiServer, kOtherClient), Is.False, "a new reported client must not reset the failures of the user");
+                Assert.That(Admits(throttle, "alice", kUiServer), Is.False);
+                Assert.That(Admits(throttle, "bob", kUiServer, kClient), Is.True);
+            });
+        }
+
+        [Test]
+        public void ResolveClient_AcceptsTheReportedClientOfATrustedCallerOnly()
+        {
+            using LoginThrottle throttle = CreateThrottle(clientAttempts: 1, userFailures: 1, trusted: kTrustedUiServer);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(throttle.ResolveClient(kUiServer, kClient), Is.EqualTo(kClient));
+                Assert.That(throttle.ResolveClient(kUiServer.MapToIPv6(), kClient.MapToIPv6()), Is.EqualTo(kClient));
+                Assert.That(throttle.ResolveClient(kUiServer, null), Is.EqualTo(kUiServer));
+                Assert.That(throttle.ResolveClient(kClient, kOtherClient), Is.EqualTo(kClient));
+                Assert.That(throttle.ResolveClient(null, kOtherClient), Is.Null);
+            });
+        }
+
+        [Test]
+        public void IsTrustedClient_KnowsTheConfiguredAddressesOnly()
+        {
+            using LoginThrottle throttle = CreateThrottle(clientAttempts: 1, userFailures: 1, trusted: kTrustedUiServer);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(throttle.IsTrustedClient(kUiServer), Is.True);
+                Assert.That(throttle.IsTrustedClient(kUiServer.MapToIPv6()), Is.True);
+                Assert.That(throttle.IsTrustedClient(kClient), Is.False);
+                Assert.That(throttle.IsTrustedClient(null), Is.False);
+            });
+        }
+
+        [Test]
         public void BeginAttempt_SuccessfulAttemptsDoNotCountAsFailures()
         {
             using LoginThrottle throttle = CreateThrottle(clientAttempts: 100, userFailures: 1);
@@ -187,18 +271,18 @@ namespace FWO.Test
         /// <summary>
         /// Begins an attempt and ends it at once, like a login that did not fail.
         /// </summary>
-        private static bool Admits(LoginThrottle throttle, string? userName, IPAddress? client)
+        private static bool Admits(LoginThrottle throttle, string? userName, IPAddress? client, IPAddress? reportedClient = null)
         {
-            using LoginAttempt? attempt = throttle.BeginAttempt(userName, client);
+            using LoginAttempt? attempt = throttle.BeginAttempt(userName, client, reportedClient);
             return attempt != null;
         }
 
         /// <summary>
         /// Begins an attempt that fails.
         /// </summary>
-        private static void Fail(LoginThrottle throttle, string? userName, IPAddress? client)
+        private static void Fail(LoginThrottle throttle, string? userName, IPAddress? client, IPAddress? reportedClient = null)
         {
-            using LoginAttempt attempt = throttle.BeginAttempt(userName, client) ?? throw new AssertionException("attempt refused");
+            using LoginAttempt attempt = throttle.BeginAttempt(userName, client, reportedClient) ?? throw new AssertionException("attempt refused");
             attempt.RecordFailure();
         }
 

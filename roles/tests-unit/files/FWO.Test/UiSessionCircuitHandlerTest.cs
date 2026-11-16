@@ -11,6 +11,7 @@ namespace FWO.Test
     {
         private const string kUserDnClaim = "x-hasura-uuid";
         private const int kStateChangeTimeoutMs = 2000;
+        private const string kClientAddress = "192.0.2.10";
 
         private static async Task OpenCircuit(UiSessionCircuitHandler handler)
         {
@@ -52,6 +53,53 @@ namespace FWO.Test
                 Assert.That(overview.Sessions[0].UserName, Is.EqualTo("tim"));
                 Assert.That(overview.Sessions[0].UserDn, Is.EqualTo("uid=tim,ou=operator"));
             });
+        }
+
+        [Test]
+        public async Task OnCircuitOpened_TakesOverTheKnownClientAddress()
+        {
+            UiSessionTracker tracker = new();
+            UiClientAddress clientAddress = new();
+            clientAddress.Set(kClientAddress);
+            using UiSessionCircuitHandler handler = new(tracker, new SessionTestAuthStateProvider(), clientAddress);
+
+            await OpenCircuit(handler);
+
+            Assert.That(tracker.GetOverview().Sessions[0].ClientAddress, Is.EqualTo(kClientAddress));
+        }
+
+        [Test]
+        public async Task ClientAddressChanged_StoresTheAddressSetAfterTheCircuitWasOpened()
+        {
+            UiSessionTracker tracker = new();
+            UiClientAddress clientAddress = new();
+            using UiSessionCircuitHandler handler = new(tracker, new SessionTestAuthStateProvider(), clientAddress);
+            await OpenCircuit(handler);
+            string addressBefore = tracker.GetOverview().Sessions[0].ClientAddress;
+
+            clientAddress.Set(kClientAddress);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(addressBefore, Is.Empty);
+                Assert.That(tracker.GetOverview().Sessions[0].ClientAddress, Is.EqualTo(kClientAddress));
+            });
+        }
+
+        [Test]
+        public async Task Dispose_StopsListeningForClientAddressChanges()
+        {
+            UiSessionTracker tracker = new();
+            UiClientAddress clientAddress = new();
+            UiSessionCircuitHandler handler = new(tracker, new SessionTestAuthStateProvider(), clientAddress);
+            await OpenCircuit(handler);
+            handler.Dispose();
+            // re-create the entry the disposed handler used, so that a still attached handler would fill it
+            tracker.Register(handler.SessionId);
+
+            clientAddress.Set(kClientAddress);
+
+            Assert.That(tracker.GetOverview().Sessions[0].ClientAddress, Is.Empty);
         }
 
         [Test]

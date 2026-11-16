@@ -85,6 +85,37 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SetClientAddress_StoresTheAddressOfTheSession()
+        {
+            UiSessionTracker tracker = CreateTracker();
+            tracker.Register("session1");
+            tracker.Register("session2");
+
+            tracker.SetClientAddress("session1", " 192.0.2.10 ");
+            tracker.SetClientAddress("unknown", "192.0.2.11");
+            List<UiSession> sessions = tracker.GetOverview().Sessions;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(sessions.Find(session => session.SessionId == "session1")?.ClientAddress, Is.EqualTo("192.0.2.10"));
+                Assert.That(sessions.Find(session => session.SessionId == "session2")?.ClientAddress, Is.Empty);
+                Assert.That(sessions, Has.Count.EqualTo(2));
+            });
+        }
+
+        [Test]
+        public void SetClientAddress_NullMarksTheAddressUnknown()
+        {
+            UiSessionTracker tracker = CreateTracker();
+            tracker.Register("session1");
+            tracker.SetClientAddress("session1", "192.0.2.10");
+
+            tracker.SetClientAddress("session1", null);
+
+            Assert.That(tracker.GetOverview().Sessions[0].ClientAddress, Is.Empty);
+        }
+
+        [Test]
         public void SetUser_CountsOneUserWithSeveralSessionsOnce()
         {
             UiSessionTracker tracker = CreateTracker();

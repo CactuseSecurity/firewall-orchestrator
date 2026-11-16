@@ -29,7 +29,12 @@ namespace FWO.Services.PathAnalysis
     public sealed class PathAnalysisResult
     {
         /// <summary>Id of the algorithm in path_analysis_algorithm.</summary>
+        /// <remarks>
+        /// Algorithms are identified by their database id throughout configuration, UI and analysis; every algorithm
+        /// the factory can create needs a row in path_analysis_algorithm and a constant in GlobalConst.
+        /// </remarks>
         public long AlgorithmId { get; init; }
+
         /// <summary>
         /// One segment per combination of a source and a destination ip range. Empty for algorithms
         /// that do not resolve zones, such as the routing based one.

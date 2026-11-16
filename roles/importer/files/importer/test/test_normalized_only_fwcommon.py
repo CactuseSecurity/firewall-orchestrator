@@ -2,7 +2,6 @@ from contextlib import AbstractContextManager
 from typing import TYPE_CHECKING, Protocol, cast
 
 import pytest
-from fw_modules.azure2022ff.fwcommon import Azure2022ffCommon
 from fw_modules.generic.fwcommon import GenericFirewallCommon
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fw_common import FwCommon
@@ -25,7 +24,6 @@ NormalizedOnlyImporterCase = tuple[FwCommon, type[Exception], str]
 
 NORMALIZED_ONLY_IMPORTERS: tuple[NormalizedOnlyImporterCase, ...] = (
     (GenericFirewallCommon(), ValueError, "requires a normalized config"),
-    (Azure2022ffCommon(), NotImplementedError, "only supports normalized config parsing"),
 )
 IMPORT_STATE = cast("ImportStateController", object())
 PYTEST = cast("PytestApi", pytest)

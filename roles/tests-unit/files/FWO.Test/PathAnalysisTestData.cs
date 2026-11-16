@@ -48,8 +48,8 @@ internal static class PathAnalysisTestData
     public static PathAnalysisMatrixApiConnection CreateApiConnection()
     {
         PathAnalysisMatrixApiConnection apiConnection = new();
-        apiConnection.Zones.Add(new ComplianceNetworkZone { Id = kZoneAId, Name = "Zone A" });
-        apiConnection.Zones.Add(new ComplianceNetworkZone { Id = kZoneBId, Name = "Zone B" });
+        apiConnection.Zones.Add(new NetworkZone { Id = kZoneAId, Name = "Zone A" });
+        apiConnection.Zones.Add(new NetworkZone { Id = kZoneBId, Name = "Zone B" });
         AddAutoCalculatedZones(apiConnection);
 
         apiConnection.IpRanges.Add(IpRange(kRangeAId, kZoneAId, "10.1.0.0", "10.1.255.255"));
@@ -82,8 +82,8 @@ internal static class PathAnalysisTestData
 
     private static void AddAutoCalculatedZones(PathAnalysisMatrixApiConnection apiConnection)
     {
-        apiConnection.Zones.Add(new ComplianceNetworkZone { Id = kInternetZoneId, Name = "Internet", IsAutoCalculatedInternetZone = true });
-        apiConnection.Zones.Add(new ComplianceNetworkZone
+        apiConnection.Zones.Add(new NetworkZone { Id = kInternetZoneId, Name = "Internet", IsAutoCalculatedInternetZone = true });
+        apiConnection.Zones.Add(new NetworkZone
         {
             Id = kUndefinedInternalZoneId,
             Name = "Undefined internal",
@@ -114,7 +114,7 @@ internal static class PathAnalysisTestData
 /// </summary>
 internal sealed class PathAnalysisMatrixApiConnection : SimulatedApiConnection
 {
-    public List<ComplianceNetworkZone> Zones { get; } = [];
+    public List<NetworkZone> Zones { get; } = [];
     public List<NetworkZoneIpRange> IpRanges { get; } = [];
     public List<NetworkZoneDeviceIpRange> RootPaths { get; } = [];
     public List<NetworkZoneDeviceIpRange> InternetPaths { get; } = [];

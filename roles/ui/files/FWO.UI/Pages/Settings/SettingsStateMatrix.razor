@@ -182,6 +182,18 @@
                         </Dropdown>
                     </div>
                 </div>
+                @if (phase > WorkflowPhases.request)
+                {
+                    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5555"))">
+                        <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("promotion_mode")):</label>
+                        <div class="col-sm-3">
+                            <Dropdown ElementType="PromotionMode" @bind-SelectedElement="actStateMatrix.GlobalMatrix[phase].PromotionMode"
+                                      ElementToString="@(mode => userConfig.GetText(mode.ToString()))" Elements="Enum.GetValues<PromotionMode>()">
+                                <ElementTemplate Context="mode">@(userConfig.GetText(mode.ToString()))</ElementTemplate>
+                            </Dropdown>
+                        </div>
+                    </div>
+                }
             }
             <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5551"))">
                 <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("lowest_input_state")):</label>

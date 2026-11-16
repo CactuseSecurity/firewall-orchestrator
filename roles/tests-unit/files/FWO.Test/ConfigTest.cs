@@ -146,6 +146,19 @@ namespace FWO.Test
             Assert.That(userConfig.ReqDeviceInput, Is.EqualTo(ReqDeviceInputOptions.never));
         }
 
+        /// <summary>Planner task details view is opt-in to preserve the classic default.</summary>
+        [Test]
+        public void ConfigData_DefaultsPlannerEditModeToClassic()
+        {
+            Assert.That(new ConfigData().ReqPlannerEditMode, Is.EqualTo(PlannerEditMode.Classic));
+        }
+
+        [Test]
+        public void ConfigData_DisablesPlannerOwnerChangesByDefault()
+        {
+            Assert.That(new ConfigData().ReqAllowOwnerChangesByPlanner, Is.False);
+        }
+
         [Test]
         public void Constructor_AppliesGlobalConfigToScheduledUserConfig()
         {
@@ -633,8 +646,11 @@ namespace FWO.Test
                 Assert.That(config.ShowDeadline, Is.True);
                 Assert.That(config.ShowReason, Is.True);
                 Assert.That(config.ShowComments, Is.False);
+                Assert.That(config.HandlerDisplayMode, Is.EqualTo(TicketHandlerDisplayMode.None));
                 Assert.That(config.AccessTask.ShowManagement, Is.True);
                 Assert.That(config.AccessTask.ShowOwner, Is.True);
+                Assert.That(config.AccessTask.ShowRuleAction, Is.True);
+                Assert.That(config.AccessTask.ShowTracking, Is.True);
                 Assert.That(config.AccessTask.ShowValidFrom, Is.True);
                 Assert.That(config.AccessTask.ShowValidTo, Is.True);
                 Assert.That(config.AccessTask.ShowReason, Is.True);
@@ -661,16 +677,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public void TicketFieldVisibilityConfig_ParsesHandlerDisplayMode()
+        {
+            TicketFieldVisibilityConfig config = TicketFieldVisibilityConfig.Parse(
+                "{\"handlerDisplayMode\":2}");
+
+            Assert.That(config.HandlerDisplayMode, Is.EqualTo(TicketHandlerDisplayMode.AllActiveTasks));
+            Assert.That(TicketFieldVisibilityConfig.Parse(config.ToConfigValue()).HandlerDisplayMode,
+                Is.EqualTo(TicketHandlerDisplayMode.AllActiveTasks));
+        }
+
+        [Test]
         public void TicketFieldVisibilityConfig_ParsesAccessTaskFields()
         {
             TicketFieldVisibilityConfig config = TicketFieldVisibilityConfig.Parse(
-                "{\"accessTask\":{\"management\":false,\"owner\":false,\"validFrom\":false,\"validTo\":true,\"reason\":false,\"freeText\":true,\"comments\":false}}");
+                "{\"accessTask\":{\"management\":false,\"owner\":false,\"ruleAction\":false,\"tracking\":false,\"validFrom\":false,\"validTo\":true,\"reason\":false,\"freeText\":true,\"comments\":false}}");
 
             Assert.Multiple(() =>
             {
                 Assert.That(config.AccessTask.ShowReason, Is.False);
                 Assert.That(config.AccessTask.ShowManagement, Is.False);
                 Assert.That(config.AccessTask.ShowOwner, Is.False);
+                Assert.That(config.AccessTask.ShowRuleAction, Is.False);
+                Assert.That(config.AccessTask.ShowTracking, Is.False);
                 Assert.That(config.AccessTask.ShowValidFrom, Is.False);
                 Assert.That(config.AccessTask.ShowValidTo, Is.True);
                 Assert.That(config.AccessTask.ShowFreeText, Is.True);

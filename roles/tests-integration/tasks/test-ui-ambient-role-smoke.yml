@@ -6,12 +6,19 @@
   - name: set ambient role smoke test directory
     set_fact:
       ui_ambient_role_smoke_dir: "/tmp/fworch-ambient-role-smoke"
-      ui_ambient_role_smoke_browser_executable: "{{ fworch_home }}/bin/chrome"
+      ui_ambient_role_smoke_browser_executable: "{{ fworch_browser_dir }}/chrome"
 
   - name: copy ambient role smoke tests
     copy:
       src: ui/ambient_role_smoke/
       dest: "{{ ui_ambient_role_smoke_dir }}/"
+      mode: "0644"
+
+  # the smoke tests are built outside {{ fworch_home }}, so they need their own sdk pin
+  - name: pin the dotnet sdk to {{ dotnet_version }} for the ambient role smoke tests
+    copy:
+      content: "{{ dotnet_sdk_global_json | to_nice_json }}\n"
+      dest: "{{ ui_ambient_role_smoke_dir }}/global.json"
       mode: "0644"
 
   - name: check ambient role smoke browser executable

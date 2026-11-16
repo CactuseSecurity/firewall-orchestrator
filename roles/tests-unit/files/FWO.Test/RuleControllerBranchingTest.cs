@@ -382,6 +382,21 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ActiveRulesByOwnerQuery_ShouldExcludeDisabledAndRemovedRules()
+        {
+            string ruleArguments = RemoveWhitespace(ExtractRelationArguments(RuleQueries.getActiveRulesByOwner, "firewall_rule"));
+            string ruleOwnerArguments = RemoveWhitespace(ExtractRuleOwnerFilter(RuleQueries.getActiveRulesByOwner));
+            string topLevelRuleArguments = ruleArguments.Replace(ruleOwnerArguments, "", StringComparison.Ordinal);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(topLevelRuleArguments, Does.Contain("rule_disabled:{_eq:false}"));
+                Assert.That(topLevelRuleArguments, Does.Contain("removed:{_is_null:true}"));
+                Assert.That(topLevelRuleArguments, Does.Contain("access_rule:{_eq:true}"));
+            });
+        }
+
+        [Test]
         public async Task GetRulesByFilter_PagesTheIpMatchesOrderedByRuleId()
         {
             RuleController firstPageController = CreateController(new BranchingApiConnection(includeDestinationRule: true), "req-page-1");
@@ -549,6 +564,45 @@ namespace FWO.Test
 
             Assert.Fail($"Could not find closing ')' for '{marker}' in the query.");
             return string.Empty;
+        }
+
+        /// <summary>
+        /// Extracts the nested rule_owners filter object so top-level rule filters can be checked separately.
+        /// </summary>
+        private static string ExtractRuleOwnerFilter(string query)
+        {
+            const string marker = "rule_owners:";
+            int startIndex = query.IndexOf(marker, StringComparison.Ordinal);
+            int braceStart = startIndex < 0 ? -1 : query.IndexOf('{', startIndex);
+            if (braceStart < 0)
+            {
+                Assert.Fail($"Could not find '{marker}' filter in the query.");
+            }
+
+            int depth = 0;
+            for (int index = braceStart; index < query.Length; ++index)
+            {
+                if (query[index] == '{')
+                {
+                    ++depth;
+                }
+                else if (query[index] == '}')
+                {
+                    --depth;
+                    if (depth == 0)
+                    {
+                        return query.Substring(startIndex, index - startIndex + 1);
+                    }
+                }
+            }
+
+            Assert.Fail($"Could not find closing '}}' for '{marker}' in the query.");
+            return string.Empty;
+        }
+
+        private static string RemoveWhitespace(string text)
+        {
+            return string.Concat(text.Where(character => !char.IsWhiteSpace(character)));
         }
 
         private sealed class BranchingApiConnection : ApiConnection

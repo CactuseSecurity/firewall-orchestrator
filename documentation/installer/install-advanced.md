@@ -188,14 +188,6 @@ Set this parameter only if the installer is allowed to install EPEL and enable C
 ./scripts/run-playbook-with-sudo.sh site.yml -e "allowRepoChangesForRedhat=true"
 ```
 
-### Parameter "docker_network" after the Podman migration
-
-This legacy parameter is ignored by the current installer because Hasura now runs with Podman host networking instead of a Docker bridge.
-
-```console
-./scripts/run-playbook-with-sudo.sh site.yml -e "docker_network=172.26.0.1/16"
-```
-
 ### Parameter "install_syslog" allows disabling of separate syslog installation
 
 Default value is install_syslog=yes but if you already have a syslog service running then you can skip syslog installation and configure your existing service manually.
@@ -477,6 +469,21 @@ After you defined additional distributed servers you have to add them to the hos
         install-srv:
 ```
 
+## .NET SDK version
+
+The installer builds and tests the middleware and the UI with the .NET SDK of `dotnet_version` in
+`inventory/group_vars/all.yml`. It writes a `global.json` to `/usr/local/fworch/global.json` (`dotnet_sdk_global_json_file`)
+that pins all `dotnet` commands below `/usr/local/fworch` to that version. Any newer feature band and patch of
+the same version is accepted, a newer major version is not. Without the pin, `dotnet` takes the newest SDK on the host,
+so a newer major SDK that is installed alongside would build the FWO projects and can break the installation.
+
+If no SDK of `dotnet_version` is installed, the build stops with `A compatible .NET SDK was not found`. Other .NET
+versions on the host can stay installed. The pin only affects `dotnet` commands run below `/usr/local/fworch`.
+
+The repository has its own `global.json` with the same version for local and CI builds. When `dotnet_version` is
+raised, update that file and the `dotnet-version` in `.github/workflows/sonarcloud-pr.yml` as well. The test-install
+workflow fails if they differ.
+
 ## Verified downloads
 
 The following downloaded artifacts are checked against a value pinned in the inventory, so an artifact that was
@@ -525,8 +532,6 @@ The following downloads are outside the pinned checksum/signature checks describ
 - Chrome for Testing, which is downloaded for PDF generation when no system chromium package is available. It is
   deliberately not pinned: it follows the current stable release, so that browser security fixes arrive without an
   installer change.
-- the Docker apt signing key in the developer helper `scripts/preinstall-packages.yml` and in the `docker` role, which
-  the installation no longer uses
 
 ## old
 

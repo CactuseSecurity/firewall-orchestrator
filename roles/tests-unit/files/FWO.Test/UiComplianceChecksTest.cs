@@ -20,7 +20,7 @@ namespace FWO.Test
         [Test]
         public void CheckTwoIps_ForbiddenCommunication_ShowsViolation()
         {
-            (ComplianceNetworkZone internalZone, ComplianceNetworkZone dmzZone) = CreateZones();
+            (NetworkZone internalZone, NetworkZone dmzZone) = CreateZones();
             using BunitContext context = CreateContext([internalZone, dmzZone]);
 
             IRenderedComponent<ComplianceChecks> page = RenderPageWithIpInput(context);
@@ -34,7 +34,7 @@ namespace FWO.Test
         [Test]
         public void CheckTwoIps_AllowedCommunication_ShowsCompliant()
         {
-            (ComplianceNetworkZone internalZone, ComplianceNetworkZone dmzZone) = CreateZones();
+            (NetworkZone internalZone, NetworkZone dmzZone) = CreateZones();
             internalZone.AllowedCommunicationDestinations = [dmzZone];
             using BunitContext context = CreateContext([internalZone, dmzZone]);
 
@@ -48,15 +48,15 @@ namespace FWO.Test
         /// <summary>
         /// Creates one zone for the source ip and one for the destination ip without allowed communications.
         /// </summary>
-        private static (ComplianceNetworkZone internalZone, ComplianceNetworkZone dmzZone) CreateZones()
+        private static (NetworkZone internalZone, NetworkZone dmzZone) CreateZones()
         {
-            ComplianceNetworkZone internalZone = new()
+            NetworkZone internalZone = new()
             {
                 Id = 1,
                 Name = "Internal",
                 IPRanges = [IPAddressRange.Parse("10.0.0.0/8")]
             };
-            ComplianceNetworkZone dmzZone = new()
+            NetworkZone dmzZone = new()
             {
                 Id = 2,
                 Name = "DMZ",
@@ -65,7 +65,7 @@ namespace FWO.Test
             return (internalZone, dmzZone);
         }
 
-        private static BunitContext CreateContext(List<ComplianceNetworkZone> networkZones)
+        private static BunitContext CreateContext(List<NetworkZone> networkZones)
         {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;

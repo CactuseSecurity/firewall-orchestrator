@@ -31,20 +31,22 @@
   set_fact:
     system_chromium_available: "{{ system_chromium_path | trim | length > 0 }}"
 
-- name: make sure {{ fworch_home }}/bin exists
+- name: make sure the browser directory {{ fworch_browser_dir }} exists and belongs to root
   file:
-    path: "{{ fworch_home }}/bin"
+    path: "{{ fworch_browser_dir }}"
     state: directory
-    owner: "{{ fworch_user }}"
-    group: "{{ fworch_group }}"
+    owner: root
+    group: root
     mode: "0755"
   become: true
-  when: system_chromium_available
 
-- name: symlink system chromium to {{ fworch_home }}/bin/chromium-headless
+- name: include the move of a browser installed below {{ fworch_home }} by versions before 9.8.6
+  import_tasks: move_browser_out_of_fworch_home.yml
+
+- name: symlink system chromium to {{ fworch_browser_dir }}/chromium-headless
   file:
     src: "{{ system_chromium_path | trim }}"
-    dest: "{{ fworch_home }}/bin/chromium-headless"
+    dest: "{{ fworch_browser_dir }}/chromium-headless"
     state: link
   become: true
   when: system_chromium_available
@@ -96,16 +98,18 @@
 # metadata is fatal, so we can fall back to an existing install if present.
 - name: check if chrome is installed (via symlinked bin)
   stat:
-    path: "{{ fworch_home }}/bin/chrome"
+    path: "{{ fworch_browser_dir }}/chrome"
   register: chrome_bin
   become: true
 
+# the browser is only ever run as the user that runs it for the PDF generation, never as root
 - name: verify existing chrome installation
-  command: "{{ fworch_home }}/bin/chrome --version"
+  command: "{{ fworch_browser_dir }}/chrome --version"
   register: installed_ver
   changed_when: false
   failed_when: false
   become: true
+  become_user: "{{ fworch_user }}"
   when: chrome_bin.stat.exists
 
 - name: record whether existing chrome can run
@@ -124,7 +128,7 @@
   debug:
     msg: >-
       WARNING: Could not fetch Chrome for Testing version metadata; keeping the
-      already-installed Chrome at {{ fworch_home }}/bin/chrome and skipping the
+      already-installed Chrome at {{ fworch_browser_dir }}/chrome and skipping the
       version check/update.
   when: not chrome_metadata_available and chrome_existing_usable and not system_chromium_available
 
@@ -149,7 +153,7 @@
     # Base path for all Chrome installs
     - name: set chrome root dir
       set_fact:
-        chrome_root_dir: "/usr/local/fworch/bin/Chrome"
+        chrome_root_dir: "{{ fworch_browser_dir }}/Chrome"
 
     # Extract downloads + version from Stable
     - name: parse latest stable versions for chrome #and headless shell
@@ -255,14 +259,26 @@
                 remote_src: yes
               when: (chrome_pkg is defined and chrome_pkg.changed) or not chrome_target_bin.stat.exists
 
+            # some archives (seen with 152) unpack with root only permissions; the browser must be
+            # readable before it can be verified as {{ fworch_user }}
+            - name: allow all users to traverse and run the unpacked chrome
+              file:
+                path: "{{ chrome_dest }}"
+                state: directory
+                recurse: true
+                follow: false
+                mode: "u=rwX,g=rX,o=rX"
+
+            # run as {{ fworch_user }}, never as root
             - name: verify target chrome installation
               command: "{{ chrome_dest }}/chrome-linux64/chrome --version"
               changed_when: false
+              become_user: "{{ fworch_user }}"
 
-            - name: create symlinks {{ chrome_dest }}/chrome-linux64 to {{ fworch_home }}/bin/*
+            - name: create symlinks {{ chrome_dest }}/chrome-linux64 to {{ fworch_browser_dir }}/*
               file:
                 src: "{{ chrome_dest }}/chrome-linux64/{{ item }}"
-                dest: "{{ fworch_home }}/bin/{{ item }}"
+                dest: "{{ fworch_browser_dir }}/{{ item }}"
                 state: link
               loop:
                 - chrome
@@ -303,7 +319,7 @@
               debug:
                 msg: >-
                   WARNING: Could not download, unpack, or verify Chrome for Testing; keeping the
-                  already-installed Chrome at {{ fworch_home }}/bin/chrome.
+                  already-installed Chrome at {{ fworch_browser_dir }}/chrome.
               when: chrome_existing_usable
 
             - name: fail when chrome download fails without an existing chrome
@@ -315,12 +331,6 @@
 
           when: chrome_major_update_needed or (not chrome_existing_usable)
 
-        - name: add {{ fworch_home }}/bin to every users path
-          copy:
-            dest: /etc/profile.d/custom_path.sh
-            content: 'export PATH="{{ fworch_home }}/bin:$PATH"'
-            mode: "0644"
-
       become: true
       environment: "{{ proxy_env }}"
 
@@ -330,15 +340,26 @@
 # permissions, which leaves the fworch user unable to read the browser and its resource files
 - name: check chrome installation root
   stat:
-    path: "{{ fworch_home }}/bin/Chrome"
+    path: "{{ fworch_browser_dir }}/Chrome"
   register: chrome_root_stat
   become: true
 
 - name: allow all users to traverse and run the installed chrome versions
   file:
-    path: "{{ fworch_home }}/bin/Chrome"
+    path: "{{ fworch_browser_dir }}/Chrome"
     state: directory
     recurse: true
+    # a followed link would let root change the mode of any file of the system
+    follow: false
     mode: "u=rwX,g=rX,o=rX"
   become: true
   when: chrome_root_stat.stat.exists
+
+# Versions before 9.8.6 put {{ fworch_home }}/bin first in the path of every login shell. That
+# directory is writable for {{ fworch_user }}, who could shadow any command run there, root's
+# included. Nothing needs the browser in the path, so the entry is removed.
+- name: remove {{ fworch_home }}/bin from the path of all users
+  file:
+    path: /etc/profile.d/custom_path.sh
+    state: absent
+  become: true

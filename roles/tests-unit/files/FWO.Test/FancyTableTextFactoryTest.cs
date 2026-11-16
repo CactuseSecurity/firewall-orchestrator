@@ -33,6 +33,23 @@ namespace FWO.Test
                 Assert.That(texts.ShowingVisibleRowsFormat, Is.EqualTo("showing_visible_rows_format"));
                 Assert.That(texts.ResizeColumnFormat, Is.EqualTo("resize_column_format"));
                 Assert.That(texts.ReorderColumnFormat, Is.EqualTo("reorder_column_format"));
+                Assert.That(texts.SortColumnFormat, Is.EqualTo("sort_column_format"));
+                Assert.That(texts.HideColumnFormat, Is.EqualTo("hide_column_format"));
+                Assert.That(texts.ClearSearchLabel, Is.EqualTo("clear_search"));
+                Assert.That(texts.FilteredColumnLabel, Is.EqualTo("filtered_column"));
+                Assert.That(texts.FilterColumnFormat, Is.EqualTo("filter_column_format"));
+                Assert.That(texts.FilterValuePlaceholder, Is.EqualTo("value"));
+                Assert.That(texts.ApplyFilterLabel, Is.EqualTo("apply_filter"));
+                Assert.That(texts.ClearFilterLabel, Is.EqualTo("clear_filter"));
+                Assert.That(texts.FilterOperatorLabel, Is.EqualTo("filter_operator"));
+                Assert.That(texts.FilterOperatorEqualsLabel, Is.EqualTo("filter_op_equals"));
+                Assert.That(texts.FilterOperatorNotEqualsLabel, Is.EqualTo("filter_op_not_equals"));
+                Assert.That(texts.FilterOperatorContainsLabel, Is.EqualTo("filter_op_contains"));
+                Assert.That(texts.FilterOperatorNotContainsLabel, Is.EqualTo("filter_op_not_contains"));
+                Assert.That(texts.FilterOperatorStartsWithLabel, Is.EqualTo("filter_op_starts_with"));
+                Assert.That(texts.FilterOperatorEndsWithLabel, Is.EqualTo("filter_op_ends_with"));
+                Assert.That(texts.FilterOperatorIsEmptyLabel, Is.EqualTo("filter_op_is_empty"));
+                Assert.That(texts.FilterOperatorIsNotEmptyLabel, Is.EqualTo("filter_op_is_not_empty"));
             });
         }
 

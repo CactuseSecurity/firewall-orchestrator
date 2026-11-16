@@ -89,9 +89,10 @@
 # The case this preflight was written for: the shipped inventory still names the host
 # localhost while the retained certificate names the customer endpoint, so api_uri
 # addresses a name the certificate does not carry.
-- name: Verify the preflight rejects a name the certificate does not cover
+- name: "expected to fail: preflight rejects a name the certificate does not cover"
   block:
-    - include_tasks: "{{ retained_certificate_preflight }}"
+    - name: "expected to fail: preflight rejects a name the certificate does not cover"
+      include_tasks: "{{ retained_certificate_preflight }}"
       vars:
         retained_certificate_subject: Apache
         retained_certificate_path: "{{ retained_certificate_test_directory.path }}/retained.crt"
@@ -101,7 +102,8 @@
     - set_fact:
         retained_certificate_preflight_rejected: false
   rescue:
-    - set_fact:
+    - name: "expected to fail: rejection of the uncovered name caught"
+      set_fact:
         retained_certificate_preflight_rejected: true
         retained_certificate_preflight_message: "{{ ansible_failed_result.msg }}"
 
@@ -131,9 +133,10 @@
       {{ retained_certificate_preflight_message | default('it did not fail at all') }}
 
 # The OpenLDAP identity goes through the same file, so the subject has to follow it.
-- name: Verify the preflight reports the OpenLDAP identity under its own name
+- name: "expected to fail: preflight rejects an OpenLDAP address the certificate does not cover"
   block:
-    - include_tasks: "{{ retained_certificate_preflight }}"
+    - name: "expected to fail: preflight rejects an OpenLDAP address the certificate does not cover"
+      include_tasks: "{{ retained_certificate_preflight }}"
       vars:
         retained_certificate_subject: OpenLDAP
         retained_certificate_path: "{{ retained_certificate_test_directory.path }}/retained.crt"
@@ -144,7 +147,8 @@
     - set_fact:
         retained_ldap_preflight_rejected: false
   rescue:
-    - set_fact:
+    - name: "expected to fail: rejection of the uncovered OpenLDAP address caught"
+      set_fact:
         retained_ldap_preflight_rejected: true
         retained_ldap_preflight_message: "{{ ansible_failed_result.msg }}"
 

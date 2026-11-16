@@ -203,6 +203,64 @@ namespace FWO.Test
                 Assert.That(headerTexts, Does.Not.Contain("requester"));
                 Assert.That(headerTexts, Does.Not.Contain("priority"));
                 Assert.That(headerTexts, Does.Not.Contain("deadline"));
+                Assert.That(headerTexts, Does.Not.Contain("current_handlers"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayTicketTable_ShowsHandlerColumnOnlyWhenConfigured()
+        {
+            await using BunitContext context = new();
+            WfHandler handler = CreateWorkflowHandler(WorkflowPhases.request, WfTaskType.access.ToString(), new WfTicket { Id = 1 });
+            UserConfig config = new RequestWorkflowUserConfig
+            {
+                ReqTicketFieldVisibility = new TicketFieldVisibilityConfig
+                {
+                    HandlerDisplayMode = TicketHandlerDisplayMode.CurrentPhase
+                }.ToConfigValue()
+            };
+
+            IRenderedComponent<DisplayTicketTable> component = RenderDisplayTicketTableWithUserConfig(
+                context, handler, WorkflowPhases.request, new WfStateDict(), config);
+
+            List<string> headerTexts = component.FindAll("thead th")
+                .Select(header => header.TextContent.Trim())
+                .ToList();
+
+            Assert.That(headerTexts, Does.Contain("current_handlers"));
+        }
+
+        [Test]
+        public async Task DisplayTicketTable_ShowsClosedOnlyInOverview()
+        {
+            await using BunitContext context = new();
+            WfHandler handler = CreateWorkflowHandler(WorkflowPhases.approval, WfTaskType.access.ToString(), new WfTicket { Id = 1 });
+            handler.MasterStateMatrix.IsLastActivePhase = false;
+
+            IRenderedComponent<DisplayTicketTable> approvalComponent = RenderDisplayTicketTable(
+                context, handler, WorkflowPhases.approval, new WfStateDict());
+            List<string> approvalHeaders = approvalComponent.FindAll("thead th")
+                .Select(header => header.TextContent.Trim().ToLowerInvariant())
+                .ToList();
+
+            typeof(DisplayTicketTable).GetProperty(nameof(DisplayTicketTable.Overview))!.SetValue(approvalComponent.Instance, true);
+            approvalComponent.Render();
+            List<string> overviewHeaders = approvalComponent.FindAll("thead th")
+                .Select(header => header.TextContent.Trim().ToLowerInvariant())
+                .ToList();
+
+            await using BunitContext lastPhaseContext = new();
+            IRenderedComponent<DisplayTicketTable> lastPhaseComponent = RenderDisplayTicketTable(
+                lastPhaseContext, handler, WorkflowPhases.review, new WfStateDict());
+            List<string> lastPhaseHeaders = lastPhaseComponent.FindAll("thead th")
+                .Select(header => header.TextContent.Trim().ToLowerInvariant())
+                .ToList();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(approvalHeaders, Does.Not.Contain("closed"));
+                Assert.That(overviewHeaders, Does.Contain("closed"));
+                Assert.That(lastPhaseHeaders, Does.Not.Contain("closed"));
             });
         }
 
@@ -297,6 +355,141 @@ namespace FWO.Test
             bool canEdit = (bool)method!.Invoke(component, [new WfTicket { StateId = 60 }])!;
 
             Assert.That(canEdit, Is.EqualTo(expectedEdit));
+        }
+
+        [Test]
+        public void DisplayTicketTable_CanOpenChangeDialogs_HidesRequestDialogOnReadOnlyOverview()
+        {
+            DisplayTicketTable component = new();
+            SetMember(component, nameof(DisplayTicketTable.WfHandler), new WfHandler { ReadOnlyMode = true });
+
+            bool onPhasePage = UiRequestCoverageTest.InvokePrivateBool(component, "CanOpenChangeDialogs");
+            SetMember(component, nameof(DisplayTicketTable.Overview), true);
+            bool onOverview = UiRequestCoverageTest.InvokePrivateBool(component, "CanOpenChangeDialogs");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(onPhasePage, Is.True);
+                Assert.That(onOverview, Is.False);
+            });
+        }
+
+        [Test]
+        public void DisplayTicketTable_DisplayHandlers_CurrentPhase_UsesRequestTaskHandlersAndDeduplicates()
+        {
+            StateMatrix matrix = CreateMatrix(lowestInputState: 0, lowestStartedState: 2, lowestEndState: 10);
+            WfHandler handler = new() { MasterStateMatrix = matrix };
+            SetMatrix(handler, WfTaskType.access.ToString(), matrix);
+            DisplayTicketTable component = CreateTicketTable(handler, WorkflowPhases.planning);
+            SetMember(component, "userConfig", new RequestWorkflowUserConfig
+            {
+                ReqTicketFieldVisibility = new TicketFieldVisibilityConfig
+                {
+                    HandlerDisplayMode = TicketHandlerDisplayMode.CurrentPhase
+                }.ToConfigValue()
+            });
+
+            UiUser alice = new() { DbId = 1, Name = "Alice" };
+            UiUser bob = new() { DbId = 2, Name = "Bob" };
+            WfTicket ticket = new()
+            {
+                Tasks =
+                [
+                    new WfReqTask { TaskType = WfTaskType.access.ToString(), StateId = 3, CurrentHandler = alice },
+                    new WfReqTask { TaskType = WfTaskType.access.ToString(), StateId = 3, CurrentHandler = alice },
+                    new WfReqTask { TaskType = WfTaskType.access.ToString(), StateId = 11, CurrentHandler = bob }
+                ]
+            };
+
+            string handlers = (string)GetPrivateMethod(typeof(DisplayTicketTable), "DisplayHandlers")
+                .Invoke(component, [ticket])!;
+
+            Assert.That(handlers, Is.EqualTo("Alice"));
+        }
+
+        [Test]
+        public void DisplayTicketTable_DisplayHandlers_ImplementationPhase_UsesImplementationHandlers()
+        {
+            StateMatrix matrix = CreateMatrix(lowestInputState: 0, lowestStartedState: 2, lowestEndState: 10);
+            WfHandler handler = new() { MasterStateMatrix = matrix };
+            SetMatrix(handler, WfTaskType.access.ToString(), matrix);
+            DisplayTicketTable component = CreateTicketTable(handler, WorkflowPhases.implementation);
+            SetMember(component, "userConfig", new RequestWorkflowUserConfig
+            {
+                ReqTicketFieldVisibility = new TicketFieldVisibilityConfig
+                {
+                    HandlerDisplayMode = TicketHandlerDisplayMode.CurrentPhase
+                }.ToConfigValue()
+            });
+
+            WfTicket ticket = new()
+            {
+                Tasks =
+                [
+                    new WfReqTask
+                    {
+                        TaskType = WfTaskType.access.ToString(),
+                        StateId = 3,
+                        CurrentHandler = new UiUser { DbId = 1, Name = "Request handler" },
+                        ImplementationTasks =
+                        [
+                            new WfImplTask
+                            {
+                                TaskType = WfTaskType.access.ToString(),
+                                StateId = 3,
+                                CurrentHandler = new UiUser { DbId = 2, Name = "Implementation handler" }
+                            }
+                        ]
+                    }
+                ]
+            };
+
+            string handlers = (string)GetPrivateMethod(typeof(DisplayTicketTable), "DisplayHandlers")
+                .Invoke(component, [ticket])!;
+
+            Assert.That(handlers, Is.EqualTo("Implementation handler"));
+        }
+
+        [Test]
+        public void DisplayTicketTable_DisplayHandlers_AllActiveTasks_ExcludesCompletedTasks()
+        {
+            StateMatrix matrix = CreateMatrix(lowestInputState: 0, lowestStartedState: 2, lowestEndState: 10);
+            matrix.MinTicketCompleted = 10;
+            WfHandler handler = new() { MasterStateMatrix = matrix };
+            DisplayTicketTable component = CreateTicketTable(handler, WorkflowPhases.request);
+            SetMember(component, "userConfig", new RequestWorkflowUserConfig
+            {
+                ReqTicketFieldVisibility = new TicketFieldVisibilityConfig
+                {
+                    HandlerDisplayMode = TicketHandlerDisplayMode.AllActiveTasks
+                }.ToConfigValue()
+            });
+
+            WfTicket ticket = new()
+            {
+                Tasks =
+                [
+                    new WfReqTask
+                    {
+                        TaskType = WfTaskType.access.ToString(),
+                        StateId = 3,
+                        CurrentHandler = new UiUser { DbId = 1, Name = "Request handler" },
+                        ImplementationTasks =
+                        [new WfImplTask { CurrentHandler = new UiUser { DbId = 2, Name = "Implementation handler" }}]
+                    },
+                    new WfReqTask
+                    {
+                        TaskType = WfTaskType.access.ToString(),
+                        StateId = 10,
+                        CurrentHandler = new UiUser { DbId = 3, Name = "Completed handler" }
+                    }
+                ]
+            };
+
+            string handlers = (string)GetPrivateMethod(typeof(DisplayTicketTable), "DisplayHandlers")
+                .Invoke(component, [ticket])!;
+
+            Assert.That(handlers, Is.EqualTo("Request handler, Implementation handler"));
         }
     }
 }

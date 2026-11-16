@@ -62,12 +62,12 @@ public static class ResolvePathDevicesRequestValidationSchema
     /// <summary>
     /// Maximum list length for sources and destinations.
     /// </summary>
-    public const int kMaximumIpBlocksPerList = 100;
+    public const int kMaximumIpBlocksPerList = 500;
 
     private static readonly List<RequestKeyDefinition> kRootKeys =
     [
-        new RequestKeyDefinition(kSourcesPath, $"Address blocks the paths start at. Required, 1 to {kMaximumIpBlocksPerList} entries. Every source is combined with every destination."),
-        new RequestKeyDefinition(kDestinationsPath, $"Address blocks the paths end at. Required, 1 to {kMaximumIpBlocksPerList} entries. Every destination is combined with every source."),
+        new RequestKeyDefinition(kSourcesPath, $"Address blocks the paths start at. Required, 1 to {kMaximumIpBlocksPerList} entries, each with exactly one of 'ipHost', 'ipNetwork' or 'ipRange'. Every source is combined with every destination."),
+        new RequestKeyDefinition(kDestinationsPath, $"Address blocks the paths end at. Required, 1 to {kMaximumIpBlocksPerList} entries, each with exactly one of 'ipHost', 'ipNetwork' or 'ipRange'. Every destination is combined with every source."),
         new RequestKeyDefinition(kOptionsPath, "Optional analysis and output options. Defaults to {}.")
     ];
 

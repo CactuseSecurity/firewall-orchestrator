@@ -6,13 +6,16 @@ using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using System.Collections;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
-    internal class RuleExpiryCheckTest
+    internal partial class RuleExpiryCheckTest
     {
+        private const int kRegexTimeoutMilliseconds = 1000;
+
         /// <summary>
         /// Ensures the expiry query loads the owner data needed for recipient resolution.
         /// </summary>
@@ -21,6 +24,26 @@ namespace FWO.Test
         {
             Assert.That(RuleQueries.getTimeBasedRulesByOwner, Does.Match(
                 @"owner\s*\{[^{}]*owner_responsibles\s*\{\s*dn\s+responsible_type\s*\}"));
+        }
+
+        /// <summary>
+        /// Ensures the expiry query skips disabled rules by filtering on the rule itself, not on the rule owner.
+        /// </summary>
+        [Test]
+        public void GetTimeBasedRulesByOwner_ExcludesDisabledRules()
+        {
+            string query = RuleQueries.getTimeBasedRulesByOwner;
+            Match ruleFilterStart = RuleFilterStartRegex().Match(query);
+            Assert.That(ruleFilterStart.Success, Is.True, "Could not find the rule filter in the query.");
+
+            string ruleOwnerFilterPart = query[..ruleFilterStart.Index];
+            string ruleFilter = ExtractBracedBlock(query, ruleFilterStart.Index + ruleFilterStart.Length - 1);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ruleFilter, Does.Match(@"rule_disabled\s*:\s*\{\s*_eq\s*:\s*false\s*\}"));
+                Assert.That(ruleOwnerFilterPart, Does.Not.Contain("rule_disabled"));
+            });
         }
 
         /// <summary>
@@ -565,6 +588,35 @@ namespace FWO.Test
                 EmailServerAddress = "127.0.0.1",
                 EmailPort = 1
             };
+        }
+
+        [GeneratedRegex(@"\brule\s*:\s*\{", RegexOptions.None, kRegexTimeoutMilliseconds)]
+        private static partial Regex RuleFilterStartRegex();
+
+        /// <summary>
+        /// Returns the brace-balanced block starting at the given opening brace.
+        /// </summary>
+        private static string ExtractBracedBlock(string text, int openingBraceIndex)
+        {
+            int depth = 0;
+            for (int index = openingBraceIndex; index < text.Length; ++index)
+            {
+                if (text[index] == '{')
+                {
+                    ++depth;
+                }
+                else if (text[index] == '}')
+                {
+                    --depth;
+                    if (depth == 0)
+                    {
+                        return text.Substring(openingBraceIndex, index - openingBraceIndex + 1);
+                    }
+                }
+            }
+
+            Assert.Fail("Could not find the closing '}' of the block.");
+            return string.Empty;
         }
 
         private sealed class RuleExpiryCheckTestApiConn : SimulatedApiConnection

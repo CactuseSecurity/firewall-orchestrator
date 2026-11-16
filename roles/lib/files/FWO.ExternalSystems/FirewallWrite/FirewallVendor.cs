@@ -19,7 +19,7 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// </summary>
     public static class FirewallVendors
     {
-        public const int kCheckPointR8x = 9;
+        public const int kCheckPointR8x = FWO.Data.DeviceTypeIds.kCheckPointR8x;
         public const int kFortiGate5ff = 10;
         public const int kFortiAdom5ff = 11;
         public const int kFortiManager5ff = 12;

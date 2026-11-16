@@ -11,7 +11,10 @@ namespace FWO.Middleware.Server.Services;
 /// </summary>
 public static class ApplicationAddressQueryBuilder
 {
-    private const string kEditableOwnersClaim = "x-hasura-editable-owners";
+    /// <summary>
+    /// JWT claim listing the ids of the applications a modeller may edit.
+    /// </summary>
+    public const string kEditableOwnersClaim = "x-hasura-editable-owners";
 
     /// <summary>
     /// Builds the variables selecting the applications visible to the caller, including paging. One application more

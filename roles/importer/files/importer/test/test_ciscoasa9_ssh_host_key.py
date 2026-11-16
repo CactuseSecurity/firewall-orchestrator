@@ -8,7 +8,7 @@ import fwo_globals
 import pytest
 from fw_modules.ciscoasa9 import fwcommon
 from fwo_const import ALERT_CODE_SSH_HOST_KEY_REJECTED
-from fwo_exceptions import SshHostKeyRejectedError
+from fwo_exceptions import FwoImporterError, SshHostKeyRejectedError
 from scrapli.exceptions import ScrapliAuthenticationFailed
 
 if TYPE_CHECKING:
@@ -181,3 +181,39 @@ def test_failing_alert_api_keeps_the_host_key_error(
 
     with pytest.raises(SshHostKeyRejectedError, match="add the key"):
         fwcommon._load_config_reporting_host_key(import_state, is_virtual_asa=False)  # pyright: ignore[reportPrivateUsage]
+
+
+@pytest.mark.parametrize("legacy_key_exchange", [False, True])
+def test_sha1_key_exchange_only_when_switched_on(
+    generic_driver: MagicMock,
+    known_hosts_file: str,
+    management_controller: ManagementController,
+    monkeypatch: pytest.MonkeyPatch,
+    legacy_key_exchange: bool,
+) -> None:
+    monkeypatch.setattr(fwo_globals, "verify_certs", True)
+    management_controller.ssh_legacy_key_exchange = legacy_key_exchange
+
+    fwcommon._connect_to_device(management_controller)  # pyright: ignore[reportPrivateUsage]
+
+    open_cmd: list[str] = generic_driver.call_args.kwargs["transport_options"]["open_cmd"]
+    assert (f"KexAlgorithms=+{fwcommon.LEGACY_SSH_KEY_EXCHANGE}" in open_cmd) is legacy_key_exchange
+    assert known_hosts_file
+
+
+def test_missing_key_exchange_names_the_setting(
+    generic_driver: MagicMock,
+    known_hosts_file: str,
+    management_controller: ManagementController,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(fwo_globals, "verify_certs", True)
+    generic_driver.return_value.open.side_effect = ScrapliAuthenticationFailed(
+        "No matching key exchange found for host, their offer: diffie-hellman-group14-sha1"
+    )
+
+    with pytest.raises(FwoImporterError) as raised:
+        fwcommon._connect_to_device(management_controller)  # pyright: ignore[reportPrivateUsage]
+
+    assert "Allow SHA-1 SSH key exchange" in str(raised.value)
+    assert known_hosts_file

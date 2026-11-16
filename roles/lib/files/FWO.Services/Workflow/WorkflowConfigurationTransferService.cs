@@ -221,7 +221,8 @@ namespace FWO.Services.Workflow
                 .Select(state => (object)new { from_state_id = state.FromStateId, derived_state_id = state.DerivedStateId }).ToList();
             List<object> transitionGroups = phase.TransitionGroups.Select((name, sortOrder) => (object)new
             {
-                transition_group_id = transitionGroupIds[name], sort_order = sortOrder
+                transition_group_id = transitionGroupIds[name],
+                sort_order = sortOrder
             }).ToList();
             await apiConnection.SendQueryAsync<object>(RequestQueries.addWorkflowConfigurationPhase, new
             {
@@ -231,6 +232,7 @@ namespace FWO.Services.Workflow
                 name = $"{configurationName}::{phase.TaskType}::{phase.Phase}",
                 active = phase.Active,
                 phaseVisibilityMode = phase.VisibilityMode.ToString(),
+                promotionMode = phase.PromotionMode.ToString(),
                 lowestInputState = phase.LowestInputState,
                 lowestStartState = phase.LowestStartState,
                 lowestEndState = phase.LowestEndState,
@@ -383,6 +385,7 @@ namespace FWO.Services.Workflow
                     Phase = mapping.Phase,
                     Active = mapping.PhaseMatrix.Active,
                     VisibilityMode = mapping.PhaseMatrix.VisibilityMode,
+                    PromotionMode = mapping.PhaseMatrix.PromotionMode,
                     LowestInputState = mapping.PhaseMatrix.LowestInputState,
                     LowestStartState = mapping.PhaseMatrix.LowestStartState,
                     LowestEndState = mapping.PhaseMatrix.LowestEndState,
@@ -534,6 +537,7 @@ namespace FWO.Services.Workflow
                         phase = phase.Phase,
                         active = phase.Active,
                         phase_visibility_mode = phase.VisibilityMode.ToString(),
+                        promotion_mode = phase.PromotionMode.ToString(),
                         lowest_input_state = phase.LowestInputState,
                         lowest_start_state = phase.LowestStartState,
                         lowest_end_state = phase.LowestEndState,

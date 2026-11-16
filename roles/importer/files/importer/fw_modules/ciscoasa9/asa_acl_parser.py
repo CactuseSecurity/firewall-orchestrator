@@ -4,6 +4,7 @@ Strict parser for ASA extended access-list entries.
 Every token of an entry must be understood. Unknown, truncated or unsupported syntax raises an
 AsaConfigParseError, which fails the import: a guessed meaning (e.g. "any" for an address that was not
 understood) could make the imported policy more permissive than the real one.
+
 """
 
 from __future__ import annotations
@@ -22,6 +23,8 @@ from fw_modules.ciscoasa9.asa_models import (
 from fwo_exceptions import FwoImporterError
 
 PORT_OPERATORS = ("eq", "neq", "lt", "gt", "range")
+# protocols with ports; ASA rejects source ports for all others
+PORT_PROTOCOLS = ("tcp", "udp", "sctp", "6", "17", "132")
 OPTION_KEYWORDS = ("log", "time-range", "inactive")
 ICMP_PROTOCOLS = ("icmp", "icmp6")
 ICMP_TYPE_NAMES = (
@@ -128,7 +131,8 @@ def parse_access_list_entry(
             [PORT | ICMP_TYPE] [log [LEVEL] [interval SECS] | log disable | log default] [time-range NAME] [inactive]
 
     Raises:
-        AsaConfigParseError: for unknown, truncated or unsupported syntax (e.g. interface addresses)
+        AsaConfigParseError: for unknown, truncated or unsupported syntax (e.g. interface addresses, neq source ports,
+            source ports of protocols without ports)
 
     """
     parts = line.split()
@@ -140,7 +144,7 @@ def parse_access_list_entry(
     protocol, pos = _parse_protocol(parts, pos + 1, protocol_groups, svc_objects, svc_obj_groups)
     service_group_names = {group.name for group in svc_obj_groups}
     src, pos = parse_endpoint(parts, pos)
-    src_port, pos = _parse_source_port(parts, pos, service_group_names)
+    src_port, pos = _parse_source_port(parts, pos, protocol, protocol_groups, service_group_names)
     dst, pos = parse_endpoint(parts, pos)
     dst_port, pos = _parse_destination_service(parts, pos, protocol)
     inactive, time_range = _parse_options(parts, pos)
@@ -150,11 +154,11 @@ def parse_access_list_entry(
         action="permit" if action == "permit" else "deny",
         protocol=protocol,
         src=src,
+        src_port=src_port,
         dst=dst,
         dst_port=dst_port,
         inactive=inactive,
         time_range=time_range,
-        src_port=src_port,
     )
 
 
@@ -224,16 +228,37 @@ def _parse_protocol(
     return EndpointKind(kind="protocol", value=keyword.lower()), pos + 1
 
 
-def _parse_source_port(parts: list[str], pos: int, service_group_names: set[str]) -> tuple[EndpointKind | None, int]:
+def _parse_source_port(
+    parts: list[str],
+    pos: int,
+    protocol: EndpointKind,
+    protocol_groups: list[AsaProtocolGroup],
+    service_group_names: set[str],
+) -> tuple[EndpointKind | None, int]:
     """Read an optional source port without consuming a destination network object-group."""
     if pos >= len(parts):
         return None, pos
     keyword = parts[pos].lower()
     if keyword in PORT_OPERATORS:
-        return parse_port_operator(parts, pos)
-    if keyword == "object-group" and pos + 1 < len(parts) and parts[pos + 1] in service_group_names:
-        return EndpointKind(kind="service-group", value=parts[pos + 1]), pos + 2
-    return None, pos
+        src_port, end = parse_port_operator(parts, pos)
+    elif keyword == "object-group" and pos + 1 < len(parts) and parts[pos + 1] in service_group_names:
+        src_port, end = EndpointKind(kind="service-group", value=parts[pos + 1]), pos + ENDPOINT_WITH_ARGUMENT_TOKENS
+    else:
+        return None, pos
+    if not _has_port_protocol(protocol, protocol_groups):
+        construct = " ".join(parts[pos:end])
+        raise AsaConfigParseError(f"source port '{construct}' requires protocol tcp, udp or sctp", pos)
+    return src_port, end
+
+
+def _has_port_protocol(protocol: EndpointKind, protocol_groups: list[AsaProtocolGroup]) -> bool:
+    """Ports exist only for tcp, udp and sctp; a protocol object-group qualifies if all its protocols do."""
+    if protocol.kind == "protocol":
+        return protocol.value in PORT_PROTOCOLS
+    if protocol.kind == "protocol-group":
+        group = next(group for group in protocol_groups if group.name == protocol.value)
+        return bool(group.protocols) and all(p.lower() in PORT_PROTOCOLS for p in group.protocols)
+    return False
 
 
 def _parse_destination_service(parts: list[str], pos: int, protocol: EndpointKind) -> tuple[EndpointKind, int]:

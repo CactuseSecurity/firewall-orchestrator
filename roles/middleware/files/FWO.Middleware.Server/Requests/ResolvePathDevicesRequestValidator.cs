@@ -39,7 +39,7 @@ public static class ResolvePathDevicesRequestValidator
             return result;
         }
 
-        ValidateIpInputs(request, result);
+        ValidateAddressLists(request, result);
         ValidateOptions(request.Options, configuredAlgorithmId, designatedZoneMatrixId, result);
         ValidateFilter(request.Options.Filter, result);
         AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.AdditionalData, ResolvePathDevicesRequestValidationSchema.kRootPath,
@@ -137,34 +137,34 @@ public static class ResolvePathDevicesRequestValidator
     /// <summary>
     /// Validates the source and destination lists.
     /// </summary>
-    private static void ValidateIpInputs(ResolvePathDevicesRequest request, RequestValidationErrorResponse result)
+    private static void ValidateAddressLists(ResolvePathDevicesRequest request, RequestValidationErrorResponse result)
     {
-        ValidateIpBlockList(request.Sources, ResolvePathDevicesRequestValidationSchema.kSourcesPath, result);
-        ValidateIpBlockList(request.Destinations, ResolvePathDevicesRequestValidationSchema.kDestinationsPath, result);
+        ValidateAddressList(request.Sources, ResolvePathDevicesRequestValidationSchema.kSourcesPath, result);
+        ValidateAddressList(request.Destinations, ResolvePathDevicesRequestValidationSchema.kDestinationsPath, result);
     }
 
     /// <summary>
     /// Rejects a missing, empty or oversized list and validates every entry under its own request path.
     /// </summary>
-    private static void ValidateIpBlockList(List<IpRangeOrNetworkRequest?>? ipBlocks, string path, RequestValidationErrorResponse result)
+    private static void ValidateAddressList(List<AddressInputRequest?>? addresses, string path, RequestValidationErrorResponse result)
     {
-        if (ipBlocks == null)
+        if (addresses == null)
         {
             result.Errors.Add(AggregatedRequestKeyValidation.BuildError(path, $"'{path}' is required."));
             return;
         }
-        if (ipBlocks.Count == 0)
+        if (addresses.Count == 0)
         {
             result.Errors.Add(AggregatedRequestKeyValidation.BuildError(path, $"'{path}' must not be empty."));
         }
-        if (ipBlocks.Count > ResolvePathDevicesRequestValidationSchema.kMaximumIpBlocksPerList)
+        if (addresses.Count > ResolvePathDevicesRequestValidationSchema.kMaximumIpBlocksPerList)
         {
             result.Errors.Add(AggregatedRequestKeyValidation.BuildError(
                 path, $"'{path}' must not exceed {ResolvePathDevicesRequestValidationSchema.kMaximumIpBlocksPerList} entries."));
         }
-        for (int index = 0; index < ipBlocks.Count; index++)
+        for (int index = 0; index < addresses.Count; index++)
         {
-            IpRangeOrNetworkRequestValidator.Validate(ipBlocks[index], $"{path}[{index}]", result);
+            AddressInputRequestValidator.Validate(addresses[index], $"{path}[{index}]", result);
         }
     }
 

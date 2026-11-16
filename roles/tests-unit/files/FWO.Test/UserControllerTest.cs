@@ -222,7 +222,7 @@ namespace FWO.Test
             {
                 LdapId = 2,
                 UserDn = "uid=newuser,dc=fworch,dc=internal",
-                Password = "password",
+                Password = "long-enough-password",
                 TenantId = 1
             });
 
@@ -245,7 +245,7 @@ namespace FWO.Test
             {
                 LdapId = 2,
                 UserDn = "uid=newuser,dc=fworch,dc=internal",
-                Password = "password",
+                Password = "long-enough-password",
                 TenantId = 1
             });
 
@@ -549,7 +549,7 @@ namespace FWO.Test
             {
                 LdapId = 2,
                 UserDn = "uid=newuser,ou=users,dc=fworch,dc=internal",
-                Password = "password",
+                Password = "long-enough-password",
                 Email = "new@test",
                 TenantId = 1
             });
@@ -585,7 +585,7 @@ namespace FWO.Test
             {
                 LdapId = 0,
                 UserDn = "uid=newuser,ou=users,dc=fworch,dc=internal",
-                Password = "password",
+                Password = "long-enough-password",
                 TenantId = 1
             });
 
@@ -764,7 +764,7 @@ namespace FWO.Test
             int result = await controller.Add(new UserAddParameters
             {
                 UserDn = "uid=newuser,ou=users,dc=fworch,dc=internal",
-                Password = "password",
+                Password = "long-enough-password",
                 TenantId = 1
             });
 
@@ -792,7 +792,7 @@ namespace FWO.Test
             {
                 LdapId = kOtherLdapId,
                 UserDn = "uid=newuser,ou=users,dc=fworch,dc=internal",
-                Password = "password",
+                Password = "long-enough-password",
                 TenantId = 1
             });
 
@@ -827,6 +827,52 @@ namespace FWO.Test
             Assert.That(apiConnection.ReturnIdQueryCount, Is.EqualTo(1));
             Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.updateUserPasswordChange));
             Assert.That(ldapClient.ModifyCalls, Has.Count.EqualTo(1));
+        }
+
+        /// <summary>
+        /// The password policy is enforced by the middleware, not only by the UI (fwo-ui-actionfilter-002).
+        /// </summary>
+        [Test]
+        public async Task PasswordEndpointsRejectPasswordsViolatingThePolicy()
+        {
+            RecordingLdapClient ldapClient = new();
+            UiUser[] users = [CreateUser(42)];
+            UserControllerTestApiConnection apiConnection = new() { Users = users };
+            UserController controller = CreateController(
+                new List<Ldap> { CreateWritableLdap(2, ldapClient) },
+                apiConnection,
+                PrincipalWithRoles(Roles.Admin));
+
+            int addResult = await controller.Add(new UserAddParameters
+            {
+                LdapId = 2,
+                UserDn = "uid=newuser,ou=users,dc=fworch,dc=internal",
+                Password = "short",
+                TenantId = 1
+            });
+            ActionResult<string> changeResult = await controller.ChangePassword(new UserChangePasswordParameters
+            {
+                UserId = 42,
+                LdapId = 2,
+                OldPassword = "old-password",
+                NewPassword = "short"
+            });
+            ActionResult<string> resetResult = await controller.ResetPassword(new UserResetPasswordParameters
+            {
+                UserId = 42,
+                LdapId = 2,
+                NewPassword = "short"
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(addResult, Is.Zero);
+                Assert.That(changeResult.Value, Is.Not.Empty);
+                Assert.That(resetResult.Result, Is.TypeOf<ObjectResult>());
+                Assert.That(ldapClient.AddedEntries, Is.Empty);
+                Assert.That(ldapClient.ModifyCalls, Is.Empty);
+                Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.updateUserPasswordChange));
+            });
         }
 
         [Test]

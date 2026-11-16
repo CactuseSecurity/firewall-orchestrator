@@ -103,7 +103,8 @@
                             </div>
                         </div>
                     }
-                    else if(WfHandler.ActImplTask.TaskType == WfTaskType.group_create.ToString())
+                    else if(WfHandler.ActImplTask.TaskType == WfTaskType.group_create.ToString()
+                        || WfHandler.ActImplTask.TaskType == WfTaskType.group_modify.ToString())
                     {
                         <div class="col-sm-6">
                             <div class="form-group row">
@@ -179,7 +180,8 @@
                 {
                     <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
                 }
-                else if(WfHandler.ActImplTask.TaskType == WfTaskType.group_create.ToString())
+                else if(WfHandler.ActImplTask.TaskType == WfTaskType.group_create.ToString()
+                    || WfHandler.ActImplTask.TaskType == WfTaskType.group_modify.ToString())
                 {
                     <div class="col-sm-4 mt-2">
                         @if (WfHandler.EditImplTaskMode)
@@ -222,10 +224,9 @@
                 <div class="form-group row mt-2">
                     <div class="col-sm-1">
                         <label class="col-form-label col-form-label-sm">@(userConfig.GetText("comments")):</label>
-                        @if(WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode)
+                        @if((WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode) && !WfHandler.ReadOnlyMode)
                         {
-                            @* read-only users follow the phase, but cannot comment *@
-                            <button type="button" class="btn btn-sm btn-success" disabled="@WfHandler.ReadOnlyMode" @onclick:preventDefault @onclick="InitAddComment">
+                            <button type="button" class="btn btn-sm btn-success" @onclick:preventDefault @onclick="InitAddComment">
                                 @(DisplayService.DisplayButton(userConfig, "add_comment", Icons.Add))</button>
                         }
                     </div>
@@ -242,7 +243,7 @@
             </div>
             <div class="d-flex flex-fill justify-content-center px-4">
                 <ConfiguredTaskActions WfHandler="WfHandler" OfferedActions="offeredActions"
-                    AllowStateChangingActions="@(!WfHandler.ReadOnlyMode && (WfHandler.EditImplTaskMode || WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode))"
+                    AllowStateChangingActions="@(!WfHandler.ReadOnlyMode && Phase != WorkflowPhases.request && (WfHandler.EditImplTaskMode || WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode))"
                     Target="WfHandler.ActImplTask"
                     Scope="WfObjectScopes.ImplementationTask" Owner="actOwner"
                     TicketId="WfHandler.ActReqTask.TicketId" AfterAction="AfterConfiguredAction"
@@ -261,7 +262,8 @@
                             </NotAuthorized>
                         </ExecutionModeAuthorizeView>
                     }
-                    else if ((WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode) && !newOwnerAssigned)
+                    else if ((WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode)
+                        && WfHandler.CanPromoteTaskInCurrentPhase() && !newOwnerAssigned)
                     {
                         <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}")">
                             <Authorized>

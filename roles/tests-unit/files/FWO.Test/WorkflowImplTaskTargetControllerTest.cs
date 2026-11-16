@@ -28,14 +28,19 @@ internal class WorkflowImplTaskTargetControllerTest
     private const int kSuperManagementId = 20;
     private const int kFirstSubManagementId = 21;
     private const int kSecondSubManagementId = 22;
+    private const int kStandaloneManagementId = 30;
+    private const string kStandaloneName = "sms";
     private const long kGlobalNodeId = 1;
     private const string kFirstSubName = "domain-a";
     private const string kSecondSubName = "domain-b";
     private const string kVisibleManagementsClaim = "x-hasura-visible-managements";
     private const string kWholeHierarchyVisible = "{20,21,22}";
+    private const string kSuperAndFirstSubVisible = "{20,21}";
+    private const string kSuperAndSecondSubVisible = "{20,22}";
 
     private static readonly List<string> kControllerRoutes = ["api/workflow"];
     private static readonly List<int> kBothSubManagements = [kFirstSubManagementId, kSecondSubManagementId];
+    private static readonly List<int> kBothSubManagementsAndStandalone = [kFirstSubManagementId, kSecondSubManagementId, kStandaloneManagementId];
     private static readonly List<int> kSecondSubManagementOnly = [kSecondSubManagementId];
     private static readonly List<int> kFirstSubManagementOnly = [kFirstSubManagementId];
     private static readonly List<string> kTimeObjectPathOnly = [GetImplTaskTargetsValidationSchema.kIsTimeObjectPath];
@@ -49,7 +54,6 @@ internal class WorkflowImplTaskTargetControllerTest
     private static readonly List<string> kAdminRole = [Roles.Admin];
     private static readonly List<string> kAllInvalidKeyPaths =
     [
-        GetImplTaskTargetsValidationSchema.kManagementIdPath,
         "unknownRoot",
         "options.unknownOption",
         "options.filter.unknownFilter"
@@ -98,12 +102,12 @@ internal class WorkflowImplTaskTargetControllerTest
     [Test]
     public async Task GetImplTaskTargetsOmitsTheNamesOfTargetsNotVisibleToTheCaller()
     {
-        WorkflowImplTaskTargetController controller = CreateController(CreateApi(), Planner(kFirstSubManagementId));
+        WorkflowImplTaskTargetController controller = CreateController(CreateApi(), Principal(kPlannerRole, kSuperAndFirstSubVisible));
 
-        ActionResult<GetImplTaskTargetsResponse> result = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest { ManagementId = kFirstSubManagementId });
+        ActionResult<GetImplTaskTargetsResponse> result = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest { ManagementId = kSuperManagementId });
         ActionResult<GetImplTaskTargetsResponse> byHiddenName = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest
         {
-            ManagementId = kFirstSubManagementId,
+            ManagementId = kSuperManagementId,
             Options = new GetImplTaskTargetsOptions { Filter = new ImplTaskTargetFilter { Name = kSecondSubName } }
         });
 
@@ -115,6 +119,44 @@ internal class WorkflowImplTaskTargetControllerTest
             Assert.That(response.Targets[1].Name, Is.Empty);
             Assert.That(OkResponse(byHiddenName).Targets, Is.Empty);
         });
+    }
+
+    [Test]
+    public async Task GetImplTaskTargetsWithoutManagementReturnsTheTargetsOfAllManagementsToTheAdmin()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        api.Managements.Add(new Management { Id = kStandaloneManagementId, Name = kStandaloneName, DeviceType = new DeviceType { Id = 9 } });
+        WorkflowImplTaskTargetController controller = CreateController(api, Principal(kAdminRole, ""));
+
+        ActionResult<GetImplTaskTargetsResponse> omitted = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest());
+        ActionResult<GetImplTaskTargetsResponse> explicitNull = await controller.GetImplTaskTargets(
+            JsonSerializer.Deserialize<GetImplTaskTargetsRequest>("{\"managementId\":null}")!);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(OkResponse(omitted).Targets.Select(target => target.Id), Is.EqualTo(kBothSubManagementsAndStandalone));
+            Assert.That(OkResponse(explicitNull).Targets.Select(target => target.Id), Is.EqualTo(kBothSubManagementsAndStandalone));
+        });
+    }
+
+    [Test]
+    public async Task GetImplTaskTargetsWithoutManagementIsForbiddenForOtherRoles()
+    {
+        WorkflowImplTaskTargetController controller = CreateController(CreateApi(), Principal(kPlannerRole, kWholeHierarchyVisible));
+
+        ActionResult<GetImplTaskTargetsResponse> result = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest());
+
+        Assert.That(result.Result, Is.InstanceOf<ForbidResult>(), "only the admin may ask for the targets of all managements");
+    }
+
+    [TestCase(0)]
+    [TestCase(-1)]
+    public void ValidationRejectsANonPositiveManagementId(int managementId)
+    {
+        GetImplTaskTargetsRequest request = new() { ManagementId = managementId };
+
+        Assert.That(GetImplTaskTargetsRequestValidator.Validate(request, kMaxLimit).Errors.Single().Path,
+            Is.EqualTo(GetImplTaskTargetsValidationSchema.kManagementIdPath));
     }
 
     [Test]
@@ -251,9 +293,9 @@ internal class WorkflowImplTaskTargetControllerTest
     {
         InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
         api.Managements.Single(management => management.Id == kFirstSubManagementId).Name = "aa-hidden";
-        WorkflowImplTaskTargetController controller = CreateController(api, Planner(kSecondSubManagementId));
+        WorkflowImplTaskTargetController controller = CreateController(api, Principal(kPlannerRole, kSuperAndSecondSubVisible));
 
-        ActionResult<GetImplTaskTargetsResponse> result = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest { ManagementId = kSecondSubManagementId });
+        ActionResult<GetImplTaskTargetsResponse> result = await controller.GetImplTaskTargets(new GetImplTaskTargetsRequest { ManagementId = kSuperManagementId });
 
         GetImplTaskTargetsResponse response = OkResponse(result);
         Assert.Multiple(() =>

@@ -340,6 +340,61 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildFlowCreationPayloads_UsesRequestTaskTimeObjectNameWhenAvailable()
+        {
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            task.TargetBeginDate = new DateTime(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc);
+            task.TargetEndDate = new DateTime(2026, 7, 9, 23, 59, 0, DateTimeKind.Utc);
+            task.Elements.Add(new WfReqElement
+            {
+                Field = ElemFieldType.time.ToString(),
+                Name = "maintenance-window"
+            });
+
+            FlowCreationPayload payload = FlowDbCreator.BuildFlowCreationPayloads(task, WfObjectScopes.RequestTask, null, null).Single();
+
+            Assert.That(payload.TimeName, Is.EqualTo("maintenance-window"));
+        }
+
+        [Test]
+        public void BuildFlowCreationPayloads_UsesCurrentReferencedTicketTimeObjectData()
+        {
+            DateTime currentBegin = new(2026, 8, 1, 8, 0, 0, DateTimeKind.Utc);
+            DateTime currentEnd = new(2026, 8, 1, 17, 0, 0, DateTimeKind.Utc);
+            WfReqTask accessTask = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            accessTask.TargetBeginDate = currentBegin.AddDays(-1);
+            accessTask.TargetEndDate = currentEnd.AddDays(-1);
+            accessTask.Elements.Add(new WfReqElement
+            {
+                Field = ElemFieldType.time.ToString(),
+                ObjectTaskId = 12,
+                Name = "old-name",
+                StartTime = accessTask.TargetBeginDate,
+                EndTime = accessTask.TargetEndDate
+            });
+            WfReqTask objectTask = CreateObjectTask(12, WfTaskType.object_create,
+                new WfReqElement
+                {
+                    Id = 120,
+                    Field = ElemFieldType.time.ToString(),
+                    Name = "current-name",
+                    StartTime = currentBegin,
+                    EndTime = currentEnd
+                });
+            WfTicket ticket = new() { Id = 7, Tasks = [accessTask, objectTask] };
+
+            FlowCreationPayload payload = FlowDbCreator.BuildFlowCreationPayloads(
+                ticket, WfObjectScopes.Ticket, null, ticket.Id).Single(item => item.TaskType == WfTaskType.access.ToString());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(payload.TimeStart, Is.EqualTo(currentBegin));
+                Assert.That(payload.TimeEnd, Is.EqualTo(currentEnd));
+                Assert.That(payload.TimeName, Is.EqualTo("current-name"));
+            });
+        }
+
+        [Test]
         public void BuildFlowCreationPayloads_NormalizesTargetDatesAtConfiguredPrecision()
         {
             WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
@@ -1214,7 +1269,7 @@ namespace FWO.Test
             List<FlowCreationPayload> endPayloads = FlowDbCreator.BuildFlowCreationPayloads(endOnlyTask, WfObjectScopes.RequestTask, null, null);
 
             Assert.That(beginPayloads[0].TimeName, Is.EqualTo(">= 2026-06-08 00:00:00"));
-            Assert.That(endPayloads[0].TimeName, Is.EqualTo("<= 2026-07-09 23:59:00"));
+            Assert.That(endPayloads[0].TimeName, Is.EqualTo("< 2026-07-09 23:59:00"));
         }
 
         [Test]

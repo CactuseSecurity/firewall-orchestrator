@@ -184,5 +184,73 @@ assert_settings_case "unreadable settings file rejected"               1  none  
 assert_settings_case "FWORCH_LOCAL_SETTINGS honoured"                  0  file      present     set
 assert_settings_case "FWORCH_LOCAL_SETTINGS pointing nowhere fails"    1  none      present     set_missing
 
+# assert_sudoers_case <name> <expected_rc> <visudo_rc> <expected_file: yes|no>
+# Drives install_temporary_sudoers with stubbed sudo and visudo and a temporary sudoers
+# directory: the entry must only be installed after visudo accepted it, with mode 0440,
+# and the cleanup must remove it.
+assert_sudoers_case() {
+    local name="$1" expected_rc="$2" visudo_rc="$3" expected_file="$4"
+    local bin dir rc installed="no" mode="" removed="yes"
+
+    bin="$(mktemp -d)"
+    dir="$(mktemp -d)"
+    printf '#!/usr/bin/env bash\nexit %s\n' "$visudo_rc" >"$bin/visudo"
+    # runs the command without privileges, dropping the root ownership that needs them
+    cat >"$bin/sudo" <<'STUB'
+#!/usr/bin/env bash
+args=()
+while [[ $# -gt 0 ]]; do
+    if [[ "$1" == "-o" || "$1" == "-g" ]]; then shift 2; continue; fi
+    args+=("$1"); shift
+done
+exec "${args[@]}"
+STUB
+    chmod +x "$bin/visudo" "$bin/sudo"
+
+    (
+        PATH="$bin:$PATH"
+        # shellcheck disable=SC1090
+        source "$launcher"
+        trap - EXIT
+        sudoers_dir="$dir"
+        install_temporary_sudoers
+        rc=$?
+        if compgen -G "$dir/fworch-ansible-*" >/dev/null; then
+            printf 'installed %s\n' "$(stat -c '%a' "$dir"/fworch-ansible-*)"
+        fi
+        cleanup
+        if compgen -G "$dir/fworch-ansible-*" >/dev/null; then
+            printf 'left\n'
+        fi
+        exit "$rc"
+    ) >"$dir.out" 2>/dev/null
+    rc=$?
+
+    grep -q '^installed' "$dir.out" && installed="yes"
+    mode="$(sed -n 's/^installed //p' "$dir.out")"
+    grep -q '^left' "$dir.out" && removed="no"
+
+    local ok=1
+    [[ "$rc" -eq "$expected_rc" ]] || ok=0
+    [[ "$installed" == "$expected_file" ]] || ok=0
+    [[ "$installed" == "no" || "$mode" == "440" ]] || ok=0
+    [[ "$removed" == "yes" ]] || ok=0
+
+    if [[ "$ok" -eq 1 ]]; then
+        printf 'PASS  %s\n' "$name"
+        pass=$((pass + 1))
+    else
+        printf 'FAIL  %s (rc=%s want %s; installed=%s want %s; mode=%s; removed=%s)\n' \
+            "$name" "$rc" "$expected_rc" "$installed" "$expected_file" "$mode" "$removed"
+        fail=$((fail + 1))
+    fi
+
+    rm -rf "$bin" "$dir" "$dir.out"
+    return 0
+}
+
+assert_sudoers_case "sudoers entry is installed with mode 0440 and removed again" 0 0 yes
+assert_sudoers_case "sudoers entry rejected by visudo is never installed"        1 1 no
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ "$fail" -eq 0 ]]

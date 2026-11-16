@@ -24,6 +24,13 @@
         </div>
         <EditNotifications Client="NotificationClient.ImportChange" />
         <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5484a"))">
+            <h5>
+                @(userConfig.GetText("nat_change_notification_sub"))
+            </h5>
+        </div>
+        <EditNotifications Client="NotificationClient.ImportNatChange" />
+        <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5483"))">
             <label for="cbx_change_notify_active" class="col-form-label col-sm-4">@(userConfig.GetText("impChangeNotifyActive")):</label>
             <div class="col-sm-1">

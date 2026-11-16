@@ -18,6 +18,7 @@ namespace FWO.Services.Modelling
     public partial class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler,
             UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi)
     {
+        private const int kTicketIdChunkSize = 500;
         private readonly ModellingNamingConvention namingConvention = ModellingNamingConvention.FromJson(userConfig.ModNamingConvention);
         private readonly RuleRecognitionOption ruleRecognitionOption = string.IsNullOrEmpty(userConfig.RuleRecognitionOption) ? new() :
             JsonSerializer.Deserialize<RuleRecognitionOption>(userConfig.RuleRecognitionOption) ?? new();
@@ -253,6 +254,10 @@ namespace FWO.Services.Modelling
             return TaskList;
         }
 
+        /// <summary>
+        /// Describes the newest done request ticket of the owner. Reads ticket states in descending batches,
+        /// without task metadata, and stops as soon as a batch contains a done ticket.
+        /// </summary>
         public async Task<string> GetSuccessfulRequestState()
         {
             try
@@ -262,18 +267,20 @@ namespace FWO.Services.Modelling
                 {
                     return userConfig.GetText("never_requested");
                 }
-                else
+                List<long> distinctTicketIds = [.. ticketIds.Select(ticketId => ticketId.Id).Distinct()];
+                // getLatestTicketIds returns the newest ticket first.
+                foreach (IEnumerable<long> ticketIdChunk in distinctTicketIds.Chunk(kTicketIdChunkSize))
                 {
-                    foreach (var ticketId in ticketIds)
+                    List<WfTicket> tickets = await apiConnection.SendQueryAsync<List<WfTicket>>(
+                        RequestQueries.getTicketStatesByIds, new { ids = ticketIdChunk });
+                    WfTicket? newestDoneTicket = tickets.OrderByDescending(ticket => ticket.Id)
+                        .FirstOrDefault(ticket => extStateHandler.IsDone(ticket.StateId));
+                    if (newestDoneTicket != null)
                     {
-                        WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketId.Id });
-                        if (extStateHandler.IsDone(intTicket.StateId))
-                        {
-                            return $"{userConfig.GetText("last_successful")}: {intTicket.CreationDate.ToString("yyyy-MM-dd HH:mm:ss")}, {userConfig.GetText("implemented")}: {intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss")}, {intTicket.Requester?.Name}";
-                        }
+                        return $"{userConfig.GetText("last_successful")}: {newestDoneTicket.CreationDate.ToString("yyyy-MM-dd HH:mm:ss")}, {userConfig.GetText("implemented")}: {newestDoneTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss")}, {newestDoneTicket.Requester?.Name}";
                     }
-                    return userConfig.GetText("never_succ_req");
                 }
+                return userConfig.GetText("never_succ_req");
             }
             catch (Exception exception)
             {

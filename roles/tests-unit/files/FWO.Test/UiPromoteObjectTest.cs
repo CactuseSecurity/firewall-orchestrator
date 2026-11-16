@@ -147,6 +147,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task PromoteObject_SingleTransitionWithoutComment_ShowsProgressWhileSaving()
+        {
+            WfStatefulObject statefulObject = new() { StateId = 0 };
+            PromoteObject component = new();
+            TaskCompletionSource saveStarted = new();
+            TaskCompletionSource allowSave = new();
+            SetMember(component, nameof(PromoteObject.Promote), true);
+            SetMember(component, nameof(PromoteObject.StatefulObject), statefulObject);
+            SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles.Add(Roles.Admin);
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, nameof(PromoteObject.StateMatrix),
+                new StateMatrix { Matrix = new() { [0] = new List<int> { 5 } } });
+            SetMember(component, nameof(PromoteObject.Save), (Func<WfStatefulObject, Task>)(async _ =>
+            {
+                saveStarted.SetResult();
+                await allowSave.Task;
+            }));
+
+            Task promotion = InvokePrivateTask(component, "OnParametersSetAsync");
+            await saveStarted.Task;
+
+            Assert.That(GetMember<bool>(component, "workInProgress"), Is.True);
+
+            allowSave.SetResult();
+            await promotion;
+            Assert.That(GetMember<bool>(component, "workInProgress"), Is.False);
+        }
+
+        [Test]
         public async Task PromoteObject_MultipleTransitions_ShowsDialogWithoutSaving()
         {
             WfStatefulObject statefulObject = new() { StateId = 0 };

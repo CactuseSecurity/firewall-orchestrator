@@ -42,6 +42,7 @@ from fw_modules.ciscoasa9.asa_parser_functions import (
     parse_service_object_group_block,
 )
 from fwo_log import FWOLogger
+from fwo_redaction import REDACTED_VALUE
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -155,7 +156,8 @@ def _handle_hostname(match: re.Match[str], _line: str, _lines: list[str], i: int
 
 
 def _handle_enable_password(match: re.Match[str], _line: str, _lines: list[str], i: int, state: _ParserState) -> int:
-    state.enable_password = AsaEnablePassword(password=match.group(1), encryption_function=match.group(2))
+    # The enable password hash is not needed for the import and would end up in the native config dump.
+    state.enable_password = AsaEnablePassword(password=REDACTED_VALUE, encryption_function=match.group(2))
     return i + 1
 
 

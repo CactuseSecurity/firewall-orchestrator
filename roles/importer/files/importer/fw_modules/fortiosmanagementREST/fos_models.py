@@ -320,21 +320,24 @@ class SvcObjGroup(BaseModel):
 
 
 class UserObjLocal(BaseModel):
-    """user/local - Local user objects"""
+    """
+    user/local - Local user objects
+
+    Credential fields (passwd, fortitoken, ppk-secret) are deliberately not modelled, so that they are dropped
+    when parsing and never reach the native config or its debug dump.
+    """
 
     name: str
     q_origin_key: str
     id_: int = Field(alias="id")
     status: str
     type: str  # Seen: "password", likely also: "radius", "ldap", "tacacs+"
-    passwd: str | None = None
     ldap_server: str | None = Field(None, alias="ldap-server")
     radius_server: str | None = Field(None, alias="radius-server")
     tacacs_server: str | None = Field(None, alias="tacacs+-server")
     two_factor: str | None = Field(None, alias="two-factor")
     two_factor_authentication: str | None = Field(None, alias="two-factor-authentication")
     two_factor_notification: str | None = Field(None, alias="two-factor-notification")
-    fortitoken: str | None = None
     email_to: str | None = Field(None, alias="email-to")
     sms_server: str | None = Field(None, alias="sms-server")
     sms_custom_server: str | None = Field(None, alias="sms-custom-server")
@@ -345,13 +348,16 @@ class UserObjLocal(BaseModel):
     workstation: str | None = None
     auth_concurrent_override: str | None = Field(None, alias="auth-concurrent-override")
     auth_concurrent_value: int | None = Field(None, alias="auth-concurrent-value")
-    ppk_secret: str | None = Field(None, alias="ppk-secret")
     ppk_identity: str | None = Field(None, alias="ppk-identity")
     username_sensitivity: str | None = Field(None, alias="username-sensitivity")
 
 
 class UserObjGroup(BaseModel):
-    """user/group - User groups"""
+    """
+    user/group - User groups
+
+    Guest credentials (password and the guest account list) are deliberately not modelled, see UserObjLocal.
+    """
 
     name: str
     q_origin_key: str
@@ -367,7 +373,6 @@ class UserObjGroup(BaseModel):
 
     # Guest user specific fields
     user_id: str | None = Field(None, alias="user-id")
-    password: str | None = None
     user_name: str | None = Field(None, alias="user-name")
     sponsor: str | None = None
     company: str | None = None
@@ -379,7 +384,6 @@ class UserObjGroup(BaseModel):
     expire: int | None = None
     max_accounts: int | None = Field(None, alias="max-accounts")
     multiple_guest_add: str | None = Field(None, alias="multiple-guest-add")
-    guest: list[Any] = []
 
 
 # ============================================================================

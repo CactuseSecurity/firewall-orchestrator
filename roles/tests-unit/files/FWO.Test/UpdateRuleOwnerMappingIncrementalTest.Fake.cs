@@ -44,6 +44,14 @@ namespace FWO.Test
             /// <summary>Alerts still waiting for somebody to acknowledge them.</summary>
             public List<string> OpenAlerts => openAlerts.Select(alert => alert.Description ?? "").ToList();
             public long? FailRuleChangeLookupForImport { get; set; }
+
+            /// <summary>Fails writing the new mappings of a full reinitialize, after the old ones were marked removed.</summary>
+            public bool FailInsertRuleOwners { get; set; }
+
+            /// <summary>Whether the rollback of a failed full reinitialize was sent.</summary>
+            public bool RollbackSent { get; private set; }
+
+            private List<RuleOwner> removedByFullReinitialize = [];
             public long? FailCompletionForImport { get; set; }
 
             /// <summary>
@@ -298,7 +306,18 @@ namespace FWO.Test
                 {
                     // returning delivers the state that was just replaced, like the real mutation does
                     result = new UpdateRuleOwner { AffectedRows = activeRuleOwners.Count, Returning = activeRuleOwners.Select(Clone).ToList() };
+                    removedByFullReinitialize = activeRuleOwners.Select(Clone).ToList();
                     activeRuleOwners.Clear();
+                    return true;
+                }
+
+                if (query == OwnerQueries.rollbackRuleOwnerReinitialize)
+                {
+                    long controlId = ReadLong(variables, "controlId");
+                    RollbackSent = true;
+                    activeRuleOwners.RemoveAll(ruleOwner => ruleOwner.Created == controlId);
+                    activeRuleOwners.AddRange(removedByFullReinitialize);
+                    result = new object();
                     return true;
                 }
 
@@ -310,6 +329,10 @@ namespace FWO.Test
 
                 if (query == OwnerQueries.insertRuleOwners)
                 {
+                    if (FailInsertRuleOwners)
+                    {
+                        throw new InvalidOperationException("Simulated API failure while inserting rule owners.");
+                    }
                     InsertRuleOwners(variables);
                     return true;
                 }

@@ -1,0 +1,11 @@
+mutation updateRequestElementObjectTaskId(
+  $id: bigint!
+  $objectTaskId: bigint
+) {
+  update_request_reqelement_by_pk(
+    pk_columns: { id: $id }
+    _set: { object_task_id: $objectTaskId }
+  ) {
+    UpdatedIdLong: id
+  }
+}

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 using FWO.Basics;
 using Newtonsoft.Json;
@@ -32,6 +33,36 @@ namespace FWO.Data.Modelling
 
         [JsonProperty("changer_id"), JsonPropertyName("changer_id")]
         public int? ChangerId { get; set; }
+
+        /// <summary>
+        /// User record of <see cref="ChangerId"/>, when the query selects it. Its name is the authenticated
+        /// author, unlike <see cref="Changer"/>, which is free text of the writer.
+        /// </summary>
+        [JsonProperty("changer_user"), JsonPropertyName("changer_user")]
+        public UiUser? ChangerUser { get; set; }
+
+        /// <summary>
+        /// Name of the author for display, see <see cref="GetAuthenticatedChangerName"/>.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public string ChangerName => GetAuthenticatedChangerName();
+
+        /// <summary>
+        /// Name of the author. A row with a <see cref="ChangerId"/> was written by that user, so its stored
+        /// <see cref="Changer"/> is the writer's free text and is never shown: the author is the login name of
+        /// that user, or the user id when the reader may not see that user (e.g. a user of another tenant).
+        /// Only a row without a user id, written by automation, is named by its stored <see cref="Changer"/>.
+        /// </summary>
+        /// <returns>The author name, empty when none is recorded.</returns>
+        public string GetAuthenticatedChangerName()
+        {
+            if (ChangerId == null)
+            {
+                return Changer ?? "";
+            }
+            string? resolvedName = ChangerUser?.Name;
+            return string.IsNullOrEmpty(resolvedName) ? ChangerId.Value.ToString(CultureInfo.InvariantCulture) : resolvedName;
+        }
 
         [JsonProperty("change_time"), JsonPropertyName("change_time")]
         public DateTime? ChangeTime { get; set; }

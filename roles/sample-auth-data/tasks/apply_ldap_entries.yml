@@ -1,0 +1,33 @@
+# Apply one record at a time so an existing entry cannot skip later records in the LDIF.
+# Result 68 means an entry exists; result 20 means a membership value exists.
+# The records may contain sample passwords, so their output stays hidden and failures are reported below.
+- name: apply individual sample LDAP entries
+  command: "ldapmodify {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x"
+  args:
+    stdin: "{{ ldap_entry }}"
+  loop: >-
+    {{ lookup('template', 'tree_' ~ ldap_tree_name ~ '.ldif.j2')
+       | regex_findall('(?m)^dn: .*(?:\n[^\n]+)*') }}
+  loop_control:
+    loop_var: ldap_entry
+    index_var: ldap_entry_index
+  register: ldap_entry_result
+  failed_when: false
+  changed_when: ldap_entry_result.rc == 0
+  no_log: true
+  become: true
+
+- name: report failed sample LDAP entries without their attribute values
+  fail:
+    msg: >-
+      {% for entry_result in ldap_entry_results_failed -%}
+      {{ ldap_tree_name }} record {{ entry_result.ldap_entry_index + 1 }}
+      ({{ entry_result.ldap_entry.splitlines() | first }}) failed with LDAP result {{ entry_result.rc }}:
+      {{ entry_result.stderr | default(entry_result.msg | default('')) }};
+      {% endfor %}
+  vars:
+    ldap_entry_results_failed: >-
+      {{ ldap_entry_result.results
+         | rejectattr('rc', 'in', [0, ldap_existing_result_code | int])
+         | list }}
+  when: ldap_entry_results_failed | length > 0

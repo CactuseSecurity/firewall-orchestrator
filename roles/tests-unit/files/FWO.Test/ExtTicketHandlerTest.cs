@@ -83,6 +83,8 @@ namespace FWO.Test
         internal readonly static string namingConvention = "{\"networkAreaRequired\":true,\"useAppPart\":true,\"fixedPartLength\":4,\"freePartLength\":3,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\",\"applicationZone\":\"AZ\",\"appServerPrefix\":\"host_\",\"networkPrefix\":\"net_\",\"ipRangePrefix\":\"range_\"}";
 
         readonly static List<ExternalTicketSystem> ticketSystemList = [ticketSystem];
+        // the SecureChange templates are device specific settings; the tests use the templates of the test ticket system
+        static readonly FixedSCTemplateSource TestSCTemplates = new(ticketSystem.Templates);
         readonly SimulatedUserConfig userConfig = new()
         {
             ExternalRequestWaitCycles = 3,
@@ -165,7 +167,7 @@ namespace FWO.Test
         {
             SCTicket ticket = new(ticketSystem, CertificateChecks);
             await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
-            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null) { SCTemplateSource = TestSCTemplates };
             ExternalRequest oldRquestGrp = new() { ExtRequestType = ticket.GetTaskTypeAsString(grpCreateReqTasks[0]), ExtRequestContent = ticket.TicketText };
             ExternalRequest oldRquestAcc = new() { ExtRequestType = ticket.GetTaskTypeAsString(accessReqTasks[0]), ExtRequestContent = ticket.TicketText };
 
@@ -184,7 +186,7 @@ namespace FWO.Test
         [TestCase("(NETWORKOBJECTMODIFY, UPDATE)")]
         public void GetWaitCyclesWaitsForAccessRequestAfterGroupChange(string oldRequestType)
         {
-            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null) { SCTemplateSource = TestSCTemplates };
             ExternalRequest oldRequest = new() { ExtRequestType = oldRequestType, ExtRequestContent = "{}" };
 
             ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRequest, ticketSystem));
@@ -195,7 +197,7 @@ namespace FWO.Test
         [TestCase(nameof(WfTaskType.group_modify))]
         public void GetWaitCyclesWaitsAfterGroupChangeWithNewObjects(string oldRequestType)
         {
-            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null) { SCTemplateSource = TestSCTemplates };
             ExternalRequest oldRequest = new() { ExtRequestType = oldRequestType, ExtRequestContent = "{\"object_updated_status\":\"NEW\"}" };
 
             ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(WfTaskType.group_modify.ToString(), oldRequest, ticketSystem));
@@ -207,7 +209,7 @@ namespace FWO.Test
         [TestCase(nameof(WfTaskType.group_modify), nameof(WfTaskType.rule_delete))]
         public void GetWaitCyclesWaitsForTufinRuleChangeAfterCheckPointGroupChange(string oldRequestType, string taskType)
         {
-            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null) { SCTemplateSource = TestSCTemplates };
             ExternalRequest oldRequest = new() { ExtRequestType = oldRequestType, ExtRequestContent = "{}" };
 
             ClassicAssert.AreEqual(3, extReqHandler.GetWaitCycles(taskType, oldRequest, ticketSystem));
@@ -217,7 +219,7 @@ namespace FWO.Test
         [TestCase(nameof(WfTaskType.rule_delete))]
         public void GetWaitCyclesDoesNotWaitForNonTufinRuleChangeAfterGroupChange(string taskType)
         {
-            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null) { SCTemplateSource = TestSCTemplates };
             ExternalRequest oldRequest = new() { ExtRequestType = nameof(WfTaskType.group_create), ExtRequestContent = "{}" };
 
             ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(taskType, oldRequest, checkPointTicketSystem));
@@ -228,7 +230,7 @@ namespace FWO.Test
         [TestCase(nameof(WfTaskType.rule_delete))]
         public void GetWaitCyclesDoesNotWaitForTufinRuleChangeAfterNonGroupChange(string taskType)
         {
-            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null) { SCTemplateSource = TestSCTemplates };
             ExternalRequest oldRequest = new() { ExtRequestType = nameof(WfTaskType.access), ExtRequestContent = "{}" };
 
             ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(taskType, oldRequest, ticketSystem));
@@ -240,7 +242,7 @@ namespace FWO.Test
         [TestCase("")]
         public void GetWaitCyclesDoesNotWaitAfterNonGroupChange(string oldRequestType)
         {
-            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null) { SCTemplateSource = TestSCTemplates };
             ExternalRequest oldRequest = new() { ExtRequestType = oldRequestType, ExtRequestContent = "{\"object_updated_status\":\"NEW\"}" };
 
             ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRequest, ticketSystem));
@@ -250,8 +252,8 @@ namespace FWO.Test
         public void GetWaitCyclesDoesNotWaitWithoutOldRequestOrConfiguredCycles()
         {
             SimulatedUserConfig noWaitConfig = new() { ExternalRequestWaitCycles = 0, ReqPriorities = reqPrios };
-            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null);
-            using ExternalRequestHandler noWaitHandler = new(noWaitConfig, apiConnection, null);
+            using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection, null) { SCTemplateSource = TestSCTemplates };
+            using ExternalRequestHandler noWaitHandler = new(noWaitConfig, apiConnection, null) { SCTemplateSource = TestSCTemplates };
             ExternalRequest oldRequest = new() { ExtRequestType = nameof(WfTaskType.group_create), ExtRequestContent = "{}" };
 
             ClassicAssert.AreEqual(0, extReqHandler.GetWaitCycles(WfTaskType.access.ToString(), null, ticketSystem));
@@ -314,7 +316,7 @@ namespace FWO.Test
 
             ExtTicketHandlerTestApiConn localApiConnection = new();
 
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
 
             await handler.HandleStateChange(new ExternalRequest
             {
@@ -369,7 +371,7 @@ namespace FWO.Test
 
             ExtTicketHandlerTestApiConn localApiConnection = new();
 
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
 
             ExternalRequest externalRequest = new()
             {
@@ -399,7 +401,7 @@ namespace FWO.Test
             };
             UserConfig localUserConfig = UserConfig.ForTextOnly(localGlobalConfig, registerOnChangeHandler: false);
 
-            using (ExternalRequestHandler externalRequestHandler = new(localUserConfig, apiConnection, null))
+            using (ExternalRequestHandler externalRequestHandler = new(localUserConfig, apiConnection, null) { SCTemplateSource = TestSCTemplates })
             {
             }
 
@@ -437,7 +439,7 @@ namespace FWO.Test
             ExtTicketHandlerTestApiConn.ResetTicketTasks();
             ExtTicketHandlerTestApiConn localApiConnection = new();
 
-            using ExternalRequestHandler externalRequestHandler = new(localUserConfig, localApiConnection, null);
+            using ExternalRequestHandler externalRequestHandler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
             ExternalRequest externalRequest = new()
             {
                 Id = 1,
@@ -584,7 +586,7 @@ namespace FWO.Test
                 OmitExtReqRequestedStateMapping = true
             };
 
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
 
             ExternalRequest externalRequest = new()
             {
@@ -613,7 +615,7 @@ namespace FWO.Test
             ExtTicketHandlerTestApiConn.ResetTicketTasks();
             ExtTicketHandlerTestApiConn localApiConnection = new();
 
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
 
             ExternalRequest externalRequest = new()
             {
@@ -650,7 +652,7 @@ namespace FWO.Test
                 ApprovalPhaseActiveForMasterOnly = true
             };
 
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
 
             await handler.HandleStateChange(new ExternalRequest
             {
@@ -679,7 +681,7 @@ namespace FWO.Test
                 ApprovalPhaseActiveForTaskTypesOnly = true
             };
 
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
 
             await handler.HandleStateChange(new ExternalRequest
             {
@@ -708,7 +710,7 @@ namespace FWO.Test
                 ApprovalPhaseActive = true
             };
 
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
 
             await handler.HandleStateChange(new ExternalRequest
             {
@@ -742,7 +744,7 @@ namespace FWO.Test
             ExtTicketHandlerTestApiConn.ResetTicketTasks();
             ExtTicketHandlerTestApiConn localApiConnection = new();
 
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
 
             await handler.HandleStateChange(new ExternalRequest
             {
@@ -774,7 +776,7 @@ namespace FWO.Test
             ExtTicketHandlerTestApiConn.ResetTicketTasks();
             ExtTicketHandlerTestApiConn localApiConnection = new();
 
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
 
             await handler.HandleStateChange(new ExternalRequest
             {
@@ -807,7 +809,7 @@ namespace FWO.Test
             ExtTicketHandlerTestApiConn.ResetTicketTasks();
             ExtTicketHandlerTestApiConn localApiConnection = new();
 
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
 
             for (int taskId = 2; taskId <= 8; ++taskId)
             {
@@ -828,7 +830,7 @@ namespace FWO.Test
             ExtTicketHandlerTestApiConn.ResetTicketTasks();
             ExtTicketHandlerTestApiConn localApiConnection = new();
 
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null);
+            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
 
             ExtTicketHandlerTestApiConn.SetReqTaskState(1, 600);
 
@@ -848,7 +850,7 @@ namespace FWO.Test
         [Test]
         public async Task RunInternalWorkStateChangeActionsSafe_ReturnsForEmptyCollector()
         {
-            using ExternalRequestHandler handler = new(userConfig, apiConnection, null);
+            using ExternalRequestHandler handler = new(userConfig, apiConnection, null) { SCTemplateSource = TestSCTemplates };
             WorkflowEmailBundleCollector collector = new();
 
             await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
@@ -892,7 +894,7 @@ namespace FWO.Test
             {
                 ReturnNullOnFirstTicketQuery = true
             };
-            using ExternalRequestHandler handler = new(userConfig, localApiConnection, null);
+            using ExternalRequestHandler handler = new(userConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
 
             await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
 

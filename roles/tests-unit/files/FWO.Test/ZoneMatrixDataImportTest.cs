@@ -16,11 +16,11 @@ namespace FWO.Test
     [TestFixture]
     internal class ZoneMatrixDataImportTest
     {
-        private static List<ComplianceNetworkZone> CreateInitialMatrixZones()
+        private static List<NetworkZone> CreateInitialMatrixZones()
         {
             return
             [
-                new ComplianceNetworkZone
+                new NetworkZone
                 {
                     Id = 10,
                     Name = "Zone A old",
@@ -28,10 +28,10 @@ namespace FWO.Test
                     IPRanges = [new IPAddressRange(IPAddress.Parse("192.0.2.0"), IPAddress.Parse("192.0.2.255"))],
                     AllowedCommunicationDestinations =
                     [
-                        new ComplianceNetworkZone { Id = 20, IdString = "zone-b" }
+                        new NetworkZone { Id = 20, IdString = "zone-b" }
                     ]
                 },
-                new ComplianceNetworkZone
+                new NetworkZone
                 {
                     Id = 20,
                     Name = "Zone B stale",
@@ -41,11 +41,11 @@ namespace FWO.Test
             ];
         }
 
-        private static List<ComplianceNetworkZone> CreateReloadedMatrixZones()
+        private static List<NetworkZone> CreateReloadedMatrixZones()
         {
             return
             [
-                new ComplianceNetworkZone
+                new NetworkZone
                 {
                     Id = 10,
                     Name = "Zone A updated",
@@ -53,10 +53,10 @@ namespace FWO.Test
                     IPRanges = [new IPAddressRange(IPAddress.Parse("192.0.2.0"), IPAddress.Parse("192.0.2.255"))],
                     AllowedCommunicationDestinations =
                     [
-                        new ComplianceNetworkZone { Id = 20, IdString = "zone-b" }
+                        new NetworkZone { Id = 20, IdString = "zone-b" }
                     ]
                 },
-                new ComplianceNetworkZone
+                new NetworkZone
                 {
                     Id = 30,
                     Name = "Zone C",
@@ -406,7 +406,7 @@ namespace FWO.Test
                 ],
                 Managements = CreateDeviceInventory()
             };
-            List<ComplianceNetworkZone> existingZones = CreateMatrixZonesWithAutoCalculatedZones();
+            List<NetworkZone> existingZones = CreateMatrixZonesWithAutoCalculatedZones();
             existingZones.Add(CreateExistingZone(104, "zone-stale", "Zone stale"));
             apiConnection.MatrixZoneResponses.Add(existingZones);
             ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
@@ -1464,18 +1464,18 @@ namespace FWO.Test
             return apiConnection;
         }
 
-        private static List<ComplianceNetworkZone> CreateMatrixZonesWithAutoCalculatedZones()
+        private static List<NetworkZone> CreateMatrixZonesWithAutoCalculatedZones()
         {
-            ComplianceNetworkZone internetZone =
+            NetworkZone internetZone =
                 CreateExistingZone(102, NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Internet");
             internetZone.IsAutoCalculatedInternetZone = true;
-            ComplianceNetworkZone undefinedInternalZone =
+            NetworkZone undefinedInternalZone =
                 CreateExistingZone(103, NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString, "Undefined internal");
             undefinedInternalZone.IsAutoCalculatedUndefinedInternalZone = true;
             return [CreateExistingZone(101, "zone-a", "Zone A"), internetZone, undefinedInternalZone];
         }
 
-        private static List<ComplianceNetworkZone> CreateReloadedZonesWithAutoInternet()
+        private static List<NetworkZone> CreateReloadedZonesWithAutoInternet()
         {
             return
             [
@@ -1488,15 +1488,15 @@ namespace FWO.Test
         /// Zones as reloaded after UpdateSpecialZones created the auto-calculated internet zone beside zone A.
         /// </summary>
         /// <returns>Zone A and the flagged auto-calculated internet zone.</returns>
-        private static List<ComplianceNetworkZone> CreateReloadedZoneAWithFlaggedAutoInternet()
+        private static List<NetworkZone> CreateReloadedZoneAWithFlaggedAutoInternet()
         {
-            ComplianceNetworkZone internetZone =
+            NetworkZone internetZone =
                 CreateExistingZone(102, NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Internet");
             internetZone.IsAutoCalculatedInternetZone = true;
             return [CreateExistingZone(101, "zone-a", "Zone A"), internetZone];
         }
 
-        private static List<ComplianceNetworkZone> CreateReloadedZoneA()
+        private static List<NetworkZone> CreateReloadedZoneA()
         {
             return [CreateExistingZone(101, "zone-a", "Zone A")];
         }
@@ -1643,9 +1643,9 @@ namespace FWO.Test
             return variables?.GetType().GetProperty(propertyName)?.GetValue(variables);
         }
 
-        private static ComplianceNetworkZone CreateExistingZone(int id, string idString, string name)
+        private static NetworkZone CreateExistingZone(int id, string idString, string name)
         {
-            return new ComplianceNetworkZone
+            return new NetworkZone
             {
                 Id = id,
                 IdString = idString,
@@ -1691,7 +1691,7 @@ namespace FWO.Test
         {
             public List<ComplianceCriterion> MatrixByNameResponse { get; set; } = [];
             public List<Management> Managements { get; set; } = [];
-            public List<List<ComplianceNetworkZone>> MatrixZoneResponses { get; } = [];
+            public List<List<NetworkZone>> MatrixZoneResponses { get; } = [];
             public ReturnIdWrapper AddCriterionResponse { get; set; } = new()
             {
                 ReturnIds = [new ReturnId { InsertedId = 1 }]
@@ -1735,13 +1735,13 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)MatrixByNameResponse);
                 }
 
-                if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
+                if (typeof(QueryResponseType) == typeof(List<NetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
                 {
                     int responseIndex = Math.Min(Count(NetworkZoneQueries.getNetworkZonesForMatrix) - 1, Math.Max(MatrixZoneResponses.Count - 1, 0));
-                    List<ComplianceNetworkZone> response = MatrixZoneResponses.Count == 0 ? [] : MatrixZoneResponses[responseIndex];
+                    List<NetworkZone> response = MatrixZoneResponses.Count == 0 ? [] : MatrixZoneResponses[responseIndex];
                     // hand out a fresh list per call: NetworkZoneService.UpdateSpecialZones removes
                     // entries from the list it receives, which would corrupt later responses
-                    return Task.FromResult((QueryResponseType)(object)new List<ComplianceNetworkZone>(response));
+                    return Task.FromResult((QueryResponseType)(object)new List<NetworkZone>(response));
                 }
 
                 if (typeof(QueryResponseType) == typeof(ReturnIdWrapper) && query == ComplianceQueries.addCriterion)

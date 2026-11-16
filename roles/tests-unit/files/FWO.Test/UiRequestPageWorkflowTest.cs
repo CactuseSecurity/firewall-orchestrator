@@ -58,6 +58,47 @@ namespace FWO.Test
         [TestCase(typeof(RequestApprovals))]
         [TestCase(typeof(RequestReviews))]
         [TestCase(typeof(RequestTickets))]
+        [TestCase(typeof(RequestTicketsOverview))]
+        public async Task RequestPages_InitializationSuccessCompletesAllSetup(Type pageType)
+        {
+            UiRequestCoverageTest.RequestCoverageUserConfig userConfig = UiRequestCoverageTest.CreateUserConfig(Roles.Admin);
+            InitializationApiConnection apiConnection = new();
+            object component = Activator.CreateInstance(pageType)!;
+
+            userConfig.ReqPriorities = "[]";
+            userConfig.ReqOwnerBased = pageType == typeof(RequestApprovals)
+                || pageType == typeof(RequestImplementations)
+                || pageType == typeof(RequestPlannings)
+                || pageType == typeof(RequestReviews);
+
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, "apiConnection", apiConnection);
+            SetMember(component, "middlewareClient", new MiddlewareClient("http://localhost/"));
+            SetMember(component, "authenticationStateTask", Task.FromResult(new AuthenticationState(
+                new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, Roles.Admin)], "Test")))));
+
+            Func<GlobalStateMatrix> originalFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new InitializationGlobalStateMatrix();
+            try
+            {
+                await UiRequestCoverageTest.InvokePrivateTask(pageType, component, "OnInitializedAsync");
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = originalFactory;
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<bool>(component, "InitComplete"), Is.True);
+            });
+        }
+
+        [TestCase(typeof(RequestPlannings))]
+        [TestCase(typeof(RequestImplementations))]
+        [TestCase(typeof(RequestApprovals))]
+        [TestCase(typeof(RequestReviews))]
+        [TestCase(typeof(RequestTickets))]
         public void RequestPages_HandleInvalidTicketId_DoesNothing(Type pageType)
         {
             object component = Activator.CreateInstance(pageType)!;
@@ -461,6 +502,46 @@ namespace FWO.Test
                     [WorkflowPhases.review] = new StateMatrix { LowestEndState = 100 },
                     [WorkflowPhases.recertification] = new StateMatrix { LowestEndState = 100 }
                 };
+                return Task.CompletedTask;
+            }
+        }
+
+        private sealed class InitializationApiConnection : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                object response = typeof(QueryResponseType) == typeof(List<WfState>)
+                    ? new List<WfState>()
+                    : typeof(QueryResponseType) == typeof(List<Device>)
+                    ? new List<Device>()
+                    : typeof(QueryResponseType) == typeof(List<Management>)
+                    ? new List<Management>()
+                    : typeof(QueryResponseType) == typeof(List<FwoOwner>)
+                    ? new List<FwoOwner>()
+                    : typeof(QueryResponseType) == typeof(List<WfTicket>)
+                    ? new List<WfTicket>()
+                    : typeof(QueryResponseType).IsGenericType
+                        && typeof(QueryResponseType).GetGenericTypeDefinition() == typeof(List<>)
+                        ? Activator.CreateInstance(typeof(List<>).MakeGenericType(typeof(QueryResponseType).GetGenericArguments()[0]))!
+                        : throw new AssertionException($"Unexpected query: {query}");
+                return Task.FromResult((QueryResponseType)(object)response);
+            }
+        }
+
+        private sealed class InitializationGlobalStateMatrix : GlobalStateMatrix
+        {
+            public override Task Init(ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master)
+            {
+                GlobalMatrix = Enum.GetValues<WorkflowPhases>().ToDictionary(
+                    phase => phase,
+                    phase => new StateMatrix
+                    {
+                        Active = true,
+                        LowestInputState = 0,
+                        LowestStartedState = 1,
+                        LowestEndState = 100,
+                        Matrix = new Dictionary<int, List<int>>()
+                    });
                 return Task.CompletedTask;
             }
         }

@@ -17,7 +17,7 @@ After=network-online.target remote-fs.target nss-lookup.target {{ webserver_pack
 
 [Service]
 WorkingDirectory={{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}
-# adding an extra 3 secs for docker api to come up?
+# adding an extra 3 secs for the Hasura API to come up
 ExecStartPre=/bin/sleep 3
 ExecStart={{ ui_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}/FWO.Ui
 #StandardOutput=syslog

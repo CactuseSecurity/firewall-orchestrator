@@ -14,6 +14,7 @@ namespace FWO.Middleware.Server.Controllers;
 /// </summary>
 [Authorize]
 [ApiController]
+[AggregatedValidationErrors]
 [Route("api/flow")]
 public class FlowComplianceController : ControllerBase
 {
@@ -40,11 +41,13 @@ public class FlowComplianceController : ControllerBase
     [HttpPost("getFlowComplianceState")]
     [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
     [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
+    [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<List<FlowComplianceStateResponse>>> GetFlowComplianceState([FromBody] GetFlowComplianceStateRequest request)
     {
-        if (!FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult))
+        RequestValidationErrorResponse validationErrors = FlowComplianceRequestValidator.ValidateFlowComplianceState(request);
+        if (validationErrors.Errors.Count > 0)
         {
-            return errorResult!;
+            return BadRequest(validationErrors);
         }
 
         return Ok(await flowComplianceService.GetFlowComplianceStateAsync(request));
@@ -56,11 +59,13 @@ public class FlowComplianceController : ControllerBase
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getPolicyIds")]
+    [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetPolicyIdsResponse>> GetPolicyIds([FromBody] GetPolicyIdsRequest request)
     {
-        if (!FlowComplianceRequestValidator.TryValidatePolicyIds(request, out ActionResult? errorResult))
+        RequestValidationErrorResponse validationErrors = FlowComplianceRequestValidator.ValidatePolicyIds(request);
+        if (validationErrors.Errors.Count > 0)
         {
-            return errorResult!;
+            return BadRequest(validationErrors);
         }
 
         return Ok(new GetPolicyIdsResponse

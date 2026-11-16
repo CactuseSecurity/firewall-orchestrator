@@ -1,0 +1,17 @@
+# Undoes a full reinitialize whose new mappings could not all be written. The rows it inserted are closed
+# under its own import control, so they never count as active, and the mappings it marked removed become
+# active again. Both updates are sent in one request and therefore run in one transaction.
+mutation rollbackRuleOwnerReinitialize($controlId: bigint!) {
+  closeInserted: update_rule_owner(
+    where: { created: { _eq: $controlId }, removed: { _is_null: true } },
+    _set: { removed: $controlId }
+  ) {
+    affected_rows
+  }
+  restoreRemoved: update_rule_owner(
+    where: { removed: { _eq: $controlId }, created: { _neq: $controlId } },
+    _set: { removed: null }
+  ) {
+    affected_rows
+  }
+}

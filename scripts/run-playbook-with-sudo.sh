@@ -2,6 +2,7 @@
 set -euo pipefail
 
 sudoers_file=""
+sudoers_dir="/etc/sudoers.d"
 
 # Host wide, operator owned installer settings, passed to every run as extra variables.
 # Shared across clones on purpose: two administrators upgrading the same installation from
@@ -20,10 +21,38 @@ sudoers_file=""
 install_settings_default_file="/usr/local/fworch/etc/fwo-install-settings.yml"
 install_settings_file=""
 
+# No existence test before removing: /etc/sudoers.d is not readable for the invoking user on
+# every distribution, so such a test would leave the NOPASSWD entry behind.
 cleanup() {
-    if [[ -n "$sudoers_file" ]] && [[ -f "$sudoers_file" ]]; then
+    if [[ -n "$sudoers_file" ]]; then
         sudo rm -f "$sudoers_file"
     fi
+}
+
+# Installs the temporary NOPASSWD entry for Ansible. The entry is validated before it is
+# installed, so that a syntax error can never break sudo, and it is installed in one step with
+# its final owner and mode. visudo runs through sudo, because it is usually not on the PATH of
+# the invoking user; if it is missing, the entry is refused instead of installed unvalidated.
+install_temporary_sudoers() {
+    local candidate
+    candidate="$(mktemp)"
+    printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$(id -un)" >"$candidate"
+
+    if ! sudo visudo -cf "$candidate" >/dev/null; then
+        rm -f "$candidate"
+        echo "The temporary sudoers entry could not be validated with visudo; nothing was installed." >&2
+        return 1
+    fi
+
+    # set before installing, so that the cleanup also removes a partly installed entry
+    sudoers_file="$sudoers_dir/fworch-ansible-$$"
+    if ! sudo install -m 0440 -o root -g root "$candidate" "$sudoers_file"; then
+        rm -f "$candidate"
+        echo "The temporary sudoers entry could not be installed." >&2
+        return 1
+    fi
+    rm -f "$candidate"
+    return 0
 }
 
 trap cleanup EXIT
@@ -242,15 +271,7 @@ main() {
             echo "Enter sudo password to create a temporary sudoers entry for Ansible."
             sudo -v
 
-            current_user="$(id -un)"
-            sudoers_file="/etc/sudoers.d/fworch-ansible-$$"
-
-            printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$current_user" | sudo tee "$sudoers_file" >/dev/null
-            sudo chmod 0440 "$sudoers_file"
-
-            if command -v visudo >/dev/null 2>&1; then
-                sudo visudo -cf "$sudoers_file" >/dev/null
-            fi
+            install_temporary_sudoers || exit 1
         fi
     fi
 

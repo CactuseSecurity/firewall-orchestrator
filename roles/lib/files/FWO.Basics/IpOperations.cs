@@ -134,8 +134,16 @@ namespace FWO.Basics
         /// </summary>
         public static (string, string) SplitIpToRange(string ipString)
         {
-            if (ipString.TryGetNetmask(out _))
+            if (ipString.TryGetNetmask(out string netmask))
             {
+                if (netmask.Contains('.'))
+                {
+                    if (IPAddressRange.TryParse(ipString, out IPAddressRange dottedNetmaskRange))
+                    {
+                        return (dottedNetmaskRange.Begin.ToString(), dottedNetmaskRange.End.ToString());
+                    }
+                    throw new FormatException("Invalid IPv4 netmask format.");
+                }
                 return ipString.CidrToRangeString();
             }
 
@@ -532,7 +540,9 @@ namespace FWO.Basics
             List<(IPAddress start, IPAddress end)> intervals = networkList.Select(network =>
             {
                 IPAddress start = includeNetworkAndBroadcast ? network.Network : network.FirstUsable ?? network.Network;
-                IPAddress end = includeNetworkAndBroadcast ? network.Broadcast ?? start : network.LastUsable ?? start;
+                IPAddress end = includeNetworkAndBroadcast
+                    ? network.Broadcast ?? network.LastUsable ?? start
+                    : network.LastUsable ?? start;
                 return (start, end);
             }).ToList();
 

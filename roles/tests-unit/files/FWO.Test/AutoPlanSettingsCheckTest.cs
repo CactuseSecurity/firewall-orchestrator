@@ -29,6 +29,12 @@ namespace FWO.Test
             [nameof(WfTaskType.access)] = true,
             [nameof(WfTaskType.group_create)] = true
         };
+        private static readonly Dictionary<string, bool> kNoPlanningPhaseWithInterface = new()
+        {
+            [nameof(WfTaskType.group_create)] = false,
+            [nameof(WfTaskType.new_interface)] = false
+        };
+        private static readonly List<string> kGroupOnly = [nameof(WfTaskType.group_create)];
         private static readonly List<DeviceSpecificConfigNodeData> kNoStoredNodes = [];
         private static readonly List<string> kAccessOnly = [nameof(WfTaskType.access)];
         private static readonly List<string> kAccessAndGroup = [nameof(WfTaskType.access), nameof(WfTaskType.group_create)];
@@ -43,6 +49,16 @@ namespace FWO.Test
                 Assert.That(result.ManualWithoutPlanningPhase, Is.EqualTo(kAccessOnly));
                 Assert.That(result.RulesAutomaticWithoutAlgorithm, Is.False);
             });
+        }
+
+        [Test]
+        public void Check_NewInterfaceIsNotReported()
+        {
+            List<DeviceSpecificConfigNodeData> stored = [Stored("global", DeviceSpecificScopePath.GlobalObjectKey, DeviceSpecificSettingKeys.AutoPlanImplementation, false)];
+
+            AutoPlanSettingsCheckResult result = AutoPlanSettingsCheck.Check(CreateTree(), stored, GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree, kNoPlanningPhaseWithInterface);
+
+            Assert.That(result.ManualWithoutPlanningPhase, Is.EqualTo(kGroupOnly), "the implementation task of a new interface does not depend on auto plan");
         }
 
         [Test]

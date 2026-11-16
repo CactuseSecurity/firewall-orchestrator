@@ -436,9 +436,9 @@ namespace FWO.Test
             DateTime creationDate = new(2026, 5, 1, 12, 30, 0);
             MonitorRequestedInterfacesTestApiConn apiConn = new()
             {
-                SafeTicketById =
-                {
-                    [501] = new ApiResponse<WfTicket>(new WfTicket
+                TicketOverviews =
+                [
+                    new WfTicket
                     {
                         Id = 501,
                         StateId = 42,
@@ -449,8 +449,8 @@ namespace FWO.Test
                             CreateTask(1, WfTaskType.new_interface, "if-a-duplicate", 8),
                             CreateTask(2, WfTaskType.new_interface, "if-b", 9)
                         }
-                    })
-                }
+                    }
+                ]
             };
             await using Bunit.TestContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
@@ -479,37 +479,176 @@ namespace FWO.Test
             Assert.That(ticketStates[2], Is.EqualTo(42));
             Assert.That(ticketCreationDates[1], Is.EqualTo(creationDate));
             Assert.That(ticketCreationDates[2], Is.EqualTo(creationDate));
+            Assert.That(apiConn.RequestedTicketIds, Is.EqualTo(new List<long> { 501 }));
         }
 
         [Test]
-        public async Task ResolveUsedByConnections_StoresDistinctSortedConnectionIds()
+        public async Task ResolveRequestingAppsFromTickets_LoadsAllTicketsWithOneChunkedOverviewQuery()
         {
             MonitorRequestedInterfacesTestApiConn apiConn = new()
             {
-                InterfaceUsersByInterfaceId =
-                {
-                    [5] =
-                    [
-                        new ModellingConnection { Id = 30 },
-                        new ModellingConnection { Id = 10 },
-                        new ModellingConnection { Id = 30 }
-                    ]
-                }
+                TicketOverviews =
+                [
+                    new WfTicket { Id = 502, StateId = 20, Tasks = { CreateTask(2, WfTaskType.new_interface, "if-b", 8) } },
+                    new WfTicket { Id = 501, StateId = 10, Tasks = { CreateTask(1, WfTaskType.new_interface, "if-a", 7) } }
+                ]
             };
-            await using Bunit.TestContext context = new();
+            await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+            apiConn.Queries.Clear();
 
             SetPrivateField(component, "RequestedInterfaces", new List<ModellingConnection>
             {
-                new() { Id = 5, Name = "used-if" },
-                new() { Id = 6, Name = "unused-if" }
+                new() { Id = 1, Name = "if-a", TicketId = 501 },
+                new() { Id = 2, Name = "if-b", TicketId = 502 },
+                new() { Id = 3, Name = "if-c", TicketId = 501 },
+                new() { Id = 4, Name = "if-without-ticket" }
+            });
+            SetPrivateField(component, "OwnersById", new Dictionary<int, FwoOwner>
+            {
+                { 7, new FwoOwner { Id = 7, Name = "Requester 7" } },
+                { 8, new FwoOwner { Id = 8, Name = "Requester 8" } }
             });
 
-            await (Task)GetPrivateMethod("ResolveUsedByConnections").Invoke(component, null)!;
+            await (Task)GetPrivateMethod("ResolveRequestingAppsFromTickets").Invoke(component, null)!;
+
+            Dictionary<int, FwoOwner> requestingOwners = GetPrivateField<Dictionary<int, FwoOwner>>(component, "RequestingAppByConnectionId");
+            Dictionary<int, int> ticketStates = GetPrivateField<Dictionary<int, int>>(component, "TicketStateIdByConnectionId");
+            Assert.That(apiConn.Queries, Is.EqualTo(new List<string> { RequestQueries.getTicketOverviewsByIds }));
+            Assert.That(apiConn.RequestedTicketIds, Is.EqualTo(new List<long> { 501, 502 }));
+            Assert.That(apiConn.TicketChunkingOptions, Is.Not.Null);
+            Assert.That(apiConn.TicketChunkingOptions!.Enabled, Is.True);
+            Assert.That(apiConn.TicketChunkingOptions.ChunkVariableName, Is.EqualTo("ids"));
+            Assert.That(apiConn.TicketChunkingOptions.MergeMode, Is.EqualTo(ChunkMergeMode.TopLevelArrayConcat));
+            Assert.That(requestingOwners[1].Id, Is.EqualTo(7));
+            Assert.That(requestingOwners[2].Id, Is.EqualTo(8));
+            Assert.That(ticketStates[1], Is.EqualTo(10));
+            Assert.That(ticketStates[2], Is.EqualTo(20));
+        }
+
+        [Test]
+        public async Task ResolveRequestingAppsFromTickets_WithoutTickets_DoesNotQuery()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new();
+            await using BunitContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+            apiConn.Queries.Clear();
+
+            SetPrivateField(component, "RequestedInterfaces", new List<ModellingConnection>
+            {
+                new() { Id = 1, Name = "if-without-ticket" }
+            });
+
+            await (Task)GetPrivateMethod("ResolveRequestingAppsFromTickets").Invoke(component, null)!;
+
+            Assert.That(apiConn.Queries, Is.Empty);
+            Assert.That(GetPrivateField<Dictionary<int, int>>(component, "TicketStateIdByConnectionId"), Is.Empty);
+        }
+
+        [Test]
+        public async Task ResolveUsedByConnections_StoresDistinctSortedConnectionIdsWithoutQueries()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new();
+            await using Bunit.TestContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+            apiConn.Queries.Clear();
+
+            SetPrivateField(component, "RequestedInterfaces", new List<ModellingConnection>
+            {
+                new ModellingRequestedInterface
+                {
+                    Id = 5,
+                    Name = "used-if",
+                    UsedByConnections = [new() { Id = 30 }, new() { Id = 10 }, new() { Id = 30 }]
+                },
+                new ModellingRequestedInterface { Id = 6, Name = "unused-if" },
+                new() { Id = 7, Name = "plain-connection" }
+            });
+
+            GetPrivateMethod("ResolveUsedByConnections").Invoke(component, null);
 
             Dictionary<int, string> usedByConnectionIds = GetPrivateField<Dictionary<int, string>>(component, "UsedByConnectionIdsByInterfaceId");
             Assert.That(usedByConnectionIds[5], Is.EqualTo("10, 30"));
             Assert.That(usedByConnectionIds[6], Is.EqualTo("-"));
+            Assert.That(usedByConnectionIds[7], Is.EqualTo("-"));
+            Assert.That(apiConn.Queries, Is.Empty);
+        }
+
+        [Test]
+        public async Task FetchRequestedInterfaces_UsesListQueriesOnlyAndBuildsUsedByColumn()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new()
+            {
+                RequestedInterfacesResult =
+                [
+                    new ModellingRequestedInterface { Id = 1, Name = "if-a", TicketId = 501, UsedByConnections = [new() { Id = 12 }] },
+                    new ModellingRequestedInterface { Id = 2, Name = "if-b", TicketId = 502 }
+                ],
+                TicketOverviews =
+                [
+                    new WfTicket { Id = 501, StateId = 10, Tasks = { CreateTask(1, WfTaskType.new_interface, "if-a") } },
+                    new WfTicket { Id = 502, StateId = 10, Tasks = { CreateTask(2, WfTaskType.new_interface, "if-b") } }
+                ]
+            };
+            await using BunitContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+            apiConn.Queries.Clear();
+
+            await (Task)GetPrivateMethod("FetchRequestedInterfaces").Invoke(component, null)!;
+
+            Assert.That(apiConn.Queries.Count(query => query == RequestQueries.getTicketOverviewsByIds), Is.EqualTo(1));
+            Assert.That(apiConn.Queries, Has.No.Member(ModellingQueries.getInterfaceUsers));
+            Assert.That(apiConn.Queries, Has.No.Member(RequestQueries.getTicketById));
+            Assert.That(apiConn.Queries, Has.No.Member(ModellingQueries.getConnectionById));
+            object usedRow = GetRequestedInterfaceRow(component, 1);
+            object unusedRow = GetRequestedInterfaceRow(component, 2);
+            Assert.That(GetObjectProperty<string>(usedRow, "UsedInConnectionIds"), Is.EqualTo("12"));
+            Assert.That(GetObjectProperty<bool>(usedRow, "CanReject"), Is.False);
+            Assert.That(GetObjectProperty<string>(unusedRow, "UsedInConnectionIds"), Is.EqualTo("-"));
+            Assert.That(GetObjectProperty<bool>(unusedRow, "CanReject"), Is.True);
+        }
+
+        [Test]
+        public async Task LoadFullConnection_ReturnsDetailsAndKeepsOwnersOfListEntry()
+        {
+            FwoOwner app = new() { Id = 3, Name = "App 3", Active = false };
+            FwoOwner proposedApp = new() { Id = 4, Name = "App 4" };
+            MonitorRequestedInterfacesTestApiConn apiConn = new()
+            {
+                ConnectionById =
+                {
+                    [1] = [new ModellingConnection { Id = 1, Name = "if-a", Reason = "full details", App = new() { Id = 3, Name = "App 3" } }]
+                }
+            };
+            await using BunitContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+            ModellingConnection listEntry = new ModellingRequestedInterface { Id = 1, Name = "if-a", App = app, ProposedApp = proposedApp };
+            object[] arguments = new object[1];
+            arguments[0] = listEntry;
+
+            ModellingConnection fullConnection = await (Task<ModellingConnection>)GetPrivateMethod("LoadFullConnection", typeof(ModellingConnection))
+                .Invoke(component, arguments)!;
+
+            Assert.That(fullConnection, Is.Not.SameAs(listEntry));
+            Assert.That(fullConnection.Reason, Is.EqualTo("full details"));
+            Assert.That(fullConnection.App, Is.SameAs(app));
+            Assert.That(fullConnection.ProposedApp, Is.SameAs(proposedApp));
+        }
+
+        [Test]
+        public async Task LoadFullConnection_FallsBackToListEntryWhenConnectionIsMissing()
+        {
+            MonitorRequestedInterfacesTestApiConn apiConn = new();
+            await using BunitContext context = new();
+            MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
+            ModellingConnection listEntry = new ModellingRequestedInterface { Id = 9, Name = "if-missing" };
+            object[] arguments = new object[1];
+            arguments[0] = listEntry;
+
+            ModellingConnection fullConnection = await (Task<ModellingConnection>)GetPrivateMethod("LoadFullConnection", typeof(ModellingConnection))
+                .Invoke(component, arguments)!;
+
+            Assert.That(fullConnection, Is.SameAs(listEntry));
         }
 
         [Test]
@@ -531,13 +670,7 @@ namespace FWO.Test
         [Test]
         public async Task ResolveRequestingAppsFromTickets_IgnoresMissingTickets()
         {
-            MonitorRequestedInterfacesTestApiConn apiConn = new()
-            {
-                SafeTicketById =
-                {
-                    [501] = new ApiResponse<WfTicket>("missing ticket")
-                }
-            };
+            MonitorRequestedInterfacesTestApiConn apiConn = new();
             await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
@@ -936,23 +1069,26 @@ namespace FWO.Test
     internal sealed class MonitorRequestedInterfacesTestApiConn : SimulatedApiConnection
     {
         private static readonly string stateMatrixJson = BuildStateMatrixJson();
-        public Dictionary<long, ApiResponse<WfTicket>> SafeTicketById { get; } = [];
+        public List<WfTicket> TicketOverviews { get; set; } = [];
+        public List<long> RequestedTicketIds { get; private set; } = [];
+        public FWO.Api.Client.QueryChunkingOptions? TicketChunkingOptions { get; private set; }
+        public List<string> Queries { get; } = [];
         public Dictionary<int, List<ModellingConnection>> ConnectionById { get; } = [];
-        public Dictionary<int, List<ModellingConnection>> InterfaceUsersByInterfaceId { get; } = [];
-        public List<ModellingConnection> RequestedInterfacesResult { get; set; } = [];
+        public List<ModellingRequestedInterface> RequestedInterfacesResult { get; set; } = [];
         public List<WfTicket> TicketsByParametersResult { get; set; } = [];
         public List<WfState> States { get; set; } = [];
         public List<OwnerLifeCycleState> OwnerLifeCycleStates { get; set; } = [];
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
+            Queries.Add(query);
             if (typeof(QueryResponseType) == typeof(List<WorkflowConfiguration>) && query == RequestQueries.getActiveStateMatrixConfiguration)
             {
                 List<WorkflowConfiguration> config = StateMatrixConfigurationTestHelper.FromLegacyJson(stateMatrixJson, WfTaskType.new_interface);
                 return Task.FromResult((QueryResponseType)(object)config);
             }
 
-            if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getRequestedInterfaces)
+            if (typeof(QueryResponseType) == typeof(List<ModellingRequestedInterface>) && query == ModellingQueries.getRequestedInterfaces)
             {
                 return Task.FromResult((QueryResponseType)(object)RequestedInterfacesResult);
             }
@@ -988,33 +1124,15 @@ namespace FWO.Test
                 return Task.FromResult((QueryResponseType)(object)TicketsByParametersResult);
             }
 
-            if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getInterfaceUsers)
+            if (typeof(QueryResponseType) == typeof(List<WfTicket>) && query == RequestQueries.getTicketOverviewsByIds)
             {
-                int interfaceId = Convert.ToInt32(variables?.GetType().GetProperty("id")?.GetValue(variables) ?? 0);
-                if (InterfaceUsersByInterfaceId.TryGetValue(interfaceId, out List<ModellingConnection>? usingConnections))
-                {
-                    return Task.FromResult((QueryResponseType)(object)usingConnections);
-                }
-                return Task.FromResult((QueryResponseType)(object)new List<ModellingConnection>());
+                RequestedTicketIds = [.. (IEnumerable<long>)(variables?.GetType().GetProperty("ids")?.GetValue(variables) ?? new List<long>())];
+                TicketChunkingOptions = chunkingOptions;
+                List<WfTicket> tickets = [.. TicketOverviews.Where(ticket => RequestedTicketIds.Contains(ticket.Id))];
+                return Task.FromResult((QueryResponseType)(object)tickets);
             }
 
             throw new NotImplementedException();
-        }
-
-        public override Task<ApiResponse<QueryResponseType>> SendQuerySafeAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null)
-        {
-            if (typeof(QueryResponseType) == typeof(WfTicket) && query == RequestQueries.getTicketById)
-            {
-                long ticketId = Convert.ToInt64(variables?.GetType().GetProperty("id")?.GetValue(variables) ?? 0L);
-                if (SafeTicketById.TryGetValue(ticketId, out ApiResponse<WfTicket>? response))
-                {
-                    return Task.FromResult((ApiResponse<QueryResponseType>)(object)response);
-                }
-
-                return Task.FromResult((ApiResponse<QueryResponseType>)(object)new ApiResponse<WfTicket>("ticket not configured"));
-            }
-
-            return base.SendQuerySafeAsync<QueryResponseType>(query, variables, operationName);
         }
 
         private static string BuildStateMatrixJson()

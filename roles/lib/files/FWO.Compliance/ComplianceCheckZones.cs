@@ -1,6 +1,7 @@
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Basics.Enums;
+using FWO.NetworkTopology;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Ui.Display;
@@ -21,34 +22,60 @@ namespace FWO.Compliance
         /// <returns>List of ranges (empty if parsing is not possible).</returns>
         public static List<IPAddressRange> ParseIpRange(NetworkObject networkObject)
         {
-            List<IPAddressRange> ranges = [];
+            // the result is deliberately ignored: a value that cannot be parsed adds no range, and the ranges of
+            // parseable group members are still returned; callers that must know use TryParseIpRange
+            _ = TryParseIpRange(networkObject, out List<IPAddressRange> ranges);
+            return ranges;
+        }
+
+        /// <summary>
+        /// Extracts the IP ranges represented by a network object in all supported forms without throwing.
+        /// </summary>
+        /// <param name="networkObject">Network object to parse.</param>
+        /// <param name="ranges">All ranges that could be parsed.</param>
+        /// <returns>False if an IP string of the object or of one of its group members cannot be parsed.</returns>
+        public static bool TryParseIpRange(NetworkObject networkObject, out List<IPAddressRange> ranges)
+        {
+            ranges = [];
 
             if ((networkObject.Type.Name == ObjectType.IPRange || networkObject.Type.Name == ObjectType.Network)
                 && !string.IsNullOrWhiteSpace(networkObject.IP)
                 && !string.IsNullOrWhiteSpace(networkObject.IpEnd)
                 && (networkObject.Type.Name == ObjectType.IPRange || !string.Equals(networkObject.IP, networkObject.IpEnd, StringComparison.Ordinal)))
             {
-                if (IPAddress.TryParse(networkObject.IP.StripOffNetmask(), out IPAddress? ipStart) && IPAddress.TryParse(networkObject.IpEnd.StripOffNetmask(), out IPAddress? ipEnd))
+                if (!IPAddress.TryParse(networkObject.IP.StripOffNetmask(), out IPAddress? ipStart) || !IPAddress.TryParse(networkObject.IpEnd.StripOffNetmask(), out IPAddress? ipEnd))
                 {
-                    ranges.Add(new IPAddressRange(ipStart, ipEnd));
+                    return false;
                 }
+
+                ranges.Add(new IPAddressRange(ipStart, ipEnd));
             }
             else if (networkObject.Type.Name != ObjectType.Group && networkObject.ObjectGroupFlats.Length > 0)
             {
+                bool allMembersParsed = true;
+
                 foreach (NetworkObject groupMember in networkObject.ObjectGroupFlats
                     .Select(groupFlat => groupFlat.Object)
                     .OfType<NetworkObject>())
                 {
-                    ranges.AddRange(ParseIpRange(groupMember));
+                    allMembersParsed &= TryParseIpRange(groupMember, out List<IPAddressRange> memberRanges);
+                    ranges.AddRange(memberRanges);
                 }
+
+                return allMembersParsed;
             }
             else if (networkObject.IP != null)
             {
                 // CIDR notation or single (host) IP can be parsed directly
-                ranges.Add(IPAddressRange.Parse(networkObject.IP));
+                if (!IPAddressRange.TryParse(networkObject.IP, out IPAddressRange range))
+                {
+                    return false;
+                }
+
+                ranges.Add(range);
             }
 
-            return ranges;
+            return true;
         }
 
         /// <summary>
@@ -69,16 +96,25 @@ namespace FWO.Compliance
         /// Builds a helper structure combining network objects with the IP ranges they represent.
         /// </summary>
         /// <param name="networkObjects">Objects that should be resolved to ranges.</param>
-        private static Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> GetNetworkObjectsWithIpRanges(List<NetworkObject> networkObjects)
+        /// <param name="unparseableObjects">Objects with an IP string that cannot be parsed. They cannot be compared against the matrix.</param>
+        private static List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> GetNetworkObjectsWithIpRanges(List<NetworkObject> networkObjects, out List<NetworkObject> unparseableObjects)
         {
             List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> networkObjectsWithIpRange = [];
+            unparseableObjects = [];
 
             foreach (NetworkObject networkObject in networkObjects)
             {
-                networkObjectsWithIpRange.Add((networkObject, ParseIpRange(networkObject)));
+                if (TryParseIpRange(networkObject, out List<IPAddressRange> ranges))
+                {
+                    networkObjectsWithIpRange.Add((networkObject, ranges));
+                }
+                else
+                {
+                    unparseableObjects.Add(networkObject);
+                }
             }
 
-            return Task.FromResult(networkObjectsWithIpRange);
+            return networkObjectsWithIpRange;
         }
 
         /// <summary>
@@ -96,12 +132,12 @@ namespace FWO.Compliance
                 foreach (int matrixId in matrixIds)
                 {
                     Logger.TryWriteInfo("Compliance Check", $"Loading network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
-                    List<ComplianceNetworkZone> networkZones = await _apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+                    List<NetworkZone> networkZones = await _apiConnection.SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
                     _networkZonesByCriterion[matrixId] = networkZones;
                     Logger.TryWriteInfo("Compliance Check", $"Loaded {networkZones.Count} network zones for Matrix {matrixId}.", LocalSettings.ComplianceCheckVerbose);
                 }
 
-                NetworkZones = matrixIds.Count > 0 && _networkZonesByCriterion.TryGetValue(matrixIds[0], out List<ComplianceNetworkZone>? firstMatrixZones)
+                NetworkZones = matrixIds.Count > 0 && _networkZonesByCriterion.TryGetValue(matrixIds[0], out List<NetworkZone>? firstMatrixZones)
                     ? firstMatrixZones
                     : [];
             }
@@ -111,7 +147,7 @@ namespace FWO.Compliance
         /// Loads pre-fetched network zones for the current policy evaluation.
         /// </summary>
         /// <param name="networkZonesByCriterion">Request-scoped network zone cache.</param>
-        private void LoadPreloadedNetworkZones(IReadOnlyDictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion)
+        private void LoadPreloadedNetworkZones(IReadOnlyDictionary<int, List<NetworkZone>> networkZonesByCriterion)
         {
             if (Policy == null)
             {
@@ -126,13 +162,13 @@ namespace FWO.Compliance
 
             foreach (int matrixId in matrixIds)
             {
-                if (networkZonesByCriterion.TryGetValue(matrixId, out List<ComplianceNetworkZone>? networkZones))
+                if (networkZonesByCriterion.TryGetValue(matrixId, out List<NetworkZone>? networkZones))
                 {
                     _networkZonesByCriterion[matrixId] = networkZones;
                 }
             }
 
-            NetworkZones = matrixIds.Count > 0 && _networkZonesByCriterion.TryGetValue(matrixIds[0], out List<ComplianceNetworkZone>? firstMatrixZones)
+            NetworkZones = matrixIds.Count > 0 && _networkZonesByCriterion.TryGetValue(matrixIds[0], out List<NetworkZone>? firstMatrixZones)
                 ? firstMatrixZones
                 : [];
         }
@@ -143,23 +179,23 @@ namespace FWO.Compliance
         /// <param name="inputData">Pairs of network objects and IP ranges.</param>
         /// <param name="networkZonesForCriterion">Zones configured for the criterion under test.</param>
         /// <param name="notAssessableObjects">Objects holding ranges that no zone of the criterion can cover.</param>
-        private List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> MapZonesToNetworkObjects(
+        private List<(NetworkObject networkObject, List<NetworkZone> networkZones)> MapZonesToNetworkObjects(
             List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> inputData,
-            List<ComplianceNetworkZone> networkZonesForCriterion,
+            List<NetworkZone> networkZonesForCriterion,
             out List<NetworkObject> notAssessableObjects)
         {
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> map = [];
+            List<(NetworkObject networkObject, List<NetworkZone> networkZones)> map = [];
             notAssessableObjects = [];
 
             foreach ((NetworkObject networkObject, List<IPAddressRange> ipRanges) dataItem in inputData)
             {
-                List<ComplianceNetworkZone> networkZones = [];
+                List<NetworkZone> networkZones = [];
 
                 if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && ObjectType.IsDynamicallyResolvedObject(dataItem.networkObject.Type.Name))
                 {
-                    List<ComplianceNetworkZone> autoCalculatedInternetZones = [.. networkZonesForCriterion.Where(zone => zone.IsAutoCalculatedInternetZone)];
+                    List<NetworkZone> autoCalculatedInternetZones = [.. networkZonesForCriterion.Where(zone => zone.IsAutoCalculatedInternetZone)];
 
-                    foreach (ComplianceNetworkZone zone in autoCalculatedInternetZones)
+                    foreach (NetworkZone zone in autoCalculatedInternetZones)
                     {
                         networkZones.Add(zone);
                     }
@@ -189,18 +225,18 @@ namespace FWO.Compliance
         /// Groups network objects by their associated compliance zone.
         /// </summary>
         /// <param name="objectsWithZones">Network objects enriched by their zones.</param>
-        private static Dictionary<ComplianceNetworkZone, List<NetworkObject>> MapObjectsByZone(List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> objectsWithZones)
+        private static Dictionary<NetworkZone, List<NetworkObject>> MapObjectsByZone(List<(NetworkObject networkObject, List<NetworkZone> networkZones)> objectsWithZones)
         {
-            Dictionary<ComplianceNetworkZone, List<NetworkObject>> map = new();
+            Dictionary<NetworkZone, List<NetworkObject>> map = new();
 
-            foreach ((NetworkObject networkObject, List<ComplianceNetworkZone> networkZones) item in objectsWithZones)
+            foreach ((NetworkObject networkObject, List<NetworkZone> networkZones) item in objectsWithZones)
             {
                 if (item.networkZones == null || item.networkZones.Count == 0)
                 {
                     continue;
                 }
 
-                foreach (ComplianceNetworkZone zone in item.networkZones)
+                foreach (NetworkZone zone in item.networkZones)
                 {
                     if (!map.TryGetValue(zone, out List<NetworkObject>? objectsInZone))
                     {
@@ -220,7 +256,7 @@ namespace FWO.Compliance
         /// </summary>
         /// <param name="ranges">Ranges to look up.</param>
         /// <param name="networkZonesOverride">Zones to use instead of the zones of the whole check.</param>
-        private List<ComplianceNetworkZone> DetermineZones(List<IPAddressRange> ranges, List<ComplianceNetworkZone>? networkZonesOverride = null)
+        private List<NetworkZone> DetermineZones(List<IPAddressRange> ranges, List<NetworkZone>? networkZonesOverride = null)
         {
             return DetermineZones(ranges, out _, networkZonesOverride);
         }
@@ -232,10 +268,10 @@ namespace FWO.Compliance
         /// <param name="ranges">Ranges to look up.</param>
         /// <param name="unassignableRanges">Ranges that matched no zone and that the internet zone cannot cover either.</param>
         /// <param name="networkZonesOverride">Zones to use instead of the zones of the whole check.</param>
-        private List<ComplianceNetworkZone> DetermineZones(List<IPAddressRange> ranges, out List<IPAddressRange> unassignableRanges, List<ComplianceNetworkZone>? networkZonesOverride = null)
+        private List<NetworkZone> DetermineZones(List<IPAddressRange> ranges, out List<IPAddressRange> unassignableRanges, List<NetworkZone>? networkZonesOverride = null)
         {
-            List<ComplianceNetworkZone> activeNetworkZones = networkZonesOverride ?? NetworkZones;
-            return ComplianceZoneResolver.ResolveZones(
+            List<NetworkZone> activeNetworkZones = networkZonesOverride ?? NetworkZones;
+            return NetworkZoneResolver.ResolveZones(
                 ranges,
                 activeNetworkZones,
                 _autoCalculatedInternetZoneActive,
@@ -247,9 +283,9 @@ namespace FWO.Compliance
         /// Resolves the matrix zones that belong to the provided criterion.
         /// </summary>
         /// <param name="criterion">Matrix criterion whose zones are needed.</param>
-        private List<ComplianceNetworkZone> GetNetworkZonesForCriterion(ComplianceCriterion criterion)
+        private List<NetworkZone> GetNetworkZonesForCriterion(ComplianceCriterion criterion)
         {
-            if (criterion.Id > 0 && _networkZonesByCriterion.TryGetValue(criterion.Id, out List<ComplianceNetworkZone>? networkZones))
+            if (criterion.Id > 0 && _networkZonesByCriterion.TryGetValue(criterion.Id, out List<NetworkZone>? networkZones))
             {
                 return networkZones;
             }

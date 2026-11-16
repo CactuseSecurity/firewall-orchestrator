@@ -172,9 +172,9 @@ namespace FWO.Test
 
         private sealed class MatrixApiConnection : SimulatedApiConnection
         {
-            private readonly List<ComplianceNetworkZone> networkZones = new()
+            private readonly List<NetworkZone> networkZones = new()
             {
-                new ComplianceNetworkZone { Id = 1, IdString = "manual-zone", Name = "Manual zone" }
+                new NetworkZone { Id = 1, IdString = "manual-zone", Name = "Manual zone" }
             };
 
             public int AutoCalculatedInternetZoneAdditions { get; private set; }
@@ -196,7 +196,7 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)matrices);
                 }
 
-                if (query == NetworkZoneQueries.getNetworkZonesForMatrix && typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>))
+                if (query == NetworkZoneQueries.getNetworkZonesForMatrix && typeof(QueryResponseType) == typeof(List<NetworkZone>))
                 {
                     NetworkZoneLoads++;
                     return Task.FromResult((QueryResponseType)(object)networkZones);
@@ -255,7 +255,7 @@ namespace FWO.Test
             /// </summary>
             private void AddAutoCalculatedInternetZone()
             {
-                networkZones.Add(new ComplianceNetworkZone
+                networkZones.Add(new NetworkZone
                 {
                     Id = 2,
                     IdString = "AUTO_CALCULATED_ZONE_INTERNET",
@@ -266,7 +266,7 @@ namespace FWO.Test
 
             private void AddAutoCalculatedUndefinedInternalZone()
             {
-                networkZones.Add(new ComplianceNetworkZone
+                networkZones.Add(new NetworkZone
                 {
                     Id = 3,
                     IdString = NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString,
@@ -277,9 +277,9 @@ namespace FWO.Test
 
             public void AddUndefinedInternalZoneWithCommunication()
             {
-                List<ComplianceNetworkZone> allowedDestinations = new();
+                List<NetworkZone> allowedDestinations = new();
                 allowedDestinations.Add(networkZones[0]);
-                networkZones.Add(new ComplianceNetworkZone
+                networkZones.Add(new NetworkZone
                 {
                     Id = 3,
                     IdString = "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL",

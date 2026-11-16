@@ -1,0 +1,194 @@
+@using FWO.Ui.Services
+@using FWO.Data.Flow
+@using FWO.Data.Workflow
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@if (!HideSelection && ShowSelection)
+{
+    <div class="@ColumnClass">
+        <div class="form-group row mt-2">
+            @if (ShowLabel)
+            {
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("time_object")):</label>
+            }
+            <div class="@(ShowLabel ? "col-sm-8" : "col-sm-12")">
+                <Dropdown @key="selectionVersion" ElementType="FlowTimeObject" @bind-SelectedElement="selectedTimeObject"
+                          ElementToString="DisplayTimeObject" Elements="flowTimeObjects" Nullable="true">
+                    <ElementTemplate Context="timeObject">
+                        @DisplayTimeObject(timeObject)
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+    </div>
+}
+
+@code
+{
+    [Parameter] public FlowIntegrationConfig? FlowIntegration { get; set; }
+    [Parameter] public bool HideSelection { get; set; }
+    [Parameter] public bool AllowSelection { get; set; } = true;
+    [Parameter] public bool ShowLabel { get; set; } = true;
+    [Parameter] public bool FullWidthLayout { get; set; }
+    [Parameter] public long? SelectedId { get; set; }
+    [Parameter] public string? SelectedName { get; set; }
+    [Parameter] public IReadOnlyList<FlowTimeObject> TicketTimeObjects { get; set; } = [];
+    [Parameter] public EventCallback<long?> SelectedIdChanged { get; set; }
+    [Parameter] public EventCallback<string?> SelectedNameChanged { get; set; }
+    [Parameter] public EventCallback<FlowTimeObject> TimeObjectSelected { get; set; }
+
+    private List<FlowTimeObject> flowTimeObjects = [];
+    private FlowTimeObject? selectedTimeObjectInternal;
+    private IReadOnlyList<FlowTimeObject>? displayedTicketTimeObjects;
+    private int selectionVersion;
+    private FlowIntegrationConfig ActiveFlowIntegration => FlowIntegration ?? FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration);
+    private string ColumnClass => FullWidthLayout ? "col-12" : "col-sm-3";
+    private bool ShowSelection => AllowSelection
+        && ((userConfig.ReqUseFlowDb && ShowsFlowDbSelection(ActiveFlowIntegration.SelectTimeObjects))
+            || TicketTimeObjects.Count > 0
+            || SelectedId.HasValue);
+
+    private FlowTimeObject? selectedTimeObject
+    {
+        get => selectedTimeObjectInternal;
+        set
+        {
+            selectedTimeObjectInternal = value;
+            if (value != null)
+            {
+                _ = SelectTimeObject(value);
+            }
+            else
+            {
+                _ = ClearTimeObjectSelection();
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!HideSelection && ShowSelection)
+        {
+            List<FlowTimeObject> catalog = userConfig.ReqUseFlowDb
+                && (ShowsFlowDbSelection(ActiveFlowIntegration.SelectTimeObjects) || SelectedId is > 0)
+                ? await apiConnection.SendQueryAsync<List<FlowTimeObject>>(FlowQueries.getFlowRequestTimeObjectCatalog)
+                    ?? new List<FlowTimeObject>()
+                : new List<FlowTimeObject>();
+            flowTimeObjects = catalog.Where(FlowObjectEligibility.IsRequestable)
+                .Concat(TicketTimeObjects)
+                .DistinctBy(timeObject => timeObject.Id)
+                .ToList();
+            displayedTicketTimeObjects = TicketTimeObjects;
+            AddSelectedFallback();
+            await RestoreSelectedTimeObject();
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(displayedTicketTimeObjects, TicketTimeObjects))
+        {
+            flowTimeObjects = flowTimeObjects
+                .Where(timeObject => timeObject.Id > 0)
+                .Concat(TicketTimeObjects)
+                .DistinctBy(timeObject => timeObject.Id)
+                .ToList();
+            displayedTicketTimeObjects = TicketTimeObjects;
+            AddSelectedFallback();
+        }
+
+        if (SelectedId.HasValue && selectedTimeObjectInternal?.Id != SelectedId.Value)
+        {
+            FlowTimeObject? matchingTimeObject = flowTimeObjects.FirstOrDefault(timeObject => timeObject.Id == SelectedId.Value);
+            if (matchingTimeObject != null)
+            {
+                selectedTimeObjectInternal = matchingTimeObject;
+                selectionVersion++;
+            }
+        }
+        else if (!SelectedId.HasValue && string.IsNullOrWhiteSpace(SelectedName))
+        {
+            selectedTimeObjectInternal = null;
+            selectionVersion++;
+        }
+    }
+
+    private async Task SelectTimeObject(FlowTimeObject timeObject)
+    {
+        await TimeObjectSelected.InvokeAsync(timeObject);
+        await SelectedIdChanged.InvokeAsync(timeObject.Id);
+        await SelectedNameChanged.InvokeAsync(timeObject.Name);
+    }
+
+    private async Task ClearTimeObjectSelection()
+    {
+        await SelectedIdChanged.InvokeAsync(null);
+        await SelectedNameChanged.InvokeAsync(null);
+    }
+
+    private string DisplayTimeObject(FlowTimeObject timeObject)
+    {
+        string name = string.IsNullOrWhiteSpace(timeObject.Name) ? timeObject.Id.ToString() : timeObject.Name;
+        return name;
+    }
+
+    private async Task RestoreSelectedTimeObject()
+    {
+        if (!SelectedId.HasValue && string.IsNullOrWhiteSpace(SelectedName))
+        {
+            return;
+        }
+
+        IEnumerable<FlowTimeObject> candidates = flowTimeObjects;
+        if (SelectedId is < 0)
+        {
+            candidates = TicketTimeObjects;
+        }
+
+        FlowTimeObject? matchingTimeObject = SelectedId.HasValue
+            ? candidates.FirstOrDefault(timeObject => timeObject.Id == SelectedId.Value)
+            : null;
+        if (matchingTimeObject == null && !string.IsNullOrWhiteSpace(SelectedName))
+        {
+            matchingTimeObject = candidates.FirstOrDefault(timeObject =>
+                string.Equals(timeObject.Name, SelectedName, StringComparison.OrdinalIgnoreCase));
+        }
+        if (matchingTimeObject != null)
+        {
+            selectedTimeObjectInternal = matchingTimeObject;
+            // Dropdown initializes its input text only once. Recreate it after
+            // restoring the persisted selection so the actual object name is
+            // shown when the editor is opened.
+            selectionVersion++;
+            if (SelectedId != matchingTimeObject.Id)
+            {
+                await SelectedIdChanged.InvokeAsync(matchingTimeObject.Id);
+            }
+            if (!string.Equals(SelectedName, matchingTimeObject.Name, StringComparison.Ordinal))
+            {
+                await SelectedNameChanged.InvokeAsync(matchingTimeObject.Name);
+            }
+        }
+    }
+
+    private void AddSelectedFallback()
+    {
+        if (!SelectedId.HasValue
+            || string.IsNullOrWhiteSpace(SelectedName)
+            || flowTimeObjects.Any(timeObject => timeObject.Id == SelectedId.Value))
+        {
+            return;
+        }
+
+        flowTimeObjects.Add(new FlowTimeObject
+        {
+            Id = SelectedId.Value,
+            Name = SelectedName
+        });
+    }
+
+    private static bool ShowsFlowDbSelection(string selection) =>
+        selection is FlowIntegrationObjectSelectionOptions.FromFlowDb or FlowIntegrationObjectSelectionOptions.Both;
+}

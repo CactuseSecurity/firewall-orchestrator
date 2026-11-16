@@ -814,12 +814,22 @@ class FwoApi:
                 # read graphql code from file
                 printable_chars = set(string.printable)
                 with open(file, encoding="utf-8", errors="ignore") as f:
-                    code += "".join(filter(printable_chars.__contains__, f.read())) + " "
+                    file_code = "".join(filter(printable_chars.__contains__, f.read()))
+                code += cls._strip_graphql_comments(file_code) + " "
             except FileNotFoundError:  # noqa: PERF203
                 FWOLogger.error("fwo_api: file not found: " + file)
                 raise
 
         return code.replace("\n", " ").replace("\r", " ")
+
+    @staticmethod
+    def _strip_graphql_comments(graphql_code: str) -> str:
+        """
+        Remove the # comments of each line, as the C# query loader (Queries.Compact) does.
+
+        The code is joined into a single line afterwards, so a comment left in place would swallow the rest of it.
+        """
+        return "\n".join(line.split("#", 1)[0] for line in graphql_code.splitlines())
 
     @staticmethod
     def _read_clean_text_from_file(file_path: str) -> str:

@@ -1,0 +1,40 @@
+---
+# One case of test-api-docker-guard.yml. A loop cannot run a block with rescue, so each case
+# is included on its own.
+#
+# Inputs:
+#   test_api_docker_case - label, services (the service facts fixture), docker (the Docker
+#                          stand-in) and expected_message (empty: the guard must let the
+#                          case through)
+- name: Set the log prefix of this case
+  set_fact:
+    # only the rejecting cases are expected to fail, see tasks/main.yml
+    test_api_docker_prefix: "{{ 'expected to fail: ' if test_api_docker_case.expected_message | length > 0 else '' }}"
+
+- name: "{{ test_api_docker_prefix }}Docker API guard on {{ test_api_docker_case.label }}"
+  block:
+    - name: "{{ test_api_docker_prefix }}Docker API guard on {{ test_api_docker_case.label }}"
+      include_tasks: "{{ role_path }}/../common/tasks/validate-api-not-on-docker.yml"
+      vars:
+        fworch_service_facts: "{{ test_api_docker_case.services }}"
+        api_docker_binary: "{{ test_api_docker_case.docker }}"
+    - set_fact:
+        test_api_docker_message: ""
+  rescue:
+    - name: "{{ test_api_docker_prefix }}rejection of {{ test_api_docker_case.label }} caught"
+      set_fact:
+        test_api_docker_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert the guard decision on {{ test_api_docker_case.label }}
+  assert:
+    that:
+      - (test_api_docker_message | length > 0) == (test_api_docker_case.expected_message | length > 0)
+      - test_api_docker_case.expected_message in test_api_docker_message
+      - test_api_docker_message | length == 0 or minimum_upgrade_source_release in test_api_docker_message
+      - test_api_docker_message | length == 0 or 'server-upgrade.md' in test_api_docker_message
+      - "'\n' not in test_api_docker_message"
+    fail_msg: >-
+      The Docker API guard on "{{ test_api_docker_case.label }}" had to
+      {{ 'reject it naming "' ~ test_api_docker_case.expected_message ~ '"'
+      if test_api_docker_case.expected_message | length > 0 else 'let it through' }}, but
+      {{ ('failed with: ' ~ test_api_docker_message) if test_api_docker_message | length > 0 else 'let it through' }}.

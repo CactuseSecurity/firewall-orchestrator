@@ -93,10 +93,12 @@ python3 scripts/ci/version_gate.py gate \
 
 # The reason can carry a file name whose bytes are not valid UTF-8. Render those as escapes
 # rather than letting the encode fail and take the job's diagnosis with it, and rather than
-# writing raw bytes into a log that is read as text.
+# writing raw bytes into a log that is read as text. Line breaks are escaped as well, so that a
+# file name cannot start a log line of its own, such as a workflow command.
 reason="$(python3 -c 'import json,sys
 sys.stdout.reconfigure(errors="backslashreplace")
-print(json.load(open(sys.argv[1]))["reason"])' "$verdict_file")"
+reason = json.load(open(sys.argv[1]))["reason"]
+print(reason.replace("\r", "\\r").replace("\n", "\\n"))' "$verdict_file")"
 
 if [[ "$gate_exit" -eq 0 ]]; then
     echo "Version gate passed: ${reason}"

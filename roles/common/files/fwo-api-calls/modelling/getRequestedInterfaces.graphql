@@ -7,8 +7,24 @@ query getRequestedInterfaces($showRemoved: Boolean!){
     },
     order_by: { name: asc }
   ){
-    ...connectionDetails
+    id
+    app_id
+    proposed_app_id
+    name
+    is_interface
+    used_interface_id
+    is_requested
+    is_published
+    ticket_id
+    creation_date
+    conn_prop
+    removed
+    removal_date
+    interface_permission
     owner {
+      id
+      name
+      app_id_external
       owner_lifecycle_state_id
       active
     }
@@ -18,6 +34,9 @@ query getRequestedInterfaces($showRemoved: Boolean!){
       app_id_external
       owner_lifecycle_state_id
       active
+    }
+    used_by_connections: connections (where: { removed: { _eq: false } }, order_by: { id: asc }){
+      id
     }
   }
 }

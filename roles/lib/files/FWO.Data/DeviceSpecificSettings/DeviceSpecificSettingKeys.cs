@@ -19,6 +19,9 @@ public static class DeviceSpecificSettingKeys
     public static readonly DeviceSpecificSettingKey<ProvisioningPositioningAlgorithm> PositioningAlgorithm =
         new("positioningAlgorithm", AllScopeTypes);
 
+    public static readonly DeviceSpecificSettingKey<string> CheckPointLayerGuardSectionNameTemplate =
+        new("checkPointLayerGuardSectionNameTemplate", AllScopeTypes);
+
     public static readonly DeviceSpecificSettingKey<ProvisioningLoggingMode> RuleLoggingOverride =
         new("ruleLoggingOverride", AllScopeTypes);
 
@@ -68,6 +71,10 @@ public static class DeviceSpecificSettingKeys
     public static readonly DeviceSpecificSettingKey<string> ImporterHostName =
         new("importerHostName", ManagerScopeTypes);
 
+    /// <summary>Whether the importer offers the SHA-1 SSH key exchange diffie-hellman-group14-sha1 (Cisco ASA).</summary>
+    public static readonly DeviceSpecificSettingKey<bool> SshLegacyKeyExchange =
+        new("sshLegacyKeyExchange", ManagerScopeTypes);
+
     /// <summary>Automatic creation of implementation tasks for every task type.</summary>
     public static readonly DeviceSpecificSettingKey<bool> AutoPlanImplementation =
         new("autoPlanImplementation", AllScopeTypes);
@@ -94,11 +101,15 @@ public static class DeviceSpecificSettingKeys
     public static readonly DeviceSpecificSettingKey<string> Templates =
         new("templates", DeviceTypeScopeTypes);
 
-    /// <summary>All canonical keys, including the firewall write keys of <see cref="FirewallWriteSettingKeys"/>.</summary>
+    /// <summary>
+    /// All canonical keys, including the firewall write keys of <see cref="FirewallWriteSettingKeys"/> and the SecureChange
+    /// template keys of <see cref="SecureChangeTemplateSettingKeys"/>.
+    /// </summary>
     public static IReadOnlyList<DeviceSpecificSettingKey> All { get; } = new List<DeviceSpecificSettingKey>
     {
         InstallOn,
         PositioningAlgorithm,
+        CheckPointLayerGuardSectionNameTemplate,
         RuleLoggingOverride,
         ServiceObjectCreation,
         AddressObjectCreation,
@@ -115,6 +126,7 @@ public static class DeviceSpecificSettingKeys
         OwnerIdCustomFieldName,
         ChangeIdCustomFieldName,
         ImporterHostName,
+        SshLegacyKeyExchange,
         AutoPlanImplementation,
         AutoPlanImplementationForRules,
         ModellingCreateAppZones,
@@ -123,7 +135,7 @@ public static class DeviceSpecificSettingKeys
         ModellingConnectionIdField,
         ModellingConnectionIdTemplate,
         Templates,
-    }.Concat(FirewallWriteSettingKeys.All).ToList().AsReadOnly();
+    }.Concat(FirewallWriteSettingKeys.All).Concat(SecureChangeTemplateSettingKeys.All).ToList().AsReadOnly();
 
     public static IReadOnlyDictionary<string, DeviceSpecificSettingKey> ByDatabaseKey { get; } =
         new ReadOnlyDictionary<string, DeviceSpecificSettingKey>(

@@ -1,0 +1,93 @@
+# The read-only account (openldap_readonly_user_dn, "inspector") could read every userPassword hash
+# (GHSA-6g84, role-openldap-server-002). It only searches entries; passwords are checked by binding
+# as the user, so the read access is removed from the userPassword rule of the FWO database.
+#
+# cn=config is closed to online access (olcAccess: to * by * none on the config database), so the
+# rule is changed offline: slapcat reads it, slapmodify replaces it while slapd is stopped. An
+# installation whose rule no longer grants that read access (fresh installs since 9.8.6, a repeated
+# upgrade, or an administrator who changed it) is left alone.
+
+- name: read the configuration of the FWO directory database
+  command: slapcat -F {{ openldap_server_app_path }}/slapd.d -n 0 -a "(olcSuffix={{ openldap_path }})"
+  register: ldap_upgrade_9_8_6_config
+  changed_when: false
+  become: true
+
+- name: find the userPassword access rule of the FWO directory database
+  vars:
+    # slapcat folds long lines; a continuation line starts with a single space
+    ldap_upgrade_9_8_6_unfolded: "{{ ldap_upgrade_9_8_6_config.stdout | regex_replace('\\n ', '') }}"
+  # regex_findall returns the group without a back reference; Jinja would unescape one in a string literal
+  set_fact:
+    ldap_upgrade_9_8_6_dn: "{{ ldap_upgrade_9_8_6_unfolded | regex_findall('^dn: (.*)$', multiline=True) | first | default('') }}"
+    ldap_upgrade_9_8_6_rule: >-
+      {{ ldap_upgrade_9_8_6_unfolded
+         | regex_findall('^olcAccess: ([{][0-9]+[}]to attrs=userPassword .*)$', multiline=True)
+         | first | default('') }}
+
+- name: remove the read access of the read-only account from the userPassword rule
+  vars:
+    ldap_upgrade_9_8_6_grant: '\s+by\s+dn\.base="{{ openldap_readonly_user_dn | regex_escape }}"\s+read'
+    ldap_upgrade_9_8_6_new_rule: "{{ ldap_upgrade_9_8_6_rule | regex_replace(ldap_upgrade_9_8_6_grant, '') }}"
+  when:
+    - ldap_upgrade_9_8_6_dn | length > 0
+    - ldap_upgrade_9_8_6_rule is search(ldap_upgrade_9_8_6_grant)
+  become: true
+  block:
+    - name: create a temporary file for the access rule change
+      tempfile:
+        state: file
+        suffix: .ldif
+      register: ldap_upgrade_9_8_6_ldif
+
+    # the ordered value is deleted by its exact text and added again at the same position
+    - name: write the access rule change
+      copy:
+        dest: "{{ ldap_upgrade_9_8_6_ldif.path }}"
+        mode: "0600"
+        content: |
+          dn: {{ ldap_upgrade_9_8_6_dn }}
+          changetype: modify
+          delete: olcAccess
+          olcAccess: {{ ldap_upgrade_9_8_6_rule }}
+          -
+          add: olcAccess
+          olcAccess: {{ ldap_upgrade_9_8_6_new_rule }}
+          -
+
+    - name: stop slapd to change its configuration
+      systemd:
+        name: slapd
+        state: stopped
+
+    - name: apply the access rule change
+      block:
+        - name: change the userPassword access rule offline
+          command: slapmodify -F {{ openldap_server_app_path }}/slapd.d -n 0 -l {{ ldap_upgrade_9_8_6_ldif.path }}
+
+      always:
+        # slapmodify runs as root and writes the changed files as root
+        - name: give the slapd configuration back to the slapd user
+          file:
+            path: "{{ openldap_server_app_path }}/slapd.d"
+            state: directory
+            recurse: true
+            owner: "{{ openldap_server_user }}"
+
+        - name: start slapd again
+          systemd:
+            name: slapd
+            state: started
+
+        - name: remove the temporary access rule change
+          file:
+            path: "{{ ldap_upgrade_9_8_6_ldif.path }}"
+            state: absent
+
+- name: warn when the userPassword access rule could not be read
+  debug:
+    msg: >-
+      WARNING: the userPassword access rule of {{ openldap_path }} could not be read from the slapd
+      configuration, so it was not checked for read access of {{ openldap_readonly_user_dn }}.
+      Check it with slapcat -n 0 and remove that read access by hand if it is present.
+  when: ldap_upgrade_9_8_6_dn | length == 0 or ldap_upgrade_9_8_6_rule | length == 0

@@ -345,6 +345,7 @@ else
 
     private string DisplayNetworkObject(NwObjectElement element)
     {
+        element = ResolveNetworkElement(element);
         if (!string.IsNullOrWhiteSpace(element.GroupName))
         {
             return element.GroupName;
@@ -373,6 +374,7 @@ else
 
     private string DisplayNetworkService(NwServiceElement element)
     {
+        element = ResolveServiceElement(element);
         if (!string.IsNullOrWhiteSpace(element.GroupName))
         {
             return element.GroupName;
@@ -394,6 +396,7 @@ else
 
     private string DisplayServiceElement(NwServiceElement element)
     {
+        element = ResolveServiceElement(element);
         if (!string.IsNullOrEmpty(element.GroupName))
         {
             return element.GroupName;
@@ -412,8 +415,9 @@ else
             : DisplayServiceElement(element);
     }
 
-    private static string DisplayNetworkElement(NwObjectElement element)
+    private string DisplayNetworkElement(NwObjectElement element)
     {
+        element = ResolveNetworkElement(element);
         if (!string.IsNullOrWhiteSpace(element.GroupName))
         {
             return element.GroupName;
@@ -423,6 +427,48 @@ else
             return element.Name;
         }
         return NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
+    }
+
+    private NwObjectElement ResolveNetworkElement(NwObjectElement element)
+    {
+        WfReqElement resolved = WfObjectTaskHelper.ResolveReferencedElement(
+            element.ToReqElement(ElemFieldType.source), TicketTasks);
+        return new NwObjectElement
+        {
+            ElemId = element.ElemId,
+            TaskId = element.TaskId,
+            NetworkId = resolved.NetworkId,
+            FlowNetworkObjectId = resolved.FlowNetworkObjectId,
+            FlowNetworkGroupId = resolved.FlowNetworkGroupId,
+            ObjectTaskId = element.ObjectTaskId,
+            GroupName = element.GroupName,
+            RequestAction = element.RequestAction,
+            Name = resolved.Name,
+            IpString = resolved.IpString ?? resolved.Cidr?.CidrString ?? "",
+            IpEndString = resolved.IpEnd ?? resolved.CidrEnd?.CidrString ?? ""
+        };
+    }
+
+    private NwServiceElement ResolveServiceElement(NwServiceElement element)
+    {
+        WfReqElement resolved = WfObjectTaskHelper.ResolveReferencedElement(
+            element.ToReqElement(), TicketTasks);
+        return new NwServiceElement
+        {
+            ElemId = element.ElemId,
+            TaskId = element.TaskId,
+            Port = resolved.Port,
+            PortEnd = resolved.PortEnd,
+            ProtoId = resolved.ProtoId ?? 0,
+            HasProtocol = resolved.ProtoId.HasValue,
+            ServiceId = resolved.ServiceId,
+            FlowServiceObjectId = resolved.FlowServiceObjectId,
+            FlowServiceGroupId = resolved.FlowServiceGroupId,
+            ObjectTaskId = element.ObjectTaskId,
+            GroupName = element.GroupName,
+            RequestAction = element.RequestAction,
+            Name = resolved.Name
+        };
     }
 
     protected override async Task OnInitializedAsync()

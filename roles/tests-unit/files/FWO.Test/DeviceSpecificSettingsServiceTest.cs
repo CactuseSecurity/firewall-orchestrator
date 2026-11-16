@@ -108,6 +108,33 @@ internal class DeviceSpecificSettingsServiceTest
     }
 
     [Test]
+    public async Task LayerGuardSectionNameTemplate_InheritsAndCanBeOverriddenAtGateway()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = PersistedCheckPointChain(includeGateway: true);
+        api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "global");
+        api.SetValue(kManagementNodeId, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, "management");
+        DeviceSpecificSettingsService service = Service(api);
+        DeviceSpecificNode root = await service.LoadHierarchyAsync(DeviceSpecificSettingsDataTest.SampleManagements());
+        DeviceSpecificLevelForm form = await service.LoadFormAsync(
+            Node(root, DeviceSpecificScopeType.Gateway, "200"));
+        DeviceSpecificFieldState state = State(form, DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(state.DisplayedValue, Is.EqualTo("management"));
+            Assert.That(state.InheritedSource?.NodeId, Is.EqualTo(kManagementNodeId));
+        }
+
+        state.Override();
+        state.LocalValue = "fixed @@SOURCE_ZONE@@ fixed";
+        await service.SaveAsync(form);
+
+        Assert.That(api.ReadValue(kGatewayNodeId,
+            DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate)?.ToObject<string>(),
+            Is.EqualTo("fixed @@SOURCE_ZONE@@ fixed"));
+    }
+
+    [Test]
     public async Task LoadForm_LocalOverride_KnowsTheValueItWouldInherit()
     {
         InMemoryDeviceSpecificSettingsApiConnection api = PersistedCheckPointChain(includeGateway: false);
@@ -204,9 +231,11 @@ internal class DeviceSpecificSettingsServiceTest
 
         DeviceSpecificFieldState positioning = State(form, DeviceSpecificSettingKeys.PositioningAlgorithm);
         positioning.Override();
-        positioning.LocalValue = nameof(ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection);
+        positioning.LocalValue = nameof(ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection);
         State(form, DeviceSpecificSettingKeys.RuleZoneFromOverride).Inherit();
         await service.SaveAsync(form);
+        DeviceSpecificLevelForm reloaded = await service.LoadFormAsync(
+            Node(root, DeviceSpecificScopeType.Gateway, "200"));
 
         using (Assert.EnterMultipleScope())
         {
@@ -215,6 +244,8 @@ internal class DeviceSpecificSettingsServiceTest
             Assert.That(api.LastPatchRemoveKeys, Is.EqualTo(kExpectedZoneFromKeys));
             Assert.That(api.ReadValue(kGatewayNodeId, DeviceSpecificSettingKeys.InstallOn)?.ToString(), Is.EqualTo("gatewaysInPath"));
             Assert.That(api.ReadValue(kGatewayNodeId, DeviceSpecificSettingKeys.RuleZoneFromOverride), Is.Null);
+            Assert.That(State(reloaded, DeviceSpecificSettingKeys.PositioningAlgorithm).DisplayedValue,
+                Is.EqualTo(nameof(ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection)));
         }
     }
 

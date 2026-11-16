@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using Bunit;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -189,6 +190,8 @@ namespace FWO.Test
                 Assert.That(stored.ShowComments, Is.False);
                 Assert.That(stored.AccessTask.ShowManagement, Is.True);
                 Assert.That(stored.AccessTask.ShowOwner, Is.True);
+                Assert.That(stored.AccessTask.ShowRuleAction, Is.True);
+                Assert.That(stored.AccessTask.ShowTracking, Is.True);
                 Assert.That(stored.AccessTask.ShowValidFrom, Is.True);
                 Assert.That(stored.AccessTask.ShowValidTo, Is.True);
                 Assert.That(stored.AccessTask.ShowReason, Is.True);
@@ -341,6 +344,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SettingsCustomizing_RendersPlannerOwnerAndEditModeSettings()
+        {
+            await using BunitContext context = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqAllowOwnerChangesByPlanner = true,
+                ReqPlannerEditMode = PlannerEditMode.PlanningView
+            };
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderCustomizing(context, globalConfig);
+
+            wrapper.WaitForAssertion(() =>
+            {
+                IElement ownerCheckbox = wrapper.Find("#cbx_allow_owner_changes_by_planner");
+                IElement plannerMode = wrapper.Find("#dropdown-sel_planning_edit_mode");
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(ownerCheckbox.HasAttribute("checked"), Is.True);
+                    Assert.That(plannerMode, Is.Not.Null);
+                    Assert.That(wrapper.Markup, Does.Contain("sel_approval_edit_mode"));
+                });
+            });
+        }
+
+        [Test]
         public async Task SettingsCustomizing_FiltersApiTicketInitialStatesToActivePhaseStates()
         {
             await using BunitContext context = new();
@@ -476,6 +507,34 @@ namespace FWO.Test
             Assert.That(apiConnection.LastConfigItems[0].Key, Is.EqualTo("reqFlowIntegration"));
             Assert.That(apiConnection.LastConfigItems[0].Value, Is.EqualTo(newValue));
             Assert.That(editableConfig.ReqFlowIntegration, Is.EqualTo(newValue));
+        }
+
+        [Test]
+        public async Task HandleTimeObjectOriginSuffixesChanged_PersistsConfigImmediately()
+        {
+            SettingsCustomizing component = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new() { ReqAvailableTaskTypes = "[]" };
+            SimulatedUserConfig userConfig = new();
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            string newValue = "{\"requester\":\"_user\",\"approver\":\"_approver\"}";
+
+            SetMember(component, "apiConnection", apiConnection);
+            SetMember(component, "globalConfig", globalConfig);
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, "configData", editableConfig);
+
+            Task handlerTask = (Task)GetPrivateMethod(typeof(SettingsCustomizing), "HandleTimeObjectOriginSuffixesChanged")
+                .Invoke(component, [newValue])!;
+            await handlerTask;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.LastConfigItems.Single().Key, Is.EqualTo("reqTimeObjectOriginSuffixes"));
+                Assert.That(apiConnection.LastConfigItems.Single().Value, Is.EqualTo(newValue));
+                Assert.That(editableConfig.ReqTimeObjectOriginSuffixes, Is.EqualTo(newValue));
+            });
         }
 
         [Test]
@@ -1134,7 +1193,7 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)WorkflowConfigurations);
                 }
 
-                if (query == PathAnalysisAlgorithmQueries.getPathAnalysisAlgorithms && typeof(QueryResponseType) == typeof(List<PathAnalysisAlgorithm>))
+                if (query == PathAnalysisQueries.getPathAnalysisAlgorithms && typeof(QueryResponseType) == typeof(List<PathAnalysisAlgorithm>))
                 {
                     return Task.FromResult((QueryResponseType)(object)PathAnalysisAlgorithms);
                 }

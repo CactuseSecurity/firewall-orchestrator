@@ -63,8 +63,9 @@ namespace FWO.Services.Workflow
 
         /// <summary>
         /// Creates the implementation tasks of an access task: one per entered or found gateway whose settings allow the
-        /// automatic creation, or one without gateway when all devices are selected and one task is wanted for them.
-        /// When no gateway can be determined at all, the fallback task without gateway is created.
+        /// automatic creation and whose implementation mode for rules is Automatic, or one without gateway when all
+        /// devices are selected and one task is wanted for them. When no gateway can be determined at all, the
+        /// fallback task without gateway is created.
         /// </summary>
         /// <param name="reqTask">Access task to create the implementation tasks for.</param>
         private async Task AutoCreateAccessImplTasks(WfReqTask reqTask)
@@ -75,6 +76,7 @@ namespace FWO.Services.Workflow
             List<int> targetDeviceIds = [.. targets.OfType<int>()];
             await EnsureAutoPlanSettings(targetDeviceIds, kNoIds);
             targets = [.. targets.Where(deviceId => IsAutoPlanned(true, DeviceSpecificScopeType.Gateway, deviceId))];
+            targets = await FilterAutomaticRuleTargets(reqTask, targets);
             List<int> deviceIds = [.. targets.OfType<int>()];
             if (targets.Contains(null))
             {
@@ -149,16 +151,32 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Creates the single implementation task of a request task that needs no gateway determination: rule_modify and
         /// rule_delete with the gateway of the rule, every other non-access and non-object task type without gateway.
-        /// Created only if the settings of the gateway, or the global settings without gateway, allow it.
+        /// Created only if the settings of the gateway, or the global settings without gateway, allow it; for rule tasks
+        /// the implementation mode for rules must be Automatic as well.
         /// </summary>
         private async Task AutoCreateSingleImplTask(WfReqTask reqTask)
         {
             int ruleDeviceId = IsRuleTaskType(reqTask.TaskType) ? reqTask.GetRuleDeviceId() : 0;
             int? deviceId = ruleDeviceId > 0 ? ruleDeviceId : null;
-            if (reqTask.ImplementationTasks.Count == 0 && await IsAutoPlannedForDevice(reqTask, deviceId))
+            if (reqTask.ImplementationTasks.Count == 0 && await IsAutoPlannedForDevice(reqTask, deviceId)
+                && await IsImplementedAutomaticallyOnDevice(reqTask, deviceId))
             {
                 await CreateGenericImplTask(reqTask);
             }
+        }
+
+        /// <summary>
+        /// Returns whether a rule task is implemented automatically on a gateway, or with the global settings when
+        /// there is no gateway; other task types have no implementation mode here.
+        /// </summary>
+        private async Task<bool> IsImplementedAutomaticallyOnDevice(WfReqTask reqTask, int? deviceId)
+        {
+            if (!IsRuleTaskType(reqTask.TaskType))
+            {
+                return true;
+            }
+            List<int?> targets = [deviceId];
+            return (await FilterAutomaticRuleTargets(reqTask, targets)).Count > 0;
         }
 
         /// <summary>
@@ -189,7 +207,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         private async Task CreateFallbackImplTask(WfReqTask reqTask)
         {
-            if (!await IsAutoPlannedForDevice(reqTask, null))
+            if (!await IsAutoPlannedForDevice(reqTask, null) || !await IsImplementedAutomaticallyOnDevice(reqTask, null))
             {
                 return;
             }
@@ -205,19 +223,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         private bool IsAutoPlanned(bool isRuleTask, DeviceSpecificScopeType scopeType, int? id)
         {
-            if (AutoPlanSettingsOverride != null)
-            {
-                return AutoPlanSettingsOverride.IsAutoPlanned(isRuleTask);
-            }
-            if (id != null && autoPlanCache.TryGetValue((scopeType, id), out GlobalDeviceSpecificSettings? settings))
-            {
-                return settings.IsAutoPlanned(isRuleTask);
-            }
-            if (autoPlanCache.TryGetValue((DeviceSpecificScopeType.Global, null), out GlobalDeviceSpecificSettings? globalSettings))
-            {
-                return globalSettings.IsAutoPlanned(isRuleTask);
-            }
-            return kDefaultAutoPlanSettings.IsAutoPlanned(isRuleTask);
+            return GetResolvedSettings(scopeType, id).IsAutoPlanned(isRuleTask);
         }
 
         /// <summary>

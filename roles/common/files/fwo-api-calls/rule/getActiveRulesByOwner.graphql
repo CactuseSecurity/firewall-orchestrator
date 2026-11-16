@@ -2,6 +2,7 @@ query getActiveRulesByOwner($ownerId: Int!) {
   firewall_rule(
     where: {
       removed: {_is_null: true},
+      rule_disabled: {_eq: false},
       rule_owners: {
         owner_id: {_eq: $ownerId},
         removed: {_is_null: true}

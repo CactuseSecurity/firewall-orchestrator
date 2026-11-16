@@ -1,10 +1,11 @@
-- name: copy the ldif templates to system once more (this time for adding entries)
+# sample trees are rendered in memory by apply_ldap_entries.yml, so their passwords are not written to disk
+- name: copy the integration test user ldif templates to system
   template:
     src: "{{ item }}"
     dest: "{{ middleware_ldif_dir }}/{{ item | basename | regex_replace('\\.j2$', '') }}"
     force: true
   with_fileglob:
-    - ../templates/tree_*.j2
+    - "{{ role_path }}/templates/tree_integration_testuser_*.j2"
   become: true
 
 - name: build ldap command url
@@ -42,13 +43,16 @@
   changed_when: ldap_result.rc == 0
   become: true
 
-- name: add tree
-  command: "ldapmodify {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
+- name: ensure sample tree entries exist
+  include_tasks: apply_ldap_entries.yml
   loop:
     - sample_tenants
     - sample_operators
     - sample_groups
-  become: true
+  loop_control:
+    loop_var: ldap_tree_name
+  vars:
+    ldap_existing_result_code: 68
 
 - name: add ui ambient smoke roles for test user
   command: "ldapmodify {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x"
@@ -70,11 +74,14 @@
     - run_ui_ambient_role_smoke | default(false) | bool
 
 #only add roles and groups when not testing to avoid resudue from tests
-- name: add tree
-  command: "ldapmodify {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -f {{ middleware_ldif_dir }}/tree_{{ item }}.ldif"
+- name: ensure sample role and group memberships exist
+  include_tasks: apply_ldap_entries.yml
   loop:
     - roles_for_sample_operators
     - groups_for_sample_operators
     - roles_for_integration_testuser
-  become: true
+  loop_control:
+    loop_var: ldap_tree_name
+  vars:
+    ldap_existing_result_code: 20
   when: sample_role_purpose is not match('test')

@@ -46,18 +46,19 @@ def fortios_api_call(api_url: str, access_token: str) -> list[dict[str, Any]]:
         list[dict[str, Any]]: The list of results from the API.
 
     """
-    request_headers = {"Content-Type": "application/json"}
+    # The token is sent as a header, never as a query parameter, so that it does not end up in the url that
+    # proxies, web server logs and error texts record.
+    request_headers = {"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"}
 
     try:
         response = requests.get(
             api_url,
             headers=request_headers,
-            params={"access_token": access_token},
             verify=fwo_globals.verify_certs,
             timeout=FWO_HTTP_TIMEOUT,
         )
     except requests.exceptions.RequestException as request_error:
-        # the text of a requests error names the full url including the access token query parameter
+        # the text of a requests error names the full url; an older caller may still have put a token into it
         raise FwApiCallFailedError(
             f"error while sending api_call to url '{api_url}' ({type(request_error).__name__})"
         ) from None

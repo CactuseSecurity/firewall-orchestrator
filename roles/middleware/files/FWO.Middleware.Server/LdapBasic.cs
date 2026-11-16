@@ -380,6 +380,25 @@ namespace FWO.Middleware.Server
             return null;
         }
 
+        /// <summary>
+        /// Reads an entry by its distinguished name. Unlike GetUserDetailsFromLdap, a directory that cannot be asked
+        /// throws instead of being mistaken for a missing entry.
+        /// </summary>
+        /// <param name="distinguishedName">Distinguished name of the entry.</param>
+        /// <returns>The entry, or null if the directory has no entry with that name.</returns>
+        public async Task<LdapEntry?> ReadEntryIfExists(string distinguishedName)
+        {
+            using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
+            try
+            {
+                return await connection.ReadAsync(distinguishedName, LdapDirectoryObjectId.BuildUserAttributeList(), CancellationToken.None);
+            }
+            catch (LdapException ldapException) when (ldapException.ResultCode == LdapException.NoSuchObject)
+            {
+                return null;
+            }
+        }
+
         private async Task<bool> CredentialsValid(ILdapClient connection, string dn, string password, CancellationToken cancellationToken)
         {
             try

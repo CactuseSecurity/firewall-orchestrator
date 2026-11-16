@@ -2,6 +2,7 @@ using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Workflow;
 
 namespace FWO.Test
 {
@@ -140,6 +141,21 @@ namespace FWO.Test
                 Assert.That(DisplayBase.DisplayIpRange(start, end), Is.EqualTo(expected));
                 Assert.That(DisplayBase.DisplayIpRange(start, end, true), Is.EqualTo(bracketed));
             });
+        }
+
+        [Test]
+        public void TestDisplayWorkflowServiceWithoutProtocolDoesNotUseProtocolZero()
+        {
+            NwServiceElement service = new()
+            {
+                Name = "service-group-member",
+                Port = 53,
+                ProtoId = 0,
+                HasProtocol = false
+            };
+            List<IpProtocol> protocols = [new IpProtocol { Id = 0, Name = "HOPOPT" }];
+
+            Assert.That(DisplayBase.DisplayService(service, protocols), Is.EqualTo(""));
         }
     }
 }

@@ -1,0 +1,65 @@
+---
+# Removes a python venv that no longer fits its interpreter, so the "create venv" task that
+# follows builds it again. A venv keeps its packages in lib/python<major.minor>/site-packages
+# and links bin/python3 to the system interpreter. An operating system upgrade that moves
+# the system python to a new minor version (Debian 12 -> 13: 3.11 -> 3.13) leaves bin/python3
+# pointing at the new interpreter, which does not search the old site-packages - every import,
+# pip included, fails. The "create venv" tasks only check that the directory exists, so
+# without this the broken venv is never replaced.
+#
+# In its own file so the importer and middleware roles share it and roles/tests-integration
+# drives this code rather than a copy of it.
+#
+# Inputs:
+#   python_venv_dir         - the venv directory
+#   python_venv_interpreter - the interpreter the venv is created with
+# Output: the venv is removed when it was created for another python major.minor version,
+#   has no pyvenv.cfg, or its bin/python3 no longer resolves; otherwise it is left alone.
+
+- name: check for an existing venv in {{ python_venv_dir }}
+  stat:
+    path: "{{ python_venv_dir }}"
+  register: python_venv_dir_state
+
+- name: remove the venv in {{ python_venv_dir }} when it no longer fits its interpreter
+  when: python_venv_dir_state.stat.exists
+  block:
+    - name: read the python version the venv was created with
+      slurp:
+        src: "{{ python_venv_dir }}/pyvenv.cfg"
+      register: python_venv_config
+      # a venv without pyvenv.cfg is broken as well and gets rebuilt
+      failed_when: false
+
+    # follows the link, so a venv whose interpreter was uninstalled counts as missing
+    - name: check that the venv interpreter still resolves
+      stat:
+        path: "{{ python_venv_dir }}/bin/python3"
+        follow: true
+      register: python_venv_python
+
+    - name: read the python version of the interpreter
+      command:
+        argv:
+          - "{{ python_venv_interpreter }}"
+          - -c
+          - "import sys; print('%d.%d' % sys.version_info[:2])"
+      register: python_venv_interpreter_version
+      changed_when: false
+      check_mode: false
+
+    # venv writes "version = 3.11.2", virtualenv "version_info = 3.11.2.final.0"
+    - name: extract the python version from pyvenv.cfg
+      set_fact:
+        python_venv_created_version: >-
+          {{ (python_venv_config.content | default('') | b64decode
+              | regex_search('(?m)^\s*version(?:_info)?\s*=\s*(\d+\.\d+)', '\1'))
+             | default([''], true) | first }}
+
+    - name: remove the venv built for python {{ python_venv_created_version | default('unknown', true) }}
+      file:
+        path: "{{ python_venv_dir }}"
+        state: absent
+      when: >-
+        not python_venv_python.stat.exists
+        or python_venv_created_version != python_venv_interpreter_version.stdout | trim

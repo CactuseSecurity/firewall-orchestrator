@@ -1,0 +1,38 @@
+- name: Reset the failure observation
+  set_fact:
+    sample_ldap_failure_observed: false
+    sample_ldap_failure_message: ""
+
+- name: 'expected to fail: unexpected LDAP error'
+  block:
+    - name: 'expected to fail: apply sample LDAP entries'
+      include_role:
+        name: sample-auth-data
+        tasks_from: apply_ldap_entries.yml
+      vars:
+        ldap_tree_name: "{{ failure_case.tree }}"
+        ldap_existing_result_code: "{{ failure_case.existing_rc }}"
+  environment:
+    LDAP_STUB_FORCED_RESULT: "{{ failure_case.unexpected_rc }}"
+  rescue:
+    - name: 'expected to fail: record LDAP failure'
+      set_fact:
+        sample_ldap_failure_observed: true
+        sample_ldap_failure_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert the unexpected LDAP error was not accepted
+  assert:
+    that:
+      - sample_ldap_failure_observed
+      - ldap_entry_result.results | map(attribute='rc') | unique | list == [failure_case.unexpected_rc]
+
+- name: Assert the failure names the tree, record, entry, result, and stderr without attribute values
+  assert:
+    that:
+      - "'dn: ' in sample_ldap_failure_message"
+      - "(failure_case.tree ~ ' record 1 (') in sample_ldap_failure_message"
+      - "(failure_case.tree ~ ' record ' ~ (ldap_entry_result.results | length) ~ ' (') in sample_ldap_failure_message"
+      - "('LDAP result ' ~ failure_case.unexpected_rc) in sample_ldap_failure_message"
+      - "'forced test result' in sample_ldap_failure_message"
+      - sample_user1_pw not in sample_ldap_failure_message
+      - sample_user2_pw not in sample_ldap_failure_message

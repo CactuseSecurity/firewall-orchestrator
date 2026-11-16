@@ -50,7 +50,8 @@ public sealed class FlowComplianceService
     /// </summary>
     public async Task<List<FlowComplianceStateResponse>> GetFlowComplianceStateAsync(GetFlowComplianceStateRequest request)
     {
-        if (request.Policies.Count == 0)
+        List<int> policyIds = (request.Policies ?? []).Distinct().ToList();
+        if (policyIds.Count == 0)
         {
             return [];
         }
@@ -60,8 +61,7 @@ public sealed class FlowComplianceService
         Rule rule = BuildSyntheticRule(request);
         List<FlowComplianceStateResponse> results = [];
         List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames) ?? [];
-        Dictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion = [];
-        List<int> policyIds = request.Policies.Distinct().ToList();
+        Dictionary<int, List<NetworkZone>> networkZonesByCriterion = [];
         Dictionary<int, CompliancePolicy> policiesById = await LoadPoliciesAsync(policyIds);
 
         foreach (int policyId in policyIds)
@@ -96,7 +96,7 @@ public sealed class FlowComplianceService
             .ToDictionary(group => group.Key, group => group.First());
     }
 
-    private async Task EnsureNetworkZonesLoadedAsync(CompliancePolicy policy, IDictionary<int, List<ComplianceNetworkZone>> networkZonesByCriterion)
+    private async Task EnsureNetworkZonesLoadedAsync(CompliancePolicy policy, Dictionary<int, List<NetworkZone>> networkZonesByCriterion)
     {
         foreach (int matrixId in policy.Criteria
                      .Where(wrapper => wrapper.Content.CriterionType == nameof(CriterionType.Matrix) && wrapper.Content.Id > 0)
@@ -108,46 +108,84 @@ public sealed class FlowComplianceService
                 continue;
             }
 
-            networkZonesByCriterion[matrixId] = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
+            networkZonesByCriterion[matrixId] = await apiConnection.SendQueryAsync<List<NetworkZone>>(
                 NetworkZoneQueries.getNetworkZonesForMatrix,
                 new { criterionId = matrixId }) ?? [];
         }
     }
 
+    /// <summary>
+    /// Builds the one rule that represents the requested flow: all sources, destinations and services together.
+    /// </summary>
     private static Rule BuildSyntheticRule(GetFlowComplianceStateRequest request)
     {
-        Rule rule = new()
+        return new Rule
         {
             Id = 1,
             Uid = "flow-compliance-state",
             MgmtId = 0,
             Action = "accept",
-            Froms = request.Source.Select((source, index) => new NetworkLocation(new NetworkUser(), ToNetworkObject(source, $"source-{index + 1}"))).ToArray(),
-            Tos = request.Destination.Select((destination, index) => new NetworkLocation(new NetworkUser(), ToNetworkObject(destination, $"destination-{index + 1}"))).ToArray(),
-            Services = request.Service.Select((service, index) => new ServiceWrapper { Content = ToNetworkService(service, $"service-{index + 1}") }).ToArray()
+            Froms = ToNetworkLocations(request.Source, FlowComplianceRequestValidationSchema.kSourcePath),
+            Tos = ToNetworkLocations(request.Destination, FlowComplianceRequestValidationSchema.kDestinationPath),
+            Services = ToServiceWrappers(request.Service)
         };
-
-        return rule;
     }
 
-    private static NetworkObject ToNetworkObject(GetFlowComplianceStateRequest.IpRangeRequest request, string namePrefix)
+    /// <summary>
+    /// Converts the validated address blocks of one request list into rule locations named <c>{path}-1</c>, <c>{path}-2</c>, ...
+    /// </summary>
+    private static NetworkLocation[] ToNetworkLocations(List<AddressInputRequest?>? addresses, string path)
     {
-        if (string.IsNullOrEmpty(request.NormalizedIpStart))
+        addresses ??= [];
+        List<NetworkLocation> locations = [];
+        for (int index = 0; index < addresses.Count; index++)
         {
-            if (!AddressInputNormalizer.TryValidateAndNormalize(request, $"'{namePrefix}'", out NormalizedAddressBounds bounds, out string? errorMessage))
-            {
-                throw new ArgumentException(errorMessage);
-            }
+            NetworkObject networkObject = ToNetworkObject(addresses[index], $"{path}[{index}]", $"{path}-{index + 1}");
+            locations.Add(new NetworkLocation(new NetworkUser(), networkObject));
+        }
+        return [.. locations];
+    }
 
-            request.NormalizedIpStart = bounds.IpStart;
-            request.NormalizedIpEnd = bounds.IpEnd;
+    /// <summary>
+    /// Converts the validated service entries into rule services named <c>service-1</c>, <c>service-2</c>, ...
+    /// </summary>
+    private static ServiceWrapper[] ToServiceWrappers(List<GetFlowComplianceStateRequest.ServiceRangeRequest?>? services)
+    {
+        services ??= [];
+        List<ServiceWrapper> wrappers = [];
+        for (int index = 0; index < services.Count; index++)
+        {
+            string path = $"{FlowComplianceRequestValidationSchema.kServicePath}[{index}]";
+            GetFlowComplianceStateRequest.ServiceRangeRequest service = services[index]
+                ?? throw new InvalidOperationException($"'{path}' passed validation but is null.");
+            wrappers.Add(new ServiceWrapper { Content = ToNetworkService(service, $"service-{index + 1}") });
+        }
+        return [.. wrappers];
+    }
+
+    /// <summary>
+    /// Converts one validated address block into the network object of the synthetic rule.
+    /// </summary>
+    /// <param name="address">The address block; the validator has already rejected null entries and invalid addresses.</param>
+    /// <param name="path">Request path of the block, for example <c>source[0]</c>, used in the exception message.</param>
+    /// <param name="name">Name of the network object, for example <c>source-1</c>.</param>
+    /// <exception cref="InvalidOperationException">The block passed validation but is null or cannot be normalized.</exception>
+    private static NetworkObject ToNetworkObject(AddressInputRequest? address, string path, string name)
+    {
+        if (address == null)
+        {
+            throw new InvalidOperationException($"'{path}' passed validation but is null.");
+        }
+        if (!AddressInputNormalizer.TryValidateAndNormalize(address, $"'{path}'", out NormalizedAddressBounds bounds, out string? error))
+        {
+            throw new InvalidOperationException($"'{path}' passed validation but could not be converted: {error}");
         }
 
         return new NetworkObject
         {
-            Name = namePrefix,
-            IP = request.NormalizedIpStart,
-            IpEnd = request.NormalizedIpEnd,
+            Name = name,
+            IP = bounds.IpStart,
+            IpEnd = bounds.IpEnd,
             Type = new NetworkObjectType { Name = ObjectType.IPRange }
         };
     }

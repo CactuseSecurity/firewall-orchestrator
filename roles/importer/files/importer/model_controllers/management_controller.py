@@ -17,7 +17,9 @@ from models.credential import AdditionalCredential
 from models.gateway import Gateway
 from models.management import Management
 
-IMPORTER_HOST_NAME_SETTING_LEVELS: list[str] = ["management", "device_type", "global"]
+IMPORTER_SETTING_LEVELS: list[str] = ["management", "device_type", "global"]
+IMPORTER_HOST_NAME_SETTING_KEY: str = "importerHostName"
+SSH_LEGACY_KEY_EXCHANGE_SETTING_KEY: str = "sshLegacyKeyExchange"
 
 
 @dataclass
@@ -66,7 +68,8 @@ class ManagementController(Management):
         manager_info: ManagerInfo,
         domain_info: DomainInfo,
         import_disabled: bool = False,
-    ):
+        ssh_legacy_key_exchange: bool = False,
+    ) -> None:
         super().__init__(
             mgm_id=mgm_id,
             uid=uid,
@@ -78,6 +81,7 @@ class ManagementController(Management):
             hostname=connection_info.hostname,
             port=connection_info.port,
             importer_hostname=importer_hostname,
+            ssh_legacy_key_exchange=ssh_legacy_key_exchange,
             import_user=credential_info.import_user,
             secret=credential_info.secret,
             is_super_manager=manager_info.is_super_manager,
@@ -120,7 +124,7 @@ class ManagementController(Management):
         )
         domain_info = DomainInfo(domain_name=json_dict.get("configPath"), domain_uid=json_dict.get("domainUid"))
 
-        return cls(
+        management = cls(
             mgm_id=json_dict["id"],
             uid=json_dict["uid"],
             devices=json_dict["devices"],
@@ -131,7 +135,11 @@ class ManagementController(Management):
             manager_info=manager_info,
             domain_info=domain_info,
             import_disabled=json_dict["importDisabled"],
+            ssh_legacy_key_exchange=json_dict.get("sshLegacyKeyExchange", False) is True,
         )
+        management.cloud_tenant_id = json_dict.get("cloudTenantId")
+        management.cloud_subscription_id = json_dict.get("cloudSubscriptionId")
+        return management
 
     def __str__(self):
         return f"{self.hostname}({self.mgm_id})"
@@ -215,32 +223,50 @@ class ManagementController(Management):
                     sub_mgm["import_credential"]["secret"] = decrypted_secret
         management = api_call_result["data"]["management"][0]
         self.decrypt_additional_credentials(management)
-        management["importerHostname"] = self.get_importer_host_name(api_conn, mgm_id, management["deviceType"]["id"])
+        settings = self.get_importer_settings(api_conn, mgm_id, management["deviceType"]["id"])
+        host_name = settings.get(IMPORTER_HOST_NAME_SETTING_KEY)
+        management["importerHostname"] = host_name.strip() if isinstance(host_name, str) else ""
+        management["sshLegacyKeyExchange"] = settings.get(SSH_LEGACY_KEY_EXCHANGE_SETTING_KEY) is True
         return management
+
+    @staticmethod
+    def get_importer_settings(api_conn: FwoApi, mgm_id: int, device_type_id: int) -> dict[str, Any]:
+        """
+        Resolve the device specific settings the importer needs for a management.
+
+        Each setting is inherited along Global > device type > management; the most specific level that sets it wins.
+        A setting that is set on no level is missing from the result.
+        """
+        query = FwoApi.get_graphql_code([GRAPHQL_QUERY_PATH + "deviceSpecificSettings/getImporterSettings.graphql"])
+        query_variables: dict[str, Any] = {"deviceTypeKey": str(device_type_id), "managementKey": str(mgm_id)}
+        api_call_result = api_conn.call(query, query_variables=query_variables)
+        nodes: list[dict[str, Any]] | None = api_call_result.get("data", {}).get("device_specific_config_node")
+        if nodes is None:
+            raise FwoApiFailureError("did not succeed in getting the importer settings from FWO API")
+
+        values_by_level: dict[str, dict[str, Any]] = {}
+        for node in nodes:
+            level_values = values_by_level.setdefault(node["node_type"], {})
+            node_values: list[dict[str, Any]] = node.get("values") or []
+            for value in node_values:
+                level_values[value["config_key"]] = value["config_value"]
+
+        settings: dict[str, Any] = {}
+        for level in reversed(IMPORTER_SETTING_LEVELS):
+            settings.update(values_by_level.get(level, {}))
+        return settings
 
     @staticmethod
     def get_importer_host_name(api_conn: FwoApi, mgm_id: int, device_type_id: int) -> str:
         """
         Resolve the device specific setting importerHostName of a management.
 
-        The setting is inherited along Global > device type > management; the most specific level that sets it wins.
         An empty result means that every importer is responsible for the management.
         """
-        query = FwoApi.get_graphql_code([GRAPHQL_QUERY_PATH + "deviceSpecificSettings/getImporterHostName.graphql"])
-        query_variables: dict[str, Any] = {"deviceTypeKey": str(device_type_id), "managementKey": str(mgm_id)}
-        api_call_result = api_conn.call(query, query_variables=query_variables)
-        nodes: list[dict[str, Any]] | None = api_call_result.get("data", {}).get("device_specific_config_node")
-        if nodes is None:
-            raise FwoApiFailureError("did not succeed in getting the importer host name from FWO API")
-
-        host_names_by_level: dict[str, Any] = {
-            node["node_type"]: node["values"][0]["config_value"] for node in nodes if node.get("values")
-        }
-        for level in IMPORTER_HOST_NAME_SETTING_LEVELS:
-            host_name = host_names_by_level.get(level)
-            if isinstance(host_name, str):
-                return host_name.strip()
-        return ""
+        host_name = ManagementController.get_importer_settings(api_conn, mgm_id, device_type_id).get(
+            IMPORTER_HOST_NAME_SETTING_KEY
+        )
+        return host_name.strip() if isinstance(host_name, str) else ""
 
     @staticmethod
     def decrypt_additional_credentials(management: dict[str, Any]) -> None:

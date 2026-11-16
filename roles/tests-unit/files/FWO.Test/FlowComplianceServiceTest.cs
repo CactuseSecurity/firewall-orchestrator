@@ -8,6 +8,7 @@ using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.Text.Json;
 using NUnit.Framework;
 
 namespace FWO.Test;
@@ -138,6 +139,224 @@ internal class FlowComplianceServiceTest
     }
 
     /// <summary>
+    /// Verifies a request without policies returns no result and sends no query.
+    /// </summary>
+    [Test]
+    public async Task GetFlowComplianceStateAsync_NullOrEmptyPolicies_ReturnsEmptyWithoutQueries()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+        GetFlowComplianceStateRequest nullPolicies = BuildComplianceRequest();
+        nullPolicies.Policies = null;
+        GetFlowComplianceStateRequest emptyPolicies = BuildComplianceRequest();
+        emptyPolicies.Policies = [];
+
+        List<FlowComplianceStateResponse> nullResult = await service.GetFlowComplianceStateAsync(nullPolicies);
+        List<FlowComplianceStateResponse> emptyResult = await service.GetFlowComplianceStateAsync(emptyPolicies);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(nullResult, Is.Empty);
+            Assert.That(emptyResult, Is.Empty);
+            Assert.That(apiConnection.SentQueries, Is.Empty);
+        });
+    }
+
+    /// <summary>
+    /// Verifies a duplicated policy id is checked and returned once.
+    /// </summary>
+    [Test]
+    public async Task GetFlowComplianceStateAsync_DuplicatePolicyIds_AreCheckedOnce()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+        GetFlowComplianceStateRequest request = BuildComplianceRequest();
+        request.Policies = [8, 8];
+
+        List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(request);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].Policy.Id, Is.EqualTo(8));
+    }
+
+    /// <summary>
+    /// Verifies null address and service lists are treated as empty instead of failing.
+    /// </summary>
+    [Test]
+    public async Task GetFlowComplianceStateAsync_NullFlowLists_AreTreatedAsEmpty()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+        GetFlowComplianceStateRequest request = new() { Source = null, Destination = null, Service = null, Policies = [8] };
+
+        List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(request);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Has.Count.EqualTo(1));
+            Assert.That(result[0].Policy.Id, Is.EqualTo(8));
+        });
+    }
+
+    /// <summary>
+    /// Verifies the service normalizes a network itself: host bits are cleared and the whole network is checked.
+    /// </summary>
+    [Test]
+    public async Task GetFlowComplianceStateAsync_SourceNetwork_IsCheckedAsItsWholeRange()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+        GetFlowComplianceStateRequest request = BuildMinimumCidrLengthRequest("10.0.0.1", "10.0.0.1");
+        request.Source = [new AddressInputRequest { IpNetwork = "10.1.2.3/8" }];
+
+        List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(request);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result[0].Violations, Has.Count.EqualTo(1));
+            Assert.That(result[0].Violations[0].Type, Is.EqualTo(nameof(CriterionType.MinimumCIDRLength)));
+        });
+    }
+
+    /// <summary>
+    /// Verifies a single host passes a minimum CIDR length criterion.
+    /// </summary>
+    [Test]
+    public async Task GetFlowComplianceStateAsync_SourceHost_HasNoCidrLengthViolation()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+        GetFlowComplianceStateRequest request = BuildMinimumCidrLengthRequest("10.0.0.1", "10.0.0.1");
+        request.Source = [new AddressInputRequest { IpHost = "10.0.0.1" }];
+
+        List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(request);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].Violations, Is.Empty);
+    }
+
+    /// <summary>
+    /// Verifies a null address entry that bypassed the validator surfaces as a programming error naming its path.
+    /// </summary>
+    [Test]
+    public void GetFlowComplianceStateAsync_NullAddressEntry_ThrowsInvalidOperation()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+        GetFlowComplianceStateRequest request = BuildComplianceRequest();
+        request.Source = [null];
+
+        InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.GetFlowComplianceStateAsync(request));
+
+        Assert.That(exception!.Message, Does.Contain("'source[0]'"));
+    }
+
+    /// <summary>
+    /// Verifies an invalid address that bypassed the validator surfaces as a programming error naming its path.
+    /// </summary>
+    [Test]
+    public void GetFlowComplianceStateAsync_InvalidAddress_ThrowsInvalidOperation()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+        GetFlowComplianceStateRequest request = BuildComplianceRequest();
+        request.Destination = [new AddressInputRequest { IpHost = "banana" }];
+
+        InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.GetFlowComplianceStateAsync(request));
+
+        Assert.That(exception!.Message, Does.Contain("'destination[0]'"));
+    }
+
+    /// <summary>
+    /// Verifies a null service entry that bypassed the validator surfaces as a programming error naming its path.
+    /// </summary>
+    [Test]
+    public void GetFlowComplianceStateAsync_NullServiceEntry_ThrowsInvalidOperation()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+        GetFlowComplianceStateRequest request = BuildComplianceRequest();
+        request.Service = [null];
+
+        InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.GetFlowComplianceStateAsync(request));
+
+        Assert.That(exception!.Message, Does.Contain("'service[0]'"));
+    }
+
+    /// <summary>
+    /// Verifies an invalid request is rejected with the aggregated error contract before the service runs.
+    /// </summary>
+    [Test]
+    public async Task GetFlowComplianceState_InvalidRequest_ReturnsAggregatedBadRequest()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        FlowComplianceController controller = new(new FlowComplianceService(apiConnection, new SimulatedGlobalConfig()));
+        GetFlowComplianceStateRequest request = BuildComplianceRequest();
+        request.Policies = [0];
+
+        ActionResult<List<FlowComplianceStateResponse>> result = await controller.GetFlowComplianceState(request);
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        RequestValidationErrorResponse? errors = ((BadRequestObjectResult)result.Result!).Value as RequestValidationErrorResponse;
+        Assert.Multiple(() =>
+        {
+            Assert.That(errors, Is.Not.Null);
+            Assert.That(errors!.Errors.Single().Path, Is.EqualTo("policies[0]"));
+            Assert.That(apiConnection.SentQueries, Is.Empty);
+        });
+    }
+
+    /// <summary>
+    /// Verifies a valid request reaches the service and returns its result.
+    /// </summary>
+    [Test]
+    public async Task GetFlowComplianceState_ValidRequest_ReturnsOk()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+        FlowComplianceController controller = new(new FlowComplianceService(apiConnection, new SimulatedGlobalConfig()));
+
+        ActionResult<List<FlowComplianceStateResponse>> result = await controller.GetFlowComplianceState(BuildCompliantMatrixOnlyRequest());
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        List<FlowComplianceStateResponse>? response = ((OkObjectResult)result.Result!).Value as List<FlowComplianceStateResponse>;
+        Assert.That(response, Has.Count.EqualTo(1));
+    }
+
+    /// <summary>
+    /// Verifies an unknown key in the policy id request is rejected with the aggregated error contract.
+    /// </summary>
+    [Test]
+    public async Task GetPolicyIds_UnknownKey_ReturnsAggregatedBadRequest()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        FlowComplianceController controller = new(new FlowComplianceService(apiConnection, new SimulatedGlobalConfig()));
+        GetPolicyIdsRequest request = JsonSerializer.Deserialize<GetPolicyIdsRequest>("""{"limit":10}""")!;
+
+        ActionResult<GetPolicyIdsResponse> result = await controller.GetPolicyIds(request);
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        RequestValidationErrorResponse? errors = ((BadRequestObjectResult)result.Result!).Value as RequestValidationErrorResponse;
+        Assert.Multiple(() =>
+        {
+            Assert.That(errors, Is.Not.Null);
+            Assert.That(errors!.Errors.Single().Path, Is.EqualTo("limit"));
+            Assert.That(apiConnection.SentQueries, Is.Empty);
+        });
+    }
+
+    /// <summary>
     /// SEC-25: the number of policy queries must not grow with the number of requested policies.
     /// </summary>
     [Test]
@@ -147,13 +366,13 @@ internal class FlowComplianceServiceTest
         ConfigureComplianceFixture(apiConnection);
         FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
         GetFlowComplianceStateRequest request = BuildComplianceRequest();
-        request.Policies = Enumerable.Range(1, FlowComplianceRequestValidator.kMaxPolicies).ToList();
+        request.Policies = Enumerable.Range(1, FlowComplianceRequestValidationSchema.kMaxPolicies).ToList();
 
         List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(request);
 
         Assert.Multiple(() =>
         {
-            Assert.That(result, Has.Count.EqualTo(FlowComplianceRequestValidator.kMaxPolicies));
+            Assert.That(result, Has.Count.EqualTo(FlowComplianceRequestValidationSchema.kMaxPolicies));
             Assert.That(apiConnection.CountQueries(ComplianceQueries.getPoliciesByIds), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(ComplianceQueries.getPolicyById), Is.Zero);
             Assert.That(result.Single(response => response.Policy.Id == 7).Policy.Name, Is.EqualTo("Matrix and Service Policy"));
@@ -217,8 +436,8 @@ internal class FlowComplianceServiceTest
         GetFlowComplianceStateRequest request = BuildCompliantMatrixOnlyRequest();
         request.Source =
         [
-            new GetFlowComplianceStateRequest.IpRangeRequest { IpRange = ["2001:db8::1", "2001:db8::1" ]},
-            new GetFlowComplianceStateRequest.IpRangeRequest { IpRange = ["2001:db8:1::1", "2001:db8:1::1" ]}
+            new AddressInputRequest { IpRange = ["2001:db8::1", "2001:db8::1" ]},
+            new AddressInputRequest { IpRange = ["2001:db8:1::1", "2001:db8:1::1" ]}
         ];
 
         List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(request);
@@ -255,14 +474,14 @@ internal class FlowComplianceServiceTest
         {
             Source =
             [
-                new GetFlowComplianceStateRequest.IpRangeRequest
+                new AddressInputRequest
                 {
                     IpRange = [sourceIpStart, sourceIpEnd]
                 }
             ],
             Destination =
             [
-                new GetFlowComplianceStateRequest.IpRangeRequest
+                new AddressInputRequest
                 {
                     IpRange = ["193.0.0.1", "193.0.0.1"]
                 }
@@ -319,14 +538,14 @@ internal class FlowComplianceServiceTest
         {
             Source =
             [
-                new GetFlowComplianceStateRequest.IpRangeRequest
+                new AddressInputRequest
                 {
                     IpRange = ["128.0.0.1", "128.0.0.1"]
                 }
             ],
             Destination =
             [
-                new GetFlowComplianceStateRequest.IpRangeRequest
+                new AddressInputRequest
                 {
                     IpRange = ["193.0.0.1", "193.0.0.1"]
                 }
@@ -350,14 +569,14 @@ internal class FlowComplianceServiceTest
         {
             Source =
             [
-                new GetFlowComplianceStateRequest.IpRangeRequest
+                new AddressInputRequest
                 {
                     IpRange = ["128.0.0.1", "128.0.0.1"]
                 }
             ],
             Destination =
             [
-                new GetFlowComplianceStateRequest.IpRangeRequest
+                new AddressInputRequest
                 {
                     IpRange = ["128.0.0.1", "128.0.0.1"]
                 }
@@ -427,11 +646,11 @@ internal class FlowComplianceServiceTest
         };
     }
 
-    private static List<ComplianceNetworkZone> BuildNetworkZones()
+    private static List<NetworkZone> BuildNetworkZones()
     {
-        List<ComplianceNetworkZone> networkZones =
+        List<NetworkZone> networkZones =
         [
-            new ComplianceNetworkZone
+            new NetworkZone
             {
                 Id = 1,
                 CriterionId = 101,
@@ -439,7 +658,7 @@ internal class FlowComplianceServiceTest
                 IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("128.0.0.1"), IPAddress.Parse("128.0.0.1"))],
                 AllowedCommunicationDestinations = []
             },
-            new ComplianceNetworkZone
+            new NetworkZone
             {
                 Id = 2,
                 CriterionId = 101,
@@ -480,7 +699,7 @@ internal class FlowComplianceServiceTest
         public List<CompliancePolicy> Policies { get; set; } = [];
         public Dictionary<int, CompliancePolicy> PoliciesById { get; } = new();
         public List<Management> Managements { get; set; } = [];
-        public List<ComplianceNetworkZone> NetworkZones { get; set; } = [];
+        public List<NetworkZone> NetworkZones { get; set; } = [];
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
@@ -532,7 +751,7 @@ internal class FlowComplianceServiceTest
                 return Task.FromResult((QueryResponseType)(object)Managements);
             }
 
-            if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
+            if (typeof(QueryResponseType) == typeof(List<NetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
             {
                 return Task.FromResult((QueryResponseType)(object)NetworkZones);
             }

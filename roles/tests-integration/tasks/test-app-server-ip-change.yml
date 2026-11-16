@@ -1,0 +1,421 @@
+# Integration test: an app server changes its ip between two app data imports while both ips resolve to the
+# same dns name. The variance analysis has to detect the changed ip against the test firewall although the name
+# is unchanged, and has to request the new member under the ip suffixed name. The test stops after the variance
+# analysis: nothing is requested and nothing is written to a firewall.
+#
+# - the test firewall is a management imported from a local normalized config file. It only holds the app role
+#   group with the app server at the old ip and no rules, so the rule owner mapping has nothing to map for it.
+# - the harness (files/app_server_ip_change) runs the real AppDataImport and ModellingVarianceAnalysis in its own
+#   process against the installed api, as {{ fworch_user }}. Import paths and dns lookup are only set in its
+#   memory, so neither the stored config nor the middleware jobs are touched.
+# - each app data import run also reads an invalid guard file, which closes the owner import control of the run
+#   as unsuccessful. The rule owner mapping only takes up successful owner imports, so it never sees the test app.
+# - the reverse lookups of the test ips are answered by the harness itself (injected into AppDataImport), so
+#   neither a test name server nor any change of the resolver configuration is needed.
+# Everything the test creates is named with test_postfix and removed in the always section.
+
+- name: set the names of the app server ip change test
+  set_fact:
+    app_ip_test_old_ip: "1.2.3.4"
+    app_ip_test_new_ip: "2.3.4.5"
+    # unique, so that the cleanup can find the log entries naming the app server
+    app_ip_test_server_name: "app-srv-1{{ test_postfix }}"
+    app_ip_test_app_name: "app_ip_change{{ test_postfix }}"
+    app_ip_test_ext_app_id: "APP-IP-CHANGE{{ test_postfix }}"
+    app_ip_test_import_source: "app_ip_change{{ test_postfix }}"
+    app_ip_test_app_role: "AR_ip_change{{ test_postfix }}"
+    app_ip_test_mgm_name: "app_ip_change{{ test_postfix }}"
+    app_ip_test_mgm_uid: "app-ip-change{{ test_postfix }}"
+    app_ip_test_credential_name: "app_ip_change{{ test_postfix }}"
+    # app data import files have to be below an allowed customization root (ConfigFile.AllowedCustomizationRoots)
+    app_ip_test_import_dir: "{{ fworch_conf_dir }}/app_ip_change{{ test_postfix }}"
+    # next to FWO.Test, so that the project references of the harness resolve to the installed sources
+    app_ip_test_harness_dir: "{{ test_dir }}/csharp/FWO.Test.AppServerIpChange{{ test_postfix }}"
+    app_ip_test_mapping_wait_retries: 30
+    app_ip_test_mapping_wait_delay: 10
+    app_ip_test_app_data_log_source: "importAppData"
+    # rule owner mapping sources whose scheduled runs process pending imports (OwnerMappingSourceStm)
+    app_ip_test_processing_mapping_sources: ["1", "2", "3"]
+
+- name: remember the start of the app server ip change test
+  postgresql_query:
+    db: "{{ fworch_db_name }}"
+    query: SELECT now()::text AS start_time;
+  become: true
+  become_user: postgres
+  register: app_ip_test_start
+
+- block:
+
+  - name: create the directory of the test import files
+    file:
+      path: "{{ app_ip_test_import_dir }}"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: "0750"
+
+  - name: write the app data import files with the old and the new ip
+    copy:
+      dest: "{{ app_ip_test_import_dir }}/{{ item.file }}.json"
+      content: >-
+        {{ {'owners': [{
+              'name': app_ip_test_app_name,
+              'app_id_external': app_ip_test_ext_app_id,
+              'import_source': app_ip_test_import_source,
+              'recert_active': false,
+              'app_servers': [{'name': item.ip, 'ip': item.ip ~ '/32', 'ip_end': item.ip ~ '/32'}]
+            }]} | to_nice_json }}
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: "0640"
+    loop:
+      - { file: "first_import", ip: "{{ app_ip_test_old_ip }}" }
+      - { file: "second_import", ip: "{{ app_ip_test_new_ip }}" }
+
+  - name: write the invalid guard import file
+    copy:
+      dest: "{{ app_ip_test_import_dir }}/guard.json"
+      content: "invalid on purpose, see test-app-server-ip-change.yml\n"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: "0640"
+
+  - name: write the config of the test firewall
+    template:
+      src: app_server_ip_change_fw_config.json.j2
+      dest: "{{ app_ip_test_import_dir }}/fw_config.json"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: "0640"
+
+  - name: create the test firewall
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        WITH new_credential AS (
+          INSERT INTO credential (credential_name, username, secret, is_key_pair)
+          VALUES (%s, 'unused', 'unused', false)
+          RETURNING id
+        )
+        INSERT INTO management (dev_typ_id, mgm_name, import_credential_id, ssh_hostname, do_not_import, mgm_uid, ext_mgm_data)
+        SELECT 9, %s, id, %s, true, %s, %s FROM new_credential
+        RETURNING mgm_id;
+      positional_args:
+        - "{{ app_ip_test_credential_name }}"
+        - "{{ app_ip_test_mgm_name }}"
+        - "file://{{ app_ip_test_import_dir }}/fw_config.json"
+        - "{{ app_ip_test_mgm_uid }}"
+        # a management is only analysed by the variance analysis if it has external management data
+        - "{{ {'id': app_ip_test_mgm_uid, 'name': app_ip_test_mgm_name} | to_json }}"
+    become_user: postgres
+    register: app_ip_test_mgm
+
+  - name: import the test firewall
+    command:
+      cmd: >
+        {{ importer_venv_dir }}/bin/python3 ./import_mgm.py -f -s
+        -m{{ app_ip_test_mgm.query_result.0.mgm_id }}
+        -i file://{{ app_ip_test_import_dir }}/fw_config.json
+      chdir: "{{ fworch_home }}/importer"
+    become_user: "{{ fworch_user }}"
+    environment: "{{ proxy_env }}"
+    register: app_ip_test_fw_import
+    failed_when: false
+
+  - name: find the import result of the test firewall
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        SELECT control_id, successful_import, import_errors FROM import_control
+        WHERE mgm_id = %s ORDER BY control_id DESC LIMIT 1;
+      positional_args:
+        - "{{ app_ip_test_mgm.query_result.0.mgm_id }}"
+    become_user: postgres
+    register: app_ip_test_fw_import_status
+
+  - name: verify the import of the test firewall
+    assert:
+      that:
+        - app_ip_test_fw_import.rc == 0
+        - app_ip_test_fw_import_status.query_result | length == 1
+        - app_ip_test_fw_import_status.query_result.0.successful_import | bool
+      fail_msg: >
+        Import of the test firewall failed.
+        rc={{ app_ip_test_fw_import.rc }},
+        status={{ app_ip_test_fw_import_status.query_result | default([]) }},
+        stderr={{ app_ip_test_fw_import.stderr | default('') }}
+
+  - name: create the directory of the test harness
+    file:
+      path: "{{ app_ip_test_harness_dir }}"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: "0755"
+
+  # build output of a local build of the harness must not reach the test system, it is rebuilt there
+  - name: copy the test harness
+    ansible.posix.synchronize:
+      src: app_server_ip_change/
+      dest: "{{ app_ip_test_harness_dir }}/"
+      rsync_opts:
+        - "--chown={{ fworch_user }}:{{ fworch_group }}"
+        - "--chmod=D0755,F0644"
+        - "--exclude=bin/"
+        - "--exclude=obj/"
+
+  # the lib role creates it as well, but the tests also run on their own (tag test)
+  - name: create the runtime directory for dotnet commands run as {{ fworch_user }}
+    file:
+      path: "{{ dotnet_xdg_runtime_dir }}"
+      state: directory
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: "0700"
+
+  - name: run the app data imports and the variance analysis
+    command:
+      argv:
+        - dotnet
+        - test
+        - "{{ app_ip_test_harness_dir }}/FWO.Test.AppServerIpChange.csproj"
+        - --configuration
+        - Debug
+        - --nologo
+      chdir: "{{ app_ip_test_harness_dir }}"
+    become_user: "{{ fworch_user }}"
+    environment: >-
+      {{
+        dotnet_env | combine({
+          'FWO_TEST_FIRST_IMPORT_SOURCE': app_ip_test_import_dir ~ '/first_import',
+          'FWO_TEST_SECOND_IMPORT_SOURCE': app_ip_test_import_dir ~ '/second_import',
+          'FWO_TEST_GUARD_IMPORT_SOURCE': app_ip_test_import_dir ~ '/guard',
+          'FWO_TEST_EXT_APP_ID': app_ip_test_ext_app_id,
+          'FWO_TEST_APP_IMPORT_SOURCE': app_ip_test_import_source,
+          'FWO_TEST_MGM_ID': app_ip_test_mgm.query_result.0.mgm_id | string,
+          'FWO_TEST_APP_ROLE': app_ip_test_app_role,
+          'FWO_TEST_SERVER_NAME': app_ip_test_server_name,
+          'FWO_TEST_OLD_IP': app_ip_test_old_ip,
+          'FWO_TEST_NEW_IP': app_ip_test_new_ip
+        })
+      }}
+    register: app_ip_test_harness
+    changed_when: false
+    failed_when: false
+
+  - name: show the output of the app server ip change test
+    debug:
+      var: app_ip_test_harness.stdout_lines
+    when: app_ip_test_harness.rc != 0
+
+  - name: verify the app server ip change test
+    assert:
+      that:
+        - app_ip_test_harness.rc == 0
+      fail_msg: >
+        The app server ip change test failed (rc={{ app_ip_test_harness.rc }}), see its output above.
+        stderr={{ app_ip_test_harness.stderr | default('') }}
+
+  - name: find the owner imports of the test app
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        SELECT ic.control_id, ic.successful_import, ic.rule_owner_mapping_done,
+          (SELECT count(*) FROM rule_owner ro WHERE ro.created = ic.control_id OR ro.removed = ic.control_id) AS rule_owner_refs
+        FROM import_control ic
+        WHERE ic.import_type_id = 2 AND ic.control_id IN (
+          SELECT co.control_id FROM changelog_owner co JOIN owner o ON o.id IN (co.new_owner_id, co.old_owner_id)
+          WHERE o.app_id_external = %s);
+      positional_args:
+        - "{{ app_ip_test_ext_app_id }}"
+    become_user: postgres
+    register: app_ip_test_owner_imports
+
+  - name: verify that the rule owner mapping did not take up the owner imports of the test app
+    assert:
+      that:
+        - app_ip_test_owner_imports.query_result | length > 0
+        - app_ip_test_owner_imports.query_result | selectattr('successful_import') | list | length == 0
+        - app_ip_test_owner_imports.query_result | selectattr('rule_owner_mapping_done') | list | length == 0
+        - app_ip_test_owner_imports.query_result | map(attribute='rule_owner_refs') | sum == 0
+      fail_msg: >
+        The owner imports of the test app are visible to the rule owner mapping:
+        {{ app_ip_test_owner_imports.query_result }}
+
+  always:
+
+  - name: read the rule owner mapping source
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: SELECT config_value FROM config WHERE config_key = 'OwnerSoruceMappingID' AND config_user = 0;
+    become_user: postgres
+    register: app_ip_test_mapping_source
+
+  # deleting the test firewall while the rule owner mapping processes its import would break that run
+  - name: wait until the rule owner mapping has processed the import of the test firewall
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        SELECT count(*) AS pending FROM import_control ic JOIN management m ON m.mgm_id = ic.mgm_id
+        WHERE m.mgm_name = %s AND ic.import_type_id = 1 AND ic.successful_import AND ic.changes_found
+          AND NOT ic.rule_owner_mapping_done;
+      positional_args:
+        - "{{ app_ip_test_mgm_name }}"
+    become_user: postgres
+    register: app_ip_test_pending_fw_imports
+    until: app_ip_test_pending_fw_imports.query_result.0.pending == 0
+    retries: "{{ app_ip_test_mapping_wait_retries }}"
+    delay: "{{ app_ip_test_mapping_wait_delay }}"
+    failed_when: false
+    when: >
+      (app_ip_test_mapping_source.query_result | map(attribute='config_value') | first | default('0'))
+      in app_ip_test_processing_mapping_sources
+
+  # owner deletion cascades to the app servers, responsibles and owner change log of the test app.
+  # The owner import controls are only deleted if no mapping of another owner refers to them - deleting them
+  # would cascade to that mapping, so the cleanup deletes nothing instead and fails.
+  # Single statement: the owner imports are found through the owner change log, which the owner deletion removes.
+  # Log entries are matched by the unique names of the test only, never by its ips.
+  - name: delete the test app with its app servers, owner imports and log entries
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        WITH test_owners AS (
+          SELECT id FROM owner WHERE app_id_external = %(ext_app_id)s OR import_source = %(import_source)s
+        ), test_owner_imports AS (
+          SELECT DISTINCT control_id FROM changelog_owner
+          WHERE new_owner_id IN (SELECT id FROM test_owners) OR old_owner_id IN (SELECT id FROM test_owners)
+        ), foreign_mappings AS (
+          SELECT count(*) AS refs FROM rule_owner
+          WHERE (created IN (SELECT control_id FROM test_owner_imports) OR removed IN (SELECT control_id FROM test_owner_imports))
+            AND owner_id NOT IN (SELECT id FROM test_owners)
+        ), deleted_history AS (
+          DELETE FROM change_history
+          WHERE app_id IN (SELECT id FROM test_owners) AND (SELECT refs FROM foreign_mappings) = 0
+          RETURNING 1
+        ), deleted_owners AS (
+          DELETE FROM owner
+          WHERE id IN (SELECT id FROM test_owners) AND (SELECT refs FROM foreign_mappings) = 0
+          RETURNING 1
+        ), deleted_owner_imports AS (
+          DELETE FROM import_control
+          WHERE control_id IN (SELECT control_id FROM test_owner_imports) AND import_type_id = 2
+            AND (SELECT refs FROM foreign_mappings) = 0
+          RETURNING 1
+        ), deleted_log_entries AS (
+          DELETE FROM log_data_issue
+          WHERE source = %(log_source)s AND issue_timestamp >= %(start_time)s::timestamptz
+            AND (strpos(description, %(import_dir)s) > 0 OR strpos(description, %(app_name)s) > 0
+              OR strpos(description, %(server_name)s) > 0)
+          RETURNING 1
+        )
+        SELECT (SELECT refs FROM foreign_mappings) AS foreign_mapping_refs,
+          (SELECT count(*) FROM deleted_history) AS deleted_history_entries,
+          (SELECT count(*) FROM deleted_owners) AS deleted_owners,
+          (SELECT count(*) FROM deleted_owner_imports) AS deleted_owner_imports,
+          (SELECT count(*) FROM deleted_log_entries) AS deleted_log_entries;
+      named_args:
+        ext_app_id: "{{ app_ip_test_ext_app_id }}"
+        import_source: "{{ app_ip_test_import_source }}"
+        log_source: "{{ app_ip_test_app_data_log_source }}"
+        start_time: "{{ app_ip_test_start.query_result.0.start_time }}"
+        import_dir: "{{ app_ip_test_import_dir }}"
+        app_name: "{{ app_ip_test_app_name }}"
+        server_name: "{{ app_ip_test_server_name }}"
+    become_user: postgres
+    register: app_ip_test_app_cleanup
+    failed_when: >
+      app_ip_test_app_cleanup.query_result is not defined
+      or app_ip_test_app_cleanup.query_result.0.foreign_mapping_refs != 0
+    # the remaining cleanup has to run anyway, the failure is reported by the last task
+    ignore_errors: true
+
+  # management deletion cascades to the imports and the rule metadata of the test firewall. Nothing is deleted
+  # if a rule owner mapping refers to one of its imports.
+  - name: delete the test firewall
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        WITH test_managements AS (
+          SELECT mgm_id FROM management WHERE mgm_name = %(mgm_name)s
+        ), mappings AS (
+          SELECT count(*) AS refs FROM rule_owner ro JOIN import_control ic ON ic.control_id IN (ro.created, ro.removed)
+          WHERE ic.mgm_id IN (SELECT mgm_id FROM test_managements)
+        ), deleted_rule_metadata AS (
+          DELETE FROM rule_metadata
+          WHERE mgm_id IN (SELECT mgm_id FROM test_managements) AND (SELECT refs FROM mappings) = 0
+          RETURNING 1
+        ), deleted_managements AS (
+          DELETE FROM management
+          WHERE mgm_id IN (SELECT mgm_id FROM test_managements) AND (SELECT refs FROM mappings) = 0
+          RETURNING 1
+        )
+        SELECT (SELECT refs FROM mappings) AS rule_owner_refs,
+          (SELECT count(*) FROM deleted_rule_metadata) AS deleted_rule_metadata,
+          (SELECT count(*) FROM deleted_managements) AS deleted_managements;
+      named_args:
+        mgm_name: "{{ app_ip_test_mgm_name }}"
+    become_user: postgres
+    register: app_ip_test_fw_cleanup
+    failed_when: >
+      app_ip_test_fw_cleanup.query_result is not defined
+      or app_ip_test_fw_cleanup.query_result.0.rule_owner_refs != 0
+    ignore_errors: true
+
+  # separate statement: the management refers to the credential with on delete restrict
+  - name: delete the credential of the test firewall
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: DELETE FROM credential WHERE credential_name = %s;
+      positional_args:
+        - "{{ app_ip_test_credential_name }}"
+    become_user: postgres
+    register: app_ip_test_credential_cleanup
+    when: app_ip_test_fw_cleanup is not failed
+    ignore_errors: true
+
+  - name: delete the test import files and the test harness
+    file:
+      path: "{{ item }}"
+      state: absent
+    loop:
+      - "{{ app_ip_test_import_dir }}"
+      - "{{ app_ip_test_harness_dir }}"
+
+  - name: find leftovers of the app server ip change test
+    postgresql_query:
+      db: "{{ fworch_db_name }}"
+      query: >
+        SELECT
+          (SELECT count(*) FROM owner WHERE app_id_external = %s OR import_source = %s) AS owners,
+          (SELECT count(*) FROM owner_network WHERE import_source = %s) AS app_servers,
+          (SELECT count(*) FROM management WHERE mgm_name = %s) AS managements,
+          (SELECT count(*) FROM credential WHERE credential_name = %s) AS credentials;
+      positional_args:
+        - "{{ app_ip_test_ext_app_id }}"
+        - "{{ app_ip_test_import_source }}"
+        - "{{ app_ip_test_import_source }}"
+        - "{{ app_ip_test_mgm_name }}"
+        - "{{ app_ip_test_credential_name }}"
+    become_user: postgres
+    register: app_ip_test_leftovers
+
+  - name: verify the cleanup of the app server ip change test
+    assert:
+      that:
+        - app_ip_test_app_cleanup is not failed
+        - app_ip_test_fw_cleanup is not failed
+        - app_ip_test_credential_cleanup is not failed
+        - app_ip_test_leftovers.query_result.0.owners == 0
+        - app_ip_test_leftovers.query_result.0.app_servers == 0
+        - app_ip_test_leftovers.query_result.0.managements == 0
+        - app_ip_test_leftovers.query_result.0.credentials == 0
+      fail_msg: >
+        The app server ip change test left data behind.
+        app cleanup={{ app_ip_test_app_cleanup.msg | default(app_ip_test_app_cleanup.query_result | default('')) }},
+        firewall cleanup={{ app_ip_test_fw_cleanup.msg | default(app_ip_test_fw_cleanup.query_result | default('')) }},
+        credential cleanup={{ app_ip_test_credential_cleanup.msg | default('ok') }},
+        leftovers={{ app_ip_test_leftovers.query_result.0 }}
+
+  become: true

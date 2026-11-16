@@ -1,0 +1,325 @@
+@using FWO.Data
+@using FWO.Data.Workflow
+@using FWO.Ui.Display
+@using FWO.Ui.Shared
+@using FWO.Ui.Services
+@using Microsoft.AspNetCore.Components.Rendering
+
+@inject UserConfig userConfig
+
+<div class="form-group row">
+    @ReadOnlyValue(userConfig.GetText("handler"), Handler)
+    @ReadOnlyValue(userConfig.GetText("assigned"), Assigned)
+    @if (ShowOwner)
+    {
+        @EditableValue(userConfig.GetText("owner"), Owner, CanEditOwner, EditOwner, OwnerColumnClass)
+    }
+    @if (ShowManagement)
+    {
+        @EditableValue(userConfig.GetText("management"), Management, CanEditManagement, EditManagement)
+    }
+</div>
+<div class="form-group row">
+    @if (ShowRuleAction)
+    {
+        @EditableValue(userConfig.GetText("rule_action"), RuleAction, CanEditRuleAction, EditRuleAction)
+    }
+    @if (ShowTracking)
+    {
+        @EditableValue(userConfig.GetText("track"), Tracking, CanEditTracking, EditTracking)
+    }
+    @if (ShowValidFrom || ShowValidTo)
+    {
+        @EditableValue(userConfig.GetText("time_restriction"), TimeObject, CanEditTimeObject, EditTimeObject, "col-xl-6 col-lg-6 mb-2")
+    }
+</div>
+<div class="form-group row">
+    @if (ShowReason)
+    {
+        @EditableValue(userConfig.GetText("reason"), Reason, CanEditReason, EditReason, "col-xl-6 col-lg-6 mb-2")
+    }
+    @if (ShowFreeText)
+    {
+        @EditableValue(userConfig.GetText("free_text"), FreeText, CanEditFreeText, EditFreeText, "col-xl-6 col-lg-6 mb-2")
+    }
+</div>
+<div class="form-group row">
+    @EditableNetworkListValue(userConfig.GetText("source"), ElemFieldType.source, CanEditSource, EditSource)
+    @EditableNetworkListValue(userConfig.GetText("destination"), ElemFieldType.destination, CanEditDestination, EditDestination)
+    @EditableServiceListValue(userConfig.GetText("services"), ElemFieldType.service, CanEditServices, EditServices)
+</div>
+
+@code {
+    [Parameter] public WfReqTask Task { get; set; } = new();
+    [Parameter] public IEnumerable<WfReqTask> TaskGroup { get; set; } = [];
+    [CascadingParameter] public ApprovalTaskViewContext Context { get; set; } = null!;
+
+    private ApprovalTaskDisplayLogic DisplayLogic => Context.DisplayLogic;
+    private AccessTaskFieldVisibilityConfig Visibility => Context.Visibility;
+    private string Handler => DisplayLogic.Handlers(TaskGroup);
+    private string Assigned => DisplayLogic.AssignedGroups(TaskGroup);
+    private string Owner => DisplayLogic.Owners(TaskGroup);
+    private string Management => DisplayLogic.ManagementIds(TaskGroup);
+    private string RuleAction => DisplayLogic.RuleActions(TaskGroup);
+    private string Tracking => DisplayLogic.Trackings(TaskGroup);
+    private string TimeObject => DisplayLogic.TimeObjectDisplay(TaskGroup, Visibility);
+    private string Reason => DisplayLogic.DistinctValues(TaskGroup, task => task.Reason);
+    private string FreeText => DisplayLogic.DistinctValues(TaskGroup, task => task.FreeText);
+    private bool ShowOwner => Visibility.ShowOwner;
+    private bool ShowRuleAction => Visibility.ShowRuleAction;
+    private bool ShowTracking => Visibility.ShowTracking;
+    private bool ShowManagement => Visibility.ShowManagement;
+    private string OwnerColumnClass => ShowManagement ? "col-xl-3 col-lg-6 mb-2" : "col-xl-6 col-lg-6 mb-2";
+    private bool ShowValidFrom => Visibility.ShowValidFrom;
+    private bool ShowValidTo => Visibility.ShowValidTo;
+    private bool ShowReason => Visibility.ShowReason;
+    private bool ShowFreeText => Visibility.ShowFreeText;
+    private bool CanEditOwner => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Owner);
+    private bool CanEditManagement => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Management);
+    private bool CanEditRuleAction => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.RuleAction);
+    private bool CanEditTracking => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Track);
+    private bool CanEditTimeObject => Context.CanEditTimeObject(TaskGroup);
+    private bool CanEditReason => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Reason);
+    private bool CanEditFreeText => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.FreeText);
+    private bool CanEditSource => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Source);
+    private bool CanEditDestination => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Destination);
+    private bool CanEditServices => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Services);
+    private Func<Task> EditOwner => () => Context.EditOwner(Task);
+    private Func<Task> EditManagement => () => Context.EditManagement(Task);
+    private Func<Task> EditRuleAction => () => Context.EditRuleAction(Task);
+    private Func<Task> EditTracking => () => Context.EditTracking(Task);
+    private Func<Task> EditTimeObject => () => Context.EditTargetDates(Task, Context.EditableTimeObjectField(TaskGroup));
+    private Func<Task> EditReason => () => Context.EditText(Task, WorkflowEditableFieldKeys.Reason, Task.Reason ?? "");
+    private Func<Task> EditFreeText => () => Context.EditText(Task, WorkflowEditableFieldKeys.FreeText, Task.FreeText ?? "");
+    private Func<Task> EditSource => () => Context.EditField(Task, WorkflowEditableFieldKeys.Source);
+    private Func<Task> EditDestination => () => Context.EditField(Task, WorkflowEditableFieldKeys.Destination);
+    private Func<Task> EditServices => () => Context.EditField(Task, WorkflowEditableFieldKeys.Services);
+
+    private static RenderFragment ReadOnlyValue(string label, string value) => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "col-xl-3 col-lg-6 mb-2 d-flex align-items-start");
+        builder.OpenElement(2, "label");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
+        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddContent(5, label + ":");
+        builder.CloseElement();
+        builder.OpenElement(5, "span");
+        builder.AddAttribute(6, "class", "border bg-secondary px-2 py-1 d-inline-block flex-grow-1 text-break");
+        builder.AddContent(7, string.IsNullOrWhiteSpace(value) ? "-" : value);
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private RenderFragment EditableValue(string label, string value, bool canEdit, Func<Task> edit, string? cssClass = null) => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", $"{cssClass ?? "col-xl-3 col-lg-6 mb-2"} d-flex align-items-start flex-nowrap");
+        builder.OpenElement(2, "label");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
+        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddContent(5, label + ":");
+        builder.CloseElement();
+        if (canEdit)
+        {
+            builder.OpenElement(8, "button");
+            builder.AddAttribute(9, "type", "button");
+            builder.AddAttribute(10, "class", "btn btn-sm btn-secondary ml-2");
+            builder.AddAttribute(11, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this, edit));
+            builder.AddContent(12, DisplayService.DisplayButton(userConfig, "edit", Icons.Edit));
+            builder.CloseElement();
+        }
+        builder.OpenElement(13, "span");
+        builder.AddAttribute(14, "class", "border bg-secondary px-2 py-1 d-inline-block flex-grow-1 text-break");
+        builder.AddContent(15, string.IsNullOrWhiteSpace(value) ? "-" : value);
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private RenderFragment EditableNetworkListValue(string label, ElemFieldType field, bool canEdit, Func<Task> edit) => builder =>
+    {
+        List<ApprovalTaskNetworkElementRow> rows = DisplayLogic.NetworkElementRows(TaskGroup, field)
+            .Where(row => !string.IsNullOrWhiteSpace(row.Name) || !string.IsNullOrWhiteSpace(row.Ip))
+            .ToList();
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "col-xl-4 col-lg-6 mb-2");
+        builder.OpenElement(2, "div");
+        builder.AddAttribute(3, "class", "d-flex align-items-start mb-1");
+        builder.OpenElement(4, "label");
+        builder.AddAttribute(5, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
+        builder.AddAttribute(6, "style", "min-width: 10rem;");
+        builder.AddContent(7, label + ":");
+        builder.CloseElement();
+        if (canEdit)
+        {
+            builder.OpenElement(8, "button");
+            builder.AddAttribute(9, "type", "button");
+            builder.AddAttribute(10, "class", "btn btn-sm btn-secondary ml-2");
+            builder.AddAttribute(11, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this, edit));
+            builder.AddContent(12, DisplayService.DisplayButton(userConfig, "edit", Icons.Edit));
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+        builder.OpenElement(13, "div");
+        builder.AddAttribute(14, "class", "border bg-secondary d-block text-break");
+        builder.OpenElement(15, "table");
+        string tableClass = "table table-sm table-borderless mb-0 approval-task-network-table"
+            + (DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Technical ? " approval-task-network-table-technical" : "");
+        builder.AddAttribute(16, "class", tableClass);
+        RenderNetworkTableHeader(builder);
+        RenderNetworkTableBody(builder, rows);
+        builder.CloseElement();
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private void RenderNetworkTableHeader(RenderTreeBuilder builder)
+    {
+        builder.OpenElement(17, "thead");
+        builder.OpenElement(18, "tr");
+        if (DisplayLogic.DisplayMode != ApprovalTaskElementDisplayMode.Technical)
+        {
+            AddTableHeader(builder, 19, "name");
+        }
+        if (DisplayLogic.DisplayMode != ApprovalTaskElementDisplayMode.UnresolvedGroups)
+        {
+            AddTableHeader(builder, 21, "ip_address");
+            AddTableHeader(builder, 23, "zone", "approval-task-zone-column");
+        }
+        builder.CloseElement();
+        builder.CloseElement();
+    }
+
+    private void RenderNetworkTableBody(RenderTreeBuilder builder, List<ApprovalTaskNetworkElementRow> rows)
+    {
+        builder.OpenElement(25, "tbody");
+        if (rows.Count == 0)
+        {
+            builder.OpenElement(26, "tr");
+            builder.OpenElement(27, "td");
+            builder.AddAttribute(28, "colspan", DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Technical ? 2 : 3);
+            builder.AddContent(29, "-");
+            builder.CloseElement();
+            builder.CloseElement();
+        }
+        else
+        {
+            int sequence = 30;
+            foreach (ApprovalTaskNetworkElementRow row in rows)
+            {
+                builder.OpenElement(sequence++, "tr");
+                if (DisplayLogic.DisplayMode != ApprovalTaskElementDisplayMode.Technical)
+                {
+                    AddTableCell(builder, sequence, row.Name);
+                    sequence += 2;
+                }
+                if (DisplayLogic.DisplayMode != ApprovalTaskElementDisplayMode.UnresolvedGroups)
+                {
+                    AddTableCell(builder, sequence, row.Ip);
+                    sequence += 2;
+                    AddTableCell(builder, sequence, row.Zone, "approval-task-zone-column");
+                    sequence += 2;
+                }
+                builder.CloseElement();
+            }
+        }
+        builder.CloseElement();
+    }
+
+    private RenderFragment EditableServiceListValue(string label, ElemFieldType field, bool canEdit, Func<Task> edit) => builder =>
+    {
+        List<ApprovalTaskServiceElementRow> rows = DisplayLogic.ServiceElementRows(TaskGroup, field)
+            .Where(row => !string.IsNullOrWhiteSpace(row.Name) || !string.IsNullOrWhiteSpace(row.Content))
+            .ToList();
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "col-xl-4 col-lg-6 mb-2");
+        builder.OpenElement(2, "div");
+        builder.AddAttribute(3, "class", "d-flex align-items-start mb-1");
+        builder.OpenElement(4, "label");
+        builder.AddAttribute(5, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
+        builder.AddAttribute(6, "style", "min-width: 10rem;");
+        builder.AddContent(7, label + ":");
+        builder.CloseElement();
+        if (canEdit)
+        {
+            builder.OpenElement(8, "button");
+            builder.AddAttribute(9, "type", "button");
+            builder.AddAttribute(10, "class", "btn btn-sm btn-secondary ml-2");
+            builder.AddAttribute(11, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this, edit));
+            builder.AddContent(12, DisplayService.DisplayButton(userConfig, "edit", Icons.Edit));
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+        builder.OpenElement(13, "div");
+        builder.AddAttribute(14, "class", "border bg-secondary d-block text-break");
+        builder.OpenElement(15, "table");
+        builder.AddAttribute(16, "class", "table table-sm table-borderless mb-0");
+        RenderServiceTableHeader(builder);
+        RenderServiceTableBody(builder, rows, DisplayLogic.DisplayMode);
+        builder.CloseElement();
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private void RenderServiceTableHeader(RenderTreeBuilder builder)
+    {
+        builder.OpenElement(17, "thead");
+        builder.OpenElement(18, "tr");
+        if (DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Resolved)
+        {
+            AddTableHeader(builder, 19, "name");
+        }
+        AddTableHeader(builder, 21, DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups ? "name" : "content");
+        builder.CloseElement();
+        builder.CloseElement();
+    }
+
+    private static void RenderServiceTableBody(RenderTreeBuilder builder, List<ApprovalTaskServiceElementRow> rows,
+        ApprovalTaskElementDisplayMode displayMode)
+    {
+        builder.OpenElement(24, "tbody");
+        if (rows.Count == 0)
+        {
+            builder.OpenElement(25, "tr");
+            builder.OpenElement(26, "td");
+            builder.AddContent(27, "-");
+            builder.CloseElement();
+            builder.CloseElement();
+        }
+        else
+        {
+            int sequence = 30;
+            foreach (ApprovalTaskServiceElementRow row in rows)
+            {
+                builder.OpenElement(sequence++, "tr");
+                if (displayMode == ApprovalTaskElementDisplayMode.Resolved)
+                {
+                    AddTableCell(builder, sequence, row.Name);
+                    sequence += 2;
+                }
+                AddTableCell(builder, sequence, row.Content);
+                sequence += 2;
+                builder.CloseElement();
+            }
+        }
+        builder.CloseElement();
+    }
+
+    private void AddTableHeader(RenderTreeBuilder builder, int sequence, string key, string? cssClass = null)
+    {
+        builder.OpenElement(sequence, "th");
+        if (!string.IsNullOrWhiteSpace(cssClass))
+            builder.AddAttribute(sequence + 1, "class", cssClass);
+        builder.AddContent(sequence + (string.IsNullOrWhiteSpace(cssClass) ? 1 : 2), userConfig.GetText(key));
+        builder.CloseElement();
+    }
+
+    private static void AddTableCell(RenderTreeBuilder builder, int sequence, string value, string? cssClass = null)
+    {
+        builder.OpenElement(sequence, "td");
+        if (!string.IsNullOrWhiteSpace(cssClass))
+            builder.AddAttribute(sequence + 1, "class", cssClass);
+        builder.AddContent(sequence + (string.IsNullOrWhiteSpace(cssClass) ? 1 : 2), string.IsNullOrWhiteSpace(value) ? "-" : value);
+        builder.CloseElement();
+    }
+}

@@ -1,0 +1,131 @@
+---
+# Drives roles/common/tasks/reset-outdated-python-venv.yml itself rather than a copy of it.
+# The defect this guard exists for is an operating system upgrade to a new python minor
+# version: the importer and customizing venvs then point at an interpreter that does not
+# see their packages, and the "create venv" tasks keep them because the directory exists.
+#
+# Runs unprivileged on stand-in venvs in a temporary directory. Only bin/python3 and
+# pyvenv.cfg are created, because those are all the guard reads.
+- name: Create a temporary directory for the venv reset test
+  tempfile:
+    state: directory
+    prefix: fworch-venv-reset-
+  register: test_venv_root
+
+- name: Test the python venv reset
+  vars:
+    test_venv_interpreter: "{{ importer_python_interpreter }}"
+  block:
+    - name: Read the python version of the interpreter under test
+      command:
+        argv:
+          - "{{ test_venv_interpreter }}"
+          - -c
+          - "import sys; print('%d.%d' % sys.version_info[:2])"
+      register: test_venv_interpreter_version
+      changed_when: false
+      check_mode: false
+
+    - name: Define the stand-in venvs
+      set_fact:
+        test_venv_cases:
+          - name: current
+            version_line: "version = {{ test_venv_interpreter_version.stdout | trim }}.0"
+            interpreter: "{{ test_venv_interpreter }}"
+            kept: true
+          - name: virtualenv-current
+            version_line: "version_info = {{ test_venv_interpreter_version.stdout | trim }}.0.final.0"
+            interpreter: "{{ test_venv_interpreter }}"
+            kept: true
+          # a minor version no supported OS ships, so the case stays outdated everywhere
+          - name: outdated
+            version_line: "version = 3.1.5"
+            interpreter: "{{ test_venv_interpreter }}"
+            kept: false
+          - name: without-version
+            version_line: "home = /usr/bin"
+            interpreter: "{{ test_venv_interpreter }}"
+            kept: false
+          - name: dangling-interpreter
+            version_line: "version = {{ test_venv_interpreter_version.stdout | trim }}.0"
+            interpreter: "{{ test_venv_root.path }}/uninstalled-python3"
+            kept: false
+
+    - name: Create the bin directories of the stand-in venvs
+      file:
+        path: "{{ test_venv_root.path }}/{{ item.name }}/bin"
+        state: directory
+        mode: "0755"
+      loop: "{{ test_venv_cases }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Write the pyvenv.cfg of the stand-in venvs
+      copy:
+        content: |
+          home = /usr/bin
+          include-system-site-packages = false
+          {{ item.version_line }}
+        dest: "{{ test_venv_root.path }}/{{ item.name }}/pyvenv.cfg"
+        mode: "0644"
+      loop: "{{ test_venv_cases }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Link the interpreters of the stand-in venvs
+      file:
+        src: "{{ item.interpreter }}"
+        dest: "{{ test_venv_root.path }}/{{ item.name }}/bin/python3"
+        state: link
+        force: true
+        follow: false
+      loop: "{{ test_venv_cases }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Create the bin directory of a venv without pyvenv.cfg
+      file:
+        path: "{{ test_venv_root.path }}/without-config/bin"
+        state: directory
+        mode: "0755"
+
+    - name: Link the interpreter of the venv without pyvenv.cfg
+      file:
+        src: "{{ test_venv_interpreter }}"
+        dest: "{{ test_venv_root.path }}/without-config/bin/python3"
+        state: link
+
+    - name: Run the venv reset on every stand-in venv and on a missing one
+      include_tasks: "{{ role_path }}/../common/tasks/reset-outdated-python-venv.yml"
+      vars:
+        python_venv_dir: "{{ test_venv_root.path }}/{{ test_venv_dir_name }}"
+        python_venv_interpreter: "{{ test_venv_interpreter }}"
+      loop: "{{ test_venv_cases | map(attribute='name') | list + ['without-config', 'missing'] }}"
+      loop_control:
+        loop_var: test_venv_dir_name
+
+    - name: Check which stand-in venvs are left
+      stat:
+        path: "{{ test_venv_root.path }}/{{ item.name }}"
+      loop: "{{ test_venv_cases + [{'name': 'without-config', 'kept': false}, {'name': 'missing', 'kept': false}] }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: test_venv_left
+
+    - name: Assert that exactly the venvs fitting the interpreter were kept
+      assert:
+        that:
+          - item.stat.exists == item.item.kept
+        fail_msg: >-
+          The venv "{{ item.item.name }}" was {{ 'removed' if item.item.kept else 'kept' }},
+          but a venv for python {{ test_venv_interpreter_version.stdout | trim }} has to be
+          kept and any other one rebuilt.
+      loop: "{{ test_venv_left.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+  always:
+    - name: Remove the temporary venv reset test directory
+      file:
+        path: "{{ test_venv_root.path }}"
+        state: absent

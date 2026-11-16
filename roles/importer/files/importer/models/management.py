@@ -15,6 +15,7 @@ class Management(BaseModel):
     import_disabled: bool
     devices: list[dict[str, Any]]
     importer_hostname: str
+    ssh_legacy_key_exchange: bool = False
     device_type_name: str
     device_type_version: str
     port: int
@@ -27,3 +28,5 @@ class Management(BaseModel):
     domain_uid: str | None
     sub_managers: list[Management]
     additional_credential: AdditionalCredential | None = None
+    cloud_tenant_id: str | None = None
+    cloud_subscription_id: str | None = None

@@ -45,7 +45,9 @@ namespace FWO.Config.File
             }
             catch (Exception exception)
             {
-                Log.WriteError("Extract Key", $"unexpected error while trying to extract rsakey from PEM formatted key {rawKey}.", exception);
+                // The key material must never reach the log, so only its kind is named.
+                string keyKind = isPrivateKey ? "private" : "public";
+                Log.WriteError("Extract Key", $"unexpected error while trying to extract rsa {keyKind} key from PEM formatted key.", exception);
                 throw;
             }
 
@@ -58,7 +60,6 @@ namespace FWO.Config.File
             string keyText = "";
 
             rawKey = rawKey.Trim(); // remove trailing and leading empty lines
-            // Log.WriteDebug("Key extraction", $"Raw key = \"{rawKey}\"");
 
             try
             {

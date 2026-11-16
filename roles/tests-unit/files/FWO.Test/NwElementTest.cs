@@ -64,6 +64,7 @@ namespace FWO.Test
                 NetworkId = 3,
                 FlowNetworkObjectId = 13,
                 FlowNetworkGroupId = 14,
+                ObjectTaskId = 15,
                 GroupName = "grp",
                 RequestAction = "create",
                 Name = "obj"
@@ -79,6 +80,7 @@ namespace FWO.Test
             Assert.That(reqElement.NetworkId, Is.EqualTo(3));
             Assert.That(reqElement.FlowNetworkObjectId, Is.EqualTo(13));
             Assert.That(reqElement.FlowNetworkGroupId, Is.EqualTo(14));
+            Assert.That(reqElement.ObjectTaskId, Is.EqualTo(15));
             Assert.That(reqElement.GroupName, Is.EqualTo("grp"));
             Assert.That(reqElement.RequestAction, Is.EqualTo("create"));
             Assert.That(reqElement.Name, Is.EqualTo("obj"));
@@ -127,6 +129,7 @@ namespace FWO.Test
                 ServiceId = 7,
                 FlowServiceObjectId = 17,
                 FlowServiceGroupId = 18,
+                ObjectTaskId = 19,
                 Name = "svc",
                 GroupName = "grp",
                 RequestAction = "delete"
@@ -143,6 +146,7 @@ namespace FWO.Test
             Assert.That(reqElement.ServiceId, Is.EqualTo(7));
             Assert.That(reqElement.FlowServiceObjectId, Is.EqualTo(17));
             Assert.That(reqElement.FlowServiceGroupId, Is.EqualTo(18));
+            Assert.That(reqElement.ObjectTaskId, Is.EqualTo(19));
             Assert.That(reqElement.Name, Is.EqualTo("svc"));
             Assert.That(reqElement.GroupName, Is.EqualTo("grp"));
             Assert.That(reqElement.RequestAction, Is.EqualTo("delete"));
@@ -168,6 +172,27 @@ namespace FWO.Test
                 Assert.That(services[0].HasProtocol, Is.False);
                 Assert.That(services[1].ProtoId, Is.EqualTo(0));
                 Assert.That(services[1].HasProtocol, Is.True);
+            });
+        }
+
+        [Test]
+        public void WfReqTask_GetElements_UsesTaskIdAsObjectReferenceForObjectTasks()
+        {
+            WfReqTask task = new()
+            {
+                Id = 42,
+                TaskType = WfTaskType.group_create.ToString(),
+                Elements =
+                [
+                    new() { Field = ElemFieldType.source.ToString(), Name = "member" },
+                    new() { Field = ElemFieldType.service.ToString(), Name = "service" }
+                ]
+            };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(task.GetNwObjectElements(ElemFieldType.source).Single().ObjectTaskId, Is.EqualTo(42));
+                Assert.That(task.GetServiceElements().Single().ObjectTaskId, Is.EqualTo(42));
             });
         }
 

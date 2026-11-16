@@ -61,18 +61,18 @@
     public bool EditMode { get; set; } = false;
 
 	[Parameter]
-	public List<(ComplianceNetworkZone, ComplianceNetworkZone)> AddCommunication { get; set; } = [];
+	public List<(NetworkZone, NetworkZone)> AddCommunication { get; set; } = [];
 
 	[Parameter]
-    public EventCallback<List<(ComplianceNetworkZone, ComplianceNetworkZone)>> AddCommunicationChanged { get; set; }
+    public EventCallback<List<(NetworkZone, NetworkZone)>> AddCommunicationChanged { get; set; }
 
 	[Parameter]
-	public List<(ComplianceNetworkZone, ComplianceNetworkZone)> DeleteCommunication { get; set; } = [];
+	public List<(NetworkZone, NetworkZone)> DeleteCommunication { get; set; } = [];
 
 	[Parameter]
-    public EventCallback<List<(ComplianceNetworkZone, ComplianceNetworkZone)>> DeleteCommunicationChanged { get; set; }
+    public EventCallback<List<(NetworkZone, NetworkZone)>> DeleteCommunicationChanged { get; set; }
 	
-    private void ExecuteZoneAction(ComplianceNetworkZone zone)
+    private void ExecuteZoneAction(NetworkZone zone)
     {
         if (EditMode)
         {
@@ -84,7 +84,7 @@
         }
     }
 
-    private void ExecuteCommunicationAction(ComplianceNetworkZone sourceZone, ComplianceNetworkZone destinationZone)
+    private void ExecuteCommunicationAction(NetworkZone sourceZone, NetworkZone destinationZone)
     {
         if(!sourceZone.IsAutoCalculatedUndefinedInternalZone && !destinationZone.IsAutoCalculatedUndefinedInternalZone)
         {
@@ -110,51 +110,51 @@
         }
     }
 
-    private List<ComplianceNetworkZone> GetSortedNetworkzones()
+    private List<NetworkZone> GetSortedNetworkzones()
     {
-        List<ComplianceNetworkZone> complianceNetworkZones = networkZoneService.NetworkZones.ToList();
+        List<NetworkZone> networkZones = networkZoneService.NetworkZones.ToList();
 
         if(userConfig.GlobalConfig!.SortMatrixByID)
         {
-            complianceNetworkZones = complianceNetworkZones.OrderBy(zone => zone.Id).ToList();
+            networkZones = networkZones.OrderBy(zone => zone.Id).ToList();
         }
 
-        ComplianceNetworkZone? internetZone = networkZoneService.NetworkZones.FirstOrDefault(zone => zone.IsAutoCalculatedInternetZone);
+        NetworkZone? internetZone = networkZoneService.NetworkZones.FirstOrDefault(zone => zone.IsAutoCalculatedInternetZone);
 
         if(internetZone != null)
         {
-            complianceNetworkZones.Remove(internetZone);
+            networkZones.Remove(internetZone);
 
             if(!userConfig.GlobalConfig!.AutoCalculatedZonesAtTheEnd)
             {
-                complianceNetworkZones.Insert(0, internetZone);
+                networkZones.Insert(0, internetZone);
             }
             else
             {
-                complianceNetworkZones.Add(internetZone);
+                networkZones.Add(internetZone);
             }
 
-            ComplianceNetworkZone? undefinedInternalZone = networkZoneService.NetworkZones.FirstOrDefault(zone => zone.IsAutoCalculatedUndefinedInternalZone);
+            NetworkZone? undefinedInternalZone = networkZoneService.NetworkZones.FirstOrDefault(zone => zone.IsAutoCalculatedUndefinedInternalZone);
 
             if(undefinedInternalZone != null)
             {
-                complianceNetworkZones.Remove(undefinedInternalZone);
+                networkZones.Remove(undefinedInternalZone);
 
                 if(!userConfig.GlobalConfig!.AutoCalculatedZonesAtTheEnd)
                 {
-                    complianceNetworkZones.Insert(1, undefinedInternalZone);
+                    networkZones.Insert(1, undefinedInternalZone);
                 }
                 else
                 {
-                    complianceNetworkZones.Add(undefinedInternalZone);
+                    networkZones.Add(undefinedInternalZone);
                 }
             }
         }
 
-        return complianceNetworkZones;
+        return networkZones;
     }
 
-    private string GetMatrixElementId(ComplianceNetworkZone sourceZone, ComplianceNetworkZone destinationZone)
+    private string GetMatrixElementId(NetworkZone sourceZone, NetworkZone destinationZone)
     {
         return $"matrix-element-{sourceZone.IdString.Replace(" ", "")}-to-{destinationZone.IdString.Replace(" ", "")}";
     }

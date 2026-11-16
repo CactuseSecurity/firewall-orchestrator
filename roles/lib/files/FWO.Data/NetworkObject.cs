@@ -24,7 +24,7 @@ namespace FWO.Data
         public string Uid { get; set; } = "";
 
         [JsonProperty("zone"), JsonPropertyName("zone")]
-        public NetworkZone? Zone { get; set; }
+        public FirewallZone? Zone { get; set; }
 
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; }

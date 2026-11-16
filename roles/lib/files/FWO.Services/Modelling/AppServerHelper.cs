@@ -13,12 +13,23 @@ namespace FWO.Services.Modelling
     {
         private const string kIpSuffixSeparator = "_";
 
+        /// <summary>
+        /// Sets the name of a single host app server to its dns name. If the ip cannot be resolved, or for networks and ranges,
+        /// a missing name (or every name, if existing names are overwritten) is constructed following the naming convention.
+        /// </summary>
+        /// <param name="appServer">The app server, whose name is set.</param>
+        /// <param name="namingConvention">Naming convention for constructed names.</param>
+        /// <param name="overwriteExistingNames">True to replace an existing name by a constructed one.</param>
+        /// <param name="logUnresolvable">True to log ips without dns name.</param>
+        /// <param name="reverseDnsLookup">Reverse lookup of the ip, defaults to <see cref="IpOperations.DnsReverseLookUpPreferredAsync"/>.</param>
+        /// <returns>The new name of the app server.</returns>
         public static async Task<string> ConstructAppServerNameFromDns(ModellingAppServer appServer, ModellingNamingConvention namingConvention,
-            bool overwriteExistingNames = false, bool logUnresolvable = false)
+            bool overwriteExistingNames = false, bool logUnresolvable = false, Func<IPAddress, Task<string>>? reverseDnsLookup = null)
         {
             if ((string.IsNullOrEmpty(appServer.IpEnd) || appServer.IpEnd == appServer.Ip) && IPAddress.TryParse(appServer.Ip.StripOffNetmask(), out IPAddress? ip))
             {
-                string dnsName = await IpOperations.DnsReverseLookUpPreferredAsync(ip);
+                Func<IPAddress, Task<string>> lookup = reverseDnsLookup ?? IpOperations.DnsReverseLookUpPreferredAsync;
+                string dnsName = await lookup(ip);
                 if (string.IsNullOrEmpty(dnsName))
                 {
                     if (logUnresolvable)

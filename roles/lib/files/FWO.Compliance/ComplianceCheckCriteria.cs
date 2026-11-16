@@ -101,40 +101,53 @@ namespace FWO.Compliance
                     .Select(to => to.Object)
                     .ToList();
 
-                try
+                foreach (ComplianceCriterion criterion in criteria)
                 {
-                    foreach (var criterion in criteria)
-                    {
-                        switch (criterion.CriterionType)
-                        {
-                            case nameof(CriterionType.Assessability):
-                                ruleIsCompliant &= CheckAssessability(rule, resolvedSources, resolvedDestinations, criterion).Result;
-                                break;
-                            case nameof(CriterionType.Matrix):
-                                ruleIsCompliant &= await CheckMatrixCompliance(rule, criterion, resolvedSources, resolvedDestinations);
-                                break;
-                            case nameof(CriterionType.ForbiddenService):
-                                ruleIsCompliant &= CheckForForbiddenService(rule, criterion);
-                                break;
-                            case nameof(CriterionType.MinimumCIDRLength):
-                            case nameof(CriterionType.ForbidZonesAsSource):
-                            case nameof(CriterionType.ForbidZonesAsDestination):
-                            case nameof(CriterionType.ForbidBidirectionalDuplicate):
-                                ruleIsCompliant &= CheckTrivialityCriterion(rule, criterion, duplicateIndex);
-                                break;
-                            default:
-                                break;
-                        }
-                    }
+                    ruleIsCompliant &= await CheckCriterionFailClosed(rule, criterion, resolvedSources, resolvedDestinations, duplicateIndex);
                 }
-                catch (System.Exception e)
-                {
-                    Logger.TryWriteError("Compliance Check", e, true);
-                }
-
             }
 
             return ruleIsCompliant;
+        }
+
+        /// <summary>
+        /// Evaluates a single criterion for a rule. The check fails closed: if the criterion throws, the rule is
+        /// non-compliant, a not-assessable violation names the criterion, and the caller still evaluates the
+        /// remaining criteria.
+        /// </summary>
+        /// <param name="rule">Rule under test.</param>
+        /// <param name="criterion">Criterion to evaluate.</param>
+        /// <param name="resolvedSources">Resolved source objects.</param>
+        /// <param name="resolvedDestinations">Resolved destination objects.</param>
+        /// <param name="duplicateIndex">Optional index for reverse-direction duplicate checks.</param>
+        /// <returns>True if the rule is compliant with the criterion.</returns>
+        private async Task<bool> CheckCriterionFailClosed(Rule rule, ComplianceCriterion criterion, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations, RuleBidirectionalDuplicateIndex? duplicateIndex)
+        {
+            try
+            {
+                switch (criterion.CriterionType)
+                {
+                    case nameof(CriterionType.Assessability):
+                        return await CheckAssessability(rule, resolvedSources, resolvedDestinations, criterion);
+                    case nameof(CriterionType.Matrix):
+                        return CheckMatrixCompliance(rule, criterion, resolvedSources, resolvedDestinations);
+                    case nameof(CriterionType.ForbiddenService):
+                        return CheckForForbiddenService(rule, criterion);
+                    case nameof(CriterionType.MinimumCIDRLength):
+                    case nameof(CriterionType.ForbidZonesAsSource):
+                    case nameof(CriterionType.ForbidZonesAsDestination):
+                    case nameof(CriterionType.ForbidBidirectionalDuplicate):
+                        return CheckTrivialityCriterion(rule, criterion, duplicateIndex);
+                    default:
+                        return true;
+                }
+            }
+            catch (Exception exception)
+            {
+                Logger.TryWriteError("Compliance Check", $"Criterion {criterion.Id} ({criterion.Name}) could not be evaluated for rule {rule.Id}: {exception.GetType().Name}", true);
+                CreateCriterionNotEvaluatedViolation(rule, criterion, kCriterionCheckFailedText);
+                return false;
+            }
         }
 
         /// <summary>
@@ -144,10 +157,10 @@ namespace FWO.Compliance
         /// <param name="destinationIpRange">Destination range provided by the UI.</param>
         /// <param name="networkZones">Network zones to test against the provided ranges.</param>
         /// <returns>List of forbidden communications found by the matrix check.</returns>
-        public List<(ComplianceNetworkZone, ComplianceNetworkZone)> CheckIpRangeInputCompliance(IPAddressRange? sourceIpRange, IPAddressRange? destinationIpRange, List<ComplianceNetworkZone> networkZones)
+        public List<(NetworkZone, NetworkZone)> CheckIpRangeInputCompliance(IPAddressRange? sourceIpRange, IPAddressRange? destinationIpRange, List<NetworkZone> networkZones)
         {
             NetworkZones = networkZones;
-            List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunicationsOutput = [];
+            List<(NetworkZone, NetworkZone)> forbiddenCommunicationsOutput = [];
 
             if (sourceIpRange != null && destinationIpRange != null)
             {
@@ -169,29 +182,28 @@ namespace FWO.Compliance
         /// <param name="criterion">Matrix criterion.</param>
         /// <param name="resolvedSources">Resolved source objects.</param>
         /// <param name="resolvedDestinations">Resolved destination objects.</param>
-        private async Task<bool> CheckMatrixCompliance(Rule rule, ComplianceCriterion criterion, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations)
+        private bool CheckMatrixCompliance(Rule rule, ComplianceCriterion criterion, List<NetworkObject> resolvedSources, List<NetworkObject> resolvedDestinations)
         {
-            List<ComplianceNetworkZone> networkZones = GetNetworkZonesForCriterion(criterion);
+            List<NetworkZone> networkZones = GetNetworkZonesForCriterion(criterion);
 
-            Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> fromsTask = GetNetworkObjectsWithIpRanges(resolvedSources);
-            Task<List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)>> tosTask = GetNetworkObjectsWithIpRanges(resolvedDestinations);
+            List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> froms = GetNetworkObjectsWithIpRanges(resolvedSources, out List<NetworkObject> unparseableSources);
+            List<(NetworkObject networkObject, List<IPAddressRange> ipRanges)> tos = GetNetworkObjectsWithIpRanges(resolvedDestinations, out List<NetworkObject> unparseableDestinations);
 
-            await Task.WhenAll(fromsTask, tosTask);
+            List<(NetworkObject networkObject, List<NetworkZone> networkZones)> sourceZones = MapZonesToNetworkObjects(froms, networkZones, out List<NetworkObject> notAssessableSources);
+            List<(NetworkObject networkObject, List<NetworkZone> networkZones)> destinationZones = MapZonesToNetworkObjects(tos, networkZones, out List<NetworkObject> notAssessableDestinations);
 
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> sourceZones = MapZonesToNetworkObjects(fromsTask.Result, networkZones, out List<NetworkObject> notAssessableSources);
-            List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> destinationZones = MapZonesToNetworkObjects(tosTask.Result, networkZones, out List<NetworkObject> notAssessableDestinations);
-
-            // Objects of an address family that no zone of this criterion covers cannot be compared against the
-            // matrix at all. They are reported as not assessable, while every object that could be assigned to a
-            // zone is still checked below.
+            // Objects of an address family that no zone of this criterion covers, and objects whose IP cannot be
+            // parsed, cannot be compared against the matrix at all. They are reported as not assessable, while
+            // every object that could be assigned to a zone is still checked below.
             bool ruleIsCompliant = CreateZoneAssessabilityViolations(rule, criterion, notAssessableSources, notAssessableDestinations);
+            ruleIsCompliant &= CreateZoneAssessabilityViolations(rule, criterion, unparseableSources, unparseableDestinations, AssessabilityIssue.InvalidIp);
 
-            Dictionary<ComplianceNetworkZone, List<NetworkObject>> sourceObjectsByZone = MapObjectsByZone(sourceZones);
-            Dictionary<ComplianceNetworkZone, List<NetworkObject>> destinationObjectsByZone = MapObjectsByZone(destinationZones);
+            Dictionary<NetworkZone, List<NetworkObject>> sourceObjectsByZone = MapObjectsByZone(sourceZones);
+            Dictionary<NetworkZone, List<NetworkObject>> destinationObjectsByZone = MapObjectsByZone(destinationZones);
 
-            foreach ((ComplianceNetworkZone sourceZone, List<NetworkObject> sourceObjects) in sourceObjectsByZone)
+            foreach ((NetworkZone sourceZone, List<NetworkObject> sourceObjects) in sourceObjectsByZone)
             {
-                foreach ((ComplianceNetworkZone destinationZone, List<NetworkObject> destinationObjects) in destinationObjectsByZone)
+                foreach ((NetworkZone destinationZone, List<NetworkObject> destinationObjects) in destinationObjectsByZone)
                 {
                     if (!sourceZone.CommunicationAllowedTo(destinationZone))
                     {
@@ -233,7 +245,8 @@ namespace FWO.Compliance
                     if (!int.TryParse(criterion.Content, out int minPrefixLength) || minPrefixLength < 0 || minPrefixLength > 32)
                     {
                         Logger.TryWriteError("Compliance Check", $"Criterion {criterion.Id} ({criterion.Name}) has invalid content '{criterion.Content}' for {criterion.CriterionType}.", true);
-                        return true;
+                        CreateCriterionNotEvaluatedViolation(rule, criterion, kCriterionInvalidContentText);
+                        return false;
                     }
 
                     result = _ruleTrivialityEvaluator.EvaluateMinimumCIDRLengthCriterion(rule, minPrefixLength);
@@ -243,7 +256,8 @@ namespace FWO.Compliance
                 case nameof(CriterionType.ForbidZonesAsSource):
                     if (!TryGetNonEmptyCriterionContent(criterion, out string sourceObjectToken))
                     {
-                        return true;
+                        CreateCriterionNotEvaluatedViolation(rule, criterion, kCriterionInvalidContentText);
+                        return false;
                     }
 
                     result = _ruleTrivialityEvaluator.EvaluateForbidNamesAsSourceCriterion(rule, sourceObjectToken);
@@ -253,7 +267,8 @@ namespace FWO.Compliance
                 case nameof(CriterionType.ForbidZonesAsDestination):
                     if (!TryGetNonEmptyCriterionContent(criterion, out string destinationObjectToken))
                     {
-                        return true;
+                        CreateCriterionNotEvaluatedViolation(rule, criterion, kCriterionInvalidContentText);
+                        return false;
                     }
 
                     result = _ruleTrivialityEvaluator.EvaluateForbidNamesAsDestinationCriterion(rule, destinationObjectToken);
@@ -264,7 +279,8 @@ namespace FWO.Compliance
                     if (duplicateIndex == null)
                     {
                         Logger.TryWriteError("Compliance Check", $"Criterion {criterion.Id} ({criterion.Name}) requires a duplicate index, but none was provided.", true);
-                        return true;
+                        CreateCriterionNotEvaluatedViolation(rule, criterion, kCriterionCheckFailedText);
+                        return false;
                     }
 
                     result = _ruleTrivialityEvaluator.EvaluateForbidBidirectionalDuplicateCriterion(rule, duplicateIndex);
@@ -290,19 +306,19 @@ namespace FWO.Compliance
         /// <param name="source">Source ranges.</param>
         /// <param name="destination">Destination ranges.</param>
         /// <param name="forbiddenCommunication">Output list of forbidden zone combinations.</param>
-        private bool CheckMatrixCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(ComplianceNetworkZone, ComplianceNetworkZone)> forbiddenCommunication)
+        private bool CheckMatrixCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(NetworkZone, NetworkZone)> forbiddenCommunication)
         {
             // Determine all matching source zones
-            List<ComplianceNetworkZone> sourceZones = DetermineZones(source);
+            List<NetworkZone> sourceZones = DetermineZones(source);
 
             // Determine all matching destination zones
-            List<ComplianceNetworkZone> destinationZones = DetermineZones(destination);
+            List<NetworkZone> destinationZones = DetermineZones(destination);
 
             forbiddenCommunication = [];
 
-            foreach (ComplianceNetworkZone sourceZone in sourceZones)
+            foreach (NetworkZone sourceZone in sourceZones)
             {
-                foreach (ComplianceNetworkZone destinationZone in destinationZones.Where(d => !sourceZone.CommunicationAllowedTo(d)))
+                foreach (NetworkZone destinationZone in destinationZones.Where(d => !sourceZone.CommunicationAllowedTo(d)))
                 {
                     forbiddenCommunication.Add((sourceZone, destinationZone));
                 }

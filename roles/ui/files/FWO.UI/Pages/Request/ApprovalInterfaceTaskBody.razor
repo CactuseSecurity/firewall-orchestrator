@@ -1,0 +1,73 @@
+@using FWO.Data
+@using FWO.Data.Workflow
+@using FWO.Ui.Display
+@using FWO.Ui.Services
+@using FWO.Ui.Shared
+
+@inject UserConfig userConfig
+
+<div class="form-group row">
+    @ReadOnlyValue(userConfig.GetText("handler"), Handler)
+    @ReadOnlyValue(userConfig.GetText("assigned"), Assigned)
+    @ReadOnlyValue(userConfig.GetText("owner"), Owner)
+    @ReadOnlyValue(userConfig.GetText("requesting_owner"), RequestingOwner)
+</div>
+<div class="form-group row">
+    @EditableValue(userConfig.GetText("reason"), Reason, CanEditReason, EditReason, "col-xl-6 col-lg-6 mb-2")
+</div>
+
+@code {
+    [Parameter] public WfReqTask Task { get; set; } = new();
+    [Parameter] public IEnumerable<WfReqTask> TaskGroup { get; set; } = [];
+    [CascadingParameter] public ApprovalTaskViewContext Context { get; set; } = null!;
+
+    private ApprovalTaskDisplayLogic DisplayLogic => Context.DisplayLogic;
+    private string Handler => DisplayLogic.Handlers(TaskGroup);
+    private string Assigned => DisplayLogic.AssignedGroups(TaskGroup);
+    private string Owner => DisplayLogic.Owners(TaskGroup);
+    private string RequestingOwner => DisplayLogic.RequestingOwners(TaskGroup);
+    private string Reason => DisplayLogic.DistinctValues(TaskGroup, task => task.Reason);
+    private bool CanEditReason => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Reason);
+    private Func<Task> EditReason => () => Context.EditText(Task, WorkflowEditableFieldKeys.Reason, Task.Reason ?? "");
+
+    private static RenderFragment ReadOnlyValue(string label, string value) => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "col-xl-3 col-lg-6 mb-2 d-flex align-items-start");
+        builder.OpenElement(2, "label");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
+        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddContent(5, label + ":");
+        builder.CloseElement();
+        builder.OpenElement(6, "span");
+        builder.AddAttribute(7, "class", "border bg-secondary px-2 py-1 d-inline-block flex-grow-1 text-break");
+        builder.AddContent(8, string.IsNullOrWhiteSpace(value) ? "-" : value);
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private RenderFragment EditableValue(string label, string value, bool canEdit, Func<Task> edit, string cssClass) => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", $"{cssClass} d-flex align-items-start flex-nowrap");
+        builder.OpenElement(2, "label");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
+        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddContent(5, label + ":");
+        builder.CloseElement();
+        if (canEdit)
+        {
+            builder.OpenElement(6, "button");
+            builder.AddAttribute(7, "type", "button");
+            builder.AddAttribute(8, "class", "btn btn-sm btn-secondary ml-2");
+            builder.AddAttribute(9, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this, edit));
+            builder.AddContent(10, DisplayService.DisplayButton(userConfig, "edit", Icons.Edit));
+            builder.CloseElement();
+        }
+        builder.OpenElement(11, "span");
+        builder.AddAttribute(12, "class", "border bg-secondary px-2 py-1 d-inline-block flex-grow-1 text-break");
+        builder.AddContent(13, string.IsNullOrWhiteSpace(value) ? "-" : value);
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+}

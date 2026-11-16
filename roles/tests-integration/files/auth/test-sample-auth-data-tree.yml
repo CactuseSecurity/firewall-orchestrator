@@ -1,0 +1,29 @@
+- name: Seed the {{ tree_case.tree }} records
+  include_role:
+    name: sample-auth-data
+    tasks_from: apply_ldap_entries.yml
+  vars:
+    ldap_tree_name: "{{ tree_case.tree }}"
+    ldap_existing_result_code: "{{ tree_case.existing_rc }}"
+
+- name: Assert every {{ tree_case.tree }} record was created separately
+  assert:
+    that:
+      - ldap_entry_result.changed
+      - ldap_entry_result.results | length == tree_case.record_count
+      - ldap_entry_result.results | map(attribute='rc') | unique | list == [0]
+
+- name: Rerun the {{ tree_case.tree }} records
+  include_role:
+    name: sample-auth-data
+    tasks_from: apply_ldap_entries.yml
+  vars:
+    ldap_tree_name: "{{ tree_case.tree }}"
+    ldap_existing_result_code: "{{ tree_case.existing_rc }}"
+
+- name: Assert existing {{ tree_case.tree }} records cause no changes
+  assert:
+    that:
+      - not ldap_entry_result.changed
+      - ldap_entry_result.results | length == tree_case.record_count
+      - ldap_entry_result.results | map(attribute='rc') | unique | list == [tree_case.existing_rc]

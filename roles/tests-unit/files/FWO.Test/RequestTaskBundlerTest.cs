@@ -272,7 +272,7 @@ namespace FWO.Test
             };
         }
 
-        private static List<ComplianceNetworkZone> CreateComplianceZones()
+        private static List<NetworkZone> CreateComplianceZones()
         {
             return
             [
@@ -297,7 +297,7 @@ namespace FWO.Test
             ];
         }
 
-        private static List<ComplianceNetworkZone> CreateOverlappingComplianceZones()
+        private static List<NetworkZone> CreateOverlappingComplianceZones()
         {
             return
             [

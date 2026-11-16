@@ -177,6 +177,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RunAsync_ShouldRestorePreviousMappings_WhenFullReinitializeCannotWriteTheNewOnes()
+        {
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedActiveMapping(kRuleId, kOwnerId, 50);
+            apiConnection.FailInsertRuleOwners = true;
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true }),
+                "a rebuild that could not write its mappings must be reported as failed");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.RollbackSent, Is.True);
+                Assert.That(apiConnection.ActivePairs, Has.Exactly(1).EqualTo($"{kRuleId}->{kOwnerId}"),
+                    "the mappings active before the run must be active again");
+            });
+        }
+
+        [Test]
         public async Task RunAsync_ShouldReportThatItCannotRecordItsRuns_WhenTheHistoryCannotBeWritten()
         {
             // the rebuild itself completes every time, so nothing else reports a problem - and the entry

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import fwo_api as fwo_api_module
@@ -9,7 +10,7 @@ import pytest
 import requests
 from fwo_api import REDACTED_VALUE, FwoApi
 from fwo_config import TlsIdentity
-from fwo_const import API_CALL_CHUNK_SIZE
+from fwo_const import API_CALL_CHUNK_SIZE, GRAPHQL_QUERY_PATH
 from fwo_exceptions import (
     FwoApiLoginFailedError,
     FwoApiServiceUnavailableError,
@@ -19,8 +20,6 @@ from fwo_exceptions import (
 from services.enums import Lifetime, Services
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest_mock import MockerFixture
     from services.service_provider import ServiceProvider
 
@@ -415,6 +414,25 @@ class TestFwoApiGraphqlFiles:
         assert "ä" not in code
         assert "query a" in code
         assert "fragment b on B" in code
+
+    def test_get_graphql_code_removes_comments(self, tmp_path: Path) -> None:
+        query_file = tmp_path / "commented.graphql"
+        query_file.write_text("# leading comment\nquery a { # trailing comment\n  a\n}\n", encoding="utf-8")
+
+        code = FwoApi.get_graphql_code([str(query_file)])
+
+        assert "#" not in code
+        assert "comment" not in code
+        assert code.split() == ["query", "a", "{", "a", "}"]
+
+    def test_get_graphql_code_keeps_importer_settings_query(self) -> None:
+        query_path = Path(GRAPHQL_QUERY_PATH) / "deviceSpecificSettings" / "getImporterSettings.graphql"
+
+        code = FwoApi.get_graphql_code([str(query_path)])
+
+        assert code.split()[0] == "query"
+        assert "device_specific_config_node" in code
+        assert "config_key" in code
 
     def test_get_graphql_code_raises_for_missing_file(self, tmp_path: Path) -> None:
         with pytest.raises(FileNotFoundError):

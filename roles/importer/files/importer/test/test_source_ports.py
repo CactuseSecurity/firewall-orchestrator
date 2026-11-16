@@ -167,8 +167,14 @@ def test_invalid_named_source_constraints_stop_import(definition: str) -> None:
 
 
 def test_source_ports_on_non_transport_protocol_stop_import() -> None:
-    with pytest.raises(ValueError, match="require TCP"):
+    with pytest.raises(AsaConfigParseError, match="requires protocol tcp, udp or sctp"):
         normalize_asa("access-list ACL extended permit gre any eq 1000 any\n")
+
+
+def test_source_port_restriction_of_non_transport_service_fails() -> None:
+    gre = ServiceObject(svc_uid="GRE", svc_name="GRE", svc_typ="simple", svc_color="black", ip_proto=47)
+    with pytest.raises(ValueError, match="require TCP"):
+        restrict_source_ports("GRE", EndpointKind(kind="eq", value="1000"), {"GRE": gre})
 
 
 def test_unknown_and_cyclic_source_groups_stop_import() -> None:

@@ -24,6 +24,46 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ConstructAppServerNameFromDns_UsesNameOfInjectedLookup()
+        {
+            ModellingAppServer appServer = new() { Name = "from-file", Ip = "10.0.0.1/32", IpEnd = "10.0.0.1/32" };
+
+            string name = await AppServerHelper.ConstructAppServerNameFromDns(appServer, CreateNamingConvention(),
+                reverseDnsLookup: _ => Task.FromResult("app-srv-1"));
+
+            Assert.That(name, Is.EqualTo("app-srv-1"));
+            Assert.That(appServer.Name, Is.EqualTo("app-srv-1"));
+        }
+
+        [Test]
+        public async Task ConstructAppServerNameFromDns_ConstructsMissingName_WhenIpIsNotResolvable()
+        {
+            ModellingAppServer appServer = new() { Name = "", Ip = "10.0.0.1/32", IpEnd = "10.0.0.1/32" };
+
+            string name = await AppServerHelper.ConstructAppServerNameFromDns(appServer, CreateNamingConvention(),
+                reverseDnsLookup: _ => Task.FromResult(""));
+
+            Assert.That(name, Is.EqualTo("srv-10.0.0.1"));
+        }
+
+        [Test]
+        public async Task ConstructAppServerNameFromDns_DoesNotLookUpRanges()
+        {
+            int lookups = 0;
+            ModellingAppServer appServer = new() { Name = "range-1", Ip = "10.0.0.0/32", IpEnd = "10.0.0.255/32" };
+
+            string name = await AppServerHelper.ConstructAppServerNameFromDns(appServer, CreateNamingConvention(),
+                reverseDnsLookup: _ =>
+                {
+                    ++lookups;
+                    return Task.FromResult("app-srv-1");
+                });
+
+            Assert.That(name, Is.EqualTo("range-1"));
+            Assert.That(lookups, Is.EqualTo(0));
+        }
+
+        [Test]
         public void ConstructAppServerName_UsesPrefixAndIp_WhenNameMissing()
         {
             ModellingAppServer appServer = new()

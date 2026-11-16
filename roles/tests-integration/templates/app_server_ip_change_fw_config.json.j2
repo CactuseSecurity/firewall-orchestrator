@@ -1,0 +1,49 @@
+{
+  "ConfigFormat": "NORMALIZED",
+  "ManagerSet": [
+    {
+      "ManagerUid": {{ app_ip_test_mgm_uid | to_json }},
+      "ManagerName": {{ app_ip_test_mgm_name | to_json }},
+      "IsSuperManager": false,
+      "DomainUid": "",
+      "DomainName": "",
+      "SubManagerIds": [],
+      "Configs": [
+        {
+          "ConfigFormat": "NORMALIZED",
+          "action": "INSERT",
+          "network_objects": {
+            "{{ app_ip_test_mgm_uid }}-host": {
+              "obj_uid": "{{ app_ip_test_mgm_uid }}-host",
+              "obj_name": {{ app_ip_test_server_name | to_json }},
+              "obj_ip": "{{ app_ip_test_old_ip }}/32",
+              "obj_ip_end": "{{ app_ip_test_old_ip }}/32",
+              "obj_color": "black",
+              "obj_typ": "host",
+              "obj_member_refs": null,
+              "obj_member_names": null,
+              "obj_comment": "app server ip change integration test"
+            },
+            "{{ app_ip_test_mgm_uid }}-group": {
+              "obj_uid": "{{ app_ip_test_mgm_uid }}-group",
+              "obj_name": {{ app_ip_test_app_role | to_json }},
+              "obj_ip": null,
+              "obj_ip_end": null,
+              "obj_color": "black",
+              "obj_typ": "group",
+              "obj_member_refs": "{{ app_ip_test_mgm_uid }}-host",
+              "obj_member_names": {{ app_ip_test_server_name | to_json }},
+              "obj_comment": "app server ip change integration test"
+            }
+          },
+          "service_objects": {},
+          "users": {},
+          "zone_objects": {},
+          "rulebases": [],
+          "gateways": []
+        }
+      ]
+    }
+  ],
+  "native_config": {}
+}

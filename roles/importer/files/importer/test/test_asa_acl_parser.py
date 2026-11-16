@@ -20,6 +20,7 @@ from fw_modules.ciscoasa9.asa_normalize import normalize_config
 from fw_modules.ciscoasa9.asa_parser import parse_asa_config
 from fw_modules.ciscoasa9.asa_rule import create_rule_from_acl_entry, resolve_network_reference_for_rule
 from fwo_exceptions import FwoImporterError
+from fwo_redaction import REDACTED_VALUE
 from model_controllers.check_consistency import FwConfigImportCheckConsistency
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 
@@ -103,6 +104,64 @@ def test_destination_ports_keep_their_meaning(service: str, expected: EndpointKi
     assert entry.dst_port == expected
 
 
+@pytest.mark.parametrize(
+    ("line", "expected_src", "expected_dst", "expected_dst_port"),
+    [
+        (
+            "access-list dmz1_access_in extended permit tcp object H-DMZ1-SDASI1 range 7937 10000 object H-DMZ2-Netz",
+            endpoint("object", "H-DMZ1-SDASI1"),
+            endpoint("object", "H-DMZ2-Netz"),
+            endpoint("any", "any"),
+        ),
+        (f"{ACL_PREFIX} tcp any eq 1024 any", endpoint("any", "any"), endpoint("any", "any"), endpoint("any", "any")),
+        (
+            f"{ACL_PREFIX} udp any eq ntp host 198.51.100.1 eq ntp",
+            endpoint("any", "any"),
+            endpoint("host", "198.51.100.1"),
+            endpoint("eq", "ntp"),
+        ),
+        (
+            f"{ACL_PREFIX} tcp any object-group SVC_PORTS object-group OG_NET eq 443",
+            endpoint("any", "any"),
+            endpoint("object-group", "OG_NET"),
+            endpoint("eq", "443"),
+        ),
+    ],
+)
+def test_source_port_does_not_consume_destination(
+    line: str, expected_src: EndpointKind, expected_dst: EndpointKind, expected_dst_port: EndpointKind
+) -> None:
+    entry: AccessListEntry = parse(line)
+
+    assert entry.src == expected_src
+    assert entry.dst == expected_dst
+    assert entry.dst_port == expected_dst_port
+
+
+def test_source_port_is_parsed() -> None:
+    assert parse(f"{ACL_PREFIX} tcp any range 7937 10000 any").src_port == endpoint("range", "7937 10000")
+    assert parse(f"{ACL_PREFIX} tcp any object-group SVC_PORTS any").src_port == endpoint("service-group", "SVC_PORTS")
+    assert parse(f"{ACL_PREFIX} tcp any any eq 22").src_port is None
+    assert parse(f"{ACL_PREFIX} object-group PROTO_TCP any lt 1024 any").src_port == endpoint("range", "0 1023")
+    assert parse(f"{ACL_PREFIX} sctp any eq 5000 any").src_port == endpoint("eq", "5000")
+
+
+@pytest.mark.parametrize(
+    ("source_port", "expected"),
+    [
+        ("eq 1024", endpoint("eq", "1024")),
+        ("range 7937 10000", endpoint("range", "7937 10000")),
+        ("object-group SVC_PORTS", endpoint("service-group", "SVC_PORTS")),
+    ],
+)
+def test_source_ports_in_deny_entries_are_kept(source_port: str, expected: EndpointKind) -> None:
+    # source ports are imported, so a deny entry is not widened to all source ports
+    entry: AccessListEntry = parse(f"access-list ACL extended deny tcp any {source_port} any")
+
+    assert entry.action == "deny"
+    assert entry.src_port == expected
+
+
 def test_icmp_type_is_kept_instead_of_widening_to_any_icmp() -> None:
     entry: AccessListEntry = parse(f"{ACL_PREFIX} icmp any object-group OG_DMZ echo-reply")
 
@@ -172,8 +231,17 @@ def test_line_number_and_deny_are_parsed() -> None:
         (f"{ACL_PREFIX} ip somethingunknown any", 5, "unsupported address 'somethingunknown'"),
         (f"{ACL_PREFIX} ip 10.0.0.0 0.0.0.255 any", 5, "unsupported address '10.0.0.0'"),
         (f"{ACL_PREFIX} ip 10.0.0.0 any", 5, "unsupported address '10.0.0.0'"),
+        (f"{ACL_PREFIX} tcp any range 1000", 8, "end port of range is expected"),
+        (f"{ACL_PREFIX} tcp any eq", 7, "port after 'eq' is expected"),
+        (f"{ACL_PREFIX} tcp any eq nosuchport any", 7, "unknown port 'nosuchport'"),
         (f"{ACL_PREFIX} tcp any neq 1024 any", 6, "unsupported port operator 'neq 1024'"),
-        (f"{ACL_PREFIX} tcp any range 100 10 any", 6, "ends before it starts"),
+        (f"{ACL_PREFIX} tcp any eq 99999 any", 7, "port '99999' out of range"),
+        (f"{ACL_PREFIX} tcp any range 2000 1000 any", 6, "port range '2000 1000' ends before it starts"),
+        (f"{ACL_PREFIX} tcp any lt 0 any", 6, "port range 'lt 0' is empty"),
+        (f"{ACL_PREFIX} tcp any gt 65535 any", 6, "port range 'gt 65535' is empty"),
+        (f"{ACL_PREFIX} ip any eq 80 any", 6, "source port 'eq 80' requires protocol tcp, udp or sctp"),
+        (f"{ACL_PREFIX} icmp any eq 80 any", 6, "source port 'eq 80' requires protocol tcp, udp or sctp"),
+        (f"{ACL_PREFIX} ip any object-group SVC_PORTS any", 6, "requires protocol tcp, udp or sctp"),
         (f"{ACL_PREFIX} tcp any any neq 80", 7, "unsupported port operator 'neq 80'"),
         (f"{ACL_PREFIX} tcp any any lt 0", 7, "is empty"),
         (f"{ACL_PREFIX} tcp any any gt 65535", 7, "is empty"),
@@ -290,16 +358,28 @@ def test_unknown_name_aliases_fail(unknown: EndpointKind) -> None:
 # ───────────────────────── rule uids and time-range ─────────────────────────
 
 
-def test_rule_uid_of_entries_without_time_range_is_unchanged() -> None:
+def test_rule_uid_of_entries_without_time_range_and_source_port_is_unchanged() -> None:
     entry: AccessListEntry = parse(f"{ACL_PREFIX} tcp any host 198.51.100.1 eq 22")
-    dump_before_time_range_existed: dict[str, object] = entry.model_dump()
-    del dump_before_time_range_existed["time_range"]
-    del dump_before_time_range_existed["src_port"]
+    dump_before_the_fields_existed: dict[str, object] = entry.model_dump()
+    del dump_before_the_fields_existed["time_range"]
+    del dump_before_the_fields_existed["src_port"]
 
     rule = create_rule_from_acl_entry("ACL", entry, PROTOCOL_GROUPS, {}, {})
 
-    assert rule.rule_uid == fwo_base.generate_hash_from_dict(dump_before_time_range_existed)
+    assert rule.rule_uid == fwo_base.generate_hash_from_dict(dump_before_the_fields_existed)
     assert rule.rule_time is None
+
+
+def test_entries_differing_only_in_source_port_are_all_imported() -> None:
+    normalized: FwConfigNormalized = normalize_fixture_with(
+        "access-list SRCPORT extended permit tcp any eq 1024 host 10.0.0.1 eq 80\n"
+        "access-list SRCPORT extended permit tcp any eq 2048 host 10.0.0.1 eq 80\n"
+        "access-group SRCPORT in interface inside\n"
+    )
+
+    rulebase = next(rulebase for rulebase in normalized.rulebases if rulebase.uid == "SRCPORT")
+    rule_uids: list[str | None] = [rule.rule_uid for rule in rulebase.rules.values()]
+    assert len(rule_uids) == len(set(rule_uids)) == len(["eq 1024", "eq 2048"])
 
 
 def test_time_range_is_imported_as_rule_time() -> None:
@@ -360,3 +440,12 @@ def test_consecutive_service_group_members_are_all_kept() -> None:
     nested_refs: dict[str, list[str]] = {group.name: group.nested_refs for group in config.service_object_groups}
     assert nested_refs["ALL_GROUPS"] == ["G1", "G2", "G3"]
     assert nested_refs["ALL_OBJECTS"] == ["S1", "S2", "S3"]
+
+
+def test_enable_password_hash_is_not_kept_in_the_native_config() -> None:
+    password_hash = "fwoSweepEnableHash123"  # noqa: S105
+    config = parse_asa_config(f"hostname fw1\nenable password {password_hash} pbkdf2\n")
+
+    assert config.enable_password.password == REDACTED_VALUE
+    assert config.enable_password.encryption_function == "pbkdf2"
+    assert password_hash not in config.model_dump_json()

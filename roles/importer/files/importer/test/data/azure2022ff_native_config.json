@@ -1,0 +1,124 @@
+{
+  "ipGroups": [
+    {
+      "properties": {
+        "firewalls": [],
+        "firewallPolicies": [],
+        "ipAddresses": ["1.2.3.4", "10.0.0.0/24", "1.1.1.1-1.2.3.4"],
+        "provisioningState": "Succeeded"
+      },
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/FWORCH-TEST1/providers/Microsoft.Network/ipGroups/ipGroup1",
+      "name": "ipGroup1",
+      "type": "Microsoft.Network/IpGroups",
+      "location": "germanywestcentral"
+    }
+  ],
+  "firewallPolicies": [
+    {
+      "name": "FirewallPolicy_AzureFirewall1",
+      "ruleCollectionGroups": [
+        {
+          "properties": {"priority": 100, "ruleCollections": [], "provisioningState": "Succeeded"},
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/FWORCH-TEST1/providers/Microsoft.Network/firewallPolicies/FirewallPolicy_AzureFirewall1/ruleCollectionGroups/DefaultDnatRuleCollectionGroup",
+          "name": "DefaultDnatRuleCollectionGroup",
+          "type": "Microsoft.Network/FirewallPolicies/RuleCollectionGroups"
+        },
+        {
+          "properties": {
+            "priority": 2000,
+            "ruleCollections": [
+              {
+                "ruleCollectionType": "FirewallPolicyFilterRuleCollection",
+                "action": {"type": "Deny"},
+                "rules": [
+                  {
+                    "ruleType": "NetworkRule",
+                    "name": "rule1",
+                    "ipProtocols": ["TCP"],
+                    "sourceAddresses": ["1.2.3.4"],
+                    "sourceIpGroups": [],
+                    "destinationAddresses": ["2.3.4.5"],
+                    "destinationIpGroups": [],
+                    "destinationFqdns": [],
+                    "destinationPorts": ["443", "80"]
+                  },
+                  {
+                    "ruleType": "NetworkRule",
+                    "name": "secondrule",
+                    "description": "uses an ip group",
+                    "ipProtocols": ["TCP", "UDP"],
+                    "sourceAddresses": [],
+                    "sourceIpGroups": [
+                      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/FWORCH-TEST1/providers/Microsoft.Network/ipGroups/ipGroup1"
+                    ],
+                    "destinationAddresses": ["3.4.5.6"],
+                    "destinationIpGroups": [],
+                    "destinationFqdns": [],
+                    "destinationPorts": ["1223"]
+                  }
+                ],
+                "name": "RuleColl1",
+                "priority": 2100
+              },
+              {
+                "ruleCollectionType": "FirewallPolicyNatRuleCollection",
+                "action": {"type": "Dnat"},
+                "rules": [
+                  {
+                    "ruleType": "NatRule",
+                    "name": "dnat-1",
+                    "translatedAddress": "4.5.6.6",
+                    "translatedPort": "80",
+                    "ipProtocols": ["TCP", "UDP"],
+                    "sourceAddresses": ["*"],
+                    "sourceIpGroups": [],
+                    "destinationAddresses": ["20.170.21.73"],
+                    "destinationPorts": ["80"]
+                  }
+                ],
+                "name": "RuleColl1DNAT",
+                "priority": 1001
+              },
+              {
+                "ruleCollectionType": "FirewallPolicyFilterRuleCollection",
+                "action": {"type": "Allow"},
+                "rules": [
+                  {
+                    "ruleType": "ApplicationRule",
+                    "name": "App1",
+                    "protocols": [{"protocolType": "Https", "port": 443}],
+                    "targetFqdns": ["cactus.de"],
+                    "sourceAddresses": ["1.2.3.4"]
+                  },
+                  {
+                    "ruleType": "NetworkRule",
+                    "name": "allow-any",
+                    "ipProtocols": ["Any"],
+                    "sourceAddresses": ["*"],
+                    "destinationAddresses": ["AzureCloud.WestEurope"],
+                    "destinationFqdns": ["example.com"],
+                    "destinationPorts": ["*"]
+                  },
+                  {
+                    "ruleType": "NetworkRule",
+                    "name": "allow-icmp-range",
+                    "ipProtocols": ["ICMP", "UDP"],
+                    "sourceAddresses": ["2001:db8::/64"],
+                    "destinationAddresses": ["10.1.1.1-10.1.1.20"],
+                    "destinationPorts": ["1000-2000"]
+                  }
+                ],
+                "name": "AllowColl",
+                "priority": 9999
+              }
+            ],
+            "provisioningState": "Succeeded"
+          },
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/FWORCH-TEST1/providers/Microsoft.Network/firewallPolicies/FirewallPolicy_AzureFirewall1/ruleCollectionGroups/RuleCollGroup1",
+          "name": "RuleCollGroup1",
+          "type": "Microsoft.Network/FirewallPolicies/RuleCollectionGroups"
+        }
+      ]
+    }
+  ]
+}

@@ -133,7 +133,7 @@
                                         </Append>
                                     </Dropdown>
                                 </div>
-                                <EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit?.Subzones"
+                                <EditList ElementType="NetworkZone" Elements="networkZoneInEdit?.Subzones"
                                       ElementsToAdd="addDel.SubzonesToAdd" ElementsToDelete="addDel.SubzonesToDelete">
                                     <Display>
                                         @context.Name
@@ -158,7 +158,7 @@
                                 </Append>
                             </Dropdown>
                         </div>
-                        <EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit?.AllowedCommunicationSources"
+                        <EditList ElementType="NetworkZone" Elements="networkZoneInEdit?.AllowedCommunicationSources"
                               ElementsToAdd="addDel.SourceZonesToAdd" ElementsToDelete="addDel.SourceZonesToDelete">
                             <Display>
                                 @context.Name
@@ -179,7 +179,7 @@
                                 </Append>
                             </Dropdown>
                         </div>
-                        <EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit?.AllowedCommunicationDestinations"
+                        <EditList ElementType="NetworkZone" Elements="networkZoneInEdit?.AllowedCommunicationDestinations"
                                   ElementsToAdd="addDel.DestinationZonesToAdd" ElementsToDelete="addDel.DestinationZonesToDelete">
                             <Display>
                                 @context.Name
@@ -225,13 +225,13 @@
 
     bool editMode = false;
     bool deleteMode = false;
-    ComplianceNetworkZone? networkZoneInEdit = default!;
+    NetworkZone? networkZoneInEdit = default!;
     NetworkZoneService.AdditionsDeletions addDel = new();
-    ComplianceNetworkZone? sourceZoneToAdd;
+    NetworkZone? sourceZoneToAdd;
     string sourceZoneInputClass = "";
-    ComplianceNetworkZone? destinationZoneToAdd;
+    NetworkZone? destinationZoneToAdd;
     string destinationZoneInputClass = "";
-    ComplianceNetworkZone? subzoneToAdd;
+    NetworkZone? subzoneToAdd;
     string subzoneInputClass = "";
     IPAddressRange? ipRangeToAdd;
     bool addingAutoCalculatedInternetZone = false;
@@ -304,9 +304,9 @@
         }
     }
 
-    private async void OnEditZone(ComplianceNetworkZone networkZone)
+    private async void OnEditZone(NetworkZone networkZone)
     {
-        networkZoneInEdit = (ComplianceNetworkZone)networkZone.Clone();
+        networkZoneInEdit = (NetworkZone)networkZone.Clone();
         await OpenClearEditForm();
     }
 
@@ -351,7 +351,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async void OnDeleteZone(ComplianceNetworkZone networkZone)
+    private async void OnDeleteZone(NetworkZone networkZone)
     {
         deleteMode = true;
         networkZoneInEdit = networkZone;
@@ -482,7 +482,7 @@
     /// </summary>
     /// <param name="networkZone">Zone to evaluate.</param>
     /// <returns><c>true</c> for auto-calculated Internet or Undefined-internal zones; otherwise, <c>false</c>.</returns>
-    private static bool IsAutoCalculatedSpecialZone(ComplianceNetworkZone? networkZone)
+    private static bool IsAutoCalculatedSpecialZone(NetworkZone? networkZone)
     {
         return networkZone?.IsAutoCalculatedInternetZone == true || networkZone?.IsAutoCalculatedUndefinedInternalZone == true;
     }
@@ -504,7 +504,7 @@
         }
     }
 
-    private bool AddCommunicationZone(List<ComplianceNetworkZone> zones, ref ComplianceNetworkZone? zoneToAdd, ref string inputClass)
+    private bool AddCommunicationZone(List<NetworkZone> zones, ref NetworkZone? zoneToAdd, ref string inputClass)
     {
         if (zoneToAdd != null && !zones.Contains(zoneToAdd))
         {

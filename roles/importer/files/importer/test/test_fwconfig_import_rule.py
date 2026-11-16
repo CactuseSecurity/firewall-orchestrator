@@ -218,6 +218,82 @@ class TestFwConfigImportRule:
         assert rule_changes[0]["security_relevant"] is True
         assert num_security_relevant_changes == 1
 
+    def test_write_changelog_rules_flags_nat_rule_with_changed_translation_as_security_relevant(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ) -> None:
+        # When only the translated part of a NAT rule changes, the NAT rule itself gets a new version
+        # without own differences (xlate_rule FK repoint). Its changelog entry must still be
+        # security-relevant, otherwise the change is missing in the NAT changes report.
+        mock_get_graphql_code(mocker, "mutation { dummy }")
+
+        rule_ids = {"nat-rule-uid": 202, "nat-rule-uid_translated": 303}
+
+        def get_rule_id_side_effect(rule_uid: str, before_update: bool = False) -> int:
+            return rule_ids[rule_uid] - (100 if before_update else 0)
+
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(side_effect=get_rule_id_side_effect)
+        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(return_value={"data": {}})
+
+        old_nat_rule = build_normalized_rule(
+            "nat-rule-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="nat-rule-uid_translated"
+        )
+        new_nat_rule = build_normalized_rule(
+            "nat-rule-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="nat-rule-uid_translated"
+        )
+        old_xlate_rule = build_normalized_rule("nat-rule-uid_translated", rule_src_zone=None, rule_dst_zone=None)
+        new_xlate_rule = build_normalized_rule("nat-rule-uid_translated", rule_src_zone=None, rule_dst_zone=None)
+        new_xlate_rule.rule_src = "translated-src"
+
+        num_security_relevant_changes = fwconfig_import_rule.write_changelog_rules(
+            added_rules=[],
+            removed_rules=[],
+            changed_rules=[(old_xlate_rule, new_xlate_rule), (old_nat_rule, new_nat_rule)],
+        )
+
+        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        relevance_by_new_id = {
+            change["new_rule_id"]: change["security_relevant"] for change in query_variables["rule_changes"]
+        }
+
+        assert relevance_by_new_id == {303: True, 202: True}
+        assert num_security_relevant_changes == 2
+
+    def test_get_security_relevant_changed_rule_uids_ignores_documentation_only_translation_change(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+    ) -> None:
+        # A documentation-only change of the translated part must not make the NAT rule change relevant.
+        old_nat_rule = build_normalized_rule(
+            "nat-rule-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="nat-rule-uid_translated"
+        )
+        new_nat_rule = build_normalized_rule(
+            "nat-rule-uid", rule_src_zone=None, rule_dst_zone=None, xlate_rule_uid="nat-rule-uid_translated"
+        )
+        old_xlate_rule = build_normalized_rule("nat-rule-uid_translated", rule_src_zone=None, rule_dst_zone=None)
+        new_xlate_rule = build_normalized_rule("nat-rule-uid_translated", rule_src_zone=None, rule_dst_zone=None)
+        new_xlate_rule.rule_comment = "new comment"
+
+        relevant_uids = fwconfig_import_rule.get_security_relevant_changed_rule_uids(
+            [(old_xlate_rule, new_xlate_rule), (old_nat_rule, new_nat_rule)], set()
+        )
+
+        assert relevant_uids == set()
+
+    def test_get_security_relevant_changed_rule_uids_includes_moved_rules(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+    ) -> None:
+        old_rule = build_normalized_rule("moved-rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        new_rule = build_normalized_rule("moved-rule-uid", rule_src_zone=None, rule_dst_zone=None)
+
+        relevant_uids = fwconfig_import_rule.get_security_relevant_changed_rule_uids(
+            [(old_rule, new_rule)], {"moved-rule-uid"}
+        )
+
+        assert relevant_uids == {"moved-rule-uid"}
+
     def test_write_changelog_rules_flags_added_and_removed_rules_as_security_relevant(
         self,
         fwconfig_import_rule: FwConfigImportRule,

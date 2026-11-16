@@ -160,6 +160,12 @@
           vars:
             upgrade_source_version: "{{ old_version }}"
 
+          # A supported version does not prove that the API left Docker: v9.8.4 can defer
+          # that move and still record its own version.
+        - name: check that the API no longer runs in Docker
+          include_tasks: validate-api-not-on-docker.yml
+          when: "'apiserver' in group_names"
+
       when: already_installed and installation_mode == "upgrade"
 
     - name: include OS specific preparation tasks
@@ -546,18 +552,21 @@
         group: "{{ fworch_group }}"
       become: true
       when: "installation_mode == 'new' and inventory_hostname in groups['middlewareserver'] and not importer_pwd_stat.stat.exists"
+      no_log: true
 
     - name: generate main key
       set_fact:
         main_key: "{{ randomly_generated_pwd }}" # 32 bytes
         main_key_file: "{{ fworch_secrets_dir }}/main_key"
       when: testkeys is not defined or testkeys|bool is false
+      no_log: true
 
     - name: set static main key for test purposes only
       set_fact:
         main_key: "{{ api_hasura_admin_test_password }}..{{ api_hasura_admin_test_password }}.." # to have 32 bytes
         main_key_file: "{{ fworch_secrets_dir }}/main_key"
       when: testkeys is defined and testkeys|bool
+      no_log: true
 
     - name: Check if main key file exists
       stat:
@@ -573,6 +582,7 @@
         group: "{{ fworch_group }}"
       become: true
       when: not stat_result.stat.exists
+      no_log: true
 
     - name: include fwo api call installer
       import_tasks: install-api-calls.yml

@@ -1,6 +1,5 @@
 using FWO.Basics;
 using Microsoft.AspNetCore.Mvc;
-using System.Net;
 
 namespace FWO.Middleware.Server.Requests;
 
@@ -24,9 +23,7 @@ public static class ResolveZonesForObjectsRequestValidator
     [
         new("name", "Display name of the object."),
         new("type", "Object type of the object."),
-        new("ipHost", "One maskless IPv4 or IPv6 address."),
-        new("ipNetwork", "One IPv4 or IPv6 CIDR network; host bits are normalized."),
-        new("ipRange", "Two maskless addresses defining an inclusive range.")
+        .. AddressInputRequestValidator.Keys
     ];
 
     private static readonly RequestKeyDefinition[] GroupKeys =
@@ -193,10 +190,8 @@ public static class ResolveZonesForObjectsRequestValidator
             return false;
         }
 
-        leaf.NormalizedIpStart = normalizedBounds.IpStart;
-        leaf.NormalizedIpEnd = normalizedBounds.IpEnd;
         if (string.Equals(leaf.Type, ObjectType.Host, StringComparison.OrdinalIgnoreCase)
-            && !IPAddress.Parse(leaf.NormalizedIpStart).Equals(IPAddress.Parse(leaf.NormalizedIpEnd)))
+            && !normalizedBounds.IpStart.Equals(normalizedBounds.IpEnd))
         {
             errorResult = new BadRequestObjectResult($"'{context}' entries of type '{ObjectType.Host}' must normalize to one address.");
             return false;

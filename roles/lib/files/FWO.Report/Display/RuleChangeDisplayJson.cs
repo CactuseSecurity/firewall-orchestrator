@@ -12,6 +12,8 @@ namespace FWO.Ui.Display
     public class RuleChangeDisplayJson : RuleDisplayJson
     {
         private const string ChangeTimeFormat = "dd.MM.yyyy HH:mm:ss";
+        private static readonly NetworkLocation[] kNoNetworkLocations = [];
+        private static readonly ServiceWrapper[] kNoServices = [];
 
         public RuleChangeDisplayJson(UserConfig userConfig) : base(userConfig)
         { }
@@ -126,7 +128,7 @@ namespace FWO.Ui.Display
             {
                 case 'D': return DisplayRuleSourceZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray());
                 case 'I': return DisplayRuleSourceZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray());
-                case 'C': return DisplayJsonArray("source zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
+                case 'C': return DisplayJsonArray("source zones", DisplayArrayDiff(ListFirewallZones(ruleChange.OldRule.RuleFromZones.Select(z => z.Content).ToArray()), ListFirewallZones(ruleChange.NewRule.RuleFromZones.Select(z => z.Content).ToArray())));
                 default: return "";
             }
         }
@@ -164,7 +166,7 @@ namespace FWO.Ui.Display
             {
                 case 'D': return DisplayRuleDestinationZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray());
                 case 'I': return DisplayRuleDestinationZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray());
-                case 'C': return DisplayJsonArray("destination zones", DisplayArrayDiff(ListNetworkZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()), ListNetworkZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray())));
+                case 'C': return DisplayJsonArray("destination zones", DisplayArrayDiff(ListFirewallZones(ruleChange.OldRule.RuleToZones.Select(z => z.Content).ToArray()), ListFirewallZones(ruleChange.NewRule.RuleToZones.Select(z => z.Content).ToArray())));
                 default: return "";
             }
         }
@@ -219,6 +221,50 @@ namespace FWO.Ui.Display
                 case 'C':
                     return DisplayJsonArray("service", DisplayArrayDiff(ListServices(ruleChange.OldRule, reportType),
                     ListServices(ruleChange.NewRule, reportType)));
+                default: return "";
+            }
+        }
+
+        /// <summary>
+        /// Displays the translated source of a NAT rule change.
+        /// </summary>
+        /// <param name="ruleChange">Displayed NAT rule change.</param>
+        /// <param name="reportType">Report type defining the level of resolution.</param>
+        /// <returns>JSON property with the translated source, the difference for changed rules.</returns>
+        public string DisplayTranslatedSource(RuleChange ruleChange, ReportType reportType)
+        {
+            return DisplayTranslatedElements(ruleChange, "translated source", rule => ListNetworkLocations(rule.NatData?.TranslatedFroms ?? kNoNetworkLocations, reportType));
+        }
+
+        /// <summary>
+        /// Displays the translated destination of a NAT rule change.
+        /// </summary>
+        /// <param name="ruleChange">Displayed NAT rule change.</param>
+        /// <param name="reportType">Report type defining the level of resolution.</param>
+        /// <returns>JSON property with the translated destination, the difference for changed rules.</returns>
+        public string DisplayTranslatedDestination(RuleChange ruleChange, ReportType reportType)
+        {
+            return DisplayTranslatedElements(ruleChange, "translated destination", rule => ListNetworkLocations(rule.NatData?.TranslatedTos ?? kNoNetworkLocations, reportType));
+        }
+
+        /// <summary>
+        /// Displays the translated services of a NAT rule change.
+        /// </summary>
+        /// <param name="ruleChange">Displayed NAT rule change.</param>
+        /// <param name="reportType">Report type defining the level of resolution.</param>
+        /// <returns>JSON property with the translated services, the difference for changed rules.</returns>
+        public string DisplayTranslatedServices(RuleChange ruleChange, ReportType reportType)
+        {
+            return DisplayTranslatedElements(ruleChange, "translated service", rule => ListServices(rule.NatData?.TranslatedServices ?? kNoServices, reportType));
+        }
+
+        private string DisplayTranslatedElements(RuleChange ruleChange, string tag, Func<Rule, string> listElements)
+        {
+            switch (ruleChange.ChangeAction)
+            {
+                case 'D': return DisplayJsonArray(tag, listElements(ruleChange.OldRule));
+                case 'I': return DisplayJsonArray(tag, listElements(ruleChange.NewRule));
+                case 'C': return DisplayJsonArray(tag, DisplayArrayDiff(listElements(ruleChange.OldRule), listElements(ruleChange.NewRule)));
                 default: return "";
             }
         }

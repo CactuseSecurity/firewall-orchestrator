@@ -8,10 +8,11 @@ namespace FWO.Data.Middleware
     public class ImplTaskTargetParameters
     {
         /// <summary>
-        /// Database id of the management the request task belongs to.
+        /// Database id of the management the request task belongs to; null asks for the targets of all
+        /// managements, which only an admin may do.
         /// </summary>
         [JsonPropertyName("managementId")]
-        public int ManagementId { get; set; }
+        public int? ManagementId { get; set; }
 
         /// <summary>
         /// True for services, false for network objects.

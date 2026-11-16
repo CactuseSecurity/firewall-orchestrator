@@ -29,6 +29,9 @@ namespace FWO.Services.Workflow
         [JsonProperty("phase_visibility_mode"), JsonPropertyName("phase_visibility_mode")]
         public PhaseVisibilityMode VisibilityMode { get; set; } = PhaseVisibilityMode.AnyTask;
 
+        [JsonProperty("promotion_mode"), JsonPropertyName("promotion_mode")]
+        public PromotionMode PromotionMode { get; set; } = PromotionMode.Both;
+
         [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
         public Dictionary<int, List<int>> StateVisibilityGroupIds { get; set; } = [];
 
@@ -61,6 +64,7 @@ namespace FWO.Services.Workflow
             LowestEndState = glbStateMatrix.GlobalMatrix[phase].LowestEndState;
             Active = glbStateMatrix.GlobalMatrix[phase].Active;
             VisibilityMode = glbStateMatrix.GlobalMatrix[phase].VisibilityMode;
+            PromotionMode = glbStateMatrix.GlobalMatrix[phase].PromotionMode;
             StateVisibilityGroupIds = glbStateMatrix.GlobalMatrix[phase].StateVisibilityGroupIds.ToDictionary(entry => entry.Key, entry => entry.Value.ToList());
             ExclusiveVisibilityGroupIds = [.. glbStateMatrix.GlobalMatrix[phase].ExclusiveVisibilityGroupIds];
             AutomaticOnlyStates = preloadedStates.Where(state => state.AutomaticOnly).Select(state => state.Id).ToHashSet();
@@ -336,6 +340,7 @@ namespace FWO.Services.Workflow
                 LowestEndState = source.LowestEndState,
                 Active = source.Active,
                 VisibilityMode = source.VisibilityMode,
+                PromotionMode = source.PromotionMode,
                 StateVisibilityGroupIds = source.StateVisibilityGroupIds.ToDictionary(entry => entry.Key, entry => entry.Value.ToList()),
                 ExclusiveVisibilityGroupIds = [.. source.ExclusiveVisibilityGroupIds]
             };
@@ -345,6 +350,7 @@ namespace FWO.Services.Workflow
         {
             return current.Active != original.Active
                 || current.VisibilityMode != original.VisibilityMode
+                || current.PromotionMode != original.PromotionMode
                 || current.LowestInputState != original.LowestInputState
                 || current.LowestStartedState != original.LowestStartedState
                 || current.LowestEndState != original.LowestEndState

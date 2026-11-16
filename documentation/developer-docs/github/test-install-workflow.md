@@ -59,13 +59,16 @@ Only entries with the flag run the heavier flow; every other entry runs
 a plain install, which keeps that flow off all 15 full-matrix combos.
 The flagged entries run, in order:
 
-1. an install with `--skip-tags integrationtests`
-2. the JWT refresh integration test
-3. the Ansible `--tags integrationtests` cleanup step
-4. a certificate reset upgrade,
+1. the sample LDAP seeding regression tests
+   (`scripts/tests/test-sample-auth-data.sh`), which stub `ldapmodify`
+   and therefore need neither an installation nor an LDAP server
+2. an install with `--skip-tags integrationtests`
+3. the JWT refresh integration test
+4. the Ansible `--tags integrationtests` cleanup step
+5. a certificate reset upgrade,
    `-e "installation_mode=upgrade internalca_reset_certificates=true"`
 
-Step 4 is a full run rather than a tag-limited one on purpose:
+Step 5 is a full run rather than a tag-limited one on purpose:
 `roles/tests-integration` asserts on facts the reset itself produces —
 which CA was retired, which identities were reissued, which
 customer-managed pairs were left untouched — and those exist only inside
@@ -83,6 +86,29 @@ UI in `Release` (`dotnet_mode`), while the SonarCloud workflows build
 `Release` - for example a variable whose only use is inside `#if DEBUG` -
 would otherwise only surface when an installation fails. The job needs no
 installation and reports such a break within minutes.
+
+Before it builds, the job checks that the .NET SDK pins agree. The
+`sdk.version` in the repository's `global.json` and the `dotnet-version` of
+`sonarcloud-pr.yml` must both match `dotnet_version` in
+`inventory/group_vars/all.yml`, which the installer derives its own
+`global.json` from. A mismatch fails the job with an error that names the
+file to update.
+
+## .NET SDK selection
+
+GitHub-hosted runner images can ship a newer major .NET SDK than FWO
+supports. `dotnet` picks the newest installed SDK unless a `global.json`
+pins it (#5700). Every `actions/setup-dotnet` step in this workflow
+therefore reads the version from the repository's `global.json`
+(`global-json-file`), and the `dotnet` commands in the checkout use the
+same file. The installer writes its own `global.json` below
+`/usr/local/fworch`, so its builds and unit tests on the runner use that
+SDK as well.
+
+`sonarcloud-pr.yml` keeps an explicit `dotnet-version` because it runs
+on `pull_request_target`. The workflow file comes from the base branch
+while the checkout comes from the pull request, so a pull request branch
+without a `global.json` would fail in `setup-dotnet`.
 
 ## Job names
 

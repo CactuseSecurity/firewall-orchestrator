@@ -16,14 +16,6 @@
   command: podman rm fworch-api
   ignore_errors: true
 
-- name: stop legacy Docker container
-  command: docker stop fworch-api
-  ignore_errors: true
-
-- name: remove legacy Docker container
-  command: docker rm fworch-api
-  ignore_errors: true
-
 - name: include uninstall tasks for current OS family
   include_tasks: "os/uninstall.{{ ansible_facts['os_family'] }}.yml"
 
@@ -108,14 +100,6 @@
     name: "{{ api_service_name }}"
     state: stopped
     enabled: no
-  ignore_errors: true
-
-- name: stop and disable legacy Hasura API services
-  service:
-    name: "{{ item }}"
-    state: stopped
-    enabled: no
-  loop: "{{ api_legacy_service_names | default([]) }}"
   ignore_errors: true
 
 - name: Remove internal CA from Debian trust store

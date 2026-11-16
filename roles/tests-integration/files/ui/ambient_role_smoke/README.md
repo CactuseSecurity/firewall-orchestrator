@@ -29,7 +29,7 @@ Optional environment variables:
 - `FWO_UI_IGNORE_HTTPS_ERRORS`: defaults to `true` for test installations.
 - `FWO_UI_TIMEOUT_MS`: browser interaction timeout in milliseconds.
 - `FWO_UI_BROWSER_EXECUTABLE`: browser path for Playwright; Ansible sets this
-  to `/usr/local/fworch/bin/chrome`.
+  to `/usr/local/lib/fworch/chrome`.
 
 The default route set expects a user that can access reporting, modelling,
 recertification, workflow, monitoring, compliance, network analysis, and personal

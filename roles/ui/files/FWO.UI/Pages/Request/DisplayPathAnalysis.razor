@@ -1,3 +1,5 @@
+@using FWO.Services.PathAnalysis
+
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection

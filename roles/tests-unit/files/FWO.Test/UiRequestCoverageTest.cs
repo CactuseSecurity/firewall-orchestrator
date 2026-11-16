@@ -235,7 +235,7 @@ namespace FWO.Test
 
             GetPrivateMethod(typeof(DisplayPathAnalysis), "Close").Invoke(component, []);
             Assert.That(GetMember<bool>(component, nameof(DisplayPathAnalysis.Display)), Is.False);
-            Assert.That(apiConnection.Queries, Does.Contain(NetworkAnalysisQueries.pathAnalysis));
+            Assert.That(apiConnection.Queries, Does.Contain(PathAnalysisQueries.pathAnalysis));
         }
 
         [Test]
@@ -455,6 +455,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayApprovals_HidesDeadlineWhenDeadlineFieldIsDisabled()
+        {
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(
+                context,
+                new WfHandler(),
+                [new WfApproval { Id = 10, Deadline = new DateTime(2026, 2, 3), Comments = [] }],
+                userConfig: new RequestCoverageUserConfig
+                {
+                    ReqTicketFieldVisibility = new TicketFieldVisibilityConfig { ShowDeadline = false }.ToConfigValue()
+                });
+
+            Assert.That(component.Markup, Does.Not.Contain("deadline"));
+        }
+
+        [Test]
         public async Task DisplayApprovals_ReadOnlyBlocksApprovalActions()
         {
             await using BunitContext context = new();
@@ -541,11 +557,12 @@ namespace FWO.Test
             bool display = true,
             bool? readOnlyMode = null,
             Action<bool>? displayChanged = null,
-            Func<Task>? resetParent = null)
+            Func<Task>? resetParent = null,
+            UserConfig? userConfig = null)
         {
             context.Services.AddAuthorizationCore();
             context.Services.AddLocalization();
-            context.Services.AddSingleton<UserConfig>(new RequestCoverageUserConfig());
+            context.Services.AddSingleton(userConfig ?? new RequestCoverageUserConfig());
             context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new TestAuthStateProvider(Roles.Approver));
@@ -698,7 +715,7 @@ namespace FWO.Test
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 Queries.Add(query);
-                if (query == NetworkAnalysisQueries.pathAnalysis)
+                if (query == PathAnalysisQueries.pathAnalysis)
                 {
                     return Task.FromResult((QueryResponseType)(object)PathDevices);
                 }

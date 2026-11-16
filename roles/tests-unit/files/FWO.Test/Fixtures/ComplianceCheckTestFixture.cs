@@ -67,7 +67,7 @@ namespace FWO.Test.Fixtures
                     .Returns(Policy); // Policy with criteria
 
                 ApiConnection.AsSub()
-                    .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>())
+                    .SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>())
                         .Returns(ComplianceCheck.NetworkZones);
             }
 
@@ -271,9 +271,9 @@ namespace FWO.Test.Fixtures
             return policy;
         }
 
-        protected virtual List<ComplianceNetworkZone> CreateNetworkZones(bool createInternetZone, bool createUndefinedInternalZone, int criterionId = 1)
+        protected virtual List<NetworkZone> CreateNetworkZones(bool createInternetZone, bool createUndefinedInternalZone, int criterionId = 1)
         {
-            List<ComplianceNetworkZone> networkZones = new()
+            List<NetworkZone> networkZones = new()
             {
                 new()
                 {
@@ -359,7 +359,7 @@ namespace FWO.Test.Fixtures
                 );
             }
 
-            foreach (ComplianceNetworkZone zone in networkZones.Where(zone => !zone.IsAutoCalculatedUndefinedInternalZone).ToList())
+            foreach (NetworkZone zone in networkZones.Where(zone => !zone.IsAutoCalculatedUndefinedInternalZone).ToList())
             {
                 zone.AllowedCommunicationDestinations = [zone];
             }

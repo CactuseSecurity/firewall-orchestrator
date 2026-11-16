@@ -4,14 +4,14 @@ namespace FWO.Test
 {
     public static class TestDataGenerator
     {
-        public static List<ComplianceNetworkZone> CreateComplianceNetworkZones(int numberOfZones, bool createInternetZone, bool createUndefinedInternalZone)
+        public static List<NetworkZone> CreateNetworkZones(int numberOfZones, bool createInternetZone, bool createUndefinedInternalZone)
         {
-            List<ComplianceNetworkZone> zones = new();
+            List<NetworkZone> zones = new();
 
             for (int i = 0; i < numberOfZones; i++)
             {
                 zones.Add(
-                    new ComplianceNetworkZone
+                    new NetworkZone
                     {
                         Id = i + 1,
                         IdString = $"zone_{i + 1}",
@@ -23,7 +23,7 @@ namespace FWO.Test
             if (createInternetZone)
             {
                 zones.Add(
-                    new ComplianceNetworkZone
+                    new NetworkZone
                     {
                         Id = numberOfZones + 1,
                         IdString = "AUTO_CALCULATED_ZONE_INTERNET",
@@ -36,7 +36,7 @@ namespace FWO.Test
             if (createUndefinedInternalZone)
             {
                 zones.Add(
-                    new ComplianceNetworkZone
+                    new NetworkZone
                     {
                         Id = numberOfZones + 2,
                         IdString = "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL",

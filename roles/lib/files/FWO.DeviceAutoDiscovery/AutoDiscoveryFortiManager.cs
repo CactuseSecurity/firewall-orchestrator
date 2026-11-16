@@ -39,7 +39,7 @@ namespace FWO.DeviceAutoDiscovery
                 RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(SuperManagement.ImportCredential.ImportUser, SuperManagement.ImportCredential.Secret);
                 if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
                 {
-                    return await DiscoverySession(discoveredDevices, cancellationToken);
+                    return await DiscoverySession(restClientFM, sessionResponse.Data.SessionId, cancellationToken);
                 }
                 else
                 {
@@ -56,34 +56,32 @@ namespace FWO.DeviceAutoDiscovery
             return discoveredDevices;
         }
 
-        private async Task<List<Management>> DiscoverySession(List<Management> discoveredDevices, CancellationToken cancellationToken)
+        /// <summary>
+        /// Discovers the devices within the FortiManager session opened by the caller and always logs that session out.
+        /// </summary>
+        /// <param name="restClientFM">Client the session was opened with.</param>
+        /// <param name="sessionId">Id of the open session.</param>
+        /// <param name="cancellationToken">Stops the discovery.</param>
+        /// <returns>The managements that changed compared to the stored ones.</returns>
+        private async Task<List<Management>> DiscoverySession(FortiManagerClient restClientFM, string sessionId, CancellationToken cancellationToken)
         {
-            Log.WriteDebug(Autodiscovery, $"discovering FortiManager adoms, vdoms, devices");
-            FortiManagerClient restClientFM = new(SuperManagement, CheckCertificates);
-
-            RestResponse<SessionAuthInfo> sessionResponse = await restClientFM.AuthenticateUser(SuperManagement.ImportCredential.ImportUser, SuperManagement.ImportCredential.Secret);
-            if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && !string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
+            List<Management> discoveredDevices;
+            Log.WriteDebug(Autodiscovery, $"successful FortiManager login");
+            try
             {
-                string sessionId = sessionResponse.Data.SessionId;
-                Log.WriteDebug(Autodiscovery, $"successful FortiManager login");
-                // need to use @ verbatim identifier for special chars in sessionId
-
-                try
+                discoveredDevices = await CollectDevices(sessionId, restClientFM, cancellationToken);
+                await UpdateMgmtUid(sessionId, restClientFM);
+            }
+            finally
+            {
+                RestResponse<SessionAuthInfo> logoutResponse = await restClientFM.DeAuthenticateUser(sessionId);
+                if (logoutResponse.StatusCode == HttpStatusCode.OK)
                 {
-                    discoveredDevices = await CollectDevices(sessionId, restClientFM, cancellationToken);
-                    await UpdateMgmtUid(sessionId, restClientFM);
+                    Log.WriteDebug(Autodiscovery, $"successful FortiManager logout");
                 }
-                finally
+                else
                 {
-                    sessionResponse = await restClientFM.DeAuthenticateUser(sessionId);
-                    if (sessionResponse.StatusCode == HttpStatusCode.OK)
-                    {
-                        Log.WriteDebug(Autodiscovery, $"successful FortiManager logout");
-                    }
-                    else
-                    {
-                        Log.WriteWarning(Autodiscovery, $"error while logging out from FortiManager: {sessionResponse.ErrorMessage}");
-                    }
+                    Log.WriteWarning(Autodiscovery, $"error while logging out from FortiManager: {logoutResponse.ErrorMessage}");
                 }
             }
             // an incomplete discovery would report all managements it did not reach as deleted

@@ -9,10 +9,15 @@ until the session times out.
 from __future__ import annotations
 
 import hashlib
+import re
 from typing import Any, cast
 from urllib.parse import quote, quote_plus
 
 REDACTED_VALUE = "<redacted>"
+# the user info of a url ("user:password@") up to the last "@" of the url, so that an "@" or "/" in the password
+# cannot cut it short; a url in a text ends at whitespace, a quote, a bracket or an angle bracket. The fixed
+# width look-behind keeps the search linear, as only positions right after "://" can start a match.
+URL_CREDENTIALS_PATTERN = re.compile(r"(?<=://)[^\s'\"()<>]*@")
 # header and payload keys whose values grant access to a firewall management API; compared in lower case
 SENSITIVE_KEYS: frozenset[str] = frozenset(
     {
@@ -74,6 +79,17 @@ def redact_secret_in_text(text: str, secret: str | None) -> str:
     for secret_form in secret_forms:
         text = text.replace(secret_form, REDACTED_VALUE)
     return text
+
+
+def redact_url_credentials(text: str) -> str:
+    """
+    Return the text with the user info of every url in it ("scheme://user:password@host") replaced.
+
+    Needed for the text of transport errors: requests names a proxy url it cannot parse in full, including the
+    proxy credentials, and those credentials are not known to the importer, so redact_secret_in_text cannot find
+    them.
+    """
+    return URL_CREDENTIALS_PATTERN.sub(f"{REDACTED_VALUE}@", text)
 
 
 def session_fingerprint(session_id: str | None) -> str:

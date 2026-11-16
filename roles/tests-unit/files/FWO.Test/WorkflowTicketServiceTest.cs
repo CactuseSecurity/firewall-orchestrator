@@ -27,6 +27,9 @@ namespace FWO.Test;
 internal class WorkflowTicketServiceTest
 {
     private const int kTrustedCallerId = 77;
+    private static readonly List<string> kUnknownLoggingErrorPaths = ["rules[0].logging"];
+    private static readonly List<string> kAllRuleErrorPaths =
+        ["rules[0].sourceObjects[0]", "rules[0].action", "rules[0].logging", "rules[0].ownerId", "rules[0].timeObjectId"];
 
     [Test]
     public async Task GetTicketStatusAsync_ReturnsStateNameAndLatestComment()
@@ -2532,6 +2535,7 @@ internal class WorkflowTicketServiceTest
                 new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "not-a-rule-action",
+                    Logging = "not-a-logging",
                     SourceObjects = [-2],
                     TimeObjectId = -2,
                     OwnerId = 999
@@ -2540,8 +2544,72 @@ internal class WorkflowTicketServiceTest
         });
 
         RequestValidationErrorResponse errors = GetValidationResponse(result);
-        Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(
-            ["rules[0].sourceObjects[0]", "rules[0].action", "rules[0].ownerId", "rules[0].timeObjectId"]));
+        Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(kAllRuleErrorPaths));
+    }
+
+    [Test]
+    public async Task CreateTicket_DefaultsRuleLoggingToLog()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
+
+        await service.CreateTicketAsync(CreateBaseRequest("Default logging"), 77);
+
+        WfReqTaskWriter accessTask = apiConnection.LastTicketWriter!.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString());
+        Assert.Multiple(() =>
+        {
+            Assert.That(apiConnection.SentQueries, Does.Contain(StmQueries.getTracking));
+            Assert.That(accessTask.Tracking, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task CreateTicket_ResolvesRequestedRuleLoggingCaseInsensitive()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
+        CreateTicketRequest request = CreateBaseRequest("Explicit logging");
+        request.Rules[0].Logging = " None ";
+
+        await service.CreateTicketAsync(request, 77);
+
+        WfReqTaskWriter accessTask = apiConnection.LastTicketWriter!.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString());
+        Assert.That(accessTask.Tracking, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task CreateTicket_ReturnsBadRequestForUnknownRuleLogging()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
+        };
+        CreateTicketRequest request = CreateBaseRequest("Unknown logging");
+        request.Rules[0].Logging = "verbose";
+
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(request);
+
+        RequestValidationErrorResponse errors = GetValidationResponse(result);
+        Assert.Multiple(() =>
+        {
+            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(kUnknownLoggingErrorPaths));
+            Assert.That(errors.Errors.Single().Message, Does.Contain("Unknown rule logging 'verbose'"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Null);
+        });
     }
 
     [Test]
@@ -3134,6 +3202,7 @@ internal class WorkflowTicketServiceTest
         public List<IpProtocol> Protocols { get; set; } = [];
         public List<FwoOwner> Owners { get; set; } = [];
         public List<RuleAction> RuleActions { get; set; } = [new RuleAction { Id = 1, Name = "accept", Allowed = true }];
+        public List<Tracking> Trackings { get; set; } = [new Tracking { Id = 1, Name = "log" }, new Tracking { Id = 2, Name = "none" }];
         public List<FlowNwObject> FlowNetworkObjects { get; set; } = [];
         public List<FlowNwGroup> FlowNetworkGroups { get; set; } = [];
         public List<FlowSvcObject> FlowServiceObjects { get; set; } = [];
@@ -3253,6 +3322,11 @@ internal class WorkflowTicketServiceTest
             if (responseType == typeof(List<RuleAction>))
             {
                 return Task.FromResult((QueryResponseType)(object)RuleActions);
+            }
+
+            if (responseType == typeof(List<Tracking>))
+            {
+                return Task.FromResult((QueryResponseType)(object)Trackings);
             }
 
             if (responseType == typeof(List<FlowNwObject>))

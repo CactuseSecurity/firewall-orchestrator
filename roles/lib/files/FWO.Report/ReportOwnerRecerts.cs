@@ -3,6 +3,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
+using FWO.Encoders;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
 using System.Text;

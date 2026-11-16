@@ -29,8 +29,8 @@ internal sealed class WorkflowTicketBuilder
     /// <summary>
     /// Builds the ticket object that is persisted through the existing whole-ticket insert path.
     /// </summary>
-    public WfTicket Build(CreateTicketRequest request, int ticketStateId, int requesterId, Dictionary<int, FwoOwner> ownersById,
-        Dictionary<string, int> ruleActionIds, Dictionary<string, int> protocolIds, FlowReferenceCatalog flowReferences)
+    public WfTicket Build(CreateTicketRequest request, int ticketStateId, int requesterId, RuleTaskLookups lookups,
+        Dictionary<string, int> protocolIds, FlowReferenceCatalog flowReferences)
     {
         TicketBuildContext context = new();
         IReadOnlyDictionary<string, string> timeObjectOriginSuffixes =
@@ -40,7 +40,7 @@ internal sealed class WorkflowTicketBuilder
         List<WfReqTask> tasks = [];
         tasks.AddRange(BuildObjectTasks(request, entities, ticketStateId, context));
         tasks.AddRange(BuildGroupTasks(request, entities, ticketStateId, flowReferences, context));
-        tasks.AddRange(BuildRuleTasks(request, entities, ticketStateId, ownersById, ruleActionIds, flowReferences, context));
+        tasks.AddRange(BuildRuleTasks(request, entities, ticketStateId, lookups, flowReferences, context));
         if (context.ValidationErrors.Count > 0)
         {
             throw new CreateTicketValidationException(context.ValidationErrors);
@@ -265,11 +265,9 @@ internal sealed class WorkflowTicketBuilder
     }
 
     private static List<WfReqTask> BuildRuleTasks(CreateTicketRequest request, Dictionary<long, WorkflowTicketEntity> entities,
-        int ticketStateId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds,
-        FlowReferenceCatalog flowReferences, TicketBuildContext context)
+        int ticketStateId, RuleTaskLookups lookups, FlowReferenceCatalog flowReferences, TicketBuildContext context)
     {
         List<WfReqTask> tasks = [];
-        RuleTaskLookups lookups = new(ownersById, ruleActionIds);
         for (int index = 0; index < request.Rules.Count; index++)
         {
             WorkflowTicketRuleTaskContext taskContext = new(entities, ticketStateId, lookups, flowReferences,
@@ -400,6 +398,16 @@ internal sealed class WorkflowTicketBuilder
             AddValidationError(taskContext.Validation.ValidationErrors, $"{rulePath}.action", exception);
         }
 
+        int trackingId = 0;
+        try
+        {
+            trackingId = ResolveTrackingId(rule.Logging, taskContext.Lookups.TrackingIds);
+        }
+        catch (ArgumentException exception)
+        {
+            AddValidationError(taskContext.Validation.ValidationErrors, $"{rulePath}.logging", exception);
+        }
+
         FwoOwner? taskOwner = null;
         try
         {
@@ -449,7 +457,7 @@ internal sealed class WorkflowTicketBuilder
             RequestAction = requestAction,
             StateId = taskContext.TicketStateId,
             RuleAction = ruleActionId,
-            Tracking = 1,
+            Tracking = trackingId,
             Reason = BuildTaskReason(rule),
             FreeText = rule.Description,
             TargetBeginDate = timeEntity?.TimeStart,
@@ -506,6 +514,22 @@ internal sealed class WorkflowTicketBuilder
         }
 
         throw new ArgumentException($"Unknown rule action '{action}'.");
+    }
+
+    private static int ResolveTrackingId(string logging, Dictionary<string, int> trackingIds)
+    {
+        if (string.IsNullOrWhiteSpace(logging))
+        {
+            throw new ArgumentException("'logging' must not be empty.");
+        }
+
+        logging = logging.Trim();
+        if (trackingIds.TryGetValue(logging, out int trackingId))
+        {
+            return trackingId;
+        }
+
+        throw new ArgumentException($"Unknown rule logging '{logging}'.");
     }
 
     private static WorkflowTicketEntity? ResolveTimeObject(long timeObjectId, Dictionary<long, WorkflowTicketEntity> entities,

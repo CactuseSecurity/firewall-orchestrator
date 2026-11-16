@@ -470,6 +470,19 @@ internal sealed class UiApprovalTaskEditorsTest
     }
 
     [Test]
+    public async Task ApprovalTaskElementsEditor_HidesCreateObjectTaskButtonWhenDisabled()
+    {
+        await using BunitContext context = CreateContext(new EditorApiConnection());
+        IRenderedComponent<ApprovalTaskElementsEditor> cut = context.Render<ApprovalTaskElementsEditor>(parameters => parameters
+            .Add(parameter => parameter.Display, true)
+            .Add(parameter => parameter.Task, new WfReqTask { TaskType = WfTaskType.access.ToString() })
+            .Add(parameter => parameter.FieldKey, WorkflowEditableFieldKeys.Source)
+            .Add(parameter => parameter.ShowCreateObjectTask, false));
+
+        Assert.That(cut.FindAll("button.btn-success"), Is.Empty);
+    }
+
+    [Test]
     public async Task ApprovalTaskElementsEditor_UsesContextualGroupTitle()
     {
         WfReqTask groupTask = new() { Id = 70, TaskType = WfTaskType.group_modify.ToString() };

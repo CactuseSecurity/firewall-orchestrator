@@ -93,7 +93,7 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | Tufin SecureChange ticket templates as device specific settings (global, per device type and per management) | 9.8.5 |
 | Semantic rule positioning for Check Point access-rule implementation tasks | 9.8.7 |
 | Approval-phase task details view with resolved, technical and read-only displays, configurable field editing, and task-specific editors | 9.9.1 |
-| State action event "While set" (periodic execution by the middleware) and conditional auto-forward with rollout check, error state with timeout and target "Remain in state" | 9.9.2 |
+| State action event "While set" (periodic execution by the middleware) and conditional auto-forward with rollout check, error state with timeout and target "Remain in state" | 9.9.3 |
 
 ## Recertification
 

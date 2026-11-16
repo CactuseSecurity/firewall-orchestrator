@@ -57,6 +57,28 @@
       run_once: true
       tags: always
 
+    # internalca_ca_rotation is the same kind of switch: each of its two passes is a
+    # single deliberate run. Persisted, "prepare" would silently stage the next CA on a
+    # later upgrade nobody meant as a rotation, and "activate" would keep refusing every
+    # upgrade once the rotation is complete.
+    - name: refuse a persisted CA rotation switch
+      assert:
+        that:
+          - "'internalca_ca_rotation' not in fwo_persisted_install_settings"
+        fail_msg: >-
+          internalca_ca_rotation is set in {{ fwo_effective_install_settings_file }}.
+          It is a one-shot switch for the two passes of a CA rotation, not a setting.
+          Remove it from the file and pass it on the command line for the run that should
+          take the step, with -e "installation_mode=upgrade internalca_ca_rotation=prepare"
+          and later -e "installation_mode=upgrade internalca_ca_rotation=activate".
+      vars:
+        fwo_persisted_install_settings: >-
+          {{ lookup('file', fwo_effective_install_settings_file) | from_yaml | default({}, true) }}
+      when: fwo_install_settings_stat.stat.exists
+      delegate_to: localhost
+      run_once: true
+      tags: always
+
     - name: report the endpoints the installer settings put in force
       debug:
         msg: >-
@@ -323,6 +345,7 @@
         msg:
           - "Trust this FWO internal CA certificate on the browser host to accept {{ product_name }} Apache certificates:"
           - (unless you already have a peer certificate configured, in which case the peer CA certificate is the one to trust)
+          - (while a CA rotation is under way two certificates are shown - trust both, and remove the one no longer listed once the rotation is complete)
           - "{{ fwo_internal_ca_certificate.content | b64decode }}"
       run_once: true
       when:

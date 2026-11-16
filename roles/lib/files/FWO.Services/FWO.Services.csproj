@@ -20,6 +20,7 @@
 		<ProjectReference Include="..\FWO.ExternalSystems\FWO.ExternalSystems.csproj" />
 		<ProjectReference Include="..\FWO.Logging\FWO.Logging.csproj" />
 		<ProjectReference Include="..\FWO.NetworkTopology\FWO.NetworkTopology.csproj" />
+		<ProjectReference Include="..\FWO.Encoders\FWO.Encoders.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -146,6 +146,19 @@ namespace FWO.Test
             Assert.That(userConfig.ReqDeviceInput, Is.EqualTo(ReqDeviceInputOptions.never));
         }
 
+        /// <summary>Planner task details view is opt-in to preserve the classic default.</summary>
+        [Test]
+        public void ConfigData_DefaultsPlannerEditModeToClassic()
+        {
+            Assert.That(new ConfigData().ReqPlannerEditMode, Is.EqualTo(PlannerEditMode.Classic));
+        }
+
+        [Test]
+        public void ConfigData_DisablesPlannerOwnerChangesByDefault()
+        {
+            Assert.That(new ConfigData().ReqAllowOwnerChangesByPlanner, Is.False);
+        }
+
         [Test]
         public void Constructor_AppliesGlobalConfigToScheduledUserConfig()
         {

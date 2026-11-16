@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace FWO.Basics
+namespace FWO.Encoders
 {
     /// <summary>
     /// Encodes values for the cells of CSV exports. Cell values can come from imported firewall data, LDAP or user

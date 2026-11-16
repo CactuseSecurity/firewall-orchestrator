@@ -1101,6 +1101,8 @@ INSERT INTO txt VALUES ('connections_not_implemented','German',	'Nicht implement
 INSERT INTO txt VALUES ('connections_not_implemented','English','Connections not implemented');
 INSERT INTO txt VALUES ('connections_with_diffs','German',	'Verbindungen mit Abweichungen');
 INSERT INTO txt VALUES ('connections_with_diffs','English', 'Connections with differences');
+INSERT INTO txt VALUES ('connections_not_analysed','German', 'Nicht analysierte Verbindungen');
+INSERT INTO txt VALUES ('connections_not_analysed','English','Connections not analysed');
 INSERT INTO txt VALUES ('rules_not_modelled',   'German',	'Nicht modellierte Regeln');
 INSERT INTO txt VALUES ('rules_not_modelled',   'English',  'Rules not modelled');
 INSERT INTO txt VALUES ('app_roles_not_implemented','German','Nicht implementierte App Rollen');
@@ -5849,9 +5851,13 @@ INSERT INTO txt VALUES ('H1162', 'English', 'Model: App Rules - display all rule
 ');
 INSERT INTO txt VALUES ('H1163', 'German',  'Modell: Soll-Ist - Darstellung aller Abweichungen zwischen den modellierten Verbindungen und den auf den Firewalls gefundenen Objekten und Regeln.
     Optional k&ouml;nnen zus&auml;tzlich die noch nicht modellierten Regeln in Form des App-Regel-Reports aufgelistet werden.
+    Verbindungen mit Modellierungsproblemen (z.B. leere App-Rollen, gel&ouml;schte Objekte, leere Dienstgruppen oder nicht nutzbare Schnittstellen) werden nicht analysiert, sondern mit Grund unter "Nicht analysierte Verbindungen" aufgef&uuml;hrt.
+    Der Report, der Verbindungsstatus auf der Modellierungsseite und die Beantragung analysieren immer dieselben Verbindungen auf dieselbe Weise.
 ');
 INSERT INTO txt VALUES ('H1163', 'English', 'Model: Variances - display all differences between modelled connections and the objects and rules found on the firewalls.
     Optionally, not yet modelled rules can also be listed in the form of the App Rules report.
+    Connections with modelling issues (e.g. empty app roles, deleted objects, empty service groups or unusable interfaces) are not analysed but listed with their reason under "Connections not analysed".
+    The report, the connection state on the modelling page and the request always analyse the same connections in the same way.
 ');
 INSERT INTO txt VALUES ('H1164', 'German',  'Zert: Regel-&Uuml;bersicht - Anzeige aller Regeln mit anstehenden Rezertifizierungen. Der Default-Report-Zeitraum kann in den Einstellungen gesetzt werden.');
 INSERT INTO txt VALUES ('H1164', 'English', 'Cert: Rule Overview - display all rules with upcoming recertifications. The default report interval can be configured in settings.');
@@ -8263,9 +8269,11 @@ INSERT INTO txt VALUES ('H5666', 'English', 'In this chapter, Production Lifecyc
 ');
 INSERT INTO txt VALUES ('H5667', 'German',  'Gel&ouml;schte App Server ausrollen: App Server, die nicht mehr im Datenimport geliefert wurden, werden dennoch weiter ausgerollt.
     Dies kann z.B. zur Stabilisierung der Prozesse bei instabilem Datenimport dienen. Zur Rezertifizierung m&uuml;ssen die betroffenen Verbindungen aber bereinigt sein.
+    Die Einstellung gilt gleicherma&szlig;en f&uuml;r den Soll-Ist-Report, den Verbindungsstatus und die Beantragung: betroffene Verbindungen werden &uuml;berall analysiert (aktiviert) oder &uuml;berall als nicht analysiert ausgewiesen (deaktiviert).
 ');
 INSERT INTO txt VALUES ('H5667', 'English', 'Rollout removed App Servers: App servers not delivered anymore in data import are further rolled out.
     This may e.g. stabilize processes on instable data import. Before recertification the affected connections have to be adjusted.
+    The setting applies equally to the variances report, the connection state and the request: affected connections are analysed everywhere (activated) or shown as not analysed everywhere (deactivated).
 ');
 INSERT INTO txt VALUES ('H5668', 'German',  'Nur eigene Objekte beantragen: In Beantragungen werden nur eigene Gruppenobjekte aus genutzten Schnittstellen ber&uuml;cksichtigt. Falls Gruppenobjekte anderer Eigent&uuml;mer enthalten sind, die in Produktion nicht gefunden wurden, wird die Beantragung der Verbindung unterdr&uuml;ckt.');
 INSERT INTO txt VALUES ('H5668', 'English', 'Request only own objects: Requests include only own group objects from used interfaces. If group objects of other owners are included that are not found in production, the request for that connection is suppressed.');

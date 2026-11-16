@@ -111,6 +111,12 @@
     - installation_mode == 'upgrade'
     - internalca_reset_certificates | default(false) | bool
 
+- name: internal CA rotation testing
+  import_tasks: test-internal-ca-rotation.yml
+  when:
+    - installation_mode == 'upgrade'
+    - internalca_ca_rotation in ['prepare', 'activate']
+
 - name: api testing
   import_tasks: test-api.yml
   when: "'apiserver' in group_names"

@@ -278,3 +278,9 @@ For a feature-centric, thematically grouped view see
 - The promotion-mode setting supports an action-buttons-only option in addition to ticket, task and combined promotion.
 
 ### 9.9.2 - 11.11.2026
+
+### 9.9.3 - 14.11.2026
+- New state action **"Create external requests"** implements a ticket step by step: request tasks of a management with the implementation mode external ticket system go to Tufin SecureChange, implementation tasks with mode automatic are written directly to the firewall; manual targets are left to a person, can be released by button.
+- Direct firewall write of rules on Check Point: new rules at the calculated position (also within sections) with install-on along the setting "Install on"; rules to modify or delete addressed in their imported layer; new rules of one request task in the same layer written once for all their gateways.
+- The routing of firewall config changes moves from "Firewall config changes - General" to the device specific settings (implementation modes for objects and rules, external ticket system, Tufin SecureChange connection, response timeout and retries); the ticket system list is removed.
+- Tasks nobody implements (e.g. no rule position, vendor without rule writing, inconsistent target management) raise a workflow alert; a rejected write rejects the open tasks of the ticket with the reason in their history.

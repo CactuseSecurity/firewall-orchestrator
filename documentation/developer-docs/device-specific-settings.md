@@ -170,7 +170,10 @@ uses temporary tables and rolls back its transaction. The database integration t
 (`roles/tests-integration/tasks/test-database.yml`) run it with the upgrade file inserted at
 its two `-- @run-upgrade-9.7.4` markers.
 
-## Upgrade to 9.8.7: implementation modes
+## Upgrade to 9.9.3: implementation modes
+
+The backup entries keep the label `9.8.7 …` of the first version of this upgrade, so a system that already ran it is
+not migrated a second time.
 
 `implementationMode` applies to objects, `implementationModeForRules` (formerly `implementationModeOverrideForRules`,
 renamed by the upgrade with its values) to rules; neither falls back to the other. Every level that only had the
@@ -195,10 +198,10 @@ keeps later changes:
 SELECT config_values FROM public.device_specific_config_backup WHERE version = '9.8.7 implementation modes';
 ```
 
-The regression probe `roles/tests-integration/files/database/test-upgrade-9.8.7-impl-mode.sql` runs like the 9.7.4
-probe, with the upgrade file inserted at its two `-- @run-upgrade-9.8.7` markers.
+The regression probe `roles/tests-integration/files/database/test-upgrade-9.9.3-impl-mode.sql` runs like the 9.7.4
+probe, with the upgrade file inserted at its two `-- @run-upgrade-9.9.3` markers.
 
-## Upgrade to 9.8.7: request settings
+## Upgrade to 9.9.3: request settings
 
 `requestResponseTimeout`, `requestMaxAttempts` and `requestCyclesBetweenAttempts` set the response timeout and retries of
 the external requests of a management, for Tufin SecureChange and firewall writes alike; before, they were part of each
@@ -212,10 +215,10 @@ as done:
 SELECT config_values FROM public.device_specific_config_backup WHERE version = '9.8.7 request settings';
 ```
 
-The regression probe `roles/tests-integration/files/database/test-upgrade-9.8.7-request-settings.sql` runs like the
-other 9.8.7 probe.
+The regression probe `roles/tests-integration/files/database/test-upgrade-9.9.3-request-settings.sql` runs like the
+other 9.9.3 probe.
 
-## Upgrade to 9.8.7: Tufin SecureChange connection
+## Upgrade to 9.9.3: Tufin SecureChange connection
 
 `rerouteToExternalTicketSystem` names the kind of external ticket system (`tufinSecureChange`) instead of an entry of
 the ticket system list, and the connection to Tufin SecureChange is set by `scUrl`, `scCredential` and
@@ -234,11 +237,12 @@ reports. The previous selections are backed up, which also marks the migration a
 SELECT config_values FROM public.device_specific_config_backup WHERE version = '9.8.7 securechange connection';
 ```
 
-The regression probe `roles/tests-integration/files/database/test-upgrade-9.8.7-sc-connection.sql` runs like the
-other 9.8.7 probes.
+The regression probe `roles/tests-integration/files/database/test-upgrade-9.9.3-sc-connection.sql` runs like the
+other 9.9.3 probes.
 
 The ticket system list (`extTicketSystems`) and its settings page are removed by the same upgrade; the list is backed
-up as `'9.8.7 extTicketSystems'` without authorization values. Request job timing and the certificate check of the
+up as `'9.8.7 extTicketSystems'` without authorization values. Open external requests of the former Check Point ticket path
+are discarded by the external request sender with the reason, as they would fail in every cycle and block their ticket. Request job timing and the certificate check of the
 ticket systems are set under Workflow - Customizing.
 
 ### Adding an external ticket system
@@ -246,4 +250,4 @@ ticket systems are set under Workflow - Customizing.
 Only Tufin SecureChange is supported. Another system needs a value in `ExternalTicketSystemKind`, its own device
 specific settings group (connection, templates), an `ExternalTicket` implementation and a branch in
 `ExternalTicketFactory`. Type IDs for AlgoSec (3) and ServiceNow (4) were reserved in `BuiltInExternalTicketSystemTypes`
-(`FWO.Data/ExternalTicketSystem.cs`) until 9.8.7 but never implemented (`git log -S AlgoSecId`).
+(`FWO.Data/ExternalTicketSystem.cs`) until 9.9.3 but never implemented (`git log -S AlgoSecId`).

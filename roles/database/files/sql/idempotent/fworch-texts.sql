@@ -10033,9 +10033,11 @@ INSERT INTO txt VALUES ('H9060', 'English', 'All tickets are displayed, which ha
 ');
 INSERT INTO txt VALUES ('H9070', 'German',  'Hier werden alle in der Auftragstabelle eingetragenen Externen Auftr&auml;ge dargestellt,
     deren Status noch nicht einen der Endzust&auml;nde "ExtReqAcknowledged" oder "ExtReqAckRejected" erreicht hat.<br>
+    Neben den Auftr&auml;gen an Tufin SecureChange erscheinen hier auch die Auftr&auml;ge, die einen Implementierungs-Auftrag direkt auf die Firewall schreiben: Sie haben kein externes Ticketsystem und verweisen auf ihren Implementierungs-Auftrag; die Antwort der Firewall steht in der letzten Erzeugungsnachricht.<br>
 ');
 INSERT INTO txt VALUES ('H9070', 'English', 'All external requests from the external request table are displayed,
     which have not reached one of the final states "ExtReqAcknowledged" or "ExtReqAckRejected".<br>
+    Besides the requests to Tufin SecureChange, the requests writing an implementation task directly to the firewall are shown here as well: they have no external ticket system and refer to their implementation task; the answer of the firewall is in the last creation response.<br>
 ');
 INSERT INTO txt VALUES ('H9071', 'German',  'F&uuml;r den Administrator wird die M&ouml;glichkeit angeboten, den Zustand zu &auml;ndern. Je nach Ausgangszustand gibt es dabei verschiedene erreichbare Endzust&auml;nde:
     <ul>
@@ -10047,7 +10049,9 @@ INSERT INTO txt VALUES ('H9071', 'German',  'F&uuml;r den Administrator wird die
     </ul>
     Zu beachten ist:
     <ul>
-        <li>Der Zustand "ExtReqDiscarded" kann nur durch den aktiven Eingriff des Administrators erreicht werden.
+        <li>Den Zustand "ExtReqDiscarded" setzt der Administrator; zus&auml;tzlich verwirft das System selbst, jeweils mit dem Grund im Auftrag:
+            Auftr&auml;ge eines nicht mehr unterst&uuml;tzten Ticketsystems (z.B. offene Auftr&auml;ge des fr&uuml;heren Check-Point-Wegs aus der Zeit vor dem Upgrade),
+            Auftr&auml;ge, deren Implementierungs-Auftrag gel&ouml;scht wurde, und Auftr&auml;ge f&uuml;r eine gemeinsame Regel, deren schreibender Implementierungs-Auftrag noch nicht fertig ist.
             Der Externe Auftrag wird bei der weiteren Bearbeitung nicht mehr ber&uuml;cksichtigt.
             Somit steht z.B. die M&ouml;glichkeit offen, durch Neuanstossen des internen Tickets einen neuen Auftrag f&uuml;r denselben Requesttask zu erzeugen.</li>
         <li>Wird als Endzustand "ExtReqRejected" oder "ExtReqDone" gew&auml;hlt, wird auch automatisch die entsprechende Weiterverarbeitung angestossen.
@@ -10065,7 +10069,9 @@ INSERT INTO txt VALUES ('H9071', 'English', 'For the administrator the possibili
     </ul>
     Please note:
     <ul>
-        <li>The state "ExtReqDiscarded" can only be reached by the intervention of the administrator.
+        <li>The state "ExtReqDiscarded" is set by the administrator; in addition the system discards by itself, each time with the reason in the request:
+            requests of a ticket system that is not supported anymore (e.g. open requests of the former Check Point path from before the upgrade),
+            requests whose implementation task was deleted, and requests for a shared rule whose writing implementation task is not finished yet.
             The External Request will not be regarded any more in further processing.
             This opens the possibility to create a new external request for the same request task by reactivating the resp. internal ticket.</li>
         <li>If "ExtReqRejected" or "ExtReqDone" are chosen, the further processing is activated automatically.

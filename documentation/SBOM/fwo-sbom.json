@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:f9e75e67-d1ce-4772-808a-6f3bf31269fd",
+  "serialNumber": "urn:uuid:543b99c3-f469-4fa4-8617-28efc482ffa4",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-10T21:55:11Z",
+    "timestamp": "2026-11-16T14:52:04Z",
     "tools": {
       "components": [
         {
@@ -35,20 +35,20 @@
   "components": [
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/AngleSharp@1.10.1",
+      "bom-ref": "pkg:nuget/AngleSharp@1.10.4",
       "authors": [
         {
           "name": "AngleSharp"
         }
       ],
       "name": "AngleSharp",
-      "version": "1.10.1",
+      "version": "1.10.4",
       "description": "AngleSharp is the ultimate angle brackets parser library. It parses HTML5, CSS3, and XML to construct a DOM based on the official W3C specification.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "5F46554567B225B2C10D7438E7DBB64371EFAFC240A5665D33288E62DA8D404BB4122EB7E650852AEDDC60A2ACFCE767FD78D0E39CAD00B2297D5092F566E9E0"
+          "content": "8BE1D605EE1C1A46BAD7D1F3AE21147D71E3CAB44DCF9410AC5A1CE1ACA83A5E698D32A5A484598D63CB446E27C89231717EE3537EFDC2661776FD6355F741F5"
         }
       ],
       "licenses": [
@@ -59,7 +59,7 @@
         }
       ],
       "copyright": "Copyright 2013-2026, AngleSharp.",
-      "purl": "pkg:nuget/AngleSharp@1.10.1",
+      "purl": "pkg:nuget/AngleSharp@1.10.4",
       "externalReferences": [
         {
           "url": "https://anglesharp.github.io/",
@@ -299,20 +299,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/coverlet.collector@10.1.0",
+      "bom-ref": "pkg:nuget/coverlet.collector@10.1.1",
       "authors": [
         {
           "name": "tonerdo"
         }
       ],
       "name": "coverlet.collector",
-      "version": "10.1.0",
+      "version": "10.1.1",
       "description": "Coverlet is a cross platform code coverage library for .NET, with support for line, branch and method coverage.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "834B64AD854FFE57EA26FD8C1E3B552DFF0BE1AA4633383DFA71472EE27D2546B062815CCE9DE6CBE15A5A20A733771994D7D4E8E82C7210F63B7F3A4F5C559B"
+          "content": "785C3511E8016FD2D8BF5D7B9C86E7EBB739CCD3E02CDA940058D3A2119D156064AC684826BA00EE501898E9BBD6545EC098B021268B7B07175A59EEC6580942"
         }
       ],
       "licenses": [
@@ -323,7 +323,7 @@
         }
       ],
       "copyright": "(c) 2018 Toni Solarin-Sodara",
-      "purl": "pkg:nuget/coverlet.collector@10.1.0",
+      "purl": "pkg:nuget/coverlet.collector@10.1.1",
       "externalReferences": [
         {
           "url": "https://github.com/coverlet-coverage/coverlet",
@@ -820,20 +820,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.14",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.15",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.App.Internal.Assets",
-      "version": "10.0.14",
-      "description": "ASP.NET Core static framework assets\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/0427b9abbead3fa64c6655eb4290c537397131fa",
+      "version": "10.0.15",
+      "description": "ASP.NET Core static framework assets\n\nThis package was built from the source code at https://github.com/dotnet/dotnet/tree/8e0f8ed2312954727f8919d7d1c2f78b483b4ee7",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "3F3BAFAC44748EC89A6907A308CC5DBBD7BE44EA62F5A4EB19030BAF4250A4D8B3626E794335CDBC1A3EF6BDFE3B924D9F90B23FCE3BA564BD49C5397A283AA9"
+          "content": "5FB2370BD4807EBBE25B898D599D7324C5E9C98199E5EE124B99ABF09764B19AA0C4EDA7B3BA43368528017150ABE841608230FD20772C9B89BA75073E5DFF2B"
         }
       ],
       "licenses": [
@@ -844,7 +844,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.14",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.15",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1469,20 +1469,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.13",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.14",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.AspNetCore.WebUtilities",
-      "version": "2.3.13",
+      "version": "2.3.14",
       "description": "ASP.NET Core utilities, such as for working with forms, multipart messages, and query strings.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "27D5CAE14D4CA048575A3144D269ABF28A3CE1BA3D95A309AD4CA30E39D382F3710E5CE8CEA47CE340B0FC293F941CC9D09F74A905B314C4C31B8BAD736B4703"
+          "content": "C3E0D84D42EC0A9DDC0330BE282C0A3E16F2BD2AC926C9A64A22EE3E25F8A62285C73CD17992D827530AF10D004500FE74EEAB10A5B02C66A5E20FB2D1AB0EC5"
         }
       ],
       "licenses": [
@@ -1494,7 +1494,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.13",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.14",
       "externalReferences": [
         {
           "url": "https://asp.net/",
@@ -1584,20 +1584,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.CodeCoverage@18.11.1",
+      "bom-ref": "pkg:nuget/Microsoft.CodeCoverage@18.12.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.CodeCoverage",
-      "version": "18.11.1",
+      "version": "18.12.0",
       "description": "Microsoft.CodeCoverage package brings infra for collecting code coverage from vstest.console.exe and \u0022dotnet test\u0022.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "CE43B06D38DC39FFC8CDD50E249E5FCAAADF1DE67609AB3E4D48852E7B7D26AE74DCD2F4BA4E1873E9F3F71AA161528FADCEF2E780E5A9BCDEBF8FA88DDEA9C3"
+          "content": "9341F58F3D97207CFEC0D596749803EC754DEF3B8B01D9B093D752C02BC41953F43D680547F1428FB61D8C39C3F0B9B0DD808B1B289A0A24B54729339F1632FB"
         }
       ],
       "licenses": [
@@ -1608,7 +1608,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.CodeCoverage@18.11.1",
+      "purl": "pkg:nuget/Microsoft.CodeCoverage@18.12.0",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/vstest",
@@ -3637,20 +3637,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.1",
+      "bom-ref": "pkg:nuget/Microsoft.NET.Test.Sdk@18.12.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.NET.Test.Sdk",
-      "version": "18.11.1",
+      "version": "18.12.0",
       "description": "The MSbuild targets and properties for building .NET test projects.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "683F98F9C7C15265CEBC8EECF65F097CA560A5E9E09A951FAAFB512C50090E91F52FC04D7D95BE9D716819A7EF976A5CE1EF81809AC45D870E7456792477ACFD"
+          "content": "F41DF75676AAFE6C073616D314E9ED599A423008A8545235C7A102FEA9C02E4AD069F50B837744772166E8AEDD5A82A701797B8B575C5532300FEF947E474D6D"
         }
       ],
       "licenses": [
@@ -3661,7 +3661,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.1",
+      "purl": "pkg:nuget/Microsoft.NET.Test.Sdk@18.12.0",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/vstest",
@@ -4018,20 +4018,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.1",
+      "bom-ref": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.12.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.TestPlatform.ObjectModel",
-      "version": "18.11.1",
+      "version": "18.12.0",
       "description": "The Microsoft Test Platform Object Model.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "5058DBF675FD09034AFF70F087F005F02555F5A04C5E65B32D4CB5EDB18412361AEECA94628E520176A7F793CBC3EF86E43013D84D61A5F12CA9E2A39C77A0E2"
+          "content": "92607443243153E27912835E9AFD966CFF579A042A5FC0762FC4D4C88847D7EB38094FCA9EE153ED193C327C2CBC9C1BDD1D0A562CED03D309A2B2083F84DD1C"
         }
       ],
       "licenses": [
@@ -4042,7 +4042,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.1",
+      "purl": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.12.0",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/vstest",
@@ -4056,20 +4056,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.11.1",
+      "bom-ref": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.12.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.TestPlatform.TestHost",
-      "version": "18.11.1",
+      "version": "18.12.0",
       "description": "Testplatform host executes the test using specified adapter.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "3B6AEBE9F54A717A1083D647ABCF419A7526699106015E8F3ACEDDFF56959AC05D4D75F7F8E4854EDDD78808313B28F4D08789DABA48F3CD03D00EB1D24BC52A"
+          "content": "27B2C700EE43134FED57FFFDB479D84CD7D0BD43C245A790D131F4CC9D8795B413A3CF71B33B294CC24CA15CA66E3551096A0C923587FA100622DF9604D9305D"
         }
       ],
       "licenses": [
@@ -4080,7 +4080,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.11.1",
+      "purl": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.12.0",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/vstest",
@@ -4354,20 +4354,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/PuppeteerSharp@25.15.0",
+      "bom-ref": "pkg:nuget/PuppeteerSharp@25.17.1",
       "authors": [
         {
           "name": "Dar\u00EDo Kondratiuk"
         }
       ],
       "name": "PuppeteerSharp",
-      "version": "25.15.0",
+      "version": "25.17.1",
       "description": "Headless Browser .NET API",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "00663F38DE634C1D48E2BA08C41CF69BF079332E8A145A71A9F81F41D3275858F709C21302A1FC8B6485928EDA4EDF0EBF5252CD53FA83B111F1A465473515E9"
+          "content": "133BB478E475911EC7ED01086B44737A859EC7AA871FA767F1BADDDC8223CCDF6FC68C071E4BC26A800923536239A307703A7A2CE2F1D8FC12E35353FCC11A8F"
         }
       ],
       "licenses": [
@@ -4377,7 +4377,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/PuppeteerSharp@25.15.0",
+      "purl": "pkg:nuget/PuppeteerSharp@25.17.1",
       "externalReferences": [
         {
           "url": "https://github.com/hardkoded/puppeteer-sharp",
@@ -4579,20 +4579,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/SoPro.FancyTable@1.5.0",
+      "bom-ref": "pkg:nuget/SoPro.FancyTable@1.7.0",
       "authors": [
         {
           "name": "SolidProgramming"
         }
       ],
       "name": "SoPro.FancyTable",
-      "version": "1.5.0",
+      "version": "1.7.0",
       "description": "Reusable Blazor table components with sorting, search, column visibility, and tree table support.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "3FB1984FE766C183A39DE98C0C2CC9594145D75108CDD1D706060B6A6C339CFE27C84E76600CBB7AB2BE29FD48D6FB0AFDB73E4E5508F8D9E63C80C53892CAFD"
+          "content": "35E5FA4EDCC835F68590B51C9113CC8EE905643887513C29C6694AF44F91A79CF93441D33F8360E38D5625A45A240A6A4C873240DBD2DD08D1CB7A7635B7BC84"
         }
       ],
       "licenses": [
@@ -4602,7 +4602,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/SoPro.FancyTable@1.5.0",
+      "purl": "pkg:nuget/SoPro.FancyTable@1.7.0",
       "externalReferences": [
         {
           "url": "https://github.com/SolidProgramming/SoPro.FancyTable",
@@ -4861,8 +4861,9 @@
         "pkg:nuget/HtmlAgilityPack@1.13.1",
         "pkg:nuget/MailKit@4.18.2",
         "pkg:nuget/Microsoft.AspNetCore.Http@2.3.14",
+        "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.14",
         "pkg:nuget/MimeKit@4.18.2",
-        "pkg:nuget/PuppeteerSharp@25.15.0",
+        "pkg:nuget/PuppeteerSharp@25.17.1",
         "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.15",
         "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.15",
         "pkg:nuget/Microsoft.OpenApi@2.13.0",
@@ -4870,13 +4871,13 @@
         "pkg:nuget/Quartz@4.7.3",
         "pkg:nuget/Scalar.AspNetCore@2.20.0",
         "pkg:nuget/BlazorTable@1.17.0",
-        "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.14",
-        "pkg:nuget/SoPro.FancyTable@1.5.0",
-        "pkg:nuget/AngleSharp@1.10.1",
+        "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.15",
+        "pkg:nuget/SoPro.FancyTable@1.7.0",
+        "pkg:nuget/AngleSharp@1.10.4",
         "pkg:nuget/bunit@2.15.2",
-        "pkg:nuget/coverlet.collector@10.1.0",
+        "pkg:nuget/coverlet.collector@10.1.1",
         "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.15",
-        "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.1",
+        "pkg:nuget/Microsoft.NET.Test.Sdk@18.12.0",
         "pkg:nuget/Moq@4.21.0",
         "pkg:nuget/NSubstitute@6.2.0",
         "pkg:nuget/NUnit@4.6.1",
@@ -4887,18 +4888,18 @@
     {
       "ref": "pkg:nuget/AngleSharp.Css@1.4.1",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.10.1"
+        "pkg:nuget/AngleSharp@1.10.4"
       ]
     },
     {
       "ref": "pkg:nuget/AngleSharp.Diffing@1.1.1",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.10.1",
+        "pkg:nuget/AngleSharp@1.10.4",
         "pkg:nuget/AngleSharp.Css@1.4.1"
       ]
     },
     {
-      "ref": "pkg:nuget/AngleSharp@1.10.1",
+      "ref": "pkg:nuget/AngleSharp@1.10.4",
       "dependsOn": []
     },
     {
@@ -4914,7 +4915,7 @@
     {
       "ref": "pkg:nuget/bunit@2.15.2",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.10.1",
+        "pkg:nuget/AngleSharp@1.10.4",
         "pkg:nuget/AngleSharp.Css@1.4.1",
         "pkg:nuget/AngleSharp.Diffing@1.1.1",
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.15",
@@ -4935,7 +4936,7 @@
       ]
     },
     {
-      "ref": "pkg:nuget/coverlet.collector@10.1.0",
+      "ref": "pkg:nuget/coverlet.collector@10.1.1",
       "dependsOn": []
     },
     {
@@ -5006,7 +5007,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.14",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.15",
       "dependsOn": []
     },
     {
@@ -5092,7 +5093,7 @@
       "ref": "pkg:nuget/Microsoft.AspNetCore.Http@2.3.14",
       "dependsOn": [
         "pkg:nuget/Microsoft.AspNetCore.Http.Abstractions@2.3.13",
-        "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.13",
+        "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.14",
         "pkg:nuget/Microsoft.Extensions.ObjectPool@8.0.11",
         "pkg:nuget/Microsoft.Extensions.Options@10.0.15",
         "pkg:nuget/Microsoft.Net.Http.Headers@2.3.13"
@@ -5121,7 +5122,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.13",
+      "ref": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.14",
       "dependsOn": [
         "pkg:nuget/Microsoft.Net.Http.Headers@2.3.13"
       ]
@@ -5135,7 +5136,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.CodeCoverage@18.11.1",
+      "ref": "pkg:nuget/Microsoft.CodeCoverage@18.12.0",
       "dependsOn": []
     },
     {
@@ -5520,10 +5521,10 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.NET.Test.Sdk@18.11.1",
+      "ref": "pkg:nuget/Microsoft.NET.Test.Sdk@18.12.0",
       "dependsOn": [
-        "pkg:nuget/Microsoft.CodeCoverage@18.11.1",
-        "pkg:nuget/Microsoft.TestPlatform.TestHost@18.11.1"
+        "pkg:nuget/Microsoft.CodeCoverage@18.12.0",
+        "pkg:nuget/Microsoft.TestPlatform.TestHost@18.12.0"
       ]
     },
     {
@@ -5559,7 +5560,7 @@
     {
       "ref": "pkg:nuget/Microsoft.Testing.Extensions.VSTestBridge@2.4.1",
       "dependsOn": [
-        "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.1",
+        "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.12.0",
         "pkg:nuget/Microsoft.Testing.Extensions.Telemetry@2.4.1",
         "pkg:nuget/Microsoft.Testing.Extensions.TrxReport.Abstractions@2.4.1",
         "pkg:nuget/Microsoft.Testing.Platform@2.4.1"
@@ -5580,13 +5581,13 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.1",
+      "ref": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.12.0",
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.11.1",
+      "ref": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.12.0",
       "dependsOn": [
-        "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.11.1"
+        "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.12.0"
       ]
     },
     {
@@ -5630,7 +5631,7 @@
       ]
     },
     {
-      "ref": "pkg:nuget/PuppeteerSharp@25.15.0",
+      "ref": "pkg:nuget/PuppeteerSharp@25.17.1",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.Logging@8.0.0",
         "pkg:nuget/Microsoft.IO.RecyclableMemoryStream@3.0.1",
@@ -5662,7 +5663,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/SoPro.FancyTable@1.5.0",
+      "ref": "pkg:nuget/SoPro.FancyTable@1.7.0",
       "dependsOn": []
     },
     {

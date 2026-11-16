@@ -1,0 +1,67 @@
+@using FWO.Data
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("edit") + ": " + userConfig.GetText("device"))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <Dropdown ElementType="Device" SelectedElement="selectedDevice" SelectedElementChanged="DeviceChanged"
+                ElementToString="@(device => device.Name ?? string.Empty)" Elements="Devices" Nullable="true">
+                <ElementTemplate Context="device">
+                    @device.Name
+                </ElementTemplate>
+            </Dropdown>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">
+            @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">
+            @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
+        </button>
+    </Footer>
+</PopUp>
+
+@code
+{
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public Device? SelectedDevice { get; set; }
+    [Parameter] public List<Device> Devices { get; set; } = [];
+    [Parameter] public EventCallback<Device?> Saved { get; set; }
+
+    private Device? selectedDevice;
+    private bool initialized;
+
+    protected override void OnParametersSet()
+    {
+        if (!Display || initialized)
+        {
+            return;
+        }
+
+        selectedDevice = Devices.FirstOrDefault(device => device.Id == SelectedDevice?.Id);
+        initialized = true;
+    }
+
+    private Task DeviceChanged(Device device)
+    {
+        selectedDevice = device;
+        return Task.CompletedTask;
+    }
+
+    private async Task Save()
+    {
+        await Saved.InvokeAsync(selectedDevice);
+        Close();
+    }
+
+    private void Close()
+    {
+        initialized = false;
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+}

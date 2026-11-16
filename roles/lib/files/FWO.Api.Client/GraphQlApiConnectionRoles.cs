@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Logging;
 using GraphQL.Client.Http;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
@@ -12,7 +13,7 @@ namespace FWO.Api.Client
         private readonly AsyncLocal<List<string>?> roleStack = new();
         private string defaultRole = "";
         private List<string> allowedRoles = [];
-        private string ambientRole = "";
+        private AmbientRoleSource? ambientRoleSource;
         private string forcedExecutionMode = "";
         private bool restrictElevatedRoleSwitches = false;
 
@@ -56,7 +57,7 @@ namespace FWO.Api.Client
         {
             forcedExecutionMode = IsForcedExecutionMode(role) ? role : "";
             restrictElevatedRoleSwitches = restrictElevatedRoles;
-            ambientRole = "";
+            ambientRoleSource = null;
             roleStack.Value = null;
         }
 
@@ -86,16 +87,54 @@ namespace FWO.Api.Client
         /// <param name="targetRoleList">Roles accepted by the requested operation.</param>
         public override void SetAmbientRole(ClaimsPrincipal user, List<string> targetRoleList)
         {
-            if (targetRoleList.Count == 0)
+            List<string> fixedTargetRoleList = [.. targetRoleList];
+            SetAmbientRoleProvider(user, () => fixedTargetRoleList);
+        }
+
+        /// <summary>
+        /// Chooses the role to use when the request does not set one explicitly, from the roles the provider
+        /// accepts at the time of each request. Resolving per request keeps the role in step with its context
+        /// (e.g. the current page) without having to be notified before that context changes.
+        /// </summary>
+        /// <param name="user">The authenticated user and their roles.</param>
+        /// <param name="targetRoleListProvider">Returns the roles accepted for the current context.</param>
+        public override void SetAmbientRoleProvider(ClaimsPrincipal user, Func<List<string>> targetRoleListProvider)
+        {
+            ambientRoleSource = new AmbientRoleSource(user, targetRoleListProvider);
+        }
+
+        /// <summary>
+        /// Resolves the ambient role from the current source. A failing provider must not break the request
+        /// itself, so it is logged and treated as "no ambient role".
+        /// </summary>
+        /// <returns>The ambient role, or an empty string when none applies.</returns>
+        private string GetAmbientRole()
+        {
+            AmbientRoleSource? source = ambientRoleSource;
+            if (source == null)
             {
-                ambientRole = "";
-                return;
+                return "";
             }
 
-            bool includeElevatedRoles = !HasSelectableUserRole(user);
-            ambientRole = IsForcedExecutionMode(user)
+            List<string> targetRoleList;
+            try
+            {
+                targetRoleList = source.TargetRoleListProvider();
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning("Ambient Role", $"Could not determine the ambient role: {exception.Message}");
+                return "";
+            }
+            if (targetRoleList.Count == 0)
+            {
+                return "";
+            }
+
+            bool includeElevatedRoles = !HasSelectableUserRole(source.User);
+            return IsForcedExecutionMode(source.User)
                 ? forcedExecutionMode
-                : GetFirstAllowedRole(user, targetRoleList, includeElevatedRoles)
+                : GetFirstAllowedRole(source.User, targetRoleList, includeElevatedRoles)
                     ?? "";
         }
 
@@ -123,6 +162,17 @@ namespace FWO.Api.Client
         /// </summary>
         /// <returns>The explicit, ambient, or baseline role.</returns>
         public override string GetActRole()
+        {
+            return GetActRole(GetAmbientRole());
+        }
+
+        /// <summary>
+        /// Gets the effective role from an ambient role that the caller has already resolved, so that one
+        /// request resolves it only once.
+        /// </summary>
+        /// <param name="ambientRole">The resolved ambient role, empty when none applies.</param>
+        /// <returns>The explicit, ambient, or baseline role.</returns>
+        private string GetActRole(string ambientRole)
         {
             ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
 
@@ -196,7 +246,8 @@ namespace FWO.Api.Client
 
         private string GetRequestRole()
         {
-            string role = GetActRole();
+            string ambientRole = GetAmbientRole();
+            string role = GetActRole(ambientRole);
             if (!string.IsNullOrWhiteSpace(role) && HasExplicitRole())
             {
                 return role;
@@ -279,5 +330,13 @@ namespace FWO.Api.Client
                 allowedRoles = [];
             }
         }
+
+        /// <summary>
+        /// The user and the provider of accepted roles the ambient role is resolved from. Kept in one
+        /// immutable object so that a request never combines the user of one source with the roles of another.
+        /// </summary>
+        /// <param name="User">The authenticated user and their roles.</param>
+        /// <param name="TargetRoleListProvider">Returns the roles accepted for the current context.</param>
+        private sealed record AmbientRoleSource(ClaimsPrincipal User, Func<List<string>> TargetRoleListProvider);
     }
 }

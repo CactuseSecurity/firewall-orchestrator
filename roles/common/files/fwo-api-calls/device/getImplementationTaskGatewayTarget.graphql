@@ -1,4 +1,4 @@
-query getRulePositioningTarget($gatewayId: Int!) {
+query getImplementationTaskGatewayTarget($gatewayId: Int!) {
   device(where: { dev_id: { _eq: $gatewayId } }) {
     id: dev_id
     name: dev_name

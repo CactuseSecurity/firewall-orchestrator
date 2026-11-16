@@ -16,7 +16,8 @@ namespace FWO.Data.Workflow
         public int? DeviceId { get; set; }
 
         /// <summary>
-        /// Management the task is implemented on. Null means the management of the request task.
+        /// Management the task is implemented on. For non-gateway tasks, null means the management of the request
+        /// task. For gateway-bound tasks, the management is derived from the gateway and a stored value must match it.
         /// </summary>
         [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
         public int? ManagementId { get; set; }
@@ -62,7 +63,7 @@ namespace FWO.Data.Workflow
             Title = reqtask.Title;
             ReqTaskId = reqtask.Id;
             TaskNumber = 0;
-            StateId = 0;
+            StateId = reqtask.StateId;
             TaskType = reqtask.TaskType;
             ImplAction = reqtask.RequestAction;
             RuleAction = reqtask.RuleAction;

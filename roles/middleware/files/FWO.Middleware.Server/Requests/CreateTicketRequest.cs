@@ -132,6 +132,11 @@ public sealed class CreateTicketRequest
     /// </summary>
     public sealed class CreateTicketRuleRequest
     {
+        /// <summary>Default rule logging (tracking) applied when <c>logging</c> is omitted or null.</summary>
+        public const string kDefaultLogging = "log";
+
+        private string logging = kDefaultLogging;
+
         /// <summary>
         /// Gets the requested rule predicate. Defaults to <c>create</c>.
         /// </summary>
@@ -143,6 +148,17 @@ public sealed class CreateTicketRequest
         /// </summary>
         [JsonPropertyName("action")]
         public string Action { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets the rule logging (tracking) by name, for example <c>log</c> or <c>none</c>. The name must match an
+        /// existing tracking type (case-insensitive). Omitted or null means <c>log</c>.
+        /// </summary>
+        [JsonPropertyName("logging")]
+        public string Logging
+        {
+            get => logging;
+            set => logging = value ?? kDefaultLogging;
+        }
 
         /// <summary>
         /// Gets the Name value.

@@ -189,7 +189,7 @@ that cannot be refilled exactly within such a period is rounded by at most 3 req
 whose single requests are expensive (`getFlowComplianceState`, `getIpDataForOwners`, `getAvailableInterfacesForApp`,
 `getAppRolesPerApp`, `getNetworkAreas`, the Flow catalog lists
 `getAddressObjects`, `getAddressGroups`, `getServiceObjects`, `getServiceGroups`, `getTimeObjects`, and
-`getImplTaskTargets`, `getAuditProofCriticalChanges`, `Rule/GetRulesByFilter`, `owners/get`,
+`getImplTaskTargets`, `getAuditProofCriticalChanges`, `Rule/GetRulesByFilter`, `Rule/GetRuleLastHits`, `owners/get`,
 `Compliance/designatedZoneMatrix/zones` and the user, tenant and LDAP lists `GET User`, `User/Get`, `GET Tenant`,
 `GET Group`, `Group/Get`, `Group/Members`, `Group/Memberships`, `Group/Resolve`) additionally run at most 2 requests
 of one user at the same time; up to 4 further requests wait, the rest are rejected. Their request bodies are limited
@@ -223,6 +223,7 @@ are ordered:
 | `workflow/getImplTaskTargets` | `options.limit`, `options.offset` | visible targets by name, then id |
 | `workflow/getAuditProofCriticalChanges` | `options.limit`, `options.offset` | newest first |
 | `Rule/GetRulesByFilter` | `options.limit`, `options.offset` | rule id |
+| `Rule/GetRuleLastHits` | `options.limit`, `options.offset` | rule metadata id |
 | `owners/get` | root `limit`, `offset` | name, id |
 | `User/Get`, `Group/Get`, `Group/Members`, `Group/Memberships`, `Group/Resolve` | root `limit`, `offset` | dn |
 | `GET User`, `GET Tenant` | query parameters `limit`, `offset` | id |

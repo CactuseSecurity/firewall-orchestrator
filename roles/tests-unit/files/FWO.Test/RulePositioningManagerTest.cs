@@ -70,6 +70,42 @@ public class RulePositioningManagerTest
     }
 
     [Test]
+    public async Task CalculateAsync_AcceptsNullImplementationManagementForCrossManagementGateway()
+    {
+        RulePositioningContext context = ValidContext();
+        int requestManagementId = kManagementId + 1;
+        context.ImplementationTask.ManagementId = null;
+        context.ParentRequestTask.ManagementId = requestManagementId;
+        context.ParentRequestTask.OnManagement = new Management { Id = requestManagementId };
+        RecordingStrategy strategy = CheckPointStrategy();
+        List<IRulePositioningStrategy> strategies = [strategy];
+
+        RulePositioningResult result = await new RulePositioningManager(strategies)
+            .CalculateAsync(context, CancellationToken.None);
+
+        Assert.That(result, Is.TypeOf<RulePositioningSuccess>());
+        AssertStrategyCalls(strategy, 1, 1);
+    }
+
+    [Test]
+    public async Task CalculateAsync_RejectsExplicitRequestManagementForCrossManagementGateway()
+    {
+        RulePositioningContext context = ValidContext();
+        int requestManagementId = kManagementId + 1;
+        context.ImplementationTask.ManagementId = requestManagementId;
+        context.ParentRequestTask.ManagementId = requestManagementId;
+        context.ParentRequestTask.OnManagement = new Management { Id = requestManagementId };
+        RecordingStrategy strategy = CheckPointStrategy();
+        List<IRulePositioningStrategy> strategies = [strategy];
+
+        RulePositioningResult result = await new RulePositioningManager(strategies)
+            .CalculateAsync(context, CancellationToken.None);
+
+        AssertFailure(result, RulePositioningFailureCategory.InvalidInput);
+        AssertStrategyCalls(strategy, 0, 0);
+    }
+
+    [Test]
     public async Task CalculateAsync_RejectsNullContextBeforeStrategyWork()
     {
         RecordingStrategy strategy = CheckPointStrategy();

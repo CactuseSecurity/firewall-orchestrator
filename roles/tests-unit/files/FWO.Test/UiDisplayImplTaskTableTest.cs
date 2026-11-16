@@ -289,8 +289,10 @@ namespace FWO.Test
 
             List<AngleSharp.Dom.IElement> viewButtons = FindButtons(rendered, userConfig.GetText("open_in_phase_view"));
             List<AngleSharp.Dom.IElement> assignButtons = FindButtons(rendered, userConfig.GetText("assign1"));
+            List<AngleSharp.Dom.IElement> detailButtons = FindButtons(rendered, userConfig.GetText("details"));
             Assert.Multiple(() =>
             {
+                Assert.That(detailButtons, Has.Count.EqualTo(2));
                 Assert.That(viewButtons, Has.Count.EqualTo(2));
                 Assert.That(assignButtons, Has.Count.EqualTo(1));
                 Assert.That(assignButtons[0].HasAttribute("disabled"), Is.True);
@@ -587,7 +589,7 @@ namespace FWO.Test
             await InvokePrivateTask(typeof(DisplayImplTaskTable), component, "ContinueImplPhase", implTask);
         }
 
-        [TestCase(PhaseVisibilityMode.TicketState, 0)]
+        [TestCase(PhaseVisibilityMode.TicketState, 2)]
         public void DisplayImplTaskTable_RendersMixedStateActionsAccordingToMasterVisibilityMode(PhaseVisibilityMode masterVisibilityMode, int expectedReadOnlyActionCount)
         {
             using BunitContext context = new();

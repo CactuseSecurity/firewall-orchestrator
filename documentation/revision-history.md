@@ -1,10 +1,29 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.3 - 14.11.2026
+- request workflow: rule-positioning and firewall-write operations resolve gateway-bound implementation tasks against the gateway's management and reject inconsistent task data
+- middleware REST API: `getAddressGroups` and `getServiceGroups` accept `filter.includeTechnicalDetails=true` to include each member's standalone address or service object fields; omitted, null or false keep the existing compact id/name response, and address details can be combined with separated zone groups
+- UI fix: links from rule report objects to the right sidebar work again on the first click and no longer jump to another page on a following click (#4919). The per-page API role is now determined from the current page with every request instead of a navigation handler, which had broken the browser's in-page navigation
+- installer: pin the .NET SDK to `dotnet_version` (10.0) with a `global.json` below `/usr/local/fworch`, so a newer major SDK installed alongside (e.g. .NET 11 on GitHub runners) no longer builds the middleware, UI and unit tests; the repository and the CI workflows use the same pin, and the test-install workflow checks that all pins match (#5700)
+- importer (Cisco ASA): access-list entries with a source port no longer always fail the import (so far listed as "still not supported" since 9.7.1, GHSA-p8qh-59qx-rjj4)
+  - permit entries are imported for all source ports, and a warning quoting the entry and its source port is logged. The imported rule is therefore more permissive than the real one
+  - deny entries with a source port still fail the import, because a deny widened to all source ports would hide traffic the firewall permits
+- installer: supported two-pass rotation of the internal CA without loss of connectivity between FWO components (#5130)
+  - pass 1 (`-e "installation_mode=upgrade internalca_ca_rotation=prepare"`) stages the next CA on the CA host and makes every host trust both CAs - Apache client CA file, trust bundle and operating-system store - restarting the services that cache their anchors; nothing is re-signed, and the pass can be repeated until every host is reached
+  - pass 2 (`internalca_ca_rotation=activate`) runs against the complete inventory only and refuses to start until every host has confirmed pass 1; it switches to the next CA, re-signs every FWO-managed identity, restarts its consumers and only then withdraws trust in the previous CA
+  - interrupting either pass leaves a working installation and rerunning it resumes; pass 1 is accepted inside the critical CA expiry window, since it is the remedy for it
+- installer: fixed reading the retired internal CA names once more than one is recorded - a second certificate reset, or a reset after a CA rotation, took every FWO-issued Apache and OpenLDAP identity for a customer certificate and stopped the upgrade
+- installer: Apache proxies the UI and the API with `ProxyPass ... upgrade=websocket` instead of rewrite rules. `mod_proxy_http` tunnels the websocket connections itself (Apache 2.4.47 or later), so new installations no longer enable `proxy_wstunnel`; upgraded installations keep the module enabled, unused
+  - API port: websocket connections are only proxied below `/api/`; so far a websocket upgrade request on any path reached `/v1/graphql`
+  - API port: `/api` without a trailing slash is redirected to `/api/`, and requests below `/api/` reach Hasura without a doubled leading slash
+
+
 ## 9.9.2 - 10.11.2026
 - dependencies: update NuGet packages (AngleSharp 1.10.1, bunit 2.15.2, IPNetwork2 5.0.1, Microsoft.AspNetCore.Http 2.3.14, Microsoft.NET.Test.Sdk 18.11.1, Quartz 4.7.3, Scalar.AspNetCore 2.20.0, SoPro.FancyTable 1.5.0)
 - dependencies: update ASP.NET Core packages to 10.0.15 (Microsoft.AspNetCore.Authentication.JwtBearer, Microsoft.AspNetCore.Components, Microsoft.AspNetCore.Mvc.Testing, Microsoft.AspNetCore.OpenApi), .NET 10.0.15 security release
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
 - dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.2 (denial-of-service fixes in validator and parser).
+- workflow UI: planning-phase tickets can use a dedicated planning view that groups request tasks with their implementation tasks, keeps request-task details read-only, and allows planners to create, edit and delete implementation tasks; the view also supports configurable offered actions and optional owner changes
 
 
 ## 9.9.1 - 05.11.2026
@@ -25,6 +44,7 @@
   - rules are ordered by rule collection group and rule collection priority
 - Azure gateway autodiscovery: Azure managements can now be autodiscovered (scheduled and manually); the Azure Firewalls of the subscription whose firewall policy lies in the configured resource group are proposed as gateways with the policy name as local rulebase; firewalls with classic rules are skipped
 - new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
+- middleware REST API: `createTicket` rules accept an optional `logging` key naming the rule tracking (e.g. `log`, `none`, matched case-insensitively against the tracking types); omitted or `null` means `log`, unknown values are rejected at `rules[i].logging` (#5664)
 - performance: database indices for the foreign key columns of the request and modelling schemas that the workflow and modelling relationships filter on (e.g. ticket tasks, request and implementation elements, comments, connection objects and services, interface usage), speeding up ticket and requested interfaces pages (#5644)
   - requested interfaces page: loads a slim interface list incl. the using connections and all ticket states with one chunked query instead of one query per interface and per ticket; interface details are loaded when an interface is opened
   - owner report implementation state: reads ticket states in batches without task metadata and stops after finding the newest completed ticket

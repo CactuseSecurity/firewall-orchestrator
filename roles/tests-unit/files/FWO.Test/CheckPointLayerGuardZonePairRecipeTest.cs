@@ -43,8 +43,10 @@ public class CheckPointLayerGuardZonePairRecipeTest
         Assert.Multiple(() =>
         {
             Assert.That(position.LayerUid, Is.EqualTo("inline"));
-            Assert.That(position.AnchorKind, Is.EqualTo(CheckPointPositionAnchorKind.Below));
-            Assert.That(position.AnchorRuleUid, Is.EqualTo("section-rule"));
+            Assert.That(position.AnchorKind, Is.EqualTo(CheckPointPositionAnchorKind.Bottom));
+            Assert.That(position.AnchorRuleUid, Is.Null);
+            Assert.That(position.SectionUid, Is.EqualTo("section"));
+            Assert.That(position.SectionName, Is.EqualTo("  [source] -> [destination]  "));
             Assert.That(position.PositioningAlgorithm, Is.EqualTo(kAlgorithm));
         });
     }

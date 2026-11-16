@@ -1,4 +1,4 @@
-using FWO.Basics;
+using FWO.Encoders;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 

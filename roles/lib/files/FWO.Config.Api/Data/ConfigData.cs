@@ -366,8 +366,14 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqAllowedChangesByApprover"), JsonPropertyName("reqAllowedChangesByApprover")]
         public string ReqAllowedChangesByApprover { get; set; } = System.Text.Json.JsonSerializer.Serialize(new ApproverAllowedChangesConfig());
 
+        [JsonProperty("reqAllowOwnerChangesByPlanner"), JsonPropertyName("reqAllowOwnerChangesByPlanner")]
+        public bool ReqAllowOwnerChangesByPlanner { get; set; } = false;
+
         [JsonProperty("reqApprovalEditMode"), JsonPropertyName("reqApprovalEditMode")]
         public ApprovalEditMode ReqApprovalEditMode { get; set; } = ApprovalEditMode.Classic;
+
+        [JsonProperty("reqPlannerEditMode"), JsonPropertyName("reqPlannerEditMode")]
+        public PlannerEditMode ReqPlannerEditMode { get; set; } = PlannerEditMode.Classic;
 
         [JsonProperty("reqImplicitApprovalComment"), JsonPropertyName("reqImplicitApprovalComment")]
         public string ReqImplicitApprovalComment { get; set; } = "Automatically approved because the request task was promoted beyond the approval phase.";

@@ -162,7 +162,7 @@
 
             if (!string.IsNullOrWhiteSpace(globalConfig.WelcomeMessage))
             {
-                SanitizedWelcomeMessage = FWO.Basics.HtmlOutputEncoder.SanitizeRichText(globalConfig.WelcomeMessage);
+                SanitizedWelcomeMessage = HtmlOutputEncoder.SanitizeRichText(globalConfig.WelcomeMessage);
                 ShowWelcomeMessage = true;
             }
 

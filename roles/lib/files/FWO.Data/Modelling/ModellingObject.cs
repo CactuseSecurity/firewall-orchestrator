@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using FWO.Basics;
+using FWO.Encoders;
 
 namespace FWO.Data.Modelling
 {

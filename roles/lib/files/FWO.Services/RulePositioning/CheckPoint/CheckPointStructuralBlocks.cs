@@ -550,6 +550,14 @@ public sealed class BeginningOfBlock : CheckPointBoundaryBlock
     }
 
     /// <inheritdoc />
+    protected override CheckPointRulePosition ResolveSectionScope(
+        CheckPointScopeValue scope,
+        ProvisioningPositioningAlgorithm algorithm)
+    {
+        return SectionPosition(scope, CheckPointPositionAnchorKind.Top, algorithm);
+    }
+
+    /// <inheritdoc />
     protected override CheckPointRulePosition ResolveEmptyLayer(
         CheckPointScopeValue scope,
         ProvisioningPositioningAlgorithm algorithm)
@@ -581,6 +589,14 @@ public sealed class EndOfBlock : CheckPointBoundaryBlock
     {
         IReadOnlyList<RulebaseGraphRule> rules = ScopeRules(scope);
         return Position(scope.Layer.Uid, CheckPointPositionAnchorKind.Below, rules[^1].Uid, algorithm);
+    }
+
+    /// <inheritdoc />
+    protected override CheckPointRulePosition ResolveSectionScope(
+        CheckPointScopeValue scope,
+        ProvisioningPositioningAlgorithm algorithm)
+    {
+        return SectionPosition(scope, CheckPointPositionAnchorKind.Bottom, algorithm);
     }
 
     /// <inheritdoc />
@@ -645,9 +661,19 @@ public abstract class CheckPointBoundaryBlock : IPositioningBlock<CheckPointPosi
 
         ProvisioningPositioningAlgorithm algorithm =
             context.CalculationContext.EffectiveSettings.PositioningAlgorithm;
-        CheckPointRulePosition position = ScopeRules(scope).Count > 0
-            ? ResolvePopulatedScope(scope, algorithm)
-            : ResolveEmptyScope(scope, algorithm);
+        CheckPointRulePosition position;
+        if (scope.Section != null)
+        {
+            position = ResolveSectionScope(scope, algorithm);
+        }
+        else if (ScopeRules(scope).Count > 0)
+        {
+            position = ResolvePopulatedScope(scope, algorithm);
+        }
+        else
+        {
+            position = ResolveEmptyLayer(scope, algorithm);
+        }
         return Task.FromResult<PositioningBlockResult<CheckPointBlockValue>>(
             new PositioningBlockSuccess<CheckPointBlockValue>(new CheckPointPositionValue(position)));
     }
@@ -672,8 +698,30 @@ public abstract class CheckPointBoundaryBlock : IPositioningBlock<CheckPointPosi
         return new CheckPointRulePosition(layerUid, anchorKind, anchorRuleUid, algorithm);
     }
 
+    /// <summary>
+    /// Creates a section-relative position with both stable identity and operator-facing name.
+    /// </summary>
+    protected static CheckPointRulePosition SectionPosition(
+        CheckPointScopeValue scope,
+        CheckPointPositionAnchorKind anchorKind,
+        ProvisioningPositioningAlgorithm algorithm)
+    {
+        return new CheckPointRulePosition(
+            scope.Layer.Uid,
+            anchorKind,
+            null,
+            algorithm,
+            scope.Section!.Uid,
+            scope.Section.Name);
+    }
+
     /// <summary>Resolves a boundary for a scope containing direct rules.</summary>
     protected abstract CheckPointRulePosition ResolvePopulatedScope(
+        CheckPointScopeValue scope,
+        ProvisioningPositioningAlgorithm algorithm);
+
+    /// <summary>Resolves a boundary directly against the selected section.</summary>
+    protected abstract CheckPointRulePosition ResolveSectionScope(
         CheckPointScopeValue scope,
         ProvisioningPositioningAlgorithm algorithm);
 
@@ -682,88 +730,6 @@ public abstract class CheckPointBoundaryBlock : IPositioningBlock<CheckPointPosi
         CheckPointScopeValue scope,
         ProvisioningPositioningAlgorithm algorithm);
 
-    /// <summary>
-    /// Resolves an empty layer or the canonical single gap of an empty section.
-    /// </summary>
-    private CheckPointRulePosition ResolveEmptyScope(
-        CheckPointScopeValue scope,
-        ProvisioningPositioningAlgorithm algorithm)
-    {
-        if (scope.Section == null)
-        {
-            return ResolveEmptyLayer(scope, algorithm);
-        }
-
-        int sectionIndex = IndexOfSection(scope.LayerStructure!, scope.SectionStructure!);
-        RulebaseGraphRule? nextRule = FindNextRule(scope.LayerStructure!.Items, sectionIndex);
-        if (nextRule != null)
-        {
-            return Position(scope.Layer.Uid, CheckPointPositionAnchorKind.Above, nextRule.Uid, algorithm);
-        }
-        RulebaseGraphRule? previousRule = FindPreviousRule(scope.LayerStructure.Items, sectionIndex);
-        return previousRule != null
-            ? Position(scope.Layer.Uid, CheckPointPositionAnchorKind.Below, previousRule.Uid, algorithm)
-            : Position(scope.Layer.Uid, CheckPointPositionAnchorKind.Top, null, algorithm);
-    }
-
-    /// <summary>
-    /// Finds the exact section instance in its parent layer.
-    /// </summary>
-    private static int IndexOfSection(
-        CheckPointLayerStructure layer,
-        CheckPointSectionStructure section)
-    {
-        for (int index = 0; index < layer.Items.Count; index++)
-        {
-            if (ReferenceEquals(layer.Items[index], section))
-            {
-                return index;
-            }
-        }
-        return -1;
-    }
-
-    /// <summary>
-    /// Finds the first rule after an empty section.
-    /// </summary>
-    private static RulebaseGraphRule? FindNextRule(
-        IReadOnlyList<CheckPointLayerItemStructure> items,
-        int sectionIndex)
-    {
-        for (int index = sectionIndex + 1; index < items.Count; index++)
-        {
-            if (items[index] is CheckPointRuleItemStructure rule)
-            {
-                return rule.Rule;
-            }
-            if (items[index] is CheckPointSectionStructure { Rules.Count: > 0 } section)
-            {
-                return section.Rules[0];
-            }
-        }
-        return null;
-    }
-
-    /// <summary>
-    /// Finds the last rule before an empty section.
-    /// </summary>
-    private static RulebaseGraphRule? FindPreviousRule(
-        IReadOnlyList<CheckPointLayerItemStructure> items,
-        int sectionIndex)
-    {
-        for (int index = sectionIndex - 1; index >= 0; index--)
-        {
-            if (items[index] is CheckPointRuleItemStructure rule)
-            {
-                return rule.Rule;
-            }
-            if (items[index] is CheckPointSectionStructure { Rules.Count: > 0 } section)
-            {
-                return section.Rules[^1];
-            }
-        }
-        return null;
-    }
 }
 
 /// <summary>Shared role identifiers used by Check Point positioning blocks.</summary>

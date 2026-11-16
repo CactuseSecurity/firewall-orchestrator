@@ -5,6 +5,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
+using FWO.Encoders;
 using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Services.Workflow;

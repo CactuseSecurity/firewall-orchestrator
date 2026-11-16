@@ -7,6 +7,7 @@ using FWO.Config.File;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Report;
+using FWO.Encoders;
 using FWO.Logging;
 using FWO.Middleware.Server.Services;
 using FWO.Report;

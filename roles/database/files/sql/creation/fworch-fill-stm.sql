@@ -169,6 +169,10 @@ insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufac
 insert into stm_dev_typ (dev_typ_id,dev_typ_name,dev_typ_version,dev_typ_manufacturer,dev_typ_predef_svc,dev_typ_is_multi_mgmt,dev_typ_is_mgmt,is_pure_routing_device)
     VALUES (32,'OPNsense standalone','25ff','Deciso','',false,true,false) ON CONFLICT DO NOTHING;
 
+-- management types whose importer module reads rule hits (supports_rule_hits() of the importer module):
+-- Check Point R8x (9), FortiADOM 5ff (11), FortiManager 5ff (12), Check Point MDS R8x (13)
+UPDATE stm_dev_typ SET dev_typ_supports_rule_hits = TRUE WHERE dev_typ_id IN (9, 11, 12, 13);
+
 -- SET statement_timeout = 0;
 -- SET client_encoding = 'UTF8';
 -- SET standard_conforming_strings = on;
@@ -206,3 +210,4 @@ INSERT INTO stm_import (import_type_id, import_type_name) VALUES (1, 'rule');
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (2, 'owner');
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (3, 'admin via reinitialize button');
 INSERT INTO stm_import (import_type_id, import_type_name) VALUES (4, 'log');
+INSERT INTO stm_import (import_type_id, import_type_name) VALUES (5, 'rule hit');

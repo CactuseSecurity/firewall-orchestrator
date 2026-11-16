@@ -211,6 +211,14 @@ Create table "import_control"
  primary key ("control_id")
 );
 
+-- pending rule hit import runs: written by the middleware scheduler, removed by the importer handling the run
+Create table "rule_hit_import_request"
+(
+	"mgm_id" Integer NOT NULL,
+	"requested_at" Timestamp with time zone NOT NULL Default now(),
+ primary key ("mgm_id")
+);
+
 -- temporary table for storing the fw-relevant config during import
 CREATE table "import_config" (
     "import_id" bigint NOT NULL,

@@ -241,13 +241,15 @@ The hook requires `python`, `ruff`, and `pyright` to be available in the active 
 
 This typically happens when:
 
-- no local `.venv` is present or active, and no conda env is active,
+- no local `.venv` is present, and conda is not installed or has no environment with the name set as `CONDA_ENV` in `.githooks/tooling.env`,
 - `python` points to a different interpreter than expected,
 - required tooling is missing from the active interpreter,
 - project Python dependencies are not installed yet.
 
 In this repo, `core.hooksPath` is set to `.githooks`, so these checks run automatically on commit.
 The hook prefers the repository-local virtual environment at `.venv` when it exists.
+Without `.venv`, it uses the conda environment named by `CONDA_ENV` in `.githooks/tooling.env` (default `fwo`).
+It asks conda once for the python of that environment and runs ruff and pyright with it, so the environment does not have to be activated.
 That means fixing a global Python installation often does nothing for the commit hook.
 
 ### 3. Fast fix for Ruff version mismatch

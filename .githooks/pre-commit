@@ -9,6 +9,8 @@ set +a
 
 # Set default python path
 PYTHON_CMD=("python")
+# How the messages below tell you to call that python
+PYTHON_HINT="python"
 
 if [ -f ".venv/Scripts/activate" ]; then
     # Using virtual environment from .venv (Windows)
@@ -28,7 +30,20 @@ elif [ -d ".venv" ]; then
     echo "  .venv/bin/python -m pip install -r roles/importer/files/importer/requirements.txt"
     exit 1
 elif command -v conda >/dev/null 2>&1 && [ -n "${CONDA_ENV:-}" ]; then
-    PYTHON_CMD=("conda" "run" "--no-capture-output" "-n" "$CONDA_ENV" "python")
+    # Ask conda once for the python of the environment and call it directly afterwards:
+    # every "conda run" starts conda anew, and on Windows it passes its command through a
+    # temporary batch file, in which cmd.exe mangles quoted arguments.
+    if ! CONDA_PYTHON="$(conda run --no-capture-output -n "$CONDA_ENV" python -c 'import sys; print(sys.executable)' \
+            | tr -d '\r' | grep -v '^$' | tail -n 1)" || [ -z "$CONDA_PYTHON" ]; then
+        echo "Error: Could not find python in the conda environment '$CONDA_ENV' (CONDA_ENV in $CONFIG_FILE)."
+        exit 1
+    fi
+    if command -v cygpath >/dev/null 2>&1; then
+        # Git Bash on Windows: turn C:\...\python.exe into a path bash can run
+        CONDA_PYTHON="$(cygpath -u "$CONDA_PYTHON")"
+    fi
+    PYTHON_CMD=("$CONDA_PYTHON")
+    PYTHON_HINT="conda run -n $CONDA_ENV python"
 else
     echo "Warning: No virtual environment found. Assuming python (with ruff and pyright) is available in base environment."
 fi
@@ -73,9 +88,9 @@ if [ "$requirements_ruff_version" != "$required_ruff_version" ]; then
     echo "  update roles/importer/files/importer/requirements.txt to ruff==${required_ruff_version}"
     echo "  or change pyproject.toml [tool.ruff].required-version to ${requirements_ruff_version} if that is the intended project version"
     echo "Then rerun:"
-    echo "  ${PYTHON_CMD[*]} -m pip install -r roles/importer/files/importer/requirements.txt"
-    echo "  ${PYTHON_CMD[*]} -m ruff check --fix"
-    echo "  ${PYTHON_CMD[*]} -m ruff format"
+    echo "  ${PYTHON_HINT} -m pip install -r roles/importer/files/importer/requirements.txt"
+    echo "  ${PYTHON_HINT} -m ruff check --fix"
+    echo "  ${PYTHON_HINT} -m ruff format"
     exit 1
 fi
 
@@ -84,10 +99,10 @@ if [ "$installed_ruff_version" != "$required_ruff_version" ]; then
     echo "Installed ruff is ${installed_ruff_version}, but pyproject.toml requires ${required_ruff_version}."
     echo
     echo "Fix this by installing the pinned ruff version in the active environment:"
-    echo "  ${PYTHON_CMD[*]} -m pip install --upgrade ruff==${required_ruff_version}"
+    echo "  ${PYTHON_HINT} -m pip install --upgrade ruff==${required_ruff_version}"
     echo "Then rerun:"
-    echo "  ${PYTHON_CMD[*]} -m ruff check --fix"
-    echo "  ${PYTHON_CMD[*]} -m ruff format"
+    echo "  ${PYTHON_HINT} -m ruff check --fix"
+    echo "  ${PYTHON_HINT} -m ruff format"
     exit 1
 fi
 
@@ -101,8 +116,11 @@ while IFS= read -r -d '' staged_file; do
 done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.py')
 
 if [ "${#STAGED_PYRIGHT_FILES[@]}" -gt 0 ]; then
+    # pyright resolves imports with the first python on PATH. A conda environment used without
+    # activation is not on PATH, so name the python running the checks.
+    PYTHON_EXECUTABLE="$("${PYTHON_CMD[@]}" -c 'import sys; print(sys.executable)' | tr -d '\r')"
     echo "Info: running pyright with $("${PYTHON_CMD[@]}" -m pyright --version) on ${#STAGED_PYRIGHT_FILES[@]} staged Python file(s)."
-    "${PYTHON_CMD[@]}" -m pyright "${STAGED_PYRIGHT_FILES[@]}"
+    "${PYTHON_CMD[@]}" -m pyright --pythonpath "$PYTHON_EXECUTABLE" "${STAGED_PYRIGHT_FILES[@]}"
 fi
 
 # Determine changed Dotnet files

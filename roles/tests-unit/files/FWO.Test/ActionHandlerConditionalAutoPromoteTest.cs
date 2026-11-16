@@ -7,6 +7,7 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services.Workflow;
+using FWO.Test.Helpers;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -24,6 +25,7 @@ namespace FWO.Test
         private const long kTicketId = 42;
         private const int kTimeoutMinutes = 60;
         private const string kResultLabel = "rollout_ok";
+        private const string kActionName = "Rollout check";
         private const string kDateFormat = "yyyy-MM-dd HH:mm:ss";
         private const ToBeCalled kUnsupportedCheck = (ToBeCalled)999;
         private static readonly DateTimeOffset kNow = new(2026, 11, 12, 12, 0, 0, TimeSpan.Zero);
@@ -39,13 +41,13 @@ namespace FWO.Test
         ];
 
         private static string CreateParams(ToBeCalled toBeCalled, int ifNotPassedState, int? errorState = kErrorState,
-            int? timeoutMinutes = kTimeoutMinutes, string checkResultLabel = "")
+            int? timeoutMinutes = kTimeoutMinutes, string checkResultLabel = "", int ifPassedState = kPassedState)
         {
             return JsonSerializer.Serialize(new ConditionalAutoPromoteParams
             {
                 ToBeCalled = toBeCalled,
                 CheckResultLabel = checkResultLabel,
-                IfCompliantState = kPassedState,
+                IfCompliantState = ifPassedState,
                 IfNotCompliantState = ifNotPassedState,
                 ErrorState = errorState,
                 ErrorConditions = new ConditionalErrorConditions { TimeoutMinutes = timeoutMinutes }
@@ -56,6 +58,17 @@ namespace FWO.Test
         {
             WfReqTask reqTask = new() { Id = 5, TicketId = kTicketId, ManagementId = managementId, StateId = kCheckedState };
             reqTask.ImplementationTasks.Add(new WfImplTask { Id = 6, ManagementId = managementId, Stop = kImplementationDone, StateId = kCheckedState });
+            WfTicket ticket = new() { Id = kTicketId, StateId = kCheckedState };
+            ticket.Tasks.Add(reqTask);
+            return ticket;
+        }
+
+        private static WfTicket CreatePolicyCheckTicket()
+        {
+            WfReqTask reqTask = new() { Id = 5, TicketId = kTicketId, ManagementId = 1, StateId = kCheckedState };
+            reqTask.Elements.Add(new WfReqElement { Field = nameof(ElemFieldType.source), IpString = "10.0.0.1/32", Name = "src" });
+            reqTask.Elements.Add(new WfReqElement { Field = nameof(ElemFieldType.destination), IpString = "10.0.1.1/32", Name = "dst" });
+            reqTask.Elements.Add(new WfReqElement { Field = nameof(ElemFieldType.service), Port = 443, ProtoId = 6, Name = "https" });
             WfTicket ticket = new() { Id = kTicketId, StateId = kCheckedState };
             ticket.Tasks.Add(reqTask);
             return ticket;
@@ -78,16 +91,17 @@ namespace FWO.Test
             return new ImportControl { MgmId = 1, StartTime = start, StopTime = start.AddMinutes(1), SuccessfulImport = true };
         }
 
-        private static async Task<WfTicket> Perform(ConditionalApiConnection apiConnection, string externalParams, WfTicket? ticket = null)
+        private static async Task<WfTicket> Perform(ConditionalApiConnection apiConnection, string externalParams, WfTicket? ticket = null,
+            IRequestedRulePolicyChecker? policyChecker = null)
         {
             WfHandler wfHandler = new((_, _, _, _) => { }, new ConditionalTextConfig(), new ClaimsPrincipal(), apiConnection,
                 new MiddlewareClient("http://localhost/"), WorkflowPhases.request);
-            ActionHandler handler = new(apiConnection, wfHandler, null, true) { Clock = new FixedTimeProvider(kNow) };
+            ActionHandler handler = new(apiConnection, wfHandler, null, true, policyChecker) { Clock = new FixedTimeProvider(kNow) };
             await handler.Init();
             WfTicket checkedTicket = ticket ?? CreateTicket();
             WfStateAction action = new()
             {
-                Name = "Rollout check",
+                Name = kActionName,
                 ActionType = nameof(StateActionTypes.AutoPromote),
                 Scope = nameof(WfObjectScopes.Ticket),
                 Event = nameof(StateActionEvents.WhileSet),
@@ -103,22 +117,119 @@ namespace FWO.Test
             return time.ToString(kDateFormat, CultureInfo.InvariantCulture);
         }
 
+        private static string TimeoutComment()
+        {
+            string enteredAt = Format(kNow.UtcDateTime.AddMinutes(-(kTimeoutMinutes + 1)).ToLocalTime());
+            return $"timeout {kTimeoutMinutes} since {enteredAt}";
+        }
+
         [Test]
-        public async Task Timeout_MovesIntoErrorStateWithoutCallingTheCheck()
+        public async Task TimedOut_AllImported_MovesIntoPassedState()
+        {
+            ConditionalApiConnection apiConnection = new()
+            {
+                StateChanges = [EnteredMinutesAgo(kTimeoutMinutes + 1)],
+                Imports = [ImportAfterImplementation()]
+            };
+
+            WfTicket ticket = await Perform(apiConnection, CreateParams(ToBeCalled.RolloutCheck, WfStateAction.RemainStateId));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ticket.StateId, Is.EqualTo(kPassedState));
+                Assert.That(ticket.Comments.Single().Comment.CommentText, Is.EqualTo($"ok {Format(kImplementationDone)}: MDS"));
+            });
+        }
+
+        [Test]
+        public async Task TimedOut_ImportsMissing_MovesIntoErrorStateWithTimeoutAndMissingManagements()
         {
             ConditionalApiConnection apiConnection = new() { StateChanges = [EnteredMinutesAgo(kTimeoutMinutes + 1)] };
 
             WfTicket ticket = await Perform(apiConnection, CreateParams(ToBeCalled.RolloutCheck, WfStateAction.RemainStateId));
 
-            string expectedEntry = Format(kNow.UtcDateTime.AddMinutes(-(kTimeoutMinutes + 1)).ToLocalTime());
             Assert.Multiple(() =>
             {
                 Assert.That(ticket.StateId, Is.EqualTo(kErrorState));
-                Assert.That(ticket.Comments.Single().Comment.CommentText, Is.EqualTo($"timeout {kTimeoutMinutes} since {expectedEntry}"));
-                Assert.That(apiConnection.Queries, Does.Not.Contain(DeviceQueries.getManagementHierarchy));
-                Assert.That(apiConnection.Queries, Does.Not.Contain(ImportQueries.getLatestSuccessfulImports));
+                Assert.That(ticket.Comments.Single().Comment.CommentText,
+                    Is.EqualTo($"{TimeoutComment()} missing {Format(kImplementationDone)}: MDS"));
+                Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getLatestSuccessfulImports));
                 Assert.That(apiConnection.StateChangeScope, Is.EqualTo(nameof(WfObjectScopes.Ticket)));
                 Assert.That(apiConnection.StateChangeObjectId, Is.EqualTo(kTicketId));
+            });
+        }
+
+        [Test]
+        public async Task TimedOut_PolicyCheckCompliant_MovesIntoPassedState()
+        {
+            ConditionalApiConnection apiConnection = new() { StateChanges = [EnteredMinutesAgo(kTimeoutMinutes + 1)] };
+            FixedPolicyChecker policyChecker = new(true);
+
+            WfTicket ticket = await Perform(apiConnection, CreateParams(ToBeCalled.PolicyCheck, kNotPassedState),
+                CreatePolicyCheckTicket(), policyChecker);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(policyChecker.Called, Is.True);
+                Assert.That(ticket.StateId, Is.EqualTo(kPassedState));
+                Assert.That(ticket.Comments, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task TimedOut_PolicyCheckNotCompliant_MovesIntoErrorStateWithTimeout()
+        {
+            ConditionalApiConnection apiConnection = new() { StateChanges = [EnteredMinutesAgo(kTimeoutMinutes + 1)] };
+            FixedPolicyChecker policyChecker = new(false);
+
+            WfTicket ticket = await Perform(apiConnection, CreateParams(ToBeCalled.PolicyCheck, kNotPassedState),
+                CreatePolicyCheckTicket(), policyChecker);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(policyChecker.Called, Is.True);
+                Assert.That(ticket.StateId, Is.EqualTo(kErrorState));
+                Assert.That(ticket.Comments.Single().Comment.CommentText, Is.EqualTo(TimeoutComment()));
+            });
+        }
+
+        [Test]
+        public async Task TimedOut_ErrorStateEqualToCurrentState_RemainsWithoutComment()
+        {
+            ConditionalApiConnection apiConnection = new() { StateChanges = [EnteredMinutesAgo(kTimeoutMinutes + 1)] };
+
+            WfTicket ticket = await Perform(apiConnection, CreateParams(ToBeCalled.RolloutCheck, kNotPassedState, errorState: kCheckedState));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ticket.StateId, Is.EqualTo(kCheckedState));
+                Assert.That(ticket.Comments, Is.Empty);
+            });
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task AutomaticConditionalTarget_RemainsInStateAndLogsWarning(bool allImported)
+        {
+            List<ImportControl> imports = [];
+            if (allImported)
+            {
+                imports.Add(ImportAfterImplementation());
+            }
+            ConditionalApiConnection apiConnection = new() { StateChanges = [EnteredMinutesAgo(5)], Imports = imports };
+            string externalParams = allImported
+                ? CreateParams(ToBeCalled.RolloutCheck, kNotPassedState, ifPassedState: WfStateAction.AutomaticStateId)
+                : CreateParams(ToBeCalled.RolloutCheck, WfStateAction.AutomaticStateId);
+            WfTicket? ticket = null;
+
+            string log = await ConsoleOutput.CaptureAsync(async () => ticket = await Perform(apiConnection, externalParams));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ticket!.StateId, Is.EqualTo(kCheckedState));
+                Assert.That(ticket.Comments, Is.Empty);
+                Assert.That(log, Does.Contain("Warning - AutoPromote"));
+                Assert.That(log, Does.Contain($"Action '{kActionName}' has the conditional target \"automatic\""));
             });
         }
 
@@ -303,6 +414,28 @@ namespace FWO.Test
             Assert.That(AutoPromoteDecision.Remain.RemainsInState, Is.True);
             Assert.That(new AutoPromoteDecision(kPassedState).RemainsInState, Is.False);
             Assert.That(new AutoPromoteDecision(null).RemainsInState, Is.False);
+        }
+
+        [Test]
+        public void Decision_AutomaticTargetRemainsAndIsMarked()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(AutoPromoteDecision.RemainForAutomaticTarget.RemainsInState, Is.True);
+                Assert.That(AutoPromoteDecision.RemainForAutomaticTarget.HasAutomaticTarget, Is.True);
+                Assert.That(AutoPromoteDecision.Remain.HasAutomaticTarget, Is.False);
+            });
+        }
+
+        private sealed class FixedPolicyChecker(bool compliant) : IRequestedRulePolicyChecker
+        {
+            public bool Called { get; private set; }
+
+            public Task<bool> AreRequestTasksCompliant(IEnumerable<int> policyIds, IEnumerable<WfReqTask> requestTasks)
+            {
+                Called = true;
+                return Task.FromResult(compliant);
+            }
         }
 
         private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider

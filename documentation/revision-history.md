@@ -17,9 +17,9 @@
   - API port: websocket connections are only proxied below `/api/`; so far a websocket upgrade request on any path reached `/v1/graphql`
   - API port: `/api` without a trailing slash is redirected to `/api/`, and requests below `/api/` reach Hasura without a doubled leading slash
 - workflow: new state action event "While set" and rollout check of implemented tickets (#5289)
-  - state actions with event "While set" are performed by a middleware job in a configurable interval (new setting on the state actions page, default 10 minutes, 0 disables) for every ticket in the state; currently only actions with scope ticket
+  - state actions with event "While set" are performed by a middleware job in a configurable interval (new setting on the state actions page, default 10 minutes, 0 disables) for every ticket in the state; only the auto-forward with scope ticket can use this event, other action types would send emails or write data on every run
   - the conditional auto-forward offers the new check "Rollout check": it passes when every management involved in the ticket has been imported successfully by a rule import started after the implementation was completed (latest stop date of the implementation tasks); sub-managements are covered by the import of their super management; the result is recorded as a ticket comment when the ticket is moved
-  - the conditional auto-forward gets an optional error state with error conditions checked before the check is called; first condition is a timeout, measured from the recorded state change into the current state
+  - the conditional auto-forward gets an optional error state with error conditions, which apply only when the check has not passed (a passed check always leads to the passed target); first condition is a timeout, measured from the recorded state change into the current state; the ticket comment records the timeout together with the check result, e.g. the managements still missing
   - new conditional target "Remain in state", e.g. to repeat a check with the event "While set" until it passes
 
 

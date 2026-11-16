@@ -43,7 +43,8 @@ namespace FWO.Middleware.Server.Services
     /// <summary>
     /// Performs "While set" actions with the workflow handler in system context, so that state changes caused by
     /// an action perform the state actions of the target state as well. The workflow environment of a phase is
-    /// only loaded when an action is performed in it, and reused for all tickets of a run.
+    /// only loaded when an action is performed in it, and reused for all tickets of a run. All workflow environments
+    /// of a run are built from the global config the caller has read for this run.
     /// A ticket whose lock is held by a workflow action request is skipped without waiting; the next run takes it up.
     /// </summary>
     public sealed class WorkflowWhileSetActionExecutor : IWhileSetActionExecutor, IDisposable
@@ -61,7 +62,7 @@ namespace FWO.Middleware.Server.Services
         public const WorkflowPhases kDefaultPhase = WorkflowPhases.review;
 
         private readonly ApiConnection apiConnection;
-        private readonly GlobalConfig globalConfig;
+        private readonly GlobalConfig currentGlobalConfig;
         private readonly WorkflowTicketLocks ticketLocks;
         private readonly Dictionary<WorkflowPhases, WfHandler> workflowHandlers = [];
         private Dictionary<WorkflowPhases, StateMatrix>? phaseMatrices;
@@ -74,12 +75,14 @@ namespace FWO.Middleware.Server.Services
         /// Creates the executor.
         /// </summary>
         /// <param name="apiConnection">GraphQL API connection of the middleware server.</param>
-        /// <param name="globalConfig">Global configuration.</param>
+        /// <param name="currentGlobalConfig">Global configuration read for this run, e.g. with
+        /// <see cref="GlobalConfig.WithCurrentConfigItemsAsync"/>, so that the actions follow settings changed after the
+        /// middleware start. The caller keeps ownership and disposes it after the executor.</param>
         /// <param name="ticketLocks">Per-ticket locks shared with the workflow action endpoint.</param>
-        public WorkflowWhileSetActionExecutor(ApiConnection apiConnection, GlobalConfig globalConfig, WorkflowTicketLocks ticketLocks)
+        public WorkflowWhileSetActionExecutor(ApiConnection apiConnection, GlobalConfig currentGlobalConfig, WorkflowTicketLocks ticketLocks)
         {
             this.apiConnection = apiConnection;
-            this.globalConfig = globalConfig;
+            this.currentGlobalConfig = currentGlobalConfig;
             this.ticketLocks = ticketLocks;
         }
 
@@ -163,7 +166,7 @@ namespace FWO.Middleware.Server.Services
                 return existingHandler;
             }
 
-            userConfig ??= UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
+            userConfig ??= UserConfig.ForGlobalSettings(currentGlobalConfig, apiConnection, currentGlobalConfig.DefaultLanguage);
             connectedLdaps ??= await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             ownerGroups ??= await MiddlewareServerServices.GetInternalGroups(connectedLdaps);
             WfHandler wfHandler = new(userConfig, apiConnection, phase, ownerGroups,
@@ -179,7 +182,10 @@ namespace FWO.Middleware.Server.Services
             return wfHandler;
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Disposes the user config of the workflow environments, which also detaches it from the global config.
+        /// The global config stays with the caller.
+        /// </summary>
         public void Dispose()
         {
             if (disposed)

@@ -3363,7 +3363,9 @@ internal class WorkflowTicketServiceTest
             {
                 return Task.FromResult((QueryResponseType)(object)new ReturnId
                 {
-                    UpdatedIdLong = Convert.ToInt64(GetVariable(variables, "id") ?? 0)
+                    UpdatedIdLong = Convert.ToInt64(GetVariable(variables, "id") ?? 0),
+                    // the guarded ticket state write reports its success in affected_rows
+                    AffectedRows = query == RequestQueries.updateTicketStateIfUnchanged ? 1 : 0
                 });
             }
 

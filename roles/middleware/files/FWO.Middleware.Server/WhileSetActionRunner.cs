@@ -9,7 +9,8 @@ namespace FWO.Middleware.Server
     /// <summary>
     /// Performs the state actions with event "While set": every ticket in a state carrying such actions gets
     /// them performed in their sort order, until one of them moves the ticket out of the state. Only actions
-    /// with ticket scope are performed.
+    /// with ticket scope and of an action type allowing "While set" (<see cref="WfStateAction.AllowsWhileSet"/>)
+    /// are performed.
     /// </summary>
     public sealed class WhileSetActionRunner
     {
@@ -56,7 +57,8 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Returns the ticket scope actions with event "While set" per state, in their sort order.
+        /// Returns the actions with event "While set" that are performed per state, in their sort order: those with
+        /// ticket scope and of an action type allowing "While set".
         /// </summary>
         /// <param name="states">All states with their actions.</param>
         /// <returns>The actions by state id; states without such actions are left out.</returns>
@@ -69,11 +71,11 @@ namespace FWO.Middleware.Server
                     .OrderBy(stateAction => stateAction.SortOrder)
                     .Select(stateAction => stateAction.Action)
                     .Where(IsWhileSetAction)];
-                LogIgnoredScopes(state, actions);
-                List<WfStateAction> ticketActions = [.. actions.Where(action => action.Scope == nameof(WfObjectScopes.Ticket))];
-                if (ticketActions.Count > 0)
+                LogIgnoredActions(state, actions);
+                List<WfStateAction> performedActions = [.. actions.Where(IsPerformedWhileSet)];
+                if (performedActions.Count > 0)
                 {
-                    actionsByState[state.Id] = ticketActions;
+                    actionsByState[state.Id] = performedActions;
                 }
             }
             return actionsByState;
@@ -84,12 +86,24 @@ namespace FWO.Middleware.Server
             return action.Event == nameof(StateActionEvents.WhileSet);
         }
 
-        private static void LogIgnoredScopes(WfState state, List<WfStateAction> actions)
+        private static bool IsPerformedWhileSet(WfStateAction action)
         {
-            foreach (WfStateAction action in actions.Where(action => action.Scope != nameof(WfObjectScopes.Ticket)))
+            return action.Scope == nameof(WfObjectScopes.Ticket) && WfStateAction.AllowsWhileSet(action.ActionType);
+        }
+
+        /// <summary>
+        /// Warns about "While set" actions that are never performed, once per run for each state carrying them, so
+        /// that their configuration (e.g. from before the editor restricted it) gets fixed: actions of an action
+        /// type not allowing "While set", and actions with another scope than ticket.
+        /// </summary>
+        private static void LogIgnoredActions(WfState state, List<WfStateAction> actions)
+        {
+            foreach (WfStateAction action in actions.Where(action => !IsPerformedWhileSet(action)))
             {
-                Log.WriteDebug(kLogTitle, $"Action '{action.Name}' ({action.Id}) of state {state.Id} has scope {action.Scope}; " +
-                    "only actions with ticket scope are performed while set.");
+                string reason = WfStateAction.AllowsWhileSet(action.ActionType)
+                    ? $"scope {action.Scope}; it is never performed, because only actions with ticket scope are performed while set."
+                    : $"action type {action.ActionType}; it is never performed, because this action type may not use 'While set'.";
+                Log.WriteWarning(kLogTitle, $"Action '{action.Name}' ({action.Id}) of state {state.Id} has event 'While set' and {reason}");
             }
         }
 

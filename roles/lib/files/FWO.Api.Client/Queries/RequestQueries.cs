@@ -36,6 +36,10 @@ namespace FWO.Api.Client.Queries
         public static readonly string newTicket;
         public static readonly string updateTicket;
         public static readonly string updateTicketState;
+        /// <summary>
+        /// Writes the ticket state only while the ticket is still in the expected state; affected_rows tells whether it did.
+        /// </summary>
+        public static readonly string updateTicketStateIfUnchanged;
         public static readonly string subscribeTicketStateChanges;
         public static readonly string subscribeTaskChanges;
         public static readonly string newRequestTask;
@@ -145,6 +149,7 @@ namespace FWO.Api.Client.Queries
                 newTicket = GetQueryText("request/newTicket.graphql");
                 updateTicket = GetQueryText("request/updateTicket.graphql");
                 updateTicketState = GetQueryText("request/updateTicketState.graphql");
+                updateTicketStateIfUnchanged = GetQueryText("request/updateTicketStateIfUnchanged.graphql");
                 subscribeTicketStateChanges = GetQueryText("request/subscribeTicketStateChanges.graphql");
                 subscribeTaskChanges = reqElementDetailsFragment + GetQueryText("request/subscribeTaskChanges.graphql");
                 newRequestTask = GetQueryText("request/newRequestTask.graphql");

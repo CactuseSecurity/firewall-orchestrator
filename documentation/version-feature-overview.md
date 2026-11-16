@@ -280,5 +280,5 @@ For a feature-centric, thematically grouped view see
 ### 9.9.2 - 11.11.2026
 
 ### 9.9.3 - 14.11.2026
-- New state action event "While set": the middleware performs such actions periodically (configurable interval, default 10 minutes) as long as a ticket is in the state.
-- The conditional auto-forward offers a "Rollout check" (all involved managements imported after the implementation), an optional error state with a timeout checked first, and the target "Remain in state".
+- New state action event "While set": the middleware performs the auto-forward (scope ticket) periodically (configurable interval, default 10 minutes) as long as a ticket is in the state.
+- The conditional auto-forward offers a "Rollout check" (all involved managements imported after the implementation), an optional error state that a timeout sets only if the check has not passed, and the target "Remain in state".

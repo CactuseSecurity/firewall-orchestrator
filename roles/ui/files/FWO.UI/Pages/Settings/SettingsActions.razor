@@ -27,15 +27,15 @@
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5540b"))">
                 <label class="col-form-label col-sm-4" for="whileSetActionSleepTime">@(userConfig.GetText("whileSetActionSleepTime")):</label>
                 <div class="col-sm-2">
-                    <input id="whileSetActionSleepTime" type="number" min="0" @bind="configData!.WhileSetActionSleepTime" />
+                    <input id="whileSetActionSleepTime" type="number" min="0" class="form-control form-control-sm" @bind="configData!.WhileSetActionSleepTime" />
                 </div>
                 <div class="col-sm-2">
                     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                         <Authorized>
-                            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveWhileSetActionSleepTime" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveWhileSetActionSleepTime" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                         </Authorized>
                         <NotAuthorized>
-                            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+                            <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                         </NotAuthorized>
                     </ExecutionModeAuthorizeView>
                 </div>

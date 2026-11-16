@@ -16,6 +16,7 @@ namespace FWO.Services.Workflow
 
         private const string kAutoPromoteLogTitle = "AutoPromote";
         private const string kCommentDateFormat = "yyyy-MM-dd HH:mm:ss";
+        private const string kCommentSeparator = " ";
 
         /// <summary>
         /// Clock used to measure how long an object has been in its state.
@@ -27,7 +28,7 @@ namespace FWO.Services.Workflow
             AutoPromoteDecision decision = await GetAutoPromoteDecision(action.ExternalParams, statefulObject, scope);
             if (decision.RemainsInState)
             {
-                Log.WriteDebug(kAutoPromoteLogTitle, $"Action '{action.Name}' keeps {scope} {GetStatefulObjectId(statefulObject, scope)} in state {statefulObject.StateId}.");
+                LogRemainInState(action, decision, statefulObject, scope);
                 return;
             }
 
@@ -37,7 +38,11 @@ namespace FWO.Services.Workflow
                 return;
             }
 
-            await wfHandler.AutoPromote(statefulObject, scope, toState);
+            if (!await wfHandler.AutoPromote(statefulObject, scope, toState))
+            {
+                // nothing was moved (e.g. the ticket was changed concurrently), so there is nothing to document
+                return;
+            }
             await AddAutoPromoteComment(decision.TicketComment);
             if (WfStateAction.HasConfirmUiMessage(action.ExternalParams))
             {
@@ -57,29 +62,61 @@ namespace FWO.Services.Workflow
                 return new AutoPromoteDecision(toState);
             }
 
-            AutoPromoteDecision? errorDecision = await CheckErrorConditions(conditionalParams, statefulObject, scope);
-            if (errorDecision != null)
+            ConditionalCheckResult checkResult = await EvaluateConditionalAutoPromote(conditionalParams, statefulObject, scope);
+            if (checkResult.Passed)
             {
-                return errorDecision;
+                return ConditionalDecision(conditionalParams.IfCompliantState, checkResult.TicketComment, statefulObject);
             }
 
-            ConditionalCheckResult checkResult = await EvaluateConditionalAutoPromote(conditionalParams, statefulObject, scope);
-            int targetState = checkResult.Passed ? conditionalParams.IfCompliantState : conditionalParams.IfNotCompliantState;
-            return ConditionalDecision(targetState, checkResult.TicketComment, statefulObject);
+            AutoPromoteDecision? errorDecision = await CheckErrorConditions(conditionalParams, checkResult, statefulObject, scope);
+            return errorDecision ?? ConditionalDecision(conditionalParams.IfNotCompliantState, checkResult.TicketComment, statefulObject);
         }
 
         /// <summary>
         /// A conditional target equal to the current state keeps the object where it is, so that a periodically
         /// performed action neither moves the object into its own state nor comments the ticket on every run.
+        /// The target "automatic" is not supported for conditional targets; configurations saved with it keep the
+        /// object where it is as well, and the decision is marked so that the misconfiguration is logged.
         /// </summary>
         private static AutoPromoteDecision ConditionalDecision(int targetState, string? ticketComment, WfStatefulObject statefulObject)
         {
+            if (targetState == WfStateAction.AutomaticStateId)
+            {
+                return AutoPromoteDecision.RemainForAutomaticTarget;
+            }
+
             return targetState == statefulObject.StateId
                 ? AutoPromoteDecision.Remain
                 : new AutoPromoteDecision(targetState, ticketComment);
         }
 
-        private async Task<AutoPromoteDecision?> CheckErrorConditions(ConditionalAutoPromoteParams conditionalParams, WfStatefulObject statefulObject, WfObjectScopes scope)
+        /// <summary>
+        /// Logs that the object stays in its state: as warning for the unsupported conditional target "automatic",
+        /// so that the misconfigured action becomes visible, otherwise as debug message.
+        /// </summary>
+        private void LogRemainInState(WfStateAction action, AutoPromoteDecision decision, WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            long objectId = GetStatefulObjectId(statefulObject, scope);
+            if (decision.HasAutomaticTarget)
+            {
+                Log.WriteWarning(kAutoPromoteLogTitle, $"Action '{action.Name}' has the conditional target \"automatic\", which is not supported. " +
+                    $"{scope} {objectId} remains in state {statefulObject.StateId}. Select a state or \"Remain in state\" as target.");
+                return;
+            }
+            Log.WriteDebug(kAutoPromoteLogTitle, $"Action '{action.Name}' keeps {scope} {objectId} in state {statefulObject.StateId}.");
+        }
+
+        /// <summary>
+        /// Checks the error conditions after the check did not pass. The first condition that applies moves the
+        /// object into the error state instead of the target for a check that did not pass.
+        /// </summary>
+        /// <param name="conditionalParams">Parameters of the conditional auto-forward.</param>
+        /// <param name="checkResult">Result of the check that did not pass; its comment is kept in the error comment.</param>
+        /// <param name="statefulObject">Object the action is performed for.</param>
+        /// <param name="scope">Scope of the object.</param>
+        /// <returns>The decision for the error state, or null when no error state is set or no condition applies.</returns>
+        private async Task<AutoPromoteDecision?> CheckErrorConditions(ConditionalAutoPromoteParams conditionalParams, ConditionalCheckResult checkResult,
+            WfStatefulObject statefulObject, WfObjectScopes scope)
         {
             if (conditionalParams.ErrorState is not int errorState)
             {
@@ -87,7 +124,20 @@ namespace FWO.Services.Workflow
             }
 
             string? timeoutComment = await CheckTimeout(conditionalParams.ErrorConditions, statefulObject, scope);
-            return timeoutComment == null ? null : ConditionalDecision(errorState, timeoutComment, statefulObject);
+            return timeoutComment == null
+                ? null
+                : ConditionalDecision(errorState, CombineComments(timeoutComment, checkResult.TicketComment), statefulObject);
+        }
+
+        /// <summary>
+        /// Joins the comment documenting an error condition and the comment of the check that did not pass,
+        /// e.g. the list of missing managements, into one ticket comment.
+        /// </summary>
+        private static string CombineComments(string errorComment, string? checkComment)
+        {
+            return string.IsNullOrWhiteSpace(checkComment)
+                ? errorComment
+                : errorComment + kCommentSeparator + checkComment;
         }
 
         /// <summary>

@@ -1,6 +1,8 @@
 using System.Reflection;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Config.Api.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Jobs;
@@ -19,14 +21,49 @@ namespace FWO.Test
         private const int kOtherState = 300;
         private const int kFirstActionId = 11;
         private const int kSecondActionId = 12;
+        private const int kSendEmailActionId = 21;
+        private const int kSetAlertActionId = 22;
         private static readonly List<int> kCheckedStateOnly = [kCheckedState];
         private static readonly List<string> kStatesQueryOnly = [RequestQueries.getStates];
         private static readonly List<int> kBothActionsInSortOrder = [kFirstActionId, kSecondActionId];
         private static readonly List<int> kFirstActionOnly = [kFirstActionId];
+        private const string kGerman = "German";
+        private static readonly List<string> kGermanOnly = [kGerman];
+        private static readonly List<string> kConfigAndStatesQueries = [ConfigQueries.getConfigItemsByUser, RequestQueries.getStates];
+        private static readonly ConfigItem[] kChangedDefaultLanguage = [new() { Key = "DefaultLanguage", Value = kGerman, User = 0 }];
 
-        private static WfStateAction CreateAction(int id, string actionEvent = nameof(StateActionEvents.WhileSet), string scope = nameof(WfObjectScopes.Ticket))
+        private static WfStateAction CreateAction(int id, string actionEvent = nameof(StateActionEvents.WhileSet), string scope = nameof(WfObjectScopes.Ticket),
+            string actionType = nameof(StateActionTypes.AutoPromote))
         {
-            return new WfStateAction { Id = id, Name = $"Action {id}", ActionType = nameof(StateActionTypes.AutoPromote), Event = actionEvent, Scope = scope };
+            return new WfStateAction { Id = id, Name = $"Action {id}", ActionType = actionType, Event = actionEvent, Scope = scope };
+        }
+
+        /// <summary>
+        /// A state with "While set" ticket actions of an allowed type (auto-forward) and of two types not allowing "While set".
+        /// </summary>
+        private static List<WfState> CreateStateWithMixedActionTypes()
+        {
+            WfState checkedState = new() { Id = kCheckedState, Name = "Implemented" };
+            checkedState.Actions.Add(new WfStateActionDataHelper { SortOrder = 1, Action = CreateAction(kSendEmailActionId, actionType: nameof(StateActionTypes.SendEmail)) });
+            checkedState.Actions.Add(new WfStateActionDataHelper { SortOrder = 2, Action = CreateAction(kFirstActionId) });
+            checkedState.Actions.Add(new WfStateActionDataHelper { SortOrder = 3, Action = CreateAction(kSetAlertActionId, actionType: nameof(StateActionTypes.SetAlert)) });
+            return [checkedState];
+        }
+
+        private static string CaptureLog(Action action)
+        {
+            using StringWriter logOutput = new();
+            TextWriter originalOutput = Console.Out;
+            try
+            {
+                Console.SetOut(logOutput);
+                action();
+            }
+            finally
+            {
+                Console.SetOut(originalOutput);
+            }
+            return logOutput.ToString();
         }
 
         private static List<WfState> CreateStates()
@@ -41,6 +78,18 @@ namespace FWO.Test
             return [checkedState, otherState];
         }
 
+        /// <summary>
+        /// A state with one "While set" action that names its phase, so the executor needs no state matrix.
+        /// </summary>
+        private static List<WfState> CreateStateWithPhaseAction()
+        {
+            WfStateAction action = CreateAction(kFirstActionId);
+            action.Phase = nameof(WorkflowPhases.review);
+            WfState checkedState = new() { Id = kCheckedState, Name = "Implemented" };
+            checkedState.Actions.Add(new WfStateActionDataHelper { SortOrder = 1, Action = action });
+            return [checkedState];
+        }
+
         private static List<WfTicket> CreateTickets(params long[] ticketIds)
         {
             return [.. ticketIds.Select(ticketId => new WfTicket { Id = ticketId, StateId = kCheckedState })];
@@ -53,6 +102,84 @@ namespace FWO.Test
 
             Assert.That(actionsByState.Keys, Is.EqualTo(kCheckedStateOnly));
             Assert.That(actionsByState[kCheckedState].Select(action => action.Id), Is.EqualTo(kBothActionsInSortOrder));
+        }
+
+        [Test]
+        [NonParallelizable]
+        public void GetWhileSetTicketActions_WarnsAboutWhileSetActionsWithOtherScope()
+        {
+            using StringWriter logOutput = new();
+            TextWriter originalOutput = Console.Out;
+            try
+            {
+                Console.SetOut(logOutput);
+                WhileSetActionRunner.GetWhileSetTicketActions(CreateStates());
+            }
+            finally
+            {
+                Console.SetOut(originalOutput);
+            }
+
+            string log = logOutput.ToString();
+            Assert.Multiple(() =>
+            {
+                Assert.That(log, Does.Contain("Warning - While Set Actions"));
+                Assert.That(log, Does.Contain($"Action 'Action 14' (14) of state {kCheckedState} has event 'While set' and scope {nameof(WfObjectScopes.RequestTask)}"));
+                Assert.That(log, Does.Not.Contain("'Action 11'"));
+                Assert.That(log, Does.Not.Contain("'Action 13'"));
+            });
+        }
+
+        [Test]
+        [NonParallelizable]
+        public void GetWhileSetTicketActions_SkipsActionTypesNotAllowingWhileSetWithWarning()
+        {
+            Dictionary<int, List<WfStateAction>> actionsByState = [];
+
+            string log = CaptureLog(() => actionsByState = WhileSetActionRunner.GetWhileSetTicketActions(CreateStateWithMixedActionTypes()));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(actionsByState[kCheckedState].Select(action => action.Id), Is.EqualTo(kFirstActionOnly));
+                Assert.That(log, Does.Contain($"Action 'Action {kSendEmailActionId}' ({kSendEmailActionId}) of state {kCheckedState} has event 'While set' " +
+                    $"and action type {nameof(StateActionTypes.SendEmail)}; it is never performed"));
+                Assert.That(log, Does.Contain($"Action 'Action {kSetAlertActionId}' ({kSetAlertActionId}) of state {kCheckedState} has event 'While set' " +
+                    $"and action type {nameof(StateActionTypes.SetAlert)}; it is never performed"));
+                Assert.That(log, Does.Not.Contain($"'Action {kFirstActionId}'"));
+            });
+        }
+
+        [Test]
+        public async Task Run_PerformsOnlyActionTypesAllowingWhileSet()
+        {
+            RunnerApiConnection apiConnection = new() { States = CreateStateWithMixedActionTypes(), Tickets = CreateTickets(1) };
+            RecordingExecutor executor = new();
+
+            List<string> failures = await new WhileSetActionRunner(apiConnection, executor).Run();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(failures, Is.Empty);
+                Assert.That(executor.ActionIdsOf(1), Is.EqualTo(kFirstActionOnly));
+            });
+        }
+
+        [Test]
+        public async Task Run_StateWithOnlyDisallowedActionTypes_DoesNotLoadTickets()
+        {
+            WfState state = new() { Id = kCheckedState, Name = "Implemented" };
+            state.Actions.Add(new WfStateActionDataHelper { SortOrder = 1, Action = CreateAction(kSendEmailActionId, actionType: nameof(StateActionTypes.SendEmail)) });
+            RunnerApiConnection apiConnection = new() { States = new List<WfState> { state }, Tickets = CreateTickets(1) };
+            RecordingExecutor executor = new();
+
+            List<string> failures = await new WhileSetActionRunner(apiConnection, executor).Run();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(failures, Is.Empty);
+                Assert.That(apiConnection.Queries, Is.EqualTo(kStatesQueryOnly));
+                Assert.That(executor.Calls, Is.Empty);
+            });
         }
 
         [Test]
@@ -223,14 +350,14 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Job_WithoutWhileSetActions_Completes()
+        public async Task Job_WithoutWhileSetActions_ReadsTheCurrentConfigAndCompletes()
         {
             RunnerApiConnection apiConnection = new();
             WhileSetActionJob job = new(apiConnection, new SimulatedGlobalConfig(), new WorkflowTicketLocks());
 
             await job.Execute(null!);
 
-            Assert.That(apiConnection.Queries, Is.EqualTo(kStatesQueryOnly));
+            Assert.That(apiConnection.Queries, Is.EqualTo(kConfigAndStatesQueries));
         }
 
         [Test]
@@ -241,6 +368,45 @@ namespace FWO.Test
             JobExecutionException? exception = Assert.ThrowsAsync<JobExecutionException>(async () => await job.Execute(null!));
 
             Assert.That(exception, Is.Not.Null);
+        }
+
+        [Test]
+        public void Job_ConfigReadFailure_FailsTheRunWithAlertBeforeLoadingStates()
+        {
+            RunnerApiConnection apiConnection = new() { ConfigReadFails = true, States = CreateStateWithPhaseAction(), Tickets = CreateTickets(1) };
+            WhileSetActionJob job = new(apiConnection, new SimulatedGlobalConfig(), new WorkflowTicketLocks());
+
+            Assert.ThrowsAsync<JobExecutionException>(async () => await job.Execute(null!));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries[0], Is.EqualTo(ConfigQueries.getConfigItemsByUser));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(RequestQueries.getStates));
+                Assert.That(apiConnection.Queries, Does.Contain(MonitorQueries.addAlert));
+            });
+        }
+
+        [Test]
+        public void Job_WorkflowEnvironmentUsesConfigChangedAfterMiddlewareStart()
+        {
+            SimulatedGlobalConfig startupConfig = new() { DefaultLanguage = GlobalConst.kEnglish };
+            RunnerApiConnection apiConnection = new()
+            {
+                ConfigItems = kChangedDefaultLanguage,
+                States = CreateStateWithPhaseAction(),
+                Tickets = CreateTickets(1, 2)
+            };
+            WhileSetActionJob job = new(apiConnection, startupConfig, new WorkflowTicketLocks());
+
+            // without an internal LDAP the actions fail after the user config of the workflow environment was built
+            Assert.ThrowsAsync<JobExecutionException>(async () => await job.Execute(null!));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries[0], Is.EqualTo(ConfigQueries.getConfigItemsByUser), "config read at the start of the run");
+                Assert.That(apiConnection.CustomTextLanguages, Is.EqualTo(kGermanOnly), "one user config for the run, built from the changed config");
+                Assert.That(startupConfig.DefaultLanguage, Is.EqualTo(GlobalConst.kEnglish), "injected config unchanged");
+            });
         }
 
         [Test]
@@ -322,28 +488,63 @@ namespace FWO.Test
 
         private sealed class RunnerApiConnection : JobTestApiConnectionBase
         {
+            private static readonly List<string> kAlertQueries = [MonitorQueries.addLogEntry, MonitorQueries.getOpenAlerts, MonitorQueries.addAlert];
+
             public List<WfState> States { get; init; } = [];
             public List<WfTicket> Tickets { get; init; } = [];
+            public ConfigItem[] ConfigItems { get; init; } = [];
+            public bool ConfigReadFails { get; init; }
             public List<int>? TicketStateIds { get; private set; }
+            public List<string> CustomTextLanguages { get; } = [];
 
             protected override Task<QueryResponseType> HandleQueryAsync<QueryResponseType>(string query, object? variables,
                 string? operationName, QueryChunkingOptions? chunkingOptions)
             {
-                object response;
+                if (query == ConfigQueries.getConfigItemsByUser && ConfigReadFails)
+                {
+                    throw new InvalidOperationException("config read failed");
+                }
+                if (query == ConfigQueries.getCustomTextsPerLanguage)
+                {
+                    CustomTextLanguages.Add(GetVariable<string>(variables, "language"));
+                }
+                if (kAlertQueries.Contains(query))
+                {
+                    return ReturnEmptyOrDefault<QueryResponseType>();
+                }
+                return Task.FromResult((QueryResponseType)GetResponse(query, variables));
+            }
+
+            private object GetResponse(string query, object? variables)
+            {
+                if (query == ConfigQueries.getConfigItemsByUser)
+                {
+                    return ConfigItems;
+                }
+                if (query == ConfigQueries.getCustomTextsPerLanguage)
+                {
+                    return new List<UiText>();
+                }
+                if (query == AuthQueries.getLdapConnections)
+                {
+                    // no internal LDAP, so no workflow handler can be built
+                    return new List<Ldap>();
+                }
                 if (query == RequestQueries.getStates)
                 {
-                    response = States;
+                    return States;
                 }
-                else if (query == RequestQueries.getTicketIdsByStates)
+                if (query == RequestQueries.getTicketIdsByStates)
                 {
-                    TicketStateIds = (List<int>)variables!.GetType().GetProperty("stateIds")!.GetValue(variables)!;
-                    response = Tickets;
+                    TicketStateIds = GetVariable<List<int>>(variables, "stateIds");
+                    return Tickets;
                 }
-                else
-                {
-                    throw new AssertionException($"Unexpected query: {query}");
-                }
-                return Task.FromResult((QueryResponseType)response);
+                throw new AssertionException($"Unexpected query: {query}");
+            }
+
+            private static TValue GetVariable<TValue>(object? variables, string name)
+            {
+                return (TValue)variables!.GetType().GetProperty(name)!.GetValue(variables)!;
             }
         }
     }

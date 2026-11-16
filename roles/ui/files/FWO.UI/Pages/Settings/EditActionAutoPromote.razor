@@ -123,8 +123,8 @@
     private static WfState ConditionalState = new() { Id = -2, Name = "Conditional" };
     private static readonly WfState RemainState = new() { Id = WfStateAction.RemainStateId, Name = "remain" };
     private WfState selectedToState = AutomaticState;
-    private WfState selectedStateOk = AutomaticState;
-    private WfState selectedStateNotOk = AutomaticState;
+    private WfState selectedStateOk = RemainState;
+    private WfState selectedStateNotOk = RemainState;
     private WfState? selectedErrorState;
     private int? timeoutMinutes;
     private bool confirmUiMessage;
@@ -141,6 +141,14 @@
     private string PassedStateTextKey => selectedToBeCalled == ToBeCalled.RolloutCheck ? "ifImportedState" : "ifCompliantState";
     private string NotPassedStateTextKey => selectedToBeCalled == ToBeCalled.RolloutCheck ? "ifNotImportedState" : "ifNotCompliantState";
 
+    /// <summary>
+    /// A conditional target "automatic" stored by earlier versions has no target state and leaves the object in its
+    /// state, like "Remain in state". It is shown and stored as "Remain in state".
+    /// </summary>
+    private bool HasLegacyAutomaticTarget => selectedToState.Id == ConditionalState.Id
+        && (actConditionalAutoPromoteParams.IfCompliantState == WfStateAction.AutomaticStateId
+            || actConditionalAutoPromoteParams.IfNotCompliantState == WfStateAction.AutomaticStateId);
+
     protected override void OnParametersSet()
     {
         statesPlus =
@@ -149,18 +157,22 @@
             ConditionalState,
             .. States
         ];
+        // "automatic" is no conditional target: there it would determine no state and leave the object where it is.
         conditionalTargetStates =
         [
             RemainState,
-            AutomaticState,
             .. States
         ];
 
         ResetLocalState();
         LoadFromExternalParams();
-        if (confirmUiMessage && !ConfirmMessageApplies)
+        bool dropConfirmMessage = confirmUiMessage && !ConfirmMessageApplies;
+        if (dropConfirmMessage)
         {
             confirmUiMessage = false;
+        }
+        if (dropConfirmMessage || HasLegacyAutomaticTarget)
+        {
             UpdateExternalParams();
         }
     }
@@ -169,8 +181,8 @@
     {
         actConditionalAutoPromoteParams = new();
         selectedToState = AutomaticState;
-        selectedStateOk = AutomaticState;
-        selectedStateNotOk = AutomaticState;
+        selectedStateOk = RemainState;
+        selectedStateNotOk = RemainState;
         selectedErrorState = null;
         timeoutMinutes = null;
         selectedPolicies = [];
@@ -191,8 +203,9 @@
             selectedToBeCalled = conditionalParams.ToBeCalled;
             selectedPolicies = Policies.Where(p => conditionalParams.PolicyIds.Contains(p.Id)).ToList();
             selectedToState = ConditionalState;
-            selectedStateOk = conditionalTargetStates.FirstOrDefault(x => x.Id == conditionalParams.IfCompliantState) ?? AutomaticState;
-            selectedStateNotOk = conditionalTargetStates.FirstOrDefault(x => x.Id == conditionalParams.IfNotCompliantState) ?? AutomaticState;
+            // Legacy "automatic" and states that no longer exist do not move the object, the same as "Remain in state".
+            selectedStateOk = conditionalTargetStates.FirstOrDefault(x => x.Id == conditionalParams.IfCompliantState) ?? RemainState;
+            selectedStateNotOk = conditionalTargetStates.FirstOrDefault(x => x.Id == conditionalParams.IfNotCompliantState) ?? RemainState;
             selectedErrorState = States.FirstOrDefault(state => state.Id == conditionalParams.ErrorState);
             timeoutMinutes = conditionalParams.ErrorConditions.TimeoutMinutes;
             confirmUiMessage = conditionalParams.ConfirmUiMessage;

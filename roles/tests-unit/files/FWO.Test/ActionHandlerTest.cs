@@ -167,7 +167,11 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new List<UiUser>());
                 }
-                if (query == RequestQueries.updateTicketState || query == RequestQueries.updateRequestTaskState)
+                if (query == RequestQueries.updateTicketStateIfUnchanged)
+                {
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
+                }
+                if (query == RequestQueries.updateRequestTaskState)
                 {
                     long id = GetVariable<long>(variables, "id");
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = id });

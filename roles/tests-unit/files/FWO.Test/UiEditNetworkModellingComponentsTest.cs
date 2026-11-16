@@ -636,10 +636,10 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)TicketById);
                 }
 
-                if (typeof(QueryResponseType) == typeof(ReturnId) && query == RequestQueries.updateTicketState)
+                if (typeof(QueryResponseType) == typeof(ReturnId) && query == RequestQueries.updateTicketStateIfUnchanged)
                 {
                     UpdateTicketStateCalls++;
-                    return Task.FromResult((QueryResponseType)(object)new ReturnId { UpdatedIdLong = GetVariable<long>(variables, "id") });
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
                 }
 
                 if (typeof(QueryResponseType) == typeof(ReturnId) && query == RequestQueries.updateRequestTaskState)

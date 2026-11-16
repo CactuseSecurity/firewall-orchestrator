@@ -1,14 +1,20 @@
 using System.Reflection;
+using System.Security.Claims;
 using System.Text.Json;
+using AngleSharp.Dom;
 using Bunit;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data.Workflow;
+using FWO.Middleware.Client;
 using FWO.Ui.Pages.Settings;
 using FWO.Ui.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -31,16 +37,136 @@ namespace FWO.Test
         private static readonly List<int> kCompliantStateOnly = [260];
         private static readonly List<bool> kNoError = [false];
         private static readonly List<bool> kError = [true];
+        private static readonly List<int> kConditionalTargetIds = [WfStateAction.RemainStateId, 249, 260, 270];
+        private static readonly List<string> kTicketScopeOnly = [nameof(WfObjectScopes.Ticket)];
+        private static readonly List<string> kLegacyScopeAndTicket = [nameof(WfObjectScopes.RequestTask), nameof(WfObjectScopes.Ticket)];
+        private static readonly TimeSpan kRenderTimeout = TimeSpan.FromSeconds(15);
+        private const int kMissingStateId = 77;
+        private const string kMiddlewareWithoutServer = "http://127.0.0.1:1/";
 
         private static string RolloutCheckParams()
+        {
+            return ConditionalParams(260, WfStateAction.RemainStateId);
+        }
+
+        private static string ConditionalParams(int ifCompliantState, int ifNotCompliantState)
         {
             return JsonSerializer.Serialize(new ConditionalAutoPromoteParams
             {
                 ToBeCalled = ToBeCalled.RolloutCheck,
-                IfCompliantState = 260,
-                IfNotCompliantState = WfStateAction.RemainStateId,
+                IfCompliantState = ifCompliantState,
+                IfNotCompliantState = ifNotCompliantState,
                 ErrorState = 270,
                 ErrorConditions = new ConditionalErrorConditions { TimeoutMinutes = 240 }
+            });
+        }
+
+        private static ConditionalAutoPromoteParams ReadConditionalParams(WfStateAction action)
+        {
+            return JsonSerializer.Deserialize<ConditionalAutoPromoteParams>(action.ExternalParams)!;
+        }
+
+        private static async Task<EditActionAutoPromote> LoadAutoPromote(WfStateAction action)
+        {
+            EditActionAutoPromote component = new();
+            SetMember(component, "States", kStates);
+            SetMember(component, "ActAction", action);
+            await InvokeAsync(component, "OnParametersSet");
+            return component;
+        }
+
+        [Test]
+        public async Task AutoPromote_ConditionalTargets_OfferRemainButNotAutomatic()
+        {
+            EditActionAutoPromote component = await LoadAutoPromote(new WfStateAction { ExternalParams = RolloutCheckParams() });
+
+            List<int> conditionalTargetIds = GetMember<List<WfState>>(component, "conditionalTargetStates").Select(state => state.Id).ToList();
+            List<int> toStateIds = GetMember<List<WfState>>(component, "statesPlus").Select(state => state.Id).ToList();
+            Assert.Multiple(() =>
+            {
+                Assert.That(conditionalTargetIds, Is.EqualTo(kConditionalTargetIds));
+                Assert.That(toStateIds, Does.Contain(WfStateAction.AutomaticStateId));
+            });
+        }
+
+        [TestCase(WfStateAction.AutomaticStateId, WfStateAction.AutomaticStateId, WfStateAction.RemainStateId, WfStateAction.RemainStateId)]
+        [TestCase(260, WfStateAction.AutomaticStateId, 260, WfStateAction.RemainStateId)]
+        [TestCase(WfStateAction.AutomaticStateId, 270, WfStateAction.RemainStateId, 270)]
+        public async Task AutoPromote_OnParametersSet_LegacyAutomaticTarget_LoadsAndSavesAsRemain(int storedOk, int storedNotOk, int expectedOk, int expectedNotOk)
+        {
+            WfStateAction action = new() { ExternalParams = ConditionalParams(storedOk, storedNotOk) };
+
+            EditActionAutoPromote component = await LoadAutoPromote(action);
+
+            ConditionalAutoPromoteParams saved = ReadConditionalParams(action);
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<WfState>(component, "selectedStateOk").Id, Is.EqualTo(expectedOk));
+                Assert.That(GetMember<WfState>(component, "selectedStateNotOk").Id, Is.EqualTo(expectedNotOk));
+                Assert.That(saved.IfCompliantState, Is.EqualTo(expectedOk));
+                Assert.That(saved.IfNotCompliantState, Is.EqualTo(expectedNotOk));
+                Assert.That(saved.ToBeCalled, Is.EqualTo(ToBeCalled.RolloutCheck));
+                Assert.That(saved.ErrorState, Is.EqualTo(270));
+                Assert.That(saved.ErrorConditions.TimeoutMinutes, Is.EqualTo(240));
+            });
+        }
+
+        [Test]
+        public async Task AutoPromote_OnParametersSet_WithoutLegacyTarget_KeepsStoredParams()
+        {
+            string storedParams = RolloutCheckParams();
+            WfStateAction action = new() { ExternalParams = storedParams };
+
+            await LoadAutoPromote(action);
+
+            Assert.That(action.ExternalParams, Is.EqualTo(storedParams));
+        }
+
+        [Test]
+        public async Task AutoPromote_OnParametersSet_MissingTargetStates_ShowRemain()
+        {
+            string storedParams = ConditionalParams(kMissingStateId, kMissingStateId);
+            WfStateAction action = new() { ExternalParams = storedParams };
+
+            EditActionAutoPromote component = await LoadAutoPromote(action);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<WfState>(component, "selectedStateOk").Id, Is.EqualTo(WfStateAction.RemainStateId));
+                Assert.That(GetMember<WfState>(component, "selectedStateNotOk").Id, Is.EqualTo(WfStateAction.RemainStateId));
+                Assert.That(action.ExternalParams, Is.EqualTo(storedParams));
+            });
+        }
+
+        [Test]
+        public async Task AutoPromote_NewConditionalConfiguration_DefaultsTargetsToRemain()
+        {
+            WfStateAction action = new();
+            EditActionAutoPromote component = await LoadAutoPromote(action);
+
+            await InvokeAsync(component, "OnToStateChanged", new WfState { Id = kConditionalStateId });
+
+            ConditionalAutoPromoteParams saved = ReadConditionalParams(action);
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<WfState>(component, "selectedStateOk").Id, Is.EqualTo(WfStateAction.RemainStateId));
+                Assert.That(GetMember<WfState>(component, "selectedStateNotOk").Id, Is.EqualTo(WfStateAction.RemainStateId));
+                Assert.That(saved.IfCompliantState, Is.EqualTo(WfStateAction.RemainStateId));
+                Assert.That(saved.IfNotCompliantState, Is.EqualTo(WfStateAction.RemainStateId));
+            });
+        }
+
+        [Test]
+        public async Task AutoPromote_OnParametersSet_SimpleAutomaticTarget_StaysAutomatic()
+        {
+            WfStateAction action = new() { ExternalParams = WfStateAction.AutomaticStateId.ToString() };
+
+            EditActionAutoPromote component = await LoadAutoPromote(action);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<WfState>(component, "selectedToState").Id, Is.EqualTo(WfStateAction.AutomaticStateId));
+                Assert.That(action.ExternalParams, Is.EqualTo(WfStateAction.AutomaticStateId.ToString()));
             });
         }
 
@@ -258,6 +384,264 @@ namespace FWO.Test
             });
         }
 
+        private static WfStateAction GeneralAction(StateActionTypes actionType, WfObjectScopes scope, StateActionEvents actionEvent)
+        {
+            return new WfStateAction { ActionType = actionType.ToString(), Scope = scope.ToString(), Event = actionEvent.ToString() };
+        }
+
+        private static EditActionGeneral CreateGeneral(WfStateAction action, ParentNotifications notifications)
+        {
+            EditActionGeneral component = new();
+            SetMember(component, "ActAction", action);
+            SetMember(component, "ActionTypeChanged", EventCallback.Factory.Create<string?>(notifications, actionType => action.ActionType = actionType ?? ""));
+            SetMember(component, "ScopeChanged", EventCallback.Factory.Create<string?>(notifications, scope => notifications.Scope = scope));
+            SetMember(component, "EventChanged", EventCallback.Factory.Create<string?>(notifications, actionEvent => notifications.Event = actionEvent));
+            return component;
+        }
+
+        private static List<string> SelectableEvents(WfStateAction action)
+        {
+            return GetMember<IEnumerable<string>>(CreateGeneral(action, new ParentNotifications()), "SelectableEvents").ToList();
+        }
+
+        private static List<string> SelectableScopes(WfStateAction action)
+        {
+            return GetMember<IEnumerable<string>>(CreateGeneral(action, new ParentNotifications()), "SelectableScopes").ToList();
+        }
+
+        [Test]
+        public void General_WhileSet_OffersOnlyTicketScope()
+        {
+            WfStateAction action = GeneralAction(StateActionTypes.AutoPromote, WfObjectScopes.Ticket, StateActionEvents.WhileSet);
+
+            Assert.That(SelectableScopes(action), Is.EqualTo(kTicketScopeOnly));
+        }
+
+        [Test]
+        public async Task General_OnEventChanged_WhileSet_NormalizesScopeToTicketAndNotifiesParent()
+        {
+            WfStateAction action = GeneralAction(StateActionTypes.AutoPromote, WfObjectScopes.RequestTask, StateActionEvents.OnSet);
+            action.TaskType = WfTaskType.access.ToString();
+            ParentNotifications notifications = new();
+            EditActionGeneral component = CreateGeneral(action, notifications);
+            SetMember(component, "selectedTaskType", WfTaskType.access);
+
+            await InvokeAsync(component, "OnEventChanged", nameof(StateActionEvents.WhileSet));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(action.Event, Is.EqualTo(nameof(StateActionEvents.WhileSet)));
+                Assert.That(action.Scope, Is.EqualTo(nameof(WfObjectScopes.Ticket)));
+                Assert.That(action.TaskType, Is.Empty);
+                Assert.That(GetMember<WfTaskType?>(component, "selectedTaskType"), Is.Null);
+                Assert.That(notifications.Event, Is.EqualTo(nameof(StateActionEvents.WhileSet)));
+                Assert.That(notifications.Scope, Is.EqualTo(nameof(WfObjectScopes.Ticket)));
+            });
+        }
+
+        [Test]
+        public async Task General_OnEventChanged_OtherEvent_KeepsScope()
+        {
+            WfStateAction action = GeneralAction(StateActionTypes.AutoPromote, WfObjectScopes.RequestTask, StateActionEvents.OnSet);
+            ParentNotifications notifications = new();
+            EditActionGeneral component = CreateGeneral(action, notifications);
+
+            await InvokeAsync(component, "OnEventChanged", nameof(StateActionEvents.OnLeave));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(action.Scope, Is.EqualTo(nameof(WfObjectScopes.RequestTask)));
+                Assert.That(notifications.Event, Is.EqualTo(nameof(StateActionEvents.OnLeave)));
+                Assert.That(notifications.Scope, Is.Null);
+            });
+        }
+
+        [TestCase(WfObjectScopes.RequestTask)]
+        [TestCase(WfObjectScopes.ImplementationTask)]
+        [TestCase(WfObjectScopes.Approval)]
+        public void General_NonTicketScope_DoesNotOfferWhileSet(WfObjectScopes scope)
+        {
+            WfStateAction action = GeneralAction(StateActionTypes.AutoPromote, scope, StateActionEvents.OnSet);
+
+            List<string> events = SelectableEvents(action);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(events, Does.Not.Contain(nameof(StateActionEvents.WhileSet)));
+                Assert.That(events, Does.Contain(nameof(StateActionEvents.OnSet)));
+            });
+        }
+
+        [TestCase(WfObjectScopes.None)]
+        [TestCase(WfObjectScopes.Ticket)]
+        public void General_AutoPromote_OffersWhileSetWithTicketOrNoScope(WfObjectScopes scope)
+        {
+            WfStateAction action = GeneralAction(StateActionTypes.AutoPromote, scope, StateActionEvents.OnSet);
+
+            Assert.That(SelectableEvents(action), Does.Contain(nameof(StateActionEvents.WhileSet)));
+        }
+
+        [Test]
+        public async Task General_OnEventChanged_WhileSetWithoutScope_SwitchesToTicketAndNotifiesParent()
+        {
+            WfStateAction action = GeneralAction(StateActionTypes.AutoPromote, WfObjectScopes.None, StateActionEvents.None);
+            ParentNotifications notifications = new();
+            EditActionGeneral component = CreateGeneral(action, notifications);
+
+            await InvokeAsync(component, "OnEventChanged", nameof(StateActionEvents.WhileSet));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(action.Event, Is.EqualTo(nameof(StateActionEvents.WhileSet)));
+                Assert.That(action.Scope, Is.EqualTo(nameof(WfObjectScopes.Ticket)));
+                Assert.That(notifications.Event, Is.EqualTo(nameof(StateActionEvents.WhileSet)));
+                Assert.That(notifications.Scope, Is.EqualTo(nameof(WfObjectScopes.Ticket)));
+                Assert.That(SelectableScopes(action), Is.EqualTo(kTicketScopeOnly));
+            });
+        }
+
+        [TestCase(WfObjectScopes.RequestTask)]
+        [TestCase(WfObjectScopes.Ticket)]
+        public void General_AddApproval_DoesNotOfferWhileSet(WfObjectScopes scope)
+        {
+            WfStateAction action = GeneralAction(StateActionTypes.AddApproval, scope, StateActionEvents.OnSet);
+
+            Assert.That(SelectableEvents(action), Does.Not.Contain(nameof(StateActionEvents.WhileSet)));
+        }
+
+        [TestCase(StateActionTypes.DoNothing)]
+        [TestCase(StateActionTypes.SetAlert)]
+        [TestCase(StateActionTypes.ExternalCall)]
+        [TestCase(StateActionTypes.SendEmail)]
+        [TestCase(StateActionTypes.UpdateConnectionOwner)]
+        [TestCase(StateActionTypes.UpdateConnectionRelease)]
+        [TestCase(StateActionTypes.UpdateConnectionReject)]
+        [TestCase(StateActionTypes.UpdateModelling)]
+        [TestCase(StateActionTypes.CreateFlow)]
+        [TestCase(StateActionTypes.BundleTasks)]
+        [TestCase(StateActionTypes.CreateImplTasks)]
+        public void General_ActionTypeWithoutWhileSet_DoesNotOfferIt(StateActionTypes actionType)
+        {
+            WfStateAction ticketAction = GeneralAction(actionType, WfObjectScopes.Ticket, StateActionEvents.OnSet);
+            WfStateAction actionWithoutScope = GeneralAction(actionType, WfObjectScopes.None, StateActionEvents.OnSet);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(SelectableEvents(ticketAction), Does.Not.Contain(nameof(StateActionEvents.WhileSet)));
+                Assert.That(SelectableEvents(actionWithoutScope), Does.Not.Contain(nameof(StateActionEvents.WhileSet)));
+                Assert.That(SelectableEvents(ticketAction), Does.Contain(nameof(StateActionEvents.OnSet)));
+            });
+        }
+
+        [Test]
+        public void General_ExistingWhileSetWithOtherScope_RemainsVisibleForEditing()
+        {
+            WfStateAction action = GeneralAction(StateActionTypes.AutoPromote, WfObjectScopes.RequestTask, StateActionEvents.WhileSet);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(SelectableEvents(action)[0], Is.EqualTo(nameof(StateActionEvents.WhileSet)));
+                Assert.That(SelectableScopes(action), Is.EqualTo(kLegacyScopeAndTicket));
+                Assert.That(action.Scope, Is.EqualTo(nameof(WfObjectScopes.RequestTask)));
+            });
+        }
+
+        [Test]
+        public void General_ExistingWhileSetOfOtherActionType_RemainsVisibleWithoutRestrictingScope()
+        {
+            WfStateAction action = GeneralAction(StateActionTypes.SendEmail, WfObjectScopes.Ticket, StateActionEvents.WhileSet);
+
+            List<string> events = SelectableEvents(action);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(events[0], Is.EqualTo(nameof(StateActionEvents.WhileSet)));
+                Assert.That(events.Count(actionEvent => actionEvent == nameof(StateActionEvents.WhileSet)), Is.EqualTo(1));
+                Assert.That(SelectableScopes(action), Is.EqualTo(Enum.GetNames<WfObjectScopes>()));
+            });
+        }
+
+        [Test]
+        public async Task General_ActionTypeChangeToAddApproval_DropsWhileSetAndNotifiesParent()
+        {
+            WfStateAction action = GeneralAction(StateActionTypes.AutoPromote, WfObjectScopes.Ticket, StateActionEvents.WhileSet);
+            ParentNotifications notifications = new();
+            EditActionGeneral component = CreateGeneral(action, notifications);
+
+            await InvokeAsync(component, "OnActionTypeChanged", nameof(StateActionTypes.AddApproval));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(action.Scope, Is.EqualTo(nameof(WfObjectScopes.RequestTask)));
+                Assert.That(action.Event, Is.EqualTo(nameof(StateActionEvents.None)));
+                Assert.That(notifications.Scope, Is.EqualTo(nameof(WfObjectScopes.RequestTask)));
+                Assert.That(notifications.Event, Is.EqualTo(nameof(StateActionEvents.None)));
+            });
+        }
+
+        [TestCase(StateActionTypes.SendEmail)]
+        [TestCase(StateActionTypes.SetAlert)]
+        [TestCase(StateActionTypes.CreateFlow)]
+        public async Task General_ActionTypeChangeToTypeWithoutWhileSet_DropsWhileSetAndKeepsScope(StateActionTypes actionType)
+        {
+            WfStateAction action = GeneralAction(StateActionTypes.AutoPromote, WfObjectScopes.Ticket, StateActionEvents.WhileSet);
+            ParentNotifications notifications = new();
+            EditActionGeneral component = CreateGeneral(action, notifications);
+
+            await InvokeAsync(component, "OnActionTypeChanged", actionType.ToString());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(action.Scope, Is.EqualTo(nameof(WfObjectScopes.Ticket)));
+                Assert.That(action.Event, Is.EqualTo(nameof(StateActionEvents.None)));
+                Assert.That(notifications.Scope, Is.Null);
+                Assert.That(notifications.Event, Is.EqualTo(nameof(StateActionEvents.None)));
+            });
+        }
+
+        [Test]
+        public async Task General_ActionTypeChangeToAutoPromote_KeepsWhileSetAndMovesLegacyScopeToTicket()
+        {
+            WfStateAction action = GeneralAction(StateActionTypes.SendEmail, WfObjectScopes.RequestTask, StateActionEvents.WhileSet);
+            ParentNotifications notifications = new();
+            EditActionGeneral component = CreateGeneral(action, notifications);
+
+            await InvokeAsync(component, "OnActionTypeChanged", nameof(StateActionTypes.AutoPromote));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(action.Scope, Is.EqualTo(nameof(WfObjectScopes.Ticket)));
+                Assert.That(action.Event, Is.EqualTo(nameof(StateActionEvents.WhileSet)));
+                Assert.That(notifications.Scope, Is.EqualTo(nameof(WfObjectScopes.Ticket)));
+                Assert.That(notifications.Event, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task General_ActionTypeChange_WithoutNormalization_DoesNotNotifyScopeOrEvent()
+        {
+            WfStateAction action = GeneralAction(StateActionTypes.AutoPromote, WfObjectScopes.Ticket, StateActionEvents.OnSet);
+            ParentNotifications notifications = new();
+            EditActionGeneral component = CreateGeneral(action, notifications);
+
+            await InvokeAsync(component, "OnActionTypeChanged", nameof(StateActionTypes.SendEmail));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(action.Scope, Is.EqualTo(nameof(WfObjectScopes.Ticket)));
+                Assert.That(action.Event, Is.EqualTo(nameof(StateActionEvents.OnSet)));
+                Assert.That(notifications.Scope, Is.Null);
+                Assert.That(notifications.Event, Is.Null);
+            });
+        }
+
+        private sealed class ParentNotifications
+        {
+            public string? Scope { get; set; }
+
+            public string? Event { get; set; }
+        }
+
         [Test]
         public void DisplayState_RemainState_UsesText()
         {
@@ -317,6 +701,55 @@ namespace FWO.Test
 
             Assert.That(messages.ErrorFlags, Is.EqualTo(kError));
             Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task SettingsActions_Render_IntervalUsesFormControlAndSaveButtonWithIcon(bool isAdmin)
+        {
+            SimulatedUserConfig userConfig = new() { ReqAvailableTaskTypes = "[\"access\"]" };
+            if (isAdmin)
+            {
+                userConfig.User.Roles = new List<string> { Roles.Admin };
+            }
+            await using BunitContext context = CreateSettingsActionsContext(userConfig);
+
+            IRenderedComponent<CascadingAuthenticationState> root = context.Render<CascadingAuthenticationState>(parameters => parameters.AddChildContent<SettingsActions>());
+            IElement input = root.WaitForElement("#whileSetActionSleepTime", kRenderTimeout);
+            IElement saveButton = root.Find("form button");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(input.ClassList, Does.Contain("form-control"));
+                Assert.That(input.ClassList, Does.Contain("form-control-sm"));
+                Assert.That(saveButton.ClassName, Is.EqualTo("btn btn-sm btn-primary"));
+                Assert.That(saveButton.QuerySelector("span")?.ClassName, Is.EqualTo(Icons.Save));
+                Assert.That(saveButton.HasAttribute("disabled"), Is.EqualTo(!isAdmin));
+            });
+        }
+
+        private static BunitContext CreateSettingsActionsContext(UserConfig userConfig)
+        {
+            BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new AnonymousAuthStateProvider());
+            context.Services.AddSingleton<ApiConnection>(new RecordingApiConnection());
+            context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
+            context.Services.AddSingleton(userConfig);
+            context.Services.AddSingleton(new MiddlewareClient(kMiddlewareWithoutServer));
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddLocalization();
+            return context;
+        }
+
+        private sealed class AnonymousAuthStateProvider : AuthenticationStateProvider
+        {
+            public override Task<AuthenticationState> GetAuthenticationStateAsync()
+            {
+                return Task.FromResult(new AuthenticationState(new ClaimsPrincipal()));
+            }
         }
 
         private static SettingsActions CreateSettingsActions(GlobalConfig globalConfig, ApiConnection apiConnection, MessageRecorder messages)

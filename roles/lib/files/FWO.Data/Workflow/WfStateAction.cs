@@ -134,6 +134,19 @@ namespace FWO.Data.Workflow
             return false;
         }
 
+        /// <summary>
+        /// Tells whether actions of the given type may use the event "While set". The middleware performs such an
+        /// action on every interval for every ticket in the state, so only action types that wait for a condition and
+        /// change nothing until it is met qualify. For now this is the auto-forward: other types would send a message,
+        /// create objects or write data on every run.
+        /// </summary>
+        /// <param name="actionType">Name of the action type, see <see cref="StateActionTypes"/>.</param>
+        /// <returns>True if actions of this type may use the event "While set".</returns>
+        public static bool AllowsWhileSet(string? actionType)
+        {
+            return actionType == nameof(StateActionTypes.AutoPromote);
+        }
+
         public static bool TryParseAutoPromoteParams(string externalParams, out int? toStateId, out ConditionalAutoPromoteParams? conditionalParams)
         {
             toStateId = null;
@@ -233,8 +246,8 @@ namespace FWO.Data.Workflow
         private ConditionalErrorConditions errorConditions = new();
 
         /// <summary>
-        /// Conditions checked before the check is called. The first one that applies moves the object into the
-        /// error state, and the check is not called.
+        /// Conditions checked when the check has not passed. The first one that applies moves the object into the
+        /// error state instead of the not-passed target.
         /// </summary>
         [JsonProperty("error_conditions"), JsonPropertyName("error_conditions")]
         public ConditionalErrorConditions ErrorConditions

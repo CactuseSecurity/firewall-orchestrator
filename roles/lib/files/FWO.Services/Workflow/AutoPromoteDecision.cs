@@ -23,8 +23,19 @@ namespace FWO.Services.Workflow
         public static AutoPromoteDecision Remain { get; } = new(WfStateAction.RemainStateId);
 
         /// <summary>
+        /// Decision for a conditional target <see cref="WfStateAction.AutomaticStateId"/>, which conditional
+        /// auto-forwards do not support. Configurations saved with it keep the object in its current state.
+        /// </summary>
+        public static AutoPromoteDecision RemainForAutomaticTarget { get; } = new(WfStateAction.RemainStateId) { HasAutomaticTarget = true };
+
+        /// <summary>
         /// True when the object stays in its current state.
         /// </summary>
         public bool RemainsInState => ToStateId == WfStateAction.RemainStateId;
+
+        /// <summary>
+        /// True when the decision results from the unsupported conditional target "automatic".
+        /// </summary>
+        public bool HasAutomaticTarget { get; private init; }
     }
 }

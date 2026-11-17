@@ -1037,7 +1037,8 @@ namespace FWO.Test
             ClassicAssert.IsTrue(result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
-            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
+            // groups are resolved: the group holds the surplus member AppServerOld, so the group is marked
+            ClassicAssert.IsTrue(result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Services.Length);
             ClassicAssert.AreEqual("Service1", result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.Name);
             ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
@@ -1418,7 +1419,7 @@ namespace FWO.Test
         {
             List<ModellingConnection> Connections = [new(Connection1), new(Connection2), new(Connection3), new(Connection4), new(Connection5)];
             ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
-            await varianceAnalysis.AnalyseConnsForStatusAsync(Connections);
+            await varianceAnalysis.AnalyseConnsForStatusAsync(Connections, 0);
 
             ClassicAssert.IsTrue(Connections[0].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
             ClassicAssert.IsTrue(Connections[0].Props?.ContainsKey(ConState.VarianceFound.ToString()));

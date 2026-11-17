@@ -181,7 +181,7 @@ namespace FWO.Report
         private static async Task PrepareVarianceData(ReportBase report, OwnerConnectionReport ownerReport, ModellingFilter modellingFilter, ApiConnection apiConnection,
             UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, OwnerReportRun run)
         {
-            ownerReport.ExtractConnectionsToAnalyse();
+            SelectConnectionsToAnalyse(ownerReport, userConfig);
             ExtStateHandler extStateHandler = new(apiConnection);
             ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, ownerReport.Owner, displayMessageInUi)
             {
@@ -209,6 +209,24 @@ namespace FWO.Report
             {
                 reportVariances.ReportData.ElementsCount += reportVariances.MissARCounter + reportVariances.DiffARCounter + reportVariances.MissConnCounter + reportVariances.DiffConnCounter;
             }
+        }
+
+        /// <summary>
+        /// Restricts the owner's connections to the ones the variance analysis looks at, using the same
+        /// selection as the connection status and the request. The others are kept with their reason,
+        /// so the report lists them instead of dropping them silently.
+        /// </summary>
+        internal static void SelectConnectionsToAnalyse(OwnerConnectionReport ownerReport, UserConfig userConfig)
+        {
+            foreach (ModellingConnection conn in ownerReport.Connections)
+            {
+                conn.SyncState(ownerReport.DummyAppRoleId, userConfig.ModRolloutRemovedAppServers);
+            }
+            ModellingVarianceConnectionSelection selection = ModellingVarianceConnectionSelector.Select(ownerReport.Connections,
+                ownerReport.DummyAppRoleId, userConfig.ModRolloutRemovedAppServers);
+            ownerReport.ExcludedConnections = selection.Excluded;
+            ownerReport.Connections = [.. selection.Analysed.OrderByDescending(conn => conn.IsCommonService)];
+            ownerReport.ModelledConnectionsCount = ownerReport.Connections.Count(conn => !conn.IsDocumentationOnly());
         }
 
         private static async Task GenerateStatisticsReport(ReportBase report, ReportTemplate reportTemplate, ApiConnection apiConnection, CancellationToken token)

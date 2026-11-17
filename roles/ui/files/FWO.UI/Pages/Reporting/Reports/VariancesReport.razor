@@ -82,6 +82,28 @@
             </Collapse>
         </div>
     }
+    @if(owner.ExcludedConnections.Count > 0)
+    {
+        <br>
+        <h5>@(userConfig.GetText("connections_not_analysed"))</h5>
+        <div class="ml-13">
+            <Collapse Title="@userConfig.GetText("connections")" Style="@("primary")" StartToggled="false">
+                <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="ModellingExcludedConnection" Items="owner.ExcludedConnections" PageSize="0">
+                    <Column TableItem="ModellingExcludedConnection" Title="@(userConfig.GetText("id"))" Field="@(x => x.Connection.Id)" Sortable="true" />
+                    <Column TableItem="ModellingExcludedConnection" Title="@(userConfig.GetText("name"))" Field="@(x => x.Connection.Name)" Sortable="true">
+                        <Template>
+                            @(context.Connection.Name)
+                        </Template>
+                    </Column>
+                    <Column TableItem="ModellingExcludedConnection" Title="@(userConfig.GetText("reason"))" Field="@(x => x.Reason)" Sortable="true">
+                        <Template>
+                            @(userConfig.GetText(context.ReasonTextKey))
+                        </Template>
+                    </Column>
+                </Table>
+            </Collapse>
+        </div>
+    }
     @if(owner.RulesForDeletedConns.Count > 0)
     {
         <br>

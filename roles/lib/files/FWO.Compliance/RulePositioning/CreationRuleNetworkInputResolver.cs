@@ -13,8 +13,6 @@ namespace FWO.Compliance.RulePositioning;
 public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGroupResolver)
     : ICreationRuleNetworkInputResolver
 {
-    private static readonly IReadOnlyCollection<string> kEmptyResolutionPath =
-        new List<string>().AsReadOnly();
     private readonly IFlowGroupResolver flowGroupResolver = flowGroupResolver ??
         throw new ArgumentNullException(nameof(flowGroupResolver));
 
@@ -28,7 +26,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         {
             cancellationToken.ThrowIfCancellationRequested();
             ValidateAccessTask(accessTask);
-            IReadOnlyList<WfReqTask> orderedTasks = TicketNetworkStateProjector.Project(
+            TicketObjectReferenceIndex referenceIndex = TicketObjectReferenceIndex.Create(
                 accessTask,
                 ticketTasks);
             List<WfReqElement> sources = ActiveSide(accessTask, ElemFieldType.source);
@@ -39,10 +37,10 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
             }
 
             CatalogIndex catalog = await LoadCatalogAsync(
-                sources.Concat(destinations), orderedTasks, cancellationToken);
-            ResolutionContext context = new(accessTask, orderedTasks, catalog, cancellationToken);
-            List<IPAddressRange> sourceRanges = ResolveElements(sources, context, kEmptyResolutionPath);
-            List<IPAddressRange> destinationRanges = ResolveElements(destinations, context, kEmptyResolutionPath);
+                sources.Concat(destinations), referenceIndex, cancellationToken);
+            ResolutionContext context = new(referenceIndex, catalog, cancellationToken);
+            List<IPAddressRange> sourceRanges = ResolveElements(sources, context);
+            List<IPAddressRange> destinationRanges = ResolveElements(destinations, context);
             return CreationRuleNetworkResolutionResult.Success(new CreationRuleNetworkInput(
                 PositioningAddressRangeNormalizer.Distinct(sourceRanges),
                 PositioningAddressRangeNormalizer.Distinct(destinationRanges)));
@@ -94,22 +92,30 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         return result;
     }
 
-    /// <summary>Loads only catalog groups not fully defined by ticket state, plus modify baselines.</summary>
+    /// <summary>Loads existing groups and exact referenced group-modification baselines.</summary>
     private async Task<CatalogIndex> LoadCatalogAsync(
         IEnumerable<WfReqElement> accessElements,
-        IReadOnlyList<WfReqTask> tasks,
+        TicketObjectReferenceIndex referenceIndex,
         CancellationToken cancellationToken)
     {
-        List<GroupIdentity> ticketIdentities = tasks.Where(IsNetworkGroupTask).Select(GroupIdentityForTask).ToList();
-        List<GroupIdentity> references = accessElements.Concat(tasks.Where(IsNetworkGroupTask)
-            .SelectMany(task => task.Elements.Where(element => element.Field == ElemFieldType.source.ToString())))
-            .Where(element => !HasAddress(element)).Select(GroupIdentityForElement).ToList();
-        references.AddRange(tasks.Where(task => task.TaskType == WfTaskType.group_modify.ToString())
-            .Select(GroupIdentityForTask));
-        List<GroupIdentity> requested = references.Where(reference =>
-            !ticketIdentities.Any(ticket => Matches(reference, ticket)) ||
-            tasks.Any(task => task.TaskType == WfTaskType.group_modify.ToString() &&
-                Matches(reference, GroupIdentityForTask(task)))).ToList();
+        List<GroupIdentity> requested = [];
+        foreach (WfReqElement element in accessElements)
+        {
+            if (element.ObjectTaskId == null)
+            {
+                if (!HasAddress(element))
+                {
+                    requested.Add(GroupIdentityForElement(element));
+                }
+                continue;
+            }
+
+            WfReqTask referencedTask = referenceIndex.Resolve(element, ReferenceFailureCategory(element));
+            if (referencedTask.TaskType == WfTaskType.group_modify.ToString())
+            {
+                requested.Add(GroupIdentityForTask(referencedTask));
+            }
+        }
         List<long> ids = requested.Where(reference => reference.FlowId is > 0)
             .Select(reference => reference.FlowId!.Value).Distinct().ToList();
         List<string> names = requested.Where(reference => reference.FlowId is not > 0 && reference.Name.Length > 0)
@@ -166,119 +172,144 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         return result.NetworkGroups;
     }
 
-    /// <summary>Recursively resolves direct leaves and group references.</summary>
+    /// <summary>Resolves exact references, persisted leaves, and existing catalog groups.</summary>
     private static List<IPAddressRange> ResolveElements(
         IEnumerable<WfReqElement> elements,
-        ResolutionContext context,
-        IReadOnlyCollection<string> visited)
+        ResolutionContext context)
     {
         List<IPAddressRange> ranges = [];
         foreach (WfReqElement element in elements)
         {
             context.CancellationToken.ThrowIfCancellationRequested();
-            if (HasAddress(element))
+            if (element.ObjectTaskId != null)
             {
-                ranges.Add(ResolveObject(element, context));
+                ranges.AddRange(ResolveReferencedElement(element, context));
+            }
+            else if (HasAddress(element))
+            {
+                ranges.Add(PositioningAddressRangeNormalizer.Normalize(element));
             }
             else
             {
-                ranges.AddRange(ResolveGroup(GroupIdentityForElement(element), context, visited));
+                ranges.AddRange(ResolveCatalogGroup(GroupIdentityForElement(element), context));
             }
         }
         return ranges;
     }
 
-    /// <summary>Applies a matching ticket object task before parsing a direct leaf.</summary>
-    private static IPAddressRange ResolveObject(WfReqElement requested, ResolutionContext context)
+    /// <summary>Resolves the exact object or group task referenced by one access element.</summary>
+    private static List<IPAddressRange> ResolveReferencedElement(
+        WfReqElement element,
+        ResolutionContext context)
     {
-        GroupIdentity identity = ObjectIdentityForElement(requested);
-        List<WfReqTask> matching = context.Tasks.Where(IsNetworkObjectTask)
-            .Where(task => task.Elements.Any(element => Matches(identity, ObjectIdentityForElement(element))))
-            .ToList();
-        if (matching.Any(task => !TicketNetworkStateProjector.IsBefore(task, context.AccessTask)))
+        CreationRuleNetworkResolutionFailureCategory unresolvedCategory = ReferenceFailureCategory(element);
+        WfReqTask referencedTask = context.ReferenceIndex.Resolve(element, unresolvedCategory);
+        if (IsNetworkGroupTask(referencedTask))
         {
-            throw Failure(CreationRuleNetworkResolutionFailureCategory.ProtocolOrderInvalid);
+            return ResolveReferencedGroup(referencedTask, context);
         }
-        if (matching.Count > 0)
+        return [ResolveReferencedObject(referencedTask)];
+    }
+
+    /// <summary>Resolves one exact network object task's requested state.</summary>
+    private static IPAddressRange ResolveReferencedObject(WfReqTask objectTask)
+    {
+        if (!IsNetworkObjectTask(objectTask) || !WfObjectTaskHelper.HasValidElementStructure(objectTask))
         {
-            WfReqElement? effective = matching.Select(WfObjectTaskHelper.GetRequestedElement).LastOrDefault(element => element != null);
-            if (effective == null)
-            {
-                throw Failure(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved);
-            }
-            requested = effective;
+            throw Failure(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved);
+        }
+        WfReqElement? requested = WfObjectTaskHelper.GetRequestedElement(objectTask);
+        if (requested == null || WfObjectTaskHelper.GetKind(requested) != ObjectTaskKind.Network)
+        {
+            throw Failure(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved);
         }
         return PositioningAddressRangeNormalizer.Normalize(requested);
     }
 
-    /// <summary>Resolves ticket state first and falls back to one flattened catalog group.</summary>
-    private static List<IPAddressRange> ResolveGroup(
+    /// <summary>Resolves an existing group that has no ticket-local reference.</summary>
+    private static List<IPAddressRange> ResolveCatalogGroup(
         GroupIdentity identity,
-        ResolutionContext context,
-        IReadOnlyCollection<string> visited)
+        ResolutionContext context)
     {
         if (!identity.IsUsable)
         {
             throw Failure(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved);
         }
-        string visitKey = identity.Key;
-        if (visited.Count >= TicketNetworkStateProjector.kMaximumGroupDepth || visited.Contains(visitKey))
-        {
-            throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
-        }
-        List<WfReqTask> ticketTasks = context.Tasks.Where(IsNetworkGroupTask)
-            .Where(task => Matches(identity, GroupIdentityForTask(task))).ToList();
-        if (ticketTasks.Any(task => !TicketNetworkStateProjector.IsBefore(task, context.AccessTask)))
-        {
-            throw Failure(CreationRuleNetworkResolutionFailureCategory.ProtocolOrderInvalid);
-        }
-        IReadOnlyCollection<string> path = [.. visited, visitKey];
-        if (ticketTasks.Count > 0)
-        {
-            return ResolveTicketGroup(identity, ticketTasks, context, path);
-        }
-        FlowNetworkGroupResolution catalogGroup = context.Catalog.Resolve(identity);
-        return ResolveCatalogMembers(catalogGroup, context.CancellationToken);
+        return ResolveCatalogMembers(context.Catalog.Resolve(identity), context.CancellationToken);
     }
 
-    /// <summary>Folds ordered create/modify/delete group tasks to one final member set.</summary>
-    private static List<IPAddressRange> ResolveTicketGroup(
-        GroupIdentity identity,
-        IReadOnlyList<WfReqTask> tasks,
-        ResolutionContext context,
-        IReadOnlyCollection<string> path)
+    /// <summary>Resolves one exact referenced group task.</summary>
+    private static List<IPAddressRange> ResolveReferencedGroup(
+        WfReqTask groupTask,
+        ResolutionContext context)
+    {
+        if (groupTask.TaskType == WfTaskType.group_create.ToString())
+        {
+            return ResolveCreatedGroup(groupTask, context);
+        }
+        if (groupTask.TaskType == WfTaskType.group_modify.ToString())
+        {
+            return ResolveModifiedGroup(groupTask, context);
+        }
+        throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
+    }
+
+    /// <summary>Builds one referenced new group from its persisted member snapshots.</summary>
+    private static List<IPAddressRange> ResolveCreatedGroup(
+        WfReqTask groupTask,
+        ResolutionContext context)
     {
         List<WfReqElement> members = [];
-        bool initialized = false;
-        bool deleted = false;
-        foreach (WfReqTask task in tasks.OrderBy(task => task.TaskNumber).ThenBy(task => task.Id))
-        {
-            context.CancellationToken.ThrowIfCancellationRequested();
-            if (task.TaskType == WfTaskType.group_delete.ToString())
-            {
-                members.Clear();
-                initialized = true;
-                deleted = true;
-                continue;
-            }
-            if (!initialized && task.TaskType == WfTaskType.group_modify.ToString())
-            {
-                members.AddRange(CatalogMembersAsElements(context.Catalog.Resolve(identity)));
-            }
-            else if (!initialized && task.TaskType != WfTaskType.group_create.ToString())
-            {
-                throw Failure(CreationRuleNetworkResolutionFailureCategory.InvalidInput);
-            }
-            initialized = true;
-            deleted = false;
-            ApplyMemberActions(members, task.Elements.Where(element =>
-                element.Field == ElemFieldType.source.ToString()));
-        }
-        if (!initialized || deleted || members.Count == 0)
+        ApplyMemberActions(members, SourceMembers(groupTask));
+        return ResolvePersistedGroupMembers(members, context.CancellationToken);
+    }
+
+    /// <summary>Applies one referenced group modification to its catalog baseline.</summary>
+    private static List<IPAddressRange> ResolveModifiedGroup(
+        WfReqTask groupTask,
+        ResolutionContext context)
+    {
+        GroupIdentity identity = GroupIdentityForTask(groupTask);
+        if (!identity.IsUsable)
         {
             throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
         }
-        return ResolveElements(members, context, path);
+        List<WfReqElement> members = [.. CatalogMembersAsElements(context.Catalog.Resolve(identity))];
+        ApplyMemberActions(members, SourceMembers(groupTask));
+        return ResolvePersistedGroupMembers(members, context.CancellationToken);
+    }
+
+    /// <summary>Returns the persisted address-member actions of one network group task.</summary>
+    private static IEnumerable<WfReqElement> SourceMembers(WfReqTask groupTask) =>
+        groupTask.Elements.Where(element => element.Field == ElemFieldType.source.ToString());
+
+    /// <summary>Normalizes active persisted group members without following sibling references.</summary>
+    private static List<IPAddressRange> ResolvePersistedGroupMembers(
+        IReadOnlyCollection<WfReqElement> members,
+        CancellationToken cancellationToken)
+    {
+        if (members.Count == 0)
+        {
+            throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
+        }
+        List<IPAddressRange> ranges = [];
+        foreach (WfReqElement member in members)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!HasAddress(member))
+            {
+                throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
+            }
+            try
+            {
+                ranges.Add(PositioningAddressRangeNormalizer.Normalize(member));
+            }
+            catch (NetworkResolutionException)
+            {
+                throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved);
+            }
+        }
+        return ranges;
     }
 
     /// <summary>Applies supported group member actions with identity-based replacement/removal.</summary>
@@ -392,6 +423,13 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
     private static bool HasAddress(WfReqElement element) =>
         !string.IsNullOrWhiteSpace(element.IpString) || element.Cidr?.Valid == true;
 
+    /// <summary>Selects the typed unresolved category implied by one persisted access element.</summary>
+    private static CreationRuleNetworkResolutionFailureCategory ReferenceFailureCategory(
+        WfReqElement element) =>
+        !HasAddress(element) && GroupIdentityForElement(element).IsUsable
+            ? CreationRuleNetworkResolutionFailureCategory.GroupUnresolved
+            : CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved;
+
     /// <summary>Extracts the prioritized identity of a ticket group task.</summary>
     private static GroupIdentity GroupIdentityForTask(WfReqTask task) => new(
         task.GetAddInfoLongValue(AdditionalInfoKeys.GroupId) ??
@@ -436,10 +474,9 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
     /// <summary>Creates an internal typed control-flow failure.</summary>
     private static NetworkResolutionException Failure(CreationRuleNetworkResolutionFailureCategory category) => new(category);
 
-    /// <summary>Immutable state shared while resolving nested ticket and catalog elements.</summary>
+    /// <summary>Immutable state shared while resolving exact references and catalog groups.</summary>
     private sealed record ResolutionContext(
-        WfReqTask AccessTask,
-        IReadOnlyList<WfReqTask> Tasks,
+        TicketObjectReferenceIndex ReferenceIndex,
         CatalogIndex Catalog,
         CancellationToken CancellationToken);
 
@@ -448,19 +485,6 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
     {
         /// <summary>Gets whether at least one stable group identity is available.</summary>
         internal bool IsUsable => FlowId is > 0 || NormalizedId is > 0 || Name.Length > 0;
-        internal string Key
-        {
-            get
-            {
-                if (FlowId is > 0)
-                {
-                    return $"f:{FlowId}";
-                }
-                return NormalizedId is > 0
-                    ? $"n:{NormalizedId}"
-                    : $"s:{Name.ToUpperInvariant()}";
-            }
-        }
     }
 
     /// <summary>Lookup index for catalog groups loaded by identifier or name.</summary>

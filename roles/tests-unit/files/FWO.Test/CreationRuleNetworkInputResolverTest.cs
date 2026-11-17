@@ -316,21 +316,82 @@ public class CreationRuleNetworkInputResolverTest
     }
 
     [Test]
-    public async Task TicketGroup_OverridesCatalogAndExpandsNestedGroup()
+    public async Task ReferencedGroupCreate_UsesPersistedSnapshotsAndIgnoresSiblingTasks()
     {
-        WfReqTask nested = GroupCreate(1, 1, "nested",
-            [Leaf(ElemFieldType.source, "10.1.0.1", "10.1.0.1")]);
-        WfReqTask outer = GroupCreate(2, 2, "outer",
-            [new WfReqElement { Field = "source", GroupName = "nested", RequestAction = "create" }]);
+        WfReqElement fantasyMember = Leaf(ElemFieldType.source, "10.1.0.2", "10.1.0.2");
+        fantasyMember.Name = "fantasy";
+        fantasyMember.ObjectTaskEntityId = -7;
+        WfReqTask referenced = GroupCreate(2, 2, "shared",
+            Items(Leaf(ElemFieldType.source, "10.1.0.1", "10.1.0.1"), fantasyMember));
+        WfReqTask siblingObject = ObjectCreate(1, 1, "fantasy", "10.9.9.9");
+        WfReqTask siblingGroup = GroupCreate(4, 4, "shared",
+            Items(Leaf(ElemFieldType.source, "10.8.8.8", "10.8.8.8")));
+        WfReqElement source = new()
+        {
+            Field = ElemFieldType.source.ToString(),
+            GroupName = "shared",
+            ObjectTaskId = referenced.Id
+        };
         WfReqTask access = Access(
-            [new WfReqElement { Field = "source", GroupName = "outer" }],
-            [Leaf(ElemFieldType.destination, "203.0.113.5", "203.0.113.5")], 3, 3);
+            Items(source),
+            Items(Leaf(ElemFieldType.destination, "203.0.113.5", "203.0.113.5")), 3, 3);
         FakeFlowGroupResolver groups = new(new FlowGroupResolutionResult());
 
         CreationRuleNetworkInput input = AssertSuccess(
-            await Resolver(groups).ResolveAsync(access, [access, outer, nested], CancellationToken.None));
+            await Resolver(groups).ResolveAsync(
+                access,
+                Items(siblingGroup, access, referenced, siblingObject),
+                CancellationToken.None));
 
-        Assert.That(input.SourceRanges.Single().Begin.ToString(), Is.EqualTo("10.1.0.1"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(input.SourceRanges.Select(range => range.Begin.ToString()),
+                Is.EqualTo(new List<string> { "10.1.0.1", "10.1.0.2" }));
+            Assert.That(groups.CallCount, Is.Zero);
+        });
+    }
+
+    [Test]
+    public async Task UnreferencedGroup_UsesCatalogDespiteIdentityMatchingTicketTask()
+    {
+        WfReqTask sibling = GroupCreate(1, 1, "catalog",
+            Items(Leaf(ElemFieldType.source, "10.9.9.9", "10.9.9.9")));
+        WfReqTask access = Access(
+            Items(new WfReqElement { Field = "source", FlowNetworkGroupId = 7, GroupName = "catalog" }),
+            Items(Leaf(ElemFieldType.destination, "203.0.113.1", "203.0.113.1")), 2, 2);
+        FakeFlowGroupResolver groups = new(new FlowGroupResolutionResult
+        {
+            NetworkGroups = [CatalogGroup(7, "catalog")]
+        });
+
+        CreationRuleNetworkInput input = AssertSuccess(
+            await Resolver(groups).ResolveAsync(access, Items(access, sibling), CancellationToken.None));
+
+        Assert.That(input.SourceRanges.Single().Begin.ToString(), Is.EqualTo("10.0.0.1"));
+        Assert.That(groups.CallCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task BrokenExplicitGroupReference_DoesNotFallBackToCatalog()
+    {
+        WfReqTask access = Access(
+            Items(new WfReqElement
+            {
+                Field = "source",
+                FlowNetworkGroupId = 7,
+                GroupName = "catalog",
+                ObjectTaskId = 999
+            }),
+            Items(Leaf(ElemFieldType.destination, "203.0.113.1", "203.0.113.1")), 2, 2);
+        FakeFlowGroupResolver groups = new(new FlowGroupResolutionResult
+        {
+            NetworkGroups = [CatalogGroup(7, "catalog")]
+        });
+
+        CreationRuleNetworkResolutionFailureCategory failure = AssertFailure(
+            await Resolver(groups).ResolveAsync(access, Items(access), CancellationToken.None));
+
+        Assert.That(failure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved));
         Assert.That(groups.CallCount, Is.Zero);
     }
 
@@ -340,19 +401,8 @@ public class CreationRuleNetworkInputResolverTest
         WfReqElement source = Leaf(ElemFieldType.source, "10.0.0.1", "10.0.0.1");
         source.FlowNetworkObjectId = 9;
         WfReqTask access = Access([source], [Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")], 1, 1);
-        WfReqTask later = new()
-        {
-            Id = 2,
-            TicketId = 100,
-            TaskNumber = 2,
-            ManagementId = 10,
-            TaskType = WfTaskType.object_modify.ToString(),
-            Elements =
-            [
-                new WfReqElement { Field = "source", FlowNetworkObjectId = 9, IpString = "10.0.0.1", IpEnd = "10.0.0.1", RequestAction = "unchanged" },
-                new WfReqElement { Field = "source", FlowNetworkObjectId = 9, IpString = "10.0.0.3", IpEnd = "10.0.0.3", RequestAction = "modify" }
-            ]
-        };
+        WfReqTask later = ObjectModify(2, 2, 9, "shared", "10.0.0.1", "10.0.0.3");
+        source.ObjectTaskId = later.Id;
 
         CreationRuleNetworkResolutionFailureCategory failure = AssertFailure(
             await Resolver().ResolveAsync(access, [later, access], CancellationToken.None));
@@ -447,25 +497,171 @@ public class CreationRuleNetworkInputResolverTest
     {
         WfReqElement source = Leaf(ElemFieldType.source, "10.0.0.1", "10.0.0.1");
         source.FlowNetworkObjectId = 9;
-        WfReqTask modify = new()
-        {
-            Id = 1,
-            TicketId = 100,
-            TaskNumber = 1,
-            ManagementId = 10,
-            TaskType = WfTaskType.object_modify.ToString(),
-            Elements =
-            [
-                new WfReqElement { Field = "source", FlowNetworkObjectId = 9, IpString = "10.0.0.1", IpEnd = "10.0.0.1", RequestAction = "unchanged" },
-                new WfReqElement { Field = "source", FlowNetworkObjectId = 9, IpString = "10.0.0.9", IpEnd = "10.0.0.9", RequestAction = "modify" }
-            ]
-        };
+        WfReqTask modify = ObjectModify(1, 1, 9, "shared", "10.0.0.1", "10.0.0.9");
+        source.ObjectTaskId = modify.Id;
         WfReqTask access = Access([source], [Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")], 2, 2);
 
         CreationRuleNetworkInput input = AssertSuccess(
             await Resolver().ResolveAsync(access, [access, modify], CancellationToken.None));
 
         Assert.That(input.SourceRanges.Single().Begin.ToString(), Is.EqualTo("10.0.0.9"));
+    }
+
+    [Test]
+    public async Task ReferencedObjectCreate_ReplacesPersistedAccessSnapshot()
+    {
+        WfReqTask create = ObjectCreate(1, 1, "shared", "10.0.0.8");
+        WfReqElement source = Leaf(ElemFieldType.source, "10.0.0.1", "10.0.0.1");
+        source.ObjectTaskId = create.Id;
+        source.FlowNetworkObjectId = 9;
+        WfReqTask access = Access(Items(source),
+            Items(Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")), 2, 2);
+
+        CreationRuleNetworkInput input = AssertSuccess(
+            await Resolver().ResolveAsync(access, Items(access, create), CancellationToken.None));
+
+        Assert.That(input.SourceRanges.Single().Begin.ToString(), Is.EqualTo("10.0.0.8"));
+    }
+
+    [Test]
+    public async Task ReferencedObjectCreate_UsesExactTaskForNamedAddresslessElement()
+    {
+        WfReqTask create = ObjectCreate(1, 1, "shared", "10.0.0.8");
+        WfReqElement source = new()
+        {
+            Field = ElemFieldType.source.ToString(),
+            Name = "stale-group-like-name",
+            ObjectTaskId = create.Id
+        };
+        WfReqTask access = Access(Items(source),
+            Items(Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")), 2, 2);
+
+        CreationRuleNetworkInput input = AssertSuccess(
+            await Resolver().ResolveAsync(access, Items(access, create), CancellationToken.None));
+
+        Assert.That(input.SourceRanges.Single().Begin.ToString(), Is.EqualTo("10.0.0.8"));
+    }
+
+    [Test]
+    public async Task ReferencedGroupCreate_UsesExactTaskForIdOnlyElementWithStaleSnapshot()
+    {
+        WfReqTask group = GroupCreate(1, 1, "shared",
+            Items(Leaf(ElemFieldType.source, "10.0.0.8", "10.0.0.8")));
+        WfReqElement source = Leaf(ElemFieldType.source, "192.0.2.1", "192.0.2.1");
+        source.Name = null;
+        source.GroupName = null;
+        source.FlowNetworkGroupId = null;
+        source.NetworkId = null;
+        source.ObjectTaskId = group.Id;
+        WfReqTask access = Access(Items(source),
+            Items(Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")), 2, 2);
+
+        CreationRuleNetworkInput input = AssertSuccess(
+            await Resolver().ResolveAsync(access, Items(access, group), CancellationToken.None));
+
+        Assert.That(input.SourceRanges.Single().Begin.ToString(), Is.EqualTo("10.0.0.8"));
+    }
+
+    [Test]
+    public async Task UnreferencedObjectTask_CannotReplaceDirectSnapshotByIdentity()
+    {
+        WfReqTask modify = ObjectModify(1, 1, 9, "shared", "10.0.0.1", "10.0.0.9");
+        WfReqElement source = Leaf(ElemFieldType.source, "10.0.0.1", "10.0.0.1");
+        source.FlowNetworkObjectId = 9;
+        source.Name = "shared";
+        WfReqTask access = Access(Items(source),
+            Items(Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")), 3, 3);
+
+        CreationRuleNetworkInput input = AssertSuccess(
+            await Resolver().ResolveAsync(access, Items(access, modify), CancellationToken.None));
+
+        Assert.That(input.SourceRanges.Single().Begin.ToString(), Is.EqualTo("10.0.0.1"));
+    }
+
+    [Test]
+    public async Task ExactObjectReference_IgnoresIdentityMatchingAndMalformedSiblings()
+    {
+        WfReqTask referenced = ObjectCreate(1, 1, "shared", "10.0.0.8");
+        WfReqTask matching = ObjectCreate(2, 2, "shared", "10.0.0.9");
+        matching.Elements[0].FlowNetworkObjectId = 9;
+        WfReqTask malformed = ObjectCreate(3, 99, "shared", "10.0.0.10");
+        malformed.ManagementId = 999;
+        malformed.Elements = null!;
+        WfReqElement source = Leaf(ElemFieldType.source, "10.0.0.1", "10.0.0.1");
+        source.ObjectTaskId = referenced.Id;
+        source.FlowNetworkObjectId = 9;
+        source.Name = "shared";
+        WfReqTask access = Access(Items(source),
+            Items(Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")), 10, 10);
+
+        CreationRuleNetworkInput input = AssertSuccess(
+            await Resolver().ResolveAsync(access,
+                Items(malformed, access, matching, referenced), CancellationToken.None));
+
+        Assert.That(input.SourceRanges.Single().Begin.ToString(), Is.EqualTo("10.0.0.8"));
+    }
+
+    [TestCase(0)]
+    [TestCase(-1)]
+    [TestCase(999)]
+    public async Task InvalidExplicitObjectReference_FailsWithoutSnapshotFallback(long objectTaskId)
+    {
+        WfReqElement source = Leaf(ElemFieldType.source, "10.0.0.1", "10.0.0.1");
+        source.ObjectTaskId = objectTaskId;
+        WfReqTask access = Access(Items(source),
+            Items(Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")), 2, 2);
+
+        CreationRuleNetworkResolutionFailureCategory failure = AssertFailure(
+            await Resolver().ResolveAsync(access, Items(access), CancellationToken.None));
+
+        Assert.That(failure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved));
+    }
+
+    [Test]
+    public async Task CrossTicketObjectReference_FailsWithoutIdentityFallback()
+    {
+        WfReqTask referenced = ObjectCreate(1, 1, "shared", "10.0.0.8");
+        referenced.TicketId = 101;
+        WfReqElement source = Leaf(ElemFieldType.source, "10.0.0.1", "10.0.0.1");
+        source.ObjectTaskId = referenced.Id;
+        source.Name = "shared";
+        WfReqTask access = Access(Items(source),
+            Items(Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")), 2, 2);
+
+        CreationRuleNetworkResolutionFailureCategory failure = AssertFailure(
+            await Resolver().ResolveAsync(access, Items(access, referenced), CancellationToken.None));
+
+        Assert.That(failure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved));
+    }
+
+    [Test]
+    public async Task WrongTypeAndInvalidObjectStructures_AreObjectUnresolved()
+    {
+        WfReqTask wrongType = ObjectCreate(1, 1, "shared", "10.0.0.8");
+        wrongType.TaskType = WfTaskType.access.ToString();
+        WfReqTask invalidCreate = ObjectCreate(2, 1, "shared", "10.0.0.8");
+        invalidCreate.Elements.Add(Leaf(ElemFieldType.source, "10.0.0.9", "10.0.0.9"));
+        WfReqTask invalidModify = ObjectModify(3, 1, 9, "shared", "10.0.0.1", "10.0.0.8");
+        invalidModify.Elements[1].NetworkId = 10;
+        WfReqTask service = ObjectCreate(4, 1, "service", "10.0.0.8");
+        service.Elements[0].Field = ElemFieldType.service.ToString();
+        WfReqTask time = ObjectCreate(5, 1, "time", "10.0.0.8");
+        time.Elements[0].Field = ElemFieldType.time.ToString();
+
+        CreationRuleNetworkResolutionFailureCategory wrongTypeFailure = await ResolveObjectFailure(wrongType);
+        CreationRuleNetworkResolutionFailureCategory invalidCreateFailure = await ResolveObjectFailure(invalidCreate);
+        CreationRuleNetworkResolutionFailureCategory invalidModifyFailure = await ResolveObjectFailure(invalidModify);
+        CreationRuleNetworkResolutionFailureCategory serviceFailure = await ResolveObjectFailure(service);
+        CreationRuleNetworkResolutionFailureCategory timeFailure = await ResolveObjectFailure(time);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(wrongTypeFailure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved));
+            Assert.That(invalidCreateFailure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved));
+            Assert.That(invalidModifyFailure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved));
+            Assert.That(serviceFailure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved));
+            Assert.That(timeFailure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.ObjectUnresolved));
+        });
     }
 
     [Test]
@@ -488,9 +684,26 @@ public class CreationRuleNetworkInputResolverTest
         };
         modify.SetAddInfo(AdditionalInfoKeys.GroupId, "7");
         modify.SetAddInfo(AdditionalInfoKeys.GrpName, "catalog");
+        WfReqTask unrelatedDelete = new()
+        {
+            Id = 3,
+            TicketId = 100,
+            TaskNumber = 3,
+            ManagementId = 999,
+            TaskType = WfTaskType.group_delete.ToString(),
+            Elements = []
+        };
+        unrelatedDelete.SetAddInfo(AdditionalInfoKeys.GroupId, "7");
+        unrelatedDelete.SetAddInfo(AdditionalInfoKeys.GrpName, "catalog");
         WfReqTask access = Access(
-            [new WfReqElement { Field = "source", FlowNetworkGroupId = 7, GroupName = "catalog" }],
-            [Leaf(ElemFieldType.destination, "203.0.113.1", "203.0.113.1")], 2, 2);
+            Items(new WfReqElement
+            {
+                Field = "source",
+                FlowNetworkGroupId = 7,
+                GroupName = "catalog",
+                ObjectTaskId = modify.Id
+            }),
+            Items(Leaf(ElemFieldType.destination, "203.0.113.1", "203.0.113.1")), 2, 2);
         FakeFlowGroupResolver groups = new(new FlowGroupResolutionResult
         {
             NetworkGroups =
@@ -505,58 +718,126 @@ public class CreationRuleNetworkInputResolverTest
         });
 
         CreationRuleNetworkInput input = AssertSuccess(
-            await Resolver(groups).ResolveAsync(access, [access, modify], CancellationToken.None));
+            await Resolver(groups).ResolveAsync(
+                access,
+                Items(unrelatedDelete, access, modify),
+                CancellationToken.None));
 
         Assert.That(input.SourceRanges.Single().Begin.ToString(), Is.EqualTo("10.0.0.9"));
     }
 
     [Test]
-    public async Task DeletedCyclicAndLaterGroups_FailClosed()
+    public async Task ReferencedGroupWithMissingAddress_FailsDespiteMatchingObjectSibling()
     {
-        WfReqTask created = GroupCreate(1, 1, "deleted",
-            [Leaf(ElemFieldType.source, "10.0.0.1", "10.0.0.1")]);
+        WfReqElement missing = new()
+        {
+            Field = ElemFieldType.source.ToString(),
+            Name = "fantasy",
+            ObjectTaskEntityId = -7,
+            RequestAction = RequestAction.create.ToString()
+        };
+        WfReqTask group = GroupCreate(2, 2, "shared", Items(missing));
+        WfReqTask sibling = ObjectCreate(1, 1, "fantasy", "10.9.9.9");
+
+        CreationRuleNetworkResolutionFailureCategory failure = await ResolveGroupFailure(
+            group,
+            Items(sibling));
+
+        Assert.That(failure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved));
+    }
+
+    [Test]
+    public async Task EmptyDeletedCrossTicketAndUnsupportedGroupReferences_FailClosed()
+    {
+        WfReqTask empty = GroupCreate(1, 1, "empty", new List<WfReqElement>());
         WfReqTask deleted = new()
         {
             Id = 2,
             TicketId = 100,
-            TaskNumber = 2,
+            TaskNumber = 1,
             ManagementId = 10,
-            TaskType = WfTaskType.group_delete.ToString()
+            TaskType = WfTaskType.group_delete.ToString(),
+            Elements = []
         };
-        deleted.SetAddInfo(AdditionalInfoKeys.GrpName, "deleted");
-        WfReqTask deletedAccess = Access(
-            [new WfReqElement { Field = "source", GroupName = "deleted" }],
-            [Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")], 3, 3);
+        WfReqTask crossTicket = GroupCreate(3, 1, "cross",
+            Items(Leaf(ElemFieldType.source, "10.0.0.3", "10.0.0.3")));
+        crossTicket.TicketId = 101;
+        WfReqTask wrongType = GroupCreate(4, 1, "wrong",
+            Items(Leaf(ElemFieldType.source, "10.0.0.4", "10.0.0.4")));
+        wrongType.TaskType = WfTaskType.access.ToString();
 
-        WfReqTask cycleA = GroupCreate(4, 1, "a",
-            [new WfReqElement { Field = "source", GroupName = "b", RequestAction = "create" }]);
-        WfReqTask cycleB = GroupCreate(5, 2, "b",
-            [new WfReqElement { Field = "source", GroupName = "a", RequestAction = "create" }]);
-        WfReqTask cycleAccess = Access(
-            [new WfReqElement { Field = "source", GroupName = "a" }],
-            [Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")], 6, 3);
-
-        WfReqTask later = GroupCreate(8, 2, "later",
-            [Leaf(ElemFieldType.source, "10.0.0.8", "10.0.0.8")]);
-        WfReqTask laterAccess = Access(
-            [new WfReqElement { Field = "source", GroupName = "later" }],
-            [Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")], 7, 1);
-
-        CreationRuleNetworkResolutionFailureCategory deletedFailure = AssertFailure(
-            await Resolver().ResolveAsync(deletedAccess, [deletedAccess, created, deleted], CancellationToken.None));
-        CreationRuleNetworkResolutionFailureCategory cycleFailure = AssertFailure(
-            await Resolver().ResolveAsync(cycleAccess, [cycleAccess, cycleA, cycleB], CancellationToken.None));
-        CreationRuleNetworkResolutionFailureCategory laterFailure = AssertFailure(
-            await Resolver().ResolveAsync(laterAccess, [laterAccess, later], CancellationToken.None));
+        CreationRuleNetworkResolutionFailureCategory emptyFailure = await ResolveGroupFailure(empty);
+        CreationRuleNetworkResolutionFailureCategory deletedFailure = await ResolveGroupFailure(deleted);
+        CreationRuleNetworkResolutionFailureCategory crossTicketFailure = await ResolveGroupFailure(crossTicket);
+        CreationRuleNetworkResolutionFailureCategory wrongTypeFailure = await ResolveGroupFailure(wrongType);
 
         Assert.Multiple(() =>
         {
-            Assert.That(deletedFailure,
-                Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved));
-            Assert.That(cycleFailure,
-                Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved));
-            Assert.That(laterFailure,
-                Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.ProtocolOrderInvalid));
+            Assert.That(emptyFailure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved));
+            Assert.That(deletedFailure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved));
+            Assert.That(crossTicketFailure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved));
+            Assert.That(wrongTypeFailure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved));
+        });
+    }
+
+    [Test]
+    public async Task LaterReferencedGroup_IsProtocolOrderInvalid()
+    {
+        WfReqTask later = GroupCreate(2, 2, "later",
+            Items(Leaf(ElemFieldType.source, "10.0.0.8", "10.0.0.8")));
+        WfReqElement source = new()
+        {
+            Field = ElemFieldType.source.ToString(),
+            GroupName = "later",
+            ObjectTaskId = later.Id
+        };
+        WfReqTask access = Access(Items(source),
+            Items(Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")), 1, 1);
+
+        CreationRuleNetworkResolutionFailureCategory failure = AssertFailure(
+            await Resolver().ResolveAsync(access, Items(access, later), CancellationToken.None));
+
+        Assert.That(failure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.ProtocolOrderInvalid));
+    }
+
+    [Test]
+    public async Task GroupModify_InvalidOrEmptyResultIsGroupUnresolved()
+    {
+        WfReqTask invalid = GroupModify(1, Member(1, "10.0.0.9", RequestAction.modify));
+        invalid.Elements[0].IpString = null;
+        invalid.Elements[0].IpEnd = null;
+        WfReqTask empty = GroupModify(2, Member(1, "10.0.0.1", RequestAction.delete));
+        FakeFlowGroupResolver groups = new(new FlowGroupResolutionResult
+        {
+            NetworkGroups =
+            [
+                new FlowNetworkGroupResolution
+                {
+                    Id = 7,
+                    Name = "catalog",
+                    Members =
+                    [
+                        new FlowNetworkMemberResolution
+                        {
+                            Id = 1,
+                            Name = "one",
+                            IpStart = "10.0.0.1",
+                            IpEnd = "10.0.0.1"
+                        }
+                    ]
+                }
+            ]
+        });
+
+        CreationRuleNetworkResolutionFailureCategory invalidFailure = await ResolveGroupFailure(
+            invalid, new List<WfReqTask>(), groups);
+        CreationRuleNetworkResolutionFailureCategory emptyFailure = await ResolveGroupFailure(
+            empty, new List<WfReqTask>(), groups);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(invalidFailure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved));
+            Assert.That(emptyFailure, Is.EqualTo(CreationRuleNetworkResolutionFailureCategory.GroupUnresolved));
         });
     }
 
@@ -592,6 +873,125 @@ public class CreationRuleNetworkInputResolverTest
         task.SetAddInfo(AdditionalInfoKeys.GrpName, name);
         return task;
     }
+
+    private static WfReqTask ObjectCreate(long id, int taskNumber, string name, string ip) => new()
+    {
+        Id = id,
+        TicketId = 100,
+        TaskNumber = taskNumber,
+        ManagementId = 10,
+        TaskType = WfTaskType.object_create.ToString(),
+        Elements =
+        [
+            new WfReqElement
+            {
+                Field = ElemFieldType.source.ToString(),
+                Name = name,
+                IpString = ip,
+                IpEnd = ip,
+                RequestAction = RequestAction.create.ToString()
+            }
+        ]
+    };
+
+    private static WfReqTask ObjectModify(
+        long id,
+        int taskNumber,
+        long networkId,
+        string name,
+        string originalIp,
+        string requestedIp) => new()
+        {
+            Id = id,
+            TicketId = 100,
+            TaskNumber = taskNumber,
+            ManagementId = 10,
+            TaskType = WfTaskType.object_modify.ToString(),
+            Elements =
+            [
+                new WfReqElement
+                {
+                    Field = ElemFieldType.source.ToString(),
+                    NetworkId = networkId,
+                    Name = name,
+                    IpString = originalIp,
+                    IpEnd = originalIp,
+                    RequestAction = RequestAction.unchanged.ToString()
+                },
+                new WfReqElement
+                {
+                    Field = ElemFieldType.source.ToString(),
+                    NetworkId = networkId,
+                    Name = name,
+                    IpString = requestedIp,
+                    IpEnd = requestedIp,
+                    RequestAction = RequestAction.modify.ToString()
+                }
+            ]
+        };
+
+    private static WfReqTask GroupModify(long id, WfReqElement change)
+    {
+        WfReqTask task = new()
+        {
+            Id = id,
+            TicketId = 100,
+            TaskNumber = 1,
+            ManagementId = 10,
+            TaskType = WfTaskType.group_modify.ToString(),
+            Elements = [change]
+        };
+        task.SetAddInfo(AdditionalInfoKeys.GroupId, "7");
+        task.SetAddInfo(AdditionalInfoKeys.GrpName, "catalog");
+        return task;
+    }
+
+    private static async Task<CreationRuleNetworkResolutionFailureCategory> ResolveObjectFailure(
+        WfReqTask referencedTask)
+    {
+        WfReqElement source = Leaf(ElemFieldType.source, "10.0.0.1", "10.0.0.1");
+        source.ObjectTaskId = referencedTask.Id;
+        WfReqTask access = Access(Items(source),
+            Items(Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")), 10, 10);
+        return AssertFailure(await Resolver().ResolveAsync(
+            access,
+            Items(access, referencedTask),
+            CancellationToken.None));
+    }
+
+    private static async Task<CreationRuleNetworkResolutionFailureCategory> ResolveGroupFailure(
+        WfReqTask referencedTask,
+        IEnumerable<WfReqTask>? siblings = null,
+        IFlowGroupResolver? groups = null)
+    {
+        WfReqElement source = new()
+        {
+            Field = ElemFieldType.source.ToString(),
+            FlowNetworkGroupId = 7,
+            GroupName = "catalog",
+            ObjectTaskId = referencedTask.Id
+        };
+        WfReqTask access = Access(Items(source),
+            Items(Leaf(ElemFieldType.destination, "10.0.0.2", "10.0.0.2")), 10, 10);
+        List<WfReqTask> ticketTasks = [access, referencedTask, .. siblings ?? []];
+        return AssertFailure(await Resolver(groups).ResolveAsync(
+            access,
+            ticketTasks,
+            CancellationToken.None));
+    }
+
+    /// <summary>Creates one explicitly list-targeted test collection.</summary>
+    private static List<T> Items<T>(T first) => [first];
+
+    /// <summary>Creates one explicitly list-targeted test collection.</summary>
+    private static List<T> Items<T>(T first, T second) => [first, second];
+
+    /// <summary>Creates one explicitly list-targeted test collection.</summary>
+    private static List<T> Items<T>(T first, T second, T third) => [first, second, third];
+
+    /// <summary>Creates one explicitly list-targeted test collection.</summary>
+    private static List<T> Items<T>(T first, T second, T third, T fourth) =>
+        [first, second, third, fourth];
 
     private static WfReqElement Leaf(ElemFieldType field, string ip, string? end) => new()
     {

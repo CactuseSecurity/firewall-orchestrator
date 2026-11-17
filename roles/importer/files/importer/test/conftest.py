@@ -166,16 +166,29 @@ def uid2id_mapper(
 
 
 @pytest.fixture(autouse=True)
-def service_provider(
-    global_state: GlobalState,
-    group_flats_mapper: GroupFlatsMapper,
-) -> ServiceProvider:
+def service_provider(request: pytest.FixtureRequest) -> ServiceProvider:
+    """
+    Reset the service provider for every test and register the shared test doubles.
+
+    The doubles are resolved through the fixtures on first use only. Building them takes several
+    create_autospec calls, about 0.1 s per test, and most tests never ask the service provider for
+    them. A test that requests global_state or group_flats_mapper itself still gets the very
+    instance the service provider hands out, because pytest caches fixture values per test.
+    """
     service_provider = ServiceProvider()
     service_provider.reset()
 
-    service_provider.register(Services.GLOBAL_STATE, lambda: global_state, Lifetime.SINGLETON)
-    service_provider.register(Services.GROUP_FLATS_MAPPER, lambda: group_flats_mapper, Lifetime.IMPORT)
-    service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, lambda: group_flats_mapper, Lifetime.IMPORT)
+    def resolve_global_state() -> GlobalState:
+        global_state: GlobalState = request.getfixturevalue("global_state")
+        return global_state
+
+    def resolve_group_flats_mapper() -> GroupFlatsMapper:
+        group_flats_mapper: GroupFlatsMapper = request.getfixturevalue("group_flats_mapper")
+        return group_flats_mapper
+
+    service_provider.register(Services.GLOBAL_STATE, resolve_global_state, Lifetime.SINGLETON)
+    service_provider.register(Services.GROUP_FLATS_MAPPER, resolve_group_flats_mapper, Lifetime.IMPORT)
+    service_provider.register(Services.PREV_GROUP_FLATS_MAPPER, resolve_group_flats_mapper, Lifetime.IMPORT)
     service_provider.register(Services.UID2ID_MAPPER, Uid2IdMapper, Lifetime.IMPORT)
     return service_provider
 

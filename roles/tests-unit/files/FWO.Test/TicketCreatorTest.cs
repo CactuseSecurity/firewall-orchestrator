@@ -278,6 +278,37 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateTicket_KeepsRequestActionRuleSettingsAndDevices()
+        {
+            TicketCreatorTestApiConn apiConn = new();
+            TicketCreator ticketCreator = CreateTicketCreator(apiConn);
+            WfReqTask reqTask = new()
+            {
+                Title = "Change Rule: FWOC9",
+                TaskType = WfTaskType.rule_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                RuleAction = 2,
+                Tracking = 3,
+                ManagementId = 5
+            };
+            reqTask.SetDeviceList(ModifiedRuleDeviceIds);
+            List<WfReqTask> reqTasks = [reqTask];
+
+            await ticketCreator.CreateTicket(new FwoOwner { Id = 7, Name = "App" }, reqTasks, "Request title", 7);
+
+            WfReqTaskWriter writtenTask = apiConn.LastTicketWriter!.Tasks.Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(writtenTask.RequestAction, Is.EqualTo(RequestAction.modify.ToString()), "a modify task must not be stored as create");
+                Assert.That(writtenTask.RuleAction, Is.EqualTo(2));
+                Assert.That(writtenTask.Tracking, Is.EqualTo(3));
+                Assert.That(writtenTask.GetDeviceList(), Is.EqualTo(ModifiedRuleDeviceIds));
+            });
+        }
+
+        private static readonly List<int> ModifiedRuleDeviceIds = [4, 6];
+
+        [Test]
         public async Task CreateTicket_CopiesRequestTasksOwnersApprovalsAndComments()
         {
             TicketCreatorTestApiConn apiConn = new();
@@ -307,38 +338,6 @@ namespace FWO.Test
                 Assert.That(writtenTask.Approvals.WfApprovalList.Single().StateId, Is.EqualTo(7));
                 Assert.That(apiConn.Queries, Does.Contain(RequestQueries.newComment));
                 Assert.That(apiConn.Queries, Does.Contain(RequestQueries.addCommentToReqTask));
-            });
-        }
-
-        /// <summary>
-        /// The rule action, tracking and request action set by the modelling reach the stored request task; without them
-        /// a rule from a modelling ticket cannot be written to the firewall.
-        /// </summary>
-        [Test]
-        public async Task CreateTicket_CopiesRuleActionTrackingAndRequestAction()
-        {
-            TicketCreatorTestApiConn apiConn = new();
-            TicketCreator ticketCreator = CreateTicketCreator(apiConn);
-            WfReqTask reqTask = new()
-            {
-                Title = "Delete rule",
-                TaskNumber = 1,
-                TaskType = WfTaskType.rule_delete.ToString(),
-                RequestAction = RequestAction.delete.ToString(),
-                RuleAction = 1,
-                Tracking = 1,
-                ManagementId = 5
-            };
-            List<WfReqTask> reqTasks = [reqTask];
-
-            await ticketCreator.CreateTicket(new FwoOwner { Id = 7, Name = "App" }, reqTasks, "Request title", 7);
-
-            WfReqTaskWriter writtenTask = apiConn.LastTicketWriter!.Tasks.Single();
-            Assert.Multiple(() =>
-            {
-                Assert.That(writtenTask.RequestAction, Is.EqualTo(RequestAction.delete.ToString()));
-                Assert.That(writtenTask.RuleAction, Is.EqualTo(1));
-                Assert.That(writtenTask.Tracking, Is.EqualTo(1));
             });
         }
 

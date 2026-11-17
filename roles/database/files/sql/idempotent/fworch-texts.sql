@@ -665,6 +665,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Neuer Report-Typ &quot;Changes: NAT&quot; zeigt &Auml;nderungen an NAT-Regeln mit urspr&uuml;nglicher und umgesetzter Quelle, Ziel und Dienst. In den FW-&Auml;nderungstrigger-Einstellungen k&ouml;nnen eigene Email-Benachrichtigungen &uuml;ber NAT-Regel&auml;nderungen (inklusive &Auml;nderungen an in NAT-Regeln verwendeten Objekten) mit diesem Report angelegt werden.</li>
     <li>Externe Anfragen: Die neue Aktion &quot;Externe Anfragen erzeugen&quot; setzt ein Ticket nacheinander um, geordnet nach Antrags- und Implementierungs-Auftrag. Antrags-Auftr&auml;ge eines Managements mit Umsetzungsmodus externes Ticketsystem gehen an Tufin SecureChange, Implementierungs-Auftr&auml;ge mit Modus automatisch werden direkt auf die Firewall geschrieben; als Button angeboten auch solche mit Modus manuell. Regeln werden derzeit f&uuml;r Check Point geschrieben: neue Regeln an der berechneten Position und installiert nach der Einstellung &quot;Installieren auf&quot;, f&uuml;r Gateways im selben Layer als eine gemeinsame Regel; ge&auml;nderte und gel&ouml;schte Regeln in ihrem Layer laut Import, unter dem strengsten Umsetzungsmodus aller Gateways, auf denen sie wirken. Die bisherige Einstellung der Firewall-Konfigurations&auml;nderungen und die Tufin-Verbindung werden beim Upgrade in die ger&auml;tespezifischen Einstellungen &uuml;bernommen (Umsetzungsmodi, Verbindung, Antwortzeit und Wiederholungen).</li>
     <li>Die interne CA kann ohne Unterbrechung der Verbindungen zwischen den Firewall-Orchestrator-Komponenten ersetzt werden: ein Upgrade mit <code>internalca_ca_rotation=prepare</code> verteilt die neue CA an alle Hosts, ein zweites mit <code>internalca_ca_rotation=activate</code> stellt alle Zertifikate auf sie um und entzieht danach der bisherigen CA das Vertrauen.</li>
+    <li>Modellierung: Der Report &quot;Modell: Soll-Ist&quot;, der Verbindungsstatus (&quot;Status aktualisieren&quot; und die Hintergrund-Analyse) und die Beantragung analysieren nun dieselben Verbindungen auf dieselbe Weise und beachten einheitlich die Einstellung &quot;Gel&ouml;schte App Server ausrollen&quot;. Verbindungen mit Modellierungsproblemen (z.B. leere App-Rollen, gel&ouml;schte Objekte, nicht nutzbare Schnittstellen) f&uuml;hrt der Report mit Grund unter &quot;Nicht analysierte Verbindungen&quot; auf; ihr Verbindungsstatus zeigt kein Soll-Ist-Ergebnis mehr. Reine Dokumentations-Verbindungen werden im Report nicht mehr verglichen. Mit der Option &quot;Gruppen aufl&ouml;sen&quot; z&auml;hlt eine Gruppe in Produktion mit zus&auml;tzlichen Mitgliedern als Abweichung, eine Gruppe mit genau den modellierten Mitgliedern dagegen nicht.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -692,6 +693,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>New report type &quot;Changes: NAT&quot; shows NAT rule changes with original and translated source, destination and service. Separate email notifications about NAT rule changes (including changes of objects used in NAT rules) with this report can be defined in the FW change trigger settings.</li>
     <li>External requests: the new action &quot;Create external requests&quot; implements a ticket step by step, ordered by request and implementation task. Request tasks of a management with the implementation mode external ticket system go to Tufin SecureChange, implementation tasks with mode automatic are written directly to the firewall; offered as a button also those with mode manual. Rules are written for Check Point so far: new rules at their calculated position and installed along the setting &quot;Install on&quot;, as one shared rule for gateways in the same layer; modified and deleted rules in their layer according to the import, under the strictest implementation mode of all gateways they take effect on. The previous setting for firewall config changes and the Tufin connection are taken over into the device specific settings on upgrade (implementation modes, connection, response timeout and retries).</li>
     <li>The internal CA can be replaced without interrupting the connections between the Firewall Orchestrator components: an upgrade with <code>internalca_ca_rotation=prepare</code> distributes the new CA to every host, a second one with <code>internalca_ca_rotation=activate</code> switches all certificates to it and then withdraws trust in the previous CA.</li>
+    <li>Modelling: the report &quot;Model: Variances&quot;, the connection state (&quot;Refresh State&quot; and the background analysis) and the request now analyse the same connections in the same way and all follow the setting &quot;Rollout removed App Servers&quot;. The report lists connections with modelling issues (e.g. empty app roles, deleted objects, unusable interfaces) with their reason under &quot;Connections not analysed&quot;; their connection state no longer shows a variance result. Documentation-only connections are no longer compared in the report. With the option &quot;Resolve Groups&quot;, a production group with additional members counts as a difference, while a group with exactly the modelled members does not.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -1117,6 +1119,8 @@ INSERT INTO txt VALUES ('connections_not_implemented','German',	'Nicht implement
 INSERT INTO txt VALUES ('connections_not_implemented','English','Connections not implemented');
 INSERT INTO txt VALUES ('connections_with_diffs','German',	'Verbindungen mit Abweichungen');
 INSERT INTO txt VALUES ('connections_with_diffs','English', 'Connections with differences');
+INSERT INTO txt VALUES ('connections_not_analysed','German', 'Nicht analysierte Verbindungen');
+INSERT INTO txt VALUES ('connections_not_analysed','English','Connections not analysed');
 INSERT INTO txt VALUES ('rules_not_modelled',   'German',	'Nicht modellierte Regeln');
 INSERT INTO txt VALUES ('rules_not_modelled',   'English',  'Rules not modelled');
 INSERT INTO txt VALUES ('app_roles_not_implemented','German','Nicht implementierte App Rollen');
@@ -5688,9 +5692,13 @@ INSERT INTO txt VALUES ('H1162', 'English', 'Model: App Rules - display all rule
 ');
 INSERT INTO txt VALUES ('H1163', 'German',  'Modell: Soll-Ist - Darstellung aller Abweichungen zwischen den modellierten Verbindungen und den auf den Firewalls gefundenen Objekten und Regeln.
     Optional k&ouml;nnen zus&auml;tzlich die noch nicht modellierten Regeln in Form des App-Regel-Reports aufgelistet werden.
+    Verbindungen mit Modellierungsproblemen (z.B. leere App-Rollen, gel&ouml;schte Objekte, leere Dienstgruppen oder nicht nutzbare Schnittstellen) werden nicht analysiert, sondern mit Grund unter "Nicht analysierte Verbindungen" aufgef&uuml;hrt.
+    Der Report, der Verbindungsstatus auf der Modellierungsseite und die Beantragung analysieren immer dieselben Verbindungen auf dieselbe Weise.
 ');
 INSERT INTO txt VALUES ('H1163', 'English', 'Model: Variances - display all differences between modelled connections and the objects and rules found on the firewalls.
     Optionally, not yet modelled rules can also be listed in the form of the App Rules report.
+    Connections with modelling issues (e.g. empty app roles, deleted objects, empty service groups or unusable interfaces) are not analysed but listed with their reason under "Connections not analysed".
+    The report, the connection state on the modelling page and the request always analyse the same connections in the same way.
 ');
 INSERT INTO txt VALUES ('H1164', 'German',  'Zert: Regel-&Uuml;bersicht - Anzeige aller Regeln mit anstehenden Rezertifizierungen. Der Default-Report-Zeitraum kann in den Einstellungen gesetzt werden.');
 INSERT INTO txt VALUES ('H1164', 'English', 'Cert: Rule Overview - display all rules with upcoming recertifications. The default report interval can be configured in settings.');
@@ -8098,9 +8106,11 @@ INSERT INTO txt VALUES ('H5666', 'English', 'In this chapter, Production Lifecyc
 ');
 INSERT INTO txt VALUES ('H5667', 'German',  'Gel&ouml;schte App Server ausrollen: App Server, die nicht mehr im Datenimport geliefert wurden, werden dennoch weiter ausgerollt.
     Dies kann z.B. zur Stabilisierung der Prozesse bei instabilem Datenimport dienen. Zur Rezertifizierung m&uuml;ssen die betroffenen Verbindungen aber bereinigt sein.
+    Die Einstellung gilt gleicherma&szlig;en f&uuml;r den Soll-Ist-Report, den Verbindungsstatus und die Beantragung: betroffene Verbindungen werden &uuml;berall analysiert (aktiviert) oder &uuml;berall als nicht analysiert ausgewiesen (deaktiviert).
 ');
 INSERT INTO txt VALUES ('H5667', 'English', 'Rollout removed App Servers: App servers not delivered anymore in data import are further rolled out.
     This may e.g. stabilize processes on instable data import. Before recertification the affected connections have to be adjusted.
+    The setting applies equally to the variances report, the connection state and the request: affected connections are analysed everywhere (activated) or shown as not analysed everywhere (deactivated).
 ');
 INSERT INTO txt VALUES ('H5668', 'German',  'Nur eigene Objekte beantragen: In Beantragungen werden nur eigene Gruppenobjekte aus genutzten Schnittstellen ber&uuml;cksichtigt. Falls Gruppenobjekte anderer Eigent&uuml;mer enthalten sind, die in Produktion nicht gefunden wurden, wird die Beantragung der Verbindung unterdr&uuml;ckt.');
 INSERT INTO txt VALUES ('H5668', 'English', 'Request only own objects: Requests include only own group objects from used interfaces. If group objects of other owners are included that are not found in production, the request for that connection is suppressed.');

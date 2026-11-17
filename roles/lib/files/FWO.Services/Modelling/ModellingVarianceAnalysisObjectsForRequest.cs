@@ -28,7 +28,7 @@ namespace FWO.Services.Modelling
         private void AnalyseConnectionForRequest(Management mgt, ModellingConnection conn)
         {
             varianceResult = new() { Managements = RelevantManagements };
-            AnalyseRules(conn, false);
+            AnalyseRules(conn);
             if (varianceResult.ConnsNotImplemented.Count > 0)
             {
                 AddAccessTaskList.Add(ConstructCreateTask(mgt, conn));

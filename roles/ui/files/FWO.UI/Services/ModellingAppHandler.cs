@@ -107,7 +107,7 @@ namespace FWO.Ui.Services
             {
                 CancellationToken = CancellationToken
             };
-            await varianceAnalysis.AnalyseConnsForStatus([.. connections.Where(x => !x.IsDocumentationOnly())], allowWait: true);
+            await varianceAnalysis.AnalyseConnsForStatus(connections, dummyAppRoleId, allowWait: true);
         }
 
         public static async Task<WfTicket?> GetLatestFWRequestTicket(FwoOwner application, ApiConnection apiConnection)
@@ -203,9 +203,14 @@ namespace FWO.Ui.Services
             return ModellingRequestConnectionSelector.ForRegularRequests(Connections, userConfig, dummyAppRoleId);
         }
 
+        /// <summary>
+        /// Checks the connection for modelling issues blocking a recertification. Deleted app servers always
+        /// count here, even with the setting "rollout removed app servers": the connections have to be
+        /// adjusted before recertification.
+        /// </summary>
         public bool HasModellingIssues(ModellingConnection conn)
         {
-            return !conn.IsRelevantForVarianceAnalysis(dummyAppRoleId);
+            return !conn.IsRelevantForVarianceAnalysis(dummyAppRoleId, rolloutRemoved: false);
         }
 
         public async Task AddConnection()

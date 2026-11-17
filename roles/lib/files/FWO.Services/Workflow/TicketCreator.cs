@@ -54,6 +54,7 @@ namespace FWO.Services.Workflow
                     RequestAction = reqTask.RequestAction,
                     RuleAction = reqTask.RuleAction,
                     Tracking = reqTask.Tracking,
+                    SelectedDevices = reqTask.SelectedDevices,
                     Owners = [new() { Owner = owner }],
                     Reason = reqTask.Reason,
                     ManagementId = reqTask.ManagementId,

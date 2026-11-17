@@ -231,8 +231,10 @@ used as long as the URL is unchanged, so a changed password applies to open requ
 The upgrade converts a selected Tufin SecureChange system into `tufinSecureChange`. A level selecting another or an
 unknown system loses the selection, and its implementation modes in effect for external ticket systems become `Manual`.
 The connection of the system most managements use becomes global, a management using another one gets its differing
-values; a system without credential (legacy authorization) leaves the credential to be selected, which the settings page
-reports. The previous selections are backed up, which also marks the migration as done:
+values. A system without credential (legacy authorization) inherits the credential of the global system only on the same
+server; on another server it is not taken over, like an unknown system, so that no credential is sent to that server, and
+the implementation modes of its levels in effect for external ticket systems become `Manual`. The previous selections are
+backed up, which also marks the migration as done:
 
 ```sql
 SELECT config_values FROM public.device_specific_config_backup WHERE version = '9.8.7 securechange connection';

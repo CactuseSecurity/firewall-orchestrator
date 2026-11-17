@@ -52,7 +52,8 @@ DELETE FROM device_specific_config_value WHERE config_key = 'implementationModeO
 -- Point system becomes Automatic (written by the firewall write library), Internal Work, Disabled, a disabled
 -- management and any other ticket system become Manual. A value is only stored on the management if the value in
 -- effect there (own, device type or global) differs, so the levels above keep deciding where they already agree.
--- Managements missing in the old setting are left unchanged and inherit, as do change categories without a target.
+-- Managements missing in the old setting are left unchanged and inherit; a change category without a target of a
+-- listed management becomes Manual, as FWO did not implement it before.
 -- Before, the rule mode is taken from the object mode on every level that only had the object mode (9.7.4 migrated
 -- the object mode only). The previous values and the old setting are backed up, the old setting is removed; the backup
 -- marks the migration as done, so a repeated upgrade keeps later changes of an administrator.
@@ -352,8 +353,9 @@ END $$;
 -- selects tufinSecureChange; a level selecting another or an unknown system loses the selection, and its implementation
 -- modes in effect for external ticket systems become Manual, as only Tufin SecureChange takes over tasks. The
 -- connection of the system most managements use becomes global, a management using another one gets its differing
--- values; a system without credential (legacy authorization) leaves the credential to be selected. The previous
--- selections are backed up, which also marks the migration as done.
+-- values; a system without credential (legacy authorization) inherits the credential only on the server of the global
+-- system, on another server it is not taken over and its levels become Manual. The previous selections are backed up,
+-- which also marks the migration as done.
 DO $$
 DECLARE
     t_systems text;

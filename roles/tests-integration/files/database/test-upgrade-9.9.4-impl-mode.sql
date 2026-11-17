@@ -39,7 +39,7 @@ INSERT INTO device_specific_config_value VALUES
     (3, 'rerouteToExternalTicketSystem', '1'),
     (4, 'implementationMode', '"Manual"'),
     (5, 'implementationMode', '"Manual"');
-CREATE TEMP TABLE original_values AS SELECT * FROM device_specific_config_value;
+CREATE TEMP TABLE original_values AS SELECT node_id, config_key, config_value FROM device_specific_config_value;
 CREATE TEMP TABLE stm_dev_typ (dev_typ_id integer PRIMARY KEY, dev_typ_name varchar, dev_typ_version varchar);
 INSERT INTO stm_dev_typ VALUES (10, 'Check Point', 'R8x'), (11, 'FortiGate', '7'), (12, 'Check Point MDS', 'R8x');
 CREATE TEMP TABLE management (mgm_id integer PRIMARY KEY, mgm_name varchar, dev_typ_id integer);

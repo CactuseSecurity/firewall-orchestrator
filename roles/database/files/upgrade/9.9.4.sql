@@ -38,11 +38,10 @@ WHERE NOT EXISTS (SELECT 1 FROM request.action WHERE action_type = 'CreateExtReq
 
 -- The device specific setting for the implementation mode of rules is named like the one for objects; each applies
 -- to its kind of task only.
-UPDATE device_specific_config_value v
+UPDATE device_specific_config_value
 SET config_key = 'implementationModeForRules'
 WHERE config_key = 'implementationModeOverrideForRules'
-    AND NOT EXISTS (SELECT 1 FROM device_specific_config_value w
-        WHERE w.node_id = v.node_id AND w.config_key = 'implementationModeForRules');
+    AND node_id NOT IN (SELECT node_id FROM device_specific_config_value WHERE config_key = 'implementationModeForRules');
 DELETE FROM device_specific_config_value WHERE config_key = 'implementationModeOverrideForRules';
 
 -- How firewall config changes are implemented moves from the setting "Firewall config changes - General"

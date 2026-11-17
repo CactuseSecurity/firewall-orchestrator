@@ -85,11 +85,29 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ExistingGroup_CountsAsCreated()
+        public async Task ExistingGroupWithTheRequestedMembers_CountsAsCreated()
         {
-            (FirewallStepResult result, _) = await Execute(Request(FirewallWriteOperation.GroupCreate, "add-group", kGroupBody), "{\"name\":\"g1\",\"members\":[]}");
+            (FirewallStepResult result, _) = await Execute(Request(FirewallWriteOperation.GroupCreate, "add-group", kGroupBody),
+                "{\"name\":\"g1\",\"members\":[{\"name\":\"H1\",\"uid\":\"u1\"}]}");
 
             Assert.That(result.Success, Is.True, result.Message);
+        }
+
+        /// <summary>
+        /// A group of the same name with other members is not the requested group: the task fails instead of being done
+        /// with members that were never written.
+        /// </summary>
+        [Test]
+        public async Task ExistingGroupWithOtherMembers_FailsAsAlreadyExisting()
+        {
+            (FirewallStepResult result, _) = await Execute(Request(FirewallWriteOperation.GroupCreate, "add-group", kGroupBody),
+                "{\"name\":\"g1\",\"members\":[{\"name\":\"h9\",\"uid\":\"u9\"}]}");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.AlreadyExists));
+            }
         }
 
         [Test]
@@ -209,6 +227,18 @@ namespace FWO.Test
                 Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.NotFound));
                 Assert.That(simulation.Requests, Has.Count.EqualTo(1));
             }
+        }
+
+        [TestCase("{\"members\":[{\"name\":\"h1\"},{\"name\":\"H2\"}]}", true)]
+        [TestCase("{\"members\":[\"h2\",\"h1\"]}", true)]
+        [TestCase("{\"members\":[{\"name\":\"h1\"}]}", false)]
+        [TestCase("{\"members\":[{\"name\":\"h1\"},{\"name\":\"h2\"},{\"name\":\"h3\"}]}", false)]
+        [TestCase("{\"members\":[{\"uid\":\"u1\"},{\"name\":\"h2\"}]}", false)]
+        [TestCase("{}", false)]
+        public void GroupMatches_ComparesTheMemberNames(string existing, bool expected)
+        {
+            JsonNode requested = JsonNode.Parse("{\"name\":\"g1\",\"members\":[\"h1\",\"h2\"]}")!;
+            Assert.That(CheckPointObjectComparison.GroupMatches(requested, JsonNode.Parse(existing)), Is.EqualTo(expected));
         }
 
         [TestCase("{\"ipv4-address\":\"10.0.0.1\"}", true)]

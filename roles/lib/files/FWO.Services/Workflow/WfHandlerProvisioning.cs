@@ -69,6 +69,7 @@ namespace FWO.Services.Workflow
             return workList.Items.FirstOrDefault(item => item.ImplTask?.Id == implTaskId);
         }
 
+        /// <summary>Builds the work list of the request tasks with the settings, gateways and rule gateways resolved for this run.</summary>
         private async Task<ProvisioningWorkList> BuildWorkList(WfTicket ticket, List<WfReqTask> reqTasks, HashSet<long> releasedReqTaskIds)
         {
             ResetAutoPlanCache();
@@ -155,6 +156,7 @@ namespace FWO.Services.Workflow
 
         private int ManagementOfRuleTask(WfImplTask implTask) => ImplTaskManagementId(null, implTask) ?? 0;
 
+        /// <summary>The gateways the given rules take effect on, each once.</summary>
         private static List<int> GatewayIdsOfRules(List<string> ruleUids, Dictionary<string, List<Device>> gatewaysByRuleUid)
         {
             List<int> gatewayIds = [];
@@ -204,41 +206,49 @@ namespace FWO.Services.Workflow
         /// </summary>
         private sealed class ResolvedProvisioningModes(WfHandler handler) : IProvisioningModeSource
         {
+            /// <inheritdoc/>
             public ProvisioningImplementationMode GetImplementationMode(int managementId, bool isRuleTask)
             {
                 return handler.GetResolvedSettings(DeviceSpecificScopeType.Management, managementId).GetImplementationMode(isRuleTask);
             }
 
+            /// <inheritdoc/>
             public ProvisioningImplementationMode GetRuleImplementationMode(int gatewayId)
             {
                 return handler.GetResolvedSettings(DeviceSpecificScopeType.Gateway, gatewayId).GetImplementationMode(true);
             }
 
+            /// <inheritdoc/>
             public bool WritesRules(int gatewayId)
             {
                 return handler.WritesRulesToGateway(gatewayId);
             }
 
+            /// <inheritdoc/>
             public IReadOnlyList<int> GetRuleEnforcingGateways(WfImplTask implTask)
             {
                 return handler.ruleEnforcingGatewayIds.TryGetValue(implTask.Id, out List<int>? gatewayIds) ? gatewayIds : kNoIds;
             }
 
+            /// <inheritdoc/>
             public int? GetTargetManagement(WfReqTask reqTask, WfImplTask implTask)
             {
                 return handler.ImplTaskManagementId(reqTask, implTask);
             }
 
+            /// <inheritdoc/>
             public ExternalTicketSystemKind GetExternalTicketSystem(int managementId)
             {
                 return handler.GetResolvedSettings(DeviceSpecificScopeType.Management, managementId).RerouteToExternalTicketSystem;
             }
 
+            /// <inheritdoc/>
             public int GetImplementationEndState(string taskType)
             {
                 return handler.StateMatrix(taskType).ImplementationLowestEndState;
             }
 
+            /// <inheritdoc/>
             public int? GetPlanningEndState(string taskType)
             {
                 return handler.StateMatrix(taskType).PlanningLowestEndState;

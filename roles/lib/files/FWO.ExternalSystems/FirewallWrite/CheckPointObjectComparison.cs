@@ -9,8 +9,8 @@ namespace FWO.ExternalSystems.FirewallWrite
 {
     /// <summary>
     /// Compares an object a Check Point create call should create with the object of the same name read from the
-    /// management, as the existing Check Point ticket handling does: hosts, networks and address ranges must have the
-    /// requested addresses, a group only has to exist. Missing or unreadable values never count as equal.
+    /// management: hosts, networks and address ranges must have the requested addresses, a group the requested members.
+    /// Missing or unreadable values never count as equal.
     /// </summary>
     public static class CheckPointObjectComparison
     {
@@ -64,6 +64,48 @@ namespace FWO.ExternalSystems.FirewallWrite
             IPAddressRange requestedRange = new(requestedFirst, requestedLast);
             IPAddressRange existingRange = new(existingFirst, existingLast);
             return new IPAddressRangeComparer().Compare(existingRange, requestedRange) == 0;
+        }
+
+        /// <summary>
+        /// Whether the existing group has exactly the requested members, compared by name regardless of case and order.
+        /// A group of the same name with other members is not the requested one, so its members are not taken over.
+        /// </summary>
+        /// <param name="requested">Body of the add-group call.</param>
+        /// <param name="existing">Answer of show-group.</param>
+        public static bool GroupMatches(JsonNode? requested, JsonNode? existing)
+        {
+            HashSet<string>? requestedMembers = MemberNames(requested);
+            HashSet<string>? existingMembers = MemberNames(existing);
+            return requestedMembers != null && existingMembers != null && requestedMembers.SetEquals(existingMembers);
+        }
+
+        /// <summary>
+        /// The names of the members of a group: plain names in a call body, member objects with a name in a show-group
+        /// answer. Null if the members cannot be read.
+        /// </summary>
+        private static HashSet<string>? MemberNames(JsonNode? group)
+        {
+            if (group?["members"] is not JsonArray members)
+            {
+                return null;
+            }
+            HashSet<string> names = new(StringComparer.OrdinalIgnoreCase);
+            foreach (JsonNode? member in members)
+            {
+                string? name = member is JsonObject memberObject ? Text(memberObject, "name") : Text(member);
+                if (name == null)
+                {
+                    return null;
+                }
+                names.Add(name);
+            }
+            return names;
+        }
+
+        /// <summary>The text of a JSON value; null if it is no non-empty string.</summary>
+        private static string? Text(JsonNode? node)
+        {
+            return node is JsonValue value && value.TryGetValue(out string? text) && !string.IsNullOrWhiteSpace(text) ? text : null;
         }
 
         private static string? Text(JsonNode? node, string propertyName)

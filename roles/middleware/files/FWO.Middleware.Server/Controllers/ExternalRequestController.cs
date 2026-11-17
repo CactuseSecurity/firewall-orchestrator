@@ -120,6 +120,7 @@ namespace FWO.Middleware.Server.Controllers
             }
         }
 
+        /// <summary>Starts the provisioning of a ticket in the middleware; returns whether it could be started.</summary>
         private async Task<bool> StartProvisioning(long ticketId)
         {
             using GlobalConfig GlobalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);

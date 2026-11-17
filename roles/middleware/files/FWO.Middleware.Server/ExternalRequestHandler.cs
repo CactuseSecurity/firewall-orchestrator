@@ -254,6 +254,7 @@ namespace FWO.Middleware.Server
         }
 
 
+        /// <summary>Stores an external request for the given request tasks with its content, variables and wait cycles.</summary>
         private async Task CreateExtRequest(WfTicket ticket, List<WfReqTask> tasks, List<WfReqTask> handledTasks, int waitCycles,
             ProvisioningRelease? release = null)
         {

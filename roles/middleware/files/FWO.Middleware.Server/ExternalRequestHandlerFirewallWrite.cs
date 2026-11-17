@@ -192,9 +192,11 @@ namespace FWO.Middleware.Server
         /// <param name="implTask">The implementation task of the request.</param>
         public Task<int?> ResolveImplTaskManagementId(WfImplTask implTask) => wfHandler.ResolveImplTaskManagementId(null, implTask);
 
+        /// <summary>Whether a firewall write request has finished, done or rejected.</summary>
         private static bool IsFinishedWrite(ExternalRequest request) =>
             DoneStates.Contains(request.ExtRequestState) || RejectedStates.Contains(request.ExtRequestState);
 
+        /// <summary>Finds an implementation task with its request task in a ticket; both null if not found.</summary>
         private static (WfReqTask? ReqTask, WfImplTask? ImplTask) FindImplTask(WfTicket? ticket, long? implTaskId)
         {
             if (ticket == null || implTaskId == null)

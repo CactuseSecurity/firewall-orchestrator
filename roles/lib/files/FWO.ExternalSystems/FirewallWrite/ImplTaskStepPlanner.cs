@@ -285,6 +285,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             return [ExistingRuleStep(FirewallWriteOperation.RuleModify, implTask, profile, RuleUid(implTask), context)];
         }
 
+        /// <summary>Plans the deletion of the existing rules a rule_delete task names, one step per rule in its imported layer.</summary>
         private static List<FirewallWriteStep> PlanRuleDelete(WfImplTask implTask, FirewallVendorProfile profile, FirewallWriteContext context)
         {
             List<string> ruleUids = implTask.GetRuleUids();

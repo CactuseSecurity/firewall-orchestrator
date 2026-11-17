@@ -139,6 +139,7 @@ namespace FWO.Ui.Pages.Settings
             return UsesExternalTicketSystem(settings) && settings.RerouteToExternalTicketSystem == ExternalTicketSystemKind.Undefined;
         }
 
+        /// <summary>Whether Tufin SecureChange is selected without URL or credential.</summary>
         private static bool IsSecureChangeWithoutConnection(GlobalDeviceSpecificSettings settings)
         {
             return UsesExternalTicketSystem(settings) && settings.RerouteToExternalTicketSystem == ExternalTicketSystemKind.TufinSecureChange

@@ -155,8 +155,8 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         /// <summary>
         /// Reads the object of the same name and compares it with the requested one, see <see cref="CheckPointObjectComparison"/>:
-        /// hosts, networks and address ranges must have the requested addresses, a group only has to exist, as in the
-        /// existing Check Point ticket handling. Other operations are never treated as present.
+        /// hosts, networks and address ranges must have the requested addresses, a group exactly the requested members.
+        /// Other operations are never treated as present.
         /// </summary>
         protected override async Task<bool> IsDesiredStatePresent(RenderedFirewallRequest request)
         {
@@ -183,7 +183,8 @@ namespace FWO.ExternalSystems.FirewallWrite
                 FirewallWriteOperation.HostCreate or FirewallWriteOperation.Ipv6HostCreate => CheckPointObjectComparison.HostMatches(requested, existing),
                 FirewallWriteOperation.NetworkCreate or FirewallWriteOperation.Ipv6NetworkCreate => CheckPointObjectComparison.NetworkMatches(requested, existing),
                 FirewallWriteOperation.AddressRangeCreate or FirewallWriteOperation.Ipv6AddressRangeCreate => CheckPointObjectComparison.AddressRangeMatches(requested, existing),
-                _ => true
+                FirewallWriteOperation.GroupCreate => CheckPointObjectComparison.GroupMatches(requested, existing),
+                _ => false
             };
         }
 
@@ -241,6 +242,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             return PublishFailure(published, $"Publish task {taskId} did not finish within {publishWaitSeconds} seconds.", FirewallWriteErrorKind.Unreachable);
         }
 
+        /// <summary>Reads the state of an asynchronous Check Point task, e.g. of a publish, with show-task.</summary>
         private async Task<RestResponse> ShowTask(string taskId)
         {
             RestRequest request = new(kShowTask, Method.Post);
@@ -248,6 +250,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             return await SendAuthenticated(request);
         }
 
+        /// <summary>The failed result of a publish whose task did not succeed, keeping the calls made so far and the firewall's message.</summary>
         private FirewallStepResult PublishFailure(FirewallStepResult published, string nativeMessage, FirewallWriteErrorKind kind)
         {
             string message = $"Check Point publish on '{Management.Name}' failed ({kind}): {nativeMessage}";

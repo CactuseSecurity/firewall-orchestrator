@@ -62,6 +62,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             return layerByRuleUid;
         }
 
+        /// <summary>The rulebases named by the section links, by id: the parent layers and the sections.</summary>
         private static Dictionary<long, Rulebase> RulebasesOfLinks(List<RulebaseLink> sectionLinks)
         {
             Dictionary<long, Rulebase> rulebasesById = [];
@@ -97,6 +98,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             return parentBySectionId;
         }
 
+        /// <summary>The uid of the layer a rulebase belongs to, traced up along the section links to the first rulebase that is no section; null if the trace breaks or is too deep.</summary>
         private static string? LayerOf(Rulebase rulebase, Dictionary<long, Rulebase> rulebasesById, Dictionary<long, long> parentBySectionId)
         {
             Rulebase current = rulebase;

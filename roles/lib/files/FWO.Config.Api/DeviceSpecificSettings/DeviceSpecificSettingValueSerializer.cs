@@ -72,28 +72,30 @@ public static class DeviceSpecificSettingValueSerializer
             return new JValue((bool)value);
         }
 
-        if (key.ValueType == typeof(int))
+        if (key.ValueType == typeof(int) || key.ValueType == typeof(int?))
         {
-            int number = (int)value;
-            if (number < 0)
-            {
-                throw new ArgumentException($"Setting '{key.DatabaseKey}' requires a non-negative number.", nameof(value));
-            }
-            return new JValue(number);
-        }
-
-        if (key.ValueType == typeof(int?))
-        {
-            int id = (int)value;
-            if (id <= 0)
-            {
-                throw new ArgumentException($"Setting '{key.DatabaseKey}' requires a positive ID.", nameof(value));
-            }
-            return new JValue(id);
+            return SerializeNumber(key, (int)value);
         }
 
         throw new NotSupportedException(
             $"Device specific setting type '{key.ValueType.Name}' has no JSONB serializer.");
+    }
+
+    /// <summary>
+    /// Converts a number setting: a count (int) must not be negative, the ID of a referenced object (nullable int) must be
+    /// positive.
+    /// </summary>
+    private static JValue SerializeNumber(DeviceSpecificSettingKey key, int value)
+    {
+        if (key.ValueType == typeof(int?) && value <= 0)
+        {
+            throw new ArgumentException($"Setting '{key.DatabaseKey}' requires a positive ID.", nameof(value));
+        }
+        if (value < 0)
+        {
+            throw new ArgumentException($"Setting '{key.DatabaseKey}' requires a non-negative number.", nameof(value));
+        }
+        return new JValue(value);
     }
 
     /// <summary>Converts a stored JSONB value back to the typed setting value.</summary>

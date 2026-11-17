@@ -89,11 +89,12 @@ namespace FWO.ExternalSystems.FirewallWrite
                 null => null,
                 CheckPointRulePosition checkPointPosition => new FirewallRulePlacement(ToAnchor(checkPointPosition.AnchorKind),
                     checkPointPosition.AnchorRuleUid, checkPointPosition.LayerUid, checkPointPosition.SectionUid),
-                RulePosition otherPosition => throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
-                    $"The rule position type '{otherPosition.PositionType}' of implementation task {implTask.Id} cannot be written to a firewall.")
+                _ => throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
+                    $"The rule position type '{implTask.RulePosition.PositionType}' of implementation task {implTask.Id} cannot be written to a firewall.")
             };
         }
 
+        /// <summary>The vendor-neutral anchor of a Check Point anchor kind; bottom for unknown kinds.</summary>
         private static FirewallRuleAnchor ToAnchor(CheckPointPositionAnchorKind anchorKind) => anchorKind switch
         {
             CheckPointPositionAnchorKind.Top => FirewallRuleAnchor.Top,

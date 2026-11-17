@@ -184,6 +184,7 @@ namespace FWO.Services.Workflow
             return string.IsNullOrWhiteSpace(rulebaseKey) ? null : rulebaseKey;
         }
 
+        /// <summary>The target management of an entry: of its implementation task along the shared resolver, of its request task for an entry without implementation task; 0 if unknown.</summary>
         private static int ManagementOf(ProvisioningWorkItem item, IProvisioningModeSource modes) =>
             item.ImplTask == null ? item.ReqTask.ManagementId ?? 0 : modes.GetTargetManagement(item.ReqTask, item.ImplTask) ?? 0;
 
@@ -191,6 +192,7 @@ namespace FWO.Services.Workflow
 
         private IReadOnlySet<long> releasedReqTaskIds = kNoReleasedReqTasks;
 
+        /// <summary>Adds the entries of a request task: as a whole for an external ticket system, else one per implementation task.</summary>
         private void AddRequestTask(WfReqTask reqTask, IProvisioningModeSource modes)
         {
             bool isRuleTask = WfHandler.IsRuleTaskType(reqTask.TaskType);
@@ -234,6 +236,7 @@ namespace FWO.Services.Workflow
             return true;
         }
 
+        /// <summary>Adds an implementation task along the implementation mode of its target, or reports it as gap.</summary>
         private void AddImplTask(WfReqTask reqTask, WfImplTask implTask, bool isRuleTask, IProvisioningModeSource modes)
         {
             if (isRuleTask)
@@ -332,6 +335,7 @@ namespace FWO.Services.Workflow
                 .MaxBy(entry => Strictness(entry.Mode));
         }
 
+        /// <summary>Order of the implementation modes for rules from automatic (least strict) to external ticket system (strictest).</summary>
         private static int Strictness(ProvisioningImplementationMode mode) => mode switch
         {
             ProvisioningImplementationMode.Automatic => 0,
@@ -377,6 +381,7 @@ namespace FWO.Services.Workflow
             return false;
         }
 
+        /// <summary>The reason of a gap for an implementation task whose management cannot be resolved consistently with its gateway.</summary>
         private static string InconsistentTargetReason(WfImplTask implTask)
         {
             return implTask.ManagementId == null
@@ -385,12 +390,14 @@ namespace FWO.Services.Workflow
                     "or the gateway is not known; correct the implementation task.";
         }
 
+        /// <summary>Whether the request task is still in an active planning phase, so its implementation tasks are not written yet.</summary>
         private static bool IsBeingPlanned(WfReqTask reqTask, IProvisioningModeSource modes)
         {
             int? planningEndState = modes.GetPlanningEndState(reqTask.TaskType);
             return planningEndState != null && reqTask.StateId < planningEndState;
         }
 
+        /// <summary>The reason of a gap for a management set to external ticket system without a selected system.</summary>
         private static string NoExternalTicketSystemSelectedReason(int managementId)
         {
             return $"management {managementId} is set to external ticket system, but no external ticket system is selected for it.";

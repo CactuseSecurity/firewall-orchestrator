@@ -408,7 +408,7 @@ namespace FWO.Test
 
             bool result = await handler.StartProvisioning(123);
 
-            ClassicAssert.IsTrue(result);
+            Assert.That(result, Is.True);
             StringAssert.Contains("taskNumber = 6", localApiConnection.AddExtRequestVars ?? "");
             StringAssert.Contains("\"BundledTasks\":[6,8]", localApiConnection.AddExtRequestVars ?? "");
         }
@@ -551,15 +551,15 @@ namespace FWO.Test
             // without bundling only the rule change on the other gateway is merged; the finished tasks 4 and 5 are not requested again
             localUserConfig.ModRolloutBundleTasks = false;
             await externalRequestHandler.HandleStateChange(externalRequest);
-            ClassicAssert.AreEqual(16, localApiConnection.History.Count);
+            Assert.That(localApiConnection.History, Has.Count.EqualTo(16));
             ClassicAssert.IsTrue(localApiConnection.History[12].Contains("changeType = 11"));
             ClassicAssert.IsTrue(localApiConnection.History[12].Contains("Task4"));
             ClassicAssert.IsTrue(localApiConnection.History[13].Contains("changeType = 11"));
             ClassicAssert.IsTrue(localApiConnection.History[13].Contains("Task5"));
             ClassicAssert.IsTrue(localApiConnection.History[14].Contains("changeType = 10"));
-            ClassicAssert.IsTrue(localApiConnection.History[14].Contains("Task6"));
-            ClassicAssert.IsTrue(localApiConnection.History[15].Contains("changeType = 10"));
-            ClassicAssert.IsTrue(localApiConnection.History[15].Contains("Task7"));
+            Assert.That(localApiConnection.History[14], Does.Contain("Task6"));
+            Assert.That(localApiConnection.History[15], Does.Contain("changeType = 10"));
+            Assert.That(localApiConnection.History[15], Does.Contain("Task7"));
             StringAssert.Contains("taskNumber = 6", localApiConnection.AddExtRequestVars ?? "");
             StringAssert.Contains("\"BundledTasks\":[6,7]", localApiConnection.AddExtRequestVars ?? "");
         }

@@ -60,6 +60,7 @@ namespace FWO.Services.Workflow
             }
         }
 
+        /// <summary>Creates the implementation tasks still missing for the request tasks in scope; returns the number created.</summary>
         private async Task<int> CreateMissingImplTasks(WfTicket ticket, WfReqTask? scopeTask)
         {
             SetTicketEnv(ticket);

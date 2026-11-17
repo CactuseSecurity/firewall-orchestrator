@@ -126,6 +126,7 @@ namespace FWO.Middleware.Server
             }
         }
 
+        /// <summary>Creates the external request of the next unfinished entry of the work list, if any; returns false if that failed.</summary>
         private async Task<bool> CreateRequestForNextEntry(WfTicket ticket, ProvisioningWorkList workList, ExternalRequest? previousRequest,
             ProvisioningRelease? release)
         {
@@ -356,6 +357,7 @@ namespace FWO.Middleware.Server
             return extQueryVariables != null && extQueryVariables.TryGetValue(key, out List<int>? values) ? values : null;
         }
 
+        /// <summary>The unfinished entries of the work list after the given one.</summary>
         private static IEnumerable<ProvisioningWorkItem> OpenEntriesAfter(ProvisioningWorkList workList, ProvisioningWorkItem start)
         {
             return workList.Items.SkipWhile(item => item != start).Skip(1).Where(item => !item.IsFinished);
@@ -377,6 +379,7 @@ namespace FWO.Middleware.Server
             return furtherSettings.ScUrl == actSystem.Url && furtherSettings.ScCredential == actSystem.CredentialId;
         }
 
+        /// <summary>Whether request tasks of this type may be bundled into one request to an external ticket system.</summary>
         private static bool IsBundledTaskType(string taskType)
         {
             return taskType == WfTaskType.access.ToString() || WfTaskBase.IsRuleChangeOrDelete(taskType);

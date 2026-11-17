@@ -168,6 +168,7 @@ namespace FWO.Middleware.Server
                 new { id = request.Id, extRequestState = request.ExtRequestState, finishDate = DateTime.Now });
         }
 
+        /// <summary>Releases the lock of a request taken for this run.</summary>
         private async Task ReleaseLock(ExternalRequest request)
         {
             if ((await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestLock, new { id = request.Id, locked = false })).UpdatedIdLong == request.Id)
@@ -437,6 +438,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         internal Func<Management, Task<GlobalDeviceSpecificSettings?>>? ManagementSettingsLoader { get; init; }
 
+        /// <summary>Loads the device specific settings in effect for a management; null if they cannot be resolved.</summary>
         private async Task<GlobalDeviceSpecificSettings?> LoadManagementSettings(Management management)
         {
             List<DeviceSpecificScopePath> paths = [DeviceSpecificScopePath.ForManagement(management)];

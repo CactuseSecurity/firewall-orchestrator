@@ -111,12 +111,13 @@ BEGIN
     DROP TABLE IF EXISTS tmp_impl_mode_route;
     DROP TABLE IF EXISTS tmp_impl_mode_target;
 
-    -- target per existing management and change category: External, Automatic, Manual or none (category without target)
+    -- target per existing management and change category: External, Automatic or Manual. A category without target was
+    -- not implemented by FWO before, so it becomes Manual instead of inheriting (Automatic would write it directly now)
     CREATE TEMP TABLE tmp_impl_mode_route AS
     SELECT m.mgm_id, m.mgm_name, m.dev_typ_id, c.category, c.config_key,
         CASE
             WHEN COALESCE(ms->>'Enabled', 'true') = 'false' THEN 'Manual'
-            WHEN COALESCE(ms->'SelectedChanges'->>c.category, '') = '' THEN NULL
+            WHEN COALESCE(ms->'SelectedChanges'->>c.category, '') = '' THEN 'Manual'
             WHEN ms->'SelectedChanges'->>c.category !~ '^[0-9]{1,9}$' THEN 'Manual'
             WHEN sys.type_id = '2' THEN 'External'
             WHEN sys.type_id IN ('9', '13') THEN 'Automatic'
@@ -415,6 +416,19 @@ BEGIN
     WHERE (effective.value #>> '{}') ~ '^[0-9]{1,9}$'
         AND (effective.value #>> '{}')::integer IN (SELECT system_id FROM tmp_sc_system);
 
+    SELECT system_id INTO i_global_system FROM tmp_sc_connection_route
+    GROUP BY system_id ORDER BY count(*) DESC, system_id LIMIT 1;
+
+    -- A system without credential (legacy authorization) on another server than the global system would log in with
+    -- the inherited credential of the global system, sending it to that other server. It is not taken over: its levels are
+    -- treated like levels selecting an unknown system below.
+    IF i_global_system IS NOT NULL THEN
+        DELETE FROM tmp_sc_system own
+        WHERE own.credential_id IS NULL AND own.system_id <> i_global_system
+            AND own.url IS DISTINCT FROM (SELECT glob.url FROM tmp_sc_system glob WHERE glob.system_id = i_global_system);
+        DELETE FROM tmp_sc_connection_route WHERE system_id NOT IN (SELECT system_id FROM tmp_sc_system);
+    END IF;
+
     -- levels selecting another or an unknown system: the implementation modes in effect for external ticket systems become Manual
     FOR r_selection IN
         SELECT v.node_id FROM device_specific_config_value v
@@ -446,9 +460,6 @@ BEGIN
         OR NOT (config_value #>> '{}') IN (SELECT system_id::text FROM tmp_sc_system));
     UPDATE device_specific_config_value SET config_value = '"tufinSecureChange"'::jsonb
     WHERE config_key = 'rerouteToExternalTicketSystem';
-
-    SELECT system_id INTO i_global_system FROM tmp_sc_connection_route
-    GROUP BY system_id ORDER BY count(*) DESC, system_id LIMIT 1;
 
     INSERT INTO device_specific_config_node (node_type, object_key, display_name, sort_order)
     VALUES ('global', 'global', 'Global', 0)

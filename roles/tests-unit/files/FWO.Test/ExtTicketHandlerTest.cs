@@ -332,8 +332,8 @@ namespace FWO.Test
             });
 
             StringAssert.Contains("taskNumber = 4", localApiConnection.AddExtRequestVars ?? "");
-            StringAssert.Contains($"\"Url\":\"{tufinSystem.Url}\"", localApiConnection.AddedExtTicketSystem ?? "");
-            StringAssert.Contains($"\"CredentialId\":{kTestCredentialId}", localApiConnection.AddedExtTicketSystem ?? "");
+            Assert.That(localApiConnection.AddedExtTicketSystem ?? "", Does.Contain($"\"Url\":\"{tufinSystem.Url}\""));
+            Assert.That(localApiConnection.AddedExtTicketSystem ?? "", Does.Contain($"\"CredentialId\":{kTestCredentialId}"));
             StringAssert.Contains("\"TypeId\":2", localApiConnection.AddedExtTicketSystem ?? "");
         }
 
@@ -409,8 +409,8 @@ namespace FWO.Test
             bool result = await handler.StartProvisioning(123);
 
             Assert.That(result, Is.True);
-            StringAssert.Contains("taskNumber = 6", localApiConnection.AddExtRequestVars ?? "");
-            StringAssert.Contains("\"BundledTasks\":[6,8]", localApiConnection.AddExtRequestVars ?? "");
+            Assert.That(localApiConnection.AddExtRequestVars ?? "", Does.Contain("taskNumber = 6"));
+            Assert.That(localApiConnection.AddExtRequestVars ?? "", Does.Contain("\"BundledTasks\":[6,8]"));
         }
 
         [Test]
@@ -560,8 +560,8 @@ namespace FWO.Test
             Assert.That(localApiConnection.History[14], Does.Contain("Task6"));
             Assert.That(localApiConnection.History[15], Does.Contain("changeType = 10"));
             Assert.That(localApiConnection.History[15], Does.Contain("Task7"));
-            StringAssert.Contains("taskNumber = 6", localApiConnection.AddExtRequestVars ?? "");
-            StringAssert.Contains("\"BundledTasks\":[6,7]", localApiConnection.AddExtRequestVars ?? "");
+            Assert.That(localApiConnection.AddExtRequestVars ?? "", Does.Contain("taskNumber = 6"));
+            Assert.That(localApiConnection.AddExtRequestVars ?? "", Does.Contain("\"BundledTasks\":[6,7]"));
         }
 
         [Test]

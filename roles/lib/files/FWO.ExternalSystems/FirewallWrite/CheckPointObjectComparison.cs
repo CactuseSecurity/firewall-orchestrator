@@ -108,11 +108,13 @@ namespace FWO.ExternalSystems.FirewallWrite
             return node is JsonValue value && value.TryGetValue(out string? text) && !string.IsNullOrWhiteSpace(text) ? text : null;
         }
 
+        /// <summary>The text of a JSON property; null if it is missing or no non-empty string.</summary>
         private static string? Text(JsonNode? node, string propertyName)
         {
             return node?[propertyName] is JsonValue value && value.TryGetValue(out string? text) && !string.IsNullOrWhiteSpace(text) ? text : null;
         }
 
+        /// <summary>The integer of a JSON property, given as number or as text; null if it is missing or no integer.</summary>
         private static int? Number(JsonNode? node, string propertyName)
         {
             if (node?[propertyName] is not JsonValue value)
@@ -126,11 +128,13 @@ namespace FWO.ExternalSystems.FirewallWrite
             return value.TryGetValue(out string? text) && int.TryParse(text, out int parsed) ? parsed : null;
         }
 
+        /// <summary>The IP address of a text, without a netmask suffix; null if it is no valid address.</summary>
         private static IPAddress? ParseAddress(string? text)
         {
             return text != null && IPAddress.TryParse(text.StripOffNetmask(), out IPAddress? address) ? address : null;
         }
 
+        /// <summary>The prefix length of a subnet mask as the number of its set bits, e.g. 24 for 255.255.255.0; null without mask.</summary>
         private static int? PrefixLength(IPAddress? subnetMask)
         {
             if (subnetMask == null)

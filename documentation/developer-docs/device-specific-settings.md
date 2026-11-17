@@ -187,7 +187,8 @@ settings, per management and change category (objects, rules):
 | Tufin SecureChange system | external ticket system mode, `rerouteToExternalTicketSystem` = that system (the system of the rules wins if both categories use different systems) |
 | Check Point system | Automatic (written by the firewall write library) |
 | Internal Work, Disabled, disabled management, other or unknown ticket system | Manual |
-| no target, management missing in the setting | unchanged, inherited |
+| no target (category of a listed management) | Manual, as FWO did not implement it before |
+| management missing in the setting | unchanged, inherited |
 
 As the former setting decided the routing, it wins over a differing device specific setting. A value is only stored on
 the management if the value in effect there (own, device type or global) differs. The former setting and the previous

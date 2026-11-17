@@ -272,8 +272,8 @@ For a feature-centric, thematically grouped view see
 - Approval-phase tickets provide a consolidated task-details view with read-only, technical and resolved task displays, configurable field editing, and task-specific editors for access, object, group and time-object tasks.
 - The promotion-mode setting supports an action-buttons-only option in addition to ticket, task and combined promotion.
 
-### 9.9.2 — 11.11.2026
-- Workflow monitoring shows tickets in a paged tree table with their request tasks, implementation tasks and approvals; column filters (state, id, requester) and sorting run in the database across all tickets, and the state column shows an icon for each default workflow state.
-
-### 9.9.3 — 10.11.2026
+### 9.9.2 — 10.11.2026
 - Rule hit import: a separate, scheduled import run refreshes the last hit of all rules, also for unchanged configurations; the regular import no longer reads hits. Last hits are stored per gateway (Check Point per gateway, FortiManager per policy package).
+
+### 9.9.4 — 17.11.2026
+- Workflow monitoring shows tickets in a paged tree table with their request tasks, implementation tasks and approvals; column filters (state, id, name, requester, start/end date) and sorting run in the database across all tickets, the pager shows the total number of matching tickets, and the state column shows an icon for each default workflow state.

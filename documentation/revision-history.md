@@ -1,5 +1,12 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.4 - 17.11.2026
+- UI fix: workflow ticket monitoring filtering and sorting work again (#5571)
+  - tickets are shown in a paged tree table with their request tasks, implementation tasks and approvals; column filters (state, id, name, requester, start/end time) and sorting run in the database across all tickets instead of only the loaded page
+  - the id filter only offers "equals" and "does not equal", since ids are only ever compared for equality; the name filter (ticket/task title, approval's approver group) offers "equals" and "starts with"; the start and end time filters compare the day of the ticket's, task's or approval's date
+  - the pager shows the total number of matching tickets; the count is cached and only queried again when the task type/state dropdowns or a column filter changes
+  - the state column shows an icon for each default workflow state
+
 ## 9.9.3 - 14.11.2026
 - request workflow: rule-positioning and firewall-write operations resolve gateway-bound implementation tasks against the gateway's management and reject inconsistent task data
 - middleware REST API: `getAddressGroups` and `getServiceGroups` accept `filter.includeTechnicalDetails=true` to include each member's standalone address or service object fields; omitted, null or false keep the existing compact id/name response, and address details can be combined with separated zone groups

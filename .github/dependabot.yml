@@ -7,12 +7,21 @@ registries:
     username: x-access-token
     password: ${{ secrets.PRIVATE_SUBMODULE_TOKEN }}
 
+# Minor and patch updates are grouped into one pull request per entry. Each pull request runs the
+# whole CI, so one pull request per package flooded the shared runner pool: three pip updates on
+# one morning queued every other pull request for more than an hour. Major updates are the ones
+# that break things, so they keep a pull request of their own.
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    groups:
+      github-actions-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
     assignees:
       - Laennart
 
@@ -23,6 +32,11 @@ updates:
       interval: "daily"
     registries:
       - private-github
+    groups:
+      nuget-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
     assignees:
       - SolidProgramming
 
@@ -39,6 +53,11 @@ updates:
       # scrapli >=2026.5 is the native libscrapli rewrite (scrapli 2); the ASA importer still uses the scrapli 1 API
       - dependency-name: "scrapli"
         versions: [">=2026.5"]
+    groups:
+      pip-importer-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
     assignees:
       - Laennart
 
@@ -47,6 +66,11 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    groups:
+      pip-app-data-import-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
     assignees:
       - Laennart
 
@@ -59,5 +83,10 @@ updates:
       # ansible >=13 requires Python >=3.12, unavailable on Debian 12 (see requirements.txt)
       - dependency-name: "ansible"
         versions: [">=13"]
+    groups:
+      pip-installer-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
     assignees:
       - Laennart

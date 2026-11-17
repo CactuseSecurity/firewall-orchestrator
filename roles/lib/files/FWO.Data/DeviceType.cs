@@ -23,6 +23,12 @@ namespace FWO.Data
         [JsonProperty("isManagement"), JsonPropertyName("isManagement")]
         public bool IsManagement { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether the importer reads rule hits from managements of this type (rule hit import).
+        /// </summary>
+        [JsonProperty("supportsRuleHits"), JsonPropertyName("supportsRuleHits")]
+        public bool SupportsRuleHits { get; set; }
+
         private static readonly List<int> LegacyDevTypeList =
         [
             2, // Netscreen 5.x-6.x
@@ -82,6 +88,7 @@ namespace FWO.Data
             Manufacturer = deviceType.Manufacturer;
             IsPureRoutingDevice = deviceType.IsPureRoutingDevice;
             IsManagement = deviceType.IsManagement;
+            SupportsRuleHits = deviceType.SupportsRuleHits;
         }
 
         public string NameVersion()

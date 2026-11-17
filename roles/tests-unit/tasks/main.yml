@@ -36,6 +36,9 @@
         mode: "0700"
       become: true
 
+    # Tagged unittests_run, so "--skip-tags unittests_run" leaves the synced test project in
+    # place without running the suites. The CI install runs use that: they run the unit tests
+    # in a separate job, and the JWT integration test runs from the synced project.
     - name: run csharp tests
       command: dotnet test
       args:
@@ -45,11 +48,13 @@
       register: csharp_tests
       ignore_errors: false
       environment: "{{ dotnet_env | combine({'FW_SKIP_PDF_TEST': 'true'}) }}"
+      tags: unittests_run
 
     - name: show csharp test results in case of errors
       debug:
         var: csharp_tests
       when: csharp_tests.rc != 0
+      tags: unittests_run
 
   when: "'frontends' in group_names"
   # run only once (on frontends)
@@ -75,3 +80,5 @@
       debug:
         var: pytest_tests.stderr_lines
       when: pytest_tests.rc != 0
+
+  tags: unittests_run

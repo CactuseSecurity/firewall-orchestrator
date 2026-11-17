@@ -6,7 +6,7 @@ These can be used for testing a specific import on the command line.
 
 ```console
 user@test:~$ ./import_mgm.py --help
-usage: import_mgm.py [-h] -m management_id [-c] [-f] [-d debug_level] [-v] [-s] [-l api_limit] [-i config_file_input] [-n config_file_normalized_input]
+usage: import_mgm.py [-h] -m management_id [-c] [-f] [-d debug_level] [-v] [-s] [-l api_limit] [-i config_file_input] [-n config_file_normalized_input] [--rule_hits]
 
 Read configuration from FW management via API calls
 
@@ -29,8 +29,23 @@ optional arguments:
                         if set, the config will not be fetched from firewall but read from native json config file specified here; may also be an url.
   -n config_file_normalized_input, --normalized_in_file config_file_normalized_input
                         if set, the config will not be fetched from firewall but read from normalized json config file specified here; may also be an url.
+  --rule_hits           If set, only the last hits of the rules are imported (rule hit import) instead of the configuration
 user@test:~$ 
 ```
+
+### Rule hit import
+
+The regular import does not read the last hits of the rules. They are imported by a separate rule hit import run:
+
+- The middleware scheduler `ImportRuleHitsJob` (settings: importer settings, "Rule hit import interval" and "Rule hit import start")
+  writes a request per imported top-level management into `rule_hit_import_request`.
+- The importer main loop runs the rule hit import of a requested management right after its configuration import and
+  removes the request. The run holds the import lock of the management (`import_control` row with `import_type_id` 5);
+  if another import holds the lock, the management is skipped until the next request.
+- Only importer modules implementing `FwCommon.supports_rule_hits` / `get_rule_hits` take part (currently Check Point R8x
+  and FortiManager). The hits are stored per gateway in `firewall.rule_hit`; `rule_metadata.rule_last_hit` holds the
+  latest hit across all gateways and only moves forward.
+- `import_mgm.py -m <mgm_id> --rule_hits` runs the rule hit import of a single management manually.
 
 
 ### Lint Setup

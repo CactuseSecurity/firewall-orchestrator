@@ -218,6 +218,16 @@ Create table firewall.rule_metadata
  primary key ("rule_metadata_id"),
  constraint "rule_metadata_mgm_id_rule_uid_unique" unique ("mgm_id", "rule_uid"));
 
+-- rule_hit contains the last hit of a rule per gateway; it is written by the rule hit import only
+-- rule_metadata.rule_last_hit holds the latest of these hits across all gateways
+Create table firewall.rule_hit
+(
+	"rule_metadata_id" BIGINT NOT NULL,
+	"dev_id" Integer NOT NULL,
+	"rule_last_hit" Timestamp with time zone NOT NULL,
+ primary key ("rule_metadata_id", "dev_id")
+);
+
 Create table firewall.parent_rule_type
 (
 	"id" smallint NOT NULL,

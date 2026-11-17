@@ -16,6 +16,7 @@ from fwo_enums import ConfigAction
 from fwo_exceptions import FwLoginFailedError, ImportInterruptionError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.rule_hit_extractor import extract_rule_hits
 from models.fw_common import FwCommon
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
     from models.import_state import ImportState
     from models.management import Management
+    from models.rule_hit import RuleHit
 
 
 class FortiAdom5ffCommon(FwCommon):
@@ -33,6 +35,19 @@ class FortiAdom5ffCommon(FwCommon):
         self, config_in: FwConfigManagerListController, import_state: ImportStateController
     ) -> tuple[int, FwConfigManagerListController]:
         return get_config(config_in, import_state)
+
+    def supports_rule_hits(self) -> bool:
+        return True
+
+    def get_rule_hits(self, import_state: ImportStateController) -> list[RuleHit]:
+        """
+        Read the last hits from the policy packages and store them for every gateway using the package.
+
+        FortiManager reports the last hit (_last_hit) per policy package rule, not per device.
+        """
+        config_in = FwConfigManagerListController.generate_empty_config(import_state.state.mgm_details.is_super_manager)
+        _, normalized_config = get_config(config_in, import_state)
+        return extract_rule_hits(normalized_config, import_state.state.management_map)
 
 
 def get_config(

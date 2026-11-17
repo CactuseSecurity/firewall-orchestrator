@@ -113,3 +113,19 @@ class TestMainRequiresAccessToken:
             FWO_CONFIG["fwo_api_base_url"], "jwt-value", "refresh-value", FWO_CONFIG["user_management_api_base_url"]
         )
         mock_import_management.assert_called_once()
+
+    def test_rule_hits_flag_runs_the_rule_hit_import_only(
+        self, mocker: MockerFixture, patch_login_and_config: Callable[[str], None]
+    ) -> None:
+        patch_login_and_config(json.dumps({"AccessToken": "jwt-value"}))
+        mocker.patch.object(import_mgm, "FwoApi")
+        mock_api_call = mocker.patch.object(import_mgm, "FwoApiCall")
+        mocker.patch.object(ImportStateController, "initialize_import")
+        mocker.patch.object(import_mgm, "register_global_state")
+        mock_import_management = mocker.patch.object(import_mgm, "import_management")
+        mock_import_rule_hits = mocker.patch.object(import_mgm, "import_rule_hits")
+
+        import_mgm.main(MGM_ID, rule_hits_only=True)
+
+        mock_import_rule_hits.assert_called_once_with(mock_api_call.return_value)
+        mock_import_management.assert_not_called()

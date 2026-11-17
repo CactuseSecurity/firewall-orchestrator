@@ -75,6 +75,19 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildSiemEntry_ShouldQuoteRuleUidSeparatorsQuotesAndNewlines()
+        {
+            RulesByFilterRequest request = CreateRequest("alice", "42");
+            request.Query.RuleUid = "uid-7\",\nResult: ok";
+
+            string entry = RuleController.BuildSiemEntry(request, "req-rule-uid", CreateCaller("portal-svc", "17"), "rejected", kTimestamp);
+
+            Assert.That(entry, Does.Contain("RuleUid: \"uid-7\\\",\\nResult: ok\""));
+            Assert.That(entry, Does.Not.Contain("\n"));
+            Assert.That(entry, Does.EndWith("Result: rejected"));
+        }
+
+        [Test]
         public void BuildSiemEntry_ShouldEscapeControlCharactersAndKeepNonAsciiReadable()
         {
             RulesByFilterRequest request = CreateRequest("Müller\nUserName: eve", "42");
@@ -128,6 +141,8 @@ namespace FWO.Test
                 ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = CreateCaller("portal-svc", "17") } }
             };
             RulesByFilterRequest request = CreateRequest("alice", "42");
+            request.Query.OwnerId = 7;
+            request.Query.RuleUid = "uid-7\",\nResult: ok";
             ActionResult<RulesByFilterResponse>? actionResult = null;
 
             string output = await ConsoleOutput.CaptureAsync(async () =>
@@ -138,7 +153,7 @@ namespace FWO.Test
             ClassicAssert.IsInstanceOf<BadRequestObjectResult>(actionResult?.Result);
             StringAssert.Contains("Log type: portal-application", output);
             StringAssert.Contains("RequestId: \"req-siem-rejected\", CallerName: \"portal-svc\", CallerId: 17,", output);
-            StringAssert.Contains("UserName: \"alice\", Result: rejected", output);
+            StringAssert.Contains("UserName: \"alice\", OwnerId: 7, RuleUid: \"uid-7\\\",\\nResult: ok\", Result: rejected", output);
         }
 
         [Test]
@@ -150,7 +165,7 @@ namespace FWO.Test
                 ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = CreateCaller("portal-svc", "17") } }
             };
             RulesByFilterRequest request = CreateRequest("alice", "42");
-            request.Query.OwnerId = 7;
+            request.Query.RuleUid = "uid-error";
             ActionResult<RulesByFilterResponse>? actionResult = null;
 
             string output = await ConsoleOutput.CaptureAsync(async () =>
@@ -161,7 +176,7 @@ namespace FWO.Test
             ObjectResult? errorResult = actionResult?.Result as ObjectResult;
             ClassicAssert.AreEqual(StatusCodes.Status500InternalServerError, errorResult?.StatusCode);
             StringAssert.Contains("RequestId: \"req-siem-error\",", output);
-            StringAssert.Contains("UserName: \"alice\", OwnerId: 7, Result: error", output);
+            StringAssert.Contains("UserName: \"alice\", RuleUid: \"uid-error\", Result: error", output);
 
             ClassicAssert.IsNotNull(apiConnection.RuleQueryTime, "The rule query was not reached.");
             DateTime loggedTime = ExtractLoggedTime(output, "req-siem-error");

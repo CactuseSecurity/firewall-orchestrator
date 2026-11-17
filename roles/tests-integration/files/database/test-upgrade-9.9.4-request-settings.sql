@@ -1,4 +1,4 @@
--- Test of the request settings migration of upgrade/9.9.3.sql. The test task inserts the upgrade file at the two
+-- Test of the request settings migration of upgrade/9.9.4.sql. The test task inserts the upgrade file at the two
 -- run-upgrade markers below, which also shows that the upgrade can be repeated.
 -- An isolated schema and temporary tables protect the settings; the transaction is rolled back.
 -- The implementation mode migration counts as done (its backup exists), so it leaves the settings below unchanged and
@@ -38,7 +38,7 @@ CREATE TEMP TABLE management (mgm_id integer PRIMARY KEY, mgm_name varchar, dev_
 INSERT INTO management VALUES (100, 'mgm100', 10), (101, 'mgm101', 10), (102, 'mgm102', 10), (103, 'mgm103', 11),
     (104, 'mgm104', 11), (105, 'mgm105', 11);
 
--- @run-upgrade-9.9.3
+-- @run-upgrade-9.9.4
 
 CREATE TEMP TABLE expected_values (node_type varchar, object_key varchar, config_key varchar, config_value jsonb);
 INSERT INTO expected_values VALUES
@@ -90,7 +90,7 @@ SELECT pg_temp.assert_migration();
 UPDATE device_specific_config_value SET config_value = '900' WHERE node_id = 1 AND config_key = 'requestResponseTimeout';
 UPDATE expected_values SET config_value = '900' WHERE object_key = 'global' AND config_key = 'requestResponseTimeout';
 
--- @run-upgrade-9.9.3
+-- @run-upgrade-9.9.4
 SELECT pg_temp.assert_migration();
 ROLLBACK;
-\echo '9.9.3 request settings migration and idempotency checks passed'
+\echo '9.9.4 request settings migration and idempotency checks passed'

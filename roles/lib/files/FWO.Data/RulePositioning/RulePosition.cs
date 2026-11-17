@@ -73,6 +73,12 @@ public abstract class RulePosition
     }
 
     /// <summary>
+    /// Returns the vendor-neutral key of the rulebase the rule is written to (Check Point: the layer uid), so that tasks
+    /// writing to the same rulebase can be recognized without vendor knowledge; null if the position names none.
+    /// </summary>
+    public virtual string? GetRulebaseKey() => null;
+
+    /// <summary>
     /// Creates an independent copy, including all subtype payload data.
     /// </summary>
     public virtual RulePosition DeepCopy()

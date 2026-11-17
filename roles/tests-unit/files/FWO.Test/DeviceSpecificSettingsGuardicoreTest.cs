@@ -27,7 +27,9 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "installOn", "positioningAlgorithm", "checkPointLayerGuardSectionNameTemplate", "ruleLoggingOverride",
         "serviceObjectCreation", "addressObjectCreation", "timeObjectCreation", "labelCreation",
         "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride",
-        "implementationMode", "implementationModeOverrideForRules", "rerouteToExternalTicketSystem",
+        "implementationMode", "implementationModeForRules", "rerouteToExternalTicketSystem",
+        "scUrl", "scCredential", "scLookupRequesterId",
+        "requestResponseTimeout", "requestMaxAttempts", "requestCyclesBetweenAttempts",
         "securityProfiles", "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName", "sshLegacyKeyExchange",
         "autoPlanImplementation", "autoPlanImplementationForRules", "modellingCreateAppZones",
         "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
@@ -39,7 +41,9 @@ internal class DeviceSpecificSettingsGuardicoreTest
     [
         "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName", "sshLegacyKeyExchange",
         "modellingCreateAppZones", "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
-        "modellingConnectionIdField", "modellingConnectionIdTemplate"
+        "modellingConnectionIdField", "modellingConnectionIdTemplate",
+        "requestResponseTimeout", "requestMaxAttempts", "requestCyclesBetweenAttempts",
+        "scUrl", "scCredential", "scLookupRequesterId"
     ];
     private static readonly HashSet<string> kManagerUiKeys =
     [
@@ -56,10 +60,12 @@ internal class DeviceSpecificSettingsGuardicoreTest
     private static readonly List<DeviceSpecificScopeType> kDeviceUiLevels =
         [DeviceSpecificScopeType.DeviceType, DeviceSpecificScopeType.Management];
     private static readonly List<DeviceSpecificScopeType> kDeviceTypeLevel = [DeviceSpecificScopeType.DeviceType];
-    private const string kTicketSystems = "[{\"Id\":3,\"Name\":\"Ticketing\"}]";
-    private static readonly List<JValue> kInvalidTicketSystemIds = [new("3"), new(3.5), new(long.MaxValue)];
-    private static readonly List<(string Value, string Name)> kConfiguredTicketSystemOptions = [("3", "Ticketing (3)")];
-    private static readonly List<(string Value, string Name)> kOptionsWithRemovedTicketSystem = [("3", "Ticketing (3)"), ("9", "9")];
+    private static readonly List<JValue> kInvalidCredentialIds = [new("3"), new(3.5), new(long.MaxValue)];
+    private static readonly List<Credential> kCredentials =
+        [new() { Id = 3, Name = "SecureChange login" }, new() { Id = 4, Name = "Key pair", IsKeyPair = true }];
+    private static readonly List<Credential> kNoCredentials = [];
+    private static readonly List<(string Value, string Name)> kCredentialOptions = [("3", "SecureChange login")];
+    private static readonly List<(string Value, string Name)> kOptionsWithUnknownCredential = [("3", "SecureChange login"), ("9", "9")];
 
     /// <summary>Database keys of the firewall write settings: connection settings, then endpoint and template per operation.</summary>
     private static List<string> FirewallWriteKeys()
@@ -144,8 +150,9 @@ internal class DeviceSpecificSettingsGuardicoreTest
             Assert.That(settings.TimeObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
             Assert.That(settings.LabelCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
             Assert.That(settings.CommonServiceSeparation, Is.False);
-            Assert.That(settings.ImplementationModeOverrideForRules, Is.EqualTo(ProvisioningRuleImplementationMode.Automatic));
-            Assert.That(settings.RerouteToExternalTicketSystem, Is.Null);
+            Assert.That(settings.ImplementationModeForRules, Is.EqualTo(ProvisioningRuleImplementationMode.Automatic));
+            Assert.That(settings.RerouteToExternalTicketSystem, Is.EqualTo(ExternalTicketSystemKind.Undefined));
+            Assert.That(settings.ScCredential, Is.Null);
             Assert.That(settings.OwnerIdCustomFieldName, Is.EqualTo("OwnerId"));
             Assert.That(settings.ChangeIdCustomFieldName, Is.EqualTo("ChangeId"));
             Assert.That(settings.ImporterHostName, Is.Empty);
@@ -175,9 +182,10 @@ internal class DeviceSpecificSettingsGuardicoreTest
         string editorValue = field.Kind switch
         {
             DeviceSpecificFieldKind.SingleSelect => field.Options.Last().Value,
-            DeviceSpecificFieldKind.ExtTicketSystem => "7",
+            DeviceSpecificFieldKind.Credential => "7",
             DeviceSpecificFieldKind.StringList => "profile1,profile2",
             DeviceSpecificFieldKind.FirewallEndpoint => "POST custom-endpoint",
+            DeviceSpecificFieldKind.Number => "42",
             _ => "custom value"
         };
         DeviceSpecificSettingsChangeSet changes = new(new DeviceSpecificSettingsScope
@@ -214,14 +222,14 @@ internal class DeviceSpecificSettingsGuardicoreTest
         Assert.That(value.Source.Scope?.NodeId, Is.EqualTo(1));
     }
 
-    /// <summary>An undefined ticket system resolves to null from the compiled default.</summary>
+    /// <summary>An undefined ticket system resolves to undefined from the compiled default.</summary>
     [Test]
-    public async Task EffectiveReadOfUndefinedTicketSystemIsNull()
+    public async Task EffectiveReadOfUndefinedTicketSystemIsUndefined()
     {
         DeviceSpecificSettingsManager manager = new(CreateHierarchy());
-        ResolvedDeviceSpecificValue<int?> value = await manager.LoadEffectiveValueAsync(DeviceSpecificScopePath.Global(),
+        ResolvedDeviceSpecificValue<ExternalTicketSystemKind> value = await manager.LoadEffectiveValueAsync(DeviceSpecificScopePath.Global(),
             DeviceSpecificSettingKeys.RerouteToExternalTicketSystem);
-        Assert.That(value.Value, Is.Null);
+        Assert.That(value.Value, Is.EqualTo(ExternalTicketSystemKind.Undefined));
         Assert.That(value.Source.UsesCompiledDefault, Is.True);
     }
 
@@ -235,28 +243,36 @@ internal class DeviceSpecificSettingsGuardicoreTest
             DeviceSpecificSettingKeys.ModellingCreateAppZones, new JValue("Yes")));
     }
 
-    /// <summary>Ticket system IDs are positive JSON integers; undefined is never stored.</summary>
+    /// <summary>Credential IDs are positive JSON integers; undefined is never stored.</summary>
     [TestCase(0)]
     [TestCase(-1)]
-    public void TicketSystemRejectsNonPositiveIds(int id)
+    public void CredentialRejectsNonPositiveIds(int id)
     {
         Assert.Throws<ArgumentException>(() => DeviceSpecificSettingValueSerializer.Serialize(
-            DeviceSpecificSettingKeys.RerouteToExternalTicketSystem, (int?)id));
+            DeviceSpecificSettingKeys.ScCredential, (int?)id));
         Assert.Throws<InvalidOperationException>(() => DeviceSpecificSettingValueSerializer.Deserialize(
-            DeviceSpecificSettingKeys.RerouteToExternalTicketSystem, new JValue(id)));
+            DeviceSpecificSettingKeys.ScCredential, new JValue(id)));
     }
 
-    /// <summary>Strings, fractions and values outside the integer range are not ticket system IDs.</summary>
+    /// <summary>Strings, fractions and values outside the integer range are not credential IDs.</summary>
     [Test]
-    public void TicketSystemRejectsNonIntegerValues()
+    public void CredentialRejectsNonIntegerValues()
     {
         Assert.Throws<ArgumentNullException>(() => DeviceSpecificSettingValueSerializer.Serialize(
-            DeviceSpecificSettingKeys.RerouteToExternalTicketSystem, null));
-        foreach (JValue stored in kInvalidTicketSystemIds)
+            DeviceSpecificSettingKeys.ScCredential, null));
+        foreach (JValue stored in kInvalidCredentialIds)
         {
             Assert.Throws<InvalidOperationException>(() => DeviceSpecificSettingValueSerializer.Deserialize(
-                DeviceSpecificSettingKeys.RerouteToExternalTicketSystem, stored));
+                DeviceSpecificSettingKeys.ScCredential, stored));
         }
+    }
+
+    /// <summary>A former ticket system ID is no external ticket system any more.</summary>
+    [Test]
+    public void TicketSystemRejectsStoredIds()
+    {
+        Assert.Throws<InvalidOperationException>(() => DeviceSpecificSettingValueSerializer.Deserialize(
+            DeviceSpecificSettingKeys.RerouteToExternalTicketSystem, new JValue(3)));
     }
 
     /// <summary>Selecting undefined in the editor removes the override instead of storing a value.</summary>
@@ -269,15 +285,23 @@ internal class DeviceSpecificSettingsGuardicoreTest
         Assert.That(changes.Removals, Does.Contain(DeviceSpecificSettingKeys.RerouteToExternalTicketSystem));
     }
 
-    /// <summary>Configured ticket systems are offered by name; a stored but removed ID stays selectable.</summary>
+    /// <summary>Selecting undefined in the credential editor removes the override instead of storing a value.</summary>
     [Test]
-    public void TicketSystemOptionsListConfiguredSystems()
+    public void CredentialEditorTreatsEmptyAsInherit()
     {
-        Assert.That(DeviceSpecificSettingsData.ExtTicketSystemOptions(kTicketSystems, ""),
-            Is.EqualTo(kConfiguredTicketSystemOptions));
-        Assert.That(DeviceSpecificSettingsData.ExtTicketSystemOptions(kTicketSystems, "9"),
-            Is.EqualTo(kOptionsWithRemovedTicketSystem));
-        Assert.That(DeviceSpecificSettingsData.ExtTicketSystemOptions("", ""), Is.Empty);
+        DeviceSpecificSettingsChangeSet changes = new(new GlobalDeviceSpecificSettings().Scope);
+        DeviceSpecificSettingsData.FindField(DeviceSpecificSettingKeys.ScCredential)!.SetOverride(changes, "");
+        Assert.That(changes.Upserts, Is.Empty);
+        Assert.That(changes.Removals, Does.Contain(DeviceSpecificSettingKeys.ScCredential));
+    }
+
+    /// <summary>Credentials are offered by name without key pairs; a stored but unknown ID stays selectable.</summary>
+    [Test]
+    public void CredentialOptionsListPasswordCredentials()
+    {
+        Assert.That(DeviceSpecificSettingsData.CredentialOptions(kCredentials, ""), Is.EqualTo(kCredentialOptions));
+        Assert.That(DeviceSpecificSettingsData.CredentialOptions(kCredentials, "9"), Is.EqualTo(kOptionsWithUnknownCredential));
+        Assert.That(DeviceSpecificSettingsData.CredentialOptions(kNoCredentials, ""), Is.Empty);
     }
 
     /// <summary>Wire values are independent of enum display names.</summary>
@@ -292,7 +316,8 @@ internal class DeviceSpecificSettingsGuardicoreTest
     [TestCase("ruleType", "HandleAccessAndIps", "accessAndIPS")]
     [TestCase("positioningAlgorithm", "AllowCategoryEndOfAppSectionDistinguishCommonServices", "allowCategoryEndOfAppSectionDistinguishCommonServices")]
     [TestCase("implementationMode", "RerouteToExternalTicketSystem", "reroute_to_external_ticket_system")]
-    [TestCase("implementationModeOverrideForRules", "RerouteToExternalTicketSystem", "rerouteToExternalTicketSystem")]
+    [TestCase("implementationModeForRules", "RerouteToExternalTicketSystem", "rerouteToExternalTicketSystem")]
+    [TestCase("rerouteToExternalTicketSystem", "TufinSecureChange", "tufinSecureChange")]
     [TestCase("implementationMode", "Automatic", "Automatic")]
     [TestCase("modellingConnectionIdField", "CustomField", "CustomField")]
     public void SerializedValuesMatchContract(string databaseKey, string enumName, string wireValue)

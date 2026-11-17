@@ -14,6 +14,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getUnfinishedRequestsOfTicket;
         public static readonly string getAndLockOpenRequests;
         public static readonly string getLastRequest;
+        public static readonly string getRequestsOfImplTask;
         public static readonly string updateExtRequestCreation;
         public static readonly string updateExtRequestProcess;
         public static readonly string updateExtRequestFinal;
@@ -37,6 +38,7 @@ namespace FWO.Api.Client.Queries
                 getUnfinishedRequestsOfTicket = GetQueryText("extRequest/getUnfinishedRequestsOfTicket.graphql");
                 getAndLockOpenRequests = extRequestDetailsFragment + GetQueryText("extRequest/getAndLockOpenRequests.graphql");
                 getLastRequest = extRequestDetailsFragment + GetQueryText("extRequest/getLastRequest.graphql");
+                getRequestsOfImplTask = GetQueryText("extRequest/getRequestsOfImplTask.graphql");
                 updateExtRequestCreation = GetQueryText("extRequest/updateExtRequestCreation.graphql");
                 updateExtRequestProcess = GetQueryText("extRequest/updateExtRequestProcess.graphql");
                 updateExtRequestFinal = GetQueryText("extRequest/updateExtRequestFinal.graphql");

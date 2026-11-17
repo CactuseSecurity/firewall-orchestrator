@@ -120,9 +120,7 @@ namespace FWO.Ui.Services
 
         private static readonly List<SettingsNavEntry> kFwConfigChangeEntries = new()
         {
-            new("fwconfigchangegeneral", "settings/fwconfigchangegeneral", Icons.Settings, kAdminAuditor),
-            new("dss_settings", "settings/devicespecificsettings", Icons.Settings, kAdminAuditor),
-            new("ext_ticket_templates", "settings/exttickettemplates", Icons.Settings, kAdminAuditor)
+            new("dss_settings", "settings/devicespecificsettings", Icons.Settings, kAdminAuditor)
         };
 
         private static readonly List<SettingsNavEntry> kPersonalEntries = new()

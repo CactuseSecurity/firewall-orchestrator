@@ -219,11 +219,12 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Returns whether implementation tasks are created automatically on a level. A level that was not resolved
         /// inherits the global settings; without any resolved settings the defaults apply, so rule tasks are not
-        /// created automatically against the settings of an administrator.
+        /// created automatically against the settings of an administrator. A person creating them by a button decides
+        /// instead of the settings.
         /// </summary>
         private bool IsAutoPlanned(bool isRuleTask, DeviceSpecificScopeType scopeType, int? id)
         {
-            return GetResolvedSettings(scopeType, id).IsAutoPlanned(isRuleTask);
+            return implTaskCreationByButton || GetResolvedSettings(scopeType, id).IsAutoPlanned(isRuleTask);
         }
 
         /// <summary>

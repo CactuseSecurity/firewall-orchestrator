@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Logging;
 using FWO.Report;
@@ -67,7 +68,12 @@ namespace FWO.Middleware.Server.Jobs
                     {
                         LogPrefilterFallbackToDb = false
                     };
-                    if (!await varianceAnalysis.AnalyseConnsForStatusAsync(owner.Connections, cancellationToken))
+                    // same state as on the modelling page, so the shared selection excludes the same connections
+                    foreach (ModellingConnection connection in owner.Connections)
+                    {
+                        connection.SyncState(owner.DummyAppRoleId, userConfig.ModRolloutRemovedAppServers);
+                    }
+                    if (!await varianceAnalysis.AnalyseConnsForStatusAsync(owner.Connections, owner.DummyAppRoleId, cancellationToken))
                     {
                         Log.WriteError(LogMessageTitle, $"Variance Analysis failed for owner {owner.Name}.");
                     }

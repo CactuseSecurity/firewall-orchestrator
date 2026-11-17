@@ -216,7 +216,7 @@ namespace FWO.Test
             apiConnection.Queries.Clear();
 
             Assert.ThrowsAsync<OperationCanceledException>(async () =>
-                await varianceAnalysis.AnalyseConnsForStatusAsync([new ModellingConnection { Id = 1 }], CanceledToken()));
+                await varianceAnalysis.AnalyseConnsForStatusAsync([new ModellingConnection { Id = 1 }], 0, CanceledToken()));
             Assert.That(apiConnection.Queries, Does.Not.Contain(ModellingQueries.updateConnectionProperties));
         }
 

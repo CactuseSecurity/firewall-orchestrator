@@ -12,7 +12,16 @@ namespace FWO.Data.Report
         public List<ManagementReport> UnmodelledRules { get; set; } = [];
         public List<ManagementReport> RulesForDeletedConns { get; set; } = [];
         public List<ModProdDifference> RuleDifferences { get; set; } = [];
-        private readonly long DummyARid = -1;
+
+        /// <summary>
+        /// Connections the variance analysis left out, with the reason.
+        /// </summary>
+        public List<ModellingExcludedConnection> ExcludedConnections { get; set; } = [];
+
+        /// <summary>
+        /// Id of the dummy app role, which never counts as empty app role.
+        /// </summary>
+        public long DummyAppRoleId { get; } = -1;
         public int ModelledConnectionsCount { get; set; }
 
         public Dictionary<int, List<ModellingAppRole>> MissingAppRoles { get; set; } = [];
@@ -26,7 +35,7 @@ namespace FWO.Data.Report
 
         public OwnerConnectionReport(long dummyARid)
         {
-            DummyARid = dummyARid;
+            DummyAppRoleId = dummyARid;
         }
 
         public OwnerConnectionReport(OwnerConnectionReport report) : base(report)
@@ -39,25 +48,20 @@ namespace FWO.Data.Report
             UnmodelledRules = report.UnmodelledRules;
             RulesForDeletedConns = report.RulesForDeletedConns;
             RuleDifferences = report.RuleDifferences;
-            DummyARid = report.DummyARid;
+            ExcludedConnections = report.ExcludedConnections;
+            DummyAppRoleId = report.DummyAppRoleId;
             ModelledConnectionsCount = report.ModelledConnectionsCount;
             AppRoleStats = report.AppRoleStats;
         }
 
         public override List<NetworkObject> GetAllNetworkObjects(bool resolved = false, bool resolveNetworkAreas = false)
         {
-            return GetAllNetworkObjects(Connections, resolved, resolveNetworkAreas, DummyARid);
+            return GetAllNetworkObjects(Connections, resolved, resolveNetworkAreas, DummyAppRoleId);
         }
 
         public override List<NetworkService> GetAllServices(bool resolved = false)
         {
             return GetAllServices(Connections, resolved);
-        }
-
-        public void ExtractConnectionsToAnalyse()
-        {
-            Connections = [.. Connections.Where(x => x.IsRelevantForVarianceAnalysis(DummyARid)).OrderByDescending(y => y.IsCommonService)];
-            ModelledConnectionsCount = Connections.Count;
         }
     }
 }

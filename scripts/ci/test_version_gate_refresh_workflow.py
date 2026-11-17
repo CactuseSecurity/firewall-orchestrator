@@ -60,8 +60,15 @@ def execute_refresh_loop(
     run_status_sequence: tuple[str, ...] = ("completed",),
     pull_request_count: int | None = None,
     open_pull_request_total: int | None = None,
+    current_heads: tuple[tuple[int, str], ...] | None = None,
+    failed_head_lookups: tuple[int, ...] = (),
 ) -> tuple[subprocess.CompletedProcess[str], list[str]]:
-    """Execute the refresh loop with mocked pull requests and workflow runs."""
+    """
+    Execute the refresh loop with mocked pull requests and workflow runs.
+
+    current_heads is what GitHub reports as the head of a pull request right before the re-run;
+    by default the head has not moved since the pull request list was read.
+    """
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
     api_log = tmp_path / "api-log"
@@ -77,6 +84,15 @@ elif [ "$1" = "api" ] && [ "$2" = "graphql" ]; then
         exit 1
     fi
     printf '%s\n' "$MOCK_OPEN_PR_TOTAL"
+elif [ "$1" = "api" ] && [ "${2#*/pulls/}" != "$2" ]; then
+    number="${2##*/pulls/}"
+    case " $MOCK_FAILED_HEAD_LOOKUPS " in
+        *" $number "*)
+            echo "API error: 502" >&2
+            exit 1
+            ;;
+    esac
+    printf '%s\n' "$MOCK_CURRENT_HEADS" | awk -v number="$number" '$1 == number { print $2; exit }'
 elif [ "$1" = "api" ] && [ "${2#*/actions/runs/}" != "$2" ]; then
     attempt="$(cat "$MOCK_STATUS_CALLS" 2>/dev/null || echo 0)"
     printf '%s\n' "$((attempt + 1))" > "$MOCK_STATUS_CALLS"
@@ -121,6 +137,7 @@ exit 0
 """,
     )
     effective_pull_request_count = len(pull_requests) if pull_request_count is None else pull_request_count
+    effective_current_heads = pull_requests if current_heads is None else current_heads
     environment = os.environ.copy()
     environment.update(
         {
@@ -133,6 +150,8 @@ exit 0
             "LANGUAGE": "C",
             "LC_ALL": "C",
             "MOCK_API_LOG": str(api_log),
+            "MOCK_CURRENT_HEADS": "\n".join(f"{number} {head_sha}" for number, head_sha in effective_current_heads),
+            "MOCK_FAILED_HEAD_LOOKUPS": " ".join(str(number) for number in failed_head_lookups),
             "MOCK_FAILED_RUN_IDS": " ".join(str(run_id) for run_id in failed_run_ids),
             "MOCK_FAILED_RUN_LOOKUP_SHAS": " ".join(failed_run_lookup_shas),
             "MOCK_RUN_STATUS_SEQUENCE": " ".join(run_status_sequence),
@@ -367,6 +386,46 @@ def test_unmatched_pull_requests_are_accumulated_and_fail(tmp_path: Path) -> Non
     assert "PR #44: no version gate run found for missing-a" in completed.stderr
     assert "PR #45: no version gate run found for missing-b" in completed.stderr
     assert "Could not refresh the version gate for 2 pull request(s)." in completed.stderr
+
+
+def test_run_of_a_moved_head_is_not_rerun(tmp_path: Path) -> None:
+    """
+    A push during the refresh must not lose its gate result to a re-run of the older head.
+
+    Before, that re-run cancelled the new head's gate run through the shared concurrency group.
+    """
+    completed, rerun_ids = execute_refresh_loop(
+        tmp_path,
+        pull_requests=((48, "head-old"), (49, "head-e")),
+        workflow_runs=(("head-old", 905, "in_progress"), ("head-e", 906, "completed")),
+        run_status_sequence=("completed",),
+        current_heads=((48, "head-new"), (49, "head-e")),
+    )
+
+    assert completed.returncode == 0
+    assert rerun_ids == ["906"]
+    assert "PR #48: head moved from head-old to head-new" in completed.stdout
+    assert "re-running version gate run 905" not in completed.stdout
+
+
+def test_failed_head_lookup_still_reruns(tmp_path: Path) -> None:
+    """Without the current head the refresh cannot tell, so it re-runs rather than skip the gate."""
+    completed, rerun_ids = execute_refresh_loop(
+        tmp_path,
+        pull_requests=((50, "head-f"),),
+        workflow_runs=(("head-f", 907, "completed"),),
+        failed_head_lookups=(50,),
+    )
+
+    assert completed.returncode == 0
+    assert rerun_ids == ["907"]
+    assert "PR #50: re-running version gate run 907." in completed.stdout
+
+
+def test_gate_workflow_has_no_concurrency_group() -> None:
+    """A per pull request group let a refresh re-run of an older head cancel the current gate."""
+    gate_workflow = read_workflow(WORKFLOW_DIRECTORY / "version-gate.yml")
+    assert "\nconcurrency:" not in gate_workflow
 
 
 def test_rerun_failure_is_accumulated_without_stopping_the_loop(tmp_path: Path) -> None:

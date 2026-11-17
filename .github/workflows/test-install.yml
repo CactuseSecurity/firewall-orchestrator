@@ -1,13 +1,21 @@
 name: FWO Test Install
-# NOTE: this workflow's behavior (trigger/matrix logic) is documented in
-# documentation/developer-docs/github/test-install-workflow.md - please
-# keep that doc in sync when changing triggers, matrix, or job logic here.
+# NOTE: this workflow's behavior (triggers, test plan, job contents) is documented in
+# documentation/developer-docs/github/test-install-workflow.md - please keep that doc in
+# sync when changing triggers, the plan or job logic here.
+#
+# A pull request installs on Ubuntu 24.04 and runs the Python unit tests on Python 3.11. The
+# installs on every supported Ubuntu version and the Python unit tests on every supported
+# Python version run after the merge into develop, and on the pull requests they exist for:
+# Ansible changes also install on Ubuntu 22.04 (ansible-core 2.18), Dependabot pip updates run
+# every Python version. scripts/ci/install_plan.py makes that choice. A failure after the merge
+# is reported to the merged pull request. The C# unit tests run in the Sonar workflows, which
+# need them for coverage.
 
 on:
   workflow_dispatch:
     inputs:
       full:
-        description: Run Full Test Matrix
+        description: "Full run: the same checks as a merge into develop"
         type: boolean
         default: false
         required: true
@@ -17,19 +25,40 @@ on:
       - develop
   pull_request:
 
+# A newer push to a pull request cancels its running checks. On main and develop every commit
+# gets a run of its own instead, so that a failure after a merge points at the pull request
+# whose merge caused it: in one shared group GitHub would replace a waiting run by the next
+# merge, and the commits in between would never be tested.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('{0}-{1}', github.ref, github.sha) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Read-only for every job; the repository default would give each job a write token. Jobs that
+# need more declare their own block, which replaces this one: test-install and report-merge-failure.
+permissions:
+  contents: read
 
 jobs:
-  setup:
-    name: Determine test matrix
+  plan:
+    name: Determine test plan
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      install_matrix: ${{ steps.plan.outputs.install_matrix }}
+      python_versions: ${{ steps.plan.outputs.python_versions }}
     steps:
-      - name: Select matrix based on event
-        id: set-matrix
+      # A pull request checks out its merge commit; depth 2 adds its first parent, the base
+      # branch, which the changed files are listed against.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: List the files the pull request changes
+        if: ${{ github.event_name == 'pull_request' }}
+        run: git diff --no-renames --name-only -z HEAD^1 HEAD >"$RUNNER_TEMP/changed-files"
+
+      - name: Select installs and Python versions
+        id: plan
         env:
           EVENT_NAME: ${{ github.event_name }}
           REF: ${{ github.ref }}
@@ -37,67 +66,26 @@ jobs:
           INPUT_FULL: ${{ inputs.full }}
         run: |
           set -euo pipefail
-
-          full=false
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            full="$INPUT_FULL"
-          elif [ "$EVENT_NAME" = "push" ] && [[ "$REF" =~ ^refs/heads/(main|develop)$ ]]; then
-            full=true
-          elif [ "$EVENT_NAME" = "pull_request" ] && [[ "$HEAD_REF" == dependabot/pip/* ]]; then
-            full=true
+          changed_files=()
+          if [[ -f "$RUNNER_TEMP/changed-files" ]]; then
+            changed_files=(--changed-files "$RUNNER_TEMP/changed-files")
           fi
-
-          if [ "$full" = "true" ]; then
-            matrix='{"include":[
-              {"os":"ubuntu-26.04","python":"3.10","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.10"},
-              {"os":"ubuntu-26.04","python":"3.11","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.11"},
-              {"os":"ubuntu-26.04","python":"3.12","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.12"},
-              {"os":"ubuntu-26.04","python":"3.13","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.13"},
-              {"os":"ubuntu-26.04","python":"3.14","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.14"},
-              {"os":"ubuntu-24.04","python":"3.10","integration":true,"label":"Test install on ubuntu-24.04 with Python 3.10"},
-              {"os":"ubuntu-24.04","python":"3.11","integration":true,"label":"Test install on ubuntu-latest"},
-              {"os":"ubuntu-24.04","python":"3.12","integration":false,"label":"Test install on ubuntu-24.04 with Python 3.12"},
-              {"os":"ubuntu-24.04","python":"3.13","integration":false,"label":"Test install on ubuntu-24.04 with Python 3.13"},
-              {"os":"ubuntu-24.04","python":"3.14","integration":false,"label":"Test install on ubuntu-24.04 with Python 3.14"},
-              {"os":"ubuntu-22.04","python":"3.10","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.10"},
-              {"os":"ubuntu-22.04","python":"3.11","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.11"},
-              {"os":"ubuntu-22.04","python":"3.12","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.12"},
-              {"os":"ubuntu-22.04","python":"3.13","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.13"},
-              {"os":"ubuntu-22.04","python":"3.14","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.14"}
-            ]}'
-          else
-            # Both pinned ansible generations, and both with the integration tests, because
-            # requirements.txt installs ansible 10.7.0 (ansible-core 2.18) below python 3.11
-            # and 12.3.0 (core 2.19) from 3.11 up, and the two do not evaluate a "when" or
-            # "assert.that" the same way: core 2.18 wraps the expression as
-            # "{% if <expr> %}", where Jinja's if-statement parser rejects a bare
-            # conditional expression that core 2.19 accepts as an expression. A matrix that
-            # runs the roles/tests-integration suite on one generation only cannot see that
-            # class of defect at all - it reached a customer installation once already.
-            # Keep an integration run on each generation, or the older one is untested.
-            matrix='{"include":[
-              {"os":"ubuntu-24.04","python":"3.11","integration":true,"label":"Test install on ubuntu-latest"},
-              {"os":"ubuntu-24.04","python":"3.10","integration":true,"label":"Test install on ubuntu-latest with ansible-core 2.18"}
-            ]}'
-          fi
-
-          # Collapse to a single line for the step output.
-          matrix="$(echo "$matrix" | tr -d '\n' | tr -s ' ')"
-
-          if ! echo "$matrix" | jq empty; then
-            echo "::error::Generated matrix is not valid JSON: $matrix"
-            exit 1
-          fi
-
-          combos=$(echo "$matrix" | jq '.include | length')
-          echo "::notice::full=$full, selected $combos matrix combo(s)"
-
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          python3 scripts/ci/install_plan.py \
+            --event-name "$EVENT_NAME" \
+            --ref "$REF" \
+            --head-ref "$HEAD_REF" \
+            --full "${INPUT_FULL:-false}" \
+            "${changed_files[@]}" \
+            --output "$GITHUB_OUTPUT" \
+            --summary "$GITHUB_STEP_SUMMARY"
 
   test-install:
-    needs: setup
+    needs: plan
     name: ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      pull-requests: read  # gh pr view in scripts/ci/evaluate_version_gate.sh
     env:
       RUNNING_ON_GITHUB_ACTIONS: true
       FWO_RUN_INTEGRATION_TESTS: "true"
@@ -105,67 +93,77 @@ jobs:
       FWO_TEST_PASSWORD: "testpassword"
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.install_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The same evaluation as the required "Gate pull request version" check, so that a pull
+      # request that needs a version bump learns it within seconds instead of after its install.
+      # It runs in every install job rather than once in the plan job, so that each re-run of a
+      # failed install decides again. It fails rather than skips the install: GitHub counts a
+      # skipped required check as passed. This copy runs the pull request's own script and is
+      # only an early signal; the binding gate runs in version-gate.yml from the base branch.
+      - name: Check the version before installing
+        id: version
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if ! scripts/ci/evaluate_version_gate.sh "$PR_NUMBER" "$PR_BASE_REF"; then
+            echo "::error title=Version gate::The version of this pull request cannot be merged as it is, see the log of this step. After fixing it, or once the Version gate check turned green without a push, re-run the failed jobs."
+            exit 1
+          fi
+
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: ${{ matrix.python }}
-
-      - name: Install dependencies
+      # The installer environment of a real installation: a venv of the system's own python3
+      # (3.10 on Ubuntu 22.04, 3.12 on 24.04, 3.14 on 26.04), which also decides the pinned
+      # Ansible version, see requirements.txt. The importer venv uses the same interpreter.
+      - name: Set up the installer environment
         run: |
-          sudo apt update
-          sudo DEBIAN_FRONTEND=noninteractive apt install build-essential ldap-utils libldap2-dev libsasl2-dev -y
-          python -m pip install -r requirements.txt
-
-      - name: Install Ansible collections
-        run: |
-          cd ${{ github.workspace }}
-          ansible-galaxy collection install -r collections/requirements.yml -p collections --force
+          source scripts/install-ansible-from-venv.sh
+          echo "$VIRTUAL_ENV/bin" >>"$GITHUB_PATH"
+          ansible --version
 
       - name: Run sample LDAP seeding regression tests
-        if: ${{ matrix.integration }}
         run: bash scripts/tests/test-sample-auth-data.sh
 
       # Demo data is off by default since GHSA-3v53-q5h9-pvfh, but the tests rely on it: sample-auth-data
       # creates the LDAP user of the JWT integration tests (integration_user_jwt_refresh_test), and the
       # integration tests use the sample devices, tenants and users. So every run requests it explicitly.
-      - name: Run Ansible test install without integration cleanup
-        if: ${{ matrix.integration }}
-        run: |
-          cd ${{ github.workspace }}
-          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e add_demo_data=yes --skip-tags integrationtests
-
+      #
+      # unittests_run is skipped in both playbook runs: the C# unit tests run in the Sonar workflows and
+      # the Python unit tests in python-unit-tests. The test project is still deployed, the JWT step
+      # runs from it.
       - name: Run Ansible test install
-        if: ${{ !matrix.integration }}
         run: |
           cd ${{ github.workspace }}
-          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e add_demo_data=yes -e "ansible_python_interpreter=$(which python)"
+          ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e add_demo_data=yes --skip-tags integrationtests,unittests_run
 
-      - name: Running in GitHub actions requires testing puppeteer pdf creation separately
-        if: ${{ env.RUNNING_ON_GITHUB_ACTIONS == 'true' }}
-        run: |
-          cd ${{ github.workspace }}/roles/tests-unit/files/FWO.Test
-          dotnet restore
-          dotnet build
-          dotnet test --filter "Name=HtmlToPdfTest" --blame-hang-timeout 5m --blame-hang-dump-type none
-
+      # Runs inside the installation, below the global.json the installer writes to
+      # /usr/local/fworch (dotnet_sdk_global_json_file): dotnet looks for global.json from the current
+      # directory up, not from the project. From the checkout it would build with the newest SDK of
+      # the runner image, which on Ubuntu 22.04 shares /usr/share/dotnet with the installer's
+      # dotnet-install fallback and includes a newer major SDK than FWO supports.
       - name: Run JWT refresh integration tests
-        if: ${{ matrix.integration }}
+        working-directory: /usr/local/fworch/test/csharp/FWO.Test
         run: |
           sudo -u fworch env \
             RUNNING_ON_GITHUB_ACTIONS=true \
             FWO_RUN_INTEGRATION_TESTS=true \
             FWO_TEST_USERNAME=integration_user_jwt_refresh_test \
             FWO_TEST_PASSWORD=testpassword \
-            dotnet test /usr/local/fworch/test/csharp/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest" --blame-hang-timeout 5m --blame-hang-dump-type none
+            dotnet test FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest" --blame-hang-timeout 5m --blame-hang-dump-type none
 
       - name: Collect middleware diagnostics after JWT test failure
-        if: ${{ matrix.integration && failure() }}
+        if: ${{ failure() && steps.version.outcome != 'failure' }}
         run: |
           sudo systemctl status fworch-middleware --no-pager || true
           sudo journalctl -u fworch-middleware --no-pager -n 200 || true
@@ -173,7 +171,7 @@ jobs:
           sudo tail -n 200 /var/log/apache2/error.log || true
 
       - name: Run Ansible integration tests with cleanup
-        if: ${{ matrix.integration && success() }}
+        if: ${{ success() }}
         run: |
           cd ${{ github.workspace }}
           ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true -e add_demo_data=yes --tags integrationtests
@@ -185,7 +183,7 @@ jobs:
       # has to leave - both anchors trusted after pass 1 (proven with a client identity of
       # the staged CA presented to the API), the previous one retired after pass 2.
       - name: Run Ansible CA rotation pass 1 (prepare) with integration tests
-        if: ${{ matrix.integration && success() }}
+        if: ${{ success() }}
         run: |
           cd ${{ github.workspace }}
           ./scripts/run-playbook-with-sudo.sh site.yml \
@@ -201,7 +199,7 @@ jobs:
       # The markers are put back before the result is checked, so a failure leaves the
       # rotation state intact for the diagnostics step.
       - name: Verify CA rotation pass 2 refuses a host that has not recorded pass 1
-        if: ${{ matrix.integration && success() }}
+        if: ${{ success() }}
         run: |
           cd ${{ github.workspace }}
           ca_dir=/usr/local/fworch/etc/secrets/ca
@@ -224,7 +222,7 @@ jobs:
       # previous-ca.crt next to the staged CA; an upgrade without the switch has to be
       # refused and must not have touched the CA in force.
       - name: Verify an interrupted CA switch refuses every run other than pass 2
-        if: ${{ matrix.integration && success() }}
+        if: ${{ success() }}
         run: |
           cd ${{ github.workspace }}
           ca_dir=/usr/local/fworch/etc/secrets/ca
@@ -243,7 +241,7 @@ jobs:
           sudo test -f "$ca_dir/next-ca.crt"
 
       - name: Run Ansible CA rotation pass 2 (activate) with integration tests
-        if: ${{ matrix.integration && success() }}
+        if: ${{ success() }}
         run: |
           cd ${{ github.workspace }}
           ./scripts/run-playbook-with-sudo.sh site.yml \
@@ -263,7 +261,7 @@ jobs:
       # None of them may leave a staged CA behind. "activate" with --limit is not covered:
       # the single-host CI inventory has no host a limit could leave out.
       - name: Verify the CA rotation refusals after pass 2
-        if: ${{ matrix.integration && success() }}
+        if: ${{ success() }}
         run: |
           cd ${{ github.workspace }}
           ca_dir=/usr/local/fworch/etc/secrets/ca
@@ -300,7 +298,7 @@ jobs:
           sudo test ! -e "$ca_dir/next-ca.crt"
 
       - name: Collect certificate diagnostics after a failed CA rotation
-        if: ${{ matrix.integration && failure() }}
+        if: ${{ failure() && steps.version.outcome != 'failure' }}
         run: |
           sudo ls -laR /usr/local/fworch/etc/secrets/ca/ || true
           sudo cat /usr/local/fworch/etc/secrets/ca/retired-ca-names || true
@@ -314,18 +312,19 @@ jobs:
       # only inside the invocation that performed the rotation. This is also the only run
       # that exercises the force-regeneration paths in create-ca.yml and
       # issue-certificates.yml, and that proves every service still comes up against a CA
-      # anchor that changed underneath it.
+      # anchor that changed underneath it. Only unittests_run is skipped, see the install step.
       - name: Run Ansible certificate reset upgrade with integration tests
-        if: ${{ matrix.integration && success() }}
+        if: ${{ success() }}
         run: |
           cd ${{ github.workspace }}
           ./scripts/run-playbook-with-sudo.sh site.yml \
             -e force_install=true \
             -e add_demo_data=yes \
-            -e "installation_mode=upgrade internalca_reset_certificates=true"
+            -e "installation_mode=upgrade internalca_reset_certificates=true" \
+            --skip-tags unittests_run
 
       - name: Collect certificate diagnostics after a failed reset upgrade
-        if: ${{ matrix.integration && failure() }}
+        if: ${{ failure() && steps.version.outcome != 'failure' }}
         run: |
           sudo ls -la /usr/local/fworch/etc/secrets/ca/ || true
           sudo cat /usr/local/fworch/etc/secrets/ca/retired-ca-names || true
@@ -336,27 +335,69 @@ jobs:
       # The UI blocks before it listens until its config subscription delivers, so a broken API
       # websocket path only shows up as a 503 from Apache - its own log says why.
       - name: Collect UI diagnostics after a failure
-        if: ${{ matrix.integration && failure() }}
+        if: ${{ failure() && steps.version.outcome != 'failure' }}
         run: |
           sudo systemctl status fworch-ui --no-pager || true
           sudo journalctl -u fworch-ui --no-pager -n 200 || true
           sudo tail -n 200 /var/log/fworch/ui.log || true
-
 
   launcher-guard-tests:
     name: Launcher guard regression tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       # Stubbed ansible/ansible-galaxy, so no real Ansible install is needed.
       - name: Run run-playbook-with-sudo.sh guard tests
         run: ./scripts/tests/test-run-playbook-with-sudo.sh
+
+  # Python 3.11 on a pull request, every supported version after a merge and on Dependabot pip
+  # updates. Pyright in python-code-check reports APIs the oldest and the newest supported
+  # Python lack on every pull request already.
+  python-unit-tests:
+    needs: plan
+    name: Python unit tests on Python ${{ matrix.python }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ${{ fromJSON(needs.plan.outputs.python_versions) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+
+      # Each requirements file goes into an environment of its own, as on an installed system:
+      # the installer requirements run Ansible, the importer ones the importer venv. Installing the
+      # installer requirements proves that the pinned Ansible still installs on this version.
+      - name: Install the installer requirements
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libldap2-dev libsasl2-dev
+          python -m venv "$RUNNER_TEMP/installer-venv"
+          "$RUNNER_TEMP/installer-venv/bin/python" -m pip install -r requirements.txt
+
+      - name: Install the importer and scripts requirements
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --only-binary=cryptography --prefer-binary -r roles/importer/files/importer/requirements.txt -r scripts/requirements.txt
+
+      # The scripts tests include the customizing scripts, the version gate and the workflow
+      # policy tests in scripts/ci.
+      - name: Run importer and scripts unit tests
+        run: .venv/bin/python -m pytest -q roles/importer/files/importer/test scripts
 
   release-build:
     name: Release build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
@@ -395,6 +436,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.11'
@@ -409,14 +452,47 @@ jobs:
         with:
           version-file: "roles/importer/files/importer/requirements.txt"
 
+      # pyproject.toml sets the oldest supported Python (3.10), which reports APIs only newer
+      # versions provide; the second pass with the newest one reports what newer versions removed.
       - name: pyright
         run: |
           .venv/bin/pyright --version
           .venv/bin/pyright
+          .venv/bin/pyright --pythonversion 3.14
 
       - run: ruff check
 
       - run: ruff format --exit-non-zero-on-format
 
-      - name: Version gate unit tests
-        run: ".venv/bin/python -m pytest -q scripts/ci"
+  # Most of these checks run only after a merge, so their failure would otherwise only show in
+  # the commit history of develop. This comments on the pull request whose merge produced the
+  # commit, which notifies its author and reviewers.
+  report-merge-failure:
+    name: Report failed checks to the merged pull request
+    needs: [plan, test-install, python-unit-tests]
+    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/develop' && contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Comment on the merged pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SERVER_URL: ${{ github.server_url }}
+        run: |
+          python3 scripts/ci/report_merge_failure.py \
+            --repository "$REPOSITORY" \
+            --commit-sha "$COMMIT_SHA" \
+            --run-id "$RUN_ID" \
+            --run-attempt "$RUN_ATTEMPT" \
+            --server-url "$SERVER_URL"

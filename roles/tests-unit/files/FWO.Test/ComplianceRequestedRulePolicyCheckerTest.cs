@@ -69,6 +69,249 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CheckRequestTasks_ReturnsResultAndReasonsPerTask()
+        {
+            CompliancePolicy policy = new()
+            {
+                Id = 5,
+                Criteria =
+                {
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 1,
+                            CriterionType = nameof(CriterionType.ForbiddenService),
+                            Content = "443/TCP"
+                        }
+                    }
+                }
+            };
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
+                .Returns(new List<Management> { new() { Id = 1, Name = "Mgmt1" } });
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(policy);
+            WfReqTask violatingTask = CreateEligibleRequestTask(21);
+            WfReqElement anyService = violatingTask.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+            anyService.Name = "ANY";
+            anyService.Port = null;
+            anyService.PortEnd = null;
+            anyService.ProtoId = GlobalConst.kAnyIpProtocolId;
+            WfReqTask compliantTask = CreateEligibleRequestTask(22);
+            compliantTask.Elements.Single(element => element.Field == ElemFieldType.service.ToString()).Port = 80;
+            WfReqTask unmappableTask = CreateEligibleRequestTask(23);
+            unmappableTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = null;
+            WfReqTask deleteTask = CreateEligibleRequestTask(24, requestAction: nameof(RequestAction.delete));
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await checker.CheckRequestTasks([policy.Id],
+                [violatingTask, compliantTask, unmappableTask, deleteTask]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results.Keys, Is.EquivalentTo(new long[] { 21, 22, 23 }));
+                Assert.That(results[21].IsCompliant, Is.False);
+                Assert.That(results[21].Reasons, Has.Count.EqualTo(1));
+                Assert.That(results[22].IsCompliant, Is.True);
+                Assert.That(results[22].Reasons, Is.Empty);
+                Assert.That(results[23].IsCompliant, Is.False);
+                Assert.That(results[23].Reasons, Is.EqualTo(new[] { UserConfig.GetText("compliance_task_not_assessable") }));
+            });
+        }
+
+        [Test]
+        public async Task CheckRequestTasks_PolicyWithoutCriteria_ReportsFailedCheck()
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
+                .Returns(new List<Management> { new() { Id = 1, Name = "Mgmt1" } });
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(new CompliancePolicy { Id = 5 });
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await checker.CheckRequestTasks([5], [CreateEligibleRequestTask(31)]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results[31].IsCompliant, Is.False);
+                Assert.That(results[31].Reasons, Is.EqualTo(new[] { UserConfig.GetText("compliance_task_check_failed") }));
+            });
+        }
+
+        [Test]
+        public async Task CheckRequestTasks_OnlyUnmappableTasks_ReportsNotAssessableWithoutRunningTheCheck()
+        {
+            WfReqTask unmappableTask = CreateEligibleRequestTask(32);
+            unmappableTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = null;
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await checker.CheckRequestTasks([5], [unmappableTask]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results[32].IsCompliant, Is.False);
+                Assert.That(results[32].Reasons, Is.EqualTo(new[] { UserConfig.GetText("compliance_task_not_assessable") }));
+                ApiConnection.AsSub().DidNotReceive().SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>());
+            });
+        }
+
+        [Test]
+        public async Task CheckRequestTasks_UnresolvedGroupTaskIsNotAssessableWhileOtherTasksAreChecked()
+        {
+            SetUpEmptyFlowGroups();
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
+                .Returns(new List<Management> { new() { Id = 1, Name = "Mgmt1" } });
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(ForbiddenServicePolicy("other-service-uid"));
+            WfReqTask groupTask = CreateEligibleRequestTask(33);
+            WfReqElement destination = groupTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "missing-group";
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await checker.CheckRequestTasks([5],
+                [groupTask, CreateEligibleRequestTask(34)]);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results[33].IsCompliant, Is.False);
+                Assert.That(results[33].Reasons, Is.EqualTo(new[] { UserConfig.GetText("compliance_task_not_assessable") }));
+                Assert.That(results[34].IsCompliant, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task BuildRuleAssessment_UnresolvedGroupMakesWholeAssessmentUnassessable()
+        {
+            SetUpEmptyFlowGroups();
+            WfReqTask groupTask = CreateEligibleRequestTask(35);
+            WfReqElement destination = groupTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "missing-group";
+
+            object assessment = await InvokeRuleAssessment(checker, groupTask, CreateEligibleRequestTask(36));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That((List<Rule>)AssessmentProperty(assessment, "Rules"), Is.Empty);
+                Assert.That((bool)AssessmentProperty(assessment, "HasUnassessableTasks"), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task BuildRuleAssessment_UnmappableTaskKeepsOtherRulesButIsUnassessable()
+        {
+            WfReqTask unmappableTask = CreateEligibleRequestTask(37);
+            unmappableTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = null;
+
+            object assessment = await InvokeRuleAssessment(checker, unmappableTask, CreateEligibleRequestTask(38));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(((List<Rule>)AssessmentProperty(assessment, "Rules")).Select(rule => rule.Id), Is.EqualTo(new long[] { 38 }));
+                Assert.That((bool)AssessmentProperty(assessment, "HasUnassessableTasks"), Is.True);
+            });
+        }
+
+        [TestCase("violation details", "criterion name", 7, "violation details")]
+        [TestCase("", "criterion name", 7, "criterion name")]
+        [TestCase(" ", null, 7, "7")]
+        public void ViolationReason_UsesDetailsThenCriterionNameThenCriterionId(string details, string? criterionName, int criterionId, string expected)
+        {
+            ComplianceViolation violation = new()
+            {
+                Details = details,
+                CriterionId = criterionId,
+                Criterion = criterionName == null ? null : new ComplianceCriterion { Name = criterionName }
+            };
+            MethodInfo method = typeof(ComplianceRequestedRulePolicyChecker).GetMethod("ViolationReason", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new AssertionException("ViolationReason method not found.");
+
+            string reason = (string)method.Invoke(null, [violation])!;
+
+            Assert.That(reason, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public async Task DefaultCheckRequestTasks_ReturnsNoResults()
+        {
+            IRequestedRulePolicyChecker boolOnlyChecker = new BoolOnlyPolicyChecker();
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await boolOnlyChecker.CheckRequestTasks([5], [CreateEligibleRequestTask(39)]);
+
+            Assert.That(results, Is.Empty);
+        }
+
+        private void SetUpEmptyFlowGroups()
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowSyncNwGroups, Arg.Any<object>())
+                .Returns([]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, Arg.Any<object>())
+                .Returns([]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowSyncSvcGroups, Arg.Any<object>())
+                .Returns([]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowSyncSvcObjects, Arg.Any<object>())
+                .Returns([]);
+        }
+
+        private static CompliancePolicy ForbiddenServicePolicy(string serviceUid)
+        {
+            return new CompliancePolicy
+            {
+                Id = 5,
+                Criteria =
+                {
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 1,
+                            CriterionType = nameof(CriterionType.ForbiddenService),
+                            Content = serviceUid
+                        }
+                    }
+                }
+            };
+        }
+
+        private static async Task<object> InvokeRuleAssessment(ComplianceRequestedRulePolicyChecker policyChecker, params WfReqTask[] requestTasks)
+        {
+            MethodInfo method = typeof(ComplianceRequestedRulePolicyChecker).GetMethod("BuildRuleAssessmentFromRequestTasks", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new AssertionException("BuildRuleAssessmentFromRequestTasks method not found.");
+            Task task = (Task)method.Invoke(policyChecker, [requestTasks.AsEnumerable()])!;
+            await task;
+            return task.GetType().GetProperty("Result")!.GetValue(task)!;
+        }
+
+        private static object AssessmentProperty(object assessment, string propertyName)
+        {
+            return assessment.GetType().GetProperty(propertyName)?.GetValue(assessment)
+                ?? throw new AssertionException($"Rule assessment property {propertyName} was missing.");
+        }
+
+        /// <summary>A checker that only implements the boolean check and relies on the default per-task check.</summary>
+        private sealed class BoolOnlyPolicyChecker : IRequestedRulePolicyChecker
+        {
+            public Task<bool> AreRequestTasksCompliant(IEnumerable<int> policyIds, IEnumerable<WfReqTask> requestTasks)
+            {
+                return Task.FromResult(true);
+            }
+        }
+
+        [Test]
+        public async Task CheckRequestTasks_NoPolicies_ReturnsNoResults()
+        {
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> results = await checker.CheckRequestTasks([], [CreateEligibleRequestTask(25)]);
+
+            Assert.That(results, Is.Empty);
+        }
+
+        [Test]
         public async Task AreRequestTasksCompliant_CanonicalAnyServiceViolatesTechnicalForbiddenService()
         {
             CompliancePolicy policy = new()

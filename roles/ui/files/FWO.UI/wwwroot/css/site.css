@@ -654,6 +654,39 @@ div.modal-content .sticky-header thead {
     margin-left: 0.75rem;
 }
 
+/* The compliance status fills the whole cell with its color. */
+.approval-task-list td.approval-task-list-compliance-cell {
+    position: relative;
+    padding: 0;
+    text-align: center;
+}
+
+.approval-task-list .approval-task-list-compliance {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    border-radius: 0;
+    white-space: nowrap;
+}
+
+.approval-task-list .approval-compliance-none {
+    display: inline-block;
+    padding: 0.5rem;
+}
+
+/* The green compliance status is no action, so it does not react like a button. */
+.approval-compliance-ok {
+    cursor: default;
+    pointer-events: none;
+}
+
+.approval-compliance-button {
+    white-space: nowrap;
+}
+
 .approval-task-list .approval-task-list-edit {
     display: block;
     width: 100%;

@@ -4,6 +4,7 @@
 @using FWO.Ui.Display
 @using FWO.Ui.Shared
 @using FWO.Ui.Services
+@using FWO.Services.Workflow
 
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
@@ -27,7 +28,8 @@
                     <ApprovalTaskListBody @key="table" Table="table" TaskGroups="listTaskGroups" States="States"
                         ShowActions="@WfHandler.CanPromoteTaskInCurrentPhase()"
                         CanPromoteTask="CanShowTaskPromotion"
-                        PromoteTask="@(task => RunWithProgress(() => OpenTaskPromotion(task)))" />
+                        PromoteTask="@(task => RunWithProgress(() => OpenTaskPromotion(task)))"
+                        Compliance="compliance" ShowComplianceReasons="OpenComplianceReasons" />
                 }
             </CascadingValue>
         }
@@ -124,6 +126,7 @@
     CancelParent="CancelTaskPromotion" ObjectName="@WfHandler.ActReqTask.Title"
     Save="PromoteSelectedTask" StatefulObject="WfHandler.ActReqTask"
     StateMatrix="WfHandler.ActStateMatrix" States="States" />
+<ApprovalComplianceReasonsPopup @bind-Compliance="shownCompliance" />
 <InProgress Display="workInProgress" />
 
 @code {
@@ -143,6 +146,9 @@
     [Parameter] public bool ListView { get; set; }
 
     private readonly ApprovalTaskDetailsEditorService editorService = new();
+
+    private readonly ApprovalTaskComplianceService compliance = new();
+    private ApprovalTaskCompliance? shownCompliance;
 
     private bool CanPerformTicketAction(WfStateAction action) => WfHandler.CanPerformActionOnActTicket(action);
 
@@ -213,6 +219,16 @@
         builder.AddAttribute(24, "class", "ml-auto");
         builder.AddContent(25, States.GetName(task.StateId));
         builder.CloseElement();
+        if (compliance.IsConfigured && IsAccessTask(task))
+        {
+            builder.OpenComponent<ApprovalComplianceButton>(26);
+            builder.AddComponentParameter(27, nameof(ApprovalComplianceButton.Compliance), compliance.ComplianceOf(taskGroup));
+            builder.AddComponentParameter(28, nameof(ApprovalComplianceButton.Loading), compliance.IsLoading);
+            builder.AddComponentParameter(29, nameof(ApprovalComplianceButton.Class), "btn-sm");
+            builder.AddComponentParameter(30, nameof(ApprovalComplianceButton.ShowReasons),
+                EventCallback.Factory.Create<ApprovalTaskCompliance>(this, OpenComplianceReasons));
+            builder.CloseComponent();
+        }
         builder.CloseElement();
     };
 
@@ -462,6 +478,38 @@
         ConfigureEditorService();
     }
 
+    /// <summary>Runs the compliance check of the access tasks when the view of a ticket is opened.</summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Display)
+        {
+            compliance.Reset();
+            return;
+        }
+        await compliance.UpdateAsync(WfHandler);
+    }
+
+    /// <summary>Repeats the compliance check after a change of the ticket, without blocking the change.</summary>
+    private async Task UpdateComplianceAfterChange()
+    {
+        try
+        {
+            if (await compliance.UpdateAsync(WfHandler))
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Approval task view", "Compliance check could not be repeated.", exception);
+        }
+    }
+
+    private void OpenComplianceReasons(ApprovalTaskCompliance taskCompliance)
+    {
+        shownCompliance = taskCompliance;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         ConfigureEditorService();
@@ -527,6 +575,11 @@
     {
         try
         {
+            if (Display)
+            {
+                // Sets the loading state at once; the check itself runs in the background.
+                _ = UpdateComplianceAfterChange();
+            }
             await InvokeAsync(StateHasChanged);
         }
         catch (InvalidOperationException)

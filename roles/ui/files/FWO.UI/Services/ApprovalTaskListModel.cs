@@ -68,6 +68,9 @@ namespace FWO.Ui.Services
         /// <summary>The displayed request task; for a bundle its first task, which receives the edits for the whole bundle.</summary>
         public WfReqTask Task { get; }
 
+        /// <summary>Compliance status of the row's tasks; null if they were not checked.</summary>
+        public ApprovalTaskCompliance? Compliance { get; init; }
+
         /// <summary>Returns the cell of the given column, or an empty cell for unknown columns.</summary>
         /// <param name="columnKey">The column key.</param>
         public ApprovalTaskListCell Cell(string columnKey)

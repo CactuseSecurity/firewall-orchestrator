@@ -62,6 +62,57 @@ namespace FWO.Test
             });
         }
 
+        [TestCase(WorkflowPhases.approval, 1)]
+        [TestCase(WorkflowPhases.planning, 0)]
+        public async Task ShowsComplianceButtonOfAccessTasksInApprovalPhase(WorkflowPhases phase, int expectedButtons)
+        {
+            using BunitContext context = new();
+            SimulatedUserConfig userConfig = CreateUserConfig(Roles.Approver);
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(new ThrowingApiConnection());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new TestAuthStateProvider(Roles.Approver));
+
+            WfHandler handler = CreateHandler(new ThrowingApiConnection(), userConfig);
+            handler.InitDone = true;
+            SetMatrix(handler, WfTaskType.access.ToString(), CreateMatrix());
+            SetMatrix(handler, WfTaskType.generic.ToString(), CreateMatrix());
+            handler.ActTicket = new WfTicket
+            {
+                Id = 901,
+                Tasks =
+                [
+                    ApprovalComplianceTestHelper.CheckableAccessTask(91, "checked access"),
+                    new WfReqTask { Id = 92, Title = "generic", TaskType = WfTaskType.generic.ToString(), StateId = 2 }
+                ]
+            };
+            Dictionary<long, RequestTaskComplianceResult> results = new() { [91] = new(91, false, kComplianceReasons) };
+            await ApprovalComplianceTestHelper.AttachPolicyCheck(handler, new ThrowingApiConnection(), new FixedResultPolicyChecker(results));
+
+            IRenderedComponent<DisplayReqTaskTable> rendered = context.Render<DisplayReqTaskTable>(parameters => parameters
+                .Add(parameter => parameter.Phase, phase)
+                .Add(parameter => parameter.States, new WfStateDict())
+                .Add(parameter => parameter.WfHandler, handler));
+
+            IElement accessRow = rendered.FindAll("tr").Single(row => row.TextContent.Contains("checked access"));
+            IElement genericRow = rendered.FindAll("tr").Single(row => row.TextContent.Contains("generic"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(accessRow.QuerySelectorAll("td:first-child button.approval-compliance-button.btn-danger"), Has.Count.EqualTo(expectedButtons));
+                Assert.That(genericRow.QuerySelectorAll(".approval-compliance-button"), Is.Empty);
+            });
+            if (expectedButtons > 0)
+            {
+                accessRow.QuerySelector("button.approval-compliance-button")!.Click();
+                Assert.That(rendered.FindAll(".approval-compliance-reasons li").Select(item => item.TextContent), Is.EqualTo(kComplianceReasons));
+            }
+        }
+
+        private static readonly List<string> kComplianceReasons = ["forbidden service"];
+
         private static SimulatedUserConfig CreateUserConfig(params string[] roles)
         {
             SimulatedUserConfig userConfig = new();
@@ -198,6 +249,138 @@ namespace FWO.Test
                 Assert.That(editable, Is.True);
                 Assert.That(readOnly, Is.False);
             });
+        }
+
+        [Test]
+        public async Task TicketPromotionMode_ShowsApprovalEditButtonThatOpensTaskForApproval()
+        {
+            await using BunitContext context = CreateApprovalTableContext(out SimulatedUserConfig userConfig);
+            userConfig.ReqAllowedChangesByApprover = AllowedTitleChanges();
+            WfHandler handler = CreateApprovalTableHandler(userConfig, PromotionMode.Ticket);
+
+            IRenderedComponent<CascadingAuthenticationState> rendered = RenderApprovalTable(context, handler);
+
+            IElement row = ApprovalTaskRow(rendered);
+            List<IElement> editButtons = ButtonsWithText(row, "edit");
+            Assert.Multiple(() =>
+            {
+                Assert.That(editButtons, Has.Count.EqualTo(1));
+                Assert.That(editButtons[0].ClassList, Does.Contain("btn-warning"));
+                Assert.That(ButtonsWithText(row, "delete"), Is.Empty);
+                Assert.That(ButtonsWithText(row, "start_approval"), Is.Empty);
+            });
+
+            await rendered.InvokeAsync(() => editButtons[0].Click());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.Id, Is.EqualTo(kApprovalTaskId));
+                Assert.That(handler.ApproveReqTaskMode, Is.True);
+                Assert.That(handler.EditReqTaskMode, Is.False);
+                Assert.That(rendered.FindComponent<DisplayRequestTask>().Markup, Does.Contain("approval access"));
+            });
+        }
+
+        [Test]
+        public void TicketPromotionMode_HidesApprovalEditButtonWithoutAllowedChanges()
+        {
+            using BunitContext context = CreateApprovalTableContext(out SimulatedUserConfig userConfig);
+            WfHandler handler = CreateApprovalTableHandler(userConfig, PromotionMode.Ticket);
+
+            IRenderedComponent<CascadingAuthenticationState> rendered = RenderApprovalTable(context, handler);
+
+            Assert.That(ButtonsWithText(ApprovalTaskRow(rendered), "edit"), Is.Empty);
+        }
+
+        [Test]
+        public void TicketPromotionMode_HidesApprovalEditButtonInReadOnlyDisplay()
+        {
+            using BunitContext context = CreateApprovalTableContext(out SimulatedUserConfig userConfig);
+            userConfig.ReqAllowedChangesByApprover = AllowedTitleChanges();
+            WfHandler handler = CreateApprovalTableHandler(userConfig, PromotionMode.Ticket);
+
+            IRenderedComponent<CascadingAuthenticationState> rendered = RenderApprovalTable(context, handler, readOnlyDisplay: true);
+
+            Assert.That(ButtonsWithText(ApprovalTaskRow(rendered), "edit"), Is.Empty);
+        }
+
+        [Test]
+        public void TaskPromotionMode_OffersPhaseStartInsteadOfApprovalEditButton()
+        {
+            using BunitContext context = CreateApprovalTableContext(out SimulatedUserConfig userConfig);
+            userConfig.ReqAllowedChangesByApprover = AllowedTitleChanges();
+            WfHandler handler = CreateApprovalTableHandler(userConfig, PromotionMode.Task);
+
+            IRenderedComponent<CascadingAuthenticationState> rendered = RenderApprovalTable(context, handler);
+
+            IElement row = ApprovalTaskRow(rendered);
+            Assert.Multiple(() =>
+            {
+                Assert.That(ButtonsWithText(row, "edit"), Is.Empty);
+                Assert.That(ButtonsWithText(row, "start_approval"), Has.Count.EqualTo(1));
+            });
+        }
+
+        private const long kApprovalTaskId = 61;
+
+        private static BunitContext CreateApprovalTableContext(out SimulatedUserConfig userConfig)
+        {
+            BunitContext context = new();
+            userConfig = CreateUserConfig(Roles.Approver);
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(new ThrowingApiConnection());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new TestAuthStateProvider(Roles.Approver));
+            context.Services.AddSingleton<FWO.Ui.Services.DomEventService>();
+            return context;
+        }
+
+        private static string AllowedTitleChanges()
+        {
+            ApproverAllowedChangesConfig allowedChanges = new();
+            allowedChanges.SetTaskField(WfTaskType.access, WorkflowEditableFieldKeys.Title, true);
+            return allowedChanges.ToConfigValue();
+        }
+
+        private static WfHandler CreateApprovalTableHandler(SimulatedUserConfig userConfig, PromotionMode promotionMode)
+        {
+            WfHandler handler = CreateHandler(new ThrowingApiConnection(), userConfig);
+            handler.InitDone = true;
+            handler.Phase = WorkflowPhases.approval;
+            handler.MasterStateMatrix.PromotionMode = promotionMode;
+            SetMatrix(handler, WfTaskType.access.ToString(), CreateMatrix());
+            handler.ActTicket = new WfTicket
+            {
+                Id = 601,
+                Tasks = [new WfReqTask { Id = kApprovalTaskId, Title = "approval access", TaskType = WfTaskType.access.ToString(), StateId = 1 }]
+            };
+            return handler;
+        }
+
+        private static IRenderedComponent<CascadingAuthenticationState> RenderApprovalTable(BunitContext context, WfHandler handler, bool readOnlyDisplay = false)
+        {
+            return context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<DisplayReqTaskTable>(child => child
+                    .Add(parameter => parameter.Phase, WorkflowPhases.approval)
+                    .Add(parameter => parameter.States, new WfStateDict())
+                    .Add(parameter => parameter.ReadOnlyDisplay, readOnlyDisplay)
+                    .Add(parameter => parameter.WfHandler, handler)));
+        }
+
+        private static IElement ApprovalTaskRow(IRenderedComponent<CascadingAuthenticationState> rendered)
+        {
+            return rendered.FindAll("tr").Single(row => row.TextContent.Contains("approval access"));
+        }
+
+        private static List<IElement> ButtonsWithText(IElement row, string textKey)
+        {
+            // Buttons show either their text or, as icon buttons, the text as tooltip of the icon.
+            string text = new SimulatedUserConfig().GetText(textKey);
+            return [.. row.QuerySelectorAll("button").Where(button => button.TextContent.Contains(text, StringComparison.Ordinal)
+                || button.QuerySelectorAll("[title]").Any(icon => icon.GetAttribute("title") == text))];
         }
 
         [Test]

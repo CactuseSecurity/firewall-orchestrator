@@ -1,10 +1,12 @@
 @using FWO.Data.Workflow
+@using FWO.Services.Workflow
 @using FWO.Ui.Services
 
 @inject UserConfig userConfig
 
 <div class="approval-task-list mt-3" data-table="@Table">
-    <FancyTable TItem="ApprovalTaskListRow"
+    @* FancyTable appends columns added later at the end; a new key recreates it with the columns in their defined order. *@
+    <FancyTable @key="columnSignature" TItem="ApprovalTaskListRow"
                 Items="rows"
                 Columns="columns"
                 EnableColumnResizing="true"
@@ -32,6 +34,10 @@
     [Parameter] public bool ShowActions { get; set; }
     [Parameter] public Func<WfReqTask, bool> CanPromoteTask { get; set; } = _ => false;
     [Parameter] public Func<WfReqTask, Task> PromoteTask { get; set; } = _ => Task.CompletedTask;
+    /// <summary>Compliance status of the ticket's access tasks; the column is only shown if a policy check is configured.</summary>
+    [Parameter] public ApprovalTaskComplianceService? Compliance { get; set; }
+    /// <summary>Shows the violation reasons of a not compliant row.</summary>
+    [Parameter] public EventCallback<ApprovalTaskCompliance> ShowComplianceReasons { get; set; }
     [CascadingParameter] public ApprovalTaskViewContext Context { get; set; } = null!;
 
     private IReadOnlyList<ApprovalTaskListRow> rows = [];
@@ -48,8 +54,8 @@
     /// <summary>Rebuilds the rows and, if the visible fields changed, the columns.</summary>
     protected override void OnParametersSet()
     {
-        rows = new ApprovalTaskListRowBuilder(Context, userConfig, States).Build(TaskGroups, Table);
-        List<ApprovalTaskListColumn> visibleColumns = ApprovalTaskListRowBuilder.VisibleColumns(Table, Context.Visibility);
+        rows = new ApprovalTaskListRowBuilder(Context, userConfig, States) { ComplianceResults = Compliance?.Results }.Build(TaskGroups, Table);
+        List<ApprovalTaskListColumn> visibleColumns = ApprovalTaskListRowBuilder.VisibleColumns(Table, Context.Visibility, Compliance?.IsConfigured == true);
         string signature = $"{string.Join("|", visibleColumns.Select(column => column.Key))}|{ShowActions}";
         if (signature != columnSignature)
         {
@@ -90,6 +96,22 @@
 
     private FancyColumn<ApprovalTaskListRow> BuildColumn(ApprovalTaskListColumn column)
     {
+        if (column.Key == ApprovalTaskListRowBuilder.kCompliance)
+        {
+            return new FancyColumn<ApprovalTaskListRow>
+            {
+                Key = column.Key,
+                Title = userConfig.GetText(column.TextKey),
+                Sortable = true,
+                Searchable = true,
+                Filterable = true,
+                MinWidth = kColumnMinWidth,
+                CellClass = "approval-task-list-cell approval-task-list-compliance-cell",
+                SearchTextSelector = ComplianceText,
+                SortValueSelector = ComplianceText,
+                CellTemplate = ComplianceCell
+            };
+        }
         bool isId = column.Key == ApprovalTaskListRowBuilder.kId;
         return new FancyColumn<ApprovalTaskListRow>
         {
@@ -143,6 +165,13 @@
                 }
             }
         </text>;
+
+    private string ComplianceText(ApprovalTaskListRow row) => row.Compliance?.StatusText(userConfig) ?? "";
+
+    /// <summary>Colors the whole cell green (compliant) or red (not compliant, showing the reasons on hover and click).</summary>
+    private RenderFragment ComplianceCell(ApprovalTaskListRow row) =>
+        @<ApprovalComplianceButton Compliance="row.Compliance" Loading="@(Compliance?.IsLoading == true)" ShowNotChecked="true"
+                                   Class="approval-task-list-compliance" ShowReasons="ShowComplianceReasons" />;
 
     private RenderFragment ActionsCell(ApprovalTaskListRow row) =>
         @<text>

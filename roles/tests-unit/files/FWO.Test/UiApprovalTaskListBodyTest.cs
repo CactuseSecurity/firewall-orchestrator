@@ -1,4 +1,5 @@
 using Bunit;
+using FWO.Api.Client;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
@@ -6,6 +7,7 @@ using FWO.Services.Workflow;
 using FWO.Ui.Pages.Request;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using static FWO.Test.ApprovalComplianceTestHelper;
 using static FWO.Test.UiRequestWorkflowTest;
 
 namespace FWO.Test;
@@ -144,6 +146,110 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
 
         Assert.That(GetMember<bool>(component, "UseApprovalTaskDetailsView"), Is.True);
     }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_ListViewShowsComplianceStatusWithReasons()
+    {
+        await using BunitContext context = CreateListContext();
+        WfReqTask compliantTask = CheckableAccessTask(81, "allowed access");
+        WfReqTask violatingTask = CheckableAccessTask(82, "forbidden access");
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 801, Tasks = [compliantTask, violatingTask] } };
+        Dictionary<long, RequestTaskComplianceResult> results = new()
+        {
+            [81] = new(81, true, []),
+            [82] = new(82, false, kViolationReasons)
+        };
+        await AttachPolicyCheck(handler, context.Services.GetRequiredService<ApiConnection>(), new FixedResultPolicyChecker(results));
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = RenderListView(context, handler);
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll(".approval-task-list-compliance"), Has.Count.EqualTo(2)));
+        AngleSharp.Dom.IElement ok = cut.Find("span.approval-task-list-compliance");
+        AngleSharp.Dom.IElement notAllowed = cut.Find("button.approval-task-list-compliance");
+        Assert.Multiple(() =>
+        {
+            Assert.That(ColumnPosition(cut.Markup, "id"), Is.LessThan(ColumnPosition(cut.Markup, "compliance")));
+            Assert.That(ColumnPosition(cut.Markup, "compliance"), Is.LessThan(ColumnPosition(cut.Markup, "task_type")));
+            Assert.That(ok.ClassList, Does.Contain("btn-success"));
+            Assert.That(ok.TextContent.Trim(), Is.EqualTo("approval_compliance_ok"));
+            Assert.That(notAllowed.ClassList, Does.Contain("btn-danger"));
+            Assert.That(notAllowed.TextContent.Trim(), Is.EqualTo("approval_compliance_not_allowed"));
+            Assert.That(notAllowed.GetAttribute("title"), Is.EqualTo("forbidden service\nzone violation"));
+            Assert.That(cut.FindAll(".approval-compliance-reasons"), Is.Empty);
+        });
+
+        notAllowed.Click();
+
+        Assert.That(cut.FindAll(".approval-compliance-reasons li").Select(item => item.TextContent), Is.EqualTo(kViolationReasons));
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_ListViewShowsLaterAddedComplianceColumnAfterId()
+    {
+        await using BunitContext context = CreateListContext();
+        WfReqTask task = CheckableAccessTask(83, "later checked access");
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 802, Tasks = [task] } };
+        IRenderedComponent<ApprovalTaskDetailsView> cut = RenderListView(context, handler);
+        Assert.That(ColumnPosition(cut.Markup, "compliance"), Is.EqualTo(-1));
+
+        Dictionary<long, RequestTaskComplianceResult> results = new() { [83] = new(83, true, []) };
+        await AttachPolicyCheck(handler, context.Services.GetRequiredService<ApiConnection>(), new FixedResultPolicyChecker(results));
+        handler.ActTicket = new WfTicket { Id = 803, Tasks = [task] };
+        cut.Render(parameters => parameters.Add(p => p.WfHandler, handler));
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll(".approval-task-list-compliance"), Has.Count.EqualTo(1)));
+        Assert.Multiple(() =>
+        {
+            Assert.That(ColumnPosition(cut.Markup, "id"), Is.LessThan(ColumnPosition(cut.Markup, "compliance")));
+            Assert.That(ColumnPosition(cut.Markup, "compliance"), Is.LessThan(ColumnPosition(cut.Markup, "task_type")));
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_CardViewShowsComplianceAtEndOfAccessTaskHeader()
+    {
+        await using BunitContext context = CreateListContext();
+        WfReqTask violatingTask = CheckableAccessTask(84, "forbidden access");
+        WfReqTask genericTask = new() { Id = 85, StateId = 2, Title = "generic", TaskType = WfTaskType.generic.ToString() };
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 804, Tasks = [violatingTask, genericTask] } };
+        Dictionary<long, RequestTaskComplianceResult> results = new() { [84] = new(84, false, kViolationReasons) };
+        await AttachPolicyCheck(handler, context.Services.GetRequiredService<ApiConnection>(), new FixedResultPolicyChecker(results));
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, handler)
+            .Add(p => p.States, new WfStateDict { Name = { [2] = "Approval" } }));
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("button.approval-compliance-button"), Has.Count.EqualTo(1)));
+        AngleSharp.Dom.IElement button = cut.Find("button.approval-compliance-button");
+        Assert.Multiple(() =>
+        {
+            Assert.That(button.ClassList, Does.Contain("btn-danger").And.Contain("btn-sm"));
+            Assert.That(button.ParentElement!.LastElementChild!.ClassList, Does.Contain("approval-compliance-button"));
+            Assert.That(button.ParentElement.TextContent, Does.Contain("forbidden access"));
+        });
+
+        button.Click();
+
+        Assert.That(cut.FindAll(".approval-compliance-reasons li").Select(item => item.TextContent), Is.EqualTo(kViolationReasons));
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_ListViewHidesComplianceWithoutConditionalPolicyCheck()
+    {
+        await using BunitContext context = CreateListContext();
+        WfHandler handler = CreateHandler();
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = RenderListView(context, handler);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ColumnPosition(cut.Markup, "compliance"), Is.EqualTo(-1));
+            Assert.That(cut.FindAll(".approval-task-list-compliance"), Is.Empty);
+        });
+    }
+
+    private static readonly List<string> kViolationReasons = ["forbidden service", "zone violation"];
 
     private static int ColumnPosition(string markup, string columnKey)
     {

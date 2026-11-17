@@ -384,6 +384,14 @@ namespace FWO.Test
                 RequestTaskIds = requestTasks.Select(task => task.Id).ToList();
                 return Task.FromResult(Result);
             }
+
+            public Task<IReadOnlyDictionary<long, RequestTaskComplianceResult>> CheckRequestTasks(IEnumerable<int> policyIds, IEnumerable<WfReqTask> requestTasks)
+            {
+                PolicyIds = policyIds.ToList();
+                RequestTaskIds = requestTasks.Select(task => task.Id).ToList();
+                return Task.FromResult<IReadOnlyDictionary<long, RequestTaskComplianceResult>>(RequestTaskIds
+                    .ToDictionary(id => id, id => new RequestTaskComplianceResult(id, Result, Result ? [] : ["reason"])));
+            }
         }
 
         private sealed class ActionHandlerTestPolicyCheckerFactory : IRequestedRulePolicyCheckerFactory
@@ -2854,6 +2862,85 @@ namespace FWO.Test
             bool result = await task;
 
             Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task CheckRequestTaskCompliance_UsesPoliciesOfConditionalAutoPromoteActions()
+        {
+            ActionHandlerTestPolicyChecker policyChecker = new() { Result = false };
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, policyChecker);
+            await handler.Init(
+            [
+                new WfState
+                {
+                    Id = 1,
+                    Actions =
+                    [
+                        AutoPromoteAction("{\"to_be_called\":\"PolicyCheck\",\"policy_ids\":[5,7],\"if_compliant_state\":2,\"if_not_compliant_state\":3}"),
+                        AutoPromoteAction("{\"to_state_id\":3}")
+                    ]
+                },
+                new WfState
+                {
+                    Id = 2,
+                    Actions = [AutoPromoteAction("{\"to_be_called\":\"PolicyCheck\",\"policy_ids\":[7,9]}")]
+                }
+            ]);
+            WfTicket ticket = CreateTicket(CreateEligibleTask(31), new WfReqTask { Id = 32, TaskType = WfTaskType.generic.ToString() });
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult>? results = await handler.CheckRequestTaskCompliance(ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.GetConditionalPolicyCheckIds(), Is.EquivalentTo(new[] { 5, 7, 9 }));
+                Assert.That(policyChecker.PolicyIds, Is.EquivalentTo(new[] { 5, 7, 9 }));
+                Assert.That(policyChecker.RequestTaskIds, Is.EqualTo(new long[] { 31 }));
+                Assert.That(results, Is.Not.Null);
+                Assert.That(results![31].Reasons, Is.EqualTo(new[] { "reason" }));
+            });
+        }
+
+        [Test]
+        public async Task CheckRequestTaskCompliance_ReturnsNullWithoutConditionalPolicyCheck()
+        {
+            ActionHandlerTestPolicyChecker policyChecker = new() { Result = true };
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, policyChecker);
+            await handler.Init([new WfState { Id = 1, Actions = [AutoPromoteAction("{\"to_state_id\":3}")] }]);
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult>? results = await handler.CheckRequestTaskCompliance(CreateTicket(CreateEligibleTask(33)));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results, Is.Null);
+                Assert.That(policyChecker.RequestTaskIds, Is.Null);
+            });
+        }
+
+        private static WfStateActionDataHelper AutoPromoteAction(string externalParams)
+        {
+            return new WfStateActionDataHelper
+            {
+                Action = new WfStateAction
+                {
+                    ActionType = StateActionTypes.AutoPromote.ToString(),
+                    ExternalParams = externalParams
+                }
+            };
+        }
+
+        private static WfReqTask CreateEligibleTask(long id)
+        {
+            return new WfReqTask
+            {
+                Id = id,
+                TaskType = WfTaskType.access.ToString(),
+                Elements =
+                [
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "10.0.0.1/32" },
+                    new WfReqElement { Field = ElemFieldType.destination.ToString(), IpString = "10.0.1.1/32" },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), Port = 443, ProtoId = 6 }
+                ]
+            };
         }
 
         [Test]

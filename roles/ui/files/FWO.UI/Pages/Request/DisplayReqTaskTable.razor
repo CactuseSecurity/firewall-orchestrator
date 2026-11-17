@@ -93,6 +93,11 @@
                                 }
                             </div>
                         }
+                        @if (ShowCompliance && ApprovalTaskDetailsEditorService.IsAccessTask(context))
+                        {
+                            <ApprovalComplianceButton Compliance="@compliance.ComplianceOf([context])" Loading="compliance.IsLoading"
+                                                      Class="btn-sm ml-1" ShowReasons="OpenComplianceReasons" />
+                        }
                     </Template>
                 </Column>
                 <Column TableItem="WfReqTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
@@ -152,6 +157,7 @@
    form data and must not recreate the editor when SaveReqTask prepares the task. *@
 <DisplayRequestTask @key="@($"{WfHandler.DisplayReqTaskMode}-{WfHandler.ActReqTask.Id}-{FocusField}")" Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" StartImplPhase="StartImplPhase" FocusField="FocusField"/>
 <AssignObject @bind-Display="WfHandler.DisplayAssignReqTaskMode" ResetParent="Reset" StatefulObject="WfHandler.ActReqTask" Assign="WfHandler.AssignReqTaskGroup" AssignBack="WfHandler.AssignReqTaskBack" ObjectName="@WfHandler.ActReqTask.Title" RoleList="validRoles"/>
+<ApprovalComplianceReasonsPopup @bind-Compliance="shownCompliance" />
 <DeleteObject @bind-Display="WfHandler.DisplayDeleteReqTaskMode" ResetParent="Reset" Delete="WfHandler.ConfDeleteReqTask" ObjectName="@WfHandler.ActReqTask.Title"/>
 
 
@@ -183,6 +189,26 @@
 
     [Parameter]
     public string? FocusField { get; set; }
+
+    private readonly ApprovalTaskComplianceService compliance = new();
+    private ApprovalTaskCompliance? shownCompliance;
+
+    /// <summary>The compliance status of access tasks is shown in the approval phase, if a policy check is configured.</summary>
+    private bool ShowCompliance => Phase == WorkflowPhases.approval && compliance.IsConfigured;
+
+    /// <summary>Checks the access tasks in the approval phase; repeated whenever the checked task content changes.</summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Phase == WorkflowPhases.approval && WfHandler.InitDone)
+        {
+            await compliance.UpdateAsync(WfHandler);
+        }
+    }
+
+    private void OpenComplianceReasons(ApprovalTaskCompliance taskCompliance)
+    {
+        shownCompliance = taskCompliance;
+    }
 
     static List<string> validRoles = new (){Roles.Planner};
     private TicketFieldVisibilityConfig TicketFieldVisibility => TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility);

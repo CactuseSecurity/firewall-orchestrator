@@ -16,6 +16,7 @@ internal class UiApprovalTaskListRowBuilderTest
     private static readonly IPAddressRange[] kInternalRanges = [IPAddressRange.Parse("10.0.0.0/8")];
     private static readonly List<NetworkZone> kZones = [new NetworkZone { Name = "internal", IPRanges = kInternalRanges }];
     private static readonly List<string> kNoFields = [];
+    private static readonly List<string> kViolationReasons = ["forbidden service"];
     private static readonly List<string> kTitleAndSource = [WorkflowEditableFieldKeys.Title, WorkflowEditableFieldKeys.Source];
     private static readonly List<string> kSourceOnly = [WorkflowEditableFieldKeys.Source];
     private static readonly List<string> kGroupMembersAndName = [WorkflowEditableFieldKeys.GroupMembers, WorkflowEditableFieldKeys.Name];
@@ -442,6 +443,52 @@ internal class UiApprovalTaskListRowBuilderTest
     }
 
     [Test]
+    public void VisibleColumns_ComplianceDirectlyAfterIdOnlyInAccessTable()
+    {
+        AccessTaskFieldVisibilityConfig visibility = new();
+
+        List<string> access = [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Access, visibility, true).Select(column => column.Key)];
+        List<string> address = [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Address, visibility, true).Select(column => column.Key)];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(access.Take(3), Is.EqualTo(new List<string>
+            {
+                ApprovalTaskListRowBuilder.kId,
+                ApprovalTaskListRowBuilder.kCompliance,
+                ApprovalTaskListRowBuilder.kTaskType
+            }));
+            Assert.That(address, Does.Not.Contain(ApprovalTaskListRowBuilder.kCompliance));
+            Assert.That(AccessColumnKeys(visibility), Does.Not.Contain(ApprovalTaskListRowBuilder.kCompliance));
+        });
+    }
+
+    [Test]
+    public void Build_MergesComplianceOfBundledTasks()
+    {
+        WfReqTask task = CreateAccessTask();
+        WfReqTask bundledTask = new() { Id = 9, TaskType = WfTaskType.access.ToString() };
+        WfReqTask uncheckedTask = new() { Id = 10, TaskType = WfTaskType.access.ToString() };
+        Dictionary<long, RequestTaskComplianceResult> results = new()
+        {
+            [7] = new(7, true, []),
+            [9] = new(9, false, kViolationReasons)
+        };
+        ApprovalTaskListRowBuilder builder = CreateBuilder(task, kNoFields, complianceResults: results);
+        List<List<WfReqTask>> groups = [[task, bundledTask], [uncheckedTask]];
+
+        List<ApprovalTaskListRow> rows = builder.Build(groups, ApprovalTaskListTable.Access);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(rows[0].Compliance, Is.Not.Null);
+            Assert.That(rows[0].Compliance!.IsCompliant, Is.False);
+            Assert.That(rows[0].Compliance!.Reasons, Is.EqualTo(kViolationReasons));
+            Assert.That(rows[1].Compliance, Is.Null);
+        });
+    }
+
+    [Test]
     public void Build_OrdersObjectTasksBeforeGroupTasks()
     {
         WfReqTask groupTask = new()
@@ -500,7 +547,8 @@ internal class UiApprovalTaskListRowBuilderTest
         };
     }
 
-    private ApprovalTaskListRowBuilder CreateBuilder(WfReqTask task, List<string> allowedFields, bool canEditTimeObject = false)
+    private ApprovalTaskListRowBuilder CreateBuilder(WfReqTask task, List<string> allowedFields, bool canEditTimeObject = false,
+        IReadOnlyDictionary<long, RequestTaskComplianceResult>? complianceResults = null)
     {
         SimulatedUserConfig userConfig = new();
         WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [task] } };
@@ -522,7 +570,10 @@ internal class UiApprovalTaskListRowBuilderTest
             EditTargetDates = (_, fieldKey) => Record($"dates:{fieldKey}")
         };
         ApprovalTaskViewContext context = new(displayLogic, new AccessTaskFieldVisibilityConfig(), kProtocols, actions);
-        return new ApprovalTaskListRowBuilder(context, userConfig, new WfStateDict { Name = { [2] = "Approval" } });
+        return new ApprovalTaskListRowBuilder(context, userConfig, new WfStateDict { Name = { [2] = "Approval" } })
+        {
+            ComplianceResults = complianceResults
+        };
     }
 
     private Task Record(string call)

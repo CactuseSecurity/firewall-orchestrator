@@ -15,6 +15,8 @@ namespace FWO.Ui.Services
     {
         /// <summary>Column key of the task id.</summary>
         public const string kId = "id";
+        /// <summary>Column key of the compliance status of access tasks.</summary>
+        public const string kCompliance = "compliance";
         /// <summary>Column key of the task title.</summary>
         public const string kTitle = "title";
         /// <summary>Column key of the source zones.</summary>
@@ -76,6 +78,9 @@ namespace FWO.Ui.Services
             this.states = states;
         }
 
+        /// <summary>Compliance results per task id, as returned by the conditional policy check; null if not checked.</summary>
+        public IReadOnlyDictionary<long, RequestTaskComplianceResult>? ComplianceResults { get; init; }
+
         /// <summary>Returns the table a task is displayed in.</summary>
         /// <param name="task">The request task.</param>
         public static ApprovalTaskListTable TableOf(WfReqTask task)
@@ -103,15 +108,18 @@ namespace FWO.Ui.Services
         /// <summary>Returns the visible columns of a table in display order.</summary>
         /// <param name="table">The table.</param>
         /// <param name="visibility">The configured field visibility.</param>
-        public static List<ApprovalTaskListColumn> VisibleColumns(ApprovalTaskListTable table, AccessTaskFieldVisibilityConfig visibility)
+        /// <param name="showCompliance">Shows the compliance status of access tasks directly after the id.</param>
+        public static List<ApprovalTaskListColumn> VisibleColumns(ApprovalTaskListTable table, AccessTaskFieldVisibilityConfig visibility,
+            bool showCompliance = false)
         {
-            List<ApprovalTaskListColumn> columns =
+            List<ApprovalTaskListColumn> columns = [new(kId, "id")];
+            AddIf(columns, showCompliance && table == ApprovalTaskListTable.Access, new(kCompliance, "approval_list_compliance"));
+            columns.AddRange(
             [
-                new(kId, "id"),
                 new(kTaskType, "task_type"),
                 new(kState, "state"),
                 new(kTitle, "title")
-            ];
+            ]);
             switch (table)
             {
                 case ApprovalTaskListTable.Access:
@@ -211,7 +219,10 @@ namespace FWO.Ui.Services
                     cells[kObject] = new(NonEmptyValues(task.Elements.Select(element => element.Name ?? "")), ObjectTaskEdit(task));
                     break;
             }
-            return new ApprovalTaskListRow(task, cells);
+            return new ApprovalTaskListRow(task, cells)
+            {
+                Compliance = table == ApprovalTaskListTable.Access ? ApprovalTaskCompliance.Of(taskGroup, ComplianceResults) : null
+            };
         }
 
         private void AddAccessCells(Dictionary<string, ApprovalTaskListCell> cells, WfReqTask task, List<WfReqTask> taskGroup)

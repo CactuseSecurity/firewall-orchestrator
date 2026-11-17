@@ -1,3 +1,4 @@
+using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 using FWO.ExternalSystems.FirewallWrite;
@@ -381,6 +382,29 @@ namespace FWO.Test
             AssertKind(FirewallWriteErrorKind.InvalidTaskData, () => Plan(Task(WfTaskType.access, Network(null, "10.0.0.1", action: RequestAction.unchanged))));
         }
 
+        /// <summary>
+        /// Modelling requests name app roles and network areas only by their group name: the rule references the group,
+        /// and no object is created for it.
+        /// </summary>
+        [Test]
+        public void Access_ReferencesModelledGroupsByTheirGroupName()
+        {
+            WfImplElement appRole = Network(null, null);
+            appRole.GroupName = "AR5005630-001";
+            WfImplElement networkArea = Network(null, null, field: ElemFieldType.destination);
+            networkArea.GroupName = " NA50 ";
+            WfImplTask task = Task(WfTaskType.access, appRole, networkArea, Service("https", kTcp, 443));
+
+            List<FirewallWriteStep> steps = Plan(task);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(steps.Single().Operation, Is.EqualTo(FirewallWriteOperation.RuleCreate));
+                Assert.That(Value(steps[0], FirewallWritePlaceholders.RuleSources), Is.EqualTo("[\"AR5005630-001\"]"));
+                Assert.That(Value(steps[0], FirewallWritePlaceholders.RuleDestinations), Is.EqualTo("[\"NA50\"]"));
+            }
+        }
+
         [Test]
         public void Azure_UsesAddressesAndCreatesNoObjects()
         {
@@ -417,7 +441,7 @@ namespace FWO.Test
         public void RuleModify_SplitsAddedAndRemovedElements()
         {
             WfImplTask task = Task(WfTaskType.rule_modify, Rule("uid-1"), Network("add", null), Network("drop", null, action: RequestAction.delete),
-                Network("keep", null, field: ElemFieldType.destination, action: RequestAction.unchanged));
+                Network("keep", null, field: ElemFieldType.destination, action: RequestAction.unchanged), Service("https", kTcp, 443, action: RequestAction.unchanged));
 
             FirewallWriteStep rule = Plan(task).Single();
 
@@ -430,6 +454,60 @@ namespace FWO.Test
                 Assert.That(Value(rule, FirewallWritePlaceholders.RuleSourcesToRemove), Is.EqualTo("[\"drop\"]"));
                 Assert.That(Value(rule, FirewallWritePlaceholders.RuleDestinationsToAdd), Is.EqualTo("[]"));
                 Assert.That(Value(rule, FirewallWritePlaceholders.RuleSourcesCsv), Is.EqualTo("add"));
+            }
+        }
+
+        /// <summary>
+        /// Check Point sets the sources, destinations and services of a rule to modify as whole lists, like every other
+        /// vendor: set-access-rule allows only one action per field and call, so add and remove together are refused.
+        /// </summary>
+        [Test]
+        public void RuleModify_CheckPointSetsTheCompleteTargetState()
+        {
+            WfImplTask task = Task(WfTaskType.rule_modify, Rule("uid-1"), Network("keep", null, action: RequestAction.unchanged),
+                Network("drop", null, action: RequestAction.delete), Network("dst", null, field: ElemFieldType.destination, action: RequestAction.unchanged),
+                Service("https", kTcp, 443, action: RequestAction.unchanged), Service("ssh", kTcp, 22));
+
+            FirewallWriteStep rule = Plan(task).Single();
+            string? template = FirewallWriteDefaults.GetTemplate(FirewallVendors.kCheckPointR8x, FirewallWriteOperation.RuleModify);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(Value(rule, FirewallWritePlaceholders.RuleSources), Is.EqualTo("[\"keep\"]"));
+                Assert.That(Value(rule, FirewallWritePlaceholders.RuleServices), Is.EqualTo("[\"https\",\"ssh\"]"));
+                Assert.That(template, Does.Contain("\"source\":@@RULE_SOURCES@@"));
+                Assert.That(template, Does.Not.Contain("\"add\""));
+                Assert.That(template, Does.Not.Contain("\"remove\""));
+            }
+        }
+
+        [TestCase(ElemFieldType.source)]
+        [TestCase(ElemFieldType.destination)]
+        public void RuleModify_WithoutACurrentElementOnASide_IsRefused(ElemFieldType emptySide)
+        {
+            ElemFieldType otherSide = emptySide == ElemFieldType.source ? ElemFieldType.destination : ElemFieldType.source;
+            WfImplTask onlyRemoved = Task(WfTaskType.rule_modify, Rule("uid-1"), Network("gone", null, field: emptySide, action: RequestAction.delete),
+                Network("other", null, field: otherSide, action: RequestAction.unchanged), Service("https", kTcp, 443, action: RequestAction.unchanged));
+
+            FirewallWriteException? exception = Assert.Throws<FirewallWriteException>(() => Plan(onlyRemoved));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(exception?.Error.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(exception?.Message, Does.Contain($"no current {emptySide}"));
+            }
+        }
+
+        [Test]
+        public void RuleModify_WithoutServices_IsRefusedForEveryVendor()
+        {
+            WfImplTask withoutServices = Task(WfTaskType.rule_modify, Rule("uid-1"), Network("src", null, action: RequestAction.unchanged),
+                Network("dst", null, field: ElemFieldType.destination, action: RequestAction.unchanged));
+
+            using (Assert.EnterMultipleScope())
+            {
+                AssertKind(FirewallWriteErrorKind.InvalidTaskData, () => Plan(withoutServices));
+                AssertKind(FirewallWriteErrorKind.InvalidTaskData, () => Plan(withoutServices, FirewallVendors.kFortiOsGateway));
             }
         }
 
@@ -487,9 +565,149 @@ namespace FWO.Test
             {
                 Assert.That(new FirewallRulePlacement(FirewallRuleAnchor.Top).ToJson(), Is.EqualTo("\"top\""));
                 Assert.That(new FirewallRulePlacement(FirewallRuleAnchor.Below, "u").ToJson(), Is.EqualTo("{\"below\":\"u\"}"));
+                Assert.That(new FirewallRulePlacement(FirewallRuleAnchor.Bottom, SectionUid: "s").ToJson(), Is.EqualTo("{\"bottom\":\"s\"}"));
+                Assert.That(new FirewallRulePlacement(FirewallRuleAnchor.Below, "u", SectionUid: "s").ToJson(), Is.EqualTo("{\"below\":\"u\"}"),
+                    "a rule anchor is more precise than its section");
                 Assert.Throws<InvalidOperationException>(() => new FirewallRulePlacement(FirewallRuleAnchor.Above).ToJson());
                 Assert.That(new EndOfRulebasePlacementProvider().GetPlacement(new WfImplTask()), Is.Null);
             }
+        }
+
+        private static FirewallPlaceholderValue InstallOn(FirewallWriteContext context) =>
+            ImplTaskStepPlanner.ContextValues(Task(WfTaskType.access), context, null)[FirewallWritePlaceholders.InstallOn];
+
+        private static GatewayDeviceSpecificSettings InstallOnSetting(ProvisioningInstallOn installOn) => new() { InstallOn = installOn };
+
+        [TestCase(ProvisioningInstallOn.Any)]
+        [TestCase(ProvisioningInstallOn.Undefined)]
+        public void InstallOn_AnyUsesPolicyTargetsOnCheckPoint(ProvisioningInstallOn installOn)
+        {
+            FirewallWriteContext context = Context(FirewallVendors.kCheckPointR8x, InstallOnSetting(installOn));
+            Assert.That(InstallOn(context).Value, Is.EqualTo("[\"Policy Targets\"]"));
+        }
+
+        [Test]
+        public void InstallOn_GatewaysInPathUsesGatewayUidElseName()
+        {
+            FirewallWriteContext withUid = Context(FirewallVendors.kCheckPointR8x, InstallOnSetting(ProvisioningInstallOn.GatewaysInPath));
+            withUid.Gateway!.Uid = "gw-uid";
+            FirewallWriteContext withoutUid = Context(FirewallVendors.kCheckPointR8x, InstallOnSetting(ProvisioningInstallOn.GatewaysInPath));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(InstallOn(withUid).Value, Is.EqualTo("[\"gw-uid\"]"));
+                Assert.That(InstallOn(withoutUid).Value, Is.EqualTo("[\"gw1_vd1\"]"));
+            }
+        }
+
+        [Test]
+        public void InstallOn_GatewaysInPathUsesAllInstallOnGateways()
+        {
+            FirewallWriteContext single = Context(FirewallVendors.kCheckPointR8x, InstallOnSetting(ProvisioningInstallOn.GatewaysInPath));
+            Device first = new() { Id = 1, Uid = "uid-b", Name = "gw-b" };
+            Device second = new() { Id = 2, Uid = "uid-c", Name = "gw-c" };
+            Device sameAsFirst = new() { Id = 3, Uid = "uid-b", Name = "gw-b-again" };
+            List<Device> installOnGateways = [first, second, sameAsFirst];
+            FirewallWriteContext group = single with { InstallOnGateways = installOnGateways };
+            Assert.That(InstallOn(group).Value, Is.EqualTo("[\"uid-b\",\"uid-c\"]"));
+        }
+
+        private const int kSecondGatewayId = 300;
+        private static readonly List<int> kSharedRuleGatewayIds = [kGatewayId, kSecondGatewayId];
+        private static readonly List<int> kForeignGatewayIds = [999];
+        private static readonly List<int> kNoGatewayIds = [];
+
+        [Test]
+        public void InstallOn_SharedRuleIsInstalledOnTheGatewaysOfAllItsTasks()
+        {
+            FirewallWriteContext context = Context(FirewallVendors.kCheckPointR8x, InstallOnSetting(ProvisioningInstallOn.GatewaysInPath));
+            Device secondGateway = new() { Id = kSecondGatewayId, Uid = "uid-c", Name = "gw-c" };
+            context.Management.Devices = [.. context.Management.Devices, secondGateway];
+            context.Gateway!.Uid = "uid-b";
+            FirewallWriteContext shared = context.WithInstallOnGateways(kSharedRuleGatewayIds);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(InstallOn(shared).Value, Is.EqualTo("[\"uid-b\",\"uid-c\"]"));
+                Assert.That(shared.Gateway, Is.SameAs(context.Gateway));
+                Assert.That(context.WithInstallOnGateways(kNoGatewayIds), Is.SameAs(context));
+                Assert.That(context.WithInstallOnGateways(null), Is.SameAs(context));
+                Assert.Throws<FirewallWriteException>(() => context.WithInstallOnGateways(kForeignGatewayIds));
+            }
+        }
+
+        [Test]
+        public void InstallOn_GatewaysInPathWithoutGatewayHasNoValue()
+        {
+            FirewallWriteContext withGateway = Context(FirewallVendors.kCheckPointR8x, InstallOnSetting(ProvisioningInstallOn.GatewaysInPath));
+            FirewallWriteContext withoutGateway = new() { Management = withGateway.Management, Settings = withGateway.Settings };
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(InstallOn(withoutGateway).MissingReason, Does.Contain("no gateway"));
+                Assert.That(withoutGateway.EffectiveInstallOnGateways, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void InstallOn_VendorWithoutAllTargetsValueUsesGateways()
+        {
+            FirewallWriteContext context = Context(FirewallVendors.kOpnSense, InstallOnSetting(ProvisioningInstallOn.Any));
+            Assert.That(InstallOn(context).Value, Is.EqualTo("[\"gw1_vd1\"]"));
+        }
+
+        [Test]
+        public void InstallOn_CheckPointRuleCreateTemplateUsesPlaceholder()
+        {
+            string? ruleCreate = FirewallWriteDefaults.GetTemplate(FirewallVendors.kCheckPointR8x, FirewallWriteOperation.RuleCreate);
+            string? ruleModify = FirewallWriteDefaults.GetTemplate(FirewallVendors.kCheckPointR8x, FirewallWriteOperation.RuleModify);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(ruleCreate, Does.Contain("\"install-on\":" + FirewallWritePlaceholders.InstallOn));
+                Assert.That(ruleModify, Does.Not.Contain(FirewallWritePlaceholders.InstallOn));
+            }
+        }
+
+        private static readonly Dictionary<string, string> kNoRuleLayers = [];
+
+        private static FirewallWriteContext WithRuleLayers(int deviceTypeId, Dictionary<string, string> ruleLayerUids)
+        {
+            return Context(deviceTypeId) with { RuleLayerUids = ruleLayerUids };
+        }
+
+        [Test]
+        public void ExistingRules_AreAddressedInTheirImportedLayer()
+        {
+            Dictionary<string, string> ruleLayerUids = new() { { "a", "layer-a" }, { "b", "layer-b" } };
+            FirewallWriteContext context = WithRuleLayers(FirewallVendors.kCheckPointR8x, ruleLayerUids);
+            List<FirewallWriteStep> deleteSteps = ImplTaskStepPlanner.Plan(Task(WfTaskType.rule_delete, Rule("a"), Rule("b")), context, null);
+            WfImplTask modifyTask = Task(WfTaskType.rule_modify, Rule("b"), Network("src", null, action: RequestAction.unchanged),
+                Network("dst", null, field: ElemFieldType.destination, action: RequestAction.unchanged), Service("https", kTcp, 443, action: RequestAction.unchanged));
+            FirewallWriteStep modifyStep = ImplTaskStepPlanner.Plan(modifyTask, context, null).Single();
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(Value(deleteSteps[0], FirewallWritePlaceholders.LayerName), Is.EqualTo("layer-a"));
+                Assert.That(Value(deleteSteps[1], FirewallWritePlaceholders.LayerName), Is.EqualTo("layer-b"));
+                Assert.That(Value(modifyStep, FirewallWritePlaceholders.LayerName), Is.EqualTo("layer-b"));
+            }
+        }
+
+        [Test]
+        public void ExistingRule_MissingInTheImportIsNotWritten()
+        {
+            Dictionary<string, string> ruleLayerUids = new() { { "a", "layer-a" } };
+            FirewallWriteContext context = WithRuleLayers(FirewallVendors.kCheckPointR8x, ruleLayerUids);
+            FirewallWriteStep step = ImplTaskStepPlanner.Plan(Task(WfTaskType.rule_delete, Rule("gone")), context, null).Single();
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(Missing(step, FirewallWritePlaceholders.LayerName), Does.Contain("'gone' is not found in the imported configuration"));
+                Assert.That(step.Values[FirewallWritePlaceholders.LayerName].MissingKind, Is.EqualTo(FirewallWriteErrorKind.Configuration));
+            }
+        }
+
+        [Test]
+        public void ExistingRule_OfVendorWithoutImportedLayerKeepsTheContextLayer()
+        {
+            FirewallWriteContext context = WithRuleLayers(FirewallVendors.kOpnSense, kNoRuleLayers);
+            FirewallWriteStep step = ImplTaskStepPlanner.Plan(Task(WfTaskType.rule_delete, Rule("a")), context, null).Single();
+            Assert.That(Value(step, FirewallWritePlaceholders.LayerName), Is.EqualTo("Network"));
         }
 
         [Test]

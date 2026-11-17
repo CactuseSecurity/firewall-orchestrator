@@ -299,6 +299,7 @@ namespace FWO.Test
             {"VarianceAnalysis", "VarianceAnalysis"},
             {"connections_not_implemented", "Connections not implemented"},
             {"connections_with_diffs", "Connections with Diffs"},
+            {"connections_not_analysed", "Connections not analysed"},
             {"management", "Management"},
             {"not_visible", "Not Visible"},
             {"gateway", "Gateway"},

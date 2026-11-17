@@ -1,10 +1,39 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.4 - 17.11.2026
+- request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket
+  - a request task of a management with the implementation mode external ticket system is handed to Tufin SecureChange as a whole; implementation tasks with mode automatic are written directly to the firewall with the firewall write library (`ext_request.impltask_id`)
+  - offered as a button, implementation tasks on targets set to manual are written as well within the scope of the action (ticket or request task); on an implementation task it writes only this one task
+  - tasks nobody implements (e.g. external ticket system without selected system, rule without position) raise a workflow alert
+- request workflow: the routing of firewall config changes moves from the setting "Firewall config changes - General" to the device specific settings: implementation mode for objects and for rules, external ticket system, Tufin SecureChange connection, response timeout and retries; the upgrade migrates the previous settings, the ticket system list page is removed
+- firewall write: rules are written to Check Point
+  - new rules at the position calculated by the rule positioning and with install-on along the setting "Install on" (ANY = Policy Targets, gateways in path = the gateways of the tasks)
+  - new rules of one request task going to the same layer are written once, installed on the gateways of all of these tasks; the other tasks take over the result
+  - rules to modify or delete are addressed in their layer according to the import (sections traced up to their layer); their implementation mode is the strictest one of all gateways they take effect on, a manual gateway is reported with an alert; a rule already deleted counts as done once its layer is verified
+  - objects already present as requested count as created
+  - new rules targeting a section are written at the top or bottom of that section
+  - provisioning uses the shared target management of implementation tasks (the management of the gateway); a task whose stored management contradicts its gateway is reported with an alert instead of being written, and choosing a gateway in the implementation task view takes over its management
+
+
 ## 9.9.3 - 14.11.2026
 - workflow UI: the approval edit mode setting offers a new list view that shows the approval-task details with one request task (or one bundle displayed as one) per row of horizontally scrollable tables: access tasks (id, compliance status, task type, state, title, source/destination zone, source/destination with name and IP, service, time restriction, ..., handler, assigned), address tasks and service tasks (object, content or members, zone for addresses; object changes shown as "old → new", members of modified groups marked as added, removed or unchanged; no rule action or logging), and other tasks, with objects before groups; the compliance status (green "Ok" or red "not allowed" with the reasons as tooltip and popup; also shown at the end of the access task header in access-task view mode and in the actions column in classic mode) comes from the policy check of the conditional auto-promote action, which now also returns the violation reasons per request task; clicking a field that is editable according to the approver-allowed changes opens the respective editor; the actions column for task promotion is only shown if the promotion mode allows task-by-task promotion
 - workflow UI: the approval-task details view shows the zone of access elements in all three displays; unresolved groups show the zones of their members
 - request workflow: rule-positioning and firewall-write operations resolve gateway-bound implementation tasks against the gateway's management and reject inconsistent task data
 - middleware REST API: `getAddressGroups` and `getServiceGroups` accept `filter.includeTechnicalDetails=true` to include each member's standalone address or service object fields; omitted, null or false keep the existing compact id/name response, and address details can be combined with separated zone groups
+- CI: the version gate no longer loses its result when a pull request is pushed while the version gate refresh runs (#5674)
+  - version-gate.yml has no concurrency group anymore, so a refresh re-run of an older head cannot cancel the gate of the current head
+  - the refresh skips a pull request whose head moved since it read the pull request list
+- CI: shorter pull request checks and less queueing on the shared runners (#5674), see documentation/developer-docs/github/test-install-workflow.md
+  - a pull request installs on Ubuntu 24.04 only; Ubuntu 22.04 (ansible-core 2.18) is added when it changes Ansible files; every merge into develop or main installs on Ubuntu 22.04, 24.04 and 26.04
+  - each install uses the system's own Python and the installer environment script like an installation, instead of a 15 job OS x Python matrix
+  - Python unit tests run on Python 3.11 on a pull request, and on 3.10 - 3.14 after a merge and on Dependabot pip updates; pyright checks against Python 3.10 and 3.14 on every pull request
+  - the installs no longer run the unit tests (new tag `unittests_run`); the C# unit tests run in the Sonar workflows only
+  - each install of a pull request checks the version first and stops within seconds when it needs a bump; `test-install.yml` gets a read-only token by default
+  - every merge into develop gets its own run, and a failure is commented on the merged pull request
+  - removed the PDF test step of the install job, which only rebuilt the test project to skip the test on GitHub Actions
+  - importer unit tests: the autouse service provider fixture builds its test doubles on first use only (about 7 times faster)
+  - Dependabot groups minor and patch updates per directory into one pull request
+- customizing script tests and scripts/performance/create_large_ruleset.py run on Python 3.10 again (no `typing.Self` and `datetime.UTC` imports)
 - UI fix: links from rule report objects to the right sidebar work again on the first click and no longer jump to another page on a following click (#4919). The per-page API role is now determined from the current page with every request instead of a navigation handler, which had broken the browser's in-page navigation
 - importer: last hits are read by a separate rule hit import instead of the regular import (#3297)
   - the regular import no longer reads or writes last hits (Check Point no longer requests hits), so unchanged Check Point configurations no longer leave last hits outdated

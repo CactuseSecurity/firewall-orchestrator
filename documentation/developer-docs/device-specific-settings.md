@@ -32,8 +32,14 @@ remains effective and is shown as a dormant override that can be cleared there.
 | ruleZoneFromOverride | string | ANY | All | Global to manager (Fortinet only) |
 | ruleZoneToOverride | string | ANY | All | Global to manager (Fortinet only) |
 | implementationMode | enum | Automatic | All | All |
-| implementationModeOverrideForRules | enum | Automatic | All | All |
-| rerouteToExternalTicketSystem | integer | undefined | All | All |
+| implementationModeForRules | enum | Automatic | All | All |
+| rerouteToExternalTicketSystem | enum (tufinSecureChange) | undefined | All | Global to manager |
+| scUrl | string | empty | Global, device type, manager | Global to manager |
+| scCredential | integer (credential ID) | undefined | Global, device type, manager | Global to manager |
+| scLookupRequesterId | boolean | false | Global, device type, manager | Global to manager |
+| requestResponseTimeout | integer (seconds) | 300 | Global, device type, manager | Global to manager |
+| requestMaxAttempts | integer | 3 | Global, device type, manager | Global to manager |
+| requestCyclesBetweenAttempts | integer | 5 | Global, device type, manager | Global to manager |
 | securityProfiles | string array | [] | Device type, manager, gateway | Device type, manager |
 | ownerIdCustomFieldName | string | OwnerId | Global, device type, manager | Global to manager |
 | changeIdCustomFieldName | string | ChangeId | Global, device type, manager | Global to manager |
@@ -163,3 +169,88 @@ The migration regression probe `roles/tests-integration/files/database/test-upgr
 uses temporary tables and rolls back its transaction. The database integration tests
 (`roles/tests-integration/tasks/test-database.yml`) run it with the upgrade file inserted at
 its two `-- @run-upgrade-9.7.4` markers.
+
+## Upgrade to 9.9.4: implementation modes
+
+The backup entries keep the label `9.8.7 …` of the first version of this upgrade, so a system that already ran it is
+not migrated a second time.
+
+`implementationMode` applies to objects, `implementationModeForRules` (formerly `implementationModeOverrideForRules`,
+renamed by the upgrade with its values) to rules; neither falls back to the other. Every level that only had the
+object mode gets it as rule mode as well, as 9.7.4 migrated the object mode only.
+
+The routing of the former setting "Firewall config changes - General" (`fwConfigChangeMgmSettings`) moves into these
+settings, per management and change category (objects, rules):
+
+| Former target | Becomes |
+| --- | --- |
+| Tufin SecureChange system | external ticket system mode, `rerouteToExternalTicketSystem` = that system (the system of the rules wins if both categories use different systems) |
+| Check Point system | Automatic (written by the firewall write library) |
+| Internal Work, Disabled, disabled management, other or unknown ticket system | Manual |
+| no target (category of a listed management) | Manual, as FWO did not implement it before |
+| management missing in the setting | unchanged, inherited |
+
+As the former setting decided the routing, it wins over a differing device specific setting. A value is only stored on
+the management if the value in effect there (own, device type or global) differs. The former setting and the previous
+values are backed up, then the setting is removed; the backup also marks the migration as done, so a repeated upgrade
+keeps later changes:
+
+```sql
+SELECT config_values FROM public.device_specific_config_backup WHERE version = '9.8.7 implementation modes';
+```
+
+The regression probe `roles/tests-integration/files/database/test-upgrade-9.9.4-impl-mode.sql` runs like the 9.7.4
+probe, with the upgrade file inserted at its two `-- @run-upgrade-9.9.4` markers.
+
+## Upgrade to 9.9.4: request settings
+
+`requestResponseTimeout`, `requestMaxAttempts` and `requestCyclesBetweenAttempts` set the response timeout and retries of
+the external requests of a management, for Tufin SecureChange and firewall writes alike; before, they were part of each
+ticket system. The upgrade gives each management the values of the ticket system it uses: the external ticket system
+selected for it, otherwise the Check Point system the former setting "Firewall config changes - General" routed it to.
+The values of the system most managements use become global where they differ from the defaults; a management using
+another system gets its differing values. The values of the ticket systems are backed up, which also marks the migration
+as done:
+
+```sql
+SELECT config_values FROM public.device_specific_config_backup WHERE version = '9.8.7 request settings';
+```
+
+The regression probe `roles/tests-integration/files/database/test-upgrade-9.9.4-request-settings.sql` runs like the
+other 9.9.4 probe.
+
+## Upgrade to 9.9.4: Tufin SecureChange connection
+
+`rerouteToExternalTicketSystem` names the kind of external ticket system (`tufinSecureChange`) instead of an entry of
+the ticket system list, and the connection to Tufin SecureChange is set by `scUrl`, `scCredential` and
+`scLookupRequesterId`, next to the SecureChange ticket templates. A request to SecureChange is built from the settings of
+the management of its request task; when sending or polling, the credential currently configured for that management is
+used as long as the URL is unchanged, so a changed password applies to open requests as well. Credentials referenced by
+`scCredential` cannot be deleted.
+
+The upgrade converts a selected Tufin SecureChange system into `tufinSecureChange`. A level selecting another or an
+unknown system loses the selection, and its implementation modes in effect for external ticket systems become `Manual`.
+The connection of the system most managements use becomes global, a management using another one gets its differing
+values. A system without credential (legacy authorization) inherits the credential of the global system only on the same
+server; on another server it is not taken over, like an unknown system, so that no credential is sent to that server, and
+the implementation modes of its levels in effect for external ticket systems become `Manual`. The previous selections are
+backed up, which also marks the migration as done:
+
+```sql
+SELECT config_values FROM public.device_specific_config_backup WHERE version = '9.8.7 securechange connection';
+```
+
+The regression probe `roles/tests-integration/files/database/test-upgrade-9.9.4-sc-connection.sql` runs like the
+other 9.9.4 probes.
+
+The ticket system list (`extTicketSystems`) and its settings page are removed by the same upgrade; the list is backed
+up as `'9.8.7 extTicketSystems'` without authorization values. Open external requests of the former Check Point ticket path
+are discarded by the external request sender with the reason, as they would fail in every cycle and block their ticket. Request job timing and the certificate check of the
+ticket systems are set under Workflow - Customizing.
+
+### Adding an external ticket system
+
+Only Tufin SecureChange is supported. Another system needs a value in `ExternalTicketSystemKind`, its own device
+specific settings group (connection, templates), an `ExternalTicket` implementation and a branch in
+`ExternalTicketFactory`. Type IDs for AlgoSec (3) and ServiceNow (4) were reserved in `BuiltInExternalTicketSystemTypes`
+(`FWO.Data/ExternalTicketSystem.cs`) until 9.9.4 but never implemented (`git log -S AlgoSecId`).

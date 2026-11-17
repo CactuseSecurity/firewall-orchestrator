@@ -21,7 +21,7 @@ namespace FWO.Middleware.Server.Controllers
     public class ExternalRequestController : ControllerBase
     {
         private readonly ApiConnection apiConnection;
-        private readonly Func<long, Task<bool>> sendFirstRequest;
+        private readonly Func<long, Task<bool>> startProvisioning;
 
         /// <summary>
 		/// Constructor needing jwt writer, ldap list and connection
@@ -31,12 +31,12 @@ namespace FWO.Middleware.Server.Controllers
         }
 
         /// <summary>
-        /// Constructor allowing to replace the request sender (unit testing only)
+        /// Constructor allowing to replace the start of the provisioning (unit testing only)
         /// </summary>
-        internal ExternalRequestController(ApiConnection apiConnection, Func<long, Task<bool>>? sendFirstRequest)
+        internal ExternalRequestController(ApiConnection apiConnection, Func<long, Task<bool>>? startProvisioning)
         {
             this.apiConnection = apiConnection;
-            this.sendFirstRequest = sendFirstRequest ?? SendFirstRequest;
+            this.startProvisioning = startProvisioning ?? StartProvisioning;
         }
 
         /// <summary>
@@ -46,7 +46,9 @@ namespace FWO.Middleware.Server.Controllers
         /// TicketId (required) &#xA;
         /// Admins may start the external requests of any ticket. Modellers may only start them for tickets
         /// whose request tasks all belong to owners they are allowed to edit. &#xA;
-        /// Tickets which are completed or still have an open external request are refused.
+        /// Tickets which are completed or still have an open external request are refused. &#xA;
+        /// Creates the request for the next open entry of the provisioning work list of the ticket, see the state action
+        /// "Create external requests"; finished entries are skipped, so this also continues a stopped ticket.
         /// </remarks>
         /// <param name="parameters">ExternalRequestAddParameters</param>
         /// <returns>true if external request could be added; 404 if the ticket does not exist or is not accessible
@@ -76,7 +78,7 @@ namespace FWO.Middleware.Server.Controllers
             {
                 return Conflict("The external requests of the ticket are still being processed.");
             }
-            return await sendFirstRequest(ticket.Id);
+            return await startProvisioning(ticket.Id);
         }
 
         /// <summary>
@@ -88,6 +90,7 @@ namespace FWO.Middleware.Server.Controllers
         /// TaskNumber (required) &#xA;
         /// ExtQueryVariables (optional) &#xA;
         /// ExtRequestState (required) &#xA;
+        /// ImplTaskId (optional, implementation task of a firewall write request) &#xA;
         /// </remarks>
         /// <param name="parameters">ExternalRequestPatchStateParameters</param>
         /// <returns>true if external request state could be patched</returns>
@@ -106,7 +109,8 @@ namespace FWO.Middleware.Server.Controllers
                     TicketId = parameters.TicketId,
                     TaskNumber = parameters.TaskNumber,
                     ExtQueryVariables = parameters.ExtQueryVariables,
-                    ExtRequestState = parameters.ExtRequestState
+                    ExtRequestState = parameters.ExtRequestState,
+                    ImplTaskId = parameters.ImplTaskId
                 };
                 return await extRequestHandler.PatchState(extRequest);
             }
@@ -116,12 +120,13 @@ namespace FWO.Middleware.Server.Controllers
             }
         }
 
-        private async Task<bool> SendFirstRequest(long ticketId)
+        /// <summary>Starts the provisioning of a ticket in the middleware; returns whether it could be started.</summary>
+        private async Task<bool> StartProvisioning(long ticketId)
         {
             using GlobalConfig GlobalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
             using UserConfig userConfig = UserConfig.ForGlobalSettings(GlobalConfig, apiConnection);
             using ExternalRequestHandler extRequestHandler = new(userConfig, apiConnection);
-            return await extRequestHandler.SendFirstRequest(ticketId);
+            return await extRequestHandler.StartProvisioning(ticketId);
         }
 
         /// <summary>

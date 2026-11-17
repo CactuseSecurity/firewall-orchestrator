@@ -598,11 +598,30 @@ namespace FWO.Services.Workflow
         private async Task CreateGenericImplTask(WfReqTask reqTask)
         {
             WfImplTask newImplTask = new(reqTask) { TaskNumber = reqTask.HighestImplTaskNumber() + 1, StateId = reqTask.StateId };
+            await SetManagementOfGateway(newImplTask);
             if (dbAcc != null)
             {
                 newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask, reqTask);
             }
             reqTask.ImplementationTasks.Add(newImplTask);
+        }
+
+        /// <summary>
+        /// Stores the management of the gateway with an implementation task on a gateway, so that the task is written to
+        /// that management; with path analysis it may differ from the management of the request task.
+        /// </summary>
+        private async Task SetManagementOfGateway(WfImplTask implTask)
+        {
+            if (implTask.DeviceId is not int gatewayId)
+            {
+                return;
+            }
+            await EnsureDevicesLoaded();
+            int managementId = Devices.FirstOrDefault(device => device.Id == gatewayId)?.Management?.Id ?? 0;
+            if (managementId > 0)
+            {
+                implTask.ManagementId = managementId;
+            }
         }
 
         private async Task CreateAccessImplTask(WfReqTask reqTask, int? deviceId, bool adaptTitle = true, WfTicket? previousTicket = null)
@@ -622,6 +641,7 @@ namespace FWO.Services.Workflow
                     newImplTask.Title += ": " + device.Name;
                 }
             }
+            await SetManagementOfGateway(newImplTask);
             if (dbAcc != null)
             {
                 newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask, reqTask, previousTicket);

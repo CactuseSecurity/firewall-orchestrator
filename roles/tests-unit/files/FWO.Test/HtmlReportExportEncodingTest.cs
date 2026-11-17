@@ -142,6 +142,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ReportVariances_ExportToHtml_EncodesExcludedConnectionName()
+        {
+            OwnerConnectionReport ownerReport = new()
+            {
+                Name = "Owner",
+                ExcludedConnections = [new() { Connection = PayloadConnection(105), Reason = ConState.DeletedObjects }]
+            };
+            ReportVariances report = new(query, userConfig, ReportType.VarianceAnalysis)
+            {
+                ReportData = new() { OwnerData = [ownerReport] }
+            };
+
+            string html = report.ExportToHtml();
+
+            AssertNoInjectedMarkup(html);
+            Assert.That(html, Does.Contain(userConfig.GetText("C9014")), "the reason is shown");
+        }
+
+        [Test]
         public void ReportChanges_ExportToHtml_EncodesManagementName()
         {
             ReportChanges report = new(query, userConfig, ReportType.Changes, timeFilter, false)

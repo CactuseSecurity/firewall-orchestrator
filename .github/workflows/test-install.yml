@@ -33,11 +33,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('{0}-{1}', github.ref, github.sha) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Read-only for every job; the repository default would give each job a write token. Only
-# report-merge-failure declares its own, wider block.
+# Read-only for every job; the repository default would give each job a write token. Jobs that
+# need more declare their own block, which replaces this one: test-install and report-merge-failure.
 permissions:
   contents: read
-  pull-requests: read  # gh pr view in scripts/ci/evaluate_version_gate.sh
 
 jobs:
   plan:
@@ -84,6 +83,9 @@ jobs:
     needs: plan
     name: ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      pull-requests: read  # gh pr view in scripts/ci/evaluate_version_gate.sh
     env:
       RUNNING_ON_GITHUB_ACTIONS: true
       FWO_RUN_INTEGRATION_TESTS: "true"

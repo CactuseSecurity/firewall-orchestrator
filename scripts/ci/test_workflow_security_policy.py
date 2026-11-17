@@ -494,6 +494,17 @@ def test_test_install_workflow_writes_only_in_the_merge_failure_report() -> None
     }
 
 
+def test_test_install_workflow_grants_pull_request_read_only_to_the_installs() -> None:
+    # Only the version check of the install jobs reads pull requests (gh pr view); every other
+    # job gets the workflow-level contents: read alone.
+    workflow = parse_workflow(read_workflow(TEST_INSTALL_WORKFLOW_PATH))
+    assert workflow["permissions"] == READ_ONLY_PERMISSIONS
+    jobs = cast("dict[str, dict[str, object]]", workflow["jobs"])
+    assert jobs["test-install"]["permissions"] == {"contents": "read", "pull-requests": "read"}
+    readers = sorted(name for name, job in jobs.items() if "pull-requests" in str(job.get("permissions", "")))
+    assert readers == ["report-merge-failure", "test-install"]
+
+
 @pytest.mark.parametrize(
     ("permissions", "expected"),
     [

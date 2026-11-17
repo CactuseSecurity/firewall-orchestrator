@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
+import yaml
 
 from scripts.ci.install_plan import (
     ALL_INSTALL_OS,
@@ -69,6 +71,13 @@ def pull_request(changed_files: list[str] | None = None, head_ref: str = "featur
         head_ref=head_ref,
         changed_files=changed_files or [],
     )
+
+
+def workflow_jobs() -> dict[str, Any]:
+    """Return the jobs of the test install workflow as parsed YAML."""
+    workflow: dict[str, Any] = yaml.safe_load(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    jobs: dict[str, Any] = workflow["jobs"]
+    return jobs
 
 
 class TestMergedRun:
@@ -222,8 +231,27 @@ class TestWorkflow:
         assert "fromJSON(needs.plan.outputs.install_matrix)" in workflow
         assert "fromJSON(needs.plan.outputs.python_versions)" in workflow
 
-    def test_failed_version_precheck_fails_the_installs_instead_of_skipping_them(self) -> None:
-        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
-        stop_step = workflow.split("- name: Stop when the version gate fails", 1)[1].split("- uses:", 1)[0]
-        assert "needs.plan.outputs.version_ok != 'true'" in stop_step
-        assert "exit 1" in stop_step
+    def test_each_install_job_checks_the_version_itself(self) -> None:
+        # In the install job rather than once in the plan job: "Re-run failed jobs" keeps the
+        # outputs of the successful plan job, so a verdict stored there could never be refreshed.
+        jobs = workflow_jobs()
+        steps = jobs["test-install"]["steps"]
+        version_step = next(step for step in steps if step.get("id") == "version")
+        assert "scripts/ci/evaluate_version_gate.sh" in version_step["run"]
+        assert "exit 1" in version_step["run"]
+        assert "continue-on-error" not in version_step
+        assert version_step["if"] == "${{ github.event_name == 'pull_request' }}"
+        assert set(jobs["plan"]["outputs"]) == {"install_matrix", "python_versions"}
+        assert "evaluate_version_gate.sh" not in str(jobs["plan"]["steps"])
+
+    def test_version_check_runs_before_anything_is_installed(self) -> None:
+        step_names = [str(step.get("name", step.get("uses", ""))) for step in workflow_jobs()["test-install"]["steps"]]
+        assert step_names[0].startswith("actions/checkout@")
+        assert step_names[1] == "Check the version before installing"
+
+    def test_diagnostics_steps_skip_a_failed_version_check(self) -> None:
+        steps = workflow_jobs()["test-install"]["steps"]
+        diagnostics = [step for step in steps if str(step.get("name", "")).startswith("Collect ")]
+        assert diagnostics
+        for step in diagnostics:
+            assert step["if"] == "${{ failure() && steps.version.outcome != 'failure' }}", step["name"]

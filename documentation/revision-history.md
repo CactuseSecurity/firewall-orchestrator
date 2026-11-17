@@ -11,7 +11,7 @@
   - each install uses the system's own Python and the installer environment script like an installation, instead of a 15 job OS x Python matrix
   - Python unit tests run on Python 3.11 on a pull request, and on 3.10 - 3.14 after a merge and on Dependabot pip updates; pyright checks against Python 3.10 and 3.14 on every pull request
   - the installs no longer run the unit tests (new tag `unittests_run`); the C# unit tests run in the Sonar workflows only
-  - the first job of a pull request's run checks the version early and stops the installs when it needs a bump
+  - each install of a pull request checks the version first and stops within seconds when it needs a bump; `test-install.yml` gets a read-only token by default
   - every merge into develop gets its own run, and a failure is commented on the merged pull request
   - removed the PDF test step of the install job, which only rebuilt the test project to skip the test on GitHub Actions
   - importer unit tests: the autouse service provider fixture builds its test doubles on first use only (about 7 times faster)

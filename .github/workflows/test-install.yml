@@ -33,6 +33,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('{0}-{1}', github.ref, github.sha) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Read-only for every job; the repository default would give each job a write token. Only
+# report-merge-failure declares its own, wider block.
+permissions:
+  contents: read
+  pull-requests: read  # gh pr view in scripts/ci/evaluate_version_gate.sh
+
 jobs:
   plan:
     name: Determine test plan
@@ -40,7 +46,6 @@ jobs:
     outputs:
       install_matrix: ${{ steps.plan.outputs.install_matrix }}
       python_versions: ${{ steps.plan.outputs.python_versions }}
-      version_ok: ${{ steps.version.outputs.ok || 'true' }}
     steps:
       # A pull request checks out its merge commit; depth 2 adds its first parent, the base
       # branch, which the changed files are listed against.
@@ -75,26 +80,6 @@ jobs:
             --output "$GITHUB_OUTPUT" \
             --summary "$GITHUB_STEP_SUMMARY"
 
-      # The same evaluation as the required "Gate pull request version" check, run as the first
-      # job of the pull request's own run, so that a pull request that needs a version bump
-      # learns it before its installs run. This copy runs the pull request's own script and is
-      # only an early signal; the binding gate runs in version-gate.yml from the base branch.
-      - name: Check the version early
-        id: version
-        if: ${{ github.event_name == 'pull_request' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
-        run: |
-          if scripts/ci/evaluate_version_gate.sh "$PR_NUMBER" "$PR_BASE_REF"; then
-            echo "ok=true" >>"$GITHUB_OUTPUT"
-          else
-            echo "ok=false" >>"$GITHUB_OUTPUT"
-            echo "::error title=Version gate::The version of this pull request cannot be merged as it is, see the log of this step. The installs stop right away."
-          fi
-
   test-install:
     needs: plan
     name: ${{ matrix.label }}
@@ -108,15 +93,30 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.install_matrix) }}
     steps:
-      # Fails rather than skips: GitHub counts a skipped required check as passed, so a skipped
-      # "Test install on ubuntu-latest" would let a pull request merge without an install.
-      - name: Stop when the version gate fails
-        if: ${{ needs.plan.outputs.version_ok != 'true' }}
-        run: |
-          echo "::error title=Version gate::The version of this pull request cannot be merged as it is, see the 'Check the version early' step of 'Determine test plan'."
-          exit 1
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The same evaluation as the required "Gate pull request version" check, so that a pull
+      # request that needs a version bump learns it within seconds instead of after its install.
+      # It runs in every install job rather than once in the plan job, so that each re-run of a
+      # failed install decides again. It fails rather than skips the install: GitHub counts a
+      # skipped required check as passed. This copy runs the pull request's own script and is
+      # only an early signal; the binding gate runs in version-gate.yml from the base branch.
+      - name: Check the version before installing
+        id: version
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if ! scripts/ci/evaluate_version_gate.sh "$PR_NUMBER" "$PR_BASE_REF"; then
+            echo "::error title=Version gate::The version of this pull request cannot be merged as it is, see the log of this step. After fixing it, or once the Version gate check turned green without a push, re-run the failed jobs."
+            exit 1
+          fi
+
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
@@ -161,7 +161,7 @@ jobs:
             dotnet test FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest" --blame-hang-timeout 5m --blame-hang-dump-type none
 
       - name: Collect middleware diagnostics after JWT test failure
-        if: ${{ failure() && needs.plan.outputs.version_ok == 'true' }}
+        if: ${{ failure() && steps.version.outcome != 'failure' }}
         run: |
           sudo systemctl status fworch-middleware --no-pager || true
           sudo journalctl -u fworch-middleware --no-pager -n 200 || true
@@ -296,7 +296,7 @@ jobs:
           sudo test ! -e "$ca_dir/next-ca.crt"
 
       - name: Collect certificate diagnostics after a failed CA rotation
-        if: ${{ failure() && needs.plan.outputs.version_ok == 'true' }}
+        if: ${{ failure() && steps.version.outcome != 'failure' }}
         run: |
           sudo ls -laR /usr/local/fworch/etc/secrets/ca/ || true
           sudo cat /usr/local/fworch/etc/secrets/ca/retired-ca-names || true
@@ -322,7 +322,7 @@ jobs:
             --skip-tags unittests_run
 
       - name: Collect certificate diagnostics after a failed reset upgrade
-        if: ${{ failure() && needs.plan.outputs.version_ok == 'true' }}
+        if: ${{ failure() && steps.version.outcome != 'failure' }}
         run: |
           sudo ls -la /usr/local/fworch/etc/secrets/ca/ || true
           sudo cat /usr/local/fworch/etc/secrets/ca/retired-ca-names || true
@@ -333,7 +333,7 @@ jobs:
       # The UI blocks before it listens until its config subscription delivers, so a broken API
       # websocket path only shows up as a 503 from Apache - its own log says why.
       - name: Collect UI diagnostics after a failure
-        if: ${{ failure() && needs.plan.outputs.version_ok == 'true' }}
+        if: ${{ failure() && steps.version.outcome != 'failure' }}
         run: |
           sudo systemctl status fworch-ui --no-pager || true
           sudo journalctl -u fworch-ui --no-pager -n 200 || true
@@ -344,6 +344,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       # Stubbed ansible/ansible-galaxy, so no real Ansible install is needed.
       - name: Run run-playbook-with-sudo.sh guard tests
         run: ./scripts/tests/test-run-playbook-with-sudo.sh
@@ -361,6 +363,8 @@ jobs:
         python: ${{ fromJSON(needs.plan.outputs.python_versions) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python }}
@@ -390,6 +394,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
@@ -428,6 +434,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.11'

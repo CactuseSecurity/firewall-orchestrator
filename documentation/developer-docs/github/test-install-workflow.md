@@ -24,15 +24,19 @@ develop, and on the pull requests they exist for.
 | Launcher guard regression tests | ✓ | ✓ | ✓ | ✓ |
 | Report failed checks to the merged pull request | – | – | – | only after a failed merge into develop |
 
-The C# unit tests are not part of this workflow: the SonarCloud workflows run them on every
-pull request and every push to develop and main, because Sonar needs their coverage.
+The C# unit tests are not part of this workflow: the SonarCloud workflows run them, because Sonar
+needs their coverage. They run on every push to develop and main and on every pull request from
+this repository or from a fork owner listed in `SONAR_TRUSTED_FORK_OWNERS`. For a pull request
+from any other fork, SonarQube Analyze PR stops before the build, so no C# unit test runs before
+the merge; that required check stays red, and a maintainer has to look at such a pull request
+anyway (see [sonarcloud-workflow.md](sonarcloud-workflow.md)).
 
 ## What each job tests
 
 | Job | Contents |
 |---|---|
-| Determine test plan | lists the files the pull request changes, selects the installs and Python versions (`scripts/ci/install_plan.py`, the reasons are in the job summary), and checks the version early, see [Version check before the installs](#version-check-before-the-installs) |
-| Test install on ... | sets up the installer environment like an installation does, runs the sample LDAP seeding tests, installs FWO with demo data, runs the JWT refresh integration test, the Ansible integration tests, both passes of a CA rotation with their refusal checks, and a certificate reset upgrade with the integration tests, see [Install jobs](#install-jobs) |
+| Determine test plan | lists the files the pull request changes, selects the installs and Python versions (`scripts/ci/install_plan.py`, the reasons are in the job summary) |
+| Test install on ... | on a pull request first checks the version (see [Version check before the installs](#version-check-before-the-installs)), then sets up the installer environment like an installation does, runs the sample LDAP seeding tests, installs FWO with demo data, runs the JWT refresh integration test, the Ansible integration tests, both passes of a CA rotation with their refusal checks, and a certificate reset upgrade with the integration tests, see [Install jobs](#install-jobs) |
 | Python unit tests on Python X | installs the installer requirements (proves that the pinned Ansible installs on X) and the importer and scripts requirements, then runs the importer tests and all tests under `scripts` (customizing scripts, version gate, workflow policy) |
 | Python Code Check | ruff, ruff format, pyright for the oldest (3.10) and the newest (3.14) supported Python, see [Python versions](#python-versions) |
 | Release build | checks that the .NET SDK pins agree, then builds `roles/FWO.sln` in `Release`, see [Release build](#release-build) |
@@ -43,12 +47,12 @@ pull request and every push to develop and main, because Sonar needs their cover
 
 | Test | Where | When |
 |---|---|---|
-| C# unit tests (`FWO.Test`, Debug) | SonarCloud PR, SonarCloud | every pull request, every push to develop and main |
+| C# unit tests (`FWO.Test`, Debug) | SonarCloud PR, SonarCloud | every pull request except from untrusted forks, every push to develop and main |
 | Importer and scripts unit tests | Python unit tests; also SonarCloud PR for coverage | Python 3.11 on every pull request, every supported version after a merge |
 | Python API availability per version | pyright in Python Code Check | every pull request, 3.10 and 3.14 |
 | Fresh install, JWT, integration tests, CA rotation, certificate reset upgrade | Test install on ... | Ubuntu 24.04 always, 22.04 and 26.04 as in the overview |
 | Release configuration compiles | Release build | every run |
-| Version gate | early: Determine test plan; binding: Version gate workflow | every pull request |
+| Version gate | early: first step of each install job; binding: Version gate workflow | every pull request |
 | Static analysis | SonarCloud PR, CodeQL | every pull request |
 
 The unit tests are not run inside the installs any more (see [Install jobs](#install-jobs)).
@@ -125,15 +129,23 @@ Python unit tests on every version, after the merge and on Dependabot pip pull r
 
 ## Version check before the installs
 
-The `Determine test plan` job of a pull request runs `scripts/ci/evaluate_version_gate.sh`, the
-same evaluation as the required `Gate pull request version` check. If the version cannot be
-merged as it is, the install jobs fail in their first step instead of spending half an hour on
-an install, and the pull request learns it from its own run. The installs fail rather than skip,
-because GitHub counts a skipped required check as passed.
+On a pull request, each install job runs `scripts/ci/evaluate_version_gate.sh` right after its
+checkout, the same evaluation as the required `Gate pull request version` check. If the version
+cannot be merged as it is, the install fails within seconds instead of after half an hour, and the
+pull request learns it from its own run. The install fails rather than skips, because GitHub counts
+a skipped required check as passed. The Python unit tests and the other jobs run regardless.
+
+The check runs in each install job, not once in the plan job, so that every re-run decides again:
+"Re-run failed jobs" keeps the outputs of jobs that succeeded, and a verdict stored in the plan job
+would fail every re-run the same way. To clear a failed version check:
+
+- fix the version and push, or
+- if the `Gate pull request version` check turned green without a push - for example after the
+  version gate refresh, once develop raised its version - use "Re-run failed jobs" on the run.
 
 This copy runs the pull request's own script and is only an early signal. The binding gate runs
-in [version-gate.yml](version-gate-workflow.md) from the base branch. The Python unit tests and
-the other jobs run regardless.
+in [version-gate.yml](version-gate-workflow.md) from the base branch; its refresh re-runs only that
+workflow, not the installs.
 
 ## Checks after a merge
 
@@ -161,7 +173,8 @@ runs for pushes, so it never runs with pull request code.
 
 ## Install jobs
 
-Each install job runs, in order:
+On a pull request, each install job first checks the version (see
+[Version check before the installs](#version-check-before-the-installs)). Then it runs, in order:
 
 1. the installer environment setup, `source scripts/install-ansible-from-venv.sh`, as an
    installation does it (see [Operating systems, Python and Ansible](#operating-systems-python-and-ansible))

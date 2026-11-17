@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 WORKFLOW_DIRECTORY = Path(__file__).parents[2] / ".github" / "workflows"
 SONAR_PR_WORKFLOW_PATH = WORKFLOW_DIRECTORY / "sonarcloud-pr.yml"
 SONAR_BRANCH_WORKFLOW_PATH = WORKFLOW_DIRECTORY / "sonarcloud.yml"
+TEST_INSTALL_WORKFLOW_PATH = WORKFLOW_DIRECTORY / "test-install.yml"
 TRUSTED_SOURCE_GATE_STEP_NAME = "Gate trusted PR sources"
 PULL_REQUEST_CHECKOUT_STEP_NAME = "Checkout PR head"
 CHECKOUT_ACTION = "actions/checkout"
@@ -464,3 +465,44 @@ def test_workflows_pin_actions_to_commit_shas(workflow_path: Path) -> None:
 )
 def test_is_pinned_action(action: str, *, expected: bool) -> None:
     assert is_pinned_action(action) is expected
+
+
+def granted_write_scopes(permissions: object) -> list[str]:
+    """Return the write scopes of one permissions block, in either the string or the mapping form."""
+    if isinstance(permissions, str):
+        return [permissions] if permissions in WRITE_PERMISSION_VALUES else []
+    if isinstance(permissions, dict):
+        scopes = cast("dict[object, object]", permissions)
+        return [str(scope) for scope, level in scopes.items() if level in WRITE_PERMISSION_VALUES]
+    return []
+
+
+@pytest.mark.parametrize("workflow_path", active_workflow_paths(), ids=lambda path: path.name)
+def test_every_workflow_declares_top_level_permissions(workflow_path: Path) -> None:
+    # Without the block every job gets the repository's default token, which is write-scoped.
+    workflow = parse_workflow(read_workflow(workflow_path))
+    assert "permissions" in workflow, f"{workflow_path.name} has no top-level permissions block"
+
+
+def test_test_install_workflow_writes_only_in_the_merge_failure_report() -> None:
+    workflow = parse_workflow(read_workflow(TEST_INSTALL_WORKFLOW_PATH))
+    assert granted_write_scopes(workflow["permissions"]) == []
+    jobs = cast("dict[str, dict[str, object]]", workflow["jobs"])
+    writing_jobs = {name: granted_write_scopes(job.get("permissions")) for name, job in jobs.items()}
+    assert {name: scopes for name, scopes in writing_jobs.items() if scopes} == {
+        "report-merge-failure": ["pull-requests"]
+    }
+
+
+@pytest.mark.parametrize(
+    ("permissions", "expected"),
+    [
+        ("write-all", ["write-all"]),
+        ("read-all", []),
+        ({"contents": "read", "pull-requests": "write"}, ["pull-requests"]),
+        ({"contents": "read"}, []),
+        (None, []),
+    ],
+)
+def test_granted_write_scopes(permissions: object, expected: list[str]) -> None:
+    assert granted_write_scopes(permissions) == expected

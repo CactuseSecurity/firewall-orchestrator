@@ -19,6 +19,11 @@ needs their coverage, so the FWO Test Install workflow does not run them a secon
 fails the job before the analysis ends, so a red **SonarQube Analyze PR** is either a failed test or
 a failed quality gate; the log of the "Build and analyze pull request" step shows which.
 
+For a pull request from a fork whose owner is not in `SONAR_TRUSTED_FORK_OWNERS`, the job stops at
+"Gate trusted PR sources", before the build, so no C# unit test runs for it before the merge. The
+required check stays red for such a pull request, so a maintainer has to look at it in any case.
+Running the tests for untrusted forks would need an unprivileged workflow of its own.
+
 ## Branch analysis (`sonarcloud.yml`)
 
 Runs on pushes to `main` and `develop` and on manual dispatch. It analyzes the pushed branch and

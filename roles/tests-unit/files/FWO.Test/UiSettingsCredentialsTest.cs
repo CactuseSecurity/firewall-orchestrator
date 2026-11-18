@@ -3,6 +3,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Config.File;
 using FWO.Data;
 using FWO.Data.Middleware;
@@ -31,6 +32,7 @@ namespace FWO.Test
     [NonParallelizable]
     internal class UiSettingsCredentialsTest
     {
+        private const string kSettingsLevel = "Global";
         private static readonly List<int> kRemainingCredentialIds = [1, 3];
         private static readonly List<string> kAdditionalCredentialChoices = ["", "3"];
         private static readonly FieldInfo JwtPublicKeyField = typeof(ConfigFile).GetField("jwtPublicKey", BindingFlags.NonPublic | BindingFlags.Static)
@@ -128,7 +130,7 @@ namespace FWO.Test
             SettingsCredentials component = setup.Component;
             Credential credential = GetMember<List<Credential>>(component, "credentials")[0];
             apiConnection.ManagementsUsingCred[credential.Id] = [new Management { Id = 5, Name = "mgmt-a" }];
-            SetTicketSystemsUsingCredential(component, credential.Id);
+            apiConnection.LevelsUsingCred[credential.Id] = [kSettingsLevel];
 
             await setup.Rendered.InvokeAsync(() => InvokePrivateTask(component, "RequestDelete", credential));
 
@@ -136,7 +138,7 @@ namespace FWO.Test
             {
                 Assert.That(messages, Has.Count.EqualTo(1));
                 Assert.That(messages[0].Message, Is.EqualTo($"Credential is used by managements ({credential.Name}: mgmt-a) " +
-                    $"Credential is used by external ticket systems ({credential.Name}: tufin)"));
+                    $"Credential is used by external ticket systems ({credential.Name}: {kSettingsLevel})"));
                 Assert.That(GetMember<bool>(component, "DeleteMode"), Is.False);
                 Assert.That(apiConnection.Queries, Does.Not.Contain(DeviceQueries.deleteCredential));
             });
@@ -149,7 +151,7 @@ namespace FWO.Test
             await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin, messages);
             RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
             SettingsCredentials component = setup.Component;
-            SetTicketSystemsUsingCredential(component, 1);
+            apiConnection.LevelsUsingCred[1] = [kSettingsLevel];
 
             InvokePrivateVoid(component, "RequestRemoveSampleData");
             await setup.Rendered.InvokeAsync(() => InvokePrivateTask(component, "RemoveSampleData"));
@@ -160,7 +162,7 @@ namespace FWO.Test
                 Assert.That(GetMember<List<Credential>>(component, "credentials").Select(credential => credential.Id),
                     Is.EquivalentTo(kRemainingCredentialIds));
                 Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Message, Is.EqualTo("Credential is used by external ticket systems (cred-one_demo: tufin)"));
+                Assert.That(messages[0].Message, Is.EqualTo($"Credential is used by external ticket systems (cred-one_demo: {kSettingsLevel})"));
             });
         }
 
@@ -440,15 +442,6 @@ namespace FWO.Test
             }
         }
 
-        private static void SetTicketSystemsUsingCredential(SettingsCredentials component, int credentialId)
-        {
-            GetMember<UserConfig>(component, "userConfig").ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem>
-            {
-                new() { Id = 1, Name = "tufin", CredentialId = credentialId },
-                new() { Id = 2, Name = "other", CredentialId = credentialId + 100 }
-            });
-        }
-
         private static SimulatedUserConfig CreateUserConfig(string role)
         {
             SimulatedUserConfig userConfig = new();
@@ -539,6 +532,7 @@ namespace FWO.Test
             public List<string> Queries { get; } = [];
             public List<Credential> Credentials { get; set; } = [];
             public Dictionary<int, List<Management>> ManagementsUsingCred { get; } = [];
+            public Dictionary<int, List<string>> LevelsUsingCred { get; } = [];
             public ReturnIdWrapper NewCredentialResult { get; set; } = new() { ReturnIds = [new ReturnId { NewId = 10 }] };
             public ReturnId UpdateCredentialResult { get; set; } = new() { UpdatedId = 1 };
             public ReturnId DeleteCredentialResult { get; set; } = new() { DeletedId = 1 };
@@ -558,6 +552,15 @@ namespace FWO.Test
                 {
                     List<Credential> sanitized = Credentials.Select(item => new Credential(item) { Secret = "" }).ToList();
                     return Task.FromResult((QueryResponseType)(object)sanitized);
+                }
+
+                if (query == DeviceSpecificSettingsQueries.getNodesUsingCredential && typeof(QueryResponseType) == typeof(List<DeviceSpecificConfigNodeData>))
+                {
+                    PropertyInfo? credentialIdProperty = variables?.GetType().GetProperty("credentialId");
+                    int credentialId = credentialIdProperty == null ? 0 : Convert.ToInt32(credentialIdProperty.GetValue(variables));
+                    List<DeviceSpecificConfigNodeData> nodes = [.. (LevelsUsingCred.TryGetValue(credentialId, out List<string>? levels) ? levels : [])
+                        .Select(level => new DeviceSpecificConfigNodeData { DisplayName = level })];
+                    return Task.FromResult((QueryResponseType)(object)nodes);
                 }
 
                 if (query == DeviceQueries.getManagementsUsingCredential && typeof(QueryResponseType) == typeof(List<Management>))

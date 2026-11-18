@@ -21,8 +21,8 @@ namespace FWO.ExternalSystems.FirewallWrite
         private string? apiToken;
 
         /// <summary>Creates a client for the REST API of a FortiOS device.</summary>
-        public FortiOsWriteClient(Management management, bool checkCertificates)
-            : base(HostUrl(management), management, checkCertificates)
+        public FortiOsWriteClient(Management management, bool checkCertificates, int? responseTimeout = null)
+            : base(HostUrl(management), management, checkCertificates, responseTimeout)
         { }
 
         /// <inheritdoc/>

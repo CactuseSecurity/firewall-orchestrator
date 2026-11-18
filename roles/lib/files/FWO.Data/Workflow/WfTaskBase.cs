@@ -39,6 +39,10 @@ namespace FWO.Data.Workflow
         [JsonProperty("task_type"), JsonPropertyName("task_type")]
         public string TaskType { get; set; } = WfTaskType.access.ToString();
 
+        /// <summary>Whether a task type changes or deletes an existing rule: rule_modify or rule_delete.</summary>
+        public static bool IsRuleChangeOrDelete(string taskType) =>
+            taskType == nameof(WfTaskType.rule_modify) || taskType == nameof(WfTaskType.rule_delete);
+
         [JsonProperty("rule_action"), JsonPropertyName("rule_action")]
         public int? RuleAction { get; set; }
 

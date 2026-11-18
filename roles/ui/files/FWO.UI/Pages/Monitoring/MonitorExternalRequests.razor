@@ -289,7 +289,8 @@ else
                 TicketId = actRequest.TicketId,
                 TaskNumber = actRequest.TaskNumber,
                 ExtQueryVariables = actRequest.ExtQueryVariables,
-                ExtRequestState = actRequest.ExtRequestState
+                ExtRequestState = actRequest.ExtRequestState,
+                ImplTaskId = actRequest.ImplTaskId
             };
             RestResponse<bool> middlewareServerResponse = await middlewareClient.PatchExternalRequestState(patchParams);
             if (middlewareServerResponse.StatusCode != HttpStatusCode.OK || middlewareServerResponse.Data == false)

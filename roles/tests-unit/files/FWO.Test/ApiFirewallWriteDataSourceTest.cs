@@ -146,11 +146,61 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task WithoutManagementTakesTheManagementOfTheGateway()
+        {
+            WfImplTask task = Task(WfTaskType.rule_delete);
+            task.ManagementId = null;
+            FirewallWriteContext context = await new ApiFirewallWriteDataSource(Api()).LoadContext(task);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.Management.Id, Is.EqualTo(kManagementId));
+                Assert.That(context.Gateway?.Id, Is.EqualTo(kGatewayId));
+            }
+        }
+
+        [Test]
+        public async Task LoadsTheImportedLayersOfTheRulesToModifyOrDelete()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = Api();
+            Rulebase layer = new() { Id = 1, Uid = "layer-uid" };
+            Rulebase section = new() { Id = 2, Uid = "section-uid" };
+            List<Rule> rules = [FirewallRuleLayersTest.RuleIn("a", section)];
+            List<RulebaseLink> sectionLinks = [FirewallRuleLayersTest.SectionLink(layer, section)];
+            api.RuleLayers = new FirewallRuleLayerQueryResult { Rules = rules, SectionLinks = sectionLinks };
+            ApiFirewallWriteDataSource dataSource = new(api);
+
+            FirewallWriteContext deleteContext = await dataSource.LoadContext(Task(WfTaskType.rule_delete, Rule("a")));
+            FirewallWriteContext accessContext = await dataSource.LoadContext(Task(WfTaskType.access, Rule("a")));
+            int ruleLayerQueries = api.Calls.Count(call => call.Query == FWO.Api.Client.Queries.RuleQueries.getRuleLayers);
+            int sectionLinkQueries = api.Calls.Count(call => call.Query == FWO.Api.Client.Queries.RuleQueries.getSectionLinks);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(deleteContext.RuleLayerUids["a"], Is.EqualTo("layer-uid"));
+                Assert.That(accessContext.RuleLayerUids, Is.Empty);
+                Assert.That(ruleLayerQueries, Is.EqualTo(1));
+                Assert.That(sectionLinkQueries, Is.EqualTo(1), "each query has one root field, as the api returns the first one only");
+            }
+        }
+
+        [Test]
+        public async Task LoadsNoRuleLayersForVendorsThatDoNotAddressRulesInTheirLayer()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = Api();
+            api.Managements[0].DeviceType = new DeviceType { Id = FirewallVendors.kOpnSense, Name = "OPNsense" };
+            api.FailingQuery = FWO.Api.Client.Queries.RuleQueries.getRuleLayers;
+            FirewallWriteContext context = await new ApiFirewallWriteDataSource(api).LoadContext(Task(WfTaskType.rule_delete, Rule("a")));
+            Assert.That(context.RuleLayerUids, Is.Empty);
+        }
+
+        [Test]
         public void MissingManagementOrForeignGatewayFails()
         {
             WfImplTask withoutManagement = Task(WfTaskType.group_delete);
             withoutManagement.ManagementId = null;
             withoutManagement.DeviceId = null;
+            WfImplTask unknownGatewayWithoutManagement = Task(WfTaskType.rule_delete);
+            unknownGatewayWithoutManagement.ManagementId = null;
+            unknownGatewayWithoutManagement.DeviceId = 999;
             WfImplTask unknownManagement = Task(WfTaskType.group_delete);
             unknownManagement.ManagementId = 999;
             WfImplTask foreignGateway = Task(WfTaskType.group_delete);
@@ -159,6 +209,8 @@ namespace FWO.Test
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(Assert.ThrowsAsync<FirewallWriteException>(() => dataSource.LoadContext(withoutManagement))?.Error.Kind,
+                    Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(Assert.ThrowsAsync<FirewallWriteException>(() => dataSource.LoadContext(unknownGatewayWithoutManagement))?.Error.Kind,
                     Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
                 Assert.That(Assert.ThrowsAsync<FirewallWriteException>(() => dataSource.LoadContext(unknownManagement))?.Error.Kind,
                     Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));

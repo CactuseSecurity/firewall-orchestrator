@@ -2,6 +2,19 @@
 
 ## 9.9.4 - 17.11.2026
 - middleware REST API: `Rule/GetRulesByFilter` accepts `RuleUid` as an exact third selector alongside `OwnerId` and `IpAddress`; all current non-removed matches are ordered by rule ID and use the existing paging and SIEM logging behavior
+- request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket
+  - a request task of a management with the implementation mode external ticket system is handed to Tufin SecureChange as a whole; implementation tasks with mode automatic are written directly to the firewall with the firewall write library (`ext_request.impltask_id`)
+  - offered as a button, implementation tasks on targets set to manual are written as well within the scope of the action (ticket or request task); on an implementation task it writes only this one task
+  - tasks nobody implements (e.g. external ticket system without selected system, rule without position) raise a workflow alert
+- request workflow: the routing of firewall config changes moves from the setting "Firewall config changes - General" to the device specific settings: implementation mode for objects and for rules, external ticket system, Tufin SecureChange connection, response timeout and retries; the upgrade migrates the previous settings, the ticket system list page is removed
+- firewall write: rules are written to Check Point
+  - new rules at the position calculated by the rule positioning and with install-on along the setting "Install on" (ANY = Policy Targets, gateways in path = the gateways of the tasks)
+  - new rules of one request task going to the same layer are written once, installed on the gateways of all of these tasks; the other tasks take over the result
+  - rules to modify or delete are addressed in their layer according to the import (sections traced up to their layer); their implementation mode is the strictest one of all gateways they take effect on, a manual gateway is reported with an alert; a rule already deleted counts as done once its layer is verified
+  - objects already present as requested count as created
+  - new rules targeting a section are written at the top or bottom of that section
+  - provisioning uses the shared target management of implementation tasks (the management of the gateway); a task whose stored management contradicts its gateway is reported with an alert instead of being written, and choosing a gateway in the implementation task view takes over its management
+- flow compliance API (`getFlowComplianceState`): a service with protocol `any` or `-1` is checked as the canonical ANY service (ports ignored) and now violates every port/protocol entry of a ForbiddenService criterion, like imported ANY services do; previously it was reported as compliant
 
 
 ## 9.9.3 - 14.11.2026

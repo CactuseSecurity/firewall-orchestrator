@@ -435,12 +435,14 @@ def _vdom_has_local_package(vdom_structure: dict[str, Any] | str, device: str, v
 def match_assign_and_vdom_policy_package(
     global_assignment: dict[str, Any], vdom_structure: dict[str, Any], is_include: bool
 ):
-    for package in global_assignment["pkg list"]:
-        if is_include:
-            if package["name"] == vdom_structure["local"]:
-                vdom_structure["global"] = global_assignment["assign_name"]
-        elif package["name"] != vdom_structure["local"]:
-            vdom_structure["global"] = global_assignment["assign_name"]
+    """
+    Include mode assigns the global package only to the listed local packages,
+    exclude mode assigns it to every local package that is not listed.
+    """
+    listed_package_names = {package["name"] for package in global_assignment.get("pkg list", [])}
+    is_listed = vdom_structure["local"] in listed_package_names
+    if is_listed == is_include:
+        vdom_structure["global"] = global_assignment["assign_name"]
 
 
 def initialize_device_config(mgm_details_device: dict[str, Any]) -> dict[str, Any]:

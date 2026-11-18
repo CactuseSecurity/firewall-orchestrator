@@ -83,3 +83,44 @@ def test_add_global_policy_package_to_vdom_with_vdom_without_package(mocker: Moc
     assert vdoms["root"]["global"] == GLOBAL_PKG
     assert vdoms["vdom_b"]["global"] == GLOBAL_PKG
     assert vdoms["vdom_no_pkg"] == ""
+
+
+def test_assign_case_include_with_multiple_listed_packages() -> None:
+    structure = _structure()
+
+    assign_case_include(structure, ADOM, _assignment(0, 1, ["other_pkg", "pkg_b"]))
+
+    vdoms = structure[ADOM][DEVICE]
+    assert vdoms["root"] == {"local": "pkg_a", "global": ""}
+    assert vdoms["vdom_b"] == {"local": "pkg_b", "global": GLOBAL_PKG}
+
+
+def test_assign_case_exclude_with_multiple_listed_packages_skips_every_excluded_package() -> None:
+    structure = _structure()
+
+    assign_case_exclude(structure, ADOM, _assignment(1, 1, ["pkg_a", "other_pkg"]))
+
+    vdoms = structure[ADOM][DEVICE]
+    assert vdoms["root"] == {"local": "pkg_a", "global": ""}
+    assert vdoms["vdom_b"] == {"local": "pkg_b", "global": GLOBAL_PKG}
+
+
+def test_assign_case_exclude_with_all_packages_listed_assigns_nothing() -> None:
+    structure = _structure()
+
+    assign_case_exclude(structure, ADOM, _assignment(1, 1, ["pkg_b", "pkg_a"]))
+
+    vdoms = structure[ADOM][DEVICE]
+    assert vdoms["root"] == {"local": "pkg_a", "global": ""}
+    assert vdoms["vdom_b"] == {"local": "pkg_b", "global": ""}
+
+
+def test_assign_case_exclude_with_empty_list_assigns_all_packages() -> None:
+    structure = _structure()
+
+    assign_case_exclude(structure, ADOM, _assignment(1, 1, []))
+
+    vdoms = structure[ADOM][DEVICE]
+    assert vdoms["root"] == {"local": "pkg_a", "global": GLOBAL_PKG}
+    assert vdoms["vdom_b"] == {"local": "pkg_b", "global": GLOBAL_PKG}
+    assert vdoms["vdom_no_pkg"] == ""

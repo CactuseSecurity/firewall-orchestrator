@@ -83,6 +83,29 @@
   labels. Which firewalls get label-based configurations is set by the device specific setting labelCreation
 - api: modeller, recertifier, reporter and reporter-viewall may read labelling.rule_label, label_value, label_key
   (reporter and recertifier only for the rules they see) and id / import id / time of label_change_event
+- provisioning: Guardicore as firewall write target (issue #4946). Groups are written as dynamic IP labels:
+  app roles, app zones and network areas as labels AppRole, AppZone and NetworkArea with their id string as value and
+  one IP criterion per member (SUBNET with a CIDR block, RANGE with start-end); a group named "key: value" writes that
+  label. New firewall write operations LabelWrite and LabelDelete (endpoint and template per device type like the
+  other operations), all through REST API v4.0 except the login (v3.0 only). Every label is looked up by key and
+  value first: a missing label is created; an existing one that differs from the target gets its criteria replaced by
+  the bulk update (override=true, append=false), keeping its IP criteria inside the target and all criteria FWO does
+  not manage, so repeated tasks write nothing twice;
+  label values are only deleted while fwWriteDeleteObjects is on, label keys never. Network objects exist only as
+  criteria of the labels (object tasks write nothing), rules are not written yet (#4947). The device specific
+  setting labelCreation now decides where network objects and groups of Guardicore managements are implemented
+- variance analysis: on Guardicore managements app roles, app zones and network areas are compared with their labels
+  (imported as groups "key: value" with one member per CIDR block) by their addresses; missing labels are created,
+  changed ones get their members added and removed, app role labels requested for the owner that are no app role any
+  more (deleted or renamed) are deleted. Network area labels are requested while the device specific setting
+  modellingImplementNetworkAreaObjects is on; the device specific setting modellingCreateAppZones now switches the
+  app zone requests per management
+- settings: new device specific setting provisioningExcludedObjectTypes (Global to manager): modelling object types
+  (e.g. AppServer, NetworkArea) left out of the variance analysis and of provisioning; when writing, hosts and ranges
+  count as AppServer, networks as Network, services as Service, and groups by their label key or naming convention
+- api: modeller, recertifier, reporter and reporter-viewall may read the device specific settings nodes and the
+  values of modellingCreateAppZones, modellingImplementNetworkAreaObjects and provisioningExcludedObjectTypes, which
+  the variance analysis needs
 - upgrade: db upgrade file adds the labelling schema, the rule label columns and the Guardicore
   device types to existing installations
   

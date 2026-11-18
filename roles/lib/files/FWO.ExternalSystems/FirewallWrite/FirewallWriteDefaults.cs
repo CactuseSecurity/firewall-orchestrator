@@ -21,6 +21,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 FirewallVendor.FortiOs => FortiOsWriteDefaults.Operations,
                 FirewallVendor.OpnSense => OpnSenseWriteDefaults.Operations,
                 FirewallVendor.Azure => AzureWriteDefaults.Operations,
+                FirewallVendor.Guardicore => GuardicoreWriteDefaults.Operations,
                 _ => null
             };
             return defaults?.GetValueOrDefault(operation);

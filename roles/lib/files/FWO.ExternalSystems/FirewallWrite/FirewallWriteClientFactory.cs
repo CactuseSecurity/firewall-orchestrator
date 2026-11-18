@@ -26,6 +26,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 FirewallVendor.FortiOs => new FortiOsWriteClient(context.Management, checkCertificates, responseTimeout),
                 FirewallVendor.OpnSense => new OpnSenseWriteClient(context.Management, checkCertificates, responseTimeout),
                 FirewallVendor.Azure => new AzureWriteClient(context.Management, checkCertificates, responseTimeout),
+                FirewallVendor.Guardicore => new GuardicoreWriteClient(context.Management, checkCertificates, responseTimeout),
                 _ => throw new NotSupportedException($"Device type {context.DeviceTypeId} is not supported by the firewall write library.")
             };
         }

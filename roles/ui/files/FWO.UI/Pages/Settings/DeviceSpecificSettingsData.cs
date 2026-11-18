@@ -1,5 +1,6 @@
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Modelling;
 using FWO.ExternalSystems.FirewallWrite;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using FWO.Services.RulePositioning.CheckPoint;
@@ -221,6 +222,7 @@ namespace FWO.Ui.Pages.Settings
             { "dss_zone_to", "H5199" },
             { "dss_modelling_connection_id_field", "H5199m" },
             { "dss_modelling_connection_id_template", "H5199m" },
+            { "dss_provisioning_excluded_object_types", "H5200a" },
             { "dss_fw_write_check_certificates", "H5199n" },
             { "dss_fw_write_install_policy", "H5199o" },
             { "dss_fw_write_delete_objects", "H5199t" },
@@ -372,6 +374,7 @@ namespace FWO.Ui.Pages.Settings
                     (ProvisioningConnectionIdField.CustomField, "dss_opt_custom_field")), maxLevel: DeviceSpecificScopeType.Management),
             TextField(DeviceSpecificSettingKeys.ModellingConnectionIdTemplate, "dss_modelling_connection_id_template", s => s.ModellingConnectionIdTemplate,
                 maxLevel: DeviceSpecificScopeType.Management),
+            ExcludedObjectTypesField(),
             TextField(DeviceSpecificSettingKeys.Templates, "dss_templates", s => s.Templates, DeviceSpecificFieldKind.TemplateText,
                 minLevel: DeviceSpecificScopeType.DeviceType, maxLevel: DeviceSpecificScopeType.DeviceType),
             .. RequestFields(),
@@ -669,6 +672,35 @@ namespace FWO.Ui.Pages.Settings
                 Read = get,
                 SetOverride = (changes, value) => changes.Set(key, value)
             };
+
+        /// <summary>
+        /// Creates the field of the modelling object types excluded from the variance analysis and from provisioning, one
+        /// type name per row; unknown names are refused.
+        /// </summary>
+        private static DeviceSpecificFieldDefinition ExcludedObjectTypesField() => new()
+        {
+            Key = DeviceSpecificSettingKeys.ProvisioningExcludedObjectTypes,
+            LabelTextKey = "dss_provisioning_excluded_object_types",
+            HelpTextKey = HelpKey("dss_provisioning_excluded_object_types"),
+            Kind = DeviceSpecificFieldKind.StringList,
+            MaxLevel = DeviceSpecificScopeType.Management,
+            Read = s => string.Join(kListSeparator, s.ProvisioningExcludedObjectTypes),
+            SetOverride = (changes, value) => changes.Set(DeviceSpecificSettingKeys.ProvisioningExcludedObjectTypes,
+                ValidateObjectTypeNames(ParseStringList(value).Where(entry => entry.Length > 0).Distinct().ToList()))
+        };
+
+        /// <summary>Checks that every entry is the name of a modelling object type.</summary>
+        /// <exception cref="ArgumentException">Thrown for an entry that names no modelling object type.</exception>
+        public static List<string> ValidateObjectTypeNames(List<string> entries)
+        {
+            List<string> unknown = [.. entries.Where(entry => !Enum.GetNames<ModellingTypes.ModObjectType>().Contains(entry, StringComparer.Ordinal))];
+            if (unknown.Count > 0)
+            {
+                throw new ArgumentException($"Unknown modelling object types: {string.Join(", ", unknown)}. Allowed: {string.Join(", ", Enum.GetNames<ModellingTypes.ModObjectType>())}.",
+                    DeviceSpecificSettingKeys.ProvisioningExcludedObjectTypes.DatabaseKey);
+            }
+            return entries;
+        }
 
         /// <summary>Creates the LayerGuard section name field with its template validation.</summary>
         private static DeviceSpecificFieldDefinition CheckPointLayerGuardSectionNameTemplateField() => new()

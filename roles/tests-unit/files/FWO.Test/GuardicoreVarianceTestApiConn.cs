@@ -1,0 +1,118 @@
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Data;
+using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Modelling;
+using FWO.Data.Report;
+using FWO.Data.Workflow;
+using FWO.ExternalSystems.FirewallWrite;
+
+namespace FWO.Test
+{
+    /// <summary>
+    /// One Guardicore management whose import shows the labels as groups named "key: value" with one member per CIDR
+    /// block; device specific settings come from an in-memory hierarchy.
+    /// </summary>
+    internal sealed class GuardicoreVarianceTestApiConn : SimulatedApiConnection
+    {
+        public const int kManagementId = 1;
+
+        private static readonly NetworkObject Host1 = Member(10, "1.2.3.4/32", ObjectType.Host);
+        private static readonly NetworkObject Block1 = Member(11, "10.0.0.0/28", ObjectType.Network, "10.0.0.15/32");
+        private static readonly NetworkObject Block2 = Member(12, "10.0.0.16/31", ObjectType.Network, "10.0.0.17/32");
+        private static readonly NetworkObject Host2 = Member(13, "2.2.2.2/32", ObjectType.Host);
+        private static readonly NetworkObject Surplus = Member(14, "9.9.9.9/32", ObjectType.Host);
+        private static readonly NetworkObject AreaBlock = Member(15, "10.50.0.0/24", ObjectType.Network, "10.50.0.255/32");
+
+        private static readonly List<NetworkObject> Labels =
+        [
+            Label(1, "AppRole: AR504711-001", Host1, Block1, Block2),
+            Label(2, "AppRole: AR504711-003", Host1, Surplus),
+            Label(3, "AppRole: AR504711-009", Host2),
+            Label(4, "AppZone: AZ4711", Host1, Block1, Block2, Host2),
+            Label(5, "NetworkArea: NA50", AreaBlock),
+            Label(6, "Stage: Prod", Host1)
+        ];
+        private static readonly List<NetworkObject> Hosts = [Host1, Block1, Block2, Host2, Surplus, AreaBlock];
+
+        public static readonly ModellingAppServer AppServer1 = new() { Id = 1, Name = "AppServer1", Ip = "1.2.3.4", IpEnd = "1.2.3.4" };
+        public static readonly ModellingAppServer AppServerRange = new() { Id = 2, Name = "AppServerRange", Ip = "10.0.0.0", IpEnd = "10.0.0.17" };
+        public static readonly ModellingAppServer AppServer3 = new() { Id = 3, Name = "AppServer3", Ip = "2.2.2.2", IpEnd = "2.2.2.2" };
+
+        private static readonly ModellingAppZone AppZone = new()
+        {
+            Id = 30,
+            Name = "AZ4711",
+            IdString = "AZ4711",
+            AppServers = [new() { Content = AppServer1 }, new() { Content = AppServerRange }, new() { Content = AppServer3 }]
+        };
+
+        public InMemoryDeviceSpecificSettingsApiConnection Settings { get; } = new();
+
+        /// <summary>App roles that exist (not deleted), of all owners.</summary>
+        public List<string> CurrentAppRoles { get; } = ["AR504711-001", "AR504711-002", "AR504711-003"];
+
+        /// <summary>Group names requested for the owner by earlier group_create tasks.</summary>
+        public List<string> RequestedGroups { get; } = ["AR504711-001", "AR504711-009", "AZ4711"];
+
+        public GuardicoreVarianceTestApiConn()
+        {
+            Settings.AddNode(1, DeviceSpecificScopeType.Global, "global");
+            Settings.AddNode(2, DeviceSpecificScopeType.DeviceType, FirewallVendors.kGuardicoreManagement.ToString(), 1);
+            Settings.AddNode(3, DeviceSpecificScopeType.Management, kManagementId.ToString(), 2);
+        }
+
+        private static NetworkObject Member(long id, string ip, string type, string? ipEnd = null) =>
+            new() { Id = id, Name = ip, IP = ip, IpEnd = ipEnd ?? ip, Type = new() { Name = type } };
+
+        private static NetworkObject Label(long id, string name, params NetworkObject[] members) =>
+            new() { Id = id, Name = name, Type = new() { Name = ObjectType.Group }, ObjectGroupFlats = [.. members.Select(member => new GroupFlat<NetworkObject> { Object = member })] };
+
+        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null,
+            QueryChunkingOptions? chunkingOptions = null)
+        {
+            if (query == DeviceSpecificSettingsQueries.getNodesByNaturalKeys)
+            {
+                return await Settings.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
+            }
+            object result = typeof(QueryResponseType) switch
+            {
+                Type type when type == typeof(List<ManagementReport>) => RelevantImport(),
+                Type type when type == typeof(List<Management>) => Managements(),
+                Type type when type == typeof(List<NetworkObject>) => ObjectsOfTypes(variables),
+                Type type when type == typeof(List<ModellingAppZone>) => new List<ModellingAppZone> { new(AppZone) },
+                Type type when type == typeof(List<ModellingAppServer>) => new List<ModellingAppServer> { AppServer1, AppServerRange, AppServer3 },
+                Type type when type == typeof(List<ModellingAppRole>) => CurrentAppRoles.Select(idString => new ModellingAppRole { IdString = idString }).ToList(),
+                Type type when type == typeof(List<WfReqTask>) && query == RequestQueries.getRequestedGroupsOfOwner =>
+                    RequestedGroups.Select(groupName => new WfReqTask { AdditionalInfo = $"{{\"GrpName\":\"{groupName}\"}}" }).ToList(),
+                Type type when type == typeof(List<Rule>) => new List<Rule>(),
+                Type type when type == typeof(List<ModellingConnection>) => new List<ModellingConnection>(),
+                Type type when type == typeof(List<ModellingNetworkArea>) => new List<ModellingNetworkArea>(),
+                Type type when type == typeof(List<DeviceReport>) => new List<DeviceReport>(),
+                _ => throw new NotImplementedException($"{typeof(QueryResponseType)}: {query}")
+            };
+            return (QueryResponseType)result;
+        }
+
+        private static List<ManagementReport> RelevantImport() =>
+        [
+            new() { Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } } }
+        ];
+
+        private static List<Management> Managements() =>
+        [
+            new()
+            {
+                Id = kManagementId, Name = "Guardicore", ExtMgtData = "{\"id\":\"1\",\"name\":\"GuardicoreExt\"}",
+                DeviceType = new() { Id = FirewallVendors.kGuardicoreManagement, Name = "Guardicore Management" }, Devices = [new() { Id = 1 }]
+            }
+        ];
+
+        private static List<NetworkObject> ObjectsOfTypes(object? variables)
+        {
+            int[]? objectTypeIds = variables?.GetType().GetProperty("objTypeIds")?.GetValue(variables) as int[];
+            return objectTypeIds?.FirstOrDefault() == 2 ? Labels : Hosts;
+        }
+    }
+}

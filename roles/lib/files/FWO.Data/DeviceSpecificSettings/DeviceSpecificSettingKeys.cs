@@ -126,6 +126,13 @@ public static class DeviceSpecificSettingKeys
         new("templates", DeviceTypeScopeTypes);
 
     /// <summary>
+    /// Modelling object types (names of <see cref="Modelling.ModellingTypes.ModObjectType"/>) left out of the variance
+    /// analysis and of provisioning for a management.
+    /// </summary>
+    public static readonly DeviceSpecificSettingKey<List<string>> ProvisioningExcludedObjectTypes =
+        new("provisioningExcludedObjectTypes", ManagerScopeTypes);
+
+    /// <summary>
     /// All canonical keys, including the firewall write keys of <see cref="FirewallWriteSettingKeys"/> and the SecureChange
     /// template keys of <see cref="SecureChangeTemplateSettingKeys"/>.
     /// </summary>
@@ -165,6 +172,7 @@ public static class DeviceSpecificSettingKeys
         ModellingConnectionIdField,
         ModellingConnectionIdTemplate,
         Templates,
+        ProvisioningExcludedObjectTypes,
     }.Concat(FirewallWriteSettingKeys.All).Concat(SecureChangeTemplateSettingKeys.All).ToList().AsReadOnly();
 
     public static IReadOnlyDictionary<string, DeviceSpecificSettingKey> ByDatabaseKey { get; } =

@@ -1,5 +1,6 @@
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Modelling;
 
 namespace FWO.ExternalSystems.FirewallWrite
 {
@@ -26,6 +27,12 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         /// <summary>Policy package and first access layer of the gateway from its imported rulebase links.</summary>
         public FirewallGatewayRulebases Rulebases { get; init; } = FirewallGatewayRulebases.None;
+
+        /// <summary>
+        /// Naming convention of modelled objects, telling app roles, app zones and network areas by the prefix of their name
+        /// (labels and the exclusion of object types from provisioning).
+        /// </summary>
+        public ModellingNamingConvention NamingConvention { get; init; } = new();
 
         /// <summary>Layer uid of each existing rule of the task by rule uid, from the imported configuration.</summary>
         public IReadOnlyDictionary<string, string> RuleLayerUids { get; init; } = new Dictionary<string, string>();

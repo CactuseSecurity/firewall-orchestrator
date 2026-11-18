@@ -35,7 +35,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             ArgumentNullException.ThrowIfNull(implTask);
             ArgumentNullException.ThrowIfNull(context);
             FirewallVendorProfile profile = FirewallVendorProfile.For(context.Vendor);
-            List<FirewallWriteStep> steps = implTask.TaskType switch
+            List<FirewallWriteStep> steps = profile.WritesLabels ? LabelStepPlanner.Plan(implTask, context) : implTask.TaskType switch
             {
                 nameof(WfTaskType.object_create) or nameof(WfTaskType.object_modify) => PlanObjectTask(implTask, profile),
                 nameof(WfTaskType.group_create) => PlanGroupCreate(implTask, profile),
@@ -350,7 +350,8 @@ namespace FWO.ExternalSystems.FirewallWrite
             return ruleUid ?? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Implementation task {implTask.Id} has no rule to modify.");
         }
 
-        private static List<WfImplElement> GroupMembers(WfImplTask implTask)
+        /// <summary>The network elements of a group task; service groups are refused.</summary>
+        internal static List<WfImplElement> GroupMembers(WfImplTask implTask)
         {
             if (implTask.ImplElements.Any(FirewallElementValues.IsServiceElement))
             {
@@ -360,7 +361,8 @@ namespace FWO.ExternalSystems.FirewallWrite
             return [.. implTask.ImplElements.Where(FirewallElementValues.IsNetworkElement)];
         }
 
-        private static string GroupName(WfImplTask implTask)
+        /// <summary>The group a group task changes: the group name of its elements, else the task title.</summary>
+        internal static string GroupName(WfImplTask implTask)
         {
             string? groupName = implTask.ImplElements.Select(element => element.GroupName).FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
             groupName ??= implTask.Title;
@@ -369,6 +371,6 @@ namespace FWO.ExternalSystems.FirewallWrite
                 : groupName.Trim();
         }
 
-        private static string Comment(WfImplTask implTask) => implTask.FreeText ?? "";
+        internal static string Comment(WfImplTask implTask) => implTask.FreeText ?? "";
     }
 }

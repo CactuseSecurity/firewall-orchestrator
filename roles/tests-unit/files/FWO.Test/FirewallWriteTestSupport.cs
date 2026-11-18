@@ -64,6 +64,11 @@ namespace FWO.Test
     }
 
     /// <summary>Creates simulated clients for every vendor, all answering through one simulation.</summary>
+    internal sealed class SimulatedGuardicoreWriteClient(Management management, FirewallSimulation simulation) : GuardicoreWriteClient(management, true)
+    {
+        protected override Task<RestResponse> Send(RestRequest request) => Task.FromResult(simulation.Answer(request));
+    }
+
     internal sealed class SimulatedFirewallWriteClientFactory(FirewallSimulation simulation) : IFirewallWriteClientFactory
     {
         public int CreatedClients { get; private set; }
@@ -78,6 +83,7 @@ namespace FWO.Test
                 FirewallVendor.FortiOs => new SimulatedFortiOsWriteClient(context.Management, simulation),
                 FirewallVendor.OpnSense => new SimulatedOpnSenseWriteClient(context.Management, simulation),
                 FirewallVendor.Azure => new SimulatedAzureWriteClient(context.Management, simulation),
+                FirewallVendor.Guardicore => new SimulatedGuardicoreWriteClient(context.Management, simulation),
                 _ => throw new NotSupportedException()
             };
         }

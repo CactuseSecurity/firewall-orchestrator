@@ -33,7 +33,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "securityProfiles", "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName", "sshLegacyKeyExchange",
         "autoPlanImplementation", "autoPlanImplementationForRules", "modellingCreateAppZones",
         "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
-        "modellingConnectionIdField", "modellingConnectionIdTemplate", "templates",
+        "modellingConnectionIdField", "modellingConnectionIdTemplate", "templates", "provisioningExcludedObjectTypes",
         .. FirewallWriteKeys(),
         .. kSecureChangeTemplateKeys
     ];
@@ -41,7 +41,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
     [
         "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName", "sshLegacyKeyExchange",
         "modellingCreateAppZones", "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
-        "modellingConnectionIdField", "modellingConnectionIdTemplate",
+        "modellingConnectionIdField", "modellingConnectionIdTemplate", "provisioningExcludedObjectTypes",
         "requestResponseTimeout", "requestMaxAttempts", "requestCyclesBetweenAttempts",
         "scUrl", "scCredential", "scLookupRequesterId"
     ];
@@ -51,6 +51,8 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride", "securityProfiles",
         "implementationMode", "rerouteToExternalTicketSystem"
     ];
+    private static readonly List<string> kValidObjectTypes = ["AppServer", "NetworkArea"];
+    private static readonly List<string> kInvalidObjectTypes = ["AppRole", "approle"];
     private static readonly List<DeviceSpecificScopeType> kAllLevels =
         [DeviceSpecificScopeType.Global, DeviceSpecificScopeType.DeviceType, DeviceSpecificScopeType.Management, DeviceSpecificScopeType.Gateway];
     private static readonly List<DeviceSpecificScopeType> kManagerLevels =
@@ -183,7 +185,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
         {
             DeviceSpecificFieldKind.SingleSelect => field.Options.Last().Value,
             DeviceSpecificFieldKind.Credential => "7",
-            DeviceSpecificFieldKind.StringList => "profile1,profile2",
+            DeviceSpecificFieldKind.StringList => field.Key == DeviceSpecificSettingKeys.ProvisioningExcludedObjectTypes ? "AppServer,NetworkArea" : "profile1,profile2",
             DeviceSpecificFieldKind.FirewallEndpoint => "POST custom-endpoint",
             DeviceSpecificFieldKind.Number => "42",
             _ => "custom value"
@@ -336,5 +338,14 @@ internal class DeviceSpecificSettingsGuardicoreTest
             DeviceSpecificSettingKeys.ServiceObjectCreation, ProvisioningObjectCreationMode.Ignore));
         Assert.Throws<InvalidOperationException>(() => DeviceSpecificSettingValueSerializer.Deserialize(
             DeviceSpecificSettingKeys.AddressObjectCreation, new JValue("ignore")));
+    }
+
+    /// <summary>The excluded object types are names of modelling object types; other entries are refused.</summary>
+    [Test]
+    public void ExcludedObjectTypes_MustBeModellingObjectTypes()
+    {
+        Assert.That(DeviceSpecificSettingsData.ValidateObjectTypeNames(kValidObjectTypes), Is.EqualTo(kValidObjectTypes));
+        ArgumentException? exception = Assert.Throws<ArgumentException>(() => DeviceSpecificSettingsData.ValidateObjectTypeNames(kInvalidObjectTypes));
+        Assert.That(exception!.Message, Does.Contain("approle"));
     }
 }

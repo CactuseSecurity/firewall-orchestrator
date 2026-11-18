@@ -10,7 +10,9 @@ restrictions apply to editing; inherited values remain available at descendant
 levels through `DeviceSpecificSettingsManager.LoadEffectiveValueAsync`.
 
 The settings page exposes the configuration contract for Guardicore integration.
-The Guardicore writer is separate work. Path analysis remains configured under
+The firewall write library writes groups to Guardicore as dynamic IP labels (operations
+`LabelWrite` and `LabelDelete`); `labelCreation` decides where the network objects and
+groups of Guardicore managements are implemented. Path analysis remains configured under
 General settings; no additional device specific path-analysis setting is introduced.
 
 "Config levels" are the levels at which the API accepts an override. The settings
@@ -53,6 +55,7 @@ remains effective and is shown as a dormant override that can be cleared there.
 | modellingConnectionIdField | enum | Name | Global, device type, manager | Global to manager |
 | modellingConnectionIdTemplate | string | FWOC{ID} | Global, device type, manager | Global to manager |
 | templates | string | {} | Device type | Device type |
+| provisioningExcludedObjectTypes | string array | [] | Global, device type, manager | Global to manager |
 
 Booleans are stored as JSON `true`/`false`. `installOn` offers `ANY` and `gatewaysInPath`.
 `ruleType` additionally offers `accessAndNat`, `accessAndIPS`, `accessNatIPS`, and
@@ -79,6 +82,15 @@ coverage and exactly one persisted zone. A fixed template therefore needs no zon
 matrix lookup. The rendered name is trimmed and uppercased once, while interior
 whitespace remains significant. The value inherits through Global > device type >
 manager > gateway like the other settings.
+
+`provisioningExcludedObjectTypes` lists names of `ModellingTypes.ModObjectType` (e.g.
+`AppServer`, `NetworkArea`) that the variance analysis does not request and the firewall
+write library does not write for a management. When writing, hosts and address ranges
+count as `AppServer`, networks as `Network`, services as `Service`, and groups and labels
+have the type of their label key or of the naming convention prefix; a group whose type
+cannot be told is never left out. The roles that run the variance analysis (modeller,
+recertifier, reporter, reporter-viewall) may read only this key and the modelling keys
+`modellingCreateAppZones` and `modellingImplementNetworkAreaObjects`.
 
 `modellingConnectionIdField` offers `Name`, `Comment`, and `CustomField`: the field of
 a provisioned object that carries the ID of the modelling connection, formatted by

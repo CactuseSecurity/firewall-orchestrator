@@ -207,6 +207,7 @@ namespace FWO.Services.Modelling
             List<ModellingConnection> connectionsToCompare = [.. connections.Where(c => !c.IsInterface && !c.IsDocumentationOnly()).OrderBy(c => c.Id)];
             if (ruleRecognitionOption.NwSeparateGroupAnalysis && analyseAppRoles)
             {
+                await LoadManagementSettings();
                 await GetNwObjectsProductionState(cancellationToken);
                 PreAnalyseAllAppRoles(connectionsToCompare);
             }
@@ -237,6 +238,7 @@ namespace FWO.Services.Modelling
         {
             appServerComparer = new(namingConvention);
             await InitManagements();
+            await LoadManagementSettings();
             await LoadAreas();
             await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false, AllowWaitForRuleOwnerMapping = allowWait }, cancellationToken);
             await GetNwObjectsProductionState(cancellationToken);
@@ -264,6 +266,8 @@ namespace FWO.Services.Modelling
                     }
                 }
                 AnalyseDeletedConnsForRequest(mgt, [.. connections.Where(c => c.IsDocumentationOnly())]);
+                AnalyseNetworkAreaLabelsForRequest(mgt, connections.Where(c => !c.IsRequested && !c.IsDocumentationOnly()));
+                await AnalyseObsoleteLabelsForRequest(mgt);
             }
             TaskList.AddRange(AddAccessTaskList);
             TaskList.AddRange(ChangeAccessTaskList);
@@ -329,6 +333,13 @@ namespace FWO.Services.Modelling
                     {
                         MgtsWithVariance.Add(new() { ManagementName = mgt.Name });
                     }
+                    else if (WritesLabels(mgt))
+                    {
+                        if (LabelMembersChanged(modelledAppZone.AppServers, prodAppRole))
+                        {
+                            MgtsWithVariance.Add(new(prodAppRole) { ManagementName = mgt.Name });
+                        }
+                    }
                     else
                     {
                         ModellingAppZone prodAppZone = new(prodAppRole);
@@ -381,18 +392,25 @@ namespace FWO.Services.Modelling
 
         private void AnalyseAppRole(ModellingAppRole modelledAppRole, Management mgt)
         {
+            if (IsExcluded(mgt, ModellingTypes.ModObjectType.AppRole))
+            {
+                return;
+            }
             if (ResolveProdAppRole(modelledAppRole, mgt) == null)
             {
                 modelledAppRole.IsMissing = true;
                 varianceResult.MissingAppRoles[mgt.Id].Add(new(modelledAppRole) { ManagementName = mgt.Name });
             }
-            else if (AppRoleChanged(modelledAppRole))
+            else if (AppRoleChanged(modelledAppRole, mgt))
             {
                 modelledAppRole.HasDifference = true;
                 ModellingAppRole changedAppRole = new(modelledAppRole) { ManagementName = mgt.Name, SurplusAppServers = deletedAppServers };
+                bool writesLabels = WritesLabels(mgt);
                 foreach (var appServer in changedAppRole.AppServers.Select(a => a.Content))
                 {
-                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => IsSameGroupMember(a.Content, appServer)) != null;
+                    appServer.NotImplemented = newAppServers.FirstOrDefault(a => writesLabels
+                        ? HasSameIpRange(a.Content, appServer)
+                        : IsSameGroupMember(a.Content, appServer)) != null;
                 }
                 varianceResult.DifferingAppRoles[mgt.Id].Add(changedAppRole);
             }

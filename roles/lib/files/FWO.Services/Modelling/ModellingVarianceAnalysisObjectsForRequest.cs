@@ -223,7 +223,7 @@ namespace FWO.Services.Modelling
 
         private void AnalyseAppRoleForRequest(ModellingAppRole appRole, Management mgt, bool isSource = false)
         {
-            if (!userConfig.ModRequestOnlyOwnObjects || appRole.AppId == owner.Id)
+            if ((!userConfig.ModRequestOnlyOwnObjects || appRole.AppId == owner.Id) && !IsExcluded(mgt, ModellingTypes.ModObjectType.AppRole))
             {
                 if (ResolveProdAppRole(appRole, mgt) == null)
                 {
@@ -232,7 +232,7 @@ namespace FWO.Services.Modelling
                         RequestNewAppRole(appRole, mgt);
                     }
                 }
-                else if (AppRoleChanged(appRole) &&
+                else if (AppRoleChanged(appRole, mgt) &&
                     TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id) == null &&
                     DeleteObjectTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id) == null)
                 {
@@ -256,6 +256,15 @@ namespace FWO.Services.Modelling
             }
             ModellingAppZone? oldAppZone = await AppZoneHandler.GetExistingModelledAppZone();
             PlannedAppZoneDbUpdate = await AppZoneHandler.PlanAppZoneDbUpdate(oldAppZone);
+            if (IsExcluded(mgt, ModellingTypes.ModObjectType.AppZone) || !SettingsOf(mgt).ModellingCreateAppZones)
+            {
+                return;
+            }
+            if (WritesLabels(mgt))
+            {
+                AnalyseAppZoneLabelForRequest(PlannedAppZoneDbUpdate, mgt);
+                return;
+            }
 
             ModellingAppRole? prodAppZone = oldAppZone == null ? null : ResolveProdAppRole(oldAppZone, mgt);
             if (prodAppZone == null)
@@ -281,10 +290,13 @@ namespace FWO.Services.Modelling
             Log.WriteDebug($"Search {nwGroupType}", $"Name: {appRole.Name}, IdString: {appRole.IdString}, Management: {mgt.Name}");
 
             bool shortened = false;
+            string prodName = ProdGroupName(appRole, mgt);
             string sanitizedARName = appRole.IdString.SanitizeJsonFieldMand(ref shortened);
+            bool writesLabels = WritesLabels(mgt);
+            existingAppRole = null;
             if (allProdAppRoles.ContainsKey(mgt.Id))
             {
-                existingAppRole = allProdAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedARName);
+                existingAppRole = allProdAppRoles[mgt.Id].FirstOrDefault(a => a.Name == prodName || (!writesLabels && a.Name == sanitizedARName));
             }
             if (existingAppRole != null)
             {
@@ -340,7 +352,7 @@ namespace FWO.Services.Modelling
             return WithIpSuffixedName(appServer);
         }
 
-        private bool AppRoleChanged(ModellingAppRole appRole)
+        private bool AppRoleChanged(ModellingAppRole appRole, Management mgt)
         {
             newAppServers = [];
             deletedAppServers = [];
@@ -349,6 +361,10 @@ namespace FWO.Services.Modelling
             if (existingAppRole is null)
             {
                 return false;
+            }
+            if (WritesLabels(mgt))
+            {
+                return LabelMembersChanged(appRole.AppServers, existingAppRole);
             }
 
             if (appRole is ModellingAppZone appZone)
@@ -613,7 +629,7 @@ namespace FWO.Services.Modelling
                     continue;
                 }
 
-                if ((!userConfig.ModRequestOnlyOwnObjects || svcGrp.AppId == owner.Id) &&
+                if ((!userConfig.ModRequestOnlyOwnObjects || svcGrp.AppId == owner.Id) && !IsExcluded(mgt, ModellingTypes.ModObjectType.ServiceGroup) &&
                     TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_svc_grp") + svcGrp.Name && x.OnManagement?.Id == mgt.Id) == null)
                 {
                     RequestNewServiceGroup(svcGrp, mgt);

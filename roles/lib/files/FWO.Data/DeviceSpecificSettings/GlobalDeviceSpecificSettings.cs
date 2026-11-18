@@ -1,3 +1,5 @@
+using FWO.Data.Modelling;
+
 namespace FWO.Data.DeviceSpecificSettings;
 
 /// <summary>Effective device specific setting values, initialized with their compiled defaults.</summary>
@@ -140,6 +142,19 @@ public class GlobalDeviceSpecificSettings
     public string ModellingConnectionIdTemplate { get; set; } = "FWOC{ID}";
 
     public string Templates { get; set; } = "{}";
+
+    /// <summary>
+    /// Names of the modelling object types (<see cref="ModellingTypes.ModObjectType"/>) left out of the variance analysis
+    /// and of provisioning, e.g. AppServer and NetworkArea; empty by default.
+    /// </summary>
+    public List<string> ProvisioningExcludedObjectTypes { get; set; } = [];
+
+    /// <summary>Whether objects of a modelling object type are left out of the variance analysis and of provisioning.</summary>
+    public bool IsExcludedFromProvisioning(ModellingTypes.ModObjectType objectType)
+    {
+        string typeName = objectType.ToString();
+        return ProvisioningExcludedObjectTypes.Exists(entry => string.Equals(entry.Trim(), typeName, StringComparison.Ordinal));
+    }
 
     /// <summary>Whether the server certificate of the firewall management is checked when writing to the firewall.</summary>
     public bool FwWriteCheckCertificates { get; set; } = true;

@@ -46,6 +46,10 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             DefaultLayerName = kFwoRuleCollectionGroup
         };
+        private static readonly FirewallVendorProfile Guardicore = new("Any", "ALLOW", "BLOCK", "", "", false, true)
+        {
+            WritesLabels = true
+        };
 
         /// <summary>Whether a '/' in a name is escaped as "\/" where the name is part of a JSON-RPC url (FortiManager).</summary>
         public bool EscapeSlashInUrlNames { get; init; }
@@ -58,6 +62,12 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// the alias utility changes only literal entries, so groups are created the same way).
         /// </summary>
         public bool GroupsHoldAddresses { get; init; }
+
+        /// <summary>
+        /// Whether groups are written as labels with IP criteria (Guardicore): app roles, app zones and network areas as
+        /// dynamic IP labels, while network objects exist only as criteria of the labels.
+        /// </summary>
+        public bool WritesLabels { get; init; }
 
         /// <summary>
         /// Whether rules are written to the vendor. A new rule needs its position, which the rule positioning only
@@ -91,6 +101,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             FirewallVendor.FortiOs => FortiOs,
             FirewallVendor.OpnSense => OpnSense,
             FirewallVendor.Azure => Azure,
+            FirewallVendor.Guardicore => Guardicore,
             _ => throw new ArgumentOutOfRangeException(nameof(vendor), vendor, "The device type is not supported by the firewall write library.")
         };
 

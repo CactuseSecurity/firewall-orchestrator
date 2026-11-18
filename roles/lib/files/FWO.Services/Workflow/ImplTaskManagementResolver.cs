@@ -4,6 +4,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
+using FWO.ExternalSystems.FirewallWrite;
 
 namespace FWO.Services.Workflow
 {
@@ -68,7 +69,7 @@ namespace FWO.Services.Workflow
         public static List<Management> ResolveSubManagementTarget(Management subManagement, Management superManagement,
             IReadOnlyDictionary<int, GlobalDeviceSpecificSettings> settingsByManagement, ObjectTaskKind kind)
         {
-            ProvisioningObjectCreationMode mode = GetCreationMode(SettingsOf(subManagement, settingsByManagement), kind);
+            ProvisioningObjectCreationMode mode = GetCreationMode(subManagement, SettingsOf(subManagement, settingsByManagement), kind);
             return mode switch
             {
                 ProvisioningObjectCreationMode.Ignore => [],
@@ -115,7 +116,7 @@ namespace FWO.Services.Workflow
         public static List<Management> ResolveTargets(Management superManagement, IReadOnlyCollection<Management> managements,
             IReadOnlyDictionary<int, GlobalDeviceSpecificSettings> settingsByManagement, ObjectTaskKind kind)
         {
-            ProvisioningObjectCreationMode superMode = GetCreationMode(SettingsOf(superManagement, settingsByManagement), kind);
+            ProvisioningObjectCreationMode superMode = GetCreationMode(superManagement, SettingsOf(superManagement, settingsByManagement), kind);
             if (superMode == ProvisioningObjectCreationMode.Ignore)
             {
                 return [];
@@ -126,7 +127,7 @@ namespace FWO.Services.Workflow
                 return [ToTarget(superManagement)];
             }
             return [.. subManagements
-                .Where(subManagement => GetCreationMode(SettingsOf(subManagement, settingsByManagement), kind) != ProvisioningObjectCreationMode.Ignore)
+                .Where(subManagement => GetCreationMode(subManagement, SettingsOf(subManagement, settingsByManagement), kind) != ProvisioningObjectCreationMode.Ignore)
                 .Select(ToTarget)];
         }
 
@@ -166,6 +167,17 @@ namespace FWO.Services.Workflow
             return [.. managements
                 .Where(management => management.SuperManagerId == superManagement.Id && !management.HideInUi)
                 .OrderBy(management => management.Name, StringComparer.OrdinalIgnoreCase)];
+        }
+
+        /// <summary>
+        /// Returns the setting of the creation level of a kind of objects on a management. Managements that write groups
+        /// as labels (Guardicore) take network objects and groups from the label creation setting.
+        /// </summary>
+        public static ProvisioningObjectCreationMode GetCreationMode(Management management, GlobalDeviceSpecificSettings settings, ObjectTaskKind kind)
+        {
+            return kind == ObjectTaskKind.Network && FirewallVendors.WritesLabels(management.DeviceType?.Id ?? 0)
+                ? settings.LabelCreation
+                : GetCreationMode(settings, kind);
         }
 
         /// <summary>

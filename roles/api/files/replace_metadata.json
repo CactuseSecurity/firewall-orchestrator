@@ -9347,6 +9347,66 @@
                     "filter": {}
                   },
                   "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "display_name",
+                      "id",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "display_name",
+                      "id",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "display_name",
+                      "id",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "display_name",
+                      "id",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -9445,6 +9505,86 @@
                       "node_id"
                     ],
                     "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "node_id"
+                    ],
+                    "filter": {
+                      "config_key": {
+                        "_in": [
+                          "modellingCreateAppZones",
+                          "modellingImplementNetworkAreaObjects",
+                          "provisioningExcludedObjectTypes"
+                        ]
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "node_id"
+                    ],
+                    "filter": {
+                      "config_key": {
+                        "_in": [
+                          "modellingCreateAppZones",
+                          "modellingImplementNetworkAreaObjects",
+                          "provisioningExcludedObjectTypes"
+                        ]
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "node_id"
+                    ],
+                    "filter": {
+                      "config_key": {
+                        "_in": [
+                          "modellingCreateAppZones",
+                          "modellingImplementNetworkAreaObjects",
+                          "provisioningExcludedObjectTypes"
+                        ]
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "node_id"
+                    ],
+                    "filter": {
+                      "config_key": {
+                        "_in": [
+                          "modellingCreateAppZones",
+                          "modellingImplementNetworkAreaObjects",
+                          "provisioningExcludedObjectTypes"
+                        ]
+                      }
+                    }
                   },
                   "comment": ""
                 }

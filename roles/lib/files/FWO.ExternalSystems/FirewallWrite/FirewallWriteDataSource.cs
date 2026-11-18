@@ -2,8 +2,11 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Config.Api.Data;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Modelling;
 using FWO.Data.Workflow;
+using FWO.Logging;
 
 namespace FWO.ExternalSystems.FirewallWrite
 {
@@ -21,6 +24,9 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// </summary>
     public sealed class ApiFirewallWriteDataSource(ApiConnection apiConnection) : IFirewallWriteDataSource
     {
+        private const string kNamingConventionKey = "modNamingConvention";
+        private const string kLogCategory = "Firewall Write";
+
         /// <inheritdoc/>
         public async Task<FirewallWriteContext> LoadContext(WfImplTask implTask)
         {
@@ -84,8 +90,27 @@ namespace FWO.ExternalSystems.FirewallWrite
                 Gateway = gateway,
                 Settings = settings[0],
                 Rulebases = rulebases,
-                RuleLayerUids = ruleLayerUids
+                RuleLayerUids = ruleLayerUids,
+                NamingConvention = await LoadNamingConvention()
             };
+        }
+
+        /// <summary>
+        /// Loads the naming convention of modelled objects from the global configuration. Without it groups are only told
+        /// by names "key: value", so a missing convention does not stop writes to other vendors.
+        /// </summary>
+        private async Task<ModellingNamingConvention> LoadNamingConvention()
+        {
+            try
+            {
+                List<ConfigItem> items = await apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey, new { key = kNamingConventionKey });
+                return ModellingNamingConvention.FromJson(items.FirstOrDefault()?.Value);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                Log.WriteWarning(kLogCategory, $"The naming convention could not be loaded, groups are only told by names \"key: value\": {exception.Message}");
+                return new ModellingNamingConvention();
+            }
         }
 
         /// <summary>

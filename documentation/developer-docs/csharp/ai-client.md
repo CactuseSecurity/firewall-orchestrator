@@ -162,6 +162,40 @@ The prompt name, the argument names, the kinds, the limits and the language patt
 `ai_harness_agui_path` of the installer, and the forwarded prompt properties with `PromptRequest` of the harness.
 `ClientConformanceTest` checks them.
 
+## AI chat in the UI
+
+The UI offers a chat with the FWO agent on every page. It is shown only if the chat is switched on in the AI settings
+(`aiChat`) and an AI provider is configured (`AiChatDisplay.IsAvailable`); the harness refuses chat runs while the
+switch is off, whatever the UI shows (see [AI harness](ai-harness.md#ai-functions)).
+
+| Part | Role |
+|---|---|
+| `AiChatSession` (`Services`, scoped) | The chat of one circuit: entries, conversation, thread, runs, approvals, state of the panel, draft |
+| `AiChatRun` | Collects the updates of a run: answer text (`AgentAnswerText`, shared with the reason check), approval requests, error, thread, snapshot |
+| `AiChatPanel` (`Shared`, in `MainLayout`) | Panel docked on the right below the navigation bar, a resizable `Sidebar` above the page and the report sidebars (`.ai-chat-sidebar`, z-index 14) |
+| `AiChatNavButton` (in `NavigationMenu`) | Opens and minimizes the panel; badge for a running answer, a new answer and pending approvals |
+| `AiChatFooterOffset` (in `MainLayout`) | Ends the UI messages of the footer left of the panel while it is open, so that they do not cover its input |
+
+The session follows [Conversation](#conversation): every run sends the snapshot of the previous run followed by the new
+user message (at most 10000 characters, `AiChatSession.kMaxMessageLength`) on the thread of the previous run. A run
+without snapshot keeps the messages it sent plus its answer. A failed or cancelled run leaves the conversation as it was
+before the run, so the next message is sent without the failed one; the answer shows the failure with the texts of the
+reason check (`AiReasonCheckDisplay.FailureMessage`).
+
+A run ending with tool approval requests keeps its snapshot and shows each call with its tool name and its arguments
+(indented JSON, cut to 2000 characters). No new message can be sent until the user approved or rejected every call;
+then one run sends the snapshot followed by one user message with all answers, see [Tool approval](#tool-approval).
+
+The conversation lives only in the memory of the circuit: it survives navigation and minimizing, a run goes on in the
+background, and it is lost on reload, logout or "New Chat". It is dropped (and the panel minimized) when another user,
+or no user, is logged in to the circuit, compared by the DN claim `x-hasura-uuid`. Runs raise `AiChatSession.Changed`
+from their own thread, at most every 150 ms while an answer streams; the components re-render through their
+dispatcher. All texts of the chat are rendered as Razor text; answers keep their line breaks (`white-space: pre-wrap`).
+The panel scrolls to the newest entry with `scrollToEndIfNear` of `window.js`, unless the user has scrolled up.
+The `Sidebar` renders its content only once it knows the height of the navigation bar, after the first render of the
+panel. The panel therefore waits for the `ContentShown` callback of the `Sidebar` before it focuses the input and
+scrolls to the newest entry.
+
 ## Deployment
 
 The library is part of `roles/lib`, which the installer copies to `{{ fworch_home }}/lib/files` on the UI and
@@ -178,6 +212,10 @@ reached through the Apache of the middleware at `https://<middleware host>:8888/
     the response streams, several messages, interrupts, run errors, snapshots, unknown events, protocol errors and the
     size limit.
   - `ConnectionReasonCheckTest`, `ReasonVerdictParserTest` and `AgUiBoundedReadStreamTest`.
+  - the AI chat of the UI, with a scripted chat client (`AiChatTestDoubles`): `UiAiChatSessionTest` (conversation and
+    thread across runs, approvals, failures, cancelling, new chat, change of the user), `UiAiChatRunTest`,
+    `UiAiChatDisplayTest`, and the components in `UiAiChatPanelTest` (including the output encoding),
+    `UiAiChatNavButtonTest` and `UiAiChatFooterOffsetTest`.
 - `roles/tests-unit/files/FWO.Ai.Tests`:
   - `ClientHarnessTest`: the client against the AG-UI endpoint of the harness pipeline on a test server, with the MCP
     server pipeline on another one: a reason check with language and its snapshot, a conversation sent again, interrupt

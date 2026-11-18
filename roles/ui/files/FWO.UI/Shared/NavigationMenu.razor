@@ -95,6 +95,12 @@
 					}
 				</ul>
 				<ul class="@NavPaddingCollapseClass d-flex flex-wrap navbar-nav align-items-end ms-auto flex-row">
+					@if (AiChatDisplay.IsAvailable(userConfig))
+					{
+						<li class="nav-item px-2">
+							<AiChatNavButton />
+						</li>
+					}
 					<li class="nav-item px-2">
 						@* d-flex align-items-center *@
 						@* an open alert makes the alarm indicator the point of this link, so it leads to the alerts

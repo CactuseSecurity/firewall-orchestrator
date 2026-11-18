@@ -104,3 +104,19 @@ function getElementPosition(elementId) {
     const rect = element.getBoundingClientRect();
     return [Math.round(rect.left), Math.round(rect.bottom)];
 }
+
+// Scrolls a container to its end, e.g. the AI chat to its newest entry. Without force only if the user has not
+// scrolled up, i.e. the end was at most nearEndPixels away.
+const nearEndPixels = 120;
+
+function scrollToEndIfNear(elementId, force) {
+    const element = document.getElementById(elementId);
+    if (element == null) {
+        return;
+    }
+
+    const distanceToEnd = element.scrollHeight - element.scrollTop - element.clientHeight;
+    if (force || distanceToEnd <= nearEndPixels) {
+        element.scrollTop = element.scrollHeight;
+    }
+}

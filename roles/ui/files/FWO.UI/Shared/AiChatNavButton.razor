@@ -1,0 +1,82 @@
+@using FWO.Basics
+@implements IDisposable
+
+@inject AiChatSession chatSession
+@inject UserConfig userConfig
+
+<button type="button" class="nav-link ai-chat-toggle @(chatSession.IsOpen ? "active" : "")" aria-pressed="@(chatSession.IsOpen ? "true" : "false")"
+        @onclick="chatSession.Toggle">
+    <span class="@Icons.AiCheck"></span> @(userConfig.GetText(AiChatDisplay.kChatTextKey))
+    @if (chatSession.WaitsForApproval)
+    {
+        <span class="badge rounded-pill bg-warning text-dark ms-1 ai-chat-badge ai-chat-badge-approval" data-toggle="tooltip"
+              title="@(userConfig.PureLine(AiChatDisplay.kApprovalPendingTextKey))"><span class="@Icons.Warning"></span></span>
+    }
+    else if (chatSession.IsRunning)
+    {
+        <span class="badge rounded-pill bg-info text-dark ms-1 ai-chat-badge ai-chat-badge-running" data-toggle="tooltip"
+              title="@(userConfig.PureLine(AiChatDisplay.kAnsweringTextKey))"><span class="@Icons.Schedule"></span></span>
+    }
+    else if (chatSession.HasNewAnswer)
+    {
+        <span class="badge rounded-pill bg-success ms-1 ai-chat-badge ai-chat-badge-answer" data-toggle="tooltip"
+              title="@(userConfig.PureLine(AiChatDisplay.kNewAnswerTextKey))"><span class="@Icons.UiMessages"></span></span>
+    }
+</button>
+
+@code
+{
+    private const string kLogTitle = "AI Chat";
+
+    private bool disposed;
+
+    /// <summary>
+    /// Follows the chat to show its state in the badge.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        chatSession.Changed += OnChatChanged;
+    }
+
+    /// <summary>
+    /// Re-renders on the dispatcher after a change of the chat, which may come from the thread of a run.
+    /// </summary>
+    private void OnChatChanged()
+    {
+        _ = RefreshAsync();
+    }
+
+    /// <summary>
+    /// Re-renders; failures are logged, as the caller does not wait.
+    /// </summary>
+    private async Task RefreshAsync()
+    {
+        if (disposed)
+        {
+            return;
+        }
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (!disposed)
+                {
+                    StateHasChanged();
+                }
+            });
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug(kLogTitle, $"Could not render the button of the AI chat: {exception.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Stops following the chat.
+    /// </summary>
+    public void Dispose()
+    {
+        disposed = true;
+        chatSession.Changed -= OnChatChanged;
+    }
+}

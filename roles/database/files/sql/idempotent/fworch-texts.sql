@@ -555,6 +555,28 @@ INSERT INTO txt VALUES ('filter_op_is_empty',   'German',   'Ist leer');
 INSERT INTO txt VALUES ('filter_op_is_empty',   'English',  'Is empty');
 INSERT INTO txt VALUES ('filter_op_is_not_empty','German',  'Ist nicht leer');
 INSERT INTO txt VALUES ('filter_op_is_not_empty','English', 'Is not empty');
+INSERT INTO txt VALUES ('minimize',             'German', 	'Minimieren');
+INSERT INTO txt VALUES ('minimize',             'English', 	'Minimize');
+INSERT INTO txt VALUES ('rejected',             'German', 	'Abgelehnt');
+INSERT INTO txt VALUES ('rejected',             'English', 	'Rejected');
+INSERT INTO txt VALUES ('ai',                   'German', 	'KI');
+INSERT INTO txt VALUES ('ai',                   'English', 	'AI');
+INSERT INTO txt VALUES ('ai_new_chat',          'German', 	'Neuer Chat');
+INSERT INTO txt VALUES ('ai_new_chat',          'English', 	'New Chat');
+INSERT INTO txt VALUES ('ai_send',              'German', 	'Senden');
+INSERT INTO txt VALUES ('ai_send',              'English', 	'Send');
+INSERT INTO txt VALUES ('ai_chat_input',        'German', 	'Nachricht an die KI (Strg+Enter sendet)');
+INSERT INTO txt VALUES ('ai_chat_input',        'English', 	'Message to the AI (Ctrl+Enter sends)');
+INSERT INTO txt VALUES ('ai_answering',         'German', 	'KI antwortet...');
+INSERT INTO txt VALUES ('ai_answering',         'English', 	'AI is answering...');
+INSERT INTO txt VALUES ('ai_new_answer',        'German', 	'Neue Antwort der KI');
+INSERT INTO txt VALUES ('ai_new_answer',        'English', 	'New answer of the AI');
+INSERT INTO txt VALUES ('ai_approval_pending',  'German', 	'Die KI wartet auf Ihre Freigabe');
+INSERT INTO txt VALUES ('ai_approval_pending',  'English', 	'The AI is waiting for your approval');
+INSERT INTO txt VALUES ('ai_approval_request',  'German', 	'Die KI m&ouml;chte eine Aktion ausf&uuml;hren, die Daten &auml;ndert:');
+INSERT INTO txt VALUES ('ai_approval_request',  'English', 	'The AI wants to run an action that changes data:');
+INSERT INTO txt VALUES ('ai_run_cancelled',     'German', 	'Abgebrochen');
+INSERT INTO txt VALUES ('ai_run_cancelled',     'English', 	'Cancelled');
 
 -- (re)login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -659,6 +681,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Neuer Report-Typ &quot;Changes: NAT&quot; zeigt &Auml;nderungen an NAT-Regeln mit urspr&uuml;nglicher und umgesetzter Quelle, Ziel und Dienst. In den FW-&Auml;nderungstrigger-Einstellungen k&ouml;nnen eigene Email-Benachrichtigungen &uuml;ber NAT-Regel&auml;nderungen (inklusive &Auml;nderungen an in NAT-Regeln verwendeten Objekten) mit diesem Report angelegt werden.</li>
     <li>Modellierung: Die fachliche Begr&uuml;ndung einer Verbindung, die Beschreibung einer Schnittstelle oder die Begr&uuml;ndung einer Schnittstellennutzung kann per Schaltfl&auml;che von einer KI bewertet werden (stichhaltig, unzureichend, nicht stichhaltig), mit R&uuml;ckfragen an den Antragsteller und einem Verbesserungsvorschlag. Die Funktion wird in den KI-Einstellungen eingeschaltet und ben&ouml;tigt den KI-Server mit einem konfigurierten KI-Anbieter.</li>
     <li>KI-Anbieter, Modell, Endpunkt und die Grenzen der Agentenschleife des KI-Servers werden auf der neuen Seite Einstellungen - KI-Einstellungen gepflegt. Der API-Schl&uuml;ssel wird als Zugangsdaten in der Zugangsdatenverwaltung gespeichert. F&uuml;r einen OpenAI-kompatiblen Server kann sich der KI-Server auch mit OAuth 2.0 (Client Credentials) anmelden: er holt ein Zugriffstoken von der Token-URL und sendet es als Bearer-Token.</li>
+    <li>KI-Chat: Ein Chat mit der KI ist auf jeder Seite &uuml;ber die Navigationsleiste erreichbar. Er liegt rechts &uuml;ber der Seite, l&auml;sst sich in der Breite &auml;ndern und minimieren, und die KI arbeitet mit den Rollen des Benutzers. Aktionen, die Daten &auml;ndern, f&uuml;hrt sie erst nach Freigabe durch den Benutzer aus. Der Chat wird in den KI-Einstellungen eingeschaltet.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -682,6 +705,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>New report type &quot;Changes: NAT&quot; shows NAT rule changes with original and translated source, destination and service. Separate email notifications about NAT rule changes (including changes of objects used in NAT rules) with this report can be defined in the FW change trigger settings.</li>
     <li>Modelling: The functional reason of a connection, the description of an interface or the reason of an interface usage can be assessed by an AI at the push of a button (genuine, insufficient, not genuine), with questions to the requester and a proposal for improvement. The feature is switched on in the AI settings and needs the AI server with a configured AI provider.</li>
     <li>The AI provider, model, endpoint and the limits of the agent loop of the AI server are maintained on the new page Settings - AI Settings. The API key is stored as a credential in the credential management. For an OpenAI compatible server the AI server can log in with OAuth 2.0 (client credentials) too: it gets an access token from the token URL and sends it as bearer token.</li>
+    <li>AI chat: a chat with the AI can be reached on every page from the navigation bar. It lies on the right over the page, can be resized and minimized, and the AI works with the roles of the user. Actions that change data only run after the user approved them. The chat is switched on in the AI settings.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -4670,6 +4694,10 @@ INSERT INTO txt VALUES ('U0015', 'German',  'Das L&ouml;schen des Elements wurde
 INSERT INTO txt VALUES ('U0015', 'English', 'The deletion of the element has been completed successfully.');
 INSERT INTO txt VALUES ('U0016', 'German',  'Das Fenster kann geschlossen werden.');
 INSERT INTO txt VALUES ('U0016', 'English', 'Window can be closed.');
+INSERT INTO txt VALUES ('U0017', 'German',  'Stellen Sie der KI Fragen zu den Daten von Firewall Orchestrator. Die KI arbeitet mit Ihren Rollen und sieht nur, was Sie sehen d&uuml;rfen.');
+INSERT INTO txt VALUES ('U0017', 'English', 'Ask the AI about the data of Firewall Orchestrator. The AI works with your roles and only sees what you are permitted to see.');
+INSERT INTO txt VALUES ('U0018', 'German',  'Antworten der KI k&ouml;nnen falsch sein.');
+INSERT INTO txt VALUES ('U0018', 'English', 'Answers of the AI may be wrong.');
 
 INSERT INTO txt VALUES ('U1001', 'German',  'Filter (nur Verbindungen)');
 INSERT INTO txt VALUES ('U1001', 'English', 'Filter (connections only)');
@@ -5753,6 +5781,66 @@ INSERT INTO txt VALUES ('H0001', 'English', 'Firewall Orchestrator is an applica
     The data is imported directly via APIs from the connected systems. There are several possibilities to customize the report creation by filters, templates and scheduling.
     The reports can be exported in different output formats. Additionally a recertification workflow is supported.
     Firewall Orchestrator has an internal user management, but is also able to connect to external user management systems.
+');
+INSERT INTO txt VALUES ('H0002', 'German',  'Der KI-Chat beantwortet Fragen zu den Daten von Firewall Orchestrator, z.B. zu Regeln, Objekten, Modellierung oder Antr&auml;gen.
+    Ein Administrator schaltet ihn in den <a href="/help/settings/ai">KI-Einstellungen</a> ein; er ben&ouml;tigt den KI-Server mit einem konfigurierten KI-Anbieter.
+    Dann erscheint in der Navigationsleiste die Schaltfl&auml;che "KI-Chat". Die KI arbeitet mit Ihren Rollen und Berechtigungen: sie sieht nur die Daten, die Sie auch in der Oberfl&auml;che sehen.
+');
+INSERT INTO txt VALUES ('H0002', 'English', 'The AI chat answers questions about the data of Firewall Orchestrator, e.g. about rules, objects, modelling or requests.
+    An administrator switches it on in the <a href="/help/settings/ai">AI settings</a>; it needs the AI server with a configured AI provider.
+    Then the button "AI chat" appears in the navigation bar. The AI works with your roles and permissions: it only sees the data you also see in the user interface.
+');
+INSERT INTO txt VALUES ('H0003', 'German',  'Fenster: Die Schaltfl&auml;che "KI-Chat" &ouml;ffnet den Chat rechts &uuml;ber der Seite und minimiert ihn wieder, ebenso die Schaltfl&auml;che "Minimieren" im Chat.
+    Die Breite l&auml;sst sich durch Ziehen am linken Rand &auml;ndern. Solange der Chat offen ist, erscheinen die Meldungen am unteren Rand links davon.
+');
+INSERT INTO txt VALUES ('H0003', 'English', 'Window: The button "AI chat" opens the chat on the right over the page and minimizes it again, as does the button "Minimize" in the chat.
+    Its width can be changed by dragging its left edge. While the chat is open, the messages at the bottom are shown to the left of it.
+');
+INSERT INTO txt VALUES ('H0004', 'German',  'Nachrichten: Geben Sie Ihre Frage ein und senden Sie sie mit "Senden" oder Strg+Enter. Die Antwort erscheint, w&auml;hrend die KI sie schreibt, und kann mit "Abbrechen" abgebrochen werden.
+    Eine Antwort l&auml;uft auch bei minimiertem Chat weiter. Ein Symbol an der Schaltfl&auml;che "KI-Chat" zeigt, dass die KI antwortet, dass eine neue Antwort vorliegt oder dass die KI auf Ihre Freigabe wartet.
+');
+INSERT INTO txt VALUES ('H0004', 'English', 'Messages: Enter your question and send it with "Send" or Ctrl+Enter. The answer appears while the AI writes it and can be stopped with "Cancel".
+    An answer goes on while the chat is minimized. A symbol at the button "AI chat" shows that the AI is answering, that a new answer has arrived, or that the AI is waiting for your approval.
+');
+INSERT INTO txt VALUES ('H0005', 'German',  'Freigaben: Bevor die KI eine Aktion ausf&uuml;hrt, die Daten &auml;ndert, zeigt sie die Aktion mit ihren Parametern an. Sie wird nur ausgef&uuml;hrt, wenn Sie sie genehmigen.
+    Erst wenn alle angezeigten Aktionen genehmigt oder abgelehnt sind, arbeitet die KI weiter; bis dahin kann keine neue Nachricht gesendet werden.
+');
+INSERT INTO txt VALUES ('H0005', 'English', 'Approvals: Before the AI runs an action that changes data, it shows the action with its parameters. The action only runs if you approve it.
+    The AI goes on once all actions shown are approved or rejected; until then no new message can be sent.
+');
+INSERT INTO txt VALUES ('H0006', 'German',  'Verlauf: Das Gespr&auml;ch bleibt erhalten, solange der Browser-Tab offen ist, auch beim Wechsel zwischen den Seiten. Es wird nicht gespeichert:
+    Neuladen der Seite, Abmelden oder "Neuer Chat" beenden es. Die KI kennt die vorherigen Nachrichten des Gespr&auml;chs. Antworten der KI k&ouml;nnen falsch sein, pr&uuml;fen Sie sie vor einer Entscheidung.
+');
+INSERT INTO txt VALUES ('H0006', 'English', 'History: The conversation is kept while the browser tab is open, also when changing between pages. It is not stored:
+    reloading the page, logging out or "New Chat" end it. The AI knows the previous messages of the conversation. Answers of the AI may be wrong, check them before taking a decision.
+');
+INSERT INTO txt VALUES ('H0007', 'German',  'In einigen Funktionen von Firewall Orchestrator hilft ein KI-Assistent. Er l&auml;uft auf dem KI-Server neben der Middleware und nutzt den KI-Anbieter,
+    den ein Administrator in den KI-Einstellungen festlegt, z.B. einen lokalen Ollama-Server oder einen Cloud-Anbieter. Der Assistent arbeitet mit den Rollen und Berechtigungen
+    des jeweiligen Nutzers und sieht nur die Daten, die dieser auch in der Oberfl&auml;che sieht. Die Daten, die eine Funktion nutzt, werden an den KI-Anbieter gesendet.<br>
+    Alle KI-Funktionen sind standardm&auml;&szlig;ig ausgeschaltet und werden einzeln eingeschaltet. Antworten der KI k&ouml;nnen falsch sein, pr&uuml;fen Sie sie vor einer Entscheidung.
+');
+INSERT INTO txt VALUES ('H0007', 'English', 'An AI assistant helps in some functions of Firewall Orchestrator. It runs on the AI server next to the middleware and uses the AI provider
+    an administrator sets in the AI settings, e.g. a local Ollama server or a cloud provider. The assistant works with the roles and permissions
+    of the respective user and only sees the data this user also sees in the user interface. The data a function uses is sent to the AI provider.<br>
+    All AI functions are switched off by default and are switched on one by one. Answers of the AI may be wrong, check them before taking a decision.
+');
+INSERT INTO txt VALUES ('H0008', 'German',  '<a href="/help/ai/chat">KI-Chat</a>: Ein Chatfenster rechts &uuml;ber jeder Seite, in dem Sie Fragen zu den Daten von Firewall Orchestrator stellen.
+    Aktionen, die Daten &auml;ndern, f&uuml;hrt die KI erst nach Ihrer Freigabe aus.
+');
+INSERT INTO txt VALUES ('H0008', 'English', '<a href="/help/ai/chat">AI chat</a>: a chat window on the right over every page, in which you ask questions about the data of Firewall Orchestrator.
+    Actions that change data only run after your approval.
+');
+INSERT INTO txt VALUES ('H0009', 'German',  '<a href="/help/modelling/connections">KI-Pr&uuml;fung der Begr&uuml;ndung</a>: Bewertet in der Modellierung die fachliche Begr&uuml;ndung einer Verbindung
+    bzw. die Beschreibung einer Schnittstelle und schl&auml;gt eine verbesserte Begr&uuml;ndung vor.
+');
+INSERT INTO txt VALUES ('H0009', 'English', '<a href="/help/modelling/connections">AI check of reason</a>: assesses the functional reason of a connection or the description of an interface
+    in the modelling and proposes an improved justification.
+');
+INSERT INTO txt VALUES ('H0010', 'German',  '<a href="/help/settings/ai">KI-Einstellungen</a>: Hier legt ein Administrator den KI-Anbieter, das Modell und die Grenzen des Assistenten fest
+    und schaltet die KI-Funktionen ein oder aus.
+');
+INSERT INTO txt VALUES ('H0010', 'English', '<a href="/help/settings/ai">AI settings</a>: here an administrator sets the AI provider, the model and the limits of the assistant
+    and switches the AI functions on or off.
 ');
 
 INSERT INTO txt VALUES ('H1001', 'German',  'Die erste Eingabezeile ist die Filterzeile, wo die Parameter f&uuml;r den Report definiert werden.
@@ -7481,9 +7569,9 @@ INSERT INTO txt VALUES ('H5384', 'German',  'Hier wird festgelegt, welche KI-Fun
 INSERT INTO txt VALUES ('H5384', 'English', 'These switches define which AI functions the users can use; all of them are switched off by default and need a configured AI provider.
     The AI server refuses requests to a function that is switched off, also if they do not come from the user interface.');
 INSERT INTO txt VALUES ('H5385', 'German',  'KI-Chat: Erlaubt den Nutzern, dem KI-Assistenten eigene Fragen zu stellen und seine Werkzeugaufrufe zu best&auml;tigen. Der Assistent arbeitet mit den Rechten
-    des fragenden Nutzers; die Fragen und die Daten, die er dazu liest, werden an den konfigurierten KI-Anbieter gesendet.');
+    des fragenden Nutzers; die Fragen und die Daten, die er dazu liest, werden an den konfigurierten KI-Anbieter gesendet. Siehe <a href="/help/ai/chat">KI-Chat</a>.');
 INSERT INTO txt VALUES ('H5385', 'English', 'AI chat: allows the users to ask the AI assistant questions of their own and to confirm its tool calls. The assistant works with the rights
-    of the asking user; the questions and the data it reads for them are sent to the configured AI provider.');
+    of the asking user; the questions and the data it reads for them are sent to the configured AI provider. See <a href="/help/ai/chat">AI chat</a>.');
 INSERT INTO txt VALUES ('H5386', 'German',  'KI-Pr&uuml;fung der Begr&uuml;ndung: Zeigt im Bearbeiten-Dialog von Verbindungen und Schnittstellen der Modellierung eine Schaltfl&auml;che, mit der die fachliche
     Begr&uuml;ndung bzw. Schnittstellenbeschreibung von einer KI bewertet werden kann. Die Begr&uuml;ndung und die Elemente der Verbindung werden dabei an den konfigurierten KI-Anbieter gesendet.');
 INSERT INTO txt VALUES ('H5386', 'English', 'AI check of reason: shows a button in the edit dialog of connections and interfaces in the modelling, with which the functional reason or interface

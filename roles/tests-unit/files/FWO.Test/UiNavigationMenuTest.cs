@@ -5,6 +5,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
+using FWO.Data.Ai;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using FWO.Ui.Shared;
@@ -103,6 +104,27 @@ namespace FWO.Test
                 var activeLinks = menu.FindAll("a.active");
                 Assert.That(activeLinks, Has.Count.EqualTo(1));
                 Assert.That(activeLinks[0].GetAttribute("href"), Is.EqualTo(expectedHref));
+            });
+        }
+
+        [TestCase(true, AiProvider.OpenAi, 1)]
+        [TestCase(true, AiProvider.None, 0)]
+        [TestCase(false, AiProvider.OpenAi, 0)]
+        public async Task NavigationMenu_ShowsTheAiChatButtonOnlyIfTheChatIsOffered(bool chatEnabled, AiProvider provider, int expectedButtons)
+        {
+            await using BunitContext context = CreateContext(kAdminRoles, approvalActive: false, planningActive: false,
+                out NavigationMenuTestApiConnection _, out SimulatedUserConfig userConfig);
+            userConfig.AiChatEnabled = chatEnabled;
+            userConfig.AiProvider = provider;
+            using AiChatTestSession chat = new(ScriptedChatClient.Returning(ScriptedChatClient.Text("answer")));
+            context.Services.AddSingleton(chat.Session);
+
+            IRenderedComponent<NavigationMenu> menu = RenderMenu(context);
+
+            menu.WaitForAssertion(() =>
+            {
+                Assert.That(menu.Markup, Does.Contain("/settings"));
+                Assert.That(menu.FindAll("button.ai-chat-toggle"), Has.Count.EqualTo(expectedButtons));
             });
         }
 

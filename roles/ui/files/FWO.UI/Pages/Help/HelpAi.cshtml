@@ -1,0 +1,23 @@
+@page "/help/ai"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{
+        await Html.RenderPartialAsync("HelpAiSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("ai"))</h3>
+    @(Html.Raw(userConfig.GetText("H0007")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H0008")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H0009")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H0010")))</li>
+    </ul>
+</div>

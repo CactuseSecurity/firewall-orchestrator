@@ -69,6 +69,7 @@ builder.Services.AddScoped<IAccessTokenSource>(serviceProvider => new SessionAcc
     serviceProvider.GetRequiredService<TokenService>(), serviceProvider.GetRequiredService<UiSessionRestorer>().RestoreAsync));
 builder.Services.AddScoped<ITokenRefreshCoordinator, TokenRefreshCoordinator>();
 builder.Services.AddSingleton<IFwoAgentChatClientFactory>(_ => new FwoAgentChatClientFactory(new Uri(MiddlewareUri)));
+builder.Services.AddScoped<AiChatSession>();
 builder.Services.AddSingleton<IPeriodicTaskRunnerFactory, PeriodicTaskRunnerFactory>();
 builder.Services.AddScoped<ExecutionModeStorage>();
 builder.Services.AddSingleton<IInternalCaCertificateProvider, InternalCaCertificateProvider>();

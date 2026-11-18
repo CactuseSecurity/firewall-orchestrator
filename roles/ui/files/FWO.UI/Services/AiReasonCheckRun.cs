@@ -12,10 +12,9 @@ namespace FWO.Ui.Services
     public sealed class AiReasonCheckRun
     {
         /// <summary>Put between the texts of two messages of the run.</summary>
-        public const string kMessageSeparator = "\n\n";
+        public const string kMessageSeparator = AgentAnswerText.kMessageSeparator;
 
-        private string? lastTextMessageId;
-        private bool hasText;
+        private readonly AgentAnswerText answerText = new();
 
         /// <summary>Number of tool calls the run asked the user to approve; the reason check does not answer them.</summary>
         public int PendingApprovals { get; private set; }
@@ -40,23 +39,7 @@ namespace FWO.Ui.Services
             }
             PendingApprovals += update.Contents.OfType<ToolApprovalRequestContent>().Count();
             Error ??= update.Contents.OfType<ErrorContent>().FirstOrDefault();
-            return GetTextDelta(update);
-        }
-
-        /// <summary>
-        /// Returns the answer text of an update, starting with the separator if it continues the answer with another message.
-        /// </summary>
-        private string GetTextDelta(ChatResponseUpdate update)
-        {
-            string text = update.Role == ChatRole.Assistant || update.Role == null ? update.Text : "";
-            if (string.IsNullOrEmpty(text))
-            {
-                return "";
-            }
-            bool startsOtherMessage = hasText && update.MessageId != null && lastTextMessageId != null && update.MessageId != lastTextMessageId;
-            hasText = true;
-            lastTextMessageId = update.MessageId ?? lastTextMessageId;
-            return startsOtherMessage ? kMessageSeparator + text : text;
+            return answerText.GetDelta(update);
         }
     }
 }

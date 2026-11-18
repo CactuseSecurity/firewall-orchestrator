@@ -2,28 +2,36 @@ using FWO.Data.Workflow;
 
 namespace FWO.Compliance.RulePositioning;
 
-/// <summary>Validates and orders ticket tasks used to resolve effective network state.</summary>
-internal static class TicketNetworkStateProjector
+/// <summary>Validates and deterministically orders ticket tasks used by positioning input resolvers.</summary>
+internal static class TicketRequestStateProjector
 {
-    /// <summary>Maximum supported nesting level for ticket-defined network groups.</summary>
+    /// <summary>Maximum supported nesting level for ticket-defined groups.</summary>
     internal const int kMaximumGroupDepth = 100;
 
-    /// <summary>Validates ticket scope and returns deterministic task order.</summary>
-    internal static IReadOnlyList<WfReqTask> Project(
-        WfReqTask accessTask,
-        IReadOnlyCollection<WfReqTask> ticketTasks)
+    /// <summary>Validates ticket scope and returns tasks in deterministic protocol order.</summary>
+    internal static bool TryProject(
+        WfReqTask? accessTask,
+        IReadOnlyCollection<WfReqTask>? ticketTasks,
+        out IReadOnlyList<WfReqTask> orderedTasks)
     {
+        orderedTasks = Array.Empty<WfReqTask>();
         if (!IsValidAccessTask(accessTask) || ticketTasks == null)
         {
-            throw new NetworkResolutionException(CreationRuleNetworkResolutionFailureCategory.InvalidInput);
+            return false;
         }
         List<WfReqTask> tasks = [.. ticketTasks];
-        if (!HasValidTicketScope(tasks, accessTask))
+        if (!HasValidTicketScope(tasks, accessTask!))
         {
-            throw new NetworkResolutionException(CreationRuleNetworkResolutionFailureCategory.InvalidInput);
+            return false;
         }
-        return tasks.OrderBy(task => task.TaskNumber).ThenBy(task => task.Id).ToList().AsReadOnly();
+        orderedTasks = tasks.OrderBy(task => task.TaskNumber).ThenBy(task => task.Id).ToList().AsReadOnly();
+        return true;
     }
+
+    /// <summary>Checks whether a candidate task is strictly ordered before the access task.</summary>
+    internal static bool IsBefore(WfReqTask candidate, WfReqTask accessTask) =>
+        candidate.TaskNumber < accessTask.TaskNumber ||
+        candidate.TaskNumber == accessTask.TaskNumber && candidate.Id < accessTask.Id;
 
     /// <summary>Checks the required identity and collection fields of the access task.</summary>
     private static bool IsValidAccessTask(WfReqTask? accessTask) =>
@@ -41,9 +49,4 @@ internal static class TicketNetworkStateProjector
         task != null && task.Id > 0 && task.TaskNumber > 0 &&
         task.TicketId == accessTask.TicketId && task.ManagementId == accessTask.ManagementId &&
         task.Elements != null;
-
-    /// <summary>Checks whether a candidate task is strictly ordered before the access task.</summary>
-    internal static bool IsBefore(WfReqTask candidate, WfReqTask accessTask) =>
-        candidate.TaskNumber < accessTask.TaskNumber ||
-        candidate.TaskNumber == accessTask.TaskNumber && candidate.Id < accessTask.Id;
 }

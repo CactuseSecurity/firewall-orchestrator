@@ -54,7 +54,9 @@ public enum PositioningBlockFailureCategory
     ScopeAmbiguous,
     ScopeIndeterminate,
     NoInsertionPoint,
-    UnexpectedExecutionFailure
+    UnexpectedExecutionFailure,
+    AddressScopeNotFound,
+    ServiceScopeNotFound
 }
 
 /// <summary>
@@ -125,6 +127,8 @@ public sealed class PositioningBlockFailure<TOutput> : PositioningBlockResult<TO
             PositioningBlockFailureCategory.InvalidRecipe => "The positioning recipe is invalid.",
             PositioningBlockFailureCategory.InvalidSnapshot => "The policy snapshot is invalid for this calculation.",
             PositioningBlockFailureCategory.ScopeNotFound => "The requested positioning scope was not found.",
+            PositioningBlockFailureCategory.AddressScopeNotFound => "No LayerGuard contains the requested source and destination.",
+            PositioningBlockFailureCategory.ServiceScopeNotFound => "No address-compatible LayerGuard contains all requested services.",
             PositioningBlockFailureCategory.ScopeAmbiguous => "The requested positioning scope is ambiguous.",
             PositioningBlockFailureCategory.ScopeIndeterminate => "The requested positioning scope cannot be determined safely.",
             PositioningBlockFailureCategory.NoInsertionPoint => "No valid insertion point exists in the requested scope.",

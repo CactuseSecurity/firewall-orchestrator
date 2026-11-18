@@ -91,7 +91,13 @@ public class RulePositioningQueriesTest
             Assert.That(query, Does.Contain("order_by: { rule_id: asc }"));
             Assert.That(query, Does.Contain("rule_src_neg"));
             Assert.That(query, Does.Contain("rule_dst_neg"));
+            Assert.That(query, Does.Contain("rule_svc_neg"));
             Assert.That(query, Does.Contain("objgrp_flats"));
+            Assert.That(query, Does.Contain("rs_create: { _lte: $importId }"));
+            Assert.That(query, Does.Contain("svc_create: { _lte: $importId }"));
+            Assert.That(query, Does.Contain("order_by: [{ svc_id: asc }, { rs_create: asc }]"));
+            Assert.That(query, Does.Contain("svcgrp_flats"));
+            Assert.That(query, Does.Contain("order_by: [{ svcgrp_flat_member_id: asc }, { import_created: asc }]"));
         });
     }
 

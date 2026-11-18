@@ -328,31 +328,40 @@ namespace FWO.Services.Modelling
                 foreach (var mgt in RelevantManagements)
                 {
                     await CollectGroupObjects(mgt.Id);
-                    ModellingAppRole? prodAppRole = ResolveProdAppRole(modelledAppZone, mgt);
-                    if (prodAppRole == null)
+                    ModellingAppZone? variance = AppZoneVariance(modelledAppZone, mgt, appZoneComparer);
+                    if (variance != null)
                     {
-                        MgtsWithVariance.Add(new() { ManagementName = mgt.Name });
-                    }
-                    else if (WritesLabels(mgt))
-                    {
-                        if (LabelMembersChanged(modelledAppZone.AppServers, prodAppRole))
-                        {
-                            MgtsWithVariance.Add(new(prodAppRole) { ManagementName = mgt.Name });
-                        }
-                    }
-                    else
-                    {
-                        ModellingAppZone prodAppZone = new(prodAppRole);
-                        if (!appZoneComparer.Equals(prodAppZone, modelledAppZone))
-                        {
-                            prodAppZone.ManagementName = mgt.Name;
-                            MgtsWithVariance.Add(prodAppZone);
-                        }
+                        MgtsWithVariance.Add(variance);
                     }
                 }
                 return (true, MgtsWithVariance);
             }
             return (false, []);
+        }
+
+        /// <summary>
+        /// Compares the modelled app zone with the one of a management: label managements compare by addresses, others
+        /// with the app zone comparer.
+        /// </summary>
+        /// <returns>The app zone of the management (empty if it is missing) if it differs, else null.</returns>
+        private ModellingAppZone? AppZoneVariance(ModellingAppZone modelledAppZone, Management mgt, AppZoneComparer appZoneComparer)
+        {
+            ModellingAppRole? prodAppRole = ResolveProdAppRole(modelledAppZone, mgt);
+            if (prodAppRole == null)
+            {
+                return new() { ManagementName = mgt.Name };
+            }
+            if (WritesLabels(mgt))
+            {
+                return LabelMembersChanged(modelledAppZone.AppServers, prodAppRole) ? new(prodAppRole) { ManagementName = mgt.Name } : null;
+            }
+            ModellingAppZone prodAppZone = new(prodAppRole);
+            if (appZoneComparer.Equals(prodAppZone, modelledAppZone))
+            {
+                return null;
+            }
+            prodAppZone.ManagementName = mgt.Name;
+            return prodAppZone;
         }
 
         private void PreAnalyseAllAppRoles(List<ModellingConnection> connections)

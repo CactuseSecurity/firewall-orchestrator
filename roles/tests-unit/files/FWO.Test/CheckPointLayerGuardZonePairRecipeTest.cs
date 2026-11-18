@@ -25,6 +25,25 @@ public class CheckPointLayerGuardZonePairRecipeTest
     private const long kImportId = 30;
     private const ProvisioningPositioningAlgorithm kAlgorithm =
         ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection;
+    private static readonly IReadOnlyList<CheckPointBlockValue> kNoChildValues =
+        Array.Empty<CheckPointBlockValue>();
+    private static readonly IReadOnlyCollection<PositioningService> kNoServices =
+        Array.Empty<PositioningService>();
+    private static readonly IReadOnlyCollection<PositioningService> kAnyServices =
+        new List<PositioningService>
+        {
+            new(GlobalConst.kAnyIpProtocolId, null, null)
+        }.AsReadOnly();
+    private static readonly IReadOnlyCollection<IPAddressRange> kSourceRanges =
+        new List<IPAddressRange>
+        {
+            IPAddressRange.Parse("10.0.0.10")
+        }.AsReadOnly();
+    private static readonly IReadOnlyCollection<IPAddressRange> kDestinationRanges =
+        new List<IPAddressRange>
+        {
+            IPAddressRange.Parse("20.0.0.10")
+        }.AsReadOnly();
 
     [TestCase(" destination ", " source ", "[DESTINATION] < [SOURCE]")]
     [TestCase("same", "same", "[SAME] < [SAME]")]
@@ -173,11 +192,13 @@ public class CheckPointLayerGuardZonePairRecipeTest
         RulebaseGraphSnapshot graph = GraphWithTwoInlineLayers();
         CheckPointLayerGuard wrongService = Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24", ServiceScope(Tcp(80)));
         CheckPointLayerGuard matchingService = Guard(11, 1, 4, "10.0.0.0/24", "20.0.0.0/24", ServiceScope(Tcp(443)));
+        List<PositioningService> requestedServices = [Tcp(443)];
         CheckPointLayerGuardZonePairPositioningInput input = InputWithServices(
-            graph, [Tcp(443)], wrongService, matchingService);
+            graph, requestedServices, wrongService, matchingService);
 
         PositioningBlockSuccess<CheckPointBlockValue> success = (PositioningBlockSuccess<CheckPointBlockValue>)
-            await new CheckPointLayerGuardScopeBlock().EvaluateAsync(Context(graph, input), [], CancellationToken.None);
+            await new CheckPointLayerGuardScopeBlock().EvaluateAsync(
+                Context(graph, input), kNoChildValues, CancellationToken.None);
 
         Assert.That(((CheckPointScopeValue)success.Value).Layer.Id, Is.EqualTo(4));
     }
@@ -187,11 +208,13 @@ public class CheckPointLayerGuardZonePairRecipeTest
     {
         RulebaseGraphSnapshot graph = Graph("[DESTINATION] < [SOURCE]");
         CheckPointLayerGuard guard = Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24", ServiceScope(Tcp(443)));
+        List<PositioningService> requestedServices = [Tcp(443), Tcp(22)];
         CheckPointLayerGuardZonePairPositioningInput input = InputWithServices(
-            graph, [Tcp(443), Tcp(22)], guard);
+            graph, requestedServices, guard);
 
         PositioningBlockFailure<CheckPointBlockValue> failure = (PositioningBlockFailure<CheckPointBlockValue>)
-            await new CheckPointLayerGuardScopeBlock().EvaluateAsync(Context(graph, input), [], CancellationToken.None);
+            await new CheckPointLayerGuardScopeBlock().EvaluateAsync(
+                Context(graph, input), kNoChildValues, CancellationToken.None);
 
         Assert.That(failure.Category, Is.EqualTo(PositioningBlockFailureCategory.ServiceScopeNotFound));
     }
@@ -204,7 +227,8 @@ public class CheckPointLayerGuardZonePairRecipeTest
         CheckPointLayerGuardZonePairPositioningInput input = Input(graph, guard);
 
         PositioningBlockFailure<CheckPointBlockValue> failure = (PositioningBlockFailure<CheckPointBlockValue>)
-            await new CheckPointLayerGuardScopeBlock().EvaluateAsync(Context(graph, input), [], CancellationToken.None);
+            await new CheckPointLayerGuardScopeBlock().EvaluateAsync(
+                Context(graph, input), kNoChildValues, CancellationToken.None);
 
         Assert.That(failure.Category, Is.EqualTo(PositioningBlockFailureCategory.AddressScopeNotFound));
     }
@@ -215,12 +239,14 @@ public class CheckPointLayerGuardZonePairRecipeTest
         RulebaseGraphSnapshot graph = GraphWithTwoInlineLayers();
         CheckPointLayerGuard definite = Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24", ServiceScope(Tcp(443)));
         CheckPointLayerGuard indeterminate = Guard(11, 1, 4, "10.0.0.0/24", "20.0.0.0/24",
-            new CheckPointGuardServiceScope(false, [], true));
+            new CheckPointGuardServiceScope(false, kNoServices, true));
+        List<PositioningService> requestedServices = [Tcp(443)];
         CheckPointLayerGuardZonePairPositioningInput input = InputWithServices(
-            graph, [Tcp(443)], definite, indeterminate);
+            graph, requestedServices, definite, indeterminate);
 
         PositioningBlockFailure<CheckPointBlockValue> failure = (PositioningBlockFailure<CheckPointBlockValue>)
-            await new CheckPointLayerGuardScopeBlock().EvaluateAsync(Context(graph, input), [], CancellationToken.None);
+            await new CheckPointLayerGuardScopeBlock().EvaluateAsync(
+                Context(graph, input), kNoChildValues, CancellationToken.None);
 
         Assert.That(failure.Category, Is.EqualTo(PositioningBlockFailureCategory.ScopeIndeterminate));
     }
@@ -251,15 +277,15 @@ public class CheckPointLayerGuardZonePairRecipeTest
     private static CheckPointLayerGuardZonePairPositioningInput Input(
         RulebaseGraphSnapshot graph,
         params CheckPointLayerGuard[] guards) => new(
-            new CreationRuleNetworkInput([Range("10.0.0.10")], [Range("20.0.0.10")]),
-            new CreationRuleServiceInput([new PositioningService(GlobalConst.kAnyIpProtocolId, null, null)]),
+            new CreationRuleNetworkInput(kSourceRanges, kDestinationRanges),
+            new CreationRuleServiceInput(kAnyServices),
             new CheckPointLayerGuardSnapshot(graph.ManagementId, graph.GatewayId, kImportId, guards));
 
     private static CheckPointLayerGuardZonePairPositioningInput InputWithServices(
         RulebaseGraphSnapshot graph,
         IReadOnlyCollection<PositioningService> services,
         params CheckPointLayerGuard[] guards) => new(
-            new CreationRuleNetworkInput([Range("10.0.0.10")], [Range("20.0.0.10")]),
+            new CreationRuleNetworkInput(kSourceRanges, kDestinationRanges),
             new CreationRuleServiceInput(services),
             new CheckPointLayerGuardSnapshot(graph.ManagementId, graph.GatewayId, kImportId, guards));
 
@@ -277,8 +303,7 @@ public class CheckPointLayerGuardZonePairRecipeTest
             KnownSide(destination),
             service ?? AnyServiceScope());
 
-    private static CheckPointGuardServiceScope AnyServiceScope() => new(false,
-        [new PositioningService(GlobalConst.kAnyIpProtocolId, null, null)], false);
+    private static CheckPointGuardServiceScope AnyServiceScope() => new(false, kAnyServices, false);
 
     private static CheckPointGuardServiceScope ServiceScope(params PositioningService[] services) =>
         new(false, services, false);

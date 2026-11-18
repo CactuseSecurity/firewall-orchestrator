@@ -44,6 +44,7 @@ public class CheckPointPositioningContractsTest
     public void ServiceInputs_DefensivelyCopyCallerCollections()
     {
         List<PositioningService> services = [new PositioningService(6, 443, 443)];
+        IReadOnlyCollection<PositioningService> noServices = Array.Empty<PositioningService>();
         CreationRuleServiceInput input = new(services);
         CheckPointGuardServiceScope scope = new(false, services, false);
 
@@ -55,7 +56,7 @@ public class CheckPointPositioningContractsTest
             Assert.That(scope.Terms, Has.Count.EqualTo(1));
             Assert.That(input.Services, Is.Not.InstanceOf<List<PositioningService>>());
             Assert.That(scope.Terms, Is.Not.InstanceOf<List<PositioningService>>());
-            Assert.Throws<ArgumentException>(() => new CreationRuleServiceInput([]));
+            Assert.Throws<ArgumentException>(() => new CreationRuleServiceInput(noServices));
         });
     }
 

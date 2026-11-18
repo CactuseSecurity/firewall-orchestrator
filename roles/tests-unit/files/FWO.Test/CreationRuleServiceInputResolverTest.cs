@@ -39,7 +39,7 @@ public class CreationRuleServiceInputResolverTest
         WfReqTask access = Access(Service(6, 443, null), Service(6, 443, 443), Service(17, 53, 53));
 
         CreationRuleServiceInput input = AssertSuccess(
-            await Resolver().ResolveAsync(access, [access], CancellationToken.None));
+            await Resolver().ResolveAsync(access, TicketTasks(access), CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -55,7 +55,7 @@ public class CreationRuleServiceInputResolverTest
         WfReqTask access = Access(Service(GlobalConst.kAnyIpProtocolId, null, null));
 
         CreationRuleServiceInput input = AssertSuccess(
-            await Resolver().ResolveAsync(access, [access], CancellationToken.None));
+            await Resolver().ResolveAsync(access, TicketTasks(access), CancellationToken.None));
 
         Assert.That(input.Services.Single().ProtocolId, Is.EqualTo(GlobalConst.kAnyIpProtocolId));
     }
@@ -85,7 +85,7 @@ public class CreationRuleServiceInputResolverTest
         });
 
         CreationRuleServiceInput input = AssertSuccess(
-            await Resolver(groups).ResolveAsync(access, [access], CancellationToken.None));
+            await Resolver(groups).ResolveAsync(access, TicketTasks(access), CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -104,7 +104,7 @@ public class CreationRuleServiceInputResolverTest
         FakeFlowGroupResolver groups = CatalogGroup(7, "web", 8, 6, 443);
 
         CreationRuleServiceInput input = AssertSuccess(
-            await Resolver(groups).ResolveAsync(access, [access], CancellationToken.None));
+            await Resolver(groups).ResolveAsync(access, TicketTasks(access), CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -126,7 +126,7 @@ public class CreationRuleServiceInputResolverTest
         FakeFlowGroupResolver groups = new(new FlowGroupResolutionResult());
 
         CreationRuleServiceResolutionFailureCategory failure = AssertFailure(
-            await Resolver(groups).ResolveAsync(access, [access], CancellationToken.None));
+            await Resolver(groups).ResolveAsync(access, TicketTasks(access), CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -144,7 +144,7 @@ public class CreationRuleServiceInputResolverTest
         FakeFlowGroupResolver groups = new(new FlowGroupResolutionResult());
 
         CreationRuleServiceInput input = AssertSuccess(
-            await Resolver(groups).ResolveAsync(access, [nested, outer, access], CancellationToken.None));
+            await Resolver(groups).ResolveAsync(access, TicketTasks(nested, outer, access), CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -162,7 +162,7 @@ public class CreationRuleServiceInputResolverTest
         WfReqTask access = Access(2, 2, reference);
 
         CreationRuleServiceInput input = AssertSuccess(
-            await Resolver().ResolveAsync(access, [modify, access], CancellationToken.None));
+            await Resolver().ResolveAsync(access, TicketTasks(modify, access), CancellationToken.None));
 
         Assert.That(input.Services.Single().DestinationPortStart, Is.EqualTo(443));
     }
@@ -183,7 +183,7 @@ public class CreationRuleServiceInputResolverTest
         FakeFlowGroupResolver groups = CatalogGroup(7, "web", 8, 6, 443);
 
         CreationRuleServiceInput input = AssertSuccess(
-            await Resolver(groups).ResolveAsync(access, [modify, access], CancellationToken.None));
+            await Resolver(groups).ResolveAsync(access, TicketTasks(modify, access), CancellationToken.None));
 
         Assert.That(input.Services.Single().DestinationPortStart, Is.EqualTo(8443));
     }
@@ -207,11 +207,12 @@ public class CreationRuleServiceInputResolverTest
         WfReqTask laterAccess = Access(7, 1, laterReference);
 
         CreationRuleServiceResolutionFailureCategory deletedFailure = AssertFailure(
-            await Resolver().ResolveAsync(deletedAccess, [created, deleted, deletedAccess], CancellationToken.None));
+            await Resolver().ResolveAsync(
+                deletedAccess, TicketTasks(created, deleted, deletedAccess), CancellationToken.None));
         CreationRuleServiceResolutionFailureCategory cycleFailure = AssertFailure(
-            await Resolver().ResolveAsync(cycleAccess, [cycleA, cycleB, cycleAccess], CancellationToken.None));
+            await Resolver().ResolveAsync(cycleAccess, TicketTasks(cycleA, cycleB, cycleAccess), CancellationToken.None));
         CreationRuleServiceResolutionFailureCategory laterFailure = AssertFailure(
-            await Resolver().ResolveAsync(laterAccess, [laterAccess, laterObject], CancellationToken.None));
+            await Resolver().ResolveAsync(laterAccess, TicketTasks(laterAccess, laterObject), CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -230,7 +231,7 @@ public class CreationRuleServiceInputResolverTest
         WfReqTask access = Access(Service(protocol, start, end));
 
         CreationRuleServiceResolutionFailureCategory failure = AssertFailure(
-            await Resolver().ResolveAsync(access, [access], CancellationToken.None));
+            await Resolver().ResolveAsync(access, TicketTasks(access), CancellationToken.None));
 
         Assert.That(failure, Is.EqualTo(CreationRuleServiceResolutionFailureCategory.InvalidService));
     }
@@ -253,11 +254,11 @@ public class CreationRuleServiceInputResolverTest
         };
 
         CreationRuleServiceResolutionFailureCategory missing = AssertFailure(
-            await Resolver().ResolveAsync(access, [access], CancellationToken.None));
+            await Resolver().ResolveAsync(access, TicketTasks(access), CancellationToken.None));
         CreationRuleServiceResolutionFailureCategory ambiguous = AssertFailure(
-            await Resolver(duplicate).ResolveAsync(access, [access], CancellationToken.None));
+            await Resolver(duplicate).ResolveAsync(access, TicketTasks(access), CancellationToken.None));
         CreationRuleServiceResolutionFailureCategory query = AssertFailure(
-            await Resolver(throwing).ResolveAsync(access, [access], CancellationToken.None));
+            await Resolver(throwing).ResolveAsync(access, TicketTasks(access), CancellationToken.None));
 
         Assert.Multiple(() =>
         {
@@ -277,12 +278,14 @@ public class CreationRuleServiceInputResolverTest
         cancellation.Cancel();
 
         Assert.ThrowsAsync<OperationCanceledException>(() =>
-            Resolver(groups).ResolveAsync(access, [access], cancellation.Token));
+            Resolver(groups).ResolveAsync(access, TicketTasks(access), cancellation.Token));
         Assert.That(groups.CallCount, Is.Zero);
     }
 
     private static CreationRuleServiceInputResolver Resolver(IFlowGroupResolver? groups = null) =>
         new(groups ?? new FakeFlowGroupResolver(new FlowGroupResolutionResult()));
+
+    private static IReadOnlyCollection<WfReqTask> TicketTasks(params WfReqTask[] tasks) => tasks;
 
     private static WfReqTask Access(params WfReqElement[] services) => Access(10, 10, services);
 

@@ -100,11 +100,12 @@ public class CheckPointGuardServiceContainmentEvaluatorTest
     {
         using CancellationTokenSource cancellation = new();
         cancellation.Cancel();
+        List<PositioningService> requestedServices = [Tcp(443)];
 
         Assert.Throws<OperationCanceledException>(() =>
             CheckPointGuardServiceContainmentEvaluator.Evaluate(
                 Scope(false, Any()),
-                [Tcp(443)],
+                requestedServices,
                 cancellation.Token));
     }
 

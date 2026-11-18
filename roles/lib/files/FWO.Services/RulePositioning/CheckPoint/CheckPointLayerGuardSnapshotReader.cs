@@ -242,7 +242,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         {
             return TryMapServiceGroup(service, importId, terms, ref unresolved);
         }
-        return TryAddServiceLeaf(service, terms);
+        return TryAddServiceLeaf(service, terms, ref unresolved);
     }
 
     /// <summary>Maps valid flattened service leaves while treating unsupported exclusions as unresolved.</summary>
@@ -272,7 +272,7 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
                 unresolved = true;
                 continue;
             }
-            if (!TryAddServiceLeaf(flat.Service, terms))
+            if (!TryAddServiceLeaf(flat.Service, terms, ref unresolved))
             {
                 return false;
             }
@@ -281,12 +281,20 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
         return true;
     }
 
-    /// <summary>Adds one normalized service leaf and rejects missing or malformed protocol/port data.</summary>
-    private static bool TryAddServiceLeaf(ServiceWire service, List<PositioningService> terms)
+    /// <summary>Adds one normalized service leaf while preserving unsupported protocols as unresolved.</summary>
+    private static bool TryAddServiceLeaf(
+        ServiceWire service,
+        List<PositioningService> terms,
+        ref bool unresolved)
     {
         if (!service.ProtocolId.HasValue)
         {
-            return false;
+            if (!HasValidPortRange(service.PortStart, service.PortEnd))
+            {
+                return false;
+            }
+            unresolved = true;
+            return true;
         }
         try
         {
@@ -298,6 +306,13 @@ public sealed class CheckPointLayerGuardSnapshotReader(ApiConnection apiConnecti
             return false;
         }
     }
+
+    /// <summary>Validates optional numeric port bounds without assuming protocol semantics.</summary>
+    private static bool HasValidPortRange(int? start, int? end) =>
+        (!end.HasValue || start.HasValue) &&
+        start is null or >= 0 and <= GlobalConst.kMaxPortNumber &&
+        end is null or >= 0 and <= GlobalConst.kMaxPortNumber &&
+        (!start.HasValue || !end.HasValue || start <= end);
 
     /// <summary>Validates one flattened service-group row against its group and fixed import.</summary>
     private static bool IsValidServiceFlat(ServiceFlatWire flat, long groupId, long importId) =>

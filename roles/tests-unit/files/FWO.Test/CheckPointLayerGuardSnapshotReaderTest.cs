@@ -112,6 +112,45 @@ public class CheckPointLayerGuardSnapshotReaderTest
     }
 
     [Test]
+    public async Task DirectServiceWithoutProtocol_RemainsUnresolvedRatherThanInvalidatingSnapshot()
+    {
+        JArray json = JArray.Parse(kValidGuardJson);
+        json[0]!["rule_services"]![0]!["service"]!["ip_proto_id"] = null;
+
+        CheckPointLayerGuardSnapshot snapshot = AssertSuccess(
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
+
+        CheckPointGuardServiceScope scope = snapshot.GuardsByTargetLayerId[2].Service;
+        Assert.Multiple(() =>
+        {
+            Assert.That(scope.Terms, Is.Empty);
+            Assert.That(scope.HasUnresolvedTerms, Is.True);
+        });
+    }
+
+    [TestCase(null, 70000)]
+    [TestCase(-1, null)]
+    [TestCase(443, 80)]
+    [TestCase(null, 443)]
+    public async Task DirectServiceWithoutProtocolAndMalformedPorts_FailsClosed(
+        int? portStart,
+        int? portEnd)
+    {
+        JArray json = JArray.Parse(kValidGuardJson);
+        JObject service = (JObject)json[0]!["rule_services"]![0]!["service"]!;
+        service["ip_proto_id"] = null;
+        service["svc_port"] = portStart;
+        service["svc_port_end"] = portEnd;
+
+        CheckPointLayerGuardReadFailureCategory failure = AssertFailure(
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
+
+        Assert.That(failure, Is.EqualTo(CheckPointLayerGuardReadFailureCategory.InvalidGuardData));
+    }
+
+    [Test]
     public async Task UnexpectedAssociationLevelServiceNegation_FailsClosed()
     {
         JArray json = JArray.Parse(kValidGuardJson);
@@ -156,6 +195,55 @@ public class CheckPointLayerGuardSnapshotReaderTest
             Assert.That(scope.Terms.Single().DestinationPortStart, Is.EqualTo(443));
             Assert.That(scope.HasUnresolvedTerms, Is.False);
         });
+    }
+
+    [Test]
+    public async Task FlattenedServiceGroupWithMissingProtocolLeaf_RemainsUnresolvedRatherThanInvalidatingSnapshot()
+    {
+        JArray json = JArray.Parse(kValidGuardJson);
+        JObject service = (JObject)json[0]!["rule_services"]![0]!["service"]!;
+        service["type"] = JObject.Parse("""{ "name": "group" }""");
+        service["ip_proto_id"] = null;
+        service["svcgrp_flats"] = JArray.Parse("""
+            [{ "svcgrp_flat_id": 301, "svcgrp_flat_member_id": 302, "negated": false,
+               "import_created": 90, "removed": null,
+               "service": { "svc_id": 302, "svc_port": null, "svc_port_end": null,
+                            "ip_proto_id": null, "svc_create": 90, "removed": null,
+                            "type": { "name": "simple" } } }]
+            """);
+
+        CheckPointLayerGuardSnapshot snapshot = AssertSuccess(
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
+
+        CheckPointGuardServiceScope scope = snapshot.GuardsByTargetLayerId[2].Service;
+        Assert.Multiple(() =>
+        {
+            Assert.That(scope.Terms, Is.Empty);
+            Assert.That(scope.HasUnresolvedTerms, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task FlattenedServiceGroupWithMissingProtocolAndMalformedPortLeaf_FailsClosed()
+    {
+        JArray json = JArray.Parse(kValidGuardJson);
+        JObject service = (JObject)json[0]!["rule_services"]![0]!["service"]!;
+        service["type"] = JObject.Parse("""{ "name": "group" }""");
+        service["ip_proto_id"] = null;
+        service["svcgrp_flats"] = JArray.Parse("""
+            [{ "svcgrp_flat_id": 301, "svcgrp_flat_member_id": 302, "negated": false,
+               "import_created": 90, "removed": null,
+               "service": { "svc_id": 302, "svc_port": 443, "svc_port_end": 70000,
+                            "ip_proto_id": null, "svc_create": 90, "removed": null,
+                            "type": { "name": "simple" } } }]
+            """);
+
+        CheckPointLayerGuardReadFailureCategory failure = AssertFailure(
+            await new CheckPointLayerGuardSnapshotReader(new RecordingApi(json.ToString(Formatting.None)))
+                .ReadAsync(Graph(), kImportId, CancellationToken.None));
+
+        Assert.That(failure, Is.EqualTo(CheckPointLayerGuardReadFailureCategory.InvalidGuardData));
     }
 
     [Test]

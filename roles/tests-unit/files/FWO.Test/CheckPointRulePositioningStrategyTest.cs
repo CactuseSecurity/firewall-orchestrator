@@ -49,6 +49,15 @@ internal class CheckPointRulePositioningStrategyTest
     private const ProvisioningPositioningAlgorithm kAlgorithm =
         ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection;
     private const string kSentinel = "strategy-secret-sentinel";
+    private static readonly IReadOnlyCollection<string> kExpectedOperationOrder = new List<string>
+    {
+        "graph", "network", "service", "guard", "matrix", "resolve", "select", "execute"
+    }.AsReadOnly();
+    private static readonly IReadOnlyCollection<PositioningService> kTcp443Services =
+        new List<PositioningService>
+        {
+            new(6, 443, 443)
+        }.AsReadOnly();
 
     [Test]
     public void CanHandle_UsesExactDeviceTypeAndCatalogCapability()
@@ -166,7 +175,7 @@ internal class CheckPointRulePositioningStrategyTest
         CheckPointRulePosition position = (CheckPointRulePosition)success.Position;
         Assert.Multiple(() =>
         {
-            Assert.That(order, Is.EqualTo(["graph", "network", "service", "guard", "matrix", "resolve", "select", "execute"]));
+            Assert.That(order, Is.EqualTo(kExpectedOperationOrder));
             Assert.That(fixture.Graph.CallCount, Is.EqualTo(1));
             Assert.That(fixture.Matrix.CallCount, Is.EqualTo(1));
             Assert.That(fixture.Resolver.CallCount, Is.EqualTo(1));
@@ -599,7 +608,8 @@ internal class CheckPointRulePositioningStrategyTest
         DynamicZoneResolver resolver = new();
         RecordingCatalog catalog = new() { Recipe = StructuralRecipe() };
         RecordingNetworkResolver network = new(NetworkInput(), []);
-        RecordingServiceResolver services = new(ServiceInput(), []);
+        List<string> serviceOrder = [];
+        RecordingServiceResolver services = new(ServiceInput(), serviceOrder);
         RecordingGuardReader guards = new([]);
         CheckPointRulePositioningStrategy strategy = new(graph, network, services, guards, matrix, resolver, catalog);
         RulePositioningContext first = ValidContext(101, 201);
@@ -757,8 +767,7 @@ internal class CheckPointRulePositioningStrategyTest
         [new IPAddressRange(IPAddress.Parse("10.0.0.1"))],
         [new IPAddressRange(IPAddress.Parse("10.0.1.1"))]);
 
-    private static CreationRuleServiceInput ServiceInput() => new(
-        [new PositioningService(6, 443, 443)]);
+    private static CreationRuleServiceInput ServiceInput() => new(kTcp443Services);
 
     private static RulePositioningContext? InvalidContext(DirectInvalidContext invalid)
     {

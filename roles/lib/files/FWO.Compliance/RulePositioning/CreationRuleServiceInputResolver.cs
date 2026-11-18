@@ -13,6 +13,8 @@ public sealed class CreationRuleServiceInputResolver(IFlowGroupResolver flowGrou
     : ICreationRuleServiceInputResolver
 {
     private static readonly IReadOnlyCollection<string> kEmptyResolutionPath = Array.Empty<string>();
+    private static readonly IReadOnlyCollection<FlowServiceGroupResolution> kNoCatalogGroups =
+        Array.Empty<FlowServiceGroupResolution>();
     private readonly IFlowGroupResolver flowGroupResolver = flowGroupResolver ??
         throw new ArgumentNullException(nameof(flowGroupResolver));
 
@@ -114,7 +116,7 @@ public sealed class CreationRuleServiceInputResolver(IFlowGroupResolver flowGrou
             .Select(reference => reference.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (ids.Count == 0 && names.Count == 0)
         {
-            return new CatalogIndex([]);
+            return new CatalogIndex(kNoCatalogGroups);
         }
 
         try

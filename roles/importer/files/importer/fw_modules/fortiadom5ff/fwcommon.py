@@ -389,7 +389,10 @@ def assign_case_all(
 ):
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
-            adom_device_vdom_policy_package_structure[adom][device][vdom]["global"] = global_assignment["assign_name"]
+            vdom_structure = adom_device_vdom_policy_package_structure[adom][device][vdom]
+            if not _vdom_has_local_package(vdom_structure, device, vdom):
+                continue
+            vdom_structure["global"] = global_assignment["assign_name"]
 
 
 def assign_case_include(
@@ -399,9 +402,10 @@ def assign_case_include(
 ):
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
-            match_assign_and_vdom_policy_package(
-                global_assignment, adom_device_vdom_policy_package_structure[adom][device][vdom], is_include=True
-            )
+            vdom_structure = adom_device_vdom_policy_package_structure[adom][device][vdom]
+            if not _vdom_has_local_package(vdom_structure, device, vdom):
+                continue
+            match_assign_and_vdom_policy_package(global_assignment, vdom_structure, is_include=True)
 
 
 def assign_case_exclude(
@@ -411,9 +415,21 @@ def assign_case_exclude(
 ):
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
-            match_assign_and_vdom_policy_package(
-                global_assignment, adom_device_vdom_policy_package_structure[adom][device][vdom], is_include=False
-            )
+            vdom_structure = adom_device_vdom_policy_package_structure[adom][device][vdom]
+            if not _vdom_has_local_package(vdom_structure, device, vdom):
+                continue
+            match_assign_and_vdom_policy_package(global_assignment, vdom_structure, is_include=False)
+
+
+def _vdom_has_local_package(vdom_structure: dict[str, Any] | str, device: str, vdom: str) -> bool:
+    """
+    VDOMs without an installed local policy package keep the "" placeholder set by
+    get_devices_from_manager. A global policy package cannot be attached to them.
+    """
+    if isinstance(vdom_structure, dict):
+        return True
+    FWOLogger.debug(f"skipping global package assignment for {device}_{vdom}: no local policy package installed")
+    return False
 
 
 def match_assign_and_vdom_policy_package(

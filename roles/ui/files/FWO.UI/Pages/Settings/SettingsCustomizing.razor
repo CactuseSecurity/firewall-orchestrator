@@ -261,6 +261,23 @@
                 <input id="cbx_create_objects_separately" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ReqCreateObjectsSeparately">
             </div>
         </SettingsRow>
+        <hr />
+        <h5>@(userConfig.GetText("external_requests"))</h5>
+        <SettingsRow LabelKey="externalRequestSleepTime" TooltipKey="H5426a" LabelFor="num_external_request_sleep_time">
+            <input id="num_external_request_sleep_time" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.ExternalRequestSleepTime" />
+        </SettingsRow>
+        <SettingsRow LabelKey="externalRequestStartAt" TooltipKey="H5427a" LabelFor="time_external_request_start_at">
+            <input id="time_external_request_start_at" type="time" step="60" class="form-control form-control-sm w-auto" @bind="extReqStartTime" />
+            <input type="date" class="form-control form-control-sm w-auto" @bind="extReqStartDate" />
+        </SettingsRow>
+        <SettingsRow LabelKey="externalRequestWaitCycles" TooltipKey="H5426b" LabelFor="num_external_request_wait_cycles">
+            <input id="num_external_request_wait_cycles" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.ExternalRequestWaitCycles" />
+        </SettingsRow>
+        <SettingsRow LabelKey="check_certificates" TooltipKey="H5593d" LabelFor="cbx_ext_ticket_check_certificates">
+            <div class="form-check form-switch">
+                <input id="cbx_ext_ticket_check_certificates" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ExtTicketSystemsCheckCertificates" />
+            </div>
+        </SettingsRow>
     </form>
 
 
@@ -314,6 +331,8 @@ else
     private int? selectedApiTicketInitialStateId;
     private List<PathAnalysisAlgorithm> pathAnalysisAlgorithms = [];
     private const string kAlgorithmTextPrefix = "path_algo_";
+    private DateTime extReqStartDate = DateTime.Today;
+    private DateTime extReqStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
 
     protected override async Task OnInitializedAsync()
     {
@@ -340,6 +359,7 @@ else
             List<PathAnalysisAlgorithm> algorithms = await apiConnection.SendQueryAsync<List<PathAnalysisAlgorithm>>(PathAnalysisQueries.getPathAnalysisAlgorithms) ?? [];
             // by id: none first, then the path analyses and the device selections in the order they were added
             pathAnalysisAlgorithms = [.. algorithms.OrderBy(algorithm => algorithm.Id)];
+            extReqStartDate = extReqStartTime = configData.ExternalRequestStartAt;
             InitComplete = true;
         }
         catch (Exception exception)
@@ -414,6 +434,7 @@ else
                 configData.ReqAvailableTaskTypes = JsonSerializer.Serialize(availableTaskTypes);
                 configData.ReqPriorities = JsonSerializer.Serialize(prioList);
                 configData.ReqTicketFieldVisibility = ticketFieldVisibilityConfig.ToConfigValue();
+                configData.ExternalRequestStartAt = extReqStartDate.Date.Add(extReqStartTime.TimeOfDay);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
             }

@@ -16,8 +16,8 @@ namespace FWO.Test
     internal class UiUncheckedCertificatesWarningTest
     {
         private const string kWarningSelector = "[data-testid='unchecked-certificates-warning']";
-        private static readonly List<string> kAllSettingsPages = ["/settings/importer", "/settings/exttickettemplates", "/settings/email"];
-        private static readonly List<string> kTicketSystemSettingsPage = ["/settings/exttickettemplates"];
+        private static readonly List<string> kAllSettingsPages = ["/settings/importer", "/settings/workflowcustomizing", "/settings/email"];
+        private static readonly List<string> kTicketSystemSettingsPage = ["/settings/workflowcustomizing"];
         // generous for loaded CI runners; the assertion returns as soon as it holds
         private static readonly TimeSpan kRenderTimeout = TimeSpan.FromSeconds(10);
 

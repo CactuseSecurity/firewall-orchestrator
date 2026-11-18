@@ -172,6 +172,28 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void VariancesReport_RendersNotAnalysedConnectionsWithReason()
+        {
+            using BunitContext context = CreateContext();
+            OwnerConnectionReport ownerReport = new()
+            {
+                Owner = new FwoOwner { Name = "Variance Owner" },
+                ExcludedConnections = [new() { Connection = new() { Id = 9, Name = "Excluded connection" }, Reason = ConState.DeletedObjects }]
+            };
+            List<OwnerConnectionReport> ownerData = [ownerReport];
+
+            IRenderedComponent<VariancesReport> component = context.Render<VariancesReport>(parameters => parameters
+                .Add(p => p.OwnerData, ownerData));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Connections not analysed"));
+                Assert.That(component.Markup, Does.Contain("Excluded connection"));
+                Assert.That(component.Markup, Does.Contain("Deleted objects"));
+            });
+        }
+
         private static BunitContext CreateContext(bool includeRuleTreeBuilder = false)
         {
             BunitContext context = new();

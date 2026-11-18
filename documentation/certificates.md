@@ -531,7 +531,7 @@ connection type decides whether the check is done:
 | Switch (Settings page) | Connections | Hosts that open them |
 |---|---|---|
 | `importCheckCertificates` (Import) | firewall imports, autodiscovery, Check Point change requests | importer; middleware and UI for autodiscovery and change requests |
-| `extTicketSystemsCheckCertificates` (External ticket templates) | Tufin SecureChange and Check Point ticket systems | middleware |
+| `extTicketSystemsCheckCertificates` (Workflow - Customizing) | Tufin SecureChange | middleware |
 | `emailCheckCertificates` (Email) | SMTP server with StartTls or Tls | middleware; UI for the test email |
 
 A switched-off check accepts any server certificate, so anyone with a network position

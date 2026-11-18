@@ -134,5 +134,6 @@ create table ext_request
 	finish_date Timestamp,
 	wait_cycles int default 0,
 	attempts int default 0,
-	locked boolean default false
+	locked boolean default false,
+	impltask_id bigint
 );

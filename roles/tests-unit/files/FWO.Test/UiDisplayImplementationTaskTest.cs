@@ -431,6 +431,50 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// Choosing a gateway of another management moves the task to that management, so the stored management never
+        /// contradicts the gateway, which the provisioning would reject as inconsistent.
+        /// </summary>
+        [Test]
+        public async Task DisplayImplementationTask_SaveImplTask_TakesTheManagementOfTheChosenGateway()
+        {
+            WfReqTask reqTask = new() { Id = 20, TaskType = WfTaskType.generic.ToString(), ManagementId = 5 };
+            WfImplTask implTask = new()
+            {
+                Id = 30,
+                TaskNumber = 1,
+                ReqTaskId = reqTask.Id,
+                TaskType = WfTaskType.generic.ToString(),
+                Title = "Implementation task",
+                FreeText = "instructions",
+                ManagementId = 5,
+                DeviceId = 50
+            };
+            reqTask.ImplementationTasks = [implTask];
+            WfHandler handler = new()
+            {
+                DisplayImplTaskMode = true,
+                EditImplTaskMode = true,
+                ActReqTask = reqTask,
+                ActImplTask = implTask,
+                ActTicket = new WfTicket { Tasks = [reqTask] }
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler,
+                new WfStateDict(), Roles.Implementer);
+            SetMember(component.Instance, "actDevice", new Device { Id = 60, Name = "gw-other", Management = new Management { Id = 6 } });
+
+            await component.InvokeAsync(() => InvokePrivateTask(typeof(DisplayImplementationTask), component.Instance,
+                "SaveImplTask"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(implTask.DeviceId, Is.EqualTo(60));
+                Assert.That(implTask.ManagementId, Is.EqualTo(6));
+            });
+        }
+
         [Test]
         public async Task DisplayImplementationTask_ConfAddComment_UpdatesCommentsThroughNormalPath()
         {

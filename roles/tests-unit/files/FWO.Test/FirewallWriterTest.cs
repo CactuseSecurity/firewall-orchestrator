@@ -1,3 +1,4 @@
+using FWO.Api.Client;
 using FWO.Basics.Exceptions;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
@@ -5,6 +6,7 @@ using FWO.ExternalSystems.FirewallWrite;
 using NUnit.Framework;
 using RestSharp;
 using System.Net;
+using System.Reflection;
 using System.Text.Json.Nodes;
 using static FWO.Test.FirewallWriteTestSupport;
 
@@ -519,6 +521,18 @@ namespace FWO.Test
                 Assert.That(factory.Create(Context(FirewallVendors.kAzureFirewall)), Is.TypeOf<AzureWriteClient>());
                 Assert.Throws<NotSupportedException>(() => factory.Create(Context(31)));
             }
+        }
+
+        [Test]
+        public void ClientFactory_GivesTheClientTheResponseTimeoutOfTheSettings()
+        {
+            GlobalDeviceSpecificSettings settings = new() { RequestResponseTimeout = 42 };
+
+            FirewallWriteClient client = new FirewallWriteClientFactory().Create(Context(FirewallVendors.kCheckPointR8x, settings));
+
+            FieldInfo timeout = typeof(RestApiClient).GetField("ResponseTimeout", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(nameof(RestApiClient), "ResponseTimeout");
+            Assert.That(timeout.GetValue(client), Is.EqualTo(TimeSpan.FromSeconds(42)));
         }
 
         [Test]

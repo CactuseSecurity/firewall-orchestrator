@@ -52,6 +52,12 @@ namespace FWO.Test
 
         public InMemoryDeviceSpecificSettingsApiConnection Settings { get; } = new();
 
+        /// <summary>Device type of the management; Guardicore unless a test needs another one.</summary>
+        public int ManagementDeviceTypeId { get; set; } = FirewallVendors.kGuardicoreManagement;
+
+        /// <summary>External management data of the management; none, as a Guardicore management needs none.</summary>
+        public string? ManagementExtMgtData { get; set; }
+
         /// <summary>App roles that exist (not deleted), of all owners.</summary>
         public List<string> CurrentAppRoles { get; } = ["AR504711-001", "AR504711-002", "AR504711-003"];
 
@@ -119,12 +125,12 @@ namespace FWO.Test
             new() { Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } } }
         ];
 
-        private static List<Management> Managements() =>
+        private List<Management> Managements() =>
         [
             new()
             {
-                Id = kManagementId, Name = "Guardicore", ExtMgtData = "{\"id\":\"1\",\"name\":\"GuardicoreExt\"}",
-                DeviceType = new() { Id = FirewallVendors.kGuardicoreManagement, Name = "Guardicore Management" }, Devices = [new() { Id = 1 }]
+                Id = kManagementId, Name = "Guardicore", ExtMgtData = ManagementExtMgtData,
+                DeviceType = new() { Id = ManagementDeviceTypeId, Name = "Guardicore Management" }, Devices = [new() { Id = 1 }]
             }
         ];
 

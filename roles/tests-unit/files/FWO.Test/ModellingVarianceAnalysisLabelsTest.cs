@@ -17,6 +17,8 @@ namespace FWO.Test
     [TestFixture]
     internal class ModellingVarianceAnalysisLabelsTest
     {
+        private const int kCheckPointManagementTypeId = 9;
+        private const string kExternalManagementData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}";
         private const string kRecognitionOption = "{\"nwRegardIp\":true,\"nwRegardName\":false,\"nwSeparateGroupAnalysis\":true,\"svcRegardPortAndProt\":true}";
 
         private static readonly SimulatedUserConfig UserConfig = new()
@@ -75,6 +77,41 @@ namespace FWO.Test
 
         private static List<string> DeletedLabels(List<WfReqTask> tasks) =>
             [.. tasks.Where(task => task.TaskType == nameof(WfTaskType.group_delete)).Select(task => task.Elements.Single().GroupName ?? "")];
+
+        [Test]
+        public async Task Request_WritesToHostBasedManagementWithoutExternalManagementData()
+        {
+            GuardicoreVarianceTestApiConn api = Api();
+            api.ManagementExtMgtData = null;
+
+            List<WfReqTask> tasks = await Analysis(api).AnalyseModelledConnectionsForRequest(Connections);
+
+            Assert.That(Task(tasks, "New AppRole: AR504711-002").OnManagement?.Id, Is.EqualTo(GuardicoreVarianceTestApiConn.kManagementId));
+        }
+
+        [Test]
+        public async Task Request_SkipsOtherManagementWithoutExternalManagementData()
+        {
+            GuardicoreVarianceTestApiConn api = Api();
+            api.ManagementDeviceTypeId = kCheckPointManagementTypeId;
+            api.ManagementExtMgtData = null;
+
+            List<WfReqTask> tasks = await Analysis(api).AnalyseModelledConnectionsForRequest(Connections);
+
+            Assert.That(tasks, Is.Empty);
+        }
+
+        [Test]
+        public async Task Request_WritesToOtherManagementWithExternalManagementData()
+        {
+            GuardicoreVarianceTestApiConn api = Api();
+            api.ManagementDeviceTypeId = kCheckPointManagementTypeId;
+            api.ManagementExtMgtData = kExternalManagementData;
+
+            List<WfReqTask> tasks = await Analysis(api).AnalyseModelledConnectionsForRequest(Connections);
+
+            Assert.That(tasks, Is.Not.Empty);
+        }
 
         [Test]
         public async Task Request_ComparesLabelsByTheirAddresses()

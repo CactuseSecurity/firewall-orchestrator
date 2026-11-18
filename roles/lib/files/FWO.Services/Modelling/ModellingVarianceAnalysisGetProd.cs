@@ -27,18 +27,13 @@ namespace FWO.Services.Modelling
             try
             {
                 List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-                managements = [.. managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData))];
                 RelevantManagements = [];
-                foreach (Management mgt in managements)
+                foreach (Management mgt in managements.Where(IsRequestTarget))
                 {
-                    ExtMgtData extMgtData = JsonSerializer.Deserialize<ExtMgtData>(mgt.ExtMgtData ?? "");
-                    if (!string.IsNullOrEmpty(extMgtData.ExtId) || !string.IsNullOrEmpty(extMgtData.ExtName))
+                    RelevantManagements.Add(mgt);
+                    if (!alreadyCreatedAppServers.ContainsKey(mgt.Id))
                     {
-                        RelevantManagements.Add(mgt);
-                        if (!alreadyCreatedAppServers.ContainsKey(mgt.Id))
-                        {
-                            alreadyCreatedAppServers.Add(mgt.Id, []);
-                        }
+                        alreadyCreatedAppServers.Add(mgt.Id, []);
                     }
                 }
             }
@@ -46,6 +41,28 @@ namespace FWO.Services.Modelling
             {
                 Log.WriteError(userConfig.GetText("managements"), "Init Managements leads to error: ", exception);
             }
+        }
+
+        /// <summary>
+        /// Whether the variance analysis compares the modelled connections with a management and requests their
+        /// differences there: a host based firewall (segmenting by labels, e.g. Guardicore) is always written to, since
+        /// it enforces the policy on every host; another management only while it has external management data, i.e.
+        /// is addressed via an external ticket system.
+        /// </summary>
+        private static bool IsRequestTarget(Management mgt)
+        {
+            return WritesLabels(mgt) || HasExternalManagementData(mgt);
+        }
+
+        /// <summary>Whether the external management data of a management holds an external id or name.</summary>
+        private static bool HasExternalManagementData(Management mgt)
+        {
+            if (string.IsNullOrEmpty(mgt.ExtMgtData))
+            {
+                return false;
+            }
+            ExtMgtData extMgtData = JsonSerializer.Deserialize<ExtMgtData>(mgt.ExtMgtData);
+            return !string.IsNullOrEmpty(extMgtData.ExtId) || !string.IsNullOrEmpty(extMgtData.ExtName);
         }
 
         private async Task<bool> GetModelledRulesProductionState(ModellingFilter modellingFilter, CancellationToken cancellationToken = default)

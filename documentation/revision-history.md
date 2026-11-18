@@ -99,7 +99,8 @@
   changed ones get their members added and removed, app role, app zone and network area labels requested for the owner
   whose modelled object does not exist any more (deleted or renamed) are deleted. Network area labels are requested while the device specific setting
   modellingImplementNetworkAreaObjects is on; the device specific setting modellingCreateAppZones now switches the
-  app zone requests per management
+  app zone requests per management. Host based firewall managements (Guardicore) are always analysed and requested,
+  other managements still only while they have external management data
 - settings: new device specific setting provisioningExcludedObjectTypes (Global to manager): modelling group types
   (AppRole, AppZone, NetworkArea, ServiceGroup) left out of the variance analysis and of provisioning; when writing,
   groups have the type of their label key or naming convention, and the task of an excluded group is left out with

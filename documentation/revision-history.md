@@ -1,9 +1,6 @@
 # Firewall Orchestrator Revision History
 
 ## 9.9.4 - 17.11.2026
-- log real client IP addresses, not just the reverse proxy IPs
-
-## 9.9.3 - 17.11.2026
 - request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket
   - a request task of a management with the implementation mode external ticket system is handed to Tufin SecureChange as a whole; implementation tasks with mode automatic are written directly to the firewall with the firewall write library (`ext_request.impltask_id`)
   - offered as a button, implementation tasks on targets set to manual are written as well within the scope of the action (ticket or request task); on an implementation task it writes only this one task
@@ -17,6 +14,12 @@
   - new rules targeting a section are written at the top or bottom of that section
   - provisioning uses the shared target management of implementation tasks (the management of the gateway); a task whose stored management contradicts its gateway is reported with an alert instead of being written, and choosing a gateway in the implementation task view takes over its management
 - flow compliance API (`getFlowComplianceState`): a service with protocol `any` or `-1` is checked as the canonical ANY service (ports ignored) and now violates every port/protocol entry of a ForbiddenService criterion, like imported ANY services do; previously it was reported as compliant
+- logging: UI and middleware log the real client address of logins instead of `127.0.0.1` or the address of the UI server (#5659)
+  - the UI evaluates the `X-Forwarded-For` and `X-Forwarded-Proto` headers of its local Apache reverse proxy, like the middleware already does; only the entry appended by that proxy is used. The UI vhosts now set `X-Forwarded-Proto`
+  - the UI keeps the address of the browser per session and logs it with successful and failed logins, logouts and sessions ended after a revocation
+  - the middleware logs issued tokens, failed logins (including the delegated logins `GetTokenPairForUser` and `GetForUser`) and logins refused by the login limits with the client address
+  - middleware REST API: `GetTokenPair` (and the deprecated `Get`) accept `options.clientAddress`, the client a trusted frontend logs in for. It is only accepted from this host and the hosts in `login_trusted_client_hosts`; from any other caller it is ignored. A value that is not a single canonical IP address is answered with `400`
+  - behaviour change: logins through the UI are limited per browser address (`login_client_attempts_per_minute`, default 30) instead of being exempt via the address of the UI server. Users behind one shared address (NAT, terminal server, a reverse proxy in front of the UI) share that limit: raise it, or add the proxy to `login_trusted_client_hosts`. The per-user failure limit is unchanged and stays counted per calling host
 
 
 ## 9.9.3 - 14.11.2026
@@ -67,11 +70,6 @@
 - installer: Apache proxies the UI and the API with `ProxyPass ... upgrade=websocket` instead of rewrite rules. `mod_proxy_http` tunnels the websocket connections itself (Apache 2.4.47 or later), so new installations no longer enable `proxy_wstunnel`; upgraded installations keep the module enabled, unused
   - API port: websocket connections are only proxied below `/api/`; so far a websocket upgrade request on any path reached `/v1/graphql`
   - API port: `/api` without a trailing slash is redirected to `/api/`, and requests below `/api/` reach Hasura without a doubled leading slash
-- logging: UI and middleware log the real client address of logins instead of `127.0.0.1` or the address of the UI server (#5659)
-  - the UI evaluates the `X-Forwarded-For` and `X-Forwarded-Proto` headers of its local Apache reverse proxy, like the middleware already does; only the entry appended by that proxy is used. The UI vhosts now set `X-Forwarded-Proto`
-  - the UI keeps the address of the browser per session and logs it with successful and failed logins, logouts and sessions ended after a revocation
-  - middleware REST API: `GetTokenPair` (and the deprecated `Get`) accept `options.clientAddress`, the client a trusted frontend logs in for. It is only accepted from this host and the hosts in `login_trusted_client_hosts`; from any other caller it is ignored. A value that is not a single canonical IP address is answered with `400`
-  - behaviour change: logins through the UI are limited per browser address (`login_client_attempts_per_minute`, default 30) instead of being exempt via the address of the UI server. Users behind one shared address (NAT, terminal server, a reverse proxy in front of the UI) share that limit: raise it, or add the proxy to `login_trusted_client_hosts`. The per-user failure limit is unchanged and stays counted per calling host
 - dependencies: update NuGet packages (AngleSharp 1.10.4, coverlet.collector 10.1.1, MailKit 5.0.0, MimeKit 5.0.0, Microsoft.NET.Test.Sdk 18.12.0, PuppeteerSharp 25.17.1, Scalar.AspNetCore 3.0.0, SoPro.FancyTable 1.7.0)
 
 

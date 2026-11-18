@@ -43,6 +43,7 @@ namespace FWO.Middleware.Server.Controllers
         private const string kClientAddressPath = "options.clientAddress";
         private const string kLoginLogCategory = "User Authentication";
         private const string kTokenGenerationLogCategory = "Token Generation";
+        private const string kLoginParametersRequired = "Login parameters are required.";
 
         private enum RefreshTokenConsumptionState
         {
@@ -294,6 +295,11 @@ namespace FWO.Middleware.Server.Controllers
         [HttpPost("GetTokenPairForUser")]
         public async Task<ActionResult<TokenPair>> GetTokenPairForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
         {
+            if (parameters == null)
+            {
+                return BadRequest(kLoginParametersRequired);
+            }
+
             try
             {
                 using LoginAttempt? attempt = BeginAttempt(parameters.AdminUsername);
@@ -328,15 +334,15 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (LoginCapacityException e)
             {
-                return LoginCapacityResult(e, parameters?.AdminUsername);
+                return LoginCapacityResult(e, parameters.AdminUsername);
             }
             catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
             {
-                return ApiUnreachableLoginResult(e, parameters?.AdminUsername);
+                return ApiUnreachableLoginResult(e, parameters.AdminUsername);
             }
             catch (Exception e)
             {
-                return BadRequest(e.Message);
+                return LoginFailedResult(e, parameters.AdminUsername, null);
             }
         }
 
@@ -423,6 +429,11 @@ namespace FWO.Middleware.Server.Controllers
         [HttpPost("GetForUser")]
         public async Task<ActionResult<string>> GetAsyncForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
         {
+            if (parameters == null)
+            {
+                return BadRequest(kLoginParametersRequired);
+            }
+
             try
             {
                 string adminUsername = parameters.AdminUsername;
@@ -472,15 +483,15 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (LoginCapacityException e)
             {
-                return LoginCapacityResult(e, parameters?.AdminUsername);
+                return LoginCapacityResult(e, parameters.AdminUsername);
             }
             catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
             {
-                return ApiUnreachableLoginResult(e, parameters?.AdminUsername);
+                return ApiUnreachableLoginResult(e, parameters.AdminUsername);
             }
             catch (Exception e)
             {
-                return BadRequest(e.Message);
+                return LoginFailedResult(e, parameters.AdminUsername, null);
             }
         }
 

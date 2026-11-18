@@ -160,6 +160,7 @@ namespace FWO.Test
             ActionResult<string> result = await controller.GetAsyncForUser(null!);
 
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result!).Value, Is.EqualTo("Login parameters are required."));
         }
 
         [Test]
@@ -181,6 +182,7 @@ namespace FWO.Test
             ActionResult<TokenPair> result = await controller.GetTokenPairForUser(null!);
 
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result!).Value, Is.EqualTo("Login parameters are required."));
         }
 
         [Test]
@@ -1657,6 +1659,20 @@ namespace FWO.Test
             Assert.That(log, Does.Contain($"Could not reach the API while logging in user \"login-user\" from client {kReportedClient}"));
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task DelegatedLogin_LogsTheCaller_WhenTheAdminCredentialsAreInvalid(bool deprecatedEndpoint)
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 10, userFailures: 10);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle);
+            AuthenticationTokenGetForUserParameters parameters = new() { AdminUsername = "admin", AdminPassword = "wrong", TargetUserName = "target" };
+
+            string log = await ConsoleOutput.CaptureAsync(async () =>
+                Assert.That(await InvokeDelegatedLogin(controller, parameters, deprecatedEndpoint), Is.TypeOf<BadRequestObjectResult>()));
+
+            Assert.That(log, Does.Contain($"Error generating token for user \"admin\" from client {kTrustedCaller}"));
+        }
+
         /// <summary>
         /// Logs in through GetTokenPair or the deprecated Get endpoint.
         /// </summary>
@@ -1665,6 +1681,16 @@ namespace FWO.Test
             return deprecatedEndpoint
                 ? (await controller.GetAsync(login)).Result
                 : (await controller.GetTokenPair(login)).Result;
+        }
+
+        /// <summary>
+        /// Logs in on behalf of another user through GetTokenPairForUser or the deprecated GetForUser endpoint.
+        /// </summary>
+        private static async Task<ActionResult?> InvokeDelegatedLogin(AuthenticationTokenController controller, AuthenticationTokenGetForUserParameters login, bool deprecatedEndpoint)
+        {
+            return deprecatedEndpoint
+                ? (await controller.GetAsyncForUser(login)).Result
+                : (await controller.GetTokenPairForUser(login)).Result;
         }
 
         private static AuthenticationTokenController CreateController()

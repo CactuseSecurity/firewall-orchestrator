@@ -3,6 +3,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Middleware.Client;
@@ -28,6 +29,7 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class UiMonitoringMainTest
     {
+        private static readonly List<string> kSecureChangeLevels = ["Global"];
         private static MethodInfo GetPrivateMethod(string name)
         {
             return typeof(MonitoringMain).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
@@ -456,10 +458,7 @@ namespace FWO.Test
             List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
             SetPrivateProperty(monitoring, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
                 messages.Add((exception, title, message, errorFlag))));
-            setup.UserConfig.ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem>
-            {
-                new() { Id = 1, Name = "Tufin", CredentialId = 3 }
-            });
+            setup.ApiConn.LevelsUsingCredential[3] = kSecureChangeLevels;
             setup.ApiConn.Credentials.Clear();
             setup.ApiConn.Credentials.Add(new Credential { Id = 3, Name = "used_demo" });
             setup.ApiConn.Credentials.Add(new Credential { Id = 4, Name = "unused_demo" });
@@ -470,7 +469,7 @@ namespace FWO.Test
             Assert.That(GetPrivateField<int>(monitoring, "deletedSampleCredentials"), Is.EqualTo(1));
             Assert.That(messages, Has.Count.EqualTo(1));
             Assert.That(messages[0].ErrorFlag, Is.True);
-            Assert.That(messages[0].Message, Does.Contain(setup.UserConfig.GetText("E5113")).And.Contain("used_demo: Tufin"));
+            Assert.That(messages[0].Message, Does.Contain(setup.UserConfig.GetText("E5113")).And.Contain("used_demo: Global"));
         }
 
         [Test]
@@ -532,6 +531,7 @@ namespace FWO.Test
         public int OwnerQueryCalls { get; private set; }
         public int ManagementDeleteQueryCalls { get; private set; }
         public int CredentialDeleteQueryCalls { get; private set; }
+        public Dictionary<int, List<string>> LevelsUsingCredential { get; } = [];
         public int UserDeleteQueryCalls { get; private set; }
         public int TenantDeleteQueryCalls { get; private set; }
         public int OwnerDeleteQueryCalls { get; private set; }
@@ -578,6 +578,14 @@ namespace FWO.Test
             {
                 OwnerQueryCalls++;
                 return Task.FromResult((QueryResponseType)(object)new List<FwoOwner>(Owners));
+            }
+
+            if (query == DeviceSpecificSettingsQueries.getNodesUsingCredential)
+            {
+                int credentialId = Convert.ToInt32(variables?.GetType().GetProperty("credentialId")?.GetValue(variables) ?? 0);
+                List<DeviceSpecificConfigNodeData> nodes = [.. (LevelsUsingCredential.TryGetValue(credentialId, out List<string>? levels) ? levels : [])
+                    .Select(level => new DeviceSpecificConfigNodeData { DisplayName = level })];
+                return Task.FromResult((QueryResponseType)(object)nodes);
             }
 
             if (typeof(QueryResponseType) == typeof(ReturnId))

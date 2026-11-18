@@ -11,9 +11,9 @@ import pytest
 if TYPE_CHECKING:
     from collections.abc import Callable
     from types import ModuleType, TracebackType
-    from typing import Self
 
     from _pytest.monkeypatch import MonkeyPatch
+    from typing_extensions import Self
 
 EXPECTED_PROTOCOL_PAYLOADS = 2
 EXPECTED_PUBLISH_TIMEOUT = 15

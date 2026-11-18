@@ -31,7 +31,7 @@
         if not internalca_ca_validity.valid_at.leaf_horizon
         else 'Issued certificates still get their full validity for now.'
       }}
-      Plan a CA rotation, see documentation/certificates.md.
+      Plan a CA rotation with internalca_ca_rotation, see documentation/certificates.md.
   when:
     - not internalca_ca_validity.valid_at.warning_horizon
       or not internalca_ca_validity.valid_at.leaf_horizon
@@ -44,18 +44,25 @@
       {{ internalca_ca_validity.not_after }}, in under
       {{ internalca_ca_expiry_critical_days }} days, and every certificate issued
       for {{ inventory_hostname }} would expire with it. Rotate the CA before
-      continuing, see documentation/certificates.md. To complete this run anyway -
-      which does not extend any certificate - set internalca_ignore_ca_expiry=true.
+      continuing: run the upgrade with internalca_ca_rotation=prepare, then with
+      internalca_ca_rotation=activate, see documentation/certificates.md. To complete
+      this run anyway - which does not extend any certificate - set
+      internalca_ignore_ca_expiry=true.
   when:
     - not internalca_ca_validity.valid_at.critical_horizon
     - not internalca_ignore_ca_expiry | bool
+    - internalca_ca_rotation != 'prepare'
 
+# Pass 1 of a rotation is the remedy for this very condition, so it must not be refused
+# by it. Pass 2 needs no exemption: by the time this check runs it reads the next CA.
 - name: Warn when continuing with an expiring internal CA
   debug:
     msg: >-
       WARNING: continuing with an internal CA that expires on
-      {{ internalca_ca_validity.not_after }} because internalca_ignore_ca_expiry
-      is set. Certificates issued by this run expire on that date.
+      {{ internalca_ca_validity.not_after }}
+      {{ 'to prepare its rotation' if internalca_ca_rotation == 'prepare'
+         else 'because internalca_ignore_ca_expiry is set' }}.
+      Certificates issued by this run expire on that date.
   when:
     - not internalca_ca_validity.valid_at.critical_horizon
-    - internalca_ignore_ca_expiry | bool
+    - internalca_ignore_ca_expiry | bool or internalca_ca_rotation == 'prepare'

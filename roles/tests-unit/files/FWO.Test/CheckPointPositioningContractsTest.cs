@@ -194,6 +194,27 @@ public class CheckPointPositioningContractsTest
         });
     }
 
+    [TestCase(CheckPointPositionAnchorKind.Top)]
+    [TestCase(CheckPointPositionAnchorKind.Bottom)]
+    public void Position_AcceptsSectionRelativeAnchor(CheckPointPositionAnchorKind anchorKind)
+    {
+        CheckPointRulePosition position = new(
+            "layer-1",
+            anchorKind,
+            null,
+            kAlgorithm,
+            "section-1",
+            "Applications");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(position.AnchorKind, Is.EqualTo(anchorKind));
+            Assert.That(position.AnchorRuleUid, Is.Null);
+            Assert.That(position.SectionUid, Is.EqualTo("section-1"));
+            Assert.That(position.SectionName, Is.EqualTo("Applications"));
+        });
+    }
+
     [TestCase(CheckPointPositionAnchorKind.Top, "rule-1")]
     [TestCase(CheckPointPositionAnchorKind.Bottom, "rule-1")]
     [TestCase(CheckPointPositionAnchorKind.Above, null)]
@@ -205,6 +226,24 @@ public class CheckPointPositioningContractsTest
     {
         Assert.Throws<ArgumentException>(() =>
             new CheckPointRulePosition("layer-1", anchorKind, anchorRuleUid, kAlgorithm));
+    }
+
+    [TestCase(CheckPointPositionAnchorKind.Bottom, null, "section-1", null)]
+    [TestCase(CheckPointPositionAnchorKind.Bottom, null, null, "Applications")]
+    [TestCase(CheckPointPositionAnchorKind.Above, "rule-1", "section-1", "Applications")]
+    public void Position_RejectsInvalidSectionAnchorCombinations(
+        CheckPointPositionAnchorKind anchorKind,
+        string? anchorRuleUid,
+        string? sectionUid,
+        string? sectionName)
+    {
+        Assert.Throws<ArgumentException>(() => new CheckPointRulePosition(
+            "layer-1",
+            anchorKind,
+            anchorRuleUid,
+            kAlgorithm,
+            sectionUid,
+            sectionName));
     }
 
     [Test]
@@ -254,9 +293,11 @@ public class CheckPointPositioningContractsTest
             Id = 42,
             RulePosition = new CheckPointRulePosition(
                 "layer-1",
-                CheckPointPositionAnchorKind.Below,
-                "rule-1",
-                kAlgorithm)
+                CheckPointPositionAnchorKind.Bottom,
+                null,
+                kAlgorithm,
+                "section-1",
+                "Applications")
         };
 
         WfImplTask systemTextCopy = System.Text.Json.JsonSerializer.Deserialize<WfImplTask>(
@@ -270,6 +311,10 @@ public class CheckPointPositioningContractsTest
             Assert.That(newtonsoftCopy.RulePosition, Is.TypeOf<CheckPointRulePosition>());
             Assert.That(systemTextCopy.Id, Is.EqualTo(42));
             Assert.That(newtonsoftCopy.Id, Is.EqualTo(42));
+            Assert.That(((CheckPointRulePosition)systemTextCopy.RulePosition!).SectionUid,
+                Is.EqualTo("section-1"));
+            Assert.That(((CheckPointRulePosition)newtonsoftCopy.RulePosition!).SectionName,
+                Is.EqualTo("Applications"));
         });
     }
 
@@ -278,9 +323,11 @@ public class CheckPointPositioningContractsTest
     {
         CheckPointRulePosition original = new(
             "layer-1",
-            CheckPointPositionAnchorKind.Below,
-            "rule-1",
-            kAlgorithm);
+            CheckPointPositionAnchorKind.Bottom,
+            null,
+            kAlgorithm,
+            "section-1",
+            "Applications");
 
         CheckPointRulePosition copy = (CheckPointRulePosition)original.DeepCopy();
 
@@ -290,6 +337,8 @@ public class CheckPointPositioningContractsTest
             Assert.That(copy.LayerUid, Is.EqualTo(original.LayerUid));
             Assert.That(copy.AnchorKind, Is.EqualTo(original.AnchorKind));
             Assert.That(copy.AnchorRuleUid, Is.EqualTo(original.AnchorRuleUid));
+            Assert.That(copy.SectionUid, Is.EqualTo(original.SectionUid));
+            Assert.That(copy.SectionName, Is.EqualTo(original.SectionName));
             Assert.That(copy.PositioningAlgorithm, Is.EqualTo(original.PositioningAlgorithm));
         });
     }
@@ -303,9 +352,11 @@ public class CheckPointPositioningContractsTest
     {
         RulePosition original = new CheckPointRulePosition(
             "layer-1",
-            CheckPointPositionAnchorKind.Above,
-            "rule-1",
-            kAlgorithm);
+            CheckPointPositionAnchorKind.Bottom,
+            null,
+            kAlgorithm,
+            "section-1",
+            "Applications");
 
         string json = serialize(original);
         RulePosition? result = deserialize(json);
@@ -317,9 +368,13 @@ public class CheckPointPositioningContractsTest
             Assert.That(position.PositionType, Is.EqualTo(CheckPointRulePosition.kDiscriminator));
             Assert.That(position.SchemaVersion, Is.EqualTo(1));
             Assert.That(position.LayerUid, Is.EqualTo("layer-1"));
-            Assert.That(position.AnchorKind, Is.EqualTo(CheckPointPositionAnchorKind.Above));
-            Assert.That(position.AnchorRuleUid, Is.EqualTo("rule-1"));
+            Assert.That(position.AnchorKind, Is.EqualTo(CheckPointPositionAnchorKind.Bottom));
+            Assert.That(position.AnchorRuleUid, Is.Null);
+            Assert.That(position.SectionUid, Is.EqualTo("section-1"));
+            Assert.That(position.SectionName, Is.EqualTo("Applications"));
             Assert.That(position.PositioningAlgorithm, Is.EqualTo(kAlgorithm));
+            Assert.That(json, Does.Contain("\"section_uid\":\"section-1\""));
+            Assert.That(json, Does.Contain("\"section_name\":\"Applications\""));
             Assert.That(json, Does.Not.Contain("$type"));
         });
     }

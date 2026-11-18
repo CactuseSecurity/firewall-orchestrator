@@ -57,43 +57,16 @@ namespace FWO.Test
         [TestCase(false)]
         public void ExternalSystemClients_FollowTheSwitchOfTheirConnectionType(bool checkCertificates)
         {
-            ExternalCertificateChecks certificateChecks = new(FirewallConnections: checkCertificates, TicketSystems: checkCertificates);
             SCClient secureChange = new(new ExternalTicketSystem { Url = "https://securechange.example/", ResponseTimeout = 5 }, checkCertificates);
             FWO.DeviceAutoDiscovery.CheckPointClient checkPoint = new(CreateManagement("checkpoint.example", 443), checkCertificates);
             FWO.DeviceAutoDiscovery.FortiManagerClient fortiManager = new(CreateManagement("fortimanager.example", 443), checkCertificates);
-            FWO.ExternalSystems.CheckPoint.CheckPointClient checkPointTickets =
-                new(new ExternalTicketSystem { Url = "https://checkpoint.example/web_api/", ResponseTimeout = 5 },
-                    CreateManagement("checkpoint.example", 443), certificateChecks);
 
             Assert.Multiple(() =>
             {
                 Assert.That(ReadCheckCertificates(secureChange), Is.EqualTo(checkCertificates));
                 Assert.That(ReadCheckCertificates(checkPoint), Is.EqualTo(checkCertificates));
                 Assert.That(ReadCheckCertificates(fortiManager), Is.EqualTo(checkCertificates));
-                Assert.That(ReadCheckCertificates(checkPointTickets), Is.EqualTo(checkCertificates));
             });
-        }
-
-        [Test]
-        public void CheckPointTicketClient_WithManagementHost_UsesFirewallSwitch()
-        {
-            ExternalCertificateChecks certificateChecks = new(FirewallConnections: true, TicketSystems: false);
-            FWO.ExternalSystems.CheckPoint.CheckPointClient client =
-                new(new ExternalTicketSystem { Url = "https://ticket.example/web_api/", ResponseTimeout = 5 },
-                    CreateManagement("checkpoint.example", 443), certificateChecks);
-
-            Assert.That(ReadCheckCertificates(client), Is.True);
-        }
-
-        [Test]
-        public void CheckPointTicketClient_WithoutManagementHost_UsesTicketSystemSwitch()
-        {
-            ExternalCertificateChecks certificateChecks = new(FirewallConnections: true, TicketSystems: false);
-            FWO.ExternalSystems.CheckPoint.CheckPointClient client =
-                new(new ExternalTicketSystem { Url = "https://ticket.example/web_api/", ResponseTimeout = 5 },
-                    CreateManagement("", 443), certificateChecks);
-
-            Assert.That(ReadCheckCertificates(client), Is.False);
         }
 
         [Test]

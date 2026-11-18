@@ -60,6 +60,25 @@ namespace FWO.Ui.Data.Extensions
             }
         }
 
+        extension(RuleHitImportIntervalUnit unit)
+        {
+            /// <summary>
+            /// Returns the localized label for a rule hit import interval unit.
+            /// </summary>
+            public string ToString(UserConfig userConfig)
+            {
+                ArgumentNullException.ThrowIfNull(userConfig);
+
+                return unit switch
+                {
+                    RuleHitImportIntervalUnit.Minutes => userConfig.GetText("Minutes2"),
+                    RuleHitImportIntervalUnit.Hours => userConfig.GetText("Hours"),
+                    RuleHitImportIntervalUnit.Days => userConfig.GetText("Days"),
+                    _ => unit.ToString(),
+                };
+            }
+        }
+
         extension(LogTimeRangeUnit unit)
         {
             /// <summary>

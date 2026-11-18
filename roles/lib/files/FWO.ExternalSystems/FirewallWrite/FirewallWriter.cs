@@ -45,7 +45,10 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// Writes one implementation task to its management and gateway. Never throws: configuration, template and data
         /// errors are reported before anything is sent, firewall errors with the results of the calls sent so far.
         /// </summary>
-        public async Task<ModifyFirewallResult> ModifyFirewall(WfImplTask implTask)
+        /// <param name="implTask">Implementation task to write.</param>
+        /// <param name="installOnGatewayIds">Gateways of the management a new rule is installed on, if it is shared by the
+        /// tasks of several gateways; null for the gateway of the task.</param>
+        public async Task<ModifyFirewallResult> ModifyFirewall(WfImplTask implTask, IReadOnlyList<int>? installOnGatewayIds = null)
         {
             ArgumentNullException.ThrowIfNull(implTask);
             RenderedTask rendered;
@@ -53,7 +56,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             FirewallWriteClient client;
             try
             {
-                context = await dataSource.LoadContext(implTask);
+                context = (await dataSource.LoadContext(implTask)).WithInstallOnGateways(installOnGatewayIds);
                 if (context.Vendor == FirewallVendor.Unsupported)
                 {
                     string message = $"Device type {context.DeviceTypeId} of management '{context.Management.Name}' is not supported for firewall writes.";

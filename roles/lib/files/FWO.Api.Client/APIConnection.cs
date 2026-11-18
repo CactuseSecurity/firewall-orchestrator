@@ -44,6 +44,14 @@ namespace FWO.Api.Client
 
         public virtual void SetAmbientRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList) { }
 
+        /// <summary>
+        /// Chooses the role to use when a request does not set one explicitly, from the roles the provider
+        /// accepts at the time of each request.
+        /// </summary>
+        /// <param name="user">The authenticated user and their roles.</param>
+        /// <param name="targetRoleListProvider">Returns the roles accepted for the current context, e.g. the current page.</param>
+        public virtual void SetAmbientRoleProvider(System.Security.Claims.ClaimsPrincipal user, Func<List<string>> targetRoleListProvider) { }
+
         public abstract void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList);
 
         public abstract void SwitchBack();

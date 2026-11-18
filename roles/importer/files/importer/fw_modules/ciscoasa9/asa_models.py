@@ -104,6 +104,7 @@ class AccessListEntry(BaseModel):
     action: Literal["permit", "deny"]
     protocol: EndpointKind  # Changed to use EndpointKind for kind and value
     src: EndpointKind
+    src_port: str | None = None  # source port construct as written, e.g. "eq 1024"; not yet imported into the rule
     dst: EndpointKind
     dst_port: EndpointKind  # Changed to use EndpointKind for kind and value
     inactive: bool = False  # Added field for inactive flag

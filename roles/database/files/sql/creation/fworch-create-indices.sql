@@ -54,6 +54,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS request_workflow_configuration_single_active O
 -- at most one active (not yet finished) external request per ticket, so concurrent calls cannot start the request chain
 -- of a ticket twice; the middleware sets finish_date when closing a request, before it creates the next one
 CREATE UNIQUE INDEX IF NOT EXISTS uidx_ext_request_one_active_per_ticket ON ext_request (ticket_id) WHERE finish_date IS NULL;
+CREATE INDEX IF NOT EXISTS idx_ext_request_impltask_id ON ext_request (impltask_id);
 
 -- request schema: PostgreSQL does not index the referencing side of a foreign key, but Hasura filters the child
 -- table on that column for every array relationship (ticket -> reqtasks -> elements/impltasks/approvals/comments).
@@ -101,6 +102,7 @@ Create index "IX_Relationship78" on "changelog_rule" ("control_id");
 Create unique index "kundennetze_akey" on "tenant_network" using btree ("tenant_net_id","tenant_id");
 Create unique index "rule_from_unique_index" on "rule_from" using btree ("rule_id","obj_id","user_id");
 Create index "import_control_start_time_idx" on "import_control" using btree ("start_time");
+Create index IF NOT EXISTS "idx_rule_hit_dev_id" on firewall."rule_hit" ("dev_id");
 
 
 Create index "IX_relationship23" on "rule" ("action_id");

@@ -4,6 +4,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
+using FWO.Encoders;
 using FWO.Report;
 using FWO.Report.Data.ViewData;
 using FWO.Report.Filter;
@@ -138,6 +139,25 @@ namespace FWO.Test
             };
 
             AssertNoInjectedMarkup(report.ExportToHtml());
+        }
+
+        [Test]
+        public void ReportVariances_ExportToHtml_EncodesExcludedConnectionName()
+        {
+            OwnerConnectionReport ownerReport = new()
+            {
+                Name = "Owner",
+                ExcludedConnections = [new() { Connection = PayloadConnection(105), Reason = ConState.DeletedObjects }]
+            };
+            ReportVariances report = new(query, userConfig, ReportType.VarianceAnalysis)
+            {
+                ReportData = new() { OwnerData = [ownerReport] }
+            };
+
+            string html = report.ExportToHtml();
+
+            AssertNoInjectedMarkup(html);
+            Assert.That(html, Does.Contain(userConfig.GetText("C9014")), "the reason is shown");
         }
 
         [Test]

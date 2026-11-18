@@ -33,7 +33,10 @@ from model_controllers.management_controller import (
     ManagementController,
     ManagerInfo,
 )
+from rule_hit_importer import import_rule_hits
 from services.service_provider import ServiceProvider
+
+SHUTDOWN_REQUESTED_MESSAGE = "import_main_loop - shutdown requested"
 
 
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
@@ -51,7 +54,7 @@ def wait_with_shutdown_check(sleep_time: int):
     def exit_if_shutdown_requested():
         if fwo_globals.shutdown_requested:
             FWOLogger.info("import_main_loop - shutdown requested. Exiting...")
-            raise SystemExit("import_main_loop - shutdown requested")
+            raise SystemExit(SHUTDOWN_REQUESTED_MESSAGE)
 
     exit_if_shutdown_requested()
     counter = 0
@@ -124,7 +127,7 @@ def import_single_management(
             suppress_consistency_check=suppress_consistency_check,
         )
     except (KeyboardInterrupt, ShutdownRequestedError) as e:
-        raise SystemExit("import_main_loop - shutdown requested") from e
+        raise SystemExit(SHUTDOWN_REQUESTED_MESSAGE) from e
     except (FwoApiFailedLockImportError, FwLoginFailedError):
         FWOLogger.info(f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")
         return  # minor errors for a single mgm, go to next one
@@ -132,6 +135,44 @@ def import_single_management(
         FWOLogger.error(
             f"import_main_loop - unspecific error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}"
         )
+
+
+def import_rule_hits_single_management(
+    mgm_id: int,
+    fwo_api_call: FwoApiCall,
+    verify_certificates: bool,
+    suppress_certificate_warnings: bool,
+    fwo_major_version: int,
+) -> None:
+    """Run the requested rule hit import of a single management; errors are logged and do not stop the loop."""
+    wait_with_shutdown_check(0)
+    try:
+        import_state = ImportStateController.initialize_import(
+            mgm_id=mgm_id,
+            api_call=fwo_api_call,
+            suppress_cert_warnings=suppress_certificate_warnings,
+            ssl_verification=verify_certificates,
+            force=False,
+            version=fwo_major_version,
+            is_clearing_import=False,
+        )
+        register_global_state(import_state)
+        import_rule_hits(fwo_api_call)
+    except (KeyboardInterrupt, ShutdownRequestedError) as e:
+        raise SystemExit(SHUTDOWN_REQUESTED_MESSAGE) from e
+    except Exception:
+        FWOLogger.error(
+            f"import_main_loop - error during rule hit import of mgm_id={mgm_id}, {traceback.format_exc()!s}"
+        )
+
+
+def get_rule_hit_import_requests(fwo_api_call: FwoApiCall) -> set[int]:
+    """Return the managements with a pending rule hit import request; on errors none are handled this cycle."""
+    try:
+        return fwo_api_call.get_rule_hit_import_requests()
+    except Exception:
+        FWOLogger.error(f"import_main_loop - error while getting rule hit import requests: {traceback.format_exc()!s}")
+        return set()
 
 
 def main_loop(
@@ -195,6 +236,7 @@ def main_loop(
 
     api_fetch_limit = int(fwo_api_call.get_config_value(key="fwApiElementsPerFetch") or api_fetch_limit)
     sleep_timer = int(fwo_api_call.get_config_value(key="importSleepTime") or sleep_timer)
+    rule_hit_requests = get_rule_hit_import_requests(fwo_api_call)
 
     ## loop through all managements
     for mgm_id in mgm_ids:
@@ -212,6 +254,14 @@ def main_loop(
         )
 
         ServiceProvider().reset()
+
+        # right after the configuration import, so the rule hits refer to the current rules
+        if mgm_id in rule_hit_requests and not clear:
+            init_service_provider()
+            import_rule_hits_single_management(
+                mgm_id, fwo_api_call, verify_certificates, suppress_certificate_warnings, fwo_major_version
+            )
+            ServiceProvider().reset()
 
     FWOLogger.info(f"import_main_loop: sleeping for {sleep_timer} seconds until next import cycle")
     wait_with_shutdown_check(sleep_timer)

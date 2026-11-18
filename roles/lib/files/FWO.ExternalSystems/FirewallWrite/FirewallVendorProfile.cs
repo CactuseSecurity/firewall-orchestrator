@@ -21,7 +21,14 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const string kDefaultVdom = "root";
         private const string kFwoRuleCollectionGroup = "FWO";
 
-        private static readonly FirewallVendorProfile CheckPoint = new("Any", "Accept", "Drop", "Log", "None", true, false);
+        private const string kCheckPointPolicyTargets = "Policy Targets";
+
+        private static readonly FirewallVendorProfile CheckPoint = new("Any", "Accept", "Drop", "Log", "None", true, false)
+        {
+            WritesRules = true,
+            AllTargetsInstallOn = kCheckPointPolicyTargets,
+            AddressesRulesInImportedLayer = true
+        };
         private static readonly FirewallVendorProfile FortiOs = new("ALL", "accept", "deny", "all", "disable", false, false)
         {
             WritesMembersIndividually = true
@@ -53,10 +60,28 @@ namespace FWO.ExternalSystems.FirewallWrite
         public bool GroupsHoldAddresses { get; init; }
 
         /// <summary>
+        /// Whether rules are written to the vendor. A new rule needs its position, which the rule positioning only
+        /// calculates for Check Point so far; the rules of other vendors are left to a person.
+        /// </summary>
+        public bool WritesRules { get; init; }
+
+        /// <summary>
         /// Layer used when neither the rule position nor the imported rulebase links name one, instead of the gateway's
         /// rulebase; Azure writes into a rule collection group of its own.
         /// </summary>
         public string? DefaultLayerName { get; init; }
+
+        /// <summary>
+        /// Install-on value of a rule that applies to all targets of its policy (Check Point: "Policy Targets"); null for
+        /// vendors whose rules have no install-on.
+        /// </summary>
+        public string? AllTargetsInstallOn { get; init; }
+
+        /// <summary>
+        /// Whether an existing rule is modified or deleted in the layer it lies in according to the imported configuration
+        /// (Check Point: a rule uid is only valid within its layer); a rule missing in the import is then not written.
+        /// </summary>
+        public bool AddressesRulesInImportedLayer { get; init; }
 
         /// <summary>Returns the profile of a vendor family.</summary>
         public static FirewallVendorProfile For(FirewallVendor vendor) => vendor switch

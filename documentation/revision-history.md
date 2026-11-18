@@ -1,9 +1,62 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.4 - 17.11.2026
+- request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket
+  - a request task of a management with the implementation mode external ticket system is handed to Tufin SecureChange as a whole; implementation tasks with mode automatic are written directly to the firewall with the firewall write library (`ext_request.impltask_id`)
+  - offered as a button, implementation tasks on targets set to manual are written as well within the scope of the action (ticket or request task); on an implementation task it writes only this one task
+  - tasks nobody implements (e.g. external ticket system without selected system, rule without position) raise a workflow alert
+- request workflow: the routing of firewall config changes moves from the setting "Firewall config changes - General" to the device specific settings: implementation mode for objects and for rules, external ticket system, Tufin SecureChange connection, response timeout and retries; the upgrade migrates the previous settings, the ticket system list page is removed
+- firewall write: rules are written to Check Point
+  - new rules at the position calculated by the rule positioning and with install-on along the setting "Install on" (ANY = Policy Targets, gateways in path = the gateways of the tasks)
+  - new rules of one request task going to the same layer are written once, installed on the gateways of all of these tasks; the other tasks take over the result
+  - rules to modify or delete are addressed in their layer according to the import (sections traced up to their layer); their implementation mode is the strictest one of all gateways they take effect on, a manual gateway is reported with an alert; a rule already deleted counts as done once its layer is verified
+  - objects already present as requested count as created
+  - new rules targeting a section are written at the top or bottom of that section
+  - provisioning uses the shared target management of implementation tasks (the management of the gateway); a task whose stored management contradicts its gateway is reported with an alert instead of being written, and choosing a gateway in the implementation task view takes over its management
+- flow compliance API (`getFlowComplianceState`): a service with protocol `any` or `-1` is checked as the canonical ANY service (ports ignored) and now violates every port/protocol entry of a ForbiddenService criterion, like imported ANY services do; previously it was reported as compliant
+- workflow: new state action event "While set" and rollout check of implemented tickets (#5289)
+  - state actions with event "While set" are performed by a middleware job in a configurable interval (new setting on the state actions page, default 10 minutes, 0 disables) for every ticket in the state; only the auto-forward with scope ticket can use this event, other action types would send emails or write data on every run
+  - the conditional auto-forward offers the new check "Rollout check": it passes when every management involved in the ticket has been imported successfully by a rule import started after the implementation was completed (latest stop date of the implementation tasks); sub-managements are covered by the import of their super management; the result is recorded as a ticket comment when the ticket is moved
+  - the conditional auto-forward gets an optional error state with error conditions, which apply only when the check has not passed (a passed check always leads to the passed target); first condition is a timeout, measured from the recorded state change into the current state; the ticket comment records the timeout together with the check result, e.g. the managements still missing
+  - new conditional target "Remain in state", e.g. to repeat a check with the event "While set" until it passes
+
+
 ## 9.9.3 - 14.11.2026
 - request workflow: rule-positioning and firewall-write operations resolve gateway-bound implementation tasks against the gateway's management and reject inconsistent task data
 - middleware REST API: `getAddressGroups` and `getServiceGroups` accept `filter.includeTechnicalDetails=true` to include each member's standalone address or service object fields; omitted, null or false keep the existing compact id/name response, and address details can be combined with separated zone groups
+- CI: the version gate no longer loses its result when a pull request is pushed while the version gate refresh runs (#5674)
+  - version-gate.yml has no concurrency group anymore, so a refresh re-run of an older head cannot cancel the gate of the current head
+  - the refresh skips a pull request whose head moved since it read the pull request list
+- CI: shorter pull request checks and less queueing on the shared runners (#5674), see documentation/developer-docs/github/test-install-workflow.md
+  - a pull request installs on Ubuntu 24.04 only; Ubuntu 22.04 (ansible-core 2.18) is added when it changes Ansible files; every merge into develop or main installs on Ubuntu 22.04, 24.04 and 26.04
+  - each install uses the system's own Python and the installer environment script like an installation, instead of a 15 job OS x Python matrix
+  - Python unit tests run on Python 3.11 on a pull request, and on 3.10 - 3.14 after a merge and on Dependabot pip updates; pyright checks against Python 3.10 and 3.14 on every pull request
+  - the installs no longer run the unit tests (new tag `unittests_run`); the C# unit tests run in the Sonar workflows only
+  - each install of a pull request checks the version first and stops within seconds when it needs a bump; `test-install.yml` gets a read-only token by default
+  - every merge into develop gets its own run, and a failure is commented on the merged pull request
+  - removed the PDF test step of the install job, which only rebuilt the test project to skip the test on GitHub Actions
+  - importer unit tests: the autouse service provider fixture builds its test doubles on first use only (about 7 times faster)
+  - Dependabot groups minor and patch updates per directory into one pull request
+- customizing script tests and scripts/performance/create_large_ruleset.py run on Python 3.10 again (no `typing.Self` and `datetime.UTC` imports)
 - UI fix: links from rule report objects to the right sidebar work again on the first click and no longer jump to another page on a following click (#4919). The per-page API role is now determined from the current page with every request instead of a navigation handler, which had broken the browser's in-page navigation
+- importer: last hits are read by a separate rule hit import instead of the regular import (#3297)
+  - the regular import no longer reads or writes last hits (Check Point no longer requests hits), so unchanged Check Point configurations no longer leave last hits outdated
+  - the new middleware scheduler "ImportRuleHitsJob" requests a rule hit import for every imported top-level management (table `rule_hit_import_request`); the responsible importer runs it right after the configuration import of the management and removes the request
+  - schedule: new importer settings `importRuleHitsSleepTime`, `importRuleHitsSleepTimeUnit` (minutes, hours, days) and `importRuleHitsStartAt`; default once a day at 00:00, 0 switches it off
+  - the run holds the import lock of the management as `import_control` row of the new import type 5 "rule hit", which never counts as configuration change; a management locked by a running import is skipped until the next request; failures raise an import error alert
+  - last hits are stored per gateway in the new table `firewall.rule_hit`; `rule_metadata.rule_last_hit` keeps the latest hit across all gateways and never moves backwards, so reports and filters are unchanged
+  - Check Point: hits are fetched per gateway (`hits-settings.target`); global layers of a multi-domain server are not covered. FortiManager: the last hit of the policy package is stored for every gateway using the package
+  - manual run: `import_mgm.py -m <mgm_id> --rule_hits`
+  - "last import" queries (rollback, import status, daily check, last complete/successful import) only consider configuration imports
+- middleware REST API: new endpoint `POST /api/Rule/GetRuleLastHits` returns the last hits of the rules of a management, aggregated and per gateway (#5670)
+  - roles: admin, auditor, reporter, reporter-viewall, recertifier. Callers other than admin, auditor and reporter-viewall only get managements and gateways visible to their tenant (a management that is not visible answers with an empty list); callers of a tenant other than tenant0 get no rule names
+  - filters in `options.filter`: `mgmId`, `ruleUid`, `ruleName`, `lastHitAfter`, `lastHitBefore`, `neverHit`, `devId`, `gatewayName`; paging with `options.limit` / `options.offset` and the `X-Has-More` header, at most 1000 gateways per rule (`gatewaysTruncated`)
+  - expensive rate-limit policy and request body size limit; validation returns all key-level errors together
+- reports: rule reports show the last hit per gateway (#5669)
+  - rules listed below a gateway (Rules, Resolved, Technical, NAT, Unused; UI and HTML/PDF export) show the last hit on that gateway instead of the latest hit across all gateways: "no hits" for a rule never hit on a gateway that reports hits, "unsupported" for a gateway whose management does not report hits. Where the hit on the gateway is not known, the latest hit across all gateways is shown as before: for a gateway without any imported hit (e.g. before the first rule hit import) and for a rule of another management (global rules) without a hit on the gateway. The management rulebases view, the recertification report, the `lasthit` filter and the unused-rules cut-off keep using the latest hit across all gateways
+  - the rule details list the last hit of every gateway
+  - new column `stm_dev_typ.dev_typ_supports_rule_hits`, set for Check Point R8x, Check Point MDS R8x, FortiADOM and FortiManager
+  - Hasura: `firewall.rule_hit` is readable for auditor and reporter-viewall, and for reporter, recertifier and modeller restricted to their visible gateways (tenant0 sees all)
 - installer: pin the .NET SDK to `dotnet_version` (10.0) with a `global.json` below `/usr/local/fworch`, so a newer major SDK installed alongside (e.g. .NET 11 on GitHub runners) no longer builds the middleware, UI and unit tests; the repository and the CI workflows use the same pin, and the test-install workflow checks that all pins match (#5700)
 - importer (Cisco ASA): access-list entries with a source port no longer always fail the import (so far listed as "still not supported" since 9.7.1, GHSA-p8qh-59qx-rjj4)
   - permit entries are imported for all source ports, and a warning quoting the entry and its source port is logged. The imported rule is therefore more permissive than the real one
@@ -16,11 +69,7 @@
 - installer: Apache proxies the UI and the API with `ProxyPass ... upgrade=websocket` instead of rewrite rules. `mod_proxy_http` tunnels the websocket connections itself (Apache 2.4.47 or later), so new installations no longer enable `proxy_wstunnel`; upgraded installations keep the module enabled, unused
   - API port: websocket connections are only proxied below `/api/`; so far a websocket upgrade request on any path reached `/v1/graphql`
   - API port: `/api` without a trailing slash is redirected to `/api/`, and requests below `/api/` reach Hasura without a doubled leading slash
-- workflow: new state action event "While set" and rollout check of implemented tickets (#5289)
-  - state actions with event "While set" are performed by a middleware job in a configurable interval (new setting on the state actions page, default 10 minutes, 0 disables) for every ticket in the state; only the auto-forward with scope ticket can use this event, other action types would send emails or write data on every run
-  - the conditional auto-forward offers the new check "Rollout check": it passes when every management involved in the ticket has been imported successfully by a rule import started after the implementation was completed (latest stop date of the implementation tasks); sub-managements are covered by the import of their super management; the result is recorded as a ticket comment when the ticket is moved
-  - the conditional auto-forward gets an optional error state with error conditions, which apply only when the check has not passed (a passed check always leads to the passed target); first condition is a timeout, measured from the recorded state change into the current state; the ticket comment records the timeout together with the check result, e.g. the managements still missing
-  - new conditional target "Remain in state", e.g. to repeat a check with the event "While set" until it passes
+- dependencies: update NuGet packages (AngleSharp 1.10.4, coverlet.collector 10.1.1, MailKit 5.0.0, MimeKit 5.0.0, Microsoft.NET.Test.Sdk 18.12.0, PuppeteerSharp 25.17.1, Scalar.AspNetCore 3.0.0, SoPro.FancyTable 1.7.0)
 
 
 ## 9.9.2 - 10.11.2026

@@ -13,9 +13,11 @@ namespace FWO.Test
     {
         private const int kDeviceTypeId = 9;
         private static readonly List<DeviceSpecificSettingsScope> kNoPersistedScopes = [];
+        private static readonly List<DeviceSpecificSettingKey> kConnectionKeys =
+            [DeviceSpecificSettingKeys.ScUrl, DeviceSpecificSettingKeys.ScCredential, DeviceSpecificSettingKeys.ScLookupRequesterId];
         private static readonly List<string> kSectionTextKeys =
             ["dss_sc_template_section", "dss_sc_template_section_intro", "dss_sc_template_uses_default", "dss_sc_template_no_default",
-             "ext_ticket_sc_templates_moved", "H5199v", "H5599a"];
+             "H5199v", "dss_sc_url", "dss_sc_credential", "dss_sc_lookup_requester_id", "H5198a", "H5198b", "H5198c"];
         private static readonly List<Management> kManagements =
         [
             new()
@@ -44,8 +46,8 @@ namespace FWO.Test
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(fields.Select(field => field.Key), Is.EquivalentTo(SecureChangeTemplateSettingKeys.All));
-                Assert.That(fields.All(field => field.Kind == DeviceSpecificFieldKind.SecureChangeTemplate), Is.True);
+                Assert.That(fields.Select(field => field.Key), Is.EquivalentTo(SecureChangeTemplateSettingKeys.All.Concat(kConnectionKeys)));
+                Assert.That(fields.Where(field => !kConnectionKeys.Contains(field.Key)).All(field => field.Kind == DeviceSpecificFieldKind.SecureChangeTemplate), Is.True);
                 Assert.That(fields.All(field => field.AppliesTo(root)), Is.True);
                 Assert.That(fields.All(field => field.AppliesTo(Node(root, DeviceSpecificScopeType.DeviceType))), Is.True);
                 Assert.That(fields.All(field => field.AppliesTo(Node(root, DeviceSpecificScopeType.Management))), Is.True);

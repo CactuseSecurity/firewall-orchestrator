@@ -153,7 +153,7 @@ git config core.hooksPath .githooks
 ```
 The hooks run after `git pull`, `git checkout`, and `git rebase` and initialize and update the submodules.
 Notes:
-- The hook is quiet if you do not have access to a submodule repository (no error output).
+- The hook is quiet if you do not have access to a submodule repository (no error output). It skips a submodule that is not initialized. It switches branches only inside the submodules and leaves the branch of your checkout as it is, also in a linked worktree (`git worktree add`).
 - The hook checks out the configured submodule branch from `.gitmodules` before updating, to avoid detached HEAD.
 - This intentionally moves submodules to the newest commit on their configured branch, even if the superproject has not updated the pointer yet. Expect the submodule to appear "modified" in `git status`, unless you follow the next subsections advice.
 
@@ -229,26 +229,39 @@ If `git commit` fails with messages like:
 
 ```text
 Warning: No virtual environment found. Assuming python (with ruff and pyright) is available in base environment.
-Error: 'python -m ruff' is not available. Please install ruff in the active environment.
+Error: 'python -m ruff' is not available. Install it with:
+  python -m pip install -r roles/importer/files/importer/requirements.txt
 ```
 
 ### 1. What was the error?
 
 The repository-managed pre-commit hook (`.githooks/pre-commit`) failed before creating the commit.
-The hook requires `python`, `ruff`, and `pyright` to be available in the active environment.
+The hook requires `python`, `ruff`, and `pyright` to be available in the Python environment it uses (see below).
 
 ### 2. Why does it occur?
 
 This typically happens when:
 
-- no local `.venv` is present or active, and no conda env is active,
+- no local `.venv` is present, and either `conda` is not on the PATH of the shell or IDE that runs git, or `CONDA_ENV` in `.githooks/tooling.env` is empty (the hook then uses the `python` on PATH),
 - `python` points to a different interpreter than expected,
 - required tooling is missing from the active interpreter,
 - project Python dependencies are not installed yet.
 
 In this repo, `core.hooksPath` is set to `.githooks`, so these checks run automatically on commit.
 The hook prefers the repository-local virtual environment at `.venv` when it exists.
+Without `.venv`, it uses the conda environment named by `CONDA_ENV` in `.githooks/tooling.env` (default `fwo`).
+It asks conda once for the python of that environment and runs ruff and pyright with it, so the environment does not have to be activated.
 That means fixing a global Python installation often does nothing for the commit hook.
+
+If `conda` is on PATH but has no environment with the name set as `CONDA_ENV`, the hook stops with a different error:
+
+```text
+Error: Could not find python in the conda environment 'fwo' (CONDA_ENV in .githooks/tooling.env).
+```
+
+Create that environment (for example `conda create -n fwo python`) and install the requirements into it with
+`conda run -n fwo python -m pip install -r roles/importer/files/importer/requirements.txt`,
+or set up a `.venv` (section 4), which the hook prefers.
 
 ### 3. Fast fix for Ruff version mismatch
 

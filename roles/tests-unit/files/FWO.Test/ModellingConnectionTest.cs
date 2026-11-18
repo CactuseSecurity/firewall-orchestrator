@@ -178,7 +178,7 @@ namespace FWO.Test
                 ServiceGroups = [new ModellingServiceGroupWrapper { Content = serviceGroup }]
             };
 
-            bool result = conn.IsRelevantForVarianceAnalysis(0);
+            bool result = conn.IsRelevantForVarianceAnalysis(0, false);
 
             ClassicAssert.IsTrue(result);
         }
@@ -191,7 +191,7 @@ namespace FWO.Test
                 IsInterface = true
             };
 
-            bool result = conn.IsRelevantForVarianceAnalysis(0);
+            bool result = conn.IsRelevantForVarianceAnalysis(0, false);
 
             ClassicAssert.IsFalse(result);
         }
@@ -205,9 +205,105 @@ namespace FWO.Test
                 SourceAppRoles = [new ModellingAppRoleWrapper { Content = emptyRole }]
             };
 
-            bool result = conn.IsRelevantForVarianceAnalysis(0);
+            bool result = conn.IsRelevantForVarianceAnalysis(0, false);
 
             ClassicAssert.IsFalse(result);
+        }
+
+        [Test]
+        public void GetVarianceExclusionReason_ReturnsNullForCleanConnection()
+        {
+            ModellingConnection conn = CreateConnectionWithAppRole(new() { Id = 1, Name = "Server1", Ip = "10.0.0.1/32" });
+
+            Assert.That(conn.GetVarianceExclusionReason(0, false), Is.Null);
+        }
+
+        [TestCase(ConState.InterfaceRequested)]
+        [TestCase(ConState.InterfaceRejected)]
+        [TestCase(ConState.InterfaceDecommissioned)]
+        [TestCase(ConState.InterfaceNoPermission)]
+        public void GetVarianceExclusionReason_ReturnsInterfaceState(ConState interfaceState)
+        {
+            ModellingConnection conn = CreateConnectionWithAppRole(new() { Id = 1, Name = "Server1", Ip = "10.0.0.1/32" });
+            conn.AddProperty(interfaceState.ToString());
+
+            Assert.That(conn.GetVarianceExclusionReason(0, false), Is.EqualTo(interfaceState));
+        }
+
+        [Test]
+        public void GetVarianceExclusionReason_PrefersRejectedOverRequestedInterface()
+        {
+            ModellingConnection conn = CreateConnectionWithAppRole(new() { Id = 1, Name = "Server1", Ip = "10.0.0.1/32" });
+            conn.AddProperty(ConState.InterfaceRequested.ToString());
+            conn.AddProperty(ConState.InterfaceRejected.ToString());
+
+            Assert.That(conn.GetVarianceExclusionReason(0, false), Is.EqualTo(ConState.InterfaceRejected));
+        }
+
+        [Test]
+        public void GetVarianceExclusionReason_ReturnsEmptyAppRolesExceptForDummyAppRole()
+        {
+            ModellingAppRole emptyRole = new() { Id = 5, Name = "AR2", AppServers = [] };
+            ModellingConnection conn = new() { SourceAppRoles = [new() { Content = emptyRole }] };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(conn.GetVarianceExclusionReason(0, false), Is.EqualTo(ConState.EmptyAppRoles));
+                Assert.That(conn.GetVarianceExclusionReason(emptyRole.Id, false), Is.Null);
+            });
+        }
+
+        [Test]
+        public void GetVarianceExclusionReason_DeletedAppServerInAppRoleDependsOnRolloutRemoved()
+        {
+            ModellingConnection conn = CreateConnectionWithAppRole(new() { Id = 1, Name = "Server1", Ip = "10.0.0.1/32", IsDeleted = true });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(conn.GetVarianceExclusionReason(0, false), Is.EqualTo(ConState.DeletedObjects));
+                Assert.That(conn.GetVarianceExclusionReason(0, true), Is.Null);
+                Assert.That(conn.IsRelevantForVarianceAnalysis(0, false), Is.False);
+                Assert.That(conn.IsRelevantForVarianceAnalysis(0, true), Is.True);
+            });
+        }
+
+        [Test]
+        public void GetVarianceExclusionReason_DeletedDirectAppServerAlsoDependsOnRolloutRemoved()
+        {
+            ModellingConnection conn = new()
+            {
+                SourceAppServers = [new() { Content = new() { Id = 1, Name = "Server1", Ip = "10.0.0.1/32", IsDeleted = true } }]
+            };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(conn.GetVarianceExclusionReason(0, true), Is.Null);
+                Assert.That(conn.GetVarianceExclusionReason(0, false), Is.EqualTo(ConState.DeletedObjects));
+            });
+        }
+
+        [Test]
+        public void GetVarianceExclusionReason_DeletedAreaExcludesEvenWithRolloutRemoved()
+        {
+            ModellingConnection conn = CreateConnectionWithAppRole(new() { Id = 1, Name = "Server1", Ip = "10.0.0.1/32" });
+            conn.DestinationAreas = [new() { Content = new() { Id = 7, Name = "NA1", IsDeleted = true } }];
+
+            Assert.That(conn.GetVarianceExclusionReason(0, true), Is.EqualTo(ConState.DeletedObjects));
+        }
+
+        [Test]
+        public void GetVarianceExclusionReason_ReturnsEmptyServiceGroups()
+        {
+            ModellingConnection conn = CreateConnectionWithAppRole(new() { Id = 1, Name = "Server1", Ip = "10.0.0.1/32" });
+            conn.ServiceGroups = [new() { Content = new() { Id = 4, Name = "SvcGrp1", Services = [] } }];
+
+            Assert.That(conn.GetVarianceExclusionReason(0, false), Is.EqualTo(ConState.EmptySvcGrps));
+        }
+
+        private static ModellingConnection CreateConnectionWithAppRole(ModellingAppServer appServer)
+        {
+            ModellingAppRole appRole = new() { Id = 2, Name = "AR1", AppServers = [new() { Content = appServer }] };
+            return new() { Id = 1, SourceAppRoles = [new() { Content = appRole }] };
         }
 
         [Test]
@@ -221,10 +317,10 @@ namespace FWO.Test
             ModellingConnection rejectedAfterRequest = CreateNotificationRequestConnection("Rejected");
             rejectedAfterRequest.RequestedOnFw = true;
 
-            ClassicAssert.IsTrue(notRequested.IsRelevantForNotificationRequest(0));
-            ClassicAssert.IsFalse(requested.IsRelevantForNotificationRequest(0));
-            ClassicAssert.IsFalse(implementedAfterRequest.IsRelevantForNotificationRequest(0));
-            ClassicAssert.IsFalse(rejectedAfterRequest.IsRelevantForNotificationRequest(0));
+            ClassicAssert.IsTrue(notRequested.IsRelevantForNotificationRequest(0, false));
+            ClassicAssert.IsFalse(requested.IsRelevantForNotificationRequest(0, false));
+            ClassicAssert.IsFalse(implementedAfterRequest.IsRelevantForNotificationRequest(0, false));
+            ClassicAssert.IsFalse(rejectedAfterRequest.IsRelevantForNotificationRequest(0, false));
         }
 
         [Test]

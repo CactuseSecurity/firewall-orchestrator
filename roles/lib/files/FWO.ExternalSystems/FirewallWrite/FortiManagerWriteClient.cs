@@ -30,8 +30,8 @@ namespace FWO.ExternalSystems.FirewallWrite
         private string? session;
 
         /// <summary>Creates a client for the JSON-RPC API of a FortiManager.</summary>
-        public FortiManagerWriteClient(Management management, bool checkCertificates)
-            : base(HostUrl(management), management, checkCertificates)
+        public FortiManagerWriteClient(Management management, bool checkCertificates, int? responseTimeout = null)
+            : base(HostUrl(management), management, checkCertificates, responseTimeout)
         { }
 
         /// <inheritdoc/>

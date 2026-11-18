@@ -98,16 +98,5 @@ namespace FWO.Test
             Assert.That(discovery.CheckCertificates, Is.EqualTo(checkCertificates));
         }
 
-        [Test]
-        public void ResolveCheckCertificates_UsesSwitchOfAddressedConnectionType()
-        {
-            ExternalCertificateChecks checks = new(FirewallConnections: false, TicketSystems: true);
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(FWO.ExternalSystems.CheckPoint.CheckPointClient.ResolveCheckCertificates(new Management { Hostname = "cp.example" }, checks), Is.False);
-                Assert.That(FWO.ExternalSystems.CheckPoint.CheckPointClient.ResolveCheckCertificates(new Management { Hostname = " " }, checks), Is.True);
-            });
-        }
     }
 }

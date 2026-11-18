@@ -444,6 +444,15 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importLogDataMaxEntries"), JsonPropertyName("importLogDataMaxEntries")]
         public int ImportLogDataMaxEntries { get; set; } = 1000;
 
+        [JsonProperty("importRuleHitsSleepTime"), JsonPropertyName("importRuleHitsSleepTime")]
+        public int ImportRuleHitsSleepTime { get; set; } = 1;
+
+        [JsonProperty("importRuleHitsSleepTimeUnit"), JsonPropertyName("importRuleHitsSleepTimeUnit")]
+        public RuleHitImportIntervalUnit ImportRuleHitsSleepTimeUnit { get; set; } = RuleHitImportIntervalUnit.Days;
+
+        [JsonProperty("importRuleHitsStartAt"), JsonPropertyName("importRuleHitsStartAt")]
+        public DateTime ImportRuleHitsStartAt { get; set; } = DateTime.Now.Date;
+
         [JsonProperty("logDataRetentionDays"), JsonPropertyName("logDataRetentionDays")]
         public int LogDataRetentionDays { get; set; } = 90;
 
@@ -626,9 +635,6 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("externalRequestWaitCycles"), JsonPropertyName("externalRequestWaitCycles")]
         public int ExternalRequestWaitCycles { get; set; } = 0;
-
-        [JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
-        public string ExtTicketSystems { get; set; } = "";
 
         /// <summary>
         /// Whether TLS certificates of all external ticket systems are checked.
@@ -836,9 +842,6 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
         public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;
-
-        [JsonProperty("fwConfigChangeMgmSettings"), JsonPropertyName("fwConfigChangeMgmSettings")]
-        public string FwConfigChangeMgmSettings { get; set; } = "[]";
 
         [JsonProperty("allowFullRollback"), JsonPropertyName("allowFullRollback")]
         public bool AllowFullRollback { get; set; } = false;

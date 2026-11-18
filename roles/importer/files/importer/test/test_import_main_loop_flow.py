@@ -14,7 +14,13 @@ import fwo_log
 import import_main_loop
 import pytest
 from fwo_exceptions import FwLoginFailedError, FwoApiFailedLockImportError, FwoImporterError
-from import_main_loop import import_single_management, main, main_loop
+from import_main_loop import (
+    get_rule_hit_import_requests,
+    import_rule_hits_single_management,
+    import_single_management,
+    main,
+    main_loop,
+)
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -214,6 +220,60 @@ class TestMainLoop:
 
         main_loop_mocks["single"].assert_not_called()
         main_loop_mocks["wait"].assert_called_with(SLEEP_TIMER)
+
+
+class TestRuleHitImportInMainLoop:
+    def test_requested_managements_get_a_rule_hit_import_after_the_config_import(
+        self, pwd_file: Path, main_loop_mocks: dict[str, MagicMock], mocker: MockerFixture
+    ) -> None:
+        mocker.patch("import_main_loop.ServiceProvider")
+        main_loop_mocks["api_call"].get_rule_hit_import_requests.return_value = {2, 99}
+        mock_rule_hits = mocker.patch("import_main_loop.import_rule_hits_single_management")
+
+        _run_main_loop(pwd_file)
+
+        assert main_loop_mocks["single"].call_count == 2
+        mock_rule_hits.assert_called_once()
+        assert mock_rule_hits.call_args.args[0] == 2
+
+    def test_failing_request_query_handles_no_requests(self, mocker: MockerFixture) -> None:
+        api_call = MagicMock()
+        api_call.get_rule_hit_import_requests.side_effect = FwoImporterError("no requests")
+        mock_error = mocker.patch("import_main_loop.FWOLogger.error")
+
+        assert get_rule_hit_import_requests(api_call) == set()
+        mock_error.assert_called_once()
+
+    def test_rule_hit_import_runs_with_registered_state(self, mocker: MockerFixture) -> None:
+        mocker.patch("import_main_loop.wait_with_shutdown_check")
+        initialize = mocker.patch("import_main_loop.ImportStateController.initialize_import")
+        register = mocker.patch("import_main_loop.register_global_state")
+        mock_import_rule_hits = mocker.patch("import_main_loop.import_rule_hits")
+        api_call = MagicMock()
+
+        import_rule_hits_single_management(MGM_ID, api_call, False, True, FWO_MAJOR_VERSION)
+
+        assert initialize.call_args.kwargs["mgm_id"] == MGM_ID
+        register.assert_called_once_with(initialize.return_value)
+        mock_import_rule_hits.assert_called_once_with(api_call)
+
+    def test_rule_hit_import_errors_are_logged(self, mocker: MockerFixture) -> None:
+        mocker.patch("import_main_loop.wait_with_shutdown_check")
+        mocker.patch("import_main_loop.ImportStateController.initialize_import", side_effect=FwoImporterError("x"))
+        mock_error = mocker.patch("import_main_loop.FWOLogger.error")
+
+        import_rule_hits_single_management(MGM_ID, MagicMock(), False, True, FWO_MAJOR_VERSION)
+
+        assert "rule hit import" in mock_error.call_args.args[0]
+
+    def test_shutdown_during_rule_hit_import_exits(self, mocker: MockerFixture) -> None:
+        mocker.patch("import_main_loop.wait_with_shutdown_check")
+        mocker.patch("import_main_loop.ImportStateController.initialize_import")
+        mocker.patch("import_main_loop.register_global_state")
+        mocker.patch("import_main_loop.import_rule_hits", side_effect=KeyboardInterrupt())
+
+        with pytest.raises(SystemExit):
+            import_rule_hits_single_management(MGM_ID, MagicMock(), False, True, FWO_MAJOR_VERSION)
 
 
 @pytest.fixture

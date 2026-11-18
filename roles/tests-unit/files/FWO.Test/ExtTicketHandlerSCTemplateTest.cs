@@ -1,8 +1,10 @@
 using System.Reflection;
 using FWO.Data;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using FWO.Middleware.Server;
+using FWO.Services.Workflow;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -16,12 +18,10 @@ namespace FWO.Test
     internal class ExtTicketHandlerSCTemplateTest
     {
         private const int kTufinSystemId = 1;
-        private const int kCheckPointSystemId = 3;
-        private const int kCheckPointTypeId = 9;
         private const int kStartManagementId = 1;
         private const int kFurtherManagementId = 2;
         private const string kManagementWorkflow = "Management Workflow";
-        private static readonly List<int> kRoutedManagementIds = [kStartManagementId, kFurtherManagementId];
+        private const int kDoneStateId = 631;
         // all request tasks of the test ticket belong to the start management
         private static readonly List<List<int>> kLoadedManagementIds = [[kStartManagementId]];
 
@@ -31,14 +31,6 @@ namespace FWO.Test
             TypeId = BuiltInExternalTicketSystemTypes.TufinSecureChangeId,
             Name = "Tufin",
             Url = "https://tufin-test.xxx.de/securechangeworkflow/api/securechange/"
-        };
-
-        private static readonly ExternalTicketSystem CheckPointSystem = new()
-        {
-            Id = kCheckPointSystemId,
-            TypeId = kCheckPointTypeId,
-            Name = "CheckPoint",
-            Url = "https://checkpoint-test.xxx.de/web_api/"
         };
 
         private static List<ExternalTicketTemplate> GlobalTemplates => ExtTicketHandlerTest.ticketSystem.Templates;
@@ -61,26 +53,9 @@ namespace FWO.Test
             })
         ];
 
-        private static List<ManagementFwConfigChangeState> RoutesTo(int systemId) =>
-        [
-            .. kRoutedManagementIds.Select(managementId => new ManagementFwConfigChangeState
-            {
-                Id = managementId,
-                Name = $"m{managementId}",
-                Enabled = true,
-                SelectedChanges = new()
-                {
-                    [ManagementFwConfigChangeCategories.ObjectChanges] = systemId.ToString(),
-                    [ManagementFwConfigChangeCategories.RuleChanges] = systemId.ToString()
-                }
-            })
-        ];
-
         private static SimulatedUserConfig UserConfig(ExternalTicketSystem system) => new()
         {
             ExternalRequestWaitCycles = 3,
-            ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { system }),
-            FwConfigChangeMgmSettings = System.Text.Json.JsonSerializer.Serialize(RoutesTo(system.Id)),
             ReqPriorities = ExtTicketHandlerTest.reqPrios,
             ModNamingConvention = ExtTicketHandlerTest.namingConvention,
             ModRolloutBundleTasks = true
@@ -92,8 +67,13 @@ namespace FWO.Test
             ExtTicketHandlerTestApiConn apiConnection = new();
             FixedSCTemplateSource templateSource = new(GlobalTemplates,
                 new Dictionary<int, List<ExternalTicketTemplate>> { [kStartManagementId] = ManagementTemplates() });
-            using ExternalRequestHandler handler = new(UserConfig(TufinSystem), apiConnection, null) { SCTemplateSource = templateSource };
+            using ExternalRequestHandler handler = new ExternalRequestHandler(UserConfig(TufinSystem), apiConnection, null)
+            {
+                SCTemplateSource = templateSource
+            }.WithProvisioningSettings(ExtTicketHandlerTest.ExternalTicketSystemSettings(TufinSystem));
 
+            // the request of task 1 is finished already
+            ExtTicketHandlerTestApiConn.SetReqTaskState(1, kDoneStateId);
             await handler.HandleStateChange(new ExternalRequest
             {
                 Id = 2,
@@ -116,7 +96,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void SecureChangeTasksAreOnlyBundledWithEqualTemplates()
+        public async Task SecureChangeTasksAreOnlyBundledWithEqualTemplates()
         {
             SCTemplateLookup differentTemplates = new(GlobalTemplates,
                 new Dictionary<int, List<ExternalTicketTemplate>> { [kFurtherManagementId] = ManagementTemplates() });
@@ -125,27 +105,47 @@ namespace FWO.Test
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(CanBundle(TufinSystem, differentTemplates), Is.False);
-                Assert.That(CanBundle(TufinSystem, equalTemplates), Is.True);
-                // the templates only matter for SecureChange
-                Assert.That(CanBundle(CheckPointSystem, differentTemplates), Is.True);
+                Assert.That(await CanBundle(differentTemplates), Is.False);
+                Assert.That(await CanBundle(equalTemplates), Is.True);
             }
         }
 
-        /// <summary>Whether an access task of the further management joins the request of an access task of the start management.</summary>
-        private static bool CanBundle(ExternalTicketSystem system, SCTemplateLookup templates)
+        [Test]
+        public async Task TasksForAnotherSecureChangeServerAreNotBundled()
         {
-            using ExternalRequestHandler handler = new(UserConfig(system), new ExtTicketHandlerTestApiConn(), null);
-            FieldInfo templatesField = typeof(ExternalRequestHandler).GetField("scTemplates", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new MissingFieldException(typeof(ExternalRequestHandler).FullName, "scTemplates");
-            templatesField.SetValue(handler, templates);
-            MethodInfo method = typeof(ExternalRequestHandler).GetMethod("CanBundleWithStartTask", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new MissingMethodException(typeof(ExternalRequestHandler).FullName, "CanBundleWithStartTask");
+            SCTemplateLookup equalTemplates = new(GlobalTemplates,
+                new Dictionary<int, List<ExternalTicketTemplate>> { [kFurtherManagementId] = [.. GlobalTemplates] });
+
+            Assert.That(await CanBundle(equalTemplates, "https://other-securechange.example/"), Is.False);
+        }
+
+        /// <summary>Whether an access task of the further management joins the request of an access task of the start management.</summary>
+        /// <param name="templates">Ticket templates of the managements.</param>
+        /// <param name="startUrl">URL of the request of the start task; null for the URL configured for both managements.</param>
+        private static async Task<bool> CanBundle(SCTemplateLookup templates, string? startUrl = null)
+        {
+            GlobalDeviceSpecificSettings settings = ExtTicketHandlerTest.ExternalTicketSystemSettings(TufinSystem);
+            using ExternalRequestHandler handler = new ExternalRequestHandler(UserConfig(TufinSystem), new ExtTicketHandlerTestApiConn(), null)
+                .WithProvisioningSettings(settings);
+            SetField(handler, "scTemplates", templates);
+            ExternalTicketSystem startSystem = ExternalTicketSystem.FromSecureChangeSettings(settings);
+            startSystem.Url = startUrl ?? startSystem.Url;
+            SetField(handler, "actSystem", startSystem);
+            MethodInfo method = typeof(ExternalRequestHandler).GetMethod("CanBundle", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(ExternalRequestHandler).FullName, "CanBundle");
             WfReqTask startTask = new() { TaskType = WfTaskType.access.ToString(), ManagementId = kStartManagementId };
             WfReqTask furtherTask = new() { TaskType = WfTaskType.access.ToString(), ManagementId = kFurtherManagementId };
-            List<ExternalTicketSystem> systems = [system];
-            List<object?> arguments = [furtherTask, startTask, system.Id, RoutesTo(system.Id), systems];
-            return (bool)method.Invoke(handler, arguments.ToArray())!;
+            ProvisioningWorkItem start = new(ProvisioningWay.ExternalTicketSystem, startTask, null, ExternalTicketSystemKind.TufinSecureChange, false);
+            ProvisioningWorkItem further = new(ProvisioningWay.ExternalTicketSystem, furtherTask, null, ExternalTicketSystemKind.TufinSecureChange, false);
+            List<object?> arguments = [further, start];
+            return await (Task<bool>)method.Invoke(handler, arguments.ToArray())!;
+        }
+
+        private static void SetField(ExternalRequestHandler handler, string name, object value)
+        {
+            FieldInfo field = typeof(ExternalRequestHandler).GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(typeof(ExternalRequestHandler).FullName, name);
+            field.SetValue(handler, value);
         }
     }
 }

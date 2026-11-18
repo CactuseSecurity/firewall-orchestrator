@@ -43,8 +43,25 @@ namespace FWO.Services.Workflow
         /// <param name="scopeTask">Request task the action runs for in the request task scope: only this task gets its
         /// implementation tasks, a bundled task together with its bundle once every member of the bundle has reached
         /// the state of this task. Null in the ticket scope, where every open request task gets them.</param>
+        /// <param name="byButton">True if a person triggered the action by a button: targets whose settings leave the
+        /// creation to a planner (automatic creation off) or the implementation to a person (Manual) get implementation
+        /// tasks as well. Targets handed to an external ticket system never do.</param>
         /// <returns>The number of created implementation tasks.</returns>
-        public async Task<int> CreateMissingImplTasksForTicket(WfTicket ticket, WfReqTask? scopeTask = null)
+        public async Task<int> CreateMissingImplTasksForTicket(WfTicket ticket, WfReqTask? scopeTask = null, bool byButton = false)
+        {
+            implTaskCreationByButton = byButton;
+            try
+            {
+                return await CreateMissingImplTasks(ticket, scopeTask);
+            }
+            finally
+            {
+                implTaskCreationByButton = false;
+            }
+        }
+
+        /// <summary>Creates the implementation tasks still missing for the request tasks in scope; returns the number created.</summary>
+        private async Task<int> CreateMissingImplTasks(WfTicket ticket, WfReqTask? scopeTask)
         {
             SetTicketEnv(ticket);
             if (scopeTask != null)
@@ -89,6 +106,11 @@ namespace FWO.Services.Workflow
             }
             return [.. openTasks.Where(task => bundleMembers.Any(member => member.Id == task.Id))];
         }
+
+        /// <summary>
+        /// Set while a person creates the implementation tasks by a button, see <see cref="CreateMissingImplTasksForTicket"/>.
+        /// </summary>
+        private bool implTaskCreationByButton;
 
         private bool RequestTaskIsOpen(WfReqTask reqTask)
         {
@@ -339,6 +361,35 @@ namespace FWO.Services.Workflow
             }
             return Managements.FirstOrDefault(management => management.Id == visibleManagementId)?.Name
                 ?? userConfig.GetText("not_visible");
+        }
+
+        /// <summary>
+        /// Returns the target management of an implementation task along <see cref="WfImplTaskTargetManagementResolver"/>:
+        /// the management of its gateway, which a management stored with the task must match; without gateway the
+        /// management of the task, else of the request task. Loads the gateways first if needed.
+        /// </summary>
+        /// <param name="reqTask">Request task of the implementation task; null if unknown.</param>
+        /// <param name="implTask">The implementation task.</param>
+        /// <returns>The management id; null if it cannot be resolved consistently, e.g. for an unknown gateway or a stored
+        /// management that differs from the one of the gateway.</returns>
+        public async Task<int?> ResolveImplTaskManagementId(WfReqTask? reqTask, WfImplTask implTask)
+        {
+            await EnsureDevicesLoaded();
+            return ImplTaskManagementId(reqTask, implTask);
+        }
+
+        /// <summary>
+        /// Target management of an implementation task with the gateways already loaded, see
+        /// <see cref="ResolveImplTaskManagementId"/>.
+        /// </summary>
+        private int? ImplTaskManagementId(WfReqTask? reqTask, WfImplTask implTask)
+        {
+            Device? gateway = implTask.DeviceId is int gatewayId && gatewayId > 0
+                ? Devices.FirstOrDefault(device => device.Id == gatewayId)
+                : null;
+            return WfImplTaskTargetManagementResolver.TryResolveManagementId(reqTask, implTask, gateway, out int managementId)
+                ? managementId
+                : null;
         }
 
         /// <summary>

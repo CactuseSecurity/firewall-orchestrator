@@ -18,8 +18,6 @@ namespace FWO.Test
         private const int kSuperManagementId = 30;
         private const int kSubManagementId = 31;
         private const int kGatewayId = 1;
-        private const int kExternalTicketSystemId = 2;
-        private const int kOtherExternalTicketSystemId = 3;
         private const long kGlobalNodeId = 1;
         private const long kDeviceTypeNodeId = 2;
         private const long kManagementNodeId = 3;
@@ -66,9 +64,9 @@ namespace FWO.Test
             return tree.Root.SelfAndDescendants().ToDictionary(node => node, _ => new GlobalDeviceSpecificSettings());
         }
 
-        private static void UseExternalTicketSystem(GlobalDeviceSpecificSettings settings, int? system)
+        private static void UseExternalTicketSystem(GlobalDeviceSpecificSettings settings, ExternalTicketSystemKind system)
         {
-            settings.ImplementationModeOverrideForRules = ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem;
+            settings.ImplementationModeForRules = ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem;
             settings.RerouteToExternalTicketSystem = system;
         }
 
@@ -85,8 +83,8 @@ namespace FWO.Test
         {
             Tree tree = CreateTree();
             Dictionary<DeviceSpecificNode, GlobalDeviceSpecificSettings> settings = DefaultSettings(tree);
-            UseExternalTicketSystem(settings[tree.Management], null);
-            UseExternalTicketSystem(settings[tree.Gateway], null);
+            UseExternalTicketSystem(settings[tree.Management], ExternalTicketSystemKind.Undefined);
+            UseExternalTicketSystem(settings[tree.Gateway], ExternalTicketSystemKind.Undefined);
 
             ImplementationModeSettingsCheckResult result = ImplementationModeSettingsCheck.Check(settings, tree.Managements);
 
@@ -104,10 +102,10 @@ namespace FWO.Test
             Dictionary<DeviceSpecificNode, GlobalDeviceSpecificSettings> settings = DefaultSettings(tree);
             foreach (GlobalDeviceSpecificSettings levelSettings in settings.Values)
             {
-                levelSettings.RerouteToExternalTicketSystem = kExternalTicketSystemId;
+                levelSettings.RerouteToExternalTicketSystem = ExternalTicketSystemKind.TufinSecureChange;
             }
-            UseExternalTicketSystem(settings[tree.Management], kExternalTicketSystemId);
-            UseExternalTicketSystem(settings[tree.Gateway], kExternalTicketSystemId);
+            UseExternalTicketSystem(settings[tree.Management], ExternalTicketSystemKind.TufinSecureChange);
+            UseExternalTicketSystem(settings[tree.Gateway], ExternalTicketSystemKind.TufinSecureChange);
 
             ImplementationModeSettingsCheckResult result = ImplementationModeSettingsCheck.Check(settings, tree.Managements);
 
@@ -121,16 +119,13 @@ namespace FWO.Test
             Dictionary<DeviceSpecificNode, GlobalDeviceSpecificSettings> settings = DefaultSettings(tree);
             foreach (GlobalDeviceSpecificSettings levelSettings in settings.Values)
             {
-                levelSettings.RerouteToExternalTicketSystem = kExternalTicketSystemId;
+                levelSettings.RerouteToExternalTicketSystem = ExternalTicketSystemKind.TufinSecureChange;
             }
-            settings[tree.OtherManagement].RerouteToExternalTicketSystem = kOtherExternalTicketSystemId;
-
-            List<DeviceSpecificNode> selectingLevels = [tree.Root, tree.OtherManagement];
 
             ImplementationModeSettingsCheckResult result = ImplementationModeSettingsCheck.Check(settings, tree.Managements);
 
-            Assert.That(result.SystemWithoutExternalMode, Is.EquivalentTo(selectingLevels),
-                "global and cp2 select a system nobody uses, cp1 and the gateway only inherit it");
+            Assert.That(result.SystemWithoutExternalMode.Single(), Is.SameAs(tree.Root),
+                "global selects a system nobody uses, the levels below only inherit it");
         }
 
         [Test]
@@ -140,7 +135,7 @@ namespace FWO.Test
             Dictionary<DeviceSpecificNode, GlobalDeviceSpecificSettings> settings = DefaultSettings(tree);
             foreach (GlobalDeviceSpecificSettings levelSettings in settings.Values)
             {
-                UseExternalTicketSystem(levelSettings, null);
+                UseExternalTicketSystem(levelSettings, ExternalTicketSystemKind.Undefined);
             }
 
             ImplementationModeSettingsCheckResult result = ImplementationModeSettingsCheck.Check(settings, tree.Managements);
@@ -149,11 +144,43 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SecureChangeWithoutConnection_IsReportedOnlyWhereItArises()
+        {
+            Tree tree = CreateTree();
+            Dictionary<DeviceSpecificNode, GlobalDeviceSpecificSettings> settings = DefaultSettings(tree);
+            foreach (GlobalDeviceSpecificSettings levelSettings in settings.Values)
+            {
+                UseExternalTicketSystem(levelSettings, ExternalTicketSystemKind.TufinSecureChange);
+            }
+
+            ImplementationModeSettingsCheckResult result = ImplementationModeSettingsCheck.Check(settings, tree.Managements);
+
+            Assert.That(result.SecureChangeWithoutConnection.Single(), Is.SameAs(tree.Root));
+        }
+
+        [Test]
+        public void SecureChangeWithUrlAndCredential_IsNotReported()
+        {
+            Tree tree = CreateTree();
+            Dictionary<DeviceSpecificNode, GlobalDeviceSpecificSettings> settings = DefaultSettings(tree);
+            foreach (GlobalDeviceSpecificSettings levelSettings in settings.Values)
+            {
+                UseExternalTicketSystem(levelSettings, ExternalTicketSystemKind.TufinSecureChange);
+                levelSettings.ScUrl = "https://securechange.example/";
+                levelSettings.ScCredential = 1;
+            }
+
+            ImplementationModeSettingsCheckResult result = ImplementationModeSettingsCheck.Check(settings, tree.Managements);
+
+            Assert.That(result.SecureChangeWithoutConnection, Is.Empty);
+        }
+
+        [Test]
         public void ExternalModeOnGatewayBelowNonExternalManagement_IsReported()
         {
             Tree tree = CreateTree();
             Dictionary<DeviceSpecificNode, GlobalDeviceSpecificSettings> settings = DefaultSettings(tree);
-            UseExternalTicketSystem(settings[tree.Gateway], kExternalTicketSystemId);
+            UseExternalTicketSystem(settings[tree.Gateway], ExternalTicketSystemKind.TufinSecureChange);
 
             ImplementationModeSettingsCheckResult result = ImplementationModeSettingsCheck.Check(settings, tree.Managements);
 
@@ -165,9 +192,9 @@ namespace FWO.Test
         {
             Tree tree = CreateTree();
             Dictionary<DeviceSpecificNode, GlobalDeviceSpecificSettings> settings = DefaultSettings(tree);
-            UseExternalTicketSystem(settings[tree.Management], kExternalTicketSystemId);
-            settings[tree.Gateway].RerouteToExternalTicketSystem = kExternalTicketSystemId;
-            settings[tree.Gateway].ImplementationModeOverrideForRules = ProvisioningRuleImplementationMode.Manual;
+            UseExternalTicketSystem(settings[tree.Management], ExternalTicketSystemKind.TufinSecureChange);
+            settings[tree.Gateway].RerouteToExternalTicketSystem = ExternalTicketSystemKind.TufinSecureChange;
+            settings[tree.Gateway].ImplementationModeForRules = ProvisioningRuleImplementationMode.Manual;
 
             ImplementationModeSettingsCheckResult result = ImplementationModeSettingsCheck.Check(settings, tree.Managements);
 
@@ -179,7 +206,7 @@ namespace FWO.Test
         {
             Tree tree = CreateTree();
             Dictionary<DeviceSpecificNode, GlobalDeviceSpecificSettings> settings = DefaultSettings(tree);
-            settings[tree.Management].ImplementationModeOverrideForRules = ProvisioningRuleImplementationMode.Manual;
+            settings[tree.Management].ImplementationModeForRules = ProvisioningRuleImplementationMode.Manual;
 
             ImplementationModeSettingsCheckResult result = ImplementationModeSettingsCheck.Check(settings, tree.Managements);
 
@@ -219,7 +246,7 @@ namespace FWO.Test
             api.AddNode(kGlobalNodeId, DeviceSpecificScopeType.Global, DeviceSpecificScopePath.GlobalObjectKey, displayName: "Global");
             api.AddNode(kDeviceTypeNodeId, DeviceSpecificScopeType.DeviceType, "9", kGlobalNodeId);
             api.AddNode(kManagementNodeId, DeviceSpecificScopeType.Management, kManagementId.ToString(), kDeviceTypeNodeId);
-            api.SetValue(kManagementNodeId, DeviceSpecificSettingKeys.ImplementationModeOverrideForRules, ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem);
+            api.SetValue(kManagementNodeId, DeviceSpecificSettingKeys.ImplementationModeForRules, ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem);
 
             ImplementationModeSettingsCheckResult result = await ImplementationModeSettingsCheck.LoadAndCheck(api, tree.Root, tree.Managements);
 

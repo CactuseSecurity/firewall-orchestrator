@@ -1,0 +1,7 @@
+query getRequestsOfImplTask($implTaskId: bigint!, $limit: Int!) {
+  ext_request(where: { impltask_id: { _eq: $implTaskId } }, order_by: { id: desc }, limit: $limit) {
+    id
+    ext_request_state
+    ext_query_variables
+  }
+}

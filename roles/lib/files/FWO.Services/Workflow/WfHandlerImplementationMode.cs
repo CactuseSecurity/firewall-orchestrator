@@ -6,7 +6,7 @@ using FWO.Logging;
 namespace FWO.Services.Workflow
 {
     /// <summary>
-    /// Applies the device specific settings implementationMode (objects) and implementationModeOverrideForRules
+    /// Applies the device specific settings implementationMode (objects) and implementationModeForRules
     /// (rules) to the creation of implementation tasks: only targets with implementation mode Automatic get one.
     /// Manual gets none. External ticket system gets none either, the request task is handed to that system instead.
     /// </summary>
@@ -39,7 +39,7 @@ namespace FWO.Services.Workflow
             {
                 return false;
             }
-            if (settings.RerouteToExternalTicketSystem == null)
+            if (settings.RerouteToExternalTicketSystem == ExternalTicketSystemKind.Undefined)
             {
                 await ReportUnimplementedTarget(reqTask, managementId, null, NoExternalTicketSystemSelectedReason(managementId));
             }
@@ -71,7 +71,7 @@ namespace FWO.Services.Workflow
             foreach (int? deviceId in targets)
             {
                 ProvisioningImplementationMode mode = GetResolvedSettings(DeviceSpecificScopeType.Gateway, deviceId).GetImplementationMode(true);
-                if (mode == ProvisioningImplementationMode.Automatic)
+                if (IsImplementedByFwo(mode))
                 {
                     automaticTargets.Add(deviceId);
                 }
@@ -102,7 +102,7 @@ namespace FWO.Services.Workflow
             foreach (Management target in targets)
             {
                 ProvisioningImplementationMode mode = GetResolvedSettings(DeviceSpecificScopeType.Management, target.Id).GetImplementationMode(false);
-                if (mode == ProvisioningImplementationMode.Automatic)
+                if (IsImplementedByFwo(mode))
                 {
                     automaticTargets.Add(target);
                 }
@@ -118,6 +118,16 @@ namespace FWO.Services.Workflow
                 }
             }
             return automaticTargets;
+        }
+
+        /// <summary>
+        /// Whether a target with the given implementation mode gets an implementation task: Automatic, and Manual as well
+        /// while a person creates the implementation tasks by a button.
+        /// </summary>
+        private bool IsImplementedByFwo(ProvisioningImplementationMode mode)
+        {
+            return mode == ProvisioningImplementationMode.Automatic
+                || (implTaskCreationByButton && mode == ProvisioningImplementationMode.Manual);
         }
 
         private async Task HandleExternalTicketSystemGateway(WfReqTask reqTask, int? deviceId)
@@ -142,7 +152,7 @@ namespace FWO.Services.Workflow
         private bool IsHandedToExternalTicketSystemByTicket(int managementId, bool isRuleTask)
         {
             GlobalDeviceSpecificSettings settings = GetResolvedSettings(DeviceSpecificScopeType.Management, managementId);
-            return settings.UsesExternalTicketSystem(isRuleTask) && settings.RerouteToExternalTicketSystem != null
+            return settings.UsesExternalTicketSystem(isRuleTask) && settings.RerouteToExternalTicketSystem != ExternalTicketSystemKind.Undefined
                 && ActTicket.Tasks.Any(task => task.ManagementId == managementId
                     && (isRuleTask ? IsRuleTaskType(task.TaskType) : WfObjectTaskHelper.IsManagementObjectTask(task.TaskType)));
         }
@@ -173,7 +183,7 @@ namespace FWO.Services.Workflow
         /// <param name="managementId">Management of the gateway or object target.</param>
         private string? GetMissingExternalTicketSystemReason(int managementId)
         {
-            return GetResolvedSettings(DeviceSpecificScopeType.Management, managementId).RerouteToExternalTicketSystem == null
+            return GetResolvedSettings(DeviceSpecificScopeType.Management, managementId).RerouteToExternalTicketSystem == ExternalTicketSystemKind.Undefined
                 ? NoExternalTicketSystemSelectedReason(managementId)
                 : null;
         }

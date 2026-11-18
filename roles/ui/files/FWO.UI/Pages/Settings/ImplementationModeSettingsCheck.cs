@@ -26,6 +26,12 @@ namespace FWO.Ui.Pages.Settings
         public List<DeviceSpecificNode> SystemWithoutExternalMode { get; } = [];
 
         /// <summary>
+        /// Levels handing tasks to Tufin SecureChange whose connection has no URL or no credential: requests to it cannot
+        /// be created. Only the level where this arises is listed, not the levels below that inherit it.
+        /// </summary>
+        public List<DeviceSpecificNode> SecureChangeWithoutConnection { get; } = [];
+
+        /// <summary>
         /// Gateways that differ from their management in using the external ticket system for rules. An external
         /// ticket system takes over whole managements: a gateway set to it below a management that is not is
         /// implemented by nobody, and automatic or manual on a gateway below a management set to it has no effect.
@@ -42,7 +48,7 @@ namespace FWO.Ui.Pages.Settings
         /// Whether the check found anything to show.
         /// </summary>
         public bool HasFindings => ExternalModeWithoutSystem.Count > 0 || SystemWithoutExternalMode.Count > 0
-            || GatewayDiffersInExternalMode.Count > 0 || ObjectCreationFindings.Count > 0;
+            || SecureChangeWithoutConnection.Count > 0 || GatewayDiffersInExternalMode.Count > 0 || ObjectCreationFindings.Count > 0;
     }
 
     /// <summary>
@@ -92,7 +98,12 @@ namespace FWO.Ui.Pages.Settings
                 {
                     result.ExternalModeWithoutSystem.Add(node);
                 }
-                if (settings.RerouteToExternalTicketSystem != null && settings.RerouteToExternalTicketSystem != parentSettings?.RerouteToExternalTicketSystem
+                if (IsSecureChangeWithoutConnection(settings) && (parentSettings == null || !IsSecureChangeWithoutConnection(parentSettings)))
+                {
+                    result.SecureChangeWithoutConnection.Add(node);
+                }
+                if (settings.RerouteToExternalTicketSystem != ExternalTicketSystemKind.Undefined
+                    && settings.RerouteToExternalTicketSystem != parentSettings?.RerouteToExternalTicketSystem
                     && !SubtreeUsesExternalTicketSystem(node, settingsByNode))
                 {
                     result.SystemWithoutExternalMode.Add(node);
@@ -125,7 +136,14 @@ namespace FWO.Ui.Pages.Settings
 
         private static bool IsExternalModeWithoutSystem(GlobalDeviceSpecificSettings settings)
         {
-            return UsesExternalTicketSystem(settings) && settings.RerouteToExternalTicketSystem == null;
+            return UsesExternalTicketSystem(settings) && settings.RerouteToExternalTicketSystem == ExternalTicketSystemKind.Undefined;
+        }
+
+        /// <summary>Whether Tufin SecureChange is selected without URL or credential.</summary>
+        private static bool IsSecureChangeWithoutConnection(GlobalDeviceSpecificSettings settings)
+        {
+            return UsesExternalTicketSystem(settings) && settings.RerouteToExternalTicketSystem == ExternalTicketSystemKind.TufinSecureChange
+                && (string.IsNullOrWhiteSpace(settings.ScUrl) || settings.ScCredential == null);
         }
 
         private static bool UsesExternalTicketSystem(GlobalDeviceSpecificSettings settings)

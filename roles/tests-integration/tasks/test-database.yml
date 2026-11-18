@@ -109,6 +109,42 @@
   become_user: postgres
 
 # the upgrade file is run twice within the test transaction (at its run-upgrade markers), which is always rolled back
+- name: test the implementation mode migration of the 9.9.4 database upgrade
+  command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"
+  args:
+    stdin: >-
+      {{ lookup('file', 'database/test-upgrade-9.9.4-impl-mode.sql')
+         | replace('-- @run-upgrade-9.9.4', lookup('file', role_path + '/../database/files/upgrade/9.9.4.sql')) }}
+  register: test_upgrade_9_9_4_impl_mode
+  changed_when: false
+  become: true
+  become_user: postgres
+
+# the upgrade file is run twice within the test transaction (at its run-upgrade markers), which is always rolled back
+- name: test the request settings migration of the 9.9.4 database upgrade
+  command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"
+  args:
+    stdin: >-
+      {{ lookup('file', 'database/test-upgrade-9.9.4-request-settings.sql')
+         | replace('-- @run-upgrade-9.9.4', lookup('file', role_path + '/../database/files/upgrade/9.9.4.sql')) }}
+  register: test_upgrade_9_9_4_request_settings
+  changed_when: false
+  become: true
+  become_user: postgres
+
+# the upgrade file is run twice within the test transaction (at its run-upgrade markers), which is always rolled back
+- name: test the SecureChange connection migration of the 9.9.4 database upgrade
+  command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"
+  args:
+    stdin: >-
+      {{ lookup('file', 'database/test-upgrade-9.9.4-sc-connection.sql')
+         | replace('-- @run-upgrade-9.9.4', lookup('file', role_path + '/../database/files/upgrade/9.9.4.sql')) }}
+  register: test_upgrade_9_9_4_sc_connection
+  changed_when: false
+  become: true
+  become_user: postgres
+
+# the upgrade file is run twice within the test transaction (at its run-upgrade markers), which is always rolled back
 - name: test the SecureChange template migration of the 9.8.5 database upgrade
   command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"
   args:

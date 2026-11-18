@@ -1,8 +1,45 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.4 - 17.11.2026
+- request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket
+  - a request task of a management with the implementation mode external ticket system is handed to Tufin SecureChange as a whole; implementation tasks with mode automatic are written directly to the firewall with the firewall write library (`ext_request.impltask_id`)
+  - offered as a button, implementation tasks on targets set to manual are written as well within the scope of the action (ticket or request task); on an implementation task it writes only this one task
+  - tasks nobody implements (e.g. external ticket system without selected system, rule without position) raise a workflow alert
+- request workflow: the routing of firewall config changes moves from the setting "Firewall config changes - General" to the device specific settings: implementation mode for objects and for rules, external ticket system, Tufin SecureChange connection, response timeout and retries; the upgrade migrates the previous settings, the ticket system list page is removed
+- firewall write: rules are written to Check Point
+  - new rules at the position calculated by the rule positioning and with install-on along the setting "Install on" (ANY = Policy Targets, gateways in path = the gateways of the tasks)
+  - new rules of one request task going to the same layer are written once, installed on the gateways of all of these tasks; the other tasks take over the result
+  - rules to modify or delete are addressed in their layer according to the import (sections traced up to their layer); their implementation mode is the strictest one of all gateways they take effect on, a manual gateway is reported with an alert; a rule already deleted counts as done once its layer is verified
+  - objects already present as requested count as created
+  - new rules targeting a section are written at the top or bottom of that section
+  - provisioning uses the shared target management of implementation tasks (the management of the gateway); a task whose stored management contradicts its gateway is reported with an alert instead of being written, and choosing a gateway in the implementation task view takes over its management
+- flow compliance API (`getFlowComplianceState`): a service with protocol `any` or `-1` is checked as the canonical ANY service (ports ignored) and now violates every port/protocol entry of a ForbiddenService criterion, like imported ANY services do; previously it was reported as compliant
+- settings: values of a single user are only stored for personal settings (#5734)
+  - the new table `config_user_key` lists the keys of the personal settings (the settings of the personal settings page and `maxMessages`). The API accepts values of a user only for these keys and only in the user's own rows (insert and update permissions of all roles except admin and middleware-server); all other settings are only stored globally
+  - upgrade: rows of a user in table `config` for keys that are not personal settings are removed, so the global value of these settings applies to every user
+  - `unusedTolerance`, `creationTolerance`, `recertificationDisplayPeriod`, `overviewDisplayLines` and `resolveNetworkAreas` are now personal settings, as is `reportingPersonalPreferredCollapseState`, which has no global value: a value the user saved on the personal settings page is kept when an admin changes the global settings. So far a change of the global settings replaced it with the global value for the rest of the UI session
+  - reports the middleware generates for a user (scheduled reports, `POST /api/Report/Get`, `POST /api/Compliance/Report`) now also use the user's values of these settings, as they already did for the other personal settings; so far the global values replaced them. Of these settings, only `resolveNetworkAreas` is read while generating a report (network objects of connection and variance analysis reports), so compliance reports are unchanged
+  - the personal settings page saves only the settings changed on the page; a global value that changed while the page was open is no longer saved as the user's value
+  - readers of global settings only read the global rows, as the API calls already do: the settings of a UI session and of the reports the middleware generates for a user apply rows of the user only for personal settings, and the rule ownership mode of the rule owner views (`v_rule_ownership_mode`, also replaced by the upgrade) and the encryption of the stored email password read only the global row
+
+
 ## 9.9.3 - 14.11.2026
 - request workflow: rule-positioning and firewall-write operations resolve gateway-bound implementation tasks against the gateway's management and reject inconsistent task data
 - middleware REST API: `getAddressGroups` and `getServiceGroups` accept `filter.includeTechnicalDetails=true` to include each member's standalone address or service object fields; omitted, null or false keep the existing compact id/name response, and address details can be combined with separated zone groups
+- CI: the version gate no longer loses its result when a pull request is pushed while the version gate refresh runs (#5674)
+  - version-gate.yml has no concurrency group anymore, so a refresh re-run of an older head cannot cancel the gate of the current head
+  - the refresh skips a pull request whose head moved since it read the pull request list
+- CI: shorter pull request checks and less queueing on the shared runners (#5674), see documentation/developer-docs/github/test-install-workflow.md
+  - a pull request installs on Ubuntu 24.04 only; Ubuntu 22.04 (ansible-core 2.18) is added when it changes Ansible files; every merge into develop or main installs on Ubuntu 22.04, 24.04 and 26.04
+  - each install uses the system's own Python and the installer environment script like an installation, instead of a 15 job OS x Python matrix
+  - Python unit tests run on Python 3.11 on a pull request, and on 3.10 - 3.14 after a merge and on Dependabot pip updates; pyright checks against Python 3.10 and 3.14 on every pull request
+  - the installs no longer run the unit tests (new tag `unittests_run`); the C# unit tests run in the Sonar workflows only
+  - each install of a pull request checks the version first and stops within seconds when it needs a bump; `test-install.yml` gets a read-only token by default
+  - every merge into develop gets its own run, and a failure is commented on the merged pull request
+  - removed the PDF test step of the install job, which only rebuilt the test project to skip the test on GitHub Actions
+  - importer unit tests: the autouse service provider fixture builds its test doubles on first use only (about 7 times faster)
+  - Dependabot groups minor and patch updates per directory into one pull request
+- customizing script tests and scripts/performance/create_large_ruleset.py run on Python 3.10 again (no `typing.Self` and `datetime.UTC` imports)
 - UI fix: links from rule report objects to the right sidebar work again on the first click and no longer jump to another page on a following click (#4919). The per-page API role is now determined from the current page with every request instead of a navigation handler, which had broken the browser's in-page navigation
 - importer: last hits are read by a separate rule hit import instead of the regular import (#3297)
   - the regular import no longer reads or writes last hits (Check Point no longer requests hits), so unchanged Check Point configurations no longer leave last hits outdated
@@ -34,13 +71,7 @@
 - installer: Apache proxies the UI and the API with `ProxyPass ... upgrade=websocket` instead of rewrite rules. `mod_proxy_http` tunnels the websocket connections itself (Apache 2.4.47 or later), so new installations no longer enable `proxy_wstunnel`; upgraded installations keep the module enabled, unused
   - API port: websocket connections are only proxied below `/api/`; so far a websocket upgrade request on any path reached `/v1/graphql`
   - API port: `/api` without a trailing slash is redirected to `/api/`, and requests below `/api/` reach Hasura without a doubled leading slash
-- settings: values of a single user are only stored for personal settings (#5734)
-  - the new table `config_user_key` lists the keys of the personal settings (the settings of the personal settings page and `maxMessages`). The API accepts values of a user only for these keys and only in the user's own rows (insert and update permissions of all roles except admin and middleware-server); all other settings are only stored globally
-  - upgrade: rows of a user in table `config` for keys that are not personal settings are removed, so the global value of these settings applies to every user
-  - `unusedTolerance`, `creationTolerance`, `recertificationDisplayPeriod`, `overviewDisplayLines` and `resolveNetworkAreas` are now personal settings, as is `reportingPersonalPreferredCollapseState`, which has no global value: a value the user saved on the personal settings page is kept when an admin changes the global settings. So far a change of the global settings replaced it with the global value for the rest of the UI session
-  - reports the middleware generates for a user (scheduled reports, `POST /api/Report/Get`, `POST /api/Compliance/Report`) now also use the user's values of these settings, as they already did for the other personal settings; so far the global values replaced them. Of these settings, only `resolveNetworkAreas` is read while generating a report (network objects of connection and variance analysis reports), so compliance reports are unchanged
-  - the personal settings page saves only the settings changed on the page; a global value that changed while the page was open is no longer saved as the user's value
-  - readers of global settings only read the global rows, as the API calls already do: the settings of a UI session and of the reports the middleware generates for a user apply rows of the user only for personal settings, and the rule ownership mode of the rule owner views (`v_rule_ownership_mode`, also replaced by the upgrade) and the encryption of the stored email password read only the global row
+- dependencies: update NuGet packages (AngleSharp 1.10.4, coverlet.collector 10.1.1, MailKit 5.0.0, MimeKit 5.0.0, Microsoft.NET.Test.Sdk 18.12.0, PuppeteerSharp 25.17.1, Scalar.AspNetCore 3.0.0, SoPro.FancyTable 1.7.0)
 
 
 ## 9.9.2 - 10.11.2026

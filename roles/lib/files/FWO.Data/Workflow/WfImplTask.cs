@@ -83,7 +83,7 @@ namespace FWO.Data.Workflow
             TicketId = reqtask.TicketId;
             if (reqtask.Elements != null && reqtask.Elements.Count > 0)
             {
-                if (reqtask.TaskType == WfTaskType.rule_delete.ToString())
+                if (reqtask.TaskType == WfTaskType.rule_delete.ToString() || reqtask.TaskType == WfTaskType.rule_modify.ToString())
                 {
                     DeviceId = reqtask.Elements.FirstOrDefault(element => element.Field == ElemFieldType.rule.ToString())?.DeviceId;
                 }
@@ -158,6 +158,10 @@ namespace FWO.Data.Workflow
             }
             return elements;
         }
+
+        /// <summary>The distinct, non-empty uids of the existing rules the task names, in the order of its elements.</summary>
+        public List<string> GetRuleUids() =>
+            [.. GetRuleElements().Select(rule => rule.RuleUid).Where(uid => !string.IsNullOrWhiteSpace(uid)).Distinct()];
 
         public List<NwRuleElement> GetRuleElements()
         {

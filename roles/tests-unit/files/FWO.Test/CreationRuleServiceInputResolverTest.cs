@@ -285,7 +285,7 @@ public class CreationRuleServiceInputResolverTest
     private static CreationRuleServiceInputResolver Resolver(IFlowGroupResolver? groups = null) =>
         new(groups ?? new FakeFlowGroupResolver(new FlowGroupResolutionResult()));
 
-    private static IReadOnlyCollection<WfReqTask> TicketTasks(params WfReqTask[] tasks) => tasks;
+    private static WfReqTask[] TicketTasks(params WfReqTask[] tasks) => tasks;
 
     private static WfReqTask Access(params WfReqElement[] services) => Access(10, 10, services);
 

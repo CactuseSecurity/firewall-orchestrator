@@ -98,24 +98,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         TicketObjectReferenceIndex referenceIndex,
         CancellationToken cancellationToken)
     {
-        List<GroupIdentity> requested = [];
-        foreach (WfReqElement element in accessElements)
-        {
-            if (element.ObjectTaskId == null)
-            {
-                if (!HasAddress(element))
-                {
-                    requested.Add(GroupIdentityForElement(element));
-                }
-                continue;
-            }
-
-            WfReqTask referencedTask = referenceIndex.Resolve(element, ReferenceFailureCategory(element));
-            if (referencedTask.TaskType == WfTaskType.group_modify.ToString())
-            {
-                requested.Add(GroupIdentityForTask(referencedTask));
-            }
-        }
+        List<GroupIdentity> requested = CatalogRequestsForElements(accessElements, referenceIndex);
         List<long> ids = requested.Where(reference => reference.FlowId is > 0)
             .Select(reference => reference.FlowId!.Value).Distinct().ToList();
         List<string> names = requested.Where(reference => reference.FlowId is not > 0 && reference.Name.Length > 0)
@@ -153,6 +136,32 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
         {
             throw Failure(CreationRuleNetworkResolutionFailureCategory.GroupQueryFailed);
         }
+    }
+
+    /// <summary>Collects existing groups and referenced group-modification baselines.</summary>
+    private static List<GroupIdentity> CatalogRequestsForElements(
+        IEnumerable<WfReqElement> accessElements,
+        TicketObjectReferenceIndex referenceIndex)
+    {
+        List<GroupIdentity> requested = [];
+        foreach (WfReqElement element in accessElements)
+        {
+            if (element.ObjectTaskId == null)
+            {
+                if (!HasAddress(element))
+                {
+                    requested.Add(GroupIdentityForElement(element));
+                }
+                continue;
+            }
+
+            WfReqTask referencedTask = referenceIndex.Resolve(element, ReferenceFailureCategory(element));
+            if (referencedTask.TaskType == WfTaskType.group_modify.ToString())
+            {
+                requested.Add(GroupIdentityForTask(referencedTask));
+            }
+        }
+        return requested;
     }
 
     /// <summary>Loads and validates one bounded catalog selector chunk.</summary>
@@ -285,7 +294,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
 
     /// <summary>Normalizes active persisted group members without following sibling references.</summary>
     private static List<IPAddressRange> ResolvePersistedGroupMembers(
-        IReadOnlyCollection<WfReqElement> members,
+        List<WfReqElement> members,
         CancellationToken cancellationToken)
     {
         if (members.Count == 0)

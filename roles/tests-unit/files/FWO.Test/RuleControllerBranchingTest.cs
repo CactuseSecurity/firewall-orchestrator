@@ -19,17 +19,19 @@ namespace FWO.Test
     [Parallelizable]
     internal class RuleControllerBranchingTest
     {
+        private const long kBigRuleId = (long)int.MaxValue + 1;
         private static readonly string[] kExpectedBothRuleNames = ["Source", "Destination"];
         private static readonly string[] kExpectedZeroMinPrefixRuleNames = ["Source", "AnySource"];
         private static readonly string[] kFirstPageRuleNames = ["Source"];
         private static readonly string[] kSecondPageRuleNames = ["Destination"];
         private static readonly string[] kBothPageRuleNames = ["Source", "Destination"];
         private static readonly List<string> kExpectedRuleUidNames = new() { "Source", "MatchingGroup", "Destination" };
-        private static readonly List<int> kExpectedSingleRuleUidIds = [101];
+        private static readonly List<long> kExpectedSingleRuleUidIds = [101];
         private static readonly List<string> kExpectedRuleUidManagers = ["1", "2", "3"];
-        private static readonly List<int> kExpectedRepeatedRuleUidIds = [101, 303, 404];
-        private static readonly List<int> kExpectedFirstPagedRuleUidIds = [303];
-        private static readonly List<int> kExpectedLastPagedRuleUidIds = [404];
+        private static readonly List<long> kExpectedRepeatedRuleUidIds = [101, 303, 404];
+        private static readonly List<long> kExpectedFirstPagedRuleUidIds = [303];
+        private static readonly List<long> kExpectedLastPagedRuleUidIds = [404];
+        private static readonly List<long> kExpectedBigRuleIds = [kBigRuleId];
 
         [Test]
         public async Task GetRulesByFilter_ShouldWorkWithOwnerId()
@@ -140,6 +142,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetRulesByFilter_RuleUidSupportsBigintRuleIds()
+        {
+            BranchingApiConnection apiConnection = new();
+            RuleController controller = CreateController(apiConnection, "req-rule-uid-bigint");
+
+            RulesByFilterResponse response = ExtractResponse(await controller.GetRulesByFilter(
+                BuildRuleUidRequest("uid-bigint", null, null), "req-rule-uid-bigint"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.Result.Rules.Single().Name, Is.EqualTo("Source"));
+                Assert.That(apiConnection.LastDetailRuleIds, Is.EqualTo(kExpectedBigRuleIds));
+            });
+        }
+
+        [Test]
         public async Task GetRulesByFilter_RuleUidReturnsEmptyPageWhenNoRuleMatches()
         {
             BranchingApiConnection apiConnection = new();
@@ -184,6 +202,8 @@ namespace FWO.Test
                 Assert.That(badRequest, Is.Not.Null);
                 Assert.That(badRequest?.Value, Is.EqualTo("RuleUid must not exceed 256 characters."));
                 Assert.That(tooLongApiConnection.QueryCount, Is.Zero);
+                Assert.That(output, Does.Contain("RuleUidLength: 257"));
+                Assert.That(output, Does.Not.Contain(tooLongRuleUid));
                 Assert.That(output, Does.Contain("Result: rejected"));
             });
         }
@@ -761,7 +781,7 @@ namespace FWO.Test
             private readonly bool _includeBroadSourceRule;
             private readonly bool _includeAnyRule;
 
-            public List<int>? LastDetailRuleIds { get; private set; }
+            public List<long>? LastDetailRuleIds { get; private set; }
             public int QueryCount { get; private set; }
 
             public BranchingApiConnection(bool includeGroupRule = true, bool includeDestinationRule = false,
@@ -839,6 +859,8 @@ namespace FWO.Test
                     List<RuleOwnerItem> ruleIds = ruleUid switch
                     {
                         "uid-one" => new List<RuleOwnerItem> { new() { RuleId = 101 } },
+                        "uid-bigint" => Newtonsoft.Json.JsonConvert.DeserializeObject<List<RuleOwnerItem>>(
+                            $"[{{\"rule_id\":{kBigRuleId}}}]")!,
                         "uid-repeated" => new List<RuleOwnerItem>
                         {
                             new() { RuleId = 404 },
@@ -855,7 +877,7 @@ namespace FWO.Test
                 {
                     if (HasVariable(variables, "rule_ids"))
                     {
-                        LastDetailRuleIds = GetIntListVariable(variables, "rule_ids");
+                        LastDetailRuleIds = GetLongListVariable(variables, "rule_ids");
                         List<Rule> details = LastDetailRuleIds
                             .Select(BuildRuleForId)
                             .OrderByDescending(rule => rule.Id)
@@ -943,10 +965,10 @@ namespace FWO.Test
                 return value is int intValue ? intValue : Convert.ToInt32(value);
             }
 
-            private static List<int> GetIntListVariable(object? variables, string name)
+            private static List<long> GetLongListVariable(object? variables, string name)
             {
                 object? value = variables?.GetType().GetProperty(name)?.GetValue(variables);
-                return value is IEnumerable<int> values ? values.ToList() : new List<int>();
+                return value is IEnumerable<long> values ? values.ToList() : new List<long>();
             }
 
             private static string GetStringVariable(object? variables, string name)
@@ -954,13 +976,14 @@ namespace FWO.Test
                 return variables?.GetType().GetProperty(name)?.GetValue(variables)?.ToString() ?? "";
             }
 
-            private static Rule BuildRuleForId(int ruleId)
+            private static Rule BuildRuleForId(long ruleId)
             {
                 return ruleId switch
                 {
                     101 => BuildMatchingRule(ruleId),
                     303 => BuildGroupRule(ruleId),
                     404 => BuildDestinationRule(ruleId),
+                    kBigRuleId => BuildMatchingRule(ruleId),
                     _ => throw new InvalidOperationException($"Unexpected rule id: {ruleId}")
                 };
             }

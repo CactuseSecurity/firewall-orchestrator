@@ -341,7 +341,14 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
         }
         if (request.Query.RuleUid is not null)
         {
-            fields.Add($"RuleUid: {QuoteSiemValue(request.Query.RuleUid)}");
+            string ruleUidPreview = request.Query.RuleUid[..Math.Min(
+                request.Query.RuleUid.Length,
+                RulesByFilterQuery.kMaxRuleUidLength)];
+            fields.Add($"RuleUid: {QuoteSiemValue(ruleUidPreview)}");
+            if (request.Query.RuleUid.Length > RulesByFilterQuery.kMaxRuleUidLength)
+            {
+                fields.Add($"RuleUidLength: {request.Query.RuleUid.Length}");
+            }
         }
         if (request.Query.Filter is not null)
         {
@@ -368,8 +375,8 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
     private async Task<ListPage<RuleDetail>> FetchRulesByOwnerId(int ownerId, RulePage page,
         UserConfig userConfig)
     {
-        List<int> orderedRuleIds = [.. (await GetRuleIdsByOwnerId(ownerId)).Distinct().Order()];
-        ListPage<int> ruleIdPage = ListPage<int>.FromOrderedItems(orderedRuleIds, page.PageSize, page.Offset);
+        List<long> orderedRuleIds = [.. (await GetRuleIdsByOwnerId(ownerId)).Distinct().Order()];
+        ListPage<long> ruleIdPage = ListPage<long>.FromOrderedItems(orderedRuleIds, page.PageSize, page.Offset);
         return new ListPage<RuleDetail>(await GetRulesByIdsAsync(ruleIdPage.Items, userConfig), ruleIdPage.HasMore);
     }
 
@@ -380,12 +387,12 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
     private async Task<ListPage<RuleDetail>> FetchRulesByRuleUid(string ruleUid, RulePage page,
         UserConfig userConfig)
     {
-        List<int> orderedRuleIds = [.. (await GetRuleIdsByRuleUid(ruleUid)).Distinct().Order()];
-        ListPage<int> ruleIdPage = ListPage<int>.FromOrderedItems(orderedRuleIds, page.PageSize, page.Offset);
+        List<long> orderedRuleIds = [.. (await GetRuleIdsByRuleUid(ruleUid)).Distinct().Order()];
+        ListPage<long> ruleIdPage = ListPage<long>.FromOrderedItems(orderedRuleIds, page.PageSize, page.Offset);
         return new ListPage<RuleDetail>(await GetRulesByIdsAsync(ruleIdPage.Items, userConfig), ruleIdPage.HasMore);
     }
 
-    private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds, UserConfig userConfig)
+    private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<long> ruleIds, UserConfig userConfig)
     {
         if (ruleIds.Count == 0)
             return new List<RuleDetail>();
@@ -402,7 +409,7 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
         return ConvertRuleList(orderedRules, userConfig);
     }
 
-    private async Task<List<int>> GetRuleIdsByOwnerId(int ownerId)
+    private async Task<List<long>> GetRuleIdsByOwnerId(int ownerId)
     {
         var query = RuleQueries.getRuleIdsByRuleOwner;
 
@@ -422,7 +429,7 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
     /// <summary>
     /// Gets the database ids of all current rules whose UID exactly matches the supplied value.
     /// </summary>
-    private async Task<List<int>> GetRuleIdsByRuleUid(string ruleUid)
+    private async Task<List<long>> GetRuleIdsByRuleUid(string ruleUid)
     {
         var query = RuleQueries.getRuleIdsByRuleUid;
 
@@ -943,6 +950,6 @@ public class RequestContext
 
 public class RuleOwnerItem
 {
-    [JsonProperty("rule_id")] public int RuleId { get; set; }
+    [JsonProperty("rule_id")] public long RuleId { get; set; }
 }
 #pragma warning restore CS1591

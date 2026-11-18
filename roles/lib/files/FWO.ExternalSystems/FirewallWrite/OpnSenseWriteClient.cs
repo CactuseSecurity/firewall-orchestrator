@@ -26,8 +26,8 @@ namespace FWO.ExternalSystems.FirewallWrite
         private string? basicAuthentication;
 
         /// <summary>Creates a client for the API of an OPNsense firewall.</summary>
-        public OpnSenseWriteClient(Management management, bool checkCertificates)
-            : base(HostUrl(management), management, checkCertificates)
+        public OpnSenseWriteClient(Management management, bool checkCertificates, int? responseTimeout = null)
+            : base(HostUrl(management), management, checkCertificates, responseTimeout)
         { }
 
         /// <inheritdoc/>

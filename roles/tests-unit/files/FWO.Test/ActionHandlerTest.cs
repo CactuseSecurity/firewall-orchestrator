@@ -659,30 +659,27 @@ namespace FWO.Test
             firstTask.TaskNumber = 1;
             firstTask.StateId = 60;
             firstTask.TaskType = WfTaskType.access.ToString();
-            firstTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
             WfReqTask secondTask = CreateEligibleRequestTask(13, title: "Second matching task");
             secondTask.Id = 12;
             secondTask.TicketId = 7;
             secondTask.TaskNumber = 2;
             secondTask.StateId = 60;
             secondTask.TaskType = WfTaskType.access.ToString();
-            secondTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
             WfReqTask wrongTypeTask = CreateEligibleRequestTask(14, title: "Wrong type task");
             wrongTypeTask.Id = 13;
             wrongTypeTask.TicketId = 7;
             wrongTypeTask.TaskNumber = 3;
             wrongTypeTask.StateId = 60;
             wrongTypeTask.TaskType = WfTaskType.rule_delete.ToString();
-            wrongTypeTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
-            WfReqTask wrongTargetTask = CreateEligibleRequestTask(15, title: "Wrong target task");
-            wrongTargetTask.Id = 14;
-            wrongTargetTask.TicketId = 7;
-            wrongTargetTask.TaskNumber = 4;
-            wrongTargetTask.StateId = 60;
-            wrongTargetTask.TaskType = WfTaskType.access.ToString();
+            WfReqTask wrongStateTask = CreateEligibleRequestTask(15, title: "Wrong state task");
+            wrongStateTask.Id = 14;
+            wrongStateTask.TicketId = 7;
+            wrongStateTask.TaskNumber = 4;
+            wrongStateTask.StateId = 61;
+            wrongStateTask.TaskType = WfTaskType.access.ToString();
             ActionHandlerTestApiConn apiConn = new()
             {
-                FullTicket = CreateTicket(firstTask, secondTask, wrongTypeTask, wrongTargetTask)
+                FullTicket = CreateTicket(firstTask, secondTask, wrongTypeTask, wrongStateTask)
             };
             apiConn.FullTicket.Id = 7;
             ActionHandler handler = new(apiConn, new WfHandler { userConfig = new SimulatedUserConfig() });
@@ -701,7 +698,7 @@ namespace FWO.Test
                 Assert.That(content?.PlainText, Does.Contain("1 | First matching task |"));
                 Assert.That(content?.PlainText, Does.Contain("2 | Second matching task |"));
                 Assert.That(content?.PlainText, Does.Not.Contain("Wrong type task"));
-                Assert.That(content?.PlainText, Does.Not.Contain("Wrong target task"));
+                Assert.That(content?.PlainText, Does.Not.Contain("Wrong state task"));
             });
         }
 
@@ -715,7 +712,6 @@ namespace FWO.Test
             firstTask.StateId = 60;
             firstTask.TaskType = WfTaskType.access.ToString();
             firstTask.AssignedGroup = "cn=group-a";
-            firstTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
             WfReqTask secondTask = CreateEligibleRequestTask(13, title: "Second group task");
             secondTask.Id = 12;
             secondTask.TicketId = 7;
@@ -723,7 +719,6 @@ namespace FWO.Test
             secondTask.StateId = 60;
             secondTask.TaskType = WfTaskType.access.ToString();
             secondTask.AssignedGroup = "cn=group-b";
-            secondTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
             ActionHandlerTestApiConn apiConn = new()
             {
                 FullTicket = CreateTicket(firstTask, secondTask)
@@ -755,7 +750,6 @@ namespace FWO.Test
             firstTask.StateId = 60;
             firstTask.TaskType = WfTaskType.access.ToString();
             firstTask.Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 101 } }];
-            firstTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
             WfReqTask secondTask = CreateEligibleRequestTask(13, title: "Owner B task");
             secondTask.Id = 12;
             secondTask.TicketId = 7;
@@ -763,7 +757,6 @@ namespace FWO.Test
             secondTask.StateId = 60;
             secondTask.TaskType = WfTaskType.access.ToString();
             secondTask.Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 202 } }];
-            secondTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
             ActionHandlerTestApiConn apiConn = new()
             {
                 FullTicket = CreateTicket(firstTask, secondTask)
@@ -824,7 +817,6 @@ namespace FWO.Test
             selectedTask.TaskNumber = 1;
             selectedTask.StateId = 60;
             selectedTask.TaskType = WfTaskType.access.ToString();
-            selectedTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
             WfReqTask nonMatchingTask = CreateEligibleRequestTask(13, title: "Non matching task");
             nonMatchingTask.Id = 12;
             nonMatchingTask.TicketId = 7;
@@ -2595,7 +2587,6 @@ namespace FWO.Test
                 TaskNumber = 1,
                 StateId = 60
             };
-            requestTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
 
             collector.TryAdd(action, requestTask, new FwoOwner { Id = 3 }, "cn=group");
             string originalBundleKey = collector.PendingItems[0].BundleKey;

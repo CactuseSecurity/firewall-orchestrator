@@ -183,6 +183,8 @@ namespace FWO.Test
 
         public static void ResetTicketTasks()
         {
+            // the handler replaces tasks of the shared ticket by updated copies
+            ticket123.Tasks = [reqTask1, reqTask2, reqTask3, reqTask4, reqTask5, reqTask6, reqTask7, reqTask8, reqTask9];
             reqTask1.StateId = 0;
             reqTask1.AdditionalInfo = "{\"ConnId\":\"1\"}";
             reqTask2.StateId = 0;
@@ -250,15 +252,6 @@ namespace FWO.Test
             if (task != null)
             {
                 task.SetAddInfo(key, value);
-            }
-        }
-
-        public static void MarkReqTaskAsInternalWork(long id)
-        {
-            WfReqTask? task = FindReqTaskById(id);
-            if (task != null)
-            {
-                task.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
             }
         }
 
@@ -439,6 +432,12 @@ namespace FWO.Test
 
                 ReturnId returnId = new() { UpdatedIdLong = 1 };
                 GraphQLResponse<dynamic> response = new() { Data = returnId };
+                return response.Data;
+            }
+            else if (responseType == typeof(List<ExternalRequest>) && query == ExtRequestQueries.getUnfinishedRequestsOfTicket)
+            {
+                // the requests of the tests are acknowledged at once, so none is still being processed
+                GraphQLResponse<dynamic> response = new() { Data = new List<ExternalRequest>() };
                 return response.Data;
             }
             else if (responseType == typeof(Credential) && query == DeviceQueries.getCredentialById)

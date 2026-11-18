@@ -6,7 +6,6 @@ using FWO.Data.Flow;
 using FWO.Data.Logging;
 using FWO.Data.Middleware;
 using FWO.Data.Workflow;
-using FWO.ExternalSystems.CheckPoint;
 using FWO.Services;
 using FWO.Services.EventMediator.Events;
 using FWO.Services.EventMediator.Interfaces;
@@ -81,8 +80,6 @@ namespace FWO.Test
                     FlowState.Implemented,
                     FlowState.Removed
                 }));
-                Assert.That(CheckPointTaskTypes.GroupCreate, Is.EqualTo(nameof(WfTaskType.group_create)));
-                Assert.That(CheckPointTaskTypes.InstallPolicy, Is.EqualTo("install_policy"));
             });
         }
 

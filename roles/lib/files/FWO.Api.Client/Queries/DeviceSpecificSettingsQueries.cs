@@ -8,6 +8,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getNodeById;
         public static readonly string getNodesByNaturalKeys;
         public static readonly string getAllNodes;
+        public static readonly string getNodesUsingCredential;
         public static readonly string upsertNode;
         public static readonly string applyPatch;
         public static readonly string deleteOverrides;
@@ -20,6 +21,7 @@ namespace FWO.Api.Client.Queries
                 getNodeById = GetQueryText("deviceSpecificSettings/getNodeById.graphql");
                 getNodesByNaturalKeys = GetQueryText("deviceSpecificSettings/getNodesByNaturalKeys.graphql");
                 getAllNodes = GetQueryText("deviceSpecificSettings/getAllNodes.graphql");
+                getNodesUsingCredential = GetQueryText("deviceSpecificSettings/getNodesUsingCredential.graphql");
                 upsertNode = GetQueryText("deviceSpecificSettings/upsertNode.graphql");
                 applyPatch = GetQueryText("deviceSpecificSettings/applyPatch.graphql");
                 deleteOverrides = GetQueryText("deviceSpecificSettings/deleteOverrides.graphql");

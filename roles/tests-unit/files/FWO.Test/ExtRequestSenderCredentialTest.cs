@@ -1,4 +1,5 @@
 using FWO.Data;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Encryption;
 using FWO.ExternalSystems;
 using FWO.Middleware.Server;
@@ -218,20 +219,26 @@ namespace FWO.Test
                 TicketId = 2,
                 ExtTicketSystem = System.Text.Json.JsonSerializer.Serialize(CreateTicketSystem(url, credentialId, legacyAuthorization)),
                 ExtRequestState = state.ToString(),
-                ExtRequestContent = kTicketContent
+                ExtRequestContent = kTicketContent,
+                ExtQueryVariables = "{\"ManagementId\":[1]}"
             };
         }
 
+        /// <summary>
+        /// Runs the sender with the SecureChange connection configured for the management of the request in the device
+        /// specific settings; without configured connection the settings cannot be read.
+        /// </summary>
         private static async Task<List<string>> RunSender(ExtRequestSenderTestApiConn apiConnection, string url, int? configuredCredentialId = kCredentialId,
             bool ticketSystemConfigured = true, string? configuredUrl = null)
         {
-            List<ExternalTicketSystem> configuredSystems = ticketSystemConfigured ? [CreateTicketSystem(configuredUrl ?? url, configuredCredentialId)] : [];
-            SimulatedGlobalConfig globalConfig = new()
+            GlobalDeviceSpecificSettings? settings = ticketSystemConfigured
+                ? new GlobalDeviceSpecificSettings { ScUrl = configuredUrl ?? url, ScCredential = configuredCredentialId }
+                : null;
+            SimulatedGlobalConfig globalConfig = new() { ExternalRequestWaitCycles = 3 };
+            ExternalRequestSender sender = new(apiConnection, globalConfig)
             {
-                ExternalRequestWaitCycles = 3,
-                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(configuredSystems)
+                ManagementSettingsLoader = _ => Task.FromResult(settings)
             };
-            ExternalRequestSender sender = new(apiConnection, globalConfig);
             return await sender.Run();
         }
     }

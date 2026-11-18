@@ -244,3 +244,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_owner_network_label_active_uniqu
 CREATE INDEX IF NOT EXISTS idx_labelling_owner_network_label_label_id ON labelling.owner_network_label (label_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_owner_network_label_created_event ON labelling.owner_network_label (created_event_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_owner_network_label_removed_event ON labelling.owner_network_label (removed_event_id) WHERE removed_event_id IS NOT NULL;
+
+-- key of the App label; Hasura restricts modellers to App labels of their own apps by this entry
+INSERT INTO config (config_key, config_value, config_user) VALUES ('appLabelKey', 'App', 0) ON CONFLICT DO NOTHING;

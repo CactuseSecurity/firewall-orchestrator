@@ -30,6 +30,10 @@ namespace FWO.Data.Labelling
         public const string kCsvOr = " OR ";
 
         private const string kLabelSeparator = ", ";
+
+        // names of the network objects an importer builds from labels (see GcNetworkObjectCollector.add_label /
+        // add_and_labels of the Guardicore importer): "key: value", for an AND-group the sorted labels joined by " & "
+        private const string kLabelObjectAndSeparator = " & ";
         private static readonly List<Dictionary<string, List<string>>> kNoGroups = [];
         private static readonly List<RuleLabelAssignment> kNoRuleLabels = [];
 
@@ -51,6 +55,27 @@ namespace FWO.Data.Labelling
                 return formattedGroups.FirstOrDefault() ?? "";
             }
             return string.Join(orSeparator, formattedGroups.Select(formattedGroup => $"({formattedGroup})"));
+        }
+
+        /// <summary>
+        /// Returns the names of the network objects an importer builds from the AND-groups of a rule side, one per group,
+        /// e.g. "Stage: Prod" for a single label and "OS: Linux &amp; Stage: Prod" for an AND-group.
+        /// </summary>
+        /// <param name="groups">The ORed AND-groups of the side.</param>
+        /// <returns>The object names, empty without labels.</returns>
+        public static HashSet<string> LabelObjectNames(List<Dictionary<string, List<string>>>? groups)
+        {
+            HashSet<string> names = new(StringComparer.Ordinal);
+            foreach (Dictionary<string, List<string>> group in groups ?? kNoGroups)
+            {
+                List<string> labels = [.. FormatLabels(group).Distinct()];
+                labels.Sort(StringComparer.Ordinal);
+                if (labels.Count > 0)
+                {
+                    names.Add(string.Join(kLabelObjectAndSeparator, labels));
+                }
+            }
+            return names;
         }
 
         /// <summary>

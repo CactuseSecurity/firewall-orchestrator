@@ -23,6 +23,9 @@ namespace FWO.Test
         private const string kFillStmFile = "fworch-fill-stm.sql";
         private const string kLabellingSchemaUpgrade = "create schema if not exists labelling;";
         private const string kLabelLogicSetting = "'labelLogic'";
+        private const string kAppKeySetting = "('appLabelKey', 'App', 0)";
+        private const string kAppKeyRelationship = "app_label_key_configs";
+        private const string kNotAppKeyCheck = "{\"label_key\":{\"_not\":{\"app_label_key_configs\":{\"config_key\":{\"_eq\":\"appLabelKey\"},\"config_user\":{\"_eq\":0}}}}}";
         private const string kMetadataFile = "replace_metadata.json";
         private const string kMiddlewareRole = "middleware-server";
         private const string kImporterRole = "importer";
@@ -258,20 +261,41 @@ namespace FWO.Test
         {
             JsonNode? appIdRelationship = Nodes(FindTable("label_value")["array_relationships"])
                 .FirstOrDefault(relationship => relationship["name"]?.GetValue<string>() == "owners_by_app_id");
+            JsonNode? appKeyRelationship = Nodes(FindTable("label_key")["array_relationships"])
+                .FirstOrDefault(relationship => relationship["name"]?.GetValue<string>() == kAppKeyRelationship);
             Assert.Multiple(() =>
             {
                 Assert.That(appIdRelationship?["using"]?["manual_configuration"]?["column_mapping"]?["value"]?.GetValue<string>(), Is.EqualTo("app_id_external"));
+                Assert.That(appKeyRelationship?["using"]?["manual_configuration"]?["column_mapping"]?["key_name"]?.GetValue<string>(), Is.EqualTo("config_value"));
+                Assert.That(appKeyRelationship?["using"]?["manual_configuration"]?["remote_table"]?["name"]?.GetValue<string>(), Is.EqualTo("config"));
                 foreach (string name in kConnectionSideTables)
                 {
                     string insertCheck = Permission(FindTable(name), "insert_permissions", "modeller")?["permission"]?["check"]?.ToJsonString() ?? "";
                     string updateFilter = Permission(FindTable(name), "update_permissions", "modeller")?["permission"]?["filter"]?.ToJsonString() ?? "";
                     Assert.That(insertCheck, Does.Contain("\"connection\":{\"_or\":[{\"app_id\":{\"_in\":\"x-hasura-editable-owners\"}}"), name);
                     Assert.That(insertCheck, Does.Contain("\"owners_by_app_id\":{\"id\":{\"_in\":\"x-hasura-editable-owners\"}}"), name);
+                    // only labels of the configured App key are restricted to own apps, whatever their value
+                    Assert.That(insertCheck, Does.Contain(kNotAppKeyCheck), name);
+                    Assert.That(insertCheck, Does.Not.Contain("\"_not\":{\"owners_by_app_id\""), name);
                     Assert.That(updateFilter, Does.Contain("x-hasura-editable-owners"), name);
                 }
                 string eventCheck = Permission(FindTable(kChangeEventTable), "insert_permissions", "modeller")?["permission"]?["check"]?.ToJsonString() ?? "";
                 Assert.That(eventCheck, Does.Contain("\"origin_is_ui\":{\"_eq\":true}"));
                 Assert.That(eventCheck, Does.Contain("x-hasura-editable-owners"));
+            });
+        }
+
+        /// <summary>
+        /// The App key is stored with its default on install and upgrade, as the Hasura check of App labels reads it
+        /// from the config table and would otherwise restrict nothing.
+        /// </summary>
+        [Test]
+        public void Config_StoresTheDefaultAppKey()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(fillConfig, Does.Contain(kAppKeySetting));
+                Assert.That(upgrade, Does.Contain(kAppKeySetting + " ON CONFLICT DO NOTHING;"));
             });
         }
 

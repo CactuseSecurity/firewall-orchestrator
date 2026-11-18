@@ -11,6 +11,12 @@ namespace FWO.Data.Labelling
         LabelColumns = 0,
 
         /// <summary>
+        /// Labels in the source and destination cells instead of the objects that were built from them (e.g. the
+        /// groups the Guardicore importer creates per label), the other objects stay.
+        /// </summary>
+        LabelsReplaceObjects = 1,
+
+        /// <summary>
         /// Labels below the objects in the source and destination cells.
         /// </summary>
         LabelsWithObjects = 2,

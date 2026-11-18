@@ -379,16 +379,18 @@ namespace FWO.Ui.Display
                 result.AppendLine(userConfig.GetText("negated") + "<br>");
             }
             string highlightedStyle = style + (reportType == ReportType.AppRules ? " " + GlobalConst.kStyleHighlightedRed : "");
+            List<Dictionary<string, List<string>>>? sideLabels = isSource ? rule.SourceLabels : rule.DestinationLabels;
+            NetworkLocation[] networkLocations = DisplayedNetworkLocations(isSource ? rule.Froms : rule.Tos, sideLabels);
 
             if (!overwriteIsResolvedReport && reportType.IsResolvedReport())
             {
-                NetworkLocation[] userNwObjects = [.. GetResolvedNetworkLocations(isSource ? rule.Froms : rule.Tos)];
+                NetworkLocation[] userNwObjects = [.. GetResolvedNetworkLocations(networkLocations)];
                 result.AppendJoin("<br>", Array.ConvertAll(userNwObjects,
                     nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, highlightedStyle, reportType)));
             }
             else
             {
-                result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.Froms : rule.Tos,
+                result.AppendJoin("<br>", Array.ConvertAll(networkLocations,
                     nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, highlightedStyle, reportType)));
             }
             if (reportType == ReportType.AppRules)
@@ -402,7 +404,7 @@ namespace FWO.Ui.Display
 
         private void AppendLabelsToObjects(StringBuilder result, string labels)
         {
-            if (ShowSideLabelsWithObjects && labels.Length > 0)
+            if (ShowSideLabelsInCell && labels.Length > 0)
             {
                 result.Append(result.Length > 0 ? "<br>" : "").Append(labels);
             }
@@ -411,11 +413,12 @@ namespace FWO.Ui.Display
         private string DisplayAppRuleSourceOrDestination(Rule rule, int chapterNumber, OutputLocation location, ReportType reportType, string style, string highlightedStyle, bool isSource)
         {
             StringBuilder result = new();
-            if (!rule.ShowDisregarded &&
-                ((isSource && rule.Froms.Length > 0 && rule.DisregardedFroms.Length > 0) ||
-                (!isSource && rule.Tos.Length > 0 && rule.DisregardedTos.Length > 0)))
+            NetworkLocation[] disregarded = DisplayedNetworkLocations(isSource ? rule.DisregardedFroms : rule.DisregardedTos,
+                isSource ? rule.SourceLabels : rule.DestinationLabels);
+            bool hasRelevantObjects = (isSource ? rule.Froms : rule.Tos).Length > 0;
+            if (!rule.ShowDisregarded && hasRelevantObjects && disregarded.Length > 0)
             {
-                result.Append($"<br><span class=\"text-secondary\">... ({(isSource ? rule.DisregardedFroms.Length : rule.DisregardedTos.Length)} {userConfig.GetText("more")})</span>");
+                result.Append($"<br><span class=\"text-secondary\">... ({disregarded.Length} {userConfig.GetText("more")})</span>");
             }
             else
             {
@@ -423,7 +426,7 @@ namespace FWO.Ui.Display
                 {
                     result.Append("<br>");
                 }
-                result.AppendJoin("<br>", Array.ConvertAll(isSource ? rule.DisregardedFroms : rule.DisregardedTos,
+                result.AppendJoin("<br>", Array.ConvertAll(disregarded,
                     nwLoc => NetworkLocationToHtml(nwLoc, rule.MgmtId, chapterNumber, location, nwLoc.Object.IsAnyObject() ? highlightedStyle : style, reportType)));
             }
             return result.ToString();

@@ -645,7 +645,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
     <li>Neues Importmodul f&uuml;r Akamai Guardicore Segmentation: Labels werden als Netzwerkobjektgruppen ihrer IP-Adressen (aus IP-Kriterien und den Assets mit dem Label) sowie als Labels importiert, UND-verkn&uuml;pfte Labels einer Regel als Gruppe der gemeinsamen IP-Adressen. Die Regeln werden je Abschnitt und Ruleset in verkettete Regelwerke aufgeteilt, deren alphabetische Reihenfolge der Guardicore-Abschnittsreihenfolge entspricht. Die Labels der Quelle und des Ziels einer Regel werden zudem an der Regel gespeichert.</li>
     <li>Der App-Daten-Import kann pro App-Server Labels importieren (Schl&uuml;ssel und Wert, z.B. Stage: Prod); unbekannte Labels werden automatisch angelegt. Die Labels importierter Regeln werden mit ihrer Historie pro Regelversion gespeichert, einschlie&szlig;lich der UND/ODER-Verkn&uuml;pfung der Labels einer Guardicore-Regelseite.</li>
-    <li>Regelbasierte Reports zeigen die Labels der Regeln in allen Formaten: Quell- und Ziel-Labels (in eigenen Spalten, zusammen mit den Objekten oder gar nicht, einstellbar unter Einstellungen - Reporting) sowie die Labels der Regel als Ganzes, z.B. das App-Label.</li>
+    <li>Regelbasierte Reports zeigen die Labels der Regeln in allen Formaten: Quell- und Ziel-Labels (in eigenen Spalten, anstelle der Label-Objekte, zusammen mit den Objekten oder gar nicht, einstellbar unter Einstellungen - Reporting) sowie die Labels der Regel als Ganzes, z.B. das App-Label.</li>
     <li>Jede Regel und jeder App-Server erh&auml;lt das App-Label ihres Eigent&uuml;mers (die App-ID aus der CMDB) - Regeln &uuml;ber das Regel-Eigent&uuml;mer-Mapping, App-Server beim App-Daten-Import bzw. beim Speichern. Der Schl&uuml;ssel des App-Labels wird unter Einstellungen - App-Daten-Import festgelegt.</li>
     <li>Modellierung mit Labels (in den Modellierungseinstellungen einzuschalten): Quelle und Ziel von Verbindungen, Schnittstellen und gemeinsamen Diensten k&ouml;nnen zus&auml;tzlich oder anstelle von Objekten Labels enthalten, zusammengefasst in UND-Gruppen (z.B. (Stage: Prod &cap; OS: Linux) &cup; (Stage: Test)).</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
@@ -655,7 +655,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
     <li>New import module for Akamai Guardicore Segmentation: labels are imported as network object groups of their IP addresses (from IP criteria and from the assets carrying the label) and as labels, ANDed labels of a rule as a group of their common IP addresses. The rules are split into chained rulebases per section and ruleset, whose alphabetical order matches the Guardicore section order. The labels of the source and destination of a rule are also stored with the rule.</li>
     <li>The app data import can import labels per app server (key and value, e.g. Stage: Prod); unknown labels are created automatically. The labels of imported rules are stored with their history per rule version, keeping the AND/OR combination of the labels of a Guardicore rule side.</li>
-    <li>Rule-based reports show the labels of the rules in all formats: source and destination labels (in own columns, together with the objects or not at all, configurable under Settings - Reporting) and the labels of the rule as a whole, e.g. the App label.</li>
+    <li>Rule-based reports show the labels of the rules in all formats: source and destination labels (in own columns, instead of the label objects, together with the objects or not at all, configurable under Settings - Reporting) and the labels of the rule as a whole, e.g. the App label.</li>
     <li>Every rule and every app server gets the App label of its owner (the app id from the CMDB) - rules via the rule owner mapping, app servers with the app data import or when they are saved. The key of the App label is set under Settings - App Data Import.</li>
     <li>Label-based modelling (to be switched on in the modelling settings): source and destination of connections, interfaces and common services can contain labels besides or instead of objects, combined in AND-groups (e.g. (Stage: Prod &cap; OS: Linux) &cup; (Stage: Test)).</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
@@ -3586,6 +3586,8 @@ INSERT INTO txt VALUES ('rule_label_display',   'German',   'Anzeige Quell- und 
 INSERT INTO txt VALUES ('rule_label_display',   'English',  'Display of source and destination labels');
 INSERT INTO txt VALUES ('rule_label_display_LabelColumns',      'German',   'Eigene Spalten');
 INSERT INTO txt VALUES ('rule_label_display_LabelColumns',      'English',  'Own columns');
+INSERT INTO txt VALUES ('rule_label_display_LabelsReplaceObjects', 'German', 'Anstelle der Label-Objekte');
+INSERT INTO txt VALUES ('rule_label_display_LabelsReplaceObjects', 'English', 'Instead of the label objects');
 INSERT INTO txt VALUES ('rule_label_display_LabelsWithObjects', 'German',   'Mit den Objekten in einer Zelle');
 INSERT INTO txt VALUES ('rule_label_display_LabelsWithObjects', 'English',  'Together with the objects in one cell');
 INSERT INTO txt VALUES ('rule_label_display_ObjectsOnly',       'German',   'Nur Objekte');
@@ -7277,6 +7279,7 @@ INSERT INTO txt VALUES ('H5464', 'German',  'Anzeige Quell- und Ziel-Labels: Leg
     Labels einer Gruppe werden mit &cap; verkn&uuml;pft (alle m&uuml;ssen zutreffen), mehrere Gruppen einer Seite mit &cup; (eine Gruppe muss zutreffen); im CSV-Export stattdessen mit AND und OR.
     <ul>
         <li>Eigene Spalten (Standard): Quell- und Ziel-Labels erscheinen in eigenen Spalten.</li>
+        <li>Anstelle der Label-Objekte: Die Labels erscheinen in der Zelle von Quelle bzw. Ziel anstelle der Objekte, die aus ihnen gebildet wurden (z.B. die Gruppen der Guardicore-Labels); die &uuml;brigen Objekte bleiben. CSV und JSON enthalten die Labels als eigene Felder und weiterhin alle Objekte.</li>
         <li>Mit den Objekten in einer Zelle: Die Labels erscheinen unter den Objekten von Quelle bzw. Ziel. CSV und JSON enthalten sie weiterhin als eigene Felder.</li>
         <li>Nur Objekte: Die Labels werden nicht angezeigt, sondern nur die Objekte (z.B. die aus Guardicore-Labels gebildeten Gruppen).</li>
     </ul>
@@ -7286,6 +7289,7 @@ INSERT INTO txt VALUES ('H5464', 'English', 'Display of source and destination l
     Labels of a group are joined with &cap; (all have to match), several groups of a side with &cup; (one group has to match); in the csv export with AND and OR instead.
     <ul>
         <li>Own columns (default): source and destination labels are shown in own columns.</li>
+        <li>Instead of the label objects: the labels are shown in the source or destination cell instead of the objects built from them (e.g. the groups of Guardicore labels); the other objects stay. Csv and json contain the labels as own fields and still all objects.</li>
         <li>Together with the objects in one cell: the labels are shown below the objects of the source or destination. Csv and json still contain them as own fields.</li>
         <li>Objects only: the labels are not shown, only the objects (e.g. the groups built from Guardicore labels).</li>
     </ul>

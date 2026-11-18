@@ -27,6 +27,12 @@ namespace FWO.Test
         private static readonly List<Dictionary<string, List<string>>> kOneGroup = [new() { ["Stage"] = ["Prod", "Test"] }];
         private static readonly List<Dictionary<string, List<string>>> kPayloadGroup = [new() { [kPayload] = [kPayload] }];
         private static readonly List<Dictionary<string, List<string>>> kQuoteGroup = [new() { ["Stage"] = ["a\"b"] }];
+        private static readonly List<string> kTwoGroupsObjectNames = ["AppRole: AR1 & Stage: Prod", "AppRole: AR2"];
+        private static readonly List<string> kOneGroupObjectNames = ["Stage: Prod & Stage: Test"];
+        private const string kAndLabelObjectHtml = "AppRole: AR1 &amp; Stage: Prod";
+        private const string kLabelMember = "label-member-host";
+        private const string kOtherGroup = "Other: X & Y";
+        private const string kPlainHost = "plain-host";
         private static readonly List<RuleLabelAssignment> kAppLabels = [AppLabel("APP-1"), AppLabel("APP-2"), AppLabel("APP-1")];
 
         [Test]
@@ -87,6 +93,7 @@ namespace FWO.Test
         }
 
         [TestCase(RuleLabelDisplayMode.LabelColumns, true, false, true)]
+        [TestCase(RuleLabelDisplayMode.LabelsReplaceObjects, false, true, true)]
         [TestCase(RuleLabelDisplayMode.LabelsWithObjects, false, true, true)]
         [TestCase(RuleLabelDisplayMode.ObjectsOnly, false, false, false)]
         public void Html_FollowsTheDisplayMode(RuleLabelDisplayMode mode, bool columns, bool inCell, bool fields)
@@ -106,6 +113,91 @@ namespace FWO.Test
                 Assert.That(display.ShowSideLabelFields, Is.EqualTo(fields));
                 Assert.That(display.DisplayRuleLabelsHeader(), Is.Empty);
                 Assert.That(display.LabelColumnCount, Is.EqualTo(columns ? 2 : 0));
+            });
+        }
+
+        [Test]
+        public void LabelObjectNames_FollowTheNamingOfTheImporter()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(RuleLabelFormatter.LabelObjectNames(kTwoGroups), Is.EquivalentTo(kTwoGroupsObjectNames));
+                Assert.That(RuleLabelFormatter.LabelObjectNames(kOneGroup), Is.EquivalentTo(kOneGroupObjectNames));
+                Assert.That(RuleLabelFormatter.LabelObjectNames(null), Is.Empty);
+            });
+        }
+
+        [TestCase(RuleLabelDisplayMode.LabelsReplaceObjects, false)]
+        [TestCase(RuleLabelDisplayMode.LabelsWithObjects, true)]
+        [TestCase(RuleLabelDisplayMode.LabelColumns, true)]
+        public void Html_ReplacesOnlyTheGroupsBuiltFromTheLabels(RuleLabelDisplayMode mode, bool labelObjectsShown)
+        {
+            RuleDisplayHtml display = new(new SimulatedUserConfig { RuleLabelDisplayMode = mode, ShowRuleLevelLabels = false });
+
+            string source = display.DisplaySource(RuleWithLabelObjects(), OutputLocation.export, ReportType.Rules);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(source.Contains(kAndLabelObjectHtml), Is.EqualTo(labelObjectsShown));
+                Assert.That(source, Does.Contain(kPlainHost));
+                Assert.That(source, Does.Contain("Other: X &amp; Y"));
+                // a host named like a label is no label object
+                Assert.That(source, Does.Contain("Stage: Prod"));
+            });
+        }
+
+        [TestCase(RuleLabelDisplayMode.LabelsReplaceObjects, false)]
+        [TestCase(RuleLabelDisplayMode.LabelsWithObjects, true)]
+        public void Html_ResolvedReportsLeaveOutTheMembersOfReplacedLabelObjects(RuleLabelDisplayMode mode, bool membersShown)
+        {
+            RuleDisplayHtml display = new(new SimulatedUserConfig { RuleLabelDisplayMode = mode, ShowRuleLevelLabels = false });
+
+            string source = display.DisplaySource(RuleWithLabelObjects(), OutputLocation.export, ReportType.ResolvedRules);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(source.Contains(kLabelMember), Is.EqualTo(membersShown));
+                Assert.That(source, Does.Contain(kPlainHost));
+                Assert.That(source, Does.Contain("AppRole: AR1 ∩ Stage: Prod"));
+            });
+        }
+
+        [Test]
+        public void Html_AppRulesLeaveOutReplacedLabelObjectsOfTheDisregardedObjects()
+        {
+            RuleDisplayHtml display = new(new SimulatedUserConfig { RuleLabelDisplayMode = RuleLabelDisplayMode.LabelsReplaceObjects, ShowRuleLevelLabels = false });
+            Rule rule = RuleWithLabelObjects();
+            rule.DisregardedFroms = [.. rule.Froms];
+            rule.Froms = [Location(kPlainHost, ObjectType.Host)];
+            rule.ShowDisregarded = true;
+
+            string source = display.DisplaySource(rule, OutputLocation.export, ReportType.AppRules);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(source, Does.Not.Contain(kAndLabelObjectHtml));
+                Assert.That(source, Does.Contain("Other: X &amp; Y"));
+            });
+        }
+
+        [Test]
+        public void Html_ReplacedLabelsAreEncoded()
+        {
+            RuleDisplayHtml display = new(new SimulatedUserConfig { RuleLabelDisplayMode = RuleLabelDisplayMode.LabelsReplaceObjects, ShowRuleLevelLabels = false });
+            Rule rule = new()
+            {
+                SourceLabels = kPayloadGroup,
+                Froms = [Location($"{kPayload}: {kPayload}", ObjectType.Group), Location(kPlainHost, ObjectType.Host)]
+            };
+
+            string source = display.DisplaySource(rule, OutputLocation.export, ReportType.Rules);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(source, Does.Not.Contain("<script>"));
+                Assert.That(source, Does.Not.Contain("\" onmouseover"));
+                Assert.That(source, Does.Contain("&lt;script&gt;"));
+                Assert.That(source, Does.Contain(kPlainHost));
             });
         }
 
@@ -278,6 +370,26 @@ namespace FWO.Test
         {
             string trimmed = jsonFragment.Trim().TrimEnd(',');
             return JObject.Parse(trimmed.StartsWith('{') ? trimmed : $"{{{trimmed}}}");
+        }
+
+        private static Rule RuleWithLabelObjects()
+        {
+            NetworkLocation andLabelObject = Location("AppRole: AR1 & Stage: Prod", ObjectType.Group);
+            andLabelObject.Object.ObjectGroupFlats = [new() { Object = new() { Name = kLabelMember, Type = new() { Name = ObjectType.Host } } }];
+            return new()
+            {
+                SourceLabels = kTwoGroups,
+                Froms =
+                [
+                    andLabelObject, Location("AppRole: AR2", ObjectType.Group), Location(kOtherGroup, ObjectType.Group),
+                    Location("Stage: Prod", ObjectType.Host), Location(kPlainHost, ObjectType.Host)
+                ]
+            };
+        }
+
+        private static NetworkLocation Location(string name, string type)
+        {
+            return new(new NetworkUser(), new NetworkObject { Name = name, Type = new() { Name = type } });
         }
 
         private static RuleLabelAssignment AppLabel(string app)

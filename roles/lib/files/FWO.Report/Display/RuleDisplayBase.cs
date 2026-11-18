@@ -90,6 +90,38 @@ namespace FWO.Ui.Display
         public bool ShowSideLabelsWithObjects => userConfig.RuleLabelDisplayMode == RuleLabelDisplayMode.LabelsWithObjects;
 
         /// <summary>
+        /// True if the source and destination labels replace the objects built from them in their cell.
+        /// </summary>
+        public bool ReplaceLabelObjects => userConfig.RuleLabelDisplayMode == RuleLabelDisplayMode.LabelsReplaceObjects;
+
+        /// <summary>
+        /// True if the source and destination labels are shown in the cell of their side (with or instead of the label objects).
+        /// </summary>
+        public bool ShowSideLabelsInCell => ShowSideLabelsWithObjects || ReplaceLabelObjects;
+
+        /// <summary>
+        /// Returns the network locations of a rule side to show: all of them, or, if the labels replace the label objects,
+        /// all but the groups built from the labels of the side.
+        /// </summary>
+        /// <param name="locations">The network locations of the side.</param>
+        /// <param name="labels">The ORed AND-groups of labels of the side.</param>
+        /// <returns>The network locations to show.</returns>
+        public NetworkLocation[] DisplayedNetworkLocations(NetworkLocation[] locations, List<Dictionary<string, List<string>>>? labels)
+        {
+            if (!ReplaceLabelObjects || labels is not { Count: > 0 })
+            {
+                return locations;
+            }
+            HashSet<string> labelObjectNames = RuleLabelFormatter.LabelObjectNames(labels);
+            return [.. locations.Where(location => !IsLabelObject(location.Object, labelObjectNames))];
+        }
+
+        private static bool IsLabelObject(NetworkObject networkObject, HashSet<string> labelObjectNames)
+        {
+            return networkObject.Type.Name == ObjectType.Group && labelObjectNames.Contains(networkObject.Name);
+        }
+
+        /// <summary>
         /// True if csv and json contain the source and destination labels (as own fields in every mode but objects only).
         /// </summary>
         public bool ShowSideLabelFields => userConfig.RuleLabelDisplayMode != RuleLabelDisplayMode.ObjectsOnly;

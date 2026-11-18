@@ -3266,6 +3266,21 @@
               },
               "array_relationships": [
                 {
+                  "name": "app_label_key_configs",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "key_name": "config_value"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "config",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "label_values",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -4506,8 +4521,17 @@
                           "label_value": {
                             "_or": [
                               {
-                                "_not": {
-                                  "owners_by_app_id": {}
+                                "label_key": {
+                                  "_not": {
+                                    "app_label_key_configs": {
+                                      "config_key": {
+                                        "_eq": "appLabelKey"
+                                      },
+                                      "config_user": {
+                                        "_eq": 0
+                                      }
+                                    }
+                                  }
                                 }
                               },
                               {
@@ -4697,8 +4721,17 @@
                           "label_value": {
                             "_or": [
                               {
-                                "_not": {
-                                  "owners_by_app_id": {}
+                                "label_key": {
+                                  "_not": {
+                                    "app_label_key_configs": {
+                                      "config_key": {
+                                        "_eq": "appLabelKey"
+                                      },
+                                      "config_user": {
+                                        "_eq": 0
+                                      }
+                                    }
+                                  }
                                 }
                               },
                               {

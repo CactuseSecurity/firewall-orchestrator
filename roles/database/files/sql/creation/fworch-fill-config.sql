@@ -199,6 +199,8 @@ insert into config (config_key, config_value, config_user) VALUES ('reqCreateReq
 INSERT INTO config (config_key, config_value, config_user) VALUES ('pathAnalysisAlgorithm', '1', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRollback', 'false', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('designatedZoneMatrix', '0', 0);
+-- key of the App label; Hasura restricts modellers to App labels of their own apps by this entry
+INSERT INTO config (config_key, config_value, config_user) VALUES ('appLabelKey', 'App', 0);
 
 INSERT INTO device_specific_config_node (node_type, object_key, display_name, sort_order)
 VALUES ('global', 'global', 'Global', 0)

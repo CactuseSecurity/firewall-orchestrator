@@ -52,13 +52,11 @@
                     </Dropdown>
                 </div>
                 <div class="col-sm-4 px-1">
-                    <select class="form-select form-select-sm" @bind="selectedGroup">
-                        <option value="-1">@(userConfig.GetText("new_label_group"))</option>
-                        @for (int groupIndex = 0; groupIndex < Groups.Count; groupIndex++)
-                        {
-                            <option value="@groupIndex">@(userConfig.GetText("label_group")) @(groupIndex + 1)</option>
-                        }
-                    </select>
+                    <Dropdown ElementType="int" @bind-SelectedElement="selectedGroup" Elements="GroupChoices" ElementToString="GroupName">
+                        <ElementTemplate Context="groupIndex">
+                            @(GroupName(groupIndex))
+                        </ElementTemplate>
+                    </Dropdown>
                 </div>
                 <div class="col-sm-2 px-0">
                     <button type="button" class="btn btn-sm btn-success" disabled="@(selectedLabel == null)" @onclick="AddLabel">
@@ -74,6 +72,7 @@
 {
     private const string kAnd = "∩";
     private const string kOr = "∪";
+    private const int kNewGroup = -1;
 
     /// <summary>
     /// Handler of the edited connection.
@@ -100,9 +99,22 @@
     public EventCallback Changed { get; set; }
 
     private LabelValue? selectedLabel;
-    private int selectedGroup = -1;
+    private int selectedGroup = kNewGroup;
 
     private List<List<ConnectionLabel>> Groups => ConnHandler.LabelGroups(IsSource);
+
+    /// <summary>
+    /// The AND-groups a label can be added to: a new group and the index of each existing group.
+    /// </summary>
+    private List<int> GroupChoices => [kNewGroup, .. Enumerable.Range(0, Groups.Count)];
+
+    /// <summary>
+    /// Display name of an AND-group choice, e.g. "Group 2", or the text for a new group.
+    /// </summary>
+    private string GroupName(int groupIndex)
+    {
+        return groupIndex == kNewGroup ? userConfig.GetText("new_label_group") : $"{userConfig.GetText("label_group")} {groupIndex + 1}";
+    }
 
     private async Task AddLabel()
     {
@@ -110,7 +122,7 @@
         {
             ConnHandler.AddLabel(IsSource, selectedGroup, selectedLabel);
             selectedLabel = null;
-            selectedGroup = -1;
+            selectedGroup = kNewGroup;
             await Changed.InvokeAsync();
         }
     }
@@ -118,7 +130,7 @@
     private async Task RemoveLabel(int groupIndex, ConnectionLabel label)
     {
         ConnHandler.RemoveLabel(IsSource, groupIndex, label);
-        selectedGroup = -1;
+        selectedGroup = kNewGroup;
         await Changed.InvokeAsync();
     }
 }

@@ -340,6 +340,8 @@ OnCSVAppServerImportEvent(_.EventArgs));
         ValidateImportPaths(SubnetDataPaths);
         configData!.ImportAppDataStartAt = appDataDate.Date.Add(appDataTime.TimeOfDay);
         configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
+        // stored trimmed, as Hasura compares the label key names with this entry exactly
+        configData!.AppLabelKey = configData.AppLabelKey.Trim();
     }
 
     private void PrepareRoles()

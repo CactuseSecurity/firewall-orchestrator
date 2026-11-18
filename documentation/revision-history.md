@@ -41,8 +41,9 @@
 - scripts: the app data csv helpers read app server labels from csv columns named "label:<key>"
 - reporting: rule-based reports (rules, resolved / technical rules, unused rules, NAT rules, recertification, app rules
   and all change reports) show the labels of the rules in html, pdf, csv, json and the UI (issue #5550). Global
-  settings under Settings - Reporting: display of source / destination labels (own columns as default, together with
-  the objects in one cell, or objects only) and showing the rule-level labels (labelling.rule_label, e.g. App).
+  settings under Settings - Reporting: display of source / destination labels (own columns as default, instead of
+  the label objects - the groups an importer built from the labels of the side - in their cell, together with the
+  objects in one cell, or objects only) and showing the rule-level labels (labelling.rule_label, e.g. App).
   Labels of a group are joined with ∩, groups with ∪ (csv: AND / OR), json keeps the group structure. Rule-level
   labels are those active at the report time (via the import ids of their change events), in change reports those
   before / after the change. Label columns and fields only appear if a rule of the report has such labels, so reports
@@ -67,7 +68,9 @@
 - modelling: labels as source and destination of connections, interfaces and common services (issue #5552), while
   label-based modelling is switched on. A side may hold objects, labels or both; labels form AND-groups (∩), the
   groups and the objects of a side are ORed (∪). Labels of AppRole and AppZone are not offered, App labels only of
-  own apps (also enforced by Hasura via the new relationship label_value.owners_by_app_id). Changes are stored in
+  own apps (also enforced by Hasura via the new relationships label_value.owners_by_app_id and
+  label_key.app_label_key_configs, which restrict only labels of the key stored in config entry appLabelKey; its
+  default App is now stored on install and upgrade). Changes are stored in
   labelling.connection_source_label / connection_destination_label with the AND-group number and recorded as
   label_change_event (origin UI, actor, connection) and in the connection history. Connections using an interface
   show the labels of the interface side; while label-based modelling is off, assigned labels are shown read-only.

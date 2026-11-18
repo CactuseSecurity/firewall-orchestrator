@@ -19,6 +19,7 @@ namespace FWO.Test
     [TestFixture]
     internal class UiConnLabelEditorTest
     {
+        private const string kDropdownSelector = "div.input-group";
         private const string kPayload = "<script>x</script>\" onmouseover=\"y' ";
         private static readonly FwoOwner Application = new() { Id = 1, Name = "App1" };
 
@@ -38,7 +39,7 @@ namespace FWO.Test
                 Assert.That(editor.Markup, Does.Contain("Stage: Prod").And.Contain("OS: Linux").And.Contain("Stage: Test"));
                 Assert.That(editor.Markup, Does.Contain("∩").And.Contain("∪"));
                 Assert.That(editor.FindAll("button"), Is.Empty);
-                Assert.That(editor.FindAll("select"), Is.Empty);
+                Assert.That(editor.FindAll(kDropdownSelector), Is.Empty);
             });
         }
 
@@ -69,12 +70,15 @@ namespace FWO.Test
                 .Add(component => component.ReadOnly, false)
                 .Add(component => component.Changed, () => changes++));
             editor.FindAll($"button[title='remove_label']")[2].Click();
+            editor.FindAll("input")[1].Focus();
 
             Assert.Multiple(() =>
             {
                 Assert.That(handler.SrcLabelGroups, Has.Count.EqualTo(1));
                 Assert.That(changes, Is.EqualTo(1));
-                Assert.That(editor.FindAll("select"), Has.Count.EqualTo(1));
+                Assert.That(editor.FindAll(kDropdownSelector), Has.Count.EqualTo(2));
+                Assert.That(editor.Markup, Does.Contain("new_label_group").And.Contain("label_group 1"));
+                Assert.That(editor.Markup, Does.Not.Contain("label_group 2"));
             });
         }
 

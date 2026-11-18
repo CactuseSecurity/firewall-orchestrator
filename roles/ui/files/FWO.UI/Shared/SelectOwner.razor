@@ -2,7 +2,7 @@
 @inject UserConfig userConfig
 
 <div class="form-group row">
-    <label class="col-form-label col-sm-3">@(userConfig.GetText("application")):</label>&nbsp;
+    <label class="col-form-label col-sm-3">@(userConfig.GetText("owner")):</label>&nbsp;
     @if(Apps.Count == 1)
     {
         <label class="col-form-label text-primary col-sm-8">@((MarkupString)ModellingHandlerBase.DisplayApp(userConfig, SelectedOwner))</label>

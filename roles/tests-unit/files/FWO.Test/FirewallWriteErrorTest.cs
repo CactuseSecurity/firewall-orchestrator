@@ -137,6 +137,8 @@ namespace FWO.Test
         }
 
         [TestCase(HttpStatusCode.Conflict, "{\"code\":\"generic_err_object_locked\"}", FirewallWriteErrorKind.Conflict, true)]
+        [TestCase(HttpStatusCode.Conflict, "{\"code\":\"err_publish_failed\",\"message\":\"Publish failed because of validation errors\"}",
+            FirewallWriteErrorKind.Rejected, false)]
         [TestCase(HttpStatusCode.BadRequest, "{\"code\":\"err_validation_failed\",\"errors\":[{\"message\":\"More than one object named 'h1' exists.\"}]}",
             FirewallWriteErrorKind.AlreadyExists, false)]
         [TestCase(HttpStatusCode.BadRequest, "{\"code\":\"generic_err_invalid_parameter\"}", FirewallWriteErrorKind.Rejected, false)]

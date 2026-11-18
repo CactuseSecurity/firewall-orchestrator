@@ -34,6 +34,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DisplayObjectAndServiceElements_UseFlowIdsAndValueFallbacks()
+        {
+            DisplayImplementationTask component = new();
+            SetMember(component, "userConfig", CreateUserConfig());
+
+            string objectGroupDisplay = (string)GetPrivateMethod(typeof(DisplayImplementationTask), "DisplayObjectElement")
+                .Invoke(component, [new NwObjectElement { FlowNetworkGroupId = 42 }])!;
+            string objectValueDisplay = (string)GetPrivateMethod(typeof(DisplayImplementationTask), "DisplayObjectElement")
+                .Invoke(component, [new NwObjectElement { GroupName = "network-group" }])!;
+            string serviceObjectDisplay = (string)GetPrivateMethod(typeof(DisplayImplementationTask), "DisplayServiceElement")
+                .Invoke(component, [new NwServiceElement { FlowServiceObjectId = 44 }])!;
+            string serviceValueDisplay = (string)GetPrivateMethod(typeof(DisplayImplementationTask), "DisplayServiceElement")
+                .Invoke(component, [new NwServiceElement { GroupName = "service-group" }])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(objectGroupDisplay, Is.EqualTo("42"));
+                Assert.That(objectValueDisplay, Is.EqualTo("network-group"));
+                Assert.That(serviceObjectDisplay, Is.EqualTo("44"));
+                Assert.That(serviceValueDisplay, Is.EqualTo("service-group"));
+            });
+        }
+
+        [Test]
         public void DisplayDevice_ReturnsAllWhenRequestUsesAllDevices()
         {
             DisplayImplementationTask component = new();
@@ -65,6 +89,42 @@ namespace FWO.Test
                 Assert.That(GetMember<bool>(component, "assignOwnerMode"), Is.True);
                 Assert.That(GetMember<string>(component, "message"), Is.EqualTo("U8004"));
             });
+        }
+
+        [Test]
+        public async Task AssignOwner_WhenBusyDoesNothing()
+        {
+            DisplayImplementationTask component = new();
+            SetMember(component, "WorkInProgress", true);
+            SetMember(component, nameof(DisplayImplementationTask.WfHandler), new WfHandler());
+
+            await InvokePrivateTask(typeof(DisplayImplementationTask), component, "AssignOwner");
+
+            Assert.That(GetMember<bool>(component, "WorkInProgress"), Is.True);
+        }
+
+        [Test]
+        public void SetTargetDatesValid_StoresValidationState()
+        {
+            DisplayImplementationTask component = new();
+
+            GetPrivateMethod(typeof(DisplayImplementationTask), "SetTargetDatesValid").Invoke(component, [false]);
+
+            Assert.That(GetMember<bool>(component, "targetDatesValid"), Is.False);
+        }
+
+        [Test]
+        public async Task ConfPromoteImplTask_ForwardsTargetState()
+        {
+            WfImplTask implTask = new() { Id = 99, StateId = 1 };
+            WfHandler handler = new() { ActImplTask = implTask, ActStateMatrix = new StateMatrix() };
+            DisplayImplementationTask component = new();
+            SetMember(component, nameof(DisplayImplementationTask.WfHandler), handler);
+
+            await InvokePrivateTask(typeof(DisplayImplementationTask), component, "ConfPromoteImplTask",
+                new WfStatefulObject { StateId = 4 });
+
+            Assert.That(implTask.StateId, Is.EqualTo(4));
         }
 
         [Test]
@@ -371,6 +431,50 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// Choosing a gateway of another management moves the task to that management, so the stored management never
+        /// contradicts the gateway, which the provisioning would reject as inconsistent.
+        /// </summary>
+        [Test]
+        public async Task DisplayImplementationTask_SaveImplTask_TakesTheManagementOfTheChosenGateway()
+        {
+            WfReqTask reqTask = new() { Id = 20, TaskType = WfTaskType.generic.ToString(), ManagementId = 5 };
+            WfImplTask implTask = new()
+            {
+                Id = 30,
+                TaskNumber = 1,
+                ReqTaskId = reqTask.Id,
+                TaskType = WfTaskType.generic.ToString(),
+                Title = "Implementation task",
+                FreeText = "instructions",
+                ManagementId = 5,
+                DeviceId = 50
+            };
+            reqTask.ImplementationTasks = [implTask];
+            WfHandler handler = new()
+            {
+                DisplayImplTaskMode = true,
+                EditImplTaskMode = true,
+                ActReqTask = reqTask,
+                ActImplTask = implTask,
+                ActTicket = new WfTicket { Tasks = [reqTask] }
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler,
+                new WfStateDict(), Roles.Implementer);
+            SetMember(component.Instance, "actDevice", new Device { Id = 60, Name = "gw-other", Management = new Management { Id = 6 } });
+
+            await component.InvokeAsync(() => InvokePrivateTask(typeof(DisplayImplementationTask), component.Instance,
+                "SaveImplTask"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(implTask.DeviceId, Is.EqualTo(60));
+                Assert.That(implTask.ManagementId, Is.EqualTo(6));
+            });
+        }
+
         [Test]
         public async Task DisplayImplementationTask_ConfAddComment_UpdatesCommentsThroughNormalPath()
         {
@@ -657,6 +761,57 @@ namespace FWO.Test
                 Assert.That(component.Markup, Does.Contain("SG-ImplGroup"));
                 Assert.That(component.Markup, Does.Not.Contain("HiddenObjectName"));
                 Assert.That(component.Markup, Does.Not.Contain("HiddenServiceName"));
+            });
+        }
+
+        [Test]
+        public async Task DisplayImplementationTask_GroupModifyReadOnlyDisplaysRequestedChanges()
+        {
+            WfImplTask implTask = new()
+            {
+                Id = 22,
+                Title = "Modify groups",
+                TaskType = WfTaskType.group_modify.ToString(),
+                StateId = 1,
+                ImplElements =
+                [
+                new WfImplElement
+                {
+                    Id = 1,
+                    ImplTaskId = 22,
+                    Field = ElemFieldType.source.ToString(),
+                    NetworkId = 42,
+                    GroupName = "AR-RequestedGroup",
+                    Name = "HiddenRequestedObjectName"
+                },
+                new WfImplElement
+                {
+                    Id = 2,
+                    ImplTaskId = 22,
+                    Field = ElemFieldType.service.ToString(),
+                    ServiceId = 44,
+                    GroupName = "SG-RequestedGroup",
+                    Name = "HiddenRequestedServiceName"
+                }
+                ]
+            };
+            WfHandler handler = new()
+            {
+                DisplayImplTaskMode = true,
+                EditImplTaskMode = false,
+                ActImplTask = implTask,
+                ActReqTask = new WfReqTask(),
+                Devices = []
+            };
+            WfStateDict states = new() { Name = { [1] = "Open" } };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayImplementationTask> component = RenderDisplayImplementationTask(context, handler, states, Roles.Implementer);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("AR-RequestedGroup"));
+                Assert.That(component.Markup, Does.Contain("SG-RequestedGroup"));
             });
         }
 

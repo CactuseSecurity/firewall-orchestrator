@@ -17,6 +17,7 @@ mutation newImplementationElement(
   $startTime: timestamptz
   $endTime: timestamptz
   $timeObjId: bigint
+  $objectTaskId: bigint
   ) {
   insert_request_implelement(objects: {
     implementation_action: $implementationAction
@@ -37,6 +38,7 @@ mutation newImplementationElement(
     start_time: $startTime
     end_time: $endTime
     time_obj_id: $timeObjId
+    object_task_id: $objectTaskId
   }) {
     returning {
       newIdLong: id

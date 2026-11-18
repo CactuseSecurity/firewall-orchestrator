@@ -169,7 +169,7 @@ namespace FWO.Api.Client.Queries
                 getConnectionIdsForAppServer = GetQueryText("modelling/getConnectionIdsForAppServer.graphql");
 
                 getPublishedInterfaces = connectionDetailsFragment + GetQueryText("modelling/getPublishedInterfaces.graphql");
-                getRequestedInterfaces = connectionDetailsFragment + GetQueryText("modelling/getRequestedInterfaces.graphql");
+                getRequestedInterfaces = GetQueryText("modelling/getRequestedInterfaces.graphql");
                 getConnectionById = connectionDetailsFragment + GetQueryText("modelling/getConnectionById.graphql");
                 getConnectionForNotification = GetQueryText("modelling/getConnectionForNotification.graphql");
                 getConnections = connectionDetailsFragment + GetQueryText("modelling/getConnections.graphql");

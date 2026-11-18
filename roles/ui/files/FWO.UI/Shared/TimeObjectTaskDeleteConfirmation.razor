@@ -1,0 +1,45 @@
+@inject UserConfig userConfig
+
+<PopUp Title="@(Title)" Show="@Display" Size="PopupSize.Small" OnClose="No">
+    <Body>
+        @if (Display)
+        {
+            <p>@Message</p>
+        }
+    </Body>
+    <Footer>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-danger" @onclick="Yes">
+                @(DisplayService.DisplayButton(userConfig, "yes", Icons.Check))
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" @onclick="No">
+                @(DisplayService.DisplayButton(userConfig, "no", Icons.Close))
+            </button>
+        </div>
+    </Footer>
+</PopUp>
+
+@code {
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Message { get; set; } = "";
+    [Parameter] public EventCallback Confirmed { get; set; }
+
+    private async Task Yes()
+    {
+        await Confirmed.InvokeAsync();
+        Close();
+    }
+
+    private void No()
+    {
+        Close();
+    }
+
+    private void Close()
+    {
+        Display = false;
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+}

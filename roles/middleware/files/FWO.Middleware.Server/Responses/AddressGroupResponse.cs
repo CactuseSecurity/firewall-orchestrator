@@ -40,18 +40,10 @@ public sealed class AddressGroupResponse
     /// <summary>
     /// Represents the AddressGroupMemberResponse type.
     /// </summary>
-    public sealed class AddressGroupMemberResponse
+    public sealed class AddressGroupMemberResponse : AddressObjectResponse, IOptionalTechnicalDetailsResponse
     {
-        /// <summary>
-        /// Gets the Id value.
-        /// </summary>
-        [JsonPropertyName("id")]
-        public long Id { get; set; }
-
-        /// <summary>
-        /// Gets the Name value.
-        /// </summary>
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        /// <inheritdoc />
+        [JsonIgnore]
+        public bool IncludeTechnicalDetails { get; set; }
     }
 }

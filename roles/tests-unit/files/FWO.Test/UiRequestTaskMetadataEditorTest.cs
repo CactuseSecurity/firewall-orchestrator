@@ -1,5 +1,6 @@
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Flow;
 using FWO.Data.Workflow;
 using FWO.Api.Client;
 using FWO.Services.Workflow;
@@ -63,6 +64,31 @@ internal class UiRequestTaskMetadataEditorTest
             Assert.That(source, Does.Contain("Elements=\"NewInterfaceOwnerOptions\" Nullable=\"true\""));
             Assert.That(source, Does.Contain("CanEditField(WorkflowEditableFieldKeys.Owner)"));
             Assert.That(source, Does.Contain("WfObjectTaskHelper.IsManagementObjectTask(TaskType.ToString())"));
+        });
+    }
+
+    [Test]
+    public void DateOnlyValidityIsEditableOnlyWithoutTimeObjectReference()
+    {
+        WfReqTask accessTask = new() { Id = 20, TaskType = WfTaskType.access.ToString() };
+        WfTicket ticket = new() { Tasks = [accessTask] };
+        RequestTaskMetadataEditor component = CreateComponent(
+            new WfHandler { ActReqTask = accessTask, ActTicket = ticket },
+            new SimulatedUserConfig());
+        SetMember(component, nameof(RequestTaskMetadataEditor.CanEditField), (Func<string, bool>)(_ => true));
+
+        bool dateOnlyEditable = (bool)InvokePrivate(component, "CanEditDateOnly", WorkflowEditableFieldKeys.ValidTo)!;
+        accessTask.Elements.Add(new WfReqElement
+        {
+            Field = ElemFieldType.time.ToString(),
+            FlowTimeObjectId = 42
+        });
+        bool referencedObjectEditable = (bool)InvokePrivate(component, "CanEditDateOnly", WorkflowEditableFieldKeys.ValidTo)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(dateOnlyEditable, Is.True);
+            Assert.That(referencedObjectEditable, Is.False);
         });
     }
 
@@ -220,6 +246,148 @@ internal class UiRequestTaskMetadataEditorTest
         {
             Assert.That(dropdown.FindAll("button[id^='dropdown-menu-selected-']").Count(button => button.TextContent.Contains(userConfig.GetText("all"))), Is.EqualTo(1));
             Assert.That(dropdown.FindAll("button[id^='dropdown-menu-element-']").Any(button => button.TextContent.Contains(userConfig.GetText("all"))), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task OnFlowTimeObjectIdChanged_AttachesFlowObject()
+    {
+        WfReqTask task = new() { Id = 20, TaskType = WfTaskType.access.ToString() };
+        WfHandler handler = new() { ActReqTask = task, ActTicket = new WfTicket { Tasks = [task] } };
+        RequestTaskMetadataEditor component = CreateComponent(handler, new SimulatedUserConfig());
+
+        await InvokePrivateTask(component, "OnFlowTimeObjectIdChanged", 42L);
+
+        WfReqElement? timeElement = TimeObjectElementHelper.Find(task.Elements);
+        Assert.Multiple(() =>
+        {
+            Assert.That(timeElement?.FlowTimeObjectId, Is.EqualTo(42));
+            Assert.That(timeElement?.ObjectTaskId, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task OnFlowTimeObjectIdChanged_AttachesTicketTimeObjectTask()
+    {
+        WfReqTask objectTask = new()
+        {
+            Id = 77,
+            TaskType = WfTaskType.object_create.ToString(),
+            Elements = [new WfReqElement { Field = ElemFieldType.time.ToString(), TimeObjId = -17, Name = "ticket-time" }]
+        };
+        WfReqTask accessTask = new() { Id = 20, TaskType = WfTaskType.access.ToString() };
+        WfTicket ticket = new() { Tasks = [accessTask, objectTask] };
+        WfHandler handler = new() { ActReqTask = accessTask, ActTicket = ticket };
+        RequestTaskMetadataEditor component = CreateComponent(handler, new SimulatedUserConfig());
+
+        await InvokePrivateTask(component, "OnFlowTimeObjectIdChanged", -17L);
+
+        Assert.That(TimeObjectElementHelper.Find(accessTask.Elements)?.ObjectTaskId, Is.EqualTo(77));
+    }
+
+    [Test]
+    public async Task OnFlowTimeObjectIdChanged_ClearsElementDates()
+    {
+        WfReqElement oldElement = new()
+        {
+            Id = 15,
+            Field = ElemFieldType.time.ToString(),
+            FlowTimeObjectId = 42,
+            StartTime = DateTime.UtcNow,
+            EndTime = DateTime.UtcNow.AddHours(1)
+        };
+        WfReqTask task = new()
+        {
+            Id = 20,
+            TaskType = WfTaskType.access.ToString(),
+            TargetBeginDate = oldElement.StartTime,
+            TargetEndDate = oldElement.EndTime,
+            Elements = [oldElement]
+        };
+        WfHandler handler = new() { ActReqTask = task, ActTicket = new WfTicket { Tasks = [task] } };
+        RequestTaskMetadataEditor component = CreateComponent(handler, new SimulatedUserConfig());
+
+        await InvokePrivateTask(component, "OnFlowTimeObjectIdChanged", (long?)null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(TimeObjectElementHelper.Find(task.Elements), Is.Null);
+            Assert.That(task.RemovedElements, Does.Contain(oldElement));
+            Assert.That(task.TargetBeginDate, Is.Null);
+            Assert.That(task.TargetEndDate, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task TargetDateAndTimeObjectCallbacks_UpdateTaskElementAndValidity()
+    {
+        WfReqElement timeElement = new() { Field = ElemFieldType.time.ToString() };
+        WfReqTask task = new() { Id = 20, TaskType = WfTaskType.access.ToString(), Elements = [timeElement] };
+        WfHandler handler = new() { ActReqTask = task, ActTicket = new WfTicket { Tasks = [task] } };
+        RequestTaskMetadataEditor component = CreateComponent(handler, new SimulatedUserConfig());
+        bool valid = false;
+        SetMember(component, nameof(RequestTaskMetadataEditor.TargetDatesValidChanged),
+            EventCallback.Factory.Create<bool>(new object(), value => valid = value));
+        DateTime begin = new(2026, 8, 1, 8, 0, 0);
+        DateTime end = new(2026, 8, 1, 17, 0, 0);
+        FlowTimeObject selected = new() { StartTime = begin, EndTime = end, Name = "selected" };
+
+        await InvokePrivateTask(component, "OnTargetBeginDateChanged", begin);
+        await InvokePrivateTask(component, "OnTargetEndDateChanged", end);
+        await InvokePrivateTask(component, "OnFlowTimeObjectSelected", selected);
+        await InvokePrivateTask(component, "OnFlowTimeObjectNameChanged", "renamed");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(task.TargetBeginDate, Is.EqualTo(begin));
+            Assert.That(task.TargetEndDate, Is.EqualTo(end));
+            Assert.That(timeElement.StartTime, Is.EqualTo(begin));
+            Assert.That(timeElement.EndTime, Is.EqualTo(end));
+            Assert.That(timeElement.Name, Is.EqualTo("renamed"));
+            Assert.That(valid, Is.True);
+        });
+    }
+
+    [Test]
+    public void SelectedFlowTimeObjectNameAndTicketTimeObjects_UseTaskTimeElements()
+    {
+        DateTime begin = new(2026, 8, 1, 8, 0, 0);
+        DateTime end = new(2026, 8, 1, 17, 0, 0);
+        WfReqTask accessTask = new()
+        {
+            Id = 20,
+            TaskType = WfTaskType.access.ToString(),
+            TargetBeginDate = begin,
+            TargetEndDate = end
+        };
+        WfReqTask objectTask = new()
+        {
+            Id = 77,
+            TaskType = WfTaskType.object_create.ToString(),
+            Elements = [new WfReqElement
+            {
+                Field = ElemFieldType.time.ToString(),
+                TimeObjId = -17,
+                Name = "ticket-window",
+                StartTime = begin,
+                EndTime = end
+            }]
+        };
+        RequestTaskMetadataEditor component = CreateComponent(
+            new WfHandler { ActReqTask = accessTask, ActTicket = new WfTicket { Tasks = [accessTask, objectTask] } },
+            new SimulatedUserConfig());
+
+        PropertyInfo nameProperty = typeof(RequestTaskMetadataEditor).GetProperty("SelectedFlowTimeObjectName",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        PropertyInfo ticketObjectsProperty = typeof(RequestTaskMetadataEditor).GetProperty("TicketTimeObjects",
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        IReadOnlyList<FlowTimeObject> ticketObjects = (IReadOnlyList<FlowTimeObject>)ticketObjectsProperty.GetValue(component)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(nameProperty.GetValue(component), Is.EqualTo("ticket-window"));
+            Assert.That(ticketObjects.Select(timeObject => timeObject.Id), Is.EquivalentTo([-17L]));
+            Assert.That(ticketObjects.Single().Name, Is.EqualTo("ticket-window"));
         });
     }
 

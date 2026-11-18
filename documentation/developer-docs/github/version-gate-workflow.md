@@ -28,6 +28,14 @@ It contains exactly one job, **`Gate pull request version`**, and that job's che
 the gate result. There is no commit status and no second job, so a pull request shows one
 gate entry and nothing else. That single check run is what branch protection must require.
 
+The **FWO Test Install** workflow runs the same evaluation (`scripts/ci/evaluate_version_gate.sh`)
+as the first step of each install job of a pull request, and the install fails when it fails, so
+that a pull request that needs a version bump learns it without waiting for its installs. That copy
+runs the pull request's own script under `pull_request`, so it is only an early signal; this
+workflow stays the binding gate. The refresh below re-runs only this workflow: when the gate turns
+green without a push, the failed installs need "Re-run failed jobs". See
+[test-install-workflow.md](test-install-workflow.md#version-check-before-the-installs).
+
 ### What is compared
 
 [`scripts/ci/evaluate_version_gate.sh`](../../../scripts/ci/evaluate_version_gate.sh) resolves
@@ -190,6 +198,19 @@ has since changed. If a pull request cannot be refreshed at all — the run quer
 was found, or the re-run was rejected — the loop counts it and moves on to the next pull request,
 and the job then fails loudly, because that pull request would otherwise keep a stale green gate.
 
+Right before a re-run, the loop reads the pull request's head again. If it moved since the
+pull request list was read, the push started a gate run of its own after this refresh began,
+and that run already sees the current base, so the run of the older head is not re-run. If the
+lookup fails, the run is re-run anyway.
+
+`version-gate.yml` has no concurrency group on purpose. A gate run takes about a minute and
+reports only on its own head commit, so cancelling an older run saves next to nothing. With the
+former per pull request group, a refresh that re-ran the run of an older head cancelled the
+gate run of a head pushed moments later, and the pull request was left without a result
+("Canceling since a higher priority waiting request ... exists"). The head SHA cannot be part of
+the group instead, because a `pull_request_target` workflow must not reference the pull request
+head (`scripts/ci/test_workflow_security_policy.py`).
+
 This workflow lives in its own file on purpose: a second job inside `version-gate.yml` would add
 a permanently skipped entry to every pull request.
 
@@ -242,6 +263,11 @@ tag is pushed, and any direct push that bypassed the required check.
   version is closed, so it has to be immutable, and the recovery advice above rests on it: it is
   why a tag on the wrong commit is answered by moving to the next version rather than by
   re-tagging.
+- The repository Actions policy **Allow PR_target** must allow `pull_request_target` for
+  `.github/workflows/version-gate.yml`. From 2 December 2026, GitHub blocks this event in public
+  repositories by default. Without the policy, the gate does not run and the refresh workflow has
+  nothing to re-run. See
+  [SonarCloud workflows: Required Actions policy](sonarcloud-workflow.md#required-actions-policy).
 
 No new secrets, apps or environments are required.
 

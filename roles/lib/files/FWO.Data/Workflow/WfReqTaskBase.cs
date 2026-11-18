@@ -28,12 +28,10 @@ namespace FWO.Data.Workflow
         public const string RequestContactId = "requestContactId";
         public const string RequestorName = "requestorName";
         public const string RequestorId = "requestorId";
-        public const string TimeObjectId = "timeObjectId";
         public const string ExtIcketId = "ExtIcketId";
         public const string AppRoleId = "AppRoleId";
         public const string SvcGrpId = "SvcGrpId";
         public const string FlowBundleId = "FlowBundleId";
-        public const string FwConfigChangeTarget = "FwConfigChangeTarget";
     }
 
     public class WfReqTaskBase : WfTaskBase

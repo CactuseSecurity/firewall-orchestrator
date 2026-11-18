@@ -103,8 +103,15 @@
                 }
                 else
                 {
-                    await Save(StatefulObject);
-                    await Close();
+                    workInProgress = true;
+                    try
+                    {
+                        await Save(StatefulObject);
+                    }
+                    finally
+                    {
+                        await Close();
+                    }
                 }
             }
             else

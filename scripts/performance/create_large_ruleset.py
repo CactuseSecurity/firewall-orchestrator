@@ -8,7 +8,7 @@ import json
 import sys
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from getpass import getpass
 from pathlib import Path
 from typing import Any
@@ -141,7 +141,7 @@ def chunks(items: list[dict[str, Any]], size: int) -> list[list[dict[str, Any]]]
 
 
 def current_timestamp() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat()
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
 def create_import(client: GraphqlClient, management_id: int) -> int:

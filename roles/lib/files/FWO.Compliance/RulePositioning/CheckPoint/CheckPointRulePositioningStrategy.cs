@@ -111,12 +111,29 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
             return Failure(RulePositioningFailureCategory.PositioningMethodNotImplemented);
         }
 
-        InputPreparationResult preparation = await PrepareInputsAsync(context, cancellationToken);
+        PositioningResult<CheckPointSectionNameTemplate, CheckPointSectionNameTemplateFailureCategory> templateResult =
+            CheckPointSectionNameTemplate.Parse(context.EffectiveSettings.CheckPointLayerGuardSectionNameTemplate);
+        if (!templateResult.TryGetValue(out CheckPointSectionNameTemplate? sectionNameTemplate))
+        {
+            return Failure(RulePositioningFailureCategory.ConfigurationInvalid);
+        }
+
+        InputPreparationResult preparation = await PrepareInputsAsync(
+            context,
+            sectionNameTemplate.RequiredVariables.Count > 0,
+            cancellationToken);
         if (preparation.PreparationFailure != null)
         {
             return preparation.PreparationFailure;
         }
         PreparedInputs inputs = preparation.Inputs!;
+
+        PositioningResult<string, CheckPointLayerGuardSectionNameFailureCategory> sectionNameResult =
+            CheckPointLayerGuardSectionNameResolver.Resolve(sectionNameTemplate, inputs.ZoneInput);
+        if (!sectionNameResult.TryGetValue(out string? normalizedSectionName))
+        {
+            return Failure(RulePositioningFailureCategory.ConfigurationInvalid);
+        }
 
         CheckPointLayerGuardZonePairPositioningInput positioningInput = new(
             inputs.NetworkInput,
@@ -125,7 +142,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         CheckPointRecipeSelectionResult selectionResult = recipeCatalog.SelectRecipe(
             algorithm,
             positioningInput,
-            inputs.ZoneInput);
+            normalizedSectionName);
         if (!selectionResult.TryGetValue(out PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>? recipe))
         {
             return MapSelectionFailure(selectionResult);
@@ -156,6 +173,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
     /// <summary>Loads and validates the graph, effective networks, guards, matrix, and zones.</summary>
     private async Task<InputPreparationResult> PrepareInputsAsync(
         RulePositioningContext context,
+        bool requiresZones,
         CancellationToken cancellationToken)
     {
         RulebaseGraphReadResult graphResult = await graphReader.ReadAsync(
@@ -197,25 +215,29 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
             return InputPreparationResult.Failed(MapGuardFailure(guardResult));
         }
 
-        cancellationToken.ThrowIfCancellationRequested();
-        RulePositioningConfiguration configuration = context.Configuration!;
-        DesignatedZoneMatrixReadResult matrixResult = await zoneMatrixReader.ReadAsync(
-            configuration.DesignatedZoneMatrixId,
-            cancellationToken);
-        if (!matrixResult.TryGetValue(out DesignatedZoneMatrixReadValue? matrixValue))
+        CreationRuleZoneInput? zoneInput = null;
+        if (requiresZones)
         {
-            return InputPreparationResult.Failed(MapMatrixFailure(matrixResult));
-        }
+            cancellationToken.ThrowIfCancellationRequested();
+            RulePositioningConfiguration configuration = context.Configuration!;
+            DesignatedZoneMatrixReadResult matrixResult = await zoneMatrixReader.ReadAsync(
+                configuration.DesignatedZoneMatrixId,
+                cancellationToken);
+            if (!matrixResult.TryGetValue(out DesignatedZoneMatrixReadValue? matrixValue))
+            {
+                return InputPreparationResult.Failed(MapMatrixFailure(matrixResult));
+            }
 
-        cancellationToken.ThrowIfCancellationRequested();
-        CreationRuleZoneResolutionResult zoneResult = await zoneResolver.ResolveAsync(
-            networkInput,
-            matrixValue.NetworkZones,
-            configuration,
-            cancellationToken);
-        if (!zoneResult.TryGetValue(out CreationRuleZoneInput? zoneInput))
-        {
-            return InputPreparationResult.Failed(MapZoneFailure(zoneResult));
+            cancellationToken.ThrowIfCancellationRequested();
+            CreationRuleZoneResolutionResult zoneResult = await zoneResolver.ResolveAsync(
+                networkInput,
+                matrixValue.NetworkZones,
+                configuration,
+                cancellationToken);
+            if (!zoneResult.TryGetValue(out zoneInput))
+            {
+                return InputPreparationResult.Failed(MapZoneFailure(zoneResult));
+            }
         }
 
         return InputPreparationResult.Succeeded(new PreparedInputs(
@@ -232,7 +254,7 @@ public sealed class CheckPointRulePositioningStrategy : IRulePositioningStrategy
         CreationRuleNetworkInput NetworkInput,
         CreationRuleServiceInput ServiceInput,
         CheckPointLayerGuardSnapshot GuardSnapshot,
-        CreationRuleZoneInput ZoneInput);
+        CreationRuleZoneInput? ZoneInput);
 
     /// <summary>Result of preparing positioning inputs without throwing domain failures.</summary>
     private sealed record InputPreparationResult(PreparedInputs? Inputs, RulePositioningFailure? PreparationFailure)

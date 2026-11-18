@@ -1,0 +1,40 @@
+---
+# Reads the internal CAs every host has to trust from the issuer: the CA in force and,
+# while a rotation is under way, the CA it is crossing to (staged) or from (switched
+# away from). Stored on internalca_ca_host, where every host reads them through hostvars.
+- name: Read internal CA certificate from issuer
+  slurp:
+    src: "{{ internalca_ca_certificate }}"
+  delegate_to: "{{ internalca_ca_host }}"
+  register: internalca_ca_certificate_content
+  run_once: true
+  become: true
+
+- name: Read internal CA identity from issuer
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_ca_certificate }}"
+  delegate_to: "{{ internalca_ca_host }}"
+  register: internalca_ca_certificate_info
+  run_once: true
+  become: true
+
+- name: Read the second internal CA of a rotation from issuer
+  slurp:
+    src: >-
+      {{ internalca_next_ca_certificate if internalca_rotation_staged | bool
+         else internalca_previous_ca_certificate }}
+  delegate_to: "{{ internalca_ca_host }}"
+  register: internalca_rotation_partner_content
+  run_once: true
+  become: true
+  when: internalca_rotation_staged | bool or internalca_rotation_promoted | bool
+
+- name: Store internal CA identity for all hosts
+  set_fact:
+    internalca_ca_certificate_pem: "{{ internalca_ca_certificate_content.content }}"
+    internalca_effective_ca_common_name: "{{ internalca_ca_certificate_info.subject.commonName }}"
+    # Empty unless a rotation is under way. Base64 like the CA in force.
+    internalca_rotation_partner_pem: "{{ internalca_rotation_partner_content.content | default('') }}"
+  delegate_to: "{{ internalca_ca_host }}"
+  delegate_facts: true
+  run_once: true

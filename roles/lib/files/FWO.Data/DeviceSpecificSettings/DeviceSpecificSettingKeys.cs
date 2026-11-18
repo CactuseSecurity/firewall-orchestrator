@@ -19,6 +19,9 @@ public static class DeviceSpecificSettingKeys
     public static readonly DeviceSpecificSettingKey<ProvisioningPositioningAlgorithm> PositioningAlgorithm =
         new("positioningAlgorithm", AllScopeTypes);
 
+    public static readonly DeviceSpecificSettingKey<string> CheckPointLayerGuardSectionNameTemplate =
+        new("checkPointLayerGuardSectionNameTemplate", AllScopeTypes);
+
     public static readonly DeviceSpecificSettingKey<ProvisioningLoggingMode> RuleLoggingOverride =
         new("ruleLoggingOverride", AllScopeTypes);
 
@@ -49,12 +52,36 @@ public static class DeviceSpecificSettingKeys
     public static readonly DeviceSpecificSettingKey<ProvisioningImplementationMode> ImplementationMode =
         new("implementationMode", AllScopeTypes);
 
-    public static readonly DeviceSpecificSettingKey<ProvisioningRuleImplementationMode> ImplementationModeOverrideForRules =
-        new("implementationModeOverrideForRules", AllScopeTypes);
+    public static readonly DeviceSpecificSettingKey<ProvisioningRuleImplementationMode> ImplementationModeForRules =
+        new("implementationModeForRules", AllScopeTypes);
 
-    /// <summary>ID of the configured external ticket system; undefined (null) unless overridden.</summary>
-    public static readonly DeviceSpecificSettingKey<int?> RerouteToExternalTicketSystem =
+    /// <summary>External ticket system tasks are handed to in the external ticket system mode; undefined unless overridden.</summary>
+    public static readonly DeviceSpecificSettingKey<ExternalTicketSystemKind> RerouteToExternalTicketSystem =
         new("rerouteToExternalTicketSystem", AllScopeTypes);
+
+    /// <summary>Base URL of the Tufin SecureChange API.</summary>
+    public static readonly DeviceSpecificSettingKey<string> ScUrl =
+        new("scUrl", ManagerScopeTypes);
+
+    /// <summary>ID of the credential used to log into Tufin SecureChange; undefined (null) unless overridden.</summary>
+    public static readonly DeviceSpecificSettingKey<int?> ScCredential =
+        new("scCredential", ManagerScopeTypes);
+
+    /// <summary>Whether the Tufin SecureChange user ID of the requester is looked up and set as requester of the ticket.</summary>
+    public static readonly DeviceSpecificSettingKey<bool> ScLookupRequesterId =
+        new("scLookupRequesterId", ManagerScopeTypes);
+
+    /// <summary>Seconds a call to the external ticket system or the firewall may take before it fails.</summary>
+    public static readonly DeviceSpecificSettingKey<int> RequestResponseTimeout =
+        new("requestResponseTimeout", ManagerScopeTypes);
+
+    /// <summary>How often an external request is sent before it is rejected, if its errors may pass.</summary>
+    public static readonly DeviceSpecificSettingKey<int> RequestMaxAttempts =
+        new("requestMaxAttempts", ManagerScopeTypes);
+
+    /// <summary>Job cycles to wait before the next attempt, multiplied by the number of attempts so far.</summary>
+    public static readonly DeviceSpecificSettingKey<int> RequestCyclesBetweenAttempts =
+        new("requestCyclesBetweenAttempts", ManagerScopeTypes);
 
     public static readonly DeviceSpecificSettingKey<List<string>> SecurityProfiles =
         new("securityProfiles", DeviceScopeTypes);
@@ -106,6 +133,7 @@ public static class DeviceSpecificSettingKeys
     {
         InstallOn,
         PositioningAlgorithm,
+        CheckPointLayerGuardSectionNameTemplate,
         RuleLoggingOverride,
         ServiceObjectCreation,
         AddressObjectCreation,
@@ -116,8 +144,14 @@ public static class DeviceSpecificSettingKeys
         RuleZoneFromOverride,
         RuleZoneToOverride,
         ImplementationMode,
-        ImplementationModeOverrideForRules,
+        ImplementationModeForRules,
         RerouteToExternalTicketSystem,
+        ScUrl,
+        ScCredential,
+        ScLookupRequesterId,
+        RequestResponseTimeout,
+        RequestMaxAttempts,
+        RequestCyclesBetweenAttempts,
         SecurityProfiles,
         OwnerIdCustomFieldName,
         ChangeIdCustomFieldName,

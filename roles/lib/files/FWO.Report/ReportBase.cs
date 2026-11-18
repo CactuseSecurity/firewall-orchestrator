@@ -3,6 +3,7 @@ using FWO.Basics;
 using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data.Report;
+using FWO.Encoders;
 using FWO.Logging;
 using FWO.Report.Data;
 using FWO.Report.Filter;
@@ -194,6 +195,7 @@ namespace FWO.Report
                 ReportType.Changes => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.ReportParams.IncludeObjects),
                 ReportType.ResolvedChanges => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.ReportParams.IncludeObjects),
                 ReportType.ResolvedChangesTech => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.ReportParams.IncludeObjects),
+                ReportType.NatChanges => new ReportChanges(query, userConfig, repType, reportFilter.ReportParams.TimeFilter, reportFilter.ReportParams.IncludeObjects),
                 ReportType.NatRules => new ReportNatRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.Recertification => new ReportRules(query, userConfig, repType, ruleTreeBuilder),
                 ReportType.UnusedRules => new ReportRules(query, userConfig, repType, ruleTreeBuilder),

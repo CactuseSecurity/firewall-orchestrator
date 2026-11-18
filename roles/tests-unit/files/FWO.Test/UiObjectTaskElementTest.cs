@@ -78,7 +78,7 @@ namespace FWO.Test
             return context;
         }
 
-        private static IRenderedComponent<DisplayObjectTaskElement> RenderElement(BunitContext context, WfReqTask task, bool isModify, int? managementId, bool editMode = true)
+        private static IRenderedComponent<DisplayObjectTaskElement> RenderElement(BunitContext context, WfReqTask task, bool isModify, int? managementId, bool editMode = true, ObjectTaskKind? fixedKind = null)
         {
             return context.Render<DisplayObjectTaskElement>(parameters => parameters
                 .Add(p => p.ReqTask, task)
@@ -86,7 +86,8 @@ namespace FWO.Test
                 .Add(p => p.ManagementId, managementId)
                 .Add(p => p.EditMode, editMode)
                 .Add(p => p.SelectableIpProtos, kIpProtos)
-                .Add(p => p.DisplayIpProtos, kIpProtos));
+                .Add(p => p.DisplayIpProtos, kIpProtos)
+                .Add(p => p.ObjectKind, fixedKind));
         }
 
         private static void SetMember(object instance, string memberName, object? value)
@@ -329,7 +330,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ExistingTask_IsShownWithPreviousAndRequestedStateInReadOnlyMode()
+        public async Task ExistingTask_IsShownAsExplicitChangesInReadOnlyMode()
         {
             await using BunitContext context = CreateContext();
             WfReqTask task = new() { TaskType = WfTaskType.object_modify.ToString() };
@@ -342,8 +343,8 @@ namespace FWO.Test
             {
                 Assert.That(component.Markup, Does.Contain("10.1.1.5"));
                 Assert.That(component.Markup, Does.Contain("10.1.1.6"));
-                Assert.That(component.Markup, Does.Contain("previous_state"));
-                Assert.That(component.Markup, Does.Contain("requested_state"));
+                Assert.That(component.Markup, Does.Contain("unchanged"));
+                Assert.That(component.Markup, Does.Contain("change_content"));
                 Assert.That(component.FindComponents<ObjectSelector>(), Is.Empty);
             });
         }
@@ -768,6 +769,78 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TimeInputs_RespectConfiguredPrecisionAndVisibility()
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    TimeObjectPrecision = FlowIntegrationTimePrecisionOptions.Date
+                }.ToConfigValue(),
+                ReqTicketFieldVisibility = new TicketFieldVisibilityConfig
+                {
+                    AccessTask = new AccessTaskFieldVisibilityConfig
+                    {
+                        ShowValidFrom = false,
+                        ShowValidTo = true
+                    }
+                }.ToConfigValue()
+            };
+
+            await using BunitContext context = CreateContext(userConfig: userConfig);
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(
+                context,
+                new WfReqTask { TaskType = WfTaskType.object_create.ToString() },
+                false,
+                kManagementId);
+
+            component.Find("#objKindTime").Change(true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("#objStartDate"), Is.Empty);
+                Assert.That(component.FindAll("#objEndDate"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("#objStartTime, #objEndTime, #objStartHour, #objEndHour"), Is.Empty);
+                Assert.That(component.Markup, Does.Not.Contain("end_time"));
+                Assert.That(component.Markup, Does.Contain("valid_to"));
+                Assert.That(component.Find("input[type=text]").ParentElement!.ClassName, Does.Contain("col-sm-8"));
+            });
+        }
+
+        [Test]
+        public async Task TimeInputs_UseHourPrecisionWithoutShowingMinuteInputs()
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqFlowIntegration = new FlowIntegrationConfig
+                {
+                    TimeObjectPrecision = FlowIntegrationTimePrecisionOptions.Hours
+                }.ToConfigValue()
+            };
+
+            await using BunitContext context = CreateContext(userConfig: userConfig);
+            WfReqTask task = new() { TaskType = WfTaskType.object_create.ToString() };
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, task, false, kManagementId);
+
+            component.Find("#objKindTime").Change(true);
+            SetMember(component.Instance, "objectName", "maintenance");
+            component.Find("#objStartDate").Input("2026-11-01");
+            component.Find("#objEndDate").Input("2026-11-30");
+            component.Find("#objStartHour").Input("8");
+            component.Find("#objEndHour").Input("18");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("#objStartTime, #objEndTime"), Is.Empty);
+                Assert.That(component.Find("#objStartHour").GetAttribute("value"), Is.EqualTo("8"));
+                Assert.That(component.Find("#objEndHour").GetAttribute("value"), Is.EqualTo("18"));
+                Assert.That(component.Instance.ApplyToTask(), Is.Null);
+                Assert.That(task.Elements.Single().StartTime, Is.EqualTo(new DateTime(2026, 11, 1, 8, 0, 0)));
+                Assert.That(task.Elements.Single().EndTime, Is.EqualTo(new DateTime(2026, 11, 30, 18, 0, 0)));
+            });
+        }
+
+        [Test]
         public async Task TimeInputs_KeepATypedDateAndTakeTheDefaultTime()
         {
             await using BunitContext context = CreateContext();
@@ -784,8 +857,8 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(component.Find("#objStartDate").GetAttribute("value"), Is.EqualTo("2026-11-01"));
-                Assert.That(component.Find("#objStartTime").GetAttribute("value"), Is.EqualTo(WfObjectTaskHelper.kDefaultStartTimeInput));
-                Assert.That(component.Find("#objEndTime").GetAttribute("value"), Is.EqualTo("18:00"));
+                Assert.That(component.Find("#objStartTime").GetAttribute("value"), Is.EqualTo("00:00:00"));
+                Assert.That(component.Find("#objEndTime").GetAttribute("value"), Is.EqualTo("18:00:00"));
                 Assert.That(error, Is.Null);
                 Assert.That(task.Elements[0].StartTime, Is.EqualTo(kTimeStart.Date));
                 Assert.That(task.Elements[0].EndTime, Is.EqualTo(kTimeEnd));
@@ -830,14 +903,15 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(component.Find("#objStartDate").GetAttribute("value"), Is.EqualTo("2026-11-01"));
-                Assert.That(component.Find("#objStartTime").GetAttribute("value"), Is.EqualTo("08:00"));
+                Assert.That(component.Find("#objStartTime").GetAttribute("value"), Is.EqualTo("08:00:00"));
                 Assert.That(unchangedError, Is.EqualTo("E5125"));
                 Assert.That(error, Is.Null);
                 Assert.That(WfObjectTaskHelper.HasValidElementStructure(task), Is.True);
                 Assert.That(WfObjectTaskHelper.GetOriginalElement(task)?.TimeObjId, Is.EqualTo(77));
                 Assert.That(WfObjectTaskHelper.GetOriginalElement(task)?.EndTime, Is.EqualTo(kTimeEnd));
                 Assert.That(WfObjectTaskHelper.GetRequestedElement(task)?.TimeObjId, Is.EqualTo(77));
-                Assert.That(WfObjectTaskHelper.GetRequestedElement(task)?.EndTime, Is.EqualTo(kTimeEnd.AddDays(1)));
+                Assert.That(WfObjectTaskHelper.GetRequestedElement(task)?.EndTime,
+                    Is.EqualTo(new DateTime(2026, 12, 1, 23, 59, 0)));
             });
         }
 
@@ -846,8 +920,8 @@ namespace FWO.Test
         {
             await using BunitContext context = CreateContext();
             WfReqTask task = new() { Id = 5, TaskType = WfTaskType.object_modify.ToString(), ManagementId = kManagementId };
-            task.Elements.Add(new() { Id = 1, Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.unchanged.ToString(), Name = "maintenance", TimeObjId = 77, StartTime = kTimeStart, EndTime = kTimeEnd });
-            task.Elements.Add(new() { Id = 2, Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.modify.ToString(), Name = "maintenance", TimeObjId = 77, StartTime = kTimeStart, EndTime = kTimeEnd.AddDays(1) });
+            task.Elements.Add(new() { Id = 1, Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.unchanged.ToString(), Name = "maintenance_old", TimeObjId = 77, StartTime = kTimeStart, EndTime = kTimeEnd });
+            task.Elements.Add(new() { Id = 2, Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.modify.ToString(), Name = "maintenance_new", TimeObjId = 77, StartTime = kTimeStart, EndTime = kTimeEnd.AddDays(1) });
 
             IRenderedComponent<DisplayObjectTaskElement> editComponent = RenderElement(context, task, true, kManagementId);
             IRenderedComponent<DisplayObjectTaskElement> readOnlyComponent = RenderElement(context, task, true, kManagementId, false);
@@ -857,8 +931,50 @@ namespace FWO.Test
                 Assert.That(GetMember<ObjectTaskKind>(editComponent.Instance, "kind"), Is.EqualTo(ObjectTaskKind.Time));
                 Assert.That(GetMember<DateTime?>(editComponent.Instance, "endTime"), Is.EqualTo(kTimeEnd.AddDays(1)));
                 Assert.That(GetMember<TimeObject>(editComponent.Instance, "selectedTimeObject")?.Id, Is.EqualTo(77));
-                Assert.That(readOnlyComponent.Markup, Does.Contain("maintenance 2026-11-01 08:00 - 2026-11-30 18:00"));
-                Assert.That(readOnlyComponent.Markup, Does.Contain("maintenance 2026-11-01 08:00 - 2026-12-01 18:00"));
+                Assert.That(readOnlyComponent.Markup, Does.Contain("change_name"));
+                Assert.That(readOnlyComponent.Markup, Does.Contain("change_content"));
+                Assert.That(readOnlyComponent.Markup, Does.Contain("maintenance_old"));
+                Assert.That(readOnlyComponent.Markup, Does.Contain("maintenance_new"));
+                Assert.That(readOnlyComponent.Markup, Does.Contain("01.11.2026 08:00:00 - 30.11.2026 18:00:00"));
+                Assert.That(readOnlyComponent.Markup, Does.Contain("01.11.2026 08:00:00 - 01.12.2026 18:00:00"));
+            });
+        }
+
+        [Test]
+        public async Task ObjectKindNetwork_HidesObjectKindSelector()
+        {
+            await using BunitContext context = CreateContext();
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, new WfReqTask(), false, kManagementId, fixedKind: ObjectTaskKind.Network);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("#objKindNetwork"), Is.Empty);
+                Assert.That(GetMember<ObjectTaskKind>(component.Instance, "kind"), Is.EqualTo(ObjectTaskKind.Network));
+            });
+        }
+
+        [Test]
+        public async Task ObjectKindService_HidesObjectKindSelectorAndUsesServiceInputs()
+        {
+            await using BunitContext context = CreateContext();
+            List<IpProtocol> protocols = [new() { Id = 1, Name = "icmp" }, new() { Id = kTcp, Name = "tcp" }];
+            IRenderedComponent<DisplayObjectTaskElement> component = context.Render<DisplayObjectTaskElement>(parameters => parameters
+                .Add(p => p.ReqTask, new WfReqTask())
+                .Add(p => p.IsModify, false)
+                .Add(p => p.ManagementId, kManagementId)
+                .Add(p => p.EditMode, true)
+                .Add(p => p.SelectableIpProtos, protocols)
+                .Add(p => p.DisplayIpProtos, protocols)
+                .Add(p => p.ObjectKind, ObjectTaskKind.Service));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.FindAll("#objKindService"), Is.Empty);
+                Assert.That(GetMember<ObjectTaskKind>(component.Instance, "kind"), Is.EqualTo(ObjectTaskKind.Service));
+                Assert.That(component.FindAll("input[placeholder='port_range']"), Has.Count.EqualTo(1));
+                Assert.That(GetMember<int>(component.Instance, "protoId"), Is.EqualTo(kTcp));
+                Assert.That(component.FindAll("div.form-group.row"), Has.Count.EqualTo(3));
+                Assert.That(component.FindAll("label.col-sm-3"), Has.Count.EqualTo(3));
             });
         }
 

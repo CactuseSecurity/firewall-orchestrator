@@ -22,6 +22,7 @@ namespace FWO.Test
         private const string kAzureLocation = "{\"location\":\"westeurope\"}";
         private static readonly List<string> kModifyOnlyCalls = ["login", "set-host", "publish", "logout"];
         private static readonly List<string> kSkippedObjectDeletions = ["HostDelete 'h2'", "ServiceDelete 'svc'", "Ipv6HostDelete 'h6'"];
+        private static readonly Dictionary<string, string> kImportedRuleLayers = new() { { "uid-1", "imported-layer" } };
 
         private static (FirewallWriter Writer, FirewallSimulation Simulation) Writer(FirewallWriteContext context)
         {
@@ -34,8 +35,11 @@ namespace FWO.Test
             FirewallWriteContext context = Context(FirewallVendors.kCheckPointR8x, settings);
             context.Gateway!.Package = null;
             context.Gateway.LocalRulebase = null;
-            return new FirewallWriteContext { Management = context.Management, Gateway = context.Gateway, Settings = settings, Rulebases = rulebases };
+            return context with { Rulebases = rulebases };
         }
+
+        /// <summary>The context with the imported layer of the rule "uid-1", which rule_modify and rule_delete are addressed in.</summary>
+        private static FirewallWriteContext WithImportedRuleLayer(FirewallWriteContext context) => context with { RuleLayerUids = kImportedRuleLayers };
 
         private static WfImplTask AccessTask(int? ruleAction, params WfImplElement[] elements)
         {
@@ -91,12 +95,15 @@ namespace FWO.Test
             FirewallGatewayRulebases rulebases = FirewallGatewayRulebases.FromLinks(FirewallGatewayRulebasesTest.CheckPointLinks());
             (FirewallWriter writer, FirewallSimulation simulation) = Writer(ContextWithoutRulebaseNames(settings, rulebases));
             simulation.Handler = request => Ok(request.Resource == "login" ? kCheckPointLogin : "{}");
-            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.rule_delete, Rule("uid-1")));
+            ModifyFirewallResult result = await writer.ModifyFirewall(AccessTask(1, Network("src", null),
+                Network("dst", null, field: ElemFieldType.destination), Service("https", 6, 443)));
+            RecordedFirewallRequest newRule = simulation.Requests.Single(request => request.Resource == "add-access-rule");
+            RecordedFirewallRequest install = simulation.Requests.Single(request => request.Resource == "install-policy");
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(result.Success, Is.True, result.Message);
-                Assert.That(JsonNode.Parse(simulation.Requests[1].Body!)!["layer"]!.GetValue<string>(), Is.EqualTo("Network"));
-                Assert.That(JsonNode.Parse(simulation.Requests[3].Body!)!["policy-package"]!.GetValue<string>(), Is.EqualTo("Standard"));
+                Assert.That(JsonNode.Parse(newRule.Body!)!["layer"]!.GetValue<string>(), Is.EqualTo("Network"));
+                Assert.That(JsonNode.Parse(install.Body!)!["policy-package"]!.GetValue<string>(), Is.EqualTo("Standard"));
             }
         }
 
@@ -111,13 +118,7 @@ namespace FWO.Test
             FirewallGatewayRulebases rulebases = FirewallGatewayRulebases.FromLinks(FirewallGatewayRulebasesTest.CheckPointLinks());
             FirewallWriteContext context = Context(FirewallVendors.kCheckPointR8x, settings);
             context.Gateway!.Package = "Stale Package";
-            (FirewallWriter writer, FirewallSimulation simulation) = Writer(new FirewallWriteContext
-            {
-                Management = context.Management,
-                Gateway = context.Gateway,
-                Settings = settings,
-                Rulebases = rulebases
-            });
+            (FirewallWriter writer, FirewallSimulation simulation) = Writer(context with { Rulebases = rulebases, RuleLayerUids = kImportedRuleLayers });
             simulation.Handler = request => Ok(request.Resource == "login" ? kCheckPointLogin : "{}");
             ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.rule_delete, Rule("uid-1")));
             using (Assert.EnterMultipleScope())
@@ -223,14 +224,16 @@ namespace FWO.Test
         [Test]
         public async Task RuleDeletionsAreSentByDefault()
         {
-            (FirewallWriter writer, FirewallSimulation simulation) = Writer(Context(FirewallVendors.kCheckPointR8x, new GatewayDeviceSpecificSettings()));
+            (FirewallWriter writer, FirewallSimulation simulation) = Writer(WithImportedRuleLayer(
+                Context(FirewallVendors.kCheckPointR8x, new GatewayDeviceSpecificSettings())));
             simulation.Handler = request => Ok(request.Resource == "login" ? kCheckPointLogin : "{}");
             ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.rule_delete, Rule("uid-1")));
+            RecordedFirewallRequest deletion = simulation.Requests.Single(request => request.Resource == "delete-access-rule");
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(result.Success, Is.True, result.Message);
                 Assert.That(result.SkippedDeletions, Is.Empty);
-                Assert.That(simulation.Requests.Select(request => request.Resource), Does.Contain("delete-access-rule"));
+                Assert.That(JsonNode.Parse(deletion.Body!)!["layer"]!.GetValue<string>(), Is.EqualTo("imported-layer"));
             }
         }
 

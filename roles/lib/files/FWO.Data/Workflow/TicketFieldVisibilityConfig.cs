@@ -24,6 +24,9 @@ namespace FWO.Data.Workflow
         [JsonProperty("comments"), JsonPropertyName("comments")]
         public bool ShowComments { get; set; } = false;
 
+        [JsonProperty("handlerDisplayMode"), JsonPropertyName("handlerDisplayMode")]
+        public TicketHandlerDisplayMode HandlerDisplayMode { get; set; } = TicketHandlerDisplayMode.None;
+
         [JsonProperty("accessTask"), JsonPropertyName("accessTask")]
         public AccessTaskFieldVisibilityConfig AccessTask { get; set; } = new();
 
@@ -71,6 +74,12 @@ namespace FWO.Data.Workflow
 
         [JsonProperty("owner"), JsonPropertyName("owner")]
         public bool ShowOwner { get; set; } = true;
+
+        [JsonProperty("ruleAction"), JsonPropertyName("ruleAction")]
+        public bool ShowRuleAction { get; set; } = true;
+
+        [JsonProperty("tracking"), JsonPropertyName("tracking")]
+        public bool ShowTracking { get; set; } = true;
 
         [JsonProperty("validFrom"), JsonPropertyName("validFrom")]
         public bool ShowValidFrom { get; set; } = true;

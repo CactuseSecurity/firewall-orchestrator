@@ -64,6 +64,7 @@ else
                     {
                         @RenderField(state, form)
                     }
+                    @RenderSection(form, DeviceSpecificFieldSection.ExternalRequests, "dss_request_section", "dss_request_section_intro")
                     @RenderSection(form, DeviceSpecificFieldSection.FirewallWrite, "dss_fw_write_section", "dss_fw_write_section_intro")
                     @RenderSection(form, DeviceSpecificFieldSection.SecureChange, "dss_sc_template_section", "dss_sc_template_section_intro")
                 </form>
@@ -108,6 +109,7 @@ else
     private AutoPlanSettingsCheckResult? autoPlanCheck;
     private ImplementationModeSettingsCheckResult? implementationModeCheck;
     private List<Management> managements = [];
+    private List<Credential> credentials = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -116,12 +118,30 @@ else
             service = new DeviceSpecificSettingsService(new DeviceSpecificSettingsManager(apiConnection));
             managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets) ?? [];
             root = await service.LoadHierarchyAsync(managements);
+            credentials = await LoadCredentials();
             await SelectNode(root);
             await RefreshAutoPlanCheck();
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("dss_settings"), userConfig.GetText("E5301"), true);
+        }
+    }
+
+    /// <summary>
+    /// Credentials offered for the Tufin SecureChange connection. Without the right to read them the page still works;
+    /// a stored credential is then shown by its ID.
+    /// </summary>
+    private async Task<List<Credential>> LoadCredentials()
+    {
+        try
+        {
+            return await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentialsWithoutSecrets) ?? [];
+        }
+        catch (Exception exception)
+        {
+            Log.WriteWarning("Device Specific Settings", $"Credentials not readable for the SecureChange connection: {exception.Message}");
+            return [];
         }
     }
 
@@ -350,6 +370,11 @@ else
             form = await service.LoadFormAsync(nodeToReload);
             await RefreshAutoPlanCheck();
         }
+        catch (ArgumentException exception) when (exception.ParamName ==
+            DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.DatabaseKey)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("dss_settings"), userConfig.GetText("E5302"), true);
+        }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("dss_settings"), "", true);
@@ -407,6 +432,7 @@ else
         @<div>
             @RenderNodeHint("U5506", check.ExternalModeWithoutSystem)
             @RenderNodeHint("U5507", check.SystemWithoutExternalMode)
+            @RenderNodeHint("U5510", check.SecureChangeWithoutConnection)
             @RenderNodeHint("U5508", check.GatewayDiffersInExternalMode)
             @foreach (ObjectCreationFinding finding in check.ObjectCreationFindings)
             {
@@ -553,7 +579,7 @@ else
                 builder.CloseElement();
                 break;
 
-            case DeviceSpecificFieldKind.ExtTicketSystem:
+            case DeviceSpecificFieldKind.Credential:
                 builder.OpenElement(0, "select");
                 builder.AddAttribute(1, "class", "form-select form-select-sm w-auto");
                 builder.AddAttribute(2, "value", value);
@@ -563,7 +589,7 @@ else
                 builder.AddAttribute(6, "value", "");
                 builder.AddContent(7, userConfig.GetText("undefined"));
                 builder.CloseElement();
-                foreach ((string optionValue, string name) in DeviceSpecificSettingsData.ExtTicketSystemOptions(userConfig.ExtTicketSystems, value))
+                foreach ((string optionValue, string name) in DeviceSpecificSettingsData.CredentialOptions(credentials, value))
                 {
                     builder.OpenElement(8, "option");
                     builder.AddAttribute(9, "value", optionValue);
@@ -602,6 +628,18 @@ else
 
             case DeviceSpecificFieldKind.StringList:
                 builder.AddContent(0, RenderStringList(value, disabled, onChange));
+                break;
+
+            case DeviceSpecificFieldKind.Number:
+                builder.OpenElement(0, "input");
+                builder.AddAttribute(1, "type", "number");
+                builder.AddAttribute(2, "class", "form-control form-control-sm w-auto");
+                builder.AddAttribute(3, "min", field.MinimumNumber);
+                builder.AddAttribute(4, "step", 1);
+                builder.AddAttribute(5, "value", value);
+                builder.AddAttribute(6, "onchange", changeCallback);
+                builder.AddAttribute(7, "disabled", disabled);
+                builder.CloseElement();
                 break;
 
             default:

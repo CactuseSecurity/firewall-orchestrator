@@ -18,6 +18,7 @@ namespace FWO.Services.Modelling
     public partial class ModellingVarianceAnalysis(ApiConnection apiConnection, ExtStateHandler extStateHandler,
             UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi)
     {
+        private const int kTicketIdChunkSize = 500;
         private readonly ModellingNamingConvention namingConvention = ModellingNamingConvention.FromJson(userConfig.ModNamingConvention);
         private readonly RuleRecognitionOption ruleRecognitionOption = string.IsNullOrEmpty(userConfig.RuleRecognitionOption) ? new() :
             JsonSerializer.Deserialize<RuleRecognitionOption>(userConfig.RuleRecognitionOption) ?? new();
@@ -75,41 +76,47 @@ namespace FWO.Services.Modelling
         public RuleOwnerWaitState WaitState { get; set; } = new();
 
         /// <summary>
-        /// Determines the modelling state of the given connections.
+        /// Determines the modelling state of the given connections. Which connections are analysed is
+        /// decided by <see cref="ModellingVarianceConnectionSelector"/>, as for the report and the request.
+        /// Excluded connections lose their variance flags, so no stale result is shown for them.
         /// </summary>
-        /// <param name="connections">Connections to analyse.</param>
+        /// <param name="connections">Connections to analyse, with used interfaces already extracted.</param>
+        /// <param name="dummyAppRoleId">Id of the dummy app role, which never counts as empty.</param>
         /// <param name="allowWait">
         /// True where somebody waits for the result, so a pending rule_owner mapping run may be waited
         /// out instead of falling back to the much slower marker query. The background job leaves it
         /// false.
         /// </param>
         /// <param name="cancellationToken">Stops the whole analysis, for instance on middleware shutdown.</param>
-        public async Task AnalyseConnsForStatus(List<ModellingConnection> connections, bool allowWait = false, CancellationToken cancellationToken = default)
+        public async Task AnalyseConnsForStatus(List<ModellingConnection> connections, long dummyAppRoleId, bool allowWait = false, CancellationToken cancellationToken = default)
         {
             connections = [.. connections.Where(x => !x.IsDocumentationOnly())];
-            varianceResult = await AnalyseRulesVsModelledConnections(connections, new() { AllowWaitForRuleOwnerMapping = allowWait }, false, cancellationToken: cancellationToken);
+            ModellingVarianceConnectionSelection selection = ModellingVarianceConnectionSelector.Select(connections, dummyAppRoleId, userConfig.ModRolloutRemovedAppServers);
+            varianceResult = await AnalyseRulesVsModelledConnections(selection.Analysed, new() { AllowWaitForRuleOwnerMapping = allowWait }, false, cancellationToken);
             await GetNwObjectsProductionState(cancellationToken);
             foreach (var conn in connections)
             {
-                conn.AddProperty(ConState.VarianceChecked.ToString());
                 conn.UpdateProperty(ConState.ForeignNonProdObjects.ToString(), HasForeignNonProdObjects(conn));
-                if (varianceResult.ConnsNotImplemented.FirstOrDefault(c => c.Id == conn.Id) != null)
+                if (selection.IsExcluded(conn))
                 {
-                    conn.AddProperty(ConState.NotImplemented.ToString());
+                    conn.CleanUpVarianceResults();
                 }
                 else
                 {
-                    conn.RemoveProperty(ConState.NotImplemented.ToString());
-                }
-                if (varianceResult.RuleDifferences.FirstOrDefault(c => c.ModelledConnection.Id == conn.Id) != null)
-                {
-                    conn.AddProperty(ConState.VarianceFound.ToString());
-                }
-                else
-                {
-                    conn.RemoveProperty(ConState.VarianceFound.ToString());
+                    SetVarianceFlags(conn);
                 }
             }
+        }
+
+        /// <summary>
+        /// Writes the result of the last comparison into the state flags of an analysed connection.
+        /// </summary>
+        /// <param name="conn">Connection that was analysed.</param>
+        private void SetVarianceFlags(ModellingConnection conn)
+        {
+            conn.AddProperty(ConState.VarianceChecked.ToString());
+            conn.UpdateProperty(ConState.NotImplemented.ToString(), varianceResult.ConnsNotImplemented.Any(c => c.Id == conn.Id));
+            conn.UpdateProperty(ConState.VarianceFound.ToString(), varianceResult.RuleDifferences.Any(c => c.ModelledConnection.Id == conn.Id));
         }
 
         private bool HasForeignNonProdObjects(ModellingConnection conn)
@@ -147,12 +154,19 @@ namespace FWO.Services.Modelling
             return false;
         }
 
-        public async Task<bool> AnalyseConnsForStatusAsync(List<ModellingConnection> connections, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Determines the modelling state of the given connections and writes it to the database.
+        /// </summary>
+        /// <param name="connections">Connections to analyse, with used interfaces already extracted.</param>
+        /// <param name="dummyAppRoleId">Id of the dummy app role, which never counts as empty.</param>
+        /// <param name="cancellationToken">Stops the whole analysis, for instance on middleware shutdown.</param>
+        /// <returns>False if the analysis failed.</returns>
+        public async Task<bool> AnalyseConnsForStatusAsync(List<ModellingConnection> connections, long dummyAppRoleId, CancellationToken cancellationToken = default)
         {
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await AnalyseConnsForStatus(connections, cancellationToken: cancellationToken);
+                await AnalyseConnsForStatus(connections, dummyAppRoleId, cancellationToken: cancellationToken);
                 // a stopped analysis has incomplete results, which must not be written as connection status
                 cancellationToken.ThrowIfCancellationRequested();
                 foreach (var conn in connections)
@@ -173,22 +187,34 @@ namespace FWO.Services.Modelling
             return true;
         }
 
+        /// <summary>
+        /// Compares the given connections with the production rules. The comparison is the same for
+        /// every caller; documentation-only connections are not compared but regarded as deleted.
+        /// </summary>
+        /// <param name="connections">Connections to analyse, as selected by <see cref="ModellingVarianceConnectionSelector"/>.</param>
+        /// <param name="modellingFilter">Options for loading the rules and the additional report chapters.</param>
+        /// <param name="analyseAppRoles">
+        /// Also compares the app role members separately (only with separate group analysis), as the
+        /// report shows them in an own chapter.
+        /// </param>
+        /// <param name="cancellationToken">Stops the whole analysis.</param>
         public async Task<ModellingVarianceResult> AnalyseRulesVsModelledConnections(List<ModellingConnection> connections,
-            ModellingFilter modellingFilter, bool fullAnalysis = true, bool ignoreGroups = false, CancellationToken cancellationToken = default)
+            ModellingFilter modellingFilter, bool analyseAppRoles = true, CancellationToken cancellationToken = default)
         {
             await InitManagements();
             await LoadAreas();
             varianceResult = new() { Managements = RelevantManagements };
-            if (ruleRecognitionOption.NwSeparateGroupAnalysis && fullAnalysis && !ignoreGroups)
+            List<ModellingConnection> connectionsToCompare = [.. connections.Where(c => !c.IsInterface && !c.IsDocumentationOnly()).OrderBy(c => c.Id)];
+            if (ruleRecognitionOption.NwSeparateGroupAnalysis && analyseAppRoles)
             {
                 await GetNwObjectsProductionState(cancellationToken);
-                PreAnalyseAllAppRoles(connections);
+                PreAnalyseAllAppRoles(connectionsToCompare);
             }
             if (await GetModelledRulesProductionState(modellingFilter, cancellationToken))
             {
-                foreach (var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
+                foreach (var conn in connectionsToCompare)
                 {
-                    AnalyseRules(conn, fullAnalysis);
+                    AnalyseRules(conn);
                 }
                 if (modellingFilter.RulesForDeletedConns)
                 {
@@ -253,6 +279,10 @@ namespace FWO.Services.Modelling
             return TaskList;
         }
 
+        /// <summary>
+        /// Describes the newest done request ticket of the owner. Reads ticket states in descending batches,
+        /// without task metadata, and stops as soon as a batch contains a done ticket.
+        /// </summary>
         public async Task<string> GetSuccessfulRequestState()
         {
             try
@@ -262,18 +292,20 @@ namespace FWO.Services.Modelling
                 {
                     return userConfig.GetText("never_requested");
                 }
-                else
+                List<long> distinctTicketIds = [.. ticketIds.Select(ticketId => ticketId.Id).Distinct()];
+                // getLatestTicketIds returns the newest ticket first.
+                foreach (IEnumerable<long> ticketIdChunk in distinctTicketIds.Chunk(kTicketIdChunkSize))
                 {
-                    foreach (var ticketId in ticketIds)
+                    List<WfTicket> tickets = await apiConnection.SendQueryAsync<List<WfTicket>>(
+                        RequestQueries.getTicketStatesByIds, new { ids = ticketIdChunk });
+                    WfTicket? newestDoneTicket = tickets.OrderByDescending(ticket => ticket.Id)
+                        .FirstOrDefault(ticket => extStateHandler.IsDone(ticket.StateId));
+                    if (newestDoneTicket != null)
                     {
-                        WfTicket? intTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { ticketId.Id });
-                        if (extStateHandler.IsDone(intTicket.StateId))
-                        {
-                            return $"{userConfig.GetText("last_successful")}: {intTicket.CreationDate.ToString("yyyy-MM-dd HH:mm:ss")}, {userConfig.GetText("implemented")}: {intTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss")}, {intTicket.Requester?.Name}";
-                        }
+                        return $"{userConfig.GetText("last_successful")}: {newestDoneTicket.CreationDate.ToString("yyyy-MM-dd HH:mm:ss")}, {userConfig.GetText("implemented")}: {newestDoneTicket.CompletionDate?.ToString("yyyy-MM-dd HH:mm:ss")}, {newestDoneTicket.Requester?.Name}";
                     }
-                    return userConfig.GetText("never_succ_req");
                 }
+                return userConfig.GetText("never_succ_req");
             }
             catch (Exception exception)
             {

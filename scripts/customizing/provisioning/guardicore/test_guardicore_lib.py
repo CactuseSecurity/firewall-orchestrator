@@ -10,9 +10,9 @@ import requests
 if TYPE_CHECKING:
     from collections.abc import Callable
     from types import TracebackType
-    from typing import Self
 
     from _pytest.monkeypatch import MonkeyPatch
+    from typing_extensions import Self
 
 from scripts.customizing.provisioning.guardicore import guardicore_lib
 from scripts.customizing.provisioning.guardicore.guardicore_lib import (

@@ -292,13 +292,7 @@
                     <b>@userConfig.GetText("fwconfigchange")</b>
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item px-2">
-                            <a href="/help/settings/fwconfigchangegeneral/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("fwconfigchangegeneral")</a>
-                        </li>
-                        <li class="nav-item px-2">
                             <a href="/help/settings/devicespecificsettings/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("dss_settings")</a>
-                        </li>
-                        <li class="nav-item px-2">
-                            <a href="/help/settings/exttickettemplates/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("ext_ticket_templates")</a>
                         </li>
                     </ul>
                 </li>
@@ -337,6 +331,9 @@
                 </li>
                 <li class="nav-item px-2">
                     <a href="/help/API/rulesbyfilter/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("rule_filters")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/API/rulelasthits/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("rule_last_hits")</a>
                 </li>
                 <li class="nav-item px-2">
                     <a href="/help/API/mutation/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("sample_mutation")</a>

@@ -1,0 +1,17 @@
+query getTicketOverviewsByIds($ids: [bigint!]!) {
+  request_ticket(where: { id: { _in: $ids } }, order_by: { id: desc }) {
+    id
+    date_created
+    date_completed
+    state_id
+    requester: uiuser {
+      uiuser_id
+      uiuser_username
+    }
+    reqtasks: reqtasks (order_by: { task_number: asc }){
+      id
+      task_number
+      additional_info
+    }
+  }
+}

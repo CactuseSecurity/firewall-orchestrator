@@ -5,6 +5,7 @@ query getTimeBasedRulesByOwner {
       owner: { active: { _eq: true } }
       rule: {
         removed: { _is_null: true }
+        rule_disabled: {_eq: false}
         access_rule: { _eq: true }
         rule_times: {
           removed: { _is_null: true }

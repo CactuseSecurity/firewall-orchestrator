@@ -2,6 +2,7 @@ using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.ExternalSystems.FirewallWrite;
 using FWO.ExternalSystems.Tufin.SecureChange;
+using FWO.Services.RulePositioning.CheckPoint;
 using System.Globalization;
 
 namespace FWO.Ui.Pages.Settings
@@ -15,16 +16,18 @@ namespace FWO.Ui.Pages.Settings
         Text,
         TemplateText,
         StringList,
-        ExtTicketSystem,
+        Credential,
         FirewallEndpoint,
         FirewallTemplate,
-        SecureChangeTemplate
+        SecureChangeTemplate,
+        Number
     }
 
     /// <summary>Section of the settings page a field is shown in.</summary>
     public enum DeviceSpecificFieldSection
     {
         General,
+        ExternalRequests,
         FirewallWrite,
         SecureChange
     }
@@ -69,6 +72,9 @@ namespace FWO.Ui.Pages.Settings
         public bool FirewallWriteOnly { get; init; } = false;
 
         public DeviceSpecificFieldKind Kind { get; init; } = DeviceSpecificFieldKind.SingleSelect;
+
+        /// <summary>Smallest value of a number field.</summary>
+        public int MinimumNumber { get; init; } = 0;
         public List<DeviceSpecificFieldOption> Options { get; init; } = [];
 
         /// <summary>Lowest (most general) scope at which this field is offered.</summary>
@@ -173,13 +179,20 @@ namespace FWO.Ui.Pages.Settings
 
         private const char kListSeparator = ',';
 
+        /// <summary>External ticket systems a level can hand its tasks to; empty means undefined.</summary>
+        private static readonly List<DeviceSpecificFieldOption> ExternalTicketSystemOptions =
+        [
+            new("", "undefined"),
+            new(nameof(ExternalTicketSystemKind.TufinSecureChange), "dss_opt_tufin_securechange")
+        ];
+
         private static readonly Dictionary<string, string> HelpTextKeys = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             { "dss_implementation_mode", "H5168" },
             { "dss_install_on", "H5169" },
             { "dss_time_object_creation", "H5199a" },
             { "dss_label_creation", "H5199b" },
-            { "dss_implementation_mode_override_for_rules", "H5199c" },
+            { "dss_implementation_mode_for_rules", "H5199c" },
             { "dss_owner_id_custom_field_name", "H5199d" },
             { "dss_change_id_custom_field_name", "H5199e" },
             { "dss_reroute_to_external_ticket_system", "H5199f" },
@@ -190,14 +203,21 @@ namespace FWO.Ui.Pages.Settings
             { "dss_modelling_dyn_ip_labels_visible_as_groups", "H5199k" },
             { "dss_importer_host_name", "H5199l" },
             { "dss_ssh_legacy_key_exchange", "H5199x" },
+            { "dss_request_response_timeout", "H5199z" },
+            { "dss_request_max_attempts", "H5200" },
+            { "dss_request_cycles_between_attempts", "H5200" },
             { "dss_logging", "H5190" },
             { "dss_service_object_creation", "H5191" },
             { "dss_address_object_creation", "H5192" },
             { "dss_rule_type", "H5193" },
             { "dss_templates", "H5194" },
             { "dss_positioning_algorithm", "H5195" },
+            { "dss_cp_layer_guard_section_name_template", "H5199y" },
             { "dss_common_service_separation", "H5196" },
             { "dss_zone_from", "H5198" },
+            { "dss_sc_url", "H5198a" },
+            { "dss_sc_credential", "H5198b" },
+            { "dss_sc_lookup_requester_id", "H5198c" },
             { "dss_zone_to", "H5199" },
             { "dss_modelling_connection_id_field", "H5199m" },
             { "dss_modelling_connection_id_template", "H5199m" },
@@ -264,6 +284,7 @@ namespace FWO.Ui.Pages.Settings
                     (ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "dss_opt_default_end_of_rulebase"),
                     (ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection, "dss_opt_cp_layer_guard_end_of_zone_pair_section"),
                     (ProvisioningPositioningAlgorithm.AllowCategoryEndOfAppSectionDistinguishCommonServices, "dss_opt_allow_category"))),
+            CheckPointLayerGuardSectionNameTemplateField(),
             EnumField(DeviceSpecificSettingKeys.RuleLoggingOverride, "dss_logging", s => s.RuleLoggingOverride,
                 EnumOptions(
                     (ProvisioningLoggingMode.Log, "dss_opt_log"),
@@ -306,16 +327,17 @@ namespace FWO.Ui.Pages.Settings
                     (ProvisioningImplementationMode.Automatic, "dss_opt_automatic"),
                     (ProvisioningImplementationMode.Manual, "dss_opt_manual"),
                     (ProvisioningImplementationMode.RerouteToExternalTicketSystem, "dss_opt_reroute")), maxLevel: DeviceSpecificScopeType.Management),
-            EnumField(DeviceSpecificSettingKeys.ImplementationModeOverrideForRules, "dss_implementation_mode_override_for_rules", s => s.ImplementationModeOverrideForRules,
+            EnumField(DeviceSpecificSettingKeys.ImplementationModeForRules, "dss_implementation_mode_for_rules", s => s.ImplementationModeForRules,
                 RuleImplementationModeOptions),
             new()
             {
                 Key = DeviceSpecificSettingKeys.RerouteToExternalTicketSystem,
                 LabelTextKey = "dss_reroute_to_external_ticket_system",
                 HelpTextKey = HelpKey("dss_reroute_to_external_ticket_system"),
-                Kind = DeviceSpecificFieldKind.ExtTicketSystem,
+                Kind = DeviceSpecificFieldKind.SingleSelect,
+                Options = ExternalTicketSystemOptions,
                 MaxLevel = DeviceSpecificScopeType.Management,
-                Read = s => s.RerouteToExternalTicketSystem?.ToString(CultureInfo.InvariantCulture) ?? "",
+                Read = s => s.RerouteToExternalTicketSystem == ExternalTicketSystemKind.Undefined ? "" : s.RerouteToExternalTicketSystem.ToString(),
                 SetOverride = SetExtTicketSystemOverride
             },
             new()
@@ -352,7 +374,9 @@ namespace FWO.Ui.Pages.Settings
                 maxLevel: DeviceSpecificScopeType.Management),
             TextField(DeviceSpecificSettingKeys.Templates, "dss_templates", s => s.Templates, DeviceSpecificFieldKind.TemplateText,
                 minLevel: DeviceSpecificScopeType.DeviceType, maxLevel: DeviceSpecificScopeType.DeviceType),
+            .. RequestFields(),
             .. FirewallWriteFields(),
+            .. SecureChangeConnectionFields(),
             .. SecureChangeTemplateFields(),
         ];
 
@@ -378,6 +402,17 @@ namespace FWO.Ui.Pages.Settings
         }
 
         /// <summary>
+        /// Fields of the external requests of a management: response timeout and retries, for Tufin SecureChange and
+        /// firewall writes alike. Requests run per management, so they are set up to the management.
+        /// </summary>
+        private static List<DeviceSpecificFieldDefinition> RequestFields() =>
+        [
+            NumberField(DeviceSpecificSettingKeys.RequestResponseTimeout, "dss_request_response_timeout", s => s.RequestResponseTimeout, 1),
+            NumberField(DeviceSpecificSettingKeys.RequestMaxAttempts, "dss_request_max_attempts", s => s.RequestMaxAttempts, 1),
+            NumberField(DeviceSpecificSettingKeys.RequestCyclesBetweenAttempts, "dss_request_cycles_between_attempts", s => s.RequestCyclesBetweenAttempts, 0)
+        ];
+
+        /// <summary>
         /// Fields of the firewall write library: certificate checks, policy installation and object deletion, then endpoint and body
         /// template per operation. Endpoints and templates show the default shipped for the device type while empty.
         /// </summary>
@@ -401,6 +436,37 @@ namespace FWO.Ui.Pages.Settings
             }
             return fields;
         }
+
+        /// <summary>
+        /// Fields of the connection to Tufin SecureChange, offered from Global down to the management like the templates.
+        /// </summary>
+        private static List<DeviceSpecificFieldDefinition> SecureChangeConnectionFields() =>
+        [
+            new()
+            {
+                Key = DeviceSpecificSettingKeys.ScUrl,
+                LabelTextKey = "dss_sc_url",
+                HelpTextKey = HelpKey("dss_sc_url"),
+                Kind = DeviceSpecificFieldKind.Text,
+                Section = DeviceSpecificFieldSection.SecureChange,
+                MaxLevel = DeviceSpecificScopeType.Management,
+                Read = s => s.ScUrl,
+                SetOverride = (changes, value) => changes.Set(DeviceSpecificSettingKeys.ScUrl, value.Trim())
+            },
+            new()
+            {
+                Key = DeviceSpecificSettingKeys.ScCredential,
+                LabelTextKey = "dss_sc_credential",
+                HelpTextKey = HelpKey("dss_sc_credential"),
+                Kind = DeviceSpecificFieldKind.Credential,
+                Section = DeviceSpecificFieldSection.SecureChange,
+                MaxLevel = DeviceSpecificScopeType.Management,
+                Read = s => s.ScCredential?.ToString(CultureInfo.InvariantCulture) ?? "",
+                SetOverride = SetScCredentialOverride
+            },
+            BoolField(DeviceSpecificSettingKeys.ScLookupRequesterId, "dss_sc_lookup_requester_id", s => s.ScLookupRequesterId,
+                DeviceSpecificScopeType.Management, DeviceSpecificFieldSection.SecureChange)
+        ];
 
         /// <summary>
         /// Fields of the Tufin SecureChange ticket templates: one per task type and template part, offered from Global down to
@@ -604,6 +670,29 @@ namespace FWO.Ui.Pages.Settings
                 SetOverride = (changes, value) => changes.Set(key, value)
             };
 
+        /// <summary>Creates the LayerGuard section name field with its template validation.</summary>
+        private static DeviceSpecificFieldDefinition CheckPointLayerGuardSectionNameTemplateField() => new()
+        {
+            Key = DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate,
+            LabelTextKey = "dss_cp_layer_guard_section_name_template",
+            HelpTextKey = HelpKey("dss_cp_layer_guard_section_name_template"),
+            Kind = DeviceSpecificFieldKind.Text,
+            Read = settings => settings.CheckPointLayerGuardSectionNameTemplate,
+            SetOverride = (changes, value) => changes.Set(
+                DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate,
+                ValidateCheckPointLayerGuardSectionNameTemplate(value))
+        };
+
+        private static string ValidateCheckPointLayerGuardSectionNameTemplate(string value)
+        {
+            if (!CheckPointSectionNameTemplate.Parse(value).IsSuccess)
+            {
+                throw new ArgumentException("The Check Point LayerGuard section name template is invalid.",
+                    DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.DatabaseKey);
+            }
+            return value;
+        }
+
         private static DeviceSpecificFieldDefinition BoolField(
             DeviceSpecificSettingKey<bool> key,
             string textKey,
@@ -623,6 +712,35 @@ namespace FWO.Ui.Pages.Settings
                 SetOverride = (changes, value) => changes.Set(key, bool.Parse(value))
             };
 
+        /// <summary>A whole number of at least the given minimum, set from Global down to the management.</summary>
+        private static DeviceSpecificFieldDefinition NumberField(
+            DeviceSpecificSettingKey<int> key,
+            string textKey,
+            Func<GlobalDeviceSpecificSettings, int> get,
+            int minimum) => new()
+            {
+                Key = key,
+                LabelTextKey = textKey,
+                HelpTextKey = HelpKey(textKey),
+                Kind = DeviceSpecificFieldKind.Number,
+                Section = DeviceSpecificFieldSection.ExternalRequests,
+                MinimumNumber = minimum,
+                MaxLevel = DeviceSpecificScopeType.Management,
+                Read = s => get(s).ToString(CultureInfo.InvariantCulture),
+                SetOverride = (changes, value) => changes.Set(key, ParseNumber(key, value, minimum))
+            };
+
+        /// <summary>Parses the editor value of a number field.</summary>
+        /// <exception cref="ArgumentOutOfRangeException">The value is no whole number of at least the minimum.</exception>
+        public static int ParseNumber(DeviceSpecificSettingKey key, string value, int minimum)
+        {
+            if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) || number < minimum)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, $"Setting '{key.DatabaseKey}' requires a whole number of at least {minimum}.");
+            }
+            return number;
+        }
+
         /// <summary>An empty selection means undefined, which is never stored, so the level inherits instead.</summary>
         private static void SetExtTicketSystemOverride(DeviceSpecificSettingsChangeSet changes, string value)
         {
@@ -632,18 +750,31 @@ namespace FWO.Ui.Pages.Settings
             }
             else
             {
-                changes.Set(DeviceSpecificSettingKeys.RerouteToExternalTicketSystem, (int?)int.Parse(value, CultureInfo.InvariantCulture));
+                changes.Set(DeviceSpecificSettingKeys.RerouteToExternalTicketSystem, Enum.Parse<ExternalTicketSystemKind>(value));
+            }
+        }
+
+        /// <summary>An empty selection means undefined, which is never stored, so the level inherits instead.</summary>
+        private static void SetScCredentialOverride(DeviceSpecificSettingsChangeSet changes, string value)
+        {
+            if (value.Length == 0)
+            {
+                changes.Remove(DeviceSpecificSettingKeys.ScCredential);
+            }
+            else
+            {
+                changes.Set(DeviceSpecificSettingKeys.ScCredential, (int?)int.Parse(value, CultureInfo.InvariantCulture));
             }
         }
 
         /// <summary>
-        /// Selectable external ticket systems as (ID, display name). A stored ID no longer configured stays selectable
-        /// so the editor still shows it.
+        /// Selectable credentials as (ID, display name), without key pairs, which cannot log in with a password. A stored
+        /// ID that is not offered, e.g. not readable for the user, stays selectable so the editor still shows it.
         /// </summary>
-        public static List<(string Value, string Name)> ExtTicketSystemOptions(string? configuredTicketSystems, string currentValue)
+        public static List<(string Value, string Name)> CredentialOptions(IEnumerable<Credential> credentials, string currentValue)
         {
-            List<(string Value, string Name)> options = [.. ExternalTicketSystem.ParseConfigured(configuredTicketSystems)
-                .Select(system => (system.Id.ToString(CultureInfo.InvariantCulture), $"{system.Name} ({system.Id})"))];
+            List<(string Value, string Name)> options = [.. credentials.Where(credential => !credential.IsKeyPair)
+                .Select(credential => (credential.Id.ToString(CultureInfo.InvariantCulture), credential.Name))];
             if (currentValue.Length > 0 && !options.Any(option => option.Value == currentValue))
             {
                 options.Add((currentValue, currentValue));

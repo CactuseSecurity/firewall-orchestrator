@@ -50,7 +50,6 @@ namespace FWO.Test
         readonly SimulatedGlobalConfig globalConfig = new()
         {
             ExternalRequestWaitCycles = 3,
-            ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(ticketSystemList),
             ReqPriorities = reqPrios,
             ModNamingConvention = namingConvention
         };
@@ -128,23 +127,12 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, localApiConnection.TriedToGetLdapsForHandleStateChange);
         }
 
+        /// <summary>
+        /// A request of an unsupported ticket system (e.g. of the former Check Point ticket path, created before the
+        /// upgrade) is discarded with the reason instead of failing in every cycle and blocking its ticket.
+        /// </summary>
         [Test]
-        public void BuildInternalCheckPointTicketNumber_UsesInternalTicketAndTaskReferences()
-        {
-            UserConfig userConfig = new SimulatedUserConfig();
-            ExternalRequest request = new()
-            {
-                TicketId = 123,
-                TaskNumber = 4
-            };
-
-            string result = InvokePrivateStatic<string>("BuildInternalCheckPointTicketNumber", userConfig, request);
-
-            ClassicAssert.AreEqual("Internal (Ticket Id: 123, Task Number: 4)", result);
-        }
-
-        [Test]
-        public async Task TestExternalRequestSenderRejectsUnsupportedCustomSystems()
+        public async Task TestExternalRequestSenderDiscardsUnsupportedCustomSystems()
         {
             ExtRequestSenderTestApiConn localApiConnection = new()
             {
@@ -154,10 +142,16 @@ namespace FWO.Test
 
             List<string> FailedRequests = await externalRequestSender.Run();
 
-            ClassicAssert.AreEqual(1, FailedRequests.Count);
-            ClassicAssert.AreEqual(0, localApiConnection.UpdateExtRequestCreation.Count);
-            ClassicAssert.AreEqual(0, localApiConnection.UpdateExtRequestProcess.Count);
-            ClassicAssert.AreEqual(0, localApiConnection.TriedToGetLdapsForHandleStateChange);
+            Assert.Multiple(() =>
+            {
+                Assert.That(FailedRequests, Is.Empty);
+                Assert.That(localApiConnection.UpdateExtRequestCreation.Single(), Does.Contain(ExtStates.ExtReqDiscarded.ToString())
+                    .And.Contains("not supported anymore"));
+                Assert.That(localApiConnection.UpdateExtRequestFinal.Single(), Does.Contain(ExtStates.ExtReqDiscarded.ToString()),
+                    "the request is finished, so it no longer blocks its ticket");
+                Assert.That(localApiConnection.UpdateExtRequestProcess, Is.Empty);
+                Assert.That(localApiConnection.TriedToGetLdapsForHandleStateChange, Is.Zero);
+            });
         }
 
         [TestCase("", null)]

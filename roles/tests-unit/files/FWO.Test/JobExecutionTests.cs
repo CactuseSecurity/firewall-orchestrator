@@ -2,6 +2,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Jobs;
 using FWO.Services;
@@ -245,7 +246,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Execute_ReturnsWhenNoImportsNeedNotification()
+        public async Task Execute_ReturnsWhenNoNotificationsConfigured()
         {
             EmptyListJobApiConnection apiConnection = new();
             SimulatedGlobalConfig globalConfig = new()
@@ -258,7 +259,8 @@ namespace FWO.Test
 
             Assert.That(apiConnection.Queries, Has.Count.GreaterThanOrEqualTo(3));
             Assert.That(apiConnection.Queries, Does.Contain(ConfigQueries.getConfigItemsByUser));
-            Assert.That(apiConnection.Queries, Does.Contain(ReportQueries.getImportsToNotifyForRuleChanges));
+            Assert.That(apiConnection.Queries, Does.Contain(NotificationQueries.getNotifications));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(ReportQueries.getImportsToNotifyForRuleChanges), "imports are only queried if notifications are configured");
         }
 
         [Test]
@@ -348,6 +350,43 @@ namespace FWO.Test
             await job.Execute(null!);
 
             Assert.That(apiConnection.Queries, Does.Contain(OwnerQueries.getOwners));
+        }
+
+        [Test]
+        public async Task Execute_SyncsStateAndUsesTheSharedConnectionSelection()
+        {
+            ModellingConnection withDeletedAppServer = SimulatedVarianceConnections.WithDeletedAppServer();
+            withDeletedAppServer.AddProperty(ConState.VarianceChecked.ToString());
+            withDeletedAppServer.AddProperty(ConState.VarianceFound.ToString());
+            SimulatedVarianceApiConnection apiConnection = new()
+            {
+                Owners = [SimulatedVarianceConnections.Owner],
+                DummyAppRoleId = SimulatedVarianceConnections.kDummyAppRoleId,
+                OwnerConnections = [withDeletedAppServer, SimulatedVarianceConnections.WithEmptyDummyAppRole()]
+            };
+            VarianceAnalysisJob job = new(apiConnection, new SimulatedGlobalConfig());
+
+            await job.Execute(null!);
+
+            IEnumerable<string> excludedFlags = WrittenFlags(apiConnection, SimulatedVarianceConnections.kDeletedAppServerConnId);
+            IEnumerable<string> analysedFlags = WrittenFlags(apiConnection, SimulatedVarianceConnections.kDummyAppRoleConnId);
+            Assert.Multiple(() =>
+            {
+                Assert.That(excludedFlags, Does.Contain(ConState.DeletedObjects.ToString()), "the job syncs the modelling state before selecting");
+                Assert.That(excludedFlags, Does.Not.Contain(ConState.VarianceChecked.ToString()), "an excluded connection is not analysed");
+                Assert.That(excludedFlags, Does.Not.Contain(ConState.VarianceFound.ToString()), "stale variance flags are removed");
+
+                Assert.That(analysedFlags, Does.Contain(ConState.VarianceChecked.ToString()), "the dummy app role does not exclude the connection");
+                Assert.That(analysedFlags, Does.Contain(ConState.NotImplemented.ToString()));
+                Assert.That(analysedFlags, Does.Not.Contain(ConState.EmptyAppRoles.ToString()));
+            });
+        }
+
+        private static IEnumerable<string> WrittenFlags(SimulatedVarianceApiConnection apiConnection, int connectionId)
+        {
+            Assert.That(apiConnection.WrittenConnectionProperties, Does.ContainKey(connectionId), $"the job writes the state of connection {connectionId}");
+            Dictionary<string, string>? flags = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(apiConnection.WrittenConnectionProperties[connectionId]);
+            return flags?.Keys ?? Enumerable.Empty<string>();
         }
     }
 

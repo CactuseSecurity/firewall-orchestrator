@@ -45,35 +45,14 @@ public class CheckPointLayerGuardZonePairRecipeTest
             IPAddressRange.Parse("20.0.0.10")
         }.AsReadOnly();
 
-    [TestCase(" destination ", " source ", "[DESTINATION] < [SOURCE]")]
-    [TestCase("same", "same", "[SAME] < [SAME]")]
-    public void SectionName_BuildsCanonicalDestinationFirstValue(string destination, string source, string expected)
-    {
-        Assert.That(CheckPointSectionName.TryBuild(destination, source, out string value), Is.True);
-        Assert.That(value, Is.EqualTo(expected));
-    }
-
-    [TestCase("")]
-    [TestCase("bad[name")]
-    [TestCase("bad]name")]
-    [TestCase("bad<name")]
-    public void SectionName_RejectsInvalidZoneName(string invalid)
-    {
-        Assert.That(CheckPointSectionName.TryBuild(invalid, "source", out string value), Is.False);
-        Assert.That(value, Is.Empty);
-    }
-
     [Test]
     public async Task CompleteRecipe_SelectsGuardedLayerAndReturnsEndOfNormalizedSection()
     {
-        RulebaseGraphSnapshot graph = Graph("  [destination] < [source]  ");
+        RulebaseGraphSnapshot graph = Graph("  [source] -> [destination]  ");
         CheckPointLayerGuardZonePairPositioningInput input = Input(
             graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
-        CreationRuleZoneInput zones = Zones(
-            [Zone(1, "source")],
-            [Zone(2, "destination")]);
         PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> recipe = Success(
-            CheckPointLayerGuardZonePairRecipeFactory.Create(input, zones));
+            CheckPointLayerGuardZonePairRecipeFactory.Create(input, "[SOURCE] -> [DESTINATION]"));
 
         PositioningBlockResult<CheckPointBlockValue> result = await new PositioningRecipeExecutor<
             CheckPointPositioningContext, CheckPointBlockValue>().ExecuteAsync(
@@ -84,8 +63,10 @@ public class CheckPointLayerGuardZonePairRecipeTest
         Assert.Multiple(() =>
         {
             Assert.That(position.LayerUid, Is.EqualTo("inline"));
-            Assert.That(position.AnchorKind, Is.EqualTo(CheckPointPositionAnchorKind.Below));
-            Assert.That(position.AnchorRuleUid, Is.EqualTo("section-rule"));
+            Assert.That(position.AnchorKind, Is.EqualTo(CheckPointPositionAnchorKind.Bottom));
+            Assert.That(position.AnchorRuleUid, Is.Null);
+            Assert.That(position.SectionUid, Is.EqualTo("section"));
+            Assert.That(position.SectionName, Is.EqualTo("  [source] -> [destination]  "));
             Assert.That(position.PositioningAlgorithm, Is.EqualTo(kAlgorithm));
         });
     }
@@ -93,12 +74,11 @@ public class CheckPointLayerGuardZonePairRecipeTest
     [Test]
     public async Task IncorrectInteriorSectionWhitespace_IsNotNormalized()
     {
-        RulebaseGraphSnapshot graph = Graph("[DESTINATION]<[SOURCE]");
+        RulebaseGraphSnapshot graph = Graph("[SOURCE]->[DESTINATION]");
         CheckPointLayerGuardZonePairPositioningInput input = Input(
             graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
         PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue> recipe = Success(
-            CheckPointLayerGuardZonePairRecipeFactory.Create(input,
-                Zones([Zone(1, "source")], [Zone(2, "destination")])));
+            CheckPointLayerGuardZonePairRecipeFactory.Create(input, "[SOURCE] -> [DESTINATION]"));
 
         PositioningBlockFailure<CheckPointBlockValue> failure = (PositioningBlockFailure<CheckPointBlockValue>)
             await new PositioningRecipeExecutor<CheckPointPositioningContext, CheckPointBlockValue>()
@@ -108,47 +88,19 @@ public class CheckPointLayerGuardZonePairRecipeTest
         Assert.That(failure.OriginatingBlockKind, Is.EqualTo(CheckPointSectionScopeBlock.kKind));
     }
 
-    [TestCase(ZoneCoverage.Partial, ZoneCoverage.Complete,
-        CheckPointLayerGuardZonePairRecipeFailureCategory.ZoneCoverageInvalid)]
-    [TestCase(ZoneCoverage.Complete, ZoneCoverage.None,
-        CheckPointLayerGuardZonePairRecipeFailureCategory.ZoneCoverageInvalid)]
-    public void Factory_RejectsIncompleteCoverage(
-        ZoneCoverage sourceCoverage,
-        ZoneCoverage destinationCoverage,
-        CheckPointLayerGuardZonePairRecipeFailureCategory expected)
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    public void Factory_RejectsInvalidInput(string? sectionName)
     {
-        RulebaseGraphSnapshot graph = Graph("[DESTINATION] < [SOURCE]");
-        CheckPointLayerGuardZonePairPositioningInput input = Input(
-            graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
-        CreationRuleZoneInput zones = new(1, [Zone(1, "source")], [Zone(2, "destination")],
-            sourceCoverage, destinationCoverage);
-
-        CheckPointLayerGuardZonePairRecipeFailureCategory failure = Failure(
-            CheckPointLayerGuardZonePairRecipeFactory.Create(input, zones));
-
-        Assert.That(failure, Is.EqualTo(expected));
-    }
-
-    [Test]
-    public void Factory_EnforcesCardinalityPersistenceAndZoneData()
-    {
-        RulebaseGraphSnapshot graph = Graph("[DESTINATION] < [SOURCE]");
+        RulebaseGraphSnapshot graph = Graph("[SOURCE] -> [DESTINATION]");
         CheckPointLayerGuardZonePairPositioningInput input = Input(
             graph, Guard(10, 1, 2, "10.0.0.0/24", "20.0.0.0/24"));
         Assert.Multiple(() =>
         {
-            Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(
-                input, Zones([], [Zone(2, "destination")]))),
-                Is.EqualTo(CheckPointLayerGuardZonePairRecipeFailureCategory.ZoneCardinalityInvalid));
-            Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(input, Zones(
-                [new PositioningZoneReference(null, "x", "source", false, false, PositioningZoneKind.SyntheticInternetFallback)],
-                [Zone(2, "destination")]))),
-                Is.EqualTo(CheckPointLayerGuardZonePairRecipeFailureCategory.ZoneNotPersisted));
-            Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(
-                input, Zones([Zone(1, "bad[name")], [Zone(2, "destination")]))),
-                Is.EqualTo(CheckPointLayerGuardZonePairRecipeFailureCategory.ZoneDataInvalid));
-            Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(
-                null, Zones([Zone(1, "source")], [Zone(2, "destination")]))),
+            Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(input, sectionName)),
+                Is.EqualTo(CheckPointLayerGuardZonePairRecipeFailureCategory.InvalidInput));
+            Assert.That(Failure(CheckPointLayerGuardZonePairRecipeFactory.Create(null, "SECTION")),
                 Is.EqualTo(CheckPointLayerGuardZonePairRecipeFailureCategory.InvalidInput));
         });
     }
@@ -265,14 +217,6 @@ public class CheckPointLayerGuardZonePairRecipeTest
         Assert.That(result.TryGetFailure(out CheckPointLayerGuardZonePairRecipeFailureCategory failure), Is.True);
         return failure;
     }
-
-    private static PositioningZoneReference Zone(int id, string name) =>
-        new(id, id.ToString(), name, false, false, PositioningZoneKind.Persisted);
-
-    private static CreationRuleZoneInput Zones(
-        IReadOnlyCollection<PositioningZoneReference> source,
-        IReadOnlyCollection<PositioningZoneReference> destination) =>
-        new(1, source, destination, ZoneCoverage.Complete, ZoneCoverage.Complete);
 
     private static CheckPointLayerGuardZonePairPositioningInput Input(
         RulebaseGraphSnapshot graph,

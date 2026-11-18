@@ -58,6 +58,9 @@ internal class CheckPointRulePositioningStrategyTest
         {
             new(6, 443, 443)
         }.AsReadOnly();
+    private static readonly List<PositioningZoneReference> kNoZoneReferences = [];
+    private static readonly List<PositioningZoneReference> kSourceZoneReferences =
+        [new PositioningZoneReference(1, "source", "Source", false, false, PositioningZoneKind.Persisted)];
 
     [Test]
     public void CanHandle_UsesExactDeviceTypeAndCatalogCapability()
@@ -114,11 +117,11 @@ internal class CheckPointRulePositioningStrategyTest
             ServiceInput(),
             new CheckPointLayerGuardSnapshot(kManagementId, kGatewayId, 1, []));
 
-        CheckPointRecipeSelectionResult selected = catalog.SelectRecipe(kAlgorithm, input, ZoneInput());
+        CheckPointRecipeSelectionResult selected = catalog.SelectRecipe(kAlgorithm, input, "SECTION");
         CheckPointRecipeSelectionResult unsupported = catalog.SelectRecipe(
             ProvisioningPositioningAlgorithm.DefaultEndOfRulebase,
             input,
-            ZoneInput());
+            "SECTION");
 
         Assert.Multiple(() =>
         {
@@ -191,7 +194,7 @@ internal class CheckPointRulePositioningStrategyTest
             Assert.That(fixture.Resolver.NetworkInput, Is.SameAs(fixture.Network.Input));
             Assert.That(fixture.Matrix.Result.TryGetValue(out DesignatedZoneMatrixReadValue? matrixValue), Is.True);
             Assert.That(fixture.Resolver.Zones, Is.SameAs(matrixValue!.NetworkZones));
-            Assert.That(fixture.Catalog.ZoneInput, Is.SameAs(zoneInput));
+            Assert.That(fixture.Catalog.NormalizedSectionName, Is.EqualTo("[ZONE] -> [ZONE]"));
             Assert.That(fixture.Catalog.PositioningInput!.NetworkInput, Is.SameAs(fixture.Network.Input));
             Assert.That(fixture.Catalog.PositioningInput.ServiceInput, Is.SameAs(fixture.Services.Input));
             Assert.That(fixture.Catalog.PositioningInput.GuardSnapshot, Is.SameAs(fixture.Guards.Snapshot));
@@ -220,6 +223,103 @@ internal class CheckPointRulePositioningStrategyTest
             });
             return new PositioningRecipe<CheckPointPositioningContext, CheckPointBlockValue>(root);
         }
+    }
+
+    [Test]
+    public async Task CalculateAsync_FixedTemplateSkipsZoneDependenciesButKeepsGuardSelection()
+    {
+        StrategyFixture fixture = new();
+        fixture.Matrix.Result = DesignatedZoneMatrixReadResult.Failure(
+            DesignatedZoneMatrixReadFailureCategory.QueryFailed);
+        RulePositioningContext context = ValidContext();
+        context.EffectiveSettings.CheckPointLayerGuardSectionNameTemplate = "Birthday section";
+
+        RulePositioningResult result = await fixture.Strategy.CalculateAsync(context, CancellationToken.None);
+
+        Assert.That(result, Is.TypeOf<RulePositioningSuccess>());
+        Assert.Multiple(() =>
+        {
+            Assert.That(fixture.Graph.CallCount, Is.EqualTo(1));
+            Assert.That(fixture.Network.CallCount, Is.EqualTo(1));
+            Assert.That(fixture.Guards.CallCount, Is.EqualTo(1));
+            Assert.That(fixture.Matrix.CallCount, Is.Zero);
+            Assert.That(fixture.Resolver.CallCount, Is.Zero);
+            Assert.That(fixture.Catalog.SelectCallCount, Is.EqualTo(1));
+            Assert.That(fixture.Catalog.NormalizedSectionName, Is.EqualTo("BIRTHDAY SECTION"));
+        });
+    }
+
+    [Test]
+    public async Task CalculateAsync_SourceOnlyTemplateLoadsZonesAndIgnoresDestinationRequirements()
+    {
+        StrategyFixture fixture = new();
+        fixture.ZoneInput = new CreationRuleZoneInput(
+            kCriterionId,
+            kSourceZoneReferences,
+            kNoZoneReferences,
+            ZoneCoverage.Complete,
+            ZoneCoverage.None);
+        RulePositioningContext context = ValidContext();
+        context.EffectiveSettings.CheckPointLayerGuardSectionNameTemplate = "source=@@SOURCE_ZONE@@";
+
+        RulePositioningResult result = await fixture.Strategy.CalculateAsync(context, CancellationToken.None);
+
+        Assert.That(result, Is.TypeOf<RulePositioningSuccess>());
+        Assert.Multiple(() =>
+        {
+            Assert.That(fixture.Matrix.CallCount, Is.EqualTo(1));
+            Assert.That(fixture.Resolver.CallCount, Is.EqualTo(1));
+            Assert.That(fixture.Catalog.NormalizedSectionName, Is.EqualTo("SOURCE=SOURCE"));
+        });
+    }
+
+    [Test]
+    public async Task CalculateAsync_MapsReferencedZoneValueFailureToSafeConfigurationFailure()
+    {
+        StrategyFixture fixture = new();
+        fixture.ZoneInput = new CreationRuleZoneInput(
+            kCriterionId,
+            kNoZoneReferences,
+            kNoZoneReferences,
+            ZoneCoverage.Complete,
+            ZoneCoverage.Complete);
+        RulePositioningContext context = ValidContext();
+        context.EffectiveSettings.CheckPointLayerGuardSectionNameTemplate = "value=@@SOURCE_ZONE@@";
+
+        RulePositioningResult result = await fixture.Strategy.CalculateAsync(context, CancellationToken.None);
+
+        AssertFailure(result, RulePositioningFailureCategory.ConfigurationInvalid);
+        Assert.Multiple(() =>
+        {
+            Assert.That(((RulePositioningFailure)result).Diagnostic, Does.Not.Contain("value="));
+            Assert.That(fixture.Matrix.CallCount, Is.EqualTo(1));
+            Assert.That(fixture.Resolver.CallCount, Is.EqualTo(1));
+            Assert.That(fixture.Catalog.SelectCallCount, Is.Zero);
+        });
+    }
+
+    [TestCase("@@UNKNOWN@@")]
+    [TestCase("@@SOURCE_ZONE")]
+    public async Task CalculateAsync_RejectsInvalidTemplateBeforeLoadingData(string template)
+    {
+        StrategyFixture fixture = new();
+        RulePositioningContext context = ValidContext();
+        context.EffectiveSettings.CheckPointLayerGuardSectionNameTemplate = template;
+
+        RulePositioningResult result = await fixture.Strategy.CalculateAsync(context, CancellationToken.None);
+
+        AssertFailure(result, RulePositioningFailureCategory.ConfigurationInvalid);
+        RulePositioningFailure failure = (RulePositioningFailure)result;
+        Assert.Multiple(() =>
+        {
+            Assert.That(failure.Diagnostic, Does.Not.Contain(template));
+            Assert.That(fixture.Graph.CallCount, Is.Zero);
+            Assert.That(fixture.Network.CallCount, Is.Zero);
+            Assert.That(fixture.Guards.CallCount, Is.Zero);
+            Assert.That(fixture.Matrix.CallCount, Is.Zero);
+            Assert.That(fixture.Resolver.CallCount, Is.Zero);
+            Assert.That(fixture.Catalog.SelectCallCount, Is.Zero);
+        });
     }
 
     [Test]
@@ -1100,7 +1200,7 @@ internal class CheckPointRulePositioningStrategyTest
         public List<ProvisioningPositioningAlgorithm> SupportedAlgorithms { get; } = [];
         public ProvisioningPositioningAlgorithm SelectedAlgorithm { get; private set; }
         public CheckPointLayerGuardZonePairPositioningInput? PositioningInput { get; private set; }
-        public CreationRuleZoneInput? ZoneInput { get; private set; }
+        public string? NormalizedSectionName { get; private set; }
 
         public bool SupportsAlgorithm(ProvisioningPositioningAlgorithm positioningAlgorithm)
         {
@@ -1113,12 +1213,12 @@ internal class CheckPointRulePositioningStrategyTest
         public CheckPointRecipeSelectionResult SelectRecipe(
             ProvisioningPositioningAlgorithm positioningAlgorithm,
             CheckPointLayerGuardZonePairPositioningInput positioningInput,
-            CreationRuleZoneInput zoneInput)
+            string normalizedSectionName)
         {
             SelectCallCount++;
             SelectedAlgorithm = positioningAlgorithm;
             PositioningInput = positioningInput;
-            ZoneInput = zoneInput;
+            NormalizedSectionName = normalizedSectionName;
             order?.Add("select");
             if (SelectionException != null) throw SelectionException;
             SelectionAction?.Invoke();

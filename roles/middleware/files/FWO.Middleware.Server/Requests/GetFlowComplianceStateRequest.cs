@@ -68,7 +68,8 @@ public sealed class GetFlowComplianceStateRequest : IRequestWithRootAdditionalDa
 
         /// <summary>
         /// Gets or sets the protocol name, for example <c>tcp</c> or <c>icmp</c>, or the numeric protocol id, for
-        /// example <c>6</c>. Must not be empty.
+        /// example <c>6</c>. <c>any</c> or <c>-1</c> means any service: the ports are then ignored and every
+        /// port/protocol definition of a forbidden service criterion matches. Must not be empty.
         /// </summary>
         [JsonPropertyName("protocol")]
         public string Protocol { get; set; } = string.Empty;

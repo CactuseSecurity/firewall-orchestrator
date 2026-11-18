@@ -5,10 +5,11 @@ import time
 from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
+import fwo_const
 import pytest
 from fwo_api import FwoApi
-from fwo_api_call import FwoApiCall
-from fwo_exceptions import FwoApiFailedLockImportError, FwoImporterError
+from fwo_api_call import FwoApiCall, is_import_lock_conflict
+from fwo_exceptions import FwoApiFailedLockImportError, FwoApiFailureError, FwoApiWriteError, FwoImporterError
 from models.import_state import ImportState
 from test.utils.test_utils import mock_get_graphql_code
 
@@ -21,6 +22,15 @@ MGM_ID = 3
 IMPORT_ID = 42
 IMPORT_LOCK_ALERT_CODE = 15
 IMPORT_ERROR_ALERT_CODE = 14
+LOCK_CONFLICT_RESPONSE: dict[str, Any] = {
+    "errors": [
+        {
+            "message": "Uniqueness violation. duplicate key value violates unique constraint "
+            f'"{fwo_const.IMPORT_LOCK_INDEX_NAME}"',
+            "extensions": {"code": "constraint-violation"},
+        }
+    ]
+}
 
 
 @pytest.fixture
@@ -147,6 +157,80 @@ class TestImportLock:
         assert mock_alert.call_args.kwargs["alert_code"] == IMPORT_LOCK_ALERT_CODE
         assert mock_alert.call_args.kwargs["mgm_details"] is management_controller
 
+    def test_rule_hit_lock_uses_its_import_type(
+        self, fwo_api_call: FwoApiCall, api: MagicMock, management_controller: ManagementController
+    ) -> None:
+        api.call.return_value = {"data": {"insert_import_control": {"returning": [{"control_id": IMPORT_ID}]}}}
+
+        assert (
+            fwo_api_call.set_import_lock(
+                management_controller, is_initial_import=0, import_type_id=fwo_const.IMPORT_TYPE_RULE_HIT
+            )
+            == IMPORT_ID
+        )
+        assert _passed_variables(api)["importTypeId"] == fwo_const.IMPORT_TYPE_RULE_HIT
+
+    def test_rule_hit_lock_conflict_raises_without_issue_or_alert(
+        self,
+        fwo_api_call: FwoApiCall,
+        api: MagicMock,
+        management_controller: ManagementController,
+        mocker: MockerFixture,
+    ) -> None:
+        api.call.return_value = LOCK_CONFLICT_RESPONSE
+        mock_issue = mocker.patch.object(fwo_api_call, "create_data_issue")
+        mock_alert = mocker.patch.object(fwo_api_call, "set_alert")
+
+        with pytest.raises(FwoApiFailedLockImportError, match="rule hit import lock"):
+            fwo_api_call.set_import_lock(
+                management_controller, is_initial_import=0, import_type_id=fwo_const.IMPORT_TYPE_RULE_HIT
+            )
+
+        mock_issue.assert_not_called()
+        mock_alert.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "lock_response",
+        [
+            {"errors": [{"message": 'Foreign key violation. insert or update on table "import_control" (stm_import)'}]},
+            {"errors": [{"message": "field 'insert_import_control' not found in type: 'mutation_root'"}]},
+            {"data": {}},
+        ],
+    )
+    def test_other_rule_hit_lock_failures_create_issue_and_alert(
+        self,
+        lock_response: dict[str, Any],
+        fwo_api_call: FwoApiCall,
+        api: MagicMock,
+        management_controller: ManagementController,
+        mocker: MockerFixture,
+    ) -> None:
+        api.call.return_value = lock_response
+        mock_issue = mocker.patch.object(fwo_api_call, "create_data_issue")
+        mock_alert = mocker.patch.object(fwo_api_call, "set_alert")
+        mock_error = mocker.patch("fwo_api_call.FWOLogger.error")
+
+        with pytest.raises(FwoApiFailedLockImportError):
+            fwo_api_call.set_import_lock(
+                management_controller, is_initial_import=0, import_type_id=fwo_const.IMPORT_TYPE_RULE_HIT
+            )
+
+        mock_issue.assert_called_once()
+        assert mock_alert.call_args.kwargs["alert_code"] == IMPORT_LOCK_ALERT_CODE
+        mock_error.assert_called_once()
+
+    @pytest.mark.parametrize(
+        ("lock_result", "expected"),
+        [
+            (LOCK_CONFLICT_RESPONSE, True),
+            ({"errors": [{"message": "Uniqueness violation. other_index"}]}, False),
+            ({"errors": "not a list"}, False),
+            ({}, False),
+        ],
+    )
+    def test_is_import_lock_conflict(self, lock_result: dict[str, Any], expected: bool) -> None:
+        assert is_import_lock_conflict(lock_result) is expected
+
     def test_unlock_import_sends_statistics(
         self, fwo_api_call: FwoApiCall, api: MagicMock, import_state: ImportState
     ) -> None:
@@ -171,6 +255,32 @@ class TestImportLock:
         fwo_api_call.unlock_import(import_state, success=False)
 
         assert "failed to unlock import" in mock_exception.call_args.args[0]
+
+
+class TestRuleHitImportRequests:
+    def test_get_requests_returns_management_ids(self, fwo_api_call: FwoApiCall, api: MagicMock) -> None:
+        api.call.return_value = {"data": {"rule_hit_import_request": [{"mgm_id": 3}, {"mgm_id": 5}]}}
+
+        assert fwo_api_call.get_rule_hit_import_requests() == {3, 5}
+
+    def test_get_requests_raises_on_errors(self, fwo_api_call: FwoApiCall, api: MagicMock) -> None:
+        api.call.return_value = {"errors": [{"message": "denied"}]}
+
+        with pytest.raises(FwoApiFailureError, match="denied"):
+            fwo_api_call.get_rule_hit_import_requests()
+
+    def test_delete_request_passes_management_id(self, fwo_api_call: FwoApiCall, api: MagicMock) -> None:
+        api.call.return_value = {"data": {"delete_rule_hit_import_request": {"affected_rows": 1}}}
+
+        fwo_api_call.delete_rule_hit_import_request(MGM_ID)
+
+        assert _passed_variables(api) == {"mgmId": MGM_ID}
+
+    def test_delete_request_raises_on_errors(self, fwo_api_call: FwoApiCall, api: MagicMock) -> None:
+        api.call.return_value = {"errors": [{"message": "denied"}]}
+
+        with pytest.raises(FwoApiWriteError, match="denied"):
+            fwo_api_call.delete_rule_hit_import_request(MGM_ID)
 
 
 class TestChangeCounting:

@@ -29,6 +29,9 @@ namespace FWO.Services.Workflow
         [JsonProperty("phase_visibility_mode"), JsonPropertyName("phase_visibility_mode")]
         public PhaseVisibilityMode VisibilityMode { get; set; } = PhaseVisibilityMode.AnyTask;
 
+        [JsonProperty("promotion_mode"), JsonPropertyName("promotion_mode")]
+        public PromotionMode PromotionMode { get; set; } = PromotionMode.Both;
+
         [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
         public Dictionary<int, List<int>> StateVisibilityGroupIds { get; set; } = [];
 
@@ -41,6 +44,18 @@ namespace FWO.Services.Workflow
         public int MinImplTasksNeeded;
         public int MinTicketCompleted;
         public int ApprovalLowestEndState;
+
+        /// <summary>
+        /// Lowest end state of the implementation phase: a task in this state or above is implemented or finished
+        /// otherwise, e.g. rejected, so it is not written to a firewall or handed to an external ticket system again.
+        /// </summary>
+        public int ImplementationLowestEndState;
+
+        /// <summary>
+        /// Lowest end state of the planning phase if the planning phase is active; null otherwise. Implementation tasks of
+        /// a request task below this state are still being planned, so they are not written to a firewall yet.
+        /// </summary>
+        public int? PlanningLowestEndState;
 
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, WfTaskType taskType = WfTaskType.master)
         {
@@ -61,6 +76,7 @@ namespace FWO.Services.Workflow
             LowestEndState = glbStateMatrix.GlobalMatrix[phase].LowestEndState;
             Active = glbStateMatrix.GlobalMatrix[phase].Active;
             VisibilityMode = glbStateMatrix.GlobalMatrix[phase].VisibilityMode;
+            PromotionMode = glbStateMatrix.GlobalMatrix[phase].PromotionMode;
             StateVisibilityGroupIds = glbStateMatrix.GlobalMatrix[phase].StateVisibilityGroupIds.ToDictionary(entry => entry.Key, entry => entry.Value.ToList());
             ExclusiveVisibilityGroupIds = [.. glbStateMatrix.GlobalMatrix[phase].ExclusiveVisibilityGroupIds];
             AutomaticOnlyStates = preloadedStates.Where(state => state.AutomaticOnly).Select(state => state.Id).ToHashSet();
@@ -80,6 +96,13 @@ namespace FWO.Services.Workflow
                 .DefaultIfEmpty(phase)
                 .Max();
             MinTicketCompleted = glbStateMatrix.GlobalMatrix[lastActivePhase].LowestEndState;
+            ImplementationLowestEndState = glbStateMatrix.GlobalMatrix.TryGetValue(WorkflowPhases.implementation, out StateMatrix? implementationMatrix)
+                ? implementationMatrix.LowestEndState
+                : MinTicketCompleted;
+            bool planningActive = PhaseActive.TryGetValue(WorkflowPhases.planning, out bool active) && active;
+            PlanningLowestEndState = planningActive && glbStateMatrix.GlobalMatrix.TryGetValue(WorkflowPhases.planning, out StateMatrix? planningMatrix)
+                ? planningMatrix.LowestEndState
+                : null;
         }
 
         public bool getNextActivePhase(ref WorkflowPhases phase)
@@ -336,6 +359,7 @@ namespace FWO.Services.Workflow
                 LowestEndState = source.LowestEndState,
                 Active = source.Active,
                 VisibilityMode = source.VisibilityMode,
+                PromotionMode = source.PromotionMode,
                 StateVisibilityGroupIds = source.StateVisibilityGroupIds.ToDictionary(entry => entry.Key, entry => entry.Value.ToList()),
                 ExclusiveVisibilityGroupIds = [.. source.ExclusiveVisibilityGroupIds]
             };
@@ -345,6 +369,7 @@ namespace FWO.Services.Workflow
         {
             return current.Active != original.Active
                 || current.VisibilityMode != original.VisibilityMode
+                || current.PromotionMode != original.PromotionMode
                 || current.LowestInputState != original.LowestInputState
                 || current.LowestStartedState != original.LowestStartedState
                 || current.LowestEndState != original.LowestEndState

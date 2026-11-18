@@ -11,7 +11,7 @@
     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
         Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
         Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-        IpProtos="DisplayIpProtos" SelectableIpProtos="SelectableIpProtos" TaskId="WfHandler.ActReqTask.Id" TicketTasks="WfHandler.ActTicket.Tasks" EditMode="IsEditable()"
+        IpProtos="DisplayIpProtos" SelectableIpProtos="SelectableIpProtos" TaskId="WfHandler.ActReqTask.Id" TicketTasks="WfHandler.ActTicket.Tasks" EditMode="@(IsEditable() && !ReadOnlyDisplay)"
         EditSources="CanEditBundledField(WorkflowEditableFieldKeys.Source)"
         EditDestinations="CanEditBundledField(WorkflowEditableFieldKeys.Destination)"
         EditServices="CanEditBundledField(WorkflowEditableFieldKeys.Services)" />
@@ -108,20 +108,20 @@ else if (TaskType == WfTaskType.group_modify)
             <div class="list-group col-sm-6">
                 @foreach (var source in actSources)
                 {
-                    <div class="list-group-item border bg-secondary">
-                        <span class="badge @GroupMemberBadgeClass(source.RequestAction)">
+                    <div class="list-group-item border bg-secondary d-flex align-items-start">
+                        <label class="flex-grow-1 text-break">@DisplayObjectElement(source)</label>
+                        <span class="badge @GroupMemberBadgeClass(source.RequestAction) ml-2 text-nowrap">
                             @GroupMemberAction(source.RequestAction)
                         </span>
-                        <label>@DisplayObjectElement(source)</label>
                     </div>
                 }
                 @foreach (var service in actServices)
                 {
-                    <div class="list-group-item border bg-secondary">
-                        <span class="badge @GroupMemberBadgeClass(service.RequestAction)">
+                    <div class="list-group-item border bg-secondary d-flex align-items-start">
+                        <label class="flex-grow-1 text-break">@DisplayServiceElement(service)</label>
+                        <span class="badge @GroupMemberBadgeClass(service.RequestAction) ml-2 text-nowrap">
                             @GroupMemberAction(service.RequestAction)
                         </span>
-                        <label>@DisplayServiceElement(service)</label>
                     </div>
                 }
             </div>
@@ -133,21 +133,21 @@ else if (TaskType == WfTaskType.group_modify)
             <div class="col-sm-6">
                 <div class="btn-group btn-group-sm" role="group">
                     <input type="radio" class="btn-check" name="modifyGroupKind" id="modifyGrpKindNetwork" autocomplete="off"
-                        checked="@(!grpTypeSvc)" @onchange="() => SetGroupType(false)">
+                        checked="@(!IsServiceGroupEditorMode)" @onchange="() => SetGroupType(false)">
                     <label class="btn btn-outline-primary" for="modifyGrpKindNetwork">@(userConfig.GetText("network_group"))</label>
 
                     <input type="radio" class="btn-check" name="modifyGroupKind" id="modifyGrpKindService" autocomplete="off"
-                        checked="@(grpTypeSvc)" @onchange="() => SetGroupType(true)">
+                        checked="@IsServiceGroupEditorMode" @onchange="() => SetGroupType(true)">
                     <label class="btn btn-outline-primary" for="modifyGrpKindService">@(userConfig.GetText("service_group"))</label>
                 </div>
             </div>
         </div>
         <div class="form-group row mt-2">
-            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText(grpTypeSvc ? "service_group" : "network_group")):</label>
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText(IsServiceGroupEditorMode ? "service_group" : "network_group")):</label>
             <div class="col-sm-5">
                 @if (ManagementId is > 0)
                 {
-                    <ObjectSelector @key="@($"{ManagementId}-{grpTypeSvc}")" ManagementId="ManagementId.Value" Kind="@(grpTypeSvc ? ObjectTaskKind.Service : ObjectTaskKind.Network)"
+                    <ObjectSelector @key="@($"{ManagementId}-{IsServiceGroupEditorMode}")" ManagementId="ManagementId.Value" Kind="@(IsServiceGroupEditorMode ? ObjectTaskKind.Service : ObjectTaskKind.Network)"
                         GroupMode="true" IpProtos="DisplayIpProtos" SelectedNetworkObject="selectedNetworkGroup" SelectedNetworkObjectChanged="SelectNetworkGroup"
                         SelectedService="selectedServiceGroup" SelectedServiceChanged="SelectServiceGroup" />
                 }
@@ -158,12 +158,12 @@ else if (TaskType == WfTaskType.group_modify)
             </div>
         </div>
         <div class="form-group row mt-2">
-            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText(grpTypeSvc ? "service_group" : "network_group")):</label>
+            <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText(IsServiceGroupEditorMode ? "service_group" : "network_group")):</label>
             <div class="col-sm-3">
                 <label class="col-sm-12 h-100 border bg-secondary">@groupName</label>
             </div>
             <div class="col-sm-6">
-                @if (!grpTypeSvc)
+                @if (!IsServiceGroupEditorMode)
                 {
                     <IpSelector IpAddresses="actSources" @bind-IpsToAdd="sourcesToAdd" @bind-IpsToDelete="sourcesToDelete" WithLabel="false" IgnoreGroupName="true" />
                 }
@@ -179,7 +179,7 @@ else if (TaskType == WfTaskType.group_modify)
 else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 {
     <DisplayObjectTaskElement @ref="objectTaskElement" ReqTask="WfHandler.ActReqTask" IsModify="@(TaskType == WfTaskType.object_modify)"
-        ManagementId="ManagementId" EditMode="WfHandler.EditReqTaskMode" SelectableIpProtos="SelectableIpProtos" DisplayIpProtos="DisplayIpProtos" />
+        ManagementId="ManagementId" EditMode="@(IsEditable() && !ReadOnlyDisplay)" SelectableIpProtos="SelectableIpProtos" DisplayIpProtos="DisplayIpProtos" />
 }
 
 @code
@@ -199,6 +199,12 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 
     [Parameter]
     public Func<string, bool> CanEditField { get; set; } = _ => false;
+
+    /// <summary>
+    /// Keeps task elements read-only when the surrounding ticket is being viewed rather than edited.
+    /// </summary>
+    [Parameter]
+    public bool ReadOnlyDisplay { get; set; }
 
     [Parameter]
     public List<IpProtocol> DisplayIpProtos { get; set; } = [];
@@ -235,6 +241,7 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
     private bool grpTypeSvc;
     private NetworkObject? selectedNetworkGroup;
     private NetworkService? selectedServiceGroup;
+    private bool groupTypeSelectedByUser;
     private long initializedTaskId = -1;
     private bool initializedBundledDisplay;
     private WfTaskType initializedTaskType;
@@ -250,14 +257,25 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
             || string.Equals(WfHandler.ActReqTask.TaskType, WfTaskType.group_modify.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
+    private bool IsServiceGroupEditorMode => grpTypeSvc
+        || (IsGroupModifyTask() && IsPersistedServiceGroup(DisplayTask ?? WfHandler.ActReqTask));
+
     private bool IsEditable()
     {
-        return DisplayTask == null && WfHandler.EditReqTaskMode;
+        return !WfHandler.ReadOnlyMode
+            && !ReadOnlyDisplay
+            && DisplayTask == null
+            && (WfHandler.EditReqTaskMode || WfHandler.ApproveReqTaskMode || IsClassicApprovalEditMode);
     }
+
+    private bool IsClassicApprovalEditMode => WfHandler.Phase == WorkflowPhases.approval
+        && userConfig.ReqApprovalEditMode == ApprovalEditMode.Classic
+        && WfHandler.EditTicketMode
+        && !WfHandler.ReadOnlyMode;
 
     private bool CanEditBundledField(string fieldKey)
     {
-        return DisplayTask == null && CanEditField(fieldKey);
+        return !ReadOnlyDisplay && DisplayTask == null && CanEditField(fieldKey);
     }
 
     /// <summary>
@@ -281,6 +299,10 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
             initializedTaskType = TaskType;
             InitializeElements();
         }
+        if (IsGroupModifyTask() && !groupTypeSelectedByUser)
+        {
+            grpTypeSvc = IsPersistedServiceGroup(DisplayTask ?? WfHandler.ActReqTask);
+        }
     }
 
     public void InitializeElements()
@@ -291,7 +313,8 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
         actDestinations = displayTask.GetNwObjectElements(ElemFieldType.destination);
         actServices = displayTask.GetServiceElements();
         actRules = displayTask.GetRuleElements();
-        grpTypeSvc = actServices.Count > 0;
+        grpTypeSvc = IsPersistedServiceGroup(displayTask);
+        groupTypeSelectedByUser = false;
         bool isGroupModify = TaskType == WfTaskType.group_modify
             || string.Equals(displayTask.TaskType, WfTaskType.group_modify.ToString(), StringComparison.OrdinalIgnoreCase);
         if (isGroupModify)
@@ -304,8 +327,27 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
                 .ToList();
         }
         groupName = displayTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+        if (string.IsNullOrWhiteSpace(groupName))
+        {
+            groupName = actSources.Select(element => element.GroupName).FirstOrDefault(name => !string.IsNullOrWhiteSpace(name))
+                ?? actServices.Select(element => element.GroupName).FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
+        }
         selectedNetworkGroup = null;
         selectedServiceGroup = null;
+    }
+
+    private static bool IsPersistedServiceGroup(WfReqTask task)
+    {
+        if (task.ServiceGroupId.HasValue
+            || task.GetServiceElements().Count > 0
+            || !string.IsNullOrWhiteSpace(task.GetAddInfoValue(AdditionalInfoKeys.SvcGrpId)))
+        {
+            return true;
+        }
+
+        return task.Elements.Any(element => element.ServiceId.HasValue
+            || element.FlowServiceObjectId.HasValue
+            || element.FlowServiceGroupId.HasValue);
     }
 
     public void ResetPendingChanges()
@@ -331,6 +373,8 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 
         selectedNetworkGroup = null;
         selectedServiceGroup = null;
+        WfHandler.ActReqTask.NetworkGroupId = null;
+        WfHandler.ActReqTask.ServiceGroupId = null;
         groupName = null;
         actSources = [];
         actServices = [];
@@ -553,6 +597,8 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
         }
         SetGroupType(false);
         selectedNetworkGroup = group;
+        WfHandler.ActReqTask.NetworkGroupId = checked((int)group.Id);
+        WfHandler.ActReqTask.ServiceGroupId = null;
         groupName = group.Name;
         actSources = ResolveNetworkGroupMembers(group);
         actServices = [];
@@ -569,6 +615,8 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
         }
         SetGroupType(true);
         selectedServiceGroup = group;
+        WfHandler.ActReqTask.ServiceGroupId = checked((int)group.Id);
+        WfHandler.ActReqTask.NetworkGroupId = null;
         groupName = group.Name;
         actServices = ResolveServiceGroupMembers(group);
         actSources = [];
@@ -607,12 +655,21 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
 
     private void SetGroupType(bool service)
     {
+        groupTypeSelectedByUser = true;
         if (grpTypeSvc == service)
         {
             return;
         }
 
         grpTypeSvc = service;
+        if (service)
+        {
+            WfHandler.ActReqTask.NetworkGroupId = null;
+        }
+        else
+        {
+            WfHandler.ActReqTask.ServiceGroupId = null;
+        }
         ElemFieldType oppositeField = service ? ElemFieldType.source : ElemFieldType.service;
         RemoveGroupElements(oppositeField);
         groupName = null;
@@ -791,7 +848,16 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
         {
             return element.Name;
         }
-        return NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
+        if (element.FlowNetworkObjectId.HasValue || element.FlowNetworkGroupId.HasValue)
+        {
+            return element.FlowNetworkObjectId?.ToString() ?? element.FlowNetworkGroupId?.ToString() ?? "";
+        }
+        if (element.NetworkId.HasValue)
+        {
+            return element.NetworkId.Value.ToString();
+        }
+        string display = NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
+        return string.IsNullOrWhiteSpace(display) ? element.GroupName ?? "" : display;
     }
 
     private string DisplayServiceElement(NwServiceElement element)
@@ -800,7 +866,16 @@ else if (WfObjectTaskHelper.IsObjectTask(TaskType))
         {
             return element.Name;
         }
-        return DisplayBase.DisplayService(element, DisplayIpProtos);
+        if (element.FlowServiceObjectId.HasValue || element.FlowServiceGroupId.HasValue)
+        {
+            return element.FlowServiceObjectId?.ToString() ?? element.FlowServiceGroupId?.ToString() ?? "";
+        }
+        if (element.ServiceId.HasValue)
+        {
+            return element.ServiceId.Value.ToString();
+        }
+        string display = DisplayBase.DisplayService(element, DisplayIpProtos);
+        return string.IsNullOrWhiteSpace(display) ? element.GroupName ?? "" : display;
     }
 
     private Task GroupNameChangedFromInput(ChangeEventArgs args)

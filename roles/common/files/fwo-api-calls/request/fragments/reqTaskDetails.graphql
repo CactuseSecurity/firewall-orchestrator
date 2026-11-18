@@ -41,7 +41,7 @@ fragment reqTaskDetails on request_reqtask {
     name: mgm_name
     extMgtData: ext_mgm_data
   }
-  elements: elements {
+  elements: elements(order_by: { id: asc }) {
 	...reqElementDetails
   }
   implementation_tasks: impltasks {

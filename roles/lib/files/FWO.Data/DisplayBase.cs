@@ -3,6 +3,7 @@ using NetTools;
 using FWO.Logging;
 using System.Net;
 using FWO.Basics;
+using FWO.Encoders;
 
 namespace FWO.Data
 {
@@ -62,7 +63,9 @@ namespace FWO.Data
 
         public static string DisplayService(Workflow.NwServiceElement svcElem, List<IpProtocol> IpProtos)
         {
-            IpProtocol? ipProt = IpProtos.FirstOrDefault(p => p.Id == svcElem.ProtoId);
+            IpProtocol? ipProt = svcElem.HasProtocol
+                ? IpProtos.FirstOrDefault(p => p.Id == svcElem.ProtoId)
+                : null;
             NetworkService svc = new()
             {
                 DestinationPort = svcElem.Port,

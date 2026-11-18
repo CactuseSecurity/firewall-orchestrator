@@ -146,6 +146,12 @@ Alter table "rule_metadata" add constraint "rule_metadata_removed_import_control
   foreign key ("removed") references "import_control" ("control_id") on update restrict on delete restrict;
 ALTER TABLE rule_metadata ADD CONSTRAINT rule_metadata_mgm_id_management_id_fk FOREIGN KEY (mgm_id) REFERENCES management(mgm_id)
 ON update restrict on delete cascade;
+ALTER TABLE rule_hit ADD CONSTRAINT rule_hit_rule_metadata_id_rule_metadata_fkey FOREIGN KEY (rule_metadata_id) REFERENCES rule_metadata(rule_metadata_id)
+ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE rule_hit ADD CONSTRAINT rule_hit_dev_id_device_fkey FOREIGN KEY (dev_id) REFERENCES device(dev_id)
+ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE rule_hit_import_request ADD CONSTRAINT rule_hit_import_request_mgm_id_management_fkey FOREIGN KEY (mgm_id) REFERENCES management(mgm_id)
+ON UPDATE RESTRICT ON DELETE CASCADE;
 
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_rule_rule_id foreign key ("rule_id") references "rule" ("rule_id") on update restrict on delete cascade;
 Alter table "rule_enforced_on_gateway" add CONSTRAINT fk_rule_enforced_on_gateway_device_dev_id foreign key ("dev_id") references "device" ("dev_id") on update restrict on delete cascade;
@@ -229,6 +235,7 @@ ALTER TABLE owner_ticket ADD CONSTRAINT owner_ticket_owner_id_foreign_key FOREIG
 ALTER TABLE owner_ticket ADD CONSTRAINT owner_ticket_ticket_id_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE ext_request ADD CONSTRAINT ext_request_owner_id_foreign_key FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE ext_request ADD CONSTRAINT ext_request_ticket_id_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE ext_request ADD CONSTRAINT ext_request_impltask_id_foreign_key FOREIGN KEY (impltask_id) REFERENCES request.impltask(id) ON UPDATE RESTRICT ON DELETE SET NULL;
 
 Alter table "time_object" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
 Alter table "time_object" add  foreign key ("created") references "import_control" ("control_id") on update restrict on delete cascade;
@@ -266,6 +273,7 @@ ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_flow_svcobject_
 ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_flow_svcgroup_foreign_key FOREIGN KEY (flow_svcgrp_id) REFERENCES flow.svcgroup(svcgrp_id) ON UPDATE RESTRICT ON DELETE SET NULL;
 ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_time_object_foreign_key FOREIGN KEY (time_obj_id) REFERENCES time_object(time_obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_flow_timeobject_foreign_key FOREIGN KEY (flow_timeobj_id) REFERENCES flow.timeobject(timeobj_id) ON UPDATE RESTRICT ON DELETE SET NULL;
+ALTER TABLE request.reqelement ADD CONSTRAINT request_reqelement_object_task_foreign_key FOREIGN KEY (object_task_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE SET NULL;
 --- request.approval ---
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_request_reqtask_foreign_key FOREIGN KEY (task_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.approval ADD CONSTRAINT request_approval_tenant_foreign_key FOREIGN KEY (tenant_id) REFERENCES tenant(tenant_id) ON UPDATE RESTRICT ON DELETE CASCADE;
@@ -336,6 +344,7 @@ ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_proto_foreign
 ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_request_impltask_foreign_key FOREIGN KEY (implementation_task_id) REFERENCES request.impltask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_usr_foreign_key FOREIGN KEY (user_id) REFERENCES firewall.nw_user(user_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_time_object_foreign_key FOREIGN KEY (time_obj_id) REFERENCES time_object(time_obj_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE request.implelement ADD CONSTRAINT request_implelement_object_task_foreign_key FOREIGN KEY (object_task_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE SET NULL;
 --- request.impltask
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_request_reqtask_foreign_key FOREIGN KEY (reqtask_id) REFERENCES request.reqtask(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE request.impltask ADD CONSTRAINT request_impltask_request_state_foreign_key FOREIGN KEY (state_id) REFERENCES request.state(id) ON UPDATE RESTRICT ON DELETE CASCADE;

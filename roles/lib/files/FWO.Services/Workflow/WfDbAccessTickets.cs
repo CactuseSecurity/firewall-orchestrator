@@ -53,7 +53,10 @@ namespace FWO.Services.Workflow
                 {
                     return await SavedWithoutInitialActions(ticket, newTicketId, null);
                 }
+                WfTicket sourceTicket = ticket;
                 ticket = savedTicket;
+                await LinkTicketTimeObjectTasks(sourceTicket, ticket);
+                await LinkTicketObjectTasks(sourceTicket, ticket);
                 await LogCreatedRequestTasks(ticket);
                 ticket.MarkCreatedStateChanged(newStateId);
             }
@@ -88,6 +91,160 @@ namespace FWO.Services.Workflow
             }
 
             return new WfTicketCreationResult(ticket, false);
+        }
+
+        private async Task LinkTicketTimeObjectTasks(WfTicket sourceTicket, WfTicket ticket)
+        {
+            HashSet<long> linkedAccessTaskIds = await LinkTimeObjectTasksByEntityId(sourceTicket, ticket);
+            await LinkTimeObjectTasksByFallback(ticket, linkedAccessTaskIds);
+        }
+
+        private async Task<HashSet<long>> LinkTimeObjectTasksByEntityId(WfTicket sourceTicket, WfTicket ticket)
+        {
+            HashSet<long> linkedAccessTaskIds = [];
+            foreach (WfReqTask sourceAccessTask in sourceTicket.Tasks.Where(task => task.TaskType == WfTaskType.access.ToString()))
+            {
+                WfReqElement? sourceTimeElement = TimeObjectElementHelper.Find(sourceAccessTask.Elements);
+                if (sourceTimeElement?.TimeObjectEntityId is not < 0)
+                {
+                    continue;
+                }
+
+                WfReqTask? sourceObjectTask = sourceTicket.Tasks.FirstOrDefault(task =>
+                    task.TaskType == WfTaskType.object_create.ToString()
+                    && TimeObjectElementHelper.Find(task.Elements)?.TimeObjectEntityId == sourceTimeElement.TimeObjectEntityId);
+                if (sourceObjectTask == null)
+                {
+                    continue;
+                }
+
+                WfReqTask? accessTask = ticket.Tasks.FirstOrDefault(task => task.TaskNumber == sourceAccessTask.TaskNumber);
+                WfReqTask? objectTask = ticket.Tasks.FirstOrDefault(task => task.TaskNumber == sourceObjectTask.TaskNumber);
+                WfReqElement? timeElement = TimeObjectElementHelper.Find(accessTask?.Elements ?? []);
+                if (timeElement == null || accessTask == null || timeElement.FlowTimeObjectId.HasValue || timeElement.TimeObjId.HasValue ||
+                    timeElement.ObjectTaskId.HasValue || objectTask?.Id is not > 0)
+                {
+                    continue;
+                }
+
+                TimeObjectElementHelper.SetTicketTaskReference(timeElement, objectTask.Id);
+                await UpdateTicketTaskReferenceInDb(timeElement, objectTask.Id);
+                linkedAccessTaskIds.Add(accessTask.Id);
+            }
+
+            return linkedAccessTaskIds;
+        }
+
+        private async Task LinkTimeObjectTasksByFallback(WfTicket ticket, HashSet<long> linkedAccessTaskIds)
+        {
+            foreach (WfReqTask accessTask in ticket.Tasks.Where(task =>
+                task.TaskType == WfTaskType.access.ToString() && !linkedAccessTaskIds.Contains(task.Id)))
+            {
+                WfReqElement? timeElement = TimeObjectElementHelper.Find(accessTask.Elements);
+                if (timeElement == null || timeElement.FlowTimeObjectId.HasValue || timeElement.TimeObjId.HasValue ||
+                    timeElement.ObjectTaskId.HasValue)
+                {
+                    continue;
+                }
+
+                WfReqTask? objectTask = TimeObjectReferenceResolver.FindParallelTimeTask(
+                    ticket.Tasks, accessTask, null, null);
+                if (objectTask?.Id > 0)
+                {
+                    TimeObjectElementHelper.SetTicketTaskReference(timeElement, objectTask.Id);
+                    await UpdateTicketTaskReferenceInDb(timeElement, objectTask.Id);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Resolves temporary API entity references in access elements to the persisted request-task IDs.
+        /// </summary>
+        private async Task LinkTicketObjectTasks(WfTicket sourceTicket, WfTicket ticket)
+        {
+            Dictionary<long, long> persistedObjectTaskIds = [];
+            foreach (WfReqTask sourceObjectTask in sourceTicket.Tasks.Where(task =>
+                WfObjectTaskHelper.IsManagementObjectTask(task.TaskType)))
+            {
+                long? entityId = sourceObjectTask.WorkflowEntityId
+                    ?? sourceObjectTask.Elements.Select(element => element.ObjectTaskEntityId).FirstOrDefault(id => id is < 0);
+                WfReqTask? persistedObjectTask = FindTaskByTaskNumber(ticket, sourceObjectTask.TaskNumber);
+                if (entityId is < 0 && persistedObjectTask?.Id > 0)
+                {
+                    persistedObjectTaskIds[entityId.Value] = persistedObjectTask.Id;
+                }
+            }
+
+            foreach (WfReqTask sourceAccessTask in sourceTicket.Tasks.Where(task =>
+                task.TaskType == WfTaskType.access.ToString()))
+            {
+                WfReqTask? accessTask = FindTaskByTaskNumber(ticket, sourceAccessTask.TaskNumber);
+                if (accessTask == null)
+                {
+                    continue;
+                }
+
+                List<(WfReqElement Element, long ObjectTaskId)> links =
+                    LinkObjectReferencesForTask(sourceAccessTask, accessTask, persistedObjectTaskIds);
+                foreach ((WfReqElement element, long objectTaskId) in links)
+                {
+                    await UpdateTicketTaskReferenceInDb(element, objectTaskId);
+                }
+            }
+        }
+
+        private async Task UpdateTicketTaskReferenceInDb(WfReqElement element, long objectTaskId)
+        {
+            try
+            {
+                ReturnId result = await ApiConnection.SendQueryAsync<ReturnId>(
+                    RequestQueries.updateRequestElementObjectTaskId,
+                    new { id = element.Id, objectTaskId = objectTaskId });
+                if (result.UpdatedIdLong != element.Id)
+                {
+                    DisplayMessageInUi(null, UserConfig.GetText("save_element"), UserConfig.GetText("E8007"), true);
+                }
+            }
+            catch (Exception exception)
+            {
+                DisplayMessageInUi(exception, UserConfig.GetText("save_element"), "", true);
+            }
+        }
+
+        private static List<(WfReqElement Element, long ObjectTaskId)> LinkObjectReferencesForTask(
+            WfReqTask sourceAccessTask, WfReqTask accessTask,
+            Dictionary<long, long> persistedObjectTaskIds)
+        {
+            List<(WfReqElement Element, long ObjectTaskId)> links = [];
+            foreach (WfReqElement sourceElement in sourceAccessTask.Elements
+                .Where(element => element.ObjectTaskEntityId is < 0))
+            {
+                List<WfReqElement> sourceFieldElements = sourceAccessTask.Elements
+                    .Where(element => element.Field == sourceElement.Field)
+                    .ToList();
+                List<WfReqElement> targetFieldElements = accessTask.Elements
+                    .Where(element => element.Field == sourceElement.Field)
+                    .ToList();
+                int index = sourceFieldElements.IndexOf(sourceElement);
+                if (index < 0 || index >= targetFieldElements.Count)
+                {
+                    continue;
+                }
+
+                if (sourceElement.ObjectTaskEntityId is long entityId
+                    && persistedObjectTaskIds.TryGetValue(entityId, out long persistedObjectTaskId))
+                {
+                    WfReqElement targetElement = targetFieldElements[index];
+                    targetElement.ObjectTaskId = persistedObjectTaskId;
+                    links.Add((targetElement, persistedObjectTaskId));
+                }
+            }
+            return links;
+        }
+
+        private static WfReqTask? FindTaskByTaskNumber(WfTicket ticket, int taskNumber)
+        {
+            return ticket.Tasks.FirstOrDefault(task => task.TaskNumber == taskNumber);
         }
 
         /// <summary>

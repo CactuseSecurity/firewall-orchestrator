@@ -88,11 +88,18 @@ public sealed class WorkflowChangeHistoryService
             return null;
         }
 
-        IEnumerable<AuditProofCriticalChangeResponse> matchingChanges = entries.Select(Map).Where(change => Matches(change, filter));
-        ListPage<AuditProofCriticalChangeResponse> changes = ListPage<AuditProofCriticalChangeResponse>.FromOrderedItems(matchingChanges, pageSize, offset);
-        AuditProofTaskDiffResponse? taskDiff = changes.Items.Count == 0
+        WfTicket? currentTicket = entries.Count == 0
             ? null
-            : await GetTaskDiffAsync(ticketId, filter);
+            : await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
+        int? requesterId = currentTicket?.Requester?.DbId;
+        IEnumerable<AuditProofCriticalChangeResponse> matchingChanges = entries
+            .Where(entry => IsChangeOfAnotherUser(entry, requesterId))
+            .Select(Map)
+            .Where(change => Matches(change, filter));
+        ListPage<AuditProofCriticalChangeResponse> changes = ListPage<AuditProofCriticalChangeResponse>.FromOrderedItems(matchingChanges, pageSize, offset);
+        AuditProofTaskDiffResponse? taskDiff = changes.Items.Count == 0 || currentTicket == null
+            ? null
+            : await GetTaskDiffAsync(ticketId, currentTicket, filter);
 
         GetAuditProofCriticalChangesResponse response = new()
         {
@@ -106,19 +113,36 @@ public sealed class WorkflowChangeHistoryService
     /// Builds the task-state evidence attached to a non-empty audit-proof trail.
     /// </summary>
     /// <param name="ticketId">Database id of the workflow ticket.</param>
+    /// <param name="currentTicket">Current state of the ticket, with its request tasks and requester.</param>
     /// <param name="filter">Response filter, applied to the manual implementation-task changes.</param>
     /// <returns>The request-task diff and the manual implementation-task history entries.</returns>
-    private async Task<AuditProofTaskDiffResponse> GetTaskDiffAsync(long ticketId, AuditProofCriticalChangeFilter? filter)
+    private async Task<AuditProofTaskDiffResponse> GetTaskDiffAsync(long ticketId, WfTicket currentTicket, AuditProofCriticalChangeFilter? filter)
     {
         List<ModellingHistoryEntry> history = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(
             RequestQueries.getWorkflowTaskHistoryForTicket, new { ticketId });
-        WfTicket currentTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
 
         return new AuditProofTaskDiffResponse
         {
             RequestTaskDiffs = BuildRequestTaskDiffs(history, currentTicket.Tasks),
-            ManualImplementationTaskChanges = BuildManualImplementationTaskChanges(history, filter)
+            ManualImplementationTaskChanges = BuildManualImplementationTaskChanges(history, currentTicket.Requester?.DbId, filter)
         };
+    }
+
+    /// <summary>
+    /// Confirms the audit-proof flag of a stored row against the ticket.
+    /// </summary>
+    /// <param name="entry">A row flagged as audit-proof critical.</param>
+    /// <param name="requesterId">Id of the ticket's requester, null when the ticket has none.</param>
+    /// <returns>True when the row was written by a known user other than the requester.</returns>
+    /// <remarks>
+    /// The writer sets audit_proof_critical, so the flag alone proves nothing. changer_id is preset from the
+    /// authenticated session, which makes "written by someone other than the requester" verifiable here:
+    /// the requester cannot pass a change of the own ticket off as someone else's, and rows without a user
+    /// (automation) are never audit-proof critical.
+    /// </remarks>
+    private static bool IsChangeOfAnotherUser(ModellingHistoryEntry entry, int? requesterId)
+    {
+        return entry.ChangerId != null && requesterId != null && entry.ChangerId != requesterId;
     }
 
     /// <summary>
@@ -196,19 +220,21 @@ public sealed class WorkflowChangeHistoryService
     /// Projects the audit-proof-critical implementation-task history entries that match the filter as manual changes.
     /// </summary>
     /// <param name="history">Chronologically ordered workflow task history for one ticket.</param>
+    /// <param name="requesterId">Id of the ticket's requester, null when the ticket has none.</param>
     /// <param name="filter">Response filter; null applies no restriction.</param>
     /// <returns>The recorded manual implementation-task changes.</returns>
     private static List<ManualImplementationTaskChangeResponse> BuildManualImplementationTaskChanges(List<ModellingHistoryEntry> history,
-        AuditProofCriticalChangeFilter? filter)
+        int? requesterId, AuditProofCriticalChangeFilter? filter)
     {
         return history.Where(entry => entry.ObjectType == (int)ChangeHistoryObjectType.ImplementationTask && entry.AuditProofCritical)
+            .Where(entry => IsChangeOfAnotherUser(entry, requesterId))
             .Where(entry => Matches(Map(entry), filter))
             .Select(entry => new ManualImplementationTaskChangeResponse
             {
                 ImplementationTaskId = entry.ObjectId,
                 ChangeTime = WallClockTimestamp.NormalizeStored(entry.ChangeTime),
                 ChangeUserId = entry.ChangerId,
-                ChangeUserName = entry.Changer ?? string.Empty,
+                ChangeUserName = entry.GetAuthenticatedChangerName(),
                 ChangeContent = entry.ChangeText ?? string.Empty,
                 Original = entry.OldData == null ? null : ToJsonElement(entry.OldData),
                 Current = entry.NewData == null ? null : ToJsonElement(entry.NewData)
@@ -257,13 +283,14 @@ public sealed class WorkflowChangeHistoryService
     /// <remarks>
     /// changer and change_text are nullable columns, so the empty string of the response contract is
     /// substituted here rather than letting a null reach a property declared as non-nullable.
+    /// The user name is resolved from changer_id, because changer is free text of the writer.
     /// </remarks>
     private static AuditProofCriticalChangeResponse Map(ModellingHistoryEntry entry)
     {
         return new AuditProofCriticalChangeResponse
         {
             ChangeTime = WallClockTimestamp.NormalizeStored(entry.ChangeTime),
-            ChangeUserName = entry.Changer ?? string.Empty,
+            ChangeUserName = entry.GetAuthenticatedChangerName(),
             ChangeUserId = entry.ChangerId,
             ChangeContent = entry.ChangeText ?? string.Empty
         };

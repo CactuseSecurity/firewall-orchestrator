@@ -2,6 +2,7 @@ using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Workflow;
 
 namespace FWO.Test
 {
@@ -70,6 +71,21 @@ namespace FWO.Test
             ClassicAssert.AreEqual("ESP", DisplayBase.DisplayService(serv3, true).ToString());
             ClassicAssert.AreEqual("Any", DisplayBase.DisplayService(serv4, false).ToString());
             ClassicAssert.AreEqual("ALL", DisplayBase.DisplayService(serv5, true).ToString());
+        }
+
+        [Test]
+        public void TestDisplayWorkflowServiceWithoutProtocolDoesNotUseProtocolZero()
+        {
+            NwServiceElement service = new()
+            {
+                Name = "service-group-member",
+                Port = 53,
+                ProtoId = 0,
+                HasProtocol = false
+            };
+            List<IpProtocol> protocols = [new IpProtocol { Id = 0, Name = "HOPOPT" }];
+
+            Assert.That(DisplayBase.DisplayService(service, protocols), Is.EqualTo(""));
         }
     }
 }

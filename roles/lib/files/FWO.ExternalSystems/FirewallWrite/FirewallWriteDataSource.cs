@@ -25,17 +25,46 @@ namespace FWO.ExternalSystems.FirewallWrite
         public async Task<FirewallWriteContext> LoadContext(WfImplTask implTask)
         {
             ArgumentNullException.ThrowIfNull(implTask);
-            if (implTask.ManagementId == null)
+
+            Device? gatewayTarget = null;
+            int managementId;
+            if (implTask.DeviceId is > 0)
             {
-                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Implementation task {implTask.Id} has no management.");
+                List<Device> gateways = await apiConnection.SendQueryAsync<List<Device>>(
+                    DeviceQueries.getImplementationTaskGatewayTarget,
+                    new { gatewayId = implTask.DeviceId.Value });
+                if (gateways.Count != 1 ||
+                    !WfImplTaskTargetManagementResolver.TryResolveManagementId(
+                        null,
+                        implTask,
+                        gateways[0],
+                        out managementId))
+                {
+                    throw new FirewallWriteException(
+                        FirewallWriteErrorKind.InvalidTaskData,
+                        $"Gateway {implTask.DeviceId} of implementation task {implTask.Id} is unavailable or inconsistent.");
+                }
+                gatewayTarget = gateways[0];
+            }
+            else if (!WfImplTaskTargetManagementResolver.TryResolveManagementId(
+                null,
+                implTask,
+                null,
+                out managementId))
+            {
+                throw new FirewallWriteException(
+                    FirewallWriteErrorKind.InvalidTaskData,
+                    $"Implementation task {implTask.Id} has no target management.");
             }
 
-            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementById, new { id = implTask.ManagementId.Value });
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(
+                DeviceQueries.getManagementById,
+                new { id = managementId });
             Management management = managements.FirstOrDefault()
                 ?? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
-                    $"Management {implTask.ManagementId} of implementation task {implTask.Id} not found.");
+                    $"Management {managementId} of implementation task {implTask.Id} not found.");
             Device? gateway = null;
-            if (implTask.DeviceId != null)
+            if (gatewayTarget != null)
             {
                 gateway = management.Devices.FirstOrDefault(device => device.Id == implTask.DeviceId)
                     ?? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
@@ -48,7 +77,40 @@ namespace FWO.ExternalSystems.FirewallWrite
             List<DeviceSpecificScopePath> paths = [path];
             List<GlobalDeviceSpecificSettings> settings = await new DeviceSpecificSettingsManager(apiConnection).LoadEffectiveSettingsAsync(paths);
             FirewallGatewayRulebases rulebases = gateway == null ? FirewallGatewayRulebases.None : await LoadRulebases(gateway);
-            return new FirewallWriteContext { Management = management, Gateway = gateway, Settings = settings[0], Rulebases = rulebases };
+            Dictionary<string, string> ruleLayerUids = await LoadRuleLayers(implTask, management);
+            return new FirewallWriteContext
+            {
+                Management = management,
+                Gateway = gateway,
+                Settings = settings[0],
+                Rulebases = rulebases,
+                RuleLayerUids = ruleLayerUids
+            };
+        }
+
+        /// <summary>
+        /// Loads the layers of the existing rules a rule_modify or rule_delete task names from the imported configuration,
+        /// only for vendors that address rules in their layer; other tasks name no existing rule.
+        /// </summary>
+        private async Task<Dictionary<string, string>> LoadRuleLayers(WfImplTask implTask, Management management)
+        {
+            FirewallVendor vendor = FirewallVendors.FromDeviceTypeId(management.DeviceType.Id);
+            if (!WfTaskBase.IsRuleChangeOrDelete(implTask.TaskType) || vendor == FirewallVendor.Unsupported || !FirewallVendorProfile.For(vendor).AddressesRulesInImportedLayer)
+            {
+                return [];
+            }
+            int managementId = management.Id;
+            List<string> ruleUids = implTask.GetRuleUids();
+            if (ruleUids.Count == 0)
+            {
+                return [];
+            }
+            // one query per root field: the api connection returns the first root field of a response only
+            List<Rule> rules = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRuleLayers,
+                new { managementId, ruleUids, ruleLimit = FirewallRuleLayers.kMaxRules + 1 });
+            List<RulebaseLink> sectionLinks = await apiConnection.SendQueryAsync<List<RulebaseLink>>(RuleQueries.getSectionLinks,
+                new { managementId, linkLimit = FirewallRuleLayers.kMaxSectionLinks + 1 });
+            return FirewallRuleLayers.Resolve(new FirewallRuleLayerQueryResult { Rules = rules, SectionLinks = sectionLinks });
         }
 
         /// <summary>

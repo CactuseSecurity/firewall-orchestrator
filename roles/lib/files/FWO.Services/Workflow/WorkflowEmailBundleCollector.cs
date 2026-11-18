@@ -149,7 +149,6 @@ namespace FWO.Services.Workflow
                 requestTask.TicketId,
                 requestTask.TaskType,
                 requestTask.StateId,
-                requestTask.GetAddInfoValue(AdditionalInfoKeys.FwConfigChangeTarget),
                 requestTask.AssignedGroup,
                 requestTask.CurrentHandler?.Dn,
                 requestTask.RecentHandler?.Dn,

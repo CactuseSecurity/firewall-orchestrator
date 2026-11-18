@@ -110,6 +110,17 @@ public enum ProvisioningRuleImplementationMode
     RerouteToExternalTicketSystem
 }
 
+/// <summary>
+/// External ticket system a level hands its tasks to while its implementation mode is external ticket system. Its
+/// connection and ticket templates are device specific settings as well.
+/// </summary>
+public enum ExternalTicketSystemKind
+{
+    Undefined,
+    [EnumMember(Value = "tufinSecureChange")]
+    TufinSecureChange
+}
+
 /// <summary>Where a provisioned object stores the ID of the modelling connection it implements.</summary>
 public enum ProvisioningConnectionIdField
 {

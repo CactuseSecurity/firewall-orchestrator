@@ -101,13 +101,8 @@ class FwConfigImportRule:
         # NAT original rules whose translated counterparts changed need their xlate_rule FKs repointed through normal insert/remove handling to preserve history (F45).
         xlate_fk_repoint_uids = self.get_stale_xlate_rule_fk_uids(curr_rules, changed_rule_uids, added_rule_uids)
 
-        # collect hit information for all rules with hit data
-        new_hit_information: list[dict[str, Any]] = []
-        self.collect_all_hit_information(prev_config, new_hit_information)
-
-        # update rule_metadata before adding rules
+        # update rule_metadata before adding rules; last hits are written by the rule hit import only
         _, _ = self.add_new_rule_metadata([curr_rules[rule_uid] for rule_uid in added_rule_uids])
-        self.update_rule_metadata_last_hit(new_hit_information)
 
         # fetch initial rule and rulebase ids
         self.uid2id_mapper.update_rule_mapping()
@@ -256,77 +251,6 @@ class FwConfigImportRule:
                 changed_rule_uids.add(rule_uid)
 
         return added_rule_uids, removed_rule_uids, changed_rule_uids
-
-    def collect_all_hit_information(self, prev_config: FwConfigNormalized, new_hit_information: list[dict[str, Any]]):
-        """
-        Consolidated hit information collection for ALL rules that need hit updates.
-
-        Args:
-            prev_config: Previous configuration for comparison
-            new_hit_information: List to append hit update information to
-
-        """
-        processed_rules: set[str] = set()
-
-        def add_hit_update(new_hit_information: list[dict[str, Any]], rule: RuleNormalized):
-            """Add a hit information update entry for a rule."""
-            new_hit_information.append(
-                {
-                    "where": {
-                        "rule_uid": {"_eq": rule.rule_uid},
-                        "mgm_id": {"_eq": self.import_details.state.mgm_details.current_mgm_id},
-                    },
-                    "_set": {"rule_last_hit": rule.last_hit},
-                }
-            )
-
-        # check all rulebases in current config
-        if self.normalized_config is None:
-            raise FwoImporterError("cannot collect hit information: normalized_config is None")
-
-        for current_rulebase in self.normalized_config.rulebases:
-            previous_rulebase = prev_config.get_rulebase_or_none(current_rulebase.uid)
-
-            for rule_uid in current_rulebase.rules:
-                current_rule = current_rulebase.rules[rule_uid]
-                previous_rule = previous_rulebase.rules.get(rule_uid) if previous_rulebase else None
-
-                if current_rule.last_hit is None:
-                    continue  # No hit information to update
-
-                if previous_rule is None or (current_rule.last_hit != previous_rule.last_hit):
-                    # rulebase or rule is new or hit information changed
-                    add_hit_update(new_hit_information, current_rule)
-                    processed_rules.add(rule_uid)
-
-    def update_rule_metadata_last_hit(self, new_hit_information: list[dict[str, Any]]):
-        """
-        Updates rule_metadata.rule_last_hit for all rules with hit information changes.
-        This method executes the actual database updates for hit information.
-
-        Args:
-            new_hit_information (list[dict]): The hit information to update.
-
-        """
-        if len(new_hit_information) > 0:
-            update_last_hit_mutation = FwoApi.get_graphql_code(
-                [fwo_const.GRAPHQL_QUERY_PATH + "rule_metadata/updateLastHits.graphql"]
-            )
-            query_variables = {"hit_info": new_hit_information}
-
-            try:
-                import_result = self.import_details.api_call.call(
-                    update_last_hit_mutation,
-                    query_variables=query_variables,
-                    analyze_payload=True,
-                )
-                if "errors" in import_result:
-                    FWOLogger.exception(
-                        f"fwo_api:importNwObject - error in addNewRuleMetadata: {import_result['errors']!s}"
-                    )
-                    # do not count last hit changes as changes here
-            except Exception:
-                raise FwoApiWriteError(f"failed to update RuleMetadata last hit info: {traceback.format_exc()!s}")
 
     def get_rule_refs(
         self, rule: RuleNormalized, is_prev: bool = False
@@ -949,7 +873,6 @@ class FwConfigImportRule:
                 rule_uid=rule.rule_uid,
                 mgm_id=self.import_details.state.mgm_details.current_mgm_id,
                 rule_created=self.import_details.state.import_id,
-                rule_last_hit=rule.last_hit,
             )
             new_rule_metadata.append(rm4import.model_dump())
         # TODO: add other fields
@@ -1341,6 +1264,7 @@ class FwConfigImportRule:
             self.uid2id_mapper.get_rule_id(rule.rule_uid) for rule in removed_rules if rule.rule_uid is not None
         ]
         changed_rules_ids: list[tuple[int, int, bool]] = []  # (new_rule_id, old_rule_id, security_relevant)
+        security_relevant_uids = self.get_security_relevant_changed_rule_uids(changed_rules, moved_uids)
         for old_rule, new_rule in changed_rules:
             if new_rule.rule_uid is not None and old_rule.rule_uid is not None:
                 rule_uid = new_rule.rule_uid
@@ -1348,7 +1272,7 @@ class FwConfigImportRule:
                     (
                         self.uid2id_mapper.get_rule_id(rule_uid),
                         self.uid2id_mapper.get_rule_id(rule_uid, before_update=True),
-                        rule_uid in moved_uids or self.is_change_security_relevant(old_rule, new_rule),
+                        rule_uid in security_relevant_uids,
                     )
                 )
 
@@ -1440,6 +1364,42 @@ class FwConfigImportRule:
         )
 
         return changelog_rule_insert_objects
+
+    def get_security_relevant_changed_rule_uids(
+        self,
+        changed_rules: list[tuple[RuleNormalized, RuleNormalized]],
+        moved_uids: set[str],
+    ) -> set[str]:
+        """
+        Determines which of the changed rules have a security-relevant change.
+
+        A NAT rule is displayed together with its translated counterpart (xlate rule). When only the
+        translated counterpart changed, the NAT rule gets a new version (xlate_rule FK repoint) without
+        any difference of its own. Such a NAT rule version takes over the security relevance of its
+        translated counterpart, so that the NAT rule change shows up in the NAT changes report.
+
+        Args:
+            changed_rules (list[tuple[RuleNormalized, RuleNormalized]]): (old, new) versions of the changed rules.
+            moved_uids (set[str]): Uids of changed rules moved to another rulebase (always security-relevant).
+
+        Returns:
+            set[str]: The uids of the changed rules whose change is security-relevant.
+
+        """
+        own_relevant_uids: set[str] = {
+            new_rule.rule_uid
+            for old_rule, new_rule in changed_rules
+            if new_rule.rule_uid is not None
+            and (new_rule.rule_uid in moved_uids or self.is_change_security_relevant(old_rule, new_rule))
+        }
+        translation_relevant_uids: set[str] = {
+            new_rule.rule_uid
+            for _, new_rule in changed_rules
+            if new_rule.rule_uid is not None
+            and new_rule.xlate_rule_uid is not None
+            and new_rule.xlate_rule_uid in own_relevant_uids
+        }
+        return own_relevant_uids | translation_relevant_uids
 
     def is_change_security_relevant(self, old_rule: RuleNormalized, new_rule: RuleNormalized) -> bool:
         """

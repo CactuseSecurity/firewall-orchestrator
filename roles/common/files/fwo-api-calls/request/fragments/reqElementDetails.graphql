@@ -1,6 +1,7 @@
 fragment reqElementDetails on request_reqelement {
   id
   task_id
+  object_task_id
   request_action
   ip
   ip_end

@@ -104,6 +104,7 @@ namespace FWO.Services.Workflow
             {
                 Active = false,
                 VisibilityMode = PhaseVisibilityMode.AnyTask,
+                PromotionMode = PromotionMode.Both,
                 LowestInputState = 0,
                 LowestStartedState = 0,
                 LowestEndState = 0,
@@ -152,6 +153,9 @@ namespace FWO.Services.Workflow
                 VisibilityMode = Enum.IsDefined(phaseData.VisibilityMode)
                     ? phaseData.VisibilityMode
                     : PhaseVisibilityMode.AnyTask,
+                PromotionMode = Enum.IsDefined(phaseData.PromotionMode)
+                    ? phaseData.PromotionMode
+                    : PromotionMode.Both,
                 LowestInputState = phaseData.LowestInputState,
                 LowestStartedState = phaseData.LowestStartState,
                 LowestEndState = phaseData.LowestEndState,
@@ -242,6 +246,7 @@ namespace FWO.Services.Workflow
                         phase = phase.ToString(),
                         active = matrix.Active,
                         phase_visibility_mode = matrix.VisibilityMode.ToString(),
+                        promotion_mode = matrix.PromotionMode.ToString(),
                         lowest_input_state = matrix.LowestInputState,
                         lowest_start_state = matrix.LowestStartedState,
                         lowest_end_state = matrix.LowestEndState
@@ -360,6 +365,7 @@ namespace FWO.Services.Workflow
         {
             return left.Active == right.Active
                 && left.VisibilityMode == right.VisibilityMode
+                && left.PromotionMode == right.PromotionMode
                 && left.LowestInputState == right.LowestInputState
                 && left.LowestStartedState == right.LowestStartedState
                 && left.LowestEndState == right.LowestEndState;

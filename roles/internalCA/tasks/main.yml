@@ -9,6 +9,18 @@
       creates a new CA and identities.
   when: internalca_reset_certificates | bool
 
+- name: Validate the CA rotation switch
+  assert:
+    that:
+      - internalca_ca_rotation in ['', 'prepare', 'activate']
+      - internalca_ca_rotation == '' or installation_mode == 'upgrade'
+      - internalca_ca_rotation == '' or not (internalca_reset_certificates | bool)
+    fail_msg: >-
+      internalca_ca_rotation is "{{ internalca_ca_rotation }}". It takes "prepare" (pass 1)
+      or "activate" (pass 2), only with installation_mode=upgrade, and never together with
+      internalca_reset_certificates, which replaces the CA in a single run instead.
+  run_once: true
+
 # community.crypto needs the cryptography python library on the target, and this
 # role runs on every host - including importer- and database-only nodes, which no
 # other role installs it for. It also has to be present before the first
@@ -21,33 +33,25 @@
   become: true
   environment: "{{ proxy_env }}"
 
+# Before the CA host changes anything: pass 2 of a rotation must be refused on every host
+# while one of them has not completed pass 1.
+- name: Read the CA rotation state
+  include_tasks: read-ca-rotation-state.yml
+
+- name: Check the CA rotation state
+  include_tasks: check-ca-rotation.yml
+
 - name: Create internal CA on the designated issuer host
   include_tasks: create-ca.yml
   when: inventory_hostname == internalca_ca_host
 
-- name: Read internal CA certificate from issuer
-  slurp:
-    src: "{{ internalca_ca_certificate }}"
-  delegate_to: "{{ internalca_ca_host }}"
-  register: internalca_ca_certificate_content
-  run_once: true
-  become: true
+# create-ca.yml stages, switches to or discards a rotation's CA.
+- name: Read the CA rotation state after the CA host has acted on it
+  include_tasks: read-ca-rotation-state.yml
+  when: internalca_ca_rotation | length > 0 or internalca_reset_certificates | bool
 
-- name: Read internal CA identity from issuer
-  community.crypto.x509_certificate_info:
-    path: "{{ internalca_ca_certificate }}"
-  delegate_to: "{{ internalca_ca_host }}"
-  register: internalca_ca_certificate_info
-  run_once: true
-  become: true
-
-- name: Store internal CA identity for all hosts
-  set_fact:
-    internalca_ca_certificate_pem: "{{ internalca_ca_certificate_content.content }}"
-    internalca_effective_ca_common_name: "{{ internalca_ca_certificate_info.subject.commonName }}"
-  delegate_to: "{{ internalca_ca_host }}"
-  delegate_facts: true
-  run_once: true
+- name: Read the internal CA trust set
+  include_tasks: read-ca-trust-set.yml
 
 - name: Use the installed internal CA common name
   set_fact:
@@ -239,3 +243,17 @@
 - name: Restart the services whose identity was renewed
   include_tasks: restart-consumers.yml
   when: installation_mode != 'new'
+
+- name: Record that this host completed pass 1 of the CA rotation
+  include_tasks: record-ca-rotation-trust.yml
+  when:
+    - internalca_rotation_staged | bool
+    - not internalca_rotation_marker_current | bool
+
+# Last, so it only ever runs once every host holds identities of the CA in force and
+# has restarted the services presenting them.
+- name: Withdraw trust in the internal CA the rotation switched away from
+  include_tasks: retire-previous-ca.yml
+  when:
+    - internalca_ca_rotation == 'activate'
+    - internalca_rotation_promoted | bool

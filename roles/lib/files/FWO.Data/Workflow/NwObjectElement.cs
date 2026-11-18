@@ -35,6 +35,7 @@ namespace FWO.Data.Workflow
         public long? NetworkId { get; set; }
         public long? FlowNetworkObjectId { get; set; }
         public long? FlowNetworkGroupId { get; set; }
+        public long? ObjectTaskId { get; set; }
         public string GroupName { get; set; } = "";
         public string RequestAction { get; set; } = Workflow.RequestAction.create.ToString();
 
@@ -69,6 +70,7 @@ namespace FWO.Data.Workflow
                 NetworkId = NetworkId,
                 FlowNetworkObjectId = FlowNetworkObjectId,
                 FlowNetworkGroupId = FlowNetworkGroupId,
+                ObjectTaskId = ObjectTaskId,
                 GroupName = GroupName,
                 RequestAction = RequestAction,
                 Name = Name
@@ -86,6 +88,7 @@ namespace FWO.Data.Workflow
                 Cidr = new Cidr(Cidr.CidrString),
                 CidrEnd = new Cidr(CidrEnd.CidrString),
                 NetworkId = NetworkId,
+                ObjectTaskId = ObjectTaskId,
                 GroupName = GroupName,
                 Name = Name
             };

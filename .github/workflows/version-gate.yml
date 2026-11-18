@@ -27,9 +27,13 @@ permissions:
   contents: read
   pull-requests: read
 
-concurrency:
-  group: version-gate-pr-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+# No concurrency group on purpose. A gate run takes about a minute and reports only on its own
+# head commit, so cancelling an older run saves next to nothing. A per pull request group did
+# harm: the Version gate refresh re-runs the newest run it found for a pull request, and when a
+# push landed in between, that re-run of the older commit cancelled the gate of the new head
+# and left the pull request without a result. The head SHA cannot go into the group instead,
+# because a pull_request_target workflow must not reference the pull request head (see
+# scripts/ci/test_workflow_security_policy.py).
 
 jobs:
   gate-pull-request:

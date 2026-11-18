@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import pytest
 import requests
@@ -12,6 +12,8 @@ import scripts.customizing.app_data_import.get_owner_data2_from_csvs as source2
 if TYPE_CHECKING:
     from pathlib import Path
     from types import TracebackType
+
+    from typing_extensions import Self
 
 
 class FakeResponse:

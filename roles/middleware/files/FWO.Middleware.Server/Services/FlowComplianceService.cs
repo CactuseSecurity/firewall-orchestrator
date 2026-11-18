@@ -15,6 +15,7 @@ namespace FWO.Middleware.Server.Services;
 public sealed class FlowComplianceService
 {
     private const int InvalidPolicyId = 0;
+    private const string kAnyProtocolName = "any";
 
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
@@ -190,8 +191,19 @@ public sealed class FlowComplianceService
         };
     }
 
+    /// <summary>
+    /// Converts one validated service entry into the service of the synthetic rule.
+    /// </summary>
+    /// <param name="request">The service entry; the validator has already rejected null entries and empty protocols.</param>
+    /// <param name="namePrefix">Name of the service, for example <c>service-1</c>.</param>
+    /// <returns>The service; an "any" protocol yields the canonical any service without ports.</returns>
     private static NetworkService ToNetworkService(GetFlowComplianceStateRequest.ServiceRangeRequest request, string namePrefix)
     {
+        if (IsAnyProtocol(request.Protocol))
+        {
+            return ToAnyNetworkService(namePrefix);
+        }
+
         bool protocolIsNumeric = int.TryParse(request.Protocol, out int protocolId);
 
         return new NetworkService
@@ -204,6 +216,40 @@ public sealed class FlowComplianceService
             {
                 Id = protocolIsNumeric ? protocolId : 0,
                 Name = request.Protocol
+            },
+            Type = new NetworkServiceType { Name = ServiceType.SimpleService }
+        };
+    }
+
+    /// <summary>
+    /// Checks whether the requested protocol stands for any IP protocol: the name <c>any</c> or the id <c>-1</c>.
+    /// </summary>
+    /// <param name="protocol">Protocol of the service entry.</param>
+    /// <returns>True when the service entry means any service.</returns>
+    private static bool IsAnyProtocol(string protocol)
+    {
+        string trimmedProtocol = protocol.Trim();
+        bool isAnyId = int.TryParse(trimmedProtocol, out int protocolId) && protocolId == GlobalConst.kAnyIpProtocolId;
+        return isAnyId || string.Equals(trimmedProtocol, kAnyProtocolName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Builds the canonical any service, as imported and modelled: protocol id <c>-1</c> without ports, so that
+    /// every port/protocol entry of a forbidden service criterion matches it.
+    /// </summary>
+    /// <param name="namePrefix">Name of the service, for example <c>service-1</c>.</param>
+    private static NetworkService ToAnyNetworkService(string namePrefix)
+    {
+        return new NetworkService
+        {
+            Name = namePrefix,
+            DestinationPort = null,
+            DestinationPortEnd = null,
+            ProtoId = GlobalConst.kAnyIpProtocolId,
+            Protocol = new NetworkProtocol
+            {
+                Id = GlobalConst.kAnyIpProtocolId,
+                Name = kAnyProtocolName
             },
             Type = new NetworkServiceType { Name = ServiceType.SimpleService }
         };

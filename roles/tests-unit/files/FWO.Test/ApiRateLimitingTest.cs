@@ -35,6 +35,7 @@ namespace FWO.Test
             (typeof(PathAnalysisController), nameof(PathAnalysisController.ResolvePathDevices)),
             (typeof(ReportController), nameof(ReportController.Get)),
             (typeof(RuleController), nameof(RuleController.GetRulesByFilter)),
+            (typeof(RuleController), nameof(RuleController.GetRuleLastHits)),
             (typeof(OwnersController), nameof(OwnersController.Get)),
             (typeof(WorkflowChangeHistoryController), nameof(WorkflowChangeHistoryController.GetAuditProofCriticalChanges)),
             (typeof(UserController), nameof(UserController.Get)),
@@ -42,7 +43,8 @@ namespace FWO.Test
             (typeof(GroupController), nameof(GroupController.Get)),
             (typeof(GroupController), nameof(GroupController.GetMembers)),
             (typeof(GroupController), nameof(GroupController.GetMemberships)),
-            (typeof(GroupController), nameof(GroupController.ResolveMembers))
+            (typeof(GroupController), nameof(GroupController.ResolveMembers)),
+            (typeof(WorkflowController), nameof(WorkflowController.ExecuteActions))
         ];
 
         [Test]

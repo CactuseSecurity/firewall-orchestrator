@@ -9,6 +9,7 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Services.EventMediator;
 using FWO.Services.EventMediator.Events;
+using FWO.Test.Helpers;
 using FWO.Test.Mocks;
 using FWO.Ui.Auth;
 using FWO.Ui.Services;
@@ -41,6 +42,7 @@ namespace FWO.Test
         private static readonly int[] kExpectedRecertOwnerships = [9];
         private static readonly int[] kExpectedWorkflowVisibilityGroupIds = [2, 4];
         private const string kClientAddress = "192.0.2.10";
+        private const string kNotAuthorizedText = "You are not authorized.";
 
         private static readonly FieldInfo JwtPublicKeyField = typeof(ConfigFile).GetField("jwtPublicKey", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
@@ -573,6 +575,49 @@ namespace FWO.Test
             AuthenticationTokenGetParameters parameters = CreateProviderForLogin(null).BuildLoginParameters("alice", "secret");
 
             Assert.That(parameters.Options?.ClientAddress, Is.Null);
+        }
+
+        [Test]
+        public async Task ApplyLoginTokenPair_WhenJwtIsRejected_LogsTheFailedLoginWithTheClientAddress()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, new RsaSecurityKey(rsa.ExportParameters(false)));
+
+            UiClientAddress clientAddress = new();
+            clientAddress.Set(kClientAddress);
+            MockMiddlewareClient mockMiddlewareClient = new();
+            TokenService tokenService = new(mockMiddlewareClient, new MockProtectedSessionStorage());
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, new EventMediator(), navigationManager, clientAddress: clientAddress);
+            UserConfig userConfig = new() { Translate = new Dictionary<string, string> { ["not_authorized"] = kNotAuthorizedText } };
+            TokenPair rejectedTokenPair = new()
+            {
+                AccessToken = GenerateJwtToken(privateKey, Roles.Anonymous),
+                RefreshToken = "rejected-refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            };
+
+            AuthenticationException? thrown = null;
+            string log = await ConsoleOutput.CaptureAsync(async () =>
+            {
+                try
+                {
+                    await authStateProvider.ApplyLoginTokenPair("alice", rejectedTokenPair, new MockApiConnection(), mockMiddlewareClient, userConfig);
+                }
+                catch (AuthenticationException exception)
+                {
+                    thrown = exception;
+                }
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(thrown?.Message, Is.EqualTo("not_authorized"));
+                Assert.That(log, Does.Contain($"Login of user alice from client address {kClientAddress} failed: {kNotAuthorizedText}"));
+            });
         }
 
         private static AuthStateProvider CreateProviderForLogin(UiClientAddress? clientAddress)

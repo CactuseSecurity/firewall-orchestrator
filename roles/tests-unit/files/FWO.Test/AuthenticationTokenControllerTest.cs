@@ -1603,6 +1603,70 @@ namespace FWO.Test
             Assert.That(roleLdap.ConnectCount, Is.Zero);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Login_LogsTheReportedClient_WhenTheCredentialsAreInvalid(bool deprecatedEndpoint)
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 10, userFailures: 10);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle);
+
+            string log = await ConsoleOutput.CaptureAsync(async () =>
+                AssertInvalidCredentials(await InvokeLogin(controller, CreateLogin("alice", kReportedClient), deprecatedEndpoint)));
+
+            Assert.That(log, Does.Contain($"Error generating token for user \"alice\" from client {kReportedClient}"));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Login_LogsTheReportedClient_WhenTheDirectoriesAreAtCapacity(bool deprecatedEndpoint)
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 10, userFailures: 10);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle,
+                new List<Ldap>(CreateTooManyLdaps()), new RecordingApiConnection());
+
+            string log = await ConsoleOutput.CaptureAsync(async () =>
+                AssertCapacityResult(await InvokeLogin(controller, CreateLogin("alice", kReportedClient), deprecatedEndpoint),
+                    StatusCodes.Status503ServiceUnavailable, "A0007"));
+
+            Assert.That(log, Does.Contain($"Login attempt for user \"alice\" from client {kReportedClient} refused: A0007"));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Login_LogsTheReportedClient_WhenTheApiCannotBeReached(bool deprecatedEndpoint)
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 10, userFailures: 10);
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, variables, resultType) => query == AuthQueries.getUserByDn
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle,
+                new List<Ldap> { CreateAuthLdap(CreateLoginLdapClient()) }, apiConnection);
+            AuthenticationTokenGetParameters login = new()
+            {
+                Username = "login-user",
+                Password = "password",
+                Options = new AuthenticationTokenGetOptions { ClientAddress = kReportedClient }
+            };
+
+            string log = await ConsoleOutput.CaptureAsync(async () =>
+                AssertServiceUnavailableWithoutTransportDetails(await InvokeLogin(controller, login, deprecatedEndpoint)));
+
+            Assert.That(log, Does.Contain($"Could not reach the API while logging in user \"login-user\" from client {kReportedClient}"));
+        }
+
+        /// <summary>
+        /// Logs in through GetTokenPair or the deprecated Get endpoint.
+        /// </summary>
+        private static async Task<ActionResult?> InvokeLogin(AuthenticationTokenController controller, AuthenticationTokenGetParameters login, bool deprecatedEndpoint)
+        {
+            return deprecatedEndpoint
+                ? (await controller.GetAsync(login)).Result
+                : (await controller.GetTokenPair(login)).Result;
+        }
+
         private static AuthenticationTokenController CreateController()
         {
             return CreateController(new RecordingApiConnection());
@@ -1637,7 +1701,15 @@ namespace FWO.Test
         private static AuthenticationTokenController CreateControllerForCaller(IPAddress caller, LoginThrottle loginThrottle, TestableLdap? ldap = null)
         {
             List<Ldap> ldaps = new() { ldap ?? CreateAuthLdap(new RecordingLdapClient()) };
-            AuthenticationTokenController controller = CreateController(ldaps, new RecordingApiConnection(), loginThrottle);
+            return CreateControllerForCaller(caller, loginThrottle, ldaps, new RecordingApiConnection());
+        }
+
+        /// <summary>
+        /// Builds a controller whose requests come from the given caller, with the given directories and API.
+        /// </summary>
+        private static AuthenticationTokenController CreateControllerForCaller(IPAddress caller, LoginThrottle loginThrottle, List<Ldap> ldaps, ApiConnection apiConnection)
+        {
+            AuthenticationTokenController controller = CreateController(ldaps, apiConnection, loginThrottle);
             DefaultHttpContext httpContext = new();
             httpContext.Connection.RemoteIpAddress = caller;
             controller.ControllerContext = new ControllerContext { HttpContext = httpContext };

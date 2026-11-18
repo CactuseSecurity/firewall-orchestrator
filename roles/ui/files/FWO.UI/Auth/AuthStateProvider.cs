@@ -101,12 +101,36 @@ namespace FWO.Ui.Auth
                     throw new ArgumentException("no refresh token in response");
                 }
 
-                await ApplyTokenPair(tokenPair, apiConnection, middlewareClient, userConfig);
+                await ApplyLoginTokenPair(username, tokenPair, apiConnection, middlewareClient, userConfig);
 
                 Log.WriteAudit(nameof(Authenticate), $"User \"{username}\" with DN: \"{userConfig.User.Dn}\" successfully authenticated from client address {ClientDescription}.");
             }
 
             return apiAuthResponse;
+        }
+
+        /// <summary>
+        /// Applies the token pair of a login the middleware accepted. If the UI rejects the token (e.g. unauthorized role,
+        /// invalid or expired), the login failed after all; this is logged with the address of the browser.
+        /// </summary>
+        /// <param name="username">Login name supplied by the user.</param>
+        /// <param name="tokenPair">Token pair returned from the middleware login endpoint.</param>
+        /// <param name="apiConnection">API connection that should receive the JWT.</param>
+        /// <param name="middlewareClient">Middleware client that should receive the JWT.</param>
+        /// <param name="userConfig">Current user configuration to rebuild from the JWT claims.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        /// <exception cref="AuthenticationException">Thrown if the token was rejected; the message is the text key of the reason.</exception>
+        internal async Task ApplyLoginTokenPair(string username, TokenPair tokenPair, ApiConnection apiConnection, MiddlewareClient middlewareClient, UserConfig userConfig)
+        {
+            try
+            {
+                await ApplyTokenPair(tokenPair, apiConnection, middlewareClient, userConfig);
+            }
+            catch (AuthenticationException exception)
+            {
+                Log.WriteInfo("Login", $"Login of user {username} from client address {ClientDescription} failed: {userConfig.GetText(exception.Message)}");
+                throw;
+            }
         }
 
         /// <summary>

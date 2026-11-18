@@ -244,7 +244,7 @@
                     StateHasChanged();
                 }
             }
-            // Authentication exception (raised by us)
+            // Authentication exception (raised by us, already logged with the client address by AuthStateProvider)
             catch (AuthenticationException e)
             {
                 errorMessage = userConfig.GetText(e.Message);

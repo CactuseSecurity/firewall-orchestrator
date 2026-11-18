@@ -156,13 +156,44 @@ namespace FWO.Middleware.Server.Controllers
         /// the response body, where it would expose the internal API endpoint.
         /// </summary>
         /// <param name="exception">Exception that indicates the unreachable API.</param>
+        /// <param name="userName">Login name of the failed attempt.</param>
+        /// <param name="reportedClient">Client address the caller reported with the login; null if it reported none.</param>
         /// <returns>A retryable 503 without transport details.</returns>
-        private ObjectResult ApiUnreachableLoginResult(Exception exception)
+        private ObjectResult ApiUnreachableLoginResult(Exception exception, string? userName, IPAddress? reportedClient = null)
         {
-            Log.WriteError(kTokenGenerationLogCategory, "Could not reach the API while logging in", exception);
+            Log.WriteError(kTokenGenerationLogCategory,
+                $"Could not reach the API while logging in user \"{userName}\" from client {DescribeClient(reportedClient)}", exception);
 
             return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 "The API could not be reached while logging in. Please retry.");
+        }
+
+        /// <summary>
+        /// Answers a login that the directories refused for lack of capacity, and logs it with its client.
+        /// </summary>
+        /// <param name="exception">The refusal.</param>
+        /// <param name="userName">Login name of the refused attempt.</param>
+        /// <param name="reportedClient">Client address the caller reported with the login; null if it reported none.</param>
+        /// <returns>The refusal with its status code and a retry hint.</returns>
+        private ObjectResult LoginCapacityResult(LoginCapacityException exception, string? userName, IPAddress? reportedClient = null)
+        {
+            Log.WriteWarning(kLoginLogCategory,
+                $"Login attempt for user \"{userName}\" from client {DescribeClient(reportedClient)} refused: {exception.Message}");
+            return CapacityResult(exception);
+        }
+
+        /// <summary>
+        /// Answers a failed login with its error, and logs it with its client.
+        /// </summary>
+        /// <param name="exception">The cause of the failure.</param>
+        /// <param name="userName">Login name of the failed attempt.</param>
+        /// <param name="reportedClient">Client address the caller reported with the login; null if it reported none.</param>
+        /// <returns>A 400 carrying the error message.</returns>
+        private BadRequestObjectResult LoginFailedResult(Exception exception, string? userName, IPAddress? reportedClient)
+        {
+            Log.WriteError(kTokenGenerationLogCategory,
+                $"Error generating token for user \"{userName}\" from client {DescribeClient(reportedClient)}", exception);
+            return BadRequest(exception.Message);
         }
 
         /// <summary>
@@ -236,17 +267,15 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (LoginCapacityException ex)
             {
-                return CapacityResult(ex);
+                return LoginCapacityResult(ex, parameters?.Username, reportedClient);
             }
             catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
             {
-                return ApiUnreachableLoginResult(exception);
+                return ApiUnreachableLoginResult(exception, parameters?.Username, reportedClient);
             }
             catch (Exception ex)
             {
-                Log.WriteError(kTokenGenerationLogCategory,
-                    $"Error generating token pair for user \"{parameters?.Username}\" from client {DescribeClient(reportedClient)}", ex);
-                return BadRequest(ex.Message);
+                return LoginFailedResult(ex, parameters?.Username, reportedClient);
             }
         }
 
@@ -299,11 +328,11 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (LoginCapacityException e)
             {
-                return CapacityResult(e);
+                return LoginCapacityResult(e, parameters?.AdminUsername);
             }
             catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
             {
-                return ApiUnreachableLoginResult(e);
+                return ApiUnreachableLoginResult(e, parameters?.AdminUsername);
             }
             catch (Exception e)
             {
@@ -368,20 +397,20 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (LoginCapacityException e)
             {
-                return CapacityResult(e);
+                return LoginCapacityResult(e, parameters?.Username, reportedClient);
             }
             catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
             {
-                return ApiUnreachableLoginResult(e);
+                return ApiUnreachableLoginResult(e, parameters?.Username, reportedClient);
             }
             catch (Exception e)
             {
-                return BadRequest(e.Message);
+                return LoginFailedResult(e, parameters?.Username, reportedClient);
             }
         }
 
         /// <summary>
-        /// Generates an authentication token (jwt) for the specified user given valid admin credentials.  
+        /// Generates an authentication token (jwt) for the specified user given valid admin credentials.
         /// </summary>
         /// <remarks>
         /// AdminUsername (required) - Example: "admin" &#xA;
@@ -443,11 +472,11 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (LoginCapacityException e)
             {
-                return CapacityResult(e);
+                return LoginCapacityResult(e, parameters?.AdminUsername);
             }
             catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
             {
-                return ApiUnreachableLoginResult(e);
+                return ApiUnreachableLoginResult(e, parameters?.AdminUsername);
             }
             catch (Exception e)
             {

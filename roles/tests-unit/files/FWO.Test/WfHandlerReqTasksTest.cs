@@ -15,6 +15,7 @@ namespace FWO.Test
     internal class WfHandlerReqTasksTest
     {
         private static readonly List<WfState> kRequestedStates = [new WfState { Id = 1, Name = "requested" }];
+        private static readonly List<string> kForbiddenServiceReason = ["forbidden service"];
 
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix? matrix = null)
         {
@@ -637,6 +638,7 @@ namespace FWO.Test
         public async Task ChangeReqTask_DoesNotCheckWhenOnlyUncheckedFieldsChange()
         {
             (WfHandler handler, FixedResultPolicyChecker checker) = await CreateComplianceHandler(compliantAfterChange: false);
+            await handler.ActionHandler!.CheckRequestTaskCompliance(handler.ActTicket);
             handler.ActReqTask = new WfReqTask(handler.ActTicket.Tasks[0]) { Title = "renamed" };
 
             await handler.ChangeReqTask();
@@ -645,6 +647,48 @@ namespace FWO.Test
             {
                 Assert.That(checker.CheckCount, Is.Zero);
                 Assert.That(RequestTaskCompliance.StoredResult(handler.ActTicket.Tasks[0]), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ChangeReqTask_FailedCheckRemovesStoredResultSoTheChangedTaskIsCheckedWhenDisplayed()
+        {
+            (WfHandler handler, FixedResultPolicyChecker checker) = await CreateComplianceHandler(compliantAfterChange: false);
+            handler.ActReqTask = new WfReqTask(handler.ActTicket.Tasks[0]);
+            handler.ActReqTask.Elements = [.. handler.ActReqTask.Elements.Select(element => new WfReqElement(element))];
+            handler.ActReqTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = "10.9.9.9";
+            checker.Fail = true;
+
+            await handler.ChangeReqTask();
+            bool? storedAfterFailure = RequestTaskCompliance.StoredResult(handler.ActTicket.Tasks[0]);
+            bool? activeTaskAfterFailure = RequestTaskCompliance.StoredResult(handler.ActReqTask);
+            checker.Fail = false;
+            IReadOnlyDictionary<long, RequestTaskComplianceResult>? displayed = await handler.ActionHandler!.CheckRequestTaskCompliance(handler.ActTicket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(storedAfterFailure, Is.Null);
+                Assert.That(activeTaskAfterFailure, Is.Null);
+                Assert.That(checker.CheckCount, Is.EqualTo(2));
+                Assert.That(checker.CheckedTaskIds, Does.Contain(61L));
+                Assert.That(displayed![61].IsCompliant, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task ChangeReqTask_ChecksElementsChangedInPlaceWithoutPreviousCheck()
+        {
+            (WfHandler handler, FixedResultPolicyChecker checker) = await CreateComplianceHandler(compliantAfterChange: false);
+            WfReqTask accessTask = handler.ActTicket.Tasks[0];
+            accessTask.Elements.Single(element => element.Field == ElemFieldType.service.ToString()).Port = 8443;
+            handler.ActReqTask = new WfReqTask(accessTask);
+
+            await handler.ChangeReqTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(checker.CheckCount, Is.EqualTo(1));
+                Assert.That(RequestTaskCompliance.StoredResult(handler.ActTicket.Tasks[0]), Is.False);
             });
         }
 
@@ -713,8 +757,8 @@ namespace FWO.Test
             WfHandler handler = new() { ActTicket = new WfTicket { Id = 7, Tasks = [accessTask] } };
             FixedResultPolicyChecker checker = new(new Dictionary<long, RequestTaskComplianceResult>
             {
-                [61] = new(61, compliantAfterChange, compliantAfterChange ? [] : ["forbidden service"]),
-                [62] = new(62, compliantAfterChange, compliantAfterChange ? [] : ["forbidden service"])
+                [61] = new(61, compliantAfterChange, compliantAfterChange ? ApprovalComplianceTestHelper.NoReasons : kForbiddenServiceReason),
+                [62] = new(62, compliantAfterChange, compliantAfterChange ? ApprovalComplianceTestHelper.NoReasons : kForbiddenServiceReason)
             });
             await ApprovalComplianceTestHelper.AttachPolicyCheck(handler, new SimulatedApiConnection(), checker);
             return (handler, checker);

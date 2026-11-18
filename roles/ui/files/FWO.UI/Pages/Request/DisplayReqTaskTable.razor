@@ -99,7 +99,7 @@
                         }
                         @if (ShowCompliance && ApprovalTaskDetailsEditorService.IsAccessTask(context))
                         {
-                            <ApprovalComplianceButton Compliance="@compliance.ComplianceOf([context])" Loading="compliance.IsLoading"
+                            <ApprovalComplianceButton Compliance="@compliance.ComplianceOf(context)" Loading="compliance.IsLoading"
                                                       Class="btn-sm ml-1" ShowReasons="OpenComplianceReasons" />
                         }
                     </Template>

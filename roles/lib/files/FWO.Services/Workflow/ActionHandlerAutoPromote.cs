@@ -68,7 +68,8 @@ namespace FWO.Services.Workflow
                     return false;
                 }
 
-                bool isCompliant = await CheckPolicyCheckTasks(checker, [.. selectedPolicyIds], policyCheckTasks);
+                List<int> policyIds = [.. selectedPolicyIds];
+                bool isCompliant = await CheckPolicyCheckTasks(checker, policyIds, policyCheckTasks);
                 Log.WriteDebug("Policy Check", $"Requested-rule policy check completed with result '{isCompliant}'.");
                 await AttachPolicyCheckResultLabel(requestedRuleTasks, checkResultLabel, isCompliant);
                 return isCompliant;

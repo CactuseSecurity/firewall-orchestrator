@@ -5,6 +5,8 @@ namespace FWO.Services.Workflow
 {
     public partial class ActionHandler
     {
+        private static readonly IReadOnlyList<string> kNoComplianceReasons = [];
+        private static readonly List<bool> kStoredComplianceValues = [true, false];
         private string? lastComplianceKey;
         private IReadOnlyDictionary<long, RequestTaskComplianceResult>? lastComplianceResults;
 
@@ -59,21 +61,27 @@ namespace FWO.Services.Workflow
             Dictionary<long, RequestTaskComplianceResult> results = [];
             foreach (WfReqTask task in checkedTasks.Except(tasksToCheck))
             {
-                results[task.Id] = new RequestTaskComplianceResult(task.Id, true, []);
+                results[task.Id] = new RequestTaskComplianceResult(task.Id, true, kNoComplianceReasons);
             }
 
             if (tasksToCheck.Count > 0)
             {
                 // the other tasks define requested objects and groups used by the checked tasks
                 List<WfReqTask> contextTasks = [.. PolicyCheckTasks(ticket).Except(checkedTasks)];
+                List<WfReqTask> tasksWithContext = [.. tasksToCheck, .. contextTasks];
                 IReadOnlyDictionary<long, RequestTaskComplianceResult> checkResults;
                 try
                 {
-                    checkResults = await checker.CheckRequestTasks(policyIds, [.. tasksToCheck, .. contextTasks]);
+                    checkResults = await checker.CheckRequestTasks(policyIds, tasksWithContext);
                 }
                 catch (Exception exc)
                 {
                     Log.WriteError("Policy Check", "Compliance check of the request tasks failed.", exc);
+                    if (storeResults)
+                    {
+                        // the stored results may be outdated, e.g. after a change of the ticket: without them the tasks are checked when displayed
+                        await RemoveStoredComplianceResults(tasksToCheck);
+                    }
                     return null;
                 }
 
@@ -108,13 +116,29 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
+        /// Removes the stored check result of the given tasks, including the copy in the active request task of the workflow handler.
+        /// </summary>
+        private async Task RemoveStoredComplianceResults(IEnumerable<WfReqTask> tasks)
+        {
+            foreach (WfReqTask task in tasks.Where(task => RequestTaskCompliance.StoredResult(task) != null))
+            {
+                await wfHandler.RemoveAddInfoInReqTask(task, AdditionalInfoKeys.ComplianceOk);
+                WfReqTask activeTask = wfHandler.ActReqTask;
+                if (activeTask.Id == task.Id && !ReferenceEquals(task, activeTask))
+                {
+                    activeTask.RemoveAddInfo(AdditionalInfoKeys.ComplianceOk);
+                }
+            }
+        }
+
+        /// <summary>
         /// Stores the check result in the additional info of each task whose stored result differs.
         /// The active request task of the workflow handler is a copy of its ticket task, so it gets the new result as well;
         /// otherwise saving it later would write back the outdated result.
         /// </summary>
         private async Task StoreComplianceResults(IEnumerable<WfReqTask> tasks, IReadOnlyDictionary<long, RequestTaskComplianceResult> results)
         {
-            foreach (bool isCompliant in new[] { true, false })
+            foreach (bool isCompliant in kStoredComplianceValues)
             {
                 List<WfReqTask> changedTasks = [.. tasks.Where(task => task.Id > 0
                     && results.TryGetValue(task.Id, out RequestTaskComplianceResult? result)

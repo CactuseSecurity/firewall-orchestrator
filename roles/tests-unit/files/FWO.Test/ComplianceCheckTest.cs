@@ -296,6 +296,11 @@ namespace FWO.Test
             Assert.That(ComplianceCheck.CurrentViolationsInCheck.Any(v => v.Details.Contains("Matrix B Source")), Is.True);
         }
 
+        private static readonly int[] kPolicyIds1And2 = [1, 2];
+        private static readonly int[] kPolicyId1 = [1];
+        private static readonly int[] kInvalidPolicyIds = [0, -1];
+        private static readonly List<Rule> kNoRules = [];
+
         [Test]
         public async Task GetRuleViolations_CollectsViolationsOfAllSelectedPolicies()
         {
@@ -304,12 +309,13 @@ namespace FWO.Test
             Rule rule = CreateRuleWithService("forbidden-service-uid", "Forbidden Legacy Service", 6, "TCP", 443);
             rule.Id = 77;
 
-            List<ComplianceViolation>? violations = await ComplianceCheck.GetRuleViolations([1, 2], [rule]);
+            List<Rule> rules = [rule];
+            List<ComplianceViolation>? violations = await ComplianceCheck.GetRuleViolations(kPolicyIds1And2, rules);
 
             Assert.Multiple(() =>
             {
                 Assert.That(violations, Is.Not.Null);
-                Assert.That(violations!.Select(violation => violation.PolicyId), Is.EquivalentTo(new[] { 1, 2 }));
+                Assert.That(violations!.Select(violation => violation.PolicyId), Is.EquivalentTo(kPolicyIds1And2));
                 Assert.That(violations!.Select(violation => violation.RuleId), Is.All.EqualTo(77));
                 ApiConnection.AsSub().Received(2).SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>());
             });
@@ -322,7 +328,8 @@ namespace FWO.Test
             SetUpForbiddenServicePolicies();
             Rule rule = CreateRuleWithService("forbidden-service-uid", "Forbidden Legacy Service", 6, "TCP", 443);
 
-            bool compliant = await ComplianceCheck.AreRulesCompliant([1, 2], [rule]);
+            List<Rule> rules = [rule];
+            bool compliant = await ComplianceCheck.AreRulesCompliant(kPolicyIds1And2, rules);
 
             Assert.Multiple(() =>
             {
@@ -337,8 +344,9 @@ namespace FWO.Test
             await SetUpBasic(setupRelevantManagements: true, createPolicy: true);
             Rule rule = CreateSimpleRule(1);
 
-            List<ComplianceViolation>? withoutPolicies = await ComplianceCheck.GetRuleViolations([0, -1], [rule]);
-            List<ComplianceViolation>? withoutRules = await ComplianceCheck.GetRuleViolations([1], []);
+            List<Rule> rules = [rule];
+            List<ComplianceViolation>? withoutPolicies = await ComplianceCheck.GetRuleViolations(kInvalidPolicyIds, rules);
+            List<ComplianceViolation>? withoutRules = await ComplianceCheck.GetRuleViolations(kPolicyId1, kNoRules);
 
             Assert.Multiple(() =>
             {
@@ -353,7 +361,8 @@ namespace FWO.Test
         {
             await SetUpBasic(createEmptyPolicy: true, setupRelevantManagements: true);
 
-            List<ComplianceViolation>? violations = await ComplianceCheck.GetRuleViolations([1], [CreateSimpleRule(1)]);
+            List<Rule> rules = [CreateSimpleRule(1)];
+            List<ComplianceViolation>? violations = await ComplianceCheck.GetRuleViolations(kPolicyId1, rules);
 
             Assert.That(violations, Is.Null);
         }
@@ -363,7 +372,8 @@ namespace FWO.Test
         {
             ComplianceCheck checkWithoutGlobalConfig = new(new SimulatedUserConfig(), ApiConnection, Logger.AsSub());
 
-            List<ComplianceViolation>? violations = await checkWithoutGlobalConfig.GetRuleViolations([1], [CreateSimpleRule(1)]);
+            List<Rule> rules = [CreateSimpleRule(1)];
+            List<ComplianceViolation>? violations = await checkWithoutGlobalConfig.GetRuleViolations(kPolicyId1, rules);
 
             Assert.Multiple(() =>
             {

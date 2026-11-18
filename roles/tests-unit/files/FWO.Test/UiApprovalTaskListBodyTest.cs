@@ -156,7 +156,7 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
         WfHandler handler = new() { ActTicket = new WfTicket { Id = 801, Tasks = [compliantTask, violatingTask] } };
         Dictionary<long, RequestTaskComplianceResult> results = new()
         {
-            [81] = new(81, true, []),
+            [81] = new(81, true, NoReasons),
             [82] = new(82, false, kViolationReasons)
         };
         await AttachPolicyCheck(handler, context.Services.GetRequiredService<ApiConnection>(), new FixedResultPolicyChecker(results));
@@ -192,7 +192,7 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
         IRenderedComponent<ApprovalTaskDetailsView> cut = RenderListView(context, handler);
         Assert.That(ColumnPosition(cut.Markup, "compliance"), Is.EqualTo(-1));
 
-        Dictionary<long, RequestTaskComplianceResult> results = new() { [83] = new(83, true, []) };
+        Dictionary<long, RequestTaskComplianceResult> results = new() { [83] = new(83, true, NoReasons) };
         await AttachPolicyCheck(handler, context.Services.GetRequiredService<ApiConnection>(), new FixedResultPolicyChecker(results));
         handler.ActTicket = new WfTicket { Id = 803, Tasks = [task] };
         cut.Render(parameters => parameters.Add(p => p.WfHandler, handler));
@@ -282,7 +282,7 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
         await using BunitContext context = CreateListContext();
         WfReqTask task = CheckableAccessTask(87, "access");
         WfHandler handler = new() { ActTicket = new WfTicket { Id = 807, Tasks = [task] } };
-        FixedResultPolicyChecker checker = new(new Dictionary<long, RequestTaskComplianceResult> { [87] = new(87, true, []) });
+        FixedResultPolicyChecker checker = new(new Dictionary<long, RequestTaskComplianceResult> { [87] = new(87, true, NoReasons) });
         await AttachPolicyCheck(handler, context.Services.GetRequiredService<ApiConnection>(), checker);
 
         IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters

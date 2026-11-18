@@ -426,6 +426,8 @@ namespace FWO.Services.Workflow
         /// <remarks>
         /// Some editors change the elements of the ticket's tasks in place before saving, so the fingerprint before the change
         /// can already contain the change; therefore the content is also compared with the content of the last check.
+        /// Without a last check there is nothing to compare with, so the tasks are checked again.
+        /// If the check fails, the stored results are removed, so the tasks are checked when displayed.
         /// </remarks>
         private async Task UpdateStoredComplianceResults(string fingerprintBefore)
         {
@@ -435,7 +437,7 @@ namespace FWO.Services.Workflow
                     || ActTicket.Id <= 0
                     || !ActTicket.Tasks.Any(task => RequestTaskCompliance.StoredResult(task) != null)
                     || (RequestTaskCompliance.Fingerprint(ActTicket) == fingerprintBefore
-                        && ActionHandler.MatchesLastComplianceCheck(ActTicket) != false))
+                        && ActionHandler.MatchesLastComplianceCheck(ActTicket) == true))
                 {
                     return;
                 }

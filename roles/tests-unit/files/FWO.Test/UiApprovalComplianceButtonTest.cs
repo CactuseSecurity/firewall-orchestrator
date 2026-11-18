@@ -12,7 +12,7 @@ namespace FWO.Test
     {
         private static readonly List<string> kReasons = ["forbidden service", "zone violation"];
         private static readonly ApprovalTaskCompliance kNotAllowed = new(false, kReasons);
-        private static readonly ApprovalTaskCompliance kOk = new(true, []);
+        private static readonly ApprovalTaskCompliance kOk = new(true, ApprovalComplianceTestHelper.NoReasons);
 
         [Test]
         public void Loading_ShowsDisabledPlaceholderWithAdditionalClasses()

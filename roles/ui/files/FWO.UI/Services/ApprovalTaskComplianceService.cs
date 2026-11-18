@@ -25,7 +25,8 @@ namespace FWO.Ui.Services
             {
                 return null;
             }
-            return new(taskResults.All(result => result.IsCompliant), [.. taskResults.SelectMany(result => result.Reasons).Distinct()]);
+            List<string> reasons = [.. taskResults.SelectMany(result => result.Reasons).Distinct()];
+            return new(taskResults.All(result => result.IsCompliant), reasons);
         }
 
         /// <summary>Returns the localized status text ("Ok" or "not allowed").</summary>
@@ -64,6 +65,14 @@ namespace FWO.Ui.Services
         /// <summary>Returns the merged compliance status of the given tasks; null if none of them was checked.</summary>
         /// <param name="tasks">A single task or a bundle displayed as one.</param>
         public ApprovalTaskCompliance? ComplianceOf(IEnumerable<WfReqTask> tasks) => ApprovalTaskCompliance.Of(tasks, Results);
+
+        /// <summary>Returns the compliance status of a single task; null if it was not checked.</summary>
+        /// <param name="task">The task.</param>
+        public ApprovalTaskCompliance? ComplianceOf(WfReqTask task)
+        {
+            List<WfReqTask> tasks = [task];
+            return ComplianceOf(tasks);
+        }
 
         /// <summary>
         /// Checks the tasks of the handler's ticket unless the same content has already been checked.

@@ -471,7 +471,7 @@ internal class UiApprovalTaskListRowBuilderTest
         WfReqTask uncheckedTask = new() { Id = 10, TaskType = WfTaskType.access.ToString() };
         Dictionary<long, RequestTaskComplianceResult> results = new()
         {
-            [7] = new(7, true, []),
+            [7] = new(7, true, ApprovalComplianceTestHelper.NoReasons),
             [9] = new(9, false, kViolationReasons)
         };
         ApprovalTaskListRowBuilder builder = CreateBuilder(task, kNoFields, complianceResults: results);

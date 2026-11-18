@@ -8,11 +8,15 @@ namespace FWO.Test
     /// <summary>Shared setup for tests of the compliance status in the approval views.</summary>
     internal static class ApprovalComplianceTestHelper
     {
+        /// <summary>The reasons of a compliant task.</summary>
+        public static readonly IReadOnlyList<string> NoReasons = [];
+
         /// <summary>Attaches an action handler whose workflow has a conditional policy check, answered by the given checker.</summary>
         public static async Task AttachPolicyCheck(WfHandler handler, ApiConnection apiConnection, IRequestedRulePolicyChecker checker)
         {
             handler.ActionHandler = new ActionHandler(apiConnection, handler, null, true, checker);
-            await handler.ActionHandler.Init([new WfState { Id = 2, Actions = [ConditionalPolicyCheckAction()] }]);
+            List<WfState> states = [new WfState { Id = 2, Actions = [ConditionalPolicyCheckAction()] }];
+            await handler.ActionHandler.Init(states);
         }
 
         /// <summary>A conditional auto-promote action with a policy check.</summary>
@@ -53,6 +57,12 @@ namespace FWO.Test
         /// <summary>Number of performed per-task checks.</summary>
         public int CheckCount { get; private set; }
 
+        /// <summary>Lets the per-task checks fail, e.g. because the policies cannot be loaded.</summary>
+        public bool Fail { get; set; }
+
+        /// <summary>The ids of the tasks passed to the last per-task check.</summary>
+        public List<long> CheckedTaskIds { get; private set; } = [];
+
         public Task<bool> AreRequestTasksCompliant(IEnumerable<int> policyIds, IEnumerable<WfReqTask> requestTasks)
         {
             return Task.FromResult(results.Values.All(result => result.IsCompliant));
@@ -61,6 +71,11 @@ namespace FWO.Test
         public Task<IReadOnlyDictionary<long, RequestTaskComplianceResult>> CheckRequestTasks(IEnumerable<int> policyIds, IEnumerable<WfReqTask> requestTasks)
         {
             CheckCount++;
+            CheckedTaskIds = [.. requestTasks.Select(task => task.Id)];
+            if (Fail)
+            {
+                throw new InvalidOperationException("policies could not be loaded");
+            }
             return Task.FromResult(results);
         }
     }

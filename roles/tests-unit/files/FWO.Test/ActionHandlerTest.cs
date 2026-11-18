@@ -2859,12 +2859,19 @@ namespace FWO.Test
             Assert.That(result, Is.False);
         }
 
+        private static readonly int[] kConditionalPolicyIds = [5, 7, 9];
+        private static readonly long[] kTask31 = [31];
+        private static readonly string[] kCheckReasons = ["reason"];
+        private static readonly long[] kTasks42To44 = [42, 43, 44];
+        private static readonly long[] kTasks41To43 = [41, 42, 43];
+        private static readonly long[] kTasks48And49 = [48, 49];
+
         [Test]
         public async Task CheckRequestTaskCompliance_UsesPoliciesOfConditionalAutoPromoteActions()
         {
             ActionHandlerTestPolicyChecker policyChecker = new() { Result = false };
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, policyChecker);
-            await handler.Init(
+            List<WfState> states =
             [
                 new WfState
                 {
@@ -2880,18 +2887,19 @@ namespace FWO.Test
                     Id = 2,
                     Actions = [AutoPromoteAction("{\"to_be_called\":\"PolicyCheck\",\"policy_ids\":[7,9]}")]
                 }
-            ]);
+            ];
+            await handler.Init(states);
             WfTicket ticket = CreateTicket(CreateEligibleTask(31), new WfReqTask { Id = 32, TaskType = WfTaskType.generic.ToString() });
 
             IReadOnlyDictionary<long, RequestTaskComplianceResult>? results = await handler.CheckRequestTaskCompliance(ticket);
 
             Assert.Multiple(() =>
             {
-                Assert.That(handler.GetConditionalPolicyCheckIds(), Is.EquivalentTo(new[] { 5, 7, 9 }));
-                Assert.That(policyChecker.PolicyIds, Is.EquivalentTo(new[] { 5, 7, 9 }));
-                Assert.That(policyChecker.RequestTaskIds, Is.EqualTo(new long[] { 31 }));
+                Assert.That(handler.GetConditionalPolicyCheckIds(), Is.EquivalentTo(kConditionalPolicyIds));
+                Assert.That(policyChecker.PolicyIds, Is.EquivalentTo(kConditionalPolicyIds));
+                Assert.That(policyChecker.RequestTaskIds, Is.EqualTo(kTask31));
                 Assert.That(results, Is.Not.Null);
-                Assert.That(results![31].Reasons, Is.EqualTo(new[] { "reason" }));
+                Assert.That(results![31].Reasons, Is.EqualTo(kCheckReasons));
             });
         }
 
@@ -2900,7 +2908,8 @@ namespace FWO.Test
         {
             ActionHandlerTestPolicyChecker policyChecker = new() { Result = true };
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true, policyChecker);
-            await handler.Init([new WfState { Id = 1, Actions = [AutoPromoteAction("{\"to_state_id\":3}")] }]);
+            List<WfState> states = [new WfState { Id = 1, Actions = [AutoPromoteAction("{\"to_state_id\":3}")] }];
+            await handler.Init(states);
 
             IReadOnlyDictionary<long, RequestTaskComplianceResult>? results = await handler.CheckRequestTaskCompliance(CreateTicket(CreateEligibleTask(33)));
 
@@ -2927,10 +2936,10 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(policyChecker.RequestTaskIds, Is.EqualTo(new long[] { 42, 43, 44 }));
-                Assert.That(results!.Keys, Is.EquivalentTo(new long[] { 41, 42, 43 }));
+                Assert.That(policyChecker.RequestTaskIds, Is.EqualTo(kTasks42To44));
+                Assert.That(results!.Keys, Is.EquivalentTo(kTasks41To43));
                 Assert.That(results[41].IsCompliant, Is.True);
-                Assert.That(results[42].Reasons, Is.EqualTo(new[] { "reason" }));
+                Assert.That(results[42].Reasons, Is.EqualTo(kCheckReasons));
             });
         }
 
@@ -2954,7 +2963,7 @@ namespace FWO.Test
         [Test]
         public async Task CheckRequestTaskCompliance_KeepsTheLastResultUntilTheCheckedContentChanges()
         {
-            FixedResultPolicyChecker policyChecker = new(new Dictionary<long, RequestTaskComplianceResult> { [46] = new(46, false, ["reason"]) });
+            FixedResultPolicyChecker policyChecker = new(new Dictionary<long, RequestTaskComplianceResult> { [46] = new(46, false, kCheckReasons) });
             ActionHandler handler = await CreateComplianceHandler(policyChecker);
             WfReqTask task = CreateEligibleTask(46);
             WfTicket ticket = CreateTicket(task);
@@ -2999,7 +3008,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(policyChecker.RequestTaskIds, Is.EqualTo(new long[] { 48, 49 }));
+                Assert.That(policyChecker.RequestTaskIds, Is.EqualTo(kTasks48And49));
                 Assert.That(RequestTaskCompliance.StoredResult(storedOk), Is.False);
                 Assert.That(RequestTaskCompliance.StoredResult(wfHandler.ActReqTask), Is.False);
                 Assert.That(storedNotOk.AdditionalInfo, Is.EqualTo(storedNotOkInfo));
@@ -3025,6 +3034,26 @@ namespace FWO.Test
             IReadOnlyDictionary<long, RequestTaskComplianceResult>? results = await handler.CheckRequestTaskCompliance(CreateTicket(CreateEligibleTask(51)));
 
             Assert.That(results, Is.Null);
+        }
+
+        [TestCase(true, null)]
+        [TestCase(false, true)]
+        public async Task CheckRequestTaskCompliance_FailedCheckRemovesStoredResultsOnlyWhenStoring(bool storeResults, bool? expectedStoredResult)
+        {
+            WfHandler wfHandler = new();
+            ActionHandler handler = await CreateComplianceHandler(new ActionHandlerTestPolicyChecker { ThrowOnCheck = true }, wfHandler);
+            WfReqTask task = CreateEligibleTask(56);
+            task.SetAddInfo(AdditionalInfoKeys.ComplianceOk, "true");
+            wfHandler.ActReqTask = new WfReqTask(task);
+
+            IReadOnlyDictionary<long, RequestTaskComplianceResult>? results = await handler.CheckRequestTaskCompliance(CreateTicket(task), recheckAll: true, storeResults);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results, Is.Null);
+                Assert.That(RequestTaskCompliance.StoredResult(task), Is.EqualTo(expectedStoredResult));
+                Assert.That(RequestTaskCompliance.StoredResult(wfHandler.ActReqTask), Is.EqualTo(expectedStoredResult));
+            });
         }
 
         [Test]
@@ -3085,7 +3114,8 @@ namespace FWO.Test
         private static async Task<ActionHandler> CreateComplianceHandler(IRequestedRulePolicyChecker policyChecker, WfHandler? wfHandler = null)
         {
             ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler ?? new WfHandler(), null, true, policyChecker);
-            await handler.Init([new WfState { Id = 1, Actions = [AutoPromoteAction("{\"to_be_called\":\"PolicyCheck\",\"policy_ids\":[5]}")] }]);
+            List<WfState> states = [new WfState { Id = 1, Actions = [AutoPromoteAction("{\"to_be_called\":\"PolicyCheck\",\"policy_ids\":[5]}")] }];
+            await handler.Init(states);
             return handler;
         }
 
@@ -3095,12 +3125,13 @@ namespace FWO.Test
             ActionHandlerTestApiConn apiConn = new();
             WfHandler wfHandler = new(UserConfig.ForTextOnly(new SimulatedGlobalConfig(), false), apiConn, WorkflowPhases.request, null, policyChecker);
             ActionHandler handler = new(apiConn, wfHandler, null, true);
-            await handler.Init(
+            List<WfState> states =
             [
                 new WfState { Id = 1, Actions = [.. stateActions.Select(stateAction => new WfStateActionDataHelper { Action = stateAction })] },
                 new WfState { Id = 2 },
                 new WfState { Id = 3 }
-            ]);
+            ];
+            await handler.Init(states);
             return handler;
         }
 

@@ -10,6 +10,7 @@ namespace FWO.Test
     internal class UiApprovalTaskComplianceServiceTest
     {
         private static readonly List<string> kReasons = ["forbidden service"];
+        private static readonly List<string> kFirstAndSecondReason = ["first", "second"];
 
         [Test]
         public async Task UpdateAsync_ChecksAgainOnlyWhenCheckedContentChanges()
@@ -34,7 +35,7 @@ namespace FWO.Test
                 Assert.That(checker.CheckCount, Is.EqualTo(2));
                 Assert.That(service.IsConfigured, Is.True);
                 Assert.That(service.IsLoading, Is.False);
-                Assert.That(service.ComplianceOf([task])!.Reasons, Is.EqualTo(kReasons));
+                Assert.That(service.ComplianceOf(task)!.Reasons, Is.EqualTo(kReasons));
             });
         }
 
@@ -55,7 +56,7 @@ namespace FWO.Test
             {
                 Assert.That(changed, Is.True);
                 Assert.That(checker.CheckCount, Is.EqualTo(1));
-                Assert.That(service.ComplianceOf([task])!.Reasons, Is.EqualTo(kReasons));
+                Assert.That(service.ComplianceOf(task)!.Reasons, Is.EqualTo(kReasons));
             });
         }
 
@@ -74,7 +75,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(checker.CheckCount, Is.Zero);
-                Assert.That(service.ComplianceOf([task])!.IsCompliant, Is.True);
+                Assert.That(service.ComplianceOf(task)!.IsCompliant, Is.True);
             });
         }
 
@@ -95,7 +96,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(checker.CheckCount, Is.EqualTo(1));
-                Assert.That(service.ComplianceOf([task])!.Reasons, Is.EqualTo(kReasons));
+                Assert.That(service.ComplianceOf(task)!.Reasons, Is.EqualTo(kReasons));
                 Assert.That(task.GetAddInfoValue(AdditionalInfoKeys.ComplianceOk), Is.EqualTo("false"));
             });
         }
@@ -116,7 +117,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(service.ComplianceOf([task])!.IsCompliant, Is.False);
+                Assert.That(service.ComplianceOf(task)!.IsCompliant, Is.False);
                 Assert.That(task.GetAddInfoValue(AdditionalInfoKeys.ComplianceOk), Is.EqualTo("true"));
             });
         }
@@ -155,8 +156,8 @@ namespace FWO.Test
         public void Compliance_StatusTextAndTooltip()
         {
             SimulatedUserConfig userConfig = new();
-            ApprovalTaskCompliance notAllowed = new(false, ["first", "second"]);
-            ApprovalTaskCompliance ok = new(true, []);
+            ApprovalTaskCompliance notAllowed = new(false, kFirstAndSecondReason);
+            ApprovalTaskCompliance ok = new(true, ApprovalComplianceTestHelper.NoReasons);
 
             Assert.Multiple(() =>
             {

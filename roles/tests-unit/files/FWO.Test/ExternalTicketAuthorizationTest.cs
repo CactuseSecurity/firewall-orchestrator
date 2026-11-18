@@ -177,7 +177,7 @@ namespace FWO.Test
             using TestMainKeyScope mainKeyScope = new(kMainKey);
             ExtTicketHandlerTestApiConn apiConnection = new() { Credential = CreateCredential(kRotatedPassword) };
             ExternalTicketSystem storedSystem = new() { Id = 1, Name = "probe", CredentialId = kOldCredentialId };
-            string configured = ConfiguredTicketSystems(new ExternalTicketSystem { Id = 1, Name = "probe", CredentialId = kCredentialId });
+            ExternalTicketSystem configured = new ExternalTicketSystem { Id = 1, Name = "probe", CredentialId = kCredentialId };
 
             await ExternalTicketAuthorization.ResolveHeader(storedSystem, apiConnection, configured);
 
@@ -195,7 +195,7 @@ namespace FWO.Test
             using TestMainKeyScope mainKeyScope = new(kMainKey);
             ExtTicketHandlerTestApiConn apiConnection = new() { Credential = CreateCredential(kRotatedPassword) };
             ExternalTicketSystem storedSystem = new() { Id = 1, Name = "probe", CredentialId = kOldCredentialId, Authorization = AesEnc.Encrypt(kBasicHeader, kMainKey) };
-            string configured = ConfiguredTicketSystems(new ExternalTicketSystem { Id = 1, Name = "probe" });
+            ExternalTicketSystem configured = new ExternalTicketSystem { Id = 1, Name = "probe" };
 
             await ExternalTicketAuthorization.ResolveHeader(storedSystem, apiConnection, configured);
 
@@ -207,12 +207,12 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ResolveHeader_UsesStoredCredentialWhenTicketSystemIsNoLongerConfigured()
+        public async Task ResolveHeader_UsesStoredCredentialWithoutConfiguredTicketSystem()
         {
             using TestMainKeyScope mainKeyScope = new(kMainKey);
             ExtTicketHandlerTestApiConn apiConnection = new() { Credential = CreateCredential(kPassword) };
             ExternalTicketSystem storedSystem = new() { Id = 1, Name = "probe", CredentialId = kCredentialId };
-            string configured = ConfiguredTicketSystems(new ExternalTicketSystem { Id = 2, Name = "other", CredentialId = kOldCredentialId });
+            ExternalTicketSystem? configured = null;
 
             await ExternalTicketAuthorization.ResolveHeader(storedSystem, apiConnection, configured);
 
@@ -238,7 +238,7 @@ namespace FWO.Test
                 TypeId = BuiltInExternalTicketSystemTypes.TufinSecureChangeId,
                 CredentialId = kOldCredentialId
             };
-            string configured = ConfiguredTicketSystems(new ExternalTicketSystem { Id = 1, Name = "new", Url = configuredUrl, TypeId = configuredTypeId, CredentialId = kCredentialId });
+            ExternalTicketSystem configured = new ExternalTicketSystem { Id = 1, Name = "new", Url = configuredUrl, TypeId = configuredTypeId, CredentialId = kCredentialId };
 
             await ExternalTicketAuthorization.ResolveHeader(storedSystem, apiConnection, configured);
 
@@ -246,20 +246,6 @@ namespace FWO.Test
             {
                 Assert.That(apiConnection.CredentialQueryVars, Has.Count.EqualTo(1));
                 Assert.That(apiConnection.CredentialQueryVars[0], Does.Contain($"id = {kOldCredentialId}"));
-            });
-        }
-
-        [Test]
-        public void FindConfigured_FindsTicketSystemById()
-        {
-            string configured = ConfiguredTicketSystems(new ExternalTicketSystem { Id = 1, Name = "first" }, new ExternalTicketSystem { Id = 2, Name = "second" });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(ExternalTicketSystem.FindConfigured(configured, 2)?.Name, Is.EqualTo("second"));
-                Assert.That(ExternalTicketSystem.FindConfigured(configured, 3), Is.Null);
-                Assert.That(ExternalTicketSystem.FindConfigured("", 1), Is.Null);
-                Assert.That(ExternalTicketSystem.FindConfigured(null, 1), Is.Null);
             });
         }
 
@@ -287,33 +273,9 @@ namespace FWO.Test
             });
         }
 
-        private static string ConfiguredTicketSystems(params ExternalTicketSystem[] systems)
-        {
-            return System.Text.Json.JsonSerializer.Serialize(systems.ToList());
-        }
-
         private static Credential CreateCredential(string password)
         {
             return new() { Id = kCredentialId, Name = "probe", ImportUser = kUsername, Secret = AesEnc.Encrypt(password, kMainKey) };
-        }
-
-        [Test]
-        public void UsingCredential_ListsTicketSystemsReferencingCredential()
-        {
-            string extTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem>
-            {
-                new() { Id = 1, Name = "uses", CredentialId = 5 },
-                new() { Id = 2, Name = "other", CredentialId = 6 },
-                new() { Id = 3, Name = "none" }
-            });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(ExternalTicketSystem.UsingCredential(extTicketSystems, 5).Select(system => system.Name), Is.EqualTo(new List<string> { "uses" }));
-                Assert.That(ExternalTicketSystem.UsingCredential(extTicketSystems, 7), Is.Empty);
-                Assert.That(ExternalTicketSystem.UsingCredential("", 5), Is.Empty);
-                Assert.That(ExternalTicketSystem.UsingCredential(null, 5), Is.Empty);
-            });
         }
 
         [Test]

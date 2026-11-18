@@ -4,6 +4,7 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
+using FWO.Encoders;
 using FWO.Report.Filter;
 using FWO.Services.Modelling;
 using System.Text;

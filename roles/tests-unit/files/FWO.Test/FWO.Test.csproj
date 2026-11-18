@@ -9,14 +9,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="AngleSharp" Version="1.10.1" />
+		<PackageReference Include="AngleSharp" Version="1.10.4" />
 		<PackageReference Include="bunit" Version="2.15.2" />
 		<PackageReference Include="NSubstitute" Version="6.2.0" />
-		<PackageReference Include="PuppeteerSharp" Version="25.15.0" />
+		<PackageReference Include="PuppeteerSharp" Version="25.17.1" />
 		<PackageReference Include="NUnit" Version="4.6.1" />
 		<PackageReference Include="NUnit3TestAdapter" Version="6.3.1" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.1" />
-		<PackageReference Include="coverlet.collector" Version="10.1.0">
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
+		<PackageReference Include="coverlet.collector" Version="10.1.1">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
@@ -46,6 +46,7 @@
 		<ProjectReference Include="..\..\..\ui\files\FWO.UI\FWO.Ui.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Encryption\FWO.Encryption.csproj" />
 		<ProjectReference Include="..\..\..\middleware\files\FWO.Middleware.Server\FWO.Middleware.Server.csproj" />
+		<ProjectReference Include="..\..\..\lib\files\FWO.Encoders\FWO.Encoders.csproj" />
 	</ItemGroup>
 
 </Project>

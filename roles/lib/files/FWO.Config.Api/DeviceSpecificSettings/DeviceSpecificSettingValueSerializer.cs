@@ -72,18 +72,30 @@ public static class DeviceSpecificSettingValueSerializer
             return new JValue((bool)value);
         }
 
-        if (key.ValueType == typeof(int?))
+        if (key.ValueType == typeof(int) || key.ValueType == typeof(int?))
         {
-            int id = (int)value;
-            if (id <= 0)
-            {
-                throw new ArgumentException($"Setting '{key.DatabaseKey}' requires a positive ID.", nameof(value));
-            }
-            return new JValue(id);
+            return SerializeNumber(key, (int)value);
         }
 
         throw new NotSupportedException(
             $"Device specific setting type '{key.ValueType.Name}' has no JSONB serializer.");
+    }
+
+    /// <summary>
+    /// Converts a number setting: a count (int) must not be negative, the ID of a referenced object (nullable int) must be
+    /// positive.
+    /// </summary>
+    private static JValue SerializeNumber(DeviceSpecificSettingKey key, int value)
+    {
+        if (key.ValueType == typeof(int?) && value <= 0)
+        {
+            throw new ArgumentException($"Setting '{key.DatabaseKey}' requires a positive ID.", nameof(value));
+        }
+        if (value < 0)
+        {
+            throw new ArgumentException($"Setting '{key.DatabaseKey}' requires a non-negative number.", nameof(value));
+        }
+        return new JValue(value);
     }
 
     /// <summary>Converts a stored JSONB value back to the typed setting value.</summary>
@@ -126,6 +138,11 @@ public static class DeviceSpecificSettingValueSerializer
             return DeserializeBool(key, value);
         }
 
+        if (key.ValueType == typeof(int))
+        {
+            return DeserializeNonNegativeNumber(key, value);
+        }
+
         if (key.ValueType == typeof(int?))
         {
             return DeserializePositiveId(key, value);
@@ -163,6 +180,14 @@ public static class DeviceSpecificSettingValueSerializer
         return value.Type == JTokenType.Boolean
             ? value.Value<bool>()
             : throw InvalidValue(key, value, "a JSON boolean is required");
+    }
+
+    /// <summary>Reads a non-negative JSON integer that fits into an <see cref="int"/>.</summary>
+    private static int DeserializeNonNegativeNumber(DeviceSpecificSettingKey key, JToken value)
+    {
+        return value.Type == JTokenType.Integer && value.Value<long>() is >= 0 and <= int.MaxValue
+            ? value.Value<int>()
+            : throw InvalidValue(key, value, "a non-negative JSON integer is required");
     }
 
     /// <summary>Reads a positive JSON integer that fits into an <see cref="int"/>.</summary>

@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using Bunit;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -295,6 +296,32 @@ namespace FWO.Test
             Assert.That(algorithmConfig.Value, Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()));
         }
 
+        [Test]
+        public async Task Save_PersistsExternalRequestSettings()
+        {
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new() { ReqAvailableTaskTypes = "[]", ReqPriorities = "[]" };
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.ExternalRequestSleepTime = 120;
+            editableConfig.ExternalRequestWaitCycles = 4;
+            editableConfig.ExtTicketSystemsCheckCertificates = false;
+            SettingsCustomizing component = CreateSavableComponent(apiConnection, globalConfig, editableConfig);
+            // the start is edited as time of day and date
+            SetMember(component, "extReqStartDate", new DateTime(2026, 11, 5, 18, 0, 0));
+            SetMember(component, "extReqStartTime", new DateTime(2000, 1, 1, 6, 30, 0));
+
+            await (Task)GetPrivateMethod(typeof(SettingsCustomizing), "Save").Invoke(component, kNoArguments)!;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(editableConfig.ExternalRequestStartAt, Is.EqualTo(new DateTime(2026, 11, 5, 6, 30, 0)));
+                Assert.That(FindConfigItem(apiConnection.LastConfigItems, "externalRequestSleepTime").Value, Is.EqualTo("120"));
+                Assert.That(FindConfigItem(apiConnection.LastConfigItems, "externalRequestWaitCycles").Value, Is.EqualTo("4"));
+                Assert.That(FindConfigItem(apiConnection.LastConfigItems, ConfigData.kExtTicketSystemsCheckCertificatesKey).Value, Is.EqualTo("False"));
+                Assert.That(apiConnection.LastConfigItems.Any(item => item.Key == "externalRequestStartAt"), Is.True);
+            }
+        }
+
         private static SettingsCustomizing CreateSavableComponent(WorkflowCustomizingApiConn apiConnection, SimulatedGlobalConfig globalConfig, ConfigData editableConfig)
         {
             SettingsCustomizing component = new();
@@ -340,6 +367,34 @@ namespace FWO.Test
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new WorkflowCustomizingAuthStateProvider(Roles.Admin));
             return context.Render<CascadingAuthenticationState>(parameters => parameters.AddChildContent<SettingsCustomizing>());
+        }
+
+        [Test]
+        public async Task SettingsCustomizing_RendersPlannerOwnerAndEditModeSettings()
+        {
+            await using BunitContext context = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqAllowOwnerChangesByPlanner = true,
+                ReqPlannerEditMode = PlannerEditMode.PlanningView
+            };
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderCustomizing(context, globalConfig);
+
+            wrapper.WaitForAssertion(() =>
+            {
+                IElement ownerCheckbox = wrapper.Find("#cbx_allow_owner_changes_by_planner");
+                IElement plannerMode = wrapper.Find("#dropdown-sel_planning_edit_mode");
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(ownerCheckbox.HasAttribute("checked"), Is.True);
+                    Assert.That(plannerMode, Is.Not.Null);
+                    Assert.That(wrapper.Markup, Does.Contain("sel_approval_edit_mode"));
+                });
+            });
         }
 
         [Test]

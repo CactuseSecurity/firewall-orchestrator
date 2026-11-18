@@ -164,12 +164,11 @@ public class CheckPointStructuralBlocksTest
         AssertPosition(position, "layer-initial", expectedKind, expectedRuleUid);
     }
 
-    [TestCase(true, CheckPointPositionAnchorKind.Above, "app-first")]
-    [TestCase(false, CheckPointPositionAnchorKind.Below, "app-last")]
-    public async Task PopulatedSectionBoundary_UsesSectionRulesOnly(
+    [TestCase(true, CheckPointPositionAnchorKind.Top)]
+    [TestCase(false, CheckPointPositionAnchorKind.Bottom)]
+    public async Task PopulatedSectionBoundary_UsesSectionIdentity(
         bool beginning,
-        CheckPointPositionAnchorKind expectedKind,
-        string expectedRuleUid)
+        CheckPointPositionAnchorKind expectedKind)
     {
         CheckPointSectionScopeBlock section = new(
             InitialLayer(),
@@ -180,7 +179,7 @@ public class CheckPointStructuralBlocksTest
 
         CheckPointRulePosition position = await ExecutePosition(root, StandardContext());
 
-        AssertPosition(position, "layer-initial", expectedKind, expectedRuleUid);
+        AssertPosition(position, "layer-initial", expectedKind, null, "section-app", "Applications");
     }
 
     [TestCase(true, CheckPointPositionAnchorKind.Top)]
@@ -203,13 +202,10 @@ public class CheckPointStructuralBlocksTest
         AssertPosition(position, "empty", expectedKind, null);
     }
 
-    [TestCase(EmptySectionLocation.First, CheckPointPositionAnchorKind.Above, "next")]
-    [TestCase(EmptySectionLocation.Middle, CheckPointPositionAnchorKind.Above, "next")]
-    [TestCase(EmptySectionLocation.Last, CheckPointPositionAnchorKind.Below, "previous")]
-    public async Task EmptySection_UsesCanonicalBoundaryGap(
-        EmptySectionLocation location,
-        CheckPointPositionAnchorKind expectedKind,
-        string expectedRuleUid)
+    [TestCase(EmptySectionLocation.First)]
+    [TestCase(EmptySectionLocation.Middle)]
+    [TestCase(EmptySectionLocation.Last)]
+    public async Task EmptySection_UsesSectionIdentity(EmptySectionLocation location)
     {
         CheckPointPositioningContext context = Context(EmptySectionSnapshot(location));
         CheckPointSectionScopeBlock section = new(
@@ -219,8 +215,51 @@ public class CheckPointStructuralBlocksTest
         CheckPointRulePosition beginning = await ExecutePosition(new BeginningOfBlock(section), context);
         CheckPointRulePosition end = await ExecutePosition(new EndOfBlock(section), context);
 
-        AssertPosition(beginning, "layer-empty-section", expectedKind, expectedRuleUid);
-        AssertPosition(end, "layer-empty-section", expectedKind, expectedRuleUid);
+        AssertPosition(
+            beginning,
+            "layer-empty-section",
+            CheckPointPositionAnchorKind.Top,
+            null,
+            "empty-section",
+            "Empty");
+        AssertPosition(
+            end,
+            "layer-empty-section",
+            CheckPointPositionAnchorKind.Bottom,
+            null,
+            "empty-section",
+            "Empty");
+    }
+
+    [TestCase("")]
+    [TestCase("   ")]
+    public async Task UidSelectedSection_PreservesBlankImportedName(string sectionName)
+    {
+        Rulebase layer = StructuralRulebase(1, "layer-1", "Network");
+        Rulebase sectionRulebase = StructuralRulebase(2, "section-blank", sectionName);
+        List<Rulebase> rulebases = [layer, sectionRulebase];
+        List<RulebaseLink> links =
+        [
+            Link(null, null, 1, RulebaseLinkTypes.Ordered, isInitial: true),
+            SectionLink(1, 2)
+        ];
+        CheckPointPositioningContext context = Context(Snapshot(rulebases, links));
+        EndOfBlock root = new(new CheckPointSectionScopeBlock(
+            InitialLayer(),
+            CheckPointSectionSelector.ByUid("section-blank")));
+
+        PositioningBlockResult<CheckPointBlockValue> result = await Execute(root, context);
+
+        Assert.That(result, Is.TypeOf<PositioningBlockSuccess<CheckPointBlockValue>>());
+        CheckPointRulePosition position = ((CheckPointPositionValue)
+            ((PositioningBlockSuccess<CheckPointBlockValue>)result).Value).Position;
+        AssertPosition(
+            position,
+            "layer-1",
+            CheckPointPositionAnchorKind.Bottom,
+            null,
+            "section-blank",
+            sectionName);
     }
 
     [Test]
@@ -240,7 +279,13 @@ public class CheckPointStructuralBlocksTest
 
         CheckPointRulePosition position = await ExecutePosition(new EndOfBlock(section), context);
 
-        AssertPosition(position, "layer-1", CheckPointPositionAnchorKind.Top, null);
+        AssertPosition(
+            position,
+            "layer-1",
+            CheckPointPositionAnchorKind.Bottom,
+            null,
+            "empty",
+            "Empty");
     }
 
     [TestCase(9, kGatewayId)]
@@ -374,7 +419,13 @@ public class CheckPointStructuralBlocksTest
 
         CheckPointRulePosition position = await ExecutePosition(recipeRoot, StandardContext());
 
-        AssertPosition(position, "layer-initial", CheckPointPositionAnchorKind.Above, "app-first");
+        AssertPosition(
+            position,
+            "layer-initial",
+            CheckPointPositionAnchorKind.Top,
+            null,
+            "section-app",
+            "Applications");
     }
 
     /// <summary>
@@ -429,13 +480,17 @@ public class CheckPointStructuralBlocksTest
         CheckPointRulePosition position,
         string layerUid,
         CheckPointPositionAnchorKind anchorKind,
-        string? ruleUid)
+        string? ruleUid,
+        string? sectionUid = null,
+        string? sectionName = null)
     {
         Assert.Multiple(() =>
         {
             Assert.That(position.LayerUid, Is.EqualTo(layerUid));
             Assert.That(position.AnchorKind, Is.EqualTo(anchorKind));
             Assert.That(position.AnchorRuleUid, Is.EqualTo(ruleUid));
+            Assert.That(position.SectionUid, Is.EqualTo(sectionUid));
+            Assert.That(position.SectionName, Is.EqualTo(sectionName));
             Assert.That(position.PositioningAlgorithm, Is.EqualTo(kAlgorithm));
         });
     }

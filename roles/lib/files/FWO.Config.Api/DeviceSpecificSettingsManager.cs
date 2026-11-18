@@ -258,6 +258,18 @@ public sealed class DeviceSpecificSettingsManager
     }
 
     /// <summary>
+    /// Names of the levels whose Tufin SecureChange connection logs in with the given credential. The database cannot
+    /// prevent deleting such a credential, as the settings reference it by value.
+    /// </summary>
+    /// <param name="credentialId">The credential.</param>
+    public async Task<List<string>> GetLevelsUsingCredentialAsync(int credentialId)
+    {
+        List<DeviceSpecificConfigNodeData> nodes = await apiConnection.SendQueryAsync<List<DeviceSpecificConfigNodeData>>(
+            DeviceSpecificSettingsQueries.getNodesUsingCredential, new { credentialId });
+        return [.. nodes.Select(node => node.DisplayName)];
+    }
+
+    /// <summary>
     /// Merges the values stored on the levels of a path, Global first, looking every level's node up by its
     /// scope type and object key.
     /// </summary>

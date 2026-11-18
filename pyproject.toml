@@ -8,6 +8,10 @@ extraPaths = ["roles/importer/files/importer"]
 venvPath = "."
 venv = ".venv"
 pythonPlatform = "Linux"
+# The oldest supported Python (Ubuntu 22.04), so that an API only newer versions provide is
+# reported on every pull request. Python Code Check also runs pyright for the newest one
+# (--pythonversion 3.14), which reports what newer versions removed.
+pythonVersion = "3.10"
 
 exclude = [
     "**/.*",

@@ -35,6 +35,9 @@ namespace FWO.Test
             Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.Auditor];
         private static readonly string[] ReportAmbientRoles = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
             Roles.Recertifier, Roles.Admin, Roles.Auditor];
+        private static readonly IEnumerable<string> ReporterModellerRoles = [Roles.Reporter, Roles.Modeller];
+        private static readonly IEnumerable<string> ReporterRoles = [Roles.Reporter];
+        private const string kLocationChangingHandlersFieldName = "_locationChangingHandlers";
 
         private static MethodInfo GetPrivateMethod(string name)
         {
@@ -71,6 +74,18 @@ namespace FWO.Test
         private static List<string> GetAmbientRolesForRoute(MainLayout layout, string route)
         {
             return (List<string>)GetPrivateMethod("GetAmbientRolesForLocation").Invoke(layout, [route])!;
+        }
+
+        /// <summary>
+        /// Counts the location-changing handlers registered at the navigation manager. Fails instead of
+        /// passing silently if the framework renames the handler list.
+        /// </summary>
+        private static int GetLocationChangingHandlerCount(NavigationManager navigationManager)
+        {
+            FieldInfo handlersField = typeof(NavigationManager).GetField(kLocationChangingHandlersFieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(typeof(NavigationManager).FullName, kLocationChangingHandlersFieldName);
+            System.Collections.ICollection handlers = (System.Collections.ICollection)handlersField.GetValue(navigationManager)!;
+            return handlers.Count;
         }
 
         [Test]
@@ -184,16 +199,14 @@ namespace FWO.Test
         public async Task NavigationToPersonalSettingsExpandsWorkflowRolesIntoAmbientRoleSelection()
         {
             await using MainLayoutFixture fixture = new(roles: AdminRequesterRoles);
-            fixture.ApiConnection.AmbientRoleRequests.Clear();
-            fixture.ApiConnection.AmbientRoleSelections.Clear();
 
             fixture.NavigationManager.NavigateTo("/settings/personal");
 
-            fixture.Layout.WaitForAssertion(() =>
+            Assert.Multiple(() =>
             {
-                Assert.That(fixture.ApiConnection.AmbientRoleRequests.Last(), Is.EqualTo(PersonalSettingsAmbientRoles));
-                Assert.That(fixture.ApiConnection.AmbientRoleSelections.Last(), Is.EqualTo(Roles.Requester));
-                Assert.That(fixture.ApiConnection.AmbientRoleRequests.Last(), Does.Contain(Roles.Requester));
+                Assert.That(fixture.ApiConnection.ResolveAmbientRoles(), Is.EqualTo(PersonalSettingsAmbientRoles));
+                Assert.That(fixture.ApiConnection.ResolveAmbientRoleSelection(), Is.EqualTo(Roles.Requester));
+                Assert.That(fixture.ApiConnection.ResolveAmbientRoles(), Does.Contain(Roles.Requester));
             });
         }
 
@@ -201,15 +214,55 @@ namespace FWO.Test
         public async Task NavigationToAmbientRoleSmokeRouteUpdatesApiConnection()
         {
             await using MainLayoutFixture fixture = new(roles: [Roles.Reporter, Roles.Modeller, Roles.Recertifier]);
-            fixture.ApiConnection.AmbientRoleRequests.Clear();
 
             fixture.NavigationManager.NavigateTo("/report/generation");
 
-            fixture.Layout.WaitForAssertion(() =>
+            Assert.Multiple(() =>
             {
-                Assert.That(fixture.ApiConnection.AmbientRoleRequests.Last(), Is.EqualTo(ReportAmbientRoles));
+                Assert.That(fixture.ApiConnection.ResolveAmbientRoles(), Is.EqualTo(ReportAmbientRoles));
                 Assert.That(fixture.ApiConnection.LastAmbientUser?.Identity?.Name, Is.EqualTo("tester"));
             });
+        }
+
+        [Test]
+        public async Task AmbientRoleFollowsTheCurrentPageWithoutBeingNotifiedOfNavigation()
+        {
+            await using MainLayoutFixture fixture = new(roles: ReporterModellerRoles, initialUri: "http://localhost/networkmodelling");
+            int registrationsBeforeNavigation = fixture.ApiConnection.AmbientRoleProviderRegistrations.Count;
+            Assert.That(fixture.ApiConnection.ResolveAmbientRoleSelection(), Is.EqualTo(Roles.Modeller));
+
+            fixture.NavigationManager.NavigateTo("/report/generation");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(fixture.ApiConnection.ResolveAmbientRoleSelection(), Is.EqualTo(Roles.Reporter));
+                Assert.That(fixture.ApiConnection.AmbientRoleProviderRegistrations, Has.Count.EqualTo(registrationsBeforeNavigation));
+            });
+        }
+
+        [Test]
+        public async Task NavigationToReportObjectFragmentKeepsReportAmbientRole()
+        {
+            await using MainLayoutFixture fixture = new(roles: ReporterModellerRoles, initialUri: "http://localhost/report/generation");
+
+            fixture.NavigationManager.NavigateTo("/report/generation#goto-report-m1-nwobj0x5");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(fixture.ApiConnection.ResolveAmbientRoles(), Is.EqualTo(ReportAmbientRoles));
+                Assert.That(fixture.ApiConnection.ResolveAmbientRoleSelection(), Is.EqualTo(Roles.Reporter));
+            });
+        }
+
+        [Test]
+        public async Task Layout_RegistersNoLocationChangingHandler()
+        {
+            // a location-changing handler makes blazor.server.js replay every browser history step through
+            // history.go(), which breaks native fragment navigation such as the report links into the right
+            // sidebar (issue #4919)
+            await using MainLayoutFixture fixture = new(roles: ReporterRoles);
+
+            Assert.That(GetLocationChangingHandlerCount(fixture.NavigationManager), Is.Zero);
         }
 
         [Test]
@@ -295,8 +348,8 @@ namespace FWO.Test
         {
             await using MainLayoutFixture fixture = new(roles: [Roles.Auditor, Roles.Modeller], initialUri: "http://localhost/networkmodelling");
 
-            Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Not.Empty);
-            Assert.That(fixture.ApiConnection.AmbientRoleSelections[0], Is.EqualTo(Roles.Modeller));
+            Assert.That(fixture.ApiConnection.AmbientRoleProviderRegistrations, Is.Not.Empty);
+            Assert.That(fixture.ApiConnection.ResolveAmbientRoleSelection(), Is.EqualTo(Roles.Modeller));
             Assert.That(GetPrivateFieldValue<bool>(fixture.Layout.Instance, "ambientRoleInitialized"), Is.True);
         }
 
@@ -313,7 +366,7 @@ namespace FWO.Test
                 () => GetPrivateFieldValue<bool>(fixture.Layout.Instance, "ambientRoleInitialized"),
                 Is.True.After(7000, 50));
             Assert.That(fixture.Layout.Markup, Is.Not.Empty);
-            Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Empty);
+            Assert.That(fixture.ApiConnection.AmbientRoleProviderRegistrations, Is.Empty);
         }
 
         [Test]
@@ -328,14 +381,14 @@ namespace FWO.Test
             Assert.That(
                 () => GetPrivateFieldValue<bool>(fixture.Layout.Instance, "ambientRoleInitialized"),
                 Is.True.After(7000, 50));
-            Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Empty);
+            Assert.That(fixture.ApiConnection.AmbientRoleProviderRegistrations, Is.Empty);
 
             authProvider.PublishAuthenticatedState();
 
             fixture.Layout.WaitForAssertion(() =>
             {
-                Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Not.Empty);
-                Assert.That(fixture.ApiConnection.AmbientRoleSelections[0], Is.EqualTo(Roles.Modeller));
+                Assert.That(fixture.ApiConnection.AmbientRoleProviderRegistrations, Is.Not.Empty);
+                Assert.That(fixture.ApiConnection.ResolveAmbientRoleSelection(), Is.EqualTo(Roles.Modeller));
             });
         }
 
@@ -346,7 +399,7 @@ namespace FWO.Test
             // an exception escaping the handler would reach the synchronization context and kill the circuit
             await using MainLayoutFixture fixture = new(roles: [Roles.Modeller, Roles.Auditor], initialUri: "http://localhost/networkmodelling");
             MainLayout layout = fixture.Layout.Instance;
-            fixture.ApiConnection.AmbientRoleSelections.Clear();
+            fixture.ApiConnection.AmbientRoleProviderRegistrations.Clear();
 
             Assert.DoesNotThrow(() => InvokeAuthenticationStateChanged(layout,
                 Task.FromException<AuthenticationState>(new InvalidOperationException("no state"))));
@@ -358,8 +411,8 @@ namespace FWO.Test
             // the failed state must not have left the layout deaf to the next one
             fixture.Layout.WaitForAssertion(() =>
             {
-                Assert.That(fixture.ApiConnection.AmbientRoleSelections, Is.Not.Empty);
-                Assert.That(fixture.ApiConnection.AmbientRoleSelections[0], Is.EqualTo(Roles.Modeller));
+                Assert.That(fixture.ApiConnection.AmbientRoleProviderRegistrations, Is.Not.Empty);
+                Assert.That(fixture.ApiConnection.ResolveAmbientRoleSelection(), Is.EqualTo(Roles.Modeller));
             });
         }
 
@@ -532,9 +585,9 @@ namespace FWO.Test
     {
         public List<UiLogEntry> UiLogs { get; } = [];
         public List<(string Title, string Message)> Alerts { get; } = [];
-        public List<List<string>> AmbientRoleRequests { get; } = [];
+        public List<ClaimsPrincipal> AmbientRoleProviderRegistrations { get; } = [];
         public ClaimsPrincipal? LastAmbientUser { get; private set; }
-        public List<string> AmbientRoleSelections { get; } = [];
+        private Func<List<string>>? ambientRoleProvider;
         public bool ThrowOnUiLog { get; set; }
 
         public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
@@ -582,11 +635,32 @@ namespace FWO.Test
             throw new NotImplementedException($"Unhandled query response type {typeof(QueryResponseType).Name}");
         }
 
-        public override void SetAmbientRole(ClaimsPrincipal user, List<string> targetRoleList)
+        public override void SetAmbientRoleProvider(ClaimsPrincipal user, Func<List<string>> targetRoleListProvider)
         {
             LastAmbientUser = user;
-            AmbientRoleRequests.Add([.. targetRoleList]);
-            AmbientRoleSelections.Add(targetRoleList.FirstOrDefault(role => user.Claims.Any(claim => claim.Value.Equals(role, StringComparison.OrdinalIgnoreCase))) ?? "");
+            ambientRoleProvider = targetRoleListProvider;
+            AmbientRoleProviderRegistrations.Add(user);
+        }
+
+        /// <summary>
+        /// Resolves the accepted roles the way a request would: from the registered provider at the time of the call.
+        /// </summary>
+        public List<string> ResolveAmbientRoles()
+        {
+            return ambientRoleProvider?.Invoke() ?? [];
+        }
+
+        /// <summary>
+        /// Resolves the first accepted role the last registered user holds, as the ambient role of a request.
+        /// </summary>
+        public string ResolveAmbientRoleSelection()
+        {
+            ClaimsPrincipal? user = LastAmbientUser;
+            if (user == null)
+            {
+                return "";
+            }
+            return ResolveAmbientRoles().FirstOrDefault(role => user.Claims.Any(claim => claim.Value.Equals(role, StringComparison.OrdinalIgnoreCase))) ?? "";
         }
 
         public void WaitForLogCount(int expectedCount)

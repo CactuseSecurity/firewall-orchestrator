@@ -7,6 +7,10 @@ registries:
     username: x-access-token
     password: ${{ secrets.PRIVATE_SUBMODULE_TOKEN }}
 
+# Minor and patch updates are grouped into one pull request per entry. Each pull request runs the
+# whole CI, so one pull request per package flooded the shared runner pool: three pip updates on
+# one morning queued every other pull request for more than an hour. Major updates are the ones
+# that break things, so they keep a pull request of their own.
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -18,6 +22,10 @@ updates:
       codeql-action:
         patterns:
           - "github/codeql-action*"
+      github-actions-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
     assignees:
       - Laennart
 
@@ -28,6 +36,11 @@ updates:
       interval: "daily"
     registries:
       - private-github
+    groups:
+      nuget-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
     assignees:
       - SolidProgramming
 
@@ -41,8 +54,21 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      importer-and-scripts:
+      # Pinned in both requirements files: one PR per package that bumps both files. A group
+      # without group-by opens one PR per directory, which would split these again.
+      # Keep this list in sync with the pins shared by both files.
+      importer-and-scripts-shared:
         group-by: dependency-name
+        patterns:
+          - "graphql-core"
+          - "netaddr"
+          - "python-dateutil"
+          - "requests"
+          - "urllib3"
+      pip-importer-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
     cooldown:
       default-days: 30
       include:
@@ -65,6 +91,11 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
+    groups:
+      pip-app-data-import-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
     assignees:
       - Laennart
 
@@ -80,5 +111,10 @@ updates:
       # ansible >=13 requires Python >=3.12, unavailable on Debian 12 (see requirements.txt)
       - dependency-name: "ansible"
         versions: [">=13"]
+    groups:
+      pip-installer-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
     assignees:
       - Laennart

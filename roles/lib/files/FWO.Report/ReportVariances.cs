@@ -2,6 +2,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
+using FWO.Encoders;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
 using System.Text;
@@ -36,6 +37,7 @@ namespace FWO.Report
                 AppendAppRoleDiffs(ref report, ownerReport);
                 AppendMissingConns(ref report, ownerReport, chapterNumber);
                 AppendConnDiffs(ref report, ownerReport, chapterNumber);
+                AppendExcludedConns(ref report, ownerReport);
                 AppendObjects(ref report, ownerReport, chapterNumber);
                 AppendRulesForDeletedConns(ref report, ownerReport, chapterNumber);
                 AppendRemainingRules(ref report, ownerReport, chapterNumber);
@@ -250,6 +252,35 @@ namespace FWO.Report
                 }
                 report.AppendLine("<hr>");
             }
+        }
+
+        /// <summary>
+        /// Lists the connections the variance analysis left out, with the reason, so that "no differences"
+        /// is never mistaken for "checked and equal".
+        /// </summary>
+        private void AppendExcludedConns(ref StringBuilder report, OwnerConnectionReport ownerReport)
+        {
+            if (ownerReport.ExcludedConnections.Count == 0)
+            {
+                return;
+            }
+            report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{userConfig.GetText("connections_not_analysed")}</h4>");
+            report.AppendLine("<table>");
+            report.AppendLine("<tr>");
+            report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("reason")}</th>");
+            report.AppendLine("</tr>");
+            foreach (ModellingExcludedConnection excluded in ownerReport.ExcludedConnections)
+            {
+                report.AppendLine("<tr>");
+                report.AppendLine($"<td>{excluded.Connection.Id}</td>");
+                report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(excluded.Connection.Name)}</td>");
+                report.AppendLine($"<td>{userConfig.GetText(excluded.ReasonTextKey)}</td>");
+                report.AppendLine("</tr>");
+            }
+            report.AppendLine("</table>");
+            report.AppendLine("<hr>");
         }
 
         private void AppendObjects(ref StringBuilder report, OwnerConnectionReport ownerReport, int chapterNumber)

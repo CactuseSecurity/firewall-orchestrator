@@ -646,6 +646,11 @@
                 DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
             }
             WfHandler.ActImplTask.DeviceId = actDevice?.Id;
+            if (actDevice?.Management?.Id > 0)
+            {
+                // a task on a gateway targets the management of the gateway, see WfImplTaskTargetManagementResolver
+                WfHandler.ActImplTask.ManagementId = actDevice.Management.Id;
+            }
             WfHandler.ActImplTask.RuleAction = actRuleAction?.Id;
             WfHandler.ActImplTask.Tracking = actTracking?.Id;
             if(WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString())

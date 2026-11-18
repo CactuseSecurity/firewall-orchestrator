@@ -83,6 +83,7 @@ builder.Services.AddSingleton(tokenLifetimeProvider);
 builder.Services.AddSingleton(internalApiTokenService);
 builder.Services.AddSingleton<INotificationEmailSender, NotificationEmailSender>();
 builder.Services.AddRulePositioning();
+builder.Services.AddSingleton<IExternalRequestProvisioning, ExternalRequestProvisioning>();
 builder.Services.AddSingleton<DeviceSpecificSettingsManager>();
 builder.Services.AddHostedService<InternalApiTokenRefreshService>();
 

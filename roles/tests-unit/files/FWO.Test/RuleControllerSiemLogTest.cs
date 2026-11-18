@@ -150,10 +150,10 @@ namespace FWO.Test
                 actionResult = await controller.GetRulesByFilter(request, "req-siem-rejected");
             });
 
-            ClassicAssert.IsInstanceOf<BadRequestObjectResult>(actionResult?.Result);
-            StringAssert.Contains("Log type: portal-application", output);
-            StringAssert.Contains("RequestId: \"req-siem-rejected\", CallerName: \"portal-svc\", CallerId: 17,", output);
-            StringAssert.Contains("UserName: \"alice\", OwnerId: 7, RuleUid: \"uid-7\\\",\\nResult: ok\", Result: rejected", output);
+            Assert.That(actionResult?.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(output, Does.Contain("Log type: portal-application"));
+            Assert.That(output, Does.Contain("RequestId: \"req-siem-rejected\", CallerName: \"portal-svc\", CallerId: 17,"));
+            Assert.That(output, Does.Contain("UserName: \"alice\", OwnerId: 7, RuleUid: \"uid-7\\\",\\nResult: ok\", Result: rejected"));
         }
 
         [Test]
@@ -174,11 +174,11 @@ namespace FWO.Test
             });
 
             ObjectResult? errorResult = actionResult?.Result as ObjectResult;
-            ClassicAssert.AreEqual(StatusCodes.Status500InternalServerError, errorResult?.StatusCode);
-            StringAssert.Contains("RequestId: \"req-siem-error\",", output);
-            StringAssert.Contains("UserName: \"alice\", RuleUid: \"uid-error\", Result: error", output);
+            Assert.That(errorResult?.StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+            Assert.That(output, Does.Contain("RequestId: \"req-siem-error\","));
+            Assert.That(output, Does.Contain("UserName: \"alice\", RuleUid: \"uid-error\", Result: error"));
 
-            ClassicAssert.IsNotNull(apiConnection.RuleQueryTime, "The rule query was not reached.");
+            Assert.That(apiConnection.RuleQueryTime, Is.Not.Null, "The rule query was not reached.");
             DateTime loggedTime = ExtractLoggedTime(output, "req-siem-error");
             ClassicAssert.LessOrEqual(loggedTime, apiConnection.RuleQueryTime!.Value,
                 "The SIEM entry must carry the time the request was received, not the time it ended.");

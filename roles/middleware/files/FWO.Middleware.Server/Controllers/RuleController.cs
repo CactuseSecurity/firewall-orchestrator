@@ -115,7 +115,8 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
     /// Exactly one of <c>OwnerId</c>, <c>IpAddress</c> or <c>RuleUid</c> must be provided in the request query.
     /// When <c>OwnerId</c> is set, all rules mapped to the given owner are returned.
     /// When <c>IpAddress</c> is set, rules are filtered by IP range using the supplied <c>Filter</c> fields.
-    /// When <c>RuleUid</c> is set, all current rules with that exact UID are returned; <c>Filter</c> is ignored.
+    /// When <c>RuleUid</c> is set, it must not exceed <see cref="RulesByFilterQuery.kMaxRuleUidLength"/> characters;
+    /// all current rules with that exact UID are returned and <c>Filter</c> is ignored.
     /// Rules are ordered by rule id, so <c>options.limit</c> and <c>options.offset</c> page the result
     /// deterministically. Without a limit a page of at most the configured <c>maxRestResponseObjectLimit</c> rules
     /// (default 10000) is returned; <c>result.count</c> is the number of rules in the page, and the
@@ -225,6 +226,11 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
         if (selectorCount == 0)
         {
             return "Either OwnerId, IpAddress or RuleUid must be provided.";
+        }
+
+        if (ruleUid?.Length > RulesByFilterQuery.kMaxRuleUidLength)
+        {
+            return $"RuleUid must not exceed {RulesByFilterQuery.kMaxRuleUidLength} characters.";
         }
 
         return null;
@@ -790,11 +796,17 @@ public class RulesByFilterOptions
 
 public class RulesByFilterQuery
 {
+    /// <summary>
+    /// Maximum length of the exact rule UID selector.
+    /// </summary>
+    public const int kMaxRuleUidLength = 256;
+
     public int? OwnerId { get; set; }
     public string? IpAddress { get; set; }
 
     /// <summary>
-    /// Exact rule UID selector. Null, empty or whitespace is treated as not supplied.
+    /// Exact rule UID selector of at most <see cref="kMaxRuleUidLength"/> characters.
+    /// Null, empty or whitespace is treated as not supplied.
     /// </summary>
     public string? RuleUid { get; set; }
 

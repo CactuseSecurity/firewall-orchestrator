@@ -25,6 +25,11 @@ namespace FWO.Test
         private static readonly string[] kSecondPageRuleNames = ["Destination"];
         private static readonly string[] kBothPageRuleNames = ["Source", "Destination"];
         private static readonly List<string> kExpectedRuleUidNames = new() { "Source", "MatchingGroup", "Destination" };
+        private static readonly List<int> kExpectedSingleRuleUidIds = [101];
+        private static readonly List<string> kExpectedRuleUidManagers = ["1", "2", "3"];
+        private static readonly List<int> kExpectedRepeatedRuleUidIds = [101, 303, 404];
+        private static readonly List<int> kExpectedFirstPagedRuleUidIds = [303];
+        private static readonly List<int> kExpectedLastPagedRuleUidIds = [404];
 
         [Test]
         public async Task GetRulesByFilter_ShouldWorkWithOwnerId()
@@ -112,7 +117,7 @@ namespace FWO.Test
                 Assert.That(response.RequestId, Is.EqualTo("req-rule-uid"));
                 Assert.That(response.Result.Count, Is.EqualTo(1));
                 Assert.That(response.Result.Rules.Single().Name, Is.EqualTo("Source"));
-                Assert.That(apiConnection.LastDetailRuleIds, Is.EqualTo(new List<int> { 101 }));
+                Assert.That(apiConnection.LastDetailRuleIds, Is.EqualTo(kExpectedSingleRuleUidIds));
             });
         }
 
@@ -128,8 +133,8 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(response.Result.Rules.Select(rule => rule.Name), Is.EqualTo(kExpectedRuleUidNames));
-                Assert.That(response.Result.Rules.Select(rule => rule.Manager), Is.EqualTo(new List<string> { "1", "2", "3" }));
-                Assert.That(apiConnection.LastDetailRuleIds, Is.EqualTo(new List<int> { 101, 303, 404 }));
+                Assert.That(response.Result.Rules.Select(rule => rule.Manager), Is.EqualTo(kExpectedRuleUidManagers));
+                Assert.That(apiConnection.LastDetailRuleIds, Is.EqualTo(kExpectedRepeatedRuleUidIds));
                 Assert.That(HasMoreHeader(controller), Is.EqualTo("false"));
             });
         }
@@ -149,6 +154,37 @@ namespace FWO.Test
                 Assert.That(response.Result.Rules, Is.Empty);
                 Assert.That(apiConnection.LastDetailRuleIds, Is.Null);
                 Assert.That(HasMoreHeader(controller), Is.EqualTo("false"));
+            });
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_AcceptsMaximumRuleUidLengthAndRejectsLongerValue()
+        {
+            BranchingApiConnection maximumApiConnection = new();
+            BranchingApiConnection tooLongApiConnection = new();
+            RuleController maximumController = CreateController(maximumApiConnection, "req-rule-uid-maximum");
+            RuleController tooLongController = CreateController(tooLongApiConnection, "req-rule-uid-too-long");
+            string maximumRuleUid = new('u', 256);
+            string tooLongRuleUid = new('u', 257);
+
+            ActionResult<RulesByFilterResponse> maximumResult = await maximumController.GetRulesByFilter(
+                BuildRuleUidRequest(maximumRuleUid, null, null), "req-rule-uid-maximum");
+            ActionResult<RulesByFilterResponse>? tooLongResult = null;
+            string output = await ConsoleOutput.CaptureAsync(async () =>
+            {
+                tooLongResult = await tooLongController.GetRulesByFilter(
+                    BuildRuleUidRequest(tooLongRuleUid, null, null), "req-rule-uid-too-long");
+            });
+            BadRequestObjectResult? badRequest = tooLongResult?.Result as BadRequestObjectResult;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(maximumResult.Result, Is.InstanceOf<OkObjectResult>());
+                Assert.That(maximumApiConnection.QueryCount, Is.GreaterThan(0));
+                Assert.That(badRequest, Is.Not.Null);
+                Assert.That(badRequest?.Value, Is.EqualTo("RuleUid must not exceed 256 characters."));
+                Assert.That(tooLongApiConnection.QueryCount, Is.Zero);
+                Assert.That(output, Does.Contain("Result: rejected"));
             });
         }
 
@@ -396,9 +432,9 @@ namespace FWO.Test
                     }, "req-siem-ok");
             });
 
-            ClassicAssert.IsInstanceOf<OkObjectResult>(actionResult?.Result);
-            StringAssert.Contains("RequestId: \"req-siem-ok\",", output);
-            StringAssert.Contains("UserID: \"42\", UserName: \"debug\", RuleUid: \"uid-one\", Result: ok", output);
+            Assert.That(actionResult?.Result, Is.InstanceOf<OkObjectResult>());
+            Assert.That(output, Does.Contain("RequestId: \"req-siem-ok\","));
+            Assert.That(output, Does.Contain("UserID: \"42\", UserName: \"debug\", RuleUid: \"uid-one\", Result: ok"));
         }
 
         [Test]
@@ -550,10 +586,10 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(firstPage.Result.Rules.Single().Name, Is.EqualTo("MatchingGroup"));
-                Assert.That(firstApiConnection.LastDetailRuleIds, Is.EqualTo(new List<int> { 303 }));
+                Assert.That(firstApiConnection.LastDetailRuleIds, Is.EqualTo(kExpectedFirstPagedRuleUidIds));
                 Assert.That(HasMoreHeader(firstPageController), Is.EqualTo("true"));
                 Assert.That(lastPage.Result.Rules.Single().Name, Is.EqualTo("Destination"));
-                Assert.That(lastApiConnection.LastDetailRuleIds, Is.EqualTo(new List<int> { 404 }));
+                Assert.That(lastApiConnection.LastDetailRuleIds, Is.EqualTo(kExpectedLastPagedRuleUidIds));
                 Assert.That(HasMoreHeader(lastPageController), Is.EqualTo("false"));
             });
         }
@@ -726,6 +762,7 @@ namespace FWO.Test
             private readonly bool _includeAnyRule;
 
             public List<int>? LastDetailRuleIds { get; private set; }
+            public int QueryCount { get; private set; }
 
             public BranchingApiConnection(bool includeGroupRule = true, bool includeDestinationRule = false,
                 bool includeBroadDestinationRule = false, bool includeBroadSourceRule = false,
@@ -764,6 +801,7 @@ namespace FWO.Test
                 string? operationName = null,
                 QueryChunkingOptions? options = null)
             {
+                ++QueryCount;
                 if (typeof(QueryResponseType) == typeof(ConfigItem[]) && query == ConfigQueries.getConfigItemsByUser)
                 {
                     return Task.FromResult((QueryResponseType)(object)new[]

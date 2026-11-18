@@ -96,7 +96,7 @@ namespace FWO.Compliance
         private async Task<RuleBuildResult> BuildRuleAssessmentFromRequestTasks(IEnumerable<WfReqTask> requestTasks)
         {
             List<TaskAssessment> assessments = await AssessRequestTasks(requestTasks);
-            if (assessments.Any(assessment => assessment.MappedRule == null && assessment.HasUnresolvedGroup))
+            if (assessments.Any(assessment => assessment.MappedRule == null && assessment.UnresolvedGroup))
             {
                 List<Rule> noRules = [];
                 return new RuleBuildResult(noRules, true);
@@ -163,7 +163,7 @@ namespace FWO.Compliance
             }
         }
 
-        private sealed record TaskAssessment(WfReqTask RequestTask, Rule? MappedRule, bool HasUnresolvedGroup);
+        private sealed record TaskAssessment(WfReqTask RequestTask, Rule? MappedRule, bool UnresolvedGroup);
 
         private sealed record RuleBuildResult(List<Rule> Rules, bool HasUnassessableTasks);
 

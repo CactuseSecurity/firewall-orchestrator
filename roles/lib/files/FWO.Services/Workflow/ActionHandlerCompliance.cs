@@ -68,36 +68,52 @@ namespace FWO.Services.Workflow
             {
                 // the other tasks define requested objects and groups used by the checked tasks
                 List<WfReqTask> contextTasks = [.. PolicyCheckTasks(ticket).Except(checkedTasks)];
-                List<WfReqTask> tasksWithContext = [.. tasksToCheck, .. contextTasks];
-                IReadOnlyDictionary<long, RequestTaskComplianceResult> checkResults;
-                try
+                IReadOnlyDictionary<long, RequestTaskComplianceResult>? checkResults = await CheckTasks(checker, policyIds, tasksToCheck, contextTasks, storeResults);
+                if (checkResults == null)
                 {
-                    checkResults = await checker.CheckRequestTasks(policyIds, tasksWithContext);
-                }
-                catch (Exception exc)
-                {
-                    Log.WriteError("Policy Check", "Compliance check of the request tasks failed.", exc);
-                    if (storeResults)
-                    {
-                        // the stored results may be outdated, e.g. after a change of the ticket: without them the tasks are checked when displayed
-                        await RemoveStoredComplianceResults(tasksToCheck);
-                    }
                     return null;
                 }
-
                 foreach (WfReqTask task in tasksToCheck.Where(task => checkResults.ContainsKey(task.Id)))
                 {
                     results[task.Id] = checkResults[task.Id];
-                }
-                if (storeResults)
-                {
-                    await StoreComplianceResults(tasksToCheck, checkResults);
                 }
             }
 
             lastComplianceKey = complianceKey;
             lastComplianceResults = results;
             return results;
+        }
+
+        /// <summary>
+        /// Checks the given tasks and, if requested, stores the results that changed.
+        /// If the check fails while storing, the stored results of the tasks are removed, as they may be outdated
+        /// (e.g. after a change of the ticket); without them the tasks are checked when displayed.
+        /// </summary>
+        /// <returns>The results per task, or null if the check failed.</returns>
+        private async Task<IReadOnlyDictionary<long, RequestTaskComplianceResult>?> CheckTasks(IRequestedRulePolicyChecker checker,
+            List<int> policyIds, List<WfReqTask> tasksToCheck, List<WfReqTask> contextTasks, bool storeResults)
+        {
+            List<WfReqTask> tasksWithContext = [.. tasksToCheck, .. contextTasks];
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> checkResults;
+            try
+            {
+                checkResults = await checker.CheckRequestTasks(policyIds, tasksWithContext);
+            }
+            catch (Exception exc)
+            {
+                Log.WriteError("Policy Check", "Compliance check of the request tasks failed.", exc);
+                if (storeResults)
+                {
+                    await RemoveStoredComplianceResults(tasksToCheck);
+                }
+                return null;
+            }
+
+            if (storeResults)
+            {
+                await StoreComplianceResults(tasksToCheck, checkResults);
+            }
+            return checkResults;
         }
 
         /// <summary>

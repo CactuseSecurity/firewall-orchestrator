@@ -246,7 +246,54 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
         {
             Assert.That(ColumnPosition(cut.Markup, "compliance"), Is.EqualTo(-1));
             Assert.That(cut.FindAll(".approval-task-list-compliance"), Is.Empty);
+            Assert.That(cut.FindAll(".approval-compliance-recheck"), Is.Empty);
         });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_ListViewRecheckChecksStoredOkAgainAndStoresTheChange()
+    {
+        await using BunitContext context = CreateListContext();
+        WfReqTask task = CheckableAccessTask(86, "stored ok access");
+        task.TicketId = 806;
+        task.SetAddInfo(AdditionalInfoKeys.ComplianceOk, "true");
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 806, Tasks = [task] } };
+        FixedResultPolicyChecker checker = new(new Dictionary<long, RequestTaskComplianceResult> { [86] = new(86, false, kViolationReasons) });
+        await AttachPolicyCheck(handler, context.Services.GetRequiredService<ApiConnection>(), checker);
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = RenderListView(context, handler);
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("span.approval-task-list-compliance.btn-success"), Has.Count.EqualTo(1)));
+        Assert.That(checker.CheckCount, Is.Zero);
+
+        cut.Find("button.approval-compliance-recheck").Click();
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("button.approval-task-list-compliance.btn-danger"), Has.Count.EqualTo(1)));
+        Assert.Multiple(() =>
+        {
+            Assert.That(checker.CheckCount, Is.EqualTo(1));
+            Assert.That(task.GetAddInfoValue(AdditionalInfoKeys.ComplianceOk), Is.EqualTo("false"));
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_CardViewOffersRecheck()
+    {
+        await using BunitContext context = CreateListContext();
+        WfReqTask task = CheckableAccessTask(87, "access");
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 807, Tasks = [task] } };
+        FixedResultPolicyChecker checker = new(new Dictionary<long, RequestTaskComplianceResult> { [87] = new(87, true, []) });
+        await AttachPolicyCheck(handler, context.Services.GetRequiredService<ApiConnection>(), checker);
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, handler)
+            .Add(p => p.States, new WfStateDict { Name = { [2] = "Approval" } }));
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("button.approval-compliance-recheck"), Has.Count.EqualTo(1)));
+        cut.Find("button.approval-compliance-recheck").Click();
+
+        cut.WaitForAssertion(() => Assert.That(checker.CheckCount, Is.EqualTo(2)));
     }
 
     private static readonly List<string> kViolationReasons = ["forbidden service", "zone violation"];

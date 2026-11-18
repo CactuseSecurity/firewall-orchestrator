@@ -598,6 +598,129 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ChangeReqTask_ChecksAgainAndStoresChangedComplianceResult()
+        {
+            (WfHandler handler, FixedResultPolicyChecker checker) = await CreateComplianceHandler(compliantAfterChange: false);
+            handler.ActReqTask = new WfReqTask(handler.ActTicket.Tasks[0]);
+            handler.ActReqTask.Elements = [.. handler.ActReqTask.Elements.Select(element => new WfReqElement(element))];
+            handler.ActReqTask.Elements.Single(element => element.Field == ElemFieldType.service.ToString()).Port = 8443;
+
+            await handler.ChangeReqTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(checker.CheckCount, Is.EqualTo(1));
+                Assert.That(RequestTaskCompliance.StoredResult(handler.ActTicket.Tasks[0]), Is.False);
+                Assert.That(RequestTaskCompliance.StoredResult(handler.ActReqTask), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task ChangeReqTask_DetectsElementsChangedInPlaceSinceTheLastCheck()
+        {
+            (WfHandler handler, FixedResultPolicyChecker checker) = await CreateComplianceHandler(compliantAfterChange: false);
+            WfReqTask accessTask = handler.ActTicket.Tasks[0];
+            await handler.ActionHandler!.CheckRequestTaskCompliance(handler.ActTicket);
+            accessTask.Elements.Single(element => element.Field == ElemFieldType.service.ToString()).Port = 8443;
+            handler.ActReqTask = new WfReqTask(accessTask);
+
+            await handler.ChangeReqTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(checker.CheckCount, Is.EqualTo(1));
+                Assert.That(RequestTaskCompliance.StoredResult(handler.ActTicket.Tasks[0]), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task ChangeReqTask_DoesNotCheckWhenOnlyUncheckedFieldsChange()
+        {
+            (WfHandler handler, FixedResultPolicyChecker checker) = await CreateComplianceHandler(compliantAfterChange: false);
+            handler.ActReqTask = new WfReqTask(handler.ActTicket.Tasks[0]) { Title = "renamed" };
+
+            await handler.ChangeReqTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(checker.CheckCount, Is.Zero);
+                Assert.That(RequestTaskCompliance.StoredResult(handler.ActTicket.Tasks[0]), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ChangeReqTask_DoesNotCheckTicketWithoutStoredComplianceResults()
+        {
+            (WfHandler handler, FixedResultPolicyChecker checker) = await CreateComplianceHandler(compliantAfterChange: false);
+            handler.ActTicket.Tasks[0].RemoveAddInfo(AdditionalInfoKeys.ComplianceOk);
+            handler.ActReqTask = new WfReqTask(handler.ActTicket.Tasks[0]);
+            handler.ActReqTask.Elements = [.. handler.ActReqTask.Elements.Select(element => new WfReqElement(element))];
+            handler.ActReqTask.Elements.Single(element => element.Field == ElemFieldType.service.ToString()).Port = 8443;
+
+            await handler.ChangeReqTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(checker.CheckCount, Is.Zero);
+                Assert.That(RequestTaskCompliance.StoredResult(handler.ActTicket.Tasks[0]), Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task AddReqTask_ChecksAgainAndStoresResultOfTheNewTask()
+        {
+            (WfHandler handler, FixedResultPolicyChecker checker) = await CreateComplianceHandler(compliantAfterChange: true);
+            WfReqTask newTask = ApprovalComplianceTestHelper.CheckableAccessTask(62, "new access");
+            newTask.TaskNumber = 2;
+            handler.ActReqTask = newTask;
+
+            await handler.AddReqTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(checker.CheckCount, Is.EqualTo(1));
+                Assert.That(RequestTaskCompliance.StoredResult(newTask), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task ConfDeleteReqTask_ChecksTheRemainingTasksAgain()
+        {
+            (WfHandler handler, FixedResultPolicyChecker checker) = await CreateComplianceHandler(compliantAfterChange: false);
+            WfReqTask groupTask = new() { Id = 63, TicketId = 7, TaskNumber = 2, TaskType = WfTaskType.group_create.ToString() };
+            handler.ActTicket.Tasks.Add(groupTask);
+            handler.ActReqTask = groupTask;
+
+            await handler.ConfDeleteReqTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(checker.CheckCount, Is.EqualTo(1));
+                Assert.That(RequestTaskCompliance.StoredResult(handler.ActTicket.Tasks[0]), Is.False);
+            });
+        }
+
+        /// <summary>
+        /// Creates a handler for ticket 7 with access task 61 that has a stored positive compliance result;
+        /// the policy check reports the given result for the tasks 61 and 62.
+        /// </summary>
+        private static async Task<(WfHandler Handler, FixedResultPolicyChecker Checker)> CreateComplianceHandler(bool compliantAfterChange)
+        {
+            WfReqTask accessTask = ApprovalComplianceTestHelper.CheckableAccessTask(61, "access");
+            accessTask.TicketId = 7;
+            accessTask.TaskNumber = 1;
+            accessTask.SetAddInfo(AdditionalInfoKeys.ComplianceOk, "true");
+            WfHandler handler = new() { ActTicket = new WfTicket { Id = 7, Tasks = [accessTask] } };
+            FixedResultPolicyChecker checker = new(new Dictionary<long, RequestTaskComplianceResult>
+            {
+                [61] = new(61, compliantAfterChange, compliantAfterChange ? [] : ["forbidden service"]),
+                [62] = new(62, compliantAfterChange, compliantAfterChange ? [] : ["forbidden service"])
+            });
+            await ApprovalComplianceTestHelper.AttachPolicyCheck(handler, new SimulatedApiConnection(), checker);
+            return (handler, checker);
+        }
+
+        [Test]
         public async Task ChangeOwner_ReplacesTaskByTaskNumber()
         {
             WfHandler handler = new();

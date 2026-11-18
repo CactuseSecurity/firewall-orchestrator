@@ -35,6 +35,31 @@ namespace FWO.Test
             });
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void RecheckButton_IsDisabledWhileLoadingAndStartsTheRecheck(bool loading)
+        {
+            using BunitContext context = CreateContext();
+            int rechecks = 0;
+
+            IRenderedComponent<ApprovalComplianceRecheckButton> cut = context.Render<ApprovalComplianceRecheckButton>(parameters => parameters
+                .Add(p => p.Loading, loading)
+                .Add(p => p.Class, "mr-2")
+                .Add(p => p.Recheck, () => rechecks++));
+
+            AngleSharp.Dom.IElement button = cut.Find("button.approval-compliance-recheck");
+            Assert.Multiple(() =>
+            {
+                Assert.That(button.ClassList, Does.Contain("mr-2"));
+                Assert.That(button.HasAttribute("disabled"), Is.EqualTo(loading));
+            });
+            if (!loading)
+            {
+                button.Click();
+                Assert.That(rechecks, Is.EqualTo(1));
+            }
+        }
+
         [Test]
         public void NotChecked_ShowsDashOnlyWhenRequested()
         {

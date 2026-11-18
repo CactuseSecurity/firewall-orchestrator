@@ -104,11 +104,51 @@ namespace FWO.Test
                 Assert.That(accessRow.QuerySelectorAll("td:first-child button.approval-compliance-button.btn-danger"), Has.Count.EqualTo(expectedButtons));
                 Assert.That(genericRow.QuerySelectorAll(".approval-compliance-button"), Is.Empty);
             });
+            Assert.That(rendered.FindAll("button.approval-compliance-recheck"), Has.Count.EqualTo(expectedButtons));
             if (expectedButtons > 0)
             {
                 accessRow.QuerySelector("button.approval-compliance-button")!.Click();
                 Assert.That(rendered.FindAll(".approval-compliance-reasons li").Select(item => item.TextContent), Is.EqualTo(kComplianceReasons));
             }
+        }
+
+        [Test]
+        public async Task RecheckButtonChecksAllAccessTasksAgain()
+        {
+            using BunitContext context = new();
+            SimulatedUserConfig userConfig = CreateUserConfig(Roles.Approver);
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(new ThrowingApiConnection());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new TestAuthStateProvider(Roles.Approver));
+
+            WfHandler handler = CreateHandler(new ThrowingApiConnection(), userConfig);
+            handler.InitDone = true;
+            handler.ReadOnlyMode = true;
+            SetMatrix(handler, WfTaskType.access.ToString(), CreateMatrix());
+            WfReqTask task = ApprovalComplianceTestHelper.CheckableAccessTask(93, "stored ok access");
+            task.SetAddInfo(AdditionalInfoKeys.ComplianceOk, "true");
+            handler.ActTicket = new WfTicket { Id = 902, Tasks = [task] };
+            FixedResultPolicyChecker checker = new(new Dictionary<long, RequestTaskComplianceResult> { [93] = new(93, false, kComplianceReasons) });
+            await ApprovalComplianceTestHelper.AttachPolicyCheck(handler, new ThrowingApiConnection(), checker);
+
+            IRenderedComponent<DisplayReqTaskTable> rendered = context.Render<DisplayReqTaskTable>(parameters => parameters
+                .Add(parameter => parameter.Phase, WorkflowPhases.approval)
+                .Add(parameter => parameter.States, new WfStateDict())
+                .Add(parameter => parameter.WfHandler, handler));
+            Assert.That(rendered.FindAll("span.approval-compliance-ok"), Has.Count.EqualTo(1));
+
+            rendered.Find("button.approval-compliance-recheck").Click();
+
+            rendered.WaitForAssertion(() => Assert.That(rendered.FindAll("button.approval-compliance-button.btn-danger"), Has.Count.EqualTo(1)));
+            Assert.Multiple(() =>
+            {
+                Assert.That(checker.CheckCount, Is.EqualTo(1));
+                Assert.That(task.GetAddInfoValue(AdditionalInfoKeys.ComplianceOk), Is.EqualTo("true"), "read-only users do not store results");
+            });
         }
 
         private static readonly List<string> kComplianceReasons = ["forbidden service"];

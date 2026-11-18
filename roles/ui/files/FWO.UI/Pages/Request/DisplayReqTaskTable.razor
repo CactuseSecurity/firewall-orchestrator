@@ -13,6 +13,10 @@
     }
     @if (WfHandler.ActTicket.Tasks.Count > 0)
     {
+        @if (ShowCompliance && WfHandler.ActTicket.Tasks.Any(ApprovalTaskDetailsEditorService.IsAccessTask))
+        {
+            <ApprovalComplianceRecheckButton Loading="compliance.IsLoading" Class="m-2" Recheck="RecheckCompliance" />
+        }
         <div class="m-2">
             <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="GetDisplayedTasks()" PageSize="0" ColumnReorder="true">
                 <Column TableItem="WfReqTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
@@ -208,6 +212,18 @@
     private void OpenComplianceReasons(ApprovalTaskCompliance taskCompliance)
     {
         shownCompliance = taskCompliance;
+    }
+
+    private async Task RecheckCompliance()
+    {
+        try
+        {
+            await compliance.RecheckAsync(WfHandler);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("approval_compliance_recheck"), "", true);
+        }
     }
 
     static List<string> validRoles = new (){Roles.Planner};

@@ -1,5 +1,6 @@
 using FWO.Services.PathAnalysis;
 using FWO.Data.Workflow;
+using FWO.Logging;
 using System.Text.Json;
 
 namespace FWO.Services.Workflow
@@ -321,6 +322,7 @@ namespace FWO.Services.Workflow
                 await AddApproval();
             }
 
+            string complianceFingerprint = RequestTaskCompliance.Fingerprint(ActTicket);
             if (ActTicket.Id > 0) // ticket already created -> write directly to db
             {
                 ActReqTask.TicketId = ActTicket.Id;
@@ -338,10 +340,12 @@ namespace FWO.Services.Workflow
                     {
                         ActTicket.Tasks.Add(ActReqTask);
                     }
+                    await UpdateStoredComplianceResults(complianceFingerprint);
                     return;
                 }
             }
             ActTicket.Tasks.Add(ActReqTask);
+            await UpdateStoredComplianceResults(complianceFingerprint);
         }
 
         /// <summary>
@@ -356,11 +360,13 @@ namespace FWO.Services.Workflow
                 return;
             }
 
+            string complianceFingerprint = RequestTaskCompliance.Fingerprint(ActTicket);
             if (ActReqTask.Id > 0 && dbAcc != null)
             {
                 await dbAcc.UpdateReqTaskInDb(ActReqTask, allowLockedApprovalUpdate);
             }
             ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.TaskNumber == ActReqTask.TaskNumber)] = ActReqTask;
+            await UpdateStoredComplianceResults(complianceFingerprint);
         }
 
         public async Task ChangeOwner()
@@ -398,6 +404,7 @@ namespace FWO.Services.Workflow
                 return;
             }
 
+            string complianceFingerprint = RequestTaskCompliance.Fingerprint(ActTicket);
             if (ActReqTask.Id > 0 && dbAcc != null)
             {
                 await dbAcc.DeleteReqTaskFromDb(ActReqTask);
@@ -406,6 +413,38 @@ namespace FWO.Services.Workflow
             ActTicket.Tasks.RemoveAll(x => x.Id == ActReqTask.Id);
             // todo: adapt TaskNumbers of following tasks?
             DisplayDeleteReqTaskMode = false;
+            await UpdateStoredComplianceResults(complianceFingerprint);
+        }
+
+        /// <summary>
+        /// Keeps the stored compliance results of the ticket's access tasks up to date after a change of the ticket's tasks:
+        /// if the checked content changed and the ticket already has stored results, all access tasks are checked again,
+        /// as a changed object or group task can affect other tasks, and the results that changed are stored.
+        /// Tickets without stored results are checked when displayed.
+        /// </summary>
+        /// <param name="fingerprintBefore">The compliance fingerprint of the ticket before the change.</param>
+        /// <remarks>
+        /// Some editors change the elements of the ticket's tasks in place before saving, so the fingerprint before the change
+        /// can already contain the change; therefore the content is also compared with the content of the last check.
+        /// </remarks>
+        private async Task UpdateStoredComplianceResults(string fingerprintBefore)
+        {
+            try
+            {
+                if (ActionHandler == null
+                    || ActTicket.Id <= 0
+                    || !ActTicket.Tasks.Any(task => RequestTaskCompliance.StoredResult(task) != null)
+                    || (RequestTaskCompliance.Fingerprint(ActTicket) == fingerprintBefore
+                        && ActionHandler.MatchesLastComplianceCheck(ActTicket) != false))
+                {
+                    return;
+                }
+                await ActionHandler.CheckRequestTaskCompliance(ActTicket, recheckAll: true, storeResults: true);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Policy Check", "Stored compliance results could not be updated.", exception);
+            }
         }
 
         public async Task ConfAddCommentToReqTask(string commentText)

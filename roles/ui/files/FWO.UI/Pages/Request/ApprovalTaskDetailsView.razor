@@ -17,6 +17,7 @@
             @if (listTaskGroups.Any(taskGroup => taskGroup.Any(IsAccessTask)))
             {
                 <div class="d-flex justify-content-end mb-3">
+                    @RecheckComplianceButton
                     <button type="button" class="btn btn-sm btn-primary approval-task-display-toggle" @onclick="ToggleAccessElementDisplay">
                         @(DisplayService.DisplayButton(userConfig, NextDisplayModeTextKey(), Icons.Swap))
                     </button>
@@ -44,6 +45,7 @@
                 {
                     accessToggleShown = true;
                     <div class="d-flex justify-content-end mb-3">
+                        @RecheckComplianceButton
                         <button type="button" class="btn btn-sm btn-primary approval-task-display-toggle" @onclick="ToggleAccessElementDisplay">
                             @(DisplayService.DisplayButton(userConfig, NextDisplayModeTextKey(), Icons.Swap))
                         </button>
@@ -508,6 +510,33 @@
     private void OpenComplianceReasons(ApprovalTaskCompliance taskCompliance)
     {
         shownCompliance = taskCompliance;
+    }
+
+    /// <summary>Button checking all access tasks again; only shown if a policy check is configured.</summary>
+    private RenderFragment RecheckComplianceButton => builder =>
+    {
+        if (!compliance.IsConfigured)
+        {
+            return;
+        }
+        builder.OpenComponent<ApprovalComplianceRecheckButton>(0);
+        builder.AddComponentParameter(1, nameof(ApprovalComplianceRecheckButton.Loading), compliance.IsLoading);
+        builder.AddComponentParameter(2, nameof(ApprovalComplianceRecheckButton.Class), "mr-2");
+        builder.AddComponentParameter(3, nameof(ApprovalComplianceRecheckButton.Recheck),
+            EventCallback.Factory.Create(this, RecheckCompliance));
+        builder.CloseComponent();
+    };
+
+    private async Task RecheckCompliance()
+    {
+        try
+        {
+            await compliance.RecheckAsync(WfHandler);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Approval task view", "Compliance check could not be repeated.", exception);
+        }
     }
 
     protected override async Task OnInitializedAsync()

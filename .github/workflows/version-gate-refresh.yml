@@ -167,6 +167,16 @@ jobs:
               continue
             fi
 
+            # A push to the pull request while this loop waited or ran started a gate run of
+            # its own, after this refresh began, so that run already sees the current base.
+            # Re-running the run of the older head would only report on a commit that no longer
+            # matters. If the lookup fails, re-run anyway: that is the safe side.
+            if current_head="$(gh api "repos/${GH_REPO}/pulls/${number}" --jq '.head.sha')" &&
+              [[ -n "$current_head" && "$current_head" != "$head_sha" ]]; then
+              echo "PR #${number}: head moved from ${head_sha} to ${current_head}, its own gate run covers the current base."
+              continue
+            fi
+
             echo "PR #${number}: re-running version gate run ${run_id}."
             gh run rerun "$run_id" ||
               { echo "PR #${number}: could not re-run ${run_id}." >&2; unrefreshed=$((unrefreshed + 1)); }

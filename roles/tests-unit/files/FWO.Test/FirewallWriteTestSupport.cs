@@ -35,9 +35,12 @@ namespace FWO.Test
         }
     }
 
-    internal sealed class SimulatedCheckPointWriteClient(Management management, FirewallSimulation simulation) : CheckPointWriteClient(management, true)
+    internal sealed class SimulatedCheckPointWriteClient(Management management, FirewallSimulation simulation, int? responseTimeout = null)
+        : CheckPointWriteClient(management, true, responseTimeout)
     {
         protected override Task<RestResponse> Send(RestRequest request) => Task.FromResult(simulation.Answer(request));
+
+        protected override Task WaitBeforeNextPoll() => Task.CompletedTask;
     }
 
     internal sealed class SimulatedFortiManagerWriteClient(Management management, FirewallSimulation simulation) : FortiManagerWriteClient(management, true)

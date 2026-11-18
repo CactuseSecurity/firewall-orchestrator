@@ -12,6 +12,8 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Networking;
 using FWO.Logging;
+using FWO.Middleware.Server.Requests;
+using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using FWO.Ui.Display;
 using Microsoft.AspNetCore.Authorization;
@@ -40,12 +42,71 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
     private const string kSiemResultError = "error";
     private const string kCallerNameClaim = "unique_name";
     private const string kCallerIdClaim = "x-hasura-user-id";
+    private const string kRuleLastHitRoles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}";
 
     // Relaxed escaping keeps non-ASCII names readable; quotes, backslashes and control characters are still escaped.
     private static readonly JsonSerializerOptions kSiemValueSerializerOptions = new()
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
+
+    /// <summary>
+    /// Returns the last hits of the rules of a management: the latest hit across all gateways and the hit per gateway.
+    /// </summary>
+    /// <remarks>
+    /// Lists the current rules of the management, also those never hit (<c>lastHit</c> is <c>null</c>, no
+    /// <c>gateways</c>). The hits are written by the scheduled rule hit import.
+    /// <para>
+    /// Admin, auditor and reporter-viewall see every management and gateway. Other callers only get managements
+    /// and gateways visible to their tenant (JWT claims x-hasura-visible-managements and
+    /// x-hasura-visible-devices): a management that is not visible answers with an empty list, and
+    /// <c>gateways</c> only holds visible gateways. <c>lastHit</c> is the latest hit across all gateways of the
+    /// management. Callers of a tenant other than tenant0 get an empty <c>ruleName</c>, and a <c>ruleName</c>
+    /// filter matches nothing for them.
+    /// </para>
+    /// <para>
+    /// Rules are ordered by their internal metadata id, so <c>options.limit</c> and <c>options.offset</c> page
+    /// the result deterministically. Without a limit a page of at most the configured
+    /// <c>maxRestResponseObjectLimit</c> rules (default 10000) is returned, and the <c>X-Has-More</c> response
+    /// header tells whether further rules follow. Per rule at most
+    /// <see cref="RuleLastHitResponse.kMaxGatewaysPerRule"/> gateways are returned; <c>gatewaysTruncated</c>
+    /// tells when there are more.
+    /// </para>
+    /// </remarks>
+    /// <param name="request">Management and optional filter and paging options.</param>
+    [HttpPost("GetRuleLastHits")]
+    [AggregatedValidationErrors]
+    [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
+    [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
+    [Authorize(Roles = kRuleLastHitRoles)]
+    [ProducesResponseType(typeof(GetRuleLastHitsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<GetRuleLastHitsResponse>> GetRuleLastHits([FromBody] GetRuleLastHitsRequest request)
+    {
+        int maxLimit = ListPaging.GetMaxObjectLimit(globalConfig);
+        RequestValidationErrorResponse validationErrors = GetRuleLastHitsRequestValidator.Validate(request, maxLimit);
+        if (validationErrors.Errors.Count > 0)
+        {
+            return BadRequest(validationErrors);
+        }
+
+        // Validation rejects both an absent and a non-positive managementId, so a value is present here.
+        int managementId = request.ManagementId.GetValueOrDefault();
+        try
+        {
+            RuleLastHitService ruleLastHitService = new(apiConnection);
+            ListPage<RuleLastHitResponse> page = await ruleLastHitService.GetRuleLastHitsAsync(managementId, request.Options,
+                ListPaging.GetPageSize(request.Options.Limit, maxLimit), RuleLastHitScope.FromUser(User));
+            ListPaging.SetHasMoreHeader(HttpContext, page.HasMore);
+            return Ok(new GetRuleLastHitsResponse { Rules = page.Items });
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Get Rule Last Hits", $"Error while fetching the rule last hits of management {managementId}.", exception);
+            return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
+        }
+    }
 
     /// <summary>
     /// Returns firewall rules that match the specified filtering options.

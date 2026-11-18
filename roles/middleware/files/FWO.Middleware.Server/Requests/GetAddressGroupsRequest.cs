@@ -6,13 +6,13 @@ namespace FWO.Middleware.Server.Requests;
 /// <summary>
 /// Represents the GetAddressGroupsRequest type.
 /// </summary>
-public sealed class GetAddressGroupsRequest : IVisibleInRequestFilterRequest, IPagedListRequest
+public sealed class GetAddressGroupsRequest : IFlowCatalogGroupFilterRequest, IPagedListRequest
 {
     /// <summary>
     /// Gets the Filter value.
     /// </summary>
     [JsonPropertyName("filter")]
-    public VisibleInRequestFilter? Filter { get; set; }
+    public FlowCatalogGroupFilter? Filter { get; set; }
 
     /// <summary>
     /// Gets the Option value.

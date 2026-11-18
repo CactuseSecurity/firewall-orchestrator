@@ -10,9 +10,9 @@ import pytest
 
 if TYPE_CHECKING:
     from types import ModuleType, TracebackType
-    from typing import Self
 
     from _pytest.monkeypatch import MonkeyPatch
+    from typing_extensions import Self
 
 EXPECTED_FETCH_CALLS = 2
 

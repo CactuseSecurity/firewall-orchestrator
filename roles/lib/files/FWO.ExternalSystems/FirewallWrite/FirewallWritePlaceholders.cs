@@ -15,6 +15,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         public const string VdomName = "@@VDOM_NAME@@";
         public const string PolicyName = "@@POLICY_NAME@@";
         public const string LayerName = "@@LAYER_NAME@@";
+        public const string InstallOn = "@@INSTALL_ON@@";
         public const string DomainName = "@@DOMAIN_NAME@@";
         public const string AdomName = "@@ADOM_NAME@@";
         public const string ResourceGroup = "@@RESOURCE_GROUP@@";

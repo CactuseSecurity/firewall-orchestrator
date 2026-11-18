@@ -7,16 +7,48 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// Target of a firewall write: the management with its export credentials, the gateway if the task names one, and the
     /// device specific settings in effect for the most specific of both.
     /// </summary>
-    public sealed class FirewallWriteContext
+    public sealed record FirewallWriteContext
     {
         public required Management Management { get; init; }
 
         public Device? Gateway { get; init; }
 
+        /// <summary>
+        /// Gateways a new rule is installed on when the install-on setting is gateways in path; empty means the gateway of
+        /// the task.
+        /// </summary>
+        public List<Device> InstallOnGateways { get; init; } = [];
+
+        /// <summary>The gateways a new rule is installed on: <see cref="InstallOnGateways"/>, else the gateway of the task.</summary>
+        public List<Device> EffectiveInstallOnGateways => InstallOnGateways.Count > 0 || Gateway == null ? InstallOnGateways : [Gateway];
+
         public required GlobalDeviceSpecificSettings Settings { get; init; }
 
         /// <summary>Policy package and first access layer of the gateway from its imported rulebase links.</summary>
         public FirewallGatewayRulebases Rulebases { get; init; } = FirewallGatewayRulebases.None;
+
+        /// <summary>Layer uid of each existing rule of the task by rule uid, from the imported configuration.</summary>
+        public IReadOnlyDictionary<string, string> RuleLayerUids { get; init; } = new Dictionary<string, string>();
+
+        /// <summary>
+        /// Returns the context with the gateways of the management a new rule is installed on; no gateway ids keep it.
+        /// </summary>
+        /// <exception cref="FirewallWriteException">Thrown for a gateway that does not belong to the management.</exception>
+        public FirewallWriteContext WithInstallOnGateways(IReadOnlyList<int>? gatewayIds)
+        {
+            if (gatewayIds == null || gatewayIds.Count == 0)
+            {
+                return this;
+            }
+            List<Device> gateways = [];
+            foreach (int gatewayId in gatewayIds.Distinct())
+            {
+                gateways.Add(Management.Devices.FirstOrDefault(device => device.Id == gatewayId)
+                    ?? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                        $"Gateway {gatewayId} to install the rule on does not belong to management {Management.Id}."));
+            }
+            return this with { InstallOnGateways = gateways };
+        }
 
         public int DeviceTypeId => Management.DeviceType.Id;
 

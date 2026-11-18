@@ -21,6 +21,7 @@ namespace FWO.Test
         private const string kUsername = "probe_user";
         private const string kPassword = "pw:with:colon";
         private const string kLegacyHeader = "Basic cHJvYmVfdXNlcjpwYXNz";
+        private const int kDoneStateId = 631;
         private const string kTufinUrl = "https://tufin-test.xxx.de/securechangeworkflow/api/securechange/";
 
         [Test]
@@ -29,7 +30,7 @@ namespace FWO.Test
             using TestMainKeyScope mainKeyScope = new(kMainKey);
             ExtTicketHandlerTestApiConn apiConnection = new() { Credential = CreateCredential() };
 
-            await CreateNextRequest(apiConnection, kCredentialId, legacyAuthorization: kLegacyHeader);
+            await CreateFollowingRequest(apiConnection, kCredentialId, legacyAuthorization: kLegacyHeader);
 
             ExternalTicketSystem storedSystem = System.Text.Json.JsonSerializer.Deserialize<ExternalTicketSystem>(apiConnection.AddedExtTicketSystem ?? "")
                 ?? throw new AssertionException("No external request created");
@@ -44,16 +45,16 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task CreatedRequestWithoutCredentialHasNoAuthorization()
+        public async Task RequestWithoutCredentialIsNotCreated()
         {
             ExtTicketHandlerTestApiConn apiConnection = new();
 
-            await CreateNextRequest(apiConnection, null, legacyAuthorization: kLegacyHeader);
+            // the provisioning logs the incomplete connection and creates no request
+            await CreateFollowingRequest(apiConnection, null);
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.AddedExtTicketSystem, Is.Not.Null);
-                Assert.That(apiConnection.AddedExtTicketSystem, Does.Not.Contain("Authorization"));
+                Assert.That(apiConnection.AddedExtTicketSystem, Is.Null);
                 Assert.That(apiConnection.CredentialQueryVars, Is.Empty);
             });
         }
@@ -68,7 +69,7 @@ namespace FWO.Test
             });
             ExtTicketHandlerTestApiConn apiConnection = new() { Credential = CreateCredential(), TicketRequester = new UiUser { Name = "requester" } };
 
-            await CreateNextRequest(apiConnection, kCredentialId, url: server.BaseUrl, lookupRequesterId: true);
+            await CreateFollowingRequest(apiConnection, kCredentialId, url: server.BaseUrl, lookupRequesterId: true);
 
             Assert.Multiple(() =>
             {
@@ -81,16 +82,16 @@ namespace FWO.Test
         }
 
         [Test]
-        public void RequesterLookupFailsForUnknownCredential()
+        public async Task RequesterLookupFailsForUnknownCredential()
         {
             using TestMainKeyScope mainKeyScope = new(kMainKey);
             ExtTicketHandlerTestApiConn apiConnection = new();
 
-            InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(() => CreateNextRequest(apiConnection, kCredentialId, lookupRequesterId: true));
+            // the provisioning logs the failure and creates no request
+            await CreateFollowingRequest(apiConnection, kCredentialId, lookupRequesterId: true);
 
             Assert.Multiple(() =>
             {
-                Assert.That(exception?.Message, Does.Contain($"Credential {kCredentialId}"));
                 Assert.That(apiConnection.CredentialQueryVars, Has.Count.EqualTo(1));
                 Assert.That(apiConnection.AddedExtTicketSystem, Is.Null);
             });
@@ -101,7 +102,10 @@ namespace FWO.Test
             return new Credential { Id = kCredentialId, Name = "probe", ImportUser = kUsername, Secret = AesEnc.Encrypt(kPassword, kMainKey) };
         }
 
-        private static async Task CreateNextRequest(ExtTicketHandlerTestApiConn apiConnection, int? credentialId, string? legacyAuthorization = null,
+        /// <summary>
+        /// Finishes the request of the request tasks 2 and 3, so the request of the following tasks is created.
+        /// </summary>
+        private static async Task CreateFollowingRequest(ExtTicketHandlerTestApiConn apiConnection, int? credentialId, string? legacyAuthorization = null,
             string url = kTufinUrl, bool lookupRequesterId = false)
         {
             ExternalTicketSystem tufinSystem = new()
@@ -118,27 +122,17 @@ namespace FWO.Test
             SimulatedUserConfig userConfig = new()
             {
                 ExternalRequestWaitCycles = 3,
-                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { tufinSystem }),
-                FwConfigChangeMgmSettings = System.Text.Json.JsonSerializer.Serialize(new List<ManagementFwConfigChangeState>
-                {
-                    new()
-                    {
-                        Id = 1,
-                        Name = "Checkpoint",
-                        Enabled = true,
-                        SelectedChanges = new()
-                        {
-                            [ManagementFwConfigChangeCategories.ObjectChanges] = tufinSystem.Id.ToString(),
-                            [ManagementFwConfigChangeCategories.RuleChanges] = tufinSystem.Id.ToString()
-                        }
-                    }
-                }),
                 ReqPriorities = ExtTicketHandlerTest.reqPrios,
                 ModNamingConvention = ExtTicketHandlerTest.namingConvention,
                 ModRolloutBundleTasks = true
             };
 
-            using ExternalRequestHandler handler = new(userConfig, apiConnection, null) { SCTemplateSource = new FixedSCTemplateSource(ExtTicketHandlerTest.ticketSystem.Templates) };
+            using ExternalRequestHandler handler = new ExternalRequestHandler(userConfig, apiConnection, null)
+            {
+                SCTemplateSource = new FixedSCTemplateSource(ExtTicketHandlerTest.ticketSystem.Templates)
+            }.WithProvisioningSettings(ExtTicketHandlerTest.ExternalTicketSystemSettings(tufinSystem, credentialId));
+            // the request of task 1 is finished already
+            ExtTicketHandlerTestApiConn.SetReqTaskState(1, kDoneStateId);
             await handler.HandleStateChange(new ExternalRequest
             {
                 Id = 2,

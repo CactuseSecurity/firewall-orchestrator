@@ -20,6 +20,8 @@ internal class CreateTicketEndpointTest
         "rules[0].sourceObjects"
     ];
 
+    private static readonly List<string> kLoggingErrorPaths = ["rules[0].logging", "rules[1].logging"];
+
     [Test]
     public void ValidationReportsAllErrorsWithPrecisePaths()
     {
@@ -36,6 +38,42 @@ internal class CreateTicketEndpointTest
             Assert.That(result.Errors.Single(error => error.Path == "rules[0].sourceObjects").Message,
                 Does.Contain("non-zero integers"));
         });
+    }
+
+    [TestCase("""{"action":"accept","sourceObjects":[-1]}""")]
+    [TestCase("""{"action":"accept","logging":null,"sourceObjects":[-1]}""")]
+    public void RuleLoggingDefaultsToLogWhenOmittedOrNull(string rule)
+    {
+        CreateTicketRequest request = JsonSerializer.Deserialize<CreateTicketRequest>("""{"rules":[""" + rule + "]}")!;
+
+        Assert.That(request.Rules[0].Logging, Is.EqualTo(CreateTicketRequest.CreateTicketRuleRequest.kDefaultLogging));
+    }
+
+    [Test]
+    public void ValidationRejectsEmptyAndOversizedRuleLogging()
+    {
+        CreateTicketRequest request = new()
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Logging validation",
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest { Action = "accept", Logging = " ", SourceObjects = [-1] },
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Action = "accept",
+                    Logging = new string('l', CreateTicketRequest.kMaxIdentifierLength + 1),
+                    SourceObjects = [-1]
+                }
+            ]
+        };
+
+        RequestValidationErrorResponse result = CreateTicketRequestValidator.Validate(request);
+
+        Assert.That(result.Errors.Select(error => error.Path), Is.EquivalentTo(kLoggingErrorPaths));
     }
 
     [Test]

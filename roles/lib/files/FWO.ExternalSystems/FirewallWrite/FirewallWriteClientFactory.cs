@@ -8,8 +8,8 @@ namespace FWO.ExternalSystems.FirewallWrite
     }
 
     /// <summary>
-    /// Creates the vendor client of the target's device type, with certificate checks as configured by the device specific
-    /// setting <c>fwWriteCheckCertificates</c> of the target.
+    /// Creates the vendor client of the target's device type, with certificate checks and response timeout as configured by
+    /// the device specific settings <c>fwWriteCheckCertificates</c> and <c>requestResponseTimeout</c> of the target.
     /// </summary>
     public sealed class FirewallWriteClientFactory : IFirewallWriteClientFactory
     {
@@ -18,13 +18,14 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             ArgumentNullException.ThrowIfNull(context);
             bool checkCertificates = context.Settings.FwWriteCheckCertificates;
+            int responseTimeout = context.Settings.RequestResponseTimeout;
             return context.Vendor switch
             {
-                FirewallVendor.CheckPoint => new CheckPointWriteClient(context.Management, checkCertificates),
-                FirewallVendor.FortiManager => new FortiManagerWriteClient(context.Management, checkCertificates),
-                FirewallVendor.FortiOs => new FortiOsWriteClient(context.Management, checkCertificates),
-                FirewallVendor.OpnSense => new OpnSenseWriteClient(context.Management, checkCertificates),
-                FirewallVendor.Azure => new AzureWriteClient(context.Management, checkCertificates),
+                FirewallVendor.CheckPoint => new CheckPointWriteClient(context.Management, checkCertificates, responseTimeout),
+                FirewallVendor.FortiManager => new FortiManagerWriteClient(context.Management, checkCertificates, responseTimeout),
+                FirewallVendor.FortiOs => new FortiOsWriteClient(context.Management, checkCertificates, responseTimeout),
+                FirewallVendor.OpnSense => new OpnSenseWriteClient(context.Management, checkCertificates, responseTimeout),
+                FirewallVendor.Azure => new AzureWriteClient(context.Management, checkCertificates, responseTimeout),
                 _ => throw new NotSupportedException($"Device type {context.DeviceTypeId} is not supported by the firewall write library.")
             };
         }

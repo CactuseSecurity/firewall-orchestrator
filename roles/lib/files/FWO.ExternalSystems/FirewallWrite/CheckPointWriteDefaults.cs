@@ -15,14 +15,14 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const string kRuleCreateBody = """
             {"layer":"@@LAYER_NAME@@","position":@@RULE_POSITION@@,"name":"@@RULE_NAME@@",
              "source":@@RULE_SOURCES@@,"destination":@@RULE_DESTINATIONS@@,"service":@@RULE_SERVICES@@,
-             "action":"@@RULE_ACTION@@","track":{"type":"@@RULE_TRACKING@@"},"comments":"@@RULE_COMMENT@@"}
+             "action":"@@RULE_ACTION@@","track":{"type":"@@RULE_TRACKING@@"},"install-on":@@INSTALL_ON@@,"comments":"@@RULE_COMMENT@@"}
             """;
 
+        // A rule to modify is written as its complete target state, as for every other vendor: set-access-rule accepts
+        // only one action per field and call, so adding and removing at once ({"add":..,"remove":..}) is refused.
         private const string kRuleModifyBody = """
             {"uid":"@@RULE_UID@@","layer":"@@LAYER_NAME@@",
-             "source":{"add":@@RULE_SOURCES_TO_ADD@@,"remove":@@RULE_SOURCES_TO_REMOVE@@},
-             "destination":{"add":@@RULE_DESTINATIONS_TO_ADD@@,"remove":@@RULE_DESTINATIONS_TO_REMOVE@@},
-             "service":{"add":@@RULE_SERVICES_TO_ADD@@,"remove":@@RULE_SERVICES_TO_REMOVE@@}}
+             "source":@@RULE_SOURCES@@,"destination":@@RULE_DESTINATIONS@@,"service":@@RULE_SERVICES@@}
             """;
 
         private const string kInstallPolicyBody = """

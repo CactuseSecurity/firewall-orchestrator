@@ -28,11 +28,11 @@ public class FlowCatalogController : ControllerBase
         .. FlowCatalogPaging.KeyDefinitions()
     ];
     private static readonly RequestRootValidationSchema AddressGroupsRootSchema = new(nameof(GetAddressGroups), kAddressGroupsRootKeys);
-    private static readonly RequestFilterValidationSchema AddressGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
+    private static readonly RequestFilterValidationSchema AddressGroupsFilterSchema = RequestFilterValidationSchema.ForFlowCatalogGroups(nameof(GetAddressGroups));
     private static readonly RequestRootValidationSchema ServiceObjectsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetServiceObjects));
     private static readonly RequestFilterValidationSchema ServiceObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjects));
     private static readonly RequestRootValidationSchema ServiceGroupsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetServiceGroups));
-    private static readonly RequestFilterValidationSchema ServiceGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceGroups));
+    private static readonly RequestFilterValidationSchema ServiceGroupsFilterSchema = RequestFilterValidationSchema.ForFlowCatalogGroups(nameof(GetServiceGroups));
     private static readonly RequestRootValidationSchema TimeObjectsRootSchema = RequestRootValidationSchema.ForPagedVisibleInRequest(nameof(GetTimeObjects));
     private static readonly RequestFilterValidationSchema TimeObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjects));
     private static readonly RequestRootValidationSchema ServiceObjectIdRootSchema = new(
@@ -121,6 +121,9 @@ public class FlowCatalogController : ControllerBase
     /// <c>limit</c> and <c>offset</c>, ordered by name and id); the <c>X-Has-More</c> response header is <c>true</c>
     /// when further groups follow.
     /// With separated zone groups the page is taken before the groups are separated.
+    /// With <c>filter.includeTechnicalDetails</c> set to true, every member also contains the fields of an
+    /// <see cref="AddressObjectResponse"/>; false, null, or omission keeps the compact id/name member shape.
+    /// Technical details and zone separation can be enabled together.
     /// With 'option.separateZoneGroups' set to true the result is a
     /// <see cref="SeparatedAddressGroupsResponse"/> holding the zone groups separately;
     /// otherwise a flat JSON array of all groups is returned.
@@ -136,7 +139,7 @@ public class FlowCatalogController : ControllerBase
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> GetAddressGroups([FromBody] GetAddressGroupsRequest request)
     {
-        if (!TryValidatePagedRequest(request, AddressGroupsRootSchema, AddressGroupsFilterSchema, MaxLimit, out ActionResult? errorResult))
+        if (!TryValidatePagedGroupRequest(request, AddressGroupsRootSchema, AddressGroupsFilterSchema, MaxLimit, out ActionResult? errorResult))
         {
             return errorResult!;
         }
@@ -149,12 +152,20 @@ public class FlowCatalogController : ControllerBase
         if (request.Option?.SeparateZoneGroups == true)
         {
             (SeparatedAddressGroupsResponse separatedGroups, bool hasMore) =
-                await flowCatalogService.GetSeparatedAddressGroupsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, MaxLimit), request.Offset);
+                await flowCatalogService.GetSeparatedAddressGroupsAsync(
+                    request.Filter?.VisibleInRequest,
+                    FlowCatalogPaging.GetPageSize(request, MaxLimit),
+                    request.Offset,
+                    request.Filter?.IncludeTechnicalDetails == true);
             ListPaging.SetHasMoreHeader(HttpContext, hasMore);
             return Ok(separatedGroups);
         }
 
-        return PageResult(await flowCatalogService.GetAddressGroupsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, MaxLimit), request.Offset));
+        return PageResult(await flowCatalogService.GetAddressGroupsAsync(
+            request.Filter?.VisibleInRequest,
+            FlowCatalogPaging.GetPageSize(request, MaxLimit),
+            request.Offset,
+            request.Filter?.IncludeTechnicalDetails == true));
     }
 
     /// <summary>
@@ -184,6 +195,9 @@ public class FlowCatalogController : ControllerBase
     /// Returns one page of at most the configured <c>maxRestResponseObjectLimit</c> groups (default 10000; root keys
     /// <c>limit</c> and <c>offset</c>, ordered by name and id); the <c>X-Has-More</c> response header is <c>true</c>
     /// when further groups follow.
+    /// With <c>filter.includeTechnicalDetails</c> set to true, every member also contains the fields of a
+    /// <see cref="ServiceObjectResponse"/>; protocol-only members include null <c>portStart</c> and <c>portEnd</c>.
+    /// False, null, or omission keeps the compact id/name member shape.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getServiceGroups")]
@@ -191,12 +205,16 @@ public class FlowCatalogController : ControllerBase
     [RequestSizeLimit(ApiRateLimiting.kMaxExpensiveRequestBodyBytes)]
     public async Task<ActionResult<List<ServiceGroupResponse>>> GetServiceGroups([FromBody] GetServiceGroupsRequest request)
     {
-        if (!TryValidatePagedRequest(request, ServiceGroupsRootSchema, ServiceGroupsFilterSchema, MaxLimit, out ActionResult? errorResult))
+        if (!TryValidatePagedGroupRequest(request, ServiceGroupsRootSchema, ServiceGroupsFilterSchema, MaxLimit, out ActionResult? errorResult))
         {
             return errorResult!;
         }
 
-        return PageResult(await flowCatalogService.GetServiceGroupsAsync(request.Filter?.VisibleInRequest, FlowCatalogPaging.GetPageSize(request, MaxLimit), request.Offset));
+        return PageResult(await flowCatalogService.GetServiceGroupsAsync(
+            request.Filter?.VisibleInRequest,
+            FlowCatalogPaging.GetPageSize(request, MaxLimit),
+            request.Offset,
+            request.Filter?.IncludeTechnicalDetails == true));
     }
 
     /// <summary>
@@ -372,6 +390,26 @@ public class FlowCatalogController : ControllerBase
         where TRequest : IVisibleInRequestFilterRequest, IPagedListRequest
     {
         if (!TryValidateVisibleInRequestRequest(request, rootSchema, filterSchema, out errorResult))
+        {
+            return false;
+        }
+
+        return FlowCatalogPaging.TryValidate(request, maxLimit, out errorResult);
+    }
+
+    /// <summary>
+    /// Validates root keys, group filters, and paging values for a group catalog request.
+    /// </summary>
+    private static bool TryValidatePagedGroupRequest<TRequest>(
+        TRequest request,
+        RequestRootValidationSchema rootSchema,
+        RequestFilterValidationSchema filterSchema,
+        int maxLimit,
+        out ActionResult? errorResult)
+        where TRequest : IFlowCatalogGroupFilterRequest, IPagedListRequest
+    {
+        if (!RequestRootValidator.TryValidate(request, rootSchema, out errorResult)
+            || !FlowCatalogGroupFilterValidator.TryValidate(request, filterSchema, out errorResult))
         {
             return false;
         }

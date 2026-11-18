@@ -72,12 +72,12 @@ namespace FWO.ExternalSystems
         /// </summary>
         /// <param name="system">The ticket system, as configured or as stored with an external request.</param>
         /// <param name="apiConnection">Connection allowed to read credential secrets (middleware server).</param>
-        /// <param name="configuredTicketSystems">The currently configured ticket systems (JSON list) for a ticket system
-        /// stored with an external request; null if <paramref name="system"/> is taken from the configuration.</param>
+        /// <param name="configured">The ticket system as currently configured for the management of a request stored with
+        /// <paramref name="system"/>; null if <paramref name="system"/> is taken from the configuration.</param>
         /// <exception cref="InvalidOperationException">If the credential is missing or unusable, or the header cannot be decrypted.</exception>
-        public static async Task ResolveHeader(ExternalTicketSystem system, ApiConnection apiConnection, string? configuredTicketSystems = null)
+        public static async Task ResolveHeader(ExternalTicketSystem system, ApiConnection apiConnection, ExternalTicketSystem? configured = null)
         {
-            int? credentialId = CurrentCredentialId(system, configuredTicketSystems);
+            int? credentialId = CurrentCredentialId(system, configured);
             if (credentialId is > 0)
             {
                 Credential credential = await apiConnection.SendQueryAsync<Credential?>(DeviceQueries.getCredentialById, new { id = credentialId })
@@ -94,15 +94,10 @@ namespace FWO.ExternalSystems
         /// The credential a ticket system logs in with: that of its current configuration, so that open requests follow
         /// a switch to another credential (and the old one can be deleted). The calls go to the endpoint stored with the
         /// request, so the configured credential is only taken while the configured ticket system still is that endpoint;
-        /// otherwise (ticket system removed, its id reused, or moved to another server) the one stored with the request.
+        /// otherwise (no ticket system configured any more, or moved to another server) the one stored with the request.
         /// </summary>
-        private static int? CurrentCredentialId(ExternalTicketSystem system, string? configuredTicketSystems)
+        private static int? CurrentCredentialId(ExternalTicketSystem system, ExternalTicketSystem? configured)
         {
-            if (configuredTicketSystems == null)
-            {
-                return system.CredentialId;
-            }
-            ExternalTicketSystem? configured = ExternalTicketSystem.FindConfigured(configuredTicketSystems, system.Id);
             return configured != null && IsSameEndpoint(configured, system) ? configured.CredentialId : system.CredentialId;
         }
 

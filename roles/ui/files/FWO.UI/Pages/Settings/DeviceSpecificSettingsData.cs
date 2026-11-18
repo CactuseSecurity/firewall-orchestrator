@@ -689,14 +689,15 @@ namespace FWO.Ui.Pages.Settings
                 ValidateObjectTypeNames(ParseStringList(value).Where(entry => entry.Length > 0).Distinct().ToList()))
         };
 
-        /// <summary>Checks that every entry is the name of a modelling object type.</summary>
-        /// <exception cref="ArgumentException">Thrown for an entry that names no modelling object type.</exception>
+        /// <summary>Checks that every entry is the name of a modelling object type that can be excluded from provisioning.</summary>
+        /// <exception cref="ArgumentException">Thrown for an entry that names no excludable modelling object type.</exception>
         public static List<string> ValidateObjectTypeNames(List<string> entries)
         {
-            List<string> unknown = [.. entries.Where(entry => !Enum.GetNames<ModellingTypes.ModObjectType>().Contains(entry, StringComparer.Ordinal))];
-            if (unknown.Count > 0)
+            List<string> allowed = [.. GlobalDeviceSpecificSettings.ExcludableObjectTypes.Select(objectType => objectType.ToString())];
+            List<string> invalid = [.. entries.Where(entry => !allowed.Contains(entry, StringComparer.Ordinal))];
+            if (invalid.Count > 0)
             {
-                throw new ArgumentException($"Unknown modelling object types: {string.Join(", ", unknown)}. Allowed: {string.Join(", ", Enum.GetNames<ModellingTypes.ModObjectType>())}.",
+                throw new ArgumentException($"Object types that cannot be excluded: {string.Join(", ", invalid)}. Allowed: {string.Join(", ", allowed)}.",
                     DeviceSpecificSettingKeys.ProvisioningExcludedObjectTypes.DatabaseKey);
             }
             return entries;

@@ -3,9 +3,7 @@ import pytest
 from fwo_api_call import FwoApiCall
 from fwo_exceptions import FwoApiLoginFailedError, ShutdownRequestedError
 from model_controllers.import_state_controller import ImportStateController
-from model_controllers.management_controller import ManagementController
 from pytest_mock.plugin import MockerFixture
-from test.data.mock_objects import MockObjectsFactory
 from test.utils.test_utils import mock_get_graphql_code, mock_login
 
 from importer.import_main_loop import (
@@ -174,11 +172,6 @@ class TestImportSingleManagement:
         )
         mock_register_global_state = mocker.patch("importer.import_main_loop.register_global_state")
         mock_get_graphql_code(mocker, return_value={"data": {"jwt": "mocked_jwt"}})
-        mock_get_mgm_details = mocker.patch.object(
-            ManagementController,
-            "get_mgm_details",
-            return_value=MockObjectsFactory.get_mock_mgm_details(),
-        )
 
         # Act
         import_single_management(
@@ -195,7 +188,6 @@ class TestImportSingleManagement:
 
         # Assert
         mock_wait.assert_called_with(0)
-        mock_get_mgm_details.assert_called_once()
         mock_initialize_import.assert_called_once_with(
             mgm_id=1,
             api_call=api_call,
@@ -222,11 +214,6 @@ class TestImportSingleManagement:
             return_value=import_state_controller,
         )
         mocker.patch("importer.import_main_loop.register_global_state")
-        mocker.patch.object(
-            ManagementController,
-            "get_mgm_details",
-            return_value=MockObjectsFactory.get_mock_mgm_details(),
-        )
         mocker.patch("importer.import_main_loop.import_management", side_effect=ShutdownRequestedError)
 
         # Act

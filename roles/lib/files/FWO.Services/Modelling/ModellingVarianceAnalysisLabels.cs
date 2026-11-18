@@ -23,7 +23,7 @@ namespace FWO.Services.Modelling
         private const string kLogCategory = "Variance Analysis";
         private static readonly GlobalDeviceSpecificSettings DefaultSettings = new();
         private readonly Dictionary<int, GlobalDeviceSpecificSettings> managementSettings = [];
-        private HashSet<string>? currentAppRoleIdStrings;
+        private readonly Dictionary<ModellingTypes.ModObjectType, HashSet<string>> currentIdStrings = [];
 
         /// <summary>
         /// Loads the device specific settings in effect for the relevant managements. If they cannot be loaded, the
@@ -218,33 +218,57 @@ namespace FWO.Services.Modelling
         }
 
         /// <summary>
-        /// Requests the deletion of the app role labels that were requested for the owner on a management that segments by
-        /// labels, still exist there, but are no app role any more, e.g. after the app role was deleted or got another id string.
+        /// Requests the deletion of the app role, app zone and network area labels that were requested for the owner on a
+        /// management that segments by labels and still exist there, but whose modelled object does not exist any more,
+        /// e.g. after it was deleted or got another id string. Label types the settings exclude or do not implement on the
+        /// management (app zones, network areas) are left alone.
         /// </summary>
         private async Task AnalyseObsoleteLabelsForRequest(Management mgt)
         {
-            if (!WritesLabels(mgt) || IsExcluded(mgt, ModellingTypes.ModObjectType.AppRole)
-                || !allProdAppRoles.TryGetValue(mgt.Id, out List<ModellingAppRole>? prodGroups))
+            List<ModellingTypes.ModObjectType> labelTypes = ObsoleteLabelTypes(mgt);
+            if (labelTypes.Count == 0 || !allProdAppRoles.TryGetValue(mgt.Id, out List<ModellingAppRole>? prodGroups))
             {
                 return;
             }
             try
             {
-                HashSet<string> currentIdStrings = await LoadCurrentAppRoleIdStrings();
                 HashSet<string> prodGroupNames = [.. prodGroups.Select(group => group.Name)];
-                foreach (string idString in (await LoadRequestedAppRoles(mgt)).Where(idString => !currentIdStrings.Contains(idString)).Order(StringComparer.Ordinal))
+                List<DynamicIpLabel> requestedLabels = await LoadRequestedLabels(mgt);
+                foreach (ModellingTypes.ModObjectType labelType in labelTypes)
                 {
-                    string labelName = DynamicIpLabel.ForModelledGroup(ModellingTypes.ModObjectType.AppRole, idString).Name;
-                    if (prodGroupNames.Contains(labelName))
-                    {
-                        DeleteObjectTasksList.Add(ObsoleteLabelTask(idString, labelName, mgt));
-                    }
+                    HashSet<string> current = await LoadCurrentIdStrings(labelType);
+                    List<DynamicIpLabel> obsoleteLabels = [.. requestedLabels
+                        .Where(label => label.ObjectType == labelType && !current.Contains(label.Value) && prodGroupNames.Contains(label.Name))
+                        .OrderBy(label => label.Value, StringComparer.Ordinal)];
+                    DeleteObjectTasksList.AddRange(obsoleteLabels.Select(label => ObsoleteLabelTask(label.Value, label.Name, mgt)));
                 }
             }
             catch (Exception exception)
             {
                 Log.WriteError(kLogCategory, $"Obsolete labels on management {mgt.Name} could not be determined.", exception);
             }
+        }
+
+        /// <summary>The label types whose obsolete labels are deleted on a management.</summary>
+        private List<ModellingTypes.ModObjectType> ObsoleteLabelTypes(Management mgt)
+        {
+            List<ModellingTypes.ModObjectType> labelTypes = [];
+            if (!WritesLabels(mgt))
+            {
+                return labelTypes;
+            }
+            GlobalDeviceSpecificSettings settings = SettingsOf(mgt);
+            labelTypes.Add(ModellingTypes.ModObjectType.AppRole);
+            if (settings.ModellingCreateAppZones)
+            {
+                labelTypes.Add(ModellingTypes.ModObjectType.AppZone);
+            }
+            if (settings.ModellingImplementNetworkAreaObjects)
+            {
+                labelTypes.Add(ModellingTypes.ModObjectType.NetworkArea);
+            }
+            labelTypes.RemoveAll(labelType => IsExcluded(mgt, labelType));
+            return labelTypes;
         }
 
         private WfReqTask ObsoleteLabelTask(string idString, string labelName, Management mgt)
@@ -266,22 +290,32 @@ namespace FWO.Services.Modelling
             };
         }
 
-        /// <summary>The id strings of all app roles that are not deleted, of all owners.</summary>
-        private async Task<HashSet<string>> LoadCurrentAppRoleIdStrings()
+        /// <summary>The id strings of all modelled objects of a type that are not deleted, of all owners.</summary>
+        private async Task<HashSet<string>> LoadCurrentIdStrings(ModellingTypes.ModObjectType objectType)
         {
-            currentAppRoleIdStrings ??= [.. (await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNwGroupObjects,
-                new { grpType = (int)ModellingTypes.ModObjectType.AppRole })).Select(appRole => appRole.IdString)];
-            return currentAppRoleIdStrings;
+            if (!currentIdStrings.TryGetValue(objectType, out HashSet<string>? idStrings))
+            {
+                List<ModellingAppRole> groups = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getNwGroupObjects,
+                    new { grpType = (int)objectType });
+                idStrings = [.. groups.Select(group => group.IdString)];
+                currentIdStrings[objectType] = idStrings;
+            }
+            return idStrings;
         }
 
-        /// <summary>The id strings of the app roles that group_create tasks requested for the owner on a management.</summary>
-        private async Task<HashSet<string>> LoadRequestedAppRoles(Management mgt)
+        /// <summary>
+        /// The app role, app zone and network area labels that group_create tasks requested for the owner on a management,
+        /// each once.
+        /// </summary>
+        private async Task<List<DynamicIpLabel>> LoadRequestedLabels(Management mgt)
         {
             List<WfReqTask> tasks = await apiConnection.SendQueryAsync<List<WfReqTask>>(RequestQueries.getRequestedGroupsOfOwner,
                 new { ownerId = owner.Id, mgmId = mgt.Id });
             return [.. tasks
-                .Select(task => task.GetAddInfoValue(AdditionalInfoKeys.GrpName))
-                .Where(groupName => DynamicIpLabel.GroupObjectType(groupName, namingConvention) == ModellingTypes.ModObjectType.AppRole)];
+                .Select(task => DynamicIpLabel.FromGroupName(task.GetAddInfoValue(AdditionalInfoKeys.GrpName), namingConvention))
+                .OfType<DynamicIpLabel>()
+                .Where(label => label.ObjectType != null)
+                .Distinct()];
         }
     }
 }

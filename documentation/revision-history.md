@@ -96,13 +96,14 @@
   setting labelCreation now decides where network objects and groups of Guardicore managements are implemented
 - variance analysis: on Guardicore managements app roles, app zones and network areas are compared with their labels
   (imported as groups "key: value" with one member per CIDR block) by their addresses; missing labels are created,
-  changed ones get their members added and removed, app role labels requested for the owner that are no app role any
-  more (deleted or renamed) are deleted. Network area labels are requested while the device specific setting
+  changed ones get their members added and removed, app role, app zone and network area labels requested for the owner
+  whose modelled object does not exist any more (deleted or renamed) are deleted. Network area labels are requested while the device specific setting
   modellingImplementNetworkAreaObjects is on; the device specific setting modellingCreateAppZones now switches the
   app zone requests per management
-- settings: new device specific setting provisioningExcludedObjectTypes (Global to manager): modelling object types
-  (e.g. AppServer, NetworkArea) left out of the variance analysis and of provisioning; when writing, hosts and ranges
-  count as AppServer, networks as Network, services as Service, and groups by their label key or naming convention
+- settings: new device specific setting provisioningExcludedObjectTypes (Global to manager): modelling group types
+  (AppRole, AppZone, NetworkArea, ServiceGroup) left out of the variance analysis and of provisioning; when writing,
+  groups have the type of their label key or naming convention, and the task of an excluded group is left out with
+  its member objects
 - api: modeller, recertifier, reporter and reporter-viewall may read the device specific settings nodes and the
   values of modellingCreateAppZones, modellingImplementNetworkAreaObjects and provisioningExcludedObjectTypes, which
   the variance analysis needs

@@ -13,6 +13,7 @@ from common import (
     get_config_top_level,
     get_module_package_name,
     handle_unexpected_exception,
+    has_importer_module,
     import_from_file,
     import_management,
     roll_back_exception_handler,
@@ -38,6 +39,10 @@ if TYPE_CHECKING:
 
 MGM_ID = 3
 IMPORT_ID = 17
+SUPPORTED_TYPE_NAME = "Guardicore Management"
+SUPPORTED_TYPE_VERSION = "REST"
+UNSUPPORTED_TYPE_NAME = "JUNOS"
+UNSUPPORTED_TYPE_VERSION = "10-21"
 
 
 def _mock(value: Any) -> MagicMock:
@@ -186,6 +191,8 @@ class TestImportManagementInner:
     ) -> dict[str, MagicMock]:
         state = import_state_controller.state
         state.mgm_details.importer_hostname = gethostname()
+        state.mgm_details.device_type_name = SUPPORTED_TYPE_NAME
+        state.mgm_details.device_type_version = SUPPORTED_TYPE_VERSION
         state.force_import = False
         state.is_initial_import = False
         _mock(import_state_controller.api_call.set_import_lock).return_value = IMPORT_ID
@@ -198,10 +205,12 @@ class TestImportManagementInner:
         }
 
     @staticmethod
-    def _run(clear_management_data: bool = False, suppress_consistency_check: bool = False) -> None:
+    def _run(
+        clear_management_data: bool = False, suppress_consistency_check: bool = False, file: str | None = None
+    ) -> None:
         common._import_management(
             MGM_ID,
-            file=None,
+            file=file,
             limit=100,
             clear_management_data=clear_management_data,
             suppress_consistency_check=suppress_consistency_check,
@@ -226,6 +235,56 @@ class TestImportManagementInner:
 
         assert import_state_controller.state.responsible_for_importing is False
         inner_mocks["get_config"].assert_not_called()
+
+    @staticmethod
+    def _set_unsupported_device_type(import_state_controller: ImportStateController) -> None:
+        mgm_details = import_state_controller.state.mgm_details
+        mgm_details.device_type_name = UNSUPPORTED_TYPE_NAME
+        mgm_details.device_type_version = UNSUPPORTED_TYPE_VERSION
+
+    def test_skips_management_without_importer_module(
+        self, mocker: MockerFixture, inner_mocks: dict[str, MagicMock], import_state_controller: ImportStateController
+    ) -> None:
+        self._set_unsupported_device_type(import_state_controller)
+        mock_info = mocker.patch("common.FWOLogger.info")
+
+        self._run()
+
+        _mock(import_state_controller.api_call.set_import_lock).assert_not_called()
+        inner_mocks["get_config"].assert_not_called()
+        assert "no importer module" in mock_info.call_args.args[0]
+
+    def test_imports_management_without_importer_module_from_file(
+        self, inner_mocks: dict[str, MagicMock], import_state_controller: ImportStateController
+    ) -> None:
+        self._set_unsupported_device_type(import_state_controller)
+        inner_mocks["get_config"].return_value = (False, MagicMock())
+
+        self._run(file="normalized_config.json")
+
+        _mock(import_state_controller.api_call.set_import_lock).assert_called_once()
+        inner_mocks["get_config"].assert_called_once()
+
+    def test_imports_management_without_importer_module_from_config_uri(
+        self, inner_mocks: dict[str, MagicMock], import_state_controller: ImportStateController
+    ) -> None:
+        self._set_unsupported_device_type(import_state_controller)
+        import_state_controller.state.mgm_details.hostname = "https://configs.example.com/normalized_config.json"
+        inner_mocks["get_config"].return_value = (False, MagicMock())
+
+        self._run()
+
+        _mock(import_state_controller.api_call.set_import_lock).assert_called_once()
+        inner_mocks["get_config"].assert_called_once()
+
+    def test_clears_management_without_importer_module(
+        self, inner_mocks: dict[str, MagicMock], import_state_controller: ImportStateController
+    ) -> None:
+        self._set_unsupported_device_type(import_state_controller)
+
+        self._run(clear_management_data=True)
+
+        inner_mocks["config_importer"].clear_management.assert_called_once()
 
     def test_imports_management_without_importer_host(
         self, inner_mocks: dict[str, MagicMock], import_state_controller: ImportStateController
@@ -479,3 +538,29 @@ class TestModulePackageName:
         mgm_details.device_type_version = type_version
 
         assert get_module_package_name(import_state_controller.state) == expected
+
+    @pytest.mark.parametrize(
+        ("type_name", "type_version", "expected"),
+        [
+            ("Check Point", "R8x", True),
+            ("Check Point", "MDS R8x", True),
+            ("FortiManager", "5ff", True),
+            ("FortiOS Management", "REST", True),
+            ("Cisco Asa", "9", True),
+            ("Cisco Asa on FirePower", "9", True),
+            ("Azure", "2022ff", True),
+            ("Generic Firewall Management", "1.0", True),
+            ("OPNsense standalone", "25ff", True),
+            (SUPPORTED_TYPE_NAME, SUPPORTED_TYPE_VERSION, True),
+            (UNSUPPORTED_TYPE_NAME, UNSUPPORTED_TYPE_VERSION, False),
+            ("DummyRouter Management", "1", False),
+        ],
+    )
+    def test_has_importer_module(
+        self, type_name: str, type_version: str, expected: bool, import_state_controller: ImportStateController
+    ) -> None:
+        mgm_details = import_state_controller.state.mgm_details
+        mgm_details.device_type_name = type_name
+        mgm_details.device_type_version = type_version
+
+        assert has_importer_module(import_state_controller.state) is expected

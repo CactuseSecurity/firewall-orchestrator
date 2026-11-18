@@ -32,7 +32,9 @@ namespace FWO.Test
             Label(3, "AppRole: AR504711-009", Host2),
             Label(4, "AppZone: AZ4711", Host1, Block1, Block2, Host2),
             Label(5, "NetworkArea: NA50", AreaBlock),
-            Label(6, "Stage: Prod", Host1)
+            Label(6, "Stage: Prod", Host1),
+            Label(7, "AppZone: AZ0815", Host2),
+            Label(8, "NetworkArea: NA60", AreaBlock)
         ];
         private static readonly List<NetworkObject> Hosts = [Host1, Block1, Block2, Host2, Surplus, AreaBlock];
 
@@ -53,8 +55,14 @@ namespace FWO.Test
         /// <summary>App roles that exist (not deleted), of all owners.</summary>
         public List<string> CurrentAppRoles { get; } = ["AR504711-001", "AR504711-002", "AR504711-003"];
 
+        /// <summary>App zones that exist (not deleted), of all owners.</summary>
+        public List<string> CurrentAppZones { get; } = ["AZ4711"];
+
+        /// <summary>Network areas that exist (not deleted).</summary>
+        public List<string> CurrentNetworkAreas { get; } = ["NA50"];
+
         /// <summary>Group names requested for the owner by earlier group_create tasks.</summary>
-        public List<string> RequestedGroups { get; } = ["AR504711-001", "AR504711-009", "AZ4711"];
+        public List<string> RequestedGroups { get; } = ["AR504711-001", "AR504711-009", "AZ4711", "AZ0815", "NA50", "NA60", "Servers"];
 
         public GuardicoreVarianceTestApiConn()
         {
@@ -83,7 +91,7 @@ namespace FWO.Test
                 Type type when type == typeof(List<NetworkObject>) => ObjectsOfTypes(variables),
                 Type type when type == typeof(List<ModellingAppZone>) => new List<ModellingAppZone> { new(AppZone) },
                 Type type when type == typeof(List<ModellingAppServer>) => new List<ModellingAppServer> { AppServer1, AppServerRange, AppServer3 },
-                Type type when type == typeof(List<ModellingAppRole>) => CurrentAppRoles.Select(idString => new ModellingAppRole { IdString = idString }).ToList(),
+                Type type when type == typeof(List<ModellingAppRole>) => CurrentGroups(variables).Select(idString => new ModellingAppRole { IdString = idString }).ToList(),
                 Type type when type == typeof(List<WfReqTask>) && query == RequestQueries.getRequestedGroupsOfOwner =>
                     RequestedGroups.Select(groupName => new WfReqTask { AdditionalInfo = $"{{\"GrpName\":\"{groupName}\"}}" }).ToList(),
                 Type type when type == typeof(List<Rule>) => new List<Rule>(),
@@ -93,6 +101,17 @@ namespace FWO.Test
                 _ => throw new NotImplementedException($"{typeof(QueryResponseType)}: {query}")
             };
             return (QueryResponseType)result;
+        }
+
+        private List<string> CurrentGroups(object? variables)
+        {
+            object? groupType = variables?.GetType().GetProperty("grpType")?.GetValue(variables);
+            return groupType switch
+            {
+                (int)ModellingTypes.ModObjectType.AppZone => CurrentAppZones,
+                (int)ModellingTypes.ModObjectType.NetworkArea => CurrentNetworkAreas,
+                _ => CurrentAppRoles
+            };
         }
 
         private static List<ManagementReport> RelevantImport() =>

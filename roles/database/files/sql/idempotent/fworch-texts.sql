@@ -648,7 +648,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Regelbasierte Reports zeigen die Labels der Regeln in allen Formaten: Quell- und Ziel-Labels (in eigenen Spalten, anstelle der Label-Objekte, zusammen mit den Objekten oder gar nicht, einstellbar unter Einstellungen - Reporting) sowie die Labels der Regel als Ganzes, z.B. das App-Label.</li>
     <li>Jede Regel und jeder App-Server erh&auml;lt das App-Label ihres Eigent&uuml;mers (die App-ID aus der CMDB) - Regeln &uuml;ber das Regel-Eigent&uuml;mer-Mapping, App-Server beim App-Daten-Import bzw. beim Speichern. Der Schl&uuml;ssel des App-Labels wird unter Einstellungen - App-Daten-Import festgelegt.</li>
     <li>Modellierung mit Labels (in den Modellierungseinstellungen einzuschalten): Quelle und Ziel von Verbindungen, Schnittstellen und gemeinsamen Diensten k&ouml;nnen zus&auml;tzlich oder anstelle von Objekten Labels enthalten, zusammengefasst in UND-Gruppen (z.B. (Stage: Prod &cap; OS: Linux) &cup; (Stage: Test)).</li>
-    <li>Guardicore als Ziel der Bereitstellung: App-Rollen, App-Zonen und (falls eingeschaltet) Netzwerk-Areas werden als dynamische IP-Labels (AppRole, AppZone, NetworkArea) mit ihren IP-Adressen als Kriterien geschrieben, f&uuml;r Antr&auml;ge aus der Modellierung wie aus der Ticket-API. Die Abweichungsanalyse vergleicht die Labels &uuml;ber ihre Adressen und beantragt fehlende, ge&auml;nderte und veraltete Labels. Ger&auml;tespezifisch k&ouml;nnen Modellierungs-Objekttypen von Abweichungsanalyse und Bereitstellung ausgeschlossen werden.</li>
+    <li>Guardicore als Ziel der Bereitstellung: App-Rollen, App-Zonen und (falls eingeschaltet) Netzwerk-Areas werden als dynamische IP-Labels (AppRole, AppZone, NetworkArea) mit ihren IP-Adressen als Kriterien geschrieben, f&uuml;r Antr&auml;ge aus der Modellierung wie aus der Ticket-API. Die Abweichungsanalyse vergleicht die Labels &uuml;ber ihre Adressen und beantragt fehlende, ge&auml;nderte und veraltete Labels. Ger&auml;tespezifisch k&ouml;nnen App-Rollen, App-Zonen, Netzwerk-Areas und Servicegruppen von Abweichungsanalyse und Bereitstellung ausgeschlossen werden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -659,10 +659,103 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>Rule-based reports show the labels of the rules in all formats: source and destination labels (in own columns, instead of the label objects, together with the objects or not at all, configurable under Settings - Reporting) and the labels of the rule as a whole, e.g. the App label.</li>
     <li>Every rule and every app server gets the App label of its owner (the app id from the CMDB) - rules via the rule owner mapping, app servers with the app data import or when they are saved. The key of the App label is set under Settings - App Data Import.</li>
     <li>Label-based modelling (to be switched on in the modelling settings): source and destination of connections, interfaces and common services can contain labels besides or instead of objects, combined in AND-groups (e.g. (Stage: Prod &cap; OS: Linux) &cup; (Stage: Test)).</li>
-    <li>Guardicore as provisioning target: app roles, app zones and (if switched on) network areas are written as dynamic IP labels (AppRole, AppZone, NetworkArea) with their IP addresses as criteria, for requests from modelling and from the ticket API alike. The variance analysis compares the labels by their addresses and requests missing, changed and obsolete labels. Modelling object types can be excluded from variance analysis and provisioning per device specific settings.</li>
+    <li>Guardicore as provisioning target: app roles, app zones and (if switched on) network areas are written as dynamic IP labels (AppRole, AppZone, NetworkArea) with their IP addresses as criteria, for requests from modelling and from the ticket API alike. The variance analysis compares the labels by their addresses and requests missing, changed and obsolete labels. App roles, app zones, network areas and service groups can be excluded from variance analysis and provisioning per device specific settings.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
+INSERT INTO txt VALUES ('getting_started',	    'German', 	'Einstiegshilfe');
+INSERT INTO txt VALUES ('getting_started',	    'English', 	'Quick start');
+INSERT INTO txt VALUES ('getting_started_facts',	    'German', 	'
+Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur Verf&uuml;gung:<ul>
+    <li><a href="/report/generation">Reporting</a>: Erlaubt das einmalige Generieren verschiedener Reports sowie eine regelm&auml;&szlig;ige Generierung</li>
+    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketsystem zur Beantragung von &Auml;nderungen</li>
+    <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
+    <li><a href="/networkmodelling">Modellierung</a>: Erlaubt die verteilte Modellierung von Kommunikationsverbindungen (Soll-Zustand)</li>
+    <li><a href="/network_analysis">Netzanalyse</a>: Pfadanalyse - welche Firewalls liegen zwischen zwei IP-Adressen?</li>
+    <li><a href="/compliance/matrix">Compliance</a>: Definition von Zonenmatrix und Zugriffs-Compliance</li>
+    <li><a href="/monitoring">Monitoring</a>: Alarmierung, Log-Files, Import-Status, ...</li>
+    <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
+    <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
+        das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme</a>.<br>
+        N.B. Stellen Sie sicher, dass Sie alle Demo-Daten (insbesondere die Demo-User) l&ouml;schen (mit Hilfe der "Beispieldaten l&ouml;schen" Option in den Einstellungen),
+        bevor Sie in den produktiven Betrieb &uuml;bergehen, da andernfalls ggf. Ihre Daten mit Default-Logins angezeigt werden k&ouml;nnten.</li>
+    <li><a href="/logout">Abmelden</a>: Firewall Orchestrator verlassen</li>
+</ul>
+');
+INSERT INTO txt VALUES ('getting_started_facts',	    'English', 	'
+The following top-level menu items are available (depending on role memberships):
+<ul>
+    <li><a href="/report/generation">Reporting</a>: Ad-hoc generation and scheduling of reports</li>
+    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketing system for requesting and processing firewall changes</li>
+    <li><a href="/certification">Recertification</a>: Rulebase sanitization by continuously cleaning up existing rules</li>
+    <li><a href="/networkmodelling">Modelling</a>: Allows for distributed modelling of network connections (target state)</li>
+    <li><a href="/network_analysis">Network Analysis</a>: Path analysis - which firewall is crossed when routing between two IP addresses?</li>
+    <li><a href="/compliance/matrix">Compliance</a>: Defining zone matrix and access compliance</li>
+    <li><a href="/monitoring">Monitoring</a>: Alarms, log files, import status, ...</li>
+    <li><a href="/help" target="_blank">Help</a>: Manual pages</li>
+    <li><a href="/settings">Settings</a>: All settings like e.g. language of the user interface or
+        integration of <a href="/settings/managements">your own firewalls</a>.<br>
+        N.B. Please make sure to delete all demo data (using the "Remove sample data" option under settings)
+        before using Firewall Orchestrator with production data.
+        Otherwise you might expose your data by providing default accounts.</li>
+    <li><a href="/logout">Logout</a>: Leave Firewall Orchestrator</li>
+</ul>
+');
+INSERT INTO txt VALUES ('getting_support',	    'German', 	'Unterst&uuml;tzung ben&ouml;tigt? Ihre Kontaktm&ouml;glichkeiten');
+INSERT INTO txt VALUES ('getting_support',	    'English', 	'Do you need help? Our Contact options');
+INSERT INTO txt VALUES ('support_details',	    'German', 	'
+M&ouml;chten Sie einen Supportvertrag abschlie&szlig;en, um in den Genuss folgender Vorteile zu kommen?<br>
+<ul>
+    <li>garantierte Unterst&uuml;tzung bei Problemen mit Firewall Orchestrator</li>
+    <li>Customizing: haben Sie Anpassungsw&uuml;nsche, die wir f&uuml;r Sie umsetzen sollen?</li>
+</ul>
+Folgende Kontaktm&ouml;glichkeiten stehen Ihnen zur Verf&uuml;gung:
+<ul>
+    <li><a href="https://github.com/CactuseSecurity/firewall-orchestrator/issues/new?assignees=&labels=&template=feature_request.md&title=">Feature request auf Github</a></li>
+    <li>Telefon: <a href="tel:+496996233675">+49 69 962336-75</a></li>
+    <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a></li>
+</ul>
+');
+INSERT INTO txt VALUES ('support_details',	    'English', 	'
+Do you wish to get a support contract for the following benefits?
+<br>
+<ul>
+    <li>get a direct line to qualified support personnel</li>
+    <li>Customizing: can we help your with individual changes or extensions of functionality?</li>
+</ul>
+Choose from the following contact options:
+<ul>
+    <li><a href="https://github.com/CactuseSecurity/firewall-orchestrator/issues/new?assignees=&labels=&template=feature_request.md&title=">Open a feature request on Github</a></li>
+    <li>Phone: <a href="tel:+496996233675">+49 69 962336-75</a></li>
+    <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a> </li>
+</ul>
+');
+INSERT INTO txt VALUES ('report',		        'German', 	'Report');
+INSERT INTO txt VALUES ('report',		        'English', 	'Report');
+INSERT INTO txt VALUES ('report_type',		    'German', 	'Report-Typ');
+INSERT INTO txt VALUES ('report_type',		    'English', 	'Report Type');
+INSERT INTO txt VALUES ('default_rules_view', 'German', 'Standard-Regelansicht');
+INSERT INTO txt VALUES ('default_rules_view', 'English', 'Default rules view');
+INSERT INTO txt VALUES ('rules_view', 'German', 'Regelansicht');
+INSERT INTO txt VALUES ('rules_view', 'English', 'Rules view');
+INSERT INTO txt VALUES ('gateway_rules_view', 'German', 'Gateway-Regeln');
+INSERT INTO txt VALUES ('gateway_rules_view', 'English', 'Gateway rules');
+INSERT INTO txt VALUES ('management_rulebases_view', 'German', 'Management-Regelwerke');
+INSERT INTO txt VALUES ('management_rulebases_view', 'English', 'Management rulebases');
+INSERT INTO txt VALUES ('no_rulebase_selected', 'German', 'Bitte mindestens ein Regelwerk ausw&auml;hlen.');
+INSERT INTO txt VALUES ('no_rulebase_selected', 'English', 'Select at least one rulebase.');
+INSERT INTO txt VALUES ('select_rulebase', 'German', 'Regelwerk(e) ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_rulebase', 'English', 'Select rulebase(s)');
+INSERT INTO txt VALUES ('rulebases', 'German', 'Regelwerke');
+INSERT INTO txt VALUES ('rulebases', 'English', 'Rulebases');
+INSERT INTO txt VALUES ('rulebase_listed_above', 'German', 'Bereits oben aufgef&uuml;hrt');
+INSERT INTO txt VALUES ('rulebase_listed_above', 'English', 'Already listed above');
+INSERT INTO txt VALUES ('report_time',		    'German', 	'Report-Zeit');
+INSERT INTO txt VALUES ('report_time',		    'English', 	'Report Time');
+INSERT INTO txt VALUES ('tenant_view',		    'German', 	'Mandantenansicht');
+INSERT INTO txt VALUES ('tenant_view',		    'English', 	'Tenant View');
+INSERT INTO txt VALUES ('unused_days',		    'German', 	'Unbenutzt seit (in Tagen)');
+INSERT INTO txt VALUES ('unused_days',		    'English', 	'Unused since (in days)');
 INSERT INTO txt VALUES ('generation',		    'German', 	'Generierung');
 INSERT INTO txt VALUES ('generation',		    'English', 	'Generation');
 INSERT INTO txt VALUES ('change',		        'German', 	'&Auml;ndern');
@@ -6874,8 +6967,8 @@ INSERT INTO txt VALUES ('H5199z', 'German',  'Antwortzeit (Sekunden): wie lange 
 INSERT INTO txt VALUES ('H5199z', 'English', 'Response timeout (seconds): how long a call to Tufin SecureChange or to the firewall may take before it fails as unreachable. Applies down to the management, default 300.');
 INSERT INTO txt VALUES ('H5200', 'German',  'Maximale Versuche und Zyklen zwischen Versuchen: Scheitert eine externe Anfrage an einem Fehler, der vor&uuml;bergehen kann (z.B. keine Verbindung), wird sie erneut gesendet, nach so vielen Zyklen des Jobs f&uuml;r externe Anfragen wie die bisherigen Versuche mal die Zyklen zwischen Versuchen. Ist die maximale Zahl der Versuche erreicht, wird die Anfrage abgelehnt. Gilt bis zur Management-Ebene, Standard 3 Versuche und 5 Zyklen.');
 INSERT INTO txt VALUES ('H5200', 'English', 'Maximum attempts and cycles between attempts: if an external request fails with an error that may pass (e.g. no connection), it is sent again after as many cycles of the external request job as the attempts so far times the cycles between attempts. Once the maximum number of attempts is reached, the request is rejected. Applies down to the management, default 3 attempts and 5 cycles.');
-INSERT INTO txt VALUES ('H5200a', 'German',  'Von Abweichungsanalyse und Bereitstellung ausgeschlossene Objekttypen: Modellierungs-Objekttypen, ein Name pro Zeile (AppServer, Network, AppRole, AppZone, NetworkZone, NetworkArea, Service, ServiceGroup), die f&uuml;r das Management weder in der Abweichungsanalyse beantragt noch auf die Firewall geschrieben werden. Beim Schreiben gelten Hosts und Adressbereiche als AppServer, Netzwerke als Network, Services als Service; Gruppen und Labels haben den Typ, den ihr Label-Schl&uuml;ssel oder die Namenskonvention nennt. Ausgelassene Schritte werden im Ergebnis des Auftrags genannt. Standard: leer. Global, Ger&auml;tetyp und Manager.');
-INSERT INTO txt VALUES ('H5200a', 'English', 'Object types excluded from variance analysis and provisioning: modelling object types, one name per row (AppServer, Network, AppRole, AppZone, NetworkZone, NetworkArea, Service, ServiceGroup), that are neither requested by the variance analysis nor written to the firewall for the management. When writing, hosts and address ranges count as AppServer, networks as Network, services as Service; groups and labels have the type their label key or the naming convention tells. Steps left out are named in the result of the task. Default: empty. Global, device type and manager.');
+INSERT INTO txt VALUES ('H5200a', 'German',  'Von Abweichungsanalyse und Bereitstellung ausgeschlossene Objekttypen: Gruppen-Typen der Modellierung, ein Name pro Zeile (AppRole, AppZone, NetworkArea, ServiceGroup), die f&uuml;r das Management weder in der Abweichungsanalyse beantragt noch auf die Firewall geschrieben werden. AppServer, Netzwerke und Services sind Mitglieder dieser Gruppen und k&ouml;nnen nicht ausgeschlossen werden. Beim Schreiben hat eine Gruppe oder ein Label den Typ, den ihr Label-Schl&uuml;ssel oder das Pr&auml;fix der Namenskonvention nennt; der Auftrag einer ausgeschlossenen Gruppe wird mit allen Schritten ausgelassen, auch mit den f&uuml;r sie angelegten Mitglieds-Objekten, und die ausgelassenen Schritte werden im Ergebnis genannt. Gruppen, deren Typ sich nicht aus dem Namen ergibt (z.B. Servicegruppen aus der createTicket-API), werden immer geschrieben. Standard: leer. Global, Ger&auml;tetyp und Manager.');
+INSERT INTO txt VALUES ('H5200a', 'English', 'Object types excluded from variance analysis and provisioning: modelling group types, one name per row (AppRole, AppZone, NetworkArea, ServiceGroup), that are neither requested by the variance analysis nor written to the firewall for the management. App servers, networks and services are members of these groups and cannot be excluded. When writing, a group or label has the type its label key or the prefix of the naming convention tells; the task of an excluded group is left out with all its steps, including the member objects created for it, and the steps left out are named in the result. Groups whose type cannot be told from their name (e.g. service groups from the createTicket API) are always written. Default: empty. Global, device type and manager.');
 INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Ldap-Verbindungen einrichten und verwalten. Sie k&ouml;nnen alle zur Nutzerauthentifizierung genutzt werden.<br>
     Das interne Ldap (Bestandteil der Installation) wird mindestens f&uuml;r die Rollenzuordnung ben&ouml;tigt, kann aber auch f&uuml;r Nutzerauthentifizierung und Nutzergruppenverwaltung genutzt werden.<br>
     Die Ldap-Verbindungen k&ouml;nnen hinzugef&uuml;gt, ge&auml;ndert oder gel&ouml;scht werden.

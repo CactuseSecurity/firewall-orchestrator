@@ -46,6 +46,8 @@ from services.enums import Services
 from services.service_provider import ServiceProvider
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from fwo_api_call import FwoApiCall
     from model_controllers.import_state_controller import ImportStateController
     from models.fw_common import FwCommon
@@ -164,6 +166,14 @@ def _import_management(
         import_state.state.responsible_for_importing = False
         return
 
+    if not clear_management_data and not is_importable(import_state, file):
+        mgm_details = import_state.state.mgm_details
+        FWOLogger.info(
+            f"import_management - no importer module for device type '{mgm_details.device_type_name} "
+            f"{mgm_details.device_type_version}' of mgm {mgm_id!s} - skipping"
+        )
+        return
+
     Path(IMPORT_TMP_PATH).mkdir(parents=True, exist_ok=True)  # make sure tmp path exists
     gateways = ManagementController.build_gateway_list(import_state.state.mgm_details)
 
@@ -194,6 +204,13 @@ def _import_management(
         if not suppress_consistency_check:
             FwConfigImportCheckConsistency(import_state.state).check_fwconfig_managerlist_consistency(config_normalized)
         config_importer.import_management_set(service_provider, config_normalized)
+
+
+def is_importable(import_state: ImportStateController, file: str | None) -> bool:
+    """Return whether the management can be imported: from a config file/URI or with a product-specific module."""
+    if file is not None or get_config_uri(import_state) is not None:
+        return True
+    return has_importer_module(import_state.state)
 
 
 def handle_unexpected_exception(
@@ -289,29 +306,32 @@ def import_from_file(
     return config_changed_since_last_import, config_from_file
 
 
+def get_importer_module_factories() -> dict[str, Callable[[], FwCommon]]:
+    """Return the product-specific importer modules by package name (see get_module_package_name)."""
+    return {
+        "ciscoasa9": CiscoAsa9Common,
+        "fortiadom5ff": FortiAdom5ffCommon,
+        "checkpointR8x": CheckpointR8xCommon,
+        "fortiosmanagementREST": FortiosManagementRESTCommon,
+        "opnsensestandalone25ff": OPNsense25common,
+        "genericfirewallmanagement1.0": GenericFirewallCommon,
+        "azure2022ff": Azure2022ffCommon,
+        "guardicoremanagementREST": GuardicoreManagementRESTCommon,
+    }
+
+
+def has_importer_module(import_state: ImportState) -> bool:
+    """Return whether a product-specific importer module exists for the device type of the management."""
+    return get_module_package_name(import_state) in get_importer_module_factories()
+
+
 def get_module(import_state: ImportState) -> FwCommon:
     # pick product-specific importer:
     pkg_name = get_module_package_name(import_state)
-    if pkg_name == "ciscoasa9":
-        fw_module = CiscoAsa9Common()
-    elif pkg_name == "fortiadom5ff":
-        fw_module = FortiAdom5ffCommon()
-    elif pkg_name == "checkpointR8x":
-        fw_module = CheckpointR8xCommon()
-    elif pkg_name == "fortiosmanagementREST":
-        fw_module = FortiosManagementRESTCommon()
-    elif pkg_name == "opnsensestandalone25ff":
-        fw_module = OPNsense25common()
-    elif pkg_name == "genericfirewallmanagement1.0":
-        fw_module = GenericFirewallCommon()
-    elif pkg_name == "azure2022ff":
-        fw_module = Azure2022ffCommon()
-    elif pkg_name == "guardicoremanagementREST":
-        fw_module = GuardicoreManagementRESTCommon()
-    else:
+    module_factory = get_importer_module_factories().get(pkg_name)
+    if module_factory is None:
         raise FwoImporterError(f"import_management - no fwcommon module found for package name {pkg_name}")
-
-    return fw_module
+    return module_factory()
 
 
 def get_config_from_api(

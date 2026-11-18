@@ -25,14 +25,6 @@ from fwo_exceptions import (
 )
 from fwo_log import FWOLogger
 from model_controllers.import_state_controller import ImportStateController
-from model_controllers.management_controller import (
-    ConnectionInfo,
-    CredentialInfo,
-    DeviceInfo,
-    DomainInfo,
-    ManagementController,
-    ManagerInfo,
-)
 from rule_hit_importer import import_rule_hits
 from services.service_provider import ServiceProvider
 
@@ -77,44 +69,25 @@ def import_single_management(
     suppress_consistency_check: bool = False,
 ):
     wait_with_shutdown_check(0)
-    import_state = ImportStateController.initialize_import(
-        mgm_id=mgm_id,
-        api_call=fwo_api_call,
-        suppress_cert_warnings=suppress_certificate_warnings,
-        ssl_verification=verify_certificates,
-        force=force,
-        version=fwo_major_version,
-        is_clearing_import=clear,
-    )
-
-    register_global_state(import_state)
-
     try:
-        mgm_controller = ManagementController(
-            mgm_id,
-            "",
-            [],
-            DeviceInfo(),
-            ConnectionInfo(),
-            "",
-            CredentialInfo(),
-            ManagerInfo(),
-            DomainInfo(),
+        import_state = ImportStateController.initialize_import(
+            mgm_id=mgm_id,
+            api_call=fwo_api_call,
+            suppress_cert_warnings=suppress_certificate_warnings,
+            ssl_verification=verify_certificates,
+            force=force,
+            version=fwo_major_version,
+            is_clearing_import=clear,
         )
-        mgm_details = mgm_controller.get_mgm_details(fwo_api_call.api, mgm_id)
     except Exception:
         FWOLogger.error(
-            "import_main_loop - error while getting FW management details for mgm_id="
-            + str(mgm_id)
-            + " - skipping: "
-            + str(traceback.format_exc())
+            f"import_main_loop - error while getting FW management details for mgm_id={mgm_id} - skipping: "
+            f"{traceback.format_exc()!s}"
         )
         wait_with_shutdown_check(sleep_timer)
         return
 
-    # only handle CPR8x Manager, fortiManager, Cisco MgmCenter, Palo Panorama, Palo FW, FortiOS REST, Cisco Asa, Asa on FirePower
-    if mgm_details["deviceType"]["id"] not in (9, 12, 17, 22, 23, 24, 28, 29):
-        return
+    register_global_state(import_state)
 
     FWOLogger.debug(f"import_main_loop: starting import of mgm_id={mgm_id}")
 

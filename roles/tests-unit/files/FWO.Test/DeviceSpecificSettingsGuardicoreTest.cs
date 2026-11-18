@@ -2,6 +2,7 @@ using FWO.Config.Api;
 using FWO.Config.Api.DeviceSpecificSettings;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Modelling;
 using FWO.Ui.Pages.Settings;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -51,8 +52,9 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "ruleType", "commonServiceSeparation", "ruleZoneFromOverride", "ruleZoneToOverride", "securityProfiles",
         "implementationMode", "rerouteToExternalTicketSystem"
     ];
-    private static readonly List<string> kValidObjectTypes = ["AppServer", "NetworkArea"];
-    private static readonly List<string> kInvalidObjectTypes = ["AppRole", "approle"];
+    private static readonly List<string> kValidObjectTypes = ["AppRole", "AppZone", "NetworkArea", "ServiceGroup"];
+    private static readonly List<string> kInvalidObjectTypes = ["AppRole", "approle", "AppServer", "Network", "Service", "Connection"];
+    private static readonly List<string> kNotExcludableObjectTypes = ["AppServer", "Network", "Service", "AppRole"];
     private static readonly List<DeviceSpecificScopeType> kAllLevels =
         [DeviceSpecificScopeType.Global, DeviceSpecificScopeType.DeviceType, DeviceSpecificScopeType.Management, DeviceSpecificScopeType.Gateway];
     private static readonly List<DeviceSpecificScopeType> kManagerLevels =
@@ -185,7 +187,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
         {
             DeviceSpecificFieldKind.SingleSelect => field.Options.Last().Value,
             DeviceSpecificFieldKind.Credential => "7",
-            DeviceSpecificFieldKind.StringList => field.Key == DeviceSpecificSettingKeys.ProvisioningExcludedObjectTypes ? "AppServer,NetworkArea" : "profile1,profile2",
+            DeviceSpecificFieldKind.StringList => field.Key == DeviceSpecificSettingKeys.ProvisioningExcludedObjectTypes ? "AppRole,NetworkArea" : "profile1,profile2",
             DeviceSpecificFieldKind.FirewallEndpoint => "POST custom-endpoint",
             DeviceSpecificFieldKind.Number => "42",
             _ => "custom value"
@@ -340,12 +342,30 @@ internal class DeviceSpecificSettingsGuardicoreTest
             DeviceSpecificSettingKeys.AddressObjectCreation, new JValue("ignore")));
     }
 
-    /// <summary>The excluded object types are names of modelling object types; other entries are refused.</summary>
+    /// <summary>Only the group types the variance analysis requests can be excluded; other entries are refused.</summary>
     [Test]
-    public void ExcludedObjectTypes_MustBeModellingObjectTypes()
+    public void ExcludedObjectTypes_MustBeExcludableGroupTypes()
     {
         Assert.That(DeviceSpecificSettingsData.ValidateObjectTypeNames(kValidObjectTypes), Is.EqualTo(kValidObjectTypes));
         ArgumentException? exception = Assert.Throws<ArgumentException>(() => DeviceSpecificSettingsData.ValidateObjectTypeNames(kInvalidObjectTypes));
-        Assert.That(exception!.Message, Does.Contain("approle"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.Message, Does.Contain("approle, AppServer, Network, Service, Connection"));
+            Assert.That(exception.Message, Does.Contain("Allowed: AppRole, AppZone, NetworkArea, ServiceGroup"));
+        });
+    }
+
+    /// <summary>Stored entries of types that cannot be excluded, e.g. from an earlier version, have no effect.</summary>
+    [Test]
+    public void ExcludedObjectTypes_IgnoreTypesThatCannotBeExcluded()
+    {
+        GlobalDeviceSpecificSettings settings = new() { ProvisioningExcludedObjectTypes = kNotExcludableObjectTypes };
+        Assert.Multiple(() =>
+        {
+            Assert.That(settings.IsExcludedFromProvisioning(ModellingTypes.ModObjectType.AppServer), Is.False);
+            Assert.That(settings.IsExcludedFromProvisioning(ModellingTypes.ModObjectType.Network), Is.False);
+            Assert.That(settings.IsExcludedFromProvisioning(ModellingTypes.ModObjectType.Service), Is.False);
+            Assert.That(settings.IsExcludedFromProvisioning(ModellingTypes.ModObjectType.AppRole), Is.True);
+        });
     }
 }

@@ -21,7 +21,7 @@ namespace FWO.Test
 
         private static readonly SimulatedUserConfig UserConfig = new()
         {
-            ModNamingConvention = "{\"networkAreaRequired\":false,\"fixedPartLength\":4,\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\",\"appZone\":\"AZ\"}",
+            ModNamingConvention = "{\"networkAreaRequired\":false,\"fixedPartLength\":4,\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\",\"applicationZone\":\"AZ\"}",
             ModRolloutResolveServiceGroups = true,
             CreateAppZones = true,
             RuleRecognitionOption = kRecognitionOption
@@ -30,6 +30,9 @@ namespace FWO.Test
         private static readonly ExtStateTestApiConn ExtStateApiConnection = new();
         private static readonly List<string> kExcludedAppRoles = [nameof(ModellingTypes.ModObjectType.AppRole)];
         private static readonly List<string> kMissingAppRoles = ["AR504711-002"];
+        private static readonly List<string> kExcludedZonesAndAreas = [nameof(ModellingTypes.ModObjectType.AppZone), nameof(ModellingTypes.ModObjectType.NetworkArea)];
+        private static readonly List<string> kObsoleteLabels = ["AppRole: AR504711-009", "AppZone: AZ0815", "NetworkArea: NA60"];
+        private static readonly List<string> kObsoleteAppRoleLabels = ["AppRole: AR504711-009"];
 
         private static readonly ModellingAppRole UnchangedAppRole = AppRole(1, "AR504711-001",
             GuardicoreVarianceTestApiConn.AppServer1, GuardicoreVarianceTestApiConn.AppServerRange);
@@ -69,6 +72,9 @@ namespace FWO.Test
 
         private static WfReqTask Task(List<WfReqTask> tasks, string title) =>
             tasks.SingleOrDefault(task => task.Title == title) ?? throw new AssertionException($"No task '{title}' in: {string.Join(" | ", tasks.Select(task => task.Title))}");
+
+        private static List<string> DeletedLabels(List<WfReqTask> tasks) =>
+            [.. tasks.Where(task => task.TaskType == nameof(WfTaskType.group_delete)).Select(task => task.Elements.Single().GroupName ?? "")];
 
         [Test]
         public async Task Request_ComparesLabelsByTheirAddresses()
@@ -114,13 +120,36 @@ namespace FWO.Test
             List<WfReqTask> tasks = await Analysis(Api()).AnalyseModelledConnectionsForRequest(Connections);
 
             WfReqTask obsolete = Task(tasks, "Delete obsolete label: AppRole: AR504711-009");
+            List<string> deletedLabels = DeletedLabels(tasks);
             Assert.Multiple(() =>
             {
-                Assert.That(obsolete.TaskType, Is.EqualTo(nameof(WfTaskType.group_delete)));
                 Assert.That(obsolete.Elements.Single().GroupName, Is.EqualTo("AppRole: AR504711-009"));
-                Assert.That(tasks.IndexOf(obsolete), Is.EqualTo(tasks.Count - 1), "deletions come last");
+                Assert.That(deletedLabels, Is.EqualTo(kObsoleteLabels), "app role, app zone and network area labels, in this order");
+                Assert.That(tasks.IndexOf(obsolete), Is.EqualTo(tasks.Count - kObsoleteLabels.Count), "deletions come last");
                 Assert.That(tasks.Exists(task => task.Title.Contains("Stage: Prod")), Is.False, "labels never requested by FWO stay");
             });
+        }
+
+        [Test]
+        public async Task Request_KeepsLabelsOfTypesThatAreNotImplemented()
+        {
+            GuardicoreVarianceTestApiConn api = Api(false);
+            api.Settings.SetValue(1, DeviceSpecificSettingKeys.ModellingCreateAppZones, false);
+            List<WfReqTask> tasks = await Analysis(api).AnalyseModelledConnectionsForRequest(Connections);
+
+            List<string> deletedLabels = DeletedLabels(tasks);
+            Assert.That(deletedLabels, Is.EqualTo(kObsoleteAppRoleLabels));
+        }
+
+        [Test]
+        public async Task Request_KeepsLabelsOfExcludedTypes()
+        {
+            GuardicoreVarianceTestApiConn api = Api();
+            api.Settings.SetValue(3, DeviceSpecificSettingKeys.ProvisioningExcludedObjectTypes, kExcludedZonesAndAreas);
+            List<WfReqTask> tasks = await Analysis(api).AnalyseModelledConnectionsForRequest(Connections);
+
+            List<string> deletedLabels = DeletedLabels(tasks);
+            Assert.That(deletedLabels, Is.EqualTo(kObsoleteAppRoleLabels));
         }
 
         [Test]

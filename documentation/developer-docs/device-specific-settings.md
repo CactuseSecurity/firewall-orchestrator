@@ -83,12 +83,16 @@ matrix lookup. The rendered name is trimmed and uppercased once, while interior
 whitespace remains significant. The value inherits through Global > device type >
 manager > gateway like the other settings.
 
-`provisioningExcludedObjectTypes` lists names of `ModellingTypes.ModObjectType` (e.g.
-`AppServer`, `NetworkArea`) that the variance analysis does not request and the firewall
-write library does not write for a management. When writing, hosts and address ranges
-count as `AppServer`, networks as `Network`, services as `Service`, and groups and labels
-have the type of their label key or of the naming convention prefix; a group whose type
-cannot be told is never left out. The roles that run the variance analysis (modeller,
+`provisioningExcludedObjectTypes` lists the group types of `ModellingTypes.ModObjectType`
+that the variance analysis does not request and the firewall write library does not write
+for a management. Only `AppRole`, `AppZone`, `NetworkArea`, and `ServiceGroup`
+(`GlobalDeviceSpecificSettings.ExcludableObjectTypes`) are accepted; app servers,
+networks, and services are members of these groups and cannot be excluded, and stored
+entries of other types are ignored. When writing, a group or label has the type of its
+label key or of the naming convention prefix, and the task of an excluded group is left
+out with all its steps, including the member objects created for it. A group whose type
+cannot be told from its name (e.g. a service group from the createTicket API) is never
+left out. The roles that run the variance analysis (modeller,
 recertifier, reporter, reporter-viewall) may read only this key and the modelling keys
 `modellingCreateAppZones` and `modellingImplementNetworkAreaObjects`.
 

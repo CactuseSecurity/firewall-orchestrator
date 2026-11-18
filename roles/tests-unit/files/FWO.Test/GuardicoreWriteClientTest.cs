@@ -284,9 +284,24 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ExcludedAppServers_LeaveOutTheMemberObjectsOfOtherVendors()
+        public void ExcludedAppServers_AreIgnored()
         {
             GatewayDeviceSpecificSettings settings = new() { ProvisioningExcludedObjectTypes = kExcludedAppServers };
+            FirewallWriteContext context = Context(settings, FirewallVendors.kCheckPointR8x);
+            WfImplTask task = FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1"));
+
+            List<RenderedFirewallRequest> requests = new FirewallWriter(new FixedFirewallWriteDataSource(context)).RenderAll(task, context);
+            Assert.Multiple(() =>
+            {
+                Assert.That(requests.Exists(request => request.Operation == FirewallWriteOperation.HostCreate), Is.True);
+                Assert.That(requests.Exists(request => request.Operation == FirewallWriteOperation.GroupCreate), Is.True);
+            });
+        }
+
+        [Test]
+        public void ExcludedGroups_LeaveOutTheirMemberObjectsOnOtherVendors()
+        {
+            GatewayDeviceSpecificSettings settings = new() { ProvisioningExcludedObjectTypes = kExcludedAppRoles };
             FirewallWriteContext context = Context(settings, FirewallVendors.kCheckPointR8x);
             WfImplTask task = FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1"));
 
@@ -295,22 +310,23 @@ namespace FWO.Test
                 .RenderAll(task, context with { Settings = new GatewayDeviceSpecificSettings() });
             Assert.Multiple(() =>
             {
-                Assert.That(requests.Exists(request => request.Operation == FirewallWriteOperation.HostCreate), Is.False);
-                Assert.That(requests.Exists(request => request.Operation == FirewallWriteOperation.GroupCreate), Is.True);
+                Assert.That(requests, Is.Empty);
                 Assert.That(withoutExclusion.Exists(request => request.Operation == FirewallWriteOperation.HostCreate), Is.True);
             });
         }
 
         [Test]
-        public void ObjectTypes_OfOperations()
+        public void GroupTypes_OfTasks()
         {
+            FirewallWriteContext context = Context();
             Assert.Multiple(() =>
             {
-                Assert.That(FirewallWriteExclusions.ObjectType(FirewallWriteOperation.Ipv6AddressRangeCreate, null), Is.EqualTo(ModellingTypes.ModObjectType.AppServer));
-                Assert.That(FirewallWriteExclusions.ObjectType(FirewallWriteOperation.NetworkDelete, null), Is.EqualTo(ModellingTypes.ModObjectType.Network));
-                Assert.That(FirewallWriteExclusions.ObjectType(FirewallWriteOperation.ServiceModify, null), Is.EqualTo(ModellingTypes.ModObjectType.Service));
-                Assert.That(FirewallWriteExclusions.ObjectType(FirewallWriteOperation.LabelDelete, ModellingTypes.ModObjectType.AppZone), Is.EqualTo(ModellingTypes.ModObjectType.AppZone));
-                Assert.That(FirewallWriteExclusions.ObjectType(FirewallWriteOperation.RuleCreate, ModellingTypes.ModObjectType.AppRole), Is.Null);
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_modify, Member("10.0.0.1", groupName: "AppZone: AZ1")), context),
+                    Is.EqualTo(ModellingTypes.ModObjectType.AppZone));
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_delete, Member("10.0.0.1", groupName: "NA50")), context),
+                    Is.EqualTo(ModellingTypes.ModObjectType.NetworkArea));
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "Servers")), context), Is.Null);
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.access, Member("10.0.0.1")), context), Is.Null);
             });
         }
     }

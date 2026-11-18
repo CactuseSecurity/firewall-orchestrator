@@ -259,11 +259,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetLinkAddressUsesAllPrefixForChangeReports()
+        public void GetLinkAddressUsesReportPrefixForChangeReports()
         {
             string link = ReportBase.GetLinkAddress(OutputLocation.report, "rep42", "rule", 3, 99, ReportType.Changes);
 
-            Assert.That(link, Is.EqualTo($"{PageName.ReportGeneration}#goto-all-rep42-rule3x99"));
+            Assert.That(link, Is.EqualTo($"{PageName.ReportGeneration}#goto-report-rep42-rule3x99"));
         }
 
         [Test]

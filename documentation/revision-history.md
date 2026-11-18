@@ -13,6 +13,13 @@
   - objects already present as requested count as created
   - new rules targeting a section are written at the top or bottom of that section
   - provisioning uses the shared target management of implementation tasks (the management of the gateway); a task whose stored management contradicts its gateway is reported with an alert instead of being written, and choosing a gateway in the implementation task view takes over its management
+- UI fix: object links in change reports work (#2506); they pointed to management id 0 because the change report rule queries did not select `mgm_id`
+  - change reports get a "Report" tab in the right sidebar listing the object versions of the reported changes (old and new rule versions, NAT translations, changed objects) and the members of their groups, fetched by id (new query `getObjectDetailsByIds`); the links target this tab
+  - right sidebar tab order is All - Report - Rule; Report and Rule tab are only shown once a rule or change report has been generated
+  - clicking a change report row shows the rule versions in the Rule tab (added: new version, deleted: old version, modified: before and after)
+  - the Rule tab shows the group members of rule objects; the fetched details replace the overview objects of the report instead of being added as duplicates
+  - "Clear all" in the Rule tab (and other re-renders) no longer discards the objects already loaded into the Report tab
+  - links jump to the object on the first click: the scroll is repeated once lazily fetched objects are rendered; it is instant while objects are being fetched and smooth otherwise
 
 
 ## 9.9.3 - 14.11.2026

@@ -1,0 +1,40 @@
+query getObjectDetailsByIds (
+  $mgmIds: [Int!]
+  $nwObjIds: [bigint!]!
+  $svcIds: [bigint!]!
+  $userIds: [bigint!]!
+  $active: Boolean
+  $import_id_start: bigint
+  $import_id_end: bigint
+  $limit: Int
+  $offset: Int
+) {
+  management(where: { mgm_id: { _in: $mgmIds }, stm_dev_typ:{dev_typ_is_multi_mgmt:{_eq:false}} }) {
+    name: mgm_name
+    id: mgm_id
+    reportNetworkObjects: objects (
+      where: { obj_id: { _in: $nwObjIds } }
+      limit: $limit
+      offset: $offset
+      order_by: [{ obj_name: asc }, { obj_id: asc }]
+    ) {
+      ...networkObjectDetails
+    }
+    reportServiceObjects: services (
+      where: { svc_id: { _in: $svcIds } }
+      limit: $limit
+      offset: $offset
+      order_by: [{ svc_name: asc }, { svc_id: asc }]
+    ) {
+      ...networkServiceDetails
+    }
+    reportUserObjects: usrs (
+      where: { user_id: { _in: $userIds } }
+      limit: $limit
+      offset: $offset
+      order_by: [{ user_name: asc }, { user_id: asc }]
+    ) {
+      ...userDetails
+    }
+  }
+}

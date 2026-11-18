@@ -995,6 +995,10 @@ INSERT INTO txt VALUES ('rule_added',           'German', 	'Regel hinzugef&uuml;
 INSERT INTO txt VALUES ('rule_added',           'English', 	'Rule added');
 INSERT INTO txt VALUES ('rule_modified',        'German', 	'Regel modifiziert');
 INSERT INTO txt VALUES ('rule_modified',        'English', 	'Rule modified');
+INSERT INTO txt VALUES ('rule_version_before_change', 'German', 	'vor &Auml;nderung');
+INSERT INTO txt VALUES ('rule_version_before_change', 'English', 	'before change');
+INSERT INTO txt VALUES ('rule_version_after_change', 'German', 	'nach &Auml;nderung');
+INSERT INTO txt VALUES ('rule_version_after_change', 'English', 	'after change');
 INSERT INTO txt VALUES ('statistics',		    'German', 	'Statistik');
 INSERT INTO txt VALUES ('statistics',		    'English', 	'Statistics');
 INSERT INTO txt VALUES ('natrules',		        'German', 	'NAT-Regeln');
@@ -5945,6 +5949,8 @@ INSERT INTO txt VALUES ('H1527', 'English', 'In the Rules report, Rules view cho
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.
     Im Reiter "Regel" sind dann nur die Objekte der in der Reportausgabe ausgew&auml;hlten Regeln dargestellt.<br>
+    In &Auml;nderungsreports zeigt der Reiter "Report" die Objekte der ge&auml;nderten Regeln in ihren Versionen vor und nach der &Auml;nderung sowie die ge&auml;nderten Objekte selbst.
+    Die Objekt-Links im Report verweisen auf diese Eintr&auml;ge.<br>
     ("Alle"- und "Regel"-Reiter werden mit derselben Funktionalit&auml;t auch im Rezertifizierungsdialog angeboten).<br>
     In eigent&uuml;merbasierten Reports erscheint der Reiter "Benutzte Objekte", in dem alle in den Verbindungen verwendeten Objekte aufgelistet werden.<br>
     Folgende Daten werden soweit verf&uuml;gbar dargestellt, gruppiert nach den ausgew&auml;hlten Devices:
@@ -5952,6 +5958,8 @@ INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere R
 INSERT INTO txt VALUES ('H1601', 'English', 'There are several tabs shown in the right sidebar, depending on the report type: In rule based reports the "All" tab displays all currently fetched objects,
     whereas in the "Report" tab only the objects of the rules of the report are shown.
     In the "Rule" tab only objects of rules selected in the report output are dispalyed.<br>
+    In change reports the "Report" tab shows the objects of the changed rules in their versions before and after the change as well as the changed objects themselves.
+    The object links in the report point to these entries.<br>
     ("All" and "Rule" tab are also offered in the Recertification dialogue with the same functionality).<br>
     In owner based reports the Tab "Used Objects" is displayed, where all objects used in the connections are listed.<br>
     The following data are displayed if available, grouped by the selected devices:

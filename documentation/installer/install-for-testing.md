@@ -64,6 +64,14 @@ To only run integration tests (for an existing installation only to be used in c
 ./scripts/run-playbook-with-sudo.sh site.yml --skip-tags unittests,integrationtests
 ```
 
+## Deploying the unit test project without running it
+
+`--skip-tags unittests_run` still copies the C# test project to `/usr/local/fworch/test/csharp`, but does not run the C# and importer unit tests. The CI test install uses this, because it runs the unit tests in separate jobs and runs single tests (e.g. the JWT integration test) from the deployed project.
+
+```console
+./scripts/run-playbook-with-sudo.sh site.yml --skip-tags unittests_run
+```
+
 ## Parameter "api_no_metadata" to prevent meta data import
 
 e.g. if your hasura metadata file needs to be re-created from scratch, then use the following switch::

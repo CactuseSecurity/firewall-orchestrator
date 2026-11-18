@@ -11039,6 +11039,12 @@
                   }
                 },
                 {
+                  "name": "impltask",
+                  "using": {
+                    "foreign_key_constraint_on": "impltask_id"
+                  }
+                },
+                {
                   "name": "ticket",
                   "using": {
                     "foreign_key_constraint_on": "ticket_id"
@@ -11061,6 +11067,7 @@
                       "ext_ticket_system",
                       "finish_date",
                       "id",
+                      "impltask_id",
                       "last_creation_response",
                       "last_processing_response",
                       "locked",
@@ -11088,6 +11095,7 @@
                       "ext_ticket_system",
                       "finish_date",
                       "id",
+                      "impltask_id",
                       "last_creation_response",
                       "last_processing_response",
                       "locked",
@@ -11105,6 +11113,7 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "impltask_id",
                       "ticket_id",
                       "locked",
                       "ext_query_variables",
@@ -11140,6 +11149,7 @@
                       "ext_ticket_system",
                       "finish_date",
                       "id",
+                      "impltask_id",
                       "last_creation_response",
                       "last_processing_response",
                       "locked",

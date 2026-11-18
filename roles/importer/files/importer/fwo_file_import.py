@@ -2,11 +2,16 @@
 read config from file
 """
 
+import contextlib
 import json
+import os
+import socket
+import threading
 import time
 import traceback
 from collections.abc import Iterable, Iterator
 from pathlib import Path
+from types import TracebackType
 from typing import Any
 
 import fwo_globals
@@ -110,7 +115,7 @@ def read_file(fwo_api_call: FwoApiCall, import_state: ImportState) -> dict[str, 
         raise ConfigFileNotFoundError(f"unspecified error while reading config file {import_state.import_file_name}")
 
 
-def download_config_file(url: str) -> bytes:
+def download_config_file(url: str, total_timeout: float = CONFIG_FILE_TOTAL_TIMEOUT) -> bytes:
     """
     Download a config file without following redirects and within the size and time limits.
 
@@ -142,7 +147,98 @@ def download_config_file(url: str) -> bytes:
                 raise ConfigFileRejectedError(
                     f"declared size of {declared_length} bytes exceeds the limit of {CONFIG_FILE_MAX_BYTES} bytes"
                 )
-            return read_bounded(iter_received_chunks(response.raw))
+            return read_within_deadline(response.raw, total_timeout)
+
+
+def read_within_deadline(raw: urllib3.response.BaseHTTPResponse, total_timeout: float) -> bytes:
+    """
+    Read the body of a streamed response, cutting the connection off once the total time limit is exceeded.
+
+    The limit is also enforced while a read is blocked, e.g. by a server that stops sending or by compressed data that
+    never decodes to any content (urllib3 keeps reading in that case without returning). A download cut off at the
+    deadline is rejected rather than returned truncated, whatever error the interrupted read raised.
+    """
+    with DownloadDeadline(raw, total_timeout) as deadline:
+        try:
+            content = read_bounded(iter_received_chunks(raw), total_timeout=total_timeout)
+        except Exception as error:
+            if not deadline.expired.is_set():
+                raise
+            raise deadline.rejection() from error
+        if deadline.expired.is_set():
+            raise deadline.rejection()
+        return content
+
+
+class DownloadDeadline:
+    """
+    Shuts the connection of a streamed response down when the total time limit of its download is exceeded.
+
+    Shutting the socket down wakes a read blocked on it in another thread, which closing it does not reliably do.
+    A duplicate of the socket is shut down, as http.client drops its own reference for connections the server closes
+    after the response. The duplicate leaves the TLS state of an encrypted connection to the reading thread.
+    """
+
+    def __init__(self, raw: urllib3.response.BaseHTTPResponse, total_timeout: float) -> None:
+        self.raw = raw
+        self.total_timeout = total_timeout
+        self.expired = threading.Event()
+        self.sock = duplicate_response_socket(raw)
+        self._lock = threading.Lock()
+        self._finished = False
+        self._timer = threading.Timer(total_timeout, self.expire)
+        self._timer.daemon = True
+
+    def __enter__(self) -> "DownloadDeadline":  # noqa: PYI034 - typing.Self needs Python 3.11
+        self._timer.start()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback_: TracebackType | None,
+    ) -> None:
+        # under the lock, so the socket is not shut down after the download has finished with it
+        with self._lock:
+            self._finished = True
+            self._timer.cancel()
+            if self.sock is not None:
+                self.sock.close()
+
+    def expire(self) -> None:
+        """Cut the download off, unless it has finished already."""
+        with self._lock:
+            if self._finished:
+                return
+            self.expired.set()
+            if self.sock is None:
+                FWOLogger.warning("config file download has no socket to shut down, closing the response instead")
+                self.raw.close()
+                return
+            # an OSError means the connection is closed already, so no read can be blocked on it
+            with contextlib.suppress(OSError):
+                self.sock.shutdown(socket.SHUT_RDWR)
+
+    def rejection(self) -> ConfigFileRejectedError:
+        return ConfigFileRejectedError(f"config file download exceeds the limit of {self.total_timeout} seconds")
+
+
+def duplicate_response_socket(raw: urllib3.response.BaseHTTPResponse) -> socket.socket | None:
+    """
+    Return a duplicate of the socket a streamed response is read from, or None if it has no socket (any more).
+
+    Shutting the duplicate down shuts the connection down for the response as well. The caller closes the duplicate.
+    """
+    try:
+        duplicate_fd = os.dup(raw.fileno())
+    except (OSError, ValueError, AttributeError):
+        return None
+    try:
+        return socket.socket(fileno=duplicate_fd)
+    except OSError:
+        os.close(duplicate_fd)  # not a socket, so nothing a shutdown could wake
+        return None
 
 
 def iter_received_chunks(raw: urllib3.response.BaseHTTPResponse) -> Iterator[bytes]:

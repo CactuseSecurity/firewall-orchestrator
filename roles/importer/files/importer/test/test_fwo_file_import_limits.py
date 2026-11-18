@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import gzip
 import json
 import os
@@ -27,6 +28,14 @@ TRICKLE_INTERVAL = 0.2
 TRICKLE_BYTES = 30
 TRICKLE_TOTAL_TIMEOUT = 0.5
 TRICKLE_MAX_SECONDS = 3.0
+DEADLINE = 0.5
+DEADLINE_TOLERANCE = 2.0
+SLOW_PART_INTERVAL = 0.05
+SLOW_PARTS = 200  # 10 seconds of slow parts, far beyond the deadline
+GZIP_HEADER_WITH_FILE_NAME = bytes([0x1F, 0x8B, 0x08, 0x08, 0, 0, 0, 0, 0, 0xFF])
+ZLIB_HEADER = bytes([0x78, 0x9C])
+EMPTY_STORED_DEFLATE_BLOCK = bytes([0x00, 0x00, 0x00, 0xFF, 0xFF])
+REAL_SESSION = requests.Session
 
 
 class FakeResponse:
@@ -66,6 +75,10 @@ class FakeRaw:
 
     def __init__(self, chunks: list[bytes]) -> None:
         self.chunks = list(chunks)
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
 
     def read1(self, amt: int, decode_content: bool) -> bytes:  # noqa: ARG002
         return self.chunks.pop(0) if self.chunks else b""
@@ -79,8 +92,25 @@ class FailingRaw:
         raise self.error
 
 
-def serve_once(response_head: bytes, body_parts: list[bytes], interval: float) -> int:
-    """Answer one http request with the head and the body parts sent one by one; returns the port."""
+class SlowRaw(FakeRaw):
+    """Blocks in read1 beyond any deadline, then reports the end of the content, like a connection cut off."""
+
+    def read1(self, amt: int, decode_content: bool) -> bytes:  # noqa: ARG002
+        time.sleep(DEADLINE)
+        return b""
+
+
+def serve_once(
+    response_head: bytes,
+    body_parts: list[bytes],
+    interval: float,
+    client_gone: threading.Event | None = None,
+) -> int:
+    """
+    Answer one http request with the head and the body parts sent one by one; returns the port.
+
+    With client_gone, the connection is held open after the last part until the client shuts it down.
+    """
     server = socket.socket()
     server.bind(("127.0.0.1", 0))
     server.listen(1)
@@ -93,6 +123,9 @@ def serve_once(response_head: bytes, body_parts: list[bytes], interval: float) -
             for part in body_parts:
                 time.sleep(interval)
                 connection.sendall(part)
+            if client_gone is not None:
+                connection.recv(1)
+                client_gone.set()
         except OSError:
             pass  # the client gave up, as expected for a rejected download
         finally:
@@ -250,6 +283,148 @@ class TestReceivedChunks:
     def test_urllib3_errors_are_raised_as_requests_errors(self, error: Exception, expected: type[Exception]) -> None:
         with pytest.raises(expected):
             list(fwo_file_import.iter_received_chunks(FailingRaw(error)))  # type: ignore[arg-type]
+
+
+@pytest.fixture
+def real_session(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(fwo_file_import.requests, "Session", REAL_SESSION)
+
+
+def slow_server(parts: list[bytes], content_encoding: str = "") -> str:
+    encoding_header = f"Content-Encoding: {content_encoding}\r\n" if content_encoding else ""
+    head = f"HTTP/1.1 200 OK\r\n{encoding_header}Connection: close\r\n\r\n".encode()
+    port = serve_once(head, parts, SLOW_PART_INTERVAL)
+    return f"http://127.0.0.1:{port}/"
+
+
+def assert_download_aborts_at_deadline(url: str) -> None:
+    started = time.monotonic()
+
+    with pytest.raises(ConfigFileRejectedError, match=re.escape(f"exceeds the limit of {DEADLINE} seconds")):
+        fwo_file_import.download_config_file(url, total_timeout=DEADLINE)
+
+    assert time.monotonic() - started < DEADLINE + DEADLINE_TOLERANCE
+
+
+@pytest.mark.usefixtures("real_session")
+class TestDownloadDeadline:
+    def test_slow_plain_download_aborts_at_deadline(self) -> None:
+        assert_download_aborts_at_deadline(slow_server([b"x"] * SLOW_PARTS))
+
+    def test_gzip_header_that_never_ends_aborts_at_deadline(self) -> None:
+        url = slow_server([GZIP_HEADER_WITH_FILE_NAME] + [b"a"] * SLOW_PARTS, "gzip")
+
+        assert_download_aborts_at_deadline(url)
+
+    def test_deflate_without_content_aborts_at_deadline(self) -> None:
+        url = slow_server([ZLIB_HEADER] + [EMPTY_STORED_DEFLATE_BLOCK] * SLOW_PARTS, "deflate")
+
+        assert_download_aborts_at_deadline(url)
+
+    def test_stalled_download_is_cut_off_at_deadline(self) -> None:
+        client_gone = threading.Event()
+        head = f"HTTP/1.1 200 OK\r\nContent-Length: {len(SMALL_CONFIG)}\r\n\r\n".encode()
+        port = serve_once(head, [SMALL_CONFIG[:1]], 0, client_gone)
+
+        assert_download_aborts_at_deadline(f"http://127.0.0.1:{port}/")
+
+        assert client_gone.wait(DEADLINE_TOLERANCE)
+
+    def test_expired_download_is_reported_as_failed_import(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        download = functools.partial(fwo_file_import.download_config_file, total_timeout=DEADLINE)
+        monkeypatch.setattr(fwo_file_import, "download_config_file", download)
+
+        api_call = MagicMock()
+        import_state = ImportState()
+        import_state.import_file_name = slow_server([b"x"] * SLOW_PARTS)
+
+        with pytest.raises(ConfigFileNotFoundError, match="exceeds the limit"):
+            fwo_file_import.read_file(api_call, import_state)
+
+        reported_error = api_call.complete_import.call_args.args[1]
+        assert isinstance(reported_error, ConfigFileRejectedError)
+
+    def test_plain_and_compressed_downloads_succeed(self) -> None:
+        for body, encoding in ((SMALL_CONFIG, ""), (gzip.compress(SMALL_CONFIG), "gzip")):
+            encoding_header = f"Content-Encoding: {encoding}\r\n" if encoding else ""
+            head = f"HTTP/1.1 200 OK\r\n{encoding_header}Content-Length: {len(body)}\r\n\r\n".encode()
+            port = serve_once(head, [body], 0)
+
+            assert fwo_file_import.download_config_file(f"http://127.0.0.1:{port}/") == SMALL_CONFIG
+
+    @pytest.mark.parametrize("connection_header", ["", "Connection: close\r\n"])
+    def test_streamed_response_provides_its_socket(self, connection_header: str) -> None:
+        head = f"HTTP/1.1 200 OK\r\n{connection_header}Content-Length: {len(SMALL_CONFIG)}\r\n\r\n".encode()
+        port = serve_once(head, [], 0, threading.Event())
+
+        with requests.get(f"http://127.0.0.1:{port}/", stream=True, timeout=(5, 5)) as response:
+            sock = fwo_file_import.duplicate_response_socket(response.raw)
+
+        assert isinstance(sock, socket.socket)
+        sock.close()
+
+    def test_stalled_download_closed_by_server_after_response_is_cut_off(self) -> None:
+        client_gone = threading.Event()
+        head = f"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: {len(SMALL_CONFIG)}\r\n\r\n".encode()
+        port = serve_once(head, [SMALL_CONFIG[:1]], 0, client_gone)
+
+        assert_download_aborts_at_deadline(f"http://127.0.0.1:{port}/")
+
+        assert client_gone.wait(DEADLINE_TOLERANCE)
+
+
+class TestDeadlineWatchdog:
+    def test_finished_download_is_not_cut_off(self) -> None:
+        raw = FakeRaw([SMALL_CONFIG])
+
+        assert fwo_file_import.read_within_deadline(raw, DEADLINE) == SMALL_CONFIG  # type: ignore[arg-type]
+        time.sleep(DEADLINE * 2)
+
+        assert not raw.closed
+
+    def test_deadline_firing_after_download_finished_is_ignored(self) -> None:
+        raw = FakeRaw([])
+
+        with fwo_file_import.DownloadDeadline(raw, DEADLINE_TOLERANCE) as deadline:  # type: ignore[arg-type]
+            pass
+        deadline.expire()
+
+        assert not deadline.expired.is_set()
+        assert not raw.closed
+
+    def test_response_read_from_a_file_has_no_socket(self, tmp_path: Path) -> None:
+        with (tmp_path / "body").open("wb") as body:
+            raw = MagicMock()
+            raw.fileno.return_value = body.fileno()
+
+            assert fwo_file_import.duplicate_response_socket(raw) is None
+
+    def test_response_without_socket_is_closed_at_deadline(self) -> None:
+        raw = FakeRaw([])
+
+        with fwo_file_import.DownloadDeadline(raw, 0.01) as deadline:  # type: ignore[arg-type]
+            assert deadline.expired.wait(DEADLINE_TOLERANCE)
+
+        assert raw.closed
+
+    def test_content_ending_after_deadline_is_rejected_not_truncated(self) -> None:
+        with pytest.raises(ConfigFileRejectedError, match=re.escape("exceeds the limit of 0.01 seconds")):
+            fwo_file_import.read_within_deadline(SlowRaw([]), 0.01)  # type: ignore[arg-type]
+
+    def test_errors_before_deadline_are_raised_unchanged(self) -> None:
+        error = urllib3.exceptions.ProtocolError("connection broken")
+
+        with pytest.raises(requests.exceptions.ChunkedEncodingError):
+            fwo_file_import.read_within_deadline(FailingRaw(error), DEADLINE)  # type: ignore[arg-type]
+
+    def test_errors_after_deadline_are_raised_as_rejection(self) -> None:
+        class FailingAfterDeadline(FakeRaw):
+            def read1(self, amt: int, decode_content: bool) -> bytes:  # noqa: ARG002
+                time.sleep(DEADLINE)
+                raise urllib3.exceptions.ProtocolError("connection shut down")
+
+        with pytest.raises(ConfigFileRejectedError, match="exceeds the limit"):
+            fwo_file_import.read_within_deadline(FailingAfterDeadline([]), 0.01)  # type: ignore[arg-type]
 
 
 class TestLocalFile:

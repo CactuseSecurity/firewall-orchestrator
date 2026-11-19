@@ -8,11 +8,24 @@ namespace FWO.Report.Filter.FilterTypes
         public readonly DateTime? Start;
         public readonly DateTime? End;
 
-        public DateTimeRange(AstNodeFilterDateTimeRange filter)
+        /// <summary>
+        /// Resolves the date filter relative to the current local time.
+        /// </summary>
+        /// <param name="filter">The date filter node holding operator and value.</param>
+        public DateTimeRange(AstNodeFilterDateTimeRange filter) : this(filter, DateTime.Now)
+        { }
+
+        /// <summary>
+        /// Resolves the date filter relative to the given reference time: "now", "this month", "last year" etc.
+        /// refer to the time, month and year of <paramref name="referenceTime"/>.
+        /// </summary>
+        /// <param name="filter">The date filter node holding operator and value.</param>
+        /// <param name="referenceTime">The point in time the relative values are resolved against.</param>
+        public DateTimeRange(AstNodeFilterDateTimeRange filter, DateTime referenceTime)
         {
             bool isSingleDate = DateTime.TryParse(filter.Value.Text, out DateTime time);
-            DateTime startOfCurrentYear = new(DateTime.Now.Year, 1, 1, 0, 0, 0, DateTimeKind.Local);
-            DateTime startOfCurrentMonth = new(DateTime.Now.Year, DateTime.Now.Month, 1, 0, 0, 0, DateTimeKind.Local);
+            DateTime startOfCurrentYear = new(referenceTime.Year, 1, 1, 0, 0, 0, referenceTime.Kind);
+            DateTime startOfCurrentMonth = new(referenceTime.Year, referenceTime.Month, 1, 0, 0, 0, referenceTime.Kind);
 
             switch (filter.Operator.Kind)
             {
@@ -22,9 +35,8 @@ namespace FWO.Report.Filter.FilterTypes
                     {
                         // todo: add today, yesterday, this week, last week
                         case "now":
-                            DateTime now = DateTime.Now;
-                            Start = now;
-                            End = now;
+                            Start = referenceTime;
+                            End = referenceTime;
                             break;
                         case "this year":
                             Start = startOfCurrentYear;

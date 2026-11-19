@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Reflection;
+using FWO.Data;
+using FWO.Data.Workflow;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -122,6 +124,36 @@ namespace FWO.Test
                 Assert.That(forbiddenField, Is.True);
                 Assert.That(foreignKey, Is.False);
             });
+        }
+
+        /// <summary>
+        /// The live snapshot assertion compares timestamptz values as instants, independent of the runner timezone.
+        /// </summary>
+        [Test]
+        public void IntegrationFixture_SnapshotComparisonUsesAbsoluteTimestamps()
+        {
+            DateTimeOffset startTime = new(2026, 11, 19, 8, 30, 0, TimeSpan.Zero);
+            DateTimeOffset endTime = startTime.AddHours(1);
+            WfReqElement readback = new()
+            {
+                Id = 71,
+                TaskId = 72,
+                IpString = "198.51.100.25/32",
+                IpEnd = "198.51.100.26/32",
+                Port = 443,
+                PortEnd = 444,
+                ProtoId = 6,
+                GroupName = "integration-snapshot-group",
+                Name = "integration-snapshot-name",
+                StartTime = startTime.ToLocalTime().LocalDateTime,
+                EndTime = endTime.ToLocalTime().LocalDateTime
+            };
+            MethodInfo? method = typeof(EffectiveRequestStateMutationIntegrationTest).GetMethod("AssertSnapshot",
+                BindingFlags.Static | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null, "The live fixture is missing AssertSnapshot.");
+            Assert.DoesNotThrow(() => method?.Invoke(null,
+                [new ReturnId { UpdatedIdLong = 71 }, readback, 71L, 72L, startTime, endTime]));
         }
 
         private List<string> ReadMutationSetColumns()

@@ -67,8 +67,8 @@ internal class EffectiveRequestStateMutationIntegrationTest
         try
         {
             await SeedRequestElement(admin, rowIds);
-            DateTime startTime = new(2026, 11, 19, 8, 30, 0, DateTimeKind.Utc);
-            DateTime endTime = startTime.AddHours(1);
+            DateTimeOffset startTime = new(2026, 11, 19, 8, 30, 0, TimeSpan.Zero);
+            DateTimeOffset endTime = startTime.AddHours(1);
 
             ReturnId updated = await middleware.SendQueryAsync<ReturnId>(
                 RequestQueries.updateEffectiveRequestElementSnapshot,
@@ -165,8 +165,8 @@ internal class EffectiveRequestStateMutationIntegrationTest
                 exception.Message.Contains(field, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static Dictionary<string, object?> SnapshotVariables(long elementId, DateTime startTime,
-        DateTime endTime)
+    private static Dictionary<string, object?> SnapshotVariables(long elementId, DateTimeOffset startTime,
+        DateTimeOffset endTime)
     {
         return new Dictionary<string, object?>
         {
@@ -184,8 +184,14 @@ internal class EffectiveRequestStateMutationIntegrationTest
     }
 
     private static void AssertSnapshot(ReturnId updated, WfReqElement readback, long elementId,
-        long taskId, DateTime startTime, DateTime endTime)
+        long taskId, DateTimeOffset startTime, DateTimeOffset endTime)
     {
+        DateTimeOffset? actualStartTime = readback.StartTime is DateTime readStart
+            ? new DateTimeOffset(readStart).ToUniversalTime()
+            : null;
+        DateTimeOffset? actualEndTime = readback.EndTime is DateTime readEnd
+            ? new DateTimeOffset(readEnd).ToUniversalTime()
+            : null;
         Assert.That(updated.UpdatedIdLong, Is.EqualTo(elementId));
         Assert.That(readback.Id, Is.EqualTo(elementId));
         Assert.That(readback.TaskId, Is.EqualTo(taskId));
@@ -196,8 +202,8 @@ internal class EffectiveRequestStateMutationIntegrationTest
         Assert.That(readback.ProtoId, Is.EqualTo(6));
         Assert.That(readback.GroupName, Is.EqualTo("integration-snapshot-group"));
         Assert.That(readback.Name, Is.EqualTo("integration-snapshot-name"));
-        Assert.That(readback.StartTime, Is.EqualTo(startTime));
-        Assert.That(readback.EndTime, Is.EqualTo(endTime));
+        Assert.That(actualStartTime, Is.EqualTo(startTime.ToUniversalTime()));
+        Assert.That(actualEndTime, Is.EqualTo(endTime.ToUniversalTime()));
     }
 
     private static async Task Cleanup(GraphQlApiConnection admin, SmokeRowIds rowIds,

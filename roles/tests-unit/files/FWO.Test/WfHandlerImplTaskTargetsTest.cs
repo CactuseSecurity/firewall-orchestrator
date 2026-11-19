@@ -32,7 +32,8 @@ namespace FWO.Test
         private static readonly List<int?> kNoManagement = [null];
         private static readonly List<int?> kExistingAndSecondSubManagement = [kFirstSubManagementId, kSecondSubManagementId];
         private static readonly List<int?> kAllGateways = [1, 2, 3];
-        private static readonly List<int?> kRemainingGateways = [2, 3];
+        private static readonly List<int?> kRemainingGateways = [2];
+        private static readonly List<int?> kGatewaysOfSubManagements = [1, 2];
         private static readonly List<int> kOffsetsOfTwoSinglePages = [0, 1];
         private static readonly List<int> kGatewayIds = [1, 2, 3];
 
@@ -481,6 +482,25 @@ namespace FWO.Test
             await InvokeAutoCreateImplTasks(handler, reqTask);
 
             Assert.That(DeviceIds(reqTask).Skip(1), Is.EqualTo(kRemainingGateways));
+        }
+
+        [Test]
+        public async Task AccessTask_OfSuperManagement_GetsOnlyGatewaysOfItsSubManagements()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Supermanager);
+            api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
+            WfHandler handler = CreateMiddlewareHandler(api);
+            handler.Devices = CreateDevices();
+            handler.PathAnalyzerOverride = new FixedPathAnalyzer(kGatewayIds);
+            WfReqTask reqTask = CreateAccessTask(kSuperManagementId);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(DeviceIds(reqTask), Is.EqualTo(kGatewaysOfSubManagements), "the gateway of the other management is left out");
+                Assert.That(handler.Managements, Is.Not.Empty, "the middleware loads the management hierarchy when needed");
+            });
         }
 
         [Test]

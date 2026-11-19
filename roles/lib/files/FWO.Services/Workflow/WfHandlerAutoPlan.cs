@@ -1,3 +1,4 @@
+using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
@@ -103,7 +104,77 @@ namespace FWO.Services.Workflow
             {
                 return [.. reqTask.GetResolvedDeviceList(Devices).Distinct().Select(deviceId => (int?)deviceId)];
             }
-            return [.. (await GetAlgorithmDeviceIds(reqTask)).Select(deviceId => (int?)deviceId)];
+            List<int> algorithmDeviceIds = await GetAlgorithmDeviceIds(reqTask);
+            List<int> ownDeviceIds = await KeepGatewaysOfTaskManagement(reqTask, algorithmDeviceIds);
+            return [.. ownDeviceIds.Select(deviceId => (int?)deviceId)];
+        }
+
+        /// <summary>
+        /// Keeps the gateways found by the path analysis that belong to the management of the access task or to one of
+        /// its sub-managements. The path analysis does not know the management, so an access task of one management
+        /// would otherwise get implementation tasks on the gateways of other managements, e.g. the rule requested for
+        /// a Guardicore management would be written to a Check Point gateway a second time. Gateways whose management
+        /// is unknown are kept, as is every gateway of a task without management. If the management hierarchy cannot
+        /// be loaded, all gateways are kept.
+        /// </summary>
+        /// <param name="reqTask">Access task whose management restricts the gateways.</param>
+        /// <param name="deviceIds">Gateways found by the path analysis.</param>
+        /// <returns>The gateways of the management of the task and its sub-managements.</returns>
+        private async Task<List<int>> KeepGatewaysOfTaskManagement(WfReqTask reqTask, List<int> deviceIds)
+        {
+            if (reqTask.ManagementId is not int taskManagementId || taskManagementId <= 0 || deviceIds.Count == 0)
+            {
+                return deviceIds;
+            }
+            await EnsureDevicesLoaded();
+            if (deviceIds.TrueForAll(deviceId => IsGatewayOfManagement(deviceId, taskManagementId)))
+            {
+                return deviceIds;
+            }
+            await EnsureManagementHierarchyLoaded();
+            if (Managements.Count == 0)
+            {
+                Log.WriteWarning(kAutoPlanLogTitle, $"Request task {reqTask.Id}: without the management hierarchy the gateways of other " +
+                    "managements found by the path analysis are kept.");
+                return deviceIds;
+            }
+            List<int> ownDeviceIds = [.. deviceIds.Where(deviceId => IsGatewayOfManagement(deviceId, taskManagementId))];
+            Log.WriteDebug(kAutoPlanLogTitle, $"Request task {reqTask.Id}: {deviceIds.Count - ownDeviceIds.Count} gateway(s) found by the " +
+                $"path analysis belong to other managements than {taskManagementId} and its sub-managements and are left out.");
+            return ownDeviceIds;
+        }
+
+        /// <summary>
+        /// Returns whether a gateway belongs to a management directly or through a sub-management of it. A gateway
+        /// whose management is unknown counts as belonging to it.
+        /// </summary>
+        private bool IsGatewayOfManagement(int deviceId, int managementId)
+        {
+            if (GetManagementIdOfDevice(deviceId) is not int gatewayManagementId || gatewayManagementId == managementId)
+            {
+                return true;
+            }
+            return Managements.Find(management => management.Id == gatewayManagementId)?.SuperManagerId == managementId;
+        }
+
+        /// <summary>
+        /// Loads the management hierarchy (with the super-manager of each management) unless it is already loaded,
+        /// e.g. by the UI initialization; the middleware server does not load it at initialization.
+        /// </summary>
+        private async Task EnsureManagementHierarchyLoaded()
+        {
+            if (Managements.Count > 0 || apiConnection == null)
+            {
+                return;
+            }
+            try
+            {
+                Managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementHierarchy) ?? [];
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(kAutoPlanLogTitle, "Could not load the management hierarchy for the gateways of the path analysis.", exception);
+            }
         }
 
         /// <summary>

@@ -18,7 +18,7 @@ public static class EffectiveRequestStateMaterializer
     public static EffectiveRequestStateMaterializationPlan CreatePlan(WfTicket ticket,
         IReadOnlyCollection<long> targetTaskIds)
     {
-        return new Planner(ticket).CreatePlan(targetTaskIds);
+        return new Planner(ticket).BuildPlan(targetTaskIds);
     }
 
     private sealed class Planner
@@ -42,7 +42,7 @@ public static class EffectiveRequestStateMaterializer
         /// <summary>
         /// Builds the materialization plan for the requested task IDs.
         /// </summary>
-        internal EffectiveRequestStateMaterializationPlan CreatePlan(IReadOnlyCollection<long> targetTaskIds)
+        internal EffectiveRequestStateMaterializationPlan BuildPlan(IReadOnlyCollection<long> targetTaskIds)
         {
             if (targetTaskIds.Count != targetTaskIds.Distinct().Count())
             {

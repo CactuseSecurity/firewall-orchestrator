@@ -173,13 +173,11 @@ namespace FWO.Services.Workflow
                         .FirstOrDefault(id => id is < 0);
                 }
                 WfReqTask? persistedObjectTask = FindTaskByTaskNumber(ticket, sourceObjectTask.TaskNumber);
-                if (entityId is < 0 && persistedObjectTask?.Id > 0)
+                if (entityId is < 0 && persistedObjectTask?.Id > 0
+                    && !persistedObjectTaskIds.TryAdd(entityId.Value, persistedObjectTask.Id))
                 {
-                    if (!persistedObjectTaskIds.TryAdd(entityId.Value, persistedObjectTask.Id))
-                    {
-                        throw new EffectiveRequestStateMaterializationException(
-                            EffectiveRequestStateFailureCategory.DuplicateTask);
-                    }
+                    throw new EffectiveRequestStateMaterializationException(
+                        EffectiveRequestStateFailureCategory.DuplicateTask);
                 }
             }
 

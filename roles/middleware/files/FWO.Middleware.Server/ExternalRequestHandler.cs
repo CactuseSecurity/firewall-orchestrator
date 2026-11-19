@@ -309,7 +309,7 @@ namespace FWO.Middleware.Server
         /// Replaces persisted elements in a possibly gateway-merged content task while retaining its element order.
         /// </summary>
         private static WfReqTask RebuildExternalContentTask(WfReqTask contentTask,
-            IReadOnlyDictionary<long, WfReqTask> preparedById)
+            Dictionary<long, WfReqTask> preparedById)
         {
             WfReqTask result = preparedById.TryGetValue(contentTask.Id, out WfReqTask? preparedTask)
                 ? new WfReqTask(preparedTask)
@@ -322,7 +322,7 @@ namespace FWO.Middleware.Server
         /// Resolves one content element to the verified task readback that owns it.
         /// </summary>
         private static WfReqElement PreparedExternalElement(WfReqElement element,
-            IReadOnlyDictionary<long, WfReqTask> preparedById)
+            Dictionary<long, WfReqTask> preparedById)
         {
             if (element.Id <= 0 || element.TaskId <= 0)
             {

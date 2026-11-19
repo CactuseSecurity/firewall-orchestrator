@@ -78,7 +78,7 @@ public static class FlowComplianceRequestValidationSchema
     private static readonly List<RequestKeyDefinition> kServiceKeys =
     [
         new RequestKeyDefinition("protocol",
-            "Protocol name, for example 'tcp', 'udp' or 'icmp', or numeric protocol id, for example '6'. Must not be empty."),
+            "Protocol name, for example 'tcp', 'udp' or 'icmp', or numeric protocol id, for example '6'. 'any' or '-1' means any service: the ports are then ignored and every port/protocol definition of a forbidden service criterion matches. Must not be empty."),
         new RequestKeyDefinition("portStart",
             $"First port of the inclusive port range, {kMinPort} to {kMaxPort}, compared with the port range of forbidden service definitions of the same protocol: destination port for tcp and udp, ICMP type for icmp; for other protocols give the range of the definitions to check. Omitted means {kMinPort}."),
         new RequestKeyDefinition("portEnd",

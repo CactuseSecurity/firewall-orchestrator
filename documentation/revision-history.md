@@ -127,6 +127,7 @@
   - objects already present as requested count as created
   - new rules targeting a section are written at the top or bottom of that section
   - provisioning uses the shared target management of implementation tasks (the management of the gateway); a task whose stored management contradicts its gateway is reported with an alert instead of being written, and choosing a gateway in the implementation task view takes over its management
+- flow compliance API (`getFlowComplianceState`): a service with protocol `any` or `-1` is checked as the canonical ANY service (ports ignored) and now violates every port/protocol entry of a ForbiddenService criterion, like imported ANY services do; previously it was reported as compliant
 
 
 ## 9.9.3 - 14.11.2026

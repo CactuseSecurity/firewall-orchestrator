@@ -275,7 +275,8 @@ For a feature-centric, thematically grouped view see
 ### 9.9.2 — 10.11.2026
 - Rule hit import: a separate, scheduled import run refreshes the last hit of all rules, also for unchanged configurations; the regular import no longer reads hits. Last hits are stored per gateway (Check Point per gateway, FortiManager per policy package).
 
-### 9.9.4 - 17.11.2026
+### 9.9.4 — 17.11.2026
+- Workflow monitoring shows tickets in a paged tree table with their request tasks, implementation tasks and approvals; column filters (state, id, name, requester, start/end date) and sorting run in the database across all tickets, the pager shows the total number of matching tickets, and the state column shows an icon for each default workflow state.
 - New state action **"Create external requests"** implements a ticket step by step: request tasks of a management with the implementation mode external ticket system go to Tufin SecureChange, implementation tasks with mode automatic are written directly to the firewall; manual targets are left to a person, can be released by button.
 - Direct firewall write of rules on Check Point: new rules at the calculated position (also within sections) with install-on along the setting "Install on"; rules to modify or delete addressed in their imported layer; new rules of one request task in the same layer written once for all their gateways.
 - The routing of firewall config changes moves from "Firewall config changes - General" to the device specific settings (implementation modes for objects and rules, external ticket system, Tufin SecureChange connection, response timeout and retries); the ticket system list is removed.

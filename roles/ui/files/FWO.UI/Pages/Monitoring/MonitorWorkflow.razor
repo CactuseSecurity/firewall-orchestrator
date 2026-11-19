@@ -1,7 +1,6 @@
 @using FWO.Data.Workflow
 @using FWO.Middleware.Client
 @using FWO.Services.Workflow
-@using FWO.Ui.Pages.Reporting.Reports
 @using System.Text.Json
 
 @page "/monitoring/workflow"
@@ -51,28 +50,13 @@ else
         </div>
     </div>
 
-    @if (tickets.Count == 0)
-    {
-        <div>@(userConfig.GetText("no_workflow_tickets"))</div>
-    }
-    else
-    {
-        <div class="vheight75">
-            <PageSizeComponent PageSize="@PageSize" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
-            <div class="btn-group mb-2">
-                <button type="button" class="btn btn-sm btn-secondary" disabled="@(CurrentPage == 0)" @onclick="PreviousPage">&lt;</button>
-                <button type="button" class="btn btn-sm btn-secondary" disabled>@(CurrentPage + 1)</button>
-                <button type="button" class="btn btn-sm btn-secondary" disabled="@(!HasNextPage)" @onclick="NextPage">&gt;</button>
-            </div>
-            <ReportedTickets Tickets="tickets" StateNames="StateNames" SelectedReportType="ReportType.TicketReport"
-                             DetailedView="true" ShowFullTicket="true" TaskTypes="SelectedTaskTypes" ShowStateChangeButtons="true"
-                             SortDescendingById="true"
-                             ChangeTicketState="OpenTicketStateChange" ChangeReqTaskState="OpenReqTaskStateChange"
-                             ChangeImplTaskState="OpenImplTaskStateChange" ChangeApprovalState="OpenApprovalStateChange"
-                             CanAutoCreateImplementationTasks="@((ticket, reqTask) => wfHandler.CanAutoCreateInitialImplTasks(ticket, reqTask))"
-                             AutoCreateImplementationTasks="AutoCreateImplementationTasks" />
-        </div>
-    }
+    <div class="pt-3 pb-4">
+        <MonitorWorkflowTicketTable @ref="ticketTable" LoadTickets="LoadTicketPage" StateNames="StateNames"
+                                    ChangeTicketState="OpenTicketStateChange" ChangeReqTaskState="OpenReqTaskStateChange"
+                                    ChangeImplTaskState="OpenImplTaskStateChange" ChangeApprovalState="OpenApprovalStateChange"
+                                    CanAutoCreateImplementationTasks="@((ticket, reqTask) => wfHandler.CanAutoCreateInitialImplTasks(ticket, reqTask))"
+                                    AutoCreateImplementationTasks="AutoCreateImplementationTasks" />
+    </div>
 }
 
 <MonitorWorkflowStateChangePopup Display="showStateDialog" ObjectName="@selectedObjectName"
@@ -92,7 +76,12 @@ else
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
+    private static readonly IReadOnlyList<WfTicket> kNoTickets = [];
+    private static readonly List<string> kMonitoringRoles = [Roles.Admin, Roles.Auditor];
+
+    private readonly WorkflowTicketCountCache ticketCountCache = new();
     private List<WfTicket> tickets = [];
+    private MonitorWorkflowTicketTable? ticketTable;
     private List<WfTaskType> availableRealTaskTypes = [];
     private List<WfTaskType?> availableTaskTypes => [null, .. availableRealTaskTypes.Cast<WfTaskType?>()];
     private List<WfTaskType> SelectedTaskTypes { get; set; } = [];
@@ -103,7 +92,6 @@ else
     private IEnumerable<int?> SelectedStateIdsForUi { get; set; } = [];
     private WfHandler wfHandler = new();
     private bool InitComplete;
-    private const int kDefaultPageSize = 20;
     private bool showStateDialog;
     private bool ConfirmAutoCreateImplTasksDisplay { get; set; }
     private bool WorkInProgress { get; set; }
@@ -120,9 +108,6 @@ else
     private string autoCreateImplTasksConfirmMessage = "";
     private List<int> availableTargetStateIds => [.. allStates.Select(state => state.Id)];
     private Dictionary<int, string> StateNames { get; set; } = [];
-    private int PageSize { get; set; } = kDefaultPageSize;
-    private int CurrentPage { get; set; }
-    private bool HasNextPage { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -136,7 +121,7 @@ else
             allStates = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
             StateNames = allStates.ToDictionary(state => state.Id, state => state.Name);
 
-            await LoadTickets();
+            await InitWorkflowHandler();
             InitComplete = true;
         }
         catch (Exception exception)
@@ -146,7 +131,10 @@ else
         }
     }
 
-    private async Task LoadTickets()
+    /// <summary>
+    /// Initializes the workflow handler; the ticket table loads its pages itself through <see cref="LoadTicketPage"/>.
+    /// </summary>
+    private async Task InitWorkflowHandler()
     {
         if (authenticationStateTask == null)
         {
@@ -156,7 +144,7 @@ else
         wfHandler = new(DisplayMessageInUi, userConfig, authenticationStateTask.Result.User, apiConnection, middlewareClient,
             WorkflowPhases.request, null);
         await wfHandler.Init(false, null, true, true);
-        await FetchTicketPage();
+        wfHandler.TicketList = tickets;
     }
 
     private async Task RefreshTickets()
@@ -165,12 +153,23 @@ else
         {
             WorkInProgress = true;
             StateHasChanged();
-            await LoadTickets();
+            await InitWorkflowHandler();
+            await RefreshTicketTable(resetToFirstPage: false);
         }
         finally
         {
             WorkInProgress = false;
         }
+    }
+
+    /// <summary>
+    /// Reloads the ticket table, from the first page if the selection of tickets changed. Tickets may have changed
+    /// meanwhile (e.g. by a state change), so the tickets are counted again.
+    /// </summary>
+    private Task RefreshTicketTable(bool resetToFirstPage)
+    {
+        ticketCountCache.Clear();
+        return ticketTable?.RefreshAsync(resetToFirstPage) ?? Task.CompletedTask;
     }
 
     private string TaskTypeToString(WfTaskType? taskType)
@@ -198,8 +197,7 @@ else
             ? [.. availableRealTaskTypes]
             : [.. taskTypeList.Where(taskType => taskType.HasValue).Select(taskType => taskType!.Value)];
         SelectedTaskTypesForUi = SelectedTaskTypes.Count == availableRealTaskTypes.Count ? [] : [.. SelectedTaskTypes.Cast<WfTaskType?>()];
-        CurrentPage = 0;
-        return FetchTicketPage();
+        return RefreshTicketTable(resetToFirstPage: true);
     }
 
     private Task StateIdsChanged(IEnumerable<int?> stateIds)
@@ -209,71 +207,61 @@ else
             ? []
             : [.. stateIdList.Where(stateId => stateId.HasValue).Select(stateId => stateId!.Value)];
         SelectedStateIdsForUi = SelectedStateIds.Count == 0 ? [] : [.. SelectedStateIds.Select(stateId => (int?)stateId)];
-        CurrentPage = 0;
-        return FetchTicketPage();
+        return RefreshTicketTable(resetToFirstPage: true);
     }
 
-    private async Task UpdatePageSize(int pageSize)
-    {
-        PageSize = pageSize > 0 ? pageSize : kDefaultPageSize;
-        CurrentPage = 0;
-        await FetchTicketPage();
-    }
-
-    private async Task PreviousPage()
-    {
-        if (CurrentPage > 0)
-        {
-            CurrentPage--;
-            await FetchTicketPage();
-        }
-    }
-
-    private async Task NextPage()
-    {
-        if (HasNextPage)
-        {
-            CurrentPage++;
-            await FetchTicketPage();
-        }
-    }
-
-    private async Task FetchTicketPage()
+    /// <summary>
+    /// Loads one page of tickets for the ticket table: the table's column filters, sort and page combined with the
+    /// task type and state dropdowns. One ticket more than the page size is requested to know whether a next page exists.
+    /// The number of all matching tickets is only counted when the selection changed, as counting is much slower than
+    /// loading a page; it is queried together with the page.
+    /// </summary>
+    private async Task<FancyItemsResult<WfTicket>> LoadTicketPage(FancyItemsRequest request, CancellationToken cancellationToken)
     {
         try
         {
-            int fetchLimit = PageSize + 1;
-            var variables = new
-            {
-                limit = fetchLimit,
-                // Offset pagination is acceptable here for admin monitoring; rows can shift if workflow tickets change between page loads.
-                offset = CurrentPage * PageSize,
-                taskTypes = SelectedTaskTypes.Select(taskType => taskType.ToString()).ToList(),
-                stateIds = SelectedStateIds.Count == 0 ? allStates.Select(state => state.Id).ToList() : SelectedStateIds
-            };
+            List<int> stateIds = SelectedStateIds.Count == 0 ? [.. allStates.Select(state => state.Id)] : SelectedStateIds;
+            WorkflowTicketQuery query = WorkflowTicketQueryBuilder.Build(request, SelectedTaskTypes, stateIds, StateNames);
+            bool countCached = ticketCountCache.TryGet(query.Where, out int ticketCount);
 
             List<WfTicket> fetchedTickets = [];
-            if (authenticationStateTask == null)
+            await RunWithMonitoringRole(async () =>
             {
-                // Unit tests can instantiate this page without a cascading authentication state; production rendering supplies one.
-                fetchedTickets = await apiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getFullTicketsPaged, variables);
-            }
-            else
+                Task<List<WfTicket>> ticketsTask = apiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getFullTicketsPaged,
+                    new { limit = query.Limit, offset = query.Offset, where = query.Where, orderBy = query.OrderBy });
+                Task<AggregateCount>? countTask = countCached ? null
+                    : apiConnection.SendQueryAsync<AggregateCount>(RequestQueries.getTicketCount, new { where = query.Where });
+                fetchedTickets = await ticketsTask;
+                ticketCount = countTask == null ? ticketCount : (await countTask).Aggregate.Count;
+            });
+            if (cancellationToken.IsCancellationRequested)
             {
-                await apiConnection.RunWithBestRole(authenticationStateTask.Result.User, [Roles.Admin, Roles.Auditor],
-                    async () =>
-                    {
-                        fetchedTickets = await apiConnection.SendQueryAsync<List<WfTicket>>(RequestQueries.getFullTicketsPaged, variables);
-                    });
+                // A newer request replaced this one; its result is discarded by the table and must not replace the current tickets.
+                return new FancyItemsResult<WfTicket>(kNoTickets, false);
             }
-            HasNextPage = fetchedTickets.Count > PageSize;
-            tickets = [.. fetchedTickets.Take(PageSize)];
+
+            ticketCountCache.Store(query.Where, ticketCount);
+            bool hasMore = request.PageSize > 0 && fetchedTickets.Count > request.PageSize;
+            tickets = hasMore ? [.. fetchedTickets.Take(request.PageSize)] : fetchedTickets;
             wfHandler.TicketList = tickets;
+            return new FancyItemsResult<WfTicket>(tickets, hasMore) { TotalCount = ticketCount };
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("fetch_requests"), "", true);
+            return new FancyItemsResult<WfTicket>(kNoTickets, false);
         }
+    }
+
+    /// <summary>
+    /// Runs the ticket queries of the monitoring with the best of the admin and auditor roles of the user.
+    /// </summary>
+    private Task RunWithMonitoringRole(Func<Task> loadTickets)
+    {
+        // Unit tests can instantiate this page without a cascading authentication state; production rendering supplies one.
+        return authenticationStateTask == null
+            ? loadTickets()
+            : apiConnection.RunWithBestRole(authenticationStateTask.Result.User, kMonitoringRoles, loadTickets);
     }
 
     private Task OpenTicketStateChange(WfTicket ticket)
@@ -357,7 +345,7 @@ else
 
             WorkInProgress = true;
             bool implementationTasksCreated = await wfHandler.AutoCreateInitialImplTasksForMonitoring(selectedAutoCreateTicket, selectedAutoCreateReqTask);
-            await FetchTicketPage();
+            await RefreshTicketTable(resetToFirstPage: false);
             DisplayMessageInUi(null, userConfig.GetText("auto_create_impltasks"),
                 implementationTasksCreated ? userConfig.GetText("impltask_created") : userConfig.GetText("found_no_changes"), false);
         }
@@ -408,7 +396,8 @@ else
                     break;
             }
             CloseStateDialog();
-            await LoadTickets();
+            await InitWorkflowHandler();
+            await RefreshTicketTable(resetToFirstPage: false);
             DisplayMessageInUi(null, userConfig.GetText("change_state"), userConfig.GetText("state_changed"), false);
         }
         catch (Exception exception)

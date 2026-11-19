@@ -1,0 +1,23 @@
+.workflow-ticket-table {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 1rem;
+    justify-content: space-between;
+}
+
+.workflow-ticket-table ::deep .fancy-tree-actions {
+    order: -1;
+    flex: 1 1 content;
+}
+
+.workflow-ticket-table ::deep .fancy-table-topbar {
+    flex: 1 1 auto;
+    margin-bottom: 0;
+}
+
+.workflow-ticket-table ::deep .fancy-table-loading-template,
+.workflow-ticket-table ::deep .tree-table-container,
+.workflow-ticket-table ::deep .fancy-pagination {
+    flex: 0 0 100%;
+}

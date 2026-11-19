@@ -50,6 +50,13 @@ namespace FWO.Test
                 Assert.That(texts.FilterOperatorEndsWithLabel, Is.EqualTo("filter_op_ends_with"));
                 Assert.That(texts.FilterOperatorIsEmptyLabel, Is.EqualTo("filter_op_is_empty"));
                 Assert.That(texts.FilterOperatorIsNotEmptyLabel, Is.EqualTo("filter_op_is_not_empty"));
+                Assert.That(texts.FilterOperatorGreaterThanLabel, Is.EqualTo("filter_op_greater_than"));
+                Assert.That(texts.FilterOperatorGreaterThanOrEqualLabel, Is.EqualTo("filter_op_greater_than_or_equal"));
+                Assert.That(texts.FilterOperatorLessThanLabel, Is.EqualTo("filter_op_less_than"));
+                Assert.That(texts.FilterOperatorLessThanOrEqualLabel, Is.EqualTo("filter_op_less_than_or_equal"));
+                Assert.That(texts.FilterOperatorBetweenLabel, Is.EqualTo("filter_op_between"));
+                Assert.That(texts.FilterValueFromLabel, Is.EqualTo("filter_value_from"));
+                Assert.That(texts.FilterValueToLabel, Is.EqualTo("filter_value_to"));
             });
         }
 

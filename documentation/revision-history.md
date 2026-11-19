@@ -1,6 +1,11 @@
 # Firewall Orchestrator Revision History
 
 ## 9.9.4 - 17.11.2026
+- UI fix: workflow ticket monitoring filtering and sorting work again (#5571)
+  - tickets are shown in a paged tree table with their request tasks, implementation tasks and approvals; column filters (state, id, name, requester, start/end time) and sorting run in the database across all tickets instead of only the loaded page
+  - the id filter only offers "equals" and "does not equal", since ids are only ever compared for equality; the name filter (ticket/task title, approval's approver group) offers "equals" and "starts with"; the start and end time filters compare the day of the ticket's, task's or approval's date
+  - the pager shows the total number of matching tickets; the count is cached and only queried again when the task type/state dropdowns or a column filter changes
+  - the state column shows an icon for each default workflow state
 - request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket
   - a request task of a management with the implementation mode external ticket system is handed to Tufin SecureChange as a whole; implementation tasks with mode automatic are written directly to the firewall with the firewall write library (`ext_request.impltask_id`)
   - offered as a button, implementation tasks on targets set to manual are written as well within the scope of the action (ticket or request task); on an implementation task it writes only this one task
@@ -83,6 +88,9 @@
 - workflow: object and service task references are preserved when approval-task elements are edited, and affected access-task snapshots are refreshed after changes to their defining tasks
 
 ## 9.9.0 - 04.11.2026
+- workflow monitoring: tickets are shown in a tree table (request tasks, implementation tasks and approvals below each ticket) that loads only the current page; column filters (state, id, requester) and sorting are executed in the database and apply to all tickets, a match on any level of a ticket finds the ticket and negated filters only find tickets where no level matches; there is no free text search
+- workflow monitoring: the state column shows an icon behind the name of each default workflow state (e.g. a green check for "Done"); custom states are shown without icon
+- dependencies: update NuGet package SoPro.FancyTable to 1.5.0 (server-side paging, filters and sorting, filter operators per column)
 - Azure Firewall importer re-activated: fetches the network rules of firewall policies and the IP groups directly from the Azure Resource Manager API instead of only accepting normalized configs
   - login with a service principal (client credentials flow); client id and secret are taken from the additional credential, otherwise from the import credential; tenant and subscription from the management's cloud settings, the resource group from the config path
   - the firewall policy of a device is its local rulebase name, otherwise the device name; each policy becomes a rulebase, each device a gateway

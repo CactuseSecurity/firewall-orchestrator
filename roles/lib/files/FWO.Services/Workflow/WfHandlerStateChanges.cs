@@ -43,14 +43,18 @@ namespace FWO.Services.Workflow
 
         // promote the different objects
 
+        /// <summary>
+        /// Moves the active ticket into the state of the given object and persists it.
+        /// </summary>
+        /// <returns>False when the state was not persisted, in particular when the ticket was changed in the meantime.</returns>
         public async Task<bool> PromoteTicket(WfStatefulObject ticket)
         {
             try
             {
                 ActTicket.StateId = ticket.StateId;
-                await UpdateActTicketState();
+                bool promoted = await UpdateActTicketState();
                 ResetTicketActions();
-                return true;
+                return promoted;
             }
             catch (Exception exception)
             {
@@ -112,6 +116,11 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Promotes lower request tasks and approvals before persisting the requested ticket state.
         /// </summary>
+        /// <remarks>
+        /// The request tasks are written before the ticket, so the ticket is first checked to be still in the state this
+        /// handler read: a ticket another user or job has moved in the meantime is left alone, tasks included.
+        /// </remarks>
+        /// <returns>False when the ticket state was not persisted, in particular when the ticket was changed in the meantime.</returns>
         public async Task<bool> PromoteTasksAndTicket(WfStatefulObject ticket)
         {
             bool emailBundleStarted = false;
@@ -119,17 +128,23 @@ namespace FWO.Services.Workflow
             try
             {
                 int targetTicketStateId = ticket.StateId;
+                (bool ticketUnchanged, WfTicket? storedTicket) = await CheckActTicketStateUnchanged(targetTicketStateId);
+                if (!ticketUnchanged)
+                {
+                    return false;
+                }
+
                 BeginWorkflowEmailBundle();
                 emailBundleStarted = true;
 
                 await UpdateRequestTasksFromTicket(targetTicketStateId: targetTicketStateId,
-                    approvalComment: ticket.OptComment());
+                    approvalComment: ticket.OptComment(), storedTicket: storedTicket);
                 ActTicket.StateId = targetTicketStateId;
-                await UpdateActTicketState();
+                bool promoted = await UpdateActTicketState();
 
                 emailBundleFlushAttempted = true;
                 await FlushWorkflowEmailBundle();
-                return true;
+                return promoted;
             }
             catch (Exception exception)
             {
@@ -287,20 +302,26 @@ namespace FWO.Services.Workflow
             }
         }
 
-        public async Task AutoPromote(WfStatefulObject statefulObject, WfObjectScopes scope, int? toStateId)
+        /// <summary>
+        /// Promotes a workflow object automatically, into the given state or else into its first allowed transition.
+        /// </summary>
+        /// <returns>False when nothing was promoted, or when a ticket promotion was not persisted, in particular because
+        /// the ticket was changed in the meantime.</returns>
+        public async Task<bool> AutoPromote(WfStatefulObject statefulObject, WfObjectScopes scope, int? toStateId)
         {
             if (!PrepareApprovalForAutoPromotion(statefulObject, scope))
             {
-                return;
+                return false;
             }
 
             if (!TrySetAutoPromotionState(statefulObject, scope, toStateId))
             {
-                return;
+                return false;
             }
 
-            await ApplyAutoPromotion(statefulObject, scope);
-            Log.WriteDebug("AutoPromote", $"Done for {scope} id {GetStatefulObjectId(statefulObject)} with state {statefulObject.StateId}.");
+            bool promoted = await ApplyAutoPromotion(statefulObject, scope);
+            Log.WriteDebug("AutoPromote", $"Done for {scope} id {GetStatefulObjectId(statefulObject)} with state {statefulObject.StateId}, promoted: {promoted}.");
+            return promoted;
         }
 
         private bool PrepareApprovalForAutoPromotion(WfStatefulObject statefulObject, WfObjectScopes scope)
@@ -342,14 +363,13 @@ namespace FWO.Services.Workflow
             return true;
         }
 
-        private async Task ApplyAutoPromotion(WfStatefulObject statefulObject, WfObjectScopes scope)
+        private async Task<bool> ApplyAutoPromotion(WfStatefulObject statefulObject, WfObjectScopes scope)
         {
             switch (scope)
             {
                 case WfObjectScopes.Ticket:
                     SetTicketEnv((WfTicket)statefulObject);
-                    await PromoteTicketOrTasksAndTicket(statefulObject);
-                    break;
+                    return await PromoteTicketOrTasksAndTicket(statefulObject);
                 case WfObjectScopes.RequestTask:
                     await PromoteRequestTask(statefulObject);
                     break;
@@ -360,17 +380,17 @@ namespace FWO.Services.Workflow
                     await PromoteApproval((WfApproval)statefulObject);
                     break;
             }
+            return true;
         }
 
-        private async Task PromoteTicketOrTasksAndTicket(WfStatefulObject statefulObject)
+        private async Task<bool> PromoteTicketOrTasksAndTicket(WfStatefulObject statefulObject)
         {
             if (Phase == WorkflowPhases.request)
             {
-                await PromoteTicket(statefulObject);
-                return;
+                return await PromoteTicket(statefulObject);
             }
 
-            await PromoteTasksAndTicket(statefulObject);
+            return await PromoteTasksAndTicket(statefulObject);
         }
 
         private async Task PromoteRequestTask(WfStatefulObject statefulObject)
@@ -413,7 +433,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         public async Task ChangeTicketStateForMonitoring(WfTicket ticket, int targetStateId, MonitoringStateChangeMode mode)
         {
-            SetTicketEnv(ticket);
+            SetMonitoringTicketEnv(ticket);
             int oldStateId = ActTicket.StateId;
             ActTicket.StateId = targetStateId;
             await UpdateActTicketState(mode == MonitoringStateChangeMode.TriggerActions, false);
@@ -425,7 +445,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         public async Task ChangeReqTaskStateForMonitoring(WfTicket ticket, WfReqTask reqTask, int targetStateId, MonitoringStateChangeMode mode)
         {
-            SetTicketEnv(ticket);
+            SetMonitoringTicketEnv(ticket);
             SetReqTaskEnv(reqTask);
             int oldStateId = ActReqTask.StateId;
             ActReqTask.StateId = targetStateId;
@@ -443,7 +463,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         public async Task ChangeImplTaskStateForMonitoring(WfTicket ticket, WfReqTask reqTask, WfImplTask implTask, int targetStateId, MonitoringStateChangeMode mode)
         {
-            SetTicketEnv(ticket);
+            SetMonitoringTicketEnv(ticket);
             SetReqTaskEnv(reqTask);
             SetImplTaskEnv(implTask);
             int oldStateId = ActImplTask.StateId;
@@ -464,7 +484,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         public async Task ChangeApprovalStateForMonitoring(WfTicket ticket, WfReqTask reqTask, WfApproval approval, int targetStateId, MonitoringStateChangeMode mode)
         {
-            SetTicketEnv(ticket);
+            SetMonitoringTicketEnv(ticket);
             SetReqTaskEnv(reqTask);
             await SetApprovalEnv(approval, false);
             StateMatrix approvalTaskMatrix = stateMatrixDict.Matrices[ActReqTask.TaskType];
@@ -487,6 +507,17 @@ namespace FWO.Services.Workflow
                 await UpdateActTicketStateFromReqTasks(mode == MonitoringStateChangeMode.TriggerActions, false);
             }
             LogMonitoringStateChange(WfObjectScopes.Approval, ActApproval.Id, ActTicket.Id, oldStateId, ActApproval.StateId, mode);
+        }
+
+        /// <summary>
+        /// Sets the ticket of a monitoring state change. The monitoring page reads its tickets without resetting their
+        /// change tracking, which then reports a change from state 0. The state shown to the admin is the one the ticket
+        /// write is guarded against and the state actions start from.
+        /// </summary>
+        private void SetMonitoringTicketEnv(WfTicket ticket)
+        {
+            SetTicketEnv(ticket);
+            ActTicket.ResetStateChanged();
         }
 
         private void LogMonitoringStateChange(WfObjectScopes scope, long objectId, long ticketId, int oldStateId, int newStateId, MonitoringStateChangeMode mode)
@@ -555,7 +586,12 @@ namespace FWO.Services.Workflow
 
         // synchronization between the different objects
 
-        private async Task UpdateActTicketState(bool triggerActions = true, bool syncImplementationTasks = true,
+        /// <summary>
+        /// Persists the state of the active ticket. The write is refused when the ticket was changed in the meantime,
+        /// see <see cref="WfDbAccess.UpdateTicketStateInDb"/>; the active ticket then holds the stored state.
+        /// </summary>
+        /// <returns>True when the ticket is stored in the requested state.</returns>
+        private async Task<bool> UpdateActTicketState(bool triggerActions = true, bool syncImplementationTasks = true,
             NotificationPlaceholderData? placeholderData = null)
         {
             if (ActTicket.StateId >= MasterStateMatrix.MinTicketCompleted)
@@ -566,16 +602,32 @@ namespace FWO.Services.Workflow
             {
                 await SyncImplTaskStatesAfterApproval();
             }
+            bool stateStored = true;
             if (dbAcc != null)
             {
                 AuditUnexpectedStateTransition(ActTicket, WfObjectScopes.Ticket, MasterStateMatrix);
-                await dbAcc.UpdateTicketStateInDb(ActTicket, triggerActions, placeholderData: placeholderData);
+                stateStored = await dbAcc.UpdateTicketStateInDb(ActTicket, triggerActions, placeholderData: placeholderData);
             }
             int idx = TicketList.FindIndex(x => x.Id == ActTicket.Id);
             if (idx >= 0)
             {
                 TicketList[idx] = ActTicket;
             }
+            return stateStored;
+        }
+
+        /// <summary>
+        /// Checks that the active ticket is still stored in the state this handler read, before the request tasks are
+        /// moved ahead of the ticket.
+        /// </summary>
+        /// <returns>False when the ticket was changed in the meantime, and the stored ticket if it was read.</returns>
+        private async Task<(bool Unchanged, WfTicket? StoredTicket)> CheckActTicketStateUnchanged(int targetStateId)
+        {
+            if (dbAcc == null || ActTicket.Id <= 0)
+            {
+                return (true, null);
+            }
+            return await dbAcc.CheckTicketStateUnchanged(ActTicket, targetStateId);
         }
 
         private void SyncActTicketFromReqTask(WfReqTask reqTask)
@@ -630,14 +682,14 @@ namespace FWO.Services.Workflow
         }
 
         private async Task<bool> UpdateRequestTasksFromTicket(bool triggerActions = true,
-            int? targetTicketStateId = null, string? approvalComment = null)
+            int? targetTicketStateId = null, string? approvalComment = null, WfTicket? storedTicket = null)
         {
             bool requestTaskActionsChangedState = false;
             List<WfReqTask> requestTasks = [.. ActTicket.Tasks];
             int synchronizationTicketStateId = targetTicketStateId ?? ActTicket.StateId;
-            // Read the stored ticket once for the whole loop: every task and approval below needs the same
-            // pre-change snapshot for the change history, and none of them is affected by another's write.
-            WfTicket? storedTicket = dbAcc != null && requestTasks.Count > 0 ? await dbAcc.LoadPreviousTicket(ActTicket.Id) : null;
+            // Read the stored ticket once for the whole loop, unless the caller has just read it: every task and approval
+            // below needs the same pre-change snapshot for the change history, and none of them is affected by another's write.
+            storedTicket ??= dbAcc != null && requestTasks.Count > 0 ? await dbAcc.LoadPreviousTicket(ActTicket.Id) : null;
             foreach (WfReqTask reqtask in requestTasks)
             {
                 StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[reqtask.TaskType];

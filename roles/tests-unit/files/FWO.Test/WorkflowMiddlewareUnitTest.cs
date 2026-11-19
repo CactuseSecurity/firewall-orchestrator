@@ -29,6 +29,8 @@ namespace FWO.Test
     {
         private static readonly List<string> kNoUserGroups = [];
         private static readonly List<Ldap> kNoLdaps = [];
+        // Shared by all controllers of the tests, like the singleton in the middleware.
+        private static readonly WorkflowTicketLocks kTicketActionLocks = new();
         private const string kVisibilityUserPath = "ou=users,ou=operator,dc=fworch,dc=internal";
         private const string kVisibilityGroupPath = "ou=groups,ou=operator,dc=fworch,dc=internal";
         private const int kVisibilityLdapId = 3;
@@ -608,6 +610,48 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// The workflow action endpoint and the job of the "While set" actions share the ticket locks:
+        /// a request for a ticket the job is working on waits for it instead of running concurrently.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_ExecuteActionsWaitsWhileTheWhileSetJobHoldsTheTicket()
+        {
+            const long ticketId = 900098;
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            using CancellationTokenSource requestAborted = new();
+            controller.HttpContext.RequestAborted = requestAborted.Token;
+            IDisposable? jobLock = GetTicketActionLocks().TryAcquireImmediately(ticketId, WorkflowWhileSetActionExecutor.kTicketLockOwner);
+            bool completedWhileJobHoldsTicket;
+            WorkflowActionResult result;
+            try
+            {
+                Task<WorkflowActionResult> request = controller.ExecuteActions(new WorkflowActionParameters
+                {
+                    Scope = WfObjectScopes.Ticket.ToString(),
+                    Phase = WorkflowPhases.request.ToString(),
+                    ObjectId = ticketId
+                });
+                await Task.Yield();
+                completedWhileJobHoldsTicket = request.IsCompleted;
+                // end the waiting request before the job releases the ticket, otherwise it may still get the lock
+                await requestAborted.CancelAsync();
+                result = await request;
+            }
+            finally
+            {
+                jobLock?.Dispose();
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(jobLock, Is.Not.Null);
+                Assert.That(completedWhileJobHoldsTicket, Is.False);
+                Assert.That(result.ErrorMessage, Is.EqualTo("The request was cancelled."));
+                Assert.That(GetTicketActionLockCount(), Is.Zero);
+            });
+        }
+
+        /// <summary>
         /// SEC-24: a caller already holding or waiting for the maximum number of distinct tickets is
         /// rejected before a further ticket lock is allocated.
         /// </summary>
@@ -617,7 +661,7 @@ namespace FWO.Test
             const string callerDn = "uid=flood,ou=users,dc=test";
             const long firstHeldTicketId = 900001;
             WorkflowController controller = CreateWorkflowController(PrincipalWithRolesAndClaims(kAdminRole, new Claim("x-hasura-uuid", callerDn)));
-            KeyedAsyncLock<long> ticketActionLocks = GetTicketActionLocks();
+            WorkflowTicketLocks ticketActionLocks = GetTicketActionLocks();
             List<IDisposable> heldLocks = [];
             try
             {
@@ -698,7 +742,7 @@ namespace FWO.Test
         [Test]
         public async Task TicketActionLock_AllowsOneCallerToQueueActionsForOneTicket()
         {
-            KeyedAsyncLock<long> ticketActionLocks = GetTicketActionLocks();
+            WorkflowTicketLocks ticketActionLocks = GetTicketActionLocks();
             const long ticketId = 900099;
             const string callerDn = "uid=batch,ou=users,dc=test";
             IDisposable? firstLock = await ticketActionLocks.TryAcquireAsync(ticketId, callerDn);
@@ -722,7 +766,7 @@ namespace FWO.Test
         [Test]
         public async Task TicketActionLock_AllowsMoreThanThirtyTwoActionsForOneTicket()
         {
-            KeyedAsyncLock<long> ticketActionLocks = GetTicketActionLocks();
+            WorkflowTicketLocks ticketActionLocks = GetTicketActionLocks();
             const long ticketId = 900100;
             const string callerDn = "uid=large-ticket,ou=users,dc=test";
             IDisposable? firstLock = await ticketActionLocks.TryAcquireAsync(ticketId, callerDn);
@@ -2515,7 +2559,8 @@ namespace FWO.Test
         private static WorkflowController CreateWorkflowController(ClaimsPrincipal user, List<Ldap> ldaps)
         {
             RSA rsa = RSA.Create(2048);
-            WorkflowController controller = new(new SimulatedGlobalConfig(), ldaps, new JwtWriter(new RsaSecurityKey(rsa)), new TokenLifetimeProvider())
+            WorkflowController controller = new(new SimulatedGlobalConfig(), ldaps, new JwtWriter(new RsaSecurityKey(rsa)), new TokenLifetimeProvider(),
+                kTicketActionLocks)
             {
                 ControllerContext = new ControllerContext
                 {
@@ -2533,11 +2578,9 @@ namespace FWO.Test
             return GetTicketActionLocks().Count;
         }
 
-        private static KeyedAsyncLock<long> GetTicketActionLocks()
+        private static WorkflowTicketLocks GetTicketActionLocks()
         {
-            FieldInfo field = typeof(WorkflowController).GetField("TicketActionLocks", BindingFlags.NonPublic | BindingFlags.Static)
-                ?? throw new MissingFieldException(nameof(WorkflowController), "TicketActionLocks");
-            return (KeyedAsyncLock<long>)field.GetValue(null)!;
+            return kTicketActionLocks;
         }
 
         private static string? GetApiServerUri()

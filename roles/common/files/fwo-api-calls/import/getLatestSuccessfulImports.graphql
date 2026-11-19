@@ -1,0 +1,19 @@
+query getLatestSuccessfulImports($mgmIds: [Int!]!, $importTypeIds: [Int!]!) {
+  import_control(
+    where: {
+      mgm_id: { _in: $mgmIds }
+      import_type_id: { _in: $importTypeIds }
+      successful_import: { _eq: true }
+      stop_time: { _is_null: false }
+    }
+    distinct_on: mgm_id
+    order_by: [{ mgm_id: asc }, { start_time: desc }]
+  ) {
+    control_id
+    mgm_id
+    import_type_id
+    start_time
+    stop_time
+    successful_import
+  }
+}

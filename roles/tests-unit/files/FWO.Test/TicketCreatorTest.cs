@@ -102,8 +102,11 @@ namespace FWO.Test
                     WfTicket ticket = TicketById.Id > 0 ? TicketById : lastCreatedTicket;
                     return Task.FromResult((T)(object)ticket);
                 }
-                if (query == RequestQueries.updateTicketState
-                    || query == RequestQueries.updateRequestTaskState
+                if (query == RequestQueries.updateTicketStateIfUnchanged)
+                {
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
+                }
+                if (query == RequestQueries.updateRequestTaskState
                     || query == RequestQueries.updateImplementationTask
                     || query == RequestQueries.updateImplementationTaskState
                     || query == RequestQueries.updateRequestTaskAdditionalInfo
@@ -438,7 +441,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(promoted, Is.False);
-                Assert.That(apiConn.Queries, Does.Not.Contain(RequestQueries.updateTicketState));
+                Assert.That(apiConn.Queries, Does.Not.Contain(RequestQueries.updateTicketStateIfUnchanged));
             });
         }
 
@@ -459,11 +462,12 @@ namespace FWO.Test
 
             bool promoted = await ticketCreator.PromoteTicket(42, ExtStates.ExtReqRejected.ToString());
 
-            object? variables = apiConn.Variables[apiConn.Queries.IndexOf(RequestQueries.updateTicketState)];
+            object? variables = apiConn.Variables[apiConn.Queries.IndexOf(RequestQueries.updateTicketStateIfUnchanged)];
             Assert.Multiple(() =>
             {
                 Assert.That(promoted, Is.True);
                 Assert.That(GetVariable<long>(variables, "id"), Is.EqualTo(42));
+                Assert.That(GetVariable<int>(variables, "expectedState"), Is.EqualTo(1));
                 Assert.That(GetVariable<int>(variables, "state"), Is.EqualTo(49));
             });
         }

@@ -984,7 +984,7 @@ namespace FWO.Test
         {
             MethodInfo method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingMethodException(typeof(WfHandler).FullName, "UpdateRequestTasksFromTicket");
-            object[] arguments = [true, null!, null!];
+            object[] arguments = [true, null!, null!, null!];
             Task task = (Task)(method.Invoke(handler, arguments) ?? throw new InvalidOperationException("UpdateRequestTasksFromTicket returned null."));
             await task;
         }

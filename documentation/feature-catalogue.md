@@ -95,6 +95,7 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | Approval-phase task details view with resolved, technical and read-only displays, configurable field editing, and task-specific editors | 9.9.1 |
 | Implementation of tickets through external requests (state action "Create external requests"): Tufin SecureChange or direct firewall write, routed by the implementation modes in the device specific settings | 9.9.4 |
 | Direct firewall write of objects, groups and rules (rules on Check Point: position incl. sections, install-on, modify and delete in the imported layer) | 9.9.4 |
+| State action event "While set" (periodic execution by the middleware) and conditional auto-forward with rollout check, error state with timeout and target "Remain in state" | 9.9.4 |
 
 ## Recertification
 

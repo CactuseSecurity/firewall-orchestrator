@@ -1,0 +1,27 @@
+# Moves a ticket into a new state, but only while it is still in the state the caller read.
+#
+# A ticket state is changed by several writers that do not wait for each other: users promoting the ticket
+# in the UI, the workflow action endpoint of the middleware and the "While set" job. The condition on
+# $expectedState makes the write fail instead of overwriting a state change one of the others made in the
+# meantime. affected_rows is 1 when the state was written and 0 when the ticket has left $expectedState.
+
+mutation updateTicketStateIfUnchanged(
+  $id: bigint!
+  $expectedState: Int!
+  $state: Int!
+  $closed: timestamp
+  $deadline: timestamp
+  $priority: Int
+  ) {
+  update_request_ticket(
+    where: { id: { _eq: $id }, state_id: { _eq: $expectedState } }
+    _set: {
+      state_id: $state
+      date_completed: $closed
+      ticket_deadline: $deadline
+      ticket_priority: $priority
+    }
+  ) {
+    affected_rows
+  }
+}

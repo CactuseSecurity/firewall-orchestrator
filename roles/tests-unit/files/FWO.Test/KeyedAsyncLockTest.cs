@@ -299,6 +299,111 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void TryAcquireImmediately_FreeKeyIsAcquiredAndReleased()
+        {
+            KeyedAsyncLock<long> keyedLock = new();
+
+            IDisposable? handle = keyedLock.TryAcquireImmediately(1, kOwner);
+            bool containsWhileHeld = keyedLock.Contains(1);
+            handle?.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handle, Is.Not.Null);
+                Assert.That(containsWhileHeld, Is.True);
+                Assert.That(keyedLock.Count, Is.Zero);
+                Assert.That(keyedLock.OwnerCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task TryAcquireImmediately_HeldKeyIsRejectedWithoutLeavingAReservation()
+        {
+            KeyedAsyncLock<long> keyedLock = new();
+            IDisposable heldHandle = await Acquire(keyedLock, 1);
+
+            IDisposable? rejectedHandle = keyedLock.TryAcquireImmediately(1, kOtherOwner);
+            int countWhileHeld = keyedLock.Count;
+            int ownerCountWhileHeld = keyedLock.OwnerCount;
+            heldHandle.Dispose();
+            IDisposable? handleAfterRelease = keyedLock.TryAcquireImmediately(1, kOtherOwner);
+            handleAfterRelease?.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rejectedHandle, Is.Null);
+                Assert.That(countWhileHeld, Is.EqualTo(1));
+                Assert.That(ownerCountWhileHeld, Is.EqualTo(1));
+                Assert.That(handleAfterRelease, Is.Not.Null);
+                Assert.That(keyedLock.Count, Is.Zero);
+                Assert.That(keyedLock.OwnerCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task TryAcquireImmediately_IsRejectedWhileAWaiterIsQueuedOrHoldsTheKey()
+        {
+            KeyedAsyncLock<long> keyedLock = new();
+            IDisposable heldHandle = await Acquire(keyedLock, 1);
+            Task<IDisposable?> waiter = keyedLock.TryAcquireAsync(1, kOwner);
+
+            IDisposable? rejectedHandle = keyedLock.TryAcquireImmediately(1, kOtherOwner);
+            heldHandle.Dispose();
+            IDisposable? waiterHandle = await waiter.WaitAsync(kWaitTimeout);
+            IDisposable? rejectedWhileWaiterHolds = keyedLock.TryAcquireImmediately(1, kOtherOwner);
+            waiterHandle?.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rejectedHandle, Is.Null);
+                Assert.That(waiterHandle, Is.Not.Null);
+                Assert.That(rejectedWhileWaiterHolds, Is.Null);
+                Assert.That(keyedLock.Count, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task TryAcquireImmediately_RespectsTheKeyCap()
+        {
+            KeyedAsyncLock<long> keyedLock = new(maxKeys: 1);
+            IDisposable heldHandle = await Acquire(keyedLock, 1);
+
+            IDisposable? rejectedHandle = keyedLock.TryAcquireImmediately(2, kOtherOwner);
+            int countWhileHeld = keyedLock.Count;
+            heldHandle.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rejectedHandle, Is.Null);
+                Assert.That(countWhileHeld, Is.EqualTo(1));
+                Assert.That(keyedLock.Count, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task WorkflowTicketLocks_ShareTicketsBetweenWaitingAndImmediateCallers()
+        {
+            const long ticketId = 7;
+            WorkflowTicketLocks ticketLocks = new();
+            IDisposable? jobHandle = ticketLocks.TryAcquireImmediately(ticketId, kOtherOwner);
+            Task<IDisposable?> request = ticketLocks.TryAcquireAsync(ticketId, kOwner);
+            bool requestWaitedForJob = !request.IsCompleted;
+            jobHandle?.Dispose();
+            IDisposable? requestHandle = await request.WaitAsync(kWaitTimeout);
+            IDisposable? jobHandleWhileRequestHolds = ticketLocks.TryAcquireImmediately(ticketId, kOtherOwner);
+            requestHandle?.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(jobHandle, Is.Not.Null);
+                Assert.That(requestWaitedForJob, Is.True);
+                Assert.That(requestHandle, Is.Not.Null);
+                Assert.That(jobHandleWhileRequestHolds, Is.Null);
+                Assert.That(ticketLocks.Count, Is.Zero);
+            });
+        }
+
         private static async Task<IDisposable> Acquire(KeyedAsyncLock<long> keyedLock, long key, string owner = kOwner)
         {
             IDisposable? handle = await keyedLock.TryAcquireAsync(key, owner);

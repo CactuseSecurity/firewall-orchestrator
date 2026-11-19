@@ -30,12 +30,7 @@ namespace FWO.Middleware.Server.Controllers
         private readonly List<Ldap> ldaps;
         private readonly JwtWriter jwtWriter;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
-        // A ticket promotion can fan out into one action request per request task. Do not cap
-        // callers for one ticket: the ticket itself determines the fan-out size. Keep the global
-        // key cap and the per-owner distinct-ticket cap as flood protection.
-        private static readonly KeyedAsyncLock<long> TicketActionLocks = new(
-            maxCallersPerKey: int.MaxValue,
-            maxCallersPerOwnerAndKey: int.MaxValue);
+        private readonly WorkflowTicketLocks ticketActionLocks;
         private static readonly WorkflowEmailBundleStore EmailBundleStore = new();
         private static readonly List<string> kNoGroups = [];
         private const string kStateChangeRefusalTitleKey = "actions";
@@ -44,12 +39,19 @@ namespace FWO.Middleware.Server.Controllers
         /// <summary>
         /// Constructor.
         /// </summary>
-        public WorkflowController(GlobalConfig globalConfig, List<Ldap> ldaps, JwtWriter jwtWriter, TokenLifetimeProvider tokenLifetimeProvider)
+        /// <param name="globalConfig">Global configuration.</param>
+        /// <param name="ldaps">Connected LDAPs.</param>
+        /// <param name="jwtWriter">Writer of the middleware server JWT.</param>
+        /// <param name="tokenLifetimeProvider">Lifetime of internal service tokens.</param>
+        /// <param name="ticketActionLocks">Per-ticket locks shared with the job performing the "While set" actions.</param>
+        public WorkflowController(GlobalConfig globalConfig, List<Ldap> ldaps, JwtWriter jwtWriter, TokenLifetimeProvider tokenLifetimeProvider,
+            WorkflowTicketLocks ticketActionLocks)
         {
             this.globalConfig = globalConfig;
             this.ldaps = ldaps;
             this.jwtWriter = jwtWriter;
             this.tokenLifetimeProvider = tokenLifetimeProvider;
+            this.ticketActionLocks = ticketActionLocks;
         }
 
         /// <summary>
@@ -179,7 +181,7 @@ namespace FWO.Middleware.Server.Controllers
             WorkflowPhases phase, long lockTicketId, WorkflowActionResult result)
         {
             string caller = User.FindFirstValue("x-hasura-uuid") ?? "";
-            using IDisposable? ticketActionLock = await TicketActionLocks.TryAcquireAsync(lockTicketId, caller,
+            using IDisposable? ticketActionLock = await ticketActionLocks.TryAcquireAsync(lockTicketId, caller,
                 HttpContext?.RequestAborted ?? CancellationToken.None);
             if (ticketActionLock == null)
             {

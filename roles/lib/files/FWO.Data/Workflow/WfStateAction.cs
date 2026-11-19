@@ -33,7 +33,10 @@ namespace FWO.Data.Workflow
         None = 0,
         OnSet = 1,
         OnLeave = 2,
-        // WhileSet = 3,
+        /// <summary>
+        /// Performed periodically by the middleware as long as the object is in the state.
+        /// </summary>
+        WhileSet = 3,
         OfferButton = 4,
         OwnerChange = 10,
         OnAssignment = 15
@@ -41,7 +44,11 @@ namespace FWO.Data.Workflow
 
     public enum ToBeCalled
     {
-        PolicyCheck = 1
+        PolicyCheck = 1,
+        /// <summary>
+        /// Checks that every management involved in the ticket has been imported after the implementation.
+        /// </summary>
+        RolloutCheck = 2
     }
 
     public enum BundleTaskType
@@ -52,6 +59,11 @@ namespace FWO.Data.Workflow
     public class WfStateAction
     {
         public const int AutomaticStateId = -1;
+
+        /// <summary>
+        /// Target state of a conditional auto-forward that keeps the object in its current state.
+        /// </summary>
+        public const int RemainStateId = -3;
 
         [JsonProperty("id"), JsonPropertyName("id")]
         public int Id { get; set; }
@@ -121,6 +133,19 @@ namespace FWO.Data.Workflow
                 };
             }
             return false;
+        }
+
+        /// <summary>
+        /// Tells whether actions of the given type may use the event "While set". The middleware performs such an
+        /// action on every interval for every ticket in the state, so only action types that wait for a condition and
+        /// change nothing until it is met qualify. For now this is the auto-forward: other types would send a message,
+        /// create objects or write data on every run.
+        /// </summary>
+        /// <param name="actionType">Name of the action type, see <see cref="StateActionTypes"/>.</param>
+        /// <returns>True if actions of this type may use the event "While set".</returns>
+        public static bool AllowsWhileSet(string? actionType)
+        {
+            return actionType == nameof(StateActionTypes.AutoPromote);
         }
 
         public static bool TryParseAutoPromoteParams(string externalParams, out int? toStateId, out ConditionalAutoPromoteParams? conditionalParams)
@@ -211,6 +236,44 @@ namespace FWO.Data.Workflow
 
         [JsonProperty("if_not_compliant_state"), JsonPropertyName("if_not_compliant_state")]
         public int IfNotCompliantState { get; set; }
+
+        /// <summary>
+        /// State the object is moved into when one of the error conditions applies. Without an error state the
+        /// error conditions are not checked.
+        /// </summary>
+        [JsonProperty("error_state"), JsonPropertyName("error_state")]
+        public int? ErrorState { get; set; }
+
+        private ConditionalErrorConditions errorConditions = new();
+
+        /// <summary>
+        /// Conditions checked when the check has not passed. The first one that applies moves the object into the
+        /// error state instead of the not-passed target.
+        /// </summary>
+        [JsonProperty("error_conditions"), JsonPropertyName("error_conditions")]
+        public ConditionalErrorConditions ErrorConditions
+        {
+            get => errorConditions;
+            set => errorConditions = value ?? new();
+        }
+    }
+
+    /// <summary>
+    /// Error conditions of a conditional auto-forward.
+    /// </summary>
+    public class ConditionalErrorConditions
+    {
+        /// <summary>
+        /// Maximum time in minutes the object may stay in the state. Empty or not positive: no timeout.
+        /// </summary>
+        [JsonProperty("timeout_minutes"), JsonPropertyName("timeout_minutes")]
+        public int? TimeoutMinutes { get; set; }
+
+        /// <summary>
+        /// True when a timeout is configured.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public bool HasTimeout => TimeoutMinutes > 0;
     }
 
     public class SimpleAutoPromoteParams

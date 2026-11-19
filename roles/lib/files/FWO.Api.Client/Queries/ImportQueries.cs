@@ -19,6 +19,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getPendingRuleOwnerImports;
         public static readonly string getRunningRuleOwnerRebuild;
         public static readonly string getPendingRuleAffectingImports;
+        public static readonly string getLatestSuccessfulImports;
         public static readonly string getManagementsForRuleHitImport;
         public static readonly string addRuleHitImportRequests;
 
@@ -39,6 +40,7 @@ namespace FWO.Api.Client.Queries
                 getPendingRuleOwnerImports = GetQueryText("import/getPendingRuleOwnerImports.graphql");
                 getRunningRuleOwnerRebuild = GetQueryText("import/getRunningRuleOwnerRebuild.graphql");
                 getPendingRuleAffectingImports = GetQueryText("import/getPendingRuleAffectingImports.graphql");
+                getLatestSuccessfulImports = GetQueryText("import/getLatestSuccessfulImports.graphql");
                 getManagementsForRuleHitImport = GetQueryText("import/getManagementsForRuleHitImport.graphql");
                 addRuleHitImportRequests = GetQueryText("import/addRuleHitImportRequests.graphql");
                 updateImportControlForRuleOwnerInc = GetQueryText("import/updateImportControlForRuleOwnerInc.graphql");

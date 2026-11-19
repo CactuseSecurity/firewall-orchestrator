@@ -81,6 +81,12 @@ namespace FWO.Test
             public int NewCommentCallCount { get; private set; }
             public int AssignImplCommentCallCount { get; private set; }
             public int UpdateTicketStateCallCount { get; private set; }
+
+            /// <summary>
+            /// Rows the guarded ticket state write reports as changed; 0 simulates a ticket that has left the expected state.
+            /// </summary>
+            public int TicketStateAffectedRows { get; set; } = 1;
+            public List<object?> TicketStateWriteVariables { get; } = [];
             public int AddHistoryEntryCallCount { get; private set; }
             public object? LastUpdateTicketVariables { get; private set; }
             public object? LastHistoryVariables { get; private set; }
@@ -167,10 +173,11 @@ namespace FWO.Test
                         ReturnIds = new ReturnId[] { new ReturnId { NewIdLong = NewApprovalId } }
                     });
                 }
-                if (query == RequestQueries.updateTicketState)
+                if (query == RequestQueries.updateTicketStateIfUnchanged)
                 {
                     UpdateTicketStateCallCount++;
-                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedTicketId });
+                    TicketStateWriteVariables.Add(variables);
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = TicketStateAffectedRows });
                 }
                 if (query == RequestQueries.newImplementationTask)
                 {

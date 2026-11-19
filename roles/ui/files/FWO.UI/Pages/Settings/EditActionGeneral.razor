@@ -4,109 +4,83 @@
 
 @inject UserConfig userConfig
 
-<div class="form-group row col-sm-12">
-    <div class="col-sm-2">
-        <div class="form-group row">
-            <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("id")):</label>
-            <label class="col-sm-6 col-form-label col-form-label-sm">@(ActAction.Id)</label>
-        </div>
+<div class="row">
+    <div class="col-sm-2 mb-2">
+        <label class="form-label small mb-1">@(userConfig.GetText("id")):</label>
+        <div class="small pt-1">@(ActAction.Id)</div>
     </div>
-    <div class="col-sm-10">
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5512"))">
-            <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
-            <input type="text" class="col-sm-9" @bind="ActAction.Name" />
-        </div>
+    <div class="col-sm-10 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5512"))">
+        <label class="form-label small mb-1" for="actionName">@(userConfig.GetText("name"))*:</label>
+        <input id="actionName" type="text" class="form-control form-control-sm" @bind="ActAction.Name" />
     </div>
-</div>
-<div class="form-group row col-sm-12 mt-2">
-    <div class="col-sm-4">
-        <div class="form-group row">
-            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("action_type"))*:</label>
-            <div class="col-sm-8">
-                <Dropdown ElementType="string"
-                          SelectedElement="ActAction.ActionType"
-                          SelectedElementChanged="OnActionTypeChanged"
-                          ElementToString="@(a => userConfig.GetText(a))"
-                          Elements="Enum.GetNames(typeof(StateActionTypes))">
-                    <ElementTemplate Context="action">
-                        @(userConfig.GetText(action))
-                    </ElementTemplate>
-                </Dropdown>
-            </div>
-        </div>
+    <div class="col-sm-6 mb-2">
+        <label class="form-label small mb-1">@(userConfig.GetText("action_type"))*:</label>
+        <Dropdown ElementType="string"
+                  SelectedElement="ActAction.ActionType"
+                  SelectedElementChanged="OnActionTypeChanged"
+                  ElementToString="@(a => userConfig.GetText(a))"
+                  Elements="Enum.GetNames(typeof(StateActionTypes))">
+            <ElementTemplate Context="action">
+                @(userConfig.GetText(action))
+            </ElementTemplate>
+        </Dropdown>
     </div>
-    <div class="col-sm-4">
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5513"))">
-            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("event")):</label>
-            <div class="col-sm-8">
-                <Dropdown ElementType="string" @bind-SelectedElement="ActAction.Event" ElementToString="@(e => userConfig.GetText(e))" Elements="SelectableEvents">
-                    <ElementTemplate Context="eventt">
-                        @(userConfig.GetText(eventt))
-                    </ElementTemplate>
-                </Dropdown>
-            </div>
-        </div>
+    <div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5513"))">
+        <label class="form-label small mb-1">@(userConfig.GetText("event")):</label>
+        <Dropdown ElementType="string"
+                  SelectedElement="ActAction.Event"
+                  SelectedElementChanged="OnEventChanged"
+                  ElementToString="@(e => userConfig.GetText(e))"
+                  Elements="SelectableEvents">
+            <ElementTemplate Context="eventt">
+                @(userConfig.GetText(eventt))
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+    <div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5514"))">
+        <label class="form-label small mb-1">@(userConfig.GetText("phase")):</label>
+        <Dropdown ElementType="string"
+                  SelectedElement="selectedPhase"
+                  SelectedElementChanged="OnPhaseChanged"
+                  ElementToString="@(p => userConfig.GetText(p))"
+                  Elements="Enum.GetNames(typeof(WorkflowPhases))"
+                  Nullable="true"
+                  NoneSelectedText="@(userConfig.GetText("all"))">
+            <ElementTemplate Context="phase">
+                @(userConfig.GetText(phase))
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+    <div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5515"))">
+        <label class="form-label small mb-1">@(userConfig.GetText("scope")):</label>
+        <Dropdown ElementType="string" SelectedElement="ActAction.Scope" SelectedElementChanged="OnScopeChanged" ElementToString="@(s => userConfig.GetText(s))" Elements="SelectableScopes">
+            <ElementTemplate Context="scope">
+                @(userConfig.GetText(scope))
+            </ElementTemplate>
+        </Dropdown>
     </div>
     @if (ActAction.Event == StateActionEvents.OfferButton.ToString())
     {
-        <div class="col-sm-4">
-            <div class="form-group row">
-                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("button_text")):</label>
-                <input type="text" class="col-sm-8" @bind="ActAction.ButtonText" />
-            </div>
+        <div class="col-sm-6 mb-2">
+            <label class="form-label small mb-1" for="actionButtonText">@(userConfig.GetText("button_text")):</label>
+            <input id="actionButtonText" type="text" class="form-control form-control-sm" @bind="ActAction.ButtonText" />
         </div>
     }
-</div>
-<div class="form-group row col-sm-12 mt-2">
-    <div class="col-sm-4">
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5514"))">
-            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("phase")):</label>
-            <div class="col-sm-8">
-                <Dropdown ElementType="string"
-                          SelectedElement="selectedPhase"
-                          SelectedElementChanged="OnPhaseChanged"
-                          ElementToString="@(p => userConfig.GetText(p))"
-                          Elements="Enum.GetNames(typeof(WorkflowPhases))"
-                          Nullable="true"
-                          NoneSelectedText="@(userConfig.GetText("all"))">
-                    <ElementTemplate Context="phase">
-                        @(userConfig.GetText(phase))
-                    </ElementTemplate>
-                </Dropdown>
-            </div>
-        </div>
-    </div>
-    <div class="col-sm-4">
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5515"))">
-            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("scope")):</label>
-            <div class="col-sm-8">
-                <Dropdown ElementType="string" SelectedElement="ActAction.Scope" SelectedElementChanged="OnScopeChanged" ElementToString="@(s => userConfig.GetText(s))" Elements="SelectableScopes">
-                    <ElementTemplate Context="scope">
-                        @(userConfig.GetText(scope))
-                    </ElementTemplate>
-                </Dropdown>
-            </div>
-        </div>
-    </div>
     @if (ActAction.Scope == WfObjectScopes.RequestTask.ToString() || ActAction.Scope == WfObjectScopes.ImplementationTask.ToString())
     {
-        <div class="col-sm-4">
-            <div class="form-group row">
-                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("task_type")):</label>
-                <div class="col-sm-8">
-                    <Dropdown ElementType="WfTaskType?"
-                              SelectedElement="selectedTaskType"
-                              SelectedElementChanged="OnTaskTypeChanged"
-                              ElementToString="@(t => userConfig.GetText(t?.ToString() ?? "undefined"))"
-                              Elements="AvailableTaskTypes.Where(x => x != WfTaskType.master).Cast<WfTaskType?>()"
-                              Nullable="true"
-                              NoneSelectedText="@(userConfig.GetText("all"))">
-                        <ElementTemplate Context="type">
-                            @(userConfig.GetText(type?.ToString() ?? "undefined"))
-                        </ElementTemplate>
-                    </Dropdown>
-                </div>
-            </div>
+        <div class="col-sm-6 mb-2">
+            <label class="form-label small mb-1">@(userConfig.GetText("task_type")):</label>
+            <Dropdown ElementType="WfTaskType?"
+                      SelectedElement="selectedTaskType"
+                      SelectedElementChanged="OnTaskTypeChanged"
+                      ElementToString="@(t => userConfig.GetText(t?.ToString() ?? "undefined"))"
+                      Elements="AvailableTaskTypes.Where(x => x != WfTaskType.master).Cast<WfTaskType?>()"
+                      Nullable="true"
+                      NoneSelectedText="@(userConfig.GetText("all"))">
+                <ElementTemplate Context="type">
+                    @(userConfig.GetText(type?.ToString() ?? "undefined"))
+                </ElementTemplate>
+            </Dropdown>
         </div>
     }
 </div>
@@ -123,6 +97,12 @@
 
     [Parameter]
     public EventCallback<string?> ScopeChanged { get; set; }
+
+    /// <summary>
+    /// Raised when the event of the action was changed, so that the action specific settings can adapt to it.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> EventChanged { get; set; }
 
     private string? selectedPhase;
     private WfTaskType? selectedTaskType;
@@ -141,11 +121,38 @@
             : null;
     }
 
+    /// <summary>
+    /// Lets the parent take over the action type, then adapts scope and event to it and notifies the parent of
+    /// each adapted value.
+    /// </summary>
     private async Task OnActionTypeChanged(string? actionType)
     {
         await ActionTypeChanged.InvokeAsync(actionType);
-        NormalizeScopeForActionType();
-        NormalizeEventForActionType();
+        bool scopeChanged = NormalizeScope();
+        bool eventChanged = NormalizeEvent();
+        if (scopeChanged)
+        {
+            await ScopeChanged.InvokeAsync(ActAction.Scope);
+        }
+        if (eventChanged)
+        {
+            await EventChanged.InvokeAsync(ActAction.Event);
+        }
+    }
+
+    /// <summary>
+    /// Takes over the selected event and notifies the parent. Event "While set" sets the scope to ticket
+    /// (e.g. from no scope), as the middleware performs only such actions while set.
+    /// </summary>
+    private async Task OnEventChanged(string? actionEvent)
+    {
+        ActAction.Event = actionEvent ?? "";
+        bool scopeChanged = IsWhileSet(ActAction.Event) && NormalizeScope();
+        await EventChanged.InvokeAsync(actionEvent);
+        if (scopeChanged)
+        {
+            await ScopeChanged.InvokeAsync(ActAction.Scope);
+        }
     }
 
     private Task OnPhaseChanged(string? phase)
@@ -168,7 +175,7 @@
 
     private List<WfObjectScopes> GetSelectableScopes()
     {
-        List<WfObjectScopes> allowedScopes = GetAllowedScopes(ActAction.ActionType);
+        List<WfObjectScopes> allowedScopes = GetAllowedScopes(ActAction.ActionType, ActAction.Event);
         if (Enum.TryParse(ActAction.Scope, out WfObjectScopes currentScope) && !allowedScopes.Contains(currentScope))
         {
             allowedScopes.Insert(0, currentScope);
@@ -176,7 +183,40 @@
         return allowedScopes;
     }
 
-    private static List<WfObjectScopes> GetAllowedScopes(string actionType)
+    private static bool IsWhileSet(string? actionEvent)
+    {
+        return actionEvent == nameof(StateActionEvents.WhileSet);
+    }
+
+    /// <summary>
+    /// The middleware performs "While set" actions only with scope ticket and only for action types that allow it.
+    /// </summary>
+    private static bool CanUseWhileSet(string actionType)
+    {
+        return WfStateAction.AllowsWhileSet(actionType) && GetActionTypeScopes(actionType).Contains(WfObjectScopes.Ticket);
+    }
+
+    /// <summary>
+    /// "While set" is offered with scope ticket and without a scope chosen yet; choosing it then sets scope ticket.
+    /// </summary>
+    private static bool ScopeAllowsWhileSet(string scope)
+    {
+        return scope == nameof(WfObjectScopes.Ticket) || scope == nameof(WfObjectScopes.None) || scope == "";
+    }
+
+    /// <summary>
+    /// Scopes allowed for the action type and event: with event "While set" only ticket, if the action type can use it.
+    /// </summary>
+    private static List<WfObjectScopes> GetAllowedScopes(string actionType, string? actionEvent)
+    {
+        if (IsWhileSet(actionEvent) && CanUseWhileSet(actionType))
+        {
+            return new() { WfObjectScopes.Ticket };
+        }
+        return GetActionTypeScopes(actionType);
+    }
+
+    private static List<WfObjectScopes> GetActionTypeScopes(string actionType)
     {
         return actionType switch
         {
@@ -192,7 +232,7 @@
 
     private List<StateActionEvents> GetSelectableEvents()
     {
-        List<StateActionEvents> allowedEvents = GetAllowedEvents(ActAction.ActionType);
+        List<StateActionEvents> allowedEvents = GetAllowedEvents(ActAction.ActionType, ActAction.Scope);
         if (Enum.TryParse(ActAction.Event, out StateActionEvents currentEvent) && !allowedEvents.Contains(currentEvent))
         {
             allowedEvents.Insert(0, currentEvent);
@@ -200,34 +240,55 @@
         return allowedEvents;
     }
 
-    private static List<StateActionEvents> GetAllowedEvents(string actionType)
+    /// <summary>
+    /// Events allowed for the action type and scope. "While set" is only offered for action types that can use it
+    /// (see <see cref="WfStateAction.AllowsWhileSet"/>) and with scope ticket or no scope chosen yet.
+    /// </summary>
+    private static List<StateActionEvents> GetAllowedEvents(string actionType, string scope)
     {
-        return actionType switch
+        List<StateActionEvents> allowedEvents = actionType switch
         {
             nameof(StateActionTypes.DisplayConnection) => new() { StateActionEvents.OfferButton },
             nameof(StateActionTypes.TrafficPathAnalysis) => new() { StateActionEvents.OfferButton },
             _ => Enum.GetValues<StateActionEvents>().ToList()
         };
+        if (!CanUseWhileSet(actionType) || !ScopeAllowsWhileSet(scope))
+        {
+            allowedEvents.Remove(StateActionEvents.WhileSet);
+        }
+        return allowedEvents;
     }
 
-    private void NormalizeScopeForActionType()
+    /// <summary>
+    /// Sets the first allowed scope when the current one is not allowed for the action type and event.
+    /// </summary>
+    /// <returns>True if the scope was changed.</returns>
+    private bool NormalizeScope()
     {
-        List<WfObjectScopes> allowedScopes = GetAllowedScopes(ActAction.ActionType);
-        if (!Enum.TryParse(ActAction.Scope, out WfObjectScopes currentScope) || !allowedScopes.Contains(currentScope))
+        List<WfObjectScopes> allowedScopes = GetAllowedScopes(ActAction.ActionType, ActAction.Event);
+        if (Enum.TryParse(ActAction.Scope, out WfObjectScopes currentScope) && allowedScopes.Contains(currentScope))
         {
-            ActAction.Scope = allowedScopes[0].ToString();
-            selectedTaskType = null;
-            ActAction.TaskType = "";
+            return false;
         }
+        ActAction.Scope = allowedScopes[0].ToString();
+        selectedTaskType = null;
+        ActAction.TaskType = "";
+        return true;
     }
 
-    private void NormalizeEventForActionType()
+    /// <summary>
+    /// Sets the first allowed event when the current one is not allowed for the action type and scope.
+    /// </summary>
+    /// <returns>True if the event was changed.</returns>
+    private bool NormalizeEvent()
     {
-        List<StateActionEvents> allowedEvents = GetAllowedEvents(ActAction.ActionType);
-        if (!Enum.TryParse(ActAction.Event, out StateActionEvents currentEvent) || !allowedEvents.Contains(currentEvent))
+        List<StateActionEvents> allowedEvents = GetAllowedEvents(ActAction.ActionType, ActAction.Scope);
+        if (Enum.TryParse(ActAction.Event, out StateActionEvents currentEvent) && allowedEvents.Contains(currentEvent))
         {
-            ActAction.Event = allowedEvents[0].ToString();
+            return false;
         }
+        ActAction.Event = allowedEvents[0].ToString();
+        return true;
     }
 
     private Task OnTaskTypeChanged(WfTaskType? taskType)

@@ -543,6 +543,9 @@ BEGIN
     DELETE FROM config WHERE config_key = 'extTicketSystems';
 END $$;
 
+-- interval in minutes in which the middleware performs the state actions with event "While set"
+insert into config (config_key, config_value, config_user) VALUES ('whileSetActionSleepTime', '10', 0) ON CONFLICT DO NOTHING;
+
 -- config keys a user may set personally (properties marked [UserConfigData] in ConfigData.cs);
 -- all other config keys are global only (config_user 0)
 CREATE TABLE IF NOT EXISTS config_user_key
@@ -574,3 +577,4 @@ DELETE FROM config WHERE config_user <> 0 AND config_key NOT IN (SELECT config_k
 CREATE OR REPLACE VIEW v_rule_ownership_mode AS
     SELECT c.config_value as mode FROM config c
     WHERE c.config_key = 'ruleOwnershipMode' AND c.config_user = 0;
+    

@@ -1,53 +1,41 @@
 @inject UserConfig userConfig
 
-<div class="col-sm-4">
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5535"))">
-        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("bundle_type")):</label>
-        <div class="col-sm-8">
-            <Dropdown ElementType="BundleTaskType"
-                      SelectedElement="selectedBundleTaskType"
-                      SelectedElementChanged="OnBundleTypeChanged"
-                      ElementToString="@(t => userConfig.GetText(t.ToString()))"
-                      Elements="Enum.GetValues(typeof(BundleTaskType)).Cast<BundleTaskType>()">
-                <ElementTemplate Context="bundleType">
-                    @(userConfig.GetText(bundleType.ToString()))
-                </ElementTemplate>
-            </Dropdown>
-        </div>
+<div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5535"))">
+    <label class="form-label small mb-1">@(userConfig.GetText("bundle_type")):</label>
+    <Dropdown ElementType="BundleTaskType"
+              SelectedElement="selectedBundleTaskType"
+              SelectedElementChanged="OnBundleTypeChanged"
+              ElementToString="@(t => userConfig.GetText(t.ToString()))"
+              Elements="Enum.GetValues(typeof(BundleTaskType)).Cast<BundleTaskType>()">
+        <ElementTemplate Context="bundleType">
+            @(userConfig.GetText(bundleType.ToString()))
+        </ElementTemplate>
+    </Dropdown>
+</div>
+<div class="col-sm-6 mb-2 d-flex align-items-end" data-toggle="tooltip" title="@(userConfig.PureLine("H5537"))">
+    <div class="form-check mb-1">
+        <input id="cleanBundleZones" class="form-check-input" type="checkbox" checked="@cleanBundleZones" @onchange="OnCleanZonesChanged" />
+        <label class="form-check-label small" for="cleanBundleZones">@(userConfig.GetText("clean_zones"))</label>
     </div>
 </div>
-<div class="col-sm-4">
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5537"))">
-        <label class="col-sm-10 col-form-label col-form-label-sm" for="cleanBundleZones">@(userConfig.GetText("clean_zones")):</label>
-        <div class="col-sm-2">
-            <input id="cleanBundleZones" class="form-check-input mt-2" type="checkbox" checked="@cleanBundleZones" @onchange="OnCleanZonesChanged" />
-        </div>
-    </div>
+<div class="col-sm-6 mb-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5537"))">
+    <label class="form-label small mb-1">@(userConfig.GetText("policies")):</label>
+    <Dropdown ElementType="CompliancePolicy"
+              SelectedElement="selectedBundlePolicy"
+              SelectedElementChanged="OnPolicyChanged"
+              ElementToString="@(p => p.Name)"
+              Elements="Policies"
+              Nullable="true"
+              NoneSelectedText="@(userConfig.GetText("None"))">
+        <ElementTemplate Context="policy">
+            @policy.Name
+        </ElementTemplate>
+    </Dropdown>
 </div>
-<div class="col-sm-4">
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5537"))">
-        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("policies")):</label>
-        <div class="col-sm-8">
-            <Dropdown ElementType="CompliancePolicy"
-                      SelectedElement="selectedBundlePolicy"
-                      SelectedElementChanged="OnPolicyChanged"
-                      ElementToString="@(p => p.Name)"
-                      Elements="Policies"
-                      Nullable="true"
-                      NoneSelectedText="@(userConfig.GetText("None"))">
-                <ElementTemplate Context="policy">
-                    @policy.Name
-                </ElementTemplate>
-            </Dropdown>
-        </div>
-    </div>
-</div>
-<div class="col-sm-4 mt-2">
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5537"))">
-        <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmBundleMessage">@(userConfig.GetText("confirm_action_message")):</label>
-        <div class="col-sm-2">
-            <input id="confirmBundleMessage" class="form-check-input mt-2" type="checkbox" checked="@confirmUiMessage" @onchange="OnConfirmMessageChanged" />
-        </div>
+<div class="col-sm-6 mb-2 d-flex align-items-end" data-toggle="tooltip" title="@(userConfig.PureLine("H5537"))">
+    <div class="form-check mb-1">
+        <input id="confirmBundleMessage" class="form-check-input" type="checkbox" checked="@confirmUiMessage" @onchange="OnConfirmMessageChanged" />
+        <label class="form-check-label small" for="confirmBundleMessage">@(userConfig.GetText("confirm_action_message"))</label>
     </div>
 </div>
 

@@ -393,6 +393,12 @@ namespace FWO.Test
             }
             else if (responseType == typeof(ReturnId))
             {
+                if (query == RequestQueries.updateTicketStateIfUnchanged)
+                {
+                    GraphQLResponse<dynamic> ticketStateResponse = new() { Data = new ReturnId { AffectedRows = 1 } };
+                    return ticketStateResponse.Data;
+                }
+
                 if (query == RequestQueries.updateRequestTaskAdditionalInfo && variables != null)
                 {
                     long reqTaskId = Convert.ToInt64(

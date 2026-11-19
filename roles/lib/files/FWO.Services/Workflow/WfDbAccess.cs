@@ -452,45 +452,176 @@ namespace FWO.Services.Workflow
 
         // State changes
 
-        public async Task UpdateTicketStateInDb(WfTicket ticket, bool triggerActions = true, WfTicket? previousTicket = null,
+        private const string kWorkflowStateLogTitle = "Workflow State";
+
+        /// <summary>
+        /// Text key of the message shown when a ticket state change is refused, because the ticket was changed in the meantime.
+        /// </summary>
+        public const string kTicketChangedConcurrentlyTextKey = "E8019";
+
+        /// <summary>
+        /// Persists the state of a ticket together with its completion date, deadline and priority, and runs its state
+        /// change actions.
+        /// </summary>
+        /// <remarks>
+        /// Users in the UI, the workflow action endpoint and the "While set" job change ticket states without waiting for
+        /// each other, so the write is guarded: it only succeeds while the ticket is still stored in the state the caller
+        /// read, see <see cref="GetTrackedReadStateId"/>. Otherwise nothing is written and no action runs. A ticket that
+        /// has already reached the requested state counts as done, because whoever moved it there has run the actions.
+        /// A ticket in any other state is set to its stored state in memory, and the change is reported as refused.
+        /// </remarks>
+        /// <param name="ticket">Ticket carrying the new state and its change tracking.</param>
+        /// <param name="triggerActions">True to run the state change actions after the state was written.</param>
+        /// <param name="previousTicket">Stored ticket already read by the caller, for the change history.</param>
+        /// <param name="placeholderData">Placeholder data for notifications sent by the actions.</param>
+        /// <returns>True when the ticket is stored in the requested state, written by this call or found there already.</returns>
+        public async Task<bool> UpdateTicketStateInDb(WfTicket ticket, bool triggerActions = true, WfTicket? previousTicket = null,
             NotificationPlaceholderData? placeholderData = null)
         {
+            int? trackedReadStateId = GetTrackedReadStateId(ticket);
             WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(ticket.Id);
+            int readStateId = trackedReadStateId ?? storedTicket?.StateId ?? ticket.StateId;
+            bool stateWritten = false;
             try
             {
                 var Variables = new
                 {
                     id = ticket.Id,
+                    expectedState = readStateId,
                     state = ticket.StateId,
                     closed = ticket.CompletionDate,
                     deadline = ticket.Deadline,
                     priority = ticket.Priority
                 };
-                Log.WriteDebug("Workflow State",
-                    $"Persisting ticket {ticket.Id} with state {ticket.StateId}; stored state is {storedTicket?.StateId.ToString() ?? "unknown"}.");
-                long udId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicketState, Variables)).UpdatedIdLong;
-                Log.WriteDebug("Workflow State", $"Ticket {ticket.Id} state mutation returned id {udId}.");
-                if (udId != ticket.Id)
+                Log.WriteDebug(kWorkflowStateLogTitle, $"Persisting ticket {ticket.Id} with state {ticket.StateId}, expecting it in state {readStateId}; " +
+                    $"stored state is {storedTicket?.StateId.ToString() ?? "unknown"}.");
+                int affectedRows = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateTicketStateIfUnchanged, Variables)).AffectedRows;
+                Log.WriteDebug(kWorkflowStateLogTitle, $"Ticket {ticket.Id} state mutation changed {affectedRows} row(s).");
+                if (affectedRows == 0)
                 {
-                    DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8002"), true);
+                    return await HandleRefusedTicketStateWrite(ticket, readStateId);
                 }
-                else
+
+                stateWritten = true;
+                if (storedTicket != null)
                 {
-                    if (storedTicket != null)
-                    {
-                        await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
-                            "Updated workflow ticket state", TicketStateSnapshot(storedTicket), TicketStateSnapshot(ticket), storedTicket.Requester, false);
-                    }
-                    if (triggerActions)
-                    {
-                        await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket), placeholderData);
-                    }
+                    await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
+                        "Updated workflow ticket state", TicketStateSnapshot(storedTicket), TicketStateSnapshot(ticket), storedTicket.Requester, false);
+                }
+                if (triggerActions)
+                {
+                    await DoTicketStateChangeActions(ticket, placeholderData);
                 }
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
             }
+            return stateWritten;
+        }
+
+        /// <summary>
+        /// Checks that the ticket is still stored in the state the caller read. Used before objects that follow the
+        /// ticket state are changed ahead of the guarded ticket write itself (see <see cref="UpdateTicketStateInDb"/>).
+        /// </summary>
+        /// <remarks>
+        /// The check narrows the time in which request tasks can be moved for a ticket another writer has moved, but
+        /// does not close it; the guarded ticket write does. A changed ticket is handled like a refused write: it is set
+        /// to its stored state in memory and the change is reported as refused.
+        /// </remarks>
+        /// <param name="ticket">Ticket with the change tracking of the caller.</param>
+        /// <param name="requestedStateId">State the caller is about to move the ticket to, for the log.</param>
+        /// <returns>False when the ticket was changed in the meantime, and the stored ticket, or null if it could not be read.</returns>
+        public async Task<(bool Unchanged, WfTicket? StoredTicket)> CheckTicketStateUnchanged(WfTicket ticket, int requestedStateId)
+        {
+            int? trackedReadStateId = GetTrackedReadStateId(ticket);
+            WfTicket? storedTicket = await LoadPreviousTicket(ticket.Id);
+            if (storedTicket == null || trackedReadStateId == null || storedTicket.StateId == trackedReadStateId)
+            {
+                return (true, storedTicket);
+            }
+            ReportConcurrentTicketChange(ticket, trackedReadStateId.Value, requestedStateId, storedTicket);
+            return (false, storedTicket);
+        }
+
+        /// <summary>
+        /// Returns the state the caller read the ticket in, which a guarded write expects to be still stored: the state
+        /// the ticket was changed from, or its current state when it was not changed.
+        /// </summary>
+        /// <returns>The state, or null for a created ticket whose creation actions have not run yet: its tracking holds
+        /// state 0 as origin, which was never stored.</returns>
+        private static int? GetTrackedReadStateId(WfTicket ticket)
+        {
+            if (ticket.StateChangedByCreation())
+            {
+                return null;
+            }
+            return ticket.StateChanged() ? ticket.ChangedFrom() : ticket.StateId;
+        }
+
+        /// <summary>
+        /// Runs the state change actions of a ticket whose state was written. The change tracking is reset even when the
+        /// actions fail, because the written state is the stored one now, and the next guarded write expects it.
+        /// </summary>
+        private async Task DoTicketStateChangeActions(WfTicket ticket, NotificationPlaceholderData? placeholderData)
+        {
+            try
+            {
+                await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket), placeholderData);
+            }
+            finally
+            {
+                ticket.ResetStateChanged();
+            }
+        }
+
+        /// <summary>
+        /// Handles a guarded ticket state write that changed nothing, because the ticket was not stored in the read state.
+        /// </summary>
+        /// <returns>True when the ticket is already stored in the requested state.</returns>
+        private async Task<bool> HandleRefusedTicketStateWrite(WfTicket ticket, int readStateId)
+        {
+            int requestedStateId = ticket.StateId;
+            WfTicket? storedTicket = await LoadPreviousTicket(ticket.Id);
+            if (storedTicket == null)
+            {
+                Log.WriteWarning(kWorkflowStateLogTitle, $"Ticket {ticket.Id} was not moved from state {readStateId} to {requestedStateId}, " +
+                    "and it could not be read again.");
+                SetTicketState(ticket, readStateId, ticket.CompletionDate);
+                DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText("E8002"), true);
+                return false;
+            }
+            if (storedTicket.StateId == requestedStateId)
+            {
+                Log.WriteInfo(kWorkflowStateLogTitle, $"Ticket {ticket.Id} has already been moved from state {readStateId} to {requestedStateId} " +
+                    "by another workflow operation, so its state change actions are not executed again.");
+                SetTicketState(ticket, storedTicket.StateId, storedTicket.CompletionDate);
+                return true;
+            }
+            ReportConcurrentTicketChange(ticket, readStateId, requestedStateId, storedTicket);
+            return false;
+        }
+
+        /// <summary>
+        /// Reports a ticket state change that is not made, because the ticket was moved to another state in the
+        /// meantime, and sets the ticket to its stored state in memory.
+        /// </summary>
+        private void ReportConcurrentTicketChange(WfTicket ticket, int readStateId, int requestedStateId, WfTicket storedTicket)
+        {
+            Log.WriteWarning(kWorkflowStateLogTitle, $"Ticket {ticket.Id} was not moved from state {readStateId} to {requestedStateId}, " +
+                $"because it was changed to state {storedTicket.StateId} in the meantime. Its state change actions are not executed.");
+            SetTicketState(ticket, storedTicket.StateId, storedTicket.CompletionDate);
+            DisplayMessageInUi(null, UserConfig.GetText("save_request"), UserConfig.GetText(kTicketChangedConcurrentlyTextKey), true);
+        }
+
+        /// <summary>
+        /// Sets the state and completion date of a ticket in memory as stored, without a pending state change.
+        /// </summary>
+        private static void SetTicketState(WfTicket ticket, int stateId, DateTime? completionDate)
+        {
+            ticket.StateId = stateId;
+            ticket.CompletionDate = completionDate;
+            ticket.ResetStateChanged();
         }
 
         public async Task UpdateReqTaskStateInDb(WfReqTask reqtask, bool triggerActions = true, WfTicket? previousTicket = null,

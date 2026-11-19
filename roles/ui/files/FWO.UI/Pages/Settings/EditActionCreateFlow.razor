@@ -3,48 +3,38 @@
 
 @inject UserConfig userConfig
 
-<div class="col-sm-4">
-    <div class="form-group row">
-        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("successState")):</label>
-        <div class="col-sm-8">
-            <Dropdown ElementType="WfState"
-                      ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
-                      SelectedElement="selectedSuccessState"
-                      SelectedElementChanged="OnSuccessStateChanged"
-                      Elements="States"
-                      Nullable="true"
-                      NoneSelectedText="@(userConfig.GetText("None"))">
-                <ElementTemplate Context="state">
-                    @DisplayService.DisplayStateWithId(userConfig, state)
-                </ElementTemplate>
-            </Dropdown>
-        </div>
-    </div>
+<div class="col-sm-6 mb-2">
+    <label class="form-label small mb-1">@(userConfig.GetText("successState")):</label>
+    <Dropdown ElementType="WfState"
+              ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
+              SelectedElement="selectedSuccessState"
+              SelectedElementChanged="OnSuccessStateChanged"
+              Elements="States"
+              Nullable="true"
+              NoneSelectedText="@(userConfig.GetText("None"))">
+        <ElementTemplate Context="state">
+            @DisplayService.DisplayStateWithId(userConfig, state)
+        </ElementTemplate>
+    </Dropdown>
 </div>
-<div class="col-sm-4">
-    <div class="form-group row">
-        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("errorState")):</label>
-        <div class="col-sm-8">
-            <Dropdown ElementType="WfState"
-                      ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
-                      SelectedElement="selectedErrorState"
-                      SelectedElementChanged="OnErrorStateChanged"
-                      Elements="States"
-                      Nullable="true"
-                      NoneSelectedText="@(userConfig.GetText("None"))">
-                <ElementTemplate Context="state">
-                    @DisplayService.DisplayStateWithId(userConfig, state)
-                </ElementTemplate>
-            </Dropdown>
-        </div>
-    </div>
+<div class="col-sm-6 mb-2">
+    <label class="form-label small mb-1">@(userConfig.GetText("errorState")):</label>
+    <Dropdown ElementType="WfState"
+              ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
+              SelectedElement="selectedErrorState"
+              SelectedElementChanged="OnErrorStateChanged"
+              Elements="States"
+              Nullable="true"
+              NoneSelectedText="@(userConfig.GetText("None"))">
+        <ElementTemplate Context="state">
+            @DisplayService.DisplayStateWithId(userConfig, state)
+        </ElementTemplate>
+    </Dropdown>
 </div>
-<div class="col-sm-4">
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5536"))">
-        <label class="col-sm-10 col-form-label col-form-label-sm" for="confirmCreateFlow">@(userConfig.GetText("confirm_flow_creation")):</label>
-        <div class="col-sm-2">
-            <input id="confirmCreateFlow" class="form-check-input mt-2" type="checkbox" checked="@confirmUiMessage" @onchange="OnConfirmChanged" />
-        </div>
+<div class="col-sm-6 mb-2 d-flex align-items-end" data-toggle="tooltip" title="@(userConfig.PureLine("H5536"))">
+    <div class="form-check mb-1">
+        <input id="confirmCreateFlow" class="form-check-input" type="checkbox" checked="@confirmUiMessage" @onchange="OnConfirmChanged" />
+        <label class="form-check-label small" for="confirmCreateFlow">@(userConfig.GetText("confirm_flow_creation"))</label>
     </div>
 </div>
 

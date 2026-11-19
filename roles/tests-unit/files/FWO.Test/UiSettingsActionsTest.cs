@@ -439,7 +439,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AutoPromote_OnParametersSet_WithMissingConditionalReferences_FallsBackToAutomatic()
+        public async Task AutoPromote_OnParametersSet_WithMissingConditionalReferences_FallsBackToRemain()
         {
             EditActionAutoPromote component = new();
             List<CompliancePolicy> policies = [new() { Id = 4 }];
@@ -460,12 +460,12 @@ namespace FWO.Test
             await InvokeAsync(component, "OnParametersSet");
 
             Assert.That(GetMember<IEnumerable<CompliancePolicy>>(component, "selectedPolicies"), Is.Empty);
-            Assert.That(GetMember<WfState>(component, "selectedStateOk").Id, Is.EqualTo(-1));
-            Assert.That(GetMember<WfState>(component, "selectedStateNotOk").Id, Is.EqualTo(-1));
+            Assert.That(GetMember<WfState>(component, "selectedStateOk").Id, Is.EqualTo(WfStateAction.RemainStateId));
+            Assert.That(GetMember<WfState>(component, "selectedStateNotOk").Id, Is.EqualTo(WfStateAction.RemainStateId));
         }
 
         [Test]
-        public async Task AutoPromote_OnParametersSet_WithEmptyParams_ResetsToAutomaticDefaults()
+        public async Task AutoPromote_OnParametersSet_WithEmptyParams_ResetsToDefaults()
         {
             EditActionAutoPromote component = new();
             SetMember(component, "selectedToState", new WfState { Id = 19, Name = "Previous" });
@@ -477,9 +477,9 @@ namespace FWO.Test
 
             await InvokeAsync(component, "OnParametersSet");
 
-            Assert.That(GetMember<WfState>(component, "selectedToState").Id, Is.EqualTo(-1));
-            Assert.That(GetMember<WfState>(component, "selectedStateOk").Id, Is.EqualTo(-1));
-            Assert.That(GetMember<WfState>(component, "selectedStateNotOk").Id, Is.EqualTo(-1));
+            Assert.That(GetMember<WfState>(component, "selectedToState").Id, Is.EqualTo(WfStateAction.AutomaticStateId));
+            Assert.That(GetMember<WfState>(component, "selectedStateOk").Id, Is.EqualTo(WfStateAction.RemainStateId));
+            Assert.That(GetMember<WfState>(component, "selectedStateNotOk").Id, Is.EqualTo(WfStateAction.RemainStateId));
             Assert.That(GetMember<IEnumerable<CompliancePolicy>>(component, "selectedPolicies"), Is.Empty);
             Assert.That(GetMember<ToBeCalled>(component, "selectedToBeCalled"), Is.EqualTo(ToBeCalled.PolicyCheck));
         }

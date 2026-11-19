@@ -167,7 +167,11 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new List<UiUser>());
                 }
-                if (query == RequestQueries.updateTicketState || query == RequestQueries.updateRequestTaskState)
+                if (query == RequestQueries.updateTicketStateIfUnchanged)
+                {
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
+                }
+                if (query == RequestQueries.updateRequestTaskState)
                 {
                     long id = GetVariable<long>(variables, "id");
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = id });
@@ -2799,35 +2803,35 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task GetAutoPromoteTargetState_ReturnsConfiguredFixedState()
+        public async Task GetAutoPromoteDecision_ReturnsConfiguredFixedState()
         {
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
 
             object[] arguments = ["5", new WfTicket(), WfObjectScopes.Ticket];
-            Task<int?> task = (Task<int?>)GetPrivateMethod("GetAutoPromoteTargetState").Invoke(handler, arguments)!;
-            int? targetState = await task;
+            Task<AutoPromoteDecision> task = (Task<AutoPromoteDecision>)GetPrivateMethod("GetAutoPromoteDecision").Invoke(handler, arguments)!;
+            AutoPromoteDecision decision = await task;
 
-            Assert.That(targetState, Is.EqualTo(5));
+            Assert.That(decision.ToStateId, Is.EqualTo(5));
         }
 
         [Test]
-        public async Task GetAutoPromoteTargetState_MapsAutomaticSentinelToFallback()
+        public async Task GetAutoPromoteDecision_MapsAutomaticSentinelToFallback()
         {
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
 
             object[] arguments = [WfStateAction.AutomaticStateId.ToString(), new WfTicket(), WfObjectScopes.Ticket];
-            Task<int?> task = (Task<int?>)GetPrivateMethod("GetAutoPromoteTargetState").Invoke(handler, arguments)!;
-            int? targetState = await task;
+            Task<AutoPromoteDecision> task = (Task<AutoPromoteDecision>)GetPrivateMethod("GetAutoPromoteDecision").Invoke(handler, arguments)!;
+            AutoPromoteDecision decision = await task;
 
-            Assert.That(targetState, Is.Null);
+            Assert.That(decision.ToStateId, Is.Null);
         }
 
         [Test]
-        public void GetAutoPromoteTargetState_ThrowsForInvalidExternalParams()
+        public void GetAutoPromoteDecision_ThrowsForInvalidExternalParams()
         {
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
 
-            Task<int?> task = (Task<int?>)GetPrivateMethod("GetAutoPromoteTargetState").Invoke(handler, ["{invalid", new WfTicket(), WfObjectScopes.Ticket])!;
+            Task<AutoPromoteDecision> task = (Task<AutoPromoteDecision>)GetPrivateMethod("GetAutoPromoteDecision").Invoke(handler, ["{invalid", new WfTicket(), WfObjectScopes.Ticket])!;
 
             Assert.ThrowsAsync<JsonException>(async () => await task);
         }
@@ -2841,10 +2845,10 @@ namespace FWO.Test
                 ToBeCalled = (ToBeCalled)999
             };
 
-            Task<bool> task = (Task<bool>)GetPrivateMethod("EvaluateConditionalAutoPromote").Invoke(handler, [conditionalParams, new WfTicket(), WfObjectScopes.Ticket])!;
-            bool result = await task;
+            Task<ConditionalCheckResult> task = (Task<ConditionalCheckResult>)GetPrivateMethod("EvaluateConditionalAutoPromote").Invoke(handler, [conditionalParams, new WfTicket(), WfObjectScopes.Ticket])!;
+            ConditionalCheckResult result = await task;
 
-            Assert.That(result, Is.False);
+            Assert.That(result.Passed, Is.False);
         }
 
         [Test]

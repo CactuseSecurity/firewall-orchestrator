@@ -133,6 +133,7 @@ insert into config (config_key, config_value, config_user) VALUES ('impChangeNot
 insert into config (config_key, config_value, config_user) VALUES ('externalRequestSleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('externalRequestStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('externalRequestWaitCycles', '0', 0);
+insert into config (config_key, config_value, config_user) VALUES ('whileSetActionSleepTime', '10', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modExtraConfigs', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modSpecUserAreas', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modUpdatableObjAreas', '[]', 0);

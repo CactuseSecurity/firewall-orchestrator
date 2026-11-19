@@ -18,8 +18,8 @@ namespace FWO.Test
     internal class WfHandlerStateChangesTest
     {
         private static readonly int[] kPromotedTaskStates = [2, 2];
-        // triggerActions, targetTicketStateId, approvalComment of UpdateRequestTasksFromTicket
-        private static readonly object?[] kUpdateRequestTasksArguments = [true, null, null];
+        // triggerActions, targetTicketStateId, approvalComment, storedTicket of UpdateRequestTasksFromTicket
+        private static readonly object?[] kUpdateRequestTasksArguments = [true, null, null, null];
 
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix matrix)
         {
@@ -1210,7 +1210,7 @@ namespace FWO.Test
             handler.ActTicket.Tasks.Add(reqTask);
 
             MethodInfo? method = typeof(WfHandler).GetMethod("UpdateRequestTasksFromTicket", BindingFlags.NonPublic | BindingFlags.Instance);
-            object[] arguments = [true, null!, null!];
+            object[] arguments = [true, null!, null!, null!];
             await (Task)(method?.Invoke(handler, arguments) ?? throw new InvalidOperationException("Method not found."));
 
             Assert.That(reqTask.StateId, Is.EqualTo(6));
@@ -1906,15 +1906,18 @@ namespace FWO.Test
         private sealed class MonitoringStateChangeApiConn : SimulatedApiConnection
         {
             public int UpdateReqTaskStateCallCount { get; private set; }
+            public List<object?> TicketStateWriteVariables { get; } = [];
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
-                if (query == RequestQueries.updateTicketState || query == RequestQueries.updateRequestTaskState)
+                if (query == RequestQueries.updateTicketStateIfUnchanged)
                 {
-                    if (query == RequestQueries.updateRequestTaskState)
-                    {
-                        UpdateReqTaskStateCallCount++;
-                    }
+                    TicketStateWriteVariables.Add(variables);
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
+                }
+                if (query == RequestQueries.updateRequestTaskState)
+                {
+                    UpdateReqTaskStateCallCount++;
                     long id = Convert.ToInt64(variables?.GetType().GetProperty("id")?.GetValue(variables));
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = id });
                 }
@@ -1931,10 +1934,9 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)persistedTicket);
                 }
-                if (query == RequestQueries.updateTicketState && typeof(T) == typeof(ReturnId))
+                if (query == RequestQueries.updateTicketStateIfUnchanged && typeof(T) == typeof(ReturnId))
                 {
-                    long id = Convert.ToInt64(variables?.GetType().GetProperty("id")?.GetValue(variables));
-                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = id });
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
                 }
 
                 throw new AssertionException($"Unexpected query: {query}");

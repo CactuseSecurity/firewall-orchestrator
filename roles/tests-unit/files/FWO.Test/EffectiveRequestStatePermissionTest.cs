@@ -85,6 +85,7 @@ namespace FWO.Test
             Dictionary<string, object?> ticket = InvokeFixtureVariables("TicketSeedVariables", "smoke-ticket");
             Dictionary<string, object?> task = InvokeFixtureVariables("RequestTaskSeedVariables",
                 "smoke-task", 41L);
+            Dictionary<string, object?> element = InvokeFixtureVariables("RequestElementSeedVariables", 42L);
 
             Assert.Multiple(() =>
             {
@@ -93,6 +94,9 @@ namespace FWO.Test
                 Assert.That(task["state"], Is.EqualTo(0));
                 Assert.That(task["requestAction"], Is.EqualTo("create"));
                 Assert.That(task["locked"], Is.False);
+                Assert.That(element["taskId"], Is.EqualTo(42L));
+                Assert.That(element["field"], Is.EqualTo("source"));
+                Assert.That(element["requestAction"], Is.EqualTo("create"));
             });
         }
 

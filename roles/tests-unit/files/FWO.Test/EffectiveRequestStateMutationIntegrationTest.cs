@@ -110,11 +110,7 @@ internal class EffectiveRequestStateMutationIntegrationTest
         rowIds.TaskId = (await admin.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newRequestTask,
             RequestTaskSeedVariables(uniqueName, rowIds.TicketId))).ReturnIds!.Single().NewIdLong;
         rowIds.ElementId = (await admin.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newRequestElement,
-            new
-            {
-                taskId = rowIds.TaskId,
-                field = ElemFieldType.source.ToString()
-            })).ReturnIds!.Single().NewIdLong;
+            RequestElementSeedVariables(rowIds.TaskId))).ReturnIds!.Single().NewIdLong;
     }
 
     private static Dictionary<string, object?> TicketSeedVariables(string title)
@@ -137,6 +133,16 @@ internal class EffectiveRequestStateMutationIntegrationTest
             ["taskType"] = WfTaskType.group_create.ToString(),
             ["requestAction"] = RequestAction.create.ToString(),
             ["locked"] = false
+        };
+    }
+
+    private static Dictionary<string, object?> RequestElementSeedVariables(long taskId)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["taskId"] = taskId,
+            ["field"] = ElemFieldType.source.ToString(),
+            ["requestAction"] = RequestAction.create.ToString()
         };
     }
 

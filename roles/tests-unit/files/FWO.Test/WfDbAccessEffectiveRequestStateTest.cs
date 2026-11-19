@@ -58,7 +58,7 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
     public void MaterializeEffectiveRequestState_UpdateMismatchThrowsBeforeReadback()
     {
         WfTicket ticket = CreateTicket();
-        MaterializationApiConnection apiConnection = new(ticket) { MismatchOnUpdateCall = 1 };
+        MaterializationApiConnection apiConnection = new(ticket) { FailBeforeCommitOnUpdateCall = 1 };
         WfDbAccess dbAccess = CreateDbAccess(apiConnection);
 
         EffectiveRequestStateMaterializationException exception = Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(
@@ -133,7 +133,7 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
     public async Task MaterializeEffectiveRequestState_RetryAfterPartialWriteUpdatesOnlyRemainingElements()
     {
         WfTicket ticket = CreateTicket();
-        MaterializationApiConnection apiConnection = new(ticket) { MismatchOnUpdateCall = 2 };
+        MaterializationApiConnection apiConnection = new(ticket) { FailBeforeCommitOnUpdateCall = 2 };
         WfDbAccess dbAccess = CreateDbAccess(apiConnection);
 
         EffectiveRequestStateMaterializationException firstFailure = Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(
@@ -274,6 +274,26 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         return property!.GetValue(variables);
     }
 
+    private static string? HistoryChangeText(MaterializationApiConnection apiConnection, int index = 0)
+    {
+        return HistoryValue(apiConnection.HistoryVariables[index], "changeText")?.ToString();
+    }
+
+    private static long HistoryObjectId(MaterializationApiConnection apiConnection, int index = 0)
+    {
+        return Convert.ToInt64(HistoryValue(apiConnection.HistoryVariables[index], "objectId"));
+    }
+
+    private static object? HistoryOldSnapshot(MaterializationApiConnection apiConnection, int index = 0)
+    {
+        return HistoryValue(apiConnection.HistoryVariables[index], "oldData");
+    }
+
+    private static object? HistoryNewSnapshot(MaterializationApiConnection apiConnection, int index = 0)
+    {
+        return HistoryValue(apiConnection.HistoryVariables[index], "newData");
+    }
+
     private static string? ResultIp(WfTicket ticket, int elementIndex)
     {
         return ticket.Tasks.Single(task => task.Id == 20).Elements[elementIndex]
@@ -292,10 +312,19 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         internal List<long> RetryUpdatedElementIds { get; } = [];
         internal List<Dictionary<string, object?>> UpdatePayloads { get; } = [];
         internal List<object> HistoryVariables { get; } = [];
-        internal int? MismatchOnUpdateCall { get; set; }
+        internal List<object> AlertVariables { get; } = [];
+        internal int? FailBeforeCommitOnUpdateCall { get; set; }
+        internal int? MismatchAfterCommitOnUpdateCall { get; set; }
+        internal int? ThrowAfterCommitOnUpdateCall { get; set; }
+        internal bool FailStrictReadback { get; set; }
+        internal bool FailHistoryInsertion { get; set; }
+        internal bool FailAlertInsertion { get; set; }
         internal bool ReturnStaleReadback { get; set; }
         internal bool RemoveChangedElementOnReadback { get; set; }
         internal bool ChangeTaskTypeOnReadback { get; set; }
+        internal Exception UpdateFailure { get; } = new InvalidOperationException("Simulated materialization update failure.");
+        internal Exception ReadbackFailure { get; } = new InvalidOperationException("Simulated strict readback failure.");
+        internal Exception HistoryFailure { get; } = new InvalidOperationException("Simulated history insertion failure.");
 
         internal MaterializationApiConnection(WfTicket ticket)
         {
@@ -312,9 +341,12 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         {
             retrying = true;
             updateCallCount = 0;
-            MismatchOnUpdateCall = null;
+            FailBeforeCommitOnUpdateCall = null;
+            MismatchAfterCommitOnUpdateCall = null;
+            ThrowAfterCommitOnUpdateCall = null;
             QueryLog.Clear();
             HistoryVariables.Clear();
+            AlertVariables.Clear();
         }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query,
@@ -327,6 +359,10 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
             }
             if (query == RequestQueries.getTicketById)
             {
+                if (FailStrictReadback)
+                {
+                    throw ReadbackFailure;
+                }
                 if (RemoveChangedElementOnReadback)
                 {
                     storedTicket.Tasks.Single(task => task.Id == 20).Elements
@@ -339,10 +375,30 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
                 WfTicket ticket = ReturnStaleReadback ? CopyTicket(originalTicket) : CopyTicket(storedTicket);
                 return Task.FromResult(Cast<QueryResponseType>(ticket));
             }
-            if (query == ModellingQueries.addHistoryEntry)
+            if (query == ModellingQueries.addHistoryEntry || query == ModellingQueries.addHistoryEntryAsService)
             {
                 HistoryVariables.Add(variables!);
+                if (FailHistoryInsertion)
+                {
+                    throw HistoryFailure;
+                }
                 return Task.FromResult(Cast<QueryResponseType>(new ReturnIdWrapper()));
+            }
+            if (query == MonitorQueries.getOpenAlerts)
+            {
+                return Task.FromResult(Cast<QueryResponseType>(new List<Alert>()));
+            }
+            if (query == MonitorQueries.addAlert)
+            {
+                AlertVariables.Add(variables!);
+                if (FailAlertInsertion)
+                {
+                    throw new InvalidOperationException("Simulated alert insertion failure.");
+                }
+                return Task.FromResult(Cast<QueryResponseType>(new ReturnIdWrapper
+                {
+                    ReturnIds = [new ReturnId { NewIdLong = 1 }]
+                }));
             }
             throw new InvalidOperationException($"Unexpected query: {query}");
         }
@@ -358,9 +414,9 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
             {
                 RetryUpdatedElementIds.Add(elementId);
             }
-            if (MismatchOnUpdateCall == updateCallCount)
+            if (FailBeforeCommitOnUpdateCall == updateCallCount)
             {
-                return new ReturnId { UpdatedIdLong = elementId + 1 };
+                throw UpdateFailure;
             }
 
             WfReqElement element = storedTicket.Tasks.SelectMany(task => task.Elements)
@@ -373,6 +429,14 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
             element.PortEnd = payload["portEnd"] as int?;
             element.ProtoId = payload["proto"] as int?;
             storedTicket.UpdateCidrsInTaskElements();
+            if (ThrowAfterCommitOnUpdateCall == updateCallCount)
+            {
+                throw UpdateFailure;
+            }
+            if (MismatchAfterCommitOnUpdateCall == updateCallCount)
+            {
+                return new ReturnId { UpdatedIdLong = elementId + 1 };
+            }
             return new ReturnId { UpdatedIdLong = elementId };
         }
 

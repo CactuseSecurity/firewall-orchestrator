@@ -57,6 +57,7 @@ namespace FWO.Test
         private const string kReportedClient = "192.0.2.30";
         private const string kOtherReportedClient = "192.0.2.31";
         private const string kClientAddressPath = "options.clientAddress";
+        private static readonly string[] kClientAddressErrorKeys = [kClientAddressPath];
 
         [Test]
         public async Task GetAsync_ReturnsAnonymousJwt_WhenCredentialsAreMissing()
@@ -1624,7 +1625,7 @@ namespace FWO.Test
         {
             using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 10, userFailures: 10);
             AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle,
-                new List<Ldap>(CreateTooManyLdaps()), new RecordingApiConnection());
+                [.. CreateTooManyLdaps()], new RecordingApiConnection());
 
             string log = await ConsoleOutput.CaptureAsync(async () =>
                 AssertCapacityResult(await InvokeLogin(controller, CreateLogin("alice", kReportedClient), deprecatedEndpoint),
@@ -1645,7 +1646,7 @@ namespace FWO.Test
                     : QueryResponse(query, resultType)
             };
             AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle,
-                new List<Ldap> { CreateAuthLdap(CreateLoginLdapClient()) }, apiConnection);
+                [CreateAuthLdap(CreateLoginLdapClient())], apiConnection);
             AuthenticationTokenGetParameters login = new()
             {
                 Username = "login-user",
@@ -1726,7 +1727,7 @@ namespace FWO.Test
         /// </summary>
         private static AuthenticationTokenController CreateControllerForCaller(IPAddress caller, LoginThrottle loginThrottle, TestableLdap? ldap = null)
         {
-            List<Ldap> ldaps = new() { ldap ?? CreateAuthLdap(new RecordingLdapClient()) };
+            List<Ldap> ldaps = [ldap ?? CreateAuthLdap(new RecordingLdapClient())];
             return CreateControllerForCaller(caller, loginThrottle, ldaps, new RecordingApiConnection());
         }
 
@@ -1781,7 +1782,7 @@ namespace FWO.Test
             Assert.That(problem, Is.Not.Null);
             Assert.Multiple(() =>
             {
-                Assert.That(problem!.Errors.Keys, Is.EquivalentTo(new List<string> { kClientAddressPath }));
+                Assert.That(problem!.Errors.Keys, Is.EquivalentTo(kClientAddressErrorKeys));
                 Assert.That(problem.Errors[kClientAddressPath], Does.Contain(AuthenticationTokenGetOptions.kClientAddressDescription));
             });
         }

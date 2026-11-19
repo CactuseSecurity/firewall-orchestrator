@@ -166,30 +166,82 @@ namespace FWO.Services.Workflow
             foreach (WfReqTask sourceObjectTask in sourceTicket.Tasks.Where(task =>
                 WfObjectTaskHelper.IsManagementObjectTask(task.TaskType)))
             {
-                long? entityId = sourceObjectTask.WorkflowEntityId
-                    ?? sourceObjectTask.Elements.Select(element => element.ObjectTaskEntityId).FirstOrDefault(id => id is < 0);
+                long? entityId = sourceObjectTask.WorkflowEntityId;
+                if (entityId is not < 0 && WfObjectTaskHelper.IsObjectTask(sourceObjectTask.TaskType))
+                {
+                    entityId = sourceObjectTask.Elements.Select(element => element.ObjectTaskEntityId)
+                        .FirstOrDefault(id => id is < 0);
+                }
                 WfReqTask? persistedObjectTask = FindTaskByTaskNumber(ticket, sourceObjectTask.TaskNumber);
                 if (entityId is < 0 && persistedObjectTask?.Id > 0)
                 {
-                    persistedObjectTaskIds[entityId.Value] = persistedObjectTask.Id;
+                    if (!persistedObjectTaskIds.TryAdd(entityId.Value, persistedObjectTask.Id))
+                    {
+                        throw new EffectiveRequestStateMaterializationException(
+                            EffectiveRequestStateFailureCategory.DuplicateTask);
+                    }
                 }
             }
 
-            foreach (WfReqTask sourceAccessTask in sourceTicket.Tasks.Where(task =>
-                task.TaskType == WfTaskType.access.ToString()))
+            List<(WfReqElement Element, long ObjectTaskId)> links = [];
+            foreach (WfReqTask sourceReferencingTask in sourceTicket.Tasks.Where(IsObjectReferencingTask))
             {
-                WfReqTask? accessTask = FindTaskByTaskNumber(ticket, sourceAccessTask.TaskNumber);
-                if (accessTask == null)
+                WfReqTask? referencingTask = FindTaskByTaskNumber(ticket, sourceReferencingTask.TaskNumber);
+                if (referencingTask == null)
                 {
-                    continue;
+                    throw new EffectiveRequestStateMaterializationException(
+                        EffectiveRequestStateFailureCategory.PersistenceFailure);
                 }
 
-                List<(WfReqElement Element, long ObjectTaskId)> links =
-                    LinkObjectReferencesForTask(sourceAccessTask, accessTask, persistedObjectTaskIds);
-                foreach ((WfReqElement element, long objectTaskId) in links)
+                links.AddRange(LinkObjectReferencesForTask(
+                    sourceReferencingTask, referencingTask, persistedObjectTaskIds));
+            }
+            if (links.Any(link => link.Element.Id <= 0)
+                || links.Select(link => link.Element.Id).Distinct().Count() != links.Count)
+            {
+                throw new EffectiveRequestStateMaterializationException(
+                    EffectiveRequestStateFailureCategory.PersistenceFailure);
+            }
+            foreach ((WfReqElement element, long objectTaskId) in links)
+            {
+                await UpdateTicketObjectTaskReferenceInDb(element, objectTaskId);
+            }
+        }
+
+        /// <summary>
+        /// Determines whether a task can contain an exact ticket-local object-task reference.
+        /// </summary>
+        private static bool IsObjectReferencingTask(WfReqTask task)
+        {
+            return task.TaskType == WfTaskType.access.ToString()
+                || task.TaskType == WfTaskType.group_create.ToString()
+                || task.TaskType == WfTaskType.group_modify.ToString();
+        }
+
+        /// <summary>
+        /// Persists a required object-task reference and fails when the API does not confirm the exact element.
+        /// </summary>
+        private async Task UpdateTicketObjectTaskReferenceInDb(WfReqElement element, long objectTaskId)
+        {
+            try
+            {
+                ReturnId result = await ApiConnection.SendQueryAsync<ReturnId>(
+                    RequestQueries.updateRequestElementObjectTaskId,
+                    new { id = element.Id, objectTaskId });
+                if (result.UpdatedIdLong != element.Id)
                 {
-                    await UpdateTicketTaskReferenceInDb(element, objectTaskId);
+                    throw new EffectiveRequestStateMaterializationException(
+                        EffectiveRequestStateFailureCategory.PersistenceFailure);
                 }
+            }
+            catch (EffectiveRequestStateMaterializationException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                throw new EffectiveRequestStateMaterializationException(
+                    EffectiveRequestStateFailureCategory.PersistenceFailure, exception);
             }
         }
 
@@ -228,16 +280,19 @@ namespace FWO.Services.Workflow
                 int index = sourceFieldElements.IndexOf(sourceElement);
                 if (index < 0 || index >= targetFieldElements.Count)
                 {
-                    continue;
+                    throw new EffectiveRequestStateMaterializationException(
+                        EffectiveRequestStateFailureCategory.PersistenceFailure);
                 }
 
-                if (sourceElement.ObjectTaskEntityId is long entityId
-                    && persistedObjectTaskIds.TryGetValue(entityId, out long persistedObjectTaskId))
+                if (sourceElement.ObjectTaskEntityId is not long entityId
+                    || !persistedObjectTaskIds.TryGetValue(entityId, out long persistedObjectTaskId))
                 {
-                    WfReqElement targetElement = targetFieldElements[index];
-                    targetElement.ObjectTaskId = persistedObjectTaskId;
-                    links.Add((targetElement, persistedObjectTaskId));
+                    throw new EffectiveRequestStateMaterializationException(
+                        EffectiveRequestStateFailureCategory.MissingReference);
                 }
+                WfReqElement targetElement = targetFieldElements[index];
+                targetElement.ObjectTaskId = persistedObjectTaskId;
+                links.Add((targetElement, persistedObjectTaskId));
             }
             return links;
         }

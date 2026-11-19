@@ -182,7 +182,9 @@ namespace FWO.Services.Workflow
                     element.NetworkId,
                     element.ServiceId,
                     element.Name,
-                    element.GroupName
+                    element.GroupName,
+                    element.StartTime,
+                    element.EndTime
                 })
             };
         }

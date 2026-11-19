@@ -290,6 +290,16 @@ namespace FWO.Services.Workflow
         {
             if (apiConnection != null)
             {
+                if (dbAcc != null && reqTask.Id > 0)
+                {
+                    latestImplCreationDetailTicket = null;
+                    WfReqTask detailedTask = await LoadReqTaskDetailsForImplCreation(reqTask);
+                    List<WfReqTask> detailedTasks = [detailedTask];
+                    WfTicket preparationTicket = BuildImplCreationPreparationTicket(detailedTasks);
+                    List<long> taskIds = [reqTask.Id];
+                    reqTask = (await PrepareRequestTasksForExecution(preparationTicket, taskIds)).Single();
+                    SyncActTicketFromReqTask(reqTask);
+                }
                 List<Device> devices = await RoutingBasedPathAnalyzer.GetAllDevices(reqTask.Elements, apiConnection);
                 WfTicket? storedTicket = await LoadTicketForImplTaskCreation(reqTask, devices.Count);
                 foreach (var device in devices)
@@ -339,6 +349,7 @@ namespace FWO.Services.Workflow
             // every implementation task creation run starts here
             ResetObjectTargetCache();
             ResetAutoPlanCache();
+            latestImplCreationDetailTicket = null;
             List<WfReqTask> requestTasksWithDetails = [];
             foreach (WfReqTask reqTask in requestTasks)
             {
@@ -348,6 +359,20 @@ namespace FWO.Services.Workflow
                 {
                     requestTasksWithDetails.Add(detailedReqTask);
                 }
+            }
+
+            if (dbAcc != null && requestTasksWithDetails.Count > 0)
+            {
+                WfTicket preparationTicket = BuildImplCreationPreparationTicket(requestTasksWithDetails);
+                List<long> taskIds = [.. requestTasksWithDetails.Select(task => task.Id)];
+                List<WfReqTask> preparedTasks = await PrepareRequestTasksForExecution(preparationTicket, taskIds);
+                foreach (WfReqTask preparedTask in preparedTasks)
+                {
+                    WfReqTask runtimeTask = requestTasksWithDetails.Single(task => task.Id == preparedTask.Id);
+                    CopyImplCreationRuntimeState(preparedTask, runtimeTask);
+                    SyncActTicketFromReqTask(preparedTask);
+                }
+                requestTasksWithDetails = preparedTasks;
             }
 
             if (!userConfig.ReqConsiderBundling)
@@ -375,16 +400,20 @@ namespace FWO.Services.Workflow
 
         private async Task<WfReqTask> LoadReqTaskDetailsForImplCreation(WfReqTask reqTask)
         {
-            if (reqTask.Id <= 0 || reqTask.TicketId <= 0 || dbAcc == null)
+            if (reqTask.Id <= 0 || reqTask.TicketId <= 0 || dbAcc == null
+                || reqTask.TaskType == WfTaskType.new_interface.ToString())
             {
                 return reqTask;
             }
 
             WfTicket activeTicket = ActTicket;
-            WfReqTask detailedReqTask = await LoadReqTaskDetails(reqTask, true);
-            // Loading details refreshes the handler environment as a side effect. Keep the
-            // ticket state that was already derived from the current request-task states;
-            // otherwise the persisted pre-change ticket state can overwrite that derivation.
+            WfTicket? persistedTicket = await dbAcc.FetchTicket(
+                reqTask.TicketId, GetOwnerIdsForFiltering(), GetTicketFilter());
+            WfReqTask detailedReqTask = persistedTicket?.Tasks.SingleOrDefault(task => task.Id == reqTask.Id)
+                ?? throw new EffectiveRequestStateMaterializationException(
+                    EffectiveRequestStateFailureCategory.ReadbackFailure);
+            latestImplCreationDetailTicket = persistedTicket;
+            // Keep the ticket state already derived from current request-task states; the persisted ticket can lag it.
             ActTicket = activeTicket;
             detailedReqTask.StateId = reqTask.StateId;
             detailedReqTask.Start = reqTask.Start;

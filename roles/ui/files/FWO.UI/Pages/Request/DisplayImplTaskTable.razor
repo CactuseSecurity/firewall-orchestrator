@@ -340,15 +340,17 @@
         WfHandler.SelectImplTask(implTask, ObjAction.display);
     }
 
-    private void AddImplTask()
+    private async Task AddImplTask()
     {
         WfReqTask requestTask = RequestTaskForCreation ?? WfHandler.ActReqTask;
-        WfImplTask newTask = new (requestTask, false)
+        WfImplTask? newTask = await WfHandler.CreateImplementationTaskDraft(requestTask);
+        if (newTask == null)
         {
-            TaskNumber = WfHandler.ActReqTask.HighestImplTaskNumber() + 1,
-            DeviceId = (WfHandler.Devices.Count > 0 ? WfHandler.Devices[0].Id : 0),
-            ManagementId = requestTask.ManagementId
-        };
+            return;
+        }
+        newTask.TaskNumber = WfHandler.ActReqTask.HighestImplTaskNumber() + 1;
+        newTask.DeviceId = WfHandler.Devices.Count > 0 ? WfHandler.Devices[0].Id : 0;
+        newTask.ManagementId = requestTask.ManagementId;
         if(WfHandler.Devices.Count > 0)
         {
             newTask.Title += ": "+ WfHandler.Devices[WfHandler.Devices.FindIndex(x => x.Id == WfHandler.Devices[0].Id)].Name;

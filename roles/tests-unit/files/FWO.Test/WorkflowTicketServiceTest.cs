@@ -385,6 +385,69 @@ internal class WorkflowTicketServiceTest
         });
     }
 
+    [Test]
+    public async Task CreateTicket_GroupMemberReferenceWriteFailureStopsInitialActions()
+    {
+        WfState initialState = CreateAutoPromotingState(17, 18);
+        initialState.Actions[0].Action.TaskType = WfTaskType.group_create.ToString();
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            ReturnMismatchedObjectTaskReferenceId = true,
+            States = [initialState, new WfState { Id = 18, Name = "approved" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
+                CreateWorkflowConfiguration("request-active",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))
+            ]
+        };
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Grouped request",
+            AddressObjects =
+            [
+                new CreateTicketRequest.CreateAddressObjectRequest
+                {
+                    Id = -1,
+                    Name = "app-server-1",
+                    IpHost = "192.0.2.10"
+                }
+            ],
+            AddressGroups =
+            [
+                new CreateTicketRequest.CreateAddressGroupRequest
+                {
+                    Id = -2,
+                    Name = "app-servers",
+                    MemberIds = [-1]
+                }
+            ],
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Action = "accept",
+                    SourceGroups = [-2],
+                    DestinationGroups = [-2]
+                }
+            ]
+        }, kTrustedCallerId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.TicketId, Is.EqualTo(100));
+            Assert.That(response.ActionsStatus, Is.EqualTo(WfTicketCreationResult.kActionsFailed));
+            Assert.That(apiConnection.SentQueries, Does.Contain(RequestQueries.updateRequestElementObjectTaskId));
+            Assert.That(apiConnection.SentQueries, Does.Not.Contain(RequestQueries.updateRequestTaskState));
+        });
+    }
+
     private static WfStateActionDataHelper BrokenOnSetTicketAction()
     {
         return new WfStateActionDataHelper
@@ -3239,6 +3302,7 @@ internal class WorkflowTicketServiceTest
         public bool ThrowOnStateLookup { get; set; }
         public bool ThrowOnStateLookupAfterCreation { get; set; }
         public bool ThrowOnExternalStateLookup { get; set; }
+        public bool ReturnMismatchedObjectTaskReferenceId { get; set; }
         public WfTicketWriter? LastTicketWriter { get; private set; }
         public int AddHistoryEntryCallCount { get; private set; }
         public List<object?> AlertVariables { get; } = [];
@@ -3361,9 +3425,11 @@ internal class WorkflowTicketServiceTest
 
             if (responseType == typeof(ReturnId))
             {
+                long elementId = Convert.ToInt64(GetVariable(variables, "id") ?? 0);
                 return Task.FromResult((QueryResponseType)(object)new ReturnId
                 {
-                    UpdatedIdLong = Convert.ToInt64(GetVariable(variables, "id") ?? 0)
+                    UpdatedIdLong = query == RequestQueries.updateRequestElementObjectTaskId
+                        && ReturnMismatchedObjectTaskReferenceId ? elementId + 1 : elementId
                 });
             }
 
@@ -3466,13 +3532,15 @@ internal class WorkflowTicketServiceTest
             List<WfReqTask> tasks = [];
             WfTicketWriter? writer = (WfTicketWriter?)GetVariable(variables, "requestTasks");
             long taskId = 0;
+            long elementId = 0;
             if (writer != null)
             {
                 foreach (WfReqTaskWriter taskWriter in writer.Tasks)
                 {
+                    long persistedTaskId = ++taskId;
                     tasks.Add(new WfReqTask
                     {
-                        Id = ++taskId,
+                        Id = persistedTaskId,
                         Title = taskWriter.Title,
                         TaskNumber = taskWriter.TaskNumber,
                         TaskType = taskWriter.TaskType,
@@ -3485,7 +3553,8 @@ internal class WorkflowTicketServiceTest
                         Tracking = taskWriter.Tracking,
                         RuleAction = taskWriter.RuleAction,
                         ManagementId = taskWriter.ManagementId,
-                        Elements = [],
+                        Elements = [.. taskWriter.Elements.WfElementList.Select(element =>
+                            BuildCreatedElement(element, ++elementId, persistedTaskId))],
                         Approvals = [],
                         Owners = [.. taskWriter.Owners.WfOwnerList.Select(ownerWriter => new FwoOwnerDataHelper
                         {
@@ -3516,6 +3585,36 @@ internal class WorkflowTicketServiceTest
                     Dn = Convert.ToString(GetVariable(variables, "requesterDn")) ?? ""
                 },
                 Tasks = tasks
+            };
+        }
+
+        private static WfReqElement BuildCreatedElement(WfReqElementWriter source, long elementId, long taskId)
+        {
+            return new WfReqElement
+            {
+                Id = elementId,
+                TaskId = taskId,
+                RequestAction = source.RequestAction,
+                DeviceId = source.DeviceId,
+                IpString = source.IpString,
+                IpEnd = source.IpEnd,
+                Port = source.Port,
+                PortEnd = source.PortEnd,
+                ProtoId = source.ProtoId,
+                NetworkId = source.NetworkId,
+                ServiceId = source.ServiceId,
+                FlowNetworkObjectId = source.FlowNetworkObjectId,
+                FlowNetworkGroupId = source.FlowNetworkGroupId,
+                FlowServiceObjectId = source.FlowServiceObjectId,
+                FlowServiceGroupId = source.FlowServiceGroupId,
+                Field = source.Field,
+                GroupName = source.GroupName,
+                Name = source.Name,
+                StartTime = source.StartTime,
+                EndTime = source.EndTime,
+                TimeObjId = source.TimeObjId,
+                FlowTimeObjectId = source.FlowTimeObjectId,
+                ObjectTaskId = source.ObjectTaskId
             };
         }
 

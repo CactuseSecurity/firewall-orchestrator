@@ -267,7 +267,7 @@ namespace FWO.Services.Modelling
                 : ModellingTypes.ModObjectType.AppRole;
         }
 
-        private List<WfReqElement> BuildElements(ModellingConnection connection)
+        private static List<WfReqElement> BuildElements(ModellingConnection connection)
         {
             return
             [

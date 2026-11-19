@@ -164,11 +164,12 @@ namespace FWO.Data.Workflow
         public void SetTaskField(WfTaskType taskType, string fieldKey, bool allowed)
         {
             string taskTypeKey = taskType.ToString();
-            if (!TaskTypeFields.ContainsKey(taskTypeKey))
+            if (!TaskTypeFields.TryGetValue(taskTypeKey, out List<string>? taskFields))
             {
-                TaskTypeFields[taskTypeKey] = [];
+                taskFields = [];
+                TaskTypeFields[taskTypeKey] = taskFields;
             }
-            SetField(TaskTypeFields[taskTypeKey], fieldKey, allowed);
+            SetField(taskFields, fieldKey, allowed);
         }
 
         private static void SetField(List<string> fields, string fieldKey, bool allowed)

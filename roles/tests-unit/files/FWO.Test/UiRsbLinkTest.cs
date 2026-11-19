@@ -74,7 +74,7 @@ namespace FWO.Test
             Assert.That(IsElementVisible(element), Is.True, "Element is not visible (might be incorrect tab or collapsed)");
         }
 
-        private bool IsElementVisible(IElement? element)
+        private static bool IsElementVisible(IElement? element)
         {
             while (element != null)
             {

@@ -41,7 +41,7 @@ namespace FWO.Test
         private RulebaseReport? _rb2;
         private RulebaseReport? _rb3;
 
-        private Rule[] _rules = new Rule[0];
+        private Rule[] _rules = [];
 
         private RuleTreeBuilder _ruleTreeBuilder = new();
 
@@ -296,11 +296,11 @@ namespace FWO.Test
 
             // All rules of gateway correct
 
-            ClassicAssert.AreEqual(_rules.Count(), retrieveRulesWithoutDummies.Length);
+            ClassicAssert.AreEqual(_rules.Length, retrieveRulesWithoutDummies.Length);
 
             // Order correct
 
-            for (int i = 0; i < retrieveRulesWithoutDummies.Count(); i++)
+            for (int i = 0; i < retrieveRulesWithoutDummies.Length; i++)
             {
                 if (i < _rb2.Rules.Length)
                 {

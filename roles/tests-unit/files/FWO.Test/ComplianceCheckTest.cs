@@ -19,6 +19,8 @@ namespace FWO.Test
     [TestFixture]
     internal class ComplianceCheckTest : ComplianceCheckTestFixture
     {
+        private static readonly int[] kExpectedViolationCriterionIds = [101, 102];
+
         #region Configuration
 
         // Expected logs
@@ -291,7 +293,7 @@ namespace FWO.Test
 
             Assert.That(compliant, Is.False);
             Assert.That(ComplianceCheck.CurrentViolationsInCheck, Has.Count.EqualTo(2));
-            Assert.That(ComplianceCheck.CurrentViolationsInCheck.Select(v => v.CriterionId), Is.EquivalentTo(new[] { 101, 102 }));
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck.Select(v => v.CriterionId), Is.EquivalentTo(kExpectedViolationCriterionIds));
             Assert.That(ComplianceCheck.CurrentViolationsInCheck.Any(v => v.Details.Contains("Matrix A Source")), Is.True);
             Assert.That(ComplianceCheck.CurrentViolationsInCheck.Any(v => v.Details.Contains("Matrix B Source")), Is.True);
         }

@@ -21,7 +21,7 @@ namespace FWO.Api.Client
         // check cannot rebind subscriptions onto a client this instance is tearing down.
         private bool _disposed;
 
-        private GraphQLHttpClient CreateClient(string apiServerUri)
+        private static GraphQLHttpClient CreateClient(string apiServerUri)
         {
             bool useTls = GraphQlTlsCertificateSupport.UsesTls(apiServerUri);
             HttpClientHandler handler = GraphQlTlsCertificateSupport.CreateHttpClientHandler(useTls);
@@ -563,7 +563,7 @@ namespace FWO.Api.Client
             }
         }
 
-        private GraphQLHttpRequest CreateHttpRequest(string role, string query, object? variables, string? operationName)
+        private static GraphQLHttpRequest CreateHttpRequest(string role, string query, object? variables, string? operationName)
         {
             return new RoleGraphQLHttpRequest(role, query, variables, operationName);
         }

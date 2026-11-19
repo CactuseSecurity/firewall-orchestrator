@@ -22,7 +22,7 @@ namespace FWO.Api.Client.Queries
         public static string Compact(string raw_query)
         {
             // Split the input into lines
-            var lines = raw_query.Split(new[] { '\n' }, StringSplitOptions.None);
+            var lines = raw_query.Split('\n', StringSplitOptions.None);
 
             // Remove comments and process each line
             for (int i = 0; i < lines.Length; i++)

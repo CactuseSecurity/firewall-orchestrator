@@ -481,7 +481,7 @@ namespace FWO.Middleware.Server.Controllers
             }
         }
 
-        private async Task<List<string>> GetMembershipsFromLdap(Ldap currentLdap, GroupMembershipGetParameters parameters)
+        private static async Task<List<string>> GetMembershipsFromLdap(Ldap currentLdap, GroupMembershipGetParameters parameters)
         {
             List<string> memberships = [];
             UiUser userToSearch = new() { Dn = parameters.UserDn, Name = parameters.UserName };
@@ -515,7 +515,7 @@ namespace FWO.Middleware.Server.Controllers
             return memberships;
         }
 
-        private async Task<List<string>> GetMembershipsByMemberDn(Ldap currentLdap, string userDn)
+        private static async Task<List<string>> GetMembershipsByMemberDn(Ldap currentLdap, string userDn)
         {
             List<string> memberships = [];
             string? groupPath = !string.IsNullOrWhiteSpace(currentLdap.GroupSearchPath)

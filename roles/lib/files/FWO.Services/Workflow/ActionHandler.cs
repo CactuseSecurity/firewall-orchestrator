@@ -565,7 +565,7 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private long GetStatefulObjectId(WfStatefulObject statefulObject, WfObjectScopes scope)
+        private static long GetStatefulObjectId(WfStatefulObject statefulObject, WfObjectScopes scope)
         {
             return scope switch
             {

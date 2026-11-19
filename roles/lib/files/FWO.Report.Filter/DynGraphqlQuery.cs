@@ -11,7 +11,7 @@ using FWO.Basics;
 
 namespace FWO.Report.Filter
 {
-    public class DynGraphqlQuery(string rawInput)
+    public partial class DynGraphqlQuery(string rawInput)
     {
         public string RawFilter { get; private set; } = rawInput;
         public int parameterCounter { get; set; } = 0;
@@ -922,13 +922,31 @@ namespace FWO.Report.Filter
             if (filter.ReportParams.TenantFilter.IsActive)
             {
                 int tenant_id = filter.ReportParams.TenantFilter.TenantId;
-                query.FullQuery = Regex.Replace(query.FullQuery, @"\srules\s*\(", $" rules: get_rules_for_tenant(args: {{tenant: {tenant_id}}}, ");
-                query.FullQuery = Regex.Replace(query.FullQuery, @"changelog_rules\s*\(", $" changelog_rules: get_changelog_rules_for_tenant(args: {{tenant: {tenant_id}}}, ");
-                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_froms\s*\(", $"rule_froms: get_rule_froms_for_tenant(args: {{tenant: {tenant_id}}}");
-                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_froms\s*{", $"rule_froms: get_rule_froms_for_tenant(args: {{tenant: {tenant_id}}}) {{");
-                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_tos\s*\(", $"rule_tos: get_rule_tos_for_tenant(args: {{tenant: {tenant_id}}}");
-                query.FullQuery = Regex.Replace(query.FullQuery, @"rule_tos\s*{", $"rule_tos: get_rule_tos_for_tenant(args: {{tenant: {tenant_id}}}) {{");
+                query.FullQuery = RulesArgsRegex().Replace(query.FullQuery, $" rules: get_rules_for_tenant(args: {{tenant: {tenant_id}}}, ");
+                query.FullQuery = ChangelogRulesArgsRegex().Replace(query.FullQuery, $" changelog_rules: get_changelog_rules_for_tenant(args: {{tenant: {tenant_id}}}, ");
+                query.FullQuery = RuleFromsArgsRegex().Replace(query.FullQuery, $"rule_froms: get_rule_froms_for_tenant(args: {{tenant: {tenant_id}}}");
+                query.FullQuery = RuleFromsSelectionRegex().Replace(query.FullQuery, $"rule_froms: get_rule_froms_for_tenant(args: {{tenant: {tenant_id}}}) {{");
+                query.FullQuery = RuleTosArgsRegex().Replace(query.FullQuery, $"rule_tos: get_rule_tos_for_tenant(args: {{tenant: {tenant_id}}}");
+                query.FullQuery = RuleTosSelectionRegex().Replace(query.FullQuery, $"rule_tos: get_rule_tos_for_tenant(args: {{tenant: {tenant_id}}}) {{");
             }
         }
+
+        [GeneratedRegex(@"\srules\s*\(")]
+        private static partial Regex RulesArgsRegex();
+
+        [GeneratedRegex(@"changelog_rules\s*\(")]
+        private static partial Regex ChangelogRulesArgsRegex();
+
+        [GeneratedRegex(@"rule_froms\s*\(")]
+        private static partial Regex RuleFromsArgsRegex();
+
+        [GeneratedRegex(@"rule_froms\s*{")]
+        private static partial Regex RuleFromsSelectionRegex();
+
+        [GeneratedRegex(@"rule_tos\s*\(")]
+        private static partial Regex RuleTosArgsRegex();
+
+        [GeneratedRegex(@"rule_tos\s*{")]
+        private static partial Regex RuleTosSelectionRegex();
     }
 }

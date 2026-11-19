@@ -92,7 +92,7 @@ namespace FWO.Test
             // Normalize / decode
             var normalized = WebUtility.HtmlDecode(result);
             try { normalized = Uri.UnescapeDataString(normalized); } catch { /* ignore malformed escapes */ }
-            normalized = Regex.Replace(normalized, @"[\s\x00-\x1F]+", " "); // collapse whitespace and control chars
+            normalized = WhitespaceAndControlCharsRegex().Replace(normalized, " "); // collapse whitespace and control chars
             normalized = normalized.Trim();
 
             // checks (case-insensitive)

@@ -408,9 +408,9 @@ namespace FWO.Test
 
                 Assert.Multiple(() =>
                 {
-                    Assert.That(dict.Matrices, Has.Count.EqualTo(Enum.GetValues(typeof(WfTaskType)).Length));
+                    Assert.That(dict.Matrices, Has.Count.EqualTo(Enum.GetValues<WfTaskType>().Length));
                     Assert.That(dict.Matrices.Values.All(matrix => matrix.AutomaticOnlyStates.SetEquals([3])), Is.True);
-                    Assert.That(matrices.SelectMany(matrix => matrix.InitializedTaskTypes), Is.EquivalentTo(Enum.GetValues(typeof(WfTaskType))));
+                    Assert.That(matrices.SelectMany(matrix => matrix.InitializedTaskTypes), Is.EquivalentTo(Enum.GetValues<WfTaskType>()));
                 });
             }
             finally

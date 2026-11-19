@@ -15,6 +15,16 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     internal class UiEmailRecipientSelectionEditorTest : BunitContext
     {
+        private static readonly string[] kExpectedNewAddresses = ["new@example.org"];
+        private static readonly string[] kExpectedEditorLabels =
+        [
+            "Main responsible",
+            "Supporting responsible",
+            "Optional escalation responsible",
+            "Other addresses",
+            "Ensure at least one notification"
+        ];
+
         [Test]
         public void Render_OrdersResponsiblesOtherAddressesAndEnsureFlag()
         {
@@ -39,14 +49,7 @@ namespace FWO.Test
                 .Select(label => label.TextContent)
                 .ToList();
 
-            Assert.That(labels, Is.EqualTo(new[]
-            {
-                "Main responsible",
-                "Supporting responsible",
-                "Optional escalation responsible",
-                "Other addresses",
-                "Ensure at least one notification"
-            }));
+            Assert.That(labels, Is.EqualTo(kExpectedEditorLabels));
         }
 
         [Test]
@@ -143,7 +146,7 @@ namespace FWO.Test
             component.Find("input").Change(" new@example.org ");
             component.Find("button.btn-primary").Click();
 
-            Assert.That(addresses, Is.EqualTo(new[] { "new@example.org" }));
+            Assert.That(addresses, Is.EqualTo(kExpectedNewAddresses));
         }
 
         [Test]

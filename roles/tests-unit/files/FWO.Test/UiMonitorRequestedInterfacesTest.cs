@@ -1138,7 +1138,7 @@ namespace FWO.Test
         private static string BuildStateMatrixJson()
         {
             Dictionary<WorkflowPhases, StateMatrix> matrixByPhase = [];
-            foreach (WorkflowPhases phase in Enum.GetValues(typeof(WorkflowPhases)))
+            foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
             {
                 matrixByPhase[phase] = new StateMatrix
                 {

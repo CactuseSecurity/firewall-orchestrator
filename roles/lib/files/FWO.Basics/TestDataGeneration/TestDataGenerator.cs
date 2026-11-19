@@ -166,7 +166,7 @@ namespace FWO.Basics.TestDataGeneration
             }
         }
 
-        private TDeserializedObject? DeserializeFromJson<TDeserializedObject>(string json)
+        private static TDeserializedObject? DeserializeFromJson<TDeserializedObject>(string json)
         {
             bool isValidated = ValidateJson(json);
 
@@ -183,7 +183,7 @@ namespace FWO.Basics.TestDataGeneration
             throw new Exception();
         }
 
-        private bool ValidateJson(string json)
+        private static bool ValidateJson(string json)
         {
             try
             {

@@ -123,7 +123,7 @@ namespace FWO.Basics
         /// <summary>
         /// Creates items that can be serialized to a json.
         /// </summary>
-        private SerializableTreeNode BuildSerializableNode(ITreeItem<TItem> node)
+        private static SerializableTreeNode BuildSerializableNode(ITreeItem<TItem> node)
         {
             var serializable = new SerializableTreeNode();
 
@@ -147,7 +147,7 @@ namespace FWO.Basics
                 serializable.Position = node.GetPositionString();
             }
 
-            if (node.Children.Any())
+            if (node.Children.Count != 0)
             {
                 serializable.Children = new();
 

@@ -28,6 +28,8 @@ namespace FWO.Test
     [NonParallelizable]
     internal class ActionHandlerTest
     {
+        private static readonly int[] kExpectedNotificationIds = [3, 5];
+
         private sealed class ActionHandlerTestApiConn : SimulatedApiConnection
         {
             public List<WfState> States { get; set; } = [];
@@ -995,7 +997,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(notifications.Select(notification => notification.Id), Is.EqualTo(new[] { 3, 5 }));
+                Assert.That(notifications.Select(notification => notification.Id), Is.EqualTo(kExpectedNotificationIds));
                 Assert.That(apiConn.Queries, Has.Member(NotificationQueries.getNotifications));
             });
         }

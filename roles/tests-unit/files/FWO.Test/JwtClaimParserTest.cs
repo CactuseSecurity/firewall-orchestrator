@@ -7,6 +7,10 @@ namespace FWO.Test
     [TestFixture]
     public class JwtClaimParserTest
     {
+        private static readonly string[] kExpectedAuditorAndRecertifierRoles = ["auditor", "recertifier"];
+        private static readonly int[] kExpectedOwnerIds = [1, 2, 3, 4, 5];
+        private static readonly string[] kExpectedAdminAndModellerRoles = ["admin", "modeller"];
+
         [Test]
         public void ExtractStringClaimValuesParsesJsonArrayClaims()
         {
@@ -17,7 +21,7 @@ namespace FWO.Test
 
             List<string> roles = JwtClaimParser.ExtractStringClaimValues(claims, "x-hasura-allowed-roles");
 
-            Assert.That(roles, Is.EquivalentTo(new[] { "admin", "modeller" }));
+            Assert.That(roles, Is.EquivalentTo(kExpectedAdminAndModellerRoles));
         }
 
         [Test]
@@ -31,7 +35,7 @@ namespace FWO.Test
 
             List<int> owners = JwtClaimParser.ExtractIntClaimValues(claims, "x-hasura-editable-owners");
 
-            Assert.That(owners, Is.EquivalentTo(new[] { 1, 2, 3, 4, 5 }));
+            Assert.That(owners, Is.EquivalentTo(kExpectedOwnerIds));
         }
 
         [Test]
@@ -44,7 +48,7 @@ namespace FWO.Test
 
             List<string> roles = JwtClaimParser.ExtractStringClaimValues(claims, "x-hasura-allowed-roles");
 
-            Assert.That(roles, Is.EquivalentTo(new[] { "auditor", "recertifier" }));
+            Assert.That(roles, Is.EquivalentTo(kExpectedAuditorAndRecertifierRoles));
         }
     }
 }

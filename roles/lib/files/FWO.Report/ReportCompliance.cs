@@ -313,7 +313,7 @@ namespace FWO.Report
 
             List<Management>? managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
 
-            Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched info for {managements?.Count() ?? 0} managements.", DebugConfig.ExtendedLogReportGeneration);
+            Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched info for {managements?.Count ?? 0} managements.", DebugConfig.ExtendedLogReportGeneration);
 
             if (managements != null)
             {
@@ -444,7 +444,7 @@ namespace FWO.Report
             ]);
         }
 
-        private Task GatherEmptyGroups(NetworkLocation[] networkLocations, List<NetworkLocation> resolvedNetworkLocations)
+        private static Task GatherEmptyGroups(NetworkLocation[] networkLocations, List<NetworkLocation> resolvedNetworkLocations)
         {
             foreach (NetworkLocation networkLocation in networkLocations)
             {

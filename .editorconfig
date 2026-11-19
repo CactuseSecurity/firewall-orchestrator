@@ -12,6 +12,19 @@ charset = utf-8
 indent_style = space
 indent_size = 4
 trim_trailing_whitespace = false
+# CA1822 (mark members as static): only for members that are not part of an API, public instance methods stay as they are
+dotnet_code_quality.CA1822.api_surface = private, internal
+
+# Analyzer rules that the code base is free of. Raised to warning so that the build (TreatWarningsAsErrors)
+# rejects new findings instead of SonarCloud reporting them later. Only add rules here once all findings are fixed.
+dotnet_diagnostic.CA1822.severity = warning
+dotnet_diagnostic.CA1825.severity = warning
+dotnet_diagnostic.CA1829.severity = warning
+dotnet_diagnostic.CA1854.severity = warning
+dotnet_diagnostic.CA1860.severity = warning
+dotnet_diagnostic.CA1861.severity = warning
+dotnet_diagnostic.CA2263.severity = warning
+dotnet_diagnostic.SYSLIB1045.severity = warning
 
 [*.razor]
 indent_style = space

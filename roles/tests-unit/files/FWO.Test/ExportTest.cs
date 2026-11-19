@@ -1762,7 +1762,7 @@ namespace FWO.Test
             return report;
         }
 
-        private Rule[] ConstructRuleReportRules(bool resolved)
+        private static Rule[] ConstructRuleReportRules(bool resolved)
         {
             return [
                 InitRule1(resolved),
@@ -1770,7 +1770,7 @@ namespace FWO.Test
             ];
         }
 
-        private Rule[] ConstructRecertReportRules(bool resolved, DateTime referenceDate)
+        private static Rule[] ConstructRecertReportRules(bool resolved, DateTime referenceDate)
         {
             Rule rule1 = InitRule1(resolved);
             rule1.Metadata.RuleRecertification =

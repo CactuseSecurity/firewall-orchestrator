@@ -17,6 +17,8 @@ namespace FWO.Test
     [Parallelizable]
     public partial class FilterTest
     {
+        private static readonly int[] kExpectedSelectedOwnerIds = [1];
+
         [Test]
         public void RulebaseManagementListQueryHasNoUnusedParameters()
         {
@@ -820,7 +822,7 @@ namespace FWO.Test
             StringAssert.Contains("changelog_owners(where: {change_action: {_eq: \"I\"}}", query.FullQuery);
             StringAssert.Contains("order_by: {import_control: {stop_time: asc_nulls_last}, log_owner_id: asc}", query.FullQuery);
             StringAssert.Contains("time: stop_time", query.FullQuery);
-            Assert.That(query.QueryVariables["selectedOwners"], Is.EqualTo(new[] { 1 }));
+            Assert.That(query.QueryVariables["selectedOwners"], Is.EqualTo(kExpectedSelectedOwnerIds));
             Assert.That(query.QueryVariables.ContainsKey("refDate"), Is.True);
         }
 

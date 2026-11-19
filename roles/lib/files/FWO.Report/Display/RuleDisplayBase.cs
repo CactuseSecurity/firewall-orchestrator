@@ -254,7 +254,7 @@ namespace FWO.Ui.Display
                 {
                     foreach (GroupFlat<NetworkObject> nwObject in networkObject.Object.ObjectGroupFlats)
                     {
-                        if (nwObject.Object != null && nwObject.Object.Type.Name != ObjectType.Group || networkObject.Object.ObjectGroupFlats.Count() == 1)    // leave out group level altogether, except for empty groups
+                        if (nwObject.Object != null && nwObject.Object.Type.Name != ObjectType.Group || networkObject.Object.ObjectGroupFlats.Length == 1)    // leave out group level altogether, except for empty groups
                         {
                             collectedUserNetworkObjects.Add(new NetworkLocation(networkObject.User, nwObject.Object));
                         }
@@ -283,7 +283,7 @@ namespace FWO.Ui.Display
                     }
                 }
 
-                if (!service.Content.ServiceGroupFlats.Any())
+                if (service.Content.ServiceGroupFlats.Length == 0)
                 {
                     collectedServices.Add(service.Content);
                 }

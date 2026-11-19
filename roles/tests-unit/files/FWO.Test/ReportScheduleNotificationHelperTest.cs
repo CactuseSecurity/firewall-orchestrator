@@ -12,6 +12,9 @@ namespace FWO.Test
     [Parallelizable]
     internal class ReportScheduleNotificationHelperTest
     {
+        private static readonly int[] kDeletedIdTwentyTwo = [22];
+        private static readonly int[] kDeletedIdsElevenAndTwelve = [11, 12];
+
         [Test]
         public async Task CreateNotifications_MultipleFormats_AssignsSharedAttachmentBundle()
         {
@@ -74,7 +77,7 @@ namespace FWO.Test
                 reportSchedule, false, "report@example.org", "Subject", "Body");
 
             ClassicAssert.AreEqual(0, syncedNotifications.Count);
-            CollectionAssert.AreEquivalent(new[] { 11, 12 }, apiConnection.DeletedIds);
+            CollectionAssert.AreEquivalent(kDeletedIdsElevenAndTwelve, apiConnection.DeletedIds);
             ClassicAssert.AreEqual(0, apiConnection.AddCalls.Count);
             ClassicAssert.AreEqual(0, apiConnection.UpdateCalls.Count);
         }
@@ -96,7 +99,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, syncedNotifications.Count);
             ClassicAssert.AreEqual(1, apiConnection.UpdateCalls.Count);
             ClassicAssert.AreEqual(1, apiConnection.AddCalls.Count);
-            CollectionAssert.AreEquivalent(new[] { 22 }, apiConnection.DeletedIds);
+            CollectionAssert.AreEquivalent(kDeletedIdTwentyTwo, apiConnection.DeletedIds);
             ClassicAssert.AreEqual(21, apiConnection.UpdateCalls[0].Id);
             ClassicAssert.AreEqual("bundle-1", apiConnection.UpdateCalls[0].BundleId);
             ClassicAssert.AreEqual(BundleType.Attachments.ToString(), apiConnection.UpdateCalls[0].BundleType);

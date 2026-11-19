@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 
 namespace FWO.Ui.Display
 {
-    public class RuleDisplayCsv : RuleDisplayBase
+    public partial class RuleDisplayCsv : RuleDisplayBase
     {
         public RuleDisplayCsv(UserConfig userConfig) : base(userConfig)
         { }
@@ -148,10 +148,10 @@ namespace FWO.Ui.Display
             return result.ToString();
         }
 
-        private string SanitizeComment(string inputString)
+        private static string SanitizeComment(string inputString)
         {
-            string output = Regex.Replace(inputString, @"[""'']", "").Trim();
-            output = Regex.Replace(output, @"[\n]", ", ").Trim();
+            string output = QuotesRegex().Replace(inputString, "").Trim();
+            output = output.Replace("\n", ", ").Trim();
             return output;
         }
 
@@ -198,5 +198,8 @@ namespace FWO.Ui.Display
             }
             return string.Join(",", displayedZones);
         }
+
+        [GeneratedRegex(@"[""'']")]
+        private static partial Regex QuotesRegex();
     }
 }

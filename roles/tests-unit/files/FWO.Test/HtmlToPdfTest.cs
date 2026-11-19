@@ -159,7 +159,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(expected, IsGitHubActions(value));
         }
 
-        private async Task TryCreatePDF(IBrowser browser, PuppeteerSharp.Media.PaperFormat paperFormat)
+        private static async Task TryCreatePDF(IBrowser browser, PuppeteerSharp.Media.PaperFormat paperFormat)
         {
             if (browser.IsClosed || !browser.IsConnected || browser.Process == null)
             {

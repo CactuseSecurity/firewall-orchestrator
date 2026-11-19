@@ -1,6 +1,7 @@
 # Firewall Orchestrator Revision History
 
 ## 9.9.4 - 17.11.2026
+- middleware REST API: `Rule/GetRulesByFilter` accepts `RuleUid` as an exact third selector alongside `OwnerId` and `IpAddress`; all current non-removed matches are ordered by rule ID and use the existing paging and SIEM logging behavior
 - request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket
   - a request task of a management with the implementation mode external ticket system is handed to Tufin SecureChange as a whole; implementation tasks with mode automatic are written directly to the firewall with the firewall write library (`ext_request.impltask_id`)
   - offered as a button, implementation tasks on targets set to manual are written as well within the scope of the action (ticket or request task); on an implementation task it writes only this one task
@@ -14,6 +15,19 @@
   - new rules targeting a section are written at the top or bottom of that section
   - provisioning uses the shared target management of implementation tasks (the management of the gateway); a task whose stored management contradicts its gateway is reported with an alert instead of being written, and choosing a gateway in the implementation task view takes over its management
 - flow compliance API (`getFlowComplianceState`): a service with protocol `any` or `-1` is checked as the canonical ANY service (ports ignored) and now violates every port/protocol entry of a ForbiddenService criterion, like imported ANY services do; previously it was reported as compliant
+- logging: UI and middleware log the real client address of logins instead of `127.0.0.1` or the address of the UI server (#5659)
+  - the UI evaluates the `X-Forwarded-For` and `X-Forwarded-Proto` headers of its local Apache reverse proxy, like the middleware already does; only the entry appended by that proxy is used. The UI vhosts now set `X-Forwarded-Proto`
+  - the UI keeps the address of the browser per session and logs it with successful and failed logins, logouts and sessions ended after a revocation
+  - the middleware logs issued tokens, failed logins (including the delegated logins `GetTokenPairForUser` and `GetForUser`) and logins refused by the login limits with the client address
+  - middleware REST API: `GetTokenPair` (and the deprecated `Get`) accept `options.clientAddress`, the client a trusted frontend logs in for. It is only accepted from this host and the hosts in `login_trusted_client_hosts`; from any other caller it is ignored. A value that is not a single canonical IP address is answered with `400`
+  - behaviour change: logins through the UI are limited per browser address (`login_client_attempts_per_minute`, default 30) instead of being exempt via the address of the UI server. Users behind one shared address (NAT, terminal server, a reverse proxy in front of the UI) share that limit: raise it, or add the proxy to `login_trusted_client_hosts`. The per-user failure limit is unchanged and stays counted per calling host
+- settings: values of a single user are only stored for personal settings (#5734)
+  - the new table `config_user_key` lists the keys of the personal settings (the settings of the personal settings page and `maxMessages`). The API accepts values of a user only for these keys and only in the user's own rows (insert and update permissions of all roles except admin and middleware-server); all other settings are only stored globally
+  - upgrade: rows of a user in table `config` for keys that are not personal settings are removed, so the global value of these settings applies to every user
+  - `unusedTolerance`, `creationTolerance`, `recertificationDisplayPeriod`, `overviewDisplayLines` and `resolveNetworkAreas` are now personal settings, as is `reportingPersonalPreferredCollapseState`, which has no global value: a value the user saved on the personal settings page is kept when an admin changes the global settings. So far a change of the global settings replaced it with the global value for the rest of the UI session
+  - reports the middleware generates for a user (scheduled reports, `POST /api/Report/Get`, `POST /api/Compliance/Report`) now also use the user's values of these settings, as they already did for the other personal settings; so far the global values replaced them. Of these settings, only `resolveNetworkAreas` is read while generating a report (network objects of connection and variance analysis reports), so compliance reports are unchanged
+  - the personal settings page saves only the settings changed on the page; a global value that changed while the page was open is no longer saved as the user's value
+  - readers of global settings only read the global rows, as the API calls already do: the settings of a UI session and of the reports the middleware generates for a user apply rows of the user only for personal settings, and the rule ownership mode of the rule owner views (`v_rule_ownership_mode`, also replaced by the upgrade) and the encryption of the stored email password read only the global row
 
 
 ## 9.9.3 - 14.11.2026

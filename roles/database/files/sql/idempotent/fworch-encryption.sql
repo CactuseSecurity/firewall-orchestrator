@@ -159,10 +159,11 @@ BEGIN
         UPDATE ldap_connection SET ldap_write_user_pwd=t_encrypted WHERE ldap_connection_id=r_cred.ldap_connection_id;
     END LOOP;
 
-    -- encrypt smtp email user pwds in config table
-    SELECT INTO r_cred config_value FROM config WHERE config_key='emailPassword';
+    -- encrypt the smtp email user pwd in config table; it is a global setting, and readers of global settings
+    -- only read the global row (config_user 0)
+    SELECT INTO r_cred config_value FROM config WHERE config_key='emailPassword' AND config_user=0;
     SELECT INTO t_encrypted * FROM encryptText(r_cred.config_value, key);
-    UPDATE config SET config_value=t_encrypted WHERE config_key='emailPassword';
+    UPDATE config SET config_value=t_encrypted WHERE config_key='emailPassword' AND config_user=0;
 
     -- encrypted authorization header strings kept by external requests from before 9.7.1 (see upgrade 9.7.1)
     FOR r_cred IN

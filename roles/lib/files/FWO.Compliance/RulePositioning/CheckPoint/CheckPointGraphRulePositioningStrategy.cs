@@ -84,12 +84,18 @@ public sealed class CheckPointGraphRulePositioningStrategy : IRulePositioningStr
                 cancellationToken);
             if (executionResult is not PositioningBlockSuccess<CheckPointBlockValue> executionSuccess)
             {
-                return MapExecutionFailure(executionResult);
+                return CheckPointRulePositioningFailureMapper.MapExecutionFailure(
+                    "graph recipe execution",
+                    executionResult);
             }
             if (executionSuccess.Value is not CheckPointPositionValue positionValue
                 || positionValue.Position.PositioningAlgorithm != algorithm)
             {
-                return Failure(RulePositioningFailureCategory.CalculationFailed);
+                return CheckPointRulePositioningFailureMapper.KnownFailure(
+                    "graph recipe execution result",
+                    RulePositioningFailureCategory.CalculationFailed,
+                    CheckPointStrategyFailureCategory.UnexpectedPositionResult,
+                    "The positioning recipe returned an unexpected result.");
             }
 
             return new RulePositioningSuccess(positionValue.Position);
@@ -109,32 +115,31 @@ public sealed class CheckPointGraphRulePositioningStrategy : IRulePositioningStr
     /// <summary>Maps graph-reader failures to the public positioning contract.</summary>
     private static RulePositioningFailure MapGraphFailure(RulebaseGraphReadResult result)
     {
-        RulePositioningFailureCategory category = result.TryGetFailure(out RulebaseGraphReadFailureCategory failureCategory)
-            && failureCategory is RulebaseGraphReadFailureCategory.InvalidInput or RulebaseGraphReadFailureCategory.ScopeMismatch
+        RulebaseGraphReadFailureCategory failureCategory = result.FailureCategory!.Value;
+        RulePositioningFailureCategory category = failureCategory is
+            RulebaseGraphReadFailureCategory.InvalidInput or RulebaseGraphReadFailureCategory.ScopeMismatch
                 ? RulePositioningFailureCategory.InvalidInput
                 : RulePositioningFailureCategory.CalculationFailed;
-        return Failure(category);
+        return CheckPointRulePositioningFailureMapper.KnownFailure(
+            "rulebase graph",
+            category,
+            failureCategory,
+            failureCategory.GetDiagnostic());
     }
 
     /// <summary>Maps graph-only recipe-selection failures to the public positioning contract.</summary>
     private static RulePositioningFailure MapSelectionFailure(CheckPointGraphRecipeSelectionResult result)
     {
-        RulePositioningFailureCategory category = result.TryGetFailure(
-            out CheckPointGraphRecipeSelectionFailureCategory failureCategory)
-            && failureCategory == CheckPointGraphRecipeSelectionFailureCategory.NoMatchingRecipe
-                ? RulePositioningFailureCategory.PositioningMethodNotImplemented
-                : RulePositioningFailureCategory.ConfigurationInvalid;
-        return Failure(category);
-    }
-
-    /// <summary>Maps block failures to the public positioning contract.</summary>
-    private static RulePositioningFailure MapExecutionFailure(PositioningBlockResult<CheckPointBlockValue> result)
-    {
-        RulePositioningFailureCategory category = result is PositioningBlockFailure<CheckPointBlockValue> failure
-            && failure.Category == PositioningBlockFailureCategory.InvalidRecipe
-                ? RulePositioningFailureCategory.ConfigurationInvalid
-                : RulePositioningFailureCategory.CalculationFailed;
-        return Failure(category);
+        CheckPointGraphRecipeSelectionFailureCategory failureCategory = result.FailureCategory!.Value;
+        RulePositioningFailureCategory category = failureCategory ==
+            CheckPointGraphRecipeSelectionFailureCategory.NoMatchingRecipe
+            ? RulePositioningFailureCategory.PositioningMethodNotImplemented
+            : RulePositioningFailureCategory.ConfigurationInvalid;
+        return CheckPointRulePositioningFailureMapper.KnownFailure(
+            "graph recipe selection",
+            category,
+            failureCategory,
+            SelectionDiagnostic(failureCategory));
     }
 
     /// <summary>Creates a safe typed failure.</summary>
@@ -142,4 +147,11 @@ public sealed class CheckPointGraphRulePositioningStrategy : IRulePositioningStr
     {
         return new RulePositioningFailure(category);
     }
+
+    /// <summary>Maps graph recipe-selection failures to fixed safe diagnostics.</summary>
+    private static string SelectionDiagnostic(CheckPointGraphRecipeSelectionFailureCategory category) =>
+        category == CheckPointGraphRecipeSelectionFailureCategory.NoMatchingRecipe
+            ? "No graph-only Check Point positioning recipe matches the selected algorithm."
+            : "The graph-only Check Point positioning recipe is invalid.";
+
 }

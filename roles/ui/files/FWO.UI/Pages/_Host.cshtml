@@ -1,9 +1,12 @@
 @page "/"
 @namespace FWO.Ui.Pages
+@using FWO.Basics
 @using FWO.Config.Api
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     Layout = null;
+    // The circuit has no HTTP request of its own, so the address of the browser is handed over as parameter.
+    string clientAddress = ClientAddressFormat.ToText(HttpContext.Connection.RemoteIpAddress);
 }
 @inject GlobalConfig globalConfig
 
@@ -20,7 +23,7 @@
 </head>
 <body class="sticky-group sticky-group-35 sticky-group-40 sticky-group-60 vheight100">
     <app>
-        <component type="typeof(App)" render-mode="ServerPrerendered" />
+        <component type="typeof(App)" render-mode="ServerPrerendered" param-ClientAddress="@clientAddress" />
     </app>
 
     <div id="blazor-error-ui">

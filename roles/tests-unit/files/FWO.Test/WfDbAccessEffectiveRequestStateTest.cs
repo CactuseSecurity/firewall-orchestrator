@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Reflection;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -55,7 +56,7 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
     }
 
     [Test]
-    public void MaterializeEffectiveRequestState_UpdateMismatchThrowsBeforeReadback()
+    public void MaterializeEffectiveRequestState_FirstWriteFailsBeforeCommit_DoesNotWriteHistory()
     {
         WfTicket ticket = CreateTicket();
         MaterializationApiConnection apiConnection = new(ticket) { FailBeforeCommitOnUpdateCall = 1 };
@@ -67,8 +68,95 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         Assert.Multiple(() =>
         {
             Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.PersistenceFailure));
-            Assert.That(apiConnection.QueryLog, Is.EqualTo(Queries(RequestQueries.updateEffectiveRequestElementSnapshot)));
+            Assert.That(exception.InnerException, Is.SameAs(apiConnection.UpdateFailure));
+            Assert.That(apiConnection.QueryLog, Is.EqualTo(Queries(
+                RequestQueries.updateEffectiveRequestElementSnapshot,
+                RequestQueries.getTicketById)));
             Assert.That(apiConnection.HistoryVariables, Is.Empty);
+            Assert.That(ElementIp(apiConnection.CopyStoredTicket(), 201), Is.EqualTo("10.0.0.10"));
+        });
+    }
+
+    [Test]
+    public void MaterializeEffectiveRequestState_SecondWriteFailsBeforeCommit_AuditsFirstAppliedTask()
+    {
+        WfTicket ticket = CreateTicket();
+        MaterializationApiConnection apiConnection = new(ticket) { FailBeforeCommitOnUpdateCall = 2 };
+        WfDbAccess dbAccess = CreateDbAccess(apiConnection);
+
+        EffectiveRequestStateMaterializationException exception = Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(
+            async () => await dbAccess.MaterializeEffectiveRequestState(ticket, Target(20)))!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.PersistenceFailure));
+            Assert.That(exception.InnerException, Is.SameAs(apiConnection.UpdateFailure));
+            Assert.That(apiConnection.QueryLog, Is.EqualTo(Queries(
+                RequestQueries.updateEffectiveRequestElementSnapshot,
+                RequestQueries.updateEffectiveRequestElementSnapshot,
+                RequestQueries.getTicketById,
+                ModellingQueries.addHistoryEntry)));
+            Assert.That(ElementIp(apiConnection.CopyStoredTicket(), 201), Is.EqualTo("10.0.1.10"));
+            Assert.That(ElementIp(apiConnection.CopyStoredTicket(), 202), Is.EqualTo("10.0.0.10"));
+            Assert.That(apiConnection.HistoryVariables, Has.Count.EqualTo(1));
+            Assert.That(HistoryObjectId(apiConnection), Is.EqualTo(20));
+            Assert.That(HistoryChangeText(apiConnection),
+                Is.EqualTo("Partially materialized effective request state before failure"));
+            Assert.That(SnapshotElementValue(HistoryOldSnapshot(apiConnection), 201, "IpString"),
+                Is.EqualTo("10.0.0.10"));
+            Assert.That(SnapshotElementValue(HistoryNewSnapshot(apiConnection), 201, "IpString"),
+                Is.EqualTo("10.0.1.10"));
+        });
+    }
+
+    [Test]
+    public void MaterializeEffectiveRequestState_ResponseFailsAfterSecondCommit_AuditsBothAppliedRows()
+    {
+        WfTicket ticket = CreateTicket();
+        MaterializationApiConnection apiConnection = new(ticket) { ThrowAfterCommitOnUpdateCall = 2 };
+        WfDbAccess dbAccess = CreateDbAccess(apiConnection);
+
+        EffectiveRequestStateMaterializationException exception = Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(
+            async () => await dbAccess.MaterializeEffectiveRequestState(ticket, Target(20)))!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.PersistenceFailure));
+            Assert.That(exception.InnerException, Is.SameAs(apiConnection.UpdateFailure));
+            Assert.That(ElementIp(apiConnection.CopyStoredTicket(), 201), Is.EqualTo("10.0.1.10"));
+            Assert.That(ElementIp(apiConnection.CopyStoredTicket(), 202), Is.EqualTo("10.0.1.11"));
+            Assert.That(apiConnection.HistoryVariables, Has.Count.EqualTo(1));
+            Assert.That(HistoryObjectId(apiConnection), Is.EqualTo(20));
+            Assert.That(HistoryChangeText(apiConnection),
+                Is.EqualTo("Partially materialized effective request state before failure"));
+            Assert.That(SnapshotElementValue(HistoryNewSnapshot(apiConnection), 201, "IpString"),
+                Is.EqualTo("10.0.1.10"));
+            Assert.That(SnapshotElementValue(HistoryNewSnapshot(apiConnection), 202, "IpString"),
+                Is.EqualTo("10.0.1.11"));
+        });
+    }
+
+    [Test]
+    public void MaterializeEffectiveRequestState_MultiTaskFailure_AuditsOnlyAppliedPlannedTask()
+    {
+        WfTicket ticket = CreateMultiTaskTicket();
+        MaterializationApiConnection apiConnection = new(ticket)
+        {
+            FailBeforeCommitOnUpdateCall = 2,
+            MutateUnplannedElementOnReadback = true
+        };
+        WfDbAccess dbAccess = CreateDbAccess(apiConnection);
+
+        Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(async () =>
+            await dbAccess.MaterializeEffectiveRequestState(ticket, Target(20, 30)));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(apiConnection.HistoryVariables.Select((_, index) => HistoryObjectId(apiConnection, index)).ToList(),
+                Is.EqualTo(Target(20)));
+            Assert.That(apiConnection.HistoryVariables, Has.Count.EqualTo(1));
+            Assert.That(ElementIp(apiConnection.CopyStoredTicket(), 101), Is.EqualTo("203.0.113.99"));
+            Assert.That(ElementIp(apiConnection.CopyStoredTicket(), 301), Is.EqualTo("10.0.0.10"));
         });
     }
 
@@ -109,7 +197,9 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         Assert.Multiple(() =>
         {
             Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.ReadbackMismatch));
-            Assert.That(apiConnection.HistoryVariables, Is.Empty);
+            Assert.That(apiConnection.HistoryVariables, Has.Count.EqualTo(1));
+            Assert.That(HistoryChangeText(apiConnection),
+                Is.EqualTo("Partially materialized effective request state before failure"));
         });
     }
 
@@ -126,7 +216,13 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         EffectiveRequestStateMaterializationException exception = Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(
             async () => await dbAccess.MaterializeEffectiveRequestState(ticket, Target(20)))!;
 
-        Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.ReadbackMismatch));
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.ReadbackMismatch));
+            Assert.That(apiConnection.HistoryVariables, Has.Count.EqualTo(1));
+            Assert.That(HistoryChangeText(apiConnection),
+                Is.EqualTo("Partially materialized effective request state before failure"));
+        });
     }
 
     [Test]
@@ -211,6 +307,21 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         return ticket;
     }
 
+    private static WfTicket CreateMultiTaskTicket()
+    {
+        WfTicket ticket = CreateTicket();
+        ticket.Tasks.Add(new WfReqTask
+        {
+            Id = 30,
+            TicketId = 100,
+            TaskNumber = 4,
+            TaskType = WfTaskType.group_create.ToString(),
+            Elements = [ReferencingElement(301, 10, 30)]
+        });
+        ticket.UpdateCidrsInTaskElements();
+        return ticket;
+    }
+
     private static WfReqTask ObjectTask(long id, int taskNumber, string name, string ip)
     {
         return new WfReqTask
@@ -234,12 +345,12 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         };
     }
 
-    private static WfReqElement ReferencingElement(long id, long objectTaskId)
+    private static WfReqElement ReferencingElement(long id, long objectTaskId, long taskId = 20)
     {
         return new WfReqElement
         {
             Id = id,
-            TaskId = 20,
+            TaskId = taskId,
             Field = ElemFieldType.source.ToString(),
             RequestAction = RequestAction.create.ToString(),
             ObjectTaskId = objectTaskId,
@@ -267,31 +378,58 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         return [.. queries];
     }
 
-    private static object? HistoryValue(object variables, string propertyName)
+    private static object? HistoryValue(object? variables, string propertyName)
     {
+        if (variables is null)
+        {
+            return null;
+        }
         PropertyInfo? property = variables.GetType().GetProperty(propertyName);
-        Assert.That(property, Is.Not.Null);
-        return property!.GetValue(variables);
+        return property?.GetValue(variables);
     }
 
     private static string? HistoryChangeText(MaterializationApiConnection apiConnection, int index = 0)
     {
-        return HistoryValue(apiConnection.HistoryVariables[index], "changeText")?.ToString();
+        return HistoryValue(HistoryVariablesAt(apiConnection, index), "changeText")?.ToString();
     }
 
     private static long HistoryObjectId(MaterializationApiConnection apiConnection, int index = 0)
     {
-        return Convert.ToInt64(HistoryValue(apiConnection.HistoryVariables[index], "objectId"));
+        return Convert.ToInt64(HistoryValue(HistoryVariablesAt(apiConnection, index), "objectId"));
     }
 
     private static object? HistoryOldSnapshot(MaterializationApiConnection apiConnection, int index = 0)
     {
-        return HistoryValue(apiConnection.HistoryVariables[index], "oldData");
+        return HistoryValue(HistoryVariablesAt(apiConnection, index), "oldData");
     }
 
     private static object? HistoryNewSnapshot(MaterializationApiConnection apiConnection, int index = 0)
     {
-        return HistoryValue(apiConnection.HistoryVariables[index], "newData");
+        return HistoryValue(HistoryVariablesAt(apiConnection, index), "newData");
+    }
+
+    private static object? HistoryVariablesAt(MaterializationApiConnection apiConnection, int index)
+    {
+        return index < apiConnection.HistoryVariables.Count ? apiConnection.HistoryVariables[index] : null;
+    }
+
+    private static object? SnapshotElementValue(object? snapshot, long elementId, string propertyName)
+    {
+        if (snapshot is null)
+        {
+            return null;
+        }
+        PropertyInfo? elementsProperty = snapshot?.GetType().GetProperty("Elements");
+        IEnumerable? elements = elementsProperty?.GetValue(snapshot) as IEnumerable;
+        object? element = elements?.Cast<object>().SingleOrDefault(candidate =>
+            Convert.ToInt64(candidate.GetType().GetProperty("Id")?.GetValue(candidate)) == elementId);
+        return element?.GetType().GetProperty(propertyName)?.GetValue(element);
+    }
+
+    private static string? ElementIp(WfTicket ticket, long elementId)
+    {
+        return ticket.Tasks.SelectMany(task => task.Elements).Single(element => element.Id == elementId)
+            .IpString?.StripOffUnnecessaryNetmask();
     }
 
     private static string? ResultIp(WfTicket ticket, int elementIndex)
@@ -322,6 +460,7 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         internal bool ReturnStaleReadback { get; set; }
         internal bool RemoveChangedElementOnReadback { get; set; }
         internal bool ChangeTaskTypeOnReadback { get; set; }
+        internal bool MutateUnplannedElementOnReadback { get; set; }
         internal Exception UpdateFailure { get; } = new InvalidOperationException("Simulated materialization update failure.");
         internal Exception ReadbackFailure { get; } = new InvalidOperationException("Simulated strict readback failure.");
         internal Exception HistoryFailure { get; } = new InvalidOperationException("Simulated history insertion failure.");
@@ -371,6 +510,13 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
                 if (ChangeTaskTypeOnReadback)
                 {
                     storedTicket.Tasks.Single(task => task.Id == 20).TaskType = WfTaskType.rule_modify.ToString();
+                }
+                if (MutateUnplannedElementOnReadback)
+                {
+                    WfReqElement unrelated = storedTicket.Tasks.Single(task => task.Id == 10).Elements.Single();
+                    unrelated.IpString = "203.0.113.99";
+                    unrelated.Name = "concurrent-unplanned-change";
+                    storedTicket.UpdateCidrsInTaskElements();
                 }
                 WfTicket ticket = ReturnStaleReadback ? CopyTicket(originalTicket) : CopyTicket(storedTicket);
                 return Task.FromResult(Cast<QueryResponseType>(ticket));

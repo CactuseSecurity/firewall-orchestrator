@@ -1,3 +1,4 @@
+import tempfile
 import threading
 from pathlib import Path
 from typing import Any, Protocol
@@ -5,6 +6,7 @@ from typing import Any, Protocol
 import fwo_log
 import pytest
 from fwo_log import FileLockModule, FWOLogger, LogLock
+from test import TEST_LOG_LOCK_DIR
 
 LogEvent = str | tuple[str, str, int] | tuple[str, str, Any, int]
 
@@ -86,6 +88,17 @@ def test_logger_initialization_starts_log_lock(monkeypatch: pytest.MonkeyPatch) 
     FWOLogger(1)
 
     assert start_calls == ["started"]
+
+
+def test_session_log_lock_thread_watches_private_lock_file() -> None:
+    # test/__init__.py starts the FWOLogLock thread for the whole session. It must not poll the
+    # production lock file, which a log swap on an installed FWO host writes to while the tests run.
+    session_lock_file = Path(LogLock.lock_file_path)
+
+    assert LogLock.lock_thread is not None
+    assert LogLock.lock_thread.is_alive()
+    assert session_lock_file.parent == TEST_LOG_LOCK_DIR
+    assert Path(tempfile.gettempdir()) in session_lock_file.parents
 
 
 def test_log_lock_file_transactions_use_flock(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

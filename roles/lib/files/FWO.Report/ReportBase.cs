@@ -9,6 +9,7 @@ using FWO.Report.Data;
 using FWO.Report.Filter;
 using FWO.Services;
 using FWO.Services.RuleTreeBuilder;
+using System.Globalization;
 using System.Text;
 using System.Reflection;
 using PuppeteerSharp;
@@ -404,7 +405,7 @@ namespace FWO.Report
             }
             try
             {
-                return DateTime.Parse(timestring).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK");
+                return DateTime.Parse(timestring, CultureInfo.InvariantCulture).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK");
             }
             catch (FormatException)
             {

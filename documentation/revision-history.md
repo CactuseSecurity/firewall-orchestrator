@@ -1,6 +1,7 @@
 # Firewall Orchestrator Revision History
 
 ## 9.9.4 - 17.11.2026
+- middleware REST API: `Rule/GetRulesByFilter` accepts `RuleUid` as an exact third selector alongside `OwnerId` and `IpAddress`; all current non-removed matches are ordered by rule ID and use the existing paging and SIEM logging behavior
 - request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket
   - a request task of a management with the implementation mode external ticket system is handed to Tufin SecureChange as a whole; implementation tasks with mode automatic are written directly to the firewall with the firewall write library (`ext_request.impltask_id`)
   - offered as a button, implementation tasks on targets set to manual are written as well within the scope of the action (ticket or request task); on an implementation task it writes only this one task

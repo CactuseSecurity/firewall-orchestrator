@@ -9,7 +9,7 @@ namespace FWO.Test
     /// Guards the least-privilege contract between effective-state materialization and Hasura metadata.
     /// </summary>
     [TestFixture]
-    internal class EffectiveRequestStatePermissionTest
+    internal partial class EffectiveRequestStatePermissionTest
     {
         private const string kMutationFileName = "updateEffectiveRequestElementSnapshot.graphql";
         private const string kMiddlewareServerRole = "middleware-server";
@@ -123,13 +123,18 @@ namespace FWO.Test
             string mutationPath = Path.Combine(graphQlRoot, "request", kMutationFileName);
             Assert.That(File.Exists(mutationPath), Is.True, $"The dedicated mutation is missing at '{mutationPath}'.");
             string mutation = File.ReadAllText(mutationPath);
-            Match setBlock = Regex.Match(mutation, @"_set\s*:\s*\{(?<body>[^}]*)\}");
+            Match setBlock = MutationSetBlockRegex().Match(mutation);
             Assert.That(setBlock.Success, Is.True, "The dedicated mutation has no literal _set block.");
-            return Regex.Matches(setBlock.Groups["body"].Value,
-                    @"(?m)^\s*(?<field>[A-Za-z_][A-Za-z0-9_]*)\s*:")
+            return MutationSetColumnRegex().Matches(setBlock.Groups["body"].Value)
                 .Select(match => match.Groups["field"].Value)
                 .ToList();
         }
+
+        [GeneratedRegex(@"_set\s*:\s*\{(?<body>[^}]*)\}")]
+        private static partial Regex MutationSetBlockRegex();
+
+        [GeneratedRegex(@"(?m)^\s*(?<field>[A-Za-z_][A-Za-z0-9_]*)\s*:")]
+        private static partial Regex MutationSetColumnRegex();
 
         private List<string> ReadMiddlewareServerWritableColumns()
         {

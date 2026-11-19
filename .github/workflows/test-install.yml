@@ -152,7 +152,7 @@ jobs:
       # directory up, not from the project. From the checkout it would build with the newest SDK of
       # the runner image, which on Ubuntu 22.04 shares /usr/share/dotnet with the installer's
       # dotnet-install fallback and includes a newer major SDK than FWO supports.
-      - name: Run JWT refresh integration tests
+      - name: Run installed API integration tests
         working-directory: /usr/local/fworch/test/csharp/FWO.Test
         run: |
           sudo -u fworch env \
@@ -160,9 +160,9 @@ jobs:
             FWO_RUN_INTEGRATION_TESTS=true \
             FWO_TEST_USERNAME=integration_user_jwt_refresh_test \
             FWO_TEST_PASSWORD=testpassword \
-            dotnet test FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest" --blame-hang-timeout 5m --blame-hang-dump-type none
+            dotnet test FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest|FullyQualifiedName~EffectiveRequestStateMutationIntegrationTest" --blame-hang-timeout 5m --blame-hang-dump-type none
 
-      - name: Collect middleware diagnostics after JWT test failure
+      - name: Collect middleware diagnostics after installed API test failure
         if: ${{ failure() && steps.version.outcome != 'failure' }}
         run: |
           sudo systemctl status fworch-middleware --no-pager || true

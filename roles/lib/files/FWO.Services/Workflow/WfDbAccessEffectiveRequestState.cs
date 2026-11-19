@@ -33,11 +33,9 @@ public partial class WfDbAccess
         }
         ValidatePlanForPersistence(plan);
 
-        bool persistenceBegan = false;
         WfTicket? readback = null;
         try
         {
-            persistenceBegan = true;
             foreach (WfReqElement element in plan.ChangedElements)
             {
                 await PersistEffectiveRequestElement(element);
@@ -52,10 +50,7 @@ public partial class WfDbAccess
         }
         catch
         {
-            if (persistenceBegan)
-            {
-                await RecoverEffectiveStateHistory(ticket, plan, readback);
-            }
+            await RecoverEffectiveStateHistory(ticket, plan, readback);
             throw;
         }
     }

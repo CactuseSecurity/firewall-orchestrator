@@ -6,10 +6,11 @@ from typing import Any
 from fw_modules.checkpointR8x import cp_const
 from fwo_const import ANY_IP_PROTOCOL_ID, LIST_DELIMITER
 from fwo_exceptions import FwoImporterErrorInconsistenciesError
+from services.port_range import parse_port_range
 
 
 # collect_svcobjects writes svc info into global users dict
-def collect_svc_objects(object_table: dict[str, Any], svc_objects: list[dict[str, Any]]):
+def collect_svc_objects(object_table: dict[str, Any], svc_objects: list[dict[str, Any]]) -> None:
     if object_table["type"] in cp_const.svc_obj_table_names:
         typ = "undef"
         if object_table["type"] in cp_const.group_svc_obj_types:
@@ -30,6 +31,8 @@ def collect_svc_objects(object_table: dict[str, Any], svc_objects: list[dict[str
                             "svc_typ": typ,
                             "svc_port": obj["port"],
                             "svc_port_end": obj["port_end"],
+                            "svc_source_port": obj["source_port"],
+                            "svc_source_port_end": obj["source_port_end"],
                             "svc_member_refs": obj["svc_member_refs"],
                             "svc_member_names": None,
                             "ip_proto": obj["proto"],
@@ -39,7 +42,7 @@ def collect_svc_objects(object_table: dict[str, Any], svc_objects: list[dict[str
                     )
 
 
-def _set_default_values(obj: dict[str, Any]):
+def _set_default_values(obj: dict[str, Any]) -> None:
     """
     Set default values for color, comments, and domain_uid.
     """
@@ -133,6 +136,10 @@ def collect_single_svc_object(obj: dict[str, Any]) -> None:
     obj["rpc_nr"] = _get_rpc_number(obj)
 
     obj["port"], obj["port_end"] = normalize_port(obj)
+    source: object = obj.get("source-port")
+    obj["source_port"], obj["source_port_end"] = (
+        parse_port_range(str(source)) if source is not None and str(source).strip() else (None, None)
+    )
     _set_default_values(obj)
 
 

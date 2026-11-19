@@ -56,9 +56,10 @@ class AsaNetworkObjectGroupMember(BaseModel):
 
 class AsaServiceObject(BaseModel):
     name: str
-    protocol: Literal["tcp", "udp", "ip", "tcp-udp", "icmp", "gre"]
+    protocol: Literal["tcp", "udp", "ip", "tcp-udp", "sctp", "icmp", "gre"]
     dst_port_eq: str | None = None
     dst_port_range: tuple[str, str] | None = None
+    src_port: EndpointKind | None = None
     description: str | None = None
 
 
@@ -70,6 +71,7 @@ class AsaServiceObjectGroup(BaseModel):
     nested_refs: list[str]
     protocols: list[str]
     description: str | None
+    services: list[AsaServiceObject] = []
 
 
 class AsaProtocolGroup(BaseModel):
@@ -104,12 +106,12 @@ class AccessListEntry(BaseModel):
     action: Literal["permit", "deny"]
     protocol: EndpointKind  # Changed to use EndpointKind for kind and value
     src: EndpointKind
-    src_port: str | None = None  # source port construct as written, e.g. "eq 1024"; not yet imported into the rule
     dst: EndpointKind
     dst_port: EndpointKind  # Changed to use EndpointKind for kind and value
     inactive: bool = False  # Added field for inactive flag
     description: str | None = None
     time_range: str | None = None  # name of the time-range restricting when the entry applies
+    src_port: EndpointKind | None = None
 
 
 class AccessList(BaseModel):

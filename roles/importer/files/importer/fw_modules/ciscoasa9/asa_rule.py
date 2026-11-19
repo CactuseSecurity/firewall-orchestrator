@@ -15,6 +15,7 @@ from fw_modules.ciscoasa9.asa_service import (
     create_service_for_protocol_entry,
     restrict_service_to_protocol,
 )
+from fw_modules.ciscoasa9.asa_source_port import restrict_source_ports
 from fwo_log import FWOLogger
 from models.networkobject import NetworkObject
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
@@ -138,6 +139,8 @@ def create_rule_from_acl_entry(
 
     # Resolve service reference
     svc_ref = resolve_service_reference_for_rule(entry, protocol_groups, service_objects)
+    if entry.src_port is not None:
+        svc_ref = restrict_source_ports(svc_ref, entry.src_port, service_objects)
 
     # Resolve source and destination references
     src_ref = resolve_network_reference_for_rule(entry.src, network_objects)

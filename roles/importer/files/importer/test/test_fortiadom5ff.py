@@ -277,7 +277,7 @@ def test_normalize_service_object_uses_any_protocol_for_protocol_zero_service():
     ]
 
 
-def test_normalize_service_object_preserves_ports_for_all_named_service():
+def test_normalize_service_object_preserves_ports_for_all_named_service() -> None:
     service_objects: list[dict[str, object]] = []
 
     normalize_service_object({"name": "ALL", "protocol": 5, "tcp-portrange": ["443"]}, service_objects)
@@ -292,6 +292,8 @@ def test_normalize_service_object_preserves_ports_for_all_named_service():
             "ip_proto": 6,
             "svc_port": "443",
             "svc_port_end": "443",
+            "svc_source_port": None,
+            "svc_source_port_end": None,
             "svc_member_refs": None,
             "svc_member_names": None,
             "svc_timeout": None,

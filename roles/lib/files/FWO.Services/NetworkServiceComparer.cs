@@ -6,6 +6,8 @@ namespace FWO.Services
 {
     public class NetworkServiceComparer(RuleRecognitionOption option) : IEqualityComparer<NetworkService?>
     {
+        private const int kLowestUsableSourcePort = 1;
+
         public bool Equals(NetworkService? service1, NetworkService? service2)
         {
             if (ReferenceEquals(service1, service2))
@@ -27,7 +29,8 @@ namespace FWO.Services
             int destPortEnd2 = service2.DestinationPortEnd ?? service2.DestinationPort ?? 0;
 
             return (!option.SvcRegardPortAndProt || (service1.ProtoId == service2.ProtoId &&
-                    service1.DestinationPort == service2.DestinationPort && destPortEnd1 == destPortEnd2))
+                    service1.DestinationPort == service2.DestinationPort && destPortEnd1 == destPortEnd2 &&
+                    EffectiveSourceRange(service1) == EffectiveSourceRange(service2)))
                 && (!option.SvcRegardName || service1.Name == service2.Name);
         }
 
@@ -40,8 +43,27 @@ namespace FWO.Services
                     ^ (option.SvcRegardName ? HashCode.Combine(service.Name) : 0);
             }
             int destPortEnd = service.DestinationPortEnd ?? service.DestinationPort ?? 0;
-            return (option.SvcRegardPortAndProt ? HashCode.Combine(service.ProtoId, service.DestinationPort, destPortEnd) : 0)
+            return (option.SvcRegardPortAndProt ? HashCode.Combine(service.ProtoId, service.DestinationPort, destPortEnd, EffectiveSourceRange(service)) : 0)
                 ^ (option.SvcRegardName ? HashCode.Combine(service.Name) : 0);
+        }
+
+        /// <summary>
+        /// Returns the source port range a service is restricted to, or null if source ports are unrestricted.
+        /// A range covering all usable source ports counts as unrestricted, as importers map "any" to 1-65535.
+        /// </summary>
+        private static (int Start, int End)? EffectiveSourceRange(NetworkService service)
+        {
+            if (service.SourcePort == null)
+            {
+                return null;
+            }
+            int start = service.SourcePort.Value;
+            int end = service.SourcePortEnd ?? start;
+            if (start <= kLowestUsableSourcePort && end >= GlobalConst.kMaxPortNumber)
+            {
+                return null;
+            }
+            return (start, end);
         }
 
         private static bool IsProtType(int? protoId)

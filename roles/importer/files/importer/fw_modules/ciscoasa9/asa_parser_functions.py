@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from fw_modules.ciscoasa9.asa_acl_parser import AsaConfigParseError, parse_port_operator
 from fw_modules.ciscoasa9.asa_models import (
     AsaNetworkObject,
     AsaNetworkObjectGroup,
@@ -11,6 +12,7 @@ from fw_modules.ciscoasa9.asa_models import (
     AsaServiceObjectGroup,
     ClassMap,
     DnsInspectParameters,
+    EndpointKind,
     InspectionAction,
     Interface,
     NatRule,
@@ -257,6 +259,10 @@ def parse_service_object_block(block: list[str]) -> AsaServiceObject | None:
     prange = None
     desc = _find_description(block[1:])
 
+    for definition in block[1:]:
+        if definition.strip().lower().startswith("service ") and "source" in definition.lower().split():
+            return _parse_port_service(name, definition.strip().split()[1:], desc)
+
     for b in block[1:]:
         s = b.strip()
         # e.g., "service tcp destination eq 1234"
@@ -281,6 +287,35 @@ def parse_service_object_block(block: list[str]) -> AsaServiceObject | None:
         return None  # unsupported protocol
 
     return AsaServiceObject(name=name, protocol=protocol, dst_port_eq=eq, dst_port_range=prange, description=desc)
+
+
+def _parse_port_service(name: str, parts: list[str], description: str | None) -> AsaServiceObject:
+    """Read both halves of an ASA transport service without dropping unrecognized tokens."""
+    protocol = parts[0].lower()
+    if protocol not in ("tcp", "udp", "tcp-udp", "sctp"):
+        raise AsaConfigParseError(f"Source ports require a transport protocol in service '{name}'")
+    source: EndpointKind | None = None
+    destination: EndpointKind | None = None
+    position = 1
+    if position < len(parts) and parts[position].lower() == "source":
+        source, position = parse_port_operator(parts, position + 1)
+    if position < len(parts) and parts[position].lower() == "destination":
+        destination, position = parse_port_operator(parts, position + 1)
+    if position != len(parts):
+        raise AsaConfigParseError(f"Unsupported service definition '{' '.join(parts)}'", position)
+    eq = destination.value if destination is not None and destination.kind == "eq" else None
+    port_range = None
+    if destination is not None and destination.kind == "range":
+        start, end = destination.value.split()
+        port_range = (start, end)
+    return AsaServiceObject(
+        name=name,
+        protocol=protocol,
+        src_port=source,
+        dst_port_eq=eq,
+        dst_port_range=port_range,
+        description=description,
+    )
 
 
 def _convert_ports_to_dicts(
@@ -399,12 +434,19 @@ def parse_service_object_group_block(block: list[str]) -> AsaServiceObjectGroup:
     ports_range: list[tuple[str, tuple[str, str]]] = []
     nested_refs: list[str] = []
     protocols: list[str] = []
+    services: list[AsaServiceObject] = []
+    remaining = list(block[1:])
+    for definition in list(remaining):
+        parts = definition.strip().split()
+        if parts and parts[0].lower() == "service-object" and "source" in [part.lower() for part in parts]:
+            services.append(_parse_port_service(name, parts[1:], None))
+            remaining.remove(definition)
 
     if proto_mode:
-        ports_eq, ports_range = _consume_port_objects(block[1:], proto_mode)
+        ports_eq, ports_range = _consume_port_objects(remaining, proto_mode)
     else:
-        ports_eq, ports_range, protocols = _consume_service_definitions(block[1:])
-    nested_refs = _consume_service_references(block[1:])
+        ports_eq, ports_range, protocols = _consume_service_definitions(remaining)
+    nested_refs = _consume_service_references(remaining)
 
     # Convert port lists to dictionaries using helper function
     ports_eq_dict, ports_range_dict = _convert_ports_to_dicts(ports_eq, ports_range)
@@ -417,6 +459,7 @@ def parse_service_object_group_block(block: list[str]) -> AsaServiceObjectGroup:
         nested_refs=nested_refs,
         protocols=protocols,
         description=desc,
+        services=services,
     )
 
 

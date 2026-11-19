@@ -28,7 +28,6 @@ if TYPE_CHECKING:
     from models.fwconfig_normalized import FwConfigNormalized
     from models.networkobject import NetworkObject
     from models.serviceobject import ServiceObject
-    from pytest_mock import MockerFixture
 
 FIXTURE_CONFIG = Path(__file__).resolve().parents[1] / "fw_modules" / "ciscoasa9" / "test_asa.conf"
 FIXTURE_ACL_LINES = 27
@@ -116,7 +115,7 @@ def test_destination_ports_keep_their_meaning(service: str, expected: EndpointKi
         ),
         (f"{ACL_PREFIX} tcp any eq 1024 any", endpoint("any", "any"), endpoint("any", "any"), endpoint("any", "any")),
         (
-            f"{ACL_PREFIX} udp any neq ntp host 198.51.100.1 eq ntp",
+            f"{ACL_PREFIX} udp any eq ntp host 198.51.100.1 eq ntp",
             endpoint("any", "any"),
             endpoint("host", "198.51.100.1"),
             endpoint("eq", "ntp"),
@@ -129,7 +128,7 @@ def test_destination_ports_keep_their_meaning(service: str, expected: EndpointKi
         ),
     ],
 )
-def test_source_ports_are_ignored(
+def test_source_port_does_not_consume_destination(
     line: str, expected_src: EndpointKind, expected_dst: EndpointKind, expected_dst_port: EndpointKind
 ) -> None:
     entry: AccessListEntry = parse(line)
@@ -139,49 +138,28 @@ def test_source_ports_are_ignored(
     assert entry.dst_port == expected_dst_port
 
 
-def test_source_port_is_kept_as_written() -> None:
-    assert parse(f"{ACL_PREFIX} tcp any range 7937 10000 any").src_port == "range 7937 10000"
-    assert parse(f"{ACL_PREFIX} tcp any object-group SVC_PORTS any").src_port == "object-group SVC_PORTS"
+def test_source_port_is_parsed() -> None:
+    assert parse(f"{ACL_PREFIX} tcp any range 7937 10000 any").src_port == endpoint("range", "7937 10000")
+    assert parse(f"{ACL_PREFIX} tcp any object-group SVC_PORTS any").src_port == endpoint("service-group", "SVC_PORTS")
     assert parse(f"{ACL_PREFIX} tcp any any eq 22").src_port is None
-    assert parse(f"{ACL_PREFIX} object-group PROTO_TCP any lt 1024 any").src_port == "lt 1024"
+    assert parse(f"{ACL_PREFIX} object-group PROTO_TCP any lt 1024 any").src_port == endpoint("range", "0 1023")
+    assert parse(f"{ACL_PREFIX} sctp any eq 5000 any").src_port == endpoint("eq", "5000")
 
 
 @pytest.mark.parametrize(
-    "source_port",
-    ["eq 1024", "neq ntp", "range 7937 10000", "object-group SVC_PORTS"],
+    ("source_port", "expected"),
+    [
+        ("eq 1024", endpoint("eq", "1024")),
+        ("range 7937 10000", endpoint("range", "7937 10000")),
+        ("object-group SVC_PORTS", endpoint("service-group", "SVC_PORTS")),
+    ],
 )
-def test_skipped_source_port_is_logged_as_warning(mocker: MockerFixture, source_port: str) -> None:
-    # the warning is the only signal that the imported rule is wider than the rule on the device
-    warning = mocker.patch("fw_modules.ciscoasa9.asa_acl_parser.FWOLogger.warning")
-    line = f"{ACL_PREFIX} tcp any {source_port} any"
+def test_source_ports_in_deny_entries_are_kept(source_port: str, expected: EndpointKind) -> None:
+    # source ports are imported, so a deny entry is not widened to all source ports
+    entry: AccessListEntry = parse(f"access-list ACL extended deny tcp any {source_port} any")
 
-    parse(line)
-
-    warning.assert_called_once()
-    message: str = warning.call_args.args[0]
-    assert f"'{source_port}'" in message
-    assert f"'{line}'" in message
-
-
-def test_entry_without_source_port_logs_no_warning(mocker: MockerFixture) -> None:
-    warning = mocker.patch("fw_modules.ciscoasa9.asa_acl_parser.FWOLogger.warning")
-
-    parse(f"{ACL_PREFIX} tcp any any eq 22")
-
-    warning.assert_not_called()
-
-
-@pytest.mark.parametrize(
-    "source_port",
-    ["eq 1024", "neq ntp", "range 7937 10000", "object-group SVC_PORTS"],
-)
-def test_source_ports_in_deny_entries_fail_closed(source_port: str) -> None:
-    # a deny widened to all source ports would hide traffic the firewall permits
-    with pytest.raises(AsaConfigParseError) as raised:
-        parse(f"access-list ACL extended deny tcp any {source_port} any")
-
-    assert raised.value.token_position == 6
-    assert f"unsupported source port '{source_port}' in deny entry" in raised.value.reason
+    assert entry.action == "deny"
+    assert entry.src_port == expected
 
 
 def test_icmp_type_is_kept_instead_of_widening_to_any_icmp() -> None:
@@ -256,14 +234,14 @@ def test_line_number_and_deny_are_parsed() -> None:
         (f"{ACL_PREFIX} tcp any range 1000", 8, "end port of range is expected"),
         (f"{ACL_PREFIX} tcp any eq", 7, "port after 'eq' is expected"),
         (f"{ACL_PREFIX} tcp any eq nosuchport any", 7, "unknown port 'nosuchport'"),
-        (f"{ACL_PREFIX} tcp any neq nosuchport any", 7, "unknown port 'nosuchport'"),
+        (f"{ACL_PREFIX} tcp any neq 1024 any", 6, "unsupported port operator 'neq 1024'"),
         (f"{ACL_PREFIX} tcp any eq 99999 any", 7, "port '99999' out of range"),
         (f"{ACL_PREFIX} tcp any range 2000 1000 any", 6, "port range '2000 1000' ends before it starts"),
         (f"{ACL_PREFIX} tcp any lt 0 any", 6, "port range 'lt 0' is empty"),
         (f"{ACL_PREFIX} tcp any gt 65535 any", 6, "port range 'gt 65535' is empty"),
-        (f"{ACL_PREFIX} ip any eq 80 any", 6, "source port 'eq 80' requires protocol tcp or udp"),
-        (f"{ACL_PREFIX} icmp any eq 80 any", 6, "source port 'eq 80' requires protocol tcp or udp"),
-        (f"{ACL_PREFIX} ip any object-group SVC_PORTS any", 6, "requires protocol tcp or udp"),
+        (f"{ACL_PREFIX} ip any eq 80 any", 6, "source port 'eq 80' requires protocol tcp, udp or sctp"),
+        (f"{ACL_PREFIX} icmp any eq 80 any", 6, "source port 'eq 80' requires protocol tcp, udp or sctp"),
+        (f"{ACL_PREFIX} ip any object-group SVC_PORTS any", 6, "requires protocol tcp, udp or sctp"),
         (f"{ACL_PREFIX} tcp any any neq 80", 7, "unsupported port operator 'neq 80'"),
         (f"{ACL_PREFIX} tcp any any lt 0", 7, "is empty"),
         (f"{ACL_PREFIX} tcp any any gt 65535", 7, "is empty"),
@@ -323,7 +301,7 @@ def test_interface_inside_entry_stops_the_config_parse_with_its_line_number() ->
 
 def test_no_entry_is_silently_dropped() -> None:
     config: str = (
-        "access-list OUTSIDE_IN extended deny tcp any eq 1024 any\naccess-list OUTSIDE_IN extended permit ip any any\n"
+        "access-list OUTSIDE_IN extended deny tcp any neq 1024 any\naccess-list OUTSIDE_IN extended permit ip any any\n"
     )
 
     with pytest.raises(AsaConfigParseError):

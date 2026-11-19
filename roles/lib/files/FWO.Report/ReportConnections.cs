@@ -244,6 +244,9 @@ namespace FWO.Report
             report.AppendLine("</tr>");
         }
 
+        /// <summary>
+        /// Appends encoded service details with both port ranges.
+        /// </summary>
         protected void AppendNetworkServicesHtml(List<NetworkService> networkServices, int chapterNumber, ref StringBuilder report)
         {
             if (networkServices.Count > 0)
@@ -258,7 +261,8 @@ namespace FWO.Report
                     report.AppendLine($"<td>{svc.Id}</td>");
                     report.AppendLine($"<td><a name=\"{ObjCatString.Svc}{chapterNumber}x{svc.Id}\">{HtmlOutputEncoder.EncodeText(svc.Name)}</a></td>");
                     report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(svc.Protocol?.Name)}</td>");
-                    report.AppendLine($"<td>{svc.DestinationPort}</td>");
+                    report.AppendLine($"<td>{DisplayBase.DisplayPort(svc.SourcePort, svc.SourcePortEnd)}</td>");
+                    report.AppendLine($"<td>{DisplayBase.DisplayPort(svc.DestinationPort, svc.DestinationPortEnd)}</td>");
                     report.AppendLine(DisplayBase.MemberNamesAsHtml(svc.MemberNames));
                 }
                 report.AppendLine("</table>");
@@ -273,7 +277,8 @@ namespace FWO.Report
             report.AppendLine($"<th>{userConfig.GetText("id")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("name")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("protocol")}</th>");
-            report.AppendLine($"<th>{userConfig.GetText("port")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("source_port")}</th>");
+            report.AppendLine($"<th>{userConfig.GetText("destination_port")}</th>");
             report.AppendLine($"<th>{userConfig.GetText("members")}</th>");
             report.AppendLine("</tr>");
         }

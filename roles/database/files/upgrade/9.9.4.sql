@@ -545,3 +545,36 @@ END $$;
 
 -- interval in minutes in which the middleware performs the state actions with event "While set"
 insert into config (config_key, config_value, config_user) VALUES ('whileSetActionSleepTime', '10', 0) ON CONFLICT DO NOTHING;
+
+-- config keys a user may set personally (properties marked [UserConfigData] in ConfigData.cs);
+-- all other config keys are global only (config_user 0)
+CREATE TABLE IF NOT EXISTS config_user_key
+(
+    config_key VARCHAR NOT NULL,
+    PRIMARY KEY (config_key)
+);
+
+INSERT INTO config_user_key (config_key) VALUES
+    ('maxMessages'),
+    ('elementsPerFetch'),
+    ('defaultManagementRulebaseView'),
+    ('unusedTolerance'),
+    ('creationTolerance'),
+    ('recertificationDisplayPeriod'),
+    ('minCollapseAllDevices'),
+    ('messageViewTime'),
+    ('overviewDisplayLines'),
+    ('modIconify'),
+    ('resolveNetworkAreas'),
+    ('reportingPersonalPreferredCollapseState')
+ON CONFLICT DO NOTHING;
+
+-- personal entries are only kept for keys that can be set personally
+DELETE FROM config WHERE config_user <> 0 AND config_key NOT IN (SELECT config_key FROM config_user_key);
+
+-- readers of global settings only read the global rows (config_user 0), as in fworch-views-materialized.sql;
+-- the view keeps its column, so the rule owner views that depend on it stay valid
+CREATE OR REPLACE VIEW v_rule_ownership_mode AS
+    SELECT c.config_value as mode FROM config c
+    WHERE c.config_key = 'ruleOwnershipMode' AND c.config_user = 0;
+    

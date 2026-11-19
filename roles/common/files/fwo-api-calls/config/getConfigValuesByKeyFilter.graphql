@@ -1,5 +1,5 @@
 query getConfigValuesByKeyFilter($keyFilter: String) {
-    config(where: {config_key: {_ilike: $keyFilter}}) {
+    config(where: {config_key: {_ilike: $keyFilter}, config_user: {_eq: 0}}) {
         config_key config_value 
     }
 }

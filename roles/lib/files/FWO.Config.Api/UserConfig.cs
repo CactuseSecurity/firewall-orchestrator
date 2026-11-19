@@ -6,8 +6,6 @@ using FWO.Config.Api.Data;
 using FWO.Api.Client;
 using FWO.Data;
 using FWO.Api.Client.Queries;
-using System.Reflection;
-using System.Text.Json.Serialization;
 
 namespace FWO.Config.Api
 {
@@ -110,19 +108,6 @@ namespace FWO.Config.Api
 
             Update(relevantChangedItems);
             InvokeOnChange(this, changedItems);
-        }
-
-        /// <summary>
-        /// Gets all config keys that can be overridden per user.
-        /// </summary>
-        private HashSet<string> GetUserConfigKeys()
-        {
-            return GetType().GetProperties()
-                .Where(prop => prop.GetCustomAttribute<UserConfigDataAttribute>() != null)
-                .Select(prop => prop.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name)
-                .Where(name => name != null)
-                .Cast<string>()
-                .ToHashSet();
         }
 
         /// <summary>

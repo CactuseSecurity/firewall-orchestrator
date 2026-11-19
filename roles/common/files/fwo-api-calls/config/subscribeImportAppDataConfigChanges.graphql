@@ -1,5 +1,5 @@
 subscription subscribeImportAppDataConfigChanges {
-  config (where: { _or: [
+  config (where: { config_user: {_eq: 0}, _or: [
     {config_key: {_eq: "importAppDataSleepTime"}}, 
     {config_key: {_eq: "importAppDataStartAt"}}, 
     {config_key: {_eq: "importAppDataPath"}}, 

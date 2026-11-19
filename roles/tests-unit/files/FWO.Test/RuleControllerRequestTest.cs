@@ -11,6 +11,24 @@ namespace FWO.Test
     [Parallelizable]
     internal class RuleControllerRequestTest
     {
+        private static readonly JsonSerializerOptions kWebJsonOptions = new(JsonSerializerDefaults.Web);
+
+        [Test]
+        public void RulesByFilterRequest_ShouldDeserializeRuleUidUsingWebJsonNaming()
+        {
+            const string json = """
+            {
+              "query": {
+                "ruleUid": "uid-4711"
+              }
+            }
+            """;
+
+            RulesByFilterRequest request = JsonSerializer.Deserialize<RulesByFilterRequest>(json, kWebJsonOptions)!;
+
+            Assert.That(request.Query.RuleUid, Is.EqualTo("uid-4711"));
+        }
+
         [Test]
         public void RulesByFilterRequest_ShouldIgnoreUnknownMappingField()
         {
@@ -61,8 +79,11 @@ namespace FWO.Test
             ClassicAssert.Throws<JsonException>(() => JsonSerializer.Deserialize<RulesByFilterRequest>(json));
         }
 
-        [Test]
-        public async Task GetRulesByFilter_ShouldRejectOwnerAndIpAddressTogether()
+        [TestCase(123, "10.1.2.3", null)]
+        [TestCase(123, null, "uid-4711")]
+        [TestCase(null, "10.1.2.3", "uid-4711")]
+        [TestCase(123, "10.1.2.3", "uid-4711")]
+        public async Task GetRulesByFilter_ShouldRejectMultipleSelectors(int? ownerId, string? ipAddress, string? ruleUid)
         {
             RuleController controller = new(new DummyApiConnection(), new SimulatedGlobalConfig());
 
@@ -71,8 +92,9 @@ namespace FWO.Test
                 {
                     Query = new RulesByFilterQuery
                     {
-                        OwnerId = 123,
-                        IpAddress = "10.1.2.3",
+                        OwnerId = ownerId,
+                        IpAddress = ipAddress,
+                        RuleUid = ruleUid,
                         Filter = new RuleFilter
                         {
                             MinPrefixLength = 16,
@@ -82,9 +104,31 @@ namespace FWO.Test
                     }
                 });
 
-            ClassicAssert.IsInstanceOf<BadRequestObjectResult>(result.Result);
-            ClassicAssert.AreEqual("Exactly one of OwnerId or IpAddress must be provided.",
-                ((BadRequestObjectResult)result.Result!).Value);
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result!).Value,
+                Is.EqualTo("Exactly one of OwnerId, IpAddress or RuleUid must be provided."));
+        }
+
+        [TestCase(null, null)]
+        [TestCase("", null)]
+        [TestCase(" ", "\t")]
+        public async Task GetRulesByFilter_ShouldRejectMissingOrBlankSelectors(string? ipAddress, string? ruleUid)
+        {
+            RuleController controller = new(new DummyApiConnection(), new SimulatedGlobalConfig());
+
+            ActionResult<RulesByFilterResponse> result = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = ipAddress,
+                        RuleUid = ruleUid
+                    }
+                });
+
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result!).Value,
+                Is.EqualTo("Either OwnerId, IpAddress or RuleUid must be provided."));
         }
 
         private sealed class DummyApiConnection : ApiConnection

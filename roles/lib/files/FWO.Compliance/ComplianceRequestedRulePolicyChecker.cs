@@ -108,9 +108,8 @@ namespace FWO.Compliance
                     $"Skipping request task {assessment.RequestTask.Id} because it contains elements that cannot be mapped to a technical rule.");
             }
 
-            return new RuleBuildResult(
-                [.. assessments.Where(assessment => assessment.MappedRule != null).Select(assessment => assessment.MappedRule!)],
-                assessments.Any(assessment => assessment.MappedRule == null));
+            List<Rule> mappedRules = [.. assessments.Where(assessment => assessment.MappedRule != null).Select(assessment => assessment.MappedRule!)];
+            return new RuleBuildResult(mappedRules, assessments.Any(assessment => assessment.MappedRule == null));
         }
 
         /// <summary>

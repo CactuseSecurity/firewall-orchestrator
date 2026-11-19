@@ -484,6 +484,8 @@
         if (!Display)
         {
             compliance.Reset();
+            // a retained component must not open the next ticket with the filter active
+            showOnlyNotAllowed = false;
             return;
         }
         await compliance.UpdateAsync(WfHandler);
@@ -535,11 +537,13 @@
 
     /// <summary>
     /// Whether the task group is displayed: with the filter for not allowed access tasks, access tasks are only displayed
-    /// if they are not allowed; other tasks are always displayed.
+    /// if they are not allowed; other tasks are always displayed. Without a configured policy check the filter button
+    /// is not offered, so the filter is ignored and nothing is hidden.
     /// </summary>
     private bool IsShown(List<WfReqTask> taskGroup)
     {
         return !showOnlyNotAllowed
+            || !compliance.IsConfigured
             || taskGroup.Count == 0
             || !IsAccessTask(taskGroup[0])
             || compliance.ComplianceOf(taskGroup)?.IsCompliant == false;

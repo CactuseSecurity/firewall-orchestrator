@@ -375,6 +375,41 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
     }
 
     [Test]
+    public async Task ApprovalTaskDetailsView_FilterIsResetWhenReopenedForTicketWithoutPolicyCheck()
+    {
+        await using BunitContext context = CreateListContext();
+        WfHandler configuredHandler = await CreateFilterHandler(context, 811);
+        IRenderedComponent<ApprovalTaskDetailsView> cut = RenderListView(context, configuredHandler);
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll(".approval-task-list-compliance"), Has.Count.EqualTo(2)));
+        cut.Find("button.approval-compliance-filter").Click();
+        Assert.That(GetMember<bool>(cut.Instance, "showOnlyNotAllowed"), Is.True);
+
+        cut.Render(parameters => parameters.Add(p => p.Display, false));
+        cut.Render(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, CreateHandler()));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(GetMember<bool>(cut.Instance, "showOnlyNotAllowed"), Is.False);
+            Assert.That(cut.FindAll(".approval-compliance-filter"), Is.Empty);
+            Assert.That(cut.Find(".approval-task-list[data-table=\"Access\"]").TextContent, Does.Contain("list access"));
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_ActiveFilterHidesNothingWithoutPolicyCheck()
+    {
+        await using BunitContext context = CreateListContext();
+        IRenderedComponent<ApprovalTaskDetailsView> cut = RenderListView(context, CreateHandler());
+
+        SetMember(cut.Instance, "showOnlyNotAllowed", true);
+        cut.Render();
+
+        Assert.That(cut.Find(".approval-task-list[data-table=\"Access\"]").TextContent, Does.Contain("list access"));
+    }
+
+    [Test]
     public async Task ApprovalTaskDetailsView_HidesFilterWithoutConditionalPolicyCheck()
     {
         await using BunitContext context = CreateListContext();

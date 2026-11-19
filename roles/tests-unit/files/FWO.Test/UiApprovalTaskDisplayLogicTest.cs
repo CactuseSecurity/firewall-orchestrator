@@ -435,7 +435,10 @@ internal class UiApprovalTaskDisplayLogicTest
             ]
         };
         WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [groupTask, accessTask] } };
-        ApprovalTaskDisplayLogic logic = new(handler, new SimulatedUserConfig(), [], [], [], kZones, mode);
+        List<RuleAction> ruleActions = [];
+        List<Tracking> trackings = [];
+        List<IpProtocol> ipProtocols = [];
+        ApprovalTaskDisplayLogic logic = new(handler, new SimulatedUserConfig(), ruleActions, trackings, ipProtocols, kZones, mode);
         List<WfReqTask> tasks = [accessTask];
 
         string sourceZones = string.Join(", ", logic.NetworkElementRows(tasks, ElemFieldType.source).Select(row => row.Zone));

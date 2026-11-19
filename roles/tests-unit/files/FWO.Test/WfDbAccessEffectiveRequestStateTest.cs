@@ -105,7 +105,7 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
             Assert.That(SnapshotElementValue(HistoryOldSnapshot(apiConnection), 201, "IpString"),
                 Is.EqualTo("10.0.0.10"));
             Assert.That(SnapshotElementValue(HistoryNewSnapshot(apiConnection), 201, "IpString"),
-                Is.EqualTo("10.0.1.10"));
+                Is.EqualTo("10.0.1.10/32"));
         });
     }
 
@@ -130,9 +130,9 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
             Assert.That(HistoryChangeText(apiConnection),
                 Is.EqualTo("Partially materialized effective request state before failure"));
             Assert.That(SnapshotElementValue(HistoryNewSnapshot(apiConnection), 201, "IpString"),
-                Is.EqualTo("10.0.1.10"));
+                Is.EqualTo("10.0.1.10/32"));
             Assert.That(SnapshotElementValue(HistoryNewSnapshot(apiConnection), 202, "IpString"),
-                Is.EqualTo("10.0.1.11"));
+                Is.EqualTo("10.0.1.11/32"));
         });
     }
 
@@ -235,6 +235,7 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         EffectiveRequestStateMaterializationException firstFailure = Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(
             async () => await dbAccess.MaterializeEffectiveRequestState(ticket, Target(20)))!;
         WfTicket partiallyWrittenTicket = apiConnection.CopyStoredTicket();
+        List<object> firstAttemptHistory = [.. apiConnection.HistoryVariables];
         apiConnection.PrepareRetry();
 
         WfTicket result = await dbAccess.MaterializeEffectiveRequestState(partiallyWrittenTicket, Target(20));
@@ -242,7 +243,13 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         Assert.Multiple(() =>
         {
             Assert.That(firstFailure.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.PersistenceFailure));
+            Assert.That(firstAttemptHistory, Has.Count.EqualTo(1));
+            Assert.That(HistoryValue(firstAttemptHistory[0], "objectId"), Is.EqualTo(20));
+            Assert.That(HistoryValue(firstAttemptHistory[0], "changeText"),
+                Is.EqualTo("Partially materialized effective request state before failure"));
             Assert.That(apiConnection.RetryUpdatedElementIds, Is.EqualTo(Target(202)));
+            Assert.That(apiConnection.HistoryVariables, Has.Count.EqualTo(1));
+            Assert.That(HistoryChangeText(apiConnection), Is.EqualTo("Materialized effective request state"));
             Assert.That(ResultIp(result, 0),
                 Is.EqualTo("10.0.1.10"));
             Assert.That(ResultIp(result, 1),

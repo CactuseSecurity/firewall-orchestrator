@@ -3,6 +3,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
+using FWO.Logging;
 
 namespace FWO.Services.Workflow;
 
@@ -32,17 +33,31 @@ public partial class WfDbAccess
         }
         ValidatePlanForPersistence(plan);
 
-        foreach (WfReqElement element in plan.ChangedElements)
+        bool persistenceBegan = false;
+        WfTicket? readback = null;
+        try
         {
-            await PersistEffectiveRequestElement(element);
-        }
+            persistenceBegan = true;
+            foreach (WfReqElement element in plan.ChangedElements)
+            {
+                await PersistEffectiveRequestElement(element);
+            }
 
-        WfTicket readback = await ReadTicketStrict(ticket.Id);
-        VerifyEffectiveRequestState(ticket, readback, targetTaskIds,
-            plan.ChangedTaskIds, plan.ChangedElements);
-        await LogEffectiveStateChanges(ticket, readback, plan.ChangedTaskIds,
-            EffectiveStateHistoryText);
-        return readback;
+            readback = await ReadTicketStrict(ticket.Id);
+            VerifyEffectiveRequestState(ticket, readback, targetTaskIds,
+                plan.ChangedTaskIds, plan.ChangedElements);
+            await LogEffectiveStateChanges(ticket, readback, plan.ChangedTaskIds,
+                EffectiveStateHistoryText);
+            return readback;
+        }
+        catch
+        {
+            if (persistenceBegan)
+            {
+                await RecoverEffectiveStateHistory(ticket, plan, readback);
+            }
+            throw;
+        }
     }
 
     /// <summary>
@@ -280,6 +295,30 @@ public partial class WfDbAccess
             await LogWorkflowChange(target, changeText,
                 RequestTaskHistorySnapshot(oldTask), RequestTaskHistorySnapshot(newTask),
                 original.Requester, false);
+        }
+    }
+
+    /// <summary>
+    /// Best-effort audits planned element payloads that strict readback proves were persisted.
+    /// Recovery never replaces the materialization failure that triggered it.
+    /// </summary>
+    private async Task RecoverEffectiveStateHistory(WfTicket original,
+        EffectiveRequestStateMaterializationPlan plan, WfTicket? readback)
+    {
+        try
+        {
+            readback ??= await ReadTicketStrict(original.Id);
+            IReadOnlyCollection<long> appliedTaskIds = FindAppliedTaskIds(plan, readback);
+            if (appliedTaskIds.Count > 0)
+            {
+                await LogEffectiveStateChanges(original, readback, appliedTaskIds,
+                    PartialEffectiveStateHistoryText);
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Effective request state materialization",
+                "Could not audit partially materialized effective request state.", exception);
         }
     }
 

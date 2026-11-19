@@ -1,3 +1,4 @@
+using FWO.Basics.Enums;
 using FWO.Mail;
 using Microsoft.AspNetCore.Http;
 using MimeKit;
@@ -43,7 +44,8 @@ namespace FWO.Test
                 DisplayName = "Sender",
                 ReplyTo = "reply@example.test",
                 ReplyToName = "Reply",
-                Body = "Body"
+                Body = "Body",
+                Priority = EmailPriority.High
             };
 
             MailData copy = Invoke<MailData>("CopyMailData", source);
@@ -61,7 +63,73 @@ namespace FWO.Test
                 Assert.That(copy.ReplyTo, Is.EqualTo(source.ReplyTo));
                 Assert.That(copy.ReplyToName, Is.EqualTo(source.ReplyToName));
                 Assert.That(copy.Body, Is.EqualTo(source.Body));
+                Assert.That(copy.Priority, Is.EqualTo(EmailPriority.High));
             });
+        }
+
+        [Test]
+        public void MailData_DefaultsToNormalPriority()
+        {
+            MailData mail = new(new List<string>(), "Subject");
+
+            Assert.That(mail.Priority, Is.EqualTo(EmailPriority.Normal));
+        }
+
+        [Test]
+        public void ApplyPriority_HighSetsAllPriorityHeaders()
+        {
+            MimeMessage message = new();
+
+            MailKitMailer.ApplyPriority(message, EmailPriority.High);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(message.Headers[HeaderId.Importance], Is.EqualTo("high"));
+                Assert.That(message.Headers[HeaderId.Priority], Is.EqualTo("urgent"));
+                Assert.That(message.Headers[HeaderId.XPriority], Does.StartWith("1"));
+            });
+        }
+
+        [Test]
+        public void ApplyPriority_LowSetsAllPriorityHeaders()
+        {
+            MimeMessage message = new();
+
+            MailKitMailer.ApplyPriority(message, EmailPriority.Low);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(message.Headers[HeaderId.Importance], Is.EqualTo("low"));
+                Assert.That(message.Headers[HeaderId.Priority], Is.EqualTo("non-urgent"));
+                Assert.That(message.Headers[HeaderId.XPriority], Does.StartWith("5"));
+            });
+        }
+
+        [Test]
+        public void ApplyPriority_NormalWritesNoPriorityHeaders()
+        {
+            MimeMessage message = new();
+            MailKitMailer.ApplyPriority(message, EmailPriority.High);
+
+            MailKitMailer.ApplyPriority(message, EmailPriority.Normal);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(message.Headers.Contains(HeaderId.Importance), Is.False);
+                Assert.That(message.Headers.Contains(HeaderId.Priority), Is.False);
+                Assert.That(message.Headers.Contains(HeaderId.XPriority), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task AddContent_AppliesPriorityOfMailData()
+        {
+            MailData mail = new(new List<string>(), "Subject") { Body = "Body", Priority = EmailPriority.High };
+            MimeMessage message = new();
+
+            await InvokeAsync("AddContent", mail, message, false);
+
+            Assert.That(message.Headers[HeaderId.Importance], Is.EqualTo("high"));
         }
 
         [TestCase(false)]

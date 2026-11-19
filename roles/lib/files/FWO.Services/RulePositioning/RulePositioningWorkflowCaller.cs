@@ -45,7 +45,7 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
                 RulePositioningWorkflowStatus.NotApplicable);
         }
 
-        RulePositioningFailureCategory failureCategory;
+        RulePositioningFailure failure;
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -86,9 +86,8 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
                     cancellationToken);
             }
 
-            failureCategory = calculation is RulePositioningFailure failure
-                ? failure.Category
-                : RulePositioningFailureCategory.CalculationFailed;
+            failure = calculation as RulePositioningFailure
+                ?? new RulePositioningFailure(RulePositioningFailureCategory.CalculationFailed);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -96,15 +95,32 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
         }
         catch (Exception)
         {
-            failureCategory = RulePositioningFailureCategory.CalculationFailed;
+            cancellationToken.ThrowIfCancellationRequested();
+            failure = new RulePositioningFailure(RulePositioningFailureCategory.CalculationFailed);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+        LogCalculationFailure(requestTask, implementationTask, failure);
         return await PersistAsync(
             implementationTask.Id,
             null,
             RulePositioningWorkflowStatus.ClearedAfterFailure,
-            failureCategory,
+            failure.Category,
             cancellationToken);
+    }
+
+    /// <summary>Writes one correlated summary using a known cause when available.</summary>
+    private static void LogCalculationFailure(
+        WfReqTask requestTask,
+        WfImplTask implementationTask,
+        RulePositioningFailure failure)
+    {
+        string technicalSummary = failure.TechnicalDiagnostic ?? failure.Diagnostic;
+        Log.WriteError(
+            kLogTitle,
+            $"Rule positioning failed for implementation task {implementationTask.Id}, " +
+            $"request task {requestTask.Id}, ticket {requestTask.TicketId}, " +
+            $"gateway {implementationTask.DeviceId ?? 0}: {failure.Category}; {technicalSummary}");
     }
 
     /// <summary>Loads one current immutable global-settings snapshot for customer positioning.</summary>

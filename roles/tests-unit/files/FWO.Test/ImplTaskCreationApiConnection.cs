@@ -36,7 +36,7 @@ internal sealed class ImplTaskCreationApiConnection(WfTicket storedTicket) : Sim
             }
             return (T)(object)storedTicket;
         }
-        if (query == RequestQueries.updateRequestElement)
+        if (query == RequestQueries.updateEffectiveRequestElementSnapshot)
         {
             Dictionary<string, object?> payload = (Dictionary<string, object?>)variables!;
             long elementId = Convert.ToInt64(payload["id"]);

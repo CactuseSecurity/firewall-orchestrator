@@ -16,6 +16,11 @@ namespace FWO.Test;
 [TestFixture]
 internal sealed class WfDbAccessEffectiveRequestStateTest
 {
+    private static readonly List<string> kSnapshotVariableNames =
+    [
+        "id", "ip", "ipEnd", "port", "portEnd", "proto", "groupName", "name", "startTime", "endTime"
+    ];
+
     [Test]
     public async Task MaterializeEffectiveRequestState_UpdatesChangedElementsThenReturnsVerifiedReadback()
     {
@@ -29,10 +34,15 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         {
             Assert.That(apiConnection.UpdatedElementIds, Is.EqualTo(Target(201, 202)));
             Assert.That(apiConnection.QueryLog, Is.EqualTo(Queries(
-                RequestQueries.updateRequestElement,
-                RequestQueries.updateRequestElement,
+                RequestQueries.updateEffectiveRequestElementSnapshot,
+                RequestQueries.updateEffectiveRequestElementSnapshot,
                 RequestQueries.getTicketById,
                 ModellingQueries.addHistoryEntry)));
+            Assert.That(apiConnection.UpdatePayloads, Has.Count.EqualTo(2));
+            foreach (Dictionary<string, object?> payload in apiConnection.UpdatePayloads)
+            {
+                Assert.That(payload.Keys, Is.EquivalentTo(kSnapshotVariableNames));
+            }
             Assert.That(ResultIp(result, 0),
                 Is.EqualTo("10.0.1.10"));
             Assert.That(ResultIp(result, 1),
@@ -57,7 +67,7 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         Assert.Multiple(() =>
         {
             Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.PersistenceFailure));
-            Assert.That(apiConnection.QueryLog, Is.EqualTo(Queries(RequestQueries.updateRequestElement)));
+            Assert.That(apiConnection.QueryLog, Is.EqualTo(Queries(RequestQueries.updateEffectiveRequestElementSnapshot)));
             Assert.That(apiConnection.HistoryVariables, Is.Empty);
         });
     }
@@ -76,8 +86,8 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         {
             Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.ReadbackMismatch));
             Assert.That(apiConnection.QueryLog, Is.EqualTo(Queries(
-                RequestQueries.updateRequestElement,
-                RequestQueries.updateRequestElement,
+                RequestQueries.updateEffectiveRequestElementSnapshot,
+                RequestQueries.updateEffectiveRequestElementSnapshot,
                 RequestQueries.getTicketById)));
             Assert.That(apiConnection.HistoryVariables, Is.Empty);
         });
@@ -280,6 +290,7 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         internal List<string> QueryLog { get; } = [];
         internal List<long> UpdatedElementIds { get; } = [];
         internal List<long> RetryUpdatedElementIds { get; } = [];
+        internal List<Dictionary<string, object?>> UpdatePayloads { get; } = [];
         internal List<object> HistoryVariables { get; } = [];
         internal int? MismatchOnUpdateCall { get; set; }
         internal bool ReturnStaleReadback { get; set; }
@@ -310,7 +321,7 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
             object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
             QueryLog.Add(query);
-            if (query == RequestQueries.updateRequestElement)
+            if (query == RequestQueries.updateEffectiveRequestElementSnapshot)
             {
                 return Task.FromResult(Cast<QueryResponseType>(UpdateElement(variables)));
             }
@@ -339,6 +350,7 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         private ReturnId UpdateElement(object? variables)
         {
             Dictionary<string, object?> payload = (Dictionary<string, object?>)variables!;
+            UpdatePayloads.Add(new Dictionary<string, object?>(payload));
             long elementId = Convert.ToInt64(payload["id"]);
             updateCallCount++;
             UpdatedElementIds.Add(elementId);

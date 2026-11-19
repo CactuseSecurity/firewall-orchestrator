@@ -54,10 +54,10 @@ public partial class WfDbAccess
 
         try
         {
-            Dictionary<string, object?> variables = BuildReqElementVariables(element);
+            Dictionary<string, object?> variables = BuildEffectiveRequestElementVariables(element);
             variables["id"] = element.Id;
             ReturnId result = await ApiConnection.SendQueryAsync<ReturnId>(
-                RequestQueries.updateRequestElement, variables);
+                RequestQueries.updateEffectiveRequestElementSnapshot, variables);
             if (result.UpdatedIdLong != element.Id)
             {
                 throw Failure(EffectiveRequestStateFailureCategory.PersistenceFailure);
@@ -71,6 +71,28 @@ public partial class WfDbAccess
         {
             throw Failure(EffectiveRequestStateFailureCategory.PersistenceFailure, exception);
         }
+    }
+
+    /// <summary>
+    /// Builds the least-privilege payload for one effective-state snapshot update.
+    /// </summary>
+    private static Dictionary<string, object?> BuildEffectiveRequestElementVariables(WfReqElement element)
+    {
+        bool hasServiceReference = HasId(element.ServiceId)
+            || HasId(element.FlowServiceObjectId)
+            || HasId(element.FlowServiceGroupId);
+        return new Dictionary<string, object?>
+        {
+            ["ip"] = element.Cidr != null && element.Cidr.Valid ? element.Cidr.CidrString : null,
+            ["ipEnd"] = element.CidrEnd != null && element.CidrEnd.Valid ? element.CidrEnd.CidrString : null,
+            ["port"] = hasServiceReference && !HasValidPort(element.Port) ? null : element.Port,
+            ["portEnd"] = hasServiceReference && !HasValidPort(element.PortEnd) ? null : element.PortEnd,
+            ["proto"] = hasServiceReference && !HasId(element.ProtoId) ? null : element.ProtoId,
+            ["groupName"] = element.GroupName,
+            ["name"] = element.Name,
+            ["startTime"] = element.StartTime?.ToUniversalTime(),
+            ["endTime"] = element.EndTime?.ToUniversalTime()
+        };
     }
 
     /// <summary>

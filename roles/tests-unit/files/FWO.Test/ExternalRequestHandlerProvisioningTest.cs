@@ -65,7 +65,7 @@ namespace FWO.Test
                 {
                     return (QueryResponseType)(object)ticket;
                 }
-                if (query == RequestQueries.updateRequestElement)
+                if (query == RequestQueries.updateEffectiveRequestElementSnapshot)
                 {
                     Dictionary<string, object?> payload = (Dictionary<string, object?>)variables!;
                     long elementId = Convert.ToInt64(payload["id"]);
@@ -286,7 +286,7 @@ namespace FWO.Test
             bool result = await handler.StartProvisioning(kTicketId);
 
             string content = Variable(apiConnection.CreatedRequests.Single(), "extTaskContent")?.ToString() ?? "";
-            int updateIndex = apiConnection.QueryLog.IndexOf(RequestQueries.updateRequestElement);
+            int updateIndex = apiConnection.QueryLog.IndexOf(RequestQueries.updateEffectiveRequestElementSnapshot);
             int insertIndex = apiConnection.QueryLog.IndexOf(ExtRequestQueries.addExtRequest);
             Assert.Multiple(() =>
             {

@@ -89,8 +89,10 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(ticket["state"], Is.EqualTo(0));
+                Assert.That(ticket["locked"], Is.False);
                 Assert.That(task["state"], Is.EqualTo(0));
                 Assert.That(task["requestAction"], Is.EqualTo("create"));
+                Assert.That(task["locked"], Is.False);
             });
         }
 

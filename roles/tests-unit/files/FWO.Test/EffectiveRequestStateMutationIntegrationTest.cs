@@ -122,7 +122,8 @@ internal class EffectiveRequestStateMutationIntegrationTest
         return new Dictionary<string, object?>
         {
             ["title"] = title,
-            ["state"] = 0
+            ["state"] = 0,
+            ["locked"] = false
         };
     }
 
@@ -134,7 +135,8 @@ internal class EffectiveRequestStateMutationIntegrationTest
             ["ticketId"] = ticketId,
             ["state"] = 0,
             ["taskType"] = WfTaskType.group_create.ToString(),
-            ["requestAction"] = RequestAction.create.ToString()
+            ["requestAction"] = RequestAction.create.ToString(),
+            ["locked"] = false
         };
     }
 

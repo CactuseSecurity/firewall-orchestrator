@@ -1,5 +1,5 @@
 ﻿subscription subscribeImportNotifyConfigChanges {
-  config(where: {_or: [
+  config(where: {config_user: {_eq: 0}, _or: [
         {config_key: {_eq: "importSleepTime"}}, 
         {config_key: {_eq: "impChangeNotifySleepTime"}}, 
         {config_key: {_eq: "impChangeNotifyStartAt"}}, 

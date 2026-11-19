@@ -162,6 +162,28 @@ public class RulePositioningContractsTest
     }
 
     [Test]
+    public void Failure_NormalizesAndBoundsTechnicalDiagnosticWithoutChangingSafeDiagnostic()
+    {
+        string technicalDiagnostic =
+            $"recipe execution{Environment.NewLine} / check-point.section-scope / " +
+            $"ScopeNotFound: {new string('x', 1000)}";
+
+        RulePositioningFailure failure = new(
+            RulePositioningFailureCategory.CalculationFailed,
+            technicalDiagnostic);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(failure.TechnicalDiagnostic, Does.StartWith(
+                "recipe execution / check-point.section-scope / ScopeNotFound:"));
+            Assert.That(failure.TechnicalDiagnostic, Does.Not.Contain("\r"));
+            Assert.That(failure.TechnicalDiagnostic, Does.Not.Contain("\n"));
+            Assert.That(failure.TechnicalDiagnostic!.Length, Is.LessThanOrEqualTo(512));
+            Assert.That(failure.Diagnostic, Is.EqualTo("The rule position could not be calculated."));
+        });
+    }
+
+    [Test]
     public void GenericResult_SuccessExposesOnlyItsValue()
     {
         object value = new();

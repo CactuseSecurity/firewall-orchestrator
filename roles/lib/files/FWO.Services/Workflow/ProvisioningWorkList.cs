@@ -85,6 +85,12 @@ namespace FWO.Services.Workflow
         IReadOnlyList<int> GetRuleEnforcingGateways(WfImplTask implTask);
 
         /// <summary>
+        /// Why the rule of a new or modified rule task cannot be written automatically although its vendor writes rules,
+        /// e.g. a modelling placeholder area whose objects cannot be assigned unambiguously; null if nothing prevents it.
+        /// </summary>
+        string? GetRuleNotWritableReason(WfImplTask implTask);
+
+        /// <summary>
         /// Target management of an implementation task, see WfImplTaskTargetManagementResolver: the management of its
         /// gateway, without gateway the one of the task, else of the request task; null if it cannot be resolved
         /// consistently, e.g. for an unknown gateway or a stored management that differs from the one of the gateway.
@@ -111,7 +117,8 @@ namespace FWO.Services.Workflow
     /// system is handed over in any state, as the external ticket system approves and plans it itself.
     /// The implementation mode of a rule task is the one of its gateway, for a rule to modify or delete the strictest one of
     /// all gateways the rule takes effect on; a rule is only written to a vendor that writes
-    /// rules, and a new rule only with its calculated position, otherwise the task is reported.
+    /// rules, a new rule only with its calculated position, and a rule with modelling placeholders only if they can be
+    /// substituted, otherwise the task is reported.
     /// </summary>
     public sealed class ProvisioningWorkList
     {
@@ -343,7 +350,10 @@ namespace FWO.Services.Workflow
             _ => 1
         };
 
-        /// <summary>Why a rule cannot be written; null if it can.</summary>
+        /// <summary>
+        /// Why a rule cannot be written: the vendor writes no rules, a new rule has no calculated position, or the rule
+        /// cannot be written automatically, e.g. for modelling placeholders; null if it can.
+        /// </summary>
         private static string? RuleNotWrittenReason(WfImplTask implTask, int gatewayId, IProvisioningModeSource modes)
         {
             if (!modes.WritesRules(gatewayId))
@@ -354,7 +364,7 @@ namespace FWO.Services.Workflow
             {
                 return $"no rule position was calculated for gateway {gatewayId}, so the new rule is not written.";
             }
-            return null;
+            return modes.GetRuleNotWritableReason(implTask);
         }
 
         /// <summary>

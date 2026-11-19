@@ -75,6 +75,7 @@ namespace FWO.Services.Workflow
             ResetAutoPlanCache();
             await EnsureDevicesLoaded();
             await LoadRuleEnforcingGateways(ticket, reqTasks);
+            await LoadPlaceholderReasons(reqTasks);
             List<int> gatewayIds = [.. ProvisioningGatewayIds(reqTasks).Concat(ruleEnforcingGatewayIds.Values.SelectMany(ids => ids)).Distinct()];
             await EnsureAutoPlanSettings(gatewayIds, ProvisioningManagementIds(reqTasks));
             if (AutoPlanSettingsOverride == null && (autoPlanResolveFailed || !autoPlanCache.ContainsKey((DeviceSpecificScopeType.Global, null))))
@@ -228,6 +229,12 @@ namespace FWO.Services.Workflow
             public IReadOnlyList<int> GetRuleEnforcingGateways(WfImplTask implTask)
             {
                 return handler.ruleEnforcingGatewayIds.TryGetValue(implTask.Id, out List<int>? gatewayIds) ? gatewayIds : kNoIds;
+            }
+
+            /// <inheritdoc/>
+            public string? GetRuleNotWritableReason(WfImplTask implTask)
+            {
+                return handler.placeholderNotWritableReasons.TryGetValue(implTask.Id, out string? reason) ? reason : null;
             }
 
             /// <inheritdoc/>

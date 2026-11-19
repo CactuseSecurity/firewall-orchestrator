@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.ExternalSystems.FirewallWrite;
 using FWO.Middleware.Server;
@@ -59,6 +60,12 @@ namespace FWO.Test
             /// <summary>Rules with the gateways they take effect on, returned for the query of the enforcing gateways.</summary>
             public List<Rule> EnforcingRules { get; } = [];
 
+            /// <summary>Modelling connections returned for the query of a connection by id.</summary>
+            public List<ModellingConnection> Connections { get; } = [];
+
+            /// <summary>Network areas returned for the query of network areas.</summary>
+            public List<ModellingNetworkArea> NetworkAreas { get; } = [];
+
             /// <summary>Requests of the implementation task writing a shared rule, returned newest first.</summary>
             public List<ExternalRequest> WriterRequests { get; } = [];
 
@@ -76,6 +83,18 @@ namespace FWO.Test
                 if (query == RuleQueries.getRuleEnforcingGateways)
                 {
                     return (QueryResponseType)(object)EnforcingRules;
+                }
+                if (query == ModellingQueries.getConnectionById)
+                {
+                    return (QueryResponseType)(object)Connections;
+                }
+                if (query == ModellingQueries.getNetworkAreas)
+                {
+                    return (QueryResponseType)(object)NetworkAreas;
+                }
+                if (query == MonitorQueries.getOpenAlerts)
+                {
+                    return (QueryResponseType)(object)new List<Alert>();
                 }
                 if (query == ExtRequestQueries.getUnfinishedRequestsOfTicket)
                 {
@@ -164,6 +183,33 @@ namespace FWO.Test
             });
         }
 
+        private const int kOwnerId = 77;
+        private const int kConnectionId = 300;
+        private const int kUserAreaId = 5;
+        private const string kUserAreaName = "NA_Users";
+        private const string kUserAreasSetting = "[{\"area_id\":5,\"use_in_src\":true,\"use_in_dst\":false}]";
+        private static readonly List<string?> kAccessRoleNames = ["a_testUser"];
+
+        /// <summary>
+        /// Makes the first request task an access request of the owner for the modelled connection, whose rule has the
+        /// placeholder area for users in its source, and lets the api know the area and the connection.
+        /// </summary>
+        private static void UsePlaceholderConnection(WfTicket ticket, FirewallWriteApiConn apiConnection, params ModellingExtraConfig[] extraConfigs)
+        {
+            WfReqTask reqTask = ticket.Tasks[0];
+            reqTask.TaskType = WfTaskType.access.ToString();
+            reqTask.AdditionalInfo = $"{{\"ConnId\":\"{kConnectionId}\"}}";
+            reqTask.Owners.Add(new FwoOwnerDataHelper { Owner = new FwoOwner { Id = kOwnerId } });
+            foreach (WfImplTask implTask in reqTask.ImplementationTasks)
+            {
+                implTask.TaskType = reqTask.TaskType;
+                implTask.ImplElements.Add(new WfImplElement { Id = 1, GroupName = kUserAreaName, Field = ElemFieldType.source.ToString() });
+                implTask.ImplElements.Add(new WfImplElement { Id = 2, GroupName = "NA_Server", Field = ElemFieldType.destination.ToString() });
+            }
+            apiConnection.NetworkAreas.Add(new ModellingNetworkArea { Id = kUserAreaId, IdString = kUserAreaName });
+            apiConnection.Connections.Add(new ModellingConnection { Id = kConnectionId, AppId = kOwnerId, ExtraConfigs = extraConfigs.ToList() });
+        }
+
         private const string kSingleImplTaskVariables = "{\"ManagementId\":[1],\"SingleImplTask\":[1]}";
 
         private static ExternalRequest Request(long? implTaskId = kImplTaskId, string? state = null, int attempts = 0, int waitCycles = 0,
@@ -186,7 +232,8 @@ namespace FWO.Test
 
         private static ExternalRequestHandler CreateHandler(FirewallWriteApiConn apiConnection, GlobalDeviceSpecificSettings? settings = null)
         {
-            return new ExternalRequestHandler(new SimulatedUserConfig(), apiConnection, null).WithProvisioningSettings(settings ?? new GlobalDeviceSpecificSettings());
+            SimulatedUserConfig userConfig = new() { ModSpecUserAreas = kUserAreasSetting };
+            return new ExternalRequestHandler(userConfig, apiConnection, null).WithProvisioningSettings(settings ?? new GlobalDeviceSpecificSettings());
         }
 
         private sealed class RecordingWriter(ModifyFirewallResult result)
@@ -195,9 +242,12 @@ namespace FWO.Test
 
             public List<IReadOnlyList<int>?> InstallOnGatewayIds { get; } = [];
 
+            public List<WfImplTask> WrittenImplTasks { get; } = [];
+
             public Task<ModifyFirewallResult> Write(WfImplTask implTask, IReadOnlyList<int>? installOnGatewayIds)
             {
                 WrittenImplTaskIds.Add(implTask.Id);
+                WrittenImplTasks.Add(implTask);
                 InstallOnGatewayIds.Add(installOnGatewayIds);
                 return Task.FromResult(result);
             }
@@ -716,6 +766,49 @@ namespace FWO.Test
             {
                 Assert.That(States(apiConnection, ExtRequestQueries.updateExtRequestFinal), Does.Contain(ExtStates.ExtReqAcknowledged.ToString()));
                 Assert.That(Variable(apiConnection.VariablesOf(ExtRequestQueries.addExtRequest).Single(), "implTaskId"), Is.EqualTo(kImplTaskId));
+            }
+        }
+
+        [Test]
+        public async Task Run_ModellingPlaceholder_IsSubstitutedBeforeTheWriteAndNamedInAComment()
+        {
+            WfTicket ticket = Ticket();
+            FirewallWriteApiConn apiConnection = new(ticket);
+            UsePlaceholderConnection(ticket, apiConnection, new ModellingExtraConfig { ExtraConfigType = "IDA-User", ExtraConfigText = "a_testUser" });
+
+            RecordingWriter writer = await RunSender(apiConnection, Request(), Success());
+
+            WfImplTask written = writer.WrittenImplTasks.First();
+            List<string?> comments = [.. apiConnection.VariablesOf(RequestQueries.newComment).Select(variables => Variable(variables, "text")?.ToString())];
+            List<string?> creationResponses = [.. apiConnection.VariablesOf(ExtRequestQueries.updateExtRequestCreation)
+                .Select(variables => Variable(variables, "creationResponse")?.ToString())];
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(written.ImplElements.Where(e => e.Field == ElemFieldType.source.ToString()).Select(e => e.GroupName), Is.EqualTo(kAccessRoleNames));
+                Assert.That(ImplTask(ticket, kImplTaskId).ImplElements.First().GroupName, Is.EqualTo(kUserAreaName), "the stored task keeps the placeholder");
+                Assert.That(States(apiConnection, ExtRequestQueries.updateExtRequestCreation), Is.EqualTo(kDoneOnly));
+                Assert.That(comments, Has.Some.EqualTo("Modelling placeholders substituted: NA_Users by a_testUser."));
+                Assert.That(creationResponses.Single(), Does.Contain("NA_Users by a_testUser"));
+            }
+        }
+
+        [Test]
+        public async Task Run_RuleNotWritableAutomatically_IsDiscardedWithAnAlertAndNotWritten()
+        {
+            WfTicket ticket = Ticket();
+            FirewallWriteApiConn apiConnection = new(ticket);
+            UsePlaceholderConnection(ticket, apiConnection, new ModellingExtraConfig { ExtraConfigType = "IDA-User", ExtraConfigText = "a_testUser" },
+                new ModellingExtraConfig { ExtraConfigType = "NAT" });
+
+            RecordingWriter writer = await RunSender(apiConnection, Request(), Success());
+
+            List<string?> alerts = [.. apiConnection.VariablesOf(MonitorQueries.addAlert).Select(variables => Variable(variables, "description")?.ToString())];
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(writer.WrittenImplTaskIds, Does.Not.Contain(kImplTaskId));
+                Assert.That(States(apiConnection, ExtRequestQueries.updateExtRequestFinal), Does.Contain(ExtStates.ExtReqDiscarded.ToString()));
+                Assert.That(ImplTask(ticket, kImplTaskId).StateId, Is.EqualTo(kOpenStateId));
+                Assert.That(alerts, Has.Some.Contain($"implementation task {kImplTaskId}: not written").And.Contain("'NAT'"));
             }
         }
     }

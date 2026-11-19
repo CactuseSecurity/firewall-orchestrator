@@ -1,8 +1,10 @@
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Modelling;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Data.Workflow;
+using FWO.ExternalSystems.FirewallWrite;
 using FWO.Services.Workflow;
 using NUnit.Framework;
 using System.Reflection;
@@ -340,6 +342,115 @@ namespace FWO.Test
             ProvisioningWorkList workList = await handler.BuildProvisioningWorkList(ticket, scopeTask);
 
             Assert.That(workList.Items, Is.Empty);
+        }
+
+        private const int kOwnerId = 77;
+        private const int kConnectionId = 300;
+        private const int kInterfaceId = 301;
+        private const int kUserAreaId = 5;
+        private const string kUserAreaName = "NA_Users";
+        private static readonly List<string> kAccessRoles = ["a_testUser", "AR_Sales"];
+
+        /// <summary>
+        /// A handler for a Check Point gateway writing rules, whose settings name one placeholder area for users, allowed
+        /// in the source, and an api knowing that area and a connection of the owner with the given extra configurations.
+        /// </summary>
+        private static (WfHandler Handler, InMemoryDeviceSpecificSettingsApiConnection Api) CreatePlaceholderHandler(params ModellingExtraConfig[] extraConfigs)
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+            api.NetworkAreas.Add(new ModellingNetworkArea { Id = kUserAreaId, IdString = kUserAreaName, Name = "Users" });
+            api.Connections.Add(new ModellingConnection { Id = kConnectionId, AppId = kOwnerId, ExtraConfigs = extraConfigs.ToList() });
+            WfHandler handler = CreateRuleHandler(api);
+            handler.userConfig.ModSpecUserAreas = $"[{{\"area_id\":{kUserAreaId},\"use_in_src\":true,\"use_in_dst\":false}}]";
+            return (handler, api);
+        }
+
+        /// <summary>An access request task of the owner and the connection, whose rule has the user placeholder in its source.</summary>
+        private static WfReqTask PlaceholderAccessTask(int ownerId = kOwnerId)
+        {
+            WfReqTask reqTask = AccessTask(kAutomaticGatewayId);
+            Dictionary<string, string> addInfo = new() { { AdditionalInfoKeys.ConnId, kConnectionId.ToString() } };
+            reqTask.AdditionalInfo = JsonSerializer.Serialize(addInfo);
+            reqTask.Owners.Add(new FwoOwnerDataHelper { Owner = new FwoOwner { Id = ownerId } });
+            reqTask.ImplementationTasks[0].ImplElements.Add(new WfImplElement { GroupName = kUserAreaName, Field = ElemFieldType.source.ToString() });
+            reqTask.ImplementationTasks[0].ImplElements.Add(new WfImplElement { GroupName = "NA_Server", Field = ElemFieldType.destination.ToString() });
+            return reqTask;
+        }
+
+        private static ModellingExtraConfig UserConfig(string name) => new() { ExtraConfigType = "IDA-User", ExtraConfigText = name };
+
+        [Test]
+        public async Task BuildProvisioningWorkList_SubstitutablePlaceholder_IsWritten()
+        {
+            (WfHandler handler, InMemoryDeviceSpecificSettingsApiConnection api) = CreatePlaceholderHandler(UserConfig("a_testUser"), UserConfig("AR_Sales"));
+            WfReqTask reqTask = PlaceholderAccessTask();
+
+            ProvisioningWorkList workList = await handler.BuildProvisioningWorkList(Ticket(reqTask));
+            ModellingPlaceholderResult result = await handler.SubstituteModellingPlaceholders(reqTask, reqTask.ImplementationTasks[0]);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(workList.Items.Select(item => item.ImplTask?.Id), Is.EqualTo(kAutomaticGatewayImplTask));
+                Assert.That(AlertDescriptions(api), Is.Empty);
+                Assert.That(result.ImplTask.ImplElements.Where(e => e.Field == ElemFieldType.source.ToString()).Select(e => e.GroupName), Is.EqualTo(kAccessRoles));
+                Assert.That(result.Note, Does.Contain("NA_Users by a_testUser, AR_Sales"));
+            }
+        }
+
+        [Test]
+        public async Task BuildProvisioningWorkList_ConnectionOfAnotherOwner_IsNotUsed()
+        {
+            (WfHandler handler, InMemoryDeviceSpecificSettingsApiConnection api) = CreatePlaceholderHandler(UserConfig("a_testUser"));
+
+            ProvisioningWorkList workList = await handler.BuildProvisioningWorkList(Ticket(PlaceholderAccessTask(kOwnerId + 1)));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(workList.Items, Is.Empty);
+                Assert.That(workList.Gaps.Single().Reason, Does.Contain("no modelled connection"));
+                Assert.That(AlertDescriptions(api).Single(), Does.Contain("NA_Users"));
+            }
+        }
+
+        [Test]
+        public async Task BuildProvisioningWorkList_ConnectionWithNat_IsReportedAndNotWritten()
+        {
+            (WfHandler handler, _) = CreatePlaceholderHandler(UserConfig("a_testUser"), new ModellingExtraConfig { ExtraConfigType = "NAT" });
+
+            ProvisioningWorkList workList = await handler.BuildProvisioningWorkList(Ticket(PlaceholderAccessTask()));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(workList.Items, Is.Empty);
+                Assert.That(workList.Gaps.Single().Reason, Does.Contain("'NAT'"));
+            }
+        }
+
+        [Test]
+        public async Task BuildProvisioningWorkList_ExtraConfigOfTheUsedInterface_IsReportedAndNotWritten()
+        {
+            (WfHandler handler, InMemoryDeviceSpecificSettingsApiConnection api) = CreatePlaceholderHandler(UserConfig("a_testUser"));
+            api.Connections[0].UsedInterfaceId = kInterfaceId;
+            api.Connections.Add(new ModellingConnection { Id = kInterfaceId, AppId = kOwnerId + 1, ExtraConfigs = [UserConfig("AR_Interface")] });
+
+            ProvisioningWorkList workList = await handler.BuildProvisioningWorkList(Ticket(PlaceholderAccessTask()));
+
+            Assert.That(workList.Gaps.Single().Reason, Does.Contain("interface"));
+        }
+
+        [Test]
+        public async Task BuildProvisioningWorkList_ConnectionCannotBeLoaded_IsReportedAndNotWritten()
+        {
+            (WfHandler handler, InMemoryDeviceSpecificSettingsApiConnection api) = CreatePlaceholderHandler(UserConfig("a_testUser"));
+            api.FailingQuery = ModellingQueries.getConnectionById;
+
+            ProvisioningWorkList workList = await handler.BuildProvisioningWorkList(Ticket(PlaceholderAccessTask()));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(workList.Items, Is.Empty);
+                Assert.That(workList.Gaps.Single().Reason, Does.Contain("could not be loaded"));
+            }
         }
     }
 }

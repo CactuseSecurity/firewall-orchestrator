@@ -664,14 +664,6 @@ namespace FWO.Compliance
         }
 
         /// <summary>
-        /// Loads managements for the current compliance evaluation.
-        /// </summary>
-        private async Task LoadManagementsAsync()
-        {
-            Managements = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-        }
-
-        /// <summary>
         /// Builds a unique key identifying a violation over management, rule, policy, criterion, and detail.
         /// </summary>
         private string CreateUniqueViolationKey(ComplianceViolation violation)

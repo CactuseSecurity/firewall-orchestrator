@@ -222,13 +222,10 @@ namespace FWO.Data.Report
                     foreach (DeviceSelect device in management.Devices)
                     {
                         DeviceSelect? incomingDev = incomingMgt.Devices.Find(x => x.Id == device.Id);
-                        if (incomingDev != null)
+                        // the next line could be the problem as it changes an object:
+                        if (incomingDev != null && device.Visible)
                         {
-                            // the next line could be the problem as it changes an object:
-                            if (device.Visible)
-                            {
-                                device.Selected = incomingDev.Selected;
-                            }
+                            device.Selected = incomingDev.Selected;
                         }
                     }
                 }
@@ -240,8 +237,8 @@ namespace FWO.Data.Report
         {
             foreach (ManagementSelect management in Managements)
             {
-                int selectedDevicesCount = management.Devices.Where(d => d.Selected).Count();
-                int visibleDevicesCount = management.Devices.Where(d => d.Visible).Count();
+                int selectedDevicesCount = management.Devices.Count(d => d.Selected);
+                int visibleDevicesCount = management.Devices.Count(d => d.Visible);
                 // Management is selected if all visible devices are selected
                 management.Selected = management.Devices.Count > 0 && selectedDevicesCount == visibleDevicesCount;
             }

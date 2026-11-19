@@ -101,7 +101,6 @@ namespace FWO.Api.Client
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {requestRole}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
                     (variables != null ? "with variables: <redacted>" : ""));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(CreateHttpRequest(requestRole, query, variables, operationName));
-                // Log.WriteDebug("API call", "API response received.");
 
                 if (response.Errors != null)
                 {

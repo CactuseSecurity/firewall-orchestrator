@@ -373,7 +373,7 @@
 
     private bool CheckValues()
     {
-        if (string.IsNullOrEmpty(actDevice.Name)) //||(actDevice.DeviceType.Manufacturer != "Cisco" && actDevice.DeviceType.Manufacturer != "DummyRouter" && string.IsNullOrEmpty(actDevice.LocalRulebase)))
+        if (string.IsNullOrEmpty(actDevice.Name))
         {
             DisplayMessageInUi(null, userConfig.GetText("save_gateway"), userConfig.GetText("E5102"), true);
             return false;

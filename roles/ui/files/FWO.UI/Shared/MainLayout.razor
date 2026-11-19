@@ -114,7 +114,7 @@
 
     private GraphQlApiSubscription<List<Alert>>? alertSubscription;
     private bool showAlert = false;
-    private object errorLock = new object();
+    private readonly Lock errorLock = new();
 
     private string reloginErrorMessage = "";
     private string reloginCssClass = "";
@@ -124,8 +124,8 @@
     private bool reloginAbortable;
     private string? password;
     private ClaimsPrincipal? User;
-    private List<UIMessage> UIMessages = [];
-    private Queue<UIMessage> UIMessageQue = [];
+    private readonly List<UIMessage> UIMessages = [];
+    private readonly Queue<UIMessage> UIMessageQue = [];
     private Timer? UIMessageQueTimer;
     private bool ambientRoleInitialized;
 
@@ -433,7 +433,7 @@
             if (showtime > 0)
             {
                 messageTimer = new Timer(showtime.Value);
-                messageTimer.Elapsed += (sender, e) => HideMessage(sender, e, uiMessage.Id);
+                messageTimer.Elapsed += (_, _) => HideUIMessage(uiMessage.Id);
                 messageTimer.AutoReset = false;
                 uiMessage.ShowTimer = messageTimer;
             }
@@ -451,11 +451,6 @@
 
             UIMessageQueTimer?.Start();
         }
-    }
-
-    private void HideMessage(object? _, ElapsedEventArgs __, string messageId)
-    {
-        HideUIMessage(messageId);
     }
 
     private void OnUIMessageTimerTick(object? _, ElapsedEventArgs __)

@@ -3,13 +3,9 @@ using Newtonsoft.Json;
 
 namespace FWO.Data
 {
-
-    //  refresh_view_rule_with_owner {
-    //     id
-    //     view_name
-    //     refreshed_at
-    //     status
-    //   }
+    /// <summary>
+    /// Result of the refresh_view_rule_with_owner mutation.
+    /// </summary>
     public class OwnerRefresh
     {
 

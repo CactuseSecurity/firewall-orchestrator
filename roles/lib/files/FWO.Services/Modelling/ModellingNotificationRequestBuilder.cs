@@ -323,18 +323,6 @@ namespace FWO.Services.Modelling
             });
         }
 
-        private static IEnumerable<WfReqElement> BuildServiceElements(IEnumerable<string> serviceGroupNames)
-        {
-            return serviceGroupNames
-                .Where(groupName => !string.IsNullOrWhiteSpace(groupName))
-                .Select(groupName => new WfReqElement
-                {
-                    RequestAction = RequestAction.create.ToString(),
-                    Field = ElemFieldType.service.ToString(),
-                    GroupName = groupName
-                });
-        }
-
         private static IEnumerable<WfReqElement> BuildServiceGroupElements(IEnumerable<ModellingServiceGroup> serviceGroups)
         {
             return serviceGroups

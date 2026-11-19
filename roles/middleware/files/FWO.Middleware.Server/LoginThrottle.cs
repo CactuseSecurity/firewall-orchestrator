@@ -108,7 +108,7 @@ namespace FWO.Middleware.Server
         private readonly int userFailuresPerWindow;
         // attempts of a user name and client that are still running: each of them may still fail
         private readonly Dictionary<string, int> pendingAttempts = [];
-        private readonly object attemptLock = new();
+        private readonly Lock attemptLock = new();
 
         /// <summary>Retry hint for rejected clients, matching the limiter window.</summary>
         public const int kRetryAfterSeconds = 60;

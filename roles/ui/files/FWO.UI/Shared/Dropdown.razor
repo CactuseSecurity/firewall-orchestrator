@@ -433,15 +433,12 @@
             return;
         }
 
-        if (disposing)
+        if (disposing && eventService is not null && eventService.Initialized)
         {
-            if (eventService is not null && eventService.Initialized)
-            {
-                eventService.OnGlobalResize -= OnFocusChanged;
-                eventService.OnGlobalScroll -= OnFocusChanged;
-                eventService.OnGlobalFocus -= OnFocusChanged;
-                eventService.OnGlobalClick -= OnFocusChanged;
-            }
+            eventService.OnGlobalResize -= OnFocusChanged;
+            eventService.OnGlobalScroll -= OnFocusChanged;
+            eventService.OnGlobalFocus -= OnFocusChanged;
+            eventService.OnGlobalClick -= OnFocusChanged;
         }
 
         _disposed = true;

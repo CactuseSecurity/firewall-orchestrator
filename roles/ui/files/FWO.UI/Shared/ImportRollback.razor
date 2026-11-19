@@ -76,7 +76,7 @@
     }
 
 
-    private async Task RollbackSingleImport(int mgm, long importId)
+    private async Task RollbackSingleImport(long importId)
     {
         try
         {
@@ -115,7 +115,7 @@
                 long? lastImportId = importList[0].ControlId;
                 if (lastImportId != null)
                 {
-                    await RollbackSingleImport(ManagementId, (long)lastImportId);
+                    await RollbackSingleImport((long)lastImportId);
                     DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);            
                 }
             }
@@ -168,7 +168,7 @@
                             }
                             else
                             {
-                                await RollbackSingleImport(ManagementId, (long)lastImportId);
+                                await RollbackSingleImport((long)lastImportId);
                             }
                         }
 
@@ -190,10 +190,10 @@
             workInProgress = false;
             DisplayMessageInUi(exception, userConfig.GetText("rollback_import"), "", true);
         }
-        await deleteLatestConfigOfManagement(ManagementId);
+        await deleteLatestConfigOfManagement();
     }
 
-    private async Task deleteLatestConfigOfManagement(int mgmId)
+    private async Task deleteLatestConfigOfManagement()
     {
         // guard the destructive latest-config deletion independently of the calling path:
         // this row is only removed here as part of a full rollback, which requires the setting.

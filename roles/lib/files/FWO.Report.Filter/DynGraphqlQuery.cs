@@ -722,8 +722,8 @@ namespace FWO.Report.Filter
         {
             string start;
             string stop;
-            DateTime startOfCurrentYear = new(DateTime.Now.Year, 1, 1);
-            DateTime startOfCurrentMonth = new(DateTime.Now.Year, DateTime.Now.Month, 1);
+            DateTime startOfCurrentYear = new(DateTime.Now.Year, 1, 1, 0, 0, 0, DateTimeKind.Local);
+            DateTime startOfCurrentMonth = new(DateTime.Now.Year, DateTime.Now.Month, 1, 0, 0, 0, DateTimeKind.Local);
             DateTime startOfCurrentWeek = DateTime.Now.AddDays(-(int)DateTime.Now.DayOfWeek);
 
             switch (timeFilter.TimeRangeType)

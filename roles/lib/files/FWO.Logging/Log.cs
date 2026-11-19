@@ -83,21 +83,17 @@ namespace FWO.Logging
                             using StreamWriter writer = new(file);
                             await writer.WriteLineAsync("GRANTED");
                         }
-                        // RELEASED - lock was released by log swap process
-                        else if (lockFileContent.EndsWith("RELEASED"))
+                        // RELEASED - lock was released by log swap process, only release lock if it was formerly requested by us
+                        else if (lockFileContent.EndsWith("RELEASED") && logOwnedByExternal)
                         {
-                            // only release lock if it was formerly requested by us
-                            if (logOwnedByExternal)
-                            {
-                                stopwatch.Reset();
-                                semaphore.Release();
-                                logOwnedByExternal = false;
-                            }
+                            stopwatch.Reset();
+                            semaphore.Release();
+                            logOwnedByExternal = false;
                         }
                     }
                     catch (Exception)
                     {
-                        //WriteError("Log file locking", "Error while accessing log lock file.", e);
+                        // errors of the lock file cannot be logged, as logging itself depends on it - retry
                     }
                     await Task.Delay(1000);
                 }
@@ -114,7 +110,7 @@ namespace FWO.Logging
                 }
                 catch (Exception)
                 {
-                    //WriteDebug("Log file locking", $"Could not access log lock file: {e.Message}.");
+                    // errors of the lock file cannot be logged, as logging itself depends on it - retry
                 }
                 await Task.Delay(random.Next(100));
             }
@@ -123,17 +119,17 @@ namespace FWO.Logging
         [Conditional("DEBUG")]
         public static void WriteDebug(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteLog("Debug", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.White);
+            WriteLog("Debug", Title, Text, callerFile, callerLineNumber, ConsoleColor.White);
         }
 
         public static void WriteInfo(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteLog("Info", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Cyan);
+            WriteLog("Info", Title, Text, callerFile, callerLineNumber, ConsoleColor.Cyan);
         }
 
         public static void WriteWarning(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteLog("Warning", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.DarkYellow);
+            WriteLog("Warning", Title, Text, callerFile, callerLineNumber, ConsoleColor.DarkYellow);
         }
 
         public static void WriteError(string Title, string? Text = null, Exception? Error = null, string? User = null, string? Role = null, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
@@ -147,7 +143,7 @@ namespace FWO.Logging
                 $"Exception thrown: \n {Error}"
                 : "");
 
-            WriteLog("Error", Title, DisplayText, callerName, callerFile, callerLineNumber, ConsoleColor.Red);
+            WriteLog("Error", Title, DisplayText, callerFile, callerLineNumber, ConsoleColor.Red);
         }
 
         public static void WriteError(string Title, string Text, bool LogStackTrace, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
@@ -161,7 +157,7 @@ namespace FWO.Logging
                 $"Stack Trace: \n {Environment.StackTrace}"
                 : "");
 
-            WriteLog("Error", Title, DisplayText, callerName, callerFile, callerLineNumber, ConsoleColor.Red);
+            WriteLog("Error", Title, DisplayText, callerFile, callerLineNumber, ConsoleColor.Red);
         }
 
         /// <summary>
@@ -181,7 +177,7 @@ namespace FWO.Logging
                 Text += $"{Environment.NewLine}----{Environment.NewLine}";
             }
 
-            WriteLog("Audit", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
+            WriteLog("Audit", Title, Text, callerFile, callerLineNumber, ConsoleColor.Yellow);
         }
 
         /// <summary>
@@ -213,10 +209,10 @@ namespace FWO.Logging
                 Text += $"{Environment.NewLine}----{Environment.NewLine}";
             }
 
-            WriteLog("Audit", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
+            WriteLog("Audit", Title, Text, callerFile, callerLineNumber, ConsoleColor.Yellow);
         }
 
-        private static void WriteLog(string LogType, string Title, string Text, string Method, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
+        private static void WriteLog(string LogType, string Title, string Text, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
         {
             string File = Path.Split('\\', '/').Last(); // do not show the full file path, just the basename
             WriteInColor($"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzz")} {LogType} - {Title} ({File} in line {Line}), {Text}", ForegroundColor, BackgroundColor);

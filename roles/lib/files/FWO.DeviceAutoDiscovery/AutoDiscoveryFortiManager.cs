@@ -28,9 +28,6 @@ namespace FWO.DeviceAutoDiscovery
             cancellationToken.ThrowIfCancellationRequested();
             List<Management> discoveredDevices = [];
             Log.WriteAudit(Autodiscovery, $"starting discovery for {SuperManagement.Name} (id={SuperManagement.Id})");
-            // #if DEBUG
-            //      discoveredDevices = fillTestDevices();
-            // #endif
             if (SuperManagement.DeviceType.Name == "FortiManager")
             {
                 SuperManagement.IsSupermanager = true; // just to be sure
@@ -163,22 +160,6 @@ namespace FWO.DeviceAutoDiscovery
             }
         }
 
-        private void LogDeviceResponse(RestResponse<FmApiTopLevelHelperDev> deviceResponse)
-        {
-            if (deviceResponse.Data != null && deviceResponse.Data.Result.Count > 0)
-            {
-                List<FortiGate> fortigateList = deviceResponse.Data.Result[0].FortiGates;
-                foreach (FortiGate fg in fortigateList)
-                {
-                    Log.WriteDebug(Autodiscovery, $"found device {fg.Name} belonging to management VDOM {fg.MgtVdom}");
-                    foreach (Vdom vdom in fg.VdomList)
-                    {
-                        Log.WriteDebug(Autodiscovery, $"found vdom {vdom.Name} belonging to device {fg.Name}");
-                    }
-                }
-            }
-        }
-
         private async Task<List<Adom>> GetAdoms(string sessionId, FortiManagerClient restClientFM)
         {
             List<Adom> customAdoms = [];
@@ -268,46 +249,5 @@ namespace FWO.DeviceAutoDiscovery
             }
             return discoveredDevices;
         }
-
-        // #if DEBUG
-        //         List<Management> fillTestDevices()
-        //         {
-        //             List<Management> testDevices = new List<Management>();
-        //             Management currentManagement = new Management
-        //             {
-        //                 Name = $"{superManagement.Name}{AdomSeparator}{TestAdom}",
-        //                 Hostname = superManagement.Hostname,
-        //                 ImportUser = superManagement.ImportUser,
-        //                 Secret = superManagement.Secret,
-        //                 Port = superManagement.Port,
-        //                 ImportDisabled = false,
-        //                 ForceInitialImport = true,
-        //                 HideInUi = false,
-        //                 ConfigPath = "TestAdom",
-        //                 DebugLevel = superManagement.DebugLevel,
-        //                 SuperManagerId = superManagement.Id,
-        //                 DeviceType = new DeviceType { Id = 11 },
-        //                 Devices = new Device[] { }
-        //             };
-        //             Device dev1 = new Device
-        //             {
-        //                 Name = "TestGateway1",
-        //                 LocalRulebase = "Package1",
-        //                 Package = "Package1",
-        //                 DeviceType = new DeviceType { Id = 10 } // fortiGate
-        //             };
-        //             currentManagement.Devices = currentManagement.Devices.Append(dev1).ToArray();
-        //             Device dev2 = new Device
-        //             {
-        //                 Name = "TestGateway2",
-        //                 LocalRulebase = "Package2",
-        //                 Package = "Package2",
-        //                 DeviceType = new DeviceType { Id = 10 } // fortiGate
-        //             };
-        //             currentManagement.Devices = currentManagement.Devices.Append(dev2).ToArray();
-        //             testDevices.Add(currentManagement);
-        //             return testDevices;
-        //         }
-        // #endif
     }
 }

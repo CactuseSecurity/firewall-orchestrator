@@ -43,8 +43,7 @@ namespace FWO.Report.Filter.Ast
 
         private static void ExtractRecertDisplayFilter(DynGraphqlQuery query)
         {
-            // string queryVarName = AddVariable<DateTime>(query, "refdate", Operator.Kind, DateTime.Now.AddDays(semanticValue));
-            // query.ruleWhereStatement += $@"  rule_metadatum: {{ recertifications: {{ next_recert_date: {{ _lte: ${queryVarName} }} }} }}";
+            // the recert display token is accepted by the parser but does not restrict the rule query yet
         }
 
         private void ExtractDestinationPortFilter(DynGraphqlQuery query)

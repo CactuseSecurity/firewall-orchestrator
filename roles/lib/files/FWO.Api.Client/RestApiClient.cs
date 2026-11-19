@@ -15,7 +15,7 @@ namespace FWO.Api.Client
         // remote system never reaches the Brotli decoder (CVE-2026-111497); servers fall back to gzip.
         internal const DecompressionMethods kAllowedDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
         private static readonly HashSet<string> uncheckedEndpointsWarned = [];
-        private static readonly object uncheckedEndpointLock = new();
+        private static readonly Lock uncheckedEndpointLock = new();
 
         protected RestClient restClient;
         readonly string BaseUrl;

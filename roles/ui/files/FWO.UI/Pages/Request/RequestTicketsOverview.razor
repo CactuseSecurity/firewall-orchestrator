@@ -35,7 +35,7 @@ else
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     private WfHandler wfHandler = new ();
-    private WfStateDict states = new ();
+    private readonly WfStateDict states = new ();
     private List<int>? OwnerIds = null;
     private bool InitComplete = false;
     private bool accessAllowed = true;

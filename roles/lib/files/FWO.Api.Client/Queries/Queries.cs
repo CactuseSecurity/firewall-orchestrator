@@ -6,6 +6,11 @@ namespace FWO.Api.Client.Queries
 {
     public class Queries
     {
+        /// <summary>
+        /// Only derived query classes are instantiated.
+        /// </summary>
+        protected Queries() { }
+
         protected static string QueryPath => Path.Combine(GetQueryBasePath(), "fwo-api-calls") + Path.DirectorySeparatorChar;
 
         protected static string GetQueryText(string relativeQueryFileName)

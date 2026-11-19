@@ -10,7 +10,6 @@ namespace FWO.Data.Middleware
         public string? Comment { get; set; }
         public string? Project { get; set; }
         public bool ViewAllDevices { get; set; }
-        // public bool Superadmin { get; set; }
     }
 
     public class TenantGetReturnParameters : TenantAddParameters

@@ -1186,6 +1186,55 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void RulesReport_LastHitEqualsLastYearUsesStartOfPreviousYear()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "lasthit=\"last year\""
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            string expected = new DateTime(DateTime.Now.Year - 1, 1, 1, 0, 0, 0, DateTimeKind.Local).ToString(DynGraphqlQuery.fullTimeFormat);
+            Assert.That(query.QueryVariables["lastHitLimit0"], Is.EqualTo(expected));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void RulesReport_LastHitEqualsThisMonthUsesStartOfCurrentMonth()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "lasthit=\"this month\""
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            string expected = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1, 0, 0, 0, DateTimeKind.Local).ToString(DynGraphqlQuery.fullTimeFormat);
+            Assert.That(query.QueryVariables["lastHitLimit0"], Is.EqualTo(expected));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void RulesReport_LastHitEqualsLastMonthUsesStartOfPreviousMonth()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "lasthit=\"last month\""
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            // AddMonths also covers January, where the month before is in the previous year
+            string expected = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1, 0, 0, 0, DateTimeKind.Local).AddMonths(-1).ToString(DynGraphqlQuery.fullTimeFormat);
+            Assert.That(query.QueryVariables["lastHitLimit0"], Is.EqualTo(expected));
+        }
+
+        [Test]
+        [Parallelizable]
         public void RulesReport_LastHitRejectsInvalidTimeRangeFormat()
         {
             ReportTemplate template = new()

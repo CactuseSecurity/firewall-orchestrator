@@ -31,13 +31,6 @@ namespace FWO.Data
 
         public DistName(string? dn)
         {
-            //Regex r = new Regex("(?:^|,\\s?)(?:(?<name>[A-Z]+)=(?<val>\"(?:[^\"]| \"\")+\"|(?:\\,|[^,])+))+");
-            //GroupCollection groups = r.Match(dn ?? "").Groups;
-            //foreach (string group in r.GetGroupNames())
-            //{
-            //    groups[group];
-            //}
-
             UserName = "";
             Role = "";
             Group = "";

@@ -28,7 +28,7 @@ namespace FWO.Services.Workflow
         private string? ScopedUserEmailBcc { get; set; } = "";
         private readonly List<UserGroup>? UserGroups = [];
         private readonly string NoAuthUser = "No Auth User";
-        private static readonly object MiddlewareDelegationLock = new();
+        private static readonly Lock MiddlewareDelegationLock = new();
         private static readonly Dictionary<string, DateTime> MiddlewareDelegations = [];
         private static readonly TimeSpan MiddlewareDelegationDeduplicationWindow = TimeSpan.FromSeconds(5);
         /// <summary>

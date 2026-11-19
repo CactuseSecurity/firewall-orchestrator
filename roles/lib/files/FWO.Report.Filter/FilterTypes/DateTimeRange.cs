@@ -11,8 +11,8 @@ namespace FWO.Report.Filter.FilterTypes
         public DateTimeRange(AstNodeFilterDateTimeRange filter)
         {
             bool isSingleDate = DateTime.TryParse(filter.Value.Text, out DateTime time);
-            int currentYear = DateTime.Now.Year;
-            int currentMonth = DateTime.Now.Month;
+            DateTime startOfCurrentYear = new(DateTime.Now.Year, 1, 1, 0, 0, 0, DateTimeKind.Local);
+            DateTime startOfCurrentMonth = new(DateTime.Now.Year, DateTime.Now.Month, 1, 0, 0, 0, DateTimeKind.Local);
 
             switch (filter.Operator.Kind)
             {
@@ -27,20 +27,20 @@ namespace FWO.Report.Filter.FilterTypes
                             End = now;
                             break;
                         case "this year":
-                            Start = new DateTime(currentYear, 01, 01, 00, 00, 00);
-                            End = new DateTime(currentYear + 1, 01, 01, 00, 00, 00);
+                            Start = startOfCurrentYear;
+                            End = startOfCurrentYear.AddYears(1);
                             break;
                         case "last year":
-                            Start = new DateTime(currentYear - 1, 01, 01, 00, 00, 00);
-                            End = new DateTime(currentYear, 01, 01, 00, 00, 00);
+                            Start = startOfCurrentYear.AddYears(-1);
+                            End = startOfCurrentYear;
                             break;
                         case "this month":
-                            Start = new DateTime(currentYear, currentMonth, 01, 00, 00, 00);
-                            End = new DateTime(currentYear, currentMonth + 1, 01, 00, 00, 00);
+                            Start = startOfCurrentMonth;
+                            End = startOfCurrentMonth.AddMonths(1);
                             break;
                         case "last month":
-                            Start = new DateTime(currentYear, currentMonth - 1, 01, 00, 00, 00);
-                            End = new DateTime(currentYear, currentMonth, 01, 00, 00, 00);
+                            Start = startOfCurrentMonth.AddMonths(-1);
+                            End = startOfCurrentMonth;
                             break;
                         default:
                             if (isSingleDate)

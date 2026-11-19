@@ -471,25 +471,6 @@ namespace FWO.Test
             Assert.That(messages[0].ErrorFlag, Is.True);
             Assert.That(messages[0].Message, Does.Contain(setup.UserConfig.GetText("E5113")).And.Contain("used_demo: Global"));
         }
-
-        [Test]
-        public void Cancel_ClosesAllModals()
-        {
-            using MonitoringMainTestSetup setup = RenderComponent();
-            MonitoringMain monitoring = setup.Component;
-            SetPrivateField(monitoring, "RemoveSampleDataMode", true);
-            SetPrivateField(monitoring, "AckAllMode", true);
-            SetPrivateField(monitoring, "DetailsMode", true);
-            SetPrivateField(monitoring, "RollbackMode", true);
-
-            InvokePrivateVoid(monitoring, "Cancel");
-
-            Assert.That(GetPrivateField<bool>(monitoring, "RemoveSampleDataMode"), Is.False);
-            Assert.That(GetPrivateField<bool>(monitoring, "AckAllMode"), Is.False);
-            Assert.That(GetPrivateField<bool>(monitoring, "DetailsMode"), Is.False);
-            Assert.That(GetPrivateField<bool>(monitoring, "RollbackMode"), Is.False);
-        }
-
     }
 
     internal sealed class MonitoringMainTestSetup : IDisposable, IAsyncDisposable

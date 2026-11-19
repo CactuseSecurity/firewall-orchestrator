@@ -143,7 +143,7 @@
 
     private FWO.Ui.Shared.TabSet tabset = new();
     private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB = new();
-    private CollapseState collapseInRSB = new();
+    private readonly CollapseState collapseInRSB = new();
     private Tab? ruleTab;
 
     /// <summary>
@@ -377,7 +377,7 @@
                     break;
 
                 case RsbTab.rule:
-                    await FetchRuleTabContent(objType, hasChangedCallback, id, nat);
+                    await FetchRuleTabContent(hasChangedCallback, id, nat);
                     break;
             }
         }
@@ -508,7 +508,7 @@
         }
     }
 
-    private async Task FetchRuleTabContent(ObjCategory objType, Func<Task> hasChangedCallback, long id, bool nat)
+    private async Task FetchRuleTabContent(Func<Task> hasChangedCallback, long id, bool nat)
     {
         var rule = selectedRulesDetailed.FirstOrDefault(r => r.Id == id);
         if (rule == null)

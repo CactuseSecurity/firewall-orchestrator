@@ -231,7 +231,7 @@ else
     private string RecertStatus = "";
     private GraphQlApiSubscription<List<WfTicket>>? actTicketSubscription;
     private ExtStateHandler? extStateHandler;
-    private WfStateDict states = new();
+    private readonly WfStateDict states = new();
     private bool firstErrorMessage = true;
     private bool workInProgress = false;
     private bool InitDone = false;

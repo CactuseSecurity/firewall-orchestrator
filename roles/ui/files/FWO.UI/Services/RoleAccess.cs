@@ -7,7 +7,7 @@ using System.Net;
 
 namespace FWO.Ui.Services
 {
-    public class RoleAccess
+    public static class RoleAccess
     {
         static public async Task<List<Role>> GetRolesFromInternalLdap(MiddlewareClient middlewareClient)
         {

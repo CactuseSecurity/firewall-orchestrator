@@ -27,7 +27,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     private readonly GlobalConfig globalConfig;
     private readonly ApiSubscription? configSubscription;
     private readonly SemaphoreSlim ipProtocolCacheLock = new(1, 1);
-    private readonly object zonePatternCacheLock = new();
+    private readonly Lock zonePatternCacheLock = new();
     private IpProtocolCache? ipProtocolCache;
     private IReadOnlyList<FlowZoneGroupPattern> zonePatterns = [];
     private string? parsedZonePatternConfig;

@@ -24,7 +24,7 @@
 @inject IRuleTreeBuilder ruleTreeBuilder
 
 @* ==== LEFT SIDEBAR ==== *@
-<Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true"
+<Sidebar Collapsible="true" Resizeable="true" PositionLeft="true"
          @bind-Width="sidebarLeftWidth">
     <br>
     <div class="btn-group sticky-marker p-3 w-100">
@@ -162,7 +162,7 @@
 
     private bool processing = false;
     private bool rulesFound = false;
-    private CancellationTokenSource tokenSource = new();
+    private readonly CancellationTokenSource tokenSource = new();
 
     private List<ManagementReport> managementsReport = [];
 
@@ -175,7 +175,6 @@
 
     private ReportBase? currentReport;
 
-    private Sidebar? deviceSelectionSidebar;
     private bool AddCommentMode = false;
     private string actComment = "";
     private int recertLookAheadDays = 0;

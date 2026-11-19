@@ -43,7 +43,7 @@ namespace FWO.Test
 
         private Rule[] _rules = [];
 
-        private RuleTreeBuilder _ruleTreeBuilder = new();
+        private readonly RuleTreeBuilder _ruleTreeBuilder = new();
 
         [SetUp]
         public void SetUp()

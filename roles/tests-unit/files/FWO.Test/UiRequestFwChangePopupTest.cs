@@ -57,12 +57,6 @@ namespace FWO.Test
             return wrapper.FindComponent<RequestFwChangePopup>();
         }
 
-        private static TValue GetPrivateField<TValue>(object instance, string fieldName)
-        {
-            FieldInfo? field = instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
-            return field != null ? (TValue)field.GetValue(instance)! : throw new MissingFieldException(instance.GetType().FullName, fieldName);
-        }
-
         private static void SetPrivateProperty(object instance, string propertyName, object? value)
         {
             PropertyInfo? property = instance.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);

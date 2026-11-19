@@ -9,8 +9,8 @@ namespace FWO.Test
     [Parallelizable]
     internal class ManagedIdStringTest
     {
-        ModellingManagedIdString IdString1 = new();
-        ModellingManagedIdString IdString2 = new("AR5001234-123");
+        readonly ModellingManagedIdString IdString1 = new();
+        readonly ModellingManagedIdString IdString2 = new("AR5001234-123");
 
         static readonly ModellingNamingConvention NamingConvention1 = new()
         {
@@ -30,7 +30,7 @@ namespace FWO.Test
             NetworkAreaPattern = "NA",
             AppRolePattern = "AR"
         };
-        ModellingNamingConvention NamingConvention3 = new()
+        readonly ModellingNamingConvention NamingConvention3 = new()
         {
             NetworkAreaRequired = true,
             UseAppPart = true,

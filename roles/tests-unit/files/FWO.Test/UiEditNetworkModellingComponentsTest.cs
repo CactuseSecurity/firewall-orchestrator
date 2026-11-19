@@ -869,7 +869,6 @@ namespace FWO.Test
 
             public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => new List<LocalizedString>();
 
-            public EmptyStringLocalizer<T> WithCulture(System.Globalization.CultureInfo culture) => this;
         }
     }
 }

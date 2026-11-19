@@ -26,6 +26,19 @@ dotnet_diagnostic.CA1861.severity = warning
 dotnet_diagnostic.CA2263.severity = warning
 dotnet_diagnostic.SYSLIB1045.severity = warning
 
+# Build-side counterparts of SonarCloud rules (IDE rules need EnforceCodeStyleInBuild, see roles/Directory.Build.props)
+# CA1052 = S1118 (static holder types), CA2201 = S112 (reserved exception types), CA2208 = S3928 (argument exceptions)
+dotnet_diagnostic.CA1052.severity = warning
+dotnet_diagnostic.CA2201.severity = warning
+dotnet_diagnostic.CA2208.severity = warning
+# IDE0044 = S2933 (readonly field), IDE0051 = S1144 (unused private member), IDE0052 = S4487 (unread private member),
+# IDE0060 = S1172 (unused parameter, like Sonar only for non-public members)
+dotnet_diagnostic.IDE0044.severity = warning
+dotnet_diagnostic.IDE0051.severity = warning
+dotnet_diagnostic.IDE0052.severity = warning
+dotnet_diagnostic.IDE0060.severity = warning
+dotnet_code_quality_unused_parameters = non_public
+
 [*.razor]
 indent_style = space
 indent_size = 4

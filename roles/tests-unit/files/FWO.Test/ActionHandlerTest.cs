@@ -110,7 +110,7 @@ namespace FWO.Test
                 return HandleRequestQueries<T>(query, variables)
                     ?? HandleModellingQueries<T>(query, variables)
                     ?? HandleReferenceQueries<T>(query, variables)
-                    ?? HandleStmQueries<T>(query, variables)
+                    ?? HandleStmQueries<T>(query)
                     ?? throw new AssertionException($"Unexpected query: {query}");
             }
 
@@ -281,7 +281,7 @@ namespace FWO.Test
                 return null;
             }
 
-            private static Task<T>? HandleStmQueries<T>(string query, object? variables)
+            private static Task<T>? HandleStmQueries<T>(string query)
             {
                 if (query == StmQueries.getIpProtocols)
                 {

@@ -23,22 +23,8 @@ namespace FWO.Test
             new() { Name = "German", CultureInfo = "de-DE" }
         };
 
-        private static readonly FieldInfo SelectedLanguageField = typeof(SettingsCustomTexts).GetField("selectedLanguage", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?? throw new MissingFieldException(typeof(SettingsCustomTexts).FullName, "selectedLanguage");
         private static readonly FieldInfo DictsLoadedField = typeof(SettingsCustomTexts).GetField("dictsLoaded", BindingFlags.NonPublic | BindingFlags.Instance)
             ?? throw new MissingFieldException(typeof(SettingsCustomTexts).FullName, "dictsLoaded");
-        private static readonly FieldInfo ActDictField = typeof(SettingsCustomTexts).GetField("actDict", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?? throw new MissingFieldException(typeof(SettingsCustomTexts).FullName, "actDict");
-        private static readonly FieldInfo ActCustomDictField = typeof(SettingsCustomTexts).GetField("actCustomDict", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?? throw new MissingFieldException(typeof(SettingsCustomTexts).FullName, "actCustomDict");
-        private static readonly FieldInfo ResultsField = typeof(SettingsCustomTexts).GetField("results", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?? throw new MissingFieldException(typeof(SettingsCustomTexts).FullName, "results");
-        private static readonly FieldInfo SearchStringField = typeof(SettingsCustomTexts).GetField("searchString", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?? throw new MissingFieldException(typeof(SettingsCustomTexts).FullName, "searchString");
-        private static readonly FieldInfo IgnoreHelpTextsField = typeof(SettingsCustomTexts).GetField("ignoreHelpTexts", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?? throw new MissingFieldException(typeof(SettingsCustomTexts).FullName, "ignoreHelpTexts");
-        private static readonly FieldInfo CaseSensitiveField = typeof(SettingsCustomTexts).GetField("caseSensitive", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?? throw new MissingFieldException(typeof(SettingsCustomTexts).FullName, "caseSensitive");
 
         [Test]
         public void OnInitialized_UsesFirstLanguage()

@@ -6,6 +6,6 @@ namespace FWO.Services.EventMediator.Events
     public class CollectionChangedEventArgs(IEnumerable<dynamic>? collection = default, ErrorBaseModel? error = default) : IEventArgs
     {
         public ErrorBaseModel? Error { get; set; } = error ?? new ErrorBaseModel();
-        IEnumerable<dynamic> Collection { get; } = collection ?? [];
+        public IEnumerable<dynamic> Collection { get; } = collection ?? [];
     }
 }

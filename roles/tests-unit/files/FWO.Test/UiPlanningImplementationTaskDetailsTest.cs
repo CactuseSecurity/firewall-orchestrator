@@ -25,8 +25,6 @@ namespace FWO.Test;
 [TestFixture]
 internal sealed class UiPlanningImplementationTaskDetailsTest
 {
-    private static readonly object[] kNoArguments = [];
-
     private static readonly string[] kGroupContents = ["one", "two", "three", "four", "five", "six"];
 
     private static BunitContext CreateContext()

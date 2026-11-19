@@ -2435,13 +2435,6 @@ namespace FWO.Test
             return (T)method.Invoke(instance, parameters)!;
         }
 
-        private static async Task InvokePrivateStaticTask(Type type, string methodName, params object?[] parameters)
-        {
-            MethodInfo method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
-                ?? throw new InvalidOperationException($"{methodName} not found.");
-            await (Task)method.Invoke(null, parameters)!;
-        }
-
         private static T InvokePrivateStaticWithRef<T>(Type type, string methodName, object?[] parameters)
         {
             MethodInfo method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)

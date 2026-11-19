@@ -23,7 +23,6 @@ namespace FWO.Test
         private const string kMultiLinePayload = "line one\r\nline \"two\"";
         private static readonly ExternalCertificateChecks CertificateChecks = new(FirewallConnections: true, TicketSystems: true);
         private static readonly List<IpProtocol> kIpProtos = [new() { Id = 6, Name = "TCP" }];
-        private static readonly List<IpProtocol> kNoIpProtos = [];
         private static readonly ModellingNamingConvention kNamingConvention = new() { AppServerPrefix = "net_" };
 
         [Test]

@@ -110,7 +110,7 @@ namespace FWO.Test
             catch (Exception)
             {
                 Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance!");
-                throw new Exception($"Couldn't start {wantedBrowser} instance!");
+                throw new InvalidOperationException($"Couldn't start {wantedBrowser} instance!");
             }
 
             await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A0);
@@ -133,7 +133,7 @@ namespace FWO.Test
             }
             catch (Exception)
             {
-                throw new Exception("Couldn't close browser instance!");
+                throw new InvalidOperationException("Couldn't close browser instance!");
             }
         }
 

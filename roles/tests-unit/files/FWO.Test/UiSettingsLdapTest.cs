@@ -344,14 +344,6 @@ namespace FWO.Test
             return CreateBareComponent(new RecordingLdapApiConnection(), new TestMiddlewareClient(), messages);
         }
 
-        private static SettingsLdap CreateComponent(
-            RecordingLdapApiConnection apiConnection,
-            TestMiddlewareClient middlewareClient,
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages)
-        {
-            return CreateBareComponent(apiConnection, middlewareClient, messages);
-        }
-
         private static SettingsLdap CreateBareComponent(
             RecordingLdapApiConnection apiConnection,
             TestMiddlewareClient middlewareClient,

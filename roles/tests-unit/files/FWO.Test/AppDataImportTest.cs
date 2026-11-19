@@ -78,7 +78,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(2));
             Assert.That(result.Exists(r => r.Dn == "cn=user1,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
@@ -111,7 +111,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(2));
             Assert.That(result.Exists(r => r.Dn == "cn=first,dc=example,dc=com" && r.ResponsibleTypeId == 2), Is.True);
@@ -142,7 +142,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(2));
             Assert.That(result.Exists(r => r.Dn == "cn=first,dc=example,dc=com" && r.ResponsibleTypeId == 2), Is.True);
@@ -173,7 +173,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result.Exists(r => r.Dn == "cn=first,dc=example,dc=com" && r.ResponsibleTypeId == 2), Is.True);
@@ -206,7 +206,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Is.Empty);
         }
@@ -229,7 +229,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].Dn, Is.EqualTo("cn=kept,dc=example,dc=com"));
@@ -258,7 +258,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].Dn, Is.EqualTo("cn=user1,dc=example,dc=com"));
@@ -282,11 +282,7 @@ namespace FWO.Test
                 Responsibles = null
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(
-                import,
-                incomingApp,
-                "cn=support,dc=example,dc=com",
-                ["cn=optional,dc=example,dc=com"]);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result.Exists(r => r.Dn == "cn=main,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
@@ -310,7 +306,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=support,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result.Exists(r => r.Dn == "cn=main,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
@@ -332,7 +328,7 @@ namespace FWO.Test
                 Responsibles = new Dictionary<string, List<string>>()
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=support,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result.Exists(r => r.Dn == "cn=main,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
@@ -356,11 +352,7 @@ namespace FWO.Test
                 Responsibles = new Dictionary<string, List<string>>()
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(
-                import,
-                incomingApp,
-                "cn=support,dc=example,dc=com",
-                ["cn=optional,dc=example,dc=com"]);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Is.Empty);
         }
@@ -382,7 +374,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].ResponsibleTypeId, Is.EqualTo(1));
@@ -407,7 +399,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(2));
             Assert.That(result.Exists(r => r.ResponsibleTypeId == 1), Is.True);
@@ -2262,7 +2254,7 @@ namespace FWO.Test
             field.SetValue(import, value);
         }
 
-        private static List<OwnerResponsible> InvokeBuildOwnerResponsibles(AppDataImport import, ModellingImportAppData incomingApp, string userGroupDn, IEnumerable<string> extraDns)
+        private static List<OwnerResponsible> InvokeBuildOwnerResponsibles(AppDataImport import, ModellingImportAppData incomingApp)
         {
             MethodInfo method = typeof(AppDataImport).GetMethod(
                 "BuildOwnerResponsibles",
@@ -2351,15 +2343,6 @@ namespace FWO.Test
                 BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("ConvertLdapToUiUser helper not found.");
             return await (Task<UiUser?>)method.Invoke(import, [userDn])!;
-        }
-
-        private static async Task InvokeImportApps(AppDataImport import, string importfileName, OwnerChangeImportTracker tracker)
-        {
-            MethodInfo method = typeof(AppDataImport).GetMethod(
-                "ImportApps",
-                BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new InvalidOperationException("ImportApps helper not found.");
-            await (Task)method.Invoke(import, [importfileName, tracker, CancellationToken.None])!;
         }
 
         private static async Task<bool> InvokeSaveApp(AppDataImport import, ModellingImportAppData incomingApp, OwnerChangeImportTracker tracker)

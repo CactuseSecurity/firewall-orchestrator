@@ -33,7 +33,6 @@ namespace FWO.Test
         private static readonly string[] kOverrideRecipients = ["override@example.test"];
         private static readonly string[] kScopedRecipients = ["scoped@example.test"];
         private static readonly string[] kAliceBobRecipients = ["alice@example.test", "bob@example.test"];
-        private static readonly string[] kAliceRecipients = ["alice@example.test"];
         private static readonly string[] kAliceAndEmptyRecipients = ["alice@example.test", string.Empty];
         private static readonly List<string> kOtherAddressRecipients = ["a@test", "b@test"];
         private static readonly List<string> kJsonOtherAddressList = ["json-a@test", "json-b@test"];

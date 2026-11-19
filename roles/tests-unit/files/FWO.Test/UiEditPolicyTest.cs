@@ -32,16 +32,6 @@ namespace FWO.Test
             field.SetValue(component, value);
         }
 
-        private static T GetPrivateField<T>(EditPolicy component, string fieldName)
-        {
-            FieldInfo? field = typeof(EditPolicy).GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
-            if (field == null)
-            {
-                throw new MissingFieldException(typeof(EditPolicy).FullName, fieldName);
-            }
-            return (T)field.GetValue(component)!;
-        }
-
         [Test]
         public async Task Save_AddModeWithEmptyName_DoesNotInsertPolicy()
         {

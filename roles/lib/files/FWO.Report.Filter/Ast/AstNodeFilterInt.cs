@@ -31,7 +31,7 @@ namespace FWO.Report.Filter.Ast
                     ExtractDestinationPortFilter(query);
                     break;
                 case TokenKind.RecertDisplay:
-                    ExtractRecertDisplayFilter(query);
+                    // the recert display token is accepted by the parser but does not restrict the rule query yet
                     break;
                 case TokenKind.Unused:
                     ExtractUnusedFilter(query);
@@ -39,11 +39,6 @@ namespace FWO.Report.Filter.Ast
                 default:
                     break;
             }
-        }
-
-        private static void ExtractRecertDisplayFilter(DynGraphqlQuery query)
-        {
-            // the recert display token is accepted by the parser but does not restrict the rule query yet
         }
 
         private void ExtractDestinationPortFilter(DynGraphqlQuery query)

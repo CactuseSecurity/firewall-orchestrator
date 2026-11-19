@@ -180,7 +180,7 @@ namespace FWO.Basics.TestDataGeneration
                 }
             }
 
-            throw new Exception();
+            throw new JsonException($"Generated test data could not be deserialized to {typeof(TDeserializedObject).Name}.");
         }
 
         private static bool ValidateJson(string json)

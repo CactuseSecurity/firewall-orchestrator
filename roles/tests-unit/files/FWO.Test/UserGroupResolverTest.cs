@@ -330,14 +330,5 @@ namespace FWO.Test
                 GroupSearchPath = groupSearchPath
             };
         }
-
-        private static FakeSearchResults GroupSearchResultFor(string groupName, string memberDn, string groupPath = kInternalGroupPath)
-        {
-            return LdapTestSupport.CreateSearchResults(
-                LdapTestSupport.CreateEntry(
-                    $"cn={groupName},{groupPath}",
-                    new LdapAttribute("cn", groupName),
-                    new LdapAttribute("uniqueMember", memberDn)));
-        }
     }
 }

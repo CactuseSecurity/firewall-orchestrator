@@ -74,16 +74,6 @@ namespace FWO.Test
                 ?? throw new MissingMethodException(componentType.FullName, name);
         }
 
-        private static void SetPrivateField(object component, string fieldName, object? value)
-        {
-            FieldInfo? field = component.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
-            if (field == null)
-            {
-                throw new MissingFieldException(component.GetType().FullName, fieldName);
-            }
-            field.SetValue(component, value);
-        }
-
         private static void SetInjectedApiConnection(SettingsStates component, ApiConnection apiConnection)
         {
             PropertyInfo? prop = typeof(SettingsStates).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)

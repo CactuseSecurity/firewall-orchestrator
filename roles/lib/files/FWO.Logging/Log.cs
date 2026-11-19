@@ -13,7 +13,7 @@ namespace FWO.Logging
         private const string lockDirEnvVar = "FWO_LOG_LOCK_DIR";
         private const string defaultLockDir = "/var/fworch/lock";
 
-        private static SemaphoreSlim semaphore = new(1, 1);
+        private static readonly SemaphoreSlim semaphore = new(1, 1);
         private static readonly Random random = new();
 
         /// <summary>

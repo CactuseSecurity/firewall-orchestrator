@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using FWO.Basics;
 
 
 namespace FWO.Api.Client.Queries
 {
+    [SuppressMessage("Design", "CA1052:Static holder types should be Static or NotInheritable", Justification = "Base class of all query classes, which inherit GetQueryText")]
     public class Queries
     {
         /// <summary>

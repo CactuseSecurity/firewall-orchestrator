@@ -502,25 +502,6 @@ namespace FWO.Middleware.Server
         }
 
 
-        private static void LogMessage(Exception? exception = null, string title = "", string message = "", bool ErrorFlag = false)
-        {
-            if (exception == null)
-            {
-                if (ErrorFlag)
-                {
-                    Log.WriteWarning(title, message);
-                }
-                else
-                {
-                    Log.WriteInfo(title, message);
-                }
-            }
-            else
-            {
-                Log.WriteError(title, message, exception);
-            }
-        }
-
         /// <summary>
         /// Dispose method to clean up resources
         /// </summary>

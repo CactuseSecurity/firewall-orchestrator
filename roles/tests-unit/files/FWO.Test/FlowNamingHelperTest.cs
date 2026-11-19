@@ -203,6 +203,23 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ResolveMissingNameFromDuplicateSelection_UsesOnlyTheHighestPrecedenceManagement()
+        {
+            List<int> mappedManagementIds = [1, 2];
+            List<int> managementRanking = [2, 1];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(
+                    FlowNamingHelper.ResolveMissingNameFromDuplicateSelection("", "highest-precedence", 2, mappedManagementIds, managementRanking),
+                    Is.EqualTo("highest-precedence"));
+                Assert.That(
+                    FlowNamingHelper.ResolveMissingNameFromDuplicateSelection("", "lower-precedence", 1, mappedManagementIds, managementRanking),
+                    Is.Null);
+            });
+        }
+
+        [Test]
         public void ResolveNwObjectNameByRanking_UsesFirstRankedManagementWithMappedName()
         {
             FlowNwObject nwObject = new()

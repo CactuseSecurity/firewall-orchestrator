@@ -9,6 +9,8 @@ namespace FWO.Services.Workflow;
 public partial class WfDbAccess
 {
     private const string EffectiveStateHistoryText = "Materialized effective request state";
+    private const string PartialEffectiveStateHistoryText =
+        "Partially materialized effective request state before failure";
 
     /// <summary>
     /// Persists and verifies the latest effective values of ticket-local object references.
@@ -38,7 +40,8 @@ public partial class WfDbAccess
         WfTicket readback = await ReadTicketStrict(ticket.Id);
         VerifyEffectiveRequestState(ticket, readback, targetTaskIds,
             plan.ChangedTaskIds, plan.ChangedElements);
-        await LogEffectiveStateChanges(ticket, readback, plan.ChangedTaskIds);
+        await LogEffectiveStateChanges(ticket, readback, plan.ChangedTaskIds,
+            EffectiveStateHistoryText);
         return readback;
     }
 
@@ -215,18 +218,66 @@ public partial class WfDbAccess
     }
 
     /// <summary>
-    /// Records one request-task history entry for every task changed by the verified plan.
+    /// Selects tasks with at least one planned element whose exact payload is present in the readback.
+    /// Malformed ownership or duplicate element ids produce no audit selection.
+    /// </summary>
+    private static IReadOnlyCollection<long> FindAppliedTaskIds(
+        EffectiveRequestStateMaterializationPlan plan, WfTicket readback)
+    {
+        try
+        {
+            Dictionary<long, (long OwnerTaskId, WfReqElement Element)> actualById = [];
+            foreach (WfReqTask task in readback.Tasks)
+            {
+                if (task.Id <= 0)
+                {
+                    continue;
+                }
+                foreach (WfReqElement element in task.Elements.Where(element => element.Id > 0))
+                {
+                    if (!actualById.TryAdd(element.Id, (task.Id, element)))
+                    {
+                        return [];
+                    }
+                }
+            }
+
+            HashSet<long> appliedTaskIds = [];
+            foreach (WfReqElement expected in plan.ChangedElements)
+            {
+                if (expected.Id <= 0)
+                {
+                    return [];
+                }
+                if (actualById.TryGetValue(expected.Id, out var actual)
+                    && expected.TaskId > 0
+                    && actual.OwnerTaskId == expected.TaskId
+                    && ElementPayloadMatches(expected, actual.Element))
+                {
+                    appliedTaskIds.Add(expected.TaskId);
+                }
+            }
+            return [.. appliedTaskIds.OrderBy(taskId => taskId)];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Records one request-task history entry for every selected task.
     /// </summary>
     private async Task LogEffectiveStateChanges(WfTicket original, WfTicket readback,
-        IReadOnlyCollection<long> changedTaskIds)
+        IReadOnlyCollection<long> taskIds, string changeText)
     {
-        foreach (long taskId in changedTaskIds)
+        foreach (long taskId in taskIds)
         {
             WfReqTask oldTask = TaskForHistory(original, taskId);
             WfReqTask newTask = TaskForHistory(readback, taskId);
             WorkflowChangeTarget target = new(original.Id, ModellingTypes.ChangeType.Update,
                 ChangeHistoryObjectType.RequestTask, taskId);
-            await LogWorkflowChange(target, EffectiveStateHistoryText,
+            await LogWorkflowChange(target, changeText,
                 RequestTaskHistorySnapshot(oldTask), RequestTaskHistorySnapshot(newTask),
                 original.Requester, false);
         }

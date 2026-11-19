@@ -157,28 +157,16 @@ namespace FWO.Ui.Display
 
         private string DisplaySourceOrDestination(Rule rule, ReportType reportType, bool isSource)
         {
-            StringBuilder result = new StringBuilder("");
-
-            if (reportType.IsResolvedReport())
+            if (!reportType.IsResolvedReport())
             {
-                List<string> displayedLocations = [];
-                foreach (NetworkLocation networkLocation in GetResolvedNetworkLocations(isSource ? rule.Froms : rule.Tos))
-                {
-                    displayedLocations.Add(DisplayNetworkLocation(networkLocation, reportType).ToString());
-                }
-
-                if ((isSource && rule.SourceNegated) || (!isSource && rule.DestinationNegated))
-                {
-                    result.Append($"{userConfig.GetText("negated")}(");
-                }
-                result.Append(string.Join(",", displayedLocations));
-                if ((isSource && rule.SourceNegated) || (!isSource && rule.DestinationNegated))
-                {
-                    result.Append(")");
-                }
+                return "";
             }
 
-            return result.ToString();
+            NetworkLocation[] networkLocations = isSource ? rule.Froms : rule.Tos;
+            string displayedLocations = string.Join(",", GetResolvedNetworkLocations(networkLocations)
+                .Select(networkLocation => DisplayNetworkLocation(networkLocation, reportType).ToString()));
+            bool negated = isSource ? rule.SourceNegated : rule.DestinationNegated;
+            return negated ? $"{userConfig.GetText("negated")}({displayedLocations})" : displayedLocations;
         }
 
         public static string DisplayEnforcingGateways(Rule rule)

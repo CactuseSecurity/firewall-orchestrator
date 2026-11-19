@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -38,81 +39,19 @@ namespace FWO.Basics.TestDataGeneration
 
             try
             {
-                // create instance
-
                 T instance = new();
-                if (instance == null)
-                {
-                    result.ProcessSuccessful = false;
-                    return result;
-                }
-
-                // get config as json array
-
-                JsonNode? rootNode = JsonNode.Parse(json);
-                if (rootNode == null)
-                {
-                    result.ProcessSuccessful = false;
-                    return result;
-                }
-
-                JsonArray? configArray = rootNode["config"]?.AsArray();
+                JsonArray? configArray = JsonNode.Parse(json)?["config"]?.AsArray();
                 if (configArray == null || configArray.Count == 0)
                 {
                     result.ProcessSuccessful = false;
                     return result;
                 }
 
-                // loop over settings
-
-                foreach (var item in configArray)
+                foreach (JsonNode? item in configArray)
                 {
-                    // get set object
-                    if (item is JsonObject jsonObject
-                        && jsonObject.TryGetPropertyValue("set", out JsonNode? setNode)
-                        && setNode is JsonObject setObject)
+                    if (TryGetValueSettings(item, out string propertyName, out JsonObject? valueSettings))
                     {
-                        KeyValuePair<string, JsonNode?> kvp = setObject.FirstOrDefault();
-
-                        if (string.IsNullOrWhiteSpace(kvp.Key) || kvp.Value is null)
-                        {
-                            continue;
-                        }
-
-                        if (kvp.Value is not JsonObject valueSettingsObject)
-                        {
-                            continue;
-                        }
-
-                        string propertyName = kvp.Key;
-                        Dictionary<string, double> valuesWithProbabilities = [];
-
-                        foreach (var valueSetting in valueSettingsObject)
-                        {
-                            if (valueSetting.Value != null)
-                            {
-                                valuesWithProbabilities[valueSetting.Key] = valueSetting.Value.GetValue<double>();
-                            }
-                        }
-
-                        string randomizedValue = GetRandomValueByProbability(valuesWithProbabilities);
-
-                        // get property
-                        PropertyInfo? property = typeof(T).GetProperty(propertyName);
-                        if (property == null)
-                        {
-                            throw new ArgumentException($"Property '{propertyName}' not found on type '{typeof(T)}'.");
-                        }
-
-                        // validate that property can be set
-                        if (!property.CanWrite)
-                        {
-                            throw new InvalidOperationException($"Property '{propertyName}' is read-only and cannot be set.");
-                        }
-
-                        object convertedValue = Convert.ChangeType(randomizedValue, property.PropertyType);
-                        property.SetValue(instance, convertedValue);
-
+                        SetRandomizedValue(instance, propertyName, valueSettings);
                     }
                 }
 
@@ -127,6 +66,57 @@ namespace FWO.Basics.TestDataGeneration
             }
         }
 
+        /// <summary>
+        /// Reads a config entry of the form { "set": { "PropertyName": { "value": probability, ... } } }.
+        /// </summary>
+        private static bool TryGetValueSettings(JsonNode? item, out string propertyName, [NotNullWhen(true)] out JsonObject? valueSettings)
+        {
+            propertyName = "";
+            valueSettings = null;
+            if (item is not JsonObject jsonObject
+                || !jsonObject.TryGetPropertyValue("set", out JsonNode? setNode)
+                || setNode is not JsonObject setObject)
+            {
+                return false;
+            }
+
+            KeyValuePair<string, JsonNode?> kvp = setObject.FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(kvp.Key) || kvp.Value is not JsonObject valueSettingsObject)
+            {
+                return false;
+            }
+
+            propertyName = kvp.Key;
+            valueSettings = valueSettingsObject;
+            return true;
+        }
+
+        /// <summary>
+        /// Sets the property to one of the configured values, chosen randomly according to the given probabilities.
+        /// </summary>
+        private static void SetRandomizedValue(T instance, string propertyName, JsonObject valueSettings)
+        {
+            Dictionary<string, double> valuesWithProbabilities = [];
+            foreach (KeyValuePair<string, JsonNode?> valueSetting in valueSettings)
+            {
+                if (valueSetting.Value != null)
+                {
+                    valuesWithProbabilities[valueSetting.Key] = valueSetting.Value.GetValue<double>();
+                }
+            }
+
+            string randomizedValue = GetRandomValueByProbability(valuesWithProbabilities);
+
+            PropertyInfo property = typeof(T).GetProperty(propertyName)
+                ?? throw new ArgumentException($"Property '{propertyName}' not found on type '{typeof(T)}'.");
+            if (!property.CanWrite)
+            {
+                throw new InvalidOperationException($"Property '{propertyName}' is read-only and cannot be set.");
+            }
+
+            object convertedValue = Convert.ChangeType(randomizedValue, property.PropertyType);
+            property.SetValue(instance, convertedValue);
+        }
 
         public void SetUpInstance(T instance, string json)
         {

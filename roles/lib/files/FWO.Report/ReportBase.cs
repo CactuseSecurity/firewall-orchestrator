@@ -398,13 +398,17 @@ namespace FWO.Report
 
         protected static string ToUtcString(string? timestring)
         {
+            if (timestring == null)
+            {
+                return "";
+            }
             try
             {
-                return timestring != null ? DateTime.Parse(timestring).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK") : "";
+                return DateTime.Parse(timestring).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK");
             }
-            catch (Exception)
+            catch (FormatException)
             {
-                return timestring ?? "";
+                return timestring;
             }
         }
 

@@ -87,5 +87,39 @@ namespace FWO.Test
 
             Assert.That(DisplayBase.DisplayService(service, protocols), Is.EqualTo(""));
         }
+
+        [TestCase("10.0.0.1", "10.0.0.1", ObjectType.Group, false, "")]
+        [TestCase("", "", ObjectType.Host, false, "")]
+        [TestCase("no-ip", "no-ip", ObjectType.Host, false, "")]
+        [TestCase("10.0.0.1", "::1", ObjectType.IPRange, false, "")]
+        [TestCase("10.0.0.1/32", "10.0.0.1/32", ObjectType.Host, false, "10.0.0.1")]
+        [TestCase("10.0.0.1", "", ObjectType.Host, true, " (10.0.0.1)")]
+        [TestCase("10.0.0.1", "10.0.0.5", ObjectType.IPRange, true, " (10.0.0.1-10.0.0.5)")]
+        [TestCase("10.0.0.0", "10.0.0.255", ObjectType.Network, false, "10.0.0.0/24")]
+        [TestCase("10.0.0.255", "10.0.0.0", ObjectType.Network, false, "10.0.0.0/24")]
+        [TestCase("10.0.0.1", "10.0.0.5", ObjectType.Network, false, "10.0.0.1-10.0.0.5")]
+        [TestCase("10.0.0.0/24", "10.0.0.0/24", ObjectType.Network, true, " (10.0.0.0/24)")]
+        public void DisplayIpFormatsByObjectType(string ip1, string ip2, string nwObjType, bool inBrackets, string expected)
+        {
+            Assert.That(DisplayBase.DisplayIp(ip1, ip2, nwObjType, inBrackets), Is.EqualTo(expected));
+        }
+
+        [TestCase("no-ip", "no-ip", false, "")]
+        [TestCase("10.0.0.1/32", "10.0.0.1/32", false, "10.0.0.1")]
+        [TestCase("10.0.0.1", "", true, " (10.0.0.1)")]
+        [TestCase("10.0.0.1/32", "10.0.0.5/32", true, " (10.0.0.1-10.0.0.5)")]
+        [TestCase("10.0.0.0/32", "10.0.0.255/32", false, "10.0.0.0-10.0.0.255")]
+        [TestCase("10.0.0.0/24", "10.0.0.0/24", false, "10.0.0.0/24")]
+        public void DisplayIpRangeFormatsByObjectType(string ip1, string ip2, bool inBrackets, string expected)
+        {
+            Assert.That(DisplayBase.DisplayIpRange(ip1, ip2, inBrackets), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void DisplayIpRangeThrowsForMixedIpFamilies()
+        {
+            // current behaviour: the object type is determined before the ip families are checked
+            Assert.Throws<FormatException>(() => DisplayBase.DisplayIpRange("10.0.0.1", "::1"));
+        }
     }
 }

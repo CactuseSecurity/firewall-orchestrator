@@ -183,7 +183,7 @@
                     var Variables = new
                     {
                         appId = Application.Id,
-                        nwGroupId = selectedObject?.Id
+                        nwGroupId = selectedObject.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addSelectedNwGroupObject, Variables);
                 }

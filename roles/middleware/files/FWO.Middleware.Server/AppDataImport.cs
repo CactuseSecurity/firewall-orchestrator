@@ -169,7 +169,7 @@ namespace FWO.Middleware.Server
             {
                 ReadFile(importfileName);
                 ModellingImportOwnerData? importedOwnerData = JsonSerializer.Deserialize<ModellingImportOwnerData>(importFile) ?? throw new JsonException("File could not be parsed.");
-                if (importedOwnerData != null && importedOwnerData.Owners != null)
+                if (importedOwnerData.Owners != null)
                 {
                     ImportedApps = importedOwnerData.Owners;
                     await ImportApps(importfileName, ownerChangeTracker, cancellationToken);

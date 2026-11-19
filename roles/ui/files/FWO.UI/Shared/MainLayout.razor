@@ -460,13 +460,13 @@
             return;
         }
 
-        if (UIMessageQue == null || UIMessageQue.Count == 0)
+        if (UIMessageQue.Count == 0)
         {
             UIMessageQueTimer.Stop();
             return;
         }
 
-        if (UIMessageQue.Count > 0 && UIMessages.Count < userConfig.MaxMessages)
+        if (UIMessages.Count < userConfig.MaxMessages)
         {
             UIMessage uiMessage = UIMessageQue.Dequeue();
             uiMessage.ShowTimer?.Start();

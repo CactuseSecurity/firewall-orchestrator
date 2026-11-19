@@ -14,6 +14,7 @@ namespace FWO.Logging
         private const string defaultLockDir = "/var/fworch/lock";
 
         private static readonly SemaphoreSlim semaphore = new(1, 1);
+        private const long kForcedLockReleaseMilliseconds = 10_000;
         private static readonly Random random = new();
 
         /// <summary>
@@ -36,60 +37,13 @@ namespace FWO.Logging
             Task.Factory.StartNew(async () =>
             {
                 // log switch - log file locking
-                bool logOwnedByExternal = false;
-                Stopwatch stopwatch = new();
+                LockFileState lockState = new();
 
                 while (true)
                 {
                     try
                     {
-                        // Open file
-                        using FileStream file = await GetFile(LockFilePath);
-                        // Read file content
-                        using StreamReader reader = new(file);
-                        string lockFileContent = (await reader.ReadToEndAsync()).Trim();
-
-                        // Forcefully release lock after timeout
-                        if (logOwnedByExternal && stopwatch.ElapsedMilliseconds > 10_000)
-                        {
-                            using StreamWriter writer = new(file);
-                            await writer.WriteLineAsync("FORCEFULLY RELEASED");
-                            stopwatch.Reset();
-                            semaphore.Release();
-                            logOwnedByExternal = false;
-                        }
-                        // GRANTED - lock was granted by us
-                        else if (lockFileContent.EndsWith("GRANTED"))
-                        {
-                            // Request lock if it is not already requested by us
-                            // (in case of restart with log already granted)
-                            if (!logOwnedByExternal)
-                            {
-                                semaphore.Wait();
-                                stopwatch.Restart();
-                                logOwnedByExternal = true;
-                            }
-                        }
-                        // REQUESTED - lock was requested by log swap process
-                        else if (lockFileContent.EndsWith("REQUESTED"))
-                        {
-                            // only request lock if it is not already requested by us
-                            if (!logOwnedByExternal)
-                            {
-                                semaphore.Wait();
-                                stopwatch.Restart();
-                                logOwnedByExternal = true;
-                            }
-                            using StreamWriter writer = new(file);
-                            await writer.WriteLineAsync("GRANTED");
-                        }
-                        // RELEASED - lock was released by log swap process, only release lock if it was formerly requested by us
-                        else if (lockFileContent.EndsWith("RELEASED") && logOwnedByExternal)
-                        {
-                            stopwatch.Reset();
-                            semaphore.Release();
-                            logOwnedByExternal = false;
-                        }
+                        await HandleLockFile(lockState);
                     }
                     catch (Exception)
                     {
@@ -98,6 +52,73 @@ namespace FWO.Logging
                     await Task.Delay(1000);
                 }
             }, TaskCreationOptions.LongRunning);
+        }
+
+        /// <summary>
+        /// Reads the lock file once and reacts to the state written by the log swap process.
+        /// </summary>
+        private static async Task HandleLockFile(LockFileState lockState)
+        {
+            using FileStream file = await GetFile(LockFilePath);
+            using StreamReader reader = new(file);
+            string lockFileContent = (await reader.ReadToEndAsync()).Trim();
+
+            // Forcefully release lock after timeout
+            if (lockState.OwnedByExternal && lockState.Stopwatch.ElapsedMilliseconds > kForcedLockReleaseMilliseconds)
+            {
+                using StreamWriter writer = new(file);
+                await writer.WriteLineAsync("FORCEFULLY RELEASED");
+                lockState.Release();
+            }
+            // GRANTED - lock was granted by us, request it if not already done (in case of restart with log already granted)
+            else if (lockFileContent.EndsWith("GRANTED"))
+            {
+                lockState.Acquire();
+            }
+            // REQUESTED - lock was requested by log swap process
+            else if (lockFileContent.EndsWith("REQUESTED"))
+            {
+                lockState.Acquire();
+                using StreamWriter writer = new(file);
+                await writer.WriteLineAsync("GRANTED");
+            }
+            // RELEASED - lock was released by log swap process, only release lock if it was formerly requested by us
+            else if (lockFileContent.EndsWith("RELEASED") && lockState.OwnedByExternal)
+            {
+                lockState.Release();
+            }
+        }
+
+        /// <summary>
+        /// Tracks whether the log swap process currently owns the log, and since when.
+        /// </summary>
+        private sealed class LockFileState
+        {
+            public bool OwnedByExternal { get; private set; }
+            public Stopwatch Stopwatch { get; } = new();
+
+            /// <summary>
+            /// Takes the log semaphore for the log swap process, unless it already owns it.
+            /// </summary>
+            public void Acquire()
+            {
+                if (!OwnedByExternal)
+                {
+                    semaphore.Wait();
+                    Stopwatch.Restart();
+                    OwnedByExternal = true;
+                }
+            }
+
+            /// <summary>
+            /// Gives the log semaphore back.
+            /// </summary>
+            public void Release()
+            {
+                Stopwatch.Reset();
+                semaphore.Release();
+                OwnedByExternal = false;
+            }
         }
 
         private static async Task<FileStream> GetFile(string path)

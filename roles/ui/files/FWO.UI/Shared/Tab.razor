@@ -2,7 +2,7 @@
 
 @if (ContainerTabSet?.KeepPanelsAlive == true)
 {
-    <div style="display:@(ContainerTabSet?.ActiveTab == this ? "contents" : "none")">
+    <div style="display:@(ContainerTabSet.ActiveTab == this ? "contents" : "none")">
         @ChildContent
     </div>
 }

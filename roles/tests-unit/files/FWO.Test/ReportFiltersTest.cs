@@ -14,6 +14,7 @@ namespace FWO.Test
     internal class ReportFiltersTest
     {
         private static readonly List<int> kSelectedRulebaseIds = [10];
+        private static readonly int[] kSimulatedTenantGatewayIds = [70, 71, 80];
 
         /// <summary>New reports use the effective configured view.</summary>
         [TestCase(false)]
@@ -599,6 +600,38 @@ namespace FWO.Test
             Assert.That(filters.DeviceFilter.Managements[0].Devices[0].Visible, Is.True);
             Assert.That(filters.DeviceFilter.Managements[0].Devices[1].Visible, Is.False);
             Assert.That(filters.DeviceFilter.Managements[0].Devices[1].Selected, Is.False);
+        }
+
+        [Test]
+        public void TenantViewChanged_WithSimulatedTenant_AddsTenantGatewaysAndGatewaysOfUnsharedManagements()
+        {
+            ReportFilters filters = new()
+            {
+                DeviceFilter = new DeviceFilter(
+                [
+                    new ManagementSelect { Id = 7, Devices = [new DeviceSelect { Id = 70 }, new DeviceSelect { Id = 71 }] },
+                    new ManagementSelect { Id = 8, Devices = [new DeviceSelect { Id = 80 }] },
+                    new ManagementSelect { Id = 9, Devices = [new DeviceSelect { Id = 90 }] }
+                ])
+            };
+            Tenant simulatedTenant = new()
+            {
+                Id = 2,
+                VisibleGatewayIds = [70],
+                TenantGateways = [new TenantGateway { VisibleGateway = new Device { Id = 70 } }, new TenantGateway { VisibleGateway = new Device { Id = 71 } }],
+                TenantManagements =
+                [
+                    new TenantManagement { Shared = false, VisibleManagement = new Management { Id = 8, Devices = [new Device { Id = 80 }] } },
+                    new TenantManagement { Shared = true, VisibleManagement = new Management { Id = 9, Devices = [new Device { Id = 90 }] } }
+                ]
+            };
+
+            filters.TenantViewChanged(simulatedTenant);
+
+            Assert.That(simulatedTenant.VisibleGatewayIds, Is.EqualTo(kSimulatedTenantGatewayIds));
+            Assert.That(filters.DeviceFilter.Managements[0].Shared, Is.False);
+            Assert.That(filters.DeviceFilter.Managements[1].Visible, Is.True);
+            Assert.That(filters.DeviceFilter.Managements[2].Visible, Is.False);
         }
 
         [Test]

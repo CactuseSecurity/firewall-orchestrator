@@ -254,7 +254,7 @@
             userConfig, DisplayMessageInUi, null, ruleTreeBuilder);
             if (currentReport != null)
             {
-                managementsReport = currentReport?.ReportData.ManagementData ?? new();
+                managementsReport = currentReport.ReportData.ManagementData;
             }
 
             postProcessReport();

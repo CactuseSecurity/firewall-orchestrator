@@ -39,11 +39,13 @@ namespace FWO.Services.Workflow
         /// Stores a structured workflow change and classifies selected UI content edits as audit-proof critical.
         /// </summary>
         /// <remarks>
-        /// Never throws: change history is observational, so a failure to record a change must not abort the
-        /// workflow operation that caused it, nor the state change actions that follow it.
+        /// By default, never throws: change history is observational, so a failure to record a change must not abort
+        /// the workflow operation that caused it. Recovery callers can request propagation when they must report that
+        /// an audit attempt itself failed.
         /// </remarks>
         private async Task LogWorkflowChange(WorkflowChangeTarget target, string changeText,
-            object? oldValue, object? newValue, UiUser? requester, bool contentChange)
+            object? oldValue, object? newValue, UiUser? requester, bool contentChange,
+            bool rethrowFailure = false)
         {
             // The snapshots travel as GraphQL variables and are serialized by the serializer the
             // connection was built with, which is Newtonsoft (ApiConstants.UseSystemTextJsonSerializer
@@ -105,6 +107,10 @@ namespace FWO.Services.Workflow
             {
                 Log.WriteError("Workflow Change History",
                     $"Could not record {target.ChangeType} of {target.ObjectType} {target.ObjectId} for ticket {target.TicketId}.", exception);
+                if (rethrowFailure)
+                {
+                    throw;
+                }
             }
         }
 

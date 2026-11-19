@@ -161,6 +161,64 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
     }
 
     [Test]
+    public void MaterializeEffectiveRequestState_RecoveryReadbackFails_PreservesOriginalFailureAndAlerts()
+    {
+        WfTicket ticket = CreateTicket();
+        MaterializationApiConnection apiConnection = new(ticket)
+        {
+            FailBeforeCommitOnUpdateCall = 2,
+            FailStrictReadback = true
+        };
+        WfDbAccess dbAccess = CreateDbAccess(apiConnection);
+
+        EffectiveRequestStateMaterializationException exception = Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(
+            async () => await dbAccess.MaterializeEffectiveRequestState(ticket, Target(20)))!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.PersistenceFailure));
+            Assert.That(exception.InnerException, Is.SameAs(apiConnection.UpdateFailure));
+            Assert.That(apiConnection.QueryLog, Is.EqualTo(Queries(
+                RequestQueries.updateEffectiveRequestElementSnapshot,
+                RequestQueries.updateEffectiveRequestElementSnapshot,
+                RequestQueries.getTicketById,
+                MonitorQueries.getOpenAlerts,
+                MonitorQueries.addAlert)));
+            AssertRecoveryAlert(apiConnection, ticket.Id);
+        });
+    }
+
+    [Test]
+    public void MaterializeEffectiveRequestState_RecoveryHistoryFails_PreservesOriginalFailureAndAlerts()
+    {
+        WfTicket ticket = CreateTicket();
+        MaterializationApiConnection apiConnection = new(ticket)
+        {
+            FailBeforeCommitOnUpdateCall = 2,
+            FailHistoryInsertion = true
+        };
+        WfDbAccess dbAccess = CreateDbAccess(apiConnection);
+
+        EffectiveRequestStateMaterializationException exception = Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(
+            async () => await dbAccess.MaterializeEffectiveRequestState(ticket, Target(20)))!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.PersistenceFailure));
+            Assert.That(exception.InnerException, Is.SameAs(apiConnection.UpdateFailure));
+            Assert.That(apiConnection.HistoryVariables, Has.Count.EqualTo(1));
+            Assert.That(apiConnection.QueryLog, Is.EqualTo(Queries(
+                RequestQueries.updateEffectiveRequestElementSnapshot,
+                RequestQueries.updateEffectiveRequestElementSnapshot,
+                RequestQueries.getTicketById,
+                ModellingQueries.addHistoryEntry,
+                MonitorQueries.getOpenAlerts,
+                MonitorQueries.addAlert)));
+            AssertRecoveryAlert(apiConnection, ticket.Id);
+        });
+    }
+
+    [Test]
     public void MaterializeEffectiveRequestState_ReadbackStillStaleThrows()
     {
         WfTicket ticket = CreateTicket();
@@ -431,6 +489,24 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         object? element = elements?.Cast<object>().SingleOrDefault(candidate =>
             Convert.ToInt64(candidate.GetType().GetProperty("Id")?.GetValue(candidate)) == elementId);
         return element?.GetType().GetProperty(propertyName)?.GetValue(element);
+    }
+
+    private static void AssertRecoveryAlert(MaterializationApiConnection apiConnection, long ticketId)
+    {
+        Assert.That(apiConnection.AlertVariables, Has.Count.EqualTo(1));
+        object? variables = apiConnection.AlertVariables.SingleOrDefault();
+        if (variables is null)
+        {
+            return;
+        }
+        Assert.Multiple(() =>
+        {
+            Assert.That(HistoryValue(variables, "source"), Is.EqualTo(GlobalConst.kWorkflow));
+            Assert.That(HistoryValue(variables, "alertCode"), Is.EqualTo((int)AlertCode.WorkflowAlert));
+            Assert.That(HistoryValue(variables, "description"),
+                Is.EqualTo($"Could not audit partially materialized effective request state for ticket {ticketId}."));
+            Assert.That(HistoryValue(HistoryValue(variables, "jsonData"), "ticketId"), Is.EqualTo(ticketId));
+        });
     }
 
     private static string? ElementIp(WfTicket ticket, long elementId)

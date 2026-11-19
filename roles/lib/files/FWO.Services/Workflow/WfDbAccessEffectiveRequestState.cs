@@ -284,7 +284,7 @@ public partial class WfDbAccess
     /// Records one request-task history entry for every selected task.
     /// </summary>
     private async Task LogEffectiveStateChanges(WfTicket original, WfTicket readback,
-        IReadOnlyCollection<long> taskIds, string changeText)
+        IReadOnlyCollection<long> taskIds, string changeText, bool rethrowFailure = false)
     {
         foreach (long taskId in taskIds)
         {
@@ -294,7 +294,7 @@ public partial class WfDbAccess
                 ChangeHistoryObjectType.RequestTask, taskId);
             await LogWorkflowChange(target, changeText,
                 RequestTaskHistorySnapshot(oldTask), RequestTaskHistorySnapshot(newTask),
-                original.Requester, false);
+                original.Requester, false, rethrowFailure);
         }
     }
 
@@ -312,13 +312,29 @@ public partial class WfDbAccess
             if (appliedTaskIds.Count > 0)
             {
                 await LogEffectiveStateChanges(original, readback, appliedTaskIds,
-                    PartialEffectiveStateHistoryText);
+                    PartialEffectiveStateHistoryText, true);
             }
         }
         catch (Exception exception)
         {
             Log.WriteError("Effective request state materialization",
                 "Could not audit partially materialized effective request state.", exception);
+            try
+            {
+                await AlertHelper.SetAlert(ApiConnection, "Effective request state materialization",
+                    $"Could not audit partially materialized effective request state for ticket {original.Id}.",
+                    GlobalConst.kWorkflow, AlertCode.WorkflowAlert,
+                    new AlertHelper.AdditionalAlertData
+                    {
+                        JsonData = new { ticketId = original.Id },
+                        CompareDesc = true
+                    });
+            }
+            catch (Exception alertException)
+            {
+                Log.WriteError("Effective request state materialization",
+                    "Could not create a recovery audit alert.", alertException);
+            }
         }
     }
 

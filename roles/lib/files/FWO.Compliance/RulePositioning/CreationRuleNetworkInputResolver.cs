@@ -41,7 +41,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
                 sources.Concat(destinations), referenceIndex, cancellationToken);
             Dictionary<long, GroupExpansionResult> wholeGroupCache = [];
             ResolutionContext context = new(
-                referenceIndex, catalog, cancellationToken, wholeGroupCache);
+                referenceIndex, catalog, wholeGroupCache, cancellationToken);
             List<IPAddressRange> sourceRanges = ResolveElements(sources, context);
             List<IPAddressRange> destinationRanges = ResolveElements(destinations, context);
             return CreationRuleNetworkResolutionResult.Success(new CreationRuleNetworkInput(
@@ -945,8 +945,8 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
     private sealed record ResolutionContext(
         TicketObjectReferenceIndex ReferenceIndex,
         CatalogIndex Catalog,
-        CancellationToken CancellationToken,
-        Dictionary<long, GroupExpansionResult> WholeGroupCache);
+        Dictionary<long, GroupExpansionResult> WholeGroupCache,
+        CancellationToken CancellationToken);
     /// <summary>One resolved group plus the descendants needed to validate safe cache reuse.</summary>
     private sealed record GroupExpansionResult(
         List<IPAddressRange> Ranges,

@@ -19,6 +19,11 @@ namespace FWO.Test;
 [RequiresIntegrationEnvironment]
 internal class EffectiveRequestStateMutationIntegrationTest
 {
+    private static readonly string[] kForbiddenBroadUpdateFields =
+    [
+        "request_action", "task_id", "field", "user_id", "device_id"
+    ];
+
     private const string kReadSnapshot = """
         query readEffectiveRequestElementSnapshot($id: bigint!) {
           request_reqelement_by_pk(id: $id) {
@@ -74,17 +79,17 @@ internal class EffectiveRequestStateMutationIntegrationTest
             Assert.Multiple(() => AssertSnapshot(updated, readback, rowIds.ElementId,
                 rowIds.TaskId, startTime, endTime));
 
-            InvalidOperationException? denial = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            Dictionary<string, object?> broadVariables = BroadUpdateVariables(rowIds.ElementId, rowIds.TaskId);
+            ReturnId adminBroadUpdate = await admin.SendQueryAsync<ReturnId>(
+                RequestQueries.updateRequestElement, broadVariables);
+            Assert.That(adminBroadUpdate.UpdatedIdLong, Is.EqualTo(rowIds.ElementId),
+                "The broad mutation variables were not database-valid for the admin control call.");
+
+            InvalidOperationException denial = Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await middleware.SendQueryAsync<ReturnId>(RequestQueries.updateRequestElement,
-                    new Dictionary<string, object?>
-                    {
-                        ["id"] = rowIds.ElementId,
-                        ["taskId"] = rowIds.TaskId,
-                        ["field"] = ElemFieldType.source.ToString(),
-                        ["userId"] = 0
-                    }));
-            Assert.That(denial, Is.Not.Null,
-                "Hasura accepted the broad request-element mutation for middleware-server.");
+                    broadVariables))!;
+            Assert.That(IsForbiddenBroadMutationError(denial), Is.True,
+                "Middleware rejection did not identify a forbidden broad update field.");
         }
         catch (Exception exception)
         {
@@ -101,20 +106,55 @@ internal class EffectiveRequestStateMutationIntegrationTest
     {
         string uniqueName = $"effective-state-smoke-{Guid.NewGuid():N}";
         rowIds.TicketId = (await admin.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newTicket,
-            new { title = uniqueName })).ReturnIds!.Single().NewIdLong;
+            TicketSeedVariables(uniqueName))).ReturnIds!.Single().NewIdLong;
         rowIds.TaskId = (await admin.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newRequestTask,
-            new
-            {
-                title = uniqueName,
-                ticketId = rowIds.TicketId,
-                taskType = WfTaskType.group_create.ToString()
-            })).ReturnIds!.Single().NewIdLong;
+            RequestTaskSeedVariables(uniqueName, rowIds.TicketId))).ReturnIds!.Single().NewIdLong;
         rowIds.ElementId = (await admin.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newRequestElement,
             new
             {
                 taskId = rowIds.TaskId,
                 field = ElemFieldType.source.ToString()
             })).ReturnIds!.Single().NewIdLong;
+    }
+
+    private static Dictionary<string, object?> TicketSeedVariables(string title)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["title"] = title,
+            ["state"] = 0
+        };
+    }
+
+    private static Dictionary<string, object?> RequestTaskSeedVariables(string title, long ticketId)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["title"] = title,
+            ["ticketId"] = ticketId,
+            ["state"] = 0,
+            ["taskType"] = WfTaskType.group_create.ToString(),
+            ["requestAction"] = RequestAction.create.ToString()
+        };
+    }
+
+    private static Dictionary<string, object?> BroadUpdateVariables(long elementId, long taskId)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["id"] = elementId,
+            ["requestAction"] = RequestAction.create.ToString(),
+            ["taskId"] = taskId,
+            ["field"] = ElemFieldType.source.ToString(),
+            ["userId"] = null
+        };
+    }
+
+    private static bool IsForbiddenBroadMutationError(InvalidOperationException exception)
+    {
+        return exception.Message.Contains("not found in type", StringComparison.OrdinalIgnoreCase)
+            && kForbiddenBroadUpdateFields.Any(field =>
+                exception.Message.Contains(field, StringComparison.OrdinalIgnoreCase));
     }
 
     private static Dictionary<string, object?> SnapshotVariables(long elementId, DateTime startTime,

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Reflection;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -75,6 +76,48 @@ namespace FWO.Test
             Assert.That(ReadMiddlewareServerWritableColumns(), Is.SupersetOf(ReadMutationSetColumns()));
         }
 
+        /// <summary>
+        /// The opt-in live fixture must seed every required fresh-install request field.
+        /// </summary>
+        [Test]
+        public void IntegrationFixture_SeedVariablesSatisfyFreshInstallSchema()
+        {
+            Dictionary<string, object?> ticket = InvokeFixtureVariables("TicketSeedVariables", "smoke-ticket");
+            Dictionary<string, object?> task = InvokeFixtureVariables("RequestTaskSeedVariables",
+                "smoke-task", 41L);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ticket["state"], Is.EqualTo(0));
+                Assert.That(task["state"], Is.EqualTo(0));
+                Assert.That(task["requestAction"], Is.EqualTo("create"));
+            });
+        }
+
+        /// <summary>
+        /// The live denial check uses database-valid values and distinguishes authorization from SQL errors.
+        /// </summary>
+        [Test]
+        public void IntegrationFixture_BroadDenialRecognizesOnlyRoleSchemaRejection()
+        {
+            Dictionary<string, object?> variables = InvokeFixtureVariables("BroadUpdateVariables", 71L, 72L);
+            bool forbiddenField = InvokeFixturePredicate("IsForbiddenBroadMutationError",
+                new InvalidOperationException("field 'task_id' not found in type: 'request_reqelement_set_input'"));
+            bool foreignKey = InvokeFixturePredicate("IsForbiddenBroadMutationError",
+                new InvalidOperationException("insert or update violates foreign key constraint"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(variables["id"], Is.EqualTo(71L));
+                Assert.That(variables["taskId"], Is.EqualTo(72L));
+                Assert.That(variables["field"], Is.EqualTo("source"));
+                Assert.That(variables["requestAction"], Is.EqualTo("create"));
+                Assert.That(variables["userId"], Is.Null);
+                Assert.That(forbiddenField, Is.True);
+                Assert.That(foreignKey, Is.False);
+            });
+        }
+
         private List<string> ReadMutationSetColumns()
         {
             string mutationPath = Path.Combine(graphQlRoot, "request", kMutationFileName);
@@ -107,6 +150,23 @@ namespace FWO.Test
                 .SelectMany(source => source.GetProperty("tables").EnumerateArray())
                 .Single(table => table.GetProperty("table").GetProperty("schema").GetString() == schema
                     && table.GetProperty("table").GetProperty("name").GetString() == name);
+        }
+
+        private static Dictionary<string, object?> InvokeFixtureVariables(string methodName,
+            params object[] arguments)
+        {
+            MethodInfo? method = typeof(EffectiveRequestStateMutationIntegrationTest).GetMethod(methodName,
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null, $"The live fixture is missing {methodName}.");
+            return method?.Invoke(null, arguments) as Dictionary<string, object?> ?? [];
+        }
+
+        private static bool InvokeFixturePredicate(string methodName, Exception exception)
+        {
+            MethodInfo? method = typeof(EffectiveRequestStateMutationIntegrationTest).GetMethod(methodName,
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null, $"The live fixture is missing {methodName}.");
+            return method?.Invoke(null, [exception]) as bool? ?? false;
         }
 
         private static string? FindRepositoryOrInstalledFile(params string[] repositoryParts)

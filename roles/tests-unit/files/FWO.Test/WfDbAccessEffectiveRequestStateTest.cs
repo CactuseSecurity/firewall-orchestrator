@@ -219,6 +219,53 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
     }
 
     [Test]
+    public void MaterializeEffectiveRequestState_FirstRecoveryHistoryFails_AttemptsRemainingTasks()
+    {
+        WfTicket ticket = CreateMultiTaskTicket();
+        MaterializationApiConnection apiConnection = new(ticket)
+        {
+            ChangeTaskTypeOnReadback = true,
+            FailHistoryInsertionOnCall = 1
+        };
+        WfDbAccess dbAccess = CreateDbAccess(apiConnection);
+
+        EffectiveRequestStateMaterializationException exception = Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(
+            async () => await dbAccess.MaterializeEffectiveRequestState(ticket, Target(20, 30)))!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.ReadbackMismatch));
+            Assert.That(apiConnection.HistoryVariables.Select((_, index) => HistoryObjectId(apiConnection, index)),
+                Is.EqualTo(Target(20, 30)));
+            Assert.That(apiConnection.SuccessfulHistoryObjectIds, Is.EqualTo(Target(30)));
+            AssertRecoveryAlert(apiConnection, ticket.Id);
+        });
+    }
+
+    [Test]
+    public void MaterializeEffectiveRequestState_RecoveryExceptionCannotBeFormatted_PreservesOriginalFailure()
+    {
+        WfTicket ticket = CreateTicket();
+        MaterializationApiConnection apiConnection = new(ticket)
+        {
+            FailBeforeCommitOnUpdateCall = 2,
+            FailStrictReadback = true,
+            ReadbackFailure = new ExplosiveToStringException()
+        };
+        WfDbAccess dbAccess = CreateDbAccess(apiConnection);
+
+        EffectiveRequestStateMaterializationException exception = Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(
+            async () => await dbAccess.MaterializeEffectiveRequestState(ticket, Target(20)))!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.PersistenceFailure));
+            Assert.That(exception.InnerException, Is.SameAs(apiConnection.UpdateFailure));
+            AssertRecoveryAlert(apiConnection, ticket.Id);
+        });
+    }
+
+    [Test]
     public void MaterializeEffectiveRequestState_ReadbackStillStaleThrows()
     {
         WfTicket ticket = CreateTicket();
@@ -533,19 +580,21 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
         internal List<long> RetryUpdatedElementIds { get; } = [];
         internal List<Dictionary<string, object?>> UpdatePayloads { get; } = [];
         internal List<object> HistoryVariables { get; } = [];
+        internal List<long> SuccessfulHistoryObjectIds { get; } = [];
         internal List<object> AlertVariables { get; } = [];
         internal int? FailBeforeCommitOnUpdateCall { get; set; }
         internal int? MismatchAfterCommitOnUpdateCall { get; set; }
         internal int? ThrowAfterCommitOnUpdateCall { get; set; }
         internal bool FailStrictReadback { get; set; }
         internal bool FailHistoryInsertion { get; set; }
+        internal int? FailHistoryInsertionOnCall { get; set; }
         internal bool FailAlertInsertion { get; set; }
         internal bool ReturnStaleReadback { get; set; }
         internal bool RemoveChangedElementOnReadback { get; set; }
         internal bool ChangeTaskTypeOnReadback { get; set; }
         internal bool MutateUnplannedElementOnReadback { get; set; }
         internal Exception UpdateFailure { get; } = new InvalidOperationException("Simulated materialization update failure.");
-        internal Exception ReadbackFailure { get; } = new InvalidOperationException("Simulated strict readback failure.");
+        internal Exception ReadbackFailure { get; set; } = new InvalidOperationException("Simulated strict readback failure.");
         internal Exception HistoryFailure { get; } = new InvalidOperationException("Simulated history insertion failure.");
 
         internal MaterializationApiConnection(WfTicket ticket)
@@ -607,10 +656,11 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
             if (query == ModellingQueries.addHistoryEntry || query == ModellingQueries.addHistoryEntryAsService)
             {
                 HistoryVariables.Add(variables!);
-                if (FailHistoryInsertion)
+                if (FailHistoryInsertion || FailHistoryInsertionOnCall == HistoryVariables.Count)
                 {
                     throw HistoryFailure;
                 }
+                SuccessfulHistoryObjectIds.Add(Convert.ToInt64(HistoryValue(variables, "objectId")));
                 return Task.FromResult(Cast<QueryResponseType>(new ReturnIdWrapper()));
             }
             if (query == MonitorQueries.getOpenAlerts)
@@ -690,6 +740,14 @@ internal sealed class WfDbAccessEffectiveRequestStateTest
             {
                 Elements = task.Elements.Select(element => new WfReqElement(element)).ToList()
             };
+        }
+    }
+
+    private sealed class ExplosiveToStringException : Exception
+    {
+        public override string ToString()
+        {
+            throw new InvalidOperationException("Exception text must not be formatted during recovery.");
         }
     }
 }

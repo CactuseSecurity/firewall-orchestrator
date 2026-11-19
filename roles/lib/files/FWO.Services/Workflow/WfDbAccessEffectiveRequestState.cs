@@ -283,19 +283,28 @@ public partial class WfDbAccess
     /// <summary>
     /// Records one request-task history entry for every selected task.
     /// </summary>
-    private async Task LogEffectiveStateChanges(WfTicket original, WfTicket readback,
+    private async Task<bool> LogEffectiveStateChanges(WfTicket original, WfTicket readback,
         IReadOnlyCollection<long> taskIds, string changeText, bool rethrowFailure = false)
     {
+        bool succeeded = true;
         foreach (long taskId in taskIds)
         {
-            WfReqTask oldTask = TaskForHistory(original, taskId);
-            WfReqTask newTask = TaskForHistory(readback, taskId);
-            WorkflowChangeTarget target = new(original.Id, ModellingTypes.ChangeType.Update,
-                ChangeHistoryObjectType.RequestTask, taskId);
-            await LogWorkflowChange(target, changeText,
-                RequestTaskHistorySnapshot(oldTask), RequestTaskHistorySnapshot(newTask),
-                original.Requester, false, rethrowFailure);
+            try
+            {
+                WfReqTask oldTask = TaskForHistory(original, taskId);
+                WfReqTask newTask = TaskForHistory(readback, taskId);
+                WorkflowChangeTarget target = new(original.Id, ModellingTypes.ChangeType.Update,
+                    ChangeHistoryObjectType.RequestTask, taskId);
+                await LogWorkflowChange(target, changeText,
+                    RequestTaskHistorySnapshot(oldTask), RequestTaskHistorySnapshot(newTask),
+                    original.Requester, false, rethrowFailure);
+            }
+            catch when (rethrowFailure)
+            {
+                succeeded = false;
+            }
         }
+        return succeeded;
     }
 
     /// <summary>
@@ -311,30 +320,59 @@ public partial class WfDbAccess
             IReadOnlyCollection<long> appliedTaskIds = FindAppliedTaskIds(plan, readback);
             if (appliedTaskIds.Count > 0)
             {
-                await LogEffectiveStateChanges(original, readback, appliedTaskIds,
-                    PartialEffectiveStateHistoryText, true);
+                bool historySucceeded = await LogEffectiveStateChanges(original, readback,
+                    appliedTaskIds, PartialEffectiveStateHistoryText, true);
+                if (!historySucceeded)
+                {
+                    await ReportRecoveryFailure(original.Id, "history-write");
+                }
             }
         }
         catch (Exception exception)
         {
-            Log.WriteError("Effective request state materialization",
-                "Could not audit partially materialized effective request state.", exception);
-            try
-            {
-                await AlertHelper.SetAlert(ApiConnection, "Effective request state materialization",
-                    $"Could not audit partially materialized effective request state for ticket {original.Id}.",
-                    GlobalConst.kWorkflow, AlertCode.WorkflowAlert,
-                    new AlertHelper.AdditionalAlertData
-                    {
-                        JsonData = new { ticketId = original.Id },
-                        CompareDesc = true
-                    });
-            }
-            catch (Exception alertException)
-            {
-                Log.WriteError("Effective request state materialization",
-                    "Could not create a recovery audit alert.", alertException);
-            }
+            string category = exception is EffectiveRequestStateMaterializationException materializationException
+                ? $"readback-{materializationException.Category}"
+                : "recovery-processing";
+            await ReportRecoveryFailure(original.Id, category);
+        }
+    }
+
+    /// <summary>
+    /// Reports a recovery problem without formatting the triggering exception or exposing request payloads.
+    /// </summary>
+    private async Task ReportRecoveryFailure(long ticketId, string category)
+    {
+        TryWriteRecoveryLog(
+            $"Could not audit partially materialized effective request state for ticket {ticketId}. Category: {category}.");
+        try
+        {
+            await AlertHelper.SetAlert(ApiConnection, "Effective request state materialization",
+                $"Could not audit partially materialized effective request state for ticket {ticketId}.",
+                GlobalConst.kWorkflow, AlertCode.WorkflowAlert,
+                new AlertHelper.AdditionalAlertData
+                {
+                    JsonData = new { ticketId },
+                    CompareDesc = true
+                });
+        }
+        catch
+        {
+            TryWriteRecoveryLog($"Could not create a recovery audit alert for ticket {ticketId}.");
+        }
+    }
+
+    /// <summary>
+    /// Writes fixed recovery diagnostics and suppresses failures from the logging infrastructure itself.
+    /// </summary>
+    private static void TryWriteRecoveryLog(string message)
+    {
+        try
+        {
+            Log.WriteError("Effective request state materialization", message);
+        }
+        catch
+        {
+            // Recovery reporting must never replace the original materialization exception.
         }
     }
 

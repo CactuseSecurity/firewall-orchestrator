@@ -105,12 +105,12 @@ namespace FWO.Services.Workflow
             }
             catch (Exception exception)
             {
-                Log.WriteError("Workflow Change History",
-                    $"Could not record {target.ChangeType} of {target.ObjectType} {target.ObjectId} for ticket {target.TicketId}.", exception);
                 if (rethrowFailure)
                 {
                     throw;
                 }
+                Log.WriteError("Workflow Change History",
+                    $"Could not record {target.ChangeType} of {target.ObjectType} {target.ObjectId} for ticket {target.TicketId}.", exception);
             }
         }
 

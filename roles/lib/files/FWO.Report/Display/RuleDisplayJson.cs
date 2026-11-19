@@ -263,7 +263,7 @@ namespace FWO.Ui.Display
 
         protected static string ListFirewallZones(FirewallZone[] firewallZones)
         {
-            List<string> displayedZones = new List<string>();
+            List<string> displayedZones = [];
             foreach (FirewallZone networkZone in firewallZones)
             {
                 displayedZones.Add(JsonConvert.ToString(networkZone.Name));

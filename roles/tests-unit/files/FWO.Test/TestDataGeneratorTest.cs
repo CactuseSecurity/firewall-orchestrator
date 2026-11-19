@@ -132,9 +132,9 @@ namespace FWO.Test
                 ]
             }";
             ModellingConnection? generatedInstance;
-            List<ModellingConnection> generatedInstances = new();
+            List<ModellingConnection> generatedInstances = [];
             int iterations = 100;
-            List<string> validNames = new() { "testinstance1", "testinstance2", "testinstance3", "testinstance4" };
+            List<string> validNames = ["testinstance1", "testinstance2", "testinstance3", "testinstance4"];
 
 
             // ACT
@@ -173,7 +173,7 @@ namespace FWO.Test
                     }
                 ]
             }";
-            List<ModellingConnection> generatedInstances = new();
+            List<ModellingConnection> generatedInstances = [];
             int iterations = 25;
 
             // ACT

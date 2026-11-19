@@ -15,12 +15,12 @@ namespace FWO.Data.Middleware
     public class TenantGetReturnParameters : TenantAddParameters
     {
         public int Id { get; set; }
-        public List<TenantViewGateway> SharedGateways { get; set; } = new List<TenantViewGateway>();
-        public List<TenantViewManagement> SharedManagements { get; set; } = new List<TenantViewManagement>();
-        public List<TenantViewGateway> UnfilteredGateways { get; set; } = new List<TenantViewGateway>();
-        public List<TenantViewManagement> UnfilteredManagements { get; set; } = new List<TenantViewManagement>();
-        public List<TenantViewGateway> VisibleGateways { get; set; } = new List<TenantViewGateway>();
-        public List<TenantViewManagement> VisibleManagements { get; set; } = new List<TenantViewManagement>();
+        public List<TenantViewGateway> SharedGateways { get; set; } = [];
+        public List<TenantViewManagement> SharedManagements { get; set; } = [];
+        public List<TenantViewGateway> UnfilteredGateways { get; set; } = [];
+        public List<TenantViewManagement> UnfilteredManagements { get; set; } = [];
+        public List<TenantViewGateway> VisibleGateways { get; set; } = [];
+        public List<TenantViewManagement> VisibleManagements { get; set; } = [];
     }
 
     public class TenantViewGateway

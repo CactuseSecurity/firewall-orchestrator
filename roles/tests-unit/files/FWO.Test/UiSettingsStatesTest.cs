@@ -949,7 +949,7 @@ namespace FWO.Test
         {
             SettingsStates component = new();
             SettingsStatesTestApiConn apiConn = new();
-            List<(string title, string message, bool isError)> messages = new();
+            List<(string title, string message, bool isError)> messages = [];
             WfState duplicateState = new()
             {
                 Id = 2,
@@ -988,8 +988,8 @@ namespace FWO.Test
         [Test]
         public async Task SettingsStates_LoadsUsedStateIdsFromActionExternalParams()
         {
-            List<WfStateAction> actions = new()
-            {
+            List<WfStateAction> actions =
+            [
                 new()
                 {
                     Id = 41000,
@@ -1020,15 +1020,15 @@ namespace FWO.Test
                         Deadline = 7
                     })
                 }
-            };
-            List<WfState> states = new()
-            {
+            ];
+            List<WfState> states =
+            [
                 new() { Id = 41001, Name = "Promoted" },
                 new() { Id = 41002, Name = "Compliant" },
                 new() { Id = 41003, Name = "NonCompliant" },
                 new() { Id = 41004, Name = "Approval" },
                 new() { Id = 41010, Name = "Unrelated" }
-            };
+            ];
 
             await using BunitContext context = CreateRenderContext(new SettingsStatesRenderApiConn(actions, states));
             IRenderedComponent<SettingsStates> component = RenderAuthorized<SettingsStates>(context);
@@ -1050,8 +1050,8 @@ namespace FWO.Test
         [Test]
         public async Task SettingsStates_IgnoresInvalidActionExternalParams()
         {
-            List<WfStateAction> actions = new()
-            {
+            List<WfStateAction> actions =
+            [
                 new()
                 {
                     Id = 42000,
@@ -1066,12 +1066,12 @@ namespace FWO.Test
                     ActionType = StateActionTypes.AddApproval.ToString(),
                     ExternalParams = "{"
                 }
-            };
-            List<WfState> states = new()
-            {
+            ];
+            List<WfState> states =
+            [
                 new() { Id = 42000, Name = "BrokenAutoPromoteState" },
                 new() { Id = 42001, Name = "BrokenAddApprovalState" }
-            };
+            ];
 
             await using BunitContext context = CreateRenderContext(new SettingsStatesRenderApiConn(actions, states));
             IRenderedComponent<SettingsStates> component = RenderAuthorized<SettingsStates>(context);

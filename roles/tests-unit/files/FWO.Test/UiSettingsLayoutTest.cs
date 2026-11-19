@@ -27,8 +27,8 @@ namespace FWO.Test
             ?? throw new MissingFieldException(typeof(DomEventService).FullName, "_navbarHeightSubscribers");
 
         private const string kRemovedFwAdminRole = "fw-admin";
-        private static readonly List<string> PrivilegedRoles = new()
-        {
+        private static readonly List<string> PrivilegedRoles =
+        [
             Roles.Admin,
             Roles.Auditor,
             Roles.Modeller,
@@ -36,16 +36,16 @@ namespace FWO.Test
             Roles.Reporter,
             Roles.ReporterViewAll,
             Roles.WorkflowRolesList
-        };
+        ];
 
-        private static readonly List<string> ManagementsOnly = new() { "settings/managements" };
-        private static readonly List<string> DevicesHeadingOnly = new() { "Devices" };
-        private static readonly List<string> PersonalNavigation = new() { "settings/password", "settings/personal" };
+        private static readonly List<string> ManagementsOnly = ["settings/managements"];
+        private static readonly List<string> DevicesHeadingOnly = ["Devices"];
+        private static readonly List<string> PersonalNavigation = ["settings/password", "settings/personal"];
 
         // Every settings page an admin can reach, in navigation order. Adding a settings page
         // is expected to extend this list.
-        private static readonly List<string> AdminNavigation = new()
-        {
+        private static readonly List<string> AdminNavigation =
+        [
             "settings/credentials",
             "settings/managements",
             "settings/gateways",
@@ -86,22 +86,22 @@ namespace FWO.Test
             "settings/devicespecificsettings",
             "settings/password",
             "settings/personal"
-        };
+        ];
 
-        private static readonly List<string> FlowNavigation = new()
-        {
+        private static readonly List<string> FlowNavigation =
+        [
             "settings/flows/general",
             "settings/flows/networkobjects",
             "settings/flows/networkgroups",
             "settings/flows/serviceobjects",
             "settings/flows/servicegroups",
             "settings/flows/timeobjects"
-        };
+        ];
 
-        private static readonly List<string> WorkflowOnlyRoles = new()
-        {
+        private static readonly List<string> WorkflowOnlyRoles =
+        [
             Roles.WorkflowRolesList
-        };
+        ];
 
         [Test]
         public async Task SettingsLayout_RendersSidebarSections_ForPrivilegedInternalUser()
@@ -327,7 +327,7 @@ namespace FWO.Test
 
         private static List<string> SingleRole(string role)
         {
-            return new() { role };
+            return [role];
         }
 
         private static SimulatedUserConfig TestUserConfig(BunitContext context)

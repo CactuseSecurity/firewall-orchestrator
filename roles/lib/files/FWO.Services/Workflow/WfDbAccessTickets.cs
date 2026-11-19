@@ -199,7 +199,7 @@ namespace FWO.Services.Workflow
             {
                 ReturnId result = await ApiConnection.SendQueryAsync<ReturnId>(
                     RequestQueries.updateRequestElementObjectTaskId,
-                    new { id = element.Id, objectTaskId = objectTaskId });
+                    new { id = element.Id, objectTaskId });
                 if (result.UpdatedIdLong != element.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_element"), UserConfig.GetText("E8007"), true);
@@ -299,7 +299,7 @@ namespace FWO.Services.Workflow
         private async Task DoCreatedRequestTaskActions(WfTicket ticket)
         {
             // SyncActTicketFromReqTask writes back into ticket.Tasks, so iterate over a snapshot.
-            List<WfReqTask> createdTasks = new(ticket.Tasks);
+            List<WfReqTask> createdTasks = [.. ticket.Tasks];
             foreach (WfReqTask reqTask in createdTasks)
             {
                 int newStateId = reqTask.StateId;

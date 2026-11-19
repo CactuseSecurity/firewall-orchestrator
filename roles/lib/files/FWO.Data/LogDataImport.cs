@@ -19,7 +19,7 @@ namespace FWO.Data
         public int? LogTimeRangeInSeconds { get; set; }
 
         [JsonProperty("logs"), JsonPropertyName("logs")]
-        public List<LogDataImportEntry> Logs { get; set; } = new();
+        public List<LogDataImportEntry> Logs { get; set; } = [];
     }
 
     /// <summary>

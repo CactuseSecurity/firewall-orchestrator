@@ -135,7 +135,7 @@ namespace FWO.Test
             StateMatrixApiConnection apiConnection = new(configurations);
             StateMatrix matrix = new();
 
-            await matrix.Init(WorkflowPhases.request, apiConnection, new List<WfState>(), WfTaskType.new_interface);
+            await matrix.Init(WorkflowPhases.request, apiConnection, [], WfTaskType.new_interface);
 
             Assert.That(matrix.MinTicketCompleted, Is.EqualTo(15));
         }

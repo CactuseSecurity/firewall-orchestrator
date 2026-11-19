@@ -63,7 +63,10 @@ Because [`roles/Directory.Build.props`](../../../roles/Directory.Build.props) se
 | IDE0044 | S2933 | fields that are only set in the constructor are `readonly` |
 | IDE0051, IDE0052 | S1144, S4487 | no unused or never read private members |
 | IDE0060 | S1172 | no unused parameters in non-public methods |
+| IDE0028, IDE0037, IDE0059 | (imported) | collection expressions, inferred member names, no unnecessary assignments |
 
+`EnforceCodeStyleInBuild` makes the build report every IDE rule whose default severity is "suggestion", and SonarCloud
+imports these as `external_roslyn` issues. IDE0028, IDE0037 and IDE0059 are such rules, so they are locked as well.
 Only add a rule there once all its findings are fixed, otherwise the build breaks. The build does not check Razor
 markup and `@code` blocks, so SonarCloud still reports those findings there.
 

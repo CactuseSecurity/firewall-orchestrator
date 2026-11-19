@@ -30,7 +30,7 @@ namespace FWO.Test
         public async Task ReportGet_RebuildsCallerFromItsLocalUserId()
         {
             StoredUserApiConnection apiConnection = new();
-            ReportController controller = new(CreateJwtWriter(), new List<Ldap>(), apiConnection)
+            ReportController controller = new(CreateJwtWriter(), [], apiConnection)
             {
                 ControllerContext = CreateContext(CreateCaller())
             };
@@ -44,7 +44,7 @@ namespace FWO.Test
         public async Task NormalizedConfigGet_RebuildsCallerFromItsLocalUserId()
         {
             StoredUserApiConnection apiConnection = new();
-            NormalizedConfigController controller = new(CreateJwtWriter(), new List<Ldap>(), apiConnection)
+            NormalizedConfigController controller = new(CreateJwtWriter(), [], apiConnection)
             {
                 ControllerContext = CreateContext(CreateCaller())
             };
@@ -63,7 +63,7 @@ namespace FWO.Test
                 new("unique_name", "shared"),
                 new("x-hasura-uuid", kCallerDn)
             ];
-            ReportController controller = new(CreateJwtWriter(), new List<Ldap>(), apiConnection)
+            ReportController controller = new(CreateJwtWriter(), [], apiConnection)
             {
                 ControllerContext = CreateContext(new ClaimsPrincipal(new ClaimsIdentity(claimsWithoutUserId, "test")))
             };

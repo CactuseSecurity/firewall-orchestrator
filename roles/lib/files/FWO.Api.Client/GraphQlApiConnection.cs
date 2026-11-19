@@ -562,7 +562,7 @@ namespace FWO.Api.Client
             }
         }
 
-        private static GraphQLHttpRequest CreateHttpRequest(string role, string query, object? variables, string? operationName)
+        private static RoleGraphQLHttpRequest CreateHttpRequest(string role, string query, object? variables, string? operationName)
         {
             return new RoleGraphQLHttpRequest(role, query, variables, operationName);
         }

@@ -266,7 +266,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
 
         await using BunitContext context = CreateContext();
         IRenderedComponent<PlanningImplementationTaskDetails> cut = context.Render<PlanningImplementationTaskDetails>(parameters => parameters
-            .Add(parameter => parameter.ImplementationTasks, new List<WfImplTask> { task })
+            .Add(parameter => parameter.ImplementationTasks, [task])
             .Add(parameter => parameter.RequestTask, new WfReqTask { TaskType = WfTaskType.generic.ToString() })
             .Add(parameter => parameter.WfHandler, new WfHandler()));
 
@@ -416,7 +416,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
 
         await using BunitContext context = CreateContext();
         IRenderedComponent<PlanningImplementationTaskDetails> cut = context.Render<PlanningImplementationTaskDetails>(parameters => parameters
-            .Add(parameter => parameter.ImplementationTasks, new List<WfImplTask> { implementationTask })
+            .Add(parameter => parameter.ImplementationTasks, [implementationTask])
             .Add(parameter => parameter.RequestTask, requestTask)
             .Add(parameter => parameter.WfHandler, handler)
             .Add(parameter => parameter.CreationMode, true));
@@ -505,7 +505,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
 
         await using BunitContext context = CreateContext();
         IRenderedComponent<PlanningImplementationTaskDetails> cut = context.Render<PlanningImplementationTaskDetails>(parameters => parameters
-            .Add(parameter => parameter.ImplementationTasks, new List<WfImplTask> { implementationTask })
+            .Add(parameter => parameter.ImplementationTasks, [implementationTask])
             .Add(parameter => parameter.RequestTask, requestTask)
             .Add(parameter => parameter.WfHandler, handler)
             .Add(parameter => parameter.CreationMode, true));

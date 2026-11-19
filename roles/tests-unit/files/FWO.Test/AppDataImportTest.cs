@@ -325,7 +325,7 @@ namespace FWO.Test
                 Name = "App-E2",
                 ExtAppId = "APP-5-2",
                 MainUser = "cn=main,dc=example,dc=com",
-                Responsibles = new Dictionary<string, List<string>>()
+                Responsibles = []
             };
 
             List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
@@ -349,7 +349,7 @@ namespace FWO.Test
                 Name = "App-E3",
                 ExtAppId = "APP-5-3",
                 MainUser = "cn=main,dc=example,dc=com",
-                Responsibles = new Dictionary<string, List<string>>()
+                Responsibles = []
             };
 
             List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
@@ -2116,7 +2116,7 @@ namespace FWO.Test
                 Name = "App-Directory",
                 ExtAppId = "APP-DIRECTORY",
                 MainUser = kDirectoryUserDn,
-                Responsibles = new Dictionary<string, List<string>> { ["1"] = new List<string>(kDirectoryUserDnList) }
+                Responsibles = new Dictionary<string, List<string>> { ["1"] = [.. kDirectoryUserDnList] }
             };
         }
 
@@ -2134,7 +2134,7 @@ namespace FWO.Test
                 Name = "App-Forged",
                 ExtAppId = "APP-FORGED",
                 MainUser = "cn=forged.admin,ou=users,dc=example,dc=com",
-                Responsibles = new Dictionary<string, List<string>> { ["1"] = new List<string>(kForgedAndExistingDns) }
+                Responsibles = new Dictionary<string, List<string>> { ["1"] = [.. kForgedAndExistingDns] }
             };
 
             ModellingImportAppData normalizedApp = await InvokeNormalizeImportedUserReferences(import, incomingApp);
@@ -2502,10 +2502,10 @@ namespace FWO.Test
                 {
                     return Task.FromResult((QueryResponseType)(object)new InsertImportControl
                     {
-                        Returning = new List<ImportControl>
-                        {
+                        Returning =
+                        [
                             new ImportControl { ControlId = 123 }
-                        }
+                        ]
                     });
                 }
 
@@ -2756,10 +2756,10 @@ namespace FWO.Test
                 {
                     return Task.FromResult((QueryResponseType)(object)new InsertImportControl
                     {
-                        Returning = new List<ImportControl>
-                        {
+                        Returning =
+                        [
                             new ImportControl { ControlId = 123 }
-                        }
+                        ]
                     });
                 }
 

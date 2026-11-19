@@ -158,7 +158,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_DeletesAndUpsertsCustomTexts()
         {
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             RecordingCustomTextsApiConnection apiConnection = CreateApiConnection();
             SettingsCustomTexts component = CreateComponent(apiConnection, out GlobalConfig globalConfig, out UserConfig userConfig, messages);
             SetMember(component, "selectedLanguage", globalConfig.UiLanguages[0]);
@@ -189,7 +189,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_ShowsErrorWhenUpsertFails()
         {
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             RecordingCustomTextsApiConnection apiConnection = CreateApiConnection();
             apiConnection.ThrowOnUpsert = true;
             SettingsCustomTexts component = CreateComponent(apiConnection, out GlobalConfig globalConfig, out _, messages);
@@ -246,18 +246,18 @@ namespace FWO.Test
         private static RecordingCustomTextsApiConnection CreateApiConnection()
         {
             RecordingCustomTextsApiConnection apiConnection = new();
-            apiConnection.TextsByLanguage["English"] = new List<UiText>
-            {
+            apiConnection.TextsByLanguage["English"] =
+            [
                 new() { Id = "A1000", Txt = "Alpha one", Language = "English" },
                 new() { Id = "B1000", Txt = "Beta value", Language = "English" },
                 new() { Id = "H2000", Txt = "Hidden help", Language = "English" }
-            };
-            apiConnection.TextsByLanguage["German"] = new List<UiText>
-            {
+            ];
+            apiConnection.TextsByLanguage["German"] =
+            [
                 new() { Id = "A1000", Txt = "Alpha eins", Language = "German" },
                 new() { Id = "B1000", Txt = "Beta wert", Language = "German" },
                 new() { Id = "H2000", Txt = "Versteckte Hilfe", Language = "German" }
-            };
+            ];
             apiConnection.CustomTextsByLanguage["English"] = new Dictionary<string, string>
             {
                 { "B1000", "Beta custom" },
@@ -326,9 +326,9 @@ namespace FWO.Test
 
         private sealed class RecordingCustomTextsApiConnection : SimulatedApiConnection
         {
-            public List<string> Queries { get; } = new();
-            public Dictionary<string, List<UiText>> TextsByLanguage { get; } = new();
-            public Dictionary<string, Dictionary<string, string>> CustomTextsByLanguage { get; } = new();
+            public List<string> Queries { get; } = [];
+            public Dictionary<string, List<UiText>> TextsByLanguage { get; } = [];
+            public Dictionary<string, Dictionary<string, string>> CustomTextsByLanguage { get; } = [];
             public bool ThrowOnTextsQuery { get; set; }
             public bool ThrowOnUpsert { get; set; }
 
@@ -348,7 +348,7 @@ namespace FWO.Test
                         throw new InvalidOperationException("text load failed");
                     }
                     string language = variables?.GetType().GetProperty("language")?.GetValue(variables)?.ToString() ?? "";
-                    return Task.FromResult((QueryResponseType)(object)(TextsByLanguage.TryGetValue(language, out List<UiText>? texts) ? texts : new List<UiText>()));
+                    return Task.FromResult((QueryResponseType)(object)(TextsByLanguage.TryGetValue(language, out List<UiText>? texts) ? texts : []));
                 }
 
                 if (query == ConfigQueries.getCustomTextsPerLanguage && typeof(QueryResponseType) == typeof(List<UiText>))
@@ -385,7 +385,7 @@ namespace FWO.Test
                     string text = variables?.GetType().GetProperty("text")?.GetValue(variables)?.ToString() ?? "";
                     if (!CustomTextsByLanguage.TryGetValue(language, out Dictionary<string, string>? customTexts))
                     {
-                        customTexts = new Dictionary<string, string>();
+                        customTexts = [];
                         CustomTextsByLanguage[language] = customTexts;
                     }
                     customTexts[id] = text;

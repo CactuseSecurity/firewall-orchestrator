@@ -55,17 +55,6 @@
     private string gwsInPath = "";
     private bool workInProgress = false;
 
-    protected override void OnInitialized()
-    {
-        try
-        {
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("init_environment"), "", true);
-        }
-    }
-
     private async Task<string> AnalyzePath(string source, string destination)
     {
         workInProgress = true;

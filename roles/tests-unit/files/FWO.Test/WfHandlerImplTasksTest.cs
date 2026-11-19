@@ -910,7 +910,7 @@ namespace FWO.Test
             SetDbAccess(handler, new RequestTaskDetailsApiConn(new WfTicket { Id = 7 }));
 
             List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler,
-                new List<WfReqTask> { newInterfaceTask });
+                [newInterfaceTask]);
 
             Assert.That(requestTasks, Has.Count.EqualTo(1));
             Assert.That(requestTasks[0], Is.SameAs(newInterfaceTask));
@@ -939,7 +939,7 @@ namespace FWO.Test
             WfTicket storedTicket = new() { Id = 7, Tasks = { storedTask } };
             WfHandler handler = CreateImplementationCreationHandler(overviewTask, implementationInputState: 99);
             SetDbAccess(handler, new RequestTaskDetailsApiConn(storedTicket));
-            List<WfReqTask> candidateTasks = new() { overviewTask };
+            List<WfReqTask> candidateTasks = [overviewTask];
 
             List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler, candidateTasks);
 

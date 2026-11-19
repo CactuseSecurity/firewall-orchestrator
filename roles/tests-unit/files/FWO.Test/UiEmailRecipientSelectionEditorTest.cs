@@ -37,12 +37,12 @@ namespace FWO.Test
                     EnsureAtLeastOneNotification = true,
                     OwnerResponsibleTypeIds = [1, 2, 3]
                 })
-                .Add(p => p.OwnerResponsibleTypes, new List<OwnerResponsibleType>
-                {
+                .Add(p => p.OwnerResponsibleTypes,
+                [
                     new() { Id = 3, Name = "Optional escalation responsible", Active = true, SortOrder = 30 },
                     new() { Id = 2, Name = "Supporting responsible", Active = true, SortOrder = 20 },
                     new() { Id = 1, Name = "Main responsible", Active = true, SortOrder = 10 }
-                })
+                ])
                 .Add(p => p.CheckboxIdPrefix, "test_recipients"));
 
             List<string> labels = component.FindAll("label.form-check-label")
@@ -116,10 +116,10 @@ namespace FWO.Test
 
             IRenderedComponent<EmailRecipientSelectionEditor> component = Render<EmailRecipientSelectionEditor>(parameters => parameters
                 .Add(p => p.Selection, selection)
-                .Add(p => p.OwnerResponsibleTypes, new List<OwnerResponsibleType>
-                {
+                .Add(p => p.OwnerResponsibleTypes,
+                [
                     new() { Id = 7, Name = "Main responsible", Active = true, SortOrder = 10 }
-                })
+                ])
                 .Add(p => p.CheckboxIdPrefix, "test_recipients"));
 
             component.Find("#test_recipients_ort_7").Change(true);

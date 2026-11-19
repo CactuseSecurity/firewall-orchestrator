@@ -816,9 +816,9 @@ internal class FlowComplianceServiceTest
     {
         public List<string> SentQueries { get; } = [];
         public List<Language> Languages { get; set; } = [];
-        public Dictionary<string, List<UiText>> TextsByLanguage { get; set; } = new();
+        public Dictionary<string, List<UiText>> TextsByLanguage { get; set; } = [];
         public List<CompliancePolicy> Policies { get; set; } = [];
-        public Dictionary<int, CompliancePolicy> PoliciesById { get; } = new();
+        public Dictionary<int, CompliancePolicy> PoliciesById { get; } = [];
         public List<Management> Managements { get; set; } = [];
         public List<NetworkZone> NetworkZones { get; set; } = [];
 

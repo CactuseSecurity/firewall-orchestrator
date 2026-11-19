@@ -76,22 +76,22 @@ internal class ModellingObjectMappingTest
             Id = 5,
             IdString = "NG-5",
             Name = "group",
-            AppServers = new()
-            {
+            AppServers =
+            [
                 new ModellingAppServerWrapper { Content = new ModellingAppServer { Ip = "1.1.1.1", IpEnd = "1.1.1.1" } },
                 new ModellingAppServerWrapper { Content = new ModellingAppServer { Ip = "1.1.1.1/32", IpEnd = "" } },
                 new ModellingAppServerWrapper { Content = new ModellingAppServer { Ip = "", IpEnd = "" } }
-            }
+            ]
         };
         ModellingNetworkArea area = new()
         {
             Id = 6,
             Name = "area",
-            IpData = new()
-            {
+            IpData =
+            [
                 new NetworkDataWrapper { Content = new NetworkSubnet { Ip = null, IpEnd = null } },
                 new NetworkDataWrapper { Content = new NetworkSubnet { Ip = "10.0.0.0/24", IpEnd = null } }
-            }
+            ]
         };
 
         ModellingNetworkGroupResponse groupResponse = ModellingObjectResponseMapper.ToNetworkGroupResponse(group);
@@ -158,12 +158,12 @@ internal class ModellingObjectMappingTest
             Limit = 5,
             Filter = new AvailableInterfacesFilter
             {
-                ConnectionId = new() { 3, 3 },
-                InterfaceName = new() { "web" },
-                InterfaceDescription = new() { "demo*" },
-                Permission = new() { "public", "Restricted" },
-                ProvidingAppName = new() { "demo app" },
-                ProvidingAppIdExternal = new() { "APP-667" }
+                ConnectionId = [3, 3],
+                InterfaceName = ["web"],
+                InterfaceDescription = ["demo*"],
+                Permission = ["public", "Restricted"],
+                ProvidingAppName = ["demo app"],
+                ProvidingAppIdExternal = ["APP-667"]
             }
         };
 

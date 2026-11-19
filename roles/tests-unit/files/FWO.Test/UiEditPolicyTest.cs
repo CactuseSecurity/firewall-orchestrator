@@ -127,7 +127,7 @@ namespace FWO.Test
                     .Add(p => p.Display, true)
                     .Add(p => p.AddMode, false)
                     .Add(p => p.Policy, policy)
-                    .Add(p => p.Policies, new List<CompliancePolicy> { policy })));
+                    .Add(p => p.Policies, [policy])));
             EditPolicy editPolicy = component.FindComponent<EditPolicy>().Instance;
 
             SetPrivateField(editPolicy, "CriteriaToDelete", new List<ComplianceCriterion> { criterion });

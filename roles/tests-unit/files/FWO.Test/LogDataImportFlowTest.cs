@@ -285,20 +285,20 @@ namespace FWO.Test
             apiConnection.OwnerIdsByAppId["APP-1"] = 11;
             apiConnection.OwnerIdsByAppId["APP-2"] = 22;
             LogDataImport import = CreateImport(apiConnection, maxEntries: 1);
-            List<LogDataImportEntry> sourceEntries = new()
-            {
+            List<LogDataImportEntry> sourceEntries =
+            [
                 NewSourceEntry("APP-1", 1000, "192.0.2.1", "198.51.100.1"),
                 NewSourceEntry("APP-1", 900, "192.0.2.2", "198.51.100.2"),
                 NewSourceEntry("APP-2", 10, "192.0.2.3", "198.51.100.3")
-            };
+            ];
 
             await InvokeSaveEntries(import, sourceEntries);
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.ReplacementOwnerIds, Is.EquivalentTo(new List<int> { 11, 22 }));
+                Assert.That(apiConnection.ReplacementOwnerIds, Is.EquivalentTo([11, 22]));
                 Assert.That(apiConnection.InsertedEntries, Has.Count.EqualTo(2));
-                Assert.That(apiConnection.InsertedEntries.Select(entry => entry.OwnerId), Is.EquivalentTo(new List<int> { 11, 22 }),
+                Assert.That(apiConnection.InsertedEntries.Select(entry => entry.OwnerId), Is.EquivalentTo([11, 22]),
                     "a noisy owner must not displace every current flow of a quieter owner");
             });
         }
@@ -322,7 +322,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.ReplacementOwnerIds, Is.EquivalentTo(new List<int> { 11, 22 }));
+                Assert.That(apiConnection.ReplacementOwnerIds, Is.EquivalentTo([11, 22]));
                 Assert.That(apiConnection.InsertedEntries, Has.Count.EqualTo(1));
                 Assert.That(apiConnection.CompletedImports, Is.EqualTo(new List<bool> { true }));
             });
@@ -335,10 +335,10 @@ namespace FWO.Test
             LogDataImportTestApiConn apiConnection = new();
             apiConnection.OwnerIdsByAppId["APP-1"] = 11;
             LogDataImport import = CreateImport(apiConnection);
-            List<LogDataImportEntry> sourceEntries = new()
-            {
+            List<LogDataImportEntry> sourceEntries =
+            [
                 NewSourceEntry("APP-1", 5, "192.0.2.1", "198.51.100.1")
-            };
+            ];
 
             await InvokeSaveEntries(import, sourceEntries, importTime);
 
@@ -377,7 +377,7 @@ namespace FWO.Test
 
                 LogDataImportTestApiConn apiConnection = new();
                 LogDataImport import = CreateImport(apiConnection);
-                List<string> importFiles = new() { scriptPath };
+                List<string> importFiles = [scriptPath];
 
                 await InvokeAcknowledgeImport(import, scriptPath, importFiles, sourcePath);
 

@@ -160,7 +160,7 @@ namespace FWO.Test
         {
             List<IPAddress> addresses = LoginThrottleSettings.ResolveHosts(kTrustedHosts);
 
-            Assert.That(addresses, Is.EquivalentTo(new List<IPAddress> { kUiServer, IPAddress.Parse("198.51.100.6") }));
+            Assert.That(addresses, Is.EquivalentTo([kUiServer, IPAddress.Parse("198.51.100.6")]));
         }
 
         [Test]

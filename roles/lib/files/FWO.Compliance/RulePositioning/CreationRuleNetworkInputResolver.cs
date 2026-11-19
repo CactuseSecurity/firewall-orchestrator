@@ -116,7 +116,7 @@ public sealed class CreationRuleNetworkInputResolver(IFlowGroupResolver flowGrou
             .Select(reference => reference.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (ids.Count == 0 && names.Count == 0)
         {
-            return new CatalogIndex(new List<FlowNetworkGroupResolution>());
+            return new CatalogIndex([]);
         }
         try
         {

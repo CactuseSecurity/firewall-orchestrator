@@ -31,7 +31,7 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<ConfExpirationTime> { new() { ExpirationValue = 11 } });
+                .Returns([new() { ExpirationValue = 11 }]);
 
             int expirationTime = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.AccessTokenLifetime));
 
@@ -43,7 +43,7 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<ConfExpirationTime>>(ConfigQueries.getConfigItemByKey, Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<ConfExpirationTime>());
+                .Returns([]);
 
             int expirationTime = await UiUserHandler.GetExpirationTime(apiConnection, nameof(ConfigData.RefreshTokenLifetime));
 
@@ -617,14 +617,14 @@ namespace FWO.Test
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 Queries.Add(query);
-                object result = query switch
+                List<FwoOwner> result = query switch
                 {
-                    string value when value == OwnerQueries.getOwnersForUser => new List<FwoOwner> { new() { Id = 1 } },
-                    string value when value == OwnerQueries.getOwnersFromGroups => new List<FwoOwner> { new() { Id = 2 } },
-                    string value when value == OwnerQueries.getOwnersForDnsWithRecertification => new List<FwoOwner> { new() { Id = 3 } },
+                    string value when value == OwnerQueries.getOwnersForUser => [new() { Id = 1 }],
+                    string value when value == OwnerQueries.getOwnersFromGroups => [new() { Id = 2 }],
+                    string value when value == OwnerQueries.getOwnersForDnsWithRecertification => [new() { Id = 3 }],
                     _ => throw new AssertionException($"Unexpected query: {query}")
                 };
-                return Task.FromResult((QueryResponseType)result);
+                return Task.FromResult((QueryResponseType)(object)result);
             }
         }
 
@@ -792,7 +792,7 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey, Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<ConfigItem> { new() { Value = "Minutes" } });
+                .Returns([new() { Value = "Minutes" }]);
 
             TokenLifetimeUnit unit = await UiUserHandler.GetExpirationUnit(apiConnection, nameof(ConfigData.AccessTokenLifetimeUnit));
 
@@ -804,7 +804,7 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey, Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<ConfigItem>());
+                .Returns([]);
 
             TokenLifetimeUnit unit = await UiUserHandler.GetExpirationUnit(apiConnection, nameof(ConfigData.RefreshTokenLifetimeUnit));
 

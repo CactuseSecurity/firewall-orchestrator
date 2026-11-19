@@ -282,7 +282,7 @@ namespace FWO.Middleware.Server
                 extTaskContent = taskContent,
                 extQueryVariables = extQueryVars,
                 extRequestState = ExtStates.ExtReqInitialized.ToString(),
-                waitCycles = waitCycles
+                waitCycles
             };
 
             await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ExtRequestQueries.addExtRequest, Variables);

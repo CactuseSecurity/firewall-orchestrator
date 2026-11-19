@@ -110,7 +110,7 @@ namespace FWO.Test
             public RoleAuthStateProvider(string role)
             {
                 ClaimsIdentity identity = new(
-                    new List<Claim> { new(ClaimTypes.Role, role) },
+                    [new(ClaimTypes.Role, role)],
                     authenticationType: "Test",
                     nameType: ClaimTypes.Name,
                     roleType: ClaimTypes.Role);

@@ -15,7 +15,7 @@ namespace FWO.Api.Client
     {
         private const string kTlsLogCategory = "API TLS";
         private static readonly TimeSpan clientCertificateRetryInterval = TimeSpan.FromSeconds(30);
-        private static readonly HashSet<string> unsecuredEndpointsWarned = new();
+        private static readonly HashSet<string> unsecuredEndpointsWarned = [];
         private static readonly Lock unsecuredEndpointLock = new();
         private static readonly Lock clientCertificateLock = new();
         private static X509Certificate2? clientCertificate;

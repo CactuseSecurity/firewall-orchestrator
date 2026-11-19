@@ -72,7 +72,7 @@ internal sealed class UiWorkflowTaskActionsTest
 
         await using BunitContext context = CreateContext();
         IRenderedComponent<WorkflowTaskDetailsFooter> cut = context.Render<WorkflowTaskDetailsFooter>(parameters => parameters
-            .Add(parameter => parameter.OfferedActions, new List<WfStateAction> { offeredAction })
+            .Add(parameter => parameter.OfferedActions, [offeredAction])
             .Add(parameter => parameter.CanPromoteTicket, true)
             .Add(parameter => parameter.PromoteTicket, () =>
             {

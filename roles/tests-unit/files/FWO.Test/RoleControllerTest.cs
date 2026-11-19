@@ -32,7 +32,7 @@ namespace FWO.Test
                         new LdapAttribute("uniqueMember", kRoleMembers)))
             };
             MiddlewareLdap ldap = CreateRoleLdap(client);
-            RoleController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection());
+            RoleController controller = new([ldap], new SessionRevocationApiConnection());
 
             List<RoleGetReturnParameters> result = await controller.Get();
 
@@ -50,7 +50,7 @@ namespace FWO.Test
                 ReadResult = LdapTestSupport.CreateEntry(kRoleDn)
             };
             MiddlewareLdap ldap = CreateWritableRoleLdap(client);
-            RoleController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection());
+            RoleController controller = new([ldap], new SessionRevocationApiConnection());
 
             bool result = await controller.AddUser(new RoleAddDeleteUserParameters
             {
@@ -72,7 +72,7 @@ namespace FWO.Test
                     new LdapAttribute("uniqueMember", kRoleMembers))
             };
             MiddlewareLdap ldap = CreateWritableRoleLdap(client);
-            RoleController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection());
+            RoleController controller = new([ldap], new SessionRevocationApiConnection());
 
             bool result = await controller.RemoveUser(new RoleAddDeleteUserParameters
             {
@@ -93,7 +93,7 @@ namespace FWO.Test
             };
             SessionRevocationApiConnection apiConnection = new();
             apiConnection.LocalUsers.Add(new UiUser { DbId = 11, Dn = kRoleMemberDn });
-            RoleController controller = new(new List<MiddlewareLdap> { CreateWritableRoleLdap(client) }, apiConnection);
+            RoleController controller = new([CreateWritableRoleLdap(client)], apiConnection);
 
             bool result = await controller.RemoveUser(new RoleAddDeleteUserParameters { UserDn = kRoleMemberDn, Role = kRoleDn });
 
@@ -106,7 +106,7 @@ namespace FWO.Test
         {
             SessionRevocationApiConnection apiConnection = new();
             apiConnection.LocalUsers.Add(new UiUser { DbId = 11, Dn = kRoleMemberDn });
-            RoleController controller = new(new List<MiddlewareLdap> { CreateRoleLdap(new RecordingLdapClient()) }, apiConnection);
+            RoleController controller = new([CreateRoleLdap(new RecordingLdapClient())], apiConnection);
 
             bool result = await controller.RemoveUser(new RoleAddDeleteUserParameters { UserDn = kRoleMemberDn, Role = kRoleDn });
 

@@ -425,7 +425,7 @@ namespace FWO.Test
                 UserSearchPath = kUserSearchPath,
                 RoleSearchPath = "ou=roles,dc=fworch,dc=internal"
             };
-            UserController controller = CreateController(new List<Ldap> { roleLdap }, apiConnection, PrincipalWithRoles(Roles.Admin));
+            UserController controller = CreateController([roleLdap], apiConnection, PrincipalWithRoles(Roles.Admin));
 
             bool result = await controller.DeleteAllGroupsAndRoles(new UserDeleteAllEntriesParameters
             {
@@ -541,7 +541,7 @@ namespace FWO.Test
                 }
             };
             UserController controller = CreateController(
-                new List<Ldap> { CreateWritableLdap(2, ldapClient) },
+                [CreateWritableLdap(2, ldapClient)],
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 
@@ -577,7 +577,7 @@ namespace FWO.Test
                 }
             };
             UserController controller = CreateController(
-                new List<Ldap> { new() { Id = 1 }, CreateWritableLdap(2, ldapClient) },
+                [new() { Id = 1 }, CreateWritableLdap(2, ldapClient)],
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 
@@ -602,7 +602,7 @@ namespace FWO.Test
                 Users = new UiUser[] { CreateUser(42) }
             };
             UserController controller = CreateController(
-                new List<Ldap> { CreateWritableLdap(2, ldapClient) },
+                [CreateWritableLdap(2, ldapClient)],
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 
@@ -628,7 +628,7 @@ namespace FWO.Test
                 Users = new UiUser[] { CreateUser(42) }
             };
             UserController controller = CreateController(
-                new List<Ldap> { CreateWritableLdap(2, ldapClient) },
+                [CreateWritableLdap(2, ldapClient)],
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 
@@ -812,7 +812,7 @@ namespace FWO.Test
                 Users = new UiUser[] { CreateUser(42) }
             };
             UserController controller = CreateController(
-                new List<Ldap> { CreateWritableLdap(2, ldapClient) },
+                [CreateWritableLdap(2, ldapClient)],
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 
@@ -839,7 +839,7 @@ namespace FWO.Test
             UiUser[] users = [CreateUser(42)];
             UserControllerTestApiConnection apiConnection = new() { Users = users };
             UserController controller = CreateController(
-                new List<Ldap> { CreateWritableLdap(2, ldapClient) },
+                [CreateWritableLdap(2, ldapClient)],
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 
@@ -884,7 +884,7 @@ namespace FWO.Test
                 Users = new UiUser[] { CreateUser(42) }
             };
             UserController controller = CreateController(
-                new List<Ldap> { CreateWritableLdap(2, ldapClient) },
+                [CreateWritableLdap(2, ldapClient)],
                 apiConnection,
                 PrincipalWithRoles(Roles.Admin));
 
@@ -1074,7 +1074,7 @@ namespace FWO.Test
         public int UserQueryCount { get; private set; }
         public int ReturnIdQueryCount { get; private set; }
         public int ReturnIdWrapperQueryCount { get; private set; }
-        public List<string> Queries { get; } = new();
+        public List<string> Queries { get; } = [];
         public string LastVariablesText { get; private set; } = "";
         public UiUser[] Users { get; set; } = [];
         public ReturnIdWrapper AddUserResult { get; set; } = new();

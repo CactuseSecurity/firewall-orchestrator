@@ -595,7 +595,7 @@ namespace FWO.Middleware.Server.Controllers
             bool userRemoved = false;
             List<Task> workers = [];
             // the dn may name a nested group, whose members leave the group as well
-            List<string> removedDns = new() { parameters.UserDn };
+            List<string> removedDns = [parameters.UserDn];
             List<int> affectedUserIds = await sessionRevocation.ResolveLocalUserIds(removedDns);
 
             foreach (Ldap currentLdap in ldaps)

@@ -92,7 +92,7 @@ namespace FWO.Test
         private static SimulatedUserConfig CreateUserConfig()
         {
             SimulatedUserConfig userConfig = new();
-            userConfig.User.Roles = new List<string> { Roles.Admin };
+            userConfig.User.Roles = [Roles.Admin];
             userConfig.AllowManualOwnerAdmin = true;
             userConfig.ModIconify = false;
             return userConfig;
@@ -118,9 +118,9 @@ namespace FWO.Test
 
         private sealed class RecordingUsersPageApiConnection : SimulatedApiConnection
         {
-            public List<string> Queries { get; } = new();
-            public List<UiLdapConnection> ConnectedLdaps { get; set; } = new();
-            public List<Tenant> Tenants { get; set; } = new();
+            public List<string> Queries { get; } = [];
+            public List<UiLdapConnection> ConnectedLdaps { get; set; } = [];
+            public List<Tenant> Tenants { get; set; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
@@ -180,7 +180,7 @@ namespace FWO.Test
 
             public LocalizedString this[string name, params object[] arguments] => new(name, string.Format(name, arguments), resourceNotFound: true);
 
-            public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => new List<LocalizedString>();
+            public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => [];
 
         }
     }

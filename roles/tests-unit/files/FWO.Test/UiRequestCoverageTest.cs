@@ -423,7 +423,7 @@ namespace FWO.Test
             int resetCalls = 0;
             bool? changedDisplay = null;
             WfHandler handler = new();
-            List<WfApproval> approvals = new() { new WfApproval { Id = 6, Comments = [] } };
+            List<WfApproval> approvals = [new WfApproval { Id = 6, Comments = [] }];
             IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(
                 context, handler, approvals, displayChanged: value => changedDisplay = value,
                 resetParent: () =>

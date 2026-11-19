@@ -27,9 +27,9 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<FwoOwner>());
+                .Returns([]);
 
-            ClaimsPrincipal principal = BuildPrincipal(new List<string> { Roles.ReporterViewAll });
+            ClaimsPrincipal principal = BuildPrincipal([Roles.ReporterViewAll]);
             Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
             UserConfig userConfig = new SimulatedUserConfig { User = { Roles = [Roles.ReporterViewAll] } };
 
@@ -44,9 +44,9 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<FwoOwner>());
+                .Returns([]);
 
-            ClaimsPrincipal principal = BuildPrincipal(new List<string> { Roles.ReporterViewAll });
+            ClaimsPrincipal principal = BuildPrincipal([Roles.ReporterViewAll]);
             Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
             UserConfig userConfig = new SimulatedUserConfig { User = { Roles = [Roles.ReporterViewAll] } };
 
@@ -61,10 +61,10 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<FwoOwner>());
+                .Returns([]);
 
             ClaimsPrincipal principal = BuildPrincipal(
-                new List<string> { Roles.Auditor, Roles.Approver },
+                [Roles.Auditor, Roles.Approver],
                 new Claim("x-hasura-editable-owners", "{3,4}"));
             Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
             UserConfig userConfig = new SimulatedUserConfig { User = { Roles = [Roles.Auditor, Roles.Approver] } };
@@ -84,9 +84,9 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<FwoOwner>());
+                .Returns([]);
 
-            ClaimsPrincipal principal = BuildPrincipal(new List<string> { Roles.Reporter }, new Claim("x-hasura-editable-owners", "{1,2}"));
+            ClaimsPrincipal principal = BuildPrincipal([Roles.Reporter], new Claim("x-hasura-editable-owners", "{1,2}"));
             Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
             UserConfig userConfig = new SimulatedUserConfig();
 
@@ -103,10 +103,10 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<FwoOwner>());
+                .Returns([]);
 
             ClaimsPrincipal principal = BuildPrincipal(
-                new List<string> { Roles.Reporter },
+                [Roles.Reporter],
                 new Claim("https://hasura.io/jwt/claims/x-hasura-editable-owners", "{1,2}"));
             Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
             UserConfig userConfig = new SimulatedUserConfig();
@@ -124,10 +124,10 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<FwoOwner>());
+                .Returns([]);
 
             ClaimsPrincipal principal = BuildPrincipal(
-                new List<string> { Roles.Reporter },
+                [Roles.Reporter],
                 new Claim("x-hasura-editable-owners", "[11,12]"));
             Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
             UserConfig userConfig = new SimulatedUserConfig();
@@ -145,9 +145,9 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<FwoOwner>());
+                .Returns([]);
 
-            ClaimsPrincipal principal = BuildPrincipal(new List<string> { Roles.Reporter });
+            ClaimsPrincipal principal = BuildPrincipal([Roles.Reporter]);
             Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
             UserConfig userConfig = new SimulatedUserConfig();
 
@@ -165,10 +165,10 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<FwoOwner>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<FwoOwner>());
+                .Returns([]);
 
             ClaimsPrincipal principal = BuildPrincipal(
-                new List<string> { readAllRole, Roles.Requester },
+                [readAllRole, Roles.Requester],
                 new Claim("x-hasura-editable-owners", "{3,4}"));
             Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
             UserConfig userConfig = new SimulatedUserConfig { User = { Roles = [readAllRole, Roles.Requester] } };
@@ -191,7 +191,7 @@ namespace FWO.Test
                 .Returns(Task.FromException<List<FwoOwner>>(new InvalidOperationException("api down")));
 
             ClaimsPrincipal principal = BuildPrincipal(
-                new List<string> { Roles.Requester },
+                [Roles.Requester],
                 new Claim("x-hasura-editable-owners", "{3,4}"));
             Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
             UserConfig userConfig = new SimulatedUserConfig { User = { Roles = [Roles.Requester] } };
@@ -211,7 +211,7 @@ namespace FWO.Test
         public async Task ResponsibleAppsSkipQueryWithoutOwnershipClaim()
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
-            ClaimsPrincipal principal = BuildPrincipal(new List<string> { Roles.Requester });
+            ClaimsPrincipal principal = BuildPrincipal([Roles.Requester]);
             Task<AuthenticationState> authStateTask = Task.FromResult(new AuthenticationState(principal));
             UserConfig userConfig = new SimulatedUserConfig { User = { Roles = [Roles.Requester] } };
 

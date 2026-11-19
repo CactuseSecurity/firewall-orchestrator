@@ -292,17 +292,6 @@ namespace FWO.Test
                 Url = "https://tufin-test.xxx.de/securechangeworkflow/api/securechange/",
                 Templates = ticketSystem.Templates
             };
-
-            ExternalTicketSystem cpSystem = new()
-            {
-                Id = 3,
-                TypeId = 9,
-                Authorization = "X-chkp-sid: xyz",
-                Name = "CheckPoint",
-                Url = "https://checkpoint-test.xxx.de/web_api/",
-                Templates = checkPointTicketSystem.Templates
-            };
-
             SimulatedUserConfig localUserConfig = new()
             {
                 ExternalRequestWaitCycles = 3,

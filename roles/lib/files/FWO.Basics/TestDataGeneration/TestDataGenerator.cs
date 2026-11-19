@@ -85,7 +85,7 @@ namespace FWO.Basics.TestDataGeneration
                         }
 
                         string propertyName = kvp.Key;
-                        Dictionary<string, double> valuesWithProbabilities = new();
+                        Dictionary<string, double> valuesWithProbabilities = [];
 
                         foreach (var valueSetting in valueSettingsObject)
                         {

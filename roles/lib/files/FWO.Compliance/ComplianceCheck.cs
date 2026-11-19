@@ -89,15 +89,15 @@ namespace FWO.Compliance
         /// <summary>
         /// Collection that is suitable for parallel processing and receives and holds insert arguments for newly found violations.
         /// </summary>
-        private readonly ConcurrentBag<ComplianceViolationBase> _violationsToAdd = new();
+        private readonly ConcurrentBag<ComplianceViolationBase> _violationsToAdd = [];
         /// <summary>
         /// Collection that is suitable for parallel processing and receives and holds remove arguments for deprecated violations.
         /// </summary>
-        private readonly ConcurrentBag<ComplianceViolation> _violationsToRemove = new();
+        private readonly ConcurrentBag<ComplianceViolation> _violationsToRemove = [];
         /// <summary>
         /// Collection that is suitable for parallel processing and receives and holds violations as a result of the current check.
         /// </summary>
-        private readonly ConcurrentBag<ComplianceViolation> _currentViolations = new();
+        private readonly ConcurrentBag<ComplianceViolation> _currentViolations = [];
         /// <summary>
         /// Rule and criterion pairs of the current check that could not be evaluated. Their stored violations are kept.
         /// </summary>

@@ -71,7 +71,7 @@ namespace FWO.Test
         [Test]
         public void UnknownPositionTypeIsNotWritten()
         {
-            UnknownRulePosition position = new("other.rule-position.v1", 1, kAlgorithm, new JsonObject());
+            UnknownRulePosition position = new("other.rule-position.v1", 1, kAlgorithm, []);
             FirewallWriteException? exception = Assert.Throws<FirewallWriteException>(() =>
                 new RulePositionPlacementProvider().GetPlacement(TaskWith(position)));
             using (Assert.EnterMultipleScope())
@@ -85,7 +85,7 @@ namespace FWO.Test
         public void RulebaseKeyIsTheLayerOfACheckPointPositionOnly()
         {
             CheckPointRulePosition checkPoint = new("layer-uid", CheckPointPositionAnchorKind.Bottom, null, kAlgorithm);
-            UnknownRulePosition unknown = new("other.rule-position.v1", 1, kAlgorithm, new JsonObject());
+            UnknownRulePosition unknown = new("other.rule-position.v1", 1, kAlgorithm, []);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(checkPoint.GetRulebaseKey(), Is.EqualTo("layer-uid"));

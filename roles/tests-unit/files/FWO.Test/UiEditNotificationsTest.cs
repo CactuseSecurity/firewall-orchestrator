@@ -747,11 +747,11 @@ namespace FWO.Test
             {
                 None = false,
                 OtherAddresses = true,
-                OtherAddressList = new List<string> { "json@example.org" }
+                OtherAddressList = ["json@example.org"]
             };
 
             EmailRecipientSelection result = (EmailRecipientSelection)GetPrivateMethod("ParseOtherAddressSelection")
-                .Invoke(component, new object?[] { expected.ToConfigValue(new List<int> { 1 }), new List<string>() })!;
+                .Invoke(component, new object?[] { expected.ToConfigValue([1]), new List<string>() })!;
 
             Assert.That(result.OtherAddressList, Is.EqualTo(new List<string> { "json@example.org" }));
         }
@@ -849,7 +849,7 @@ namespace FWO.Test
                 None = false,
                 Requester = true,
                 OtherAddresses = true,
-                OtherAddressList = new List<string> { "to@example.org" }
+                OtherAddressList = ["to@example.org"]
             });
 
             GetPrivateMethod("SyncAddresses").Invoke(component, null);
@@ -873,7 +873,7 @@ namespace FWO.Test
         public async Task AddNotificationId_DoesNotAddDuplicateId()
         {
             EditNotifications component = new();
-            List<int> notificationIds = new() { 7 };
+            List<int> notificationIds = [7];
             SetPrivateMember(component, nameof(EditNotifications.NotificationIds), notificationIds);
 
             await (Task)GetPrivateMethod("AddNotificationId").Invoke(component, new object?[] { 7 })!;
@@ -885,7 +885,7 @@ namespace FWO.Test
         public async Task AddAndRemoveNotificationId_UpdatesBoundIds()
         {
             EditNotifications component = new();
-            List<int> notificationIds = new() { 4 };
+            List<int> notificationIds = [4];
             SetPrivateMember(component, "NotificationIds", notificationIds);
 
             await (Task)GetPrivateMethod("AddNotificationId").Invoke(component, new object?[] { 7 })!;
@@ -997,7 +997,7 @@ namespace FWO.Test
             public int AffectedRows { get; init; }
             public bool ThrowOnDelete { get; init; }
             public bool ThrowOnReset { get; init; }
-            public List<int> DeletedIds { get; } = new();
+            public List<int> DeletedIds { get; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
                 string? operationName = null, QueryChunkingOptions? chunkingOptions = null)

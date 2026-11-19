@@ -266,14 +266,14 @@ namespace FWO.Test
             {
                 return new StateMatrix
                 {
-                    Matrix = new Dictionary<int, List<int>>(),
-                    DerivedStates = new Dictionary<int, int>(),
+                    Matrix = [],
+                    DerivedStates = [],
                     LowestInputState = 1,
                     LowestStartedState = 1,
                     LowestEndState = lowestEndState,
                     Active = true,
-                    StateVisibilityGroupIds = new Dictionary<int, List<int>>(),
-                    ExclusiveVisibilityGroupIds = new HashSet<int>(),
+                    StateVisibilityGroupIds = [],
+                    ExclusiveVisibilityGroupIds = [],
                     PhaseActive = new Dictionary<WorkflowPhases, bool>
                     {
                         [WorkflowPhases.request] = true,

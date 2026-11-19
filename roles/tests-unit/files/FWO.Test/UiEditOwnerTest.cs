@@ -371,11 +371,11 @@ namespace FWO.Test
             FwoOwner owner = new() { Id = 9, Name = "Owner E" };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, apiConn: apiConn);
 
-            List<NwObjectElement> ipsToAdd = new()
-            {
+            List<NwObjectElement> ipsToAdd =
+            [
                 new NwObjectElement("10.0.6.10/32", 0),
                 new NwObjectElement("10.0.1.128/32-10.0.1.255/32", 0)
-            };
+            ];
             SetPrivateField(editOwner.Instance, "IpsToAdd", ipsToAdd);
 
             await (Task)GetPrivateMethod("AddNetworkOwners").Invoke(editOwner.Instance, null)!;

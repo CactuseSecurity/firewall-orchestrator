@@ -395,7 +395,7 @@ namespace FWO.Test
             RequestFwChangePopupTestApiConn apiConn = new();
             SimulatedUserConfig userConfig = CreateUserConfig();
             FwoOwner selectedApp = new() { Id = 7, Name = "App" };
-            List<ModellingConnection> connections = new();
+            List<ModellingConnection> connections = [];
 
             using BunitContext context = new();
             IRenderedComponent<RequestFwChangePopup> component = RenderPopup(context, apiConn, userConfig, selectedApp, connections);
@@ -422,7 +422,7 @@ namespace FWO.Test
             RequestFwChangePopupTestApiConn apiConn = new();
             SimulatedUserConfig userConfig = CreateUserConfig();
             FwoOwner selectedApp = new() { Id = 7, Name = "App" };
-            List<ModellingConnection> connections = new();
+            List<ModellingConnection> connections = [];
 
             using BunitContext context = new();
             IRenderedComponent<RequestFwChangePopup> component = RenderPopup(context, apiConn, userConfig, selectedApp, connections);
@@ -472,8 +472,8 @@ namespace FWO.Test
 
         private static WfReqTask CreateGroupModifyTask()
         {
-            List<WfReqElement> elements = new()
-            {
+            List<WfReqElement> elements =
+            [
                 new()
                 {
                     RequestAction = RequestAction.unchanged.ToString(),
@@ -502,7 +502,7 @@ namespace FWO.Test
                     Name = "removed-host",
                     IpString = "192.0.2.13/32"
                 }
-            };
+            ];
 
             return new()
             {
@@ -514,8 +514,8 @@ namespace FWO.Test
 
         private static WfReqTask CreateServiceGroupCreateTask()
         {
-            List<WfReqElement> elements = new()
-            {
+            List<WfReqElement> elements =
+            [
                 new()
                 {
                     RequestAction = RequestAction.create.ToString(),
@@ -525,7 +525,7 @@ namespace FWO.Test
                     ProtoId = 6,
                     GroupName = "MyServiceGroup"
                 }
-            };
+            ];
 
             return new()
             {

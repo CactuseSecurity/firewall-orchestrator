@@ -526,7 +526,7 @@ namespace FWO.Report
         {
             RuleChangeDisplayJson ruleChangeDisplayJson = new(userConfig);
             JObject report = ParseJsonObjectFragment(DisplayReportHeaderJson());
-            JArray managements = new();
+            JArray managements = [];
             foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
                 JObject managementReport = new()
@@ -568,12 +568,12 @@ namespace FWO.Report
         private static JObject ParseJsonObjectFragment(string jsonFragment)
         {
             string trimmedFragment = jsonFragment.Trim().TrimEnd(',');
-            return string.IsNullOrEmpty(trimmedFragment) ? new JObject() : JObject.Parse($"{{{trimmedFragment}}}");
+            return string.IsNullOrEmpty(trimmedFragment) ? [] : JObject.Parse($"{{{trimmedFragment}}}");
         }
 
         private JArray BuildRuleChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
         {
-            JArray changes = new();
+            JArray changes = [];
             if (management.RuleChanges != null && management.RuleChanges.Length > 0)
             {
                 foreach (var ruleChange in management.RuleChanges)
@@ -623,7 +623,7 @@ namespace FWO.Report
 
         private static JArray BuildObjectChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
         {
-            JArray changes = new();
+            JArray changes = [];
             if (management.ObjectChanges != null && management.ObjectChanges.Length > 0)
             {
                 foreach (var objectChange in management.ObjectChanges)
@@ -646,7 +646,7 @@ namespace FWO.Report
 
         private static JArray BuildServiceChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
         {
-            JArray changes = new();
+            JArray changes = [];
             if (management.ServiceChanges != null && management.ServiceChanges.Length > 0)
             {
                 foreach (var serviceChange in management.ServiceChanges)
@@ -670,7 +670,7 @@ namespace FWO.Report
 
         private static JArray BuildUserChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
         {
-            JArray changes = new();
+            JArray changes = [];
             if (management.UserChanges != null && management.UserChanges.Length > 0)
             {
                 foreach (var userChange in management.UserChanges)

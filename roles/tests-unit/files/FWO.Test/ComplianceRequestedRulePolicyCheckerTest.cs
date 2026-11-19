@@ -87,10 +87,10 @@ namespace FWO.Test
                     }
                 }
             };
-            List<Management> managements = new()
-            {
+            List<Management> managements =
+            [
                 new Management { Id = 1, Name = "Mgmt1" }
-            };
+            ];
             ApiConnection.AsSub()
                 .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
                 .Returns(managements);
@@ -103,8 +103,8 @@ namespace FWO.Test
             service.Port = null;
             service.PortEnd = null;
             service.ProtoId = GlobalConst.kAnyIpProtocolId;
-            List<int> policyIds = new() { policy.Id };
-            List<WfReqTask> requestTasks = new() { task };
+            List<int> policyIds = [policy.Id];
+            List<WfReqTask> requestTasks = [task];
 
             bool result = await checker.AreRequestTasksCompliant(policyIds, requestTasks);
 
@@ -134,11 +134,11 @@ namespace FWO.Test
                     }
                 }
             };
-            List<Management> managements = new()
-            {
+            List<Management> managements =
+            [
                 new Management { Id = 1, Name = "Mgmt1" },
                 new Management { Id = 2, Name = "Mgmt2" }
-            };
+            ];
             ApiConnection.AsSub().SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames).Returns(managements);
             ApiConnection.AsSub().SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>()).Returns(policy);
             WfReqTask forwardTask = CreateEligibleRequestTask(17);
@@ -147,8 +147,8 @@ namespace FWO.Test
             reverseTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = "10.0.1.1/32";
             reverseTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString()).IpString = "10.0.0.1/32";
             reverseTask.Elements.Single(element => element.Field == ElemFieldType.service.ToString()).Port = reversePort;
-            List<int> policyIds = new() { policy.Id };
-            List<WfReqTask> requestTasks = new() { forwardTask, reverseTask };
+            List<int> policyIds = [policy.Id];
+            List<WfReqTask> requestTasks = [forwardTask, reverseTask];
 
             bool result = await checker.AreRequestTasksCompliant(policyIds, requestTasks);
 

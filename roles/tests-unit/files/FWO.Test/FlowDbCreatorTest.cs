@@ -1363,7 +1363,7 @@ namespace FWO.Test
                 Name = "AR-Destination",
                 Hash = "dst-group",
                 ShowInRequestModule = true,
-                NwGroupMembers = new List<FlowNwGroupMember>()
+                NwGroupMembers = []
             };
             destinationGroup.NwGroupMembers.Add(new FlowNwGroupMember { NwGroupId = 102, NwObjectId = 11 });
             apiConn.ExistingNetworkGroups.Add(destinationGroup);

@@ -21,7 +21,7 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     internal class UiNavigationMenuTest
     {
-        private static readonly List<string> kAdminRoles = new() { Roles.Admin };
+        private static readonly List<string> kAdminRoles = [Roles.Admin];
 
         [Test]
         public void NavigationMenu_IgnoresDisposedServicesDuringInitialization()

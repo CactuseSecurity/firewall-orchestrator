@@ -400,7 +400,7 @@ namespace FWO.Test
 
         private sealed class ActiveRuleCountApiConnection : SimulatedApiConnection
         {
-            public List<string> Queries { get; } = new();
+            public List<string> Queries { get; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {

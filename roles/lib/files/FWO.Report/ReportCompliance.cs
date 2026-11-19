@@ -50,7 +50,7 @@ namespace FWO.Report
         private char _separator;
         private int _maxCellSize;
         private readonly int _maxPrintedViolations;
-        private readonly List<int> _relevanteManagementIDs = new();
+        private readonly List<int> _relevanteManagementIDs = [];
 
         /// <summary>
         /// Columns that hold rendered html, whose encoded text is decoded for the csv export.
@@ -257,7 +257,7 @@ namespace FWO.Report
 
         public async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct)
         {
-            List<Task<(List<Rule> processed, List<RuleViewData> viewData)>> tasks = new();
+            List<Task<(List<Rule> processed, List<RuleViewData> viewData)>> tasks = [];
 
             foreach (List<Rule> chunk in chunks)
             {
@@ -323,7 +323,7 @@ namespace FWO.Report
                     .Where(m => ManagementScope.Count == 0 || ManagementScope.Contains(m.Id))
                     .ToList();
 
-                _devices = new();
+                _devices = [];
 
                 foreach (var management in Managements)
                 {
@@ -480,7 +480,7 @@ namespace FWO.Report
 
         protected virtual Dictionary<string, object> CreateQueryVariables(int offset, int limit, string query)
         {
-            Dictionary<string, object> queryVariables = new();
+            Dictionary<string, object> queryVariables = [];
 
             if (query.Contains(QueryVar.ImportIdStart))
             {

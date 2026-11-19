@@ -33,7 +33,7 @@ namespace FWO.Test
         private static readonly long[] ExpectedMergedReportObjectIds = [1, 2];
         private static readonly long[] ExpectedMergedReportServiceIds = [2, 3];
 
-        private List<ManagementReport> _managementReports = new();
+        private List<ManagementReport> _managementReports = [];
         private DeviceReport? _deviceReport;
         private ManagementReport? _managementReport;
 
@@ -59,8 +59,8 @@ namespace FWO.Test
             _deviceReport = MockReportRules.CreateDeviceReport(
                 deviceId: 42,
                 deviceName: "DeviceX",
-                rulebaseLinks: new List<RulebaseLink>
-                {
+                rulebaseLinks:
+                [
                     new RulebaseLink
                     {
                         GatewayId = 42,
@@ -105,11 +105,11 @@ namespace FWO.Test
                             FromRulebaseId = _rb2.Id,
                             LinkType = 2
                     }
-                }
+                ]
             );
 
-            _managementReports = new()
-            {
+            _managementReports =
+            [
                 new ManagementReport
                 {
                     Id = 1,
@@ -117,7 +117,7 @@ namespace FWO.Test
                     Devices = [_deviceReport],
                     Rulebases = [_rb1, _rb2, _rb3]
                 }
-            };
+            ];
 
             _managementReport = _managementReports.First();
 
@@ -243,11 +243,11 @@ namespace FWO.Test
         {
             var rulebase1 = MockReportRules.CreateRulebaseReport("Rulebase1", 1);
             var rulebase2 = MockReportRules.CreateRulebaseReport("Rulebase2", 2);
-            var device = MockReportRules.CreateDeviceReport(1, "Device1", new List<RulebaseLink>
-            {
+            var device = MockReportRules.CreateDeviceReport(1, "Device1",
+            [
                 new RulebaseLink { NextRulebaseId = rulebase1.Id },
                 new RulebaseLink { NextRulebaseId = rulebase2.Id }
-            });
+            ]);
 
             Assert.That(device.RulebaseLinks.Length, Is.EqualTo(2));
             Assert.That(device.RulebaseLinks[0].NextRulebaseId, Is.EqualTo(rulebase1.Id));
@@ -339,8 +339,8 @@ namespace FWO.Test
         [Test]
         public void Test_CreateRuleTreeItem_BuildsValidTree()
         {
-            var ruleTreeItemChild = MockReportRules.CreateRuleTreeItem(2, 1, new List<int> { 1, 2 });
-            var ruleTreeItemParent = MockReportRules.CreateRuleTreeItem(1, 1, new List<int> { 1 }, new List<ITreeItem<Rule>> { ruleTreeItemChild });
+            var ruleTreeItemChild = MockReportRules.CreateRuleTreeItem(2, 1, [1, 2]);
+            var ruleTreeItemParent = MockReportRules.CreateRuleTreeItem(1, 1, [1], [ruleTreeItemChild]);
 
             Assert.That(ruleTreeItemParent.Children.Count, Is.EqualTo(1));
             Assert.That(ruleTreeItemParent.Children[0].Data!.Id, Is.EqualTo(2));
@@ -1006,19 +1006,20 @@ namespace FWO.Test
                     int offset = (int)queryVariables[QueryVar.Offset];
                     RulePageOffsets.Add(offset);
                     RulePageRulebaseIds.Add((int[])queryVariables[QueryVar.RulebaseIds]);
-                    result = offset switch
+                    List<Rule> rulesPage = offset switch
                     {
-                        0 => new List<Rule>
-                        {
+                        0 =>
+                        [
                             new() { Id = 100, RulebaseId = 10, RuleNumNumeric = 1, Name = "Rule 100" },
                             new() { Id = 101, RulebaseId = 10, RuleNumNumeric = 2, Name = "Rule 101" }
-                        },
-                        2 => new List<Rule>
-                        {
+                        ],
+                        2 =>
+                        [
                             new() { Id = 200, RulebaseId = 20, RuleNumNumeric = 1, Name = "Rule 200" }
-                        },
+                        ],
                         _ => []
                     };
+                    result = rulesPage;
                 }
                 else if (query == "legacy-full-query")
                 {

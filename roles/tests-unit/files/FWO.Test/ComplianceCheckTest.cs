@@ -346,7 +346,7 @@ namespace FWO.Test
                 CriterionType = nameof(CriterionType.ForbiddenService),
                 Content = "443/TCP"
             };
-            List<ComplianceCriterion> criteria = new() { criterion };
+            List<ComplianceCriterion> criteria = [criterion];
 
             bool ruleIsCompliant = await ComplianceCheck.CheckRuleCompliance(rule, criteria);
 
@@ -737,12 +737,12 @@ namespace FWO.Test
             };
             CompliancePolicy policy = new() { Id = 1 };
             policy.Criteria.Add(new ComplianceCriterionWrapper { Content = matrixCriterion });
-            List<Rule> rulesToCheck = new();
-            rulesToCheck.Add(rule);
-            List<Management> managements = new();
-            managements.Add(new Management { Id = 1, Name = "Management" });
-            Dictionary<int, List<NetworkZone>> networkZonesByCriterion = new();
-            networkZonesByCriterion.Add(matrixCriterion.Id, ComplianceCheck.NetworkZones);
+            List<Rule> rulesToCheck = [rule];
+            List<Management> managements = [new Management { Id = 1, Name = "Management" }];
+            Dictionary<int, List<NetworkZone>> networkZonesByCriterion = new()
+            {
+                { matrixCriterion.Id, ComplianceCheck.NetworkZones }
+            };
 
             bool isCompliant = await ComplianceCheck.AreRulesCompliant(policy, rulesToCheck, managements, networkZonesByCriterion);
 
@@ -854,8 +854,8 @@ namespace FWO.Test
             const int criterionId = 5;
             const string mgmtUid = "mgmt-parallel";
 
-            List<Rule> rulesFromDb = new();
-            List<ComplianceViolation> currentViolations = new();
+            List<Rule> rulesFromDb = [];
+            List<ComplianceViolation> currentViolations = [];
 
             for (int i = 0; i < 200; i++)
             {

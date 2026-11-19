@@ -235,8 +235,6 @@ namespace FWO.Ui.Display
 
         public static StringBuilder RemoveLastChars(StringBuilder s, int count)
         {
-            string x = s.ToString();
-            x = x.Remove(x.ToString().Length - count, count).ToString();
             return s.Remove(s.ToString().Length - count, count);
         }
 

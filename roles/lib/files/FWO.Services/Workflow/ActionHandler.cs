@@ -834,7 +834,7 @@ namespace FWO.Services.Workflow
                     source = "workflow",
                     userId = 0,
                     title = "Workflow state alert",
-                    description = description,
+                    description,
                     alertCode = (int)AlertCode.WorkflowAlert
                 };
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addAlert, Variables);

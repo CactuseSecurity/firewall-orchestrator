@@ -129,7 +129,7 @@ namespace FWO.Ui.Display
             StringBuilder result = new StringBuilder();
             if (reportType.IsResolvedReport())
             {
-                List<string> displayedServices = new List<string>();
+                List<string> displayedServices = [];
                 foreach (NetworkService service in GetNetworkServices(rule.Services))
                 {
                     displayedServices.Add(DisplayService(service, reportType).ToString());
@@ -161,7 +161,7 @@ namespace FWO.Ui.Display
 
             if (reportType.IsResolvedReport())
             {
-                List<string> displayedLocations = new List<string>();
+                List<string> displayedLocations = [];
                 foreach (NetworkLocation networkLocation in GetResolvedNetworkLocations(isSource ? rule.Froms : rule.Tos))
                 {
                     displayedLocations.Add(DisplayNetworkLocation(networkLocation, reportType).ToString());
@@ -191,7 +191,7 @@ namespace FWO.Ui.Display
 
         protected static string ListFirewallZones(FirewallZone[] firewallZones)
         {
-            List<string> displayedZones = new List<string>();
+            List<string> displayedZones = [];
             foreach (FirewallZone networkZone in firewallZones)
             {
                 displayedZones.Add(Quote(networkZone.Name));

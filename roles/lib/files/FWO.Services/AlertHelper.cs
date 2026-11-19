@@ -44,11 +44,11 @@ namespace FWO.Services
             {
                 var Variables = new
                 {
-                    source = source,
+                    source,
                     discoverUser = 0,
-                    severity = severity,
+                    severity,
                     suspectedCause = cause,
-                    description = description,
+                    description,
                     mgmId = mgmtId,
                     devId = (int?)null,
                     importId = (long?)null,
@@ -80,10 +80,10 @@ namespace FWO.Services
                 List<Alert> openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
                 var Variables = new
                 {
-                    source = source,
+                    source,
                     userId = additionalAlertData.UserId,
-                    title = title,
-                    description = description,
+                    title,
+                    description,
                     mgmId = additionalAlertData.MgmtId,
                     devId = additionalAlertData.DevId,
                     alertCode = (int)alertCode,
@@ -126,7 +126,7 @@ namespace FWO.Services
                 var Variables = new
                 {
                     id = alertId,
-                    ackUser = ackUser,
+                    ackUser,
                     ackTime = DateTime.Now
                 };
                 await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAlert, Variables);
@@ -143,7 +143,7 @@ namespace FWO.Services
             {
                 var Variables = new
                 {
-                    ackUser = ackUser,
+                    ackUser,
                     ackTime = DateTime.Now
                 };
                 return (await apiConnection.SendQueryAsync<ReturnId>(MonitorQueries.acknowledgeAllOpenAlerts, Variables)).AffectedRows;

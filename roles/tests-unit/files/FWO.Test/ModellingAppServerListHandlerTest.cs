@@ -14,11 +14,11 @@ namespace FWO.Test
     {
         private sealed class RecordingApiConnection : SimulatedApiConnection
         {
-            public List<ModellingAppServer> ManualServers { get; set; } = new List<ModellingAppServer>();
-            public List<ModellingAppServer> CsvServers { get; set; } = new List<ModellingAppServer>();
-            public List<ModellingAppServer> ServersByIp { get; set; } = new List<ModellingAppServer>();
-            public List<ModellingAppRole> AppRolesForServer { get; set; } = new List<ModellingAppRole>();
-            public List<ModellingConnection> ConnectionsForServer { get; set; } = new List<ModellingConnection>();
+            public List<ModellingAppServer> ManualServers { get; set; } = [];
+            public List<ModellingAppServer> CsvServers { get; set; } = [];
+            public List<ModellingAppServer> ServersByIp { get; set; } = [];
+            public List<ModellingAppRole> AppRolesForServer { get; set; } = [];
+            public List<ModellingConnection> ConnectionsForServer { get; set; } = [];
             public int SetDeletedCalls { get; private set; }
             public int DeleteCalls { get; private set; }
             public int HistoryCalls { get; private set; }
@@ -108,12 +108,12 @@ namespace FWO.Test
         {
             RecordingApiConnection apiConn = new()
             {
-                ManualServers = new List<ModellingAppServer> { CreateServer(1, "manual", "10.0.0.1", GlobalConst.kManual) },
-                CsvServers = new List<ModellingAppServer> { CreateServer(2, "csv", "10.0.0.2", GlobalConst.kCSV_ + "import") },
-                ServersByIp = new List<ModellingAppServer>
-                {
+                ManualServers = [CreateServer(1, "manual", "10.0.0.1", GlobalConst.kManual)],
+                CsvServers = [CreateServer(2, "csv", "10.0.0.2", GlobalConst.kCSV_ + "import")],
+                ServersByIp =
+                [
                     CreateServer(3, "higher", "10.0.0.1", "workflow")
-                }
+                ]
             };
             ModellingAppServerListHandler handler = new(
                 apiConn,
@@ -180,7 +180,7 @@ namespace FWO.Test
         {
             RecordingApiConnection apiConn = new()
             {
-                AppRolesForServer = new List<ModellingAppRole> { new ModellingAppRole { Id = 4, Name = "role" } }
+                AppRolesForServer = [new ModellingAppRole { Id = 4, Name = "role" }]
             };
             ModellingAppServer appServer = CreateServer(1, "srv", "10.0.0.1", GlobalConst.kManual, inUse: true);
             ModellingAppServerListHandler handler = new(

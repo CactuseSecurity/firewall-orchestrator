@@ -55,7 +55,7 @@ namespace FWO.Test
 
             // Act
             Rule selectedRule = currentReport.ReportData.ManagementData[0].Rulebases[0].Rules[0];
-            List<Rule> selectedRules = new() { selectedRule };
+            List<Rule> selectedRules = [selectedRule];
             IRenderedComponent<RightSidebar> cut = Render<RightSidebar>(parameters => parameters
                 .Add(p => p.CurrentReport, currentReport)
                 .Add(p => p.SelectedRules, selectedRules));

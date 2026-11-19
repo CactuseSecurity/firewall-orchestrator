@@ -139,7 +139,7 @@ namespace FWO.Services
             }
 
             // compare start and end IPs to ensure start is less than or equal to end
-            int cmp = 0;
+            int cmp;
             if (startIp.AddressFamily == AddressFamily.InterNetwork)
             {
                 cmp = IpOperations.IpToUint(startIp).CompareTo(IpOperations.IpToUint(endIp));
@@ -245,7 +245,7 @@ namespace FWO.Services
 
                     if (!matchesByOwner.TryGetValue(owner.OwnerId, out var dictForOwner))
                     {
-                        dictForOwner = new Dictionary<string, List<NetworkObject>>();
+                        dictForOwner = [];
                         matchesByOwner[owner.OwnerId] = dictForOwner;
                     }
 
@@ -274,7 +274,7 @@ namespace FWO.Services
         public class OwnerNetworkPrepared
         {
             public int OwnerId { get; set; }
-            public List<OwnerRange?> Ranges { get; set; } = new List<OwnerRange?>();
+            public List<OwnerRange?> Ranges { get; set; } = [];
         }
 
         public class OwnerRange

@@ -163,7 +163,7 @@ namespace FWO.Middleware.Server.Controllers
                     {
                         uuid = parameters.UserDn,
                         uiuser_username = new DistName(parameters.UserDn).UserName,
-                        email = email,
+                        email,
                         uiuser_first_name = parameters.Firstname,
                         uiuser_last_name = parameters.Lastname,
                         tenant = parameters.TenantId,
@@ -218,7 +218,7 @@ namespace FWO.Middleware.Server.Controllers
                     var Variables = new
                     {
                         id = parameters.UserId,
-                        email = email
+                        email
                     };
                     await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserEmail, Variables);
                 }

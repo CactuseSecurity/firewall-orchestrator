@@ -113,7 +113,6 @@ namespace FWO.DeviceAutoDiscovery
             foreach (Adom adom in customAdoms)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                List<FortiGate> additionalVdomDevices = [];
                 RestResponse<FmApiTopLevelHelperDev> deviceResponse = await restClientFM.GetDevicesPerAdom(sessionId, adom.Name);
                 if (deviceResponse != null && deviceResponse.StatusCode == HttpStatusCode.OK && deviceResponse.IsSuccessful)
                 {

@@ -49,7 +49,7 @@ namespace FWO.Config.Api
 
         public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, ApiConnection apiConnection, int userId, bool owningApiConnection = false)
         {
-            UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getOwnUser, new { userId = userId });
+            UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getOwnUser, new { userId });
             UiUser? user = users.FirstOrDefault();
             if (user == null)
             {

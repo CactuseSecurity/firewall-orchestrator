@@ -196,9 +196,10 @@ namespace FWO.Test
                     || query == ModellingQueries.getWorkflowConnectionById)
                 {
                     int id = GetVariable<int>(variables, "id");
-                    return Task.FromResult((T)(object)(ConnectionsById.TryGetValue(id, out ModellingConnection? connection)
-                        ? new List<ModellingConnection> { connection }
-                        : new List<ModellingConnection>()));
+                    List<ModellingConnection> connections = ConnectionsById.TryGetValue(id, out ModellingConnection? connection)
+                        ? [connection]
+                        : [];
+                    return Task.FromResult((T)(object)connections);
                 }
                 if (query == ModellingQueries.getAppRoleById)
                 {
@@ -632,9 +633,7 @@ namespace FWO.Test
             };
             apiConn.FullTicket.Id = 7;
             ActionHandler handler = new(apiConn, new WfHandler { userConfig = new SimulatedUserConfig() });
-            List<WfReqTask> bundledTasks = new();
-            bundledTasks.Add(firstTask);
-            bundledTasks.Add(secondTask);
+            List<WfReqTask> bundledTasks = [firstTask, secondTask];
             SetPrivateProperty(handler, "RequestTaskEmailBundle", bundledTasks);
             EmailActionParams actionParams = new()
             {
@@ -1052,8 +1051,8 @@ namespace FWO.Test
         {
             ActionHandlerTestApiConn apiConn = new()
             {
-                Notifications = new List<FwoNotification>
-                {
+                Notifications =
+                [
                     new FwoNotification
                     {
                         Id = 42,
@@ -1064,10 +1063,10 @@ namespace FWO.Test
                         EmailBody = "The interface was requested.",
                         Logging = NotificationLoggingMode.LogOnly
                     }
-                },
+                ],
                 UpdateNotificationsLastSentAffectedRows = 1
             };
-            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = [];
             WfHandler wfHandler = new(new SimulatedUserConfig(), apiConn, WorkflowPhases.request, null,
                 displayMessage: (exception, title, message, errorFlag) => messages.Add((exception, title, message, errorFlag)));
             ActionHandler handler = new(apiConn, wfHandler, useInMwServer: true);
@@ -1075,7 +1074,7 @@ namespace FWO.Test
             {
                 ExternalParams = JsonSerializer.Serialize(new EmailActionParams
                 {
-                    NotificationIds = new List<int> { 42 },
+                    NotificationIds = [42],
                     ConfirmSentMail = true,
                     AttachedContent = EmailAttachedContent.RequestedConnections
                 })
@@ -2208,8 +2207,8 @@ namespace FWO.Test
         [Test]
         public async Task DoStateChangeActions_WithEmailBundleCollector_SendsEmailImmediatelyWhenAttachedContentIsMissing()
         {
-            List<FwoNotification> notifications = new()
-            {
+            List<FwoNotification> notifications =
+            [
                 new()
                 {
                     Id = 7,
@@ -2218,9 +2217,9 @@ namespace FWO.Test
                     EmailBody = "body",
                     RecipientTo = EmailRecipientOption.Requester
                 }
-            };
-            List<WfStateActionDataHelper> actions = new()
-            {
+            ];
+            List<WfStateActionDataHelper> actions =
+            [
                 new()
                 {
                     Action = new WfStateAction
@@ -2231,23 +2230,23 @@ namespace FWO.Test
                         TaskType = WfTaskType.access.ToString(),
                         ExternalParams = JsonSerializer.Serialize(new EmailActionParams
                         {
-                            NotificationIds = new List<int> { 7 },
+                            NotificationIds = [7],
                             RequestTaskBundleMode = EmailRequestTaskBundleMode.SameTaskType
                         })
                     }
                 }
-            };
+            ];
             ActionHandlerTestApiConn apiConn = new()
             {
                 Notifications = notifications,
-                States = new List<WfState>
-                {
+                States =
+                [
                     new WfState
                     {
                         Id = 60,
                         Actions = actions
                     }
-                }
+                ]
             };
             WorkflowEmailBundleCollector collector = new();
             ActionHandler handler = new(apiConn, new WfHandler { userConfig = new SimulatedUserConfig() }) { EmailBundleCollector = collector };

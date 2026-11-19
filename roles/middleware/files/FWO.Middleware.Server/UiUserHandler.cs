@@ -416,7 +416,7 @@ namespace FWO.Middleware.Server
             {
                 var Variables = new
                 {
-                    id = id,
+                    id,
                     loginTime = DateTime.UtcNow
                 };
                 return (await apiConn.SendQueryAsync<ReturnId>(AuthQueries.updateUserLastLogin, Variables)).PasswordMustBeChanged;
@@ -441,7 +441,7 @@ namespace FWO.Middleware.Server
                 var Variables = new
                 {
                     id = userId,
-                    passwordMustBeChanged = passwordMustBeChanged,
+                    passwordMustBeChanged,
                     changeTime = DateTime.UtcNow
                 };
                 await apiConn.SendQueryAsync<ReturnId>(AuthQueries.updateUserPasswordChange, Variables);

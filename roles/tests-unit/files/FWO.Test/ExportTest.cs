@@ -1667,7 +1667,7 @@ namespace FWO.Test
             Dictionary<int, int> references = new() { [rulebase.Id] = -1 };
             managementData.Devices =
             [
-                CreateRuleTree(-1, "Start A", rulebase.Id, new Dictionary<int, int>()),
+                CreateRuleTree(-1, "Start A", rulebase.Id, []),
                 CreateRuleTree(-2, "Start B", rulebase.Id, references)
             ];
             reportRules.TryBuildMockRuleTree();
@@ -1774,7 +1774,7 @@ namespace FWO.Test
             return [rule1, rule2];
         }
 
-        private static ReportRules ConstructReportRulesWithoutRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType)
+        private static MockReportRules ConstructReportRulesWithoutRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType)
         {
             RulebaseReport[] rulebases = [
                 MockReportRules.CreateRulebaseReport(numberOfRules: 0)

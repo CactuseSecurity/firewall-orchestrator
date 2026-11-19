@@ -72,10 +72,10 @@ namespace FWO.Config.Api.Data
         [JsonProperty("defaultManagementRulebaseView"), JsonPropertyName("defaultManagementRulebaseView"), UserConfigData]
         public bool DefaultManagementRulebaseView { get; set; } = false;
 
-        [JsonProperty("unusedTolerance"), JsonPropertyName("unusedTolerance")]
+        [JsonProperty("unusedTolerance"), JsonPropertyName("unusedTolerance"), UserConfigData]
         public int UnusedTolerance { get; set; } = 400;
 
-        [JsonProperty("creationTolerance"), JsonPropertyName("creationTolerance")]
+        [JsonProperty("creationTolerance"), JsonPropertyName("creationTolerance"), UserConfigData]
         public int CreationTolerance { get; set; } = 90;
 
         [JsonProperty("availableReportTypes"), JsonPropertyName("availableReportTypes")]
@@ -174,7 +174,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("recertificationNoticePeriod"), JsonPropertyName("recertificationNoticePeriod")]
         public int RecertificationNoticePeriod { get; set; } = 30;
 
-        [JsonProperty("recertificationDisplayPeriod"), JsonPropertyName("recertificationDisplayPeriod")]
+        [JsonProperty("recertificationDisplayPeriod"), JsonPropertyName("recertificationDisplayPeriod"), UserConfigData]
         public int RecertificationDisplayPeriod { get; set; } = 30;
 
         [JsonProperty("ruleRemovalGracePeriod"), JsonPropertyName("ruleRemovalGracePeriod")]
@@ -400,7 +400,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("allowServiceInConn"), JsonPropertyName("allowServiceInConn")]
         public bool AllowServiceInConn { get; set; } = true;
 
-        [JsonProperty("overviewDisplayLines"), JsonPropertyName("overviewDisplayLines")]
+        [JsonProperty("overviewDisplayLines"), JsonPropertyName("overviewDisplayLines"), UserConfigData]
         public int OverviewDisplayLines { get; set; } = 3;
 
         [JsonProperty("reducedProtocolSet"), JsonPropertyName("reducedProtocolSet")]
@@ -705,7 +705,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("varianceAnalysisRefresh"), JsonPropertyName("varianceAnalysisRefresh")]
         public bool VarianceAnalysisRefresh { get; set; } = false;
 
-        [JsonProperty("resolveNetworkAreas"), JsonPropertyName("resolveNetworkAreas")]
+        [JsonProperty("resolveNetworkAreas"), JsonPropertyName("resolveNetworkAreas"), UserConfigData]
         public bool ResolveNetworkAreas { get; set; } = false;
 
         [JsonProperty("complianceCheckSleepTime"), JsonPropertyName("complianceCheckSleepTime")]
@@ -847,7 +847,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceDiffFilterExistingViolations"), JsonPropertyName("complianceDiffFilterExistingViolations")]
         public bool ComplianceDiffFilterExistingViolations { get; set; } = false;
 
-        [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
+        [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState"), UserConfigData]
         public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;
 
         [JsonProperty("allowFullRollback"), JsonPropertyName("allowFullRollback")]

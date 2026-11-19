@@ -8525,10 +8525,112 @@ INSERT INTO txt VALUES ('H6906', 'German',  'Anmelden zur Generierung eines g&uu
 INSERT INTO txt VALUES ('H6906', 'English', 'Login to get a JWT for the steps further below');
 INSERT INTO txt VALUES ('H6907', 'German',  'Auflisten bereits vorhandener Reports im Archiv (hier der letzte generierte zum Schedule)');
 INSERT INTO txt VALUES ('H6907', 'English', 'List generated reports in archive (here we get the last one generated for the respective schedule)');
-INSERT INTO txt VALUES ('H6934', 'German',  'Der <code>GetRulesByFilter</code> Endpunkt gibt Regeln zur&uuml;ck, die entweder zu <code>OwnerId</code> oder zu <code>IpAddress</code> passen. Genau eines dieser beiden Felder muss angegeben werden. Das Objekt <code>Filter</code> wird nur beim Filtern per IP-Adresse verwendet: <code>Action</code> w&auml;hlt zwischen <code>accept</code>, <code>deny</code> oder <code>any</code>, <code>MinPrefixLength</code> setzt die minimale CIDR-Prefix-L&auml;nge und <code>InField</code> entscheidet, ob Quelle, Ziel oder beides f&uuml;r den IP-Treffer gepr&uuml;ft wird. Eine Regel wird als Treffer gewertet, wenn mindestens ein aufgel&ouml;stes Netzwerkobjekt im gepr&uuml;ften Feld die angegebene IPv4-Adresse enth&auml;lt. Unabh&auml;ngig von <code>InField</code> m&uuml;ssen alle unterst&uuml;tzten IPv4-Objekte in Quelle und Ziel die Mindest-Prefix-L&auml;nge erf&uuml;llen. Falls <code>FieldSourceMapping</code> dennoch mitgesendet wird, ignoriert der Server dieses Feld.');
-INSERT INTO txt VALUES ('H6934', 'English', 'The <code>GetRulesByFilter</code> endpoint returns rules that match either <code>OwnerId</code> or <code>IpAddress</code>. Exactly one of those two fields must be provided. The <code>Filter</code> object is only used when filtering by IP address: <code>Action</code> selects <code>accept</code>, <code>deny</code>, or <code>any</code>, <code>MinPrefixLength</code> sets the minimum CIDR prefix length, and <code>InField</code> decides whether source, destination, or both are evaluated for the IP match. A rule counts as a match when at least one resolved network object in the checked field contains the supplied IPv4 address. Independently of <code>InField</code>, all supported IPv4 objects in both source and destination must meet the minimum prefix length. If <code>FieldSourceMapping</code> is still sent, the server ignores it.');
-INSERT INTO txt VALUES ('H6935', 'German',  '<ul><li><code>OwnerId</code>: Gibt alle Regeln f&uuml;r den angegebenen Eigent&uuml;mer zur&uuml;ck.</li><li><code>IpAddress</code>: Sucht Regeln anhand der angegebenen IP-Adresse.</li><li><code>Filter.Action</code>: Pflichtfeld beim IP-Filter; erlaubt sind <code>accept</code>, <code>deny</code> und <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimale Prefix-L&auml;nge aller unterst&uuml;tzten IPv4-Objekte in Quelle und Ziel von 0 bis 32.</li><li><code>Filter.InField</code>: Legt fest, ob Quelle, Ziel oder beides f&uuml;r den IP-Treffer gepr&uuml;ft wird; die Prefix-Pr&uuml;fung wird immer auf Quelle und Ziel angewendet.</li><li>Eine Regel wird nur zur&uuml;ckgegeben, wenn mindestens ein aufgel&ouml;stes Objekt im gepr&uuml;ften Feld die IP-Adresse enth&auml;lt und kein unterst&uuml;tztes IPv4-Objekt in Quelle oder Ziel die Mindest-Prefix-L&auml;nge verletzt. Nicht unterst&uuml;tzte Objekte werden ignoriert.</li><li><code>service[].port</code> enth&auml;lt den einzelnen bzw. ersten Zielport und den Wert <code>-1</code>, wenn kein Zielport vorhanden ist. <code>service[].portEnd</code> enth&auml;lt nur bei einem echten Portbereich dessen einschlie&szlig;liches Ende; bei einzelnen oder fehlenden Ports wird das Feld nicht ausgegeben.</li><li><code>ownerInformation</code>: Enth&auml;lt die regelbezogene externe App-ID als <code>extAppId</code> sowie die aktiven Datenbank-IDs der Eigent&uuml;mer als Array <code>ownerIds</code>.</li><li><code>additionalInformation</code>: Enth&auml;lt aktuell nur <code>changeId</code>, wenn das entsprechende Mapping konfiguriert ist.</li><li><code>options.limit</code> und <code>options.offset</code>: Die Regeln sind nach Regel-Id sortiert und werden seitenweise geliefert, h&ouml;chstens so viele wie in &quot;Max Objekte pro REST-API-Antwortseite&quot; (Standard 10000) eingestellt. <code>result.count</code> ist die Anzahl der Regeln der Seite; der Response-Header <code>X-Has-More</code> zeigt an, ob weitere Regeln folgen.</li></ul>');
-INSERT INTO txt VALUES ('H6935', 'English', '<ul><li><code>OwnerId</code>: Returns all rules for the specified owner.</li><li><code>IpAddress</code>: Finds rules by the provided IP address.</li><li><code>Filter.Action</code>: Required for IP-based filtering; allowed values are <code>accept</code>, <code>deny</code>, and <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimum prefix length of every supported IPv4 object in source and destination, from 0 to 32.</li><li><code>Filter.InField</code>: Defines whether source, destination, or both are evaluated for the IP match; the prefix check always applies to source and destination.</li><li>A rule is returned only when at least one resolved object in the checked field contains the IP address and no supported IPv4 object in source or destination violates the minimum prefix length. Unsupported objects are ignored.</li><li><code>service[].port</code> contains the single or starting destination port and is <code>-1</code> when no destination port is available. <code>service[].portEnd</code> contains the inclusive end only for a genuine port range; the field is omitted for single or missing ports.</li><li><code>ownerInformation</code>: Contains the rule-level external app id as <code>extAppId</code> and the active owner database ids as the <code>ownerIds</code> array.</li><li><code>additionalInformation</code>: Currently contains only <code>changeId</code> when the mapping is configured.</li><li><code>options.limit</code> and <code>options.offset</code>: Rules are ordered by rule id and returned page by page, at most as many as set in &quot;Max objects per REST API response page&quot; (default 10000). <code>result.count</code> is the number of rules in the page; the response header <code>X-Has-More</code> tells whether further rules follow.</li></ul>');
+INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/owners/appdataimport">App-Daten-Import-Einstellungen</a> definierten Pfaden und Namen gespeist.
+    Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:
+');
+INSERT INTO txt VALUES ('H6921', 'English', 'The import of application data is fed from one or several .json files with paths and names defined in the <a href="/help/settings/owners/appdataimport">App Data Import Settings</a>.
+    There also python scripts with the same names can be provided to create these files. The structure of the .json file is as following:
+');
+INSERT INTO txt VALUES ('H6922', 'German',  'Die einzelnen Felder haben folgende Bedeutung:
+    <ul>
+        <li>app_id_external: Eindeutige Kennzeichnung der Applikation, &uuml;ber die vorhandene Applikationen wiedererkannt werden. Dies ist ggf. &uuml;ber verschiedene Importquellen hinweg sicherzustellen.</li>
+        <li>name: Dargestellter Name der Applikation.</li>
+        <li>main_user: Optionale Kennung oder DN der hauptverantwortlichen Person. Sie wird als Verantwortlicher des Haupt-Verantwortlichentyps &uuml;bernommen, sofern dieser aktiv ist.
+            Mindestens eines der Felder main_user oder responsibles sollte gef&uuml;llt sein, damit ein Zugriff auf diese Applikation m&ouml;glich ist.
+            (Ansonsten muss dieses in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> manuell nachgeholt werden.)</li>
+        <li>responsibles: Optionale Verantwortliche je Verantwortlichentyp. Die Schl&uuml;ssel m&uuml;ssen Zahlen sein: Sie werden aufsteigend sortiert den aktiven Verantwortlichentypen
+            in deren Sortierreihenfolge zugeordnet (kleinster Schl&uuml;ssel zum ersten Typ usw.). Enth&auml;lt eine Applikation einen nicht-numerischen Schl&uuml;ssel, werden ihre Verantwortlichen nicht importiert.
+            Die Werte sind Listen von Benutzer- oder Gruppenkennungen bzw. DNs.</li>
+        <li>Benutzer- und Gruppenkennungen in main_user und responsibles, die keine DN sind, werden &uuml;ber das LDAP aufgel&ouml;st (erst als Benutzer, dann als Gruppe).
+            Nicht aufl&ouml;sbare Kennungen werden &uuml;bersprungen und im Importprotokoll vermerkt.</li>
+        <li>criticality: Hier kann optional ein String zur Kennzeichnung der Kritikalit&auml;t der Applikation definiert werden.</li>
+        <li>owner_lifecycle_state: Optionaler Name eines vorhandenen Lebenszyklus-Status. Ist der Name unbekannt, wird die Applikation nicht importiert.</li>
+        <li>additional_information: Optionale weitere Angaben zur Applikation als Paare aus Schl&uuml;ssel und Wert (jeweils Strings).</li>
+        <li>import_source: String zur Kennzeichnung der Importquelle. Dient zur Unterscheidung bei mehreren Quellen.
+            Applikationen dieser Quelle, die in der Datei fehlen, werden deaktiviert.</li>
+        <li>recert_active: Optional, Vorgabe false. Bei true wird die Rezertifizierung der Applikation aktiviert (wirksam im Rezertifizierungsmodus f&uuml;r Eigent&uuml;mer und Regeln).</li>
+        <li>recert_period_days: Optionales Rezertifizierungsintervall in Tagen. Ohne Angabe gilt das allgemein eingestellte Intervall.</li>
+        <li>days_until_first_recert: Wird zur Zeit nicht ber&uuml;cksichtigt.</li>
+        <li>app_servers: Liste aller zur Applikation zugeordneten Host-Adressen. Sie werden &uuml;ber ip und ip_end wiedererkannt; App-Server der Importquelle, die in der Datei fehlen, werden als gel&ouml;scht markiert.
+            Weitere Felder (z.B. type) werden ignoriert.
+            <ul>
+                <li>name: Optionaler Name zur Darstellung. Je nach Einstellung des App-Daten-Imports wird er durch einen aus dem DNS gebildeten Namen ersetzt.</li>
+                <li>ip: IP-Adresse</li>
+                <li>ip_end: Optionales Ende eines IP-Bereichs, ohne Angabe gilt nur die Adresse aus ip</li>
+                <li>labels: Optionale Liste von Labels mit label_key und label_value, z.B. Stage: Prod. Fehlt das Feld, bleiben die Labels des App-Servers unver&auml;ndert,
+                    eine leere Liste entfernt alle. Unbekannte Schl&uuml;ssel und Werte werden als importiert angelegt. Abgelehnt und im Importprotokoll vermerkt werden
+                    die Schl&uuml;ssel AppRole und AppZone (sie bleiben Gruppen), der Schl&uuml;ssel des App-Labels (Standard App, jeder App-Server erh&auml;lt das App-Label seines Eigent&uuml;mers), mehrere Werte eines Schl&uuml;ssels, der nur einen Wert erlaubt, mehr als 50 Labels pro App-Server
+                    sowie Schl&uuml;ssel mit mehr als 100 und Werte mit mehr als 250 Zeichen.</li>
+            </ul>
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6922', 'English', 'These fields have the following meaning:
+    <ul>
+        <li>app_id_external: Unique identification string of the application, used to recognize existing applications. This has to be ensured over several import sources.</li>
+        <li>name: Displayed name of the application.</li>
+        <li>main_user: Optional identifier or DN of the main responsible person. It is taken over as responsible of the main responsible type if that type is active.
+            At least one of the fields main_user or responsibles should be filled to ensure access to the application.
+            (Else this has to be ensured manually in the <a href="/help/settings/owners">Owner Settings</a> afterwards.)</li>
+        <li>responsibles: Optional responsibles per responsible type. The keys have to be numbers: sorted in ascending order they are assigned to the active responsible types
+            in their sort order (lowest key to the first type and so on). If an application contains a non-numeric key, none of its responsibles are imported.
+            The values are lists of user or group identifiers or DNs.</li>
+        <li>User and group identifiers in main_user and responsibles that are no DN are resolved via LDAP (first as user, then as group).
+            Identifiers that cannot be resolved are skipped and noted in the import log.</li>
+        <li>criticality: An optional string to mark the criticality of the application can be defined here.</li>
+        <li>owner_lifecycle_state: Optional name of an existing lifecycle state. If the name is unknown, the application is not imported.</li>
+        <li>additional_information: Optional further information on the application as pairs of key and value (both strings).</li>
+        <li>import_source: String to identify the import source. Necessary to distinguish between several sources.
+            Applications of this source that are missing in the file are deactivated.</li>
+        <li>recert_active: Optional, default false. If true, the recertification of the application is activated (effective in the recertification mode for owners and rules).</li>
+        <li>recert_period_days: Optional recertification interval in days. Without it the generally configured interval applies.</li>
+        <li>days_until_first_recert: Currently not regarded.</li>
+        <li>app_servers: List of all host addresses assigned to the application. They are recognized by ip and ip_end; app servers of the import source that are missing in the file are marked as deleted.
+            Further fields (e.g. type) are ignored.
+            <ul>
+                <li>name: Optional name for display. Depending on the app data import settings it is replaced by a name built from DNS.</li>
+                <li>ip: IP address</li>
+                <li>ip_end: Optional end of an IP range, without it only the address in ip is used</li>
+                <li>labels: Optional list of labels with label_key and label_value, e.g. Stage: Prod. Without this field the labels of the app server stay unchanged,
+                    an empty list removes all of them. Unknown keys and values are created as imported. Rejected and noted in the import log are the keys
+                    AppRole and AppZone (they stay groups), the key of the App label (default App, every app server gets the App label of its owner), several values of a key that allows a single value only, more than 50 labels per app server,
+                    and keys longer than 100 or values longer than 250 characters.</li>
+            </ul>
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6931', 'German',  'Der Import von IP-Daten wird aus einer .json-Datei mit dem in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfad und Namen gespeist.
+    Dort kann auch ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Datei hinterlegt werden. Die .json-Datei hat die folgende Struktur:
+');
+INSERT INTO txt VALUES ('H6931', 'English', 'The import of IP data is fed from a .json file with path and name defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
+    There also a python script with the same name can be provided to create this file. the structure of the .json file is as following:
+');
+INSERT INTO txt VALUES ('H6932', 'German',  'Die einzelnen Felder haben folgende Bedeutung:
+    <ul>
+        <li>name: Dargestellter Name der Area.</li>
+        <li>id_string: Eindeutige Kennzeichnung der Area.</li>
+        <li>subnets: Liste alle Subnetze der Area:
+            <li>name: Optionaler Name zur Darstellung.</li>
+            <li>ip: IP-Adresse oder Start-IP-Addresse, falls Bereiche definiert werden sollen.</li>
+            <li>ip_end: Ende-IP-Addresse, falls Bereiche definiert werden sollen. Sonst leer lassen oder denselben Wert wie in "ip" liefern.</li>
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6932', 'English', 'These fields have the following meaning:
+    <ul>
+        <li>name: Displayed name of the area</li>
+        <li>id_string: Unique identification string of the area.</li>
+        <li>subnets: List of all subnets of the area:
+            <li>name: Optional name for display.</li>
+            <li>ip: IP address or start IP address, if ranges are to be defined.</li>
+            <li>ip_end: end IP address, if ranges are to be defined. Else leave empty or fill with the same value as "ip".</li>
+        </li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6934', 'German',  'Der <code>GetRulesByFilter</code> Endpunkt gibt Regeln zur&uuml;ck, die zu <code>OwnerId</code>, <code>IpAddress</code> oder <code>RuleUid</code> passen. Genau eines dieser drei Felder muss angegeben werden. <code>RuleUid</code> wird exakt verglichen; alle aktuellen, nicht entfernten Regeln mit dieser UID werden zur&uuml;ckgegeben. Das Objekt <code>Filter</code> wird nur beim Filtern per IP-Adresse verwendet und bei <code>OwnerId</code> oder <code>RuleUid</code> ignoriert: <code>Action</code> w&auml;hlt zwischen <code>accept</code>, <code>deny</code> oder <code>any</code>, <code>MinPrefixLength</code> setzt die minimale CIDR-Prefix-L&auml;nge und <code>InField</code> entscheidet, ob Quelle, Ziel oder beides f&uuml;r den IP-Treffer gepr&uuml;ft wird. Eine Regel wird als Treffer gewertet, wenn mindestens ein aufgel&ouml;stes Netzwerkobjekt im gepr&uuml;ften Feld die angegebene IPv4-Adresse enth&auml;lt. Unabh&auml;ngig von <code>InField</code> m&uuml;ssen alle unterst&uuml;tzten IPv4-Objekte in Quelle und Ziel die Mindest-Prefix-L&auml;nge erf&uuml;llen. Falls <code>FieldSourceMapping</code> dennoch mitgesendet wird, ignoriert der Server dieses Feld.');
+INSERT INTO txt VALUES ('H6934', 'English', 'The <code>GetRulesByFilter</code> endpoint returns rules that match <code>OwnerId</code>, <code>IpAddress</code>, or <code>RuleUid</code>. Exactly one of those three fields must be provided. <code>RuleUid</code> uses an exact match; every current, non-removed rule with that UID is returned. The <code>Filter</code> object is only used when filtering by IP address and is ignored for <code>OwnerId</code> or <code>RuleUid</code>: <code>Action</code> selects <code>accept</code>, <code>deny</code>, or <code>any</code>, <code>MinPrefixLength</code> sets the minimum CIDR prefix length, and <code>InField</code> decides whether source, destination, or both are evaluated for the IP match. A rule counts as a match when at least one resolved network object in the checked field contains the supplied IPv4 address. Independently of <code>InField</code>, all supported IPv4 objects in both source and destination must meet the minimum prefix length. If <code>FieldSourceMapping</code> is still sent, the server ignores it.');
+INSERT INTO txt VALUES ('H6935', 'German',  '<ul><li><code>OwnerId</code>: Gibt alle Regeln f&uuml;r den angegebenen Eigent&uuml;mer zur&uuml;ck.</li><li><code>IpAddress</code>: Sucht Regeln anhand der angegebenen IP-Adresse.</li><li><code>RuleUid</code>: Sucht per exakter UID und gibt alle aktuellen, nicht entfernten Treffer zur&uuml;ck; eine UID muss nicht global eindeutig sein und darf h&ouml;chstens 256 Zeichen lang sein.</li><li><code>Filter</code>: Wird nur mit <code>IpAddress</code> ausgewertet und bei <code>OwnerId</code> oder <code>RuleUid</code> ignoriert.</li><li><code>Filter.Action</code>: Pflichtfeld beim IP-Filter; erlaubt sind <code>accept</code>, <code>deny</code> und <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimale Prefix-L&auml;nge aller unterst&uuml;tzten IPv4-Objekte in Quelle und Ziel von 0 bis 32.</li><li><code>Filter.InField</code>: Legt fest, ob Quelle, Ziel oder beides f&uuml;r den IP-Treffer gepr&uuml;ft wird; die Prefix-Pr&uuml;fung wird immer auf Quelle und Ziel angewendet.</li><li>Eine Regel wird nur zur&uuml;ckgegeben, wenn mindestens ein aufgel&ouml;stes Objekt im gepr&uuml;ften Feld die IP-Adresse enth&auml;lt und kein unterst&uuml;tztes IPv4-Objekt in Quelle oder Ziel die Mindest-Prefix-L&auml;nge verletzt. Nicht unterst&uuml;tzte Objekte werden ignoriert.</li><li><code>service[].port</code> enth&auml;lt den einzelnen bzw. ersten Zielport und den Wert <code>-1</code>, wenn kein Zielport vorhanden ist. <code>service[].portEnd</code> enth&auml;lt nur bei einem echten Portbereich dessen einschlie&szlig;liches Ende; bei einzelnen oder fehlenden Ports wird das Feld nicht ausgegeben.</li><li><code>ownerInformation</code>: Enth&auml;lt die regelbezogene externe App-ID als <code>extAppId</code> sowie die aktiven Datenbank-IDs der Eigent&uuml;mer als Array <code>ownerIds</code>.</li><li><code>additionalInformation</code>: Enth&auml;lt aktuell nur <code>changeId</code>, wenn das entsprechende Mapping konfiguriert ist.</li><li><code>options.limit</code> und <code>options.offset</code>: Die Regeln sind nach Regel-Id sortiert und werden seitenweise geliefert, h&ouml;chstens so viele wie in &quot;Max Objekte pro REST-API-Antwortseite&quot; (Standard 10000) eingestellt. <code>result.count</code> ist die Anzahl der Regeln der Seite; der Response-Header <code>X-Has-More</code> zeigt an, ob weitere Regeln folgen.</li></ul>');
+INSERT INTO txt VALUES ('H6935', 'English', '<ul><li><code>OwnerId</code>: Returns all rules for the specified owner.</li><li><code>IpAddress</code>: Finds rules by the provided IP address.</li><li><code>RuleUid</code>: Uses an exact UID match and returns every current, non-removed match; a UID need not be globally unique and must not exceed 256 characters.</li><li><code>Filter</code>: Evaluated only with <code>IpAddress</code> and ignored for <code>OwnerId</code> or <code>RuleUid</code>.</li><li><code>Filter.Action</code>: Required for IP-based filtering; allowed values are <code>accept</code>, <code>deny</code>, and <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimum prefix length of every supported IPv4 object in source and destination, from 0 to 32.</li><li><code>Filter.InField</code>: Defines whether source, destination, or both are evaluated for the IP match; the prefix check always applies to source and destination.</li><li>A rule is returned only when at least one resolved object in the checked field contains the IP address and no supported IPv4 object in source or destination violates the minimum prefix length. Unsupported objects are ignored.</li><li><code>service[].port</code> contains the single or starting destination port and is <code>-1</code> when no destination port is available. <code>service[].portEnd</code> contains the inclusive end only for a genuine port range; the field is omitted for single or missing ports.</li><li><code>ownerInformation</code>: Contains the rule-level external app id as <code>extAppId</code> and the active owner database ids as the <code>ownerIds</code> array.</li><li><code>additionalInformation</code>: Currently contains only <code>changeId</code> when the mapping is configured.</li><li><code>options.limit</code> and <code>options.offset</code>: Rules are ordered by rule id and returned page by page, at most as many as set in &quot;Max objects per REST API response page&quot; (default 10000). <code>result.count</code> is the number of rules in the page; the response header <code>X-Has-More</code> tells whether further rules follow.</li></ul>');
 INSERT INTO txt VALUES ('H6936', 'German',  'Hinweis: <code>additionalInformation.changeId</code> wird nur gef&uuml;llt, wenn das konfigurierte Change-ID-Mapping mindestens einen Eintrag hat. Andernfalls bleibt <code>additionalInformation</code> leer. Unbekannte optionale Schl&uuml;ssel in der Anfrage, einschlie&szlig;lich <code>FieldSourceMapping</code>, werden ignoriert.');
 INSERT INTO txt VALUES ('H6936', 'English', 'Note: <code>additionalInformation.changeId</code> is only populated when the configured Change-ID mapping contains at least one entry. Otherwise <code>additionalInformation</code> stays empty. Unknown optional request keys, including <code>FieldSourceMapping</code>, are ignored.');
 INSERT INTO txt VALUES ('H6937', 'German',  'Der Endpunkt <code>POST /api/Rule/GetRuleLastHits</code> gibt zu den aktuellen Regeln eines Managements die letzten Treffer zur&uuml;ck: <code>lastHit</code> ist der j&uuml;ngste Treffer &uuml;ber alle Gateways (<code>null</code>, wenn die Regel nie getroffen wurde), <code>gateways</code> enth&auml;lt den letzten Treffer je Gateway. Die Treffer werden vom zeitgesteuerten Regeltreffer-Import geschrieben; alle Zeitangaben sind in UTC. Erlaubt sind die Rollen admin, auditor, reporter, reporter-viewall und recertifier. admin, auditor und reporter-viewall sehen alle Managements und Gateways. Alle anderen Aufrufer erhalten nur Managements und Gateways, die f&uuml;r ihren Mandanten sichtbar sind: ein nicht sichtbares Management liefert eine leere Liste, und <code>gateways</code> enth&auml;lt nur sichtbare Gateways. Aufrufer eines anderen Mandanten als tenant0 erhalten ein leeres <code>ruleName</code>, und der Filter <code>ruleName</code> liefert f&uuml;r sie kein Ergebnis. Die Regeln sind nach ihrer internen Metadaten-Id sortiert. Die Antwort ist seitenweise begrenzt (<code>options.limit</code>, <code>options.offset</code>); der Antwort-Header <code>X-Has-More</code> zeigt an, ob weitere Regeln folgen. Fehlerhafte Anfragen werden mit 400 und allen gefundenen Fehlern samt Pfad des jeweiligen Schl&uuml;ssels beantwortet.');
@@ -8745,108 +8847,6 @@ INSERT INTO txt VALUES ('H6945', 'English', 'The path analysis REST API determin
         <li>Invalid requests are answered with 400, including a missing option whose configured default is not usable: no algorithm that analyses a path (none or a device selection of the workflow) or no designated zone matrix. A given <code>matrixId</code> that does not exist or holds no zones is answered with 404. Both report every detected error together in the format <code>{"errors": [{"path": "sources[0]", "message": "..."}]}</code>.</li>
         <li>If the designated zone matrix turns out to be unusable during the analysis, the endpoint answers 500; naming <code>options.matrixId</code> explicitly avoids this.</li>
         <li>The endpoint counts as expensive: by default at most two requests per user run at the same time, further ones are queued briefly or rejected with 429. The request body may be at most 1 MiB.</li>
-    </ul>
-');
-INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/owners/appdataimport">App-Daten-Import-Einstellungen</a> definierten Pfaden und Namen gespeist.
-    Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:
-');
-INSERT INTO txt VALUES ('H6921', 'English', 'The import of application data is fed from one or several .json files with paths and names defined in the <a href="/help/settings/owners/appdataimport">App Data Import Settings</a>.
-    There also python scripts with the same names can be provided to create these files. The structure of the .json file is as following:
-');
-INSERT INTO txt VALUES ('H6922', 'German',  'Die einzelnen Felder haben folgende Bedeutung:
-    <ul>
-        <li>app_id_external: Eindeutige Kennzeichnung der Applikation, &uuml;ber die vorhandene Applikationen wiedererkannt werden. Dies ist ggf. &uuml;ber verschiedene Importquellen hinweg sicherzustellen.</li>
-        <li>name: Dargestellter Name der Applikation.</li>
-        <li>main_user: Optionale Kennung oder DN der hauptverantwortlichen Person. Sie wird als Verantwortlicher des Haupt-Verantwortlichentyps &uuml;bernommen, sofern dieser aktiv ist.
-            Mindestens eines der Felder main_user oder responsibles sollte gef&uuml;llt sein, damit ein Zugriff auf diese Applikation m&ouml;glich ist.
-            (Ansonsten muss dieses in den <a href="/help/settings/owners">Eigent&uuml;mer-Einstellungen</a> manuell nachgeholt werden.)</li>
-        <li>responsibles: Optionale Verantwortliche je Verantwortlichentyp. Die Schl&uuml;ssel m&uuml;ssen Zahlen sein: Sie werden aufsteigend sortiert den aktiven Verantwortlichentypen
-            in deren Sortierreihenfolge zugeordnet (kleinster Schl&uuml;ssel zum ersten Typ usw.). Enth&auml;lt eine Applikation einen nicht-numerischen Schl&uuml;ssel, werden ihre Verantwortlichen nicht importiert.
-            Die Werte sind Listen von Benutzer- oder Gruppenkennungen bzw. DNs.</li>
-        <li>Benutzer- und Gruppenkennungen in main_user und responsibles, die keine DN sind, werden &uuml;ber das LDAP aufgel&ouml;st (erst als Benutzer, dann als Gruppe).
-            Nicht aufl&ouml;sbare Kennungen werden &uuml;bersprungen und im Importprotokoll vermerkt.</li>
-        <li>criticality: Hier kann optional ein String zur Kennzeichnung der Kritikalit&auml;t der Applikation definiert werden.</li>
-        <li>owner_lifecycle_state: Optionaler Name eines vorhandenen Lebenszyklus-Status. Ist der Name unbekannt, wird die Applikation nicht importiert.</li>
-        <li>additional_information: Optionale weitere Angaben zur Applikation als Paare aus Schl&uuml;ssel und Wert (jeweils Strings).</li>
-        <li>import_source: String zur Kennzeichnung der Importquelle. Dient zur Unterscheidung bei mehreren Quellen.
-            Applikationen dieser Quelle, die in der Datei fehlen, werden deaktiviert.</li>
-        <li>recert_active: Optional, Vorgabe false. Bei true wird die Rezertifizierung der Applikation aktiviert (wirksam im Rezertifizierungsmodus f&uuml;r Eigent&uuml;mer und Regeln).</li>
-        <li>recert_period_days: Optionales Rezertifizierungsintervall in Tagen. Ohne Angabe gilt das allgemein eingestellte Intervall.</li>
-        <li>days_until_first_recert: Wird zur Zeit nicht ber&uuml;cksichtigt.</li>
-        <li>app_servers: Liste aller zur Applikation zugeordneten Host-Adressen. Sie werden &uuml;ber ip und ip_end wiedererkannt; App-Server der Importquelle, die in der Datei fehlen, werden als gel&ouml;scht markiert.
-            Weitere Felder (z.B. type) werden ignoriert.
-            <ul>
-                <li>name: Optionaler Name zur Darstellung. Je nach Einstellung des App-Daten-Imports wird er durch einen aus dem DNS gebildeten Namen ersetzt.</li>
-                <li>ip: IP-Adresse</li>
-                <li>ip_end: Optionales Ende eines IP-Bereichs, ohne Angabe gilt nur die Adresse aus ip</li>
-                <li>labels: Optionale Liste von Labels mit label_key und label_value, z.B. Stage: Prod. Fehlt das Feld, bleiben die Labels des App-Servers unver&auml;ndert,
-                    eine leere Liste entfernt alle. Unbekannte Schl&uuml;ssel und Werte werden als importiert angelegt. Abgelehnt und im Importprotokoll vermerkt werden
-                    die Schl&uuml;ssel AppRole und AppZone (sie bleiben Gruppen), der Schl&uuml;ssel des App-Labels (Standard App, jeder App-Server erh&auml;lt das App-Label seines Eigent&uuml;mers), mehrere Werte eines Schl&uuml;ssels, der nur einen Wert erlaubt, mehr als 50 Labels pro App-Server
-                    sowie Schl&uuml;ssel mit mehr als 100 und Werte mit mehr als 250 Zeichen.</li>
-            </ul>
-        </li>
-    </ul>
-');
-INSERT INTO txt VALUES ('H6922', 'English', 'These fields have the following meaning:
-    <ul>
-        <li>app_id_external: Unique identification string of the application, used to recognize existing applications. This has to be ensured over several import sources.</li>
-        <li>name: Displayed name of the application.</li>
-        <li>main_user: Optional identifier or DN of the main responsible person. It is taken over as responsible of the main responsible type if that type is active.
-            At least one of the fields main_user or responsibles should be filled to ensure access to the application.
-            (Else this has to be ensured manually in the <a href="/help/settings/owners">Owner Settings</a> afterwards.)</li>
-        <li>responsibles: Optional responsibles per responsible type. The keys have to be numbers: sorted in ascending order they are assigned to the active responsible types
-            in their sort order (lowest key to the first type and so on). If an application contains a non-numeric key, none of its responsibles are imported.
-            The values are lists of user or group identifiers or DNs.</li>
-        <li>User and group identifiers in main_user and responsibles that are no DN are resolved via LDAP (first as user, then as group).
-            Identifiers that cannot be resolved are skipped and noted in the import log.</li>
-        <li>criticality: An optional string to mark the criticality of the application can be defined here.</li>
-        <li>owner_lifecycle_state: Optional name of an existing lifecycle state. If the name is unknown, the application is not imported.</li>
-        <li>additional_information: Optional further information on the application as pairs of key and value (both strings).</li>
-        <li>import_source: String to identify the import source. Necessary to distinguish between several sources.
-            Applications of this source that are missing in the file are deactivated.</li>
-        <li>recert_active: Optional, default false. If true, the recertification of the application is activated (effective in the recertification mode for owners and rules).</li>
-        <li>recert_period_days: Optional recertification interval in days. Without it the generally configured interval applies.</li>
-        <li>days_until_first_recert: Currently not regarded.</li>
-        <li>app_servers: List of all host addresses assigned to the application. They are recognized by ip and ip_end; app servers of the import source that are missing in the file are marked as deleted.
-            Further fields (e.g. type) are ignored.
-            <ul>
-                <li>name: Optional name for display. Depending on the app data import settings it is replaced by a name built from DNS.</li>
-                <li>ip: IP address</li>
-                <li>ip_end: Optional end of an IP range, without it only the address in ip is used</li>
-                <li>labels: Optional list of labels with label_key and label_value, e.g. Stage: Prod. Without this field the labels of the app server stay unchanged,
-                    an empty list removes all of them. Unknown keys and values are created as imported. Rejected and noted in the import log are the keys
-                    AppRole and AppZone (they stay groups), the key of the App label (default App, every app server gets the App label of its owner), several values of a key that allows a single value only, more than 50 labels per app server,
-                    and keys longer than 100 or values longer than 250 characters.</li>
-            </ul>
-        </li>
-    </ul>
-');
-INSERT INTO txt VALUES ('H6931', 'German',  'Der Import von IP-Daten wird aus einer .json-Datei mit dem in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfad und Namen gespeist.
-    Dort kann auch ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Datei hinterlegt werden. Die .json-Datei hat die folgende Struktur:
-');
-INSERT INTO txt VALUES ('H6931', 'English', 'The import of IP data is fed from a .json file with path and name defined in the <a href="/help/settings/modelling">Modelling Settings</a>.
-    There also a python script with the same name can be provided to create this file. the structure of the .json file is as following:
-');
-INSERT INTO txt VALUES ('H6932', 'German',  'Die einzelnen Felder haben folgende Bedeutung:
-    <ul>
-        <li>name: Dargestellter Name der Area.</li>
-        <li>id_string: Eindeutige Kennzeichnung der Area.</li>
-        <li>subnets: Liste alle Subnetze der Area:
-            <li>name: Optionaler Name zur Darstellung.</li>
-            <li>ip: IP-Adresse oder Start-IP-Addresse, falls Bereiche definiert werden sollen.</li>
-            <li>ip_end: Ende-IP-Addresse, falls Bereiche definiert werden sollen. Sonst leer lassen oder denselben Wert wie in "ip" liefern.</li>
-        </li>
-    </ul>
-');
-INSERT INTO txt VALUES ('H6932', 'English', 'These fields have the following meaning:
-    <ul>
-        <li>name: Displayed name of the area</li>
-        <li>id_string: Unique identification string of the area.</li>
-        <li>subnets: List of all subnets of the area:
-            <li>name: Optional name for display.</li>
-            <li>ip: IP address or start IP address, if ranges are to be defined.</li>
-            <li>ip_end: end IP address, if ranges are to be defined. Else leave empty or fill with the same value as "ip".</li>
-        </li>
     </ul>
 ');
 

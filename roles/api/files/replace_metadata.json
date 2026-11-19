@@ -7585,6 +7585,21 @@
                   "using": {
                     "foreign_key_constraint_on": "config_user"
                   }
+                },
+                {
+                  "name": "config_user_key",
+                  "using": {
+                    "manual_configuration": {
+                      "column_mapping": {
+                        "config_key": "config_key"
+                      },
+                      "insertion_order": null,
+                      "remote_table": {
+                        "name": "config_user_key",
+                        "schema": "public"
+                      }
+                    }
+                  }
                 }
               ],
               "insert_permissions": [
@@ -7592,9 +7607,20 @@
                   "role": "approver",
                   "permission": {
                     "check": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
                     "columns": [
                       "config_user",
@@ -7607,9 +7633,20 @@
                   "role": "auditor",
                   "permission": {
                     "check": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
                     "columns": [
                       "config_key",
@@ -7622,9 +7659,20 @@
                   "role": "implementer",
                   "permission": {
                     "check": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
                     "columns": [
                       "config_user",
@@ -7652,9 +7700,20 @@
                   "role": "modeller",
                   "permission": {
                     "check": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
                     "columns": [
                       "config_key",
@@ -7667,9 +7726,20 @@
                   "role": "planner",
                   "permission": {
                     "check": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
                     "columns": [
                       "config_user",
@@ -7682,9 +7752,20 @@
                   "role": "recertifier",
                   "permission": {
                     "check": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
                     "columns": [
                       "config_key",
@@ -7697,9 +7778,20 @@
                   "role": "reporter",
                   "permission": {
                     "check": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
                     "columns": [
                       "config_user",
@@ -7712,9 +7804,20 @@
                   "role": "reporter-viewall",
                   "permission": {
                     "check": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
                     "columns": [
                       "config_user",
@@ -7727,9 +7830,20 @@
                   "role": "requester",
                   "permission": {
                     "check": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
                     "columns": [
                       "config_user",
@@ -7742,9 +7856,20 @@
                   "role": "reviewer",
                   "permission": {
                     "check": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
                     "columns": [
                       "config_user",
@@ -8029,11 +8154,37 @@
                       "config_value"
                     ],
                     "filter": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
-                    "check": null
+                    "check": {
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 {
@@ -8043,11 +8194,37 @@
                       "config_value"
                     ],
                     "filter": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
-                    "check": null
+                    "check": {
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 {
@@ -8057,11 +8234,37 @@
                       "config_value"
                     ],
                     "filter": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
-                    "check": null
+                    "check": {
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 {
@@ -8085,11 +8288,37 @@
                       "config_value"
                     ],
                     "filter": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
-                    "check": null
+                    "check": {
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 {
@@ -8099,11 +8328,37 @@
                       "config_value"
                     ],
                     "filter": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
-                    "check": null
+                    "check": {
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 {
@@ -8113,11 +8368,37 @@
                       "config_value"
                     ],
                     "filter": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
-                    "check": null
+                    "check": {
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 {
@@ -8127,11 +8408,37 @@
                       "config_value"
                     ],
                     "filter": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
-                    "check": null
+                    "check": {
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 {
@@ -8141,11 +8448,37 @@
                       "config_value"
                     ],
                     "filter": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
-                    "check": null
+                    "check": {
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 {
@@ -8155,11 +8488,37 @@
                       "config_value"
                     ],
                     "filter": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
-                    "check": null
+                    "check": {
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
+                    }
                   }
                 },
                 {
@@ -8169,11 +8528,135 @@
                       "config_value"
                     ],
                     "filter": {
-                      "config_user": {
-                        "_eq": "X-Hasura-User-Id"
-                      }
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
                     },
-                    "check": null
+                    "check": {
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "config_user_key": {
+                            "config_key": {
+                              "_is_null": false
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "config_user_key",
+                "schema": "public"
+              },
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "config_key"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "config_key"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "config_key"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "config_key"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "config_key"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "config_key"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "config_key"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "config_key"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "config_key"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "config_key"
+                    ],
+                    "filter": {}
                   }
                 }
               ]

@@ -402,6 +402,14 @@ Create table "config"
 	primary key ("config_key","config_user")
 );
 
+-- Config keys a user may set personally (config_user other than 0). They are the
+-- properties marked [UserConfigData] in ConfigData.cs; all other keys are global only.
+Create table "config_user_key"
+(
+	"config_key" VARCHAR NOT NULL,
+	primary key ("config_key")
+);
+
 -- Upgrade snapshots contain restricted device specific settings data. Keep this archive
 -- outside Hasura metadata; administrators can inspect it through PostgreSQL.
 Create table "device_specific_config_backup"

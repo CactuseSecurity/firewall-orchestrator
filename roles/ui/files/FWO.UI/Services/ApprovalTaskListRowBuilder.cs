@@ -114,12 +114,13 @@ namespace FWO.Ui.Services
         {
             List<ApprovalTaskListColumn> columns = [new(kId, "id")];
             AddIf(columns, showCompliance && table == ApprovalTaskListTable.Access, new(kCompliance, "approval_list_compliance"));
-            columns.AddRange(
-            [
-                new(kTaskType, "task_type"),
-                new(kState, "state"),
-                new(kTitle, "title")
-            ]);
+            // access tasks show their rule content first; title, task type and state follow just before the handler
+            if (table != ApprovalTaskListTable.Access)
+            {
+                columns.Add(new(kTaskType, "task_type"));
+                columns.Add(new(kState, "state"));
+                columns.Add(new(kTitle, "title"));
+            }
             switch (table)
             {
                 case ApprovalTaskListTable.Access:
@@ -142,8 +143,16 @@ namespace FWO.Ui.Services
             AddIf(columns, visibility.ShowReason, new(kReason, "reason"));
             AddIf(columns, visibility.ShowFreeText && table is ApprovalTaskListTable.Access or ApprovalTaskListTable.Other,
                 new(kFreeText, "free_text"));
-            columns.Add(new(kHandler, "handler"));
-            columns.Add(new(kAssigned, "assigned"));
+            bool isAccess = table == ApprovalTaskListTable.Access;
+            if (isAccess)
+            {
+                AddIf(columns, visibility.ShowTitle, new(kTitle, "title"));
+                columns.Add(new(kTaskType, "task_type"));
+                columns.Add(new(kState, "state"));
+            }
+            // title, handler and assigned are only configurable for access tasks
+            AddIf(columns, !isAccess || visibility.ShowHandler, new(kHandler, "handler"));
+            AddIf(columns, !isAccess || visibility.ShowAssigned, new(kAssigned, "assigned"));
             return columns;
         }
 

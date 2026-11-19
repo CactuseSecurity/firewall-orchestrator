@@ -8,8 +8,14 @@
 @inject UserConfig userConfig
 
 <div class="form-group row">
-    @ReadOnlyValue(userConfig.GetText("handler"), Handler)
-    @ReadOnlyValue(userConfig.GetText("assigned"), Assigned)
+    @if (Visibility.ShowHandler)
+    {
+        @ReadOnlyValue(userConfig.GetText("handler"), Handler)
+    }
+    @if (Visibility.ShowAssigned)
+    {
+        @ReadOnlyValue(userConfig.GetText("assigned"), Assigned)
+    }
     @if (ShowOwner)
     {
         @EditableValue(userConfig.GetText("owner"), Owner, CanEditOwner, EditOwner, OwnerColumnClass)

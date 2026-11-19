@@ -121,6 +121,18 @@
                         <input id="cbx_show_access_task_comments" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowComments" />
                         <label for="cbx_show_access_task_comments" class="col-form-label">@(userConfig.GetText("comments"))</label>
                     </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_title" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowTitle" />
+                        <label for="cbx_show_access_task_title" class="col-form-label">@(userConfig.GetText("title"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_handler" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowHandler" />
+                        <label for="cbx_show_access_task_handler" class="col-form-label">@(userConfig.GetText("handler"))</label>
+                    </div>
+                    <div class="form-group col-6 col-md-4 col-xl-2">
+                        <input id="cbx_show_access_task_assigned" type="checkbox" @bind="ticketFieldVisibilityConfig.AccessTask.ShowAssigned" />
+                        <label for="cbx_show_access_task_assigned" class="col-form-label">@(userConfig.GetText("assigned"))</label>
+                    </div>
                 </div>
             </div>
         </div>

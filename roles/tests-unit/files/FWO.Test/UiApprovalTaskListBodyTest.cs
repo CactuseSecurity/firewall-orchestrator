@@ -35,6 +35,9 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
             Assert.That(sourceZonePosition, Is.GreaterThanOrEqualTo(0));
             Assert.That(sourceZonePosition, Is.LessThan(sourcePosition));
             Assert.That(cut.FindAll("button.approval-task-display-toggle"), Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll(".approval-task-list[data-table=\"Access\"] .fancy-table-topbar .approval-task-list-header-buttons button.approval-task-display-toggle"),
+                Has.Count.EqualTo(1));
+            Assert.That(cut.FindAll(".approval-task-list[data-table=\"Other\"] .approval-task-list-header-buttons"), Is.Empty);
             Assert.That(cut.FindAll(".approval-task-list[data-table=\"Access\"]"), Has.Count.EqualTo(1));
             Assert.That(cut.FindAll(".approval-task-list[data-table=\"Other\"]"), Has.Count.EqualTo(1));
             Assert.That(cut.FindAll(".approval-task-list[data-table=\"Address\"]"), Is.Empty);
@@ -266,7 +269,7 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("span.approval-task-list-compliance.btn-success"), Has.Count.EqualTo(1)));
         Assert.That(checker.CheckCount, Is.Zero);
 
-        cut.Find("button.approval-compliance-recheck").Click();
+        cut.Find(".approval-task-list[data-table=\"Access\"] .fancy-table-topbar .approval-task-list-header-buttons button.approval-compliance-recheck").Click();
 
         cut.WaitForAssertion(() => Assert.That(cut.FindAll("button.approval-task-list-compliance.btn-danger"), Has.Count.EqualTo(1)));
         Assert.Multiple(() =>
@@ -294,6 +297,106 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
         cut.Find("button.approval-compliance-recheck").Click();
 
         cut.WaitForAssertion(() => Assert.That(checker.CheckCount, Is.EqualTo(2)));
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_ListViewFilterShowsOnlyNotAllowedAccessTasks()
+    {
+        await using BunitContext context = CreateListContext();
+        WfHandler handler = await CreateFilterHandler(context, 808);
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = RenderListView(context, handler);
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll(".approval-task-list-compliance"), Has.Count.EqualTo(2)));
+        Assert.That(cut.Find("button.approval-compliance-filter").ClassList, Does.Contain("btn-outline-danger"));
+
+        cut.Find(".approval-task-list[data-table=\"Access\"] .approval-task-list-header-buttons button.approval-compliance-filter").Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll(".approval-task-list[data-table=\"Access\"] tbody tr"), Has.Count.EqualTo(1));
+            Assert.That(cut.Markup, Does.Contain("forbidden access"));
+            Assert.That(cut.Markup, Does.Not.Contain("allowed access</"));
+            Assert.That(cut.Markup, Does.Contain("filter generic"));
+            Assert.That(cut.Find("button.approval-compliance-filter").ClassList, Does.Contain("btn-danger"));
+            Assert.That(cut.Find("button.approval-compliance-filter").GetAttribute("aria-pressed"), Is.EqualTo("true"));
+        });
+
+        cut.Find("button.approval-compliance-filter").Click();
+
+        Assert.That(cut.FindAll(".approval-task-list[data-table=\"Access\"] tbody tr"), Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_ListViewFilterKeepsAccessTableWhenAllTasksAreAllowed()
+    {
+        await using BunitContext context = CreateListContext();
+        WfReqTask task = CheckableAccessTask(91, "allowed access");
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 809, Tasks = [task] } };
+        await AttachPolicyCheck(handler, context.Services.GetRequiredService<ApiConnection>(),
+            new FixedResultPolicyChecker(new Dictionary<long, RequestTaskComplianceResult> { [91] = new(91, true, NoReasons) }));
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = RenderListView(context, handler);
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll(".approval-task-list-compliance"), Has.Count.EqualTo(1)));
+        cut.Find("button.approval-compliance-filter").Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Find(".approval-task-list[data-table=\"Access\"]").TextContent, Does.Not.Contain("allowed access"));
+            Assert.That(cut.FindAll(".approval-task-list-compliance"), Is.Empty);
+            Assert.That(cut.FindAll("button.approval-compliance-filter"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_CardViewFilterShowsOnlyNotAllowedAccessTasks()
+    {
+        await using BunitContext context = CreateListContext();
+        WfHandler handler = await CreateFilterHandler(context, 810);
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, handler)
+            .Add(p => p.States, new WfStateDict { Name = { [2] = "Approval" } }));
+
+        cut.WaitForAssertion(() => Assert.That(cut.FindAll("button.approval-compliance-filter"), Has.Count.EqualTo(1)));
+        Assert.That(cut.FindAll(".card"), Has.Count.EqualTo(3));
+
+        cut.Find("button.approval-compliance-filter").Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.FindAll(".card"), Has.Count.EqualTo(2));
+            Assert.That(cut.Markup, Does.Contain("forbidden access"));
+            Assert.That(cut.Markup, Does.Contain("filter generic"));
+            Assert.That(cut.FindAll("button.approval-compliance-filter"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_HidesFilterWithoutConditionalPolicyCheck()
+    {
+        await using BunitContext context = CreateListContext();
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = RenderListView(context, CreateHandler());
+
+        Assert.That(cut.FindAll(".approval-compliance-filter"), Is.Empty);
+    }
+
+    private static async Task<WfHandler> CreateFilterHandler(BunitContext context, long ticketId)
+    {
+        WfReqTask compliantTask = CheckableAccessTask(ticketId * 10 + 1, "allowed access");
+        WfReqTask violatingTask = CheckableAccessTask(ticketId * 10 + 2, "forbidden access");
+        WfReqTask genericTask = new() { Id = ticketId * 10 + 3, StateId = 2, Title = "filter generic", TaskType = WfTaskType.generic.ToString() };
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = ticketId, Tasks = [compliantTask, violatingTask, genericTask] } };
+        Dictionary<long, RequestTaskComplianceResult> results = new()
+        {
+            [compliantTask.Id] = new(compliantTask.Id, true, NoReasons),
+            [violatingTask.Id] = new(violatingTask.Id, false, kViolationReasons)
+        };
+        await AttachPolicyCheck(handler, context.Services.GetRequiredService<ApiConnection>(), new FixedResultPolicyChecker(results));
+        return handler;
     }
 
     private static readonly List<string> kViolationReasons = ["forbidden service", "zone violation"];

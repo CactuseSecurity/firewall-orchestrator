@@ -31,7 +31,7 @@ internal class UiApprovalTaskListRowBuilderTest
     }
 
     [Test]
-    public void VisibleColumns_AccessTableStartsWithRequestedOrderAndFollowsVisibility()
+    public void VisibleColumns_AccessTableShowsRuleContentFirstAndTaskInfoBeforeHandler()
     {
         AccessTaskFieldVisibilityConfig visibility = new() { ShowOwner = false, ShowFreeText = true };
 
@@ -39,12 +39,9 @@ internal class UiApprovalTaskListRowBuilderTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(keys.Take(10), Is.EqualTo(new List<string>
+            Assert.That(keys.Take(7), Is.EqualTo(new List<string>
             {
                 ApprovalTaskListRowBuilder.kId,
-                ApprovalTaskListRowBuilder.kTaskType,
-                ApprovalTaskListRowBuilder.kState,
-                ApprovalTaskListRowBuilder.kTitle,
                 ApprovalTaskListRowBuilder.kSourceZone,
                 ApprovalTaskListRowBuilder.kDestinationZone,
                 ApprovalTaskListRowBuilder.kSource,
@@ -55,12 +52,39 @@ internal class UiApprovalTaskListRowBuilderTest
             Assert.That(keys, Does.Not.Contain(ApprovalTaskListRowBuilder.kOwner));
             Assert.That(keys, Does.Contain(ApprovalTaskListRowBuilder.kManagement));
             Assert.That(keys, Does.Contain(ApprovalTaskListRowBuilder.kRuleAction));
-            Assert.That(keys.TakeLast(3), Is.EqualTo(new List<string>
+            Assert.That(keys.TakeLast(6), Is.EqualTo(new List<string>
             {
                 ApprovalTaskListRowBuilder.kFreeText,
+                ApprovalTaskListRowBuilder.kTitle,
+                ApprovalTaskListRowBuilder.kTaskType,
+                ApprovalTaskListRowBuilder.kState,
                 ApprovalTaskListRowBuilder.kHandler,
                 ApprovalTaskListRowBuilder.kAssigned
             }));
+        });
+    }
+
+    [Test]
+    public void VisibleColumns_TitleHandlerAndAssignedHiddenOnlyInAccessTable()
+    {
+        AccessTaskFieldVisibilityConfig visibility = new() { ShowTitle = false, ShowHandler = false, ShowAssigned = false };
+
+        List<string> access = AccessColumnKeys(visibility);
+        List<string> address = [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Address, visibility).Select(column => column.Key)];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(access, Does.Not.Contain(ApprovalTaskListRowBuilder.kTitle));
+            Assert.That(access, Does.Not.Contain(ApprovalTaskListRowBuilder.kHandler));
+            Assert.That(access, Does.Not.Contain(ApprovalTaskListRowBuilder.kAssigned));
+            Assert.That(access.TakeLast(2), Is.EqualTo(new List<string>
+            {
+                ApprovalTaskListRowBuilder.kTaskType,
+                ApprovalTaskListRowBuilder.kState
+            }));
+            Assert.That(address, Does.Contain(ApprovalTaskListRowBuilder.kTitle));
+            Assert.That(address, Does.Contain(ApprovalTaskListRowBuilder.kHandler));
+            Assert.That(address, Does.Contain(ApprovalTaskListRowBuilder.kAssigned));
         });
     }
 
@@ -456,7 +480,7 @@ internal class UiApprovalTaskListRowBuilderTest
             {
                 ApprovalTaskListRowBuilder.kId,
                 ApprovalTaskListRowBuilder.kCompliance,
-                ApprovalTaskListRowBuilder.kTaskType
+                ApprovalTaskListRowBuilder.kSourceZone
             }));
             Assert.That(address, Does.Not.Contain(ApprovalTaskListRowBuilder.kCompliance));
             Assert.That(AccessColumnKeys(visibility), Does.Not.Contain(ApprovalTaskListRowBuilder.kCompliance));

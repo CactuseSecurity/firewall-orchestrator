@@ -16,6 +16,7 @@
                 ShowPageSizeSelector="true"
                 PageSizeTemplate="TableTitle"
                 TopBarClass="align-items-center"
+                PageSizeContainerClass="flex-grow-1 me-2"
                 Texts="tableTexts" />
 </div>
 
@@ -38,6 +39,8 @@
     [Parameter] public ApprovalTaskComplianceService? Compliance { get; set; }
     /// <summary>Shows the violation reasons of a not compliant row.</summary>
     [Parameter] public EventCallback<ApprovalTaskCompliance> ShowComplianceReasons { get; set; }
+    /// <summary>Buttons shown in the top bar, right-aligned just before the search field.</summary>
+    [Parameter] public RenderFragment? HeaderButtons { get; set; }
     [CascadingParameter] public ApprovalTaskViewContext Context { get; set; } = null!;
 
     private IReadOnlyList<ApprovalTaskListRow> rows = [];
@@ -64,9 +67,15 @@
         }
     }
 
-    /// <summary>Shows the table title in the top bar, on the same line as the search field.</summary>
+    /// <summary>Shows the table title and the header buttons in the top bar, on the same line as the search field.</summary>
     private RenderFragment<FancyPaginationContext<ApprovalTaskListRow>> TableTitle => _ =>
-        @<h6 class="mb-0 approval-task-list-title">@(userConfig.GetText(TableTitleKey))</h6>;
+        @<div class="d-flex align-items-center w-100">
+            <h6 class="mb-0 approval-task-list-title">@(userConfig.GetText(TableTitleKey))</h6>
+            @if (HeaderButtons != null)
+            {
+                <div class="d-flex align-items-center ms-auto approval-task-list-header-buttons">@HeaderButtons</div>
+            }
+        </div>;
 
     private string TableTitleKey => Table switch
     {

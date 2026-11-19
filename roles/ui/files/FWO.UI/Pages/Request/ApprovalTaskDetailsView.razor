@@ -14,23 +14,17 @@
         @if (Display && ListView)
         {
             List<List<WfReqTask>> listTaskGroups = GetTaskGroups().ToList();
-            @if (listTaskGroups.Any(taskGroup => taskGroup.Any(IsAccessTask)))
-            {
-                <div class="d-flex justify-content-end mb-3">
-                    @RecheckComplianceButton
-                    <button type="button" class="btn btn-sm btn-primary approval-task-display-toggle" @onclick="ToggleAccessElementDisplay">
-                        @(DisplayService.DisplayButton(userConfig, NextDisplayModeTextKey(), Icons.Swap))
-                    </button>
-                </div>
-            }
+            List<List<WfReqTask>> shownListTaskGroups = [.. listTaskGroups.Where(IsShown)];
             <CascadingValue Value="@CreateTaskViewContext()">
+                @* the tables come from all tasks, so the access table and its filter button stay when no task matches the filter *@
                 @foreach (ApprovalTaskListTable table in ListTables(listTaskGroups))
                 {
-                    <ApprovalTaskListBody @key="table" Table="table" TaskGroups="listTaskGroups" States="States"
+                    <ApprovalTaskListBody @key="table" Table="table" TaskGroups="shownListTaskGroups" States="States"
                         ShowActions="@WfHandler.CanPromoteTaskInCurrentPhase()"
                         CanPromoteTask="CanShowTaskPromotion"
                         PromoteTask="@(task => RunWithProgress(() => OpenTaskPromotion(task)))"
-                        Compliance="compliance" ShowComplianceReasons="OpenComplianceReasons" />
+                        Compliance="compliance" ShowComplianceReasons="OpenComplianceReasons"
+                        HeaderButtons="@(table == ApprovalTaskListTable.Access ? AccessTaskButtons : null)" />
                 }
             </CascadingValue>
         }
@@ -45,11 +39,12 @@
                 {
                     accessToggleShown = true;
                     <div class="d-flex justify-content-end mb-3">
-                        @RecheckComplianceButton
-                        <button type="button" class="btn btn-sm btn-primary approval-task-display-toggle" @onclick="ToggleAccessElementDisplay">
-                            @(DisplayService.DisplayButton(userConfig, NextDisplayModeTextKey(), Icons.Swap))
-                        </button>
+                        @AccessTaskButtons
                     </div>
+                }
+                @if (!IsShown(taskGroup))
+                {
+                    continue;
                 }
                 <Collapse StartToggled="@(!IsAccessTask(task))" Style="secondary" UseHtmlTitle="true" TitleWithHtml="@TaskHeader(task, taskGroup)">
                     <div class="card-body">
@@ -173,8 +168,11 @@
         string taskType = string.IsNullOrWhiteSpace(task.TaskType)
             ? userConfig.GetText("task")
             : userConfig.GetText(task.TaskType);
-        return string.IsNullOrWhiteSpace(task.Title) ? taskType : $"{taskType}: {task.Title}";
+        return string.IsNullOrWhiteSpace(task.Title) || !ShowTitle(task) ? taskType : $"{taskType}: {task.Title}";
     }
+
+    /// <summary>The title of access tasks can be hidden in the settings; other tasks always show it.</summary>
+    private bool ShowTitle(WfReqTask task) => !IsAccessTask(task) || AccessTaskVisibility.ShowTitle;
 
     private RenderFragment TaskHeader(WfReqTask task, IEnumerable<WfReqTask> taskGroup) => builder =>
     {
@@ -195,7 +193,7 @@
             builder.AddContent(10, DisplayService.DisplayButton(userConfig, "promote", Icons.ChangeState));
             builder.CloseElement();
         }
-        if (CanEdit(taskGroup, WorkflowEditableFieldKeys.Title))
+        if (ShowTitle(task) && CanEdit(taskGroup, WorkflowEditableFieldKeys.Title))
         {
             builder.OpenElement(11, "button");
             builder.AddAttribute(12, "type", "button");
@@ -510,6 +508,41 @@
     private void OpenComplianceReasons(ApprovalTaskCompliance taskCompliance)
     {
         shownCompliance = taskCompliance;
+    }
+
+    /// <summary>Buttons for the access tasks: recheck compliance and toggle the element display.</summary>
+    private RenderFragment AccessTaskButtons =>
+        @<text>
+            @if (compliance.IsConfigured)
+            {
+                <button type="button" class="btn btn-sm @(showOnlyNotAllowed ? "btn-danger" : "btn-outline-danger") mr-2 approval-compliance-filter"
+                        aria-pressed="@(showOnlyNotAllowed ? "true" : "false")" @onclick="ToggleNotAllowedFilter" @onclick:stopPropagation="true">
+                    @(DisplayService.DisplayButton(userConfig, "approval_compliance_filter_not_allowed", Icons.Filter))
+                </button>
+            }
+            @RecheckComplianceButton
+            <button type="button" class="btn btn-sm btn-primary approval-task-display-toggle" @onclick="ToggleAccessElementDisplay">
+                @(DisplayService.DisplayButton(userConfig, NextDisplayModeTextKey(), Icons.Swap))
+            </button>
+        </text>;
+
+    private bool showOnlyNotAllowed;
+
+    private void ToggleNotAllowedFilter()
+    {
+        showOnlyNotAllowed = !showOnlyNotAllowed;
+    }
+
+    /// <summary>
+    /// Whether the task group is displayed: with the filter for not allowed access tasks, access tasks are only displayed
+    /// if they are not allowed; other tasks are always displayed.
+    /// </summary>
+    private bool IsShown(List<WfReqTask> taskGroup)
+    {
+        return !showOnlyNotAllowed
+            || taskGroup.Count == 0
+            || !IsAccessTask(taskGroup[0])
+            || compliance.ComplianceOf(taskGroup)?.IsCompliant == false;
     }
 
     /// <summary>Button checking all access tasks again; only shown if a policy check is configured.</summary>

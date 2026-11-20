@@ -104,7 +104,7 @@ def login(
 
 def get_config_value(fwo_api_base_url: str, jwt: str, key: str = "limit") -> str | None:
     query_variables: dict[str, str] = {"key": key}
-    config_query: str = "query getConf($key: String) {  config(where: {config_key: {_eq: $key}}) { config_value } }"
+    config_query: str = "query getConf($key: String) { config(where: {config_key: {_eq: $key}, config_user: {_eq: 0}}) { config_value } }"
     result: dict[str, Any] | None = call(
         fwo_api_base_url, jwt, config_query, query_variables=query_variables, role="importer"
     )
@@ -120,7 +120,10 @@ def get_config_value(fwo_api_base_url: str, jwt: str, key: str = "limit") -> str
 
 def get_config_values(fwo_api_base_url: str, jwt: str, key_filter: str = "limit") -> dict[str, Any] | None:
     query_variables: dict[str, str] = {"keyFilter": key_filter + "%"}
-    config_query: str = "query getConf($keyFilter: String) { config(where: {config_key: {_ilike: $keyFilter}}) { config_key config_value } }"
+    config_query: str = (
+        "query getConf($keyFilter: String) "
+        "{ config(where: {config_key: {_ilike: $keyFilter}, config_user: {_eq: 0}}) { config_key config_value } }"
+    )
     result: dict[str, Any] | None = call(
         fwo_api_base_url, jwt, config_query, query_variables=query_variables, role="importer"
     )

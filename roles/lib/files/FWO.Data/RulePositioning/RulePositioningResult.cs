@@ -45,18 +45,45 @@ public sealed class RulePositioningSuccess : RulePositioningResult
 /// </summary>
 public sealed class RulePositioningFailure : RulePositioningResult
 {
+    private const int kMaxTechnicalDiagnosticLength = 512;
+
     /// <summary>Gets the stable failure category.</summary>
     public RulePositioningFailureCategory Category { get; }
     /// <summary>Gets the fixed safe failure diagnostic.</summary>
     public string Diagnostic { get; }
+    /// <summary>Gets an optional bounded summary of one known technical cause.</summary>
+    public string? TechnicalDiagnostic { get; }
 
     /// <summary>
     /// Creates a failed result without accepting potentially sensitive caller content.
     /// </summary>
     public RulePositioningFailure(RulePositioningFailureCategory category)
+        : this(category, null)
+    { }
+
+    /// <summary>Creates a failed result with an optional known-cause diagnostic.</summary>
+    public RulePositioningFailure(
+        RulePositioningFailureCategory category,
+        string? technicalDiagnostic)
     {
         Category = category;
         Diagnostic = DiagnosticFor(category);
+        TechnicalDiagnostic = NormalizeTechnicalDiagnostic(technicalDiagnostic);
+    }
+
+    /// <summary>Collapses whitespace and bounds one known-cause diagnostic.</summary>
+    private static string? NormalizeTechnicalDiagnostic(string? technicalDiagnostic)
+    {
+        if (string.IsNullOrWhiteSpace(technicalDiagnostic))
+        {
+            return null;
+        }
+        string normalized = string.Join(
+            ' ',
+            technicalDiagnostic.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        return normalized.Length <= kMaxTechnicalDiagnosticLength
+            ? normalized
+            : normalized[..kMaxTechnicalDiagnosticLength];
     }
 
     /// <summary>

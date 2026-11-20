@@ -111,13 +111,17 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
+    // values configData was loaded with: saving compares with them, so only the settings changed on this page are
+    // stored, not values that changed in the meantime (e.g. global values changed by an admin)
+    private ConfigData? loadedConfigData;
     private Language selectedLanguage = new();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            configData = await userConfig.GetEditableConfig();
+            loadedConfigData = await userConfig.GetEditableConfig();
+            configData = (ConfigData)loadedConfigData.Clone();
             selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == userConfig.User.Language) ?? new Language();
         }
         catch (Exception exception)
@@ -148,7 +152,8 @@ else
                 }
             }
 
-            await userConfig.WriteToDatabase(configData, apiConnection);
+            await userConfig.WriteToDatabase(configData, apiConnection, loadedConfigData);
+            loadedConfigData = (ConfigData)configData.Clone();
             DisplayMessageInUi(null, userConfig.GetText("personal_settings"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)

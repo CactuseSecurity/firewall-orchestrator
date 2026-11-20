@@ -1,22 +1,39 @@
+import tempfile
 import threading
 from pathlib import Path
 from typing import Any, Protocol
 
+import fwo_log
 import pytest
-from fwo_log import FWOLogger, LogLock
+from fwo_log import FileLockModule, FWOLogger, LogLock
+from test import TEST_LOG_LOCK_DIR
 
 LogEvent = str | tuple[str, str, int] | tuple[str, str, Any, int]
 
 
 class FakeFcntl:
-    LOCK_EX = 1
-    LOCK_UN = 2
+    """
+    Records the flock calls of the test thread only.
 
-    def __init__(self) -> None:
+    The module-level fcntl replacement is also seen by the FWOLogLock background thread that
+    test/__init__.py starts. Its calls are passed on to the real module, so they neither show up
+    in the recorded calls nor lose their locking.
+    """
+
+    # same values as the real module, so that calls of other threads can be passed on unchanged
+    LOCK_EX = fwo_log.fcntl.LOCK_EX if fwo_log.fcntl is not None else 1
+    LOCK_UN = fwo_log.fcntl.LOCK_UN if fwo_log.fcntl is not None else 2
+
+    def __init__(self, delegate: FileLockModule | None) -> None:
         self.calls: list[tuple[int, int]] = []
+        self.delegate = delegate
+        self.recording_thread_id = threading.get_ident()
 
     def flock(self, file_descriptor: int, lock_type: int) -> None:
-        self.calls.append((file_descriptor, lock_type))
+        if threading.get_ident() == self.recording_thread_id:
+            self.calls.append((file_descriptor, lock_type))
+        elif self.delegate is not None:
+            self.delegate.flock(file_descriptor, lock_type)
 
 
 class TrackingSemaphore:
@@ -73,14 +90,30 @@ def test_logger_initialization_starts_log_lock(monkeypatch: pytest.MonkeyPatch) 
     assert start_calls == ["started"]
 
 
+def test_session_log_lock_thread_watches_private_lock_file() -> None:
+    # test/__init__.py starts the FWOLogLock thread for the whole session. It must not poll the
+    # production lock file, which a log swap on an installed FWO host writes to while the tests run.
+    session_lock_file = Path(LogLock.lock_file_path)
+
+    assert LogLock.lock_thread is not None
+    assert LogLock.lock_thread.is_alive()
+    assert session_lock_file.parent == TEST_LOG_LOCK_DIR
+    assert Path(tempfile.gettempdir()) in session_lock_file.parents
+
+
 def test_log_lock_file_transactions_use_flock(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    fake_fcntl = FakeFcntl()
+    fake_fcntl = FakeFcntl(fwo_log.fcntl)
     lock_file_path = tmp_path / "importer_api_log.lock"
 
-    monkeypatch.setattr("fwo_log.fcntl", fake_fcntl)
-    monkeypatch.setattr(LogLock, "lock_file_path", lock_file_path)
+    # A subclass keeps the test lock file away from the FWOLogLock background thread, which uses
+    # LogLock itself: seeing REQUESTED in it would make the thread take LogLock.semaphore.
+    class IsolatedLogLock(LogLock):
+        pass
 
-    with LogLock.locked_file("a+") as lock_file:
+    monkeypatch.setattr("fwo_log.fcntl", fake_fcntl)
+    monkeypatch.setattr(IsolatedLogLock, "lock_file_path", lock_file_path)
+
+    with IsolatedLogLock.locked_file("a+") as lock_file:
         lock_file.write("REQUESTED\n")
 
     assert [lock_type for _, lock_type in fake_fcntl.calls] == [fake_fcntl.LOCK_EX, fake_fcntl.LOCK_UN]

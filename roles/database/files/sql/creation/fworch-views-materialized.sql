@@ -43,9 +43,10 @@ CREATE OR REPLACE VIEW v_active_access_allow_rules AS
         NOT r.rule_disabled AND 		-- do not show disabled rules
         NOT r.action_id IN (2,3,7);		-- do not deal with deny rules
 
+-- readers of global settings only read the global rows (config_user 0)
 CREATE OR REPLACE VIEW v_rule_ownership_mode AS
     SELECT c.config_value as mode FROM config c
-    WHERE c.config_key = 'ruleOwnershipMode';
+    WHERE c.config_key = 'ruleOwnershipMode' AND c.config_user = 0;
 
 CREATE OR REPLACE VIEW v_rule_with_rule_owner AS
     SELECT r.rule_id, ow.id as owner_id, ow.name as owner_name, 'rule' AS matches,

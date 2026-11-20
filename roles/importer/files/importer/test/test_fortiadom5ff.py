@@ -1279,6 +1279,42 @@ class TestGetAndLinkRulebases:
         assert len(native_config_adom["rulebases"]) == 2
         assert len(native_config_global["rulebases"]) == 4
 
+    def test_get_and_link_local_rulebase_skips_empty_package_name(self, mocker: MockerFixture):
+        api_call = mocker.patch("fw_modules.fortiadom5ff.fmgr_getter.update_config_with_fortinet_api_call")
+        native_config_adom: dict[str, Any] = {"rulebases": []}
+        link_list: list[Any] = []
+
+        result = fmgr_rule.get_and_link_local_rulebase(
+            "rules_adom", "previous_rb", "adom1", "", native_config_adom, "sid", "url", [], 100, link_list
+        )
+
+        assert result == "previous_rb"
+        api_call.assert_not_called()
+        assert link_list == []
+        assert native_config_adom["rulebases"] == []
+
+    def test_get_access_policy_for_vdom_placeholder_makes_no_api_calls(self, mocker: MockerFixture):
+        api_call = mocker.patch("fw_modules.fortiadom5ff.fmgr_getter.update_config_with_fortinet_api_call")
+        structure: dict[str, Any] = {"adom1": {"dev1": {"vdom1": ""}}}
+        native_config_adom: dict[str, Any] = {"rulebases": []}
+        native_config_global: dict[str, Any] = {"rulebases": []}
+        device_config: dict[str, Any] = {"rulebase_links": []}
+
+        fmgr_rule.get_access_policy(
+            "sid",
+            "url",
+            native_config_adom,
+            native_config_global,
+            structure,
+            "adom1",
+            {"name": "dev1_vdom1"},
+            device_config,
+            100,
+        )
+
+        api_call.assert_not_called()
+        assert device_config["rulebase_links"] == []
+
 
 class TestNatMiscHelpers:
     def test_add_users_to_rule_adds_groups_and_users(self):

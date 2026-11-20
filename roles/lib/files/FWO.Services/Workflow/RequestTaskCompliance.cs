@@ -31,6 +31,7 @@ namespace FWO.Services.Workflow
 
         /// <summary>
         /// Describes the content of the ticket's tasks the check result depends on; a change of this content requires a new check.
+        /// The rule action is part of it, as rules with an action that does not allow traffic are checked as drop rules.
         /// The additional info is not part of it, so storing the check result does not change the fingerprint.
         /// </summary>
         /// <param name="ticket">The ticket.</param>
@@ -41,7 +42,7 @@ namespace FWO.Services.Workflow
             foreach (WfReqTask task in ticket.Tasks)
             {
                 builder.Append('|').Append(task.Id).Append(';').Append(task.TaskType).Append(';').Append(task.RequestAction)
-                    .Append(';').Append(task.ManagementId);
+                    .Append(';').Append(task.ManagementId).Append(';').Append(task.RuleAction);
                 foreach (WfReqElement element in task.Elements)
                 {
                     builder.Append('#').Append(element.Field).Append(';').Append(element.Name).Append(';').Append(element.IpString)

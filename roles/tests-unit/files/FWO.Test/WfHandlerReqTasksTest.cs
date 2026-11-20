@@ -16,6 +16,9 @@ namespace FWO.Test
     {
         private static readonly List<WfState> kRequestedStates = [new WfState { Id = 1, Name = "requested" }];
         private static readonly List<string> kForbiddenServiceReason = ["forbidden service"];
+        // ids of the stm_action seed data: accept (allowed) and drop (not allowed)
+        private const int kAllowingRuleActionId = 1;
+        private const int kBlockingRuleActionId = 2;
 
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix? matrix = null)
         {
@@ -648,6 +651,57 @@ namespace FWO.Test
                 Assert.That(checker.CheckCount, Is.Zero);
                 Assert.That(RequestTaskCompliance.StoredResult(handler.ActTicket.Tasks[0]), Is.True);
             });
+        }
+
+        [Test]
+        public async Task ChangeReqTask_ChecksAgainWhenTheRuleActionChanges()
+        {
+            (WfHandler handler, FixedResultPolicyChecker checker) = await CreateComplianceHandler(compliantAfterChange: false);
+            WfReqTask accessTask = handler.ActTicket.Tasks[0];
+            accessTask.RuleAction = kBlockingRuleActionId;
+            // the last check covers the current content, so only a change of the checked content leads to a new check
+            await handler.ActionHandler!.CheckRequestTaskCompliance(handler.ActTicket);
+            handler.ActReqTask = new WfReqTask(accessTask) { RuleAction = kAllowingRuleActionId };
+
+            await handler.ChangeReqTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(checker.CheckCount, Is.EqualTo(1));
+                Assert.That(checker.CheckedTaskIds, Does.Contain(61L));
+                Assert.That(RequestTaskCompliance.StoredResult(handler.ActTicket.Tasks[0]), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task ChangeReqTask_DoesNotCheckWhenOnlyTheTitleChangesBesidesAnUnchangedRuleAction()
+        {
+            (WfHandler handler, FixedResultPolicyChecker checker) = await CreateComplianceHandler(compliantAfterChange: false);
+            WfReqTask accessTask = handler.ActTicket.Tasks[0];
+            accessTask.RuleAction = kBlockingRuleActionId;
+            await handler.ActionHandler!.CheckRequestTaskCompliance(handler.ActTicket);
+            handler.ActReqTask = new WfReqTask(accessTask) { Title = "renamed" };
+
+            await handler.ChangeReqTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(checker.CheckCount, Is.Zero);
+                Assert.That(RequestTaskCompliance.StoredResult(handler.ActTicket.Tasks[0]), Is.True);
+            });
+        }
+
+        [Test]
+        public void Fingerprint_ChangesWithTheRuleAction()
+        {
+            WfReqTask accessTask = ApprovalComplianceTestHelper.CheckableAccessTask(64, "access");
+            accessTask.RuleAction = kBlockingRuleActionId;
+            WfTicket ticket = new() { Id = 8, Tasks = [accessTask] };
+            string before = RequestTaskCompliance.Fingerprint(ticket);
+
+            accessTask.RuleAction = kAllowingRuleActionId;
+
+            Assert.That(RequestTaskCompliance.Fingerprint(ticket), Is.Not.EqualTo(before));
         }
 
         [Test]

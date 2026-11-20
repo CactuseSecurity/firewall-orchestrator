@@ -394,7 +394,7 @@ namespace FWO.Test
                 PolicyIds = policyIds.ToList();
                 RequestTaskIds = requestTasks.Select(task => task.Id).ToList();
                 return Task.FromResult<IReadOnlyDictionary<long, RequestTaskComplianceResult>>(RequestTaskIds
-                    .ToDictionary(id => id, id => new RequestTaskComplianceResult(id, Result, Result ? [] : ["reason"])));
+                    .ToDictionary(id => id, id => new RequestTaskComplianceResult(id, Result, Result ? kNoCheckReasons : kCheckReasons)));
             }
         }
 
@@ -2862,6 +2862,7 @@ namespace FWO.Test
         private static readonly int[] kConditionalPolicyIds = [5, 7, 9];
         private static readonly long[] kTask31 = [31];
         private static readonly string[] kCheckReasons = ["reason"];
+        private static readonly string[] kNoCheckReasons = [];
         private static readonly long[] kTasks42To44 = [42, 43, 44];
         private static readonly long[] kTasks41To43 = [41, 42, 43];
         private static readonly long[] kTasks48And49 = [48, 49];

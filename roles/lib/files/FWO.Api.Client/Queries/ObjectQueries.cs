@@ -17,6 +17,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getReportFilteredNetworkObjectDetails;
         public static readonly string getReportFilteredNetworkServiceDetails;
         public static readonly string getReportFilteredUserDetails;
+        public static readonly string getObjectDetailsByIds;
         public static readonly string searchNetworkObjectsForRequestByName;
         public static readonly string searchNetworkObjectsForRequestByIp;
         public static readonly string searchNetworkGroupsForRequestByName;
@@ -83,6 +84,13 @@ namespace FWO.Api.Client.Queries
                 getReportFilteredUserDetails =
                     userDetailsFragment +
                     GetQueryText("report/getReportFilteredUserDetails.graphql");
+
+                // RSB report tab of change reports: the object versions referenced by the reported changes
+                getObjectDetailsByIds =
+                    userDetailsFragment +
+                    networkServiceDetailsFragment +
+                    networkObjectDetailsFragment +
+                    GetQueryText("report/getObjectDetailsByIds.graphql");
 
                 // lean searches offering a single object or service to the object_modify request task
                 searchNetworkObjectsForRequestByName =

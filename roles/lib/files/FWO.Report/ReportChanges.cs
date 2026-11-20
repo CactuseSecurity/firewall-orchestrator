@@ -132,9 +132,27 @@ namespace FWO.Report
             Query.QueryVariables[QueryVar.IncludeObjectsInChangesReport] = includeObjectsInChangesReport;
         }
 
-        public override Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
+        /// <summary>
+        /// Fetches the details of the objects shown in the change report of one management (right sidebar report tab):
+        /// the object versions referenced by the reported changes and the members of the fetched groups.
+        /// </summary>
+        /// <param name="objQueryVariables">Query variables, must contain management id, limit and offset.</param>
+        /// <param name="objects">Object category to fetch.</param>
+        /// <param name="maxFetchCycles">Maximum number of fetches.</param>
+        /// <param name="apiConnection">Api connection.</param>
+        /// <param name="callback">Called after every fetch.</param>
+        /// <returns>True if all objects could be fetched within maxFetchCycles.</returns>
+        public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
-            throw new NotImplementedException();
+            if (!objQueryVariables.TryGetValue(QueryVar.MgmIds, out object? mgmIdValue) || !objQueryVariables.ContainsKey(QueryVar.Limit) || !objQueryVariables.ContainsKey(QueryVar.Offset))
+            {
+                throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
+            }
+            int mgmId = (int)mgmIdValue;
+            ManagementReport managementReport = ReportData.ManagementData.FirstOrDefault(m => m.Id == mgmId) ?? throw new ArgumentException("Given management id does not exist for this report");
+
+            ChangeReportObjectFetcher fetcher = new(apiConnection, objQueryVariables, objects, maxFetchCycles);
+            return await fetcher.Fetch(managementReport, () => callback(ReportData));
         }
 
         public override string SetDescription()

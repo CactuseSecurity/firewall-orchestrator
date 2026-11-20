@@ -15,7 +15,7 @@
             <AnchorNavToRSB @ref="anchorNavToRSB" TabSet="tabset" CollapseState="collapseInRSB" />
             <CascadingValue Value="collapseInRSB">
                 <CascadingValue Value="anchorNavToRSB">
-                    @if (SelectedReportType.IsDeviceRelatedReport() && AllTabVisible)
+                    @if (ShowAllTab)
                     {
                         <Tab Title="@(userConfig.GetText("all"))" Position=0>
                             <div class="d-md-flex justify-content-md-end sticky-marker-45">
@@ -31,10 +31,9 @@
                             </div>
                         </Tab>
                     }
-                    @if (CurrentReport?.ReportData.ManagementData.Count > 0 && (CurrentReport?.ReportType.IsRuleReport()
-                                        ?? false))
+                    @if (ShowReportAndRuleTab)
                     {
-                        <Tab Title="@(userConfig.GetText("report"))" StartSelected="true">
+                        <Tab Title="@(userConfig.GetText("report"))" StartSelected="true" Position="@(ShowAllTab ? 1 : 0)">
                             <div class="d-md-flex justify-content-md-end sticky-marker-45">
                                 <div class="btn btn-secondary btn-sm w-50"
                                     @onclick="@(() => collapseInRSB.Collapse("report"))">
@@ -49,31 +48,31 @@
                                 NetworkUserExtractor="man => man.ReportUsers" />
                             </div>
                         </Tab>
-                    }
-                    <Tab Title="@(userConfig.GetText("rule"))" @ref="ruleTab">
-                        <div class="btn-group btn-group-sm d-md-flex justify-content-md-between sticky-marker-45">
-                            <div class="btn btn-dark btn-sm w-50"
-                                @onclick="@(async () => { SelectedRules.Clear(); await SelectedRulesChanged.InvokeAsync(SelectedRules); })">
-                                @(userConfig.GetText("clear_all"))</div>
-                            <div class="btn btn-secondary btn-sm w-50"
-                                @onclick="@(() => collapseInRSB.Collapse("rule"))">@(userConfig.GetText("collapse_all"))
+                        <Tab Title="@(userConfig.GetText("rule"))" @ref="ruleTab" Position="@(ShowAllTab ? 2 : 1)">
+                            <div class="btn-group btn-group-sm d-md-flex justify-content-md-between sticky-marker-45">
+                                <div class="btn btn-dark btn-sm w-50"
+                                    @onclick="@(async () => { SelectedRules.Clear(); await SelectedRulesChanged.InvokeAsync(SelectedRules); })">
+                                    @(userConfig.GetText("clear_all"))</div>
+                                <div class="btn btn-secondary btn-sm w-50"
+                                    @onclick="@(() => collapseInRSB.Collapse("rule"))">@(userConfig.GetText("collapse_all"))
+                                </div>
                             </div>
-                        </div>
-                        <div class="mt-2">
-                            <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
-                                Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false"
-                                InputDataType="Rule"
-                                Data="selectedRulesDetailed"
-                                NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
-                                NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object)
-                                                                                                                                        .Union(rule.Tos.Select(nl => nl.Object))
-                                                                                                                                        .Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object))
-                                                                                                                                        .Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).OrderBy(o => o.Name).ToArray()"
-                                NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content)
-                                                                                                                                        .Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
-                                NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
-                        </div>
-                    </Tab>
+                            <div class="mt-2">
+                                <ObjectGroupCollection PageSize="PageSize" FetchObjects="FetchContent" Recert="Recert"
+                                    Tab="RsbTab.rule" StartContentDetailed="true" StartCollapsed="false"
+                                    InputDataType="Rule"
+                                    Data="selectedRulesDetailed"
+                                    NameExtractor=@(rule => $"{rule.DeviceName} - Rule {rule.Id} {rule.Name}")
+                                    NetworkObjectExtractor="rule => rule.Froms.Select(nl => nl.Object)
+                                                                                                                                            .Union(rule.Tos.Select(nl => nl.Object))
+                                                                                                                                            .Union(rule.NatData.TranslatedFroms.Select(nl => nl.Object))
+                                                                                                                                            .Union(rule.NatData.TranslatedTos.Select(nl => nl.Object)).DistinctBy(o => o.Id).OrderBy(o => o.Name).ToArray()"
+                                    NetworkServiceExtractor="rule => rule.Services.Select(sw => sw.Content)
+                                                                                                                                            .Union(rule.NatData.TranslatedServices.Select(sw => sw.Content)).OrderBy(s => s.Name).ToArray()"
+                                    NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Where(u => u != null).DistinctBy(u => u.Id).OrderBy(u => u.Name).ToArray()" />
+                            </div>
+                        </Tab>
+                    }
                     @if (CurrentReport?.ReportData.OwnerData.Count > 0 &&
                                         (CurrentReport?.ReportType.IsConnectionRelatedReport() ?? false))
                     {
@@ -165,6 +164,7 @@
     private Dictionary<int, long> import_id_start = new(); // import id matching rsbTimeStart for each management
     private Dictionary<int, long> import_id_end = new(); // import id matching rsbTimeEnd for each management
     private List<ManagementReport>? previousReportData = null;
+    private ReportBase? previousReport = null;
     private HashSet<long> previousSelectedRuleIds = [];
 
     private int intWidth { get { return Width; } set { Width = value; WidthChanged.InvokeAsync(Width); } }
@@ -185,34 +185,36 @@
         bool timeChanged = setRSBTime();
         if (AllTabVisible && timeChanged)
             await ResetAllTabMgts();
-        if (CurrentReport?.ReportData.ManagementData != previousReportData)
+        bool reportChanged = !ReferenceEquals(CurrentReport, previousReport)
+            || !ReferenceEquals(CurrentReport?.ReportData.ManagementData, previousReportData);
+        previousReport = CurrentReport;
+        previousReportData = CurrentReport?.ReportData.ManagementData;
+        if (HasReportTab(SelectedReportType))
         {
-            previousReportData = CurrentReport?.ReportData.ManagementData;
-        }
-        if (SelectedReportType.IsRuleReport())
-        {
-            ResetReportState();
+            SyncReportState(reportChanged);
         }
         SyncSelectedRulesDetailed();
         UpdateRuleTabSelection();
     }
 
-    public void ResetReportState()
+    /// <summary>
+    /// Updates the managements of the report tab. Managements already shown keep the objects fetched for them,
+    /// so a re-render (e.g. after changing the rule selection) does not discard them; a new report starts empty.
+    /// </summary>
+    /// <param name="discardFetchedObjects">True if the report changed and the fetched objects belong to the previous report.</param>
+    private void SyncReportState(bool discardFetchedObjects)
     {
-        managementsReportObjects = new();
-        foreach (ManagementReport mgt in CurrentReport?.ReportData.ManagementData ?? new List<ManagementReport>())
+        Dictionary<int, ManagementReport> shownManagements = discardFetchedObjects
+            ? []
+            : managementsReportObjects.GroupBy(mgt => mgt.Id).ToDictionary(group => group.Key, group => group.First());
+        List<ManagementReport> reportManagements = CurrentReport?.ReportData.ManagementData ?? [];
+        List<ManagementReport> managementsWithData = [.. reportManagements.Where(HasReportTabData)];
+        if (managementsWithData.Count == 0)
         {
-            if (HasReportTabData(mgt))
-            {
-                managementsReportObjects.Add(new() { Id = mgt.Id, Name = mgt.Name });
-            }
+            managementsWithData = reportManagements;
         }
-        if (managementsReportObjects.Count == 0 && CurrentReport?.ReportData.ManagementData.Count > 0)
-        {
-            managementsReportObjects = CurrentReport.ReportData.ManagementData
-                .Select(mgt => new ManagementReport { Id = mgt.Id, Name = mgt.Name })
-                .ToList();
-        }
+        managementsReportObjects = [.. managementsWithData.Select(mgt =>
+            shownManagements.TryGetValue(mgt.Id, out ManagementReport? shown) ? shown : new ManagementReport { Id = mgt.Id, Name = mgt.Name })];
     }
 
     private void SyncSelectedRulesDetailed()
@@ -258,9 +260,30 @@
         }
     }
 
+    private bool ShowAllTab => SelectedReportType.IsDeviceRelatedReport() && AllTabVisible;
+
+    /// <summary>
+    /// Report and rule tab are only shown for a generated rule or change report.
+    /// </summary>
+    private bool ShowReportAndRuleTab => CurrentReport?.ReportData.ManagementData.Count > 0 && HasReportTab(CurrentReport.ReportType);
+
+    /// <summary>
+    /// Rule and change reports show the objects used in the report in a separate report tab, which the object links of the report point to.
+    /// </summary>
+    private static bool HasReportTab(ReportType reportType)
+    {
+        return reportType.IsRuleReport() || reportType.IsChangeReport();
+    }
+
+    private static bool HasReportedChanges(ManagementReport managementReport)
+    {
+        return managementReport.RuleChanges?.Length > 0 || managementReport.ObjectChanges?.Length > 0
+            || managementReport.ServiceChanges?.Length > 0 || managementReport.UserChanges?.Length > 0;
+    }
+
     private static bool HasReportTabData(ManagementReport managementReport)
     {
-        if (managementReport.ReportedRuleIds.Count > 0)
+        if (managementReport.ReportedRuleIds.Count > 0 || HasReportedChanges(managementReport))
         {
             return true;
         }
@@ -545,14 +568,7 @@
                 return;
             }
 
-            rule.Froms = rule.Froms.Concat(ruleUpdated?.Froms ?? []).ToArray();
-            rule.Tos = rule.Tos.Concat(ruleUpdated?.Tos ?? []).ToArray();
-            rule.NatData.TranslatedFroms = rule.NatData.TranslatedFroms.Concat(ruleUpdated?.NatData.TranslatedFroms ??
-            []).ToArray();
-            rule.NatData.TranslatedTos = rule.NatData.TranslatedTos.Concat(ruleUpdated?.NatData.TranslatedTos ?? []).ToArray();
-            rule.Services = rule.Services.Concat(ruleUpdated?.Services ?? []).ToArray();
-            rule.NatData.TranslatedServices = rule.NatData.TranslatedServices.Concat(ruleUpdated?.NatData.TranslatedServices ??
-            []).ToArray();
+            RuleTabDetailsMerger.Merge(rule, ruleUpdated);
 
             rule.Detailed = true;
 

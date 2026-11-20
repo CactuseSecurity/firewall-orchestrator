@@ -241,18 +241,20 @@ namespace FWO.Report
             return effectiveWorkflowFilter;
         }
 
+        /// <summary>
+        /// Builds the link from an object shown in a report to its entry in the report tab of the right sidebar.
+        /// </summary>
+        /// <param name="location">Output location of the report.</param>
+        /// <param name="reportId">Id of the report part (e.g. "m{management id}").</param>
+        /// <param name="type">Object category string.</param>
+        /// <param name="chapterNumber">Chapter number.</param>
+        /// <param name="id">Object id.</param>
+        /// <param name="reportType">Report type (kept for callers, all device reports link to the report tab).</param>
+        /// <returns>The link address.</returns>
         public static string GetLinkAddress(OutputLocation location, string reportId, string type, int chapterNumber, long id, ReportType reportType)
         {
             string page = location == OutputLocation.report ? PageName.ReportGeneration : PageName.Certification;
-            string link;
-            if (reportType.IsChangeReport())
-            {
-                link = location == OutputLocation.export ? $"#" : $"{page}#goto-all-{reportId}-";
-            }
-            else
-            {
-                link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";
-            }
+            string link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";
             return $"{link}{type}{chapterNumber}x{id}";
         }
 

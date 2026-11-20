@@ -718,86 +718,91 @@ namespace FWO.Report.Filter
             }
         }
 
+        /// <summary>
+        /// Resolves the report time filter to a start and stop string relative to the current local time.
+        /// </summary>
+        /// <param name="timeFilter">The time filter holding range type, shortcut, interval or fixed dates.</param>
+        /// <returns>Start and stop of the time range, formatted for use as GraphQL query variables.</returns>
         public static (string, string) ResolveTimeRange(TimeFilter timeFilter)
         {
-            string start;
-            string stop;
-            DateTime startOfCurrentYear = new(DateTime.Now.Year, 1, 1, 0, 0, 0, DateTimeKind.Local);
-            DateTime startOfCurrentMonth = new(DateTime.Now.Year, DateTime.Now.Month, 1, 0, 0, 0, DateTimeKind.Local);
-            DateTime startOfCurrentWeek = DateTime.Now.AddDays(-(int)DateTime.Now.DayOfWeek);
+            return ResolveTimeRange(timeFilter, DateTime.Now);
+        }
 
-            switch (timeFilter.TimeRangeType)
+        /// <summary>
+        /// Resolves the report time filter to a start and stop string. Shortcuts ("this month", "last week", ...)
+        /// and intervals refer to <paramref name="referenceTime"/>.
+        /// </summary>
+        /// <param name="timeFilter">The time filter holding range type, shortcut, interval or fixed dates.</param>
+        /// <param name="referenceTime">The point in time that shortcuts and intervals are resolved against.</param>
+        /// <returns>Start and stop of the time range, formatted for use as GraphQL query variables.</returns>
+        public static (string, string) ResolveTimeRange(TimeFilter timeFilter, DateTime referenceTime)
+        {
+            return timeFilter.TimeRangeType switch
             {
-                case TimeRangeType.Shortcut:
-                    switch (timeFilter.TimeRangeShortcut)
-                    {
-                        case "this year":
-                            start = startOfCurrentYear.ToString(dateFormat);
-                            stop = startOfCurrentYear.AddYears(1).ToString(dateFormat);
-                            break;
-                        case "last year":
-                            start = startOfCurrentYear.AddYears(-1).ToString(dateFormat);
-                            stop = startOfCurrentYear.ToString(dateFormat);
-                            break;
-                        case "this month":
-                            start = startOfCurrentMonth.ToString(dateFormat);
-                            stop = startOfCurrentMonth.AddMonths(1).ToString(dateFormat);
-                            break;
-                        case "last month":
-                            start = startOfCurrentMonth.AddMonths(-1).ToString(dateFormat);
-                            stop = startOfCurrentMonth.ToString(dateFormat);
-                            break;
-                        case "this week":
-                            start = startOfCurrentWeek.ToString(dateFormat);
-                            stop = DateTime.Now.AddDays(1).ToString(dateFormat);
-                            break;
-                        case "last week":
-                            start = startOfCurrentWeek.AddDays(-GlobalConst.kDaysPerWeek).ToString(dateFormat);
-                            stop = startOfCurrentWeek.ToString(dateFormat);
-                            break;
-                        case "today":
-                            start = DateTime.Now.ToString(dateFormat);
-                            stop = DateTime.Now.AddDays(1).ToString(dateFormat);
-                            break;
-                        case "yesterday":
-                            start = DateTime.Now.AddDays(-1).ToString(dateFormat);
-                            stop = DateTime.Now.ToString(dateFormat);
-                            break;
-                        default:
-                            throw new NotSupportedException($"Error: wrong time range format:" + timeFilter.TimeRangeShortcut);
-                    }
-                    break;
+                TimeRangeType.Shortcut => ResolveShortcutRange(timeFilter.TimeRangeShortcut, referenceTime),
+                TimeRangeType.Interval => ResolveIntervalRange(timeFilter, referenceTime),
+                TimeRangeType.Fixeddates => ResolveFixedDatesRange(timeFilter),
+                _ => throw new NotSupportedException($"Found unexpected TimeRangeType")
+            };
+        }
 
-                case TimeRangeType.Interval:
-                    // Relative time window: compute start by subtracting the configured offset from "now".
-                    start = timeFilter.Interval switch
-                    {
-                        // Offset is the number of units (days/weeks/months/years) to subtract from "now".
-                        SchedulerInterval.Days => DateTime.Now.AddDays(-timeFilter.Offset).ToString(fullTimeFormat),
-                        SchedulerInterval.Weeks => DateTime.Now.AddDays(-GlobalConst.kDaysPerWeek * timeFilter.Offset).ToString(fullTimeFormat),
-                        SchedulerInterval.Months => DateTime.Now.AddMonths(-timeFilter.Offset).ToString(fullTimeFormat),
-                        SchedulerInterval.Years => DateTime.Now.AddYears(-timeFilter.Offset).ToString(fullTimeFormat),
-                        _ => throw new NotSupportedException($"Error: wrong time interval format:" + timeFilter.Interval.ToString()),
-                    };
-                    // End of the interval is "now".
-                    stop = DateTime.Now.ToString(fullTimeFormat);
-                    break;
+        /// <summary>
+        /// Resolves a named time range shortcut to whole days relative to the reference time.
+        /// </summary>
+        /// <param name="shortcut">One of <see cref="TimeRangeShortcuts.Ranges"/>.</param>
+        /// <param name="referenceTime">The point in time the shortcut is resolved against.</param>
+        /// <returns>Start (inclusive) and stop (exclusive) date.</returns>
+        private static (string, string) ResolveShortcutRange(string shortcut, DateTime referenceTime)
+        {
+            DateTime startOfCurrentYear = new(referenceTime.Year, 1, 1, 0, 0, 0, referenceTime.Kind);
+            DateTime startOfCurrentMonth = new(referenceTime.Year, referenceTime.Month, 1, 0, 0, 0, referenceTime.Kind);
+            DateTime startOfCurrentWeek = referenceTime.AddDays(-(int)referenceTime.DayOfWeek);
+            DateTime tomorrow = referenceTime.AddDays(1);
 
-                case TimeRangeType.Fixeddates:
-                    if (timeFilter.OpenStart)
-                        start = DateTime.MinValue.ToString(fullTimeFormat);
-                    else
-                        start = timeFilter.StartTime.ToString(fullTimeFormat);
-                    if (timeFilter.OpenEnd)
-                        stop = DateTime.MaxValue.ToString(fullTimeFormat);
-                    else
-                        stop = timeFilter.EndTime.ToString(fullTimeFormat);
-                    break;
+            return shortcut switch
+            {
+                "this year" => (startOfCurrentYear.ToString(dateFormat), startOfCurrentYear.AddYears(1).ToString(dateFormat)),
+                "last year" => (startOfCurrentYear.AddYears(-1).ToString(dateFormat), startOfCurrentYear.ToString(dateFormat)),
+                "this month" => (startOfCurrentMonth.ToString(dateFormat), startOfCurrentMonth.AddMonths(1).ToString(dateFormat)),
+                "last month" => (startOfCurrentMonth.AddMonths(-1).ToString(dateFormat), startOfCurrentMonth.ToString(dateFormat)),
+                "this week" => (startOfCurrentWeek.ToString(dateFormat), tomorrow.ToString(dateFormat)),
+                "last week" => (startOfCurrentWeek.AddDays(-GlobalConst.kDaysPerWeek).ToString(dateFormat), startOfCurrentWeek.ToString(dateFormat)),
+                "today" => (referenceTime.ToString(dateFormat), tomorrow.ToString(dateFormat)),
+                "yesterday" => (referenceTime.AddDays(-1).ToString(dateFormat), referenceTime.ToString(dateFormat)),
+                _ => throw new NotSupportedException($"Error: wrong time range format:" + shortcut)
+            };
+        }
 
-                default:
-                    throw new NotSupportedException($"Found unexpected TimeRangeType");
-            }
-            return (start, stop);
+        /// <summary>
+        /// Resolves a relative time window that ends at the reference time and starts the configured
+        /// number of interval units (days/weeks/months/years) before it.
+        /// </summary>
+        /// <param name="timeFilter">The time filter holding interval and offset.</param>
+        /// <param name="referenceTime">The end of the time window.</param>
+        /// <returns>Start and stop timestamp.</returns>
+        private static (string, string) ResolveIntervalRange(TimeFilter timeFilter, DateTime referenceTime)
+        {
+            DateTime start = timeFilter.Interval switch
+            {
+                SchedulerInterval.Days => referenceTime.AddDays(-timeFilter.Offset),
+                SchedulerInterval.Weeks => referenceTime.AddDays(-GlobalConst.kDaysPerWeek * timeFilter.Offset),
+                SchedulerInterval.Months => referenceTime.AddMonths(-timeFilter.Offset),
+                SchedulerInterval.Years => referenceTime.AddYears(-timeFilter.Offset),
+                _ => throw new NotSupportedException($"Error: wrong time interval format:" + timeFilter.Interval.ToString()),
+            };
+            return (start.ToString(fullTimeFormat), referenceTime.ToString(fullTimeFormat));
+        }
+
+        /// <summary>
+        /// Resolves fixed start and end dates; an open start or end is mapped to the minimum or maximum date.
+        /// </summary>
+        /// <param name="timeFilter">The time filter holding the fixed dates.</param>
+        /// <returns>Start and stop timestamp.</returns>
+        private static (string, string) ResolveFixedDatesRange(TimeFilter timeFilter)
+        {
+            DateTime start = timeFilter.OpenStart ? DateTime.MinValue : timeFilter.StartTime;
+            DateTime stop = timeFilter.OpenEnd ? DateTime.MaxValue : timeFilter.EndTime;
+            return (start.ToString(fullTimeFormat), stop.ToString(fullTimeFormat));
         }
 
         private static void SetRecertFilter(ref DynGraphqlQuery query, RecertFilter? recertFilter)

@@ -22,6 +22,9 @@ namespace FWO.Test
         public List<string> CredentialQueryVars { get; } = [];
         public UiUser? TicketRequester { get; set; }
         public bool OmitExtReqRequestedStateMapping { get; set; }
+
+        /// <summary>Internal state ExtReqRejected maps to; no mapping if null.</summary>
+        public int? ExtReqRejectedStateId { get; set; }
         public bool ApprovalPhaseActive { get; set; }
         public bool ApprovalPhaseActiveForMasterOnly { get; set; }
         public bool ApprovalPhaseActiveForTaskTypesOnly { get; set; }
@@ -293,6 +296,10 @@ namespace FWO.Test
                 }
 
                 extStates.Add(new() { Id = 3, Name = "ExtReqDone", StateId = 631 });
+                if (ExtReqRejectedStateId != null)
+                {
+                    extStates.Add(new() { Id = 4, Name = "ExtReqRejected", StateId = ExtReqRejectedStateId });
+                }
                 GraphQLResponse<dynamic> response = new() { Data = extStates };
                 return response.Data;
             }

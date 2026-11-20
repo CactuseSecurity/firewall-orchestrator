@@ -405,7 +405,9 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Sets a request task to the internal state of an external request state.
+        /// Sets a request task to the internal state of an external request state. The state only moves forward: a
+        /// request task already beyond the mapped state, e.g. promoted to "To Implement" before it was handed to the
+        /// external ticket system, keeps its state. A rejection is always set.
         /// </summary>
         /// <returns>true if the state of the task changed.</returns>
         private async Task<bool> UpdateTaskState(WfTicket ticket, WfReqTask reqTask, string extReqState)
@@ -424,6 +426,12 @@ namespace FWO.Middleware.Server
 
             if (reqTask.StateId == internalStateId)
             {
+                return false;
+            }
+            if (internalStateId < reqTask.StateId && extReqState != ExtStates.ExtReqRejected.ToString())
+            {
+                Log.WriteDebug("External Request Update", $"Request task {reqTask.TaskNumber} of ticket {ticket.Id} keeps state {reqTask.StateId}; " +
+                    $"external state {extReqState} maps to the lower state {internalStateId}.");
                 return false;
             }
             wfHandler.SetTicketEnv(ticket);

@@ -1,6 +1,7 @@
 ﻿subscription subscribeComplianceCheckConfigChanges {
   config(
     where: {
+      config_user: { _eq: 0 }
       _or: [
         { config_key: { _eq: "complianceCheckInternetZoneObject" } }
         { config_key: { _eq: "complianceCheckMailBody" } }

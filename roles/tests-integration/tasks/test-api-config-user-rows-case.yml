@@ -1,0 +1,135 @@
+---
+# One UI role of the config write checks in test-api.yml ("config: user rows are limited to personal settings"),
+# included once per role.
+#
+# Inputs:
+#   api_config_role - the UI role that sends the mutation of the personal settings page
+#   the api_config_* facts and vars of the including block
+
+- name: "config: reset the rows of the sample users for role {{ api_config_role }}"
+  uri:
+    url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    method: POST
+    headers:
+      Content-Type: application/json
+      x-hasura-role: admin
+      x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+    body: >-
+      {{ {'query': api_config_reset_mutation,
+          'variables': {'users': api_config_sample_user_ids, 'keys': api_config_keys.values() | list,
+                        'seed': [{'config_key': api_config_keys.seeded_global_only, 'config_value': api_config_seeded_value,
+                                  'config_user': api_config_user_ids.own | int}]}} }}
+    body_format: json
+    validate_certs: true
+    ca_path: "{{ internalca_trust_bundle }}"
+    client_cert: "{{ internalca_client_certificate }}"
+    client_key: "{{ internalca_client_private_key }}"
+    return_content: true
+  register: api_config_reset
+  become: true
+  changed_when: false
+  failed_when: false
+  environment: "{{ proxy_env }}"
+  no_log: true
+
+- name: "config: rows of the sample users reset for role {{ api_config_role }}"
+  assert:
+    that:
+      - api_config_reset.status | default(0) == 200
+      - api_config_reset.json.errors is not defined
+      - api_config_reset.json.data.insert_config.affected_rows == 1
+    fail_msg: >-
+      the rows of the sample users could not be reset: HTTP {{ api_config_reset.status | default('-') }}
+      {{ api_config_reset.content | default('') }}
+
+# sequential: the update cases need the row the first case inserts
+- name: "config: send the mutation of the personal settings page as role {{ api_config_role }}"
+  uri:
+    url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    method: POST
+    headers:
+      Content-Type: application/json
+      x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+      x-hasura-role: "{{ api_config_role }}"
+      x-hasura-user-id: "{{ api_config_user_ids[item.session_user] | string }}"
+    body: >-
+      {{ {'query': api_config_upsert_mutation,
+          'variables': {'config_items': [{'config_key': api_config_keys[item.key], 'config_value': item.value | string,
+                                          'config_user': api_config_user_ids[item.row_user] | int}]}} }}
+    body_format: json
+    validate_certs: true
+    ca_path: "{{ internalca_trust_bundle }}"
+    client_cert: "{{ internalca_client_certificate }}"
+    client_key: "{{ internalca_client_private_key }}"
+    return_content: true
+  loop: "{{ api_config_write_cases }}"
+  register: api_config_writes
+  become: true
+  changed_when: false
+  failed_when: false
+  environment: "{{ proxy_env }}"
+  no_log: true
+
+# written: the row is inserted or updated; rejected: the insert permission check fails;
+# unchanged: the existing row is not updated (update filter), with or without a permission error
+- name: "config: role {{ api_config_role }} writes only its own rows of personal settings"
+  assert:
+    that:
+      - api_config_write.status | default(0) == 200
+      - >-
+        (api_config_case.expect == 'written' and api_config_write.json.errors is not defined
+         and api_config_write.json.data.insert_config.returning | map(attribute='id') | list == [api_config_keys[api_config_case.key]])
+        or (api_config_case.expect == 'rejected' and api_config_write.content is search(api_config_permission_error))
+        or (api_config_case.expect == 'unchanged'
+            and ((api_config_write.json.errors is not defined and api_config_write.json.data.insert_config.returning | length == 0)
+                 or api_config_write.content is search(api_config_permission_error)))
+    fail_msg: >-
+      role {{ api_config_role }}, {{ api_config_case.name }}: expected {{ api_config_case.expect }}, got
+      HTTP {{ api_config_write.status | default('-') }} {{ api_config_write.content | default('') }}
+  vars:
+    api_config_case: "{{ api_config_write_cases[item] }}"
+    api_config_write: "{{ api_config_writes.results[item] }}"
+  loop: "{{ range(api_config_write_cases | length) | list }}"
+  loop_control:
+    label: "{{ api_config_role }}: {{ api_config_write_cases[item].name }}"
+
+- name: "config: read the rows of the checks of role {{ api_config_role }}"
+  uri:
+    url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    method: POST
+    headers:
+      Content-Type: application/json
+      x-hasura-role: admin
+      x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+    body: >-
+      {{ {'query': api_config_read_query,
+          'variables': {'own': api_config_user_ids.own | int, 'other': api_config_user_ids.other | int,
+                        'personalKey': api_config_keys.personal,
+                        'personalKeyWithGlobalRow': api_config_keys.personal_with_global_row,
+                        'globalKey': api_config_keys.global_only, 'seededKey': api_config_keys.seeded_global_only}} }}
+    body_format: json
+    validate_certs: true
+    ca_path: "{{ internalca_trust_bundle }}"
+    client_cert: "{{ internalca_client_certificate }}"
+    client_key: "{{ internalca_client_private_key }}"
+    return_content: true
+  register: api_config_rows
+  become: true
+  changed_when: false
+  failed_when: false
+  environment: "{{ proxy_env }}"
+  no_log: true
+
+- name: "config: role {{ api_config_role }} wrote only its own row of the personal setting"
+  assert:
+    that:
+      - api_config_rows.status | default(0) == 200
+      - api_config_rows.json.errors is not defined
+      - api_config_rows.json.data.ownPersonal | map(attribute='config_value') | list == [api_config_updated_value]
+      - api_config_rows.json.data.ownGlobal | length == 0
+      - api_config_rows.json.data.ownSeeded | map(attribute='config_value') | list == [api_config_seeded_value]
+      - api_config_rows.json.data.otherPersonal | length == 0
+      - api_config_rows.json.data.globalPersonal | map(attribute='config_value') | list == api_config_global_values_before
+    fail_msg: >-
+      role {{ api_config_role }} changed rows it must not write, or not its own row of a personal setting:
+      HTTP {{ api_config_rows.status | default('-') }} {{ api_config_rows.content | default('') }}

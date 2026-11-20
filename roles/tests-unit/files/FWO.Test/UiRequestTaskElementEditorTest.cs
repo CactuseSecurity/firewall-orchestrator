@@ -492,8 +492,8 @@ internal class UiRequestTaskElementEditorTest
         Assert.Multiple(() =>
         {
             Assert.That(component.CurrentGroupName, Is.EqualTo("network-group"));
-                Assert.That(reqTask.NetworkGroupId, Is.EqualTo(100));
-                Assert.That(reqTask.ServiceGroupId, Is.Null);
+            Assert.That(reqTask.NetworkGroupId, Is.EqualTo(100));
+            Assert.That(reqTask.ServiceGroupId, Is.Null);
             Assert.That(GetMember<List<NwObjectElement>>(component, "actSources").Single().ElemId, Is.EqualTo(7));
             Assert.That(reqTask.Elements.Single(element => element.NetworkId == 11).Id, Is.EqualTo(7));
             Assert.That(reqTask.RemovedElements.Single().Id, Is.EqualTo(8));
@@ -526,8 +526,8 @@ internal class UiRequestTaskElementEditorTest
         Assert.Multiple(() =>
         {
             Assert.That(component.CurrentGroupName, Is.EqualTo("service-group"));
-                Assert.That(reqTask.ServiceGroupId, Is.EqualTo(100));
-                Assert.That(reqTask.NetworkGroupId, Is.Null);
+            Assert.That(reqTask.ServiceGroupId, Is.EqualTo(100));
+            Assert.That(reqTask.NetworkGroupId, Is.Null);
             Assert.That(GetMember<List<NwServiceElement>>(component, "actServices").Single().ElemId, Is.EqualTo(7));
             Assert.That(reqTask.Elements.Single(element => element.ServiceId == 17).Id, Is.EqualTo(7));
             Assert.That(reqTask.RemovedElements.Single().Id, Is.EqualTo(8));
@@ -562,8 +562,8 @@ internal class UiRequestTaskElementEditorTest
         Assert.Multiple(() =>
         {
             Assert.That(reqTask.Elements, Has.Count.EqualTo(1));
-                Assert.That(reqTask.ServiceGroupId, Is.EqualTo(100));
-                Assert.That(reqTask.NetworkGroupId, Is.Null);
+            Assert.That(reqTask.ServiceGroupId, Is.EqualTo(100));
+            Assert.That(reqTask.NetworkGroupId, Is.Null);
             Assert.That(reqTask.Elements, Has.All.Property(nameof(WfReqElement.Field)).EqualTo(ElemFieldType.service.ToString()));
             Assert.That(reqTask.RemovedElements.Select(element => element.Id), Is.EquivalentTo(new List<long> { 7L }));
             Assert.That(reqTask.Elements.Single().ServiceId, Is.EqualTo(17));
@@ -598,8 +598,8 @@ internal class UiRequestTaskElementEditorTest
         Assert.Multiple(() =>
         {
             Assert.That(reqTask.Elements, Has.Count.EqualTo(1));
-                Assert.That(reqTask.NetworkGroupId, Is.EqualTo(100));
-                Assert.That(reqTask.ServiceGroupId, Is.Null);
+            Assert.That(reqTask.NetworkGroupId, Is.EqualTo(100));
+            Assert.That(reqTask.ServiceGroupId, Is.Null);
             Assert.That(reqTask.Elements, Has.All.Property(nameof(WfReqElement.Field)).EqualTo(ElemFieldType.source.ToString()));
             Assert.That(reqTask.RemovedElements.Select(element => element.Id), Is.EquivalentTo(new List<long> { 8L }));
             Assert.That(reqTask.Elements.Single().NetworkId, Is.EqualTo(11));

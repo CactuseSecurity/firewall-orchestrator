@@ -15,8 +15,7 @@ public static class RulePositioningContextValidator
         {
             return false;
         }
-        return HasCompatibleGatewaySelection(requestTask!, implementationTask!.DeviceId!.Value) &&
-            HasConsistentRequestManagementScope(requestTask!);
+        return HasCompatibleGatewaySelection(requestTask!, implementationTask!.DeviceId!.Value);
     }
 
     /// <summary>Validates the complete manager contract, including workflow identity relationships.</summary>
@@ -116,8 +115,7 @@ public static class RulePositioningContextValidator
         {
             return false;
         }
-        return HasConsistentTargetManagement(context) &&
-            HasConsistentRequestManagementScope(context.ParentRequestTask);
+        return HasConsistentTargetManagement(context);
     }
 
     /// <summary>Checks workflow task identifiers and the effective target identifiers.</summary>
@@ -145,10 +143,6 @@ public static class RulePositioningContextValidator
                 out int managementId) &&
             context.TargetManagement.Id == managementId;
     }
-
-    /// <summary>Checks the optional request management object against its identifier.</summary>
-    private static bool HasConsistentRequestManagementScope(WfReqTask requestTask) =>
-        requestTask.OnManagement == null || requestTask.OnManagement.Id == requestTask.ManagementId;
 
     /// <summary>Checks whether the effective settings select a supported positioning algorithm.</summary>
     private static bool HasUsableConfiguration(GatewayDeviceSpecificSettings? settings)

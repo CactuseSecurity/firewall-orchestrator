@@ -758,6 +758,9 @@ def get_and_link_local_rulebase(
     limit: int,
     link_list: list[Any],
 ) -> Any:
+    if local_pkg_name == "":
+        FWOLogger.debug(f"no local policy package installed in adom {adom_name}, skipping local rulebase fetch")
+        return previous_rulebase
     if not is_rulebase_already_fetched(native_config_adom["rulebases"], rulebase_type_prefix + "_v4_" + local_pkg_name):
         fmgr_getter.update_config_with_fortinet_api_call(
             native_config_adom["rulebases"],

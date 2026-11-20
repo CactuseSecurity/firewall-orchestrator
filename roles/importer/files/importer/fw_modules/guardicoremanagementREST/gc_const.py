@@ -25,6 +25,11 @@ GC_ANY_OBJECT_NAME = "Any"
 GC_ANY_SERVICE_UID = "any"
 GC_ANY_SERVICE_NAME = "Any"
 GC_RULESET_NAME_NONE = ""
+# rule side fields the importer cannot express as addresses (e.g. processes, domains) become an empty placeholder
+# group each, so that the side neither turns into "any" nor silently loses them
+GC_UNSUPPORTED_UID_PREFIX = "unsupported:"
+GC_UNSUPPORTED_NAME_PREFIX = "Unsupported: "
+GC_UNSUPPORTED_COMMENT = "Guardicore rule side field the importer cannot resolve to addresses"
 
 
 class GcSection(NamedTuple):

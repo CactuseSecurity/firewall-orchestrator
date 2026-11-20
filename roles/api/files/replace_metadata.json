@@ -9359,7 +9359,46 @@
                       "parent_id",
                       "sort_order"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_or": [
+                        {
+                          "node_type": {
+                            "_in": [
+                              "global",
+                              "device_type"
+                            ]
+                          }
+                        },
+                        {
+                          "_and": [
+                            {
+                              "node_type": {
+                                "_eq": "management"
+                              }
+                            },
+                            {
+                              "object_key": {
+                                "_in": "x-hasura-visible-managements"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_and": [
+                            {
+                              "node_type": {
+                                "_eq": "gateway"
+                              }
+                            },
+                            {
+                              "object_key": {
+                                "_in": "x-hasura-visible-devices"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -9374,7 +9413,46 @@
                       "parent_id",
                       "sort_order"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_or": [
+                        {
+                          "node_type": {
+                            "_in": [
+                              "global",
+                              "device_type"
+                            ]
+                          }
+                        },
+                        {
+                          "_and": [
+                            {
+                              "node_type": {
+                                "_eq": "management"
+                              }
+                            },
+                            {
+                              "object_key": {
+                                "_in": "x-hasura-visible-managements"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_and": [
+                            {
+                              "node_type": {
+                                "_eq": "gateway"
+                              }
+                            },
+                            {
+                              "object_key": {
+                                "_in": "x-hasura-visible-devices"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -9389,7 +9467,46 @@
                       "parent_id",
                       "sort_order"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_or": [
+                        {
+                          "node_type": {
+                            "_in": [
+                              "global",
+                              "device_type"
+                            ]
+                          }
+                        },
+                        {
+                          "_and": [
+                            {
+                              "node_type": {
+                                "_eq": "management"
+                              }
+                            },
+                            {
+                              "object_key": {
+                                "_in": "x-hasura-visible-managements"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_and": [
+                            {
+                              "node_type": {
+                                "_eq": "gateway"
+                              }
+                            },
+                            {
+                              "object_key": {
+                                "_in": "x-hasura-visible-devices"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },

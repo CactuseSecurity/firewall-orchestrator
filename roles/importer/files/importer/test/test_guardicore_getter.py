@@ -59,6 +59,24 @@ class TestPaging:
         session.get.return_value = build_response({"objects": [{"id": 1}]})
         assert gc_getter.get_all_objects(session, "https://gc/x") == [{"id": 1}]
 
+    def test_short_page_does_not_end_paging_before_total(self) -> None:
+        session = unittest.mock.MagicMock()
+        session.get.side_effect = [
+            build_response({"objects": [{"id": 1}, {"id": 2}], "total": 3}),
+            build_response({"objects": [{"id": 3}], "total": 3}),
+        ]
+        objects = gc_getter.get_all_objects(session, "https://gc/x")
+        assert [obj["id"] for obj in objects] == [1, 2, 3]
+        assert session.get.call_args_list[1].kwargs["params"]["offset"] == 2
+
+    def test_empty_page_ends_paging_below_total(self) -> None:
+        session = unittest.mock.MagicMock()
+        session.get.side_effect = [
+            build_response({"objects": [{"id": 1}], "total": 5}),
+            build_response({"objects": [], "total": 5}),
+        ]
+        assert gc_getter.get_all_objects(session, "https://gc/x") == [{"id": 1}]
+
     def test_endless_paging_is_stopped(self, mocker: MockerFixture) -> None:
         mocker.patch.object(gc_const, "GC_PAGE_SIZE", 1)
         mocker.patch.object(gc_const, "GC_MAX_PAGES", 3)
@@ -99,3 +117,27 @@ class TestGetNativeConfig:
             "limit_param": "max_results",
             "extra_params": {"expand": "labels"},
         }
+
+    @pytest.mark.parametrize(
+        ("verify_certs", "expected"),
+        [
+            ("/etc/ssl/certs/ca-certificates.crt", "/etc/ssl/certs/ca-certificates.crt"),
+            (True, True),
+            (None, True),
+            (False, False),
+        ],
+    )
+    def test_session_keeps_the_certificate_setting(
+        self, mocker: MockerFixture, verify_certs: bool | str | None, expected: bool | str
+    ) -> None:
+        session = unittest.mock.MagicMock()
+        session.__enter__.return_value = session
+        session.headers = {}
+        mocker.patch.object(gc_getter.requests, "Session", return_value=session)
+        mocker.patch.object(gc_getter.fwo_globals, "verify_certs", verify_certs)
+        mocker.patch.object(gc_getter, "login", return_value="tok")
+        mocker.patch.object(gc_getter, "get_all_objects", return_value=[])
+
+        gc_getter.get_native_config("https://gc", "u", "p")
+
+        assert session.verify == expected

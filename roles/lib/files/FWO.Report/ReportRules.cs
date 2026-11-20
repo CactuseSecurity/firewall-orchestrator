@@ -777,7 +777,7 @@ namespace FWO.Report
                     {
                         if (row.IsRulebaseReference)
                         {
-                            AppendRulebaseReferenceHtml(ref report, managementReport, device, row);
+                            AppendRulebaseReferenceHtml(ref report, managementReport, device, row, ruleDisplayHtml.LabelColumnCount);
                         }
                         else
                         {
@@ -823,12 +823,12 @@ namespace FWO.Report
         /// <summary>
         /// Appends a row linking to the rule tree that lists the referenced rulebase completely.
         /// </summary>
-        private void AppendRulebaseReferenceHtml(ref StringBuilder report, ManagementReport managementReport, DeviceReport device, RuleTreeItem row)
+        private void AppendRulebaseReferenceHtml(ref StringBuilder report, ManagementReport managementReport, DeviceReport device, RuleTreeItem row, int labelColumnCount)
         {
             int listingTreeId = device.ReferencedRulebaseTreeIds.GetValueOrDefault(row.ReferencedRulebaseId);
             string listingTreeName = managementReport.Devices.FirstOrDefault(tree => tree.Id == listingTreeId)?.Name ?? "";
             string anchorId = DeviceReportExtensions.GetRuleTreeAnchorId(managementReport.Id, listingTreeId);
-            report.AppendLine($"<tr><td colspan=\"{ColumnCount}\"><b>{HtmlOutputEncoder.EncodeText(row.Header)}</b> - {userConfig.GetText("rulebase_listed_above")}: "
+            report.AppendLine($"<tr><td colspan=\"{ColumnCount + labelColumnCount}\"><b>{HtmlOutputEncoder.EncodeText(row.Header)}</b> - {userConfig.GetText("rulebase_listed_above")}: "
                 + $"<a href=\"#{anchorId}\">{HtmlOutputEncoder.EncodeText(listingTreeName)}</a></td></tr>");
         }
 

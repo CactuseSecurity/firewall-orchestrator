@@ -120,6 +120,21 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestExtractUsedInterface_LabelsOnlySideIsFromInterface()
+        {
+            ModellingConnection conn = new() { Id = 5, UsedInterfaceId = 9 };
+
+            Assert.That(await AppHandler!.ExtractUsedInterface(conn), Is.EqualTo("Interf9"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(conn.SrcFromInterface, Is.True);
+                Assert.That(conn.DstFromInterface, Is.False);
+                Assert.That(conn.SourceLabels.Single().LabelId, Is.EqualTo(9));
+                Assert.That(conn.DestinationLabels, Is.Empty);
+            });
+        }
+
+        [Test]
         public async Task TestExtractUsedInterface_InterfaceNoPermissionDependsOnPermissionMode()
         {
             ModellingConnection connRestrictedAllowed = new() { Id = 31, AppId = 1, UsedInterfaceId = 3 };

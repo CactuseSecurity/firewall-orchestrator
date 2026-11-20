@@ -217,9 +217,21 @@ class GcNetworkObjectCollector:
             )
         return gc_const.GC_ANY_OBJECT_UID
 
+    def add_unsupported_field(self, field: str) -> str:
+        """Add the empty placeholder group of a rule side field that cannot be resolved to addresses."""
+        return self.add_group(
+            gc_const.GC_UNSUPPORTED_UID_PREFIX + field,
+            gc_const.GC_UNSUPPORTED_NAME_PREFIX + field,
+            IPSet(),
+            gc_const.GC_UNSUPPORTED_COMMENT,
+        )
+
     def resolve_rule_side(self, side: GcRuleSide, rule_id: str) -> list[str]:
         """
         Return the uids of the network objects a rule side consists of (ORed); an empty side is "any".
+
+        Each unsupported field (e.g. processes, domains) becomes a placeholder group, so that a side made only of
+        such fields is not shown as "any".
         """
         uids: list[str | None] = []
         if side.labels is not None:
@@ -234,7 +246,10 @@ class GcNetworkObjectCollector:
 
         unsupported = side.get_unsupported_fields()
         if unsupported:
-            FWOLogger.warning(f"Guardicore rule {rule_id}: ignoring unsupported rule side fields {unsupported}")
+            FWOLogger.warning(
+                f"Guardicore rule {rule_id}: importing unsupported rule side fields {unsupported} as placeholders"
+            )
+            uids.extend(self.add_unsupported_field(field) for field in unsupported)
 
         resolved = list(dict.fromkeys(uid for uid in uids if uid is not None))
         return resolved or [self.add_any()]

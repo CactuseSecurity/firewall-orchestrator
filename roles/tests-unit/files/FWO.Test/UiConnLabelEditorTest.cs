@@ -121,7 +121,8 @@ namespace FWO.Test
 
         private static ModellingConnectionHandler CreateHandler(SimulatedUserConfig userConfig, ModellingConnection connection)
         {
-            return new ModellingConnectionHandler(new SimulatedApiConnection(), userConfig, Application, [connection], connection, false, false,
+            List<ModellingConnection> connections = [connection];
+            return new ModellingConnectionHandler(new SimulatedApiConnection(), userConfig, Application, connections, connection, false, false,
                 DefaultInit.DoNothing, DefaultInit.DoNothing, true);
         }
 

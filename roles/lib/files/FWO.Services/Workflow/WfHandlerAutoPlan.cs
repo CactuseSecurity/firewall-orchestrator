@@ -110,12 +110,11 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Keeps the gateways found by the path analysis that belong to the management of the access task or to one of
-        /// its sub-managements. The path analysis does not know the management, so an access task of one management
-        /// would otherwise get implementation tasks on the gateways of other managements, e.g. the rule requested for
-        /// a Guardicore management would be written to a Check Point gateway a second time. Gateways whose management
-        /// is unknown are kept, as is every gateway of a task without management. If the management hierarchy cannot
-        /// be loaded, all gateways are kept.
+        /// Keeps the gateways found by the path analysis that belong to the Guardicore management of the access task or
+        /// to one of its sub-managements. The path analysis does not know the management, so the rule requested for a
+        /// Guardicore management would otherwise be written to e.g. a Check Point gateway a second time. Tasks of other
+        /// vendors keep all gateways of the path analysis, as do tasks without management. Gateways whose management is
+        /// unknown are kept. If the management hierarchy cannot be loaded, all gateways are kept.
         /// </summary>
         /// <param name="reqTask">Access task whose management restricts the gateways.</param>
         /// <param name="deviceIds">Gateways found by the path analysis.</param>
@@ -138,10 +137,24 @@ namespace FWO.Services.Workflow
                     "managements found by the path analysis are kept.");
                 return deviceIds;
             }
+            if (!IsGuardicoreManagement(taskManagementId))
+            {
+                return deviceIds;
+            }
             List<int> ownDeviceIds = [.. deviceIds.Where(deviceId => IsGatewayOfManagement(deviceId, taskManagementId))];
             Log.WriteDebug(kAutoPlanLogTitle, $"Request task {reqTask.Id}: {deviceIds.Count - ownDeviceIds.Count} gateway(s) found by the " +
                 $"path analysis belong to other managements than {taskManagementId} and its sub-managements and are left out.");
             return ownDeviceIds;
+        }
+
+        /// <summary>
+        /// Returns whether a management is a Guardicore management, by the management hierarchy or else by a loaded gateway.
+        /// </summary>
+        private bool IsGuardicoreManagement(int managementId)
+        {
+            DeviceType? deviceType = Managements.Find(management => management.Id == managementId)?.DeviceType
+                ?? Devices.Find(device => device.Management.Id == managementId)?.Management.DeviceType;
+            return deviceType?.Id == DeviceTypeIds.kGuardicoreManagement;
         }
 
         /// <summary>

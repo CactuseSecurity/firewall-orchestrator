@@ -241,8 +241,8 @@ namespace FWO.Services.Modelling
                     List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new { id = conn.UsedInterfaceId });
                     if (interf.Count > 0)
                     {
-                        conn.SrcFromInterface = interf[0].SourceFilled();
-                        conn.DstFromInterface = interf[0].DestinationFilled();
+                        conn.SrcFromInterface = interf[0].SourceFilledOrLabelled();
+                        conn.DstFromInterface = interf[0].DestinationFilledOrLabelled();
                         conn.InterfaceIsDecommissioned = interf[0].GetBoolProperty(ConState.Decommissioned.ToString());
                         conn.InterfaceNoPermission = EvaluateInterfaceNoPermission(interf[0], conn.AppId ?? Application.Id);
                         if (interf[0].IsRequested)

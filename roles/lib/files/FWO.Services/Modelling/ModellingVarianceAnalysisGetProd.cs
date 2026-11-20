@@ -33,7 +33,7 @@ namespace FWO.Services.Modelling
                     RelevantManagements.Add(mgt);
                     if (!alreadyCreatedAppServers.ContainsKey(mgt.Id))
                     {
-                        alreadyCreatedAppServers.Add(mgt.Id, []);
+                        alreadyCreatedAppServers.Add(mgt.Id, new List<ModellingAppServer>());
                     }
                 }
             }

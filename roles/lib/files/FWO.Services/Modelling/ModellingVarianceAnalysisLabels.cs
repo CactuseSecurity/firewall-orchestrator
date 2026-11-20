@@ -249,15 +249,18 @@ namespace FWO.Services.Modelling
             }
         }
 
-        /// <summary>The label types whose obsolete labels are deleted on a management.</summary>
+        /// <summary>
+        /// The label types whose obsolete labels are deleted on a management. None while the settings do not let the
+        /// firewall writer delete objects: the writer would skip the deletion and every run would request it again.
+        /// </summary>
         private List<ModellingTypes.ModObjectType> ObsoleteLabelTypes(Management mgt)
         {
             List<ModellingTypes.ModObjectType> labelTypes = [];
-            if (!WritesLabels(mgt))
+            GlobalDeviceSpecificSettings settings = SettingsOf(mgt);
+            if (!WritesLabels(mgt) || !settings.FwWriteDeleteObjects)
             {
                 return labelTypes;
             }
-            GlobalDeviceSpecificSettings settings = SettingsOf(mgt);
             labelTypes.Add(ModellingTypes.ModObjectType.AppRole);
             if (settings.ModellingCreateAppZones)
             {

@@ -219,6 +219,33 @@ namespace FWO.Test
             });
         }
 
+        [TestCase("=HYPERLINK(\"x\")")]
+        [TestCase("+cmd")]
+        [TestCase("-cmd")]
+        [TestCase("@SUM(A1)")]
+        public void Csv_NeutralizesFormulasInLabels(string formulaKey)
+        {
+            List<Dictionary<string, List<string>>> formulaGroup = [new() { [formulaKey] = ["v"] }];
+            Rule rule = new() { SourceLabels = formulaGroup, DestinationLabels = formulaGroup, RuleLabels = [new() { Label = new() { Value = "v", Key = new() { Name = formulaKey } } }] };
+            RuleChange inserted = new() { ChangeAction = 'I', OldRule = new(), NewRule = rule };
+            RuleDisplayCsv display = new(new SimulatedUserConfig());
+            RuleChangeDisplayCsv changeDisplay = new(new SimulatedUserConfig());
+
+            List<string> outputs =
+            [
+                display.DisplaySourceLabelsCsv(rule), display.DisplayDestinationLabelsCsv(rule), display.DisplayRuleLabelsCsv(rule),
+                changeDisplay.DisplaySourceLabelsCsv(inserted), changeDisplay.DisplayDestinationLabelsCsv(inserted), changeDisplay.DisplayRuleLabelsCsv(inserted)
+            ];
+
+            Assert.Multiple(() =>
+            {
+                foreach (string output in outputs)
+                {
+                    Assert.That(output, Does.StartWith("\"'"));
+                }
+            });
+        }
+
         [Test]
         public void Json_RuleObjectContainsTheLabels()
         {

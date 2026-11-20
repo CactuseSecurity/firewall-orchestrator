@@ -164,6 +164,13 @@ namespace FWO.Test
                 "6" => CreateInterface("Interf6", InterfacePermissions.Public.ToString(), null, null),
                 "7" => CreateInterface("Interf7", InterfacePermissions.Private.ToString(), 2, 1),
                 "8" => CreateInterface("Interf8", "Unknown", 2, null),
+                "9" => new()
+                {
+                    Name = "Interf9",
+                    InterfacePermission = InterfacePermissions.Public.ToString(),
+                    SourceLabels = [new() { LabelId = 9, Label = new() { Value = "Prod", Key = new() { Name = "Stage" } } }],
+                    Services = [new() { Content = new() { Name = "Service9" } }]
+                },
                 _ => null
             };
             return interf != null ? [interf] : [];

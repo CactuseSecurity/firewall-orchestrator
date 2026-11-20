@@ -55,7 +55,7 @@ class TestNormalizeConfig:
         assert (override_rule.rule_action, override_rule.rule_track) == (RuleAction.DROP, RuleTrack.ALERT)
         assert (override_rule.rule_src, override_rule.rule_dst, override_rule.rule_svc) == (
             "Any",
-            "192.0.2.0/24",
+            "192.0.2.0/24|Unsupported: processes",
             "Any",
         )
 

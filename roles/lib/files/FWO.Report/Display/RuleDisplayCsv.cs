@@ -50,7 +50,7 @@ namespace FWO.Ui.Display
         /// </summary>
         public string DisplaySourceLabelsCsv(Rule rule)
         {
-            return ShowSourceLabelField ? EscapedCsv(FormatSideLabelsCsv(rule.SourceLabels)) : "";
+            return ShowSourceLabelField ? OutputCsv(FormatSideLabelsCsv(rule.SourceLabels)) : "";
         }
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace FWO.Ui.Display
         /// </summary>
         public string DisplayDestinationLabelsCsv(Rule rule)
         {
-            return ShowDestinationLabelField ? EscapedCsv(FormatSideLabelsCsv(rule.DestinationLabels)) : "";
+            return ShowDestinationLabelField ? OutputCsv(FormatSideLabelsCsv(rule.DestinationLabels)) : "";
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace FWO.Ui.Display
         /// </summary>
         public string DisplayRuleLabelsCsv(Rule rule)
         {
-            return ShowRuleLevelLabels ? EscapedCsv(RuleLabelFormatter.FormatRuleLabels(rule.RuleLabels)) : "";
+            return ShowRuleLevelLabels ? OutputCsv(RuleLabelFormatter.FormatRuleLabels(rule.RuleLabels)) : "";
         }
 
         /// <summary>
@@ -75,14 +75,6 @@ namespace FWO.Ui.Display
         public static string FormatSideLabelsCsv(List<Dictionary<string, List<string>>>? labels)
         {
             return RuleLabelFormatter.FormatSideLabels(labels, RuleLabelFormatter.kCsvAnd, RuleLabelFormatter.kCsvOr);
-        }
-
-        /// <summary>
-        /// Csv field with doubled quotes, as imported labels may contain quotes.
-        /// </summary>
-        public static string EscapedCsv(string? input)
-        {
-            return $"\"{input?.Replace("\"", "\"\"") ?? ""}\",";
         }
 
         public string DisplayNumberCsv(Rule rule)

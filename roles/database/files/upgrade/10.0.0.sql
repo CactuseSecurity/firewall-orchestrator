@@ -247,3 +247,10 @@ CREATE INDEX IF NOT EXISTS idx_labelling_owner_network_label_removed_event ON la
 
 -- key of the App label; Hasura restricts modellers to App labels of their own apps by this entry
 INSERT INTO config (config_key, config_value, config_user) VALUES ('appLabelKey', 'App', 0) ON CONFLICT DO NOTHING;
+
+-- read-only database user: a new installation grants it every schema in db_schemata, an upgrade has to add labelling
+GRANT USAGE ON SCHEMA labelling TO fwo_ro;
+GRANT SELECT ON ALL TABLES IN SCHEMA labelling TO fwo_ro;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA labelling TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA labelling GRANT SELECT ON TABLES TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA labelling GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;

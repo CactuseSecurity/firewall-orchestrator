@@ -2,6 +2,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data.Labelling;
+using FWO.Data.Report;
 using FWO.Services.Labelling;
 using FWO.Services.Modelling;
 using NUnit.Framework;
@@ -27,6 +28,13 @@ namespace FWO.Test
         private static readonly List<long> kRuleTwo = [2];
         private static readonly List<(long?, bool)> kImportEvent = [(kImportControlId, false)];
         private static readonly List<(long?, bool)> kUiEvent = [(null, true)];
+        private const int kOwnImportManagement = 3;
+        private const int kSubManagement = 4;
+        private const int kSuperManagement = 5;
+        private const int kManagementWithoutImport = 6;
+        private const long kOwnImport = 900;
+        private const long kSuperImport = 950;
+        private static readonly List<(long?, bool)> kStampedEvents = [(kOwnImport, false), (kSuperImport, false), (kImportControlId, false)];
 
         [SetUp]
         public void RequestFullSync()
@@ -137,6 +145,50 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RuleAppLabelChanges_AreStampedWithTheRelevantImportOfTheirManagement()
+        {
+            AppLabelTestApiConnection api = new();
+            api.LabelIdsByAppId["APP-1"] = 10;
+            api.ActiveRuleOwnerApps.Add(Mapping(1, "APP-1"));
+            api.ActiveRuleOwnerApps.Add(Mapping(2, "APP-1"));
+            api.ActiveRuleOwnerApps.Add(Mapping(3, "APP-1"));
+            api.ActiveRuleAppLabels.Add(new() { RuleId = 4, LabelId = 10 });
+            api.RuleManagements.Add(new() { RuleId = 1, ManagementId = kOwnImportManagement });
+            api.RuleManagements.Add(new() { RuleId = 2, ManagementId = kSubManagement });
+            api.RuleManagements.Add(new() { RuleId = 3, ManagementId = kManagementWithoutImport });
+            api.RuleManagements.Add(new() { RuleId = 4, ManagementId = kOwnImportManagement });
+            api.RelevantImports.Add(ManagementWithImport(kOwnImportManagement, kOwnImport, null));
+            api.RelevantImports.Add(ManagementWithImport(kSubManagement, kOwnImport - 5, kSuperManagement));
+            api.RelevantImports.Add(ManagementWithImport(kSuperManagement, kSuperImport, null));
+            api.RelevantImports.Add(ManagementWithImport(kManagementWithoutImport, null, null));
+            GlobalConfig globalConfig = new() { AppLabelKey = "App" };
+
+            await new RuleAppLabelSync(api, globalConfig).SyncAll(kImportControlId);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(api.ChangeEvents, Is.EquivalentTo(kStampedEvents));
+                Assert.That(api.CallsOf(LabellingQueries.addLabelChangeEvent), Is.EqualTo(kStampedEvents.Count));
+                Assert.That(api.AddedRuleLabels, Has.Count.EqualTo(3));
+                Assert.That(api.ClosedRuleLabels, Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task RuleAppLabelChanges_AreStampedWithTheMappingRunIfTheImportsCannotBeLoaded()
+        {
+            AppLabelTestApiConnection api = new();
+            api.ActiveRuleOwnerApps.Add(Mapping(1, "APP-1"));
+            api.RuleManagements.Add(new() { RuleId = 1, ManagementId = kOwnImportManagement });
+            api.FailImportReads = true;
+            GlobalConfig globalConfig = new() { AppLabelKey = "App" };
+
+            await new RuleAppLabelSync(api, globalConfig).SyncAll(kImportControlId);
+
+            Assert.That(api.ChangeEvents, Is.EqualTo(kImportEvent));
+        }
+
+        [Test]
         public async Task Rules_AreSyncedFullyOnceThenOnlyWhereMappingsChanged()
         {
             AppLabelTestApiConnection api = new();
@@ -190,6 +242,13 @@ namespace FWO.Test
         private static List<(long, long, long)> Assignments(params (long ruleId, long labelId)[] assignments)
         {
             return [.. assignments.Select(assignment => (assignment.ruleId, assignment.labelId, AppLabelTestApiConnection.kEventId))];
+        }
+
+        private static ManagementReport ManagementWithImport(int managementId, long? importId, int? superManagerId)
+        {
+            ManagementReport management = new() { Id = managementId, SuperManagerId = superManagerId };
+            management.Import.ImportAggregate.ImportAggregateMax.RelevantImportId = importId;
+            return management;
         }
 
         private static RuleOwnerApp Mapping(long ruleId, string? appId)

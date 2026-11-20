@@ -206,10 +206,16 @@ def _import_management(
         config_importer.import_management_set(service_provider, config_normalized)
 
 
+# importer modules that only read a config file or URI and cannot fetch the config from the device themselves
+CONFIG_FILE_ONLY_MODULES: frozenset[str] = frozenset({"genericfirewallmanagement1.0"})
+
+
 def is_importable(import_state: ImportStateController, file: str | None) -> bool:
     """Return whether the management can be imported: from a config file/URI or with a product-specific module."""
     if file is not None or get_config_uri(import_state) is not None:
         return True
+    if get_module_package_name(import_state.state) in CONFIG_FILE_ONLY_MODULES:
+        return False
     return has_importer_module(import_state.state)
 
 

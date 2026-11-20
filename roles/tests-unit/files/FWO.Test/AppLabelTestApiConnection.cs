@@ -21,6 +21,9 @@ namespace FWO.Test
         public List<RuleLabelRow> ActiveRuleAppLabels { get; } = [];
         public List<OwnerAppServerAppLabels> Owners { get; } = [];
         public bool FailReads { get; set; }
+        public bool FailImportReads { get; set; }
+        public List<RuleManagement> RuleManagements { get; } = [];
+        public List<FWO.Data.Report.ManagementReport> RelevantImports { get; } = [];
 
         public List<(string query, object? variables)> Calls { get; } = [];
         public List<string> UpsertedKeys { get; } = [];
@@ -42,7 +45,21 @@ namespace FWO.Test
             {
                 throw new InvalidOperationException("simulated read failure");
             }
-            return Task.FromResult((QueryResponseType)(Read(query, variables) ?? Write(query, variables)));
+            return Task.FromResult((QueryResponseType)(ReadImportStamps(query) ?? Read(query, variables) ?? Write(query, variables)));
+        }
+
+        /// <summary>Answers the queries for the managements of the rules and their relevant imports.</summary>
+        private object? ReadImportStamps(string query)
+        {
+            if (query == LabellingQueries.getRuleManagements)
+            {
+                return RuleManagements;
+            }
+            if (query == ReportQueries.getRelevantImportIdsAtTime)
+            {
+                return FailImportReads ? throw new InvalidOperationException("simulated import read failure") : RelevantImports;
+            }
+            return null;
         }
 
         private object? Read(string query, object? variables)

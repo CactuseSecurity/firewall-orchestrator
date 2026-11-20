@@ -254,6 +254,31 @@ class TestImportManagementInner:
         inner_mocks["get_config"].assert_not_called()
         assert "no importer module" in mock_info.call_args.args[0]
 
+    def test_skips_generic_firewall_without_config_file(
+        self, inner_mocks: dict[str, MagicMock], import_state_controller: ImportStateController
+    ) -> None:
+        mgm_details = import_state_controller.state.mgm_details
+        mgm_details.device_type_name = "Generic Firewall Management"
+        mgm_details.device_type_version = "1.0"
+
+        self._run()
+
+        _mock(import_state_controller.api_call.set_import_lock).assert_not_called()
+        inner_mocks["get_config"].assert_not_called()
+
+    def test_imports_generic_firewall_from_config_uri(
+        self, inner_mocks: dict[str, MagicMock], import_state_controller: ImportStateController
+    ) -> None:
+        mgm_details = import_state_controller.state.mgm_details
+        mgm_details.device_type_name = "Generic Firewall Management"
+        mgm_details.device_type_version = "1.0"
+        mgm_details.hostname = "https://configs.example.com/normalized_config.json"
+        inner_mocks["get_config"].return_value = (False, MagicMock())
+
+        self._run()
+
+        inner_mocks["get_config"].assert_called_once()
+
     def test_imports_management_without_importer_module_from_file(
         self, inner_mocks: dict[str, MagicMock], import_state_controller: ImportStateController
     ) -> None:

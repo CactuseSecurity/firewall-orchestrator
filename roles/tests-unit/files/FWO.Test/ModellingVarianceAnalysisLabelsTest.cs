@@ -65,10 +65,11 @@ namespace FWO.Test
         private static ModellingVarianceAnalysis Analysis(GuardicoreVarianceTestApiConn api) =>
             new(api, new ExtStateHandler(ExtStateApiConnection), UserConfig, Application, DefaultInit.DoNothing);
 
-        private static GuardicoreVarianceTestApiConn Api(bool implementAreas = true)
+        private static GuardicoreVarianceTestApiConn Api(bool implementAreas = true, bool deleteObjects = true)
         {
             GuardicoreVarianceTestApiConn api = new();
             api.Settings.SetValue(1, DeviceSpecificSettingKeys.ModellingImplementNetworkAreaObjects, implementAreas);
+            api.Settings.SetValue(1, FirewallWriteSettingKeys.DeleteObjects, deleteObjects);
             return api;
         }
 
@@ -165,6 +166,14 @@ namespace FWO.Test
                 Assert.That(tasks.IndexOf(obsolete), Is.EqualTo(tasks.Count - kObsoleteLabels.Count), "deletions come last");
                 Assert.That(tasks.Exists(task => task.Title.Contains("Stage: Prod")), Is.False, "labels never requested by FWO stay");
             });
+        }
+
+        [Test]
+        public async Task Request_DeletesNoObsoleteLabelsWhileObjectDeletionIsOff()
+        {
+            List<WfReqTask> tasks = await Analysis(Api(deleteObjects: false)).AnalyseModelledConnectionsForRequest(Connections);
+
+            Assert.That(DeletedLabels(tasks), Is.Empty, "the writer would skip the deletion, so every run would request it again");
         }
 
         [Test]

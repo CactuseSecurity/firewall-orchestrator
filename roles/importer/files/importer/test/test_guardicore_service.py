@@ -62,10 +62,14 @@ class TestServices:
                 icmp_matches=[{"icmp_type": 8, "icmp_codes": [1, 0]}, {"icmp_type": None}],
             )
         )
-        assert [svc.svc_uid for svc in services] == ["icmp type 8 code 0,1", "icmp", "47"]
+        assert [svc.svc_uid for svc in services] == ["icmp type 8 code 0,1", "icmp", "47", "gre"]
         assert services[0].svc_port is None
         assert services[2].ip_proto == 47
 
+    def test_unknown_protocol_is_kept_without_number(self) -> None:
+        services = build_rule_services(build_rule(ip_protocols=["GRE"], ports=[22]))
+        assert [svc.svc_name for svc in services] == ["gre"]
+        assert (services[0].ip_proto, services[0].svc_port) == (None, None)
+
     def test_rule_without_remaining_service_is_empty(self) -> None:
         assert build_rule_services(build_rule(ip_protocols=["TCP"], ports=[22], exclude_ports=[22])) == []
-        assert build_rule_services(build_rule(ip_protocols=["GRE"])) == []

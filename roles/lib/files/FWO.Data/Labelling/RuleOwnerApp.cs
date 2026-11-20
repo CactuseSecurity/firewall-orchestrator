@@ -34,6 +34,24 @@ namespace FWO.Data.Labelling
     }
 
     /// <summary>
+    /// Management a rule belongs to.
+    /// </summary>
+    public class RuleManagement
+    {
+        /// <summary>
+        /// Id of the rule.
+        /// </summary>
+        [JsonProperty("rule_id"), JsonPropertyName("rule_id")]
+        public long RuleId { get; set; }
+
+        /// <summary>
+        /// Id of the management of the rule.
+        /// </summary>
+        [JsonProperty("mgm_id"), JsonPropertyName("mgm_id")]
+        public int ManagementId { get; set; }
+    }
+
+    /// <summary>
     /// Active assignment of a label to a rule as a whole.
     /// </summary>
     public class RuleLabelRow

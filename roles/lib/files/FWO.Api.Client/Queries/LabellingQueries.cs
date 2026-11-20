@@ -26,6 +26,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string removeConnectionSourceLabels;
         public static readonly string removeConnectionDestinationLabels;
         public static readonly string addConnectionLabelChangeEvent;
+        public static readonly string getRuleManagements;
 
         static LabellingQueries()
         {
@@ -53,6 +54,7 @@ namespace FWO.Api.Client.Queries
                 removeConnectionSourceLabels = GetQueryText("labelling/removeConnectionSourceLabels.graphql");
                 removeConnectionDestinationLabels = GetQueryText("labelling/removeConnectionDestinationLabels.graphql");
                 addConnectionLabelChangeEvent = GetQueryText("labelling/addConnectionLabelChangeEvent.graphql");
+                getRuleManagements = GetQueryText("labelling/getRuleManagements.graphql");
             }
             catch (Exception exception)
             {

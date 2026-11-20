@@ -163,8 +163,21 @@ class TestCollector:
         )
         assert side.get_unsupported_fields() == ["processes"]
         uids = collector.resolve_rule_side(side, "r1")
-        assert uids == ["l-web", "lg-2", "asset:a-1", "198.51.100.0/24"]
+        assert uids == ["l-web", "lg-2", "asset:a-1", "198.51.100.0/24", "unsupported:processes"]
         assert collector.get_names(uids)[0] == "AppRole: Web"
+
+    def test_side_of_unsupported_fields_only_is_no_any(self) -> None:
+        collector = GcNetworkObjectCollector(build_config())
+        side = GcRuleSide.model_validate({"domains": ["example.com"], "user_groups": ["g"]})
+        uids = collector.resolve_rule_side(side, "r1")
+        assert uids == ["unsupported:domains", "unsupported:user_groups"]
+        assert gc_const.GC_ANY_OBJECT_UID not in collector.network_objects
+        placeholder = collector.network_objects["unsupported:domains"]
+        assert (placeholder.obj_name, placeholder.obj_typ, placeholder.obj_member_refs) == (
+            "Unsupported: domains",
+            "group",
+            None,
+        )
 
     def test_empty_rule_side_is_any(self) -> None:
         collector = GcNetworkObjectCollector(build_config())

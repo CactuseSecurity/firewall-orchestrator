@@ -9,6 +9,7 @@ from test.utils.test_utils import mock_get_graphql_code, mock_login
 from importer.import_main_loop import (
     get_fwo_jwt,
     import_single_management,
+    is_excluded_from_main_loop,
     wait_with_shutdown_check,
 )
 
@@ -232,3 +233,48 @@ class TestImportSingleManagement:
 
         # Assert
         assert "shutdown requested" in str(excinfo.value)
+
+
+class TestMainLoopExclusions:
+    @pytest.mark.parametrize(
+        ("type_name", "type_version", "expected"),
+        [
+            ("Check Point", "MDS R8x", True),
+            ("Check Point", "R8x", False),
+            ("Guardicore Management", "REST", False),
+        ],
+    )
+    def test_is_excluded_from_main_loop(
+        self, type_name: str, type_version: str, expected: bool, import_state_controller: ImportStateController
+    ) -> None:
+        mgm_details = import_state_controller.state.mgm_details
+        mgm_details.device_type_name = type_name
+        mgm_details.device_type_version = type_version
+
+        assert is_excluded_from_main_loop(import_state_controller) is expected
+
+    def test_mds_is_not_imported(
+        self,
+        mocker: MockerFixture,
+        import_state_controller: ImportStateController,
+        api_call: FwoApiCall,
+    ) -> None:
+        import_state_controller.state.mgm_details.device_type_name = "Check Point"
+        import_state_controller.state.mgm_details.device_type_version = "MDS R8x"
+        mocker.patch("importer.import_main_loop.wait_with_shutdown_check")
+        mocker.patch.object(ImportStateController, "initialize_import", return_value=import_state_controller)
+        mock_import = mocker.patch("importer.import_main_loop.import_management")
+
+        import_single_management(
+            mgm_id=1,
+            fwo_api_call=api_call,
+            verify_certificates=True,
+            api_fetch_limit=100,
+            clear=False,
+            suppress_certificate_warnings=False,
+            force=False,
+            fwo_major_version=9,
+            sleep_timer=0,
+        )
+
+        mock_import.assert_not_called()

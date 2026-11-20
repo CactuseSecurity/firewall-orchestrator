@@ -13,9 +13,9 @@ namespace FWO.Services.Labelling
     /// configured mapping source: a rule carries the App label of every owner with an app id it is mapped to.
     /// </summary>
     /// <remarks>
-    /// Runs after the rule owner mapping persisted a run. Missing assignments are added and obsolete ones closed, both
-    /// with one label change event carrying the import control id of the mapping run, which the reports need to place
-    /// the change in time. A full sync compares all rules; it runs after a full reinitialize, on the first run of the
+    /// Runs after the rule owner mapping persisted a run. Missing assignments are added and obsolete ones closed, with one
+    /// label change event per import control the changes are stamped with: the relevant import of the management of the
+    /// rule, so that the reports show the change from now on (see <see cref="RuleAppLabelImportStamps"/>). A full sync compares all rules; it runs after a full reinitialize, on the first run of the
     /// process (which fills the App labels of existing mappings after the upgrade) and after a failed sync.
     /// Errors are logged instead of failing the mapping run.
     /// </remarks>
@@ -28,7 +28,7 @@ namespace FWO.Services.Labelling
         private static bool fullSyncDone;
 
         private readonly AppLabelHandler appLabels = new(apiConnection, globalConfig.AppLabelKey);
-        private long? changeEventId;
+        private readonly Dictionary<long, long> changeEventIds = [];
 
         /// <summary>
         /// Forces the next sync to compare all rules, e.g. in tests.
@@ -47,7 +47,7 @@ namespace FWO.Services.Labelling
         /// Syncs the App labels of the rules whose mappings changed, or of all rules if no full sync ran yet.
         /// </summary>
         /// <param name="affectedRuleIds">Rules whose rule owner mappings were added or removed.</param>
-        /// <param name="importControlId">Import control of the mapping run.</param>
+        /// <param name="importControlId">Import control of the mapping run, stamped on the changes of rules of managements without import.</param>
         public async Task Sync(IEnumerable<long> affectedRuleIds, long importControlId)
         {
             if (!fullSyncDone)
@@ -65,7 +65,7 @@ namespace FWO.Services.Labelling
         /// <summary>
         /// Syncs the App labels of all rules.
         /// </summary>
-        /// <param name="importControlId">Import control of the mapping run.</param>
+        /// <param name="importControlId">Import control of the mapping run, stamped on the changes of rules of managements without import.</param>
         public async Task SyncAll(long importControlId)
         {
             if (await Run(null, importControlId))
@@ -91,8 +91,10 @@ namespace FWO.Services.Labelling
                 HashSet<(long ruleId, long labelId)> active = [.. activeLabels.Select(label => (label.RuleId, label.LabelId))];
                 List<(long ruleId, long labelId)> toClose = [.. active.Except(wanted)];
                 List<(long ruleId, long labelId)> toAdd = [.. wanted.Except(active)];
-                await Close(toClose, importControlId);
-                await Add(toAdd, importControlId);
+                Dictionary<long, long> stamps = await new RuleAppLabelImportStamps(apiConnection)
+                    .Load(toClose.Concat(toAdd).Select(assignment => assignment.ruleId), importControlId);
+                await Close(toClose, stamps);
+                await Add(toAdd, stamps);
                 Log.WriteDebug(LogMessageTitle, $"Import control {importControlId}: {toAdd.Count} App labels of rules added, {toClose.Count} closed.");
                 return true;
             }
@@ -126,43 +128,46 @@ namespace FWO.Services.Labelling
                 new { keyName = appLabels.KeyName, ruleIds }, chunkingOptions: QueryChunks("ruleIds"));
         }
 
-        private async Task Close(List<(long ruleId, long labelId)> assignments, long importControlId)
+        private async Task Close(List<(long ruleId, long labelId)> assignments, Dictionary<long, long> stamps)
         {
-            if (assignments.Count == 0)
+            foreach (IGrouping<long, (long ruleId, long labelId)> stampedAssignments in assignments.GroupBy(assignment => stamps[assignment.ruleId]))
             {
-                return;
+                long removedEventId = await GetChangeEventId(stampedAssignments.Key);
+                var conditions = stampedAssignments.Select(assignment => new
+                {
+                    rule_id = new { _eq = assignment.ruleId },
+                    label_id = new { _eq = assignment.labelId }
+                }).ToList();
+                await apiConnection.SendQueryAsync<ReturnId>(LabellingQueries.removeRuleLabelAssignments,
+                    new { assignments = conditions, removedEventId }, chunkingOptions: MutationChunks("assignments"));
             }
-            long removedEventId = await GetChangeEventId(importControlId);
-            var conditions = assignments.Select(assignment => new
-            {
-                rule_id = new { _eq = assignment.ruleId },
-                label_id = new { _eq = assignment.labelId }
-            }).ToList();
-            await apiConnection.SendQueryAsync<ReturnId>(LabellingQueries.removeRuleLabelAssignments,
-                new { assignments = conditions, removedEventId }, chunkingOptions: MutationChunks("assignments"));
         }
 
-        private async Task Add(List<(long ruleId, long labelId)> assignments, long importControlId)
+        private async Task Add(List<(long ruleId, long labelId)> assignments, Dictionary<long, long> stamps)
         {
-            if (assignments.Count == 0)
+            foreach (IGrouping<long, (long ruleId, long labelId)> stampedAssignments in assignments.GroupBy(assignment => stamps[assignment.ruleId]))
             {
-                return;
+                long createdEventId = await GetChangeEventId(stampedAssignments.Key);
+                var labels = stampedAssignments.Select(assignment => new
+                {
+                    rule_id = assignment.ruleId,
+                    label_id = assignment.labelId,
+                    created_event_id = createdEventId
+                }).ToList();
+                await apiConnection.SendQueryAsync<ReturnId>(LabellingQueries.addRuleLabelAssignments, new { labels },
+                    chunkingOptions: MutationChunks("labels"));
             }
-            long createdEventId = await GetChangeEventId(importControlId);
-            var labels = assignments.Select(assignment => new
-            {
-                rule_id = assignment.ruleId,
-                label_id = assignment.labelId,
-                created_event_id = createdEventId
-            }).ToList();
-            await apiConnection.SendQueryAsync<ReturnId>(LabellingQueries.addRuleLabelAssignments, new { labels },
-                chunkingOptions: MutationChunks("labels"));
         }
 
+        /// <summary>Returns the change event of an import control, created once per sync.</summary>
         private async Task<long> GetChangeEventId(long importControlId)
         {
-            changeEventId ??= await appLabels.CreateChangeEvent(importControlId, false);
-            return changeEventId.Value;
+            if (!changeEventIds.TryGetValue(importControlId, out long eventId))
+            {
+                eventId = await appLabels.CreateChangeEvent(importControlId, false);
+                changeEventIds[importControlId] = eventId;
+            }
+            return eventId;
         }
 
         private static QueryChunkingOptions QueryChunks(string variableName)

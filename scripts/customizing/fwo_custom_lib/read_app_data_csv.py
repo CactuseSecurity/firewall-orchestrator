@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from netaddr import IPAddress, IPNetwork
 
-from scripts.customizing.fwo_custom_lib.app_server_labels import find_label_columns, get_line_labels
+from scripts.customizing.fwo_custom_lib.app_server_labels import find_label_columns, get_line_labels, is_label_column
 
 if TYPE_CHECKING:
     import logging
@@ -478,7 +478,8 @@ def _find_header_index(
     required: bool = True,
 ) -> int:
     for i, header in enumerate(headers):
-        if pattern.search(header):
+        # label columns such as "label:IP-Zone" would otherwise match the app data patterns
+        if not is_label_column(header) and pattern.search(header):
             return i
     if not required:
         return -1

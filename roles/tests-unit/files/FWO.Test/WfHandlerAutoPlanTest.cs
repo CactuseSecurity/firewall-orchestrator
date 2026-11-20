@@ -161,11 +161,14 @@ namespace FWO.Test
         /// <summary>
         /// Handler whose loaded gateways include one of another management, with rules planned automatically everywhere.
         /// </summary>
-        private static WfHandler CreateHandlerWithOtherManagementGateway()
+        private static WfHandler CreateHandlerWithOtherManagementGateway(int taskManagementDeviceTypeId = DeviceTypeIds.kGuardicoreManagement)
         {
             InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
             api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
             WfHandler handler = CreateHandler(api);
+            Management taskManagement = api.Managements.Single(management => management.Id == kManagementId);
+            taskManagement.DeviceType = new DeviceType { Id = taskManagementDeviceTypeId };
+            handler.Devices.ForEach(device => device.Management = taskManagement);
             Management otherManagement = new()
             {
                 Id = kOtherManagementId,
@@ -283,6 +286,35 @@ namespace FWO.Test
             await InvokeAutoCreateImplTasks(handler, reqTask);
 
             Assert.That(DeviceIds(reqTask), Is.EqualTo(kFirstGatewayTask));
+        }
+
+        [Test]
+        public async Task AccessTask_OfOtherVendor_KeepsAlgorithmGatewaysOfAllManagements()
+        {
+            WfHandler handler = CreateHandlerWithOtherManagementGateway(kDeviceTypeId);
+            handler.PathAnalyzerOverride = new FixedPathAnalyzer(kFirstAndOtherManagementGateway);
+            WfReqTask reqTask = CreateAccessTask(kNoGateway);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(DeviceIds(reqTask), Is.EqualTo(kFirstAndOtherManagementGatewayTasks));
+        }
+
+        [Test]
+        public async Task AccessTask_AlgorithmGatewaysOfSubManagements_AreKept()
+        {
+            WfHandler handler = CreateHandlerWithOtherManagementGateway();
+            handler.Managements =
+            [
+                handler.Devices.First(device => device.Id == kFirstGatewayId).Management,
+                new Management { Id = kOtherManagementId, Name = "sub-mgm", SuperManagerId = kManagementId }
+            ];
+            handler.PathAnalyzerOverride = new FixedPathAnalyzer(kFirstAndOtherManagementGateway);
+            WfReqTask reqTask = CreateAccessTask(kNoGateway);
+
+            await InvokeAutoCreateImplTasks(handler, reqTask);
+
+            Assert.That(DeviceIds(reqTask), Is.EqualTo(kFirstAndOtherManagementGatewayTasks));
         }
 
         [Test]

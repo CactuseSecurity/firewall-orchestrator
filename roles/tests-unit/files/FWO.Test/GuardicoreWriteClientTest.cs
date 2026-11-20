@@ -34,6 +34,7 @@ namespace FWO.Test
         private static readonly List<string> kTwoHosts = ["10.0.0.1/32", "10.0.0.2/32"];
         private static readonly List<string> kIpFieldOnly = ["numeric_ip_addresses"];
         private static readonly List<string> kAssetAndIpFields = ["id", "numeric_ip_addresses"];
+        private static readonly List<string> kLookupOffsets = ["0", "1"];
 
         private static string ExistingLabel(params string[] subnets)
         {
@@ -141,6 +142,35 @@ namespace FWO.Test
                 Assert.That(result.Success, Is.True);
                 Assert.That(result.Steps[0].Message, Does.StartWith(FirewallWriteClient.kAlreadyPresentNote));
                 Assert.That(simulation.Requests.Exists(request => request.Method != Method.Get && request.Resource != kAuthenticatePath), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task LabelLookup_ReadsOnUntilTheTotalWhenTheApiCapsThePageSize()
+        {
+            JsonObject otherLabel = new() { ["id"] = "lab-0", ["key"] = "AppRole", ["value"] = "AR4711-000" };
+            JsonArray firstObjects = [otherLabel];
+            string firstPage = new JsonObject { ["objects"] = firstObjects, ["total_count"] = 2 }.ToJsonString();
+            JsonObject secondPageObject = JsonNode.Parse(ExistingLabel("10.0.0.1/32", "10.0.0.3/32"))!.AsObject();
+            secondPageObject["total_count"] = 2;
+            string secondPage = secondPageObject.ToJsonString();
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            simulation.Handler = request => request.Resource switch
+            {
+                kAuthenticatePath => FirewallWriteTestSupport.Ok("""{"access_token":"tok"}"""),
+                kLabelsPath => FirewallWriteTestSupport.Ok(request.QueryParameters["offset"] == "0" ? firstPage : secondPage),
+                _ => FirewallWriteTestSupport.Ok("{}")
+            };
+
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_create,
+                Member("10.0.0.1"), Member("10.0.0.3")));
+
+            List<RecordedFirewallRequest> lookups = [.. simulation.Requests.Where(request => request.Resource == kLabelsPath)];
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(lookups.Select(lookup => lookup.QueryParameters["offset"]), Is.EqualTo(kLookupOffsets));
+                Assert.That(result.Steps[0].Message, Does.StartWith(FirewallWriteClient.kAlreadyPresentNote));
             });
         }
 

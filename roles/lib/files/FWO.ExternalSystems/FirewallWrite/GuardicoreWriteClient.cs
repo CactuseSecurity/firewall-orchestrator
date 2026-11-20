@@ -34,6 +34,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const string kOverrideParameter = "override";
         private const string kAppendParameter = "append";
         private static readonly List<string> TokenFields = ["access_token", "token"];
+        private static readonly List<string> TotalFields = ["total_count", "total"];
         private static readonly List<string> FailureFields = ["failed", "errors", "failed_items", "rejected", "invalid_labels"];
 
         private string token = "";
@@ -158,31 +159,60 @@ namespace FWO.ExternalSystems.FirewallWrite
             return result;
         }
 
-        /// <summary>Looks a label up by key and value; null if it does not exist.</summary>
+        /// <summary>
+        /// Looks a label up by key and value; null if it does not exist. The API may cap the page size below the requested
+        /// limit, so paging goes on until the total the response names is reached; only without a total a short page ends it.
+        /// </summary>
         private async Task<JsonObject?> FindLabel(RenderedFirewallRequest request, string key, string value)
         {
+            int readCount = 0;
             for (int page = 0; page < kMaxPages; page++)
             {
                 RestRequest listRequest = new(GuardicoreWriteDefaults.kLabelsPath, Method.Get);
                 listRequest.AddQueryParameter("key", key);
                 listRequest.AddQueryParameter("value", value);
-                listRequest.AddQueryParameter("offset", (page * kPageSize).ToString(CultureInfo.InvariantCulture));
+                listRequest.AddQueryParameter("offset", readCount.ToString(CultureInfo.InvariantCulture));
                 listRequest.AddQueryParameter("limit", kPageSize.ToString(CultureInfo.InvariantCulture));
                 RestResponse response = await SendAuthenticated(listRequest);
                 if (!response.IsSuccessful)
                 {
                     throw ReadFailure(response, request, $"the label '{key}{DynamicIpLabel.kKeyValueSeparator}{value}'");
                 }
-                List<JsonObject> labels = ParseJson(response.Content)?["objects"] is JsonArray objects ? [.. objects.OfType<JsonObject>()] : [];
-                JsonObject? match = labels.FirstOrDefault(label => GuardicoreLabelCriteria.Text(label["key"]) == key
+                JsonNode? content = ParseJson(response.Content);
+                JsonArray objects = content?["objects"] as JsonArray ?? [];
+                readCount += objects.Count;
+                JsonObject? match = objects.OfType<JsonObject>().FirstOrDefault(label => GuardicoreLabelCriteria.Text(label["key"]) == key
                     && GuardicoreLabelCriteria.Text(label["value"]) == value);
-                if (match != null || labels.Count < kPageSize)
+                if (match != null || IsLastPage(objects.Count, readCount, TotalOf(content)))
                 {
                     return match;
                 }
             }
             throw new FirewallWriteException(FirewallWriteErrorKind.FirewallError,
                 $"Looking up the label '{key}{DynamicIpLabel.kKeyValueSeparator}{value}' did not end after {kMaxPages} pages.");
+        }
+
+        /// <summary>Whether paging is done: a page is empty, the total is reached, or without a total a page is short.</summary>
+        private static bool IsLastPage(int pageCount, int readCount, int? total)
+        {
+            if (pageCount == 0)
+            {
+                return true;
+            }
+            return total is int knownTotal ? readCount >= knownTotal : pageCount < kPageSize;
+        }
+
+        /// <summary>The total number of objects a list response names, null if it names none.</summary>
+        private static int? TotalOf(JsonNode? content)
+        {
+            foreach (string field in TotalFields)
+            {
+                if (content?[field] is JsonValue total && total.TryGetValue(out int count))
+                {
+                    return count;
+                }
+            }
+            return null;
         }
 
         private static (string Key, string Value) LabelOf(RenderedFirewallRequest request)

@@ -70,6 +70,15 @@ def get_total(result: dict[str, Any]) -> int | None:
     return None
 
 
+def is_last_page(page_length: int, read_count: int, total: int | None) -> bool:
+    """Tell whether paging is done: the total is reached, a page is empty, or without a total a page is short."""
+    if page_length == 0:
+        return True
+    if total is not None:
+        return read_count >= total
+    return page_length < gc_const.GC_PAGE_SIZE
+
+
 def get_all_objects(
     session: requests.Session,
     url: str,
@@ -81,6 +90,8 @@ def get_all_objects(
     Read all objects of a paginated Guardicore list endpoint.
 
     The v4 endpoints differ in their paging parameters: assets use start_at/max_results, the others offset/limit.
+    When the response names the total, reading goes on until it is reached, as the API may cap the page size
+    below the requested limit; only without a total a short page marks the end.
     """
     objects: list[dict[str, Any]] = []
     for _ in range(gc_const.GC_MAX_PAGES):
@@ -89,8 +100,7 @@ def get_all_objects(
         result = get_page(session, url, params)
         page_objects: list[dict[str, Any]] = [obj for obj in result["objects"] if isinstance(obj, dict)]
         objects.extend(page_objects)
-        total = get_total(result)
-        if len(page_objects) < gc_const.GC_PAGE_SIZE or (total is not None and len(objects) >= total):
+        if is_last_page(len(result["objects"]), len(objects), get_total(result)):
             return objects
     raise FwApiCallFailedError(f"Guardicore API call to {url} exceeded {gc_const.GC_MAX_PAGES} pages.")
 
@@ -104,8 +114,8 @@ def get_native_config(base_url: str, user: str, password: str) -> dict[str, Any]
 
     """
     with requests.Session() as session:
-        # an unset certificate check (None) means the requests default, which verifies
-        session.verify = fwo_globals.verify_certs is not False
+        # keep a CA bundle path (the host trust store); an unset certificate check (None) means verify
+        session.verify = fwo_globals.verify_certs if fwo_globals.verify_certs is not None else True
         token = login(session, base_url, user, password)
         session.headers.update({"Authorization": f"Bearer {token}", "Content-Type": HTTP_CONTENT_TYPE_JSON})
 

@@ -87,7 +87,15 @@ class TestNormalizeRules:
                     {"id": "o1", "action": "BLOCK", "section_position": "OVERRIDE_BLOCK", "ip_protocols": ["TCP"]},
                     {"id": "a2", "action": "ALLOW", "section_position": "ALLOW", "ruleset_name": "A"},
                     {"id": "a3", "action": "ALLOW", "section_position": "ALLOW", "ruleset_name": "B"},
-                    {"id": "x1", "action": "ALLOW", "section_position": "ALLOW", "ip_protocols": ["GRE"]},
+                    {
+                        "id": "x1",
+                        "action": "ALLOW",
+                        "section_position": "ALLOW",
+                        "ip_protocols": ["TCP"],
+                        "ports": [22],
+                        "exclude_ports": [22],
+                    },
+                    {"id": "g1", "action": "ALLOW", "section_position": "ALLOW", "ip_protocols": ["GRE"]},
                 ]
             }
         )
@@ -95,9 +103,15 @@ class TestNormalizeRules:
         rulebases = normalize_rules(
             native_config, GcNetworkObjectCollector(native_config), management_controller, services
         )
-        assert [rulebase.name for rulebase in rulebases] == ["03 Override Block", "04 Allow A", "04 Allow B"]
-        assert list(rulebases[2].rules) == ["a1", "a3"]
-        assert set(services) == {"any", "tcp"}
+        assert [rulebase.name for rulebase in rulebases] == [
+            "03 Override Block",
+            "04 Allow",
+            "04 Allow A",
+            "04 Allow B",
+        ]
+        assert list(rulebases[1].rules) == ["g1"]
+        assert list(rulebases[3].rules) == ["a1", "a3"]
+        assert set(services) == {"any", "tcp", "gre"}
         rule = rulebases[0].rules["o1"]
         assert (rule.rule_src, rule.rule_dst, rule.rule_svc) == ("Any", "Any", "tcp")
         assert rule.rule_action == RuleAction.DROP

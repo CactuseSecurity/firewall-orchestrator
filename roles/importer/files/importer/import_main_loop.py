@@ -29,6 +29,9 @@ from rule_hit_importer import import_rule_hits
 from services.service_provider import ServiceProvider
 
 SHUTDOWN_REQUESTED_MESSAGE = "import_main_loop - shutdown requested"
+# the domains of a Check Point MDS are managements of their own, the main loop imports them instead of the MDS
+CHECKPOINT_TYPE_NAME = "Check Point"
+CHECKPOINT_MDS_VERSION_MARKER = "MDS"
 
 
 def get_fwo_jwt(import_user: str, import_pwd: str, user_management_api: str) -> str | None:
@@ -54,6 +57,15 @@ def wait_with_shutdown_check(sleep_time: int):
         time.sleep(1)
         exit_if_shutdown_requested()
         counter += 1
+
+
+def is_excluded_from_main_loop(import_state: ImportStateController) -> bool:
+    """Return whether the main loop leaves the management out: a Check Point MDS, whose domains are imported."""
+    mgm_details = import_state.state.mgm_details
+    return (
+        mgm_details.device_type_name == CHECKPOINT_TYPE_NAME
+        and CHECKPOINT_MDS_VERSION_MARKER in mgm_details.device_type_version
+    )
 
 
 def import_single_management(
@@ -85,6 +97,10 @@ def import_single_management(
             f"{traceback.format_exc()!s}"
         )
         wait_with_shutdown_check(sleep_timer)
+        return
+
+    if is_excluded_from_main_loop(import_state):
+        FWOLogger.debug(f"import_main_loop: mgm_id={mgm_id} is a Check Point MDS, its domains are imported - skipping")
         return
 
     register_global_state(import_state)

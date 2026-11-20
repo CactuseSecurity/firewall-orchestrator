@@ -65,6 +65,14 @@ namespace FWO.Test
         private static readonly List<string> kWriteKinds = ["insert_permissions", "update_permissions"];
         private static readonly List<JsonNode> kNoNodes = [];
         private static readonly List<string> kRemovedEventColumns = [kRemovedEventColumn];
+        private static readonly List<string> kReadOnlyGrants =
+        [
+            "GRANT USAGE ON SCHEMA labelling TO fwo_ro;",
+            "GRANT SELECT ON ALL TABLES IN SCHEMA labelling TO fwo_ro;",
+            "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA labelling TO fwo_ro;",
+            "ALTER DEFAULT PRIVILEGES IN SCHEMA labelling GRANT SELECT ON TABLES TO fwo_ro;",
+            "ALTER DEFAULT PRIVILEGES IN SCHEMA labelling GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;"
+        ];
 
         private string creationTables = "";
         private string firewallTables = "";
@@ -187,6 +195,22 @@ namespace FWO.Test
                 {
                     Assert.That(fillStm, Does.Contain(deviceType), deviceType);
                     Assert.That(upgrade, Does.Contain(deviceType), deviceType);
+                }
+            });
+        }
+
+        /// <summary>
+        /// A new installation grants the read-only user every schema in db_schemata, but that task does not run on
+        /// upgrades, so the upgrade has to grant the labelling schema itself.
+        /// </summary>
+        [Test]
+        public void Upgrade_GrantsTheReadOnlyUserTheLabellingSchema()
+        {
+            Assert.Multiple(() =>
+            {
+                foreach (string grant in kReadOnlyGrants)
+                {
+                    Assert.That(upgrade, Does.Contain(grant), grant);
                 }
             });
         }

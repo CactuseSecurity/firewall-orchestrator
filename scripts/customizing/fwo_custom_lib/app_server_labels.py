@@ -8,11 +8,16 @@ from __future__ import annotations
 LABEL_COLUMN_PREFIX: str = "label:"
 
 
+def is_label_column(header: str) -> bool:
+    """Return whether a csv column holds a label ("label:<key>") rather than app data."""
+    return header.lower().startswith(LABEL_COLUMN_PREFIX)
+
+
 def find_label_columns(headers: list[str]) -> dict[int, str]:
     """Return the label key of every label column by its column number."""
     label_columns: dict[int, str] = {}
     for column_no, header in enumerate(headers):
-        if header.lower().startswith(LABEL_COLUMN_PREFIX):
+        if is_label_column(header):
             label_key: str = header[len(LABEL_COLUMN_PREFIX) :].strip()
             if label_key != "":
                 label_columns[column_no] = label_key

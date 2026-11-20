@@ -79,7 +79,7 @@ def build_port_service(proto_name: str, proto_number: int, port_range: PortRange
     )
 
 
-def build_protocol_service(proto_name: str, proto_number: int, icmp_match: GcIcmpMatch | None) -> ServiceObject:
+def build_protocol_service(proto_name: str, proto_number: int | None, icmp_match: GcIcmpMatch | None) -> ServiceObject:
     """Build a service for a whole protocol, narrowed to an ICMP type and codes if given."""
     name = proto_name
     if icmp_match is not None and icmp_match.icmp_type is not None:
@@ -109,19 +109,19 @@ def build_rule_services(rule: GcRule) -> list[ServiceObject]:
     """
     Build the services of a rule: every protocol combined with the rule's ports (TCP, UDP) or ICMP matches.
 
-    A rule without protocols matches any service. If no service is left (unknown protocols, all ports excluded),
-    the list is empty.
+    A rule without protocols matches any service. A protocol unknown to the importer is kept as a service of that
+    name without protocol number, so that the rule is not lost. If all ports are excluded, the list is empty.
     """
     if len(rule.ip_protocols) == 0:
         return [build_any_service()]
     services: list[ServiceObject] = []
     for protocol in rule.ip_protocols:
         proto_number = get_protocol_number(protocol)
-        if proto_number is None:
-            FWOLogger.warning(f"Guardicore rule {rule.id}: ignoring unknown protocol '{protocol}'")
-            continue
         proto_name = protocol.lower()
-        if proto_number in gc_const.GC_PORTED_PROTOCOLS:
+        if proto_number is None:
+            FWOLogger.warning(f"Guardicore rule {rule.id}: importing unknown protocol '{protocol}' without number")
+            services.append(build_protocol_service(proto_name, None, None))
+        elif proto_number in gc_const.GC_PORTED_PROTOCOLS:
             services += [build_port_service(proto_name, proto_number, rng) for rng in get_rule_port_ranges(rule)]
         elif proto_number in {gc_const.IP_PROTO_ICMP, gc_const.IP_PROTO_ICMPV6}:
             matches: list[GcIcmpMatch | None] = list(rule.icmp_matches) or [None]

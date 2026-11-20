@@ -15,7 +15,14 @@
   assets carrying the label), ANDed labels of a rule side become groups of the intersection of their IP addresses.
   Rules are split into chained rulebases named "<section number> <section> <ruleset>" so that their alphabetical
   order matches the Guardicore section order (override allow, override alert, override block, allow, alert, block).
-  Services are built from protocols, ports, port ranges, excluded ports and ICMP matches
+  Services are built from protocols, ports, port ranges, excluded ports and ICMP matches; a protocol unknown to the
+  importer becomes a service of that name without protocol number, so that the rule is kept. Rule side fields that
+  cannot be expressed as addresses (e.g. processes, domains, user groups) become empty placeholder groups
+  "Unsupported: <field>" instead of turning the side into "any". Paging follows the total the API reports, so a page
+  size capped by the API does not truncate the lists, and the host CA bundle is used for the certificate check
+- importer: the main loop imports every management with an importer module or a config URI instead of a fixed list of
+  device types; Generic Firewall managements only with a config file or URI, and Check Point MDS managements are left
+  to the import of their domains
 - importer: create a dummy FWO gateway when importing a Guardicore management without a registered gateway.
   Guardicore enforces policies on hosts; this record only groups policy links and rule assignments in FWO.
   Existing gateways are reused. Deploy both the importer changes and Hasura metadata to enable registration
@@ -53,8 +60,10 @@
   The key name is a global setting (appLabelKey, default App, under Settings - App Data Import; empty switches App
   labels off). The key is kept imported, global and multi-valued, also if it was created before by an importer
   - rules: the rule owner mapping keeps labelling.rule_label in line with the active rule_owner rows of the
-    configured mapping source, in full and incremental runs, with one label change event per run that carries the
-    import control id of the run. The first run of the middleware process, or the one after a failed sync, compares
+    configured mapping source, in full and incremental runs. The changes are stamped with the current relevant import
+    of the management of the rule (its last successful import with changes, or that of its super-manager if newer),
+    one label change event per import, so that rule reports show them right away; rules of managements without such
+    an import get the import control id of the run. The first run of the middleware process, or the one after a failed sync, compares
     all rules, which also fills the App labels of the existing mappings after the upgrade. Owners without app id are
     skipped
   - app servers: the app data import gives all active app servers of an imported owner the App label of the owner
@@ -101,7 +110,7 @@
 - variance analysis: on Guardicore managements app roles, app zones and network areas are compared with their labels
   (imported as groups "key: value" with one member per CIDR block) by their addresses; missing labels are created,
   changed ones get their members added and removed, app role, app zone and network area labels requested for the owner
-  whose modelled object does not exist any more (deleted or renamed) are deleted. Network area labels are requested while the device specific setting
+  whose modelled object does not exist any more (deleted or renamed) are deleted while fwWriteDeleteObjects is on. Network area labels are requested while the device specific setting
   modellingImplementNetworkAreaObjects is on; the device specific setting modellingCreateAppZones now switches the
   app zone requests per management. Host based firewall managements (Guardicore) are always analysed and requested,
   other managements still only while they have external management data
@@ -111,9 +120,14 @@
   its member objects
 - api: modeller, recertifier, reporter and reporter-viewall may read the device specific settings nodes and the
   values of modellingCreateAppZones, modellingImplementNetworkAreaObjects and provisioningExcludedObjectTypes, which
-  the variance analysis needs
+  the variance analysis needs; modeller, recertifier and reporter only the global and device type nodes and the
+  management and gateway nodes they may see
+- workflow: the action "Create implementation tasks" leaves out the gateways of other managements found by the path
+  analysis for access tasks of a Guardicore management (gateways of its sub-managements are kept); access tasks of
+  other vendors keep all gateways of the path analysis
 - upgrade: db upgrade file adds the labelling schema, the rule label columns and the Guardicore
-  device types to existing installations
+  device types to existing installations, and grants the read-only database user fwo_ro read access to the labelling
+  schema
   
 ## 9.8.4 - 26.10.2026
 ## 9.8.7 - 02.11.2026

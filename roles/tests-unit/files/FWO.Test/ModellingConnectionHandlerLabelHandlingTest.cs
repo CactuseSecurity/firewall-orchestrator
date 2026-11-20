@@ -191,7 +191,8 @@ namespace FWO.Test
             userConfig ??= new SimulatedUserConfig { LabelBasedModelling = true };
             userConfig.User.Dn = "uid=modeller";
             userConfig.User.Ownerships = kOwnershipOfApp1;
-            return new ModellingConnectionHandler(api, userConfig, Application, [connection], connection, false, false, DefaultInit.DoNothing, DefaultInit.DoNothing, true);
+            List<ModellingConnection> connections = [connection];
+            return new ModellingConnectionHandler(api, userConfig, Application, connections, connection, false, false, DefaultInit.DoNothing, DefaultInit.DoNothing, true);
         }
 
         private static LabelValue Label(long id, string key, string value)

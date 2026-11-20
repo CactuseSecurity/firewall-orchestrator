@@ -32,8 +32,8 @@ namespace FWO.Test
         private static readonly List<int?> kNoManagement = [null];
         private static readonly List<int?> kExistingAndSecondSubManagement = [kFirstSubManagementId, kSecondSubManagementId];
         private static readonly List<int?> kAllGateways = [1, 2, 3];
-        private static readonly List<int?> kRemainingGateways = [2];
-        private static readonly List<int?> kGatewaysOfSubManagements = [1, 2];
+        private static readonly List<int?> kRemainingGateways = [2, 3];
+        private static readonly List<int?> kAllGatewayTasks = [1, 2, 3];
         private static readonly List<int> kOffsetsOfTwoSinglePages = [0, 1];
         private static readonly List<int> kGatewayIds = [1, 2, 3];
 
@@ -485,7 +485,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AccessTask_OfSuperManagement_GetsOnlyGatewaysOfItsSubManagements()
+        public async Task AccessTask_OfCheckPointSuperManagement_KeepsAllGatewaysOfThePathAnalysis()
         {
             InMemoryDeviceSpecificSettingsApiConnection api = CreateApi(ProvisioningObjectCreationMode.Supermanager);
             api.SetValue(kGlobalNodeId, DeviceSpecificSettingKeys.AutoPlanImplementationForRules, true);
@@ -498,8 +498,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(DeviceIds(reqTask), Is.EqualTo(kGatewaysOfSubManagements), "the gateway of the other management is left out");
-                Assert.That(handler.Managements, Is.Not.Empty, "the middleware loads the management hierarchy when needed");
+                Assert.That(DeviceIds(reqTask), Is.EqualTo(kAllGatewayTasks), "only Guardicore tasks leave out gateways of other managements");
+                Assert.That(handler.Managements, Is.Not.Empty, "the middleware loads the management hierarchy to tell the vendor");
             });
         }
 

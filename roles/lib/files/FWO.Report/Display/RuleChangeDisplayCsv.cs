@@ -119,7 +119,7 @@ namespace FWO.Ui.Display
         /// </summary>
         public string DisplaySourceLabelsCsv(RuleChange ruleChange)
         {
-            return ShowSourceLabelField ? EscapedCsv(DisplayLabelChange(ruleChange, rule => FormatSideLabelsCsv(rule.SourceLabels))) : "";
+            return ShowSourceLabelField ? OutputCsv(DisplayLabelChange(ruleChange, rule => FormatSideLabelsCsv(rule.SourceLabels))) : "";
         }
 
         /// <summary>
@@ -127,7 +127,7 @@ namespace FWO.Ui.Display
         /// </summary>
         public string DisplayDestinationLabelsCsv(RuleChange ruleChange)
         {
-            return ShowDestinationLabelField ? EscapedCsv(DisplayLabelChange(ruleChange, rule => FormatSideLabelsCsv(rule.DestinationLabels))) : "";
+            return ShowDestinationLabelField ? OutputCsv(DisplayLabelChange(ruleChange, rule => FormatSideLabelsCsv(rule.DestinationLabels))) : "";
         }
 
         /// <summary>
@@ -135,7 +135,7 @@ namespace FWO.Ui.Display
         /// </summary>
         public string DisplayRuleLabelsCsv(RuleChange ruleChange)
         {
-            return ShowRuleLevelLabels ? EscapedCsv(DisplayLabelChange(ruleChange, rule => RuleLabelFormatter.FormatRuleLabels(rule.RuleLabels))) : "";
+            return ShowRuleLevelLabels ? OutputCsv(DisplayLabelChange(ruleChange, rule => RuleLabelFormatter.FormatRuleLabels(rule.RuleLabels))) : "";
         }
 
         private string DisplayLabelChange(RuleChange ruleChange, Func<Rule, string> displayLabels)

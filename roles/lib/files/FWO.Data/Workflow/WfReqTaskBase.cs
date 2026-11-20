@@ -32,6 +32,10 @@ namespace FWO.Data.Workflow
         public const string AppRoleId = "AppRoleId";
         public const string SvcGrpId = "SvcGrpId";
         public const string FlowBundleId = "FlowBundleId";
+        /// <summary>Extra configurations of the modelled connection as requested, see ModellingRequestExtraConfigs.</summary>
+        public const string ExtraConfigs = "ExtraConfigs";
+        /// <summary>Extra configurations of the interface the modelled connection uses, as requested.</summary>
+        public const string InterfaceExtraConfigs = "InterfaceExtraConfigs";
     }
 
     public class WfReqTaskBase : WfTaskBase

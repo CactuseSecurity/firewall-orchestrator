@@ -36,6 +36,12 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
     /// <summary>Network areas returned for the query of network areas, filtered by the ids of its where variable.</summary>
     public List<FWO.Data.Modelling.ModellingNetworkArea> NetworkAreas { get; } = [];
 
+    /// <summary>Imported network objects returned for the query of imported objects of given types, filtered by management and type.</summary>
+    public List<(int ManagementId, NetworkObject Object)> ImportedObjects { get; } = [];
+
+    /// <summary>Management ids of the imported object queries, one list per query.</summary>
+    public List<List<int>> ImportedObjectManagementIds { get; } = [];
+
     public string? FailingQuery { get; set; }
 
     public Exception? Failure { get; set; }
@@ -75,6 +81,17 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
         object? idFilter = where?.GetType().GetProperty("id")?.GetValue(where);
         List<long> ids = idFilter?.GetType().GetProperty("_in")?.GetValue(idFilter) as List<long> ?? [];
         return [.. NetworkAreas.Where(area => ids.Contains(area.Id))];
+    }
+
+    /// <summary>Imported objects of the managements and types of the getImportedObjectsOfTypes variables.</summary>
+    private List<NetworkObject> ImportedObjectsOfTypes(object? variables)
+    {
+        List<int> managementIds = RequiredProperty<List<int>>(RequiredVariables(variables), "mgmIds");
+        List<string> objectTypes = RequiredProperty<List<string>>(RequiredVariables(variables), "objTypes");
+        ImportedObjectManagementIds.Add(managementIds);
+        return [.. ImportedObjects
+            .Where(imported => managementIds.Contains(imported.ManagementId) && objectTypes.Contains(imported.Object.Type.Name))
+            .Select(imported => imported.Object)];
     }
 
     /// <summary>Optional test hook that can pause a query after it has been recorded and before it is applied.</summary>
@@ -179,6 +196,7 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
             _ when query == DeviceSpecificSettingsQueries.deleteOverrides => DeleteOverrides(variables),
             _ when query == ModellingQueries.getConnectionById => ConnectionsById(variables),
             _ when query == ModellingQueries.getNetworkAreas => NetworkAreasByIds(variables),
+            _ when query == ObjectQueries.getImportedObjectsOfTypes => ImportedObjectsOfTypes(variables),
             _ when query == MonitorQueries.getOpenAlerts => new List<Alert>(),
             _ when query == MonitorQueries.addAlert => new ReturnIdWrapper(),
             _ => throw new InvalidOperationException("Unexpected device specific settings query.")

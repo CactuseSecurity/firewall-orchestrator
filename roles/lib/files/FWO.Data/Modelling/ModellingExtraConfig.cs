@@ -31,21 +31,21 @@ namespace FWO.Data.Modelling
         /// </summary>
         public bool IsSpecialUser()
         {
-            string type = ExtraConfigType.ToLower();
-            return type.EndsWith(GlobalConst.k_user) || type.EndsWith(GlobalConst.k_user2);
+            return ExtraConfigType.EndsWith(GlobalConst.k_user, StringComparison.OrdinalIgnoreCase)
+                || ExtraConfigType.EndsWith(GlobalConst.k_user2, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
         /// Whether the entry names an updatable object standing in for a placeholder area of the "Network Areas for
         /// Updatable Objects": its type starts with "updatable", ignoring case.
         /// </summary>
-        public bool IsUpdatableObject() => ExtraConfigType.ToLower().StartsWith(GlobalConst.kUpdatable);
+        public bool IsUpdatableObject() => ExtraConfigType.StartsWith(GlobalConst.kUpdatable, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Whether the entry marks its connection as for documentation only: its type starts with "Doku_".</summary>
         public bool IsDocumentationOnly() => ExtraConfigType.StartsWith(GlobalConst.kDoku_);
 
         /// <summary>Whether the entry asks for network address translation: its type is "NAT", ignoring case.</summary>
-        public bool IsNat() => ExtraConfigType.ToUpper() == GlobalConst.kNAT;
+        public bool IsNat() => string.Equals(ExtraConfigType, GlobalConst.kNAT, StringComparison.OrdinalIgnoreCase);
 
         public string Display()
         {

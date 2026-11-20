@@ -50,7 +50,16 @@ namespace FWO.Test
 
         private static ModellingExtraConfig Config(string type, string text) => new() { ExtraConfigType = type, ExtraConfigText = text };
 
-        private static ModellingPlaceholderInput Input(params ModellingExtraConfig[] extraConfigs) => new(kAreas, extraConfigs.ToList(), kNoExtraConfigs);
+        private const int kManagementId = 5;
+        private static readonly Dictionary<ModellingPlaceholderKind, IReadOnlySet<string>> kImportedObjects = new()
+        {
+            [ModellingPlaceholderKind.User] = kTwoAccessRoles.ToHashSet(StringComparer.OrdinalIgnoreCase),
+            [ModellingPlaceholderKind.UpdatableObject] = kExchange.ToHashSet(StringComparer.OrdinalIgnoreCase)
+        };
+
+        /// <summary>Input with the extra configurations as requested and the objects imported from the target management.</summary>
+        private static ModellingPlaceholderInput Input(params ModellingExtraConfig[] extraConfigs) =>
+            new(kAreas, extraConfigs.ToList(), kNoExtraConfigs) { ManagementId = kManagementId, ImportedObjectNames = kImportedObjects };
 
         private static List<string> NamesOn(WfImplTask task, ElemFieldType field) =>
             task.ImplElements.Where(element => element.Field == field.ToString() && element.GroupName != null).Select(element => element.GroupName!).ToList();
@@ -280,6 +289,81 @@ namespace FWO.Test
                 Assert.That(result.IsWritable, Is.True);
                 Assert.That(result.ImplTask, Is.SameAs(task));
             }
+        }
+
+        [TestCase("Any")]
+        [TestCase("NA_Server")]
+        [TestCase("Exchange Online China Services")]
+        public void Access_UserObjectNotImportedAsAccessRole_IsNotWritable(string name)
+        {
+            WfImplTask task = Task(WfTaskType.access, Group(kUserArea, ElemFieldType.source), Group(kOtherArea, ElemFieldType.destination), Service());
+
+            ModellingPlaceholderResult result = ModellingPlaceholderSubstitution.Apply(task, Input(Config(kUserType, "a_testUser"), Config(kUserType, name)));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.IsWritable, Is.False);
+                Assert.That(result.NotWritableReason, Does.Contain($"'{name}' is no access role imported from management {kManagementId}"));
+                Assert.That(result.ImplTask, Is.SameAs(task));
+            }
+        }
+
+        [Test]
+        public void Access_UpdatableObjectNotImported_IsNotWritable()
+        {
+            WfImplTask task = Task(WfTaskType.access, Group(kOtherArea, ElemFieldType.source), Group(kUpdatableArea, ElemFieldType.destination), Service());
+
+            ModellingPlaceholderResult result = ModellingPlaceholderSubstitution.Apply(task, Input(Config(kUpdatableType, "a_testUser")));
+
+            Assert.That(result.NotWritableReason, Does.Contain("'a_testUser' is no updatable object imported"));
+        }
+
+        [Test]
+        public void Access_ImportedObjectsNotLoaded_IsNotWritable()
+        {
+            WfImplTask task = Task(WfTaskType.access, Group(kUserArea, ElemFieldType.source), Group(kOtherArea, ElemFieldType.destination), Service());
+            ModellingPlaceholderInput input = Input(Config(kUserType, "a_testUser")) with { ImportedObjectNames = null, ManagementId = null };
+
+            ModellingPlaceholderResult result = ModellingPlaceholderSubstitution.Apply(task, input);
+
+            Assert.That(result.NotWritableReason, Does.Contain("imported objects of the target management could not be checked"));
+        }
+
+        [Test]
+        public void Access_RequestTaskWithoutSavedExtraConfigs_IsNotSubstituted()
+        {
+            WfImplTask task = Task(WfTaskType.access, Group(kUserArea, ElemFieldType.source), Group(kOtherArea, ElemFieldType.destination), Service());
+            ModellingPlaceholderInput input = Input(Config(kUserType, "a_testUser")) with { ExtraConfigsFromRequest = false };
+
+            ModellingPlaceholderResult result = ModellingPlaceholderSubstitution.Apply(task, input);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.IsWritable, Is.False);
+                Assert.That(result.NotWritableReason, Does.Contain("created before the extra configurations were saved"));
+            }
+        }
+
+        [Test]
+        public void Access_RequestTaskWithoutSavedExtraConfigs_IsStillStoppedByNat()
+        {
+            WfImplTask task = Task(WfTaskType.access, Group(kOtherArea, ElemFieldType.source), Group(kOtherArea, ElemFieldType.destination), Service());
+            ModellingPlaceholderInput input = Input(Config("NAT", "")) with { ExtraConfigsFromRequest = false };
+
+            ModellingPlaceholderResult result = ModellingPlaceholderSubstitution.Apply(task, input);
+
+            Assert.That(result.NotWritableReason, Does.Contain("'NAT'"));
+        }
+
+        [Test]
+        public void Access_RequestTaskWithoutSavedExtraConfigsAndPlaceholders_IsNotChanged()
+        {
+            WfImplTask task = Task(WfTaskType.access, Group(kOtherArea, ElemFieldType.source), Group(kOtherArea, ElemFieldType.destination), Service());
+            ModellingPlaceholderInput input = new ModellingPlaceholderInput(kAreas, kNoExtraConfigs, kNoExtraConfigs) { ExtraConfigsFromRequest = false };
+
+            ModellingPlaceholderResult result = ModellingPlaceholderSubstitution.Apply(task, input);
+
+            Assert.That(result.ImplTask, Is.SameAs(task));
         }
 
         [Test]

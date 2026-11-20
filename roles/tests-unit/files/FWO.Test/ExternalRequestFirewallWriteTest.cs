@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
@@ -9,6 +10,7 @@ using FWO.ExternalSystems.FirewallWrite;
 using FWO.Middleware.Server;
 using FWO.Services.Workflow;
 using NUnit.Framework;
+using System.Text.Json;
 
 namespace FWO.Test
 {
@@ -66,6 +68,9 @@ namespace FWO.Test
             /// <summary>Network areas returned for the query of network areas.</summary>
             public List<ModellingNetworkArea> NetworkAreas { get; } = [];
 
+            /// <summary>Objects imported from the management, returned for the query of imported objects of given types.</summary>
+            public List<NetworkObject> ImportedObjects { get; } = [];
+
             /// <summary>Requests of the implementation task writing a shared rule, returned newest first.</summary>
             public List<ExternalRequest> WriterRequests { get; } = [];
 
@@ -91,6 +96,14 @@ namespace FWO.Test
                 if (query == ModellingQueries.getNetworkAreas)
                 {
                     return (QueryResponseType)(object)NetworkAreas;
+                }
+                if (query == ObjectQueries.getImportedObjectsOfTypes)
+                {
+                    return (QueryResponseType)(object)ImportedObjects;
+                }
+                if (query == DeviceQueries.getManagementHierarchy)
+                {
+                    return (QueryResponseType)(object)new List<Management> { new() { Id = kManagementId } };
                 }
                 if (query == MonitorQueries.getOpenAlerts)
                 {
@@ -192,13 +205,15 @@ namespace FWO.Test
 
         /// <summary>
         /// Makes the first request task an access request of the owner for the modelled connection, whose rule has the
-        /// placeholder area for users in its source, and lets the api know the area and the connection.
+        /// placeholder area for users in its source, with the extra configurations saved as requested, and lets the api
+        /// know the area, the connection and the access role imported from the management.
         /// </summary>
         private static void UsePlaceholderConnection(WfTicket ticket, FirewallWriteApiConn apiConnection, params ModellingExtraConfig[] extraConfigs)
         {
             WfReqTask reqTask = ticket.Tasks[0];
+            ModellingConnection connection = new() { Id = kConnectionId, AppId = kOwnerId, ExtraConfigs = extraConfigs.ToList() };
             reqTask.TaskType = WfTaskType.access.ToString();
-            reqTask.AdditionalInfo = $"{{\"ConnId\":\"{kConnectionId}\"}}";
+            reqTask.AdditionalInfo = JsonSerializer.Serialize(ModellingRequestExtraConfigs.AdditionalInfo(connection));
             reqTask.Owners.Add(new FwoOwnerDataHelper { Owner = new FwoOwner { Id = kOwnerId } });
             foreach (WfImplTask implTask in reqTask.ImplementationTasks)
             {
@@ -207,7 +222,12 @@ namespace FWO.Test
                 implTask.ImplElements.Add(new WfImplElement { Id = 2, GroupName = "NA_Server", Field = ElemFieldType.destination.ToString() });
             }
             apiConnection.NetworkAreas.Add(new ModellingNetworkArea { Id = kUserAreaId, IdString = kUserAreaName });
-            apiConnection.Connections.Add(new ModellingConnection { Id = kConnectionId, AppId = kOwnerId, ExtraConfigs = extraConfigs.ToList() });
+            apiConnection.Connections.Add(connection);
+            apiConnection.ImportedObjects.Add(new NetworkObject
+            {
+                Name = "a_testUser",
+                Type = new NetworkObjectType { Name = ObjectType.AccessRole }
+            });
         }
 
         private const string kSingleImplTaskVariables = "{\"ManagementId\":[1],\"SingleImplTask\":[1]}";

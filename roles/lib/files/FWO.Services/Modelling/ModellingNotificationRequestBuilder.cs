@@ -31,7 +31,7 @@ namespace FWO.Services.Modelling
 
         private WfReqTask BuildAccessTask(ModellingConnection connection, FwoOwner owner, int stateId, int taskNumber)
         {
-            Dictionary<string, string> addInfo = new() { { AdditionalInfoKeys.ConnId, connection.Id.ToString() } };
+            Dictionary<string, string> addInfo = ModellingRequestExtraConfigs.AdditionalInfo(connection);
             return new()
             {
                 Title = BuildTitle(connection),

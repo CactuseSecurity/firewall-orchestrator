@@ -32,6 +32,7 @@ namespace FWO.Test
         private static readonly List<string> kSelectors = ["owner", "ip", "uid"];
         private static readonly List<string> kAccessRuleConditionKeys = ["access_rule"];
         private static readonly Language[] kLanguages = [new Language { Name = "English", CultureInfo = "en-US" }];
+        private static readonly System.Text.Json.JsonSerializerOptions kWebJsonOptions = new(System.Text.Json.JsonSerializerDefaults.Web);
 
         [TestCaseSource(nameof(kSelectors))]
         public async Task GetRulesByFilter_WithoutRuleTypes_ReturnsNoNatRules(string selector)
@@ -184,8 +185,7 @@ namespace FWO.Test
         {
             const string json = "{\"query\":{\"ruleUid\":\"x\"},\"options\":{\"filter\":{\"ruleTypes\":[\"access\",\"nat\"]}}}";
 
-            RulesByFilterRequest request = System.Text.Json.JsonSerializer.Deserialize<RulesByFilterRequest>(json,
-                new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+            RulesByFilterRequest request = System.Text.Json.JsonSerializer.Deserialize<RulesByFilterRequest>(json, kWebJsonOptions)!;
 
             Assert.That(request.Options?.Filter?.RuleTypes, Is.EqualTo(kAccessAndNat));
         }

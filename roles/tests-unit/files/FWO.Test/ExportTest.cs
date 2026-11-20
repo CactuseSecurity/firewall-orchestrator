@@ -1695,7 +1695,7 @@ namespace FWO.Test
             RulebaseReport rulebase = managementData.Rulebases.Single();
             managementData.Devices =
             [
-                CreateRuleTree(-1, "Start A", rulebase.Id, new Dictionary<int, int>()),
+                CreateRuleTree(-1, "Start A", rulebase.Id, []),
                 CreateRuleTree(-2, "Start B", rulebase.Id, new Dictionary<int, int> { [rulebase.Id] = -1 })
             ];
             reportRules.TryBuildMockRuleTree();

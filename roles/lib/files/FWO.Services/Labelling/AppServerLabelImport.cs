@@ -312,7 +312,7 @@ namespace FWO.Services.Labelling
                 key_source_internal = false,
                 label_values = new
                 {
-                    data = group.Select(label => new { value = label.value, is_imported = true }).ToList(),
+                    data = group.Select(label => new { label.value, is_imported = true }).ToList(),
                     on_conflict = new { constraint = kLabelValueConstraint, update_columns = kLabelValueUpdateColumns }
                 }
             }).ToList();

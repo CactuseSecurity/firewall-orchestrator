@@ -60,7 +60,7 @@ namespace FWO.Data
             {
                 result[label.Name] = label.Value.Type == JTokenType.Array
                     ? label.Value.Values<string>().OfType<string>().ToList()
-                    : new List<string> { label.Value.Value<string>() ?? "" };
+                    : [label.Value.Value<string>() ?? ""];
             }
             return result;
         }

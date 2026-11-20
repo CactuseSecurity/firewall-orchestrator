@@ -133,7 +133,7 @@ unauthenticated requests from turning into a flood of directory operations, the 
 | Limit | Default | Answer when exceeded |
 |---|---|---|
 | Credentialed login attempts per client address and minute | 30 | `429` with `A0006` and `Retry-After` |
-| Failed logins per user name and client address and minute (running attempts count as possible failures) | 10 | `429` with `A0006` and `Retry-After` |
+| Failed logins per user name and calling host and minute (running attempts count as possible failures) | 10 | `429` with `A0006` and `Retry-After` |
 | Active LDAP connections one login may be tried against | 16 | `503` with `A0007` (logged as error) |
 | Logins waiting for LDAP at the same time | 32 | `429` with `A0006` |
 | LDAP operations running at the same time (user searches, password checks, group and role lookups of all logins) | 4 | queued until a slot is free |
@@ -147,16 +147,47 @@ more than 10 s for a login cannot be used for logins.
 Token refreshes are not rate limited, as they require a valid refresh token, but share the deadline; a refresh that
 runs out of time answers `503` without consuming the token.
 
-The client address is the one the local Apache reverse proxy appends to `X-Forwarded-For`. Addresses of the
-middleware host itself and the UI hosts are exempt from the per-client limit, because every login through the UI
-arrives from the UI server's address. The per-user failure limit still applies to them, so repeated wrong
-passwords for one user through the UI block further attempts for that user from the UI for up to a minute.
+The address of the calling host is the one the local Apache reverse proxy appends to `X-Forwarded-For`. The
+middleware host itself and the UI hosts (`login_trusted_client_hosts`) are trusted callers:
+
+- Their own address is exempt from the per-client limit.
+- They may report the client they log in for in `options.clientAddress` of `GetTokenPair` (and of the deprecated
+  `Get`). The login is then limited and logged with that address. The UI reports the address of the browser, which
+  it reads from the `X-Forwarded-For` entry appended by its own Apache reverse proxy.
+
+Logins through the UI are therefore limited per browser address, like direct logins, and no longer share the
+exemption of the UI server. Users who reach the UI through one shared address (NAT, terminal server) share the limit
+of that address; raise `login_client_attempts_per_minute` if 30 logins per minute are not enough for them. If
+another reverse proxy runs in front of the UI's Apache (e.g. with `ui_comm_mode=allow_http`), every UI user arrives
+with the address of that proxy: add it to `login_trusted_client_hosts` to exempt it from the per-client limit.
+
+`options.clientAddress` has to be exactly one IPv4 or IPv6 address in canonical notation, without port, brackets or
+scope id. Any other value is answered with `400` for every caller. A valid value from a caller that is not trusted
+is ignored and the address of the caller is used, so that a client cannot choose the address it is limited and
+logged with. This also applies to a UI on another host that is missing in `login_trusted_client_hosts`: its logins
+are limited and logged with the address of the UI host. Anyone who can send requests from a trusted host can report
+any client address, so keep the access to these hosts restricted.
+
+The per-user failure limit is counted per calling host, not per reported client: a trusted caller could otherwise
+evade it by reporting a new address with every attempt. Repeated wrong passwords for one user through the UI
+therefore block further attempts for that user from the UI for up to a minute, from whatever browser they come.
 This includes service accounts such as `importer` when they log in from the same host as the UI.
 
-As logins through the UI are not limited per client, the limits that apply to all logins together (logins waiting
-for LDAP, LDAP operations at the same time) can be reached by anyone who sends many logins with arbitrary user names
-through the UI login form. Other users then get `429` or `503` until the flood stops; the directories themselves are
-not overloaded.
+The limits that apply to all logins together (logins waiting for LDAP, LDAP operations at the same time) can still
+be reached by many logins with arbitrary user names from many addresses. Other users then get `429` or `503` until
+the flood stops; the directories themselves are not overloaded.
+
+### Client address in the logs
+
+Apache runs as reverse proxy in front of the UI and the middleware, so both would only see `127.0.0.1` as the source
+of a request. They therefore take the address of the client from the `X-Forwarded-For` entry Apache appends. Only
+that last entry is used and only from the local proxy, so an address a client sends in the header itself is ignored.
+
+- The UI logs the address of the browser with successful and failed logins, logouts and sessions it ends because
+  they were revoked (`from client address ...`). The address is read when the page is requested and kept for the
+  session; it is logged as `unknown` if it could not be determined.
+- The middleware logs the address with issued tokens, failed logins and logins refused by the login limits
+  (`from client ...`). For logins through the UI this is the address of the browser as reported by the UI.
 
 The limits can be changed in `/etc/fworch/fworch.json`; the middleware reads them at startup:
 

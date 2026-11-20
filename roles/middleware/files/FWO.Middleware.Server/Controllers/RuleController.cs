@@ -112,9 +112,11 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
     /// Returns firewall rules that match the specified filtering options.
     /// </summary>
     /// <remarks>
-    /// Exactly one of <c>OwnerId</c> or <c>IpAddress</c> must be provided in the request query.
+    /// Exactly one of <c>OwnerId</c>, <c>IpAddress</c> or <c>RuleUid</c> must be provided in the request query.
     /// When <c>OwnerId</c> is set, all rules mapped to the given owner are returned.
     /// When <c>IpAddress</c> is set, rules are filtered by IP range using the supplied <c>Filter</c> fields.
+    /// When <c>RuleUid</c> is set, it must not exceed <see cref="RulesByFilterQuery.kMaxRuleUidLength"/> characters;
+    /// all current rules with that exact UID are returned and <c>Filter</c> is ignored.
     /// Rules are ordered by rule id, so <c>options.limit</c> and <c>options.offset</c> page the result
     /// deterministically. Without a limit a page of at most the configured <c>maxRestResponseObjectLimit</c> rules
     /// (default 10000) is returned; <c>result.count</c> is the number of rules in the page, and the
@@ -124,7 +126,7 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
     /// An <see cref="ActionResult{T}"/> containing a <see cref="RulesByFilterResponse"/> on success,
     /// or a suitable error result on failure.
     /// </returns>
-    /// <param name="request">The owner- or IP-based rule filter request.</param>
+    /// <param name="request">The owner-, IP- or rule-UID-based rule filter request.</param>
     /// <param name="requestId">Optional client request identifier supplied through the <c>X-Request-Id</c> header.</param>
     [HttpPost("GetRulesByFilter")]
     [EnableRateLimiting(ApiRateLimiting.kExpensivePolicy)]
@@ -139,7 +141,10 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
         string siemResult = kSiemResultError;
         try
         {
-            string? filterSelectionValidationError = ValidateFilterSelection(request.Query.OwnerId, request.Query.IpAddress);
+            string? filterSelectionValidationError = ValidateFilterSelection(
+                request.Query.OwnerId,
+                request.Query.IpAddress,
+                request.Query.RuleUid);
             if (filterSelectionValidationError is not null)
             {
                 siemResult = kSiemResultRejected;
@@ -164,6 +169,13 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
             {
                 rules = await FetchRulesByOwnerId(
                     request.Query.OwnerId.Value,
+                    page,
+                    userConfig);
+            }
+            else if (!string.IsNullOrWhiteSpace(request.Query.RuleUid))
+            {
+                rules = await FetchRulesByRuleUid(
+                    request.Query.RuleUid,
                     page,
                     userConfig);
             }
@@ -199,19 +211,26 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
         }
     }
 
-    private static string? ValidateFilterSelection(int? ownerId, string? ipAddress)
+    private static string? ValidateFilterSelection(int? ownerId, string? ipAddress, string? ruleUid)
     {
         bool hasOwnerId = ownerId is not null;
         bool hasIpAddress = !string.IsNullOrWhiteSpace(ipAddress);
+        bool hasRuleUid = !string.IsNullOrWhiteSpace(ruleUid);
+        int selectorCount = Convert.ToInt32(hasOwnerId) + Convert.ToInt32(hasIpAddress) + Convert.ToInt32(hasRuleUid);
 
-        if (hasOwnerId && hasIpAddress)
+        if (selectorCount > 1)
         {
-            return "Exactly one of OwnerId or IpAddress must be provided.";
+            return "Exactly one of OwnerId, IpAddress or RuleUid must be provided.";
         }
 
-        if (!hasOwnerId && !hasIpAddress)
+        if (selectorCount == 0)
         {
-            return "Either OwnerId or IpAddress must be provided.";
+            return "Either OwnerId, IpAddress or RuleUid must be provided.";
+        }
+
+        if (ruleUid?.Length > RulesByFilterQuery.kMaxRuleUidLength)
+        {
+            return $"RuleUid must not exceed {RulesByFilterQuery.kMaxRuleUidLength} characters.";
         }
 
         return null;
@@ -320,6 +339,17 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
         {
             fields.Add($"IpAddress: {QuoteSiemValue(request.Query.IpAddress)}");
         }
+        if (request.Query.RuleUid is not null)
+        {
+            string ruleUidPreview = request.Query.RuleUid[..Math.Min(
+                request.Query.RuleUid.Length,
+                RulesByFilterQuery.kMaxRuleUidLength)];
+            fields.Add($"RuleUid: {QuoteSiemValue(ruleUidPreview)}");
+            if (request.Query.RuleUid.Length > RulesByFilterQuery.kMaxRuleUidLength)
+            {
+                fields.Add($"RuleUidLength: {request.Query.RuleUid.Length}");
+            }
+        }
         if (request.Query.Filter is not null)
         {
             fields.Add("Filter: {"
@@ -345,12 +375,24 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
     private async Task<ListPage<RuleDetail>> FetchRulesByOwnerId(int ownerId, RulePage page,
         UserConfig userConfig)
     {
-        List<int> orderedRuleIds = [.. (await GetRuleIdsByOwnerId(ownerId)).Distinct().Order()];
-        ListPage<int> ruleIdPage = ListPage<int>.FromOrderedItems(orderedRuleIds, page.PageSize, page.Offset);
+        List<long> orderedRuleIds = [.. (await GetRuleIdsByOwnerId(ownerId)).Distinct().Order()];
+        ListPage<long> ruleIdPage = ListPage<long>.FromOrderedItems(orderedRuleIds, page.PageSize, page.Offset);
         return new ListPage<RuleDetail>(await GetRulesByIdsAsync(ruleIdPage.Items, userConfig), ruleIdPage.HasMore);
     }
 
-    private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<int> ruleIds, UserConfig userConfig)
+    /// <summary>
+    /// Returns one page of the current rules with the exact UID. The page is cut from ordered rule ids, so only the
+    /// details of the rules of the page are fetched.
+    /// </summary>
+    private async Task<ListPage<RuleDetail>> FetchRulesByRuleUid(string ruleUid, RulePage page,
+        UserConfig userConfig)
+    {
+        List<long> orderedRuleIds = [.. (await GetRuleIdsByRuleUid(ruleUid)).Distinct().Order()];
+        ListPage<long> ruleIdPage = ListPage<long>.FromOrderedItems(orderedRuleIds, page.PageSize, page.Offset);
+        return new ListPage<RuleDetail>(await GetRulesByIdsAsync(ruleIdPage.Items, userConfig), ruleIdPage.HasMore);
+    }
+
+    private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<long> ruleIds, UserConfig userConfig)
     {
         if (ruleIds.Count == 0)
             return new List<RuleDetail>();
@@ -367,7 +409,7 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
         return ConvertRuleList(orderedRules, userConfig);
     }
 
-    private async Task<List<int>> GetRuleIdsByOwnerId(int ownerId)
+    private async Task<List<long>> GetRuleIdsByOwnerId(int ownerId)
     {
         var query = RuleQueries.getRuleIdsByRuleOwner;
 
@@ -381,6 +423,25 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
 
         return result
             .Select(r => r.RuleId)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Gets the database ids of all current rules whose UID exactly matches the supplied value.
+    /// </summary>
+    private async Task<List<long>> GetRuleIdsByRuleUid(string ruleUid)
+    {
+        var query = RuleQueries.getRuleIdsByRuleUid;
+
+        var variables = new
+        {
+            ruleUid
+        };
+
+        var result = await apiConnection.SendQueryAsync<List<RuleOwnerItem>>(query, variables);
+
+        return result
+            .Select(rule => rule.RuleId)
             .ToList();
     }
 
@@ -742,8 +803,19 @@ public class RulesByFilterOptions
 
 public class RulesByFilterQuery
 {
+    /// <summary>
+    /// Maximum length of the exact rule UID selector.
+    /// </summary>
+    public const int kMaxRuleUidLength = 256;
+
     public int? OwnerId { get; set; }
     public string? IpAddress { get; set; }
+
+    /// <summary>
+    /// Exact rule UID selector of at most <see cref="kMaxRuleUidLength"/> characters.
+    /// Null, empty or whitespace is treated as not supplied.
+    /// </summary>
+    public string? RuleUid { get; set; }
 
     public RuleFilter? Filter { get; set; }
 }
@@ -878,6 +950,6 @@ public class RequestContext
 
 public class RuleOwnerItem
 {
-    [JsonProperty("rule_id")] public int RuleId { get; set; }
+    [JsonProperty("rule_id")] public long RuleId { get; set; }
 }
 #pragma warning restore CS1591

@@ -200,6 +200,20 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('pathAnalysis
 INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRollback', 'false', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('designatedZoneMatrix', '0', 0);
 
+-- keys of personal settings (properties marked [UserConfigData] in ConfigData.cs)
+INSERT INTO config_user_key (config_key) VALUES ('maxMessages');
+INSERT INTO config_user_key (config_key) VALUES ('elementsPerFetch');
+INSERT INTO config_user_key (config_key) VALUES ('defaultManagementRulebaseView');
+INSERT INTO config_user_key (config_key) VALUES ('unusedTolerance');
+INSERT INTO config_user_key (config_key) VALUES ('creationTolerance');
+INSERT INTO config_user_key (config_key) VALUES ('recertificationDisplayPeriod');
+INSERT INTO config_user_key (config_key) VALUES ('minCollapseAllDevices');
+INSERT INTO config_user_key (config_key) VALUES ('messageViewTime');
+INSERT INTO config_user_key (config_key) VALUES ('overviewDisplayLines');
+INSERT INTO config_user_key (config_key) VALUES ('modIconify');
+INSERT INTO config_user_key (config_key) VALUES ('resolveNetworkAreas');
+INSERT INTO config_user_key (config_key) VALUES ('reportingPersonalPreferredCollapseState');
+
 INSERT INTO device_specific_config_node (node_type, object_key, display_name, sort_order)
 VALUES ('global', 'global', 'Global', 0)
 ON CONFLICT (node_type, object_key) DO NOTHING;

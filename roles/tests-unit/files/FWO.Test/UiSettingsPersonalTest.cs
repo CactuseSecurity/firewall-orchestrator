@@ -45,6 +45,20 @@ namespace FWO.Test
             Roles.Modeller
         ];
 
+        private const int kChangedGlobalUnusedTolerance = 500;
+        private const string kChangedGlobalWelcomeMessage = "changed welcome message";
+
+        /// <summary>
+        /// Global rows after an admin changed a global setting and the global value of a personal setting.
+        /// </summary>
+        private static readonly ConfigItem[] kGlobalItemsChangedWhilePageIsOpen =
+        [
+            new() { Key = "welcomeMessage", Value = kChangedGlobalWelcomeMessage, User = 0 },
+            new() { Key = "unusedTolerance", Value = kChangedGlobalUnusedTolerance.ToString(), User = 0 }
+        ];
+        private static readonly string[] kFirstSaveKeys = ["elementsPerFetch"];
+        private static readonly string[] kSecondSaveKeys = ["messageViewTime"];
+
         [Test]
         public async Task SettingsPersonal_RendersSharedAndRoleGatedSections_ForPrivilegedUser()
         {
@@ -120,6 +134,37 @@ namespace FWO.Test
             {
                 Assert.That(apiConnection.UpdateUserLanguageCallCount, Is.Zero);
                 Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+            });
+        }
+
+        /// <summary>
+        /// Saving writes only the settings changed on the page: global values changed while the page is open are not
+        /// stored as personal values, and a second save writes only what changed since the first one.
+        /// </summary>
+        [Test]
+        public async Task SettingsPersonal_SaveWritesOnlySettingsChangedOnPage()
+        {
+            await using BunitContext context = CreateSavingContext(PrivilegedRoles, out RecordingSettingsApiConn apiConnection, out UserConfig userConfig);
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+            wrapper.WaitForAssertion(() => Assert.That(wrapper.Find("#cbx_personal_iconify"), Is.Not.Null));
+
+            SettingsPersonal component = wrapper.FindComponent<SettingsPersonal>().Instance;
+            ConfigData configData = GetPrivateField<ConfigData>(component, "configData");
+            userConfig.GlobalConfig!.SubscriptionUpdateHandler(kGlobalItemsChangedWhilePageIsOpen);
+            configData.ElementsPerFetch += 1;
+            await InvokePrivateAsync(component, "Save");
+            List<string> firstSaveKeys = [.. apiConnection.LastUpsertConfigItems.Select(item => item.Key)];
+
+            configData.MessageViewTime += 1;
+            await InvokePrivateAsync(component, "Save");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstSaveKeys, Is.EqualTo(kFirstSaveKeys));
+                Assert.That(apiConnection.LastUpsertConfigItems.Select(item => item.Key), Is.EqualTo(kSecondSaveKeys));
+                Assert.That(userConfig.UnusedTolerance, Is.EqualTo(kChangedGlobalUnusedTolerance));
+                Assert.That(userConfig.WelcomeMessage, Is.EqualTo(kChangedGlobalWelcomeMessage));
             });
         }
 

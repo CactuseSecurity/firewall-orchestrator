@@ -19,11 +19,19 @@ namespace FWO.Test
     [Parallelizable]
     internal class RuleControllerBranchingTest
     {
+        private const long kBigRuleId = (long)int.MaxValue + 1;
         private static readonly string[] kExpectedBothRuleNames = ["Source", "Destination"];
         private static readonly string[] kExpectedZeroMinPrefixRuleNames = ["Source", "AnySource"];
         private static readonly string[] kFirstPageRuleNames = ["Source"];
         private static readonly string[] kSecondPageRuleNames = ["Destination"];
         private static readonly string[] kBothPageRuleNames = ["Source", "Destination"];
+        private static readonly List<string> kExpectedRuleUidNames = new() { "Source", "MatchingGroup", "Destination" };
+        private static readonly List<long> kExpectedSingleRuleUidIds = [101];
+        private static readonly List<string> kExpectedRuleUidManagers = ["1", "2", "3"];
+        private static readonly List<long> kExpectedRepeatedRuleUidIds = [101, 303, 404];
+        private static readonly List<long> kExpectedFirstPagedRuleUidIds = [303];
+        private static readonly List<long> kExpectedLastPagedRuleUidIds = [404];
+        private static readonly List<long> kExpectedBigRuleIds = [kBigRuleId];
 
         [Test]
         public async Task GetRulesByFilter_ShouldWorkWithOwnerId()
@@ -87,6 +95,117 @@ namespace FWO.Test
             ClassicAssert.AreEqual(42, response.Result.Rules[0].OwnerInformation.OwnerIds[0]);
             ClassicAssert.AreEqual("owner-from-custom", response.Result.Rules[0].OwnerInformation.ExtAppId);
             ClassicAssert.AreEqual("chg-4711", response.Result.Rules[0].AdditionalInformation.ChangeId);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_RuleUidOnlyReturnsDetailsAndIgnoresIpFilter()
+        {
+            BranchingApiConnection apiConnection = new();
+            RuleController controller = CreateController(apiConnection, "req-rule-uid");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    Query = new RulesByFilterQuery
+                    {
+                        RuleUid = "uid-one",
+                        Filter = new RuleFilter { Action = "invalid", MinPrefixLength = -1, InField = "invalid" }
+                    }
+                }, "req-rule-uid");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.RequestId, Is.EqualTo("req-rule-uid"));
+                Assert.That(response.Result.Count, Is.EqualTo(1));
+                Assert.That(response.Result.Rules.Single().Name, Is.EqualTo("Source"));
+                Assert.That(apiConnection.LastDetailRuleIds, Is.EqualTo(kExpectedSingleRuleUidIds));
+            });
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_RuleUidReturnsAllManagementMatchesInRuleIdOrder()
+        {
+            BranchingApiConnection apiConnection = new();
+            RuleController controller = CreateController(apiConnection, "req-rule-uid-many");
+
+            RulesByFilterResponse response = ExtractResponse(await controller.GetRulesByFilter(
+                BuildRuleUidRequest("uid-repeated", null, null), "req-rule-uid-many"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.Result.Rules.Select(rule => rule.Name), Is.EqualTo(kExpectedRuleUidNames));
+                Assert.That(response.Result.Rules.Select(rule => rule.Manager), Is.EqualTo(kExpectedRuleUidManagers));
+                Assert.That(apiConnection.LastDetailRuleIds, Is.EqualTo(kExpectedRepeatedRuleUidIds));
+                Assert.That(HasMoreHeader(controller), Is.EqualTo("false"));
+            });
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_RuleUidSupportsBigintRuleIds()
+        {
+            BranchingApiConnection apiConnection = new();
+            RuleController controller = CreateController(apiConnection, "req-rule-uid-bigint");
+
+            RulesByFilterResponse response = ExtractResponse(await controller.GetRulesByFilter(
+                BuildRuleUidRequest("uid-bigint", null, null), "req-rule-uid-bigint"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.Result.Rules.Single().Name, Is.EqualTo("Source"));
+                Assert.That(apiConnection.LastDetailRuleIds, Is.EqualTo(kExpectedBigRuleIds));
+            });
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_RuleUidReturnsEmptyPageWhenNoRuleMatches()
+        {
+            BranchingApiConnection apiConnection = new();
+            RuleController controller = CreateController(apiConnection, "req-rule-uid-none");
+
+            RulesByFilterResponse response = ExtractResponse(await controller.GetRulesByFilter(
+                BuildRuleUidRequest("uid-missing", null, null), "req-rule-uid-none"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.Result.Count, Is.Zero);
+                Assert.That(response.Result.Rules, Is.Empty);
+                Assert.That(apiConnection.LastDetailRuleIds, Is.Null);
+                Assert.That(HasMoreHeader(controller), Is.EqualTo("false"));
+            });
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_AcceptsMaximumRuleUidLengthAndRejectsLongerValue()
+        {
+            BranchingApiConnection maximumApiConnection = new();
+            BranchingApiConnection tooLongApiConnection = new();
+            RuleController maximumController = CreateController(maximumApiConnection, "req-rule-uid-maximum");
+            RuleController tooLongController = CreateController(tooLongApiConnection, "req-rule-uid-too-long");
+            string maximumRuleUid = new('u', 256);
+            string tooLongRuleUid = new('u', 257);
+
+            ActionResult<RulesByFilterResponse> maximumResult = await maximumController.GetRulesByFilter(
+                BuildRuleUidRequest(maximumRuleUid, null, null), "req-rule-uid-maximum");
+            ActionResult<RulesByFilterResponse>? tooLongResult = null;
+            string output = await ConsoleOutput.CaptureAsync(async () =>
+            {
+                tooLongResult = await tooLongController.GetRulesByFilter(
+                    BuildRuleUidRequest(tooLongRuleUid, null, null), "req-rule-uid-too-long");
+            });
+            BadRequestObjectResult? badRequest = tooLongResult?.Result as BadRequestObjectResult;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(maximumResult.Result, Is.InstanceOf<OkObjectResult>());
+                Assert.That(maximumApiConnection.QueryCount, Is.GreaterThan(0));
+                Assert.That(badRequest, Is.Not.Null);
+                Assert.That(badRequest?.Value, Is.EqualTo("RuleUid must not exceed 256 characters."));
+                Assert.That(tooLongApiConnection.QueryCount, Is.Zero);
+                Assert.That(output, Does.Contain("RuleUidLength: 257"));
+                Assert.That(output, Does.Not.Contain(tooLongRuleUid));
+                Assert.That(output, Does.Contain("Result: rejected"));
+            });
         }
 
         [Test]
@@ -329,13 +448,13 @@ namespace FWO.Test
                     new RulesByFilterRequest
                     {
                         RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
-                        Query = new RulesByFilterQuery { OwnerId = 42 }
+                        Query = new RulesByFilterQuery { RuleUid = "uid-one" }
                     }, "req-siem-ok");
             });
 
-            ClassicAssert.IsInstanceOf<OkObjectResult>(actionResult?.Result);
-            StringAssert.Contains("RequestId: \"req-siem-ok\",", output);
-            StringAssert.Contains("UserID: \"42\", UserName: \"debug\", OwnerId: 42, Result: ok", output);
+            Assert.That(actionResult?.Result, Is.InstanceOf<OkObjectResult>());
+            Assert.That(output, Does.Contain("RequestId: \"req-siem-ok\","));
+            Assert.That(output, Does.Contain("UserID: \"42\", UserName: \"debug\", RuleUid: \"uid-one\", Result: ok"));
         }
 
         [Test]
@@ -363,6 +482,21 @@ namespace FWO.Test
         public void GetRulesByFilter_OwnerLookupQuery_ShouldFilterRemovedRuleOwners()
         {
             StringAssert.Contains("removed: { _is_null: true }", RuleQueries.getRuleIdsByRuleOwner);
+        }
+
+        [Test]
+        public void GetRulesByFilter_RuleUidLookupQuery_ShouldUseExactUidAndExcludeRemovedRules()
+        {
+            string query = RemoveWhitespace(RuleQueries.getRuleIdsByRuleUid);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(query, Does.Contain("$ruleUid:String!"));
+                Assert.That(query, Does.Contain("rule_uid:{_eq:$ruleUid}"));
+                Assert.That(query, Does.Contain("removed:{_is_null:true}"));
+                Assert.That(query, Does.Contain("order_by:{rule_id:asc}"));
+                Assert.That(query, Does.Not.Contain("_ilike"));
+            });
         }
 
         [Test]
@@ -456,6 +590,30 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task GetRulesByFilter_PagesRuleUidMatchesBeforeFetchingDetails()
+        {
+            BranchingApiConnection firstApiConnection = new();
+            BranchingApiConnection lastApiConnection = new();
+            RuleController firstPageController = CreateController(firstApiConnection, "req-rule-uid-page-1");
+            RuleController lastPageController = CreateController(lastApiConnection, "req-rule-uid-page-2");
+
+            RulesByFilterResponse firstPage = ExtractResponse(await firstPageController.GetRulesByFilter(
+                BuildRuleUidRequest("uid-repeated", 1, 1), "req-rule-uid-page-1"));
+            RulesByFilterResponse lastPage = ExtractResponse(await lastPageController.GetRulesByFilter(
+                BuildRuleUidRequest("uid-repeated", 1, 2), "req-rule-uid-page-2"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstPage.Result.Rules.Single().Name, Is.EqualTo("MatchingGroup"));
+                Assert.That(firstApiConnection.LastDetailRuleIds, Is.EqualTo(kExpectedFirstPagedRuleUidIds));
+                Assert.That(HasMoreHeader(firstPageController), Is.EqualTo("true"));
+                Assert.That(lastPage.Result.Rules.Single().Name, Is.EqualTo("Destination"));
+                Assert.That(lastApiConnection.LastDetailRuleIds, Is.EqualTo(kExpectedLastPagedRuleUidIds));
+                Assert.That(HasMoreHeader(lastPageController), Is.EqualTo("false"));
+            });
+        }
+
         [TestCase(0, null)]
         [TestCase(GlobalConst.kDefaultMaxRestResponseObjectLimit + 1, null)]
         [TestCase(null, -1)]
@@ -498,6 +656,16 @@ namespace FWO.Test
                     IpAddress = "10.1.2.3",
                     Filter = new RuleFilter { Action = "any", MinPrefixLength = 24, InField = "both" }
                 },
+                Options = new RulesByFilterOptions { Limit = limit, Offset = offset }
+            };
+        }
+
+        private static RulesByFilterRequest BuildRuleUidRequest(string ruleUid, int? limit, int? offset)
+        {
+            return new RulesByFilterRequest
+            {
+                RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                Query = new RulesByFilterQuery { RuleUid = ruleUid },
                 Options = new RulesByFilterOptions { Limit = limit, Offset = offset }
             };
         }
@@ -613,6 +781,9 @@ namespace FWO.Test
             private readonly bool _includeBroadSourceRule;
             private readonly bool _includeAnyRule;
 
+            public List<long>? LastDetailRuleIds { get; private set; }
+            public int QueryCount { get; private set; }
+
             public BranchingApiConnection(bool includeGroupRule = true, bool includeDestinationRule = false,
                 bool includeBroadDestinationRule = false, bool includeBroadSourceRule = false,
                 bool includeAnyRule = false)
@@ -650,6 +821,7 @@ namespace FWO.Test
                 string? operationName = null,
                 QueryChunkingOptions? options = null)
             {
+                ++QueryCount;
                 if (typeof(QueryResponseType) == typeof(ConfigItem[]) && query == ConfigQueries.getConfigItemsByUser)
                 {
                     return Task.FromResult((QueryResponseType)(object)new[]
@@ -681,14 +853,36 @@ namespace FWO.Test
                         : new List<RuleOwnerItem>()));
                 }
 
+                if (typeof(QueryResponseType) == typeof(List<RuleOwnerItem>) && query == RuleQueries.getRuleIdsByRuleUid)
+                {
+                    string ruleUid = GetStringVariable(variables, "ruleUid");
+                    List<RuleOwnerItem> ruleIds = ruleUid switch
+                    {
+                        "uid-one" => new List<RuleOwnerItem> { new() { RuleId = 101 } },
+                        "uid-bigint" => Newtonsoft.Json.JsonConvert.DeserializeObject<List<RuleOwnerItem>>(
+                            $"[{{\"rule_id\":{kBigRuleId}}}]")!,
+                        "uid-repeated" => new List<RuleOwnerItem>
+                        {
+                            new() { RuleId = 404 },
+                            new() { RuleId = 101 },
+                            new() { RuleId = 303 },
+                            new() { RuleId = 101 }
+                        },
+                        _ => new List<RuleOwnerItem>()
+                    };
+                    return Task.FromResult((QueryResponseType)(object)ruleIds);
+                }
+
                 if (typeof(QueryResponseType) == typeof(List<Rule>) && query == RuleQueries.getRuleDetailsById)
                 {
                     if (HasVariable(variables, "rule_ids"))
                     {
-                        return Task.FromResult((QueryResponseType)(object)new List<Rule>
-                        {
-                            BuildMatchingRule(101)
-                        });
+                        LastDetailRuleIds = GetLongListVariable(variables, "rule_ids");
+                        List<Rule> details = LastDetailRuleIds
+                            .Select(BuildRuleForId)
+                            .OrderByDescending(rule => rule.Id)
+                            .ToList();
+                        return Task.FromResult((QueryResponseType)(object)details);
                     }
 
                     List<Rule> rules =
@@ -771,11 +965,35 @@ namespace FWO.Test
                 return value is int intValue ? intValue : Convert.ToInt32(value);
             }
 
+            private static List<long> GetLongListVariable(object? variables, string name)
+            {
+                object? value = variables?.GetType().GetProperty(name)?.GetValue(variables);
+                return value is IEnumerable<long> values ? values.ToList() : new List<long>();
+            }
+
+            private static string GetStringVariable(object? variables, string name)
+            {
+                return variables?.GetType().GetProperty(name)?.GetValue(variables)?.ToString() ?? "";
+            }
+
+            private static Rule BuildRuleForId(long ruleId)
+            {
+                return ruleId switch
+                {
+                    101 => BuildMatchingRule(ruleId),
+                    303 => BuildGroupRule(ruleId),
+                    404 => BuildDestinationRule(ruleId),
+                    kBigRuleId => BuildMatchingRule(ruleId),
+                    _ => throw new InvalidOperationException($"Unexpected rule id: {ruleId}")
+                };
+            }
+
             private static Rule BuildMatchingRule(long ruleId)
             {
                 return new Rule
                 {
                     Id = ruleId,
+                    MgmtId = 1,
                     Name = "Source",
                     RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
                     Froms =
@@ -877,6 +1095,7 @@ namespace FWO.Test
                 return new Rule
                 {
                     Id = ruleId,
+                    MgmtId = 2,
                     Name = "MatchingGroup",
                     RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
                     Froms =
@@ -895,6 +1114,7 @@ namespace FWO.Test
                 return new Rule
                 {
                     Id = ruleId,
+                    MgmtId = 3,
                     Name = "Destination",
                     RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
                     Froms =

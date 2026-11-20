@@ -251,10 +251,10 @@ namespace FWO.Test
             IRenderedComponent<TransferWorkflowConfiguration> component = context.Render<TransferWorkflowConfiguration>(parameters => parameters
                 .Add(parameter => parameter.Display, true)
                 .Add(parameter => parameter.SelectedConfigurationId, 5)
-                .Add(parameter => parameter.ExistingConfigurations, new List<WorkflowConfiguration>
-                {
+                .Add(parameter => parameter.ExistingConfigurations,
+                [
                     new() { Id = 5, Name = "Shared" }
-                }));
+                ]));
 
             Assert.Multiple(() =>
             {
@@ -314,10 +314,10 @@ namespace FWO.Test
                 parameters.AddChildContent<TransferWorkflowConfiguration>(component => component
                     .Add(parameter => parameter.Display, true)
                     .Add(parameter => parameter.ImportMode, true)
-                    .Add(parameter => parameter.ExistingConfigurations, new List<WorkflowConfiguration>
-                    {
+                    .Add(parameter => parameter.ExistingConfigurations,
+                    [
                         new() { Id = 5, Name = "Shared" }
-                    })));
+                    ])));
             IRenderedComponent<TransferWorkflowConfiguration> component = wrapper.FindComponent<TransferWorkflowConfiguration>();
 
             SetField(component.Instance, "importPackage", ImportPackageWithoutGroups());
@@ -597,10 +597,10 @@ namespace FWO.Test
 
         private static InputFileChangeEventArgs CreateInputFileChangeEventArgs(string fileName, ReadOnlyMemory<byte> content)
         {
-            return new InputFileChangeEventArgs(new List<IBrowserFile>
-            {
+            return new InputFileChangeEventArgs(
+            [
                 new TestBrowserFile(fileName, content)
-            });
+            ]);
         }
 
         private sealed class TestBrowserFile : IBrowserFile

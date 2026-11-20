@@ -406,7 +406,7 @@ namespace FWO.Test
             context.Services.AddSingleton<DomEventService>();
 
             IRenderedComponent<TimeObjectSelector> component = context.Render<TimeObjectSelector>(parameters => parameters
-                .Add(p => p.TicketTimeObjects, new List<FlowTimeObject> { ticketTimeObject }));
+                .Add(p => p.TicketTimeObjects, [ticketTimeObject]));
 
             IRenderedComponent<Dropdown<FlowTimeObject>> dropdown = component.FindComponent<Dropdown<FlowTimeObject>>();
 
@@ -426,7 +426,7 @@ namespace FWO.Test
             IRenderedComponent<TimeObjectSelector> component = context.Render<TimeObjectSelector>(parameters => parameters
                 .Add(p => p.SelectedId, -17L)
                 .Add(p => p.SelectedName, ticketTimeObject.Name)
-                .Add(p => p.TicketTimeObjects, new List<FlowTimeObject> { ticketTimeObject }));
+                .Add(p => p.TicketTimeObjects, [ticketTimeObject]));
 
             Dropdown<FlowTimeObject> dropdown = component.FindComponent<Dropdown<FlowTimeObject>>().Instance;
 
@@ -447,10 +447,10 @@ namespace FWO.Test
             IRenderedComponent<TimeObjectSelector> component = context.Render<TimeObjectSelector>(parameters => parameters
                 .Add(p => p.SelectedId, -17L)
                 .Add(p => p.SelectedName, "maintenance_user")
-                .Add(p => p.TicketTimeObjects, new List<FlowTimeObject>
-                {
+                .Add(p => p.TicketTimeObjects,
+                [
                     new() { Id = -17, Name = "maintenance_user" }
-                }));
+                ]));
 
             Dropdown<FlowTimeObject> dropdown = component.FindComponent<Dropdown<FlowTimeObject>>().Instance;
 
@@ -522,7 +522,7 @@ namespace FWO.Test
 
             IRenderedComponent<TimeObjectSelector> component = context.Render<TimeObjectSelector>(parameters => parameters
                 .Add(p => p.HideSelection, true)
-                .Add(p => p.TicketTimeObjects, new List<FlowTimeObject> { new() { Id = -1, Name = "ticket" } }));
+                .Add(p => p.TicketTimeObjects, [new() { Id = -1, Name = "ticket" }]));
 
             Assert.Multiple(() =>
             {
@@ -599,7 +599,7 @@ namespace FWO.Test
                 .Add(p => p.SelectedName, selectedName)
                 .Add(p => p.SelectedIdChanged, EventCallback.Factory.Create<long?>(this, value => selectedId = value))
                 .Add(p => p.SelectedNameChanged, EventCallback.Factory.Create<string?>(this, value => selectedName = value))
-                .Add(p => p.TicketTimeObjects, new List<FlowTimeObject> { ticketTimeObject }));
+                .Add(p => p.TicketTimeObjects, [ticketTimeObject]));
 
             Dropdown<FlowTimeObject> dropdown = component.FindComponent<Dropdown<FlowTimeObject>>().Instance;
 
@@ -673,7 +673,7 @@ namespace FWO.Test
             IRenderedComponent<TimeObjectSelector> component = context.Render<TimeObjectSelector>(parameters => parameters
                 .Add(p => p.SelectedId, -7L)
                 .Add(p => p.SelectedName, "Ticket")
-                .Add(p => p.TicketTimeObjects, new List<FlowTimeObject> { ticketTimeObject }));
+                .Add(p => p.TicketTimeObjects, [ticketTimeObject]));
 
             Assert.That(component.FindComponent<Dropdown<FlowTimeObject>>().Instance.SelectedElement?.Id, Is.EqualTo(-7));
 
@@ -700,10 +700,10 @@ namespace FWO.Test
             context.Services.AddSingleton<DomEventService>();
 
             IRenderedComponent<TimeObjectSelector> component = context.Render<TimeObjectSelector>(parameters => parameters
-                .Add(p => p.TicketTimeObjects, new List<FlowTimeObject>
-                {
+                .Add(p => p.TicketTimeObjects,
+                [
                     new() { Id = -7, Name = "Old" }
-                }));
+                ]));
 
             IReadOnlyList<FlowTimeObject> updatedObjects =
             [

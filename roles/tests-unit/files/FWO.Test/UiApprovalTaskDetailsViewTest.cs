@@ -932,13 +932,13 @@ internal class UiApprovalTaskDetailsViewTest : UiSharedEditorTestBase
         WfReqTask task = new()
         {
             StateId = 49,
-            Approvals = new List<WfApproval> { new() { StateId = 49 } }
+            Approvals = [new() { StateId = 49 }]
         };
         ApprovalTaskDetailsView component = new();
         UiRequestWorkflowTest.SetMember(component, nameof(ApprovalTaskDetailsView.WfHandler), handler);
 
         MethodInfo method = typeof(ApprovalTaskDetailsView).GetMethod("InitializeNewObjectTaskState", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        List<object> arguments = new() { task };
+        List<object> arguments = [task];
         method.Invoke(component, arguments.ToArray());
 
         Assert.Multiple(() =>

@@ -53,8 +53,8 @@ namespace FWO.Data
             // Load the JSON as a JObject
             JObject jsonObject = JObject.Load(reader);
             // Deserialize the IP address range based on the properties ip_range_start and ip_range_end 
-            IPAddress start = IPAddress.Parse((jsonObject.GetValue("ip_range_start")?.ToObject<string>() ?? throw new ArgumentNullException("ip_range_start")).Replace("/32", ""));
-            IPAddress end = IPAddress.Parse((jsonObject.GetValue("ip_range_end")?.ToObject<string>() ?? throw new ArgumentNullException("ip_range_start")).Replace("/32", ""));
+            IPAddress start = IPAddress.Parse((jsonObject.GetValue("ip_range_start")?.ToObject<string>() ?? throw new JsonSerializationException("Missing property ip_range_start")).Replace("/32", ""));
+            IPAddress end = IPAddress.Parse((jsonObject.GetValue("ip_range_end")?.ToObject<string>() ?? throw new JsonSerializationException("Missing property ip_range_end")).Replace("/32", ""));
             return new IPAddressRange(start, end);
         }
 

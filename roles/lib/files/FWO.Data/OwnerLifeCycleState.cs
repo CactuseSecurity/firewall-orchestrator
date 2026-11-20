@@ -1,3 +1,4 @@
+using FWO.Basics;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -33,7 +34,7 @@ namespace FWO.Data
         public bool Sanitize()
         {
             bool shortened = false;
-            Name = Sanitizer.SanitizeMand(Name, ref shortened);
+            Name = Name.SanitizeMand(ref shortened);
             return shortened;
         }
 

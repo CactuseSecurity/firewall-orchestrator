@@ -49,7 +49,7 @@ namespace FWO.Config.Api
 
         public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, ApiConnection apiConnection, int userId, bool owningApiConnection = false)
         {
-            UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getOwnUser, new { userId = userId });
+            UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getOwnUser, new { userId });
             UiUser? user = users.FirstOrDefault();
             if (user == null)
             {
@@ -419,7 +419,7 @@ namespace FWO.Config.Api
             while (cont)
             {
                 string outputOrig = output;
-                output = Regex.Replace(outputOrig, @"  ", " ");
+                output = outputOrig.Replace("  ", " ");
                 if (output.Length == outputOrig.Length)
                 {
                     cont = false;
@@ -499,19 +499,19 @@ namespace FWO.Config.Api
                     cont = false;
                 }
             }
-            txtString = Regex.Replace(txtString, "</a>", "");
+            txtString = txtString.Replace("</a>", "");
             return txtString;
         }
 
         private static string ReplaceListElems(string txtString)
         {
-            txtString = Regex.Replace(txtString, "<ol>", "");
-            txtString = Regex.Replace(txtString, "</ol>", "");
-            txtString = Regex.Replace(txtString, "<ul>", "");
-            txtString = Regex.Replace(txtString, "</ul>", "");
-            txtString = Regex.Replace(txtString, "<li>", "\r\n");
-            txtString = Regex.Replace(txtString, "</li>", "");
-            txtString = Regex.Replace(txtString, "<br>", "\r\n");
+            txtString = txtString.Replace("<ol>", "");
+            txtString = txtString.Replace("</ol>", "");
+            txtString = txtString.Replace("<ul>", "");
+            txtString = txtString.Replace("</ul>", "");
+            txtString = txtString.Replace("<li>", "\r\n");
+            txtString = txtString.Replace("</li>", "");
+            txtString = txtString.Replace("<br>", "\r\n");
             return txtString;
         }
 

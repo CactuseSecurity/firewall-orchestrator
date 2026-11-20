@@ -18,7 +18,7 @@ namespace FWO.Test
 
         private sealed class RecordingApiConnection : SimulatedApiConnection
         {
-            public List<ModellingAppServer> ServersForOwner { get; set; } = new List<ModellingAppServer>();
+            public List<ModellingAppServer> ServersForOwner { get; set; } = [];
             public int NewAppZoneCalls { get; private set; }
             public int AddLinkCalls { get; private set; }
             public int RemoveLinkCalls { get; private set; }
@@ -77,11 +77,11 @@ namespace FWO.Test
         {
             RecordingApiConnection apiConn = new()
             {
-                ServersForOwner = new List<ModellingAppServer>
-                {
+                ServersForOwner =
+                [
                     new ModellingAppServer { Id = 1, Name = "active", Ip = "10.0.0.1", IpEnd = "", IsDeleted = false },
                     new ModellingAppServer { Id = 2, Name = "deleted", Ip = "10.0.0.2", IpEnd = "", IsDeleted = true }
-                }
+                ]
             };
             ModellingAppZoneHandler handler = new(apiConn, CreateUserConfig(), new FwoOwner { Id = 9 }, (_, _, _, _) => { });
 
@@ -101,20 +101,20 @@ namespace FWO.Test
         {
             RecordingApiConnection apiConn = new()
             {
-                ServersForOwner = new List<ModellingAppServer>
-                {
+                ServersForOwner =
+                [
                     new ModellingAppServer { Id = 2, Name = "keep", Ip = "10.0.0.2", IpEnd = "", IsDeleted = false },
                     new ModellingAppServer { Id = 3, Name = "new", Ip = "10.0.0.3", IpEnd = "", IsDeleted = false }
-                }
+                ]
             };
             ModellingAppZoneHandler handler = new(apiConn, CreateUserConfig(), new FwoOwner { Id = 9 }, (_, _, _, _) => { });
             ModellingAppZone oldZone = new(9)
             {
-                AppServers = new List<ModellingAppServerWrapper>
-                {
+                AppServers =
+                [
                     Wrap(new ModellingAppServer { Id = 1, Name = "old", Ip = "10.0.0.1", IpEnd = "" }),
                     Wrap(new ModellingAppServer { Id = 2, Name = "keep", Ip = "10.0.0.2", IpEnd = "" })
-                }
+                ]
             };
 
             ModellingAppZone zone = await handler.PlanAppZoneDbUpdate(oldZone);
@@ -133,17 +133,17 @@ namespace FWO.Test
         {
             RecordingApiConnection apiConn = new()
             {
-                ServersForOwner = new List<ModellingAppServer>()
+                ServersForOwner = []
             };
             ModellingAppZoneHandler handler = new(apiConn, CreateUserConfig(), new FwoOwner { Id = 9 }, (_, _, _, _) => { });
             ModellingAppZone zone = new(9)
             {
                 Name = "zone",
-                AppServers = new List<ModellingAppServerWrapper>
-                {
+                AppServers =
+                [
                     Wrap(new ModellingAppServer { Id = 10, Name = "one", Ip = "10.0.0.1", IpEnd = "" }),
                     Wrap(new ModellingAppServer { Id = 11, Name = "two", Ip = "10.0.0.2", IpEnd = "" })
-                }
+                ]
             };
 
             ModellingAppZone? result = await handler.UpsertAppZone(zone);
@@ -167,14 +167,14 @@ namespace FWO.Test
             {
                 AlreadyExistsInDb = true,
                 Id = 88,
-                AppServersNew = new List<ModellingAppServerWrapper>
-                {
+                AppServersNew =
+                [
                     Wrap(new ModellingAppServer { Id = 10, Name = "add", Ip = "10.0.0.10", IpEnd = "" })
-                },
-                AppServersRemoved = new List<ModellingAppServerWrapper>
-                {
+                ],
+                AppServersRemoved =
+                [
                     Wrap(new ModellingAppServer { Id = 11, Name = "remove", Ip = "10.0.0.11", IpEnd = "" })
-                }
+                ]
             };
 
             ModellingAppZone? result = await handler.UpsertAppZone(zone);

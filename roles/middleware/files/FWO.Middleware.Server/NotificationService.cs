@@ -52,7 +52,7 @@ namespace FWO.Middleware.Server
             List<FwoNotification> notifications = await LoadNotifications(notificationClient, apiConnection);
             if (notifications.Count == 0)
             {
-                return new NotificationService(notifications, globalConfig, apiConnection, new List<UserGroup>());
+                return new NotificationService(notifications, globalConfig, apiConnection, []);
             }
 
             List<Ldap>? connectedLdaps = await LoadLdapConnections(apiConnection);

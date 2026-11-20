@@ -656,15 +656,15 @@ namespace FWO.Middleware.Server
                 using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 string userName = new DistName(userDn).UserName;
-                LdapAttributeSet attributeSet = new()
-                {
+                LdapAttributeSet attributeSet =
+                [
                     new LdapAttribute("objectclass", "inetOrgPerson"),
                     new LdapAttribute("sn", userName),
                     new LdapAttribute("cn", userName),
                     new LdapAttribute("uid", userName),
                     new LdapAttribute("userPassword", password),
                     new LdapAttribute("mail", email)
-                };
+                ];
 
                 LdapEntry newEntry = new(userDn, attributeSet);
 

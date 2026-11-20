@@ -29,7 +29,6 @@
 
 @code
 {
-    private int uiUserDbId = -1;
 
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
@@ -44,7 +43,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        uiUserDbId = userConfig.User.DbId;
         await authenticationStateTask!;
         availableModules = string.IsNullOrEmpty(userConfig.AvailableModules) ? [.. Enum.GetValues(typeof(Module)).Cast<Module>()]
                 : JsonSerializer.Deserialize<List<Module>>(userConfig.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");

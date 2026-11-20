@@ -58,7 +58,7 @@ public class GlobalDeviceSpecificSettings
     /// <summary>Job cycles to wait before the next attempt, multiplied by the number of attempts so far.</summary>
     public int RequestCyclesBetweenAttempts { get; set; } = kDefaultRequestCyclesBetweenAttempts;
 
-    public List<string> SecurityProfiles { get; set; } = new();
+    public List<string> SecurityProfiles { get; set; } = [];
 
     public string OwnerIdCustomFieldName { get; set; } = "OwnerId";
 

@@ -81,7 +81,7 @@ namespace FWO.Test
         public async Task AddAsync_InvokesWrappedConnection()
         {
             NovellLdapConnectionAdapter adapter = new(new LdapConnection());
-            LdapEntry entry = new("uid=user,ou=users,dc=example,dc=com", new LdapAttributeSet());
+            LdapEntry entry = new("uid=user,ou=users,dc=example,dc=com", []);
 
             Assert.That(async () => await adapter.AddAsync(entry), Throws.Exception);
         }

@@ -144,21 +144,15 @@ namespace FWO.Report.Filter.Ast
         {
             if (IPAddress.TryParse(cidrStr, out IPAddress? ip))
             {
-                if (ip != null)
+                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
                 {
-                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
-                    {
-                        return SanitizeIp(ip, true);
-                    }
-                    else if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    {
-                        return SanitizeIp(ip, false);
-                    }
+                    return SanitizeIp(ip, true);
                 }
-                else
+                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
                 {
-                    Log.WriteWarning("SanitizeIP", $"unexpected IP address family (neither v4 nor v6) found");
+                    return SanitizeIp(ip, false);
                 }
+                Log.WriteWarning("SanitizeIP", $"unexpected IP address family (neither v4 nor v6) found");
             }
             return cidrStr;
         }

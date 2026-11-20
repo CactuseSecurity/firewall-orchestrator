@@ -12,7 +12,7 @@ namespace FWO.Test
     internal class ReportComplianceTest
     {
         private static readonly List<int> kVisibleRelevantManagementIds = [9];
-        private MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.ComplianceReport);
+        private static MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.ComplianceReport);
         private MockReportCompliance _testReport = default!;
 
         [SetUp]
@@ -372,7 +372,7 @@ namespace FWO.Test
             Assert.That(csv, Does.Contain("\"2026-12-24 11:22:33\""));
         }
 
-        private List<Rule>[] BuildFixedRuleChunksParallel(int numberOfChunks, int numberOfRulesPerChunk, int startRuleId = 1, int? maxDegreeOfParallelism = null)
+        private static List<Rule>[] BuildFixedRuleChunksParallel(int numberOfChunks, int numberOfRulesPerChunk, int startRuleId = 1, int? maxDegreeOfParallelism = null)
         {
             if (numberOfChunks <= 0) throw new ArgumentOutOfRangeException(nameof(numberOfChunks));
             if (numberOfRulesPerChunk < 0) throw new ArgumentOutOfRangeException(nameof(numberOfRulesPerChunk));
@@ -400,7 +400,7 @@ namespace FWO.Test
 
         private sealed class ActiveRuleCountApiConnection : SimulatedApiConnection
         {
-            public List<string> Queries { get; } = new();
+            public List<string> Queries { get; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {

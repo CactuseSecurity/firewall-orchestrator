@@ -28,6 +28,11 @@ namespace FWO.Test
     [TestFixture]
     internal class UiEditOwnerTest
     {
+        private static readonly string[] kExpectedRolesForOwnerTwo = ["roleB", "roleC"];
+        private static readonly string[] kExpectedRolesForOwnerOne = ["roleA"];
+        private static readonly int[] kExpectedParsedKeys = [1, 2];
+        private static readonly string[] kExpectedSupportingRoles = ["modeller", "recertifier"];
+
         private static MethodInfo GetPrivateMethod(string name)
         {
             return typeof(EditOwner).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
@@ -366,11 +371,11 @@ namespace FWO.Test
             FwoOwner owner = new() { Id = 9, Name = "Owner E" };
             IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, apiConn: apiConn);
 
-            List<NwObjectElement> ipsToAdd = new()
-            {
+            List<NwObjectElement> ipsToAdd =
+            [
                 new NwObjectElement("10.0.6.10/32", 0),
                 new NwObjectElement("10.0.1.128/32-10.0.1.255/32", 0)
-            };
+            ];
             SetPrivateField(editOwner.Instance, "IpsToAdd", ipsToAdd);
 
             await (Task)GetPrivateMethod("AddNetworkOwners").Invoke(editOwner.Instance, null)!;
@@ -504,7 +509,7 @@ namespace FWO.Test
                 (Dictionary<int, List<string>>)GetPrivateStaticMethod("ParseRolesWithImport").Invoke(null, [rolesJson])!;
 
             Assert.That(parsed.ContainsKey(GlobalConst.kOwnerResponsibleTypeSupporting), Is.True);
-            Assert.That(parsed[GlobalConst.kOwnerResponsibleTypeSupporting], Is.EquivalentTo(new[] { "modeller", "recertifier" }));
+            Assert.That(parsed[GlobalConst.kOwnerResponsibleTypeSupporting], Is.EquivalentTo(kExpectedSupportingRoles));
         }
 
         [Test]
@@ -515,9 +520,9 @@ namespace FWO.Test
             Dictionary<int, List<string>> parsed =
                 (Dictionary<int, List<string>>)GetPrivateStaticMethod("ParseRolesWithImport").Invoke(null, [rolesJson])!;
 
-            Assert.That(parsed.Keys, Is.EquivalentTo(new[] { 1, 2 }));
-            Assert.That(parsed[1], Is.EquivalentTo(new[] { "roleA" }));
-            Assert.That(parsed[2], Is.EquivalentTo(new[] { "roleB", "roleC" }));
+            Assert.That(parsed.Keys, Is.EquivalentTo(kExpectedParsedKeys));
+            Assert.That(parsed[1], Is.EquivalentTo(kExpectedRolesForOwnerOne));
+            Assert.That(parsed[2], Is.EquivalentTo(kExpectedRolesForOwnerTwo));
         }
 
         [Test]

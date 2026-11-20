@@ -13,8 +13,8 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class UiAddInfoFilterEditorTest
     {
-        private static readonly List<string> kPolicyCheckLabelNames = new() { "policy_check" };
-        private static readonly List<string> kBusinessUnitLabelNames = new() { "business_unit" };
+        private static readonly List<string> kPolicyCheckLabelNames = ["policy_check"];
+        private static readonly List<string> kBusinessUnitLabelNames = ["business_unit"];
 
         [Test]
         public async Task AddInfoFilterEditor_RendersSummaryForEmptyValueAndModeFilters()

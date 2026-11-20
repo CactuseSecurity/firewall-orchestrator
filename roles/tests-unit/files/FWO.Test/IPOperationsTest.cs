@@ -486,10 +486,10 @@ namespace FWO.Test
         {
             // Arrange
             IPAddressRange source = new IPAddressRange(IPAddress.Parse("10.0.0.0"), IPAddress.Parse("10.0.0.255"));
-            List<IPAddressRange> subtract = new List<IPAddressRange>
-            {
+            List<IPAddressRange> subtract =
+            [
                 new IPAddressRange(IPAddress.Parse("10.0.0.10"), IPAddress.Parse("10.0.0.20"))
-            };
+            ];
 
             // Act
             List<IPAddressRange> result = IpOperations.Subtract(source, subtract);
@@ -529,7 +529,7 @@ namespace FWO.Test
         public void ToMergedRanges_AdjacentNetworks_Succeeds()
         {
             // Arrange
-            List<IPNetwork2> nets = new List<IPNetwork2>();
+            List<IPNetwork2> nets = [];
             if (IPNetwork2.TryParseRange("192.168.10.0-192.168.10.127", out IEnumerable<IPNetwork2>? a)) nets.AddRange(a);
             if (IPNetwork2.TryParseRange("192.168.10.128-192.168.10.255", out IEnumerable<IPNetwork2>? b)) nets.AddRange(b);
 

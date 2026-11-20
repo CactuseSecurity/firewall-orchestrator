@@ -487,7 +487,7 @@
 
 
     private ModellingDnDContainer Container { get; set; } = new();
-    private int sidebarInitWidth = GlobalConst.kGlobLibraryWidth;
+    private readonly int sidebarInitWidth = GlobalConst.kGlobLibraryWidth;
     private int sidebarLeftWidth;
 
 
@@ -496,7 +496,7 @@
     private bool workInProgress = false;
 
     private WfHandler wfHandler = new ();
-    private WfStateDict states = new ();
+    private readonly WfStateDict states = new ();
     private ModellingConnection unchangedConn = new();
     private bool RejectInterfaceMode = false;
     private bool interfacePermissionInitialized = false;
@@ -535,69 +535,74 @@
 
     private async Task HandleSrcDrop()
     {
+        if (ConnHandler is null)
+        {
+            Container.Clear();
+            return;
+        }
         if(Container.ConnElement != null)
         {
-            if (ConnHandler is not null && !ConnHandler.InterfaceAllowedWithNetworkArea(Container.ConnElement))
+            if (!ConnHandler.InterfaceAllowedWithNetworkArea(Container.ConnElement))
             {
                 DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);
                 Container.Clear();
                 return;
             }
 
-            if(ConnHandler!.ActConn.IsInterface)
+            if(ConnHandler.ActConn.IsInterface)
             {
-                await ConnHandler!.RequestReplaceInterface(Container.ConnElement);
+                await ConnHandler.RequestReplaceInterface(Container.ConnElement);
             }
             else
             {
-                ConnHandler?.InterfaceToConn(Container.ConnElement);
+                ConnHandler.InterfaceToConn(Container.ConnElement);
             }
         }
-        else if(!ConnHandler!.SrcDropForbidden())
+        else if(!ConnHandler.SrcDropForbidden())
         {
             if(Container.AppRoleElements.Count > 0)
             {
-                if(ConnHandler is not null && ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Source, Container.AppRoleElements))
+                if(ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Source, Container.AppRoleElements))
                 {
                     DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9031"), true);
                     Container.Clear();
                     return;
                 }
 
-                 ConnHandler?.AppRolesToSource(Container.AppRoleElements);
+                ConnHandler.AppRolesToSource(Container.AppRoleElements);
             }
             if(Container.AreaElements.Count > 0)
             {
-                if(ConnHandler is not null && ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Source, Container.AreaElements))
+                if(ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Source, Container.AreaElements))
                 {
                     DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9031"), true);
                     Container.Clear();
                     return;
                 }
 
-                if (ConnHandler is not null && !ConnHandler.IsNotInterfaceForeignToApp())
+                if (!ConnHandler.IsNotInterfaceForeignToApp())
                 {
                     DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);
                     Container.Clear();
                     return;
                 }
 
-                if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(Container.AreaElements, Direction.Source, out (string Title, string Text) reason))
+                if (!ConnHandler.NetworkAreaUseAllowed(Container.AreaElements, Direction.Source, out (string Title, string Text) reason))
                 {
                     DisplayMessageInUi(default, reason.Title, reason.Text, true);
                     Container.Clear();
                     return;
                 }
 
-                ConnHandler?.AreasToSource(Container.AreaElements);
+                ConnHandler.AreasToSource(Container.AreaElements);
             }
             if(Container.NwGroupElements.Count > 0)
             {
-                ConnHandler?.NwGroupToSource(Container.NwGroupElements);
+                ConnHandler.NwGroupToSource(Container.NwGroupElements);
             }
             if(Container.AppServerElements.Count > 0)
             {
-                ConnHandler?.AppServerToSource(Container.AppServerElements);
+                ConnHandler.AppServerToSource(Container.AppServerElements);
             }
         }
         Container.Clear();
@@ -605,69 +610,74 @@
 
     private async Task HandleDstDrop()
     {
+        if (ConnHandler is null)
+        {
+            Container.Clear();
+            return;
+        }
         if(Container.ConnElement != null)
         {
-            if (ConnHandler is not null && !ConnHandler.InterfaceAllowedWithNetworkArea(Container.ConnElement))
+            if (!ConnHandler.InterfaceAllowedWithNetworkArea(Container.ConnElement))
             {
                 DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);
                 Container.Clear();
                 return;
             }
 
-            if(ConnHandler!.ActConn.IsInterface)
+            if(ConnHandler.ActConn.IsInterface)
             {
-                await ConnHandler!.RequestReplaceInterface(Container.ConnElement);
+                await ConnHandler.RequestReplaceInterface(Container.ConnElement);
             }
             else
             {
-                ConnHandler?.InterfaceToConn(Container.ConnElement);
+                ConnHandler.InterfaceToConn(Container.ConnElement);
             }
         }
-        else if(!ConnHandler!.DstDropForbidden())
+        else if(!ConnHandler.DstDropForbidden())
         {
             if(Container.AppRoleElements.Count > 0)
             {
-                if(ConnHandler is not null && ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Destination, Container.AppRoleElements))
+                if(ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Destination, Container.AppRoleElements))
                 {
                     DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9031"), true);
                     Container.Clear();
                     return;
                 }
 
-                ConnHandler?.AppRolesToDestination(Container.AppRoleElements);
+                ConnHandler.AppRolesToDestination(Container.AppRoleElements);
             }
             if(Container.AreaElements.Count > 0)
             {
-                if(ConnHandler is not null && ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Destination, Container.AreaElements))
+                if(ConnHandler.ActConn.IsCommonService && !ConnHandler.ComSvcContainsOnlyNetworkAreasInDirection(Direction.Destination, Container.AreaElements))
                 {
                     DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9031"), true);
                     Container.Clear();
                     return;
                 }
 
-                if (ConnHandler is not null && !ConnHandler.IsNotInterfaceForeignToApp())
+                if (!ConnHandler.IsNotInterfaceForeignToApp())
                 {
                     DisplayMessageInUi(default, userConfig.GetText("edit_connection"), userConfig.GetText("U9024"), true);
                     Container.Clear();
                     return;
                 }
 
-                if (ConnHandler is not null && !ConnHandler.NetworkAreaUseAllowed(Container.AreaElements, Direction.Destination, out (string Title, string Text) reason))
+                if (!ConnHandler.NetworkAreaUseAllowed(Container.AreaElements, Direction.Destination, out (string Title, string Text) reason))
                 {
                     DisplayMessageInUi(default, reason.Title, reason.Text, true);
                     Container.Clear();
                     return;
                 }
 
-                ConnHandler?.AreasToDestination(Container.AreaElements);
+                ConnHandler.AreasToDestination(Container.AreaElements);
             }
             if(Container.NwGroupElements.Count > 0)
             {
-                ConnHandler?.NwGroupToDestination(Container.NwGroupElements);
+                ConnHandler.NwGroupToDestination(Container.NwGroupElements);
             }
             if(Container.AppServerElements.Count > 0)
             {
-                ConnHandler?.AppServerToDestination(Container.AppServerElements);
+                ConnHandler.AppServerToDestination(Container.AppServerElements);
             }
         }
         Container.Clear();
@@ -675,26 +685,31 @@
 
     private async Task HandleSvcDrop()
     {
+        if (ConnHandler is null)
+        {
+            Container.Clear();
+            return;
+        }
         if(Container.ConnElement != null)
         {
-            if(ConnHandler!.ActConn.IsInterface)
+            if(ConnHandler.ActConn.IsInterface)
             {
-                await ConnHandler!.RequestReplaceInterface(Container.ConnElement);
+                await ConnHandler.RequestReplaceInterface(Container.ConnElement);
             }
             else
             {
-                ConnHandler?.InterfaceToConn(Container.ConnElement);
+                ConnHandler.InterfaceToConn(Container.ConnElement);
             }
         }
         else
         {
             if(Container.SvcElements.Count > 0)
             {
-                ConnHandler?.ServicesToConn(Container.SvcElements);
+                ConnHandler.ServicesToConn(Container.SvcElements);
             }
             if(Container.SvcGrpElements.Count > 0)
             {
-                ConnHandler?.ServiceGrpsToConn(Container.SvcGrpElements);
+                ConnHandler.ServiceGrpsToConn(Container.SvcGrpElements);
             }
         }
         Container.Clear();

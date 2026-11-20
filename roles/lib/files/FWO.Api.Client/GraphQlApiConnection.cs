@@ -21,7 +21,7 @@ namespace FWO.Api.Client
         // check cannot rebind subscriptions onto a client this instance is tearing down.
         private bool _disposed;
 
-        private GraphQLHttpClient CreateClient(string apiServerUri)
+        private static GraphQLHttpClient CreateClient(string apiServerUri)
         {
             bool useTls = GraphQlTlsCertificateSupport.UsesTls(apiServerUri);
             HttpClientHandler handler = GraphQlTlsCertificateSupport.CreateHttpClientHandler(useTls);
@@ -101,7 +101,6 @@ namespace FWO.Api.Client
                 Log.WriteDebug("API call", $"Sending API call {operationName} in role {requestRole}: {query.Substring(0, Math.Min(query.Length, 70)).Replace(Environment.NewLine, "")}... " +
                     (variables != null ? "with variables: <redacted>" : ""));
                 GraphQLResponse<dynamic> response = await graphQlClient.SendQueryAsync<dynamic>(CreateHttpRequest(requestRole, query, variables, operationName));
-                // Log.WriteDebug("API call", "API response received.");
 
                 if (response.Errors != null)
                 {
@@ -563,7 +562,7 @@ namespace FWO.Api.Client
             }
         }
 
-        private GraphQLHttpRequest CreateHttpRequest(string role, string query, object? variables, string? operationName)
+        private static RoleGraphQLHttpRequest CreateHttpRequest(string role, string query, object? variables, string? operationName)
         {
             return new RoleGraphQLHttpRequest(role, query, variables, operationName);
         }

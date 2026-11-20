@@ -68,11 +68,7 @@ namespace FWO.Report.Filter.Ast
                     queryVarType = "timestamp";
                     if (dateTimeValue.Start == null && dateTimeValue.End == null)
                         throw new NotSupportedException($"LastHit filter with missing date");
-                    DateTime date = new();
-                    if (dateTimeValue.End != null)
-                        date = (DateTime)dateTimeValue.End;
-                    if (dateTimeValue.Start != null)
-                        date = (DateTime)dateTimeValue.Start;
+                    DateTime date = dateTimeValue.Start ?? dateTimeValue.End!.Value;
                     queryVarValue = date.ToString(DynGraphqlQuery.fullTimeFormat);
                     break;
 

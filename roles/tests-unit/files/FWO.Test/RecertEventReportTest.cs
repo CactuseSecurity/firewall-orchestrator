@@ -32,7 +32,7 @@ namespace FWO.Test
         {
             RecertificateOwner report = new(new DynGraphqlQuery(""), new SimulatedUserConfig(), ReportType.RecertificationEvent)
             {
-                ReportData = new() { OwnerData = new List<OwnerConnectionReport> { BuildOwnerReport() } }
+                ReportData = new() { OwnerData = [BuildOwnerReport()] }
             };
 
             string html = report.ExportToHtml();
@@ -49,8 +49,8 @@ namespace FWO.Test
             {
                 ReportData = new()
                 {
-                    OwnerData = new List<OwnerConnectionReport> { BuildOwnerReport() },
-                    ManagementData = new List<ManagementReport>()
+                    OwnerData = [BuildOwnerReport()],
+                    ManagementData = []
                 }
             };
 
@@ -64,7 +64,7 @@ namespace FWO.Test
         [Test]
         public async Task ReportRecertEvent_GetRecertification_DeserializesStoredOwnerData()
         {
-            List<OwnerConnectionReport> ownerReports = new() { BuildOwnerReport() };
+            List<OwnerConnectionReport> ownerReports = [BuildOwnerReport()];
             RecertEventApiConnection apiConnection = new(JsonSerializer.Serialize(ownerReports));
 
             List<OwnerConnectionReport> result = await ReportRecertEvent.GetRecertification(123, apiConnection);
@@ -81,7 +81,7 @@ namespace FWO.Test
         [Test]
         public async Task ReportRecertEvent_GetRecertification_ReturnsEmptyListWithoutReportId()
         {
-            List<OwnerConnectionReport> ownerReports = new() { BuildOwnerReport() };
+            List<OwnerConnectionReport> ownerReports = [BuildOwnerReport()];
             RecertEventApiConnection apiConnection = new(JsonSerializer.Serialize(ownerReports));
 
             List<OwnerConnectionReport> result = await ReportRecertEvent.GetRecertification(null, apiConnection);
@@ -120,7 +120,7 @@ namespace FWO.Test
 
                 if (typeof(QueryResponseType) == typeof(List<ReportFile>))
                 {
-                    List<ReportFile> reports = new() { new() { Id = 123, Json = reportJson } };
+                    List<ReportFile> reports = [new() { Id = 123, Json = reportJson }];
                     return Task.FromResult((QueryResponseType)(object)reports);
                 }
 

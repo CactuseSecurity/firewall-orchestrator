@@ -150,11 +150,9 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    // app.UseHsts();
 }
 
-// app.UseHttpsRedirection();
+// HTTPS redirection is done by the Apache reverse proxy in front of the UI (roles/ui/templates/httpd.conf)
 app.UseMiddleware<ContentSecurityPolicyMiddleware>();
 app.UseStaticFiles();
 

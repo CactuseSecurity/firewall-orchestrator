@@ -193,7 +193,7 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
                     return BadRequest(validationError);
                 }
 
-                rules = fetchedRules ?? new ListPage<RuleDetail>(new List<RuleDetail>(), false);
+                rules = fetchedRules ?? new ListPage<RuleDetail>([], false);
             }
 
             siemResult = kSiemResultOk;
@@ -395,7 +395,7 @@ public class RuleController(ApiConnection apiConnection, GlobalConfig globalConf
     private async Task<List<RuleDetail>> GetRulesByIdsAsync(List<long> ruleIds, UserConfig userConfig)
     {
         if (ruleIds.Count == 0)
-            return new List<RuleDetail>();
+            return [];
 
         var query = RuleQueries.getRuleDetailsById;
 
@@ -843,7 +843,7 @@ public class RuleResult
     public int Count { get; set; }
 
     [JsonPropertyName("rules")]
-    public List<RuleDetail> Rules { get; set; } = new();
+    public List<RuleDetail> Rules { get; set; } = [];
 }
 
 public class RuleDetail
@@ -855,19 +855,19 @@ public class RuleDetail
     public string Manager { get; set; } = "";
 
     [JsonPropertyName("source")]
-    public List<NetworkObjectCopy> Source { get; set; } = new();
+    public List<NetworkObjectCopy> Source { get; set; } = [];
 
     [JsonPropertyName("sourceShort")]
     public string SourceShort { get; set; } = "";
 
     [JsonPropertyName("destination")]
-    public List<NetworkObjectCopy> Destination { get; set; } = new();
+    public List<NetworkObjectCopy> Destination { get; set; } = [];
 
     [JsonPropertyName("destinationShort")]
     public string DestinationShort { get; set; } = "";
 
     [JsonPropertyName("service")]
-    public List<ServiceObject> Service { get; set; } = new();
+    public List<ServiceObject> Service { get; set; } = [];
 
     [JsonPropertyName("serviceShort")]
     public string ServiceShort { get; set; } = "";

@@ -3,5 +3,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsNotAsErrors>CS1998</WarningsNotAsErrors> <!-- optional -->
     <NoWarn>CS0618</NoWarn>                           <!-- optional -->
+    <!-- run the IDE code style rules configured as warning in .editorconfig during the build -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 </Project>

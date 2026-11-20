@@ -45,7 +45,7 @@ else
     public string? TicketId { get; set; }
 
     private WfHandler wfHandler = new ();
-    private WfStateDict states = new ();
+    private readonly WfStateDict states = new ();
     private List<FwoOwner> Owners = new();
     private bool InitComplete = false;
     private bool WorkInProgress = false;

@@ -438,8 +438,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(handler.SrcAppRolesToAdd.Select(item => item.Id), Is.EquivalentTo(new List<long> { appRole.Id }));
-                Assert.That(handler.SrcAppServerToAdd.Select(item => item.Id), Is.EquivalentTo(new List<long> { appServer.Id }));
+                Assert.That(handler.SrcAppRolesToAdd.Select(item => item.Id), Is.EquivalentTo([appRole.Id]));
+                Assert.That(handler.SrcAppServerToAdd.Select(item => item.Id), Is.EquivalentTo([appServer.Id]));
                 Assert.That(GetPrivateField<List<KeyValuePair<int, long>>>(component.Instance, "selectedNwElems"), Is.Empty);
             });
             await Task.CompletedTask;
@@ -474,8 +474,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(handler.SrcNwGroupsToAdd.Select(item => item.Id), Is.EquivalentTo(new List<long> { nwGroup.Id }));
-                Assert.That(handler.SrcAreasToAdd.Select(item => item.Id), Is.EquivalentTo(new List<long> { area.Id }));
+                Assert.That(handler.SrcNwGroupsToAdd.Select(item => item.Id), Is.EquivalentTo([nwGroup.Id]));
+                Assert.That(handler.SrcAreasToAdd.Select(item => item.Id), Is.EquivalentTo([area.Id]));
                 Assert.That(GetPrivateField<List<KeyValuePair<int, long>>>(component.Instance, "selectedNwElems"), Is.Empty);
             });
             await Task.CompletedTask;

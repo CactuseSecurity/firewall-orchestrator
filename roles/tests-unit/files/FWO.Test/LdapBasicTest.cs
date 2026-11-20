@@ -646,7 +646,7 @@ namespace FWO.Test
 
         private static LdapEntry Entry(string dn, params (string Name, string[] Values)[] attributes)
         {
-            LdapAttributeSet attributeSet = new();
+            LdapAttributeSet attributeSet = [];
             foreach (var attribute in attributes)
             {
                 attributeSet.Add(new LdapAttribute(attribute.Name, attribute.Values));

@@ -29,7 +29,9 @@ namespace FWO.Test
         private static readonly WfReqElement kGroupMember = new()
         {
             Id = 1,
+            TaskId = 1,
             RequestAction = RequestAction.create.ToString(),
+            NetworkId = 100,
             GroupName = "ARxx12345-100",
             Name = "AppServerX",
             IpString = "10.0.0.1/32",
@@ -45,11 +47,14 @@ namespace FWO.Test
 
             public List<object> CreatedRequests { get; } = [];
 
+            public List<string> QueryLog { get; } = [];
+
             /// <summary>Descriptions of the alerts raised.</summary>
             public List<string> AlertDescriptions { get; } = [];
 
             public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
+                QueryLog.Add(query);
                 if (query == ExtRequestQueries.getUnfinishedRequestsOfTicket)
                 {
                     return (QueryResponseType)(object)UnfinishedRequests;
@@ -57,6 +62,18 @@ namespace FWO.Test
                 if (typeof(QueryResponseType) == typeof(WfTicket))
                 {
                     return (QueryResponseType)(object)ticket;
+                }
+                if (query == RequestQueries.updateEffectiveRequestElementSnapshot)
+                {
+                    Dictionary<string, object?> payload = (Dictionary<string, object?>)variables!;
+                    long elementId = Convert.ToInt64(payload["id"]);
+                    WfReqElement element = ticket.Tasks.SelectMany(task => task.Elements)
+                        .Single(candidate => candidate.Id == elementId);
+                    element.IpString = payload["ip"]?.ToString();
+                    element.Name = payload["name"]?.ToString();
+                    element.GroupName = payload["groupName"]?.ToString();
+                    ticket.UpdateCidrsInTaskElements();
+                    return (QueryResponseType)(object)new ReturnId { UpdatedIdLong = elementId };
                 }
                 if (query == ExtRequestQueries.addExtRequest && variables != null)
                 {
@@ -223,6 +240,59 @@ namespace FWO.Test
                 Assert.That(storedSystem.TypeId, Is.EqualTo(BuiltInExternalTicketSystemTypes.TufinSecureChangeId));
                 Assert.That(storedSystem.Url, Is.EqualTo(ExtTicketHandlerTest.ticketSystem.Url));
                 Assert.That(storedSystem.CredentialId, Is.EqualTo(ExtTicketHandlerTest.kTestCredentialId));
+            });
+        }
+
+        [Test]
+        public async Task SendFirstRequest_MaterializesGroupMembersBeforeConstructingExternalContent()
+        {
+            WfTicket ticket = Ticket();
+            WfReqTask groupTask = ticket.Tasks[0];
+            WfReqElement groupMember = new(kGroupMember)
+            {
+                TaskId = groupTask.Id,
+                ObjectTaskId = 2,
+                NetworkId = null,
+                IpString = "10.0.0.10"
+            };
+            groupTask.Elements = [groupMember];
+            WfReqTask objectTask = new()
+            {
+                Id = 2,
+                TicketId = kTicketId,
+                TaskNumber = 0,
+                TaskType = WfTaskType.object_create.ToString(),
+                StateId = kDoneStateId,
+                Elements =
+                [
+                    new WfReqElement
+                    {
+                        Id = 20,
+                        TaskId = 2,
+                        Field = ElemFieldType.source.ToString(),
+                        RequestAction = RequestAction.create.ToString(),
+                        Name = "AppServerX",
+                        IpString = "10.0.1.10"
+                    }
+                ]
+            };
+            ticket.Tasks.Insert(0, objectTask);
+            ticket.UpdateCidrsInTaskElements();
+            ProvisioningApiConn apiConnection = new(ticket);
+            using ExternalRequestHandler handler = CreateHandler(apiConnection, ExternalTicketSystemSettings());
+
+            bool result = await handler.StartProvisioning(kTicketId);
+
+            string content = Variable(apiConnection.CreatedRequests.Single(), "extTaskContent")?.ToString() ?? "";
+            int updateIndex = apiConnection.QueryLog.IndexOf(RequestQueries.updateEffectiveRequestElementSnapshot);
+            int insertIndex = apiConnection.QueryLog.IndexOf(ExtRequestQueries.addExtRequest);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(updateIndex, Is.GreaterThanOrEqualTo(0));
+                Assert.That(insertIndex, Is.GreaterThan(updateIndex));
+                Assert.That(content, Does.Contain("10.0.1.10"));
+                Assert.That(content, Does.Not.Contain("10.0.0.10"));
             });
         }
 

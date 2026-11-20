@@ -54,6 +54,45 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CopyRequestedStateSnapshot_CopiesCurrentValuesAndPreservesReferenceIdentity()
+        {
+            WfReqElement target = CreateSnapshotTarget();
+            WfReqElement source = CreateSnapshotSource();
+
+            WfObjectTaskHelper.CopyRequestedStateSnapshot(target, source);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(target.Name, Is.EqualTo(source.Name));
+                Assert.That(target.GroupName, Is.EqualTo(source.GroupName));
+                Assert.That(target.IpString, Is.EqualTo(source.IpString));
+                Assert.That(target.IpEnd, Is.EqualTo(source.IpEnd));
+                Assert.That(target.Cidr?.CidrString, Is.EqualTo(source.Cidr?.CidrString));
+                Assert.That(target.CidrEnd?.CidrString, Is.EqualTo(source.CidrEnd?.CidrString));
+                Assert.That(target.Port, Is.EqualTo(source.Port));
+                Assert.That(target.PortEnd, Is.EqualTo(source.PortEnd));
+                Assert.That(target.ProtoId, Is.EqualTo(source.ProtoId));
+                Assert.That(target.StartTime, Is.EqualTo(source.StartTime));
+                Assert.That(target.EndTime, Is.EqualTo(source.EndTime));
+                Assert.That(target.Id, Is.EqualTo(12));
+                Assert.That(target.TaskId, Is.EqualTo(20));
+                Assert.That(target.Field, Is.EqualTo(ElemFieldType.destination.ToString()));
+                Assert.That(target.RequestAction, Is.EqualTo(RequestAction.modify.ToString()));
+                Assert.That(target.ObjectTaskId, Is.EqualTo(42));
+                Assert.That(target.NetworkId, Is.EqualTo(101));
+                Assert.That(target.ServiceId, Is.EqualTo(102));
+                Assert.That(target.TimeObjId, Is.EqualTo(103));
+                Assert.That(target.FlowNetworkObjectId, Is.EqualTo(104));
+                Assert.That(target.FlowNetworkGroupId, Is.EqualTo(105));
+                Assert.That(target.FlowServiceObjectId, Is.EqualTo(106));
+                Assert.That(target.FlowServiceGroupId, Is.EqualTo(107));
+                Assert.That(target.FlowTimeObjectId, Is.EqualTo(108));
+                Assert.That(target.ObjectTaskEntityId, Is.EqualTo(-8));
+                Assert.That(target.TimeObjectEntityId, Is.EqualTo(-9));
+            });
+        }
+
+        [Test]
         public void IsManagementObjectTask_RecognizesGroupAndObjectTaskTypes()
         {
             Assert.Multiple(() =>
@@ -550,6 +589,70 @@ namespace FWO.Test
         private static WfReqElement CreateTimeElement(string? name, DateTime? startTime, DateTime? endTime)
         {
             return new() { Field = ElemFieldType.time.ToString(), Name = name, StartTime = startTime, EndTime = endTime };
+        }
+
+        private static WfReqElement CreateSnapshotTarget()
+        {
+            return new()
+            {
+                Id = 12,
+                TaskId = 20,
+                Field = ElemFieldType.destination.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                ObjectTaskId = 42,
+                ObjectTaskEntityId = -8,
+                TimeObjectEntityId = -9,
+                NetworkId = 101,
+                ServiceId = 102,
+                TimeObjId = 103,
+                FlowNetworkObjectId = 104,
+                FlowNetworkGroupId = 105,
+                FlowServiceObjectId = 106,
+                FlowServiceGroupId = 107,
+                FlowTimeObjectId = 108,
+                Name = "old-name",
+                GroupName = "old-group",
+                IpString = "10.0.0.10",
+                IpEnd = "10.0.0.20",
+                Port = 80,
+                PortEnd = 81,
+                ProtoId = 6,
+                StartTime = kTimeStart,
+                EndTime = kTimeEnd
+            };
+        }
+
+        private static WfReqElement CreateSnapshotSource()
+        {
+            return new()
+            {
+                Id = 99,
+                TaskId = 77,
+                Field = ElemFieldType.source.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                ObjectTaskId = 100,
+                ObjectTaskEntityId = -80,
+                TimeObjectEntityId = -90,
+                NetworkId = 201,
+                ServiceId = 202,
+                TimeObjId = 203,
+                FlowNetworkObjectId = 204,
+                FlowNetworkGroupId = 205,
+                FlowServiceObjectId = 206,
+                FlowServiceGroupId = 207,
+                FlowTimeObjectId = 208,
+                Name = "new-name",
+                GroupName = "new-group",
+                IpString = "10.0.1.10",
+                IpEnd = "10.0.1.20",
+                Cidr = new("10.0.1.10"),
+                CidrEnd = new("10.0.1.20"),
+                Port = 443,
+                PortEnd = 444,
+                ProtoId = 17,
+                StartTime = kTimeStart.AddDays(1),
+                EndTime = kTimeEnd.AddDays(1)
+            };
         }
 
         private static WfReqTask CreateTimeModifyTask(long? originalId, long? requestedId)

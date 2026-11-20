@@ -258,6 +258,7 @@ namespace FWO.Middleware.Server
         private async Task CreateExtRequest(WfTicket ticket, List<WfReqTask> tasks, List<WfReqTask> handledTasks, int waitCycles,
             ProvisioningRelease? release = null)
         {
+            (tasks, handledTasks) = await PrepareExternalRequestTasks(ticket, tasks, handledTasks);
             // the copy stored with the request only references the credential, the header is built for each call
             actSystem.Authorization = null;
             if (actSystem.LookupRequesterId)
@@ -287,6 +288,56 @@ namespace FWO.Middleware.Server
 
             await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ExtRequestQueries.addExtRequest, Variables);
             await LogRequestTasks(handledTasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
+        }
+
+        /// <summary>
+        /// Materializes the exact persisted request-task batch before external content is rendered.
+        /// </summary>
+        private async Task<(List<WfReqTask> ContentTasks, List<WfReqTask> HandledTasks)> PrepareExternalRequestTasks(
+            WfTicket ticket, List<WfReqTask> contentTasks, List<WfReqTask> handledTasks)
+        {
+            List<long> taskIds = [.. handledTasks.Select(task => task.Id).Distinct()];
+            List<WfReqTask> preparedTasks = await wfHandler.PrepareRequestTasksForExecution(ticket, taskIds);
+            Dictionary<long, WfReqTask> preparedById = preparedTasks.ToDictionary(task => task.Id);
+            List<WfReqTask> preparedContent = [.. contentTasks.Select(task =>
+                RebuildExternalContentTask(task, preparedById))];
+            List<WfReqTask> preparedHandled = [.. handledTasks.Select(task => preparedById[task.Id])];
+            return (preparedContent, preparedHandled);
+        }
+
+        /// <summary>
+        /// Replaces persisted elements in a possibly gateway-merged content task while retaining its element order.
+        /// </summary>
+        private static WfReqTask RebuildExternalContentTask(WfReqTask contentTask,
+            Dictionary<long, WfReqTask> preparedById)
+        {
+            WfReqTask result = preparedById.TryGetValue(contentTask.Id, out WfReqTask? preparedTask)
+                ? new WfReqTask(preparedTask)
+                : new WfReqTask(contentTask);
+            result.Elements = [.. contentTask.Elements.Select(element => PreparedExternalElement(element, preparedById))];
+            return result;
+        }
+
+        /// <summary>
+        /// Resolves one content element to the verified task readback that owns it.
+        /// </summary>
+        private static WfReqElement PreparedExternalElement(WfReqElement element,
+            Dictionary<long, WfReqTask> preparedById)
+        {
+            if (element.Id <= 0 || element.TaskId <= 0)
+            {
+                return element;
+            }
+            if (preparedById.TryGetValue(element.TaskId, out WfReqTask? owner))
+            {
+                WfReqElement? prepared = owner.Elements.FirstOrDefault(candidate => candidate.Id == element.Id);
+                if (prepared != null)
+                {
+                    return prepared;
+                }
+            }
+            throw new EffectiveRequestStateMaterializationException(
+                EffectiveRequestStateFailureCategory.ReadbackMismatch);
         }
 
         private static Dictionary<string, List<int>> BuildExtQueryVariables(List<WfReqTask> tasks, List<WfReqTask> handledTasks)

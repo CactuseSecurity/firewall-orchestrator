@@ -44,6 +44,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteRequestTask;
         public static readonly string newRequestElement;
         public static readonly string updateRequestElement;
+        public static readonly string updateEffectiveRequestElementSnapshot;
         public static readonly string updateRequestElementFlowIds;
         public static readonly string updateRequestElementFlowTimeObjId;
         public static readonly string updateRequestElementObjectTaskId;
@@ -151,6 +152,7 @@ namespace FWO.Api.Client.Queries
                 deleteRequestTask = GetQueryText("request/deleteRequestTask.graphql");
                 newRequestElement = GetQueryText("request/newRequestElement.graphql");
                 updateRequestElement = GetQueryText("request/updateRequestElement.graphql");
+                updateEffectiveRequestElementSnapshot = GetQueryText("request/updateEffectiveRequestElementSnapshot.graphql");
                 updateRequestElementFlowIds = GetQueryText("request/updateRequestElementFlowIds.graphql");
                 updateRequestElementFlowTimeObjId = GetQueryText("request/updateRequestElementFlowTimeObjId.graphql");
                 updateRequestElementObjectTaskId = GetQueryText("request/updateRequestElementObjectTaskId.graphql");

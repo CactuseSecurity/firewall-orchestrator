@@ -70,6 +70,7 @@ namespace FWO.Test
             public int NewReqElementCallCount { get; private set; }
             public int UpdateReqElementCallCount { get; private set; }
             public int UpdateReqElementObjectTaskIdCallCount { get; private set; }
+            public object? LastUpdateReqElementObjectTaskIdVariables { get; private set; }
             public int DeleteReqElementCallCount { get; private set; }
             public int NewImplTaskCallCount { get; private set; }
             public int UpdateImplTaskCallCount { get; private set; }
@@ -297,6 +298,7 @@ namespace FWO.Test
                 if (query == RequestQueries.updateRequestElementObjectTaskId)
                 {
                     UpdateReqElementObjectTaskIdCallCount++;
+                    LastUpdateReqElementObjectTaskIdVariables = variables;
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedReqElementId });
                 }
                 if (query == RequestQueries.deleteRequestElement)
@@ -578,7 +580,7 @@ namespace FWO.Test
         [Test]
         public async Task LinkTicketObjectTasks_UsesLocalEntityCorrelationForAccessElements()
         {
-            WfDbAccessTestApiConn apiConnection = new();
+            WfDbAccessTestApiConn apiConnection = new() { UpdatedReqElementId = 112 };
             WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConnection, WorkflowPhases.request);
             WfReqTask sourceObjectTask = new()
             {
@@ -624,6 +626,90 @@ namespace FWO.Test
                 Assert.That(savedAccessTask.Elements[0].ObjectTaskId, Is.Null);
                 Assert.That(savedAccessTask.Elements[1].ObjectTaskId, Is.EqualTo(210));
                 Assert.That(apiConnection.UpdateReqElementObjectTaskIdCallCount, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task LinkTicketObjectTasks_UsesLocalEntityCorrelationForGroupMembers()
+        {
+            WfDbAccessTestApiConn apiConnection = new() { UpdatedReqElementId = 312 };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConnection, WorkflowPhases.request);
+            WfReqTask sourceObjectTask = new()
+            {
+                WorkflowEntityId = -8,
+                TaskNumber = 1,
+                TaskType = WfTaskType.object_create.ToString()
+            };
+            WfReqTask sourceGroupTask = new()
+            {
+                TaskNumber = 2,
+                TaskType = WfTaskType.group_create.ToString(),
+                Elements = [new WfReqElement { Field = ElemFieldType.source.ToString(), ObjectTaskEntityId = -8 }]
+            };
+            WfReqTask savedObjectTask = new() { Id = 210, TaskNumber = 1, TaskType = WfTaskType.object_create.ToString() };
+            WfReqElement savedGroupMember = new() { Id = 312, Field = ElemFieldType.source.ToString() };
+            WfReqTask savedGroupTask = new()
+            {
+                Id = 310,
+                TaskNumber = 2,
+                TaskType = WfTaskType.group_create.ToString(),
+                Elements = [savedGroupMember]
+            };
+            WfTicket sourceTicket = new() { Tasks = [sourceObjectTask, sourceGroupTask] };
+            WfTicket savedTicket = new() { Tasks = [savedObjectTask, savedGroupTask] };
+            object?[] arguments = [sourceTicket, savedTicket];
+
+            MethodInfo method = typeof(WfDbAccess).GetMethod("LinkTicketObjectTasks", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            await (Task)method.Invoke(dbAccess, arguments)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(savedGroupMember.ObjectTaskId, Is.EqualTo(210));
+                Assert.That(apiConnection.UpdateReqElementObjectTaskIdCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.LastUpdateReqElementObjectTaskIdVariables?.GetType().GetProperty("id")?
+                    .GetValue(apiConnection.LastUpdateReqElementObjectTaskIdVariables), Is.EqualTo(312));
+                Assert.That(apiConnection.LastUpdateReqElementObjectTaskIdVariables?.GetType().GetProperty("objectTaskId")?
+                    .GetValue(apiConnection.LastUpdateReqElementObjectTaskIdVariables), Is.EqualTo(210));
+            });
+        }
+
+        [Test]
+        public async Task LinkTicketObjectTasks_UnresolvedEntityFailsBeforeReferenceWrites()
+        {
+            WfDbAccessTestApiConn apiConnection = new();
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConnection, WorkflowPhases.request);
+            WfReqTask sourceObjectTask = new()
+            {
+                WorkflowEntityId = -8,
+                TaskNumber = 1,
+                TaskType = WfTaskType.object_create.ToString()
+            };
+            WfReqTask sourceGroupTask = new()
+            {
+                TaskNumber = 2,
+                TaskType = WfTaskType.group_create.ToString(),
+                Elements = [new WfReqElement { ObjectTaskEntityId = -8 }]
+            };
+            WfReqTask savedGroupTask = new()
+            {
+                Id = 310,
+                TaskNumber = 2,
+                TaskType = WfTaskType.group_create.ToString(),
+                Elements = [new WfReqElement { Id = 312 }]
+            };
+            WfTicket sourceTicket = new() { Tasks = [sourceObjectTask, sourceGroupTask] };
+            WfTicket savedTicket = new() { Tasks = [savedGroupTask] };
+            MethodInfo method = typeof(WfDbAccess).GetMethod(
+                "LinkTicketObjectTasks", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            object?[] arguments = [sourceTicket, savedTicket];
+
+            EffectiveRequestStateMaterializationException exception = Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(
+                async () => await (Task)method.Invoke(dbAccess, arguments)!)!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.MissingReference));
+                Assert.That(apiConnection.UpdateReqElementObjectTaskIdCallCount, Is.Zero);
             });
         }
 

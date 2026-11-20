@@ -14,6 +14,10 @@ internal sealed class ImplTaskCreationApiConnection(WfTicket storedTicket) : Sim
     private long nextImplementationElementId = 500;
 
     public int InsertCount { get; private set; }
+    public int MaterializationUpdateCount { get; private set; }
+    public int ReadsAfterMaterializationStarted { get; private set; }
+    public bool MismatchMaterializationUpdate { get; set; }
+    public List<string> QueryLog { get; } = [];
     public TaskCompletionSource? InsertStarted { get; set; }
     public TaskCompletionSource? ReleaseInsert { get; set; }
 
@@ -23,9 +27,30 @@ internal sealed class ImplTaskCreationApiConnection(WfTicket storedTicket) : Sim
         string? operationName = null,
         QueryChunkingOptions? chunkingOptions = null)
     {
+        QueryLog.Add(query);
         if (query == RequestQueries.getTicketById)
         {
+            if (MaterializationUpdateCount > 0)
+            {
+                ReadsAfterMaterializationStarted++;
+            }
             return (T)(object)storedTicket;
+        }
+        if (query == RequestQueries.updateEffectiveRequestElementSnapshot)
+        {
+            Dictionary<string, object?> payload = (Dictionary<string, object?>)variables!;
+            long elementId = Convert.ToInt64(payload["id"]);
+            MaterializationUpdateCount++;
+            if (!MismatchMaterializationUpdate)
+            {
+                WfReqElement element = storedTicket.Tasks.SelectMany(task => task.Elements)
+                    .Single(candidate => candidate.Id == elementId);
+                element.IpString = payload["ip"]?.ToString();
+                element.Name = payload["name"]?.ToString();
+                storedTicket.UpdateCidrsInTaskElements();
+            }
+            long returnedId = MismatchMaterializationUpdate ? elementId + 1 : elementId;
+            return (T)(object)new ReturnId { UpdatedIdLong = returnedId };
         }
         if (query == RequestQueries.newImplementationTask)
         {

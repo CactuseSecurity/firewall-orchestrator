@@ -184,6 +184,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateImplementationTaskDraft_UsesPreparedRequestElements()
+        {
+            WfReqTask requestTask = CreateBundledAccessTask(11, "", "materialized-source");
+            WfHandler handler = CreateBundlingHandler(considerBundling: false, requestTask);
+
+            WfImplTask? draft = await handler.CreateImplementationTaskDraft(requestTask);
+            List<string> expectedNames = ["materialized-source"];
+
+            Assert.That(draft, Is.Not.Null);
+            Assert.That(draft!.ImplElements.Select(element => element.Name),
+                Is.EqualTo(expectedNames));
+        }
+
+        [Test]
+        public async Task CreateImplementationTaskDraft_ReadOnlyModeDoesNotPersistMaterialization()
+        {
+            WfReqTask requestTask = CreateBundledAccessTask(11, "", "source");
+            WfHandler handler = CreateBundlingHandler(considerBundling: false, requestTask);
+            handler.ActReqTask = requestTask;
+            handler.ReadOnlyMode = true;
+            ImplTaskCreationApiConnection apiConnection = new(handler.ActTicket);
+            SetDbAccess(handler, apiConnection);
+
+            WfImplTask? draft = await handler.CreateImplementationTaskDraft(requestTask);
+
+            Assert.That(draft, Is.Not.Null);
+            Assert.That(apiConnection.QueryLog, Is.Empty);
+        }
+
+        [Test]
         public async Task AddImplTask_ActivatesRulePositioningThroughCreationSeam()
         {
             WfReqTask requestTask = CreatePositioningRequestTask(11, [21]);
@@ -882,6 +912,60 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RequestTasksForInitialImplCreation_MaterializesPersistedConstituentsBeforeBundling()
+        {
+            WfReqTask firstObject = CreateReferencedObjectTask(31, 1, "server-a", "10.0.1.10");
+            WfReqTask secondObject = CreateReferencedObjectTask(32, 2, "server-b", "10.0.1.11");
+            WfReqTask firstAccess = CreateReferencedBundledAccessTask(11, 3, 31, "bundle-11-12");
+            WfReqTask secondAccess = CreateReferencedBundledAccessTask(12, 4, 32, "bundle-11-12");
+            WfHandler handler = CreateBundlingHandler(considerBundling: true,
+                firstObject, secondObject, firstAccess, secondAccess);
+            handler.ActTicket.UpdateCidrsInTaskElements();
+            ImplTaskCreationApiConnection apiConnection = new(handler.ActTicket);
+            SetDbAccess(handler, apiConnection);
+            List<WfReqTask> candidates = [firstAccess, secondAccess];
+
+            List<WfReqTask> effectiveTasks = await InvokeRequestTasksForInitialImplCreation(handler, candidates);
+            List<string> expectedIps = ["10.0.1.10", "10.0.1.11"];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(effectiveTasks, Has.Count.EqualTo(1));
+                Assert.That(effectiveTasks[0].Elements.Select(element => element.IpString?.StripOffUnnecessaryNetmask()),
+                    Is.EqualTo(expectedIps));
+                Assert.That(apiConnection.MaterializationUpdateCount, Is.EqualTo(2));
+                Assert.That(apiConnection.ReadsAfterMaterializationStarted, Is.EqualTo(1));
+                Assert.That(apiConnection.InsertCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public void AutoCreateAccessImplTasks_MaterializationFailureCreatesNoTasksOrPositioningCalls()
+        {
+            WfReqTask sourceObject = CreateReferencedObjectTask(31, 1, "server", "10.0.1.10");
+            WfReqTask access = CreateReferencedBundledAccessTask(11, 2, 31, "");
+            WfHandler handler = CreateBundlingHandler(considerBundling: false, sourceObject, access);
+            handler.ActTicket.UpdateCidrsInTaskElements();
+            RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
+            ImplTaskCreationApiConnection apiConnection = new(handler.ActTicket)
+            {
+                MismatchMaterializationUpdate = true
+            };
+            SetDbAccess(handler, apiConnection, caller);
+            List<WfReqTask> candidates = [access];
+
+            Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(async () =>
+                await InvokeRequestTasksForInitialImplCreation(handler, candidates));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.InsertCount, Is.Zero);
+                Assert.That(caller.CalculationCount, Is.Zero);
+                Assert.That(access.ImplementationTasks, Is.Empty);
+            });
+        }
+
+        [Test]
         public async Task RequestTasksForInitialImplCreation_SkipsAccessTasksWithoutElements()
         {
             WfReqTask overviewTask = CreateBundledAccessTask(11, "", "overview");
@@ -1118,6 +1202,42 @@ namespace FWO.Test
                 reqTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, bundleId);
             }
             return reqTask;
+        }
+
+        private static WfReqTask CreateReferencedObjectTask(long id, int taskNumber, string name, string ip)
+        {
+            return new WfReqTask
+            {
+                Id = id,
+                TicketId = 7,
+                TaskNumber = taskNumber,
+                StateId = 4,
+                TaskType = WfTaskType.object_create.ToString(),
+                Elements =
+                [
+                    new WfReqElement
+                    {
+                        Id = id * 10,
+                        TaskId = id,
+                        Field = ElemFieldType.source.ToString(),
+                        RequestAction = RequestAction.create.ToString(),
+                        Name = name,
+                        IpString = ip
+                    }
+                ]
+            };
+        }
+
+        private static WfReqTask CreateReferencedBundledAccessTask(long id, int taskNumber,
+            long objectTaskId, string bundleId)
+        {
+            WfReqTask task = CreateBundledAccessTask(id, bundleId, $"stale-{id}");
+            task.TaskNumber = taskNumber;
+            task.Elements[0].Id = id * 10;
+            task.Elements[0].TaskId = id;
+            task.Elements[0].ObjectTaskId = objectTaskId;
+            task.Elements[0].IpString = "10.0.0.10";
+            return task;
         }
 
         private static WfReqTask CreatePositioningRequestTask(long id, List<int> gatewayIds)

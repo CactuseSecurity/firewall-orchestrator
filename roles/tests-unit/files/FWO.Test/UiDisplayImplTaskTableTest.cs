@@ -153,7 +153,7 @@ namespace FWO.Test
         /// Verifies that a new implementation task gets the default device when none are available.
         /// </summary>
         [Test]
-        public void AddImplTask_UsesDefaultDeviceWhenNoDevicesExist()
+        public async Task AddImplTask_UsesDefaultDeviceWhenNoDevicesExist()
         {
             DisplayImplTaskTable component = CreateComponent();
             WfHandler handler = new()
@@ -164,7 +164,7 @@ namespace FWO.Test
             SetMatrix(handler, WfTaskType.access.ToString(), CreateMatrix(0, 0, 10));
             SetPrivateField(component, nameof(DisplayImplTaskTable.WfHandler), handler);
 
-            InvokePrivate(component, "AddImplTask");
+            await InvokePrivateTask(component, "AddImplTask");
 
             Assert.Multiple(() =>
             {
@@ -176,7 +176,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void AddImplTask_UsesMergedRequestTaskElementsWhenProvided()
+        public async Task AddImplTask_UsesMergedRequestTaskElementsWhenProvided()
         {
             DisplayImplTaskTable component = CreateComponent();
             WfHandler handler = new()
@@ -197,7 +197,7 @@ namespace FWO.Test
             SetPrivateField(component, nameof(DisplayImplTaskTable.WfHandler), handler);
             SetPrivateField(component, nameof(DisplayImplTaskTable.RequestTaskForCreation), mergedTask);
 
-            InvokePrivate(component, "AddImplTask");
+            await InvokePrivateTask(component, "AddImplTask");
 
             Assert.That(handler.ActImplTask.ImplElements.Select(element => element.Name),
                 Is.EqualTo(kExpectedMergedElementNames));

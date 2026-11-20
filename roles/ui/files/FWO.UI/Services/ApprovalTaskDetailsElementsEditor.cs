@@ -155,33 +155,7 @@ internal sealed class ApprovalTaskDetailsElementsEditor
     /// </summary>
     internal static void CopyObjectSnapshot(WfReqElement target, WfReqElement source)
     {
-        string field = target.Field;
-        long elementId = target.Id;
-        long taskId = target.TaskId;
-        string requestAction = target.RequestAction;
-        long? objectTaskId = target.ObjectTaskId;
-        target.IpString = source.IpString ?? source.Cidr?.CidrString;
-        target.IpEnd = source.IpEnd ?? source.CidrEnd?.CidrString;
-        target.Cidr = source.Cidr;
-        target.CidrEnd = source.CidrEnd;
-        target.Port = source.Port;
-        target.PortEnd = source.PortEnd;
-        target.ProtoId = source.ProtoId;
-        target.NetworkId = source.NetworkId ?? target.NetworkId;
-        target.ServiceId = source.ServiceId ?? target.ServiceId;
-        target.FlowNetworkObjectId = source.FlowNetworkObjectId ?? target.FlowNetworkObjectId;
-        target.FlowNetworkGroupId = source.FlowNetworkGroupId ?? target.FlowNetworkGroupId;
-        target.FlowServiceObjectId = source.FlowServiceObjectId ?? target.FlowServiceObjectId;
-        target.FlowServiceGroupId = source.FlowServiceGroupId ?? target.FlowServiceGroupId;
-        target.TimeObjId = source.TimeObjId ?? target.TimeObjId;
-        target.FlowTimeObjectId = source.FlowTimeObjectId ?? target.FlowTimeObjectId;
-        target.GroupName = source.GroupName;
-        target.Name = source.Name;
-        target.Field = field;
-        target.Id = elementId;
-        target.TaskId = taskId;
-        target.RequestAction = requestAction;
-        target.ObjectTaskId = objectTaskId;
+        WfObjectTaskHelper.CopyRequestedStateSnapshot(target, source);
     }
 
     internal static bool SamePositiveId(long? left, long? right) => left is > 0 && left == right;

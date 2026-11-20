@@ -1,0 +1,28 @@
+mutation updateEffectiveRequestElementSnapshot(
+  $id: bigint!
+  $ip: cidr
+  $ipEnd: cidr
+  $port: Int
+  $portEnd: Int
+  $proto: Int
+  $groupName: String
+  $name: String
+  $startTime: timestamptz
+  $endTime: timestamptz
+  ) {
+  update_request_reqelement_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      ip: $ip
+      ip_end: $ipEnd
+      port: $port
+      port_end: $portEnd
+      ip_proto_id: $proto
+      group_name: $groupName
+      name: $name
+      start_time: $startTime
+      end_time: $endTime
+  }) {
+    UpdatedIdLong: id
+  }
+}

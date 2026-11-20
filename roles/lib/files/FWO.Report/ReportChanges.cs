@@ -144,11 +144,11 @@ namespace FWO.Report
         /// <returns>True if all objects could be fetched within maxFetchCycles.</returns>
         public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
-            if (!objQueryVariables.ContainsKey(QueryVar.MgmIds) || !objQueryVariables.ContainsKey(QueryVar.Limit) || !objQueryVariables.ContainsKey(QueryVar.Offset))
+            if (!objQueryVariables.TryGetValue(QueryVar.MgmIds, out object? mgmIdValue) || !objQueryVariables.ContainsKey(QueryVar.Limit) || !objQueryVariables.ContainsKey(QueryVar.Offset))
             {
                 throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
             }
-            int mgmId = (int)objQueryVariables[QueryVar.MgmIds];
+            int mgmId = (int)mgmIdValue;
             ManagementReport managementReport = ReportData.ManagementData.FirstOrDefault(m => m.Id == mgmId) ?? throw new ArgumentException("Given management id does not exist for this report");
 
             ChangeReportObjectFetcher fetcher = new(apiConnection, objQueryVariables, objects, maxFetchCycles);

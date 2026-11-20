@@ -34,7 +34,7 @@ function scrollIntoRSBView(htmlObjId, smooth) {
 
 function expandRsbRow(obj) {
     let toggleLink = obj.previousElementSibling?.querySelector("a");
-    if (toggleLink && toggleLink.getAttribute("aria-expanded") == 'false')
+    if (toggleLink?.getAttribute("aria-expanded") == 'false')
     {
         toggleLink.click();
     }

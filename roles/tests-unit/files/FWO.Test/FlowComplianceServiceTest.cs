@@ -18,6 +18,8 @@ namespace FWO.Test;
 internal class FlowComplianceServiceTest
 {
     private const int kForbiddenServicePolicyId = 10;
+    private static readonly string[] kExpectedMatrixType = ["Matrix"];
+    private static readonly string[] kExpectedMatrixAndForbiddenServiceTypes = ["Matrix", "ForbiddenService"];
 
     [Test]
     public async Task GetPolicyIdsAsync_ReturnsActivePolicies()
@@ -89,7 +91,7 @@ internal class FlowComplianceServiceTest
             Assert.That(result[0].Policy.Id, Is.EqualTo(7));
             Assert.That(result[0].Policy.Name, Is.EqualTo("Matrix and Service Policy"));
             Assert.That(result[0].Violations, Has.Count.EqualTo(2));
-            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
+            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(kExpectedMatrixAndForbiddenServiceTypes));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getLanguages), Is.EqualTo(0));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getTextsPerLanguage), Is.EqualTo(0));
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getPoliciesByIds));
@@ -400,9 +402,9 @@ internal class FlowComplianceServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result[0].Policy.Id, Is.EqualTo(7));
-            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
+            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(kExpectedMatrixAndForbiddenServiceTypes));
             Assert.That(result[1].Policy.Id, Is.EqualTo(8));
-            Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix" }));
+            Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(kExpectedMatrixType));
             Assert.That(apiConnection.CountQueries(DeviceQueries.getManagementNames), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(NetworkZoneQueries.getNetworkZonesForMatrix), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(ComplianceQueries.getPoliciesByIds), Is.EqualTo(1));
@@ -814,9 +816,9 @@ internal class FlowComplianceServiceTest
     {
         public List<string> SentQueries { get; } = [];
         public List<Language> Languages { get; set; } = [];
-        public Dictionary<string, List<UiText>> TextsByLanguage { get; set; } = new();
+        public Dictionary<string, List<UiText>> TextsByLanguage { get; set; } = [];
         public List<CompliancePolicy> Policies { get; set; } = [];
-        public Dictionary<int, CompliancePolicy> PoliciesById { get; } = new();
+        public Dictionary<int, CompliancePolicy> PoliciesById { get; } = [];
         public List<Management> Managements { get; set; } = [];
         public List<NetworkZone> NetworkZones { get; set; } = [];
 

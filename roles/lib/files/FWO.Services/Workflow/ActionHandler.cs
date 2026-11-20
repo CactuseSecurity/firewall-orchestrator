@@ -28,7 +28,7 @@ namespace FWO.Services.Workflow
         private string? ScopedUserEmailBcc { get; set; } = "";
         private readonly List<UserGroup>? UserGroups = [];
         private readonly string NoAuthUser = "No Auth User";
-        private static readonly object MiddlewareDelegationLock = new();
+        private static readonly Lock MiddlewareDelegationLock = new();
         private static readonly Dictionary<string, DateTime> MiddlewareDelegations = [];
         private static readonly TimeSpan MiddlewareDelegationDeduplicationWindow = TimeSpan.FromSeconds(5);
         /// <summary>
@@ -565,7 +565,7 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private long GetStatefulObjectId(WfStatefulObject statefulObject, WfObjectScopes scope)
+        private static long GetStatefulObjectId(WfStatefulObject statefulObject, WfObjectScopes scope)
         {
             return scope switch
             {
@@ -834,7 +834,7 @@ namespace FWO.Services.Workflow
                     source = "workflow",
                     userId = 0,
                     title = "Workflow state alert",
-                    description = description,
+                    description,
                     alertCode = (int)AlertCode.WorkflowAlert
                 };
                 await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addAlert, Variables);

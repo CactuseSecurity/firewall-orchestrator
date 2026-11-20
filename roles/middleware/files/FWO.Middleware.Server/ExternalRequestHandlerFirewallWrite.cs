@@ -42,6 +42,7 @@ namespace FWO.Middleware.Server
         public async Task<(WfImplTask? ImplTask, bool IsFinished)> LoadImplTaskOfRequest(ExternalRequest request)
         {
             WfTicket? ticket = await InitAndResolve(request.TicketId);
+            firewallWriteTicket = ticket;
             (_, WfImplTask? implTask) = FindImplTask(ticket, request.ImplTaskId);
             if (implTask == null)
             {

@@ -15,6 +15,8 @@ namespace FWO.Test
     {
         private static readonly DateTime kObjectTimeStart = new(2026, 11, 1, 8, 0, 0, DateTimeKind.Local);
         private static readonly DateTime kObjectTimeEnd = new(2026, 11, 30, 18, 0, 0, DateTimeKind.Local);
+        private static readonly string[] kExpectedServiceObjectNames = ["HTTPS", "8443-8444/tcp"];
+        private static readonly int[] kExpectedQueriedManagementIds = [2, 3];
 
         private sealed class FlowDbCreatorTestApiConn : SimulatedApiConnection
         {
@@ -1225,7 +1227,7 @@ namespace FWO.Test
             bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, ticket, WfObjectScopes.Ticket, null, ticket.Id);
 
             Assert.That(result, Is.True);
-            Assert.That(apiConn.QueriedManagementIds.Distinct(), Is.EquivalentTo(new[] { 2, 3 }));
+            Assert.That(apiConn.QueriedManagementIds.Distinct(), Is.EquivalentTo(kExpectedQueriedManagementIds));
             Assert.That(apiConn.InsertedAccesses, Has.Count.EqualTo(2));
             Assert.That(((NwRef)apiConn.InsertedAccesses[0].AccessSources!.Data.Single()).NwObjId, Is.EqualTo(10));
             Assert.That(((NwRef)apiConn.InsertedAccesses[1].AccessSources!.Data.Single()).NwObjId, Is.EqualTo(30));
@@ -1254,7 +1256,7 @@ namespace FWO.Test
             Assert.That(result, Is.True);
             Assert.That(apiConn.InsertedNetworkObjects.First().Name, Is.EqualTo("Src Host"));
             Assert.That(apiConn.InsertedNetworkObjects.Last().Name, Is.EqualTo("10.0.1.1"));
-            Assert.That(apiConn.InsertedServiceObjects.Select(serviceObject => serviceObject.Name), Is.EquivalentTo(new[] { "HTTPS", "8443-8444/tcp" }));
+            Assert.That(apiConn.InsertedServiceObjects.Select(serviceObject => serviceObject.Name), Is.EquivalentTo(kExpectedServiceObjectNames));
         }
 
         [Test]
@@ -1361,7 +1363,7 @@ namespace FWO.Test
                 Name = "AR-Destination",
                 Hash = "dst-group",
                 ShowInRequestModule = true,
-                NwGroupMembers = new List<FlowNwGroupMember>()
+                NwGroupMembers = []
             };
             destinationGroup.NwGroupMembers.Add(new FlowNwGroupMember { NwGroupId = 102, NwObjectId = 11 });
             apiConn.ExistingNetworkGroups.Add(destinationGroup);

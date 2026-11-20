@@ -20,10 +20,10 @@ internal sealed class UiApprovalTaskEditorsTest
 {
     private sealed class EditorApiConnection : SimulatedApiConnection
     {
-        public List<FlowNwObject> NetworkObjects { get; } = new();
-        public List<FlowSvcObject> ServiceObjects { get; } = new();
-        public List<FlowNwGroup> NetworkGroups { get; } = new();
-        public List<FlowSvcGroup> ServiceGroups { get; } = new();
+        public List<FlowNwObject> NetworkObjects { get; } = [];
+        public List<FlowSvcObject> ServiceObjects { get; } = [];
+        public List<FlowNwGroup> NetworkGroups { get; } = [];
+        public List<FlowSvcGroup> ServiceGroups { get; } = [];
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
             string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
@@ -61,7 +61,7 @@ internal sealed class UiApprovalTaskEditorsTest
     public async Task ApprovalObjectTaskEditor_OnlyShowsTheFixedServiceEditor()
     {
         await using BunitContext context = CreateContext(new EditorApiConnection());
-        List<IpProtocol> protocols = new() { new IpProtocol { Id = 6, Name = "tcp" } };
+        List<IpProtocol> protocols = [new IpProtocol { Id = 6, Name = "tcp" }];
         IRenderedComponent<ApprovalObjectTaskEditor> cut = context.Render<ApprovalObjectTaskEditor>(parameters => parameters
             .Add(parameter => parameter.Display, true)
             .Add(parameter => parameter.ObjectKind, ObjectTaskKind.Service)
@@ -103,8 +103,8 @@ internal sealed class UiApprovalTaskEditorsTest
         IRenderedComponent<ApprovalObjectTaskEditor> cut = context.Render<ApprovalObjectTaskEditor>(parameters => parameters
             .Add(parameter => parameter.Display, true)
             .Add(parameter => parameter.ObjectKind, ObjectTaskKind.Service)
-            .Add(parameter => parameter.SelectableIpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
-            .Add(parameter => parameter.DisplayIpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
+            .Add(parameter => parameter.SelectableIpProtos, [new() { Id = 6, Name = "tcp" }])
+            .Add(parameter => parameter.DisplayIpProtos, [new() { Id = 6, Name = "tcp" }])
             .Add(parameter => parameter.Task, task)
             .Add(parameter => parameter.Saved, value =>
             {
@@ -137,7 +137,7 @@ internal sealed class UiApprovalTaskEditorsTest
         IRenderedComponent<ApprovalObjectTaskEditor> cut = context.Render<ApprovalObjectTaskEditor>(parameters => parameters
             .Add(parameter => parameter.Display, true)
             .Add(parameter => parameter.ObjectKind, ObjectTaskKind.Service)
-            .Add(parameter => parameter.SelectableIpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
+            .Add(parameter => parameter.SelectableIpProtos, [new() { Id = 6, Name = "tcp" }])
             .Add(parameter => parameter.Task, new WfReqTask())
             .Add(parameter => parameter.Saved, value =>
             {
@@ -252,7 +252,7 @@ internal sealed class UiApprovalTaskEditorsTest
             .Add(parameter => parameter.Display, true)
             .Add(parameter => parameter.Task, currentTask)
             .Add(parameter => parameter.FieldKey, WorkflowEditableFieldKeys.Source)
-            .Add(parameter => parameter.TicketTasks, new List<WfReqTask> { currentTask, ticketTask }));
+            .Add(parameter => parameter.TicketTasks, [currentTask, ticketTask]));
 
         await cut.InvokeAsync(() => cut.Find("input[id^='dropdown-input-']").Focus());
         IElement[] choices = cut.FindAll("button.dropdown-item").ToArray();
@@ -298,7 +298,7 @@ internal sealed class UiApprovalTaskEditorsTest
             .Add(parameter => parameter.Display, true)
             .Add(parameter => parameter.Task, currentTask)
             .Add(parameter => parameter.FieldKey, WorkflowEditableFieldKeys.Source)
-            .Add(parameter => parameter.TicketTasks, new List<WfReqTask> { currentTask, ticketTask }));
+            .Add(parameter => parameter.TicketTasks, [currentTask, ticketTask]));
 
         await cut.InvokeAsync(() => cut.Find("input[id^='dropdown-input-']").Focus());
         cut.FindAll("button.dropdown-item")
@@ -333,7 +333,7 @@ internal sealed class UiApprovalTaskEditorsTest
             .Add(parameter => parameter.Display, true)
             .Add(parameter => parameter.Task, currentTask)
             .Add(parameter => parameter.FieldKey, WorkflowEditableFieldKeys.Source)
-            .Add(parameter => parameter.TicketTasks, new List<WfReqTask> { currentTask, groupTask, accessTask }));
+            .Add(parameter => parameter.TicketTasks, [currentTask, groupTask, accessTask]));
 
         await cut.InvokeAsync(() => cut.Find("input[id^='dropdown-input-']").Focus());
         Assert.That(cut.FindAll("button.dropdown-item").Any(option => option.TextContent.Contains("web-group (member-one (192.0.2.31))", StringComparison.Ordinal)), Is.True);
@@ -365,8 +365,8 @@ internal sealed class UiApprovalTaskEditorsTest
             .Add(parameter => parameter.Display, true)
             .Add(parameter => parameter.Task, currentTask)
             .Add(parameter => parameter.FieldKey, WorkflowEditableFieldKeys.Services)
-            .Add(parameter => parameter.IpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
-            .Add(parameter => parameter.TicketTasks, new List<WfReqTask> { currentTask, groupTask, accessTask }));
+            .Add(parameter => parameter.IpProtos, [new() { Id = 6, Name = "tcp" }])
+            .Add(parameter => parameter.TicketTasks, [currentTask, groupTask, accessTask]));
 
         await cut.InvokeAsync(() => cut.Find("input[id^='dropdown-input-']").Focus());
         Assert.That(cut.FindAll("button.dropdown-item").Any(option => option.TextContent.Contains("web-services (https", StringComparison.Ordinal)), Is.True);
@@ -429,7 +429,7 @@ internal sealed class UiApprovalTaskEditorsTest
             .Add(parameter => parameter.Display, true)
             .Add(parameter => parameter.Task, currentTask)
             .Add(parameter => parameter.FieldKey, WorkflowEditableFieldKeys.Services)
-            .Add(parameter => parameter.IpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
+            .Add(parameter => parameter.IpProtos, [new() { Id = 6, Name = "tcp" }])
             .Add(parameter => parameter.Saved, (field, _, _, services) =>
             {
                 savedField = field;
@@ -548,7 +548,7 @@ internal sealed class UiApprovalTaskEditorsTest
             .Add(parameter => parameter.Display, true)
             .Add(parameter => parameter.Task, task)
             .Add(parameter => parameter.FieldKey, WorkflowEditableFieldKeys.Services)
-            .Add(parameter => parameter.IpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }));
+            .Add(parameter => parameter.IpProtos, [new() { Id = 6, Name = "tcp" }]));
 
         MethodInfo toggle = UiRequestWorkflowTest.GetPrivateMethod(typeof(ApprovalTaskElementsEditor), "ToggleServiceRemoval");
         toggle.Invoke(cut.Instance, [service]);

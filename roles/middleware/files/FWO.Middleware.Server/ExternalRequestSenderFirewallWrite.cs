@@ -76,15 +76,26 @@ namespace FWO.Middleware.Server
             {
                 return await TakeOverCoveringResult(request, covering, writerTaskNumber, extReqHandler);
             }
+            ModellingPlaceholderResult substitution = await extReqHandler.SubstituteModellingPlaceholders(implTask);
+            if (!substitution.IsWritable)
+            {
+                Log.WriteWarning(kFirewallWriteLogTitle, $"{RequestInfo(request)}: not written, {substitution.NotWritableReason}");
+                await extReqHandler.DiscardNotWritableRequest(request, implTask, substitution.NotWritableReason!);
+                return false;
+            }
             Log.WriteInfo(kFirewallWriteLogTitle, $"Writing implementation task {implTask.Id} of {RequestInfo(request)}");
             request.Attempts++;
             string gatewaysNote = await EnforcingGatewaysNote(implTask, await extReqHandler.ResolveImplTaskManagementId(implTask));
             List<int>? installOnGatewayIds = ExternalRequestHandler.ExtQueryVariable(request, ExternalVarKeys.InstallOnGateways);
-            ModifyFirewallResult result = await modifyFirewall(implTask, installOnGatewayIds);
-            request.LastMessage = DescribeResult(result) + gatewaysNote;
+            ModifyFirewallResult result = await modifyFirewall(substitution.ImplTask, installOnGatewayIds);
+            request.LastMessage = DescribeResult(result) + gatewaysNote + (substitution.Note == null ? "" : $" {substitution.Note}");
             if (result.Success)
             {
                 request.ExtRequestState = ExtStates.ExtReqDone.ToString();
+                if (substitution.Note != null)
+                {
+                    await extReqHandler.AddImplTaskComment(implTask, substitution.Note);
+                }
                 return true;
             }
             Log.WriteWarning(kFirewallWriteLogTitle, $"{RequestInfo(request)}, attempt {request.Attempts}: {request.LastMessage}");

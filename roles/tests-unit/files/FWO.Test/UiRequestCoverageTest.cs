@@ -23,7 +23,6 @@ namespace FWO.Test
     {
         private static readonly int[] kOwnerOptionIds = [-2, -1, 1, 2];
         private static readonly int[] kDeviceOptionIds = [11, 12, 0, -1];
-        private static readonly long[] kRemovedElementIds = [1L, 2L, 3L];
         internal static readonly int[] kDeviceListIds = [101, 102];
 
         internal static void SetMember(object instance, string memberName, object? value)
@@ -424,7 +423,7 @@ namespace FWO.Test
             int resetCalls = 0;
             bool? changedDisplay = null;
             WfHandler handler = new();
-            List<WfApproval> approvals = new() { new WfApproval { Id = 6, Comments = [] } };
+            List<WfApproval> approvals = [new WfApproval { Id = 6, Comments = [] }];
             IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(
                 context, handler, approvals, displayChanged: value => changedDisplay = value,
                 resetParent: () =>

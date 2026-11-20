@@ -46,7 +46,7 @@ namespace FWO.Test
                 .Add(p => p.AllTabVisible, false)
                 .Add(p => p.CurrentReport, report)
                 .Add(p => p.SelectedReportType, ReportType.Rules)
-                .Add(p => p.SelectedRules, new List<Rule>()));
+                .Add(p => p.SelectedRules, []));
 
             cut.WaitForAssertion(() => Assert.That(FindActiveTabTitle(cut), Is.EqualTo("Report")), waitTimeout);
 
@@ -54,7 +54,7 @@ namespace FWO.Test
                 .Add(p => p.AllTabVisible, false)
                 .Add(p => p.CurrentReport, report)
                 .Add(p => p.SelectedReportType, ReportType.Rules)
-                .Add(p => p.SelectedRules, new List<Rule> { ruleAlpha }));
+                .Add(p => p.SelectedRules, [ruleAlpha]));
 
             cut.WaitForAssertion(() =>
             {
@@ -66,7 +66,7 @@ namespace FWO.Test
                 .Add(p => p.AllTabVisible, false)
                 .Add(p => p.CurrentReport, report)
                 .Add(p => p.SelectedReportType, ReportType.Rules)
-                .Add(p => p.SelectedRules, new List<Rule> { ruleBeta }));
+                .Add(p => p.SelectedRules, [ruleBeta]));
 
             cut.WaitForAssertion(() =>
             {

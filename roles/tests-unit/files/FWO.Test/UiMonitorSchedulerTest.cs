@@ -223,7 +223,7 @@ namespace FWO.Test
 
             using TestSetup setup = RenderComponent(client);
             setup.Component.Dispose();
-            List<(string Title, string Message, bool ErrorFlag)> messages = new();
+            List<(string Title, string Message, bool ErrorFlag)> messages = [];
             SetPrivateProperty(setup.Component, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
             {
                 messages.Add((title, message, errorFlag));
@@ -244,7 +244,7 @@ namespace FWO.Test
 
         private static List<SchedulerJobInfo> CreateJobs(params string[] jobNames)
         {
-            List<SchedulerJobInfo> jobs = new();
+            List<SchedulerJobInfo> jobs = [];
             for (int index = 0; index < jobNames.Length; index++)
             {
                 string jobName = jobNames[index];
@@ -281,11 +281,11 @@ namespace FWO.Test
 
     internal sealed class SchedulerSequenceHandler : HttpMessageHandler
     {
-        public List<SchedulerJobInfo> NextJobs { get; set; } = new();
-        public List<SchedulerJobInfo> RefreshedJobs { get; set; } = new();
+        public List<SchedulerJobInfo> NextJobs { get; set; } = [];
+        public List<SchedulerJobInfo> RefreshedJobs { get; set; } = [];
         public int GetJobsCalls { get; private set; }
         public int RunCalls { get; private set; }
-        public List<string> RunJobNames { get; } = new();
+        public List<string> RunJobNames { get; } = [];
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {

@@ -13,8 +13,8 @@ namespace FWO.Test
             {
                 SourceMetadata = new IpMetadata
                 {
-                    AppIds = new List<string> { "APP-1", "APP-2" },
-                    AreaIds = new List<string> { "AREA-1" },
+                    AppIds = ["APP-1", "APP-2"],
+                    AreaIds = ["AREA-1"],
                     Dns = "source.example.test"
                 }
             };

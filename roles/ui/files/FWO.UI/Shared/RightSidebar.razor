@@ -31,8 +31,7 @@
                             </div>
                         </Tab>
                     }
-                    @if (CurrentReport?.ReportData.ManagementData.Count > 0 && (CurrentReport?.ReportType.IsRuleReport()
-                                        ?? false))
+                    @if (CurrentReport != null && CurrentReport.ReportData.ManagementData.Count > 0 && CurrentReport.ReportType.IsRuleReport())
                     {
                         <Tab Title="@(userConfig.GetText("report"))" StartSelected="true">
                             <div class="d-md-flex justify-content-md-end sticky-marker-45">
@@ -74,10 +73,9 @@
                                 NetworkUserExtractor="rule => rule.Froms.Select(nl => nl.User).Distinct().Where(u => u != null).OrderBy(u => u.Name).ToArray()" />
                         </div>
                     </Tab>
-                    @if (CurrentReport?.ReportData.OwnerData.Count > 0 &&
-                                        (CurrentReport?.ReportType.IsConnectionRelatedReport() ?? false))
+                    @if (CurrentReport != null && CurrentReport.ReportData.OwnerData.Count > 0 && CurrentReport.ReportType.IsConnectionRelatedReport())
                     {
-                        <Tab Title="@(CurrentReport?.ReportType == ReportType.VarianceAnalysis ? userConfig.GetText("modelled_objects") : userConfig.GetText("used_objects"))"
+                        <Tab Title="@(CurrentReport.ReportType == ReportType.VarianceAnalysis ? userConfig.GetText("modelled_objects") : userConfig.GetText("used_objects"))"
                             StartSelected="true">
                             <div class="d-md-flex justify-content-md-end sticky-marker-45">
                                 <div class="btn btn-secondary btn-sm w-50"
@@ -143,7 +141,7 @@
 
     private FWO.Ui.Shared.TabSet tabset = new();
     private FWO.Ui.Shared.AnchorNavToRSB anchorNavToRSB = new();
-    private CollapseState collapseInRSB = new();
+    private readonly CollapseState collapseInRSB = new();
     private Tab? ruleTab;
 
     /// <summary>
@@ -377,7 +375,7 @@
                     break;
 
                 case RsbTab.rule:
-                    await FetchRuleTabContent(objType, hasChangedCallback, id, nat);
+                    await FetchRuleTabContent(hasChangedCallback, id, nat);
                     break;
             }
         }
@@ -508,7 +506,7 @@
         }
     }
 
-    private async Task FetchRuleTabContent(ObjCategory objType, Func<Task> hasChangedCallback, long id, bool nat)
+    private async Task FetchRuleTabContent(Func<Task> hasChangedCallback, long id, bool nat)
     {
         var rule = selectedRulesDetailed.FirstOrDefault(r => r.Id == id);
         if (rule == null)
@@ -545,14 +543,12 @@
                 return;
             }
 
-            rule.Froms = rule.Froms.Concat(ruleUpdated?.Froms ?? []).ToArray();
-            rule.Tos = rule.Tos.Concat(ruleUpdated?.Tos ?? []).ToArray();
-            rule.NatData.TranslatedFroms = rule.NatData.TranslatedFroms.Concat(ruleUpdated?.NatData.TranslatedFroms ??
-            []).ToArray();
-            rule.NatData.TranslatedTos = rule.NatData.TranslatedTos.Concat(ruleUpdated?.NatData.TranslatedTos ?? []).ToArray();
-            rule.Services = rule.Services.Concat(ruleUpdated?.Services ?? []).ToArray();
-            rule.NatData.TranslatedServices = rule.NatData.TranslatedServices.Concat(ruleUpdated?.NatData.TranslatedServices ??
-            []).ToArray();
+            rule.Froms = [.. rule.Froms, .. ruleUpdated.Froms];
+            rule.Tos = [.. rule.Tos, .. ruleUpdated.Tos];
+            rule.NatData.TranslatedFroms = [.. rule.NatData.TranslatedFroms, .. ruleUpdated.NatData.TranslatedFroms];
+            rule.NatData.TranslatedTos = [.. rule.NatData.TranslatedTos, .. ruleUpdated.NatData.TranslatedTos];
+            rule.Services = [.. rule.Services, .. ruleUpdated.Services];
+            rule.NatData.TranslatedServices = [.. rule.NatData.TranslatedServices, .. ruleUpdated.NatData.TranslatedServices];
 
             rule.Detailed = true;
 

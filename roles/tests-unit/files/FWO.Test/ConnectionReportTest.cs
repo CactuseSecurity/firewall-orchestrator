@@ -36,7 +36,7 @@ namespace FWO.Test
             {
                 SourceAppRoles = sourceAppRoles.ConvertAll(appRole => new ModellingAppRoleWrapper { Content = appRole })
             };
-            List<ModellingConnection> connections = new() { connection };
+            List<ModellingConnection> connections = [connection];
             return new ConnectionReport
             {
                 AllObjects = ConnectionReport.GetAllNetworkObjects(connections, resolved: true)
@@ -47,10 +47,10 @@ namespace FWO.Test
         public void ResolveObjId_DoesNotThrow_WhenAppRoleContainsNamelessAppServer()
         {
             ModellingAppServer namelessAppServer = CreateNamelessAppServer();
-            List<ModellingAppServerWrapper> appServers = new() { new ModellingAppServerWrapper { Content = namelessAppServer } };
-            ModellingAppRole emptyAppRole = CreateAppRole(1, "AR-empty", "AR5000001", new List<ModellingAppServerWrapper>());
+            List<ModellingAppServerWrapper> appServers = [new ModellingAppServerWrapper { Content = namelessAppServer }];
+            ModellingAppRole emptyAppRole = CreateAppRole(1, "AR-empty", "AR5000001", []);
             ModellingAppRole appRoleWithNamelessServer = CreateAppRole(2, "AR-nameless", "AR5000002", appServers);
-            ConnectionReport report = CreateReport(new List<ModellingAppRole> { appRoleWithNamelessServer, emptyAppRole });
+            ConnectionReport report = CreateReport([appRoleWithNamelessServer, emptyAppRole]);
 
             long resolvedId = report.ResolveObjId(emptyAppRole);
 
@@ -61,8 +61,8 @@ namespace FWO.Test
         public void ResolveObjId_ResolvesNamelessAppServer()
         {
             ModellingAppServer namelessAppServer = CreateNamelessAppServer();
-            List<ModellingAppServerWrapper> appServers = new() { new ModellingAppServerWrapper { Content = namelessAppServer } };
-            ConnectionReport report = CreateReport(new List<ModellingAppRole> { CreateAppRole(2, "AR-nameless", "AR5000002", appServers) });
+            List<ModellingAppServerWrapper> appServers = [new ModellingAppServerWrapper { Content = namelessAppServer }];
+            ConnectionReport report = CreateReport([CreateAppRole(2, "AR-nameless", "AR5000002", appServers)]);
 
             long resolvedId = report.ResolveObjId(namelessAppServer);
 
@@ -72,9 +72,9 @@ namespace FWO.Test
         [Test]
         public void ResolveObjId_DistinguishesNamesSharingAPrefix()
         {
-            ModellingAppRole longerName = CreateAppRole(10, "AR1", "AR5000010", new List<ModellingAppServerWrapper>());
-            ModellingAppRole shorterName = CreateAppRole(1, "AR", "AR5000001", new List<ModellingAppServerWrapper>());
-            ConnectionReport report = CreateReport(new List<ModellingAppRole> { longerName, shorterName });
+            ModellingAppRole longerName = CreateAppRole(10, "AR1", "AR5000010", []);
+            ModellingAppRole shorterName = CreateAppRole(1, "AR", "AR5000001", []);
+            ConnectionReport report = CreateReport([longerName, shorterName]);
 
             Assert.That(report.ResolveObjId(shorterName), Is.EqualTo(1));
             Assert.That(report.ResolveObjId(longerName), Is.EqualTo(10));
@@ -83,8 +83,8 @@ namespace FWO.Test
         [Test]
         public void ResolveObjId_ReturnsZero_WhenObjectIsNotListed()
         {
-            ConnectionReport report = CreateReport(new List<ModellingAppRole> { CreateAppRole(1, "AR", "AR5000001", new List<ModellingAppServerWrapper>()) });
-            ModellingAppRole unlistedAppRole = CreateAppRole(3, "AR", "AR5000003", new List<ModellingAppServerWrapper>());
+            ConnectionReport report = CreateReport([CreateAppRole(1, "AR", "AR5000001", [])]);
+            ModellingAppRole unlistedAppRole = CreateAppRole(3, "AR", "AR5000003", []);
 
             long resolvedId = report.ResolveObjId(unlistedAppRole);
 
@@ -95,9 +95,9 @@ namespace FWO.Test
         public void ResolveObjId_ReturnsZero_WhenIdMatchesObjectWithOtherName()
         {
             ModellingAppServer appServer = new() { Id = 7, Name = "server-7", Ip = "10.0.0.7/32", IpEnd = "10.0.0.7/32" };
-            List<ModellingAppServerWrapper> appServers = new() { new ModellingAppServerWrapper { Content = appServer } };
-            ConnectionReport report = CreateReport(new List<ModellingAppRole> { CreateAppRole(1, "AR", "AR5000001", appServers) });
-            ModellingAppRole appRoleWithSameId = CreateAppRole(7, "AR-other", "AR5000007", new List<ModellingAppServerWrapper>());
+            List<ModellingAppServerWrapper> appServers = [new ModellingAppServerWrapper { Content = appServer }];
+            ConnectionReport report = CreateReport([CreateAppRole(1, "AR", "AR5000001", appServers)]);
+            ModellingAppRole appRoleWithSameId = CreateAppRole(7, "AR-other", "AR5000007", []);
 
             long resolvedId = report.ResolveObjId(appRoleWithSameId);
 

@@ -9,7 +9,7 @@ namespace FWO.Test.Mocks
     /// </summary>
     public class MockProtectedSessionStorage : ISessionStorage
     {
-        private readonly Dictionary<string, object?> storage = new();
+        private readonly Dictionary<string, object?> storage = [];
 
         public MockProtectedSessionStorage()
         {

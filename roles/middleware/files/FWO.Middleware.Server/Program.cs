@@ -231,8 +231,6 @@ app.MapScalarApiReference(kApiDocsPageRoute, options =>
 });
 app.UseSwaggerRedirect(kApiDocsPageRoute);
 
-//app.UseHttpsRedirection();
-
 app.UseRouting();
 
 app.UseAuthentication();

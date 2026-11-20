@@ -169,8 +169,8 @@ namespace FWO.Test
             manualServer.ImportSource = GlobalConst.kManual;
             ModellingAppServer csvServer = CreateServer(102, "csv", "10.0.0.102");
             csvServer.ImportSource = GlobalConst.kCSV_ + "import";
-            apiConn.ManualServers = new List<ModellingAppServer> { manualServer };
-            apiConn.CsvServers = new List<ModellingAppServer> { csvServer };
+            apiConn.ManualServers = [manualServer];
+            apiConn.CsvServers = [csvServer];
 
             IRenderedComponent<ManualAppServer> component = RenderManualAppServer(context, new FwoOwner { Id = 9, Name = "app" }, true);
 
@@ -179,7 +179,7 @@ namespace FWO.Test
                 ModellingAppServerListHandler handler = GetPrivateField<ModellingAppServerListHandler>(component.Instance, "appServerListHandler");
                 Assert.Multiple(() =>
                 {
-                    Assert.That(handler.ManualAppServers.Select(server => server.Id), Is.EquivalentTo(new List<long> { manualServer.Id, csvServer.Id }));
+                    Assert.That(handler.ManualAppServers.Select(server => server.Id), Is.EquivalentTo([manualServer.Id, csvServer.Id]));
                     Assert.That(handler.ManualAppServers.Any(server => server.ImportSource == GlobalConst.kCSV_ + "import"), Is.True);
                 });
             });
@@ -227,8 +227,8 @@ namespace FWO.Test
         {
             await using BunitContext context = CreateContext(out RecordingApiConnection apiConn, out SimulatedUserConfig userConfig);
             userConfig.ModAppServerTypes = "[]";
-            apiConn.ManualServers = new List<ModellingAppServer>();
-            apiConn.CsvServers = new List<ModellingAppServer>();
+            apiConn.ManualServers = [];
+            apiConn.CsvServers = [];
 
             IRenderedComponent<ManualAppServer> component = RenderManualAppServer(context, new FwoOwner { Id = 9, Name = "app" }, true);
             ModellingAppServerListHandler handler = GetPrivateField<ModellingAppServerListHandler>(component.Instance, "appServerListHandler");

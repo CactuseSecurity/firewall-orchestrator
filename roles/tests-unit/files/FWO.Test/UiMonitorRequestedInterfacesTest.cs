@@ -112,12 +112,12 @@ namespace FWO.Test
             await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
-            PrepareRows(component, new List<ModellingConnection>
-            {
+            PrepareRows(component,
+            [
                 new() { Id = 1, Name = "if-1", Removed = true, TicketId = 501 },
                 new() { Id = 2, Name = "if-2", Removed = true, TicketId = 777 },
                 new() { Id = 3, Name = "if-3", Removed = false, TicketId = 888 }
-            },
+            ],
             new Dictionary<int, int>
             {
                 { 1, 10 },
@@ -144,13 +144,13 @@ namespace FWO.Test
             await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
-            PrepareRows(component, new List<ModellingConnection>
-            {
+            PrepareRows(component,
+            [
                 new() { Id = 1, Name = "if-a", Removed = true, TicketId = 1001 },
                 new() { Id = 2, Name = "if-b", Removed = true, TicketId = 1001 },
                 new() { Id = 3, Name = "if-c", Removed = true, TicketId = 2002 },
                 new() { Id = 4, Name = "if-d", Removed = false, TicketId = 3003 }
-            },
+            ],
             new Dictionary<int, int>
             {
                 { 1, 10 },
@@ -172,11 +172,11 @@ namespace FWO.Test
             await using BunitContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
-            PrepareRows(component, new List<ModellingConnection>
-            {
+            PrepareRows(component,
+            [
                 new() { Id = 1, Name = "if-a", Removed = true, TicketId = 1001 },
                 new() { Id = 2, Name = "if-b", Removed = true, TicketId = 2002 }
-            },
+            ],
             new Dictionary<int, int>
             {
                 { 1, 10 },
@@ -342,12 +342,12 @@ namespace FWO.Test
                 { 2, new FwoOwner { Id = 11, Name = "Inactive Requester", Active = false, OwnerLifeCycleStateId = 1 } },
                 { 3, new FwoOwner { Id = 12, Name = "Lifecycle Requester", Active = true, OwnerLifeCycleStateId = 2 } }
             });
-            PrepareRows(component, new List<ModellingConnection>
-            {
+            PrepareRows(component,
+            [
                 new() { Id = 1, Name = "active-if", TicketId = 1001, ProposedApp = new FwoOwner { Id = 20, Name = "Active Requested", Active = true, OwnerLifeCycleStateId = 1 } },
                 new() { Id = 2, Name = "import-inactive-if", TicketId = 1002, ProposedApp = new FwoOwner { Id = 20, Name = "Active Requested", Active = true, OwnerLifeCycleStateId = 1 } },
                 new() { Id = 3, Name = "lifecycle-inactive-if", TicketId = 1003, ProposedApp = new FwoOwner { Id = 20, Name = "Active Requested", Active = true, OwnerLifeCycleStateId = 1 } }
-            },
+            ],
             new Dictionary<int, int> { { 1, 10 }, { 2, 10 }, { 3, 10 } },
             lowestEndState: 100);
 
@@ -378,8 +378,8 @@ namespace FWO.Test
                 { 30, new FwoOwner { Id = 30, Name = "Fallback Requested", ExtAppId = "APP-30", Active = false, OwnerLifeCycleStateId = 1 } }
             });
             SetPrivateField(component, "OwnerLifeCycleActiveById", new Dictionary<int, bool> { { 1, true }, { 2, false } });
-            PrepareRows(component, new List<ModellingConnection>
-            {
+            PrepareRows(component,
+            [
                 new()
                 {
                     Id = 1,
@@ -389,7 +389,7 @@ namespace FWO.Test
                     ProposedApp = new FwoOwner { Id = 20, Name = "Lifecycle Requested", ExtAppId = "APP-20", Active = true, OwnerLifeCycleStateId = 2 }
                 },
                 new() { Id = 2, Name = "fallback-if", TicketId = 1002, ProposedAppId = 30 }
-            },
+            ],
             new Dictionary<int, int> { { 1, 10 }, { 2, 10 } },
             lowestEndState: 100);
 
@@ -413,12 +413,12 @@ namespace FWO.Test
             await using Bunit.TestContext context = new();
             MonitorRequestedInterfaces component = RenderComponent(context, apiConn);
 
-            PrepareRows(component, new List<ModellingConnection>
-            {
+            PrepareRows(component,
+            [
                 new() { Id = 1, Name = "if-a", TicketId = 1001 },
                 new() { Id = 2, Name = "if-b", TicketId = 1002 },
                 new() { Id = 3, Name = "if-c", TicketId = 1003 }
-            },
+            ],
             new Dictionary<int, int> { { 1, 20 }, { 2, 10 } },
             lowestEndState: 100);
             SetPrivateField(component, "SelectedTicketStateFilter", "obsolete");
@@ -1138,12 +1138,12 @@ namespace FWO.Test
         private static string BuildStateMatrixJson()
         {
             Dictionary<WorkflowPhases, StateMatrix> matrixByPhase = [];
-            foreach (WorkflowPhases phase in Enum.GetValues(typeof(WorkflowPhases)))
+            foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
             {
                 matrixByPhase[phase] = new StateMatrix
                 {
                     Matrix = new Dictionary<int, List<int>> { { 0, new List<int> { 0 } } },
-                    DerivedStates = new Dictionary<int, int>(),
+                    DerivedStates = [],
                     LowestInputState = 1,
                     LowestStartedState = 2,
                     LowestEndState = 100,

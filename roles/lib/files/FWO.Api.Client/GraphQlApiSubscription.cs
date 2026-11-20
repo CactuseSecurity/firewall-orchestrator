@@ -89,9 +89,9 @@ namespace FWO.Api.Client
                 else
                 {
                     JObject data = (JObject)response.Data;
-                    JProperty prop = (JProperty)(data.First ?? throw new Exception($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
+                    JProperty prop = (JProperty)(data.First ?? throw new Newtonsoft.Json.JsonSerializationException($"Could not retrieve unique result attribute from Json.\nJson: {response.Data}"));
                     JToken result = prop.Value;
-                    SubscriptionResponseType returnValue = result.ToObject<SubscriptionResponseType>() ?? throw new Exception($"Could not convert result from Json to {typeof(SubscriptionResponseType)}.\nJson: {response.Data}");
+                    SubscriptionResponseType returnValue = result.ToObject<SubscriptionResponseType>() ?? throw new Newtonsoft.Json.JsonSerializationException($"Could not convert result from Json to {typeof(SubscriptionResponseType)}.\nJson: {response.Data}");
                     OnUpdate?.Invoke(returnValue);
                 }
             }

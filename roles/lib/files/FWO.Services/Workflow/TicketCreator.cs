@@ -249,7 +249,7 @@ namespace FWO.Services.Workflow
             wfHandler.ActTicket = new WfTicket()
             {
                 StateId = stateId,
-                Title = ticketTitle + wfHandler.Devices.FirstOrDefault(x => x.Id == deviceId)?.Name ?? "",
+                Title = ticketTitle + wfHandler.Devices.FirstOrDefault(x => x.Id == deviceId)?.Name,
                 Requester = userConfig.User,
                 Reason = ticketReason,
                 Priority = priority,

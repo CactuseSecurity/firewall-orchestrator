@@ -114,7 +114,7 @@
 
     private GraphQlApiSubscription<List<Alert>>? alertSubscription;
     private bool showAlert = false;
-    private object errorLock = new object();
+    private readonly Lock errorLock = new();
 
     private string reloginErrorMessage = "";
     private string reloginCssClass = "";
@@ -124,8 +124,8 @@
     private bool reloginAbortable;
     private string? password;
     private ClaimsPrincipal? User;
-    private List<UIMessage> UIMessages = [];
-    private Queue<UIMessage> UIMessageQue = [];
+    private readonly List<UIMessage> UIMessages = [];
+    private readonly Queue<UIMessage> UIMessageQue = [];
     private Timer? UIMessageQueTimer;
     private bool ambientRoleInitialized;
 
@@ -433,7 +433,7 @@
             if (showtime > 0)
             {
                 messageTimer = new Timer(showtime.Value);
-                messageTimer.Elapsed += (sender, e) => HideMessage(sender, e, uiMessage.Id);
+                messageTimer.Elapsed += (_, _) => HideUIMessage(uiMessage.Id);
                 messageTimer.AutoReset = false;
                 uiMessage.ShowTimer = messageTimer;
             }
@@ -453,11 +453,6 @@
         }
     }
 
-    private void HideMessage(object? _, ElapsedEventArgs __, string messageId)
-    {
-        HideUIMessage(messageId);
-    }
-
     private void OnUIMessageTimerTick(object? _, ElapsedEventArgs __)
     {
         if (UIMessageQueTimer is null)
@@ -465,13 +460,13 @@
             return;
         }
 
-        if (UIMessageQue == null || UIMessageQue.Count == 0)
+        if (UIMessageQue.Count == 0)
         {
             UIMessageQueTimer.Stop();
             return;
         }
 
-        if (UIMessageQue.Count > 0 && UIMessages.Count < userConfig.MaxMessages)
+        if (UIMessages.Count < userConfig.MaxMessages)
         {
             UIMessage uiMessage = UIMessageQue.Dequeue();
             uiMessage.ShowTimer?.Start();

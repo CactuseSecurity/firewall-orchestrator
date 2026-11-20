@@ -21,8 +21,8 @@ namespace FWO.Test;
 [TestFixture]
 internal class ApplicationAddressesControllerTest
 {
-    private static readonly List<string> kControllerRoutes = new() { "api/modelling" };
-    private static readonly List<string> kModellerRole = new() { Roles.Modeller };
+    private static readonly List<string> kControllerRoutes = ["api/modelling"];
+    private static readonly List<string> kModellerRole = [Roles.Modeller];
 
     [Test]
     public void GetUsesApplicationAddressesRoute()
@@ -266,9 +266,9 @@ internal class ApplicationAddressesControllerTest
             {
                 Filter = new()
                 {
-                    ApplicationId = new() { 7, 8 },
-                    ApplicationName = new() { "application *", "second application" },
-                    AppIdExternal = new() { "app-*" }
+                    ApplicationId = [7, 8],
+                    ApplicationName = ["application *", "second application"],
+                    AppIdExternal = ["app-*"]
                 },
                 Limit = 20,
                 Offset = 5
@@ -303,7 +303,7 @@ internal class ApplicationAddressesControllerTest
         {
             Options = new()
             {
-                Filter = new() { AppIdExternal = new() { "APP-7", "app-7", " app-7 " } }
+                Filter = new() { AppIdExternal = ["APP-7", "app-7", " app-7 "] }
             }
         };
 
@@ -320,7 +320,7 @@ internal class ApplicationAddressesControllerTest
     [Test]
     public void ApplicationAddressVariablesContainOnlyTheVisibleApplicationIds()
     {
-        List<int> applicationIds = new() { 7, 8 };
+        List<int> applicationIds = [7, 8];
 
         string variables = SerializeVariables(ApplicationAddressQueryBuilder.BuildApplicationAddressVariables(applicationIds));
 
@@ -374,9 +374,9 @@ internal class ApplicationAddressesControllerTest
             {
                 Filter = new()
                 {
-                    ApplicationId = new() { 0 },
-                    ApplicationName = new() { "bad\u0001application" },
-                    AppIdExternal = new() { new string('a', GetMaxFilterTextLength() + 1) }
+                    ApplicationId = [0],
+                    ApplicationName = ["bad\u0001application"],
+                    AppIdExternal = [new string('a', GetMaxFilterTextLength() + 1)]
                 },
                 Limit = 0,
                 Offset = -1
@@ -519,8 +519,8 @@ internal class ApplicationAddressesControllerTest
             {
                 Filter = new()
                 {
-                    ApplicationName = new() { string.Empty },
-                    AppIdExternal = new() { " " }
+                    ApplicationName = [string.Empty],
+                    AppIdExternal = [" "]
                 }
             }
         };

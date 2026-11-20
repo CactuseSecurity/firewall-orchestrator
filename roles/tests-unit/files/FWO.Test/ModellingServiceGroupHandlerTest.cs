@@ -103,10 +103,10 @@ namespace FWO.Test
                 new RecordingApiConnection(),
                 CreateUserConfig(),
                 new FwoOwner { Id = 5 },
-                new List<ModellingServiceGroup>(),
+                [],
                 new ModellingServiceGroup { IsGlobal = true },
-                new List<ModellingService>(),
-                new List<KeyValuePair<int, int>>(),
+                [],
+                [],
                 true,
                 (_, _, _, _) => { },
                 () => Task.CompletedTask);
@@ -126,11 +126,11 @@ namespace FWO.Test
             {
                 Name = "group",
                 Comment = "comment",
-                Services = new List<ModellingServiceWrapper> { Wrap(service) }
+                Services = [Wrap(service)]
             };
-            List<ModellingServiceGroup> serviceGroups = new List<ModellingServiceGroup>();
-            List<ModellingService> availableServices = new List<ModellingService>();
-            List<KeyValuePair<int, int>> availableSvcElems = new List<KeyValuePair<int, int>>();
+            List<ModellingServiceGroup> serviceGroups = [];
+            List<ModellingService> availableServices = [];
+            List<KeyValuePair<int, int>> availableSvcElems = [];
             ModellingServiceGroupHandler handler = new(
                 apiConn,
                 CreateUserConfig(),
@@ -168,11 +168,11 @@ namespace FWO.Test
                 Id = 77,
                 Name = "group",
                 Comment = "comment",
-                Services = new List<ModellingServiceWrapper> { Wrap(removeService) }
+                Services = [Wrap(removeService)]
             };
-            List<ModellingServiceGroup> serviceGroups = new List<ModellingServiceGroup> { serviceGroup };
-            List<ModellingService> availableServices = new List<ModellingService>();
-            List<KeyValuePair<int, int>> availableSvcElems = new List<KeyValuePair<int, int>>();
+            List<ModellingServiceGroup> serviceGroups = [serviceGroup];
+            List<ModellingService> availableServices = [];
+            List<KeyValuePair<int, int>> availableSvcElems = [];
             ModellingServiceGroupHandler handler = new(
                 apiConn,
                 CreateUserConfig(),
@@ -185,7 +185,7 @@ namespace FWO.Test
                 (_, _, _, _) => { },
                 () => Task.CompletedTask);
             handler.SvcToAdd.Add(addService);
-            handler.SvcToDelete = new List<ModellingService> { removeService };
+            handler.SvcToDelete = [removeService];
 
             bool result = await handler.Save();
 

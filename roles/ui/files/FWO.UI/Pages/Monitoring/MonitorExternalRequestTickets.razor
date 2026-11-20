@@ -125,8 +125,8 @@ else
     private FwoOwner actOwner = new();
     private List<OwnerTicket> ownerTickets = [];
     private OwnerTicket actOwnerTicket = new();
-    private WfStateDict statesDict = new ();
-    private StateMatrixDict stateMatrixDict = new ();
+    private readonly WfStateDict statesDict = new ();
+    private readonly StateMatrixDict stateMatrixDict = new ();
     private StateMatrix MasterStateMatrix = new ();
     private List<ExternalRequest> relevantRequests = [];
 

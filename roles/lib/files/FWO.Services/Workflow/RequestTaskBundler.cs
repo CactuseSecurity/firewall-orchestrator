@@ -38,7 +38,7 @@ namespace FWO.Services.Workflow
                 .Order()];
         }
 
-        private Dictionary<long, string> BuildTwoOutOfThreeAssignments(IEnumerable<WfReqTask> requestTasks, bool cleanZones,
+        private static Dictionary<long, string> BuildTwoOutOfThreeAssignments(IEnumerable<WfReqTask> requestTasks, bool cleanZones,
             IEnumerable<NetworkZone>? networkZones)
         {
             Dictionary<long, string> assignments = [];

@@ -19,6 +19,8 @@ namespace FWO.Test
     [TestFixture]
     internal class ComplianceCheckTest : ComplianceCheckTestFixture
     {
+        private static readonly int[] kExpectedViolationCriterionIds = [101, 102];
+
         #region Configuration
 
         // Expected logs
@@ -291,9 +293,126 @@ namespace FWO.Test
 
             Assert.That(compliant, Is.False);
             Assert.That(ComplianceCheck.CurrentViolationsInCheck, Has.Count.EqualTo(2));
-            Assert.That(ComplianceCheck.CurrentViolationsInCheck.Select(v => v.CriterionId), Is.EquivalentTo(new[] { 101, 102 }));
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck.Select(v => v.CriterionId), Is.EquivalentTo(kExpectedViolationCriterionIds));
             Assert.That(ComplianceCheck.CurrentViolationsInCheck.Any(v => v.Details.Contains("Matrix A Source")), Is.True);
             Assert.That(ComplianceCheck.CurrentViolationsInCheck.Any(v => v.Details.Contains("Matrix B Source")), Is.True);
+        }
+
+        private static readonly int[] kPolicyIds1And2 = [1, 2];
+        private static readonly int[] kPolicyId1 = [1];
+        private static readonly int[] kInvalidPolicyIds = [0, -1];
+        private static readonly List<Rule> kNoRules = [];
+
+        [Test]
+        public async Task GetRuleViolations_CollectsViolationsOfAllSelectedPolicies()
+        {
+            await SetUpBasic(setupRelevantManagements: true);
+            SetUpForbiddenServicePolicies();
+            Rule rule = CreateRuleWithService("forbidden-service-uid", "Forbidden Legacy Service", 6, "TCP", 443);
+            rule.Id = 77;
+
+            List<Rule> rules = [rule];
+            List<ComplianceViolation>? violations = await ComplianceCheck.GetRuleViolations(kPolicyIds1And2, rules);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(violations, Is.Not.Null);
+                Assert.That(violations!.Select(violation => violation.PolicyId), Is.EquivalentTo(kPolicyIds1And2));
+                Assert.That(violations!.Select(violation => violation.RuleId), Is.All.EqualTo(77));
+                ApiConnection.AsSub().Received(2).SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>());
+            });
+        }
+
+        [Test]
+        public async Task AreRulesCompliant_StopsAtFirstPolicyWithViolation()
+        {
+            await SetUpBasic(setupRelevantManagements: true);
+            SetUpForbiddenServicePolicies();
+            Rule rule = CreateRuleWithService("forbidden-service-uid", "Forbidden Legacy Service", 6, "TCP", 443);
+
+            List<Rule> rules = [rule];
+            bool compliant = await ComplianceCheck.AreRulesCompliant(kPolicyIds1And2, rules);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(compliant, Is.False);
+                ApiConnection.AsSub().Received(1).SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>());
+            });
+        }
+
+        [Test]
+        public async Task GetRuleViolations_ReturnsNullWithoutPoliciesOrRules()
+        {
+            await SetUpBasic(setupRelevantManagements: true, createPolicy: true);
+            Rule rule = CreateSimpleRule(1);
+
+            List<Rule> rules = [rule];
+            List<ComplianceViolation>? withoutPolicies = await ComplianceCheck.GetRuleViolations(kInvalidPolicyIds, rules);
+            List<ComplianceViolation>? withoutRules = await ComplianceCheck.GetRuleViolations(kPolicyId1, kNoRules);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(withoutPolicies, Is.Null);
+                Assert.That(withoutRules, Is.Null);
+                ApiConnection.AsSub().DidNotReceive().SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>());
+            });
+        }
+
+        [Test]
+        public async Task GetRuleViolations_ReturnsNullForPolicyWithoutCriteria()
+        {
+            await SetUpBasic(createEmptyPolicy: true, setupRelevantManagements: true);
+
+            List<Rule> rules = [CreateSimpleRule(1)];
+            List<ComplianceViolation>? violations = await ComplianceCheck.GetRuleViolations(kPolicyId1, rules);
+
+            Assert.That(violations, Is.Null);
+        }
+
+        [Test]
+        public async Task GetRuleViolations_ReturnsNullWithoutGlobalConfig()
+        {
+            ComplianceCheck checkWithoutGlobalConfig = new(new SimulatedUserConfig(), ApiConnection, Logger.AsSub());
+
+            List<Rule> rules = [CreateSimpleRule(1)];
+            List<ComplianceViolation>? violations = await checkWithoutGlobalConfig.GetRuleViolations(kPolicyId1, rules);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(violations, Is.Null);
+                ApiConnection.AsSub().DidNotReceive().SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+            });
+        }
+
+        /// <summary>Policies 1 and 2 both forbid the service with the uid "forbidden-service-uid".</summary>
+        private void SetUpForbiddenServicePolicies()
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(ForbiddenServicePolicy(1, 11), ForbiddenServicePolicy(2, 12));
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<NetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>())
+                .Returns(ComplianceCheck.NetworkZones);
+        }
+
+        private static CompliancePolicy ForbiddenServicePolicy(int policyId, int criterionId)
+        {
+            return new CompliancePolicy
+            {
+                Id = policyId,
+                Criteria =
+                [
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = criterionId,
+                            CriterionType = nameof(CriterionType.ForbiddenService),
+                            Content = "forbidden-service-uid"
+                        }
+                    }
+                ]
+            };
         }
 
         [Test]
@@ -344,7 +463,7 @@ namespace FWO.Test
                 CriterionType = nameof(CriterionType.ForbiddenService),
                 Content = "443/TCP"
             };
-            List<ComplianceCriterion> criteria = new() { criterion };
+            List<ComplianceCriterion> criteria = [criterion];
 
             bool ruleIsCompliant = await ComplianceCheck.CheckRuleCompliance(rule, criteria);
 
@@ -735,12 +854,12 @@ namespace FWO.Test
             };
             CompliancePolicy policy = new() { Id = 1 };
             policy.Criteria.Add(new ComplianceCriterionWrapper { Content = matrixCriterion });
-            List<Rule> rulesToCheck = new();
-            rulesToCheck.Add(rule);
-            List<Management> managements = new();
-            managements.Add(new Management { Id = 1, Name = "Management" });
-            Dictionary<int, List<NetworkZone>> networkZonesByCriterion = new();
-            networkZonesByCriterion.Add(matrixCriterion.Id, ComplianceCheck.NetworkZones);
+            List<Rule> rulesToCheck = [rule];
+            List<Management> managements = [new Management { Id = 1, Name = "Management" }];
+            Dictionary<int, List<NetworkZone>> networkZonesByCriterion = new()
+            {
+                { matrixCriterion.Id, ComplianceCheck.NetworkZones }
+            };
 
             bool isCompliant = await ComplianceCheck.AreRulesCompliant(policy, rulesToCheck, managements, networkZonesByCriterion);
 
@@ -852,8 +971,8 @@ namespace FWO.Test
             const int criterionId = 5;
             const string mgmtUid = "mgmt-parallel";
 
-            List<Rule> rulesFromDb = new();
-            List<ComplianceViolation> currentViolations = new();
+            List<Rule> rulesFromDb = [];
+            List<ComplianceViolation> currentViolations = [];
 
             for (int i = 0; i < 200; i++)
             {

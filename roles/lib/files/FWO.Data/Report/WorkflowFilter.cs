@@ -90,7 +90,7 @@ namespace FWO.Data.Report
 
         private static List<WfTaskType> DefaultTaskTypes()
         {
-            return [.. Enum.GetValues(typeof(WfTaskType)).Cast<WfTaskType>().Where(taskType => taskType != WfTaskType.master)];
+            return [.. Enum.GetValues<WfTaskType>().Where(taskType => taskType != WfTaskType.master)];
         }
     }
 }

@@ -87,7 +87,7 @@
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private EmailForm emailForm = new EmailForm() {  };
+    private readonly EmailForm emailForm = new EmailForm() {  };
     private ConfigData? editableConfig;
     private EmailConnection actEmailConnection = new ();
 

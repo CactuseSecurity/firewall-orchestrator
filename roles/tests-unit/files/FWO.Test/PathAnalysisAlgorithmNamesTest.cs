@@ -83,7 +83,7 @@ internal class PathAnalysisAlgorithmNamesTest
         {
             Assert.That(PathAnalysisAlgorithmNames.All, Is.EquivalentTo(kAllNames));
             Assert.That(PathAnalysisAlgorithmNames.Requestable,
-                Is.EquivalentTo(new List<string> { PathAnalysisAlgorithmNames.kNetworkZoneTree }));
+                Is.EquivalentTo([PathAnalysisAlgorithmNames.kNetworkZoneTree]));
         });
     }
 }

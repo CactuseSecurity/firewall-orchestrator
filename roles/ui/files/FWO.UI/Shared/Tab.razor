@@ -2,7 +2,7 @@
 
 @if (ContainerTabSet?.KeepPanelsAlive == true)
 {
-    <div style="display:@(ContainerTabSet?.ActiveTab == this ? "contents" : "none")">
+    <div style="display:@(ContainerTabSet.ActiveTab == this ? "contents" : "none")">
         @ChildContent
     </div>
 }
@@ -51,6 +51,9 @@ else
         {
             ContainerTabSet?.RemoveTab(this);
         }
-        catch { }
+        catch (Exception exception)
+        {
+            Log.WriteDebug("Tab", $"Tab could not be removed from its tab set: {exception.Message}");
+        }
     }
 }

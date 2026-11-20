@@ -46,11 +46,11 @@ namespace FWO.Data.Modelling
             {
                 Id = service.Id,
                 Number = service.Number,
-                Name = service?.Name ?? "",
-                DestinationPort = service?.Port,
-                DestinationPortEnd = service?.PortEnd,
-                ProtoId = service?.ProtoId,
-                Protocol = service?.Protocol ?? new NetworkProtocol()
+                Name = service.Name,
+                DestinationPort = service.Port,
+                DestinationPortEnd = service.PortEnd,
+                ProtoId = service.ProtoId,
+                Protocol = service.Protocol ?? new NetworkProtocol()
             };
         }
     }

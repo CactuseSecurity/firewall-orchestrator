@@ -529,7 +529,7 @@ namespace FWO.Services.Modelling
                 return NameFieldRuleOwnerConnectionIds;
             }
 
-            List<int> ownerIds = new() { owner.Id };
+            List<int> ownerIds = [owner.Id];
             List<ModellingConnection> ownerConnections =
                 await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner, new { ownerIds }) ?? [];
 
@@ -691,7 +691,7 @@ namespace FWO.Services.Modelling
                     var ObjGroupVariables = new
                     {
                         mgmId = mgtId,
-                        objTypeIds = objTypeIds,
+                        objTypeIds,
                         import_id_start = relImpId,
                         import_id_end = relImpId
                     };
@@ -724,7 +724,7 @@ namespace FWO.Services.Modelling
                 if (managements.Count == 0)
                 {
                     Log.WriteError("GetRelevantImportId", $"No management data found for management ID {mgtId}.");
-                    return new(null, new HashSet<int> { mgtId });
+                    return new(null, [mgtId]);
                 }
 
                 HashSet<int> managementIds = managements.Select(management => management.Id).ToHashSet();
@@ -744,7 +744,7 @@ namespace FWO.Services.Modelling
             catch (Exception exception)
             {
                 Log.WriteError(userConfig.GetText("import_id"), "Get ImportIds leads to error: ", exception);
-                return new(null, new HashSet<int> { mgtId });
+                return new(null, [mgtId]);
             }
         }
     }

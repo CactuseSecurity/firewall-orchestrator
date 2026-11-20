@@ -16,7 +16,7 @@
 
 <div class="d-flex gap-2 p-2 @CssClass">
     <label class="text-nowrap">@(userConfig.GetText("order_by")): </label>
-    <Dropdown   @ref="propertyDropdown"
+    <Dropdown  
                 ElementType="string"
                 @bind-SelectedElement="SelectedProperty"
                 Elements="ElementProperties"
@@ -103,7 +103,6 @@
     /// <summary>
     /// Reference to the dropdown component for the selected property.
     /// </summary>
-    private Dropdown<string>? propertyDropdown;
 
     /// <summary>
     /// Flag to check whether the component was initialized successfully.
@@ -200,7 +199,7 @@
 
         if (string.IsNullOrWhiteSpace(propertyName))
         {
-            throw new ArgumentException();
+            throw new ArgumentException("Property name must not be empty.", nameof(propertyName));
         }
 
         PropertyInfo? propertyInfo = typeof(T).GetProperty(propertyName);

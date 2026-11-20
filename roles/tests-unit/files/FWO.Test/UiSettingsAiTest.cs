@@ -1,5 +1,4 @@
 using System.Reflection;
-using AngleSharp.Dom;
 using Bunit;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -31,9 +30,15 @@ internal class UiSettingsAiTest
     private const string kModel = "gpt-test";
     private const string kMarkupPayload = "<img src=x onerror=\"alert(1)\">'\"";
     private const int kApiKeyCredentialId = 3;
+    private const string kApiKeyCredentialName = "openai-key";
     private const int kKeyPairCredentialId = 4;
+    private const int kAnthropicCredentialId = 5;
+    private const string kAnthropicCredentialName = "anthropic-key";
     private const int kUnknownCredentialId = 99;
-    private static readonly List<int> kOfferedCredentialIds = [5, kApiKeyCredentialId];
+    private const string kCredentialInputSelector = "#dropdown-input-aiCredential";
+    private const string kCredentialChoiceSelector = "button[id^='dropdown-menu-element-aiCredential']";
+    private const string kSelectedCredentialSelector = "button[id^='dropdown-menu-selected-aiCredential']";
+    private static readonly List<int> kOfferedCredentialIds = [kAnthropicCredentialId, kApiKeyCredentialId];
 
     /// <summary>
     /// Verifies that an admin can save.
@@ -70,10 +75,12 @@ internal class UiSettingsAiTest
         await using BunitContext context = CreateContext(Roles.Admin, apiConnection, CreateGlobalConfig());
         IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
 
-        wrapper.WaitForAssertion(() =>
+        await OpenCredentialDropdown(wrapper);
+
+        List<string> choiceTexts = [.. wrapper.FindAll(kCredentialChoiceSelector).Select(choice => choice.TextContent.Trim())];
+        Assert.Multiple(() =>
         {
-            List<string> optionTexts = [.. wrapper.FindAll("#aiCredential option").Select(option => option.TextContent)];
-            Assert.That(optionTexts, Does.Contain(kMarkupPayload));
+            Assert.That(choiceTexts, Does.Contain(kMarkupPayload));
             Assert.That(wrapper.FindAll("img"), Is.Empty);
         });
     }
@@ -96,6 +103,7 @@ internal class UiSettingsAiTest
 
         AiSettings aiSettings = GetMember<AiSettings>(component, "aiSettings");
         List<Credential> credentials = GetMember<List<Credential>>(component, "credentials");
+        Credential? selectedCredential = GetMember<Credential?>(component, "selectedCredential");
         Assert.Multiple(() =>
         {
             Assert.That(aiSettings.Provider, Is.EqualTo(AiProvider.OpenAi));
@@ -103,7 +111,7 @@ internal class UiSettingsAiTest
             Assert.That(aiSettings.CredentialId, Is.EqualTo(kApiKeyCredentialId));
             Assert.That(aiSettings.ContextWindowTokens, Is.EqualTo(128000));
             Assert.That(credentials.Select(credential => credential.Id), Is.EqualTo(kOfferedCredentialIds));
-            Assert.That(InvokePrivate<bool>(component, "IsUnknownCredential"), Is.False);
+            Assert.That(selectedCredential, Is.SameAs(credentials.Single(credential => credential.Id == kApiKeyCredentialId)));
         });
     }
 
@@ -118,11 +126,94 @@ internal class UiSettingsAiTest
         await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), globalConfig);
         IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
 
-        wrapper.WaitForAssertion(() =>
+        wrapper.WaitForState(() => GetCredentialText(wrapper) == kUnknownCredentialId.ToString());
+
+        Assert.Multiple(() =>
         {
-            IElement option = wrapper.FindAll("#aiCredential option").Last();
-            Assert.That(option.GetAttribute("value"), Is.EqualTo(kUnknownCredentialId.ToString()));
-            Assert.That(option.TextContent, Is.EqualTo(kUnknownCredentialId.ToString()));
+            Assert.That(GetCredentialText(wrapper), Is.EqualTo(kUnknownCredentialId.ToString()));
+            Assert.That(GetAiSettings(wrapper).CredentialId, Is.EqualTo(kUnknownCredentialId));
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the stored credential is shown with its name once the credentials are loaded, although the page is
+    /// rendered before, while they load. A select lost the stored credential this way and showed none.
+    /// </summary>
+    [Test]
+    public async Task SettingsAi_ShowsStoredCredentialOnceCredentialsAreLoaded()
+    {
+        SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+        globalConfig.AiCredentialId = kApiKeyCredentialId;
+        RecordingSettingsApiConn apiConnection = CreateApiConnection();
+        TaskCompletionSource credentialsReleased = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        apiConnection.CredentialsReleased = credentialsReleased.Task;
+        await using BunitContext context = CreateContext(Roles.Admin, apiConnection, globalConfig);
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+        wrapper.WaitForState(() => GetCredentialText(wrapper) != null);
+        string? textWhileLoading = GetCredentialText(wrapper);
+        credentialsReleased.SetResult();
+        wrapper.WaitForState(() => GetCredentialText(wrapper) == kApiKeyCredentialName);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(textWhileLoading, Is.EqualTo(kApiKeyCredentialId.ToString()));
+            Assert.That(GetCredentialText(wrapper), Is.EqualTo(kApiKeyCredentialName));
+            Assert.That(GetAiSettings(wrapper).CredentialId, Is.EqualTo(kApiKeyCredentialId));
+        });
+    }
+
+    /// <summary>
+    /// Verifies that selecting a credential in the dropdown sets its id, and that removing the selection sets none.
+    /// </summary>
+    [Test]
+    public async Task SettingsAi_SelectingAndRemovingCredentialSetsCredentialId()
+    {
+        await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), CreateGlobalConfig());
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+        wrapper.WaitForState(() => GetCredentialText(wrapper) != null);
+        string? textWithoutCredential = GetCredentialText(wrapper);
+
+        await OpenCredentialDropdown(wrapper);
+        wrapper.FindAll(kCredentialChoiceSelector).Single(choice => choice.TextContent.Trim() == kAnthropicCredentialName).Click();
+        wrapper.WaitForState(() => GetAiSettings(wrapper).CredentialId == kAnthropicCredentialId);
+        string? textWithCredential = GetCredentialText(wrapper);
+
+        await OpenCredentialDropdown(wrapper);
+        wrapper.Find(kSelectedCredentialSelector).Click();
+        wrapper.WaitForState(() => GetAiSettings(wrapper).CredentialId == 0);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(textWithoutCredential, Is.EqualTo("None"));
+            Assert.That(textWithCredential, Is.EqualTo(kAnthropicCredentialName));
+            Assert.That(GetAiSettings(wrapper).CredentialId, Is.Zero);
+            Assert.That(GetCredentialText(wrapper), Is.EqualTo(textWithoutCredential));
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the stored credential stays selected and visible by its id if the credentials cannot be read.
+    /// </summary>
+    [Test]
+    public async Task OnInitializedAsync_KeepsStoredCredentialWhenCredentialsCannotBeRead()
+    {
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+        SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+        globalConfig.AiCredentialId = kApiKeyCredentialId;
+        RecordingSettingsApiConn apiConnection = CreateApiConnection();
+        apiConnection.CredentialsReleased = Task.FromException(new HttpRequestException("API not reachable"));
+        SettingsAi component = CreateComponent(apiConnection, globalConfig, messages);
+
+        await InvokePrivateTask(component, "OnInitializedAsync");
+
+        Credential? selectedCredential = GetMember<Credential?>(component, "selectedCredential");
+        Assert.Multiple(() =>
+        {
+            Assert.That(messages.Single().Exception, Is.TypeOf<HttpRequestException>());
+            Assert.That(selectedCredential?.Id, Is.EqualTo(kApiKeyCredentialId));
+            Assert.That(selectedCredential?.Name, Is.EqualTo(kApiKeyCredentialId.ToString()));
+            Assert.That(GetMember<AiSettings>(component, "aiSettings").CredentialId, Is.EqualTo(kApiKeyCredentialId));
         });
     }
 
@@ -245,11 +336,37 @@ internal class UiSettingsAiTest
         {
             Credentials =
             [
-                new Credential { Id = kApiKeyCredentialId, Name = "openai-key" },
+                new Credential { Id = kApiKeyCredentialId, Name = kApiKeyCredentialName },
                 new Credential { Id = kKeyPairCredentialId, Name = "firewall-key-pair", IsKeyPair = true },
-                new Credential { Id = 5, Name = "anthropic-key" }
+                new Credential { Id = kAnthropicCredentialId, Name = kAnthropicCredentialName }
             ]
         };
+    }
+
+    /// <summary>
+    /// Returns the text the credential dropdown shows, null while it is not rendered.
+    /// </summary>
+    private static string? GetCredentialText(IRenderedComponent<CascadingAuthenticationState> wrapper)
+    {
+        return wrapper.FindAll(kCredentialInputSelector).SingleOrDefault()?.GetAttribute("value");
+    }
+
+    /// <summary>
+    /// Returns the AI settings edited by the rendered page.
+    /// </summary>
+    private static AiSettings GetAiSettings(IRenderedComponent<CascadingAuthenticationState> wrapper)
+    {
+        return GetMember<AiSettings>(wrapper.FindComponent<SettingsAi>().Instance, "aiSettings");
+    }
+
+    /// <summary>
+    /// Opens the menu of the credential dropdown by focusing its input and waits until it offers credentials.
+    /// </summary>
+    private static async Task OpenCredentialDropdown(IRenderedComponent<CascadingAuthenticationState> wrapper)
+    {
+        wrapper.WaitForState(() => wrapper.FindAll(kCredentialInputSelector).Count == 1);
+        await wrapper.InvokeAsync(() => wrapper.Find(kCredentialInputSelector).Focus());
+        wrapper.WaitForState(() => wrapper.FindAll(kCredentialChoiceSelector).Count > 0);
     }
 
     private static BunitContext CreateContext(string role, RecordingSettingsApiConn apiConnection, SimulatedGlobalConfig globalConfig)

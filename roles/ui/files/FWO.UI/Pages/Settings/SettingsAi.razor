@@ -1,3 +1,4 @@
+@using System.Globalization
 @using FWO.Data.Ai
 
 @page "/settings/ai"
@@ -59,19 +60,15 @@
         </div>
     }
     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5374"))">
-        <label for="aiCredential" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_credential")):</label>
+        <label for="@($"dropdown-input-{kCredentialDropdownId}")" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_credential")):</label>
         <div class="col-sm-8">
-            <select id="aiCredential" class="form-control form-control-sm" @bind="aiSettings.CredentialId">
-                <option value="0">@(userConfig.GetText("none"))</option>
-                @foreach (Credential credential in credentials)
-                {
-                    <option value="@credential.Id">@credential.Name</option>
-                }
-                @if (IsUnknownCredential())
-                {
-                    <option value="@aiSettings.CredentialId">@aiSettings.CredentialId</option>
-                }
-            </select>
+            <Dropdown Id="@kCredentialDropdownId" ElementType="Credential" ElementToString="@(credential => credential.Name)"
+                      SelectedElement="selectedCredential" SelectedElementChanged="OnCredentialChanged"
+                      Elements="credentials" Nullable="true" NoneSelectedText="@(userConfig.GetText("none"))">
+                <ElementTemplate Context="credential">
+                    @credential.Name
+                </ElementTemplate>
+            </Dropdown>
         </div>
     </div>
     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5375"))">
@@ -141,6 +138,7 @@
 
     private const int kMaxModelLength = 256;
     private const int kMaxEndpointLength = 2048;
+    private const string kCredentialDropdownId = "aiCredential";
 
     private static readonly List<AiProvider> kProviders = [.. Enum.GetValues<AiProvider>()];
 
@@ -153,6 +151,7 @@
     private ConfigData? editableConfig;
     private AiSettings aiSettings = new();
     private List<Credential> credentials = [];
+    private Credential? selectedCredential;
 
     /// <summary>
     /// Loads the AI settings and the credentials that can hold an API key or an OAuth client secret (no key pairs),
@@ -164,8 +163,11 @@
         {
             editableConfig = await globalConfig.GetEditableConfig();
             aiSettings = editableConfig.GetAiSettings();
+            // the page is rendered while the credentials load, so the stored credential is shown by its id until then
+            selectedCredential = ResolveSelectedCredential();
             List<Credential> allCredentials = await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentialsWithoutSecrets);
             credentials = [.. allCredentials.Where(credential => !credential.IsKeyPair).OrderBy(credential => credential.Name)];
+            selectedCredential = ResolveSelectedCredential();
         }
         catch (Exception exception)
         {
@@ -218,10 +220,28 @@
     }
 
     /// <summary>
-    /// Tells whether the settings reference a credential that is not offered, e.g. a key pair, so that it stays visible.
+    /// Selects the credential holding the API key or the OAuth client secret; null selects none.
     /// </summary>
-    private bool IsUnknownCredential()
+    /// <param name="credential">The selected credential, null for none.</param>
+    private void OnCredentialChanged(Credential? credential)
     {
-        return aiSettings.CredentialId > 0 && !credentials.Any(credential => credential.Id == aiSettings.CredentialId);
+        selectedCredential = credential;
+        aiSettings.CredentialId = credential?.Id ?? 0;
+    }
+
+    /// <summary>
+    /// Returns the credential the settings reference. A credential that is not offered (e.g. a key pair) or not loaded
+    /// (yet) is returned as a stand-in named by its id, so that it stays visible.
+    /// </summary>
+    /// <returns>The referenced credential, null if the settings reference none.</returns>
+    private Credential? ResolveSelectedCredential()
+    {
+        int credentialId = aiSettings.CredentialId;
+        if (credentialId <= 0)
+        {
+            return null;
+        }
+        Credential? offeredCredential = credentials.FirstOrDefault(credential => credential.Id == credentialId);
+        return offeredCredential ?? new Credential { Id = credentialId, Name = credentialId.ToString(CultureInfo.InvariantCulture) };
     }
 }

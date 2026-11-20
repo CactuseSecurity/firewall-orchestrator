@@ -223,6 +223,12 @@
                 </button>
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5546a"))">
+            <label for="txt_pre_workflow_ticket_reference_label" class="col-form-label col-sm-3">@(userConfig.GetText("reqPreWorkflowTicketReferenceLabel")):</label>
+            <div class="col-sm-3">
+                <input id="txt_pre_workflow_ticket_reference_label" type="text" class="form-control form-control-sm" @bind="configData!.ReqPreWorkflowTicketReferenceLabel" />
+            </div>
+        </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5567"))">
             <label for="cbx_activate_path_analysis" class="col-form-label col-sm-3">@(userConfig.GetText("reqActivatePathAnalysis")):</label>
             <div class="col-sm-2">
@@ -518,6 +524,7 @@ else
                 configData.ReqAvailableTaskTypes = JsonSerializer.Serialize(availableTaskTypes);
                 configData.ReqPriorities = JsonSerializer.Serialize(prioList);
                 configData.ReqTicketFieldVisibility = ticketFieldVisibilityConfig.ToConfigValue();
+                configData.ReqPreWorkflowTicketReferenceLabel = configData.ReqPreWorkflowTicketReferenceLabel.Trim();
                 configData.ExternalRequestStartAt = extReqStartDate.Date.Add(extReqStartTime.TimeOfDay);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);

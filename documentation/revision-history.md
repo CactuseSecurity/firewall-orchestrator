@@ -28,6 +28,7 @@
   - reports the middleware generates for a user (scheduled reports, `POST /api/Report/Get`, `POST /api/Compliance/Report`) now also use the user's values of these settings, as they already did for the other personal settings; so far the global values replaced them. Of these settings, only `resolveNetworkAreas` is read while generating a report (network objects of connection and variance analysis reports), so compliance reports are unchanged
   - the personal settings page saves only the settings changed on the page; a global value that changed while the page was open is no longer saved as the user's value
   - readers of global settings only read the global rows, as the API calls already do: the settings of a UI session and of the reports the middleware generates for a user apply rows of the user only for personal settings, and the rule ownership mode of the rule owner views (`v_rule_ownership_mode`, also replaced by the upgrade) and the encryption of the stored email password read only the global row
+- workflow UI: the pre-workflow ticket reference is shown in ticket dialog, ticket list and task view headlines if a label (e.g. "ChangeId") is set in the new setting `reqPreWorkflowTicketReferenceLabel` (default empty = hidden)
 
 
 ## 9.9.3 - 14.11.2026

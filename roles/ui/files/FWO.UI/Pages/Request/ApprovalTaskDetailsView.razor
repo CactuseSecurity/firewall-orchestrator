@@ -159,7 +159,8 @@
             {
                 metadata += $", {userConfig.GetText("requester")}: {requester}";
             }
-            return $"{userConfig.GetText("ticket")}: {WfHandler.ActTicket.Title} ({metadata})";
+            string headline = PreWorkflowTicketReferenceDisplay.TicketHeadline(userConfig.GetText("ticket"), userConfig.ReqPreWorkflowTicketReferenceLabel, WfHandler.ActTicket);
+            return $"{headline} ({metadata})";
         }
     }
 

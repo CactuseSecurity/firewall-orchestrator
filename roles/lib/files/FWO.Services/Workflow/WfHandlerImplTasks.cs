@@ -290,16 +290,6 @@ namespace FWO.Services.Workflow
         {
             if (apiConnection != null)
             {
-                if (dbAcc != null && reqTask.Id > 0)
-                {
-                    latestImplCreationDetailTicket = null;
-                    WfReqTask detailedTask = await LoadReqTaskDetailsForImplCreation(reqTask);
-                    List<WfReqTask> detailedTasks = [detailedTask];
-                    WfTicket preparationTicket = BuildImplCreationPreparationTicket(detailedTasks);
-                    List<long> taskIds = [reqTask.Id];
-                    reqTask = (await PrepareRequestTasksForExecution(preparationTicket, taskIds)).Single();
-                    SyncActTicketFromReqTask(reqTask);
-                }
                 List<Device> devices = await RoutingBasedPathAnalyzer.GetAllDevices(reqTask.Elements, apiConnection);
                 WfTicket? storedTicket = await LoadTicketForImplTaskCreation(reqTask, devices.Count);
                 foreach (var device in devices)
@@ -320,7 +310,11 @@ namespace FWO.Services.Workflow
         /// <returns>The stored ticket, or null when nothing will be created or no database access exists.</returns>
         private async Task<WfTicket?> LoadTicketForImplTaskCreation(WfReqTask reqTask, int taskCount)
         {
-            return dbAcc != null && taskCount > 0 ? await dbAcc.LoadPreviousTicket(reqTask.TicketId) : null;
+            if (dbAcc == null || taskCount <= 0)
+            {
+                return null;
+            }
+            return implTaskCreationPreviousTicket ?? await dbAcc.LoadPreviousTicket(reqTask.TicketId);
         }
 
         /// <summary>
@@ -343,41 +337,19 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Returns the request tasks that should receive initially generated implementation tasks.
         /// </summary>
-        private async Task<List<WfReqTask>> RequestTasksForInitialImplCreation(
+        private Task<List<WfReqTask>> RequestTasksForInitialImplCreation(
             List<WfReqTask> requestTasks, bool includeExistingImplementationTasks = false)
         {
             // every implementation task creation run starts here
             ResetObjectTargetCache();
             ResetAutoPlanCache();
-            latestImplCreationDetailTicket = null;
-            List<WfReqTask> requestTasksWithDetails = [];
-            foreach (WfReqTask reqTask in requestTasks)
-            {
-                WfReqTask detailedReqTask = await LoadReqTaskDetailsForImplCreation(reqTask);
-                if ((includeExistingImplementationTasks || detailedReqTask.ImplementationTasks.Count == 0)
-                    && TaskHasRequiredContentForImplCreation(detailedReqTask))
-                {
-                    requestTasksWithDetails.Add(detailedReqTask);
-                }
-            }
-
-            if (dbAcc != null && requestTasksWithDetails.Count > 0)
-            {
-                WfTicket preparationTicket = BuildImplCreationPreparationTicket(requestTasksWithDetails);
-                List<long> taskIds = [.. requestTasksWithDetails.Select(task => task.Id)];
-                List<WfReqTask> preparedTasks = await PrepareRequestTasksForExecution(preparationTicket, taskIds);
-                foreach (WfReqTask preparedTask in preparedTasks)
-                {
-                    WfReqTask runtimeTask = requestTasksWithDetails.Single(task => task.Id == preparedTask.Id);
-                    CopyImplCreationRuntimeState(preparedTask, runtimeTask);
-                    SyncActTicketFromReqTask(preparedTask);
-                }
-                requestTasksWithDetails = preparedTasks;
-            }
+            List<WfReqTask> requestTasksWithDetails = [.. requestTasks.Where(reqTask =>
+                (includeExistingImplementationTasks || reqTask.ImplementationTasks.Count == 0)
+                && TaskHasRequiredContentForImplCreation(reqTask))];
 
             if (!userConfig.ReqConsiderBundling)
             {
-                return requestTasksWithDetails;
+                return Task.FromResult(requestTasksWithDetails);
             }
 
             List<WfReqTask> effectiveRequestTasks = [];
@@ -395,34 +367,7 @@ namespace FWO.Services.Workflow
                 }
                 effectiveRequestTasks.Add(CreateMergedBundleRequestTask(bundledTasks));
             }
-            return effectiveRequestTasks;
-        }
-
-        private async Task<WfReqTask> LoadReqTaskDetailsForImplCreation(WfReqTask reqTask)
-        {
-            if (reqTask.Id <= 0 || reqTask.TicketId <= 0 || dbAcc == null
-                || reqTask.TaskType == WfTaskType.new_interface.ToString())
-            {
-                return reqTask;
-            }
-
-            WfTicket activeTicket = ActTicket;
-            WfTicket? persistedTicket = await dbAcc.FetchTicket(
-                reqTask.TicketId, GetOwnerIdsForFiltering(), GetTicketFilter());
-            WfReqTask detailedReqTask = persistedTicket?.Tasks.SingleOrDefault(task => task.Id == reqTask.Id)
-                ?? throw new EffectiveRequestStateMaterializationException(
-                    EffectiveRequestStateFailureCategory.ReadbackFailure);
-            latestImplCreationDetailTicket = persistedTicket;
-            // Keep the ticket state already derived from current request-task states; the persisted ticket can lag it.
-            ActTicket = activeTicket;
-            detailedReqTask.StateId = reqTask.StateId;
-            detailedReqTask.Start = reqTask.Start;
-            detailedReqTask.Stop = reqTask.Stop;
-            detailedReqTask.CurrentHandler = reqTask.CurrentHandler;
-            detailedReqTask.RecentHandler = reqTask.RecentHandler;
-            detailedReqTask.AssignedGroup = reqTask.AssignedGroup;
-            SyncActTicketFromReqTask(detailedReqTask);
-            return detailedReqTask;
+            return Task.FromResult(effectiveRequestTasks);
         }
 
         private bool TaskHasRequiredContentForImplCreation(WfReqTask reqTask)
@@ -628,9 +573,9 @@ namespace FWO.Services.Workflow
         {
             WfImplTask newImplTask = new(reqTask) { TaskNumber = reqTask.HighestImplTaskNumber() + 1, StateId = reqTask.StateId };
             await SetManagementOfGateway(newImplTask);
-            if (dbAcc != null)
+            if (dbAcc != null && reqTask.Id > 0 && reqTask.TicketId > 0)
             {
-                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask, reqTask);
+                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask, reqTask, implTaskCreationPreviousTicket);
             }
             reqTask.ImplementationTasks.Add(newImplTask);
         }

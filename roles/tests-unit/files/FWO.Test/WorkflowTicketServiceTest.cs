@@ -17,6 +17,7 @@ using GraphQL.Client.Serializer.SystemTextJson;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
+using System.Collections;
 using System.Reflection;
 
 using System.Security.Claims;
@@ -392,7 +393,7 @@ internal class WorkflowTicketServiceTest
         initialState.Actions[0].Action.TaskType = WfTaskType.group_create.ToString();
         WorkflowTicketServiceApiConn apiConnection = new()
         {
-            ReturnMismatchedObjectTaskReferenceId = true,
+            ReturnInvalidObjectTaskReferenceBatchResult = true,
             States = [initialState, new WfState { Id = 18, Name = "approved" }],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
             WorkflowConfigurations =
@@ -443,7 +444,8 @@ internal class WorkflowTicketServiceTest
         {
             Assert.That(response.TicketId, Is.EqualTo(100));
             Assert.That(response.ActionsStatus, Is.EqualTo(WfTicketCreationResult.kActionsFailed));
-            Assert.That(apiConnection.SentQueries, Does.Contain(RequestQueries.updateRequestElementObjectTaskId));
+            Assert.That(apiConnection.SentQueries, Does.Contain(RequestQueries.updateRequestElementObjectTaskIds));
+            Assert.That(apiConnection.SentQueries, Does.Not.Contain(RequestQueries.updateRequestElementObjectTaskId));
             Assert.That(apiConnection.SentQueries, Does.Not.Contain(RequestQueries.updateRequestTaskState));
         });
     }
@@ -3302,7 +3304,7 @@ internal class WorkflowTicketServiceTest
         public bool ThrowOnStateLookup { get; set; }
         public bool ThrowOnStateLookupAfterCreation { get; set; }
         public bool ThrowOnExternalStateLookup { get; set; }
-        public bool ReturnMismatchedObjectTaskReferenceId { get; set; }
+        public bool ReturnInvalidObjectTaskReferenceBatchResult { get; set; }
         public WfTicketWriter? LastTicketWriter { get; private set; }
         public int AddHistoryEntryCallCount { get; private set; }
         public List<object?> AlertVariables { get; } = [];
@@ -3354,6 +3356,21 @@ internal class WorkflowTicketServiceTest
                 LastHistoryVariables = variables;
                 LastHistoryQuery = query;
                 return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper());
+            }
+
+            if (query == RequestQueries.updateRequestElementObjectTaskIds
+                && responseType == typeof(List<ReturnId>))
+            {
+                IEnumerable updates = (IEnumerable)(GetVariable(variables, "updates")
+                    ?? Array.Empty<object>());
+                List<ReturnId?> results = updates.Cast<object>()
+                    .Select(_ => (ReturnId?)new ReturnId { AffectedRows = 1 })
+                    .ToList();
+                if (ReturnInvalidObjectTaskReferenceBatchResult && results.Count > 0)
+                {
+                    results[0] = new ReturnId { AffectedRows = 0 };
+                }
+                return Task.FromResult((QueryResponseType)(object)results);
             }
 
             if (responseType == typeof(WfTicket))
@@ -3428,8 +3445,7 @@ internal class WorkflowTicketServiceTest
                 long elementId = Convert.ToInt64(GetVariable(variables, "id") ?? 0);
                 return Task.FromResult((QueryResponseType)(object)new ReturnId
                 {
-                    UpdatedIdLong = query == RequestQueries.updateRequestElementObjectTaskId
-                        && ReturnMismatchedObjectTaskReferenceId ? elementId + 1 : elementId
+                    UpdatedIdLong = elementId
                 });
             }
 

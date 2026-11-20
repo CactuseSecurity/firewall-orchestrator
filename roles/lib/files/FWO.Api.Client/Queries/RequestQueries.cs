@@ -45,9 +45,11 @@ namespace FWO.Api.Client.Queries
         public static readonly string newRequestElement;
         public static readonly string updateRequestElement;
         public static readonly string updateEffectiveRequestElementSnapshot;
+        public static readonly string updateEffectiveRequestElementSnapshots;
         public static readonly string updateRequestElementFlowIds;
         public static readonly string updateRequestElementFlowTimeObjId;
         public static readonly string updateRequestElementObjectTaskId;
+        public static readonly string updateRequestElementObjectTaskIds;
         public static readonly string deleteRequestElement;
         public static readonly string newImplementationTask;
         public static readonly string updateImplementationTask;
@@ -153,9 +155,11 @@ namespace FWO.Api.Client.Queries
                 newRequestElement = GetQueryText("request/newRequestElement.graphql");
                 updateRequestElement = GetQueryText("request/updateRequestElement.graphql");
                 updateEffectiveRequestElementSnapshot = GetQueryText("request/updateEffectiveRequestElementSnapshot.graphql");
+                updateEffectiveRequestElementSnapshots = GetQueryText("request/updateEffectiveRequestElementSnapshots.graphql");
                 updateRequestElementFlowIds = GetQueryText("request/updateRequestElementFlowIds.graphql");
                 updateRequestElementFlowTimeObjId = GetQueryText("request/updateRequestElementFlowTimeObjId.graphql");
                 updateRequestElementObjectTaskId = GetQueryText("request/updateRequestElementObjectTaskId.graphql");
+                updateRequestElementObjectTaskIds = GetQueryText("request/updateRequestElementObjectTaskIds.graphql");
                 deleteRequestElement = GetQueryText("request/deleteRequestElement.graphql");
                 newImplementationTask = GetQueryText("request/newImplementationTask.graphql");
                 updateImplementationTask = GetQueryText("request/updateImplementationTask.graphql");

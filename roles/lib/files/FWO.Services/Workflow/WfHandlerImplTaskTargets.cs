@@ -1,4 +1,5 @@
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Workflow;
@@ -68,21 +69,59 @@ namespace FWO.Services.Workflow
             {
                 SyncActTicketFromReqTask(scopeTask);
             }
-            int previousCount = CountImplTasks(ActTicket);
-            List<WfReqTask> openTasks = [.. ActTicket.Tasks.Where(RequestTaskIsOpen)];
-            if (scopeTask != null)
+
+            List<WfReqTask> selectedTasks = SelectImplCreationTasks(scopeTask);
+            if (dbAcc != null && selectedTasks.Any(CanReloadForImplCreation))
             {
-                openTasks = TasksOfRequestTaskScope(openTasks, scopeTask);
+                SetTicketEnv(await LoadImplCreationPreparationTicket(ActTicket));
+                scopeTask = ResolveImplCreationScopeTask(scopeTask);
+                selectedTasks = SelectImplCreationTasks(scopeTask);
             }
-            foreach (WfReqTask task in await RequestTasksForInitialImplCreation(openTasks, includeExistingImplementationTasks: true))
+
+            List<long> selectedTaskIds = [.. selectedTasks.Where(CanReloadForImplCreation).Select(task => task.Id)];
+            if (dbAcc != null && selectedTaskIds.Count > 0)
             {
-                await AutoCreateImplTasks(task);
-                SyncActTicketFromReqTask(task);
+                SetTicketEnv(await dbAcc.MaterializeEffectiveRequestStateBatch(ActTicket, selectedTaskIds));
+                scopeTask = ResolveImplCreationScopeTask(scopeTask);
+                selectedTasks = SelectImplCreationTasks(scopeTask);
+            }
+
+            int previousCount = CountImplTasks(ActTicket);
+            implTaskCreationPreviousTicket = ActTicket;
+            try
+            {
+                foreach (WfReqTask task in await RequestTasksForInitialImplCreation(selectedTasks,
+                    includeExistingImplementationTasks: true))
+                {
+                    await AutoCreateImplTasks(task);
+                    SyncActTicketFromReqTask(task);
+                }
+            }
+            finally
+            {
+                implTaskCreationPreviousTicket = null;
             }
             int createdCount = Math.Max(0, CountImplTasks(ActTicket) - previousCount);
             Log.WriteInfo(kImplTaskTargetsLogTitle, $"Created {createdCount} implementation tasks for ticket {ActTicket.Id}, " +
                 $"considering {CountBundles(ActTicket)} task bundles.");
             return createdCount;
+        }
+
+        /// <summary>Applies the existing open-task and action-scope rules to the current working ticket.</summary>
+        private List<WfReqTask> SelectImplCreationTasks(WfReqTask? scopeTask)
+        {
+            List<WfReqTask> openTasks = [.. ActTicket.Tasks.Where(RequestTaskIsOpen)];
+            return scopeTask == null ? openTasks : TasksOfRequestTaskScope(openTasks, scopeTask);
+        }
+
+        /// <summary>Resolves a persisted scope task again after the working ticket instance changes.</summary>
+        private WfReqTask? ResolveImplCreationScopeTask(WfReqTask? scopeTask)
+        {
+            return scopeTask == null || scopeTask.Id <= 0
+                ? scopeTask
+                : ActTicket.Tasks.SingleOrDefault(task => task.Id == scopeTask.Id)
+                    ?? throw new EffectiveRequestStateMaterializationException(
+                        EffectiveRequestStateFailureCategory.ReadbackFailure);
         }
 
         /// <summary>
@@ -111,6 +150,9 @@ namespace FWO.Services.Workflow
         /// Set while a person creates the implementation tasks by a button, see <see cref="CreateMissingImplTasksForTicket"/>.
         /// </summary>
         private bool implTaskCreationByButton;
+
+        /// <summary>The action's single prepared ticket read, reused for implementation-task change history.</summary>
+        private WfTicket? implTaskCreationPreviousTicket;
 
         private bool RequestTaskIsOpen(WfReqTask reqTask)
         {

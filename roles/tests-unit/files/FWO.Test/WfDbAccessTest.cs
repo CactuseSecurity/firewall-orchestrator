@@ -13,6 +13,7 @@ using GraphQL;
 using GraphQL.Client.Serializer.Newtonsoft;
 using Newtonsoft.Json;
 using NUnit.Framework;
+using System.Collections;
 using System.Reflection;
 
 namespace FWO.Test
@@ -20,6 +21,12 @@ namespace FWO.Test
     [TestFixture]
     internal class WfDbAccessTest
     {
+        private static readonly List<long> kExpectedObjectLinkElementIds = [112, 312];
+        private static readonly List<long> kExpectedObjectLinkTaskIds = [210, 220];
+        private static readonly List<long> kExpectedGroupLinkElementIds = [312];
+        private static readonly List<long> kExpectedGroupLinkTaskIds = [210];
+        private static readonly List<string> kObjectTaskLinkColumns = ["object_task_id"];
+
         private sealed class WfDbAccessTestApiConn : SimulatedApiConnection
         {
             public List<long> RegisteredTicketIds { get; set; } = [];
@@ -53,6 +60,7 @@ namespace FWO.Test
             public bool ReturnNullNewReqTaskIds { get; set; }
             public long NewReqElementId { get; set; } = 301;
             public long UpdatedReqElementId { get; set; } = 302;
+            public bool ReturnRequestedObjectTaskElementId { get; set; }
             public long DeletedReqElementId { get; set; } = 303;
             public bool ReturnNullNewReqElementIds { get; set; }
             public List<FlowNwObject> LiveFlowNwObjects { get; set; } = [];
@@ -71,6 +79,8 @@ namespace FWO.Test
             public int UpdateReqElementCallCount { get; private set; }
             public int UpdateReqElementObjectTaskIdCallCount { get; private set; }
             public object? LastUpdateReqElementObjectTaskIdVariables { get; private set; }
+            public int UpdateReqElementObjectTaskIdsCallCount { get; private set; }
+            public object? LastUpdateReqElementObjectTaskIdsVariables { get; private set; }
             public int DeleteReqElementCallCount { get; private set; }
             public int NewImplTaskCallCount { get; private set; }
             public int UpdateImplTaskCallCount { get; private set; }
@@ -299,7 +309,23 @@ namespace FWO.Test
                 {
                     UpdateReqElementObjectTaskIdCallCount++;
                     LastUpdateReqElementObjectTaskIdVariables = variables;
-                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedReqElementId });
+                    long requestedId = Convert.ToInt64(variables?.GetType().GetProperty("id")?
+                        .GetValue(variables) ?? 0);
+                    return Task.FromResult((T)(object)new ReturnId
+                    {
+                        UpdatedIdLong = ReturnRequestedObjectTaskElementId ? requestedId : UpdatedReqElementId
+                    });
+                }
+                if (query == RequestQueries.updateRequestElementObjectTaskIds)
+                {
+                    UpdateReqElementObjectTaskIdsCallCount++;
+                    LastUpdateReqElementObjectTaskIdsVariables = variables;
+                    IEnumerable updates = (IEnumerable)(variables?.GetType().GetProperty("updates")?
+                        .GetValue(variables) ?? Array.Empty<object>());
+                    List<ReturnId?> results = updates.Cast<object>()
+                        .Select(_ => (ReturnId?)new ReturnId { AffectedRows = 1 })
+                        .ToList();
+                    return Task.FromResult((T)(object)results);
                 }
                 if (query == RequestQueries.deleteRequestElement)
                 {
@@ -625,7 +651,8 @@ namespace FWO.Test
             {
                 Assert.That(savedAccessTask.Elements[0].ObjectTaskId, Is.Null);
                 Assert.That(savedAccessTask.Elements[1].ObjectTaskId, Is.EqualTo(210));
-                Assert.That(apiConnection.UpdateReqElementObjectTaskIdCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.UpdateReqElementObjectTaskIdsCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.UpdateReqElementObjectTaskIdCallCount, Is.Zero);
             });
         }
 
@@ -665,11 +692,85 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(savedGroupMember.ObjectTaskId, Is.EqualTo(210));
-                Assert.That(apiConnection.UpdateReqElementObjectTaskIdCallCount, Is.EqualTo(1));
-                Assert.That(apiConnection.LastUpdateReqElementObjectTaskIdVariables?.GetType().GetProperty("id")?
-                    .GetValue(apiConnection.LastUpdateReqElementObjectTaskIdVariables), Is.EqualTo(312));
-                Assert.That(apiConnection.LastUpdateReqElementObjectTaskIdVariables?.GetType().GetProperty("objectTaskId")?
-                    .GetValue(apiConnection.LastUpdateReqElementObjectTaskIdVariables), Is.EqualTo(210));
+                Assert.That(apiConnection.UpdateReqElementObjectTaskIdsCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.UpdateReqElementObjectTaskIdCallCount, Is.Zero);
+                List<Dictionary<string, object?>> updates = ReadBatchUpdates(
+                    apiConnection.LastUpdateReqElementObjectTaskIdsVariables);
+                Assert.That(updates.Select(ReadBatchUpdateId), Is.EqualTo(kExpectedGroupLinkElementIds));
+                Assert.That(updates.Select(ReadBatchObjectTaskId), Is.EqualTo(kExpectedGroupLinkTaskIds));
+            });
+        }
+
+        [Test]
+        public async Task LinkTicketObjectTasks_BatchesAccessAndGroupReferencesInOneCall()
+        {
+            WfDbAccessTestApiConn apiConnection = new() { ReturnRequestedObjectTaskElementId = true };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConnection, WorkflowPhases.request);
+            WfReqTask firstSourceObject = new()
+            {
+                WorkflowEntityId = -8,
+                TaskNumber = 1,
+                TaskType = WfTaskType.object_create.ToString()
+            };
+            WfReqTask secondSourceObject = new()
+            {
+                WorkflowEntityId = -9,
+                TaskNumber = 2,
+                TaskType = WfTaskType.object_create.ToString()
+            };
+            WfReqTask sourceAccess = new()
+            {
+                TaskNumber = 3,
+                TaskType = WfTaskType.access.ToString(),
+                Elements = [new WfReqElement { Field = ElemFieldType.source.ToString(), ObjectTaskEntityId = -8 }]
+            };
+            WfReqTask sourceGroup = new()
+            {
+                TaskNumber = 4,
+                TaskType = WfTaskType.group_create.ToString(),
+                Elements = [new WfReqElement { Field = ElemFieldType.source.ToString(), ObjectTaskEntityId = -9 }]
+            };
+            WfReqTask firstSavedObject = new() { Id = 210, TaskNumber = 1, TaskType = WfTaskType.object_create.ToString() };
+            WfReqTask secondSavedObject = new() { Id = 220, TaskNumber = 2, TaskType = WfTaskType.object_create.ToString() };
+            WfReqTask savedAccess = new()
+            {
+                Id = 110,
+                TaskNumber = 3,
+                TaskType = WfTaskType.access.ToString(),
+                Elements = [new WfReqElement { Id = 112, Field = ElemFieldType.source.ToString() }]
+            };
+            WfReqTask savedGroup = new()
+            {
+                Id = 310,
+                TaskNumber = 4,
+                TaskType = WfTaskType.group_create.ToString(),
+                Elements = [new WfReqElement { Id = 312, Field = ElemFieldType.source.ToString() }]
+            };
+            WfTicket sourceTicket = new()
+            {
+                Tasks = [firstSourceObject, secondSourceObject, sourceAccess, sourceGroup]
+            };
+            WfTicket savedTicket = new()
+            {
+                Tasks = [firstSavedObject, secondSavedObject, savedAccess, savedGroup]
+            };
+            object?[] arguments = [sourceTicket, savedTicket];
+
+            MethodInfo method = typeof(WfDbAccess).GetMethod(
+                "LinkTicketObjectTasks", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            await (Task)method.Invoke(dbAccess, arguments)!;
+
+            List<Dictionary<string, object?>> updates = ReadBatchUpdates(
+                apiConnection.LastUpdateReqElementObjectTaskIdsVariables);
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpdateReqElementObjectTaskIdsCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.UpdateReqElementObjectTaskIdCallCount, Is.Zero);
+                Assert.That(apiConnection.GetTicketByIdCallCount, Is.Zero);
+                Assert.That(updates.Select(ReadBatchUpdateId), Is.EqualTo(kExpectedObjectLinkElementIds));
+                Assert.That(updates.Select(ReadBatchObjectTaskId), Is.EqualTo(kExpectedObjectLinkTaskIds));
+                Assert.That(savedAccess.Elements.Single().ObjectTaskId, Is.EqualTo(210));
+                Assert.That(savedGroup.Elements.Single().ObjectTaskId, Is.EqualTo(220));
             });
         }
 
@@ -710,6 +811,7 @@ namespace FWO.Test
             {
                 Assert.That(exception.Category, Is.EqualTo(EffectiveRequestStateFailureCategory.MissingReference));
                 Assert.That(apiConnection.UpdateReqElementObjectTaskIdCallCount, Is.Zero);
+                Assert.That(apiConnection.UpdateReqElementObjectTaskIdsCallCount, Is.Zero);
             });
         }
 
@@ -3355,6 +3457,27 @@ namespace FWO.Test
                 Assert.That(HistoryRawValue(apiConn, "changerId"), Is.EqualTo("42"));
                 Assert.That(HistoryRawValue(apiConn, "auditProofCritical"), Is.EqualTo("true"));
             });
+        }
+
+        private static List<Dictionary<string, object?>> ReadBatchUpdates(object? variables)
+        {
+            IEnumerable updates = (IEnumerable)(variables?.GetType().GetProperty("updates")?
+                .GetValue(variables) ?? Array.Empty<object>());
+            return updates.Cast<Dictionary<string, object?>>().ToList();
+        }
+
+        private static long ReadBatchUpdateId(Dictionary<string, object?> update)
+        {
+            Dictionary<string, object?> where = (Dictionary<string, object?>)update["where"]!;
+            Dictionary<string, object?> id = (Dictionary<string, object?>)where["id"]!;
+            return Convert.ToInt64(id["_eq"]);
+        }
+
+        private static long ReadBatchObjectTaskId(Dictionary<string, object?> update)
+        {
+            Dictionary<string, object?> set = (Dictionary<string, object?>)update["_set"]!;
+            Assert.That(set.Keys, Is.EqualTo(kObjectTaskLinkColumns));
+            return Convert.ToInt64(set["object_task_id"]);
         }
 
         private static WfState CreatePromotingState(int stateId)

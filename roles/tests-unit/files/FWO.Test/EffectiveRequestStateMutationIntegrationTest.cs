@@ -38,6 +38,7 @@ internal class EffectiveRequestStateMutationIntegrationTest
             name
             start_time
             end_time
+            object_task_id
           }
         }
         """;
@@ -102,6 +103,62 @@ internal class EffectiveRequestStateMutationIntegrationTest
         }
     }
 
+    /// <summary>
+    /// Proves both batch roots execute for the service role, snapshot batching executes for an approver, exact-link
+    /// batching executes for a requester, and a zero-match update is visible to the client as zero affected rows.
+    /// </summary>
+    [Test]
+    [Category("Integration")]
+    public async Task PermittedRoles_ExecuteNarrowRequestElementBatches()
+    {
+        JwtWriter writer = new(ConfigFile.JwtPrivateKey);
+        using GraphQlApiConnection admin = new(ConfigFile.ApiServerUri, CreateAdminToken(writer));
+        using GraphQlApiConnection middleware = new(ConfigFile.ApiServerUri,
+            writer.CreateJWTMiddlewareServer(TimeSpan.FromMinutes(10)));
+        using GraphQlApiConnection approver = new(ConfigFile.ApiServerUri,
+            CreateRoleToken(writer, Roles.Approver));
+        using GraphQlApiConnection requester = new(ConfigFile.ApiServerUri,
+            CreateRoleToken(writer, Roles.Requester));
+        SmokeRowIds rowIds = new();
+        Exception? operationFailure = null;
+
+        try
+        {
+            await SeedRequestElement(admin, rowIds);
+            List<long> elementIds = [rowIds.ElementId, rowIds.SecondElementId];
+            DateTimeOffset startTime = new(2026, 11, 20, 8, 30, 0, TimeSpan.Zero);
+            DateTimeOffset endTime = startTime.AddHours(1);
+
+            List<ReturnId?> middlewareSnapshots = await SendSnapshotBatch(
+                middleware, elementIds, startTime, endTime);
+            List<ReturnId?> middlewareLinks = await SendLinkBatch(middleware, elementIds, rowIds.TaskId);
+            List<ReturnId?> approverSnapshots = await SendSnapshotBatch(
+                approver, elementIds, startTime, endTime);
+            List<ReturnId?> requesterLinks = await SendLinkBatch(requester, elementIds, rowIds.TaskId);
+            List<long> missingIds = [long.MaxValue];
+            List<ReturnId?> zeroMatch = await SendSnapshotBatch(
+                middleware, missingIds, startTime, endTime);
+
+            Assert.Multiple(() =>
+            {
+                AssertAffectedRows(middlewareSnapshots, 1, 1);
+                AssertAffectedRows(middlewareLinks, 1, 1);
+                AssertAffectedRows(approverSnapshots, 1, 1);
+                AssertAffectedRows(requesterLinks, 1, 1);
+                AssertAffectedRows(zeroMatch, 0);
+            });
+        }
+        catch (Exception exception)
+        {
+            operationFailure = exception;
+            throw;
+        }
+        finally
+        {
+            await Cleanup(admin, rowIds, operationFailure);
+        }
+    }
+
     private static async Task SeedRequestElement(GraphQlApiConnection admin, SmokeRowIds rowIds)
     {
         string uniqueName = $"effective-state-smoke-{Guid.NewGuid():N}";
@@ -111,6 +168,62 @@ internal class EffectiveRequestStateMutationIntegrationTest
             RequestTaskSeedVariables(uniqueName, rowIds.TicketId))).ReturnIds!.Single().NewIdLong;
         rowIds.ElementId = (await admin.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newRequestElement,
             RequestElementSeedVariables(rowIds.TaskId))).ReturnIds!.Single().NewIdLong;
+        rowIds.SecondElementId = (await admin.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newRequestElement,
+            RequestElementSeedVariables(rowIds.TaskId))).ReturnIds!.Single().NewIdLong;
+    }
+
+    private static Task<List<ReturnId?>> SendSnapshotBatch(GraphQlApiConnection connection,
+        IReadOnlyCollection<long> elementIds, DateTimeOffset startTime, DateTimeOffset endTime)
+    {
+        List<Dictionary<string, object?>> updates = [.. elementIds.Select(elementId =>
+            SnapshotBatchUpdate(elementId, startTime, endTime))];
+        return connection.SendQueryAsync<List<ReturnId?>>(
+            RequestQueries.updateEffectiveRequestElementSnapshots, new { updates });
+    }
+
+    private static Dictionary<string, object?> SnapshotBatchUpdate(long elementId,
+        DateTimeOffset startTime, DateTimeOffset endTime)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["where"] = new Dictionary<string, object?>
+            {
+                ["id"] = new Dictionary<string, object?> { ["_eq"] = elementId }
+            },
+            ["_set"] = new Dictionary<string, object?>
+            {
+                ["ip"] = "198.51.100.25/32",
+                ["ip_end"] = "198.51.100.26/32",
+                ["port"] = 443,
+                ["port_end"] = 444,
+                ["ip_proto_id"] = 6,
+                ["group_name"] = "integration-snapshot-group",
+                ["name"] = "integration-snapshot-name",
+                ["start_time"] = startTime,
+                ["end_time"] = endTime
+            }
+        };
+    }
+
+    private static Task<List<ReturnId?>> SendLinkBatch(GraphQlApiConnection connection,
+        IReadOnlyCollection<long> elementIds, long objectTaskId)
+    {
+        List<Dictionary<string, object?>> updates = [.. elementIds.Select(elementId =>
+            new Dictionary<string, object?>
+            {
+                ["where"] = new Dictionary<string, object?>
+                {
+                    ["id"] = new Dictionary<string, object?> { ["_eq"] = elementId }
+                },
+                ["_set"] = new Dictionary<string, object?> { ["object_task_id"] = objectTaskId }
+            })];
+        return connection.SendQueryAsync<List<ReturnId?>>(
+            RequestQueries.updateRequestElementObjectTaskIds, new { updates });
+    }
+
+    private static void AssertAffectedRows(IReadOnlyList<ReturnId?> results, params int[] expected)
+    {
+        Assert.That(results.Select(result => result?.AffectedRows), Is.EqualTo(expected));
     }
 
     private static Dictionary<string, object?> TicketSeedVariables(string title)
@@ -222,6 +335,18 @@ internal class EffectiveRequestStateMutationIntegrationTest
                 cleanupFailures.Add(exception);
             }
         }
+        if (rowIds.SecondElementId > 0)
+        {
+            try
+            {
+                await admin.SendQueryAsync<ReturnId>(RequestQueries.deleteRequestElement,
+                    new { id = rowIds.SecondElementId });
+            }
+            catch (Exception exception)
+            {
+                cleanupFailures.Add(exception);
+            }
+        }
         if (rowIds.TaskId > 0)
         {
             try
@@ -265,10 +390,21 @@ internal class EffectiveRequestStateMutationIntegrationTest
         }, TimeSpan.FromMinutes(10));
     }
 
+    private static string CreateRoleToken(JwtWriter writer, string role)
+    {
+        return writer.CreateJWT(new UiUser
+        {
+            Name = $"effective-state-{role}-integration-smoke",
+            DbId = 0,
+            Roles = [role]
+        }, TimeSpan.FromMinutes(10));
+    }
+
     private sealed class SmokeRowIds
     {
         internal long TicketId { get; set; }
         internal long TaskId { get; set; }
         internal long ElementId { get; set; }
+        internal long SecondElementId { get; set; }
     }
 }

@@ -1,10 +1,66 @@
+using FWO.Basics;
 using FWO.Data.Workflow;
 
 namespace FWO.Services.Workflow;
 
 public partial class WfHandler
 {
-    private WfTicket? latestImplCreationDetailTicket;
+    /// <summary>
+    /// Loads the complete ticket once before implementation-task creation and combines persisted request content
+    /// with workflow state that has already changed in this process.
+    /// </summary>
+    private async Task<WfTicket> LoadImplCreationPreparationTicket(WfTicket runtimeTicket)
+    {
+        if (dbAcc == null)
+        {
+            return runtimeTicket;
+        }
+
+        WfTicket? persistedTicket = await dbAcc.FetchTicket(
+            runtimeTicket.Id, GetOwnerIdsForFiltering(), GetTicketFilter());
+        if (persistedTicket == null || persistedTicket.Id != runtimeTicket.Id)
+        {
+            throw new EffectiveRequestStateMaterializationException(
+                EffectiveRequestStateFailureCategory.ReadbackFailure);
+        }
+
+        Dictionary<long, WfReqTask> persistedTasksById = persistedTicket.Tasks
+            .Where(task => task.Id > 0)
+            .GroupBy(task => task.Id)
+            .ToDictionary(group => group.Key, group => group.Single());
+        HashSet<long> usedPersistedTaskIds = [];
+        List<WfReqTask> preparationTasks = [];
+        foreach (WfReqTask runtimeTask in runtimeTicket.Tasks)
+        {
+            if (!CanReloadForImplCreation(runtimeTask))
+            {
+                preparationTasks.Add(runtimeTask);
+                continue;
+            }
+            if (!persistedTasksById.TryGetValue(runtimeTask.Id, out WfReqTask? persistedTask))
+            {
+                throw new EffectiveRequestStateMaterializationException(
+                    EffectiveRequestStateFailureCategory.ReadbackFailure);
+            }
+            CopyImplCreationRuntimeState(persistedTask, runtimeTask);
+            preparationTasks.Add(persistedTask);
+            usedPersistedTaskIds.Add(persistedTask.Id);
+        }
+        preparationTasks.AddRange(persistedTicket.Tasks.Where(task => task.Id <= 0
+            || !usedPersistedTaskIds.Contains(task.Id)));
+        return new WfTicket(persistedTicket)
+        {
+            StateId = runtimeTicket.StateId,
+            Tasks = preparationTasks
+        };
+    }
+
+    /// <summary>Returns whether a task has a persisted representation that the action preparation load must use.</summary>
+    private static bool CanReloadForImplCreation(WfReqTask task)
+    {
+        return task.Id > 0 && task.TicketId > 0
+            && task.TaskType != WfTaskType.new_interface.ToString();
+    }
 
     /// <summary>
     /// Materializes selected request tasks and returns their verified readback instances in caller order.
@@ -29,7 +85,7 @@ public partial class WfHandler
     }
 
     /// <summary>
-    /// Creates a manual implementation-task draft from verified persisted request state.
+    /// Creates a manual implementation-task draft from the effective request state installed by the action boundary.
     /// </summary>
     /// <param name="requestTask">The request task or transient bundle used by the manual editor.</param>
     /// <returns>A prepared draft, or null after a displayed preparation failure.</returns>
@@ -38,22 +94,18 @@ public partial class WfHandler
         try
         {
             WfReqTask effectiveTask = requestTask;
-            if (dbAcc != null && requestTask.Id > 0 && !ReadOnlyMode
+            if (requestTask.Id > 0 && !ReadOnlyMode
                 && CanActOnReqTaskInCurrentPhase(ActReqTask))
             {
                 List<long> taskIds = ManualDraftTaskIds(requestTask);
-                latestImplCreationDetailTicket = null;
-                List<WfReqTask> detailedTasks = [];
-                foreach (long taskId in taskIds)
+                if (taskIds.All(taskId => ActTicket.Tasks.Any(task => task.Id == taskId)))
                 {
-                    WfReqTask selected = ActTicket.Tasks.Single(task => task.Id == taskId);
-                    detailedTasks.Add(await LoadReqTaskDetailsForImplCreation(selected));
+                    List<WfReqTask> effectiveTasks = [.. taskIds.Select(taskId =>
+                        ActTicket.Tasks.Single(task => task.Id == taskId))];
+                    effectiveTask = effectiveTasks.Count > 1
+                        ? CreateMergedBundleRequestTask(effectiveTasks)
+                        : effectiveTasks.Single();
                 }
-                WfTicket preparationTicket = BuildImplCreationPreparationTicket(detailedTasks);
-                List<WfReqTask> preparedTasks = await PrepareRequestTasksForExecution(preparationTicket, taskIds);
-                effectiveTask = preparedTasks.Count > 1
-                    ? CreateMergedBundleRequestTask(preparedTasks)
-                    : preparedTasks.Single();
             }
             return new WfImplTask(effectiveTask, false);
         }
@@ -65,7 +117,7 @@ public partial class WfHandler
     }
 
     /// <summary>
-    /// Selects the persisted constituents represented by a manual request-task or bundle draft.
+    /// Selects the active-ticket constituents represented by a manual request-task or bundle draft.
     /// </summary>
     private List<long> ManualDraftTaskIds(WfReqTask requestTask)
     {
@@ -77,28 +129,6 @@ public partial class WfHandler
         return [.. ActTicket.Tasks.Where(task => task.StateId == requestTask.StateId
                 && task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId)
             .Select(task => task.Id)];
-    }
-
-    /// <summary>
-    /// Combines a full persisted read with transient task state used by the current creation run.
-    /// </summary>
-    private WfTicket BuildImplCreationPreparationTicket(List<WfReqTask> detailedTasks)
-    {
-        WfTicket source = latestImplCreationDetailTicket ?? ActTicket;
-        WfTicket preparationTicket = new(source) { Tasks = [.. source.Tasks] };
-        foreach (WfReqTask task in detailedTasks)
-        {
-            int index = preparationTicket.Tasks.FindIndex(candidate => candidate.Id == task.Id);
-            if (index >= 0)
-            {
-                preparationTicket.Tasks[index] = task;
-            }
-            else
-            {
-                preparationTicket.Tasks.Add(task);
-            }
-        }
-        return preparationTicket;
     }
 
     /// <summary>

@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Reflection;
+using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Workflow;
 using NUnit.Framework;
@@ -14,7 +16,11 @@ namespace FWO.Test
     internal partial class EffectiveRequestStatePermissionTest
     {
         private const string kMutationFileName = "updateEffectiveRequestElementSnapshot.graphql";
-        private const string kMiddlewareServerRole = "middleware-server";
+        private const string kSnapshotBatchMutationFileName = "updateEffectiveRequestElementSnapshots.graphql";
+        private const string kObjectTaskLinkBatchMutationFileName = "updateRequestElementObjectTaskIds.graphql";
+        private const string kMiddlewareServerRole = Roles.MiddlewareServer;
+        private const string kApproverRole = Roles.Approver;
+        private const string kRequesterRole = Roles.Requester;
         private static readonly List<string> kSnapshotColumns =
         [
             "ip", "ip_end", "port", "port_end", "ip_proto_id", "group_name", "name", "start_time", "end_time"
@@ -26,6 +32,17 @@ namespace FWO.Test
         private static readonly List<string> kForbiddenBroadColumns =
         [
             "task_id", "field", "request_action", "user_id", "device_id"
+        ];
+        private static readonly List<string> kExistingInteractiveColumns =
+        [
+            "id", "network_object_id", "original_nat_id", "service_id", "task_id", "user_id",
+            "group_name", "name", "rule_uid", "ip", "ip_end", "device_id", "ip_proto_id", "port",
+            "port_end", "field", "request_action", "flow_nwobj_id", "flow_nwgrp_id", "flow_svcobj_id",
+            "flow_svcgrp_id", "start_time", "end_time", "time_obj_id", "flow_timeobj_id", "object_task_id"
+        ];
+        private static readonly List<string> kUpdateManyMutationRoots =
+        [
+            "update_request_reqelement_many"
         ];
 
         private JsonDocument metadata = null!;
@@ -54,6 +71,44 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// Snapshot batching must use the narrow update-many input instead of the broad request-element mutation.
+        /// </summary>
+        [Test]
+        public void EffectiveSnapshotBatchMutation_UsesOnlyRequestElementUpdateMany()
+        {
+            AssertBatchMutationContract(kSnapshotBatchMutationFileName,
+                "updateEffectiveRequestElementSnapshots");
+        }
+
+        /// <summary>
+        /// Exact ticket-local links use the same narrow update-many root and return only affected-row proofs.
+        /// </summary>
+        [Test]
+        public void ObjectTaskLinkBatchMutation_UsesOnlyRequestElementUpdateMany()
+        {
+            AssertBatchMutationContract(kObjectTaskLinkBatchMutationFileName,
+                "updateRequestElementObjectTaskIds");
+        }
+
+        /// <summary>
+        /// Workflow callers can only use the snapshot batch when RequestQueries registers its operation file.
+        /// </summary>
+        [Test]
+        public void EffectiveSnapshotBatchMutation_IsRegisteredForApiClients()
+        {
+            AssertRequestQueryRegistration("updateEffectiveRequestElementSnapshots");
+        }
+
+        /// <summary>
+        /// Ticket creation can only batch exact links when RequestQueries registers its operation file.
+        /// </summary>
+        [Test]
+        public void ObjectTaskLinkBatchMutation_IsRegisteredForApiClients()
+        {
+            AssertRequestQueryRegistration("updateRequestElementObjectTaskIds");
+        }
+
+        /// <summary>
         /// The service role may retain its existing Flow links and gain only snapshot columns.
         /// </summary>
         [Test]
@@ -76,6 +131,51 @@ namespace FWO.Test
         public void EffectiveSnapshotMutation_ColumnsAreWritableByMiddlewareServer()
         {
             Assert.That(ReadMiddlewareServerWritableColumns(), Is.SupersetOf(ReadMutationSetColumns()));
+        }
+
+        /// <summary>
+        /// The roles executing the action already expose the necessary update root and columns; this feature must not
+        /// expand any role's established column set.
+        /// </summary>
+        [Test]
+        public void RequestElementBatchPermissions_PreserveRoleColumnMatrix()
+        {
+            List<string> middlewareColumns = ReadWritableColumns(kMiddlewareServerRole);
+            List<string> approverColumns = ReadWritableColumns(kApproverRole);
+            List<string> requesterColumns = ReadWritableColumns(kRequesterRole);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(middlewareColumns, Is.SupersetOf(kSnapshotColumns));
+                Assert.That(middlewareColumns, Does.Contain("object_task_id"));
+                Assert.That(middlewareColumns, Has.None.Matches<string>(kForbiddenBroadColumns.Contains));
+                Assert.That(approverColumns, Is.EquivalentTo(kExistingInteractiveColumns));
+                Assert.That(approverColumns, Is.SupersetOf(kSnapshotColumns));
+                Assert.That(requesterColumns, Is.EquivalentTo(kExistingInteractiveColumns));
+                Assert.That(requesterColumns, Does.Contain("object_task_id"));
+            });
+        }
+
+        /// <summary>Batch support keeps the established row checks and adds no role presets.</summary>
+        [Test]
+        public void RequestElementBatchPermissions_PreserveFiltersChecksAndPresets()
+        {
+            JsonElement middleware = ReadUpdatePermission(kMiddlewareServerRole);
+            JsonElement approver = ReadUpdatePermission(kApproverRole);
+            JsonElement requester = ReadUpdatePermission(kRequesterRole);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(middleware.GetProperty("filter").EnumerateObject(), Is.Empty);
+                Assert.That(middleware.GetProperty("check").EnumerateObject(), Is.Empty);
+                Assert.That(approver.GetProperty("filter").EnumerateObject(), Is.Empty);
+                Assert.That(approver.GetProperty("check").TryGetProperty("_and", out _), Is.True);
+                Assert.That(requester.GetProperty("filter").EnumerateObject(), Is.Empty);
+                Assert.That(requester.GetProperty("check").TryGetProperty("_and", out _), Is.True);
+                Assert.That(middleware.TryGetProperty("set", out _), Is.False);
+                Assert.That(approver.TryGetProperty("set", out _), Is.False);
+                Assert.That(requester.TryGetProperty("set", out _), Is.False);
+            });
         }
 
         /// <summary>
@@ -168,22 +268,62 @@ namespace FWO.Test
                 .ToList();
         }
 
+        private void AssertBatchMutationContract(string fileName, string operationName)
+        {
+            string mutationPath = Path.Combine(graphQlRoot, "request", fileName);
+            Assert.That(File.Exists(mutationPath), Is.True,
+                $"The dedicated batch mutation is missing at '{mutationPath}'.");
+            string mutation = File.ReadAllText(mutationPath);
+            List<string> mutationRoots = BatchMutationRootRegex().Matches(mutation)
+                .Select(match => match.Groups["field"].Value)
+                .ToList();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(mutation, Does.Contain($"mutation {operationName}("));
+                Assert.That(mutation, Does.Contain("$updates: [request_reqelement_updates!]!"));
+                Assert.That(mutationRoots, Is.EqualTo(kUpdateManyMutationRoots));
+                Assert.That(mutation, Does.Contain("affected_rows"));
+                Assert.That(mutation, Does.Not.Contain("_set:"));
+                Assert.That(mutation, Does.Not.Contain("returning"));
+            });
+        }
+
+        private static void AssertRequestQueryRegistration(string fieldName)
+        {
+            FieldInfo? field = typeof(RequestQueries).GetField(fieldName,
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(field, Is.Not.Null, $"RequestQueries does not register '{fieldName}'.");
+            Assert.That(field?.GetValue(null), Is.TypeOf<string>().And.Contains($"mutation {fieldName}("));
+        }
+
         [GeneratedRegex(@"_set\s*:\s*\{(?<body>[^}]*)\}")]
         private static partial Regex MutationSetBlockRegex();
 
         [GeneratedRegex(@"(?m)^\s*(?<field>[A-Za-z_][A-Za-z0-9_]*)\s*:")]
         private static partial Regex MutationSetColumnRegex();
 
+        [GeneratedRegex(@"(?m)^\s{2}(?<field>update_[A-Za-z0-9_]+)\s*\(")]
+        private static partial Regex BatchMutationRootRegex();
+
         private List<string> ReadMiddlewareServerWritableColumns()
         {
-            JsonElement table = FindTable("request", "reqelement");
-            JsonElement permission = table.GetProperty("update_permissions")
-                .EnumerateArray()
-                .Single(entry => entry.GetProperty("role").GetString() == kMiddlewareServerRole)
-                .GetProperty("permission");
-            return permission.GetProperty("columns").EnumerateArray()
+            return ReadWritableColumns(kMiddlewareServerRole);
+        }
+
+        private List<string> ReadWritableColumns(string role)
+        {
+            return ReadUpdatePermission(role).GetProperty("columns").EnumerateArray()
                 .Select(column => column.GetString() ?? "")
                 .ToList();
+        }
+
+        private JsonElement ReadUpdatePermission(string role)
+        {
+            return FindTable("request", "reqelement").GetProperty("update_permissions")
+                .EnumerateArray()
+                .Single(entry => entry.GetProperty("role").GetString() == role)
+                .GetProperty("permission");
         }
 
         private JsonElement FindTable(string schema, string name)

@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
@@ -206,6 +207,80 @@ namespace FWO.Test
 
             Assert.That(draft, Is.Not.Null);
             Assert.That(apiConnection.QueryLog, Is.Empty);
+        }
+
+        [Test]
+        public async Task CreateImplementationTaskDraft_UsesActiveTicketWithoutPersistence()
+        {
+            WfReqTask requestTask = CreateBundledAccessTask(11, "", "approved-source");
+            requestTask.ImplementationTasks.Add(new WfImplTask { Id = 81, ReqTaskId = requestTask.Id });
+            WfHandler handler = CreateBundlingHandler(considerBundling: false, requestTask);
+            handler.ActReqTask = requestTask;
+            ImplTaskCreationApiConnection apiConnection = new(handler.ActTicket);
+            SetDbAccess(handler, apiConnection);
+
+            WfImplTask? draft = await handler.CreateImplementationTaskDraft(requestTask);
+
+            List<string> expectedNames = ["approved-source"];
+            Assert.Multiple(() =>
+            {
+                Assert.That(draft, Is.Not.Null);
+                Assert.That(draft!.ImplElements.Select(element => element.Name),
+                    Is.EqualTo(expectedNames));
+                Assert.That(requestTask.ImplementationTasks, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.QueryLog, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task CreateAccessImplTasksFromPathAnalysis_UsesPreparedTaskWithoutSnapshotPreparation()
+        {
+            WfReqTask requestTask = CreateBundledAccessTask(11, "", "approved-source");
+            requestTask.Elements.Add(CreateBundleElement(
+                requestTask.Id, ElemFieldType.destination, "approved-destination", "10.0.2.1"));
+            WfTicket ticket = new() { Id = 7, StateId = 3, Tasks = { requestTask } };
+            SimulatedUserConfig userConfig = new()
+            {
+                ReqDeviceInput = ReqDeviceInputOptions.oneTaskForAllDevices
+            };
+            ImplTaskCreationApiConnection apiConnection = new(ticket);
+            WfHandler handler = new(userConfig, apiConnection, WorkflowPhases.request, null)
+            {
+                AutoPlanSettingsOverride = kAllAutoPlanned,
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestEndState = 3,
+                    PhaseActive = new() { { WorkflowPhases.planning, false } }
+                },
+                ActTicket = ticket
+            };
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 10,
+                MinImplTasksNeeded = 3,
+                MinTicketCompleted = 99,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            });
+            ticket.UpdateCidrsInTaskElements();
+            apiConnection.PathDevices.Add(new Device { Id = 21, Name = "gateway" });
+            SetDbAccess(handler, apiConnection);
+
+            await handler.CreateAccessImplTasksFromPathAnalysis(requestTask);
+
+            int pathIndex = apiConnection.QueryLog.IndexOf(PathAnalysisQueries.pathAnalysis);
+            int historyReadIndex = apiConnection.QueryLog.IndexOf(RequestQueries.getTicketById);
+            List<string> expectedNames = ["approved-source", "approved-destination"];
+            Assert.Multiple(() =>
+            {
+                Assert.That(pathIndex, Is.GreaterThanOrEqualTo(0));
+                Assert.That(historyReadIndex, Is.GreaterThan(pathIndex));
+                Assert.That(apiConnection.MaterializationBatchCount, Is.Zero);
+                Assert.That(apiConnection.MaterializationUpdateCount, Is.Zero);
+                Assert.That(requestTask.ImplementationTasks.Single().ImplElements.Select(element => element.Name),
+                    Is.EqualTo(expectedNames));
+            });
         }
 
         [Test]
@@ -888,7 +963,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RequestTasksForInitialImplCreation_LoadsMissingTaskDetailsBeforeBundling()
+        public async Task RequestTasksForInitialImplCreation_FiltersProvidedTasksWithoutReloading()
         {
             WfReqTask overviewFirstTask = CreateBundledAccessTask(11, "bundle-11-12", "overview-1");
             WfReqTask overviewSecondTask = CreateBundledAccessTask(12, "bundle-11-12", "overview-2");
@@ -902,12 +977,11 @@ namespace FWO.Test
 
             List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler, [overviewFirstTask, overviewSecondTask]);
 
-            Assert.That(requestTasks, Has.Count.EqualTo(1));
-            Assert.That(requestTasks[0].Elements.Select(element => element.Name), Is.EqualTo(new[] { "src-1", "src-2" }));
+            Assert.That(requestTasks, Is.Empty);
         }
 
         [Test]
-        public async Task RequestTasksForInitialImplCreation_MaterializesPersistedConstituentsBeforeBundling()
+        public async Task RequestTasksForInitialImplCreation_ComposesPreparedConstituentsWithoutPersistence()
         {
             WfReqTask firstObject = CreateReferencedObjectTask(31, 1, "server-a", "10.0.1.10");
             WfReqTask secondObject = CreateReferencedObjectTask(32, 2, "server-b", "10.0.1.11");
@@ -918,6 +992,8 @@ namespace FWO.Test
             handler.ActTicket.UpdateCidrsInTaskElements();
             ImplTaskCreationApiConnection apiConnection = new(handler.ActTicket);
             SetDbAccess(handler, apiConnection);
+            firstAccess.Elements[0].IpString = "10.0.1.10";
+            secondAccess.Elements[0].IpString = "10.0.1.11";
             List<WfReqTask> candidates = [firstAccess, secondAccess];
 
             List<WfReqTask> effectiveTasks = await InvokeRequestTasksForInitialImplCreation(handler, candidates);
@@ -928,14 +1004,43 @@ namespace FWO.Test
                 Assert.That(effectiveTasks, Has.Count.EqualTo(1));
                 Assert.That(effectiveTasks[0].Elements.Select(element => element.IpString?.StripOffUnnecessaryNetmask()),
                     Is.EqualTo(expectedIps));
-                Assert.That(apiConnection.MaterializationUpdateCount, Is.EqualTo(2));
-                Assert.That(apiConnection.ReadsAfterMaterializationStarted, Is.EqualTo(1));
+                Assert.That(apiConnection.MaterializationUpdateCount, Is.Zero);
+                Assert.That(apiConnection.TicketReadCount, Is.Zero);
                 Assert.That(apiConnection.InsertCount, Is.Zero);
             });
         }
 
         [Test]
-        public void AutoCreateAccessImplTasks_MaterializationFailureCreatesNoTasksOrPositioningCalls()
+        public async Task CreateMissingImplTasksForTicket_LoadsAndMaterializesOnceBeforeInsertion()
+        {
+            WfReqTask sourceObject = CreateReferencedObjectTask(31, 1, "server", "10.0.1.10");
+            WfReqTask access = CreateReferencedBundledAccessTask(11, 2, 31, "");
+            WfHandler handler = CreateBundlingHandler(considerBundling: false, sourceObject, access);
+            handler.ActTicket.UpdateCidrsInTaskElements();
+            ImplTaskCreationApiConnection apiConnection = new(handler.ActTicket);
+            SetDbAccess(handler, apiConnection);
+
+            await handler.CreateMissingImplTasksForTicket(handler.ActTicket);
+
+            int batchIndex = apiConnection.QueryLog.IndexOf(
+                RequestQueries.updateEffectiveRequestElementSnapshots);
+            int insertionIndex = apiConnection.QueryLog.IndexOf(RequestQueries.newImplementationTask);
+            WfReqTask effectiveAccess = handler.ActTicket.Tasks.Single(task => task.Id == access.Id);
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.TicketReadCount, Is.EqualTo(1));
+                Assert.That(apiConnection.MaterializationBatchCount, Is.EqualTo(1));
+                Assert.That(apiConnection.MaterializationUpdateCount, Is.EqualTo(1));
+                Assert.That(apiConnection.ReadsAfterMaterializationStarted, Is.Zero);
+                Assert.That(batchIndex, Is.GreaterThanOrEqualTo(0));
+                Assert.That(insertionIndex, Is.GreaterThan(batchIndex));
+                Assert.That(effectiveAccess.ImplementationTasks.Single().ImplElements.Single()
+                    .IpString?.StripOffUnnecessaryNetmask(), Is.EqualTo("10.0.1.10"));
+            });
+        }
+
+        [Test]
+        public async Task RequestTasksForInitialImplCreation_DoesNotMaterializeAgain()
         {
             WfReqTask sourceObject = CreateReferencedObjectTask(31, 1, "server", "10.0.1.10");
             WfReqTask access = CreateReferencedBundledAccessTask(11, 2, 31, "");
@@ -949,11 +1054,13 @@ namespace FWO.Test
             SetDbAccess(handler, apiConnection, caller);
             List<WfReqTask> candidates = [access];
 
-            Assert.ThrowsAsync<EffectiveRequestStateMaterializationException>(async () =>
-                await InvokeRequestTasksForInitialImplCreation(handler, candidates));
+            List<WfReqTask> selected = await InvokeRequestTasksForInitialImplCreation(handler, candidates);
 
             Assert.Multiple(() =>
             {
+                Assert.That(selected, Is.EqualTo(candidates));
+                Assert.That(apiConnection.TicketReadCount, Is.Zero);
+                Assert.That(apiConnection.MaterializationBatchCount, Is.Zero);
                 Assert.That(apiConnection.InsertCount, Is.Zero);
                 Assert.That(caller.CalculationCount, Is.Zero);
                 Assert.That(access.ImplementationTasks, Is.Empty);
@@ -996,7 +1103,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RequestTasksForInitialImplCreation_SkipsTaskFoundDuringDatabaseReload()
+        public async Task RequestTasksForInitialImplCreation_UsesProvidedTaskWithoutDatabaseReload()
         {
             WfReqTask overviewTask = new()
             {
@@ -1017,33 +1124,18 @@ namespace FWO.Test
             };
             WfTicket storedTicket = new() { Id = 7, Tasks = { storedTask } };
             WfHandler handler = CreateImplementationCreationHandler(overviewTask, implementationInputState: 99);
-            SetDbAccess(handler, new RequestTaskDetailsApiConn(storedTicket));
+            RequestTaskDetailsApiConn apiConnection = new(storedTicket);
+            SetDbAccess(handler, apiConnection);
             List<WfReqTask> candidateTasks = new() { overviewTask };
 
             List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler, candidateTasks);
 
-            Assert.That(requestTasks, Is.Empty);
-        }
-
-        [Test]
-        public async Task LoadReqTaskDetailsForImplCreation_PreservesDerivedTicketState()
-        {
-            WfReqTask overviewTask = new()
+            Assert.Multiple(() =>
             {
-                Id = 11,
-                TicketId = 7,
-                TaskType = WfTaskType.group_create.ToString(),
-                StateId = 99
-            };
-            WfReqTask storedTask = new(overviewTask);
-            WfTicket storedTicket = new() { Id = 7, StateId = 49, Tasks = { storedTask } };
-            WfHandler handler = CreateImplementationCreationHandler(overviewTask, implementationInputState: 99);
-            handler.ActTicket.StateId = 100;
-            SetDbAccess(handler, new RequestTaskDetailsApiConn(storedTicket));
-
-            await InvokeLoadReqTaskDetailsForImplCreation(handler, overviewTask);
-
-            Assert.That(handler.ActTicket.StateId, Is.EqualTo(100));
+                Assert.That(requestTasks, Has.Count.EqualTo(1));
+                Assert.That(requestTasks[0], Is.SameAs(overviewTask));
+                Assert.That(apiConnection.QueryCount, Is.Zero);
+            });
         }
 
         private static async Task InvokeAutoCreateImplTasks(WfHandler handler, WfReqTask reqTask)
@@ -1079,15 +1171,6 @@ namespace FWO.Test
                 ?? throw new MissingMethodException(typeof(WfHandler).FullName, "RequestTasksForInitialImplCreation");
             Task<List<WfReqTask>> task = (Task<List<WfReqTask>>)(method.Invoke(handler, [requestTasks, false])
                 ?? throw new InvalidOperationException("RequestTasksForInitialImplCreation returned null."));
-            return await task;
-        }
-
-        private static async Task<WfReqTask> InvokeLoadReqTaskDetailsForImplCreation(WfHandler handler, WfReqTask reqTask)
-        {
-            MethodInfo method = typeof(WfHandler).GetMethod("LoadReqTaskDetailsForImplCreation", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new MissingMethodException(typeof(WfHandler).FullName, "LoadReqTaskDetailsForImplCreation");
-            Task<WfReqTask> task = (Task<WfReqTask>)(method.Invoke(handler, [reqTask])
-                ?? throw new InvalidOperationException("LoadReqTaskDetailsForImplCreation returned null."));
             return await task;
         }
 
@@ -1264,8 +1347,11 @@ namespace FWO.Test
 
         private sealed class RequestTaskDetailsApiConn(WfTicket fullTicket) : SimulatedApiConnection
         {
+            public int QueryCount { get; private set; }
+
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
+                QueryCount++;
                 if (typeof(QueryResponseType) == typeof(WfTicket))
                 {
                     return Task.FromResult((QueryResponseType)(object)fullTicket);

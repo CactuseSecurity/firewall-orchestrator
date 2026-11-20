@@ -200,10 +200,7 @@ namespace FWO.Services.Workflow
                 throw new EffectiveRequestStateMaterializationException(
                     EffectiveRequestStateFailureCategory.PersistenceFailure);
             }
-            foreach ((WfReqElement element, long objectTaskId) in links)
-            {
-                await UpdateTicketObjectTaskReferenceInDb(element, objectTaskId);
-            }
+            await UpdateTicketObjectTaskReferencesInDb(links);
         }
 
         /// <summary>
@@ -214,33 +211,6 @@ namespace FWO.Services.Workflow
             return task.TaskType == WfTaskType.access.ToString()
                 || task.TaskType == WfTaskType.group_create.ToString()
                 || task.TaskType == WfTaskType.group_modify.ToString();
-        }
-
-        /// <summary>
-        /// Persists a required object-task reference and fails when the API does not confirm the exact element.
-        /// </summary>
-        private async Task UpdateTicketObjectTaskReferenceInDb(WfReqElement element, long objectTaskId)
-        {
-            try
-            {
-                ReturnId result = await ApiConnection.SendQueryAsync<ReturnId>(
-                    RequestQueries.updateRequestElementObjectTaskId,
-                    new { id = element.Id, objectTaskId });
-                if (result.UpdatedIdLong != element.Id)
-                {
-                    throw new EffectiveRequestStateMaterializationException(
-                        EffectiveRequestStateFailureCategory.PersistenceFailure);
-                }
-            }
-            catch (EffectiveRequestStateMaterializationException)
-            {
-                throw;
-            }
-            catch (Exception exception)
-            {
-                throw new EffectiveRequestStateMaterializationException(
-                    EffectiveRequestStateFailureCategory.PersistenceFailure, exception);
-            }
         }
 
         private async Task UpdateTicketTaskReferenceInDb(WfReqElement element, long objectTaskId)

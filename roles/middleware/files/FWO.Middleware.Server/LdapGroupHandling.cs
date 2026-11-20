@@ -539,9 +539,11 @@ namespace FWO.Middleware.Server
                 {
                     groupDn = $"cn={groupName},{GroupWritePath}";
                 }
-                LdapAttributeSet attributeSet = new();
-                attributeSet.Add(new LdapAttribute("objectclass", "groupofuniquenames"));
-                attributeSet.Add(new LdapAttribute(UniqueMember, ""));
+                LdapAttributeSet attributeSet =
+                [
+                    new LdapAttribute("objectclass", "groupofuniquenames"),
+                    new LdapAttribute(UniqueMember, ""),
+                ];
                 if (ownerGroup)
                 {
                     attributeSet.Add(new LdapAttribute(BusinessCategory, OwnerGroupLowerCase));

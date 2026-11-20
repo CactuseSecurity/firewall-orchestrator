@@ -409,7 +409,7 @@ namespace FWO.Test
         public async Task AutoPromote_OnParametersSet_LoadsConfirmMessageFromSimpleState()
         {
             EditActionAutoPromote component = new();
-            List<WfState> states = new() { new() { Id = 12, Name = "Done" } };
+            List<WfState> states = [new() { Id = 12, Name = "Done" }];
             WfStateAction action = new()
             {
                 ExternalParams = JsonSerializer.Serialize(new SimpleAutoPromoteParams { ToStateId = 12, ConfirmUiMessage = true })
@@ -960,7 +960,7 @@ namespace FWO.Test
                     Event = StateActionEvents.OfferButton.ToString(),
                     Scope = WfObjectScopes.RequestTask.ToString()
                 })
-                .Add(p => p.AvailableTaskTypes, new List<WfTaskType> { WfTaskType.master, WfTaskType.access }));
+                .Add(p => p.AvailableTaskTypes, [WfTaskType.master, WfTaskType.access]));
 
             Assert.Multiple(() =>
             {
@@ -983,7 +983,7 @@ namespace FWO.Test
                     Event = StateActionEvents.None.ToString(),
                     Scope = WfObjectScopes.None.ToString()
                 })
-                .Add(p => p.AvailableTaskTypes, new List<WfTaskType> { WfTaskType.master, WfTaskType.access }));
+                .Add(p => p.AvailableTaskTypes, [WfTaskType.master, WfTaskType.access]));
 
             Assert.That(component.Markup, Does.Not.Contain("task_type"));
         }
@@ -1650,7 +1650,7 @@ namespace FWO.Test
                 Scope = WfObjectScopes.RequestTask.ToString(),
                 ExternalParams = JsonSerializer.Serialize(new EmailActionParams
                 {
-                    NotificationIds = new List<int> { 7 },
+                    NotificationIds = [7],
                     RequestTaskBundleMode = EmailRequestTaskBundleMode.SameTaskType
                 })
             });
@@ -1749,8 +1749,8 @@ namespace FWO.Test
         public async Task SendEmail_AddNotificationIdThroughCallback_TracksTemporaryNotification()
         {
             SettingsActionsApiConn apiConn = new();
-            EditActionSendEmail sendEmailEditor = await CreateInitializedSendEmailEditor(apiConn, CreateSendEmailAction(0, new List<int> { 5 }), null);
-            EditNotifications notificationEditor = CreateWiredNotificationEditor(sendEmailEditor, apiConn, new List<FwoNotification>());
+            EditActionSendEmail sendEmailEditor = await CreateInitializedSendEmailEditor(apiConn, CreateSendEmailAction(0, [5]), null);
+            EditNotifications notificationEditor = CreateWiredNotificationEditor(sendEmailEditor, apiConn, []);
 
             await InvokeAsync(notificationEditor, "AddNotificationId", 11);
 
@@ -1765,9 +1765,9 @@ namespace FWO.Test
         public async Task SendEmail_RemoveNotificationIdOfPersistedAction_PersistsShortenedIdList()
         {
             SettingsActionsApiConn apiConn = new();
-            WfStateAction persistedAction = CreateSendEmailAction(99, new List<int> { 5, 7 });
-            EditActionSendEmail sendEmailEditor = await CreateInitializedSendEmailEditor(apiConn, CreateSendEmailAction(99, new List<int> { 5, 7 }), persistedAction);
-            EditNotifications notificationEditor = CreateWiredNotificationEditor(sendEmailEditor, apiConn, new List<FwoNotification>());
+            WfStateAction persistedAction = CreateSendEmailAction(99, [5, 7]);
+            EditActionSendEmail sendEmailEditor = await CreateInitializedSendEmailEditor(apiConn, CreateSendEmailAction(99, [5, 7]), persistedAction);
+            EditNotifications notificationEditor = CreateWiredNotificationEditor(sendEmailEditor, apiConn, []);
 
             await InvokeAsync(notificationEditor, "RemoveNotificationId", 7);
 
@@ -1784,10 +1784,10 @@ namespace FWO.Test
         public async Task SendEmail_DeleteLastNotificationOfPersistedAction_IsRefusedAndRolledBack()
         {
             SettingsActionsApiConn apiConn = new();
-            WfStateAction persistedAction = CreateSendEmailAction(99, new List<int> { 5 });
-            EditActionSendEmail sendEmailEditor = await CreateInitializedSendEmailEditor(apiConn, CreateSendEmailAction(99, new List<int> { 5 }), persistedAction);
+            WfStateAction persistedAction = CreateSendEmailAction(99, [5]);
+            EditActionSendEmail sendEmailEditor = await CreateInitializedSendEmailEditor(apiConn, CreateSendEmailAction(99, [5]), persistedAction);
             FwoNotification lastNotification = new() { Id = 5, Name = "Last notification" };
-            EditNotifications notificationEditor = CreateWiredNotificationEditor(sendEmailEditor, apiConn, new List<FwoNotification> { lastNotification });
+            EditNotifications notificationEditor = CreateWiredNotificationEditor(sendEmailEditor, apiConn, [lastNotification]);
 
             await InvokeAsync(notificationEditor, "RequestDeleteNotification", lastNotification);
             await InvokeAsync(notificationEditor, "Delete");
@@ -2374,7 +2374,7 @@ namespace FWO.Test
             WfStateAction action = new() { ActionType = StateActionTypes.SendEmail.ToString() };
             SetMember(component, "apiConnection", apiConn);
             SetMember(component, "ActAction", action);
-            List<int> notificationIds = new() { 3 };
+            List<int> notificationIds = [3];
 
             await InvokeAsync(component, "SetActionNotificationIds", notificationIds);
 

@@ -336,13 +336,13 @@ namespace FWO.Ui.Services
                 AppServerType? appServerType = AppServerTypes.FirstOrDefault(_ => _.Name == importAppServer.AppServerTyp);
                 if (appServerType is null)
                 {
-                    return (false, new Exception($"{UserConfig.GetText("owner_appservertype_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"), null, 0);
+                    return (false, new InvalidDataException($"{UserConfig.GetText("owner_appservertype_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"), null, 0);
                 }
 
                 List<OwnerIdModel> ownerIds = await ApiConnection.SendQueryAsync<List<OwnerIdModel>>(OwnerQueries.getOwnerId, new { externalAppId = importAppServer.AppID });
                 if (ownerIds is null || ownerIds.Count == 0)
                 {
-                    return (false, new Exception($"{UserConfig.GetText("owner_appserver_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"), null, 0);
+                    return (false, new InvalidDataException($"{UserConfig.GetText("owner_appserver_notfound")} At: {importAppServer.AppServerName}/{importAppServer.AppID}"), null, 0);
                 }
 
                 int ownerId = ownerIds.First().Id;

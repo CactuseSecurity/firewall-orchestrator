@@ -51,8 +51,6 @@ namespace FWO.Test
         static Rule Rule2 = new();
         static Rule Rule2Changed = new();
         static Rule NatRule = new();
-        static Rule RecertRule1 = new();
-        static Rule RecertRule2 = new();
 
         private const string ToCAnkerIdGroupName = "ToCAnkerId";
         private readonly string ToCRegexPattern = $"<a href=\"#(?'{ToCAnkerIdGroupName}'.*?)\">(.*?)<\\/a>";
@@ -1265,7 +1263,7 @@ namespace FWO.Test
         public void ResolvedRulesGenerateJsonWithoutRules()
         {
             Log.WriteInfo("Test Log", "starting resolved rules report json generation");
-            ReportRules reportRules = ConstructReportRulesWithoutRules(true, query, userConfig, ReportType.ResolvedRules);
+            ReportRules reportRules = ConstructReportRulesWithoutRules(query, userConfig, ReportType.ResolvedRules);
 
             string expectedJsonResult =
             "{\"report type\": \"Rules Report (resolved)\",\"report generation date\": \"2026-05-20T10:00:36Z (UTC)\"," +
@@ -1596,33 +1594,6 @@ namespace FWO.Test
             };
         }
 
-        //If possible use ConstructReportRules below so that this can be deprecated
-        private static ReportData ConstructRuleReportData(bool resolved)
-        {
-            Rule1 = InitRule1(resolved);
-            Rule2 = InitRule2(resolved);
-            return new ReportData()
-            {
-                ManagementData =
-                [
-                    new ()
-                    {
-                        Name = "TestMgt",
-                        ReportObjects = [TestIp1, TestIp2, TestIpRange],
-                        ReportServices = [TestService1, TestService2],
-                        ReportUsers = [TestUser1, TestUser2],
-                        Devices =
-                        [
-                            new ()
-                            {
-                                Name = "TestDev"
-                            }
-                        ]
-                    }
-                ]
-            };
-        }
-
         /// <summary>
         /// Every column of the object, service and user tables of a rules report holds a value the
         /// importer stored, so each of them is parameterized with markup here and the export is checked
@@ -1696,7 +1667,7 @@ namespace FWO.Test
             Dictionary<int, int> references = new() { [rulebase.Id] = -1 };
             managementData.Devices =
             [
-                CreateRuleTree(-1, "Start A", rulebase.Id, new Dictionary<int, int>()),
+                CreateRuleTree(-1, "Start A", rulebase.Id, []),
                 CreateRuleTree(-2, "Start B", rulebase.Id, references)
             ];
             reportRules.TryBuildMockRuleTree();
@@ -1785,7 +1756,7 @@ namespace FWO.Test
             return report;
         }
 
-        private Rule[] ConstructRuleReportRules(bool resolved)
+        private static Rule[] ConstructRuleReportRules(bool resolved)
         {
             return [
                 InitRule1(resolved),
@@ -1793,7 +1764,7 @@ namespace FWO.Test
             ];
         }
 
-        private Rule[] ConstructRecertReportRules(bool resolved, DateTime referenceDate)
+        private static Rule[] ConstructRecertReportRules(bool resolved, DateTime referenceDate)
         {
             Rule rule1 = InitRule1(resolved);
             rule1.Metadata.RuleRecertification =
@@ -1826,7 +1797,7 @@ namespace FWO.Test
             return [rule1, rule2];
         }
 
-        private static ReportRules ConstructReportRulesWithoutRules(bool resolved, DynGraphqlQuery query, UserConfig userConfig, ReportType reportType)
+        private static MockReportRules ConstructReportRulesWithoutRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType)
         {
             RulebaseReport[] rulebases = [
                 MockReportRules.CreateRulebaseReport(numberOfRules: 0)
@@ -2030,14 +2001,6 @@ namespace FWO.Test
                     }
                 ]
             };
-        }
-
-        private static async Task<ReportData> ConstructAppRulesReport()
-        {
-            ReportData reportData = ConstructRuleReportData(false);
-            ModellingVarianceAnalysisTestApiConn apiConnection = new();
-            reportData.ManagementData = await ReportAppRules.PrepareAppRulesReport(reportData.ManagementData, new ModellingFilter(), apiConnection, 1);
-            return reportData;
         }
 
         private static ReportData ConstructConnectionReport()

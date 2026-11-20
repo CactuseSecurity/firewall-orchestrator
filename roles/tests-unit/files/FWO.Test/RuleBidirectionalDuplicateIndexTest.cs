@@ -23,25 +23,25 @@ namespace FWO.Test
         public void HasReverseDuplicate_KeepsServicePortRanges(int sourceStart, int sourceEnd,
             int destinationStart, int destinationEnd, int protocol, bool expectedDuplicate)
         {
-            List<NetworkLocation> sources = new()
-            {
+            List<NetworkLocation> sources =
+            [
                 TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Source", "10.1.2.3/32", "10.1.2.3/32"))
-            };
-            List<NetworkLocation> destinations = new()
-            {
+            ];
+            List<NetworkLocation> destinations =
+            [
                 TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Destination", "10.9.8.7/32", "10.9.8.7/32"))
-            };
-            List<NetworkService> forwardServices = new()
-            {
+            ];
+            List<NetworkService> forwardServices =
+            [
                 TrivialityTestHelper.CreateProtocolService("Forward", 6, 1024, 2048, 443, 445)
-            };
-            List<NetworkService> reverseServices = new()
-            {
+            ];
+            List<NetworkService> reverseServices =
+            [
                 TrivialityTestHelper.CreateProtocolService("Reverse", protocol, sourceStart, sourceEnd, destinationStart, destinationEnd)
-            };
+            ];
             Rule rule = TrivialityTestHelper.CreateRule(sources, destinations, forwardServices, id: 1001);
             Rule reverseRule = TrivialityTestHelper.CreateRule(destinations, sources, reverseServices, id: 1002);
-            List<Rule> rules = new() { rule, reverseRule };
+            List<Rule> rules = [rule, reverseRule];
             RuleBidirectionalDuplicateIndex duplicateIndex = new(rules);
 
             Assert.Multiple(() =>

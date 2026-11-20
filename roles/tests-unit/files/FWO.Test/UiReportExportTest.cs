@@ -155,7 +155,7 @@ namespace FWO.Test
 
         private sealed class ReportExportAuthStateProvider(string role) : AuthenticationStateProvider
         {
-            private readonly ClaimsPrincipal principal = new(new ClaimsIdentity(new List<Claim> { new(ClaimTypes.Role, role) }, "test", ClaimTypes.Name, ClaimTypes.Role));
+            private readonly ClaimsPrincipal principal = new(new ClaimsIdentity([new(ClaimTypes.Role, role)], "test", ClaimTypes.Name, ClaimTypes.Role));
 
             public override Task<AuthenticationState> GetAuthenticationStateAsync()
             {

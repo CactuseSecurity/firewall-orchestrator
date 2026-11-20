@@ -68,8 +68,8 @@ namespace FWO.ExternalSystems.FirewallWrite
                 rendered = RenderTask(implTask, context);
                 if (rendered.Requests.Count == 0)
                 {
-                    return ModifyFirewallResult.Succeeded("Nothing to write." + SkippedNote(rendered.SkippedDeletions) + ExcludedNote(rendered.Excluded),
-                        new List<FirewallStepResult>(), rendered.SkippedDeletions);
+                    return ModifyFirewallResult.Succeeded("Nothing to write." + SkippedNote(rendered.SkippedDeletions) + ExcludedNote(rendered.Excluded), [],
+                        rendered.SkippedDeletions);
                 }
                 client = clientFactory.Create(context);
             }
@@ -105,7 +105,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             List<FirewallWriteStep> steps = [.. planned.Except(skipped)];
             if (steps.Count == 0)
             {
-                return new RenderedTask(new List<RenderedFirewallRequest>(), skippedDeletions, excludedSteps);
+                return new RenderedTask([], skippedDeletions, excludedSteps);
             }
 
             IReadOnlyDictionary<string, FirewallPlaceholderValue> contextValues = ImplTaskStepPlanner.ContextValues(implTask, context, placement);

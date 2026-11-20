@@ -275,7 +275,7 @@ internal class NetworkZoneTreeAlgorithmTest
         List<PathSegment> segments = new NetworkZoneTreeAlgorithm(BuildMatrix()).FindDevicesInPaths(input);
 
         Assert.That(segments.Select(segment => segment.Source.ZoneId),
-            Is.EquivalentTo(new List<int> { kZoneAId, kZoneBId, kZoneCId, kZoneDId }));
+            Is.EquivalentTo([kZoneAId, kZoneBId, kZoneCId, kZoneDId]));
     }
 
     /// <summary>

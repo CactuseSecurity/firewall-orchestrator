@@ -225,7 +225,7 @@ namespace FWO.Test
         /// </summary>
         private static List<string> ReadFilterColumns(ApiCallSurvey survey, string source, ApiField field)
         {
-            HashSet<string> columns = new();
+            HashSet<string> columns = [];
             if (field.Arguments == null)
             {
                 return columns.ToList();
@@ -255,7 +255,7 @@ namespace FWO.Test
         {
             if (field.Arguments == null || operation == kDeleteOperation || operation == kSelectOperation)
             {
-                return new();
+                return [];
             }
 
             Regex bodyRegex = operation == kUpdateOperation ? AssignmentRegex() : ObjectsRegex();
@@ -263,12 +263,12 @@ namespace FWO.Test
             if (!written.Success)
             {
                 ReportVariableArgument(survey, source, field, VariableWrittenRegex(), "written object");
-                return new();
+                return [];
             }
             int bodyStart = written.Index + written.Length - 1;
             int bodyEnd = IndexOfMatchingBracket(field.Arguments, bodyStart);
             return bodyEnd < 0
-                ? new()
+                ? []
                 : EnumerateMembers(field.Arguments[(bodyStart + 1)..bodyEnd]).Select(member => member.Name).ToList();
         }
 
@@ -292,7 +292,7 @@ namespace FWO.Test
         private static (List<string> Columns, bool Opaque) ReadReturnedColumns(ApiCallSurvey survey, string source,
             string? selectionSet)
         {
-            HashSet<string> columns = new();
+            HashSet<string> columns = [];
             bool opaque = false;
             if (selectionSet == null)
             {

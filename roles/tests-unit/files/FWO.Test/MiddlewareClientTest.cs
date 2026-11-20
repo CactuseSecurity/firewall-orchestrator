@@ -251,7 +251,7 @@ namespace FWO.Test
                 return "[]";
             }
 
-            object? payload = null;
+            object? payload;
             try
             {
                 payload = Activator.CreateInstance(payloadType);

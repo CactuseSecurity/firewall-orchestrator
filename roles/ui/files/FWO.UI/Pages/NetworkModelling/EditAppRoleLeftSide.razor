@@ -12,7 +12,7 @@
             <div class="bg-secondary">
                 <div id="app-role-library-ordered-draggable-list" class="col-sm-12 ">
                     <div class="d-flex align-items-center">
-                        <OrderByDropdown CssClass="@(orderByDropdownWidthClass)" @ref="orderByDropdown" TCollectionItem="ModellingAppServer" Collection="AppRoleHandler.AppServersInArea" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" />
+                        <OrderByDropdown CssClass="@(orderByDropdownWidthClass)" TCollectionItem="ModellingAppServer" Collection="AppRoleHandler.AppServersInArea" CollectionReordered="OnCollectionReordered" ElementProperties="orderByDropdownProperties" />
                         @if (selectedAppServers.Count > 0)
                         {
                             <div class="col-sm-2 p-2">
@@ -70,7 +70,6 @@
     /// <summary>
     /// Reference to the order by component.
     /// </summary>
-    private OrderByDropdown<ModellingAppServer>? orderByDropdown;
 
     /// <summary>
     /// Properties to sort the app server's visual elements by.

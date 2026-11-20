@@ -63,7 +63,7 @@ namespace FWO.Test
             notification.RecipientBcc = recipientOption;
             string recipientConfig = new EmailRecipientSelection
             {
-                OwnerResponsibleTypeIds = new List<int> { GlobalConst.kOwnerResponsibleTypeSupporting }
+                OwnerResponsibleTypeIds = [GlobalConst.kOwnerResponsibleTypeSupporting]
             }.ToConfigValue();
             notification.EmailAddressTo = recipientConfig;
             notification.EmailAddressCc = recipientConfig;
@@ -81,14 +81,14 @@ namespace FWO.Test
             });
             RuleExpiryCheckTestApiConn apiConnection = new()
             {
-                Notifications = new List<FwoNotification> { notification },
-                ExpiredRuleEntries = new List<ExpiredRuleEntryInput> { ruleEntry },
+                Notifications = [notification],
+                ExpiredRuleEntries = [ruleEntry],
                 LdapAvailable = false,
-                Users = new List<UiUser>
-                {
+                Users =
+                [
                     new() { Dn = "cn=main,dc=test", Email = "main@example.test" },
                     new() { Dn = "cn=supporting,dc=test", Email = "supporting@example.test" }
-                }
+                ]
             };
             SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
             globalConfig.UseDummyEmailAddress = false;
@@ -97,7 +97,7 @@ namespace FWO.Test
 
             Assert.That(apiConnection.LogEntries, Has.Count.EqualTo(1));
             NotificationLogInsertEntry logEntry = apiConnection.LogEntries.Single();
-            List<string> expectedRecipients = new();
+            List<string> expectedRecipients = [];
             if (includesMain)
             {
                 expectedRecipients.Add("main@example.test");
@@ -628,8 +628,8 @@ namespace FWO.Test
             public int InsertNotificationLogCalls { get; private set; }
             public Action? OnInsertNotificationLog { get; set; }
             public bool LdapAvailable { get; set; } = true;
-            public List<UiUser> Users { get; set; } = new();
-            public List<NotificationLogInsertEntry> LogEntries { get; } = new();
+            public List<UiUser> Users { get; set; } = [];
+            public List<NotificationLogInsertEntry> LogEntries { get; } = [];
             public NotificationLogStatus? LastLogStatus { get; private set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
@@ -695,11 +695,11 @@ namespace FWO.Test
 
                 if (query == OwnerQueries.getOwnerResponsibleTypes)
                 {
-                    List<OwnerResponsibleType> types = new()
-                    {
+                    List<OwnerResponsibleType> types =
+                    [
                         new() { Id = GlobalConst.kOwnerResponsibleTypeMain, Active = true },
                         new() { Id = GlobalConst.kOwnerResponsibleTypeSupporting, Active = true }
-                    };
+                    ];
                     return Task.FromResult((QueryResponseType)(object)types);
                 }
 
@@ -778,7 +778,7 @@ namespace FWO.Test
 
         private sealed class ExpiredRuleEntryInput
         {
-            public List<OwnerResponsible> OwnerResponsibles { get; set; } = new();
+            public List<OwnerResponsible> OwnerResponsibles { get; set; } = [];
             public int OwnerId { get; set; }
             public string OwnerName { get; set; } = "";
             public string OwnerExtAppId { get; set; } = "";

@@ -70,7 +70,7 @@ namespace FWO.Test
         public async Task CheckSession_RefusesCallersWithoutUserIdentity()
         {
             SessionRevocationApiConnection apiConnection = new() { RefreshTokenUserId = kCallerUserId };
-            ClaimsPrincipal serviceCaller = new(new ClaimsIdentity(new List<Claim> { new(ClaimTypes.Role, Roles.MiddlewareServer) }, "test"));
+            ClaimsPrincipal serviceCaller = new(new ClaimsIdentity([new(ClaimTypes.Role, Roles.MiddlewareServer)], "test"));
 
             ActionResult<bool> result = await CreateController(apiConnection, serviceCaller).CheckSession(CreateParameters());
 
@@ -114,7 +114,7 @@ namespace FWO.Test
         {
             Dictionary<string, string[]> errors = AuthenticationTokenController.ValidateSessionCheck(null);
 
-            Assert.That(errors.Keys, Is.EquivalentTo(new List<string> { "refreshToken" }));
+            Assert.That(errors.Keys, Is.EquivalentTo(["refreshToken"]));
         }
 
         [Test]
@@ -156,12 +156,12 @@ namespace FWO.Test
 
         private static ClaimsPrincipal CreateCaller()
         {
-            List<Claim> claims = new()
-            {
+            List<Claim> claims =
+            [
                 new("x-hasura-user-id", kCallerUserId.ToString()),
                 new("x-hasura-uuid", kCallerDn),
                 new(ClaimTypes.Role, Roles.Reporter)
-            };
+            ];
             return new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
         }
 
@@ -169,7 +169,7 @@ namespace FWO.Test
         {
             AuthenticationTokenController controller = new(
                 new JwtWriter(new RsaSecurityKey(RSA.Create(2048))),
-                new List<Ldap>(),
+                [],
                 apiConnection,
                 new TokenLifetimeProvider(),
                 new LoginThrottle(new LoginThrottleSettings()));

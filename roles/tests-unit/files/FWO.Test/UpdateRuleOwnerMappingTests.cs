@@ -15,6 +15,55 @@ namespace FWO.Test
 {
     public class UpdateRuleOwnerMappingTests
     {
+        private static readonly string[] kExpectedActivePairsAfterSecondImport =
+        [
+            "1->1",
+            "2->2",
+            "3->3",
+            "4->1",
+            "5->2",
+            "6->3",
+            "7->1",
+            "8->2",
+            "9->3",
+            "10->1"
+        ];
+        private static readonly string[] kExpectedActivePairsAfterFullReinitialize =
+        [
+            "1->2",
+            "3->1",
+            "4->5",
+            "5->3",
+            "6->6",
+            "7->4",
+            "8->5",
+            "10->2",
+            "11->3",
+            "12->1",
+            "13->2",
+            "14->1",
+            "15->3",
+            "16->6"
+        ];
+        private static readonly string[] kExpectedActivePairsAfterThirdImport =
+        [
+            "1->2",
+            "3->3",
+            "4->4",
+            "5->5",
+            "6->1",
+            "7->2",
+            "8->3",
+            "9->4",
+            "10->5",
+            "11->3"
+        ];
+        private static readonly string[] kExpectedInsertedPairsForThirdImport = ["1->2", "11->3"];
+        private static readonly int[] kExpectedRuleIdOneHundredOne = [101];
+        private static readonly int[] kExpectedOwnerIdTwenty = [20];
+        private static readonly int[] kExpectedConnectionIdFiveHundredOne = [501];
+        private static readonly int[] kExpectedOwnerIdsTenAndTwenty = [10, 20];
+
         private UpdateRuleOwnerMappingCustomField customFieldService = null!;
         private UpdateRuleOwnerMappingIpBased ipBasedService = null!;
         private UpdateRuleOwnerMappingNameField nameFieldService = null!;
@@ -55,7 +104,7 @@ namespace FWO.Test
             var rule = BuildRule();
             var owners = new List<FwoOwner> { BuildOwner() };
 
-            var result = customFieldService.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
+            var result = customFieldService.BuildNewRuleOwnersCustomField([rule], owners);
 
             Assert.Multiple(() =>
             {
@@ -72,9 +121,9 @@ namespace FWO.Test
             var rule = BuildRule();
             var owners = new List<FwoOwner> { BuildOwner(id: expectedOwnerId, extAppId: ownerExtAppId) };
 
-            var result = customFieldService.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
+            var result = customFieldService.BuildNewRuleOwnersCustomField([rule], owners);
 
-            Assert.That(result.Any(), Is.EqualTo(shouldMatch));
+            Assert.That(result.Count != 0, Is.EqualTo(shouldMatch));
             if (shouldMatch)
             {
                 Assert.That(result[0].OwnerId, Is.EqualTo(expectedOwnerId));
@@ -92,7 +141,7 @@ namespace FWO.Test
             };
             var owners = new List<FwoOwner> { new FwoOwner { Id = 10, ExtAppId = "TeamA" } };
 
-            var result = customFieldService.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
+            var result = customFieldService.BuildNewRuleOwnersCustomField([rule], owners);
 
             Assert.That(result, Is.Empty);
         }
@@ -103,7 +152,7 @@ namespace FWO.Test
             var rule = BuildRule(customFields: "{}");
             var owners = new List<FwoOwner> { BuildOwner() };
 
-            var result = customFieldService.BuildNewRuleOwnersCustomField(new List<Rule> { rule }, owners);
+            var result = customFieldService.BuildNewRuleOwnersCustomField([rule], owners);
 
             Assert.That(result, Is.Empty);
         }
@@ -184,9 +233,9 @@ namespace FWO.Test
                 }
             };
 
-            var result = ipBasedService.BuildNewRuleOwnersIpBased(new List<Rule> { rule }, owners);
+            var result = ipBasedService.BuildNewRuleOwnersIpBased([rule], owners);
 
-            Assert.That(result.Select(r => r.OwnerId), Is.EquivalentTo(new[] { 10, 20 }));
+            Assert.That(result.Select(r => r.OwnerId), Is.EquivalentTo(kExpectedOwnerIdsTenAndTwenty));
         }
 
         [Test]
@@ -381,13 +430,13 @@ namespace FWO.Test
             {
                 Assert.That(apiConnection.NameFieldRuleQueryCalls, Is.EqualTo(1));
                 Assert.That(apiConnection.FilteredConnectionQueryCalls, Is.EqualTo(1));
-                Assert.That(apiConnection.FilteredOwnerIds, Is.EquivalentTo(new[] { 20 }));
-                Assert.That(apiConnection.RemovedOwnerIds, Is.EquivalentTo(new[] { 20 }));
-                Assert.That(rules.Select(r => Convert.ToInt32(r.Id)), Is.EquivalentTo(new[] { 101 }));
-                Assert.That(connections.Select(c => Convert.ToInt32(c.Id)), Is.EquivalentTo(new[] { 501 }));
-                Assert.That(result.RuleOwnersToRemove.Select(ruleOwner => Convert.ToInt32(ruleOwner.OwnerId)), Is.EquivalentTo(new[] { 20 }));
-                Assert.That(newRuleOwners.Select(ruleOwner => Convert.ToInt32(ruleOwner.OwnerId)), Is.EquivalentTo(new[] { 20 }));
-                Assert.That(newRuleOwners.Select(ruleOwner => Convert.ToInt32(ruleOwner.RuleId)), Is.EquivalentTo(new[] { 101 }));
+                Assert.That(apiConnection.FilteredOwnerIds, Is.EquivalentTo(kExpectedOwnerIdTwenty));
+                Assert.That(apiConnection.RemovedOwnerIds, Is.EquivalentTo(kExpectedOwnerIdTwenty));
+                Assert.That(rules.Select(r => Convert.ToInt32(r.Id)), Is.EquivalentTo(kExpectedRuleIdOneHundredOne));
+                Assert.That(connections.Select(c => Convert.ToInt32(c.Id)), Is.EquivalentTo(kExpectedConnectionIdFiveHundredOne));
+                Assert.That(result.RuleOwnersToRemove.Select(ruleOwner => Convert.ToInt32(ruleOwner.OwnerId)), Is.EquivalentTo(kExpectedOwnerIdTwenty));
+                Assert.That(newRuleOwners.Select(ruleOwner => Convert.ToInt32(ruleOwner.OwnerId)), Is.EquivalentTo(kExpectedOwnerIdTwenty));
+                Assert.That(newRuleOwners.Select(ruleOwner => Convert.ToInt32(ruleOwner.RuleId)), Is.EquivalentTo(kExpectedRuleIdOneHundredOne));
             });
         }
 
@@ -406,23 +455,11 @@ namespace FWO.Test
                 Assert.That(apiConnection.InsertedPairsByImport[1], Is.Empty, "Initial rule import must not map before owners exist.");
                 Assert.That(apiConnection.ActivePairsAfterImport[1], Is.Empty);
                 Assert.That(apiConnection.ActivePairsAfterImport[2], Has.Count.EqualTo(10));
-                Assert.That(apiConnection.InsertedPairsByImport[3], Is.EquivalentTo(new[] { "1->2", "11->3" }));
+                Assert.That(apiConnection.InsertedPairsByImport[3], Is.EquivalentTo(kExpectedInsertedPairsForThirdImport));
                 Assert.That(apiConnection.ActivePairsAfterImport[3], Does.Contain("1->2"));
                 Assert.That(apiConnection.ActivePairsAfterImport[3], Does.Contain("11->3"));
                 Assert.That(apiConnection.ActivePairsAfterImport.All(snapshot => snapshot.Value.Count == snapshot.Value.Distinct().Count()), Is.True, "Each active rule-owner snapshot should contain unique pairs only.");
-                Assert.That(apiConnection.ActivePairsAfterImport[3], Is.EquivalentTo(new[]
-                {
-                    "1->2",
-                    "3->3",
-                    "4->4",
-                    "5->5",
-                    "6->1",
-                    "7->2",
-                    "8->3",
-                    "9->4",
-                    "10->5",
-                    "11->3"
-                }));
+                Assert.That(apiConnection.ActivePairsAfterImport[3], Is.EquivalentTo(kExpectedActivePairsAfterThirdImport));
             });
         }
 
@@ -440,23 +477,7 @@ namespace FWO.Test
                 Assert.That(apiConnection.FullReinitializeTriggered, Is.True);
                 Assert.That(apiConnection.CompletedImports, Is.EquivalentTo(Enumerable.Range(1, 10).Select(id => (long)id)));
                 Assert.That(apiConnection.FullReinitializeImportControlId, Is.EqualTo(100));
-                Assert.That(apiConnection.ActivePairsAfterFullReinitialize, Is.EquivalentTo(new[]
-                {
-                    "1->2",
-                    "3->1",
-                    "4->5",
-                    "5->3",
-                    "6->6",
-                    "7->4",
-                    "8->5",
-                    "10->2",
-                    "11->3",
-                    "12->1",
-                    "13->2",
-                    "14->1",
-                    "15->3",
-                    "16->6"
-                }));
+                Assert.That(apiConnection.ActivePairsAfterFullReinitialize, Is.EquivalentTo(kExpectedActivePairsAfterFullReinitialize));
             });
         }
 
@@ -473,19 +494,7 @@ namespace FWO.Test
             {
                 Assert.That(result, Is.True);
                 Assert.That(apiConnection.CompletedImports, Is.EquivalentTo(new long[] { 1, 2 }));
-                Assert.That(apiConnection.ActivePairsAfterImport[2], Is.EquivalentTo(new[]
-                {
-                    "1->1",
-                    "2->2",
-                    "3->3",
-                    "4->1",
-                    "5->2",
-                    "6->3",
-                    "7->1",
-                    "8->2",
-                    "9->3",
-                    "10->1"
-                }));
+                Assert.That(apiConnection.ActivePairsAfterImport[2], Is.EquivalentTo(kExpectedActivePairsAfterSecondImport));
             });
         }
 
@@ -821,13 +830,13 @@ namespace FWO.Test
                 if (query == FWO.Api.Client.Queries.RuleQueries.getChangedRulesForRuleOwnerMappingCustomField)
                 {
                     currentImportId = ReadLong(variables, "controlId");
-                    return Task.FromResult((QueryResponseType)(object)(ruleChangesByImport.TryGetValue(currentImportId, out List<RuleChange>? changes) ? changes : new List<RuleChange>()));
+                    return Task.FromResult((QueryResponseType)(object)(ruleChangesByImport.TryGetValue(currentImportId, out List<RuleChange>? changes) ? changes : []));
                 }
 
                 if (query == FWO.Api.Client.Queries.OwnerQueries.getChangedOwnersForRuleOwnerMappingCustomField)
                 {
                     currentImportId = ReadLong(variables, "controlId");
-                    return Task.FromResult((QueryResponseType)(object)(ownerChangesByImport.TryGetValue(currentImportId, out List<OwnerChange>? changes) ? changes : new List<OwnerChange>()));
+                    return Task.FromResult((QueryResponseType)(object)(ownerChangesByImport.TryGetValue(currentImportId, out List<OwnerChange>? changes) ? changes : []));
                 }
 
                 if (query == FWO.Api.Client.Queries.OwnerQueries.getOwnersForRuleOwnerCustomField)

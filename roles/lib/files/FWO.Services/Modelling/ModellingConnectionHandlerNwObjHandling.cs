@@ -74,7 +74,7 @@ namespace FWO.Services.Modelling
                 CommonAreaConfigItems = [];
                 if (userConfig.ModCommonAreas != "")
                 {
-                    CommonAreaConfigItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModCommonAreas) ?? new();
+                    CommonAreaConfigItems = JsonSerializer.Deserialize<List<CommonAreaConfig>>(userConfig.ModCommonAreas) ?? [];
                 }
                 AvailableCommonAreas = [];
                 foreach (var comAreaConfig in CommonAreaConfigItems)

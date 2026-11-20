@@ -30,7 +30,6 @@ namespace FWO.Test
     public class UiMainLayoutTest
     {
         private static readonly IEnumerable<string> AdminRequesterRoles = [Roles.Admin, Roles.Requester];
-        private static readonly List<string> WorkflowRoles = [Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer];
         private static readonly List<string> PersonalSettingsAmbientRoles = [Roles.Modeller, Roles.Recertifier, Roles.ReporterViewAll, Roles.Reporter,
             Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.Auditor];
         private static readonly string[] ReportAmbientRoles = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
@@ -128,7 +127,7 @@ namespace FWO.Test
             await using MainLayoutFixture fixture = new();
             MainLayout layout = fixture.Layout.Instance;
 
-            await InvokeDisplayMessage(layout, new Exception("no such type exists in the schema: 'cidr'"), "", "", false);
+            await InvokeDisplayMessage(layout, new InvalidOperationException("no such type exists in the schema: 'cidr'"), "", "", false);
 
             fixture.Layout.WaitForAssertion(() => Assert.That(fixture.Layout.Markup, Does.Contain("api_access - E0004")));
             fixture.ApiConnection.WaitForLogCount(1);

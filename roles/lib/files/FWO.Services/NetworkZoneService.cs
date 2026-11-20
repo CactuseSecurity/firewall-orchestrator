@@ -190,8 +190,8 @@ namespace FWO.Services
                         id = new { _eq = zone.Id }
                     }
                 ),
-                addZoneCommunication = addZoneCommunication,
-                deleteZoneCommunicationExp = deleteZoneCommunicationExp,
+                addZoneCommunication,
+                deleteZoneCommunicationExp,
                 removed = DateTime.UtcNow,
                 isAutoCalculatedInternetZone = networkZone.IsAutoCalculatedInternetZone
             };
@@ -217,7 +217,7 @@ namespace FWO.Services
             ));
             var variables = new
             {
-                deleteZoneCommunicationExp = deleteZoneCommunicationExp,
+                deleteZoneCommunicationExp,
                 deleteIpRangesExp = networkZone.IPRanges.ToList().ConvertAll(range =>
                     new
                     {
@@ -389,7 +389,7 @@ namespace FWO.Services
                 .Where(zone => zone.IdString != kAutoCalculatedInternetZoneIdString)
                 .ToList();
             List<IPAddressRange> definedZonesRanges = ParseNetworkZoneToListOfRanges(definedNonInternetZones, true);
-            List<IPAddressRange> undefinedInternalZoneRanges = new();
+            List<IPAddressRange> undefinedInternalZoneRanges = [];
 
             foreach (IPAddressRange range in internalZoneRanges)
             {
@@ -416,7 +416,7 @@ namespace FWO.Services
 
         private static List<IPAddressRange> ParseNetworkZoneToListOfRanges(List<NetworkZone> networkZones, bool sort)
         {
-            List<IPAddressRange> listOfRanges = new();
+            List<IPAddressRange> listOfRanges = [];
 
 
             // Gather ip ranges from excluded network zone list
@@ -441,7 +441,7 @@ namespace FWO.Services
 
         private static List<IPAddressRange> GetInternalZoneRanges(GlobalConfig globalConfig)
         {
-            List<IPAddressRange> internalZoneRanges = new();
+            List<IPAddressRange> internalZoneRanges = [];
 
             TryAddToInternalZone(globalConfig.InternalZoneRange_10_0_0_0_8, IpOperations.GetIPAdressRange("10.0.0.0/8"), internalZoneRanges);
             TryAddToInternalZone(globalConfig.InternalZoneRange_172_16_0_0_12, IpOperations.GetIPAdressRange("172.16.0.0/12"), internalZoneRanges);

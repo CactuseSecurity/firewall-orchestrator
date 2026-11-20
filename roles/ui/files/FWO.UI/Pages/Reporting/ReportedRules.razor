@@ -227,10 +227,4 @@
         return Recertification ? OutputLocation.certification : OutputLocation.report;
     }
 
-    private string getHistoryString(Recertification recert)
-    {
-        string username = new DistName(recert.UserDn).UserName;
-        return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
-            $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
-    }
 }

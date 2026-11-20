@@ -18,7 +18,6 @@ namespace FWO.Api.Client.Queries
 
         public static readonly string getRuleOverview;
         public static readonly string getRuleDetails;
-        // public static readonly string getRuleDetailsForReport;
         public static readonly string getRuleByUid;
         public static readonly string getRuleLayers;
         public static readonly string getSectionLinks;
@@ -32,7 +31,6 @@ namespace FWO.Api.Client.Queries
         public static readonly string getModelledRulesByManagementComment;
         public static readonly string getNatRuleOverview;
         public static readonly string getNatRuleDetails;
-        // public static readonly string getNatRuleDetailsForReport;
 
         public static readonly string countRules;
         public static readonly string countActiveRules;

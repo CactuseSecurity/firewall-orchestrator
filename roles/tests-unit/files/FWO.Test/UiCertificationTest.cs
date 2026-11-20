@@ -100,7 +100,7 @@ namespace FWO.Test
         public void CanWriteSelectedOwner_RespectsAdminAndOwnerAssignments()
         {
             SimulatedUserConfig adminUserConfig = new();
-            adminUserConfig.User.Roles = new List<string> { Roles.Admin };
+            adminUserConfig.User.Roles = [Roles.Admin];
             Certification adminComponent = CreateComponent(adminUserConfig);
             SetMember(adminComponent, "selectedOwner", new FwoOwner { Id = 7, Name = "Owner A" });
             SetMember(adminComponent, "recertifiableOwnerIds", new HashSet<int>());
@@ -108,7 +108,7 @@ namespace FWO.Test
             bool adminCanWrite = (bool)InvokePrivate(adminComponent, "CanWriteSelectedOwner")!;
 
             SimulatedUserConfig recertifierUserConfig = new();
-            recertifierUserConfig.User.Roles = new List<string> { Roles.Recertifier };
+            recertifierUserConfig.User.Roles = [Roles.Recertifier];
             Certification recertifierComponent = CreateComponent(recertifierUserConfig);
             SetMember(recertifierComponent, "selectedOwner", new FwoOwner { Id = 7, Name = "Owner A" });
             SetMember(recertifierComponent, "recertifiableOwnerIds", new HashSet<int> { 8 });
@@ -126,7 +126,7 @@ namespace FWO.Test
         public void ShowNoRecertifiableOwnersHint_OnlyShowsForRecertifierWithoutAssignments()
         {
             SimulatedUserConfig userConfig = new();
-            userConfig.User.Roles = new List<string> { Roles.Recertifier };
+            userConfig.User.Roles = [Roles.Recertifier];
             Certification component = CreateComponent(userConfig);
             SetMember(component, "collectedOwnerships", new List<FwoOwner> { new() { Id = 1, Name = "Owner A" } });
             SetMember(component, "recertifiableOwnerIds", new HashSet<int>());
@@ -265,17 +265,17 @@ namespace FWO.Test
         public async Task OnInitializedAsync_LoadsOwnersDevicesAndDisplayPeriod()
         {
             RecordingCertificationApiConnection apiConnection = new();
-            apiConnection.Owners = new List<FwoOwner>
-            {
+            apiConnection.Owners =
+            [
                 new() { Id = 1, Name = "Owner A" }
-            };
-            apiConnection.DeviceManagements = new List<ManagementSelect>
-            {
+            ];
+            apiConnection.DeviceManagements =
+            [
                 new() { Id = 4, Name = "Mgmt A" }
-            };
+            ];
 
             SimulatedUserConfig userConfig = new();
-            userConfig.User.Roles = new List<string> { Roles.Admin };
+            userConfig.User.Roles = [Roles.Admin];
             userConfig.RecertificationDisplayPeriod = 17;
             await using BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -333,14 +333,14 @@ namespace FWO.Test
         public async Task CollectOwnerships_AdminUsesAllOwnersAndSelectsFirst()
         {
             RecordingCertificationApiConnection apiConnection = new();
-            apiConnection.Owners = new List<FwoOwner>
-            {
+            apiConnection.Owners =
+            [
                 new() { Id = 7, Name = "Owner A" },
                 new() { Id = 9, Name = "Owner B" }
-            };
+            ];
 
             SimulatedUserConfig userConfig = new();
-            userConfig.User.Roles = new List<string> { Roles.Admin };
+            userConfig.User.Roles = [Roles.Admin];
             Certification component = CreateComponent(userConfig, apiConnection, CreateAuthenticationTask(Roles.Admin));
 
             await InvokePrivateTask(component, "CollectOwnerships");
@@ -358,16 +358,16 @@ namespace FWO.Test
         public async Task CollectOwnerships_ResolvesClaimBasedOwnersForRecertifier()
         {
             RecordingCertificationApiConnection apiConnection = new();
-            apiConnection.EditableOwners = new List<FwoOwner>
-            {
+            apiConnection.EditableOwners =
+            [
                 new() { Id = 7, Name = "Owner A" },
                 new() { Id = 8, Name = "Owner B" }
-            };
+            ];
 
             SimulatedUserConfig userConfig = new();
-            userConfig.User.Roles = new List<string> { Roles.Recertifier };
-            userConfig.User.Ownerships = new List<int>();
-            userConfig.User.RecertOwnerships = new List<int>();
+            userConfig.User.Roles = [Roles.Recertifier];
+            userConfig.User.Ownerships = [];
+            userConfig.User.RecertOwnerships = [];
             Certification component = CreateComponent(userConfig, apiConnection, CreateAuthenticationTaskWithClaims(
                 new Claim("x-hasura-editable-owners", "{7,8}"),
                 new Claim("x-hasura-recertifiable-owners", "{8}")));
@@ -388,9 +388,9 @@ namespace FWO.Test
         {
             RecordingCertificationApiConnection apiConnection = new();
             SimulatedUserConfig userConfig = new();
-            userConfig.User.Roles = new List<string> { Roles.Recertifier };
-            userConfig.User.Ownerships = new List<int>();
-            userConfig.User.RecertOwnerships = new List<int>();
+            userConfig.User.Roles = [Roles.Recertifier];
+            userConfig.User.Ownerships = [];
+            userConfig.User.RecertOwnerships = [];
             Certification component = CreateComponent(userConfig, apiConnection, CreateAuthenticationTask(Roles.Recertifier));
 
             await InvokePrivateTask(component, "CollectOwnerships");
@@ -530,7 +530,7 @@ namespace FWO.Test
         public async Task RecertifyRuleAndCollectDeletion_LeavesDeleteListEmptyWhenRecertsRemainOpen()
         {
             RecordingCertificationApiConnection apiConnection = new();
-            apiConnection.OpenRecertsByRuleId[2] = new List<Recertification> { new() };
+            apiConnection.OpenRecertsByRuleId[2] = [new()];
             Certification component = CreateExecutableComponent(out _, out _, apiConnection);
             SetMember(component, "actComment", "needs action");
             SetMember(component, "deleteList", new Dictionary<int, List<string>>());
@@ -574,7 +574,7 @@ namespace FWO.Test
         {
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             RecordingCertificationApiConnection apiConnection = new();
-            apiConnection.OpenRecertsByRuleId[2] = new List<Recertification>();
+            apiConnection.OpenRecertsByRuleId[2] = [];
             Certification component = CreateExecutableComponent(out SimulatedUserConfig userConfig, out _, apiConnection, messages);
             userConfig.CommentRequired = false;
             SetMember(component, "actComment", "needs\"sanitizing\"");
@@ -635,7 +635,7 @@ namespace FWO.Test
             {
                 CommentRequired = false
             };
-            userConfig.User.Roles = new List<string> { Roles.Recertifier };
+            userConfig.User.Roles = [Roles.Recertifier];
             selectedOwner = new FwoOwner
             {
                 Id = 7,

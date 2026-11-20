@@ -40,7 +40,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 nameof(WfTaskType.object_create) or nameof(WfTaskType.object_modify) => PlanObjectTask(implTask, profile),
                 nameof(WfTaskType.group_create) => PlanGroupCreate(implTask, profile),
                 nameof(WfTaskType.group_modify) => PlanGroupModify(implTask, profile),
-                nameof(WfTaskType.group_delete) => [GroupStep(FirewallWriteOperation.GroupDelete, implTask, profile, new List<WfImplElement>())],
+                nameof(WfTaskType.group_delete) => [GroupStep(FirewallWriteOperation.GroupDelete, implTask, profile, [])],
                 nameof(WfTaskType.access) => PlanRuleCreate(implTask, profile),
                 nameof(WfTaskType.rule_modify) => PlanRuleModify(implTask, profile, context),
                 nameof(WfTaskType.rule_delete) => PlanRuleDelete(implTask, profile, context),

@@ -291,7 +291,7 @@ namespace FWO.Test
         private static InputFileChangeEventArgs CreateInputFileChangeEventArgs(string fileName, string contentType, ReadOnlyMemory<byte> content, long size)
         {
             TestBrowserFile browserFile = new(fileName, contentType, content, size);
-            return new InputFileChangeEventArgs(new List<IBrowserFile> { browserFile });
+            return new InputFileChangeEventArgs([browserFile]);
         }
 
         private static string? InvokeGetResponseMessage(RestResponse<string> response)

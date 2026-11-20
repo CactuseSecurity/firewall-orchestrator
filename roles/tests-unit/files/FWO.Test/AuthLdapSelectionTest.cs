@@ -119,14 +119,14 @@ namespace FWO.Test
         public async Task RunAsync_RejectsRequestsBeyondGlobalCapacity()
         {
             TaskCompletionSource release = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            List<Func<CancellationToken, Task<int>>> attempts = new()
-            {
+            List<Func<CancellationToken, Task<int>>> attempts =
+            [
                 async token =>
                 {
                     await release.Task.WaitAsync(token);
                     return 1;
                 }
-            };
+            ];
             List<Task<int[]>> running = [];
             for (int index = 0; index < LdapAuthenticationGate.kMaxConcurrentRequests; index++)
             {

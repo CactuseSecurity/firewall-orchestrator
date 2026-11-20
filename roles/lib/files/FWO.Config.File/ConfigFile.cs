@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace FWO.Config.File
 {
-    public class ConfigFile
+    public sealed class ConfigFile
     {
         private const string configPathEnvVar = "FWO_CONFIG_FILE_PATH";
         private const string jwtPublicKeyPathEnvVar = "FWO_JWT_PUBLIC_KEY_PATH";

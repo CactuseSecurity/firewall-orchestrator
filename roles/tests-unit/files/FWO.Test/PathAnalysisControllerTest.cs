@@ -67,15 +67,15 @@ internal class PathAnalysisControllerTest
         MethodInfo endpoint = typeof(PathAnalysisController).GetMethod(nameof(PathAnalysisController.ResolvePathDevices))!;
         List<int> documented = [.. endpoint.GetCustomAttributes<ProducesResponseTypeAttribute>().Select(attribute => attribute.StatusCode)];
 
-        Assert.That(documented, Is.EquivalentTo(new List<int>
-        {
+        Assert.That(documented, Is.EquivalentTo(
+        [
             StatusCodes.Status200OK,
             StatusCodes.Status400BadRequest,
             StatusCodes.Status401Unauthorized,
             StatusCodes.Status403Forbidden,
             StatusCodes.Status404NotFound,
             StatusCodes.Status500InternalServerError
-        }));
+        ]));
     }
 
     /// <summary>Verifies an invalid request is answered with every validation error and never analysed.</summary>
@@ -92,7 +92,7 @@ internal class PathAnalysisControllerTest
         Assert.Multiple(() =>
         {
             Assert.That(errors.Errors.Select(error => error.Path),
-                Is.EquivalentTo(new List<string> { "sources", "destinations", "options.algorithm" }));
+                Is.EquivalentTo(["sources", "destinations", "options.algorithm"]));
             Assert.That(apiConnection.QueriedVariables, Is.Empty);
         });
     }

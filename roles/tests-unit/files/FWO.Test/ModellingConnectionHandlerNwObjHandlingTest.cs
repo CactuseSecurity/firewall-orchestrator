@@ -83,15 +83,15 @@ namespace FWO.Test
         {
             ModellingConnection connection = new() { Id = 101 };
             SimulatedUserConfig auditorConfig = new();
-            auditorConfig.User.Roles = new List<string> { Roles.Auditor };
+            auditorConfig.User.Roles = [Roles.Auditor];
             ModellingConnectionHandler auditorHandler = CreateHandler(connection, auditorConfig);
 
             SimulatedUserConfig adminConfig = new();
-            adminConfig.User.Roles = new List<string> { Roles.Admin };
+            adminConfig.User.Roles = [Roles.Admin];
             ModellingConnectionHandler adminHandler = CreateHandler(connection, adminConfig);
 
             SimulatedUserConfig modellerConfig = new();
-            modellerConfig.User.Roles = new List<string> { Roles.Modeller };
+            modellerConfig.User.Roles = [Roles.Modeller];
             ModellingConnectionHandler modellerHandler = CreateHandler(connection, modellerConfig);
 
             ClassicAssert.IsFalse(auditorHandler.CanModifyAppRoles());
@@ -228,7 +228,7 @@ namespace FWO.Test
         {
             ModellingConnection connection = new() { Id = connectionId };
             SimulatedUserConfig roleConfig = new();
-            roleConfig.User.Roles = new List<string> { role };
+            roleConfig.User.Roles = [role];
             List<ModellingConnection> connections = [connection];
             Action<Exception?, string, string, bool> displayMessage = (_, title, text, _) => messages.Add($"{title}:{text}");
             return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), roleConfig, Application, connections, connection, false, false, displayMessage, DefaultInit.DoNothing, true);
@@ -880,9 +880,9 @@ namespace FWO.Test
             // Saving an application role requires an owning modeller (CanModifyAppRoles).
             // These cases cover whether the area can be converted, not who may convert it, so
             // the user is given that role to exercise the regular editing path.
-            config.User.Roles = new List<string> { Roles.Modeller };
+            config.User.Roles = [Roles.Modeller];
             ModellingConnection connection = new() { Id = 21 };
-            List<ModellingConnection> connections = new() { connection };
+            List<ModellingConnection> connections = [connection];
             return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), config, Application, connections, connection, false,
                 false, (_, _, _, _) => countMessage(), DefaultInit.DoNothing, true);
         }

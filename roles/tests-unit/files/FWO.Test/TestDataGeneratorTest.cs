@@ -132,9 +132,9 @@ namespace FWO.Test
                 ]
             }";
             ModellingConnection? generatedInstance;
-            List<ModellingConnection> generatedInstances = new();
+            List<ModellingConnection> generatedInstances = [];
             int iterations = 100;
-            List<string> validNames = new() { "testinstance1", "testinstance2", "testinstance3", "testinstance4" };
+            List<string> validNames = ["testinstance1", "testinstance2", "testinstance3", "testinstance4"];
 
 
             // ACT
@@ -155,6 +155,31 @@ namespace FWO.Test
             Assert.That(generatedInstances.All(instance => validNames.Contains(instance?.Name ?? "notinlist")), Is.True, "Mindestens eine generierte Instanz hat einen ungültigen Namen.");
         }
 
+        [TestCase("not json")]
+        [TestCase("{}")]
+        [TestCase("{ \"config\": [] }")]
+        [TestCase("{ \"config\": [ { \"set\": { \"NoSuchProperty\": { \"x\": 1.0 } } } ] }")]
+        public void GenerateInstance_FailsForInvalidConfig(string json)
+        {
+            TestDataGenerator<ModellingConnection> testDataGenerator = new();
+
+            TestDataGenerationResult<ModellingConnection> result = testDataGenerator.GenerateInstance(json);
+
+            Assert.That(result.ProcessSuccessful, Is.False);
+        }
+
+        [Test]
+        public void GenerateInstance_SkipsEntriesWithoutValueSettings()
+        {
+            TestDataGenerator<ModellingConnection> testDataGenerator = new();
+            string json = "{ \"config\": [ { \"other\": 1 }, { \"set\": { \"Name\": 5 } }, { \"set\": { \"Name\": { \"kept\": 1.0 } } } ] }";
+
+            TestDataGenerationResult<ModellingConnection> result = testDataGenerator.GenerateInstance(json);
+
+            Assert.That(result.ProcessSuccessful, Is.True);
+            Assert.That(result.SingleInstance?.Name, Is.EqualTo("kept"));
+        }
+
         [Test]
         public void GenerateInstance_UsesProbabilitySelection()
         {
@@ -173,7 +198,7 @@ namespace FWO.Test
                     }
                 ]
             }";
-            List<ModellingConnection> generatedInstances = new();
+            List<ModellingConnection> generatedInstances = [];
             int iterations = 25;
 
             // ACT

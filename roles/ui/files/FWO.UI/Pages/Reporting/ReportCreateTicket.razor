@@ -61,7 +61,7 @@
     public string Message { get; set; } = "";
 
     private string commentText = "";
-    private Dictionary<int, List<string>> ruleUidsPerRulebase = new Dictionary<int, List<string>>();
+    private readonly Dictionary<int, List<string>> ruleUidsPerRulebase = new Dictionary<int, List<string>>();
 
 
     protected override void OnParametersSet()

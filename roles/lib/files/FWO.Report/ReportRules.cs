@@ -261,7 +261,7 @@ namespace FWO.Report
             return new RuleAttachCounts(attachedRules, rules.Count - attachedRules);
         }
 
-        private Task LogExecutionTime(Stopwatch stopwatch, string phaseName, bool reset)
+        private static Task LogExecutionTime(Stopwatch stopwatch, string phaseName, bool reset)
         {
             stopwatch.Stop();
             TimeSpan elapsed = stopwatch.Elapsed;

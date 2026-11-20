@@ -310,7 +310,7 @@ namespace FWO.Services
         {
             var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports);
 
-            if (pendingImports == null || !pendingImports.Any())
+            if (pendingImports == null || pendingImports.Count == 0)
             {
                 return false;
             }
@@ -457,12 +457,12 @@ namespace FWO.Services
                 return (new List<Rule>(), new List<TMappingOwner>(), new List<RuleOwner>());
             }
 
-            if (rulesToMap.Any())
+            if (rulesToMap.Count != 0)
             {
                 owners = await loadOwnersFunc();
             }
 
-            if (rulesToRemove.Any())
+            if (rulesToRemove.Count != 0)
             {
                 ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByRule, new { ruleIds = rulesToRemove.Select(r => r.Id).ToList() });
             }
@@ -553,7 +553,7 @@ namespace FWO.Services
         {
             try
             {
-                if (!ruleOwnersToSetRemoved.Any()) return;
+                if (ruleOwnersToSetRemoved.Count == 0) return;
 
                 var listRuleOwnersToRemove = ruleOwnersToSetRemoved
                 .Select(r => new
@@ -589,7 +589,7 @@ namespace FWO.Services
 
         protected async Task InsertNewRuleOwners(List<RuleOwner> ruleOwners)
         {
-            if (!ruleOwners.Any())
+            if (ruleOwners.Count == 0)
             {
                 Log.WriteInfo(LogMessageTitle, "No new rule owners to insert.");
                 return;
@@ -689,7 +689,7 @@ namespace FWO.Services
         {
             var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports);
 
-            if (pendingImports == null || !pendingImports.Any())
+            if (pendingImports == null || pendingImports.Count == 0)
             {
                 return;
             }
@@ -919,7 +919,7 @@ namespace FWO.Services
 
         protected static bool ProcessOwnerChanges(List<OwnerChange> changelogOwners, List<FwoOwner> ownersToAdd, List<FwoOwner> ownersToRemove)
         {
-            if (changelogOwners == null || !changelogOwners.Any())
+            if (changelogOwners == null || changelogOwners.Count == 0)
             {
                 Log.WriteInfo(LogMessageTitle, "No changed owners found for rule-owner mapping. Nothing to map for this import.");
                 return false;
@@ -950,7 +950,7 @@ namespace FWO.Services
 
         protected static bool ProcessRuleChanges(List<RuleChange> changelogRules, List<Rule> rulesToMap, List<Rule> rulesToRemove)
         {
-            if (changelogRules == null || !changelogRules.Any())
+            if (changelogRules == null || changelogRules.Count == 0)
             {
                 Log.WriteInfo(LogMessageTitle, "No changed rules found. Nothing to map for this import.");
                 return false;

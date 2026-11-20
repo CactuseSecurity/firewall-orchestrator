@@ -493,16 +493,15 @@ namespace FWO.Data.Modelling
             => ServiceGroups.Any(_ => _.Content.Services.Count == 0);
 
         public bool IsDocumentationOnly()
-            => ExtraConfigs.Any(_ => _.ExtraConfigType.StartsWith(GlobalConst.kDoku_));
+            => ExtraConfigs.Any(_ => _.IsDocumentationOnly());
 
         public bool IsNat()
-            => ExtraConfigs.Any(_ => _.ExtraConfigType.ToUpper() == GlobalConst.kNAT);
+            => ExtraConfigs.Any(_ => _.IsNat());
 
         public Dictionary<string, bool> GetSpecialUserObjectNames()
         {
             Dictionary<string, bool> userObjectNames = [];
-            foreach (var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user)
-                                                            || e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user2)))
+            foreach (var extraConfig in ExtraConfigs.Where(e => e.IsSpecialUser()))
             {
                 userObjectNames.Add(extraConfig.ExtraConfigText.ToLower(), false);
             }
@@ -512,7 +511,7 @@ namespace FWO.Data.Modelling
         public Dictionary<string, bool> GetUpdatableObjectNames()
         {
             Dictionary<string, bool> updatableObjectNames = [];
-            foreach (var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().StartsWith(GlobalConst.kUpdatable)))
+            foreach (var extraConfig in ExtraConfigs.Where(e => e.IsUpdatableObject()))
             {
                 updatableObjectNames.Add(extraConfig.ExtraConfigText.ToLower(), false);
             }

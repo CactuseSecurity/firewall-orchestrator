@@ -17,7 +17,7 @@ namespace FWO.Ui.Services
         private readonly Func<Task> callback;
         private readonly TimeSpan interval;
         private readonly CancellationTokenSource cancellationTokenSource = new();
-        private readonly object lifecycleLock = new();
+        private readonly Lock lifecycleLock = new();
         private Task executionTask = Task.CompletedTask;
         private int started;
         private bool disposed;

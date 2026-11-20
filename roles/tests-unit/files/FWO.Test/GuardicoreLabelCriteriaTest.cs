@@ -55,7 +55,86 @@ namespace FWO.Test
             """{"field":"numeric_ip_addresses","op":"SUBNET","argument":"172.16.0.0/16"},""" +
             """{"field":"numeric_ip_addresses","op":"SUBNET","argument":"10.9.9.9/32"}]}]""";
 
+        private const string kLabelWithAssetJson = """
+            {"id":"lab-2","dynamic_criteria":[{"id":"c1","field":"numeric_ip_addresses","op":"SUBNET","argument":"10.0.0.0/31","source":"User"}],
+             "static_criteria":[{"field":"id","op":"EQUALS","argument":"asset-1","source":"User"}]}
+            """;
+        private const string kLabelWithoutAssetJson = """
+            {"id":"lab-3","dynamic_criteria":[{"id":"c1","field":"numeric_ip_addresses","op":"SUBNET","argument":"10.0.0.0/31","source":"User"}],
+             "static_criteria":[]}
+            """;
+        private const string kUpdateWithAssetJson =
+            """[{"key":"Stage","value":"Prod","criteria":[{"field":"id","op":"EQUALS","argument":"asset-1"},""" +
+            """{"field":"numeric_ip_addresses","op":"SUBNET","argument":"10.0.0.0/31"}]}]""";
+        private const string kUpdateWithoutAssetJson =
+            """[{"key":"AppRole","value":"AR1","criteria":[{"field":"numeric_ip_addresses","op":"SUBNET","argument":"10.0.0.0/31"}]}]""";
+        private static readonly List<string> kRemovedBlock = ["10.0.0.0/30"];
+        private static readonly List<string> kCriterionBlock = ["10.0.0.0/31"];
+        private static readonly List<string> kNotRemovableRest = ["10.0.0.2/31"];
+
         private static List<IpInterval> Entries(params string[] entries) => GuardicoreLabelCriteria.ParseEntries(entries);
+
+        [Test]
+        public void PlanUpdate_NamesAddressesToRemoveThatNoIpCriterionHolds()
+        {
+            GuardicoreLabelUpdate update = GuardicoreLabelCriteria.PlanUpdate(JsonNode.Parse(kLabelWithoutAssetJson)!,
+                GuardicoreLabelCriteria.ParseEntries(kCriterionBlock), GuardicoreLabelCriteria.ParseEntries(kRemovedBlock), false, true);
+            Assert.Multiple(() =>
+            {
+                Assert.That(update.IpCriteriaChange, Is.False);
+                Assert.That(update.RemovesStaticAssignments, Is.False);
+                Assert.That(update.WritesNothing, Is.True);
+                Assert.That(update.NotRemovable.Select(IpAddressSet.Format), Is.EqualTo(kNotRemovableRest));
+            });
+        }
+
+        [Test]
+        public void PlanUpdate_RemovesStaticAssignmentsOfOwnedLabels()
+        {
+            GuardicoreLabelUpdate update = GuardicoreLabelCriteria.PlanUpdate(JsonNode.Parse(kLabelWithAssetJson)!,
+                GuardicoreLabelCriteria.ParseEntries(kCriterionBlock), GuardicoreLabelCriteria.ParseEntries(kRemovedBlock), false, true);
+            Assert.Multiple(() =>
+            {
+                Assert.That(update.RemovesStaticAssignments, Is.True);
+                Assert.That(update.WritesNothing, Is.False);
+                Assert.That(update.NotRemovable, Is.Empty);
+                Assert.That(update.IpCriteria.Select(criterion => criterion.Argument), Is.EqualTo(kCriterionBlock));
+            });
+        }
+
+        [Test]
+        public void PlanUpdate_KeepsStaticAssignmentsOfOtherLabels()
+        {
+            GuardicoreLabelUpdate update = GuardicoreLabelCriteria.PlanUpdate(JsonNode.Parse(kLabelWithAssetJson)!,
+                GuardicoreLabelCriteria.ParseEntries(kCriterionBlock), GuardicoreLabelCriteria.ParseEntries(kRemovedBlock), false, false);
+            Assert.Multiple(() =>
+            {
+                Assert.That(update.RemovesStaticAssignments, Is.False);
+                Assert.That(update.NotRemovable.Select(IpAddressSet.Format), Is.EqualTo(kNotRemovableRest));
+            });
+        }
+
+        [Test]
+        public void PlanUpdate_OfAReplacedLabelRemovesNothingItDoesNotHold()
+        {
+            GuardicoreLabelUpdate update = GuardicoreLabelCriteria.PlanUpdate(JsonNode.Parse(kLabelWithoutAssetJson)!,
+                GuardicoreLabelCriteria.ParseEntries(kCriterionBlock), kNone, true, true);
+            Assert.That(update.WritesNothing && update.NotRemovable.Count == 0, Is.True);
+        }
+
+        [Test]
+        public void UpdateJson_WritesBackStaticAssignmentsUnlessTheyAreRemoved()
+        {
+            JsonNode label = JsonNode.Parse(kLabelWithAssetJson)!;
+            List<GuardicoreCriterion> ipCriteria = GuardicoreLabelCriteria.ReadCriteria(label);
+            string kept = GuardicoreLabelCriteria.UpdateJson("Stage", "Prod", label, ipCriteria);
+            string removed = GuardicoreLabelCriteria.UpdateJson("AppRole", "AR1", label, ipCriteria, keepStaticAssignments: false);
+            Assert.Multiple(() =>
+            {
+                Assert.That(JsonNode.DeepEquals(JsonNode.Parse(kept), JsonNode.Parse(kUpdateWithAssetJson)), Is.True, kept);
+                Assert.That(JsonNode.DeepEquals(JsonNode.Parse(removed), JsonNode.Parse(kUpdateWithoutAssetJson)), Is.True, removed);
+            });
+        }
 
         [Test]
         public void CreationJson_WritesOneCriterionPerMemberAsInTheIssue()

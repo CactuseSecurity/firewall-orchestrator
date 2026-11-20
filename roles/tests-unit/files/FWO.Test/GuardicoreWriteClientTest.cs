@@ -30,6 +30,10 @@ namespace FWO.Test
         private static readonly List<string> kExcludedAppRoles = [nameof(ModellingTypes.ModObjectType.AppRole)];
         private static readonly List<string> kExcludedAppServers = [nameof(ModellingTypes.ModObjectType.AppServer)];
         private static readonly List<string> kUpdatedCriteria = ["10.0.0.1/32", "10.0.0.3/32"];
+        private static readonly List<string> kOneHost = ["10.0.0.1/32"];
+        private static readonly List<string> kTwoHosts = ["10.0.0.1/32", "10.0.0.2/32"];
+        private static readonly List<string> kIpFieldOnly = ["numeric_ip_addresses"];
+        private static readonly List<string> kAssetAndIpFields = ["id", "numeric_ip_addresses"];
 
         private static string ExistingLabel(params string[] subnets)
         {
@@ -43,6 +47,18 @@ namespace FWO.Test
             JsonArray objects = [label];
             return new JsonObject { ["objects"] = objects }.ToJsonString();
         }
+
+        private static string LabelWithAsset(string key, string value, List<string> subnets, string assetId)
+        {
+            JsonArray criteria = [.. subnets.Select(subnet => (JsonNode?)new JsonObject { ["field"] = "numeric_ip_addresses", ["op"] = "SUBNET", ["argument"] = subnet })];
+            JsonArray assignments = [new JsonObject { ["field"] = "id", ["op"] = "EQUALS", ["argument"] = assetId, ["source"] = "User" }];
+            JsonObject label = new() { ["id"] = "lab-1", ["key"] = key, ["value"] = value, ["dynamic_criteria"] = criteria, ["static_criteria"] = assignments };
+            JsonArray objects = [label];
+            return new JsonObject { ["objects"] = objects }.ToJsonString();
+        }
+
+        private static List<string> CriteriaFields(RecordedFirewallRequest update) =>
+            [.. JsonNode.Parse(update.Body!)![0]!["criteria"]!.AsArray().Select(criterion => criterion!["field"]!.GetValue<string>())];
 
         private static FirewallSimulation Simulation(string labels, string bulkAnswer = """{"succeeded":["lab-1"],"failed":[]}""")
         {
@@ -125,6 +141,71 @@ namespace FWO.Test
                 Assert.That(result.Success, Is.True);
                 Assert.That(result.Steps[0].Message, Does.StartWith(FirewallWriteClient.kAlreadyPresentNote));
                 Assert.That(simulation.Requests.Exists(request => request.Method != Method.Get && request.Resource != kAuthenticatePath), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task GroupModify_OfAnAppRoleRemovesItsStaticAssetAssignments()
+        {
+            FirewallSimulation simulation = Simulation(LabelWithAsset("AppRole", kAppRoleName, kOneHost, "asset-1"));
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged), Member("10.0.1.5", action: RequestAction.delete)));
+
+            RecordedFirewallRequest update = simulation.Requests.Single(request => request.Resource == kBulkPath);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(CriteriaFields(update), Is.EqualTo(kIpFieldOnly), update.Body);
+            });
+        }
+
+        [Test]
+        public async Task GroupModify_OfOtherLabelsKeepsTheirStaticAssetAssignments()
+        {
+            FirewallSimulation simulation = Simulation(LabelWithAsset("Stage", "Prod", kTwoHosts, "asset-1"));
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged, groupName: "Stage: Prod"), Member("10.0.0.2", action: RequestAction.delete, groupName: "Stage: Prod")));
+
+            RecordedFirewallRequest update = simulation.Requests.Single(request => request.Resource == kBulkPath);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(CriteriaFields(update), Is.EqualTo(kAssetAndIpFields), update.Body);
+            });
+        }
+
+        [Test]
+        public async Task AddressesNoIpCriterionHolds_FailTheTaskWithoutWriting()
+        {
+            FirewallSimulation simulation = Simulation(ExistingLabel("10.0.0.1/32"));
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged), Member("10.0.1.5", action: RequestAction.delete)));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Unsupported));
+                Assert.That(result.IsRetryable, Is.False);
+                Assert.That(result.Steps.Single().Message, Does.Contain("10.0.1.5/32"));
+                Assert.That(simulation.Requests.Exists(request => request.Resource == kBulkPath), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task AddressesNoIpCriterionHolds_FailTheTaskAfterTheOtherChangesAreWritten()
+        {
+            FirewallSimulation simulation = Simulation(ExistingLabel("10.0.0.1/32", "10.0.0.2/32"));
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged), Member("10.0.0.2", action: RequestAction.delete),
+                Member("10.0.1.5", action: RequestAction.delete)));
+
+            RecordedFirewallRequest update = simulation.Requests.Single(request => request.Resource == kBulkPath);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(result.Steps.Single().Message, Does.Contain("10.0.1.5/32").And.Not.Contain("10.0.0.2"));
+                Assert.That(JsonNode.Parse(update.Body!)![0]!["criteria"]!.AsArray().Select(criterion => criterion!["argument"]!.GetValue<string>()),
+                    Is.EqualTo(kOneHost));
             });
         }
 

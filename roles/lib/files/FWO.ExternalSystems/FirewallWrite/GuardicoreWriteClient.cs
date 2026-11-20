@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Labelling;
 using FWO.Data.DeviceSpecificSettings;
@@ -16,6 +17,9 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// <item>the IP criteria of an existing label are set to the target addresses (see <see cref="GuardicoreLabelCriteria.TargetIpCriteria"/>)
     /// by the bulk update, which replaces all criteria of the label, so the criteria FWO does not manage are written back
     /// unchanged; a label that already has the target addresses is left alone,</item>
+    /// <item>the static asset assignments of the labels FWO owns (app roles, app zones, network areas) are removed when the
+    /// label is written, those of other labels are kept; addresses to remove that no IP criterion holds fail the task
+    /// (see <see cref="GuardicoreLabelCriteria.PlanUpdate"/>),</item>
     /// <item>a label value is deleted by the rendered <see cref="FirewallWriteOperation.LabelDelete"/> call with its looked up id;
     /// a label that does not exist any more counts as deleted. Label keys are never deleted.</item>
     /// </list>
@@ -92,20 +96,45 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 return await base.Execute(request);
             }
-            List<GuardicoreCriterion>? ipCriteria = GuardicoreLabelCriteria.TargetIpCriteria(GuardicoreLabelCriteria.ReadCriteria(label),
-                GuardicoreLabelCriteria.ParseEntries(request.Step.MembersToAdd), GuardicoreLabelCriteria.ParseEntries(request.Step.MembersToRemove),
-                request.Step.ReplacesMembers);
-            if (ipCriteria == null)
+            bool ownsAssignments = new DynamicIpLabel(key, value).ObjectType != null;
+            GuardicoreLabelUpdate update = GuardicoreLabelCriteria.PlanUpdate(label, GuardicoreLabelCriteria.ParseEntries(request.Step.MembersToAdd),
+                GuardicoreLabelCriteria.ParseEntries(request.Step.MembersToRemove), request.Step.ReplacesMembers, ownsAssignments);
+            if (update.WritesNothing && update.NotRemovable.Count == 0)
             {
                 return Succeeded(request, $"{kAlreadyPresentNote} The label already has the requested IP criteria.");
             }
+            FirewallStepResult result = update.WritesNothing
+                ? new FirewallStepResult(request.Operation, request.Step.TargetName, true, kStatusOk, "")
+                : await UpdateLabel(request, key, value, label, update);
+            return result.Success && update.NotRemovable.Count > 0 ? NotRemovableFailure(request, result, update.NotRemovable) : result;
+        }
+
+        /// <summary>Replaces the criteria of a label by the bulk update (override, not append).</summary>
+        private async Task<FirewallStepResult> UpdateLabel(RenderedFirewallRequest request, string key, string value, JsonObject label, GuardicoreLabelUpdate update)
+        {
             RestRequest updateRequest = new(GuardicoreWriteDefaults.kLabelsBulkPath, Method.Post);
             updateRequest.AddQueryParameter(kOverrideParameter, "true");
             updateRequest.AddQueryParameter(kAppendParameter, "false");
-            updateRequest.AddStringBody(GuardicoreLabelCriteria.UpdateJson(key, value, label, ipCriteria), ContentType.Json);
-            Log.WriteDebug(kLogCategory, $"{request.Operation}: replacing the criteria of label '{request.Step.TargetName}'");
+            updateRequest.AddStringBody(GuardicoreLabelCriteria.UpdateJson(key, value, label, update.IpCriteria, !update.RemovesStaticAssignments), ContentType.Json);
+            string staticNote = update.RemovesStaticAssignments ? " and removing its static asset assignments" : "";
+            Log.WriteDebug(kLogCategory, $"{request.Operation}: replacing the criteria of label '{request.Step.TargetName}'{staticNote}");
             RestResponse response = await SendAuthenticated(updateRequest);
             return ToResult(request, response, IsSuccess(response));
+        }
+
+        /// <summary>
+        /// The result of a label write that could not remove all requested addresses: they would be requested again
+        /// after every import, so the task fails and names them instead of reporting success.
+        /// </summary>
+        private static FirewallStepResult NotRemovableFailure(RenderedFirewallRequest request, FirewallStepResult written, List<IpInterval> notRemovable)
+        {
+            string addresses = string.Join(", ", notRemovable.Select(IpAddressSet.Format));
+            string message = $"The label '{request.Step.TargetName}' keeps the addresses {addresses}: no IP criterion of the label holds them, so they belong " +
+                "to assets that carry the label through another of their addresses, an implicit criterion or a static assignment FWO does not remove. " +
+                "Add them to the modelled object or change these assets in Guardicore.";
+            Log.WriteWarning(kLogCategory, $"{request.Operation} on '{request.Step.TargetName}' failed: {message}");
+            FirewallWriteError error = new(FirewallWriteErrorKind.Unsupported, message, written.StatusCode, null, request.Operation);
+            return written with { Success = false, Message = message, Error = error };
         }
 
         private async Task<FirewallStepResult> DeleteLabel(RenderedFirewallRequest request)

@@ -90,7 +90,11 @@
   other operations), all through REST API v4.0 except the login (v3.0 only). Every label is looked up by key and
   value first: a missing label is created; an existing one that differs from the target gets its criteria replaced by
   the bulk update (override=true, append=false), keeping its IP criteria inside the target and all criteria FWO does
-  not manage, so repeated tasks write nothing twice;
+  not manage, so repeated tasks write nothing twice. Static asset assignments of AppRole, AppZone and NetworkArea
+  labels are removed when FWO writes the label (the assets inside the target keep it through the IP criteria), those
+  of other labels are kept. Addresses to remove that no IP criterion holds (e.g. a further address of an asset that
+  matches the label through another one) fail the task and are named, instead of being requested again after every
+  import;
   label values are only deleted while fwWriteDeleteObjects is on, label keys never. Network objects exist only as
   criteria of the labels (object tasks write nothing), rules are not written yet (#4947). The device specific
   setting labelCreation now decides where network objects and groups of Guardicore managements are implemented

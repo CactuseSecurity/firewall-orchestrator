@@ -10,10 +10,24 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// <param name="ReadOnly">Whether Guardicore manages the criterion itself.</param>
     public sealed record GuardicoreCriterion(string Field, string Op, string Argument, bool ReadOnly = false);
 
+    /// <summary>The change of an existing label, see <see cref="GuardicoreLabelCriteria.PlanUpdate"/>.</summary>
+    /// <param name="IpCriteria">The IP criteria the label is to have.</param>
+    /// <param name="IpCriteriaChange">Whether these differ from the current IP criteria of the label.</param>
+    /// <param name="RemovesStaticAssignments">Whether the static asset assignments of the label are removed.</param>
+    /// <param name="NotRemovable">Addresses to remove that neither an IP criterion nor a removed static assignment holds.</param>
+    public sealed record GuardicoreLabelUpdate(List<GuardicoreCriterion> IpCriteria, bool IpCriteriaChange, bool RemovesStaticAssignments,
+        List<IpInterval> NotRemovable)
+    {
+        /// <summary>Whether the label already is as requested, so nothing is sent.</summary>
+        public bool WritesNothing => !IpCriteriaChange && !RemovesStaticAssignments;
+    }
+
     /// <summary>
     /// IP criteria of Guardicore labels: one criterion per address entry, "SUBNET" with a CIDR block ("1.2.3.4/32",
     /// "2.3.4.0/24") or "RANGE" with "start-end" for other ranges. FWO manages the IP criteria that are not read-only;
-    /// when it replaces the criteria of a label, all other criteria are written back unchanged.
+    /// when it replaces the criteria of a label, all other criteria are written back unchanged, and so are the static
+    /// asset assignments ("static_criteria": field id EQUALS asset id) unless the label is one FWO owns (app role, app
+    /// zone, network area), which hold IP criteria only.
     /// </summary>
     public static class GuardicoreLabelCriteria
     {
@@ -119,19 +133,49 @@ namespace FWO.ExternalSystems.FirewallWrite
         }
 
         /// <summary>
+        /// Plans the change of an existing label. The imported members of a label are the addresses of its IP criteria
+        /// plus all addresses of the assets carrying it, so the variance analysis may ask to remove addresses that no IP
+        /// criterion holds. A label FWO owns loses its static asset assignments, which may hold them; any other address
+        /// to remove that no IP criterion holds and that is not kept stems from an asset carrying the label through
+        /// another of its addresses, an implicit criterion or a static assignment that is kept, and cannot be removed.
+        /// </summary>
+        /// <param name="label">The label as read from Guardicore.</param>
+        /// <param name="keep">Members the label is to hold.</param>
+        /// <param name="remove">Members the label is no longer to hold.</param>
+        /// <param name="replace">True to give the label exactly the members to keep.</param>
+        /// <param name="ownsAssignments">True for labels FWO owns (app roles, app zones, network areas): their static asset assignments are removed.</param>
+        public static GuardicoreLabelUpdate PlanUpdate(JsonNode label, List<IpInterval> keep, List<IpInterval> remove, bool replace, bool ownsAssignments)
+        {
+            List<GuardicoreCriterion> current = ReadCriteria(label);
+            List<GuardicoreCriterion>? target = TargetIpCriteria(current, keep, remove, replace);
+            bool removesStaticAssignments = ownsAssignments && StaticAssignmentsOf(label).Any();
+            List<IpInterval> notRemovable = removesStaticAssignments ? [] : NotHeldByIpCriteria(current, keep, remove);
+            List<GuardicoreCriterion> ipCriteria = target ?? [.. ManagedCriteria(current).Select(entry => entry.Criterion)];
+            return new GuardicoreLabelUpdate(ipCriteria, target != null, removesStaticAssignments, notRemovable);
+        }
+
+        /// <summary>
         /// Returns the body of the bulk update that replaces the criteria of a label: its criteria that FWO does not
-        /// manage, written back unchanged, followed by the given IP criteria.
+        /// manage and its static asset assignments, written back unchanged, followed by the given IP criteria.
         /// </summary>
         /// <param name="key">Label key.</param>
         /// <param name="value">Label value.</param>
         /// <param name="label">The label as read from Guardicore.</param>
         /// <param name="ipCriteria">The IP criteria the label is to have.</param>
-        public static string UpdateJson(string key, string value, JsonNode label, IEnumerable<GuardicoreCriterion> ipCriteria)
+        /// <param name="keepStaticAssignments">False to leave out the static asset assignments, which removes them.</param>
+        public static string UpdateJson(string key, string value, JsonNode label, IEnumerable<GuardicoreCriterion> ipCriteria, bool keepStaticAssignments = true)
         {
             JsonArray criteria = [];
             foreach (JsonObject criterion in CriteriaOf(label).Where(criterion => !IsManaged(ToCriterion(criterion), out _)))
             {
                 criteria.Add(Writable(criterion));
+            }
+            if (keepStaticAssignments)
+            {
+                foreach (JsonObject assignment in StaticAssignmentsOf(label))
+                {
+                    criteria.Add(Writable(assignment));
+                }
             }
             foreach (GuardicoreCriterion criterion in ipCriteria)
             {
@@ -159,6 +203,19 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         private static IEnumerable<JsonObject> CriteriaOf(JsonNode? label) =>
             label?["dynamic_criteria"] is JsonArray criteria ? criteria.OfType<JsonObject>() : [];
+
+        /// <summary>The static asset assignments of a label ("static_criteria": field id EQUALS asset id).</summary>
+        private static IEnumerable<JsonObject> StaticAssignmentsOf(JsonNode? label) =>
+            label?["static_criteria"] is JsonArray assignments ? assignments.OfType<JsonObject>() : [];
+
+        /// <summary>The addresses to remove that are not kept and that no IP criterion FWO manages holds.</summary>
+        private static List<IpInterval> NotHeldByIpCriteria(IReadOnlyList<GuardicoreCriterion> current, List<IpInterval> keep, List<IpInterval> remove)
+        {
+            IpAddressSet notHeld = IpAddressSet.Of(remove);
+            notHeld.Remove(IpAddressSet.Of(keep));
+            notHeld.Remove(IpAddressSet.Of(ManagedCriteria(current).Select(entry => entry.Interval)));
+            return [.. notHeld.Intervals];
+        }
 
         private static GuardicoreCriterion ToCriterion(JsonObject criterion) => new(Text(criterion["field"]), Text(criterion["op"]),
             Text(criterion["argument"]), criterion["read_only"] is JsonValue readOnly && readOnly.TryGetValue(out bool isReadOnly) && isReadOnly);

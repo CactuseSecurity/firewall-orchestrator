@@ -8,8 +8,14 @@
 @inject UserConfig userConfig
 
 <div class="form-group row">
-    @ReadOnlyValue(userConfig.GetText("handler"), Handler)
-    @ReadOnlyValue(userConfig.GetText("assigned"), Assigned)
+    @if (Visibility.ShowHandler)
+    {
+        @ReadOnlyValue(userConfig.GetText("handler"), Handler)
+    }
+    @if (Visibility.ShowAssigned)
+    {
+        @ReadOnlyValue(userConfig.GetText("assigned"), Assigned)
+    }
     @if (ShowOwner)
     {
         @EditableValue(userConfig.GetText("owner"), Owner, CanEditOwner, EditOwner, OwnerColumnClass)
@@ -164,7 +170,7 @@
         builder.AddAttribute(14, "class", "border bg-secondary d-block text-break");
         builder.OpenElement(15, "table");
         string tableClass = "table table-sm table-borderless mb-0 approval-task-network-table"
-            + (DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Technical ? " approval-task-network-table-technical" : "");
+            + (DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Resolved ? "" : " approval-task-network-table-two-columns");
         builder.AddAttribute(16, "class", tableClass);
         RenderNetworkTableHeader(builder);
         RenderNetworkTableBody(builder, rows);
@@ -184,8 +190,8 @@
         if (DisplayLogic.DisplayMode != ApprovalTaskElementDisplayMode.UnresolvedGroups)
         {
             AddTableHeader(builder, 21, "ip_address");
-            AddTableHeader(builder, 23, "zone", "approval-task-zone-column");
         }
+        AddTableHeader(builder, 23, "zone", "approval-task-zone-column");
         builder.CloseElement();
         builder.CloseElement();
     }
@@ -197,7 +203,7 @@
         {
             builder.OpenElement(26, "tr");
             builder.OpenElement(27, "td");
-            builder.AddAttribute(28, "colspan", DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Technical ? 2 : 3);
+            builder.AddAttribute(28, "colspan", DisplayLogic.DisplayMode == ApprovalTaskElementDisplayMode.Resolved ? 3 : 2);
             builder.AddContent(29, "-");
             builder.CloseElement();
             builder.CloseElement();
@@ -217,9 +223,9 @@
                 {
                     AddTableCell(builder, sequence, row.Ip);
                     sequence += 2;
-                    AddTableCell(builder, sequence, row.Zone, "approval-task-zone-column");
-                    sequence += 2;
                 }
+                AddTableCell(builder, sequence, row.Zone, "approval-task-zone-column");
+                sequence += 2;
                 builder.CloseElement();
             }
         }

@@ -32,6 +32,8 @@ namespace FWO.Data.Workflow
         public const string AppRoleId = "AppRoleId";
         public const string SvcGrpId = "SvcGrpId";
         public const string FlowBundleId = "FlowBundleId";
+        /// <summary>Stored result ("true" or "false") of the compliance check of an access task.</summary>
+        public const string ComplianceOk = "compliance_ok";
         /// <summary>Extra configurations of the modelled connection as requested, see ModellingRequestExtraConfigs.</summary>
         public const string ExtraConfigs = "ExtraConfigs";
         /// <summary>Extra configurations of the interface the modelled connection uses, as requested.</summary>
@@ -140,6 +142,17 @@ namespace FWO.Data.Workflow
         public long? GetAddInfoLongValue(string key)
         {
             if (long.TryParse(GetAddInfoValue(key), out long value))
+            {
+                return value;
+            }
+            return null;
+        }
+
+        /// <summary>Returns the boolean value stored under the key, or null if there is none.</summary>
+        /// <param name="key">Additional info key.</param>
+        public bool? GetAddInfoBoolValue(string key)
+        {
+            if (bool.TryParse(GetAddInfoValue(key), out bool value))
             {
                 return value;
             }

@@ -345,7 +345,8 @@ create table notification
 	recipient_bcc Varchar,
 	email_address_bcc Varchar,
 	logging Varchar NOT NULL DEFAULT 'send_only',
-	active Boolean NOT NULL DEFAULT TRUE
+	active Boolean NOT NULL DEFAULT TRUE,
+	email_priority Varchar NOT NULL DEFAULT 'Normal'
   );
 
 create table notification_log

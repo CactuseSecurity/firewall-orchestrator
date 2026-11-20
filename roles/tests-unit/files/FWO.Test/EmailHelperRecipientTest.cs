@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Enums;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
@@ -109,7 +110,8 @@ namespace FWO.Test
                 EmailAddressBcc = "bcc@example.test",
                 EmailSubject = "Subject",
                 EmailBody = "Body",
-                Deadline = NotificationDeadline.RequestDate
+                Deadline = NotificationDeadline.RequestDate,
+                EmailPriority = EmailPriority.High
             };
 
             bool sent = await helper.SendEmailToNotificationRecipients(notification, owner, "Rendered subject", "Rendered body");
@@ -123,6 +125,7 @@ namespace FWO.Test
                 Assert.That(helper.CapturedSubject, Is.EqualTo("Rendered subject"));
                 Assert.That(helper.CapturedBody, Is.EqualTo("Rendered body"));
                 Assert.That(helper.CapturedMailFormatHtml, Is.True);
+                Assert.That(helper.CapturedPriority, Is.EqualTo(EmailPriority.High));
             });
         }
 
@@ -386,7 +389,8 @@ namespace FWO.Test
                 RecipientBcc = EmailRecipientOption.OtherAddresses,
                 EmailAddressBcc = "bcc@example.test",
                 EmailSubject = $"{Placeholder.REQUESTER}|{Placeholder.APPNAME}|{Placeholder.APPID}|{Placeholder.REQUESTING_APPNAME}|{Placeholder.REQUESTING_APPID}",
-                EmailBody = $"Body:{Placeholder.REQUESTER}|{Placeholder.APPNAME}|{Placeholder.APPID}|{Placeholder.REQUESTING_APPNAME}|{Placeholder.REQUESTING_APPID}"
+                EmailBody = $"Body:{Placeholder.REQUESTER}|{Placeholder.APPNAME}|{Placeholder.APPID}|{Placeholder.REQUESTING_APPNAME}|{Placeholder.REQUESTING_APPID}",
+                EmailPriority = EmailPriority.Low
             };
             WorkflowEmailContent workflowContent = new()
             {
@@ -418,6 +422,7 @@ namespace FWO.Test
                 Assert.That(helper.CapturedSubject, Is.EqualTo("Requester A|Owner A|APP-42|Requesting App|REQ-APP"));
                 Assert.That(helper.CapturedBody, Is.EqualTo("Body:Requester A|Owner A|APP-42|Requesting App|REQ-APP"));
                 Assert.That(helper.CapturedMailFormatHtml, Is.False);
+                Assert.That(helper.CapturedPriority, Is.EqualTo(EmailPriority.Low));
                 Assert.That(helper.CapturedAttachment, Is.Not.Null);
                 Assert.That(helper.CapturedAttachment!.ContentType, Is.EqualTo("application/html"));
                 Assert.That(helper.CapturedAttachment.FileName, Does.EndWith(".html"));
@@ -1444,6 +1449,7 @@ namespace FWO.Test
             public List<string>? CapturedBcc { get; private set; }
             public string CapturedSubject { get; private set; } = "";
             public string CapturedBody { get; private set; } = "";
+            public EmailPriority CapturedPriority { get; private set; }
             public bool CapturedMailFormatHtml { get; private set; }
             public FormFile? CapturedAttachment { get; private set; }
 
@@ -1452,9 +1458,13 @@ namespace FWO.Test
             {
             }
 
-            protected override Task<WorkflowEmailDeliveryResult> SendEmailWithResult(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null, bool mailFormatHtml = true, Microsoft.AspNetCore.Http.FormFile? attachment = null)
+            protected override Task<WorkflowEmailDeliveryResult> SendEmailWithResult(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null, EmailSendOptions? options = null)
             {
+                EmailSendOptions sendOptions = options ?? new();
+                bool mailFormatHtml = sendOptions.MailFormatHtml;
+                Microsoft.AspNetCore.Http.FormFile? attachment = sendOptions.Attachment;
                 SendEmailCallCount++;
+                CapturedPriority = sendOptions.Priority;
                 CapturedTo = [.. tos];
                 CapturedCc = ccs == null ? null : [.. ccs];
                 CapturedBcc = bccs == null ? null : [.. bccs];

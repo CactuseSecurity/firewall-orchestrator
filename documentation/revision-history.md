@@ -1,5 +1,9 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.5 - 18.11.2026
+- notifications: new setting email priority (Low, Normal, High) per notification (`notification.email_priority`, default Normal); Low and High set the email headers Importance, Priority and X-Priority, Normal sets none; applies to all notifications edited in the notification editor, including workflow action emails; report schedule emails stay at Normal
+
+
 ## 9.9.4 - 17.11.2026
 - middleware REST API: `Rule/GetRulesByFilter` accepts `RuleUid` as an exact third selector alongside `OwnerId` and `IpAddress`; all current non-removed matches are ordered by rule ID and use the existing paging and SIEM logging behavior
 - request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket

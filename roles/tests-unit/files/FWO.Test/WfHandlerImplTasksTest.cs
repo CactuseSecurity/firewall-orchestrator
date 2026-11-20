@@ -18,6 +18,11 @@ namespace FWO.Test
         /// </summary>
         private static readonly GlobalDeviceSpecificSettings kAllAutoPlanned = new() { AutoPlanImplementationForRules = true };
         private static readonly int[] kExpectedDeviceIds = [21, 22];
+        private static readonly string[] kExpectedSourceOneAndTwoNames = ["src-1", "src-2"];
+        private static readonly string[] kExpectedSharedSourceAndDestinations = ["shared-source", "dst-1", "dst-2"];
+        private static readonly string[] kExpectedSourceThreeName = ["src-3"];
+        private static readonly string[] kExpectedSourceTwoName = ["src-2"];
+        private static readonly string[] kExpectedSourceOneName = ["src-1"];
 
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix? matrix = null)
         {
@@ -729,8 +734,8 @@ namespace FWO.Test
 
             Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
             Assert.That(secondTask.ImplementationTasks, Has.Count.EqualTo(1));
-            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-1" }));
-            Assert.That(secondTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-2" }));
+            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(kExpectedSourceOneName));
+            Assert.That(secondTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(kExpectedSourceTwoName));
         }
 
         [Test]
@@ -747,8 +752,8 @@ namespace FWO.Test
             Assert.That(secondTask.ImplementationTasks, Is.Empty);
             Assert.That(unbundledTask.ImplementationTasks, Has.Count.EqualTo(1));
             Assert.That(firstTask.ImplementationTasks[0].ReqTaskId, Is.EqualTo(11));
-            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-1", "src-2" }));
-            Assert.That(unbundledTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-3" }));
+            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(kExpectedSourceOneAndTwoNames));
+            Assert.That(unbundledTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(kExpectedSourceThreeName));
         }
 
         [Test]
@@ -838,7 +843,7 @@ namespace FWO.Test
 
             Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
             Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name),
-                Is.EqualTo(new[] { "shared-source", "dst-1", "dst-2" }));
+                Is.EqualTo(kExpectedSharedSourceAndDestinations));
         }
 
         [Test]
@@ -873,7 +878,7 @@ namespace FWO.Test
             List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler, [overviewFirstTask, overviewSecondTask]);
 
             Assert.That(requestTasks, Has.Count.EqualTo(1));
-            Assert.That(requestTasks[0].Elements.Select(element => element.Name), Is.EqualTo(new[] { "src-1", "src-2" }));
+            Assert.That(requestTasks[0].Elements.Select(element => element.Name), Is.EqualTo(kExpectedSourceOneAndTwoNames));
         }
 
         [Test]
@@ -905,7 +910,7 @@ namespace FWO.Test
             SetDbAccess(handler, new RequestTaskDetailsApiConn(new WfTicket { Id = 7 }));
 
             List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler,
-                new List<WfReqTask> { newInterfaceTask });
+                [newInterfaceTask]);
 
             Assert.That(requestTasks, Has.Count.EqualTo(1));
             Assert.That(requestTasks[0], Is.SameAs(newInterfaceTask));
@@ -934,7 +939,7 @@ namespace FWO.Test
             WfTicket storedTicket = new() { Id = 7, Tasks = { storedTask } };
             WfHandler handler = CreateImplementationCreationHandler(overviewTask, implementationInputState: 99);
             SetDbAccess(handler, new RequestTaskDetailsApiConn(storedTicket));
-            List<WfReqTask> candidateTasks = new() { overviewTask };
+            List<WfReqTask> candidateTasks = [overviewTask];
 
             List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler, candidateTasks);
 

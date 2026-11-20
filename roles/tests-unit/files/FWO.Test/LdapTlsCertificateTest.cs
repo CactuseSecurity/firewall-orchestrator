@@ -200,7 +200,7 @@ namespace FWO.Test
                 Addresses = ["ldap.example.test"],
                 Port = 636
             };
-            List<object?> parameters = new() { "ldap.example.test", certificate, chain, errors };
+            List<object?> parameters = ["ldap.example.test", certificate, chain, errors];
             return TestHelper.InvokeMethod<Ldap, bool>(
                 "ValidateLdapServerCertificate",
                 parameters.ToArray(),

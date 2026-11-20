@@ -110,7 +110,7 @@ namespace FWO.Test
             MonitorExternalRequestsApiConn apiConn = new();
             apiConn.ThrowOnOpenRequestQuery = true;
             MonitorExternalRequests component = RenderComponent(apiConn);
-            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = [];
 
             SetPrivateProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, errorFlag) =>
                 messages.Add((exception, title, message, errorFlag))));
@@ -179,26 +179,26 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                AssertRequestStateMapping(component, 101, ExtStates.ExtReqInitialized, new List<ExtStates>
-                {
+                AssertRequestStateMapping(component, 101, ExtStates.ExtReqInitialized,
+                [
                     ExtStates.ExtReqRejected,
                     ExtStates.ExtReqAckRejected,
                     ExtStates.ExtReqDiscarded
-                });
-                AssertRequestStateMapping(component, 102, ExtStates.ExtReqFailed, new List<ExtStates>
-                {
+                ]);
+                AssertRequestStateMapping(component, 102, ExtStates.ExtReqFailed,
+                [
                     ExtStates.ExtReqRejected,
                     ExtStates.ExtReqAckRejected,
                     ExtStates.ExtReqDiscarded
-                });
-                AssertRequestStateMapping(component, 103, ExtStates.ExtReqRejected, new List<ExtStates>
-                {
+                ]);
+                AssertRequestStateMapping(component, 103, ExtStates.ExtReqRejected,
+                [
                     ExtStates.ExtReqAckRejected
-                });
-                AssertRequestStateMapping(component, 104, ExtStates.ExtReqDone, new List<ExtStates>
-                {
+                ]);
+                AssertRequestStateMapping(component, 104, ExtStates.ExtReqDone,
+                [
                     ExtStates.ExtReqAcknowledged
-                });
+                ]);
             });
         }
 
@@ -264,7 +264,7 @@ namespace FWO.Test
         {
             MonitorExternalRequestsApiConn apiConn = new();
             MonitorExternalRequests component = RenderComponent(apiConn);
-            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = [];
             TestMiddlewareClient middlewareClient = new();
             middlewareClient.UseHandler(new AlwaysFailMiddlewareHandler());
 
@@ -361,8 +361,8 @@ namespace FWO.Test
 
     internal sealed class MonitorExternalRequestsApiConn : SimulatedApiConnection
     {
-        public List<ExternalRequest> OpenRequests { get; } = new();
-        public List<string> LastRequestedStates { get; private set; } = new();
+        public List<ExternalRequest> OpenRequests { get; } = [];
+        public List<string> LastRequestedStates { get; private set; } = [];
         public int OpenRequestQueryCount { get; private set; }
         public int UnlockQueryCount { get; private set; }
         public long LastUnlockedId { get; private set; }
@@ -398,7 +398,7 @@ namespace FWO.Test
             PropertyInfo? property = variables?.GetType().GetProperty(propertyName);
             if (property == null)
             {
-                return new List<string>();
+                return [];
             }
 
             return (List<string>)property.GetValue(variables)!;

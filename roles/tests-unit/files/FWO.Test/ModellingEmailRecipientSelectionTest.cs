@@ -10,7 +10,7 @@ namespace FWO.Test
         [Test]
         public void ParseLegacyOwnerGroupOnlyMapsToSupportingResponsible()
         {
-            EmailRecipientSelection selection = EmailRecipientSelection.Parse(nameof(EmailRecipientOption.OwnerGroupOnly), new List<int> { 1, 2, 3 });
+            EmailRecipientSelection selection = EmailRecipientSelection.Parse(nameof(EmailRecipientOption.OwnerGroupOnly), [1, 2, 3]);
 
             Assert.That(selection.None, Is.False);
             Assert.That(selection.OwnerResponsibleTypeIds, Is.EqualTo(new List<int> { GlobalConst.kOwnerResponsibleTypeSupporting }));
@@ -19,7 +19,7 @@ namespace FWO.Test
         [Test]
         public void ParseLegacyAllOwnerResponsiblesUsesActiveResponsibleTypes()
         {
-            EmailRecipientSelection selection = EmailRecipientSelection.Parse(nameof(EmailRecipientOption.AllOwnerResponsibles), new List<int> { 1, 3 });
+            EmailRecipientSelection selection = EmailRecipientSelection.Parse(nameof(EmailRecipientOption.AllOwnerResponsibles), [1, 3]);
 
             Assert.That(selection.None, Is.False);
             Assert.That(selection.OwnerResponsibleTypeIds.OrderBy(id => id), Is.EqualTo(new List<int> { 1, 3 }));
@@ -38,7 +38,7 @@ namespace FWO.Test
         public void ParseJsonDerivesNoneFromEffectiveSelections()
         {
             string rawConfig = "{\"none\":true,\"other_addresses\":true,\"owner_responsible_type_ids\":[1,2]}";
-            EmailRecipientSelection selection = EmailRecipientSelection.Parse(rawConfig, new List<int> { 1, 2, 3 });
+            EmailRecipientSelection selection = EmailRecipientSelection.Parse(rawConfig, [1, 2, 3]);
 
             Assert.That(selection.None, Is.False);
             Assert.That(selection.OtherAddresses, Is.True);
@@ -52,10 +52,10 @@ namespace FWO.Test
             {
                 None = false,
                 OtherAddresses = false,
-                OwnerResponsibleTypeIds = new List<int>()
+                OwnerResponsibleTypeIds = []
             };
 
-            Assert.That(selection.ToConfigValue(new List<int> { 1, 2 }), Is.EqualTo(nameof(EmailRecipientOption.None)));
+            Assert.That(selection.ToConfigValue([1, 2]), Is.EqualTo(nameof(EmailRecipientOption.None)));
         }
 
         [Test]
@@ -65,10 +65,10 @@ namespace FWO.Test
             {
                 None = false,
                 OtherAddresses = true,
-                OtherAddressList = new List<string>()
+                OtherAddressList = []
             };
 
-            Assert.That(selection.ToConfigValue(new List<int> { 1, 2 }), Is.EqualTo(nameof(EmailRecipientOption.None)));
+            Assert.That(selection.ToConfigValue([1, 2]), Is.EqualTo(nameof(EmailRecipientOption.None)));
         }
 
         [Test]
@@ -76,7 +76,7 @@ namespace FWO.Test
         {
             string rawConfig = "{\"none\":false,\"other_addresses\":true,\"other_address_list\":[],\"owner_responsible_type_ids\":[]}";
 
-            EmailRecipientSelection selection = EmailRecipientSelection.Parse(rawConfig, new List<int> { 1, 2 });
+            EmailRecipientSelection selection = EmailRecipientSelection.Parse(rawConfig, [1, 2]);
 
             Assert.That(selection.None, Is.True);
             Assert.That(selection.OtherAddresses, Is.False);
@@ -85,7 +85,7 @@ namespace FWO.Test
         [Test]
         public void ParseLegacyOtherAddressesKeepsSelectionForLegacyAddressMerge()
         {
-            EmailRecipientSelection selection = EmailRecipientSelection.Parse(nameof(EmailRecipientOption.OtherAddresses), new List<int> { 1, 2 });
+            EmailRecipientSelection selection = EmailRecipientSelection.Parse(nameof(EmailRecipientOption.OtherAddresses), [1, 2]);
 
             Assert.That(selection.None, Is.False);
             Assert.That(selection.OtherAddresses, Is.True);
@@ -96,7 +96,7 @@ namespace FWO.Test
         {
             string rawConfig = "{\"none\":false,\"other_addresses\":true,\"other_address_list\":[\" a@test \",\"A@test\",\"b@test\"],\"owner_responsible_type_ids\":[]}";
 
-            EmailRecipientSelection selection = EmailRecipientSelection.Parse(rawConfig, new List<int> { 1, 2 });
+            EmailRecipientSelection selection = EmailRecipientSelection.Parse(rawConfig, [1, 2]);
 
             Assert.That(selection.None, Is.False);
             Assert.That(selection.OtherAddresses, Is.True);
@@ -107,7 +107,7 @@ namespace FWO.Test
         public void ParseJsonKeepsRequesterSelection()
         {
             string rawConfig = "{\"none\":false,\"other_addresses\":true,\"other_address_list\":[\"cc@example.test\"],\"requester\":true,\"owner_responsible_type_ids\":[]}";
-            List<int> activeResponsibleTypeIds = new List<int> { 1, 2 };
+            List<int> activeResponsibleTypeIds = [1, 2];
 
             EmailRecipientSelection selection = EmailRecipientSelection.Parse(rawConfig, activeResponsibleTypeIds);
 
@@ -124,7 +124,7 @@ namespace FWO.Test
                 None = false,
                 Requester = true
             };
-            List<int> activeResponsibleTypeIds = new List<int> { 1, 2 };
+            List<int> activeResponsibleTypeIds = [1, 2];
 
             string configValue = selection.ToConfigValue(activeResponsibleTypeIds);
 
@@ -137,15 +137,15 @@ namespace FWO.Test
             EmailRecipientSelection selection = new()
             {
                 None = false,
-                OwnerResponsibleTypeIds = new List<int> { 1, 2, 3 }
+                OwnerResponsibleTypeIds = [1, 2, 3]
             };
 
-            List<OwnerResponsibleType> ownerResponsibleTypes = new List<OwnerResponsibleType>
-            {
+            List<OwnerResponsibleType> ownerResponsibleTypes =
+            [
                 new OwnerResponsibleType { Id = 1, Active = true, SortOrder = 10 },
                 new OwnerResponsibleType { Id = 2, Active = true, SortOrder = 50 },
                 new OwnerResponsibleType { Id = 3, Active = false, SortOrder = 100 }
-            };
+            ];
 
             List<int> fallbackOrder = selection.GetOwnerResponsibleTypeFallbackOrder(ownerResponsibleTypes).ToList();
 
@@ -155,7 +155,7 @@ namespace FWO.Test
         [Test]
         public void ParseLegacyFallbackOptionEnablesEnsureAtLeastOneNotification()
         {
-            EmailRecipientSelection selection = EmailRecipientSelection.Parse(nameof(EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty), new List<int> { 1, 2 });
+            EmailRecipientSelection selection = EmailRecipientSelection.Parse(nameof(EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty), [1, 2]);
 
             Assert.That(selection.None, Is.False);
             Assert.That(selection.EnsureAtLeastOneNotification, Is.True);
@@ -167,7 +167,7 @@ namespace FWO.Test
         {
             EmailRecipientSelection selection = EmailRecipientSelection.Parse(
                 "{invalid-json",
-                new List<int> { GlobalConst.kOwnerResponsibleTypeMain, GlobalConst.kOwnerResponsibleTypeSupporting });
+                [GlobalConst.kOwnerResponsibleTypeMain, GlobalConst.kOwnerResponsibleTypeSupporting]);
 
             Assert.That(selection.None, Is.True);
             Assert.That(selection.OtherAddresses, Is.False);

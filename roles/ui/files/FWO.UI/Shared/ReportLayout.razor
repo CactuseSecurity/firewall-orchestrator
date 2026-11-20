@@ -19,9 +19,9 @@
 
 @code
 {
-    private RenderFragment? SidebarLeftContent { get; set; } @* maybe not needed *@
-    private RenderFragment? SidebarRightContent { get; set; }
+    private RenderFragment? SidebarLeftContent { get; } @* maybe not needed *@
+    private RenderFragment? SidebarRightContent { get; }
 
-    private int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth;
-    private int sidebarRightWidth = GlobalConst.kSidebarRightWidth;
+    private readonly int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth;
+    private readonly int sidebarRightWidth = GlobalConst.kSidebarRightWidth;
 }

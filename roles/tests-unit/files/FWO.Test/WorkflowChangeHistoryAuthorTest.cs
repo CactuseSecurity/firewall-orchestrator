@@ -42,7 +42,7 @@ internal class WorkflowChangeHistoryAuthorTest
     [Test]
     public async Task ChangesNameTheResolvedUserInsteadOfTheStoredChanger()
     {
-        AuthorApiConnection apiConnection = new() { Entries = new() { ForgedEntry(ChangeHistoryObjectType.RequestTask) } };
+        AuthorApiConnection apiConnection = new() { Entries = [ForgedEntry(ChangeHistoryObjectType.RequestTask)] };
 
         GetAuditProofCriticalChangesResponse response = await GetChanges(apiConnection);
 
@@ -59,8 +59,8 @@ internal class WorkflowChangeHistoryAuthorTest
     {
         AuthorApiConnection apiConnection = new()
         {
-            Entries = new() { ForgedEntry(ChangeHistoryObjectType.ImplementationTask) },
-            TaskHistory = new() { ForgedEntry(ChangeHistoryObjectType.ImplementationTask) }
+            Entries = [ForgedEntry(ChangeHistoryObjectType.ImplementationTask)],
+            TaskHistory = [ForgedEntry(ChangeHistoryObjectType.ImplementationTask)]
         };
 
         GetAuditProofCriticalChangesResponse response = await GetChanges(apiConnection);
@@ -76,7 +76,7 @@ internal class WorkflowChangeHistoryAuthorTest
     [Test]
     public async Task UserNameFilterMatchesTheResolvedUserOnly()
     {
-        AuthorApiConnection apiConnection = new() { Entries = new() { ForgedEntry(ChangeHistoryObjectType.RequestTask) } };
+        AuthorApiConnection apiConnection = new() { Entries = [ForgedEntry(ChangeHistoryObjectType.RequestTask)] };
 
         GetAuditProofCriticalChangesResponse byForgedName = await GetChanges(apiConnection, kForgedName);
         GetAuditProofCriticalChangesResponse byResolvedName = await GetChanges(apiConnection, kPlannerName);
@@ -99,7 +99,7 @@ internal class WorkflowChangeHistoryAuthorTest
             ChangeText = "Updated workflow ticket",
             AuditProofCritical = true
         };
-        AuthorApiConnection apiConnection = new() { Entries = new() { automated } };
+        AuthorApiConnection apiConnection = new() { Entries = [automated] };
 
         GetAuditProofCriticalChangesResponse response = await GetChanges(apiConnection);
 
@@ -112,8 +112,8 @@ internal class WorkflowChangeHistoryAuthorTest
         // the requester flags changes of the own ticket, passing them off as someone else's manual change
         AuthorApiConnection apiConnection = new()
         {
-            Entries = new() { ForgedEntry(ChangeHistoryObjectType.RequestTask, kRequesterId), ForgedEntry(ChangeHistoryObjectType.RequestTask) },
-            TaskHistory = new() { ForgedEntry(ChangeHistoryObjectType.ImplementationTask, kRequesterId) }
+            Entries = [ForgedEntry(ChangeHistoryObjectType.RequestTask, kRequesterId), ForgedEntry(ChangeHistoryObjectType.RequestTask)],
+            TaskHistory = [ForgedEntry(ChangeHistoryObjectType.ImplementationTask, kRequesterId)]
         };
 
         GetAuditProofCriticalChangesResponse response = await GetChanges(apiConnection);
@@ -129,7 +129,7 @@ internal class WorkflowChangeHistoryAuthorTest
     [Test]
     public async Task FlaggedChangesOfATicketWithoutRequesterAreNotReported()
     {
-        AuthorApiConnection apiConnection = new() { Entries = new() { ForgedEntry(ChangeHistoryObjectType.RequestTask) }, RequesterId = null };
+        AuthorApiConnection apiConnection = new() { Entries = [ForgedEntry(ChangeHistoryObjectType.RequestTask)], RequesterId = null };
 
         GetAuditProofCriticalChangesResponse response = await GetChanges(apiConnection);
 
@@ -141,7 +141,7 @@ internal class WorkflowChangeHistoryAuthorTest
     {
         ModellingHistoryEntry entry = ForgedEntry(ChangeHistoryObjectType.RequestTask);
         entry.ChangerUser = null;
-        AuthorApiConnection apiConnection = new() { Entries = new() { entry } };
+        AuthorApiConnection apiConnection = new() { Entries = [entry] };
 
         GetAuditProofCriticalChangesResponse response = await GetChanges(apiConnection);
 
@@ -179,9 +179,9 @@ internal class WorkflowChangeHistoryAuthorTest
 
     private sealed class AuthorApiConnection : SimulatedApiConnection
     {
-        public List<ModellingHistoryEntry> Entries { get; set; } = new();
+        public List<ModellingHistoryEntry> Entries { get; set; } = [];
 
-        public List<ModellingHistoryEntry> TaskHistory { get; set; } = new();
+        public List<ModellingHistoryEntry> TaskHistory { get; set; } = [];
 
         public int? RequesterId { get; set; } = kRequesterId;
 

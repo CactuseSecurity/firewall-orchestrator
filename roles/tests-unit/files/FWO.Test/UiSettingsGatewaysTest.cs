@@ -84,7 +84,7 @@ namespace FWO.Test
         [Test]
         public async Task OnInitializedAsync_ShowsMessageWhenDeviceLoadFails()
         {
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             RecordingGatewaysApiConnection apiConnection = CreateApiConnection();
             apiConnection.ThrowOnDeviceQuery = true;
 
@@ -205,7 +205,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_ShowsValidationWhenNameMissing()
         {
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             RecordingGatewaysApiConnection apiConnection = CreateApiConnection();
             SettingsGateways component = CreateComponent(apiConnection, await CreateAuthorizedTokenService(), messages);
 
@@ -234,7 +234,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_AllowsLegacyGatewayNameWithSpaces()
         {
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             RecordingGatewaysApiConnection apiConnection = CreateApiConnection();
             apiConnection.NewDeviceResult = new ReturnIdWrapper
             {
@@ -302,7 +302,7 @@ namespace FWO.Test
         [Test]
         public async Task Save_AddMode_ShowsMessageWhenInsertFails()
         {
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             RecordingGatewaysApiConnection apiConnection = CreateApiConnection();
             apiConnection.NewDeviceResult = new ReturnIdWrapper
             {
@@ -367,7 +367,7 @@ namespace FWO.Test
         {
             RecordingGatewaysApiConnection apiConnection = CreateApiConnection();
             apiConnection.UpdateDeviceResult = new ReturnId { UpdatedId = 999 };
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
 
             SettingsGateways component = CreateComponent(apiConnection, await CreateAuthorizedTokenService(), messages);
 
@@ -402,8 +402,8 @@ namespace FWO.Test
         {
             return new RecordingGatewaysApiConnection
             {
-                Devices = new List<Device>
-                {
+                Devices =
+                [
                     new Device
                     {
                         Id = 1,
@@ -424,18 +424,18 @@ namespace FWO.Test
                         ImportDisabled = true,
                         HideInUi = true
                     }
-                },
-                DeviceTypes = new List<DeviceType>
-                {
+                ],
+                DeviceTypes =
+                [
                     BuildDeviceType(10, "FortiGate", "7", "Fortinet"),
                     BuildDeviceType(12, "FortiManager", "7", "Fortinet"),
                     BuildDeviceType(20, "Cisco FTD", "7", "Cisco")
-                },
-                Managements = new List<Management>
-                {
+                ],
+                Managements =
+                [
                     BuildManagement(1, "fortinet-mgr", 12, "Fortinet"),
                     BuildManagement(2, "cisco-mgr", 20, "Cisco")
-                }
+                ]
             };
         }
 
@@ -448,7 +448,7 @@ namespace FWO.Test
                 User =
                 {
                     DbId = 7,
-                    Roles = new List<string> { Roles.Admin }
+                    Roles = [Roles.Admin]
                 }
             });
             SetMember(component, "tokenService", tokenService);
@@ -473,7 +473,7 @@ namespace FWO.Test
                 Name = "settings-admin",
                 DbId = 7,
                 Dn = "uid=settings-admin,ou=people,dc=fworch,dc=internal",
-                Roles = new List<string> { role }
+                Roles = [role]
             }, TimeSpan.FromHours(1));
 
             await tokenService.SetTokenPair(new TokenPair
@@ -604,11 +604,11 @@ namespace FWO.Test
 
         private sealed class RecordingGatewaysApiConnection : SimulatedApiConnection
         {
-            public List<string> Queries { get; } = new();
-            public List<object?> Variables { get; } = new();
-            public List<Device> Devices { get; set; } = new();
-            public List<DeviceType> DeviceTypes { get; set; } = new();
-            public List<Management> Managements { get; set; } = new();
+            public List<string> Queries { get; } = [];
+            public List<object?> Variables { get; } = [];
+            public List<Device> Devices { get; set; } = [];
+            public List<DeviceType> DeviceTypes { get; set; } = [];
+            public List<Management> Managements { get; set; } = [];
             public ReturnIdWrapper NewDeviceResult { get; set; } = new();
             public ReturnId UpdateDeviceResult { get; set; } = new();
             public ReturnId DeleteDeviceResult { get; set; } = new();

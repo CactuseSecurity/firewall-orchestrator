@@ -28,9 +28,7 @@ else
     public bool UseFormLayout { get; set; }
 
     private string CheckboxLabelClass => UseLightText ? "form-check-label text-white" : "form-check-label";
-    private string FieldContainerClass => UseFormLayout ? "form-group row mt-2" : string.Empty;
     private string FirstFieldContainerClass => UseFormLayout ? "form-group row" : string.Empty;
-    private string FieldLabelClass => UseFormLayout ? "col-sm-3 col-form-label col-form-label-sm" : string.Empty;
     private string FieldContentClass => UseFormLayout ? "offset-sm-3 col-sm-8" : string.Empty;
 
     private RenderFragment AppRuleFields => @<text>

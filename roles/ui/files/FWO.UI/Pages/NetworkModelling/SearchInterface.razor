@@ -88,7 +88,7 @@
         if (AllVisibleInterfaces != null && AllVisibleInterfaces.Count > 0)
         {
             SelectableInterfaces = PreselectedInterfaces != null && PreselectedInterfaces.Count > 0 ?
-                AllVisibleInterfaces.Where(i => PreselectedInterfaces.FirstOrDefault(sel => sel.Id == i.Id) == null)?.ToList() ?? new() : AllVisibleInterfaces;
+                AllVisibleInterfaces.Where(i => PreselectedInterfaces.FirstOrDefault(sel => sel.Id == i.Id) == null).ToList() : AllVisibleInterfaces;
         }
     }
 

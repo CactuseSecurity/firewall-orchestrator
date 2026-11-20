@@ -895,7 +895,7 @@ namespace FWO.Test
                 }
             };
 
-            List<WfReqTask> requestTasks = new() { groupTask };
+            List<WfReqTask> requestTasks = [groupTask];
             WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks(requestTasks, new EmailNotificationUserConfig(), new Dictionary<int, string>
             {
                 { 6, "TCP" }

@@ -810,17 +810,17 @@ internal class WorkflowTicketServiceTest
     {
         WorkflowTicketServiceApiConn apiConnection = new()
         {
-            States = new List<WfState>
-            {
+            States =
+            [
                 new() { Id = 17, Name = "requested" },
                 new() { Id = 0, Name = "draft" }
-            },
-            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } },
-            WorkflowConfigurations = new List<WorkflowConfiguration>
-            {
+            ],
+            Protocols = [new() { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
                 CreateWorkflowConfiguration("request-active",
                     CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))
-            }
+            ]
         };
         WorkflowTicketService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
 
@@ -1908,8 +1908,8 @@ internal class WorkflowTicketServiceTest
     {
         WorkflowTicketServiceApiConn apiConnection = new()
         {
-            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
-            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
+            States = [new() { Id = 0, Name = "draft" }],
+            Protocols = [new() { Id = 6, Name = "tcp" }]
         };
         WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
         controller.ControllerContext = new ControllerContext
@@ -1977,8 +1977,8 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = 17,
                     Name = "requested",
-                    Actions = new List<WfStateActionDataHelper>
-                    {
+                    Actions =
+                    [
                         new()
                         {
                             SortOrder = 1,
@@ -1991,7 +1991,7 @@ internal class WorkflowTicketServiceTest
                                 ExternalParams = "{invalid"
                             }
                         }
-                    }
+                    ]
                 },
                 new WfState { Id = 0, Name = "draft" }
             ],
@@ -2072,12 +2072,12 @@ internal class WorkflowTicketServiceTest
     {
         WorkflowTicketServiceApiConn apiConnection = new()
         {
-            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
-            Protocols = new List<IpProtocol>
-            {
+            States = [new() { Id = 0, Name = "draft" }],
+            Protocols =
+            [
                 new() { Id = 6, Name = "tcp" },
                 new() { Id = 17, Name = "udp" }
-            }
+            ]
         };
         WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
@@ -2135,8 +2135,8 @@ internal class WorkflowTicketServiceTest
     {
         WorkflowTicketController controller = new(new WorkflowTicketService(new WorkflowTicketServiceApiConn
         {
-            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
-            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
+            States = [new() { Id = 0, Name = "draft" }],
+            Protocols = [new() { Id = 6, Name = "tcp" }]
         }, new GlobalConfig()));
         controller.ControllerContext = new ControllerContext
         {
@@ -2194,8 +2194,8 @@ internal class WorkflowTicketServiceTest
     {
         WorkflowTicketController controller = new(new WorkflowTicketService(new WorkflowTicketServiceApiConn
         {
-            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
-            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
+            States = [new() { Id = 0, Name = "draft" }],
+            Protocols = [new() { Id = 6, Name = "tcp" }]
         }, new GlobalConfig()));
         controller.ControllerContext = new ControllerContext
         {
@@ -2253,8 +2253,8 @@ internal class WorkflowTicketServiceTest
     {
         WorkflowTicketServiceApiConn apiConnection = new()
         {
-            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
-            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } },
+            States = [new() { Id = 0, Name = "draft" }],
+            Protocols = [new() { Id = 6, Name = "tcp" }],
             ExtStateErrors = new List<string> { "external state query failed" }.ToArray()
         };
         WorkflowTicketService service = new(apiConnection, new GlobalConfig());
@@ -3088,13 +3088,12 @@ internal class WorkflowTicketServiceTest
     private static ClaimsPrincipal CreateTrustedRequesterPrincipal()
     {
         return new ClaimsPrincipal(new ClaimsIdentity(
-            new List<Claim>
-            {
+            [
                 new("x-hasura-user-id", $"{kTrustedCallerId}"),
                 new("unique_name", "trusted-caller"),
                 new(ClaimTypes.Name, "Trusted Requester"),
                 new("x-hasura-uuid", "uid=trusted,dc=fworch,dc=internal")
-            },
+            ],
             "test"));
     }
 

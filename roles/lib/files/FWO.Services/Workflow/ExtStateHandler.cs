@@ -7,7 +7,7 @@ namespace FWO.Services.Workflow
 {
     public class ExtStateHandler
     {
-        private static readonly HashSet<string> StaticStateNames = new(Enum.GetNames<ExtStates>());
+        private static readonly HashSet<string> StaticStateNames = [.. Enum.GetNames<ExtStates>()];
         private readonly ApiConnection apiConnection;
         private List<WfExtState> extStates = [];
 

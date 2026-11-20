@@ -34,13 +34,15 @@ public static class VisibleInRequestFilterValidator
         return true;
     }
 
+    private static readonly string[] kFilterFreeShapes =
+    [
+        "{}",
+        "{ \"filter\": {} }"
+    ];
+
     private static BadRequestObjectResult BuildError(RequestFilterValidationSchema schema)
     {
-        string allowedShapes = string.Join(" or ", new[]
-        {
-            "{}",
-            "{ \"filter\": {} }"
-        }.Concat(schema.AllowedKeys.Select(key => $"{{ \"filter\": {{ \"{key.JsonName}\": ... }} }}")));
+        string allowedShapes = string.Join(" or ", kFilterFreeShapes.Concat(schema.AllowedKeys.Select(key => $"{{ \"filter\": {{ \"{key.JsonName}\": ... }} }}")));
 
         string keyHelp = string.Join(" ", schema.AllowedKeys.Select(key => $"'{key.JsonName}': {key.Description}"));
 

@@ -210,7 +210,7 @@ namespace FWO.Test
 
             X509Certificate2Collection anchors = InternalCaCertificate.Get();
 
-            Assert.That(Thumbprints(anchors), Is.EquivalentTo(new List<string> { firstAnchorThumbprint, secondAnchorThumbprint }));
+            Assert.That(Thumbprints(anchors), Is.EquivalentTo([firstAnchorThumbprint, secondAnchorThumbprint]));
         }
 
         /// <summary>

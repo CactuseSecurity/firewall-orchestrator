@@ -802,7 +802,7 @@ namespace FWO.Test
         private sealed class ThrowingProtectedSessionStorage : ISessionStorage
         {
             private readonly Exception exceptionToThrow;
-            private readonly Dictionary<string, object?> storage = new();
+            private readonly Dictionary<string, object?> storage = [];
 
             public int DeleteCallCount { get; private set; }
 

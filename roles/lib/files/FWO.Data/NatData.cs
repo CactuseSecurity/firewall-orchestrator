@@ -21,7 +21,7 @@ namespace FWO.Data
         public string TranslatedSource { get; set; } = "";
 
         [JsonProperty("rule_froms"), JsonPropertyName("rule_froms")]
-        public NetworkLocation[] TranslatedFroms { get; set; } = new NetworkLocation[] { };
+        public NetworkLocation[] TranslatedFroms { get; set; } = [];
 
         [JsonProperty("rule_dst_neg"), JsonPropertyName("rule_dst_neg")]
         public bool TranslatedDestinationNegated { get; set; }
@@ -30,6 +30,6 @@ namespace FWO.Data
         public string TranslatedDestination { get; set; } = "";
 
         [JsonProperty("rule_tos"), JsonPropertyName("rule_tos")]
-        public NetworkLocation[] TranslatedTos { get; set; } = new NetworkLocation[] { };
+        public NetworkLocation[] TranslatedTos { get; set; } = [];
     }
 }

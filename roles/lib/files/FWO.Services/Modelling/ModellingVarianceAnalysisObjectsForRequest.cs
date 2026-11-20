@@ -282,9 +282,9 @@ namespace FWO.Services.Modelling
 
             bool shortened = false;
             string sanitizedARName = appRole.IdString.SanitizeJsonFieldMand(ref shortened);
-            if (allProdAppRoles.ContainsKey(mgt.Id))
+            if (allProdAppRoles.TryGetValue(mgt.Id, out List<ModellingAppRole>? prodAppRolesOfMgt))
             {
-                existingAppRole = allProdAppRoles[mgt.Id].FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedARName);
+                existingAppRole = prodAppRolesOfMgt.FirstOrDefault(a => a.Name == appRole.IdString || a.Name == sanitizedARName);
             }
             if (existingAppRole != null)
             {

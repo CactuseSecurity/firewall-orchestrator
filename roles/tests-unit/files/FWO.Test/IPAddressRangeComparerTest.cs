@@ -48,7 +48,7 @@ namespace FWO.Test
 
             // key: iteration, testcase
             // value: result, performance
-            Dictionary<(int, IPAddressRange), (BigInteger, TimeSpan)> testResults = new();
+            Dictionary<(int, IPAddressRange), (BigInteger, TimeSpan)> testResults = [];
 
             // ACT
 

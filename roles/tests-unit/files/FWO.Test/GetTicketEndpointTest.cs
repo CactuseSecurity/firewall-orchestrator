@@ -418,7 +418,7 @@ internal class GetTicketEndpointTest
     private static Dictionary<string, Type> JsonFields(Type type)
     {
         return type.GetProperties()
-            .Select(property => (Property: property, Name: property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name))
+            .Select(property => (Property: property, property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name))
             .Where(field => field.Name != null)
             .ToDictionary(field => field.Name!, field => field.Property.PropertyType);
     }

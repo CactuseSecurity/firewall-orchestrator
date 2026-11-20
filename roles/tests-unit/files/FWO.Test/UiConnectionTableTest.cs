@@ -209,7 +209,7 @@ namespace FWO.Test
 
             ModellingConnection conn = new()
             {
-                Props = new Dictionary<string, string>()
+                Props = []
             };
 
             string result = table.DisplayModState(conn);
@@ -283,7 +283,7 @@ namespace FWO.Test
 
             ModellingConnection conn = new()
             {
-                Props = new Dictionary<string, string>()
+                Props = []
             };
 
             string result = table.DisplayImplState(conn);

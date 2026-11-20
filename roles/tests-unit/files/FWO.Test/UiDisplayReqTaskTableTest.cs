@@ -728,8 +728,8 @@ namespace FWO.Test
             MethodInfo? method = typeof(DisplayReqTaskTable).GetMethod("IsEditable", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(method, Is.Not.Null);
 
-            bool ownerBasedEditable = (bool)method!.Invoke(ownerBasedComponent, [new WfReqTask()])!;
-            bool freeEditable = (bool)method!.Invoke(freeComponent, [new WfReqTask()])!;
+            bool ownerBasedEditable = (bool)method!.Invoke(ownerBasedComponent, null)!;
+            bool freeEditable = (bool)method!.Invoke(freeComponent, null)!;
 
             Assert.Multiple(() =>
             {

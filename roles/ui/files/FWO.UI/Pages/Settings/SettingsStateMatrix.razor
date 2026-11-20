@@ -329,10 +329,10 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private List<WfState> states = [];
-    private List<int> stateIds = [];
-    private Dictionary<int,string> stateNames = [];
+    private readonly List<int> stateIds = [];
+    private readonly Dictionary<int,string> stateNames = [];
 
-    private GlobalStateMatrix actStateMatrix = new ();
+    private readonly GlobalStateMatrix actStateMatrix = new ();
     private List<StateMatrixTransitionGroup> transitionGroups = [];
     private List<WorkflowConfiguration> workflowConfigurations = [];
     private List<int> configurationIds = [];

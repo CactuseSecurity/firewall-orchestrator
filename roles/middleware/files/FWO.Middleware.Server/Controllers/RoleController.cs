@@ -116,7 +116,7 @@ namespace FWO.Middleware.Server.Controllers
             bool userRemoved = false;
             List<Task> ldapRoleRequests = [];
             // the dn may name a group, whose members lose the role as well
-            List<string> removedDns = new() { parameters.UserDn };
+            List<string> removedDns = [parameters.UserDn];
             List<int> affectedUserIds = await sessionRevocation.ResolveLocalUserIds(removedDns);
 
             foreach (Ldap currentLdap in ldaps)

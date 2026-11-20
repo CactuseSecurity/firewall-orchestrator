@@ -66,11 +66,6 @@ header {
     width: 100%;
 }
 
-/* .managementSelect .deviceSelect {
-    position: absolute;
-    left: 0;
-    top: 40px;
-} */
 
 .deviceCell {
     padding-left: 6px;
@@ -194,7 +189,6 @@ h5 {
 
 .btn.three-state-button {
     height: 2rem;
-    /* width: 33%; */
 }
 
 /* add horizontal margin 13px */
@@ -228,7 +222,6 @@ h5 {
 }
 
 .main .top-row {
-    /* background-color: #f7f7f7; */
     background-image: linear-gradient(#e4e8ec, #9b9797);
     border-bottom: 1px solid #d6d5d5;
     justify-content: flex-end;
@@ -259,7 +252,6 @@ h5 {
     top: 70px;
     height: 95%;
     z-index: 10;
-    /* color: black; */
     color-scheme: dark;
     background-image: linear-gradient(#e4e8ec, #9b9797);
     overflow: auto;
@@ -370,15 +362,7 @@ h5 {
 
 .whitespace-div {
     white-space: pre-wrap;
-    /* css-3 */
-    white-space: -moz-pre-wrap;
-    /* Mozilla, since 1999 */
-    white-space: -pre-wrap;
-    /* Opera 4-6 */
-    white-space: -o-pre-wrap;
-    /* Opera 7 */
     word-wrap: break-word;
-    /* Internet Explorer 5.5+ */
 }
 
 thead {
@@ -499,24 +483,6 @@ div[role="tooltip"] {
 .h-90 {
     height: 90%;
 }
-/* Popups */
-
-/* .modal-body {
-    overflow: auto;
-}
-
-.modal-body:has(.table-responsive) {
-overflow: hidden;
-}
-
-.modal-body > * {
-max-width: 99%;
-}
-
-.table-responsive:has(> .table.table-bordered.th-bg-secondary.table-responsive.overflow-auto.sticky-header)
-{
-    padding-bottom: 30px;
-} */
 
 div.modal-body > div.table-responsive {
     overflow-x: inherit;

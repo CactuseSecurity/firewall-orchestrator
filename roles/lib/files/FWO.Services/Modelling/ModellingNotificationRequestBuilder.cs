@@ -267,7 +267,7 @@ namespace FWO.Services.Modelling
                 : ModellingTypes.ModObjectType.AppRole;
         }
 
-        private List<WfReqElement> BuildElements(ModellingConnection connection)
+        private static List<WfReqElement> BuildElements(ModellingConnection connection)
         {
             return
             [
@@ -321,18 +321,6 @@ namespace FWO.Services.Modelling
                 IpString = appServer.Ip?.StripOffUnnecessaryNetmask(),
                 IpEnd = appServer.IpEnd?.StripOffUnnecessaryNetmask()
             });
-        }
-
-        private static IEnumerable<WfReqElement> BuildServiceElements(IEnumerable<string> serviceGroupNames)
-        {
-            return serviceGroupNames
-                .Where(groupName => !string.IsNullOrWhiteSpace(groupName))
-                .Select(groupName => new WfReqElement
-                {
-                    RequestAction = RequestAction.create.ToString(),
-                    Field = ElemFieldType.service.ToString(),
-                    GroupName = groupName
-                });
         }
 
         private static IEnumerable<WfReqElement> BuildServiceGroupElements(IEnumerable<ModellingServiceGroup> serviceGroups)

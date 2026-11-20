@@ -555,7 +555,7 @@ namespace FWO.Basics
 
             intervals.Sort((left, right) => CompareIpValues(left.start, right.start));
 
-            List<(IPAddress start, IPAddress end)> merged = new();
+            List<(IPAddress start, IPAddress end)> merged = [];
             (IPAddress start, IPAddress end) currentInterval = intervals[0];
 
             foreach ((IPAddress start, IPAddress end) in intervals.Skip(1))
@@ -724,7 +724,7 @@ namespace FWO.Basics
 
         private static List<IPNetwork2> ToNetworks(IEnumerable<IPAddressRange> ranges)
         {
-            List<IPNetwork2> networks = new();
+            List<IPNetwork2> networks = [];
             foreach (IPAddressRange range in ranges)
             {
                 if (range.Begin.Equals(range.End))

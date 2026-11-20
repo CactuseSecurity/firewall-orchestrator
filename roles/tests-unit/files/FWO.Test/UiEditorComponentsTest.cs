@@ -99,7 +99,7 @@ internal sealed class UiEditorComponentsTest
         await using BunitContext context = CreateContext();
         IRenderedComponent<DeviceEditor> cut = context.Render<DeviceEditor>(parameters => parameters
             .Add(parameter => parameter.Display, true)
-            .Add(parameter => parameter.Devices, new List<Device> { new() { Id = 1, Name = "Firewall A" } })
+            .Add(parameter => parameter.Devices, [new() { Id = 1, Name = "Firewall A" }])
             .Add(parameter => parameter.Saved, device =>
             {
                 saved = device;
@@ -126,7 +126,7 @@ internal sealed class UiEditorComponentsTest
         await using BunitContext context = CreateContext();
         IRenderedComponent<DeviceEditor> cut = context.Render<DeviceEditor>(parameters => parameters
             .Add(parameter => parameter.Display, false)
-            .Add(parameter => parameter.Devices, new List<Device> { new() { Id = 1, Name = "Firewall A" } }));
+            .Add(parameter => parameter.Devices, [new() { Id = 1, Name = "Firewall A" }]));
 
         Assert.That(cut.Markup, Is.Empty);
     }
@@ -142,7 +142,7 @@ internal sealed class UiEditorComponentsTest
         await using BunitContext context = CreateContext();
         IRenderedComponent<DeviceEditor> cut = context.Render<DeviceEditor>(parameters => parameters
             .Add(parameter => parameter.Display, true)
-            .Add(parameter => parameter.Devices, new List<Device> { first, second })
+            .Add(parameter => parameter.Devices, [first, second])
             .Add(parameter => parameter.Saved, device =>
             {
                 saved = device;
@@ -175,7 +175,7 @@ internal sealed class UiEditorComponentsTest
         await using BunitContext context = CreateContext();
         IRenderedComponent<DeviceEditor> cut = context.Render<DeviceEditor>(parameters => parameters
             .Add(parameter => parameter.Display, true)
-            .Add(parameter => parameter.Devices, new List<Device> { new() { Id = 1, Name = "Firewall A" } })
+            .Add(parameter => parameter.Devices, [new() { Id = 1, Name = "Firewall A" }])
             .Add(parameter => parameter.Saved, device =>
             {
                 saved = device;
@@ -198,7 +198,7 @@ internal sealed class UiEditorComponentsTest
         IRenderedComponent<DeviceEditor> cut = context.Render<DeviceEditor>(parameters => parameters
             .Add(parameter => parameter.Display, true)
             .Add(parameter => parameter.SelectedDevice, first)
-            .Add(parameter => parameter.Devices, new List<Device> { first, second })
+            .Add(parameter => parameter.Devices, [first, second])
             .Add(parameter => parameter.DisplayChanged, value =>
             {
                 displayChanged = value;

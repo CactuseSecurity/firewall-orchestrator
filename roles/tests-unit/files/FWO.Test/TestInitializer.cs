@@ -117,7 +117,7 @@ namespace FWO.Test
             fakeLocalTimeZone = new FakeLocalTimeZone(TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin")) { };
         }
 
-        private void SetQueryBasePath()
+        private static void SetQueryBasePath()
         {
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FWO_BASE_DIR")))
             {

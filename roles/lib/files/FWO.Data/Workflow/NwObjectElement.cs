@@ -20,7 +20,7 @@ namespace FWO.Data.Workflow
         [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
         public string IpEndString
         {
-            get { return CidrEnd.CidrString; } // ?? Cidr.CidrString; }
+            get { return CidrEnd.CidrString; }
             set { CidrEnd = new Cidr(value ?? Cidr.CidrString); }   // if End value is not set, asume host and set start ip as end ip
         }
         public Cidr CidrEnd { get; set; } = new();

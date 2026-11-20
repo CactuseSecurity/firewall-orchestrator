@@ -151,9 +151,9 @@ namespace FWO.Services.Workflow
             {
                 var Variables = new
                 {
-                    createdFrom = createdFrom,
-                    createdUntil = createdUntil,
-                    taskType = taskType,
+                    createdFrom,
+                    createdUntil,
+                    taskType,
                     fromState = startState,
                     toState = endState
                 };

@@ -231,7 +231,7 @@ else
     private string RecertStatus = "";
     private GraphQlApiSubscription<List<WfTicket>>? actTicketSubscription;
     private ExtStateHandler? extStateHandler;
-    private WfStateDict states = new();
+    private readonly WfStateDict states = new();
     private bool firstErrorMessage = true;
     private bool workInProgress = false;
     private bool InitDone = false;
@@ -356,11 +356,11 @@ else
     {
         if (appHandler != null && ConnId != null && int.TryParse(ConnId, out int connectionId))
         {
-            ModellingConnection? selectedConn = appHandler?.Connections.FirstOrDefault(c => c.Id == connectionId);
+            ModellingConnection? selectedConn = appHandler.Connections.FirstOrDefault(c => c.Id == connectionId);
             if (selectedConn != null)
             {
                 tabSelected = true;
-                appHandler?.InitActiveTab(selectedConn);
+                appHandler.InitActiveTab(selectedConn);
                 if (IsModellingInteractionAllowedForSelectedApp())
                 {
                     await appHandler!.EditConn(selectedConn);

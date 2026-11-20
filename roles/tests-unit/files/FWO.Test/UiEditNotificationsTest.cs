@@ -12,6 +12,11 @@ namespace FWO.Test
     [TestFixture]
     internal class UiEditNotificationsTest
     {
+        private static readonly int[] kExpectedOwnerResponsibleTypeIds = [1];
+        private static readonly string[] kExpectedJsonAddresses = ["json@example.org"];
+        private static readonly string[] kExpectedCcAddresses = ["cc-add-1@example.org", "cc-add-2@example.org"];
+        private static readonly string[] kExpectedToAddresses = ["to-keep@example.org", "to-add@example.org"];
+
         private static MethodInfo GetPrivateMethod(string name)
         {
             return typeof(EditNotifications).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
@@ -116,7 +121,7 @@ namespace FWO.Test
             GetPrivateMethod("InitActNotification").Invoke(component, null);
             EmailRecipientSelection selection = GetPrivateField<EmailRecipientSelection>(component, "ToRecipientSelection");
 
-            Assert.That(selection.OwnerResponsibleTypeIds, Is.EqualTo(new[] { 1 }));
+            Assert.That(selection.OwnerResponsibleTypeIds, Is.EqualTo(kExpectedOwnerResponsibleTypeIds));
         }
 
         [Test]
@@ -162,8 +167,8 @@ namespace FWO.Test
             EmailRecipientSelection ccSelection = EmailRecipientSelection.Parse(notification.EmailAddressCc);
             Assert.That(notification.RecipientTo, Is.EqualTo(EmailRecipientOption.OtherAddresses));
             Assert.That(notification.RecipientCc, Is.EqualTo(EmailRecipientOption.OtherAddresses));
-            Assert.That(toSelection.OtherAddressList, Is.EqualTo(new[] { "to-keep@example.org", "to-add@example.org" }));
-            Assert.That(ccSelection.OtherAddressList, Is.EqualTo(new[] { "cc-add-1@example.org", "cc-add-2@example.org" }));
+            Assert.That(toSelection.OtherAddressList, Is.EqualTo(kExpectedToAddresses));
+            Assert.That(ccSelection.OtherAddressList, Is.EqualTo(kExpectedCcAddresses));
         }
 
         [Test]
@@ -187,7 +192,7 @@ namespace FWO.Test
             GetPrivateMethod("SyncAddresses").Invoke(component, null);
 
             EmailRecipientSelection selection = EmailRecipientSelection.Parse(notification.EmailAddressTo);
-            Assert.That(selection.OtherAddressList, Is.EqualTo(new[] { "json@example.org" }));
+            Assert.That(selection.OtherAddressList, Is.EqualTo(kExpectedJsonAddresses));
         }
 
         [Test]
@@ -448,7 +453,7 @@ namespace FWO.Test
             FwoNotification actNotification = GetPrivateField<FwoNotification>(component, "actNotification");
             Assert.That(notification.RecipientTo, Is.EqualTo(EmailRecipientOption.OwnerMainResponsible));
             Assert.That(actNotification.RecipientTo, Is.EqualTo(EmailRecipientOption.ConfiguredResponsibles));
-            Assert.That(selection.OwnerResponsibleTypeIds, Is.EqualTo(new[] { 1 }));
+            Assert.That(selection.OwnerResponsibleTypeIds, Is.EqualTo(kExpectedOwnerResponsibleTypeIds));
         }
 
         [Test]
@@ -742,11 +747,11 @@ namespace FWO.Test
             {
                 None = false,
                 OtherAddresses = true,
-                OtherAddressList = new List<string> { "json@example.org" }
+                OtherAddressList = ["json@example.org"]
             };
 
             EmailRecipientSelection result = (EmailRecipientSelection)GetPrivateMethod("ParseOtherAddressSelection")
-                .Invoke(component, new object?[] { expected.ToConfigValue(new List<int> { 1 }), new List<string>() })!;
+                .Invoke(component, new object?[] { expected.ToConfigValue([1]), new List<string>() })!;
 
             Assert.That(result.OtherAddressList, Is.EqualTo(new List<string> { "json@example.org" }));
         }
@@ -844,7 +849,7 @@ namespace FWO.Test
                 None = false,
                 Requester = true,
                 OtherAddresses = true,
-                OtherAddressList = new List<string> { "to@example.org" }
+                OtherAddressList = ["to@example.org"]
             });
 
             GetPrivateMethod("SyncAddresses").Invoke(component, null);
@@ -868,7 +873,7 @@ namespace FWO.Test
         public async Task AddNotificationId_DoesNotAddDuplicateId()
         {
             EditNotifications component = new();
-            List<int> notificationIds = new() { 7 };
+            List<int> notificationIds = [7];
             SetPrivateMember(component, nameof(EditNotifications.NotificationIds), notificationIds);
 
             await (Task)GetPrivateMethod("AddNotificationId").Invoke(component, new object?[] { 7 })!;
@@ -880,7 +885,7 @@ namespace FWO.Test
         public async Task AddAndRemoveNotificationId_UpdatesBoundIds()
         {
             EditNotifications component = new();
-            List<int> notificationIds = new() { 4 };
+            List<int> notificationIds = [4];
             SetPrivateMember(component, "NotificationIds", notificationIds);
 
             await (Task)GetPrivateMethod("AddNotificationId").Invoke(component, new object?[] { 7 })!;
@@ -992,7 +997,7 @@ namespace FWO.Test
             public int AffectedRows { get; init; }
             public bool ThrowOnDelete { get; init; }
             public bool ThrowOnReset { get; init; }
-            public List<int> DeletedIds { get; } = new();
+            public List<int> DeletedIds { get; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
                 string? operationName = null, QueryChunkingOptions? chunkingOptions = null)

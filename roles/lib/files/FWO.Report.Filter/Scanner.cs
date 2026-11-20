@@ -21,7 +21,7 @@ namespace FWO.Report.Filter
         static Scanner()
         {
             // Initialize Token Syntax
-            foreach (TokenKind tokenKind in Enum.GetValues(typeof(TokenKind)))
+            foreach (TokenKind tokenKind in Enum.GetValues<TokenKind>())
             {
                 TokenSyntax validTokenSyntax = TokenSyntax.Get(tokenKind);
 

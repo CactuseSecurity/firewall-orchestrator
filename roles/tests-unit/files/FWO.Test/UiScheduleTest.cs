@@ -24,17 +24,15 @@ namespace FWO.Test
         public async Task Schedule_LoadsVisibleSchedulesAndAllowedTemplates()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>
-                {
+                [
                     CreateSchedule(1, "Own schedule", 50, ReportType.Rules, "Rules template"),
                     CreateSchedule(2, "Foreign schedule", 51, ReportType.Rules, "Rules template")
-                },
-                new List<ReportTemplate>
-                {
+                ],
+                [
                     CreateTemplate(11, "Rules template", ReportType.Rules),
                     CreateTemplate(12, "Connections template", ReportType.Connections)
-                },
-                new List<FwoOwner>());
+                ],
+                []);
 
             await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), new List<string> { Roles.Reporter }, apiConnection, out _);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
@@ -63,12 +61,11 @@ namespace FWO.Test
         public async Task Schedule_AddReportSchedule_UsesDefaultsAndSavesSchedule()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>(),
-                new List<ReportTemplate>
-                {
+                [],
+                [
                     CreateTemplate(21, "Rules template", ReportType.Rules)
-                },
-                new List<FwoOwner>());
+                ],
+                []);
 
             await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), new List<string> { Roles.Reporter }, apiConnection, out SimulatedUserConfig userConfig);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
@@ -89,10 +86,10 @@ namespace FWO.Test
             ReportSchedule reportScheduleInEdit = GetPrivateField<ReportSchedule>(component, "reportScheduleInEdit");
             reportScheduleInEdit.Name = "Nightly schedule";
             reportScheduleInEdit.Template = GetPrivateField<List<ReportTemplate>>(component, "reportTemplates")[0];
-            reportScheduleInEdit.OutputFormat = new List<FileFormat>
-            {
+            reportScheduleInEdit.OutputFormat =
+            [
                 new FileFormat { Name = GlobalConst.kJson }
-            };
+            ];
             SetPrivateField(component, "actDate", new DateTime(2026, 7, 27));
             SetPrivateField(component, "actTime", new DateTime(2026, 7, 27, 13, 45, 0));
 
@@ -115,13 +112,12 @@ namespace FWO.Test
         public async Task Schedule_AddReportSchedule_WithoutTemplate_ShowsValidationError()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>(),
-                new List<ReportTemplate>
-                {
+                [],
+                [
                     CreateTemplate(21, "Rules template", ReportType.Rules)
-                },
-                new List<FwoOwner>());
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new List<(Exception? Exception, string Title, string Message, bool IsError)>();
+                ],
+                []);
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
 
             await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), new List<string> { Roles.Reporter }, apiConnection, out SimulatedUserConfig userConfig);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, (exception, title, message, isError) => messages.Add((exception, title, message, isError)));
@@ -153,18 +149,15 @@ namespace FWO.Test
         public async Task Schedule_EditReportSchedule_ShowsAvailabilityAndUpdatesSchedule()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>
-                {
+                [
                     CreateSchedule(1, "Own schedule", 50, ReportType.Connections, "Connections template", true)
-                },
-                new List<ReportTemplate>
-                {
+                ],
+                [
                     CreateTemplate(31, "Connections template", ReportType.Connections)
-                },
-                new List<FwoOwner>
-                {
+                ],
+                [
                     new FwoOwner { Id = 0, Name = "All" }
-                });
+                ]);
 
             await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Admin), new List<string> { Roles.Admin }, apiConnection, out _);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
@@ -210,15 +203,13 @@ namespace FWO.Test
         public async Task Schedule_DeleteReportSchedule_SendsDeleteAndClosesDialog()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>
-                {
+                [
                     CreateSchedule(1, "Own schedule", 50, ReportType.Rules, "Rules template")
-                },
-                new List<ReportTemplate>
-                {
+                ],
+                [
                     CreateTemplate(21, "Rules template", ReportType.Rules)
-                },
-                new List<FwoOwner>());
+                ],
+                []);
 
             await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), new List<string> { Roles.Reporter }, apiConnection, out _);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
@@ -243,15 +234,13 @@ namespace FWO.Test
         public async Task Schedule_AuditorCanOpenForeignScheduleButCannotSaveOrDeleteIt()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>
-                {
+                [
                     CreateSchedule(1, "Foreign schedule", 77, ReportType.Rules, "Rules template")
-                },
-                new List<ReportTemplate>
-                {
+                ],
+                [
                     CreateTemplate(21, "Rules template", ReportType.Rules)
-                },
-                new List<FwoOwner>());
+                ],
+                []);
 
             await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Auditor), new List<string> { Roles.Auditor }, apiConnection, out SimulatedUserConfig userConfig);
             userConfig.ModIconify = false;
@@ -288,12 +277,11 @@ namespace FWO.Test
         public async Task Schedule_AuditorCanSaveNewSchedule()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>(),
-                new List<ReportTemplate>
-                {
+                [],
+                [
                     CreateTemplate(21, "Rules template", ReportType.Rules)
-                },
-                new List<FwoOwner>());
+                ],
+                []);
 
             await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Auditor), new List<string> { Roles.Auditor }, apiConnection, out SimulatedUserConfig userConfig);
             userConfig.ModIconify = false;
@@ -324,7 +312,7 @@ namespace FWO.Test
             userConfig.User.DbId = 50;
             userConfig.User.Name = "report.user";
             userConfig.User.Language = "English";
-            userConfig.User.Roles = new List<string>(roles);
+            userConfig.User.Roles = [.. roles];
             context.Services.AddSingleton<UserConfig>(userConfig);
             return context;
         }
@@ -369,13 +357,13 @@ namespace FWO.Test
                 RepeatOffset = 2,
                 RepeatInterval = SchedulerInterval.Weeks,
                 Template = CreateTemplate(id + 100, templateName, reportType),
-                OutputFormat = new List<FileFormat>
-                {
+                OutputFormat =
+                [
                     new FileFormat { Name = GlobalConst.kHtml },
                     new FileFormat { Name = GlobalConst.kPdf },
                     new FileFormat { Name = GlobalConst.kJson },
                     new FileFormat { Name = GlobalConst.kCsv }
-                },
+                ],
                 Active = true,
                 Counter = 3,
                 Archive = false
@@ -383,8 +371,8 @@ namespace FWO.Test
 
             if (withNotification)
             {
-                schedule.Notifications = new List<FwoNotification>
-                {
+                schedule.Notifications =
+                [
                     new FwoNotification
                     {
                         Id = 77,
@@ -392,7 +380,7 @@ namespace FWO.Test
                         EmailSubject = "Subject",
                         EmailBody = "Body"
                     }
-                };
+                ];
             }
 
             return schedule;

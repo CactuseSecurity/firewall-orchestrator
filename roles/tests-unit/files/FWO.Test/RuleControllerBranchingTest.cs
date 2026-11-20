@@ -25,7 +25,7 @@ namespace FWO.Test
         private static readonly string[] kFirstPageRuleNames = ["Source"];
         private static readonly string[] kSecondPageRuleNames = ["Destination"];
         private static readonly string[] kBothPageRuleNames = ["Source", "Destination"];
-        private static readonly List<string> kExpectedRuleUidNames = new() { "Source", "MatchingGroup", "Destination" };
+        private static readonly List<string> kExpectedRuleUidNames = ["Source", "MatchingGroup", "Destination"];
         private static readonly List<long> kExpectedSingleRuleUidIds = [101];
         private static readonly List<string> kExpectedRuleUidManagers = ["1", "2", "3"];
         private static readonly List<long> kExpectedRepeatedRuleUidIds = [101, 303, 404];
@@ -848,9 +848,10 @@ namespace FWO.Test
                 if (typeof(QueryResponseType) == typeof(List<RuleOwnerItem>) && query == RuleQueries.getRuleIdsByRuleOwner)
                 {
                     int ownerId = GetIntVariable(variables, "ownerId");
-                    return Task.FromResult((QueryResponseType)(object)(ownerId == 42
-                        ? new List<RuleOwnerItem> { new() { RuleId = 101 } }
-                        : new List<RuleOwnerItem>()));
+                    List<RuleOwnerItem> ruleOwnerItems = ownerId == 42
+                        ? [new() { RuleId = 101 }]
+                        : [];
+                    return Task.FromResult((QueryResponseType)(object)ruleOwnerItems);
                 }
 
                 if (typeof(QueryResponseType) == typeof(List<RuleOwnerItem>) && query == RuleQueries.getRuleIdsByRuleUid)
@@ -858,17 +859,17 @@ namespace FWO.Test
                     string ruleUid = GetStringVariable(variables, "ruleUid");
                     List<RuleOwnerItem> ruleIds = ruleUid switch
                     {
-                        "uid-one" => new List<RuleOwnerItem> { new() { RuleId = 101 } },
+                        "uid-one" => [new() { RuleId = 101 }],
                         "uid-bigint" => Newtonsoft.Json.JsonConvert.DeserializeObject<List<RuleOwnerItem>>(
                             $"[{{\"rule_id\":{kBigRuleId}}}]")!,
-                        "uid-repeated" => new List<RuleOwnerItem>
-                        {
+                        "uid-repeated" =>
+                        [
                             new() { RuleId = 404 },
                             new() { RuleId = 101 },
                             new() { RuleId = 303 },
                             new() { RuleId = 101 }
-                        },
-                        _ => new List<RuleOwnerItem>()
+                        ],
+                        _ => []
                     };
                     return Task.FromResult((QueryResponseType)(object)ruleIds);
                 }
@@ -968,7 +969,7 @@ namespace FWO.Test
             private static List<long> GetLongListVariable(object? variables, string name)
             {
                 object? value = variables?.GetType().GetProperty(name)?.GetValue(variables);
-                return value is IEnumerable<long> values ? values.ToList() : new List<long>();
+                return value is IEnumerable<long> values ? values.ToList() : [];
             }
 
             private static string GetStringVariable(object? variables, string name)

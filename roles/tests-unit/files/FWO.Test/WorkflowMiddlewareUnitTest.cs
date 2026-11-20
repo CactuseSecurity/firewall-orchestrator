@@ -266,14 +266,14 @@ namespace FWO.Test
             {
                 return new StateMatrix
                 {
-                    Matrix = new Dictionary<int, List<int>>(),
-                    DerivedStates = new Dictionary<int, int>(),
+                    Matrix = [],
+                    DerivedStates = [],
                     LowestInputState = 1,
                     LowestStartedState = 1,
                     LowestEndState = lowestEndState,
                     Active = true,
-                    StateVisibilityGroupIds = new Dictionary<int, List<int>>(),
-                    ExclusiveVisibilityGroupIds = new HashSet<int>(),
+                    StateVisibilityGroupIds = [],
+                    ExclusiveVisibilityGroupIds = [],
                     PhaseActive = new Dictionary<WorkflowPhases, bool>
                     {
                         [WorkflowPhases.request] = true,
@@ -2433,13 +2433,6 @@ namespace FWO.Test
             MethodInfo method = instance.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException($"{methodName} not found.");
             return (T)method.Invoke(instance, parameters)!;
-        }
-
-        private static async Task InvokePrivateStaticTask(Type type, string methodName, params object?[] parameters)
-        {
-            MethodInfo method = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
-                ?? throw new InvalidOperationException($"{methodName} not found.");
-            await (Task)method.Invoke(null, parameters)!;
         }
 
         private static T InvokePrivateStaticWithRef<T>(Type type, string methodName, object?[] parameters)

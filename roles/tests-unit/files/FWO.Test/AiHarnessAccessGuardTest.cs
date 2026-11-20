@@ -22,7 +22,7 @@ internal class AiHarnessAccessGuardTest
     private const string kConfigTable = "config";
     private const string kCredentialView = "v_ai_provider_credential";
     private const string kSelectPermissions = "select_permissions";
-    private const string kUpgradeFile = "9.9.2.sql";
+    private const string kUpgradeFile = "9.9.4.sql";
 
     private static readonly List<string> kPermissionKinds = ["select_permissions", "insert_permissions", "update_permissions", "delete_permissions"];
     private static readonly List<string> kConfigColumns = ["config_key", "config_value", "config_user"];

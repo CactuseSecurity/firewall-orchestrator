@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.9.2 - 10.11.2026
+## 9.9.4 - 17.11.2026
 - new AI MCP server (service `fworch-ai-mcp`, endpoint `/mcp` on the middleware host): offers FWO tools and prompts to MCP clients such as Claude Code or Codex, limited to what the roles of the calling user allow
 - new AI harness (service `fworch-ai-harness`, endpoint `/agui`): runs an AI agent (Ollama, OpenAI, Anthropic or Google) on the MCP tools over AG-UI with the rights of the calling user; tools that change data need the user's confirmation
 - both AI servers are installed by default on the middleware host; skip them with `install_ai_server=no`

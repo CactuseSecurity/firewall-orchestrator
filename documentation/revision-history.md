@@ -63,13 +63,17 @@
     configured mapping source, in full and incremental runs. The changes are stamped with the current relevant import
     of the management of the rule (its last successful import with changes, or that of its super-manager if newer),
     one label change event per import, so that rule reports show them right away; rules of managements without such
-    an import get the import control id of the run. The first run of the middleware process, or the one after a failed sync, compares
-    all rules, which also fills the App labels of the existing mappings after the upgrade. Owners without app id are
-    skipped
+    an import get the import control id of the run. The first run of the middleware process, the one after a failed
+    sync and the first one after the App key changed compare all rules, which also fills the App labels of the existing
+    mappings after the upgrade. Only App labels are written to labelling.rule_label, so labels of a former App key are
+    closed, without App key all of them. Owners without app id are skipped. A changed app id saved in the owner
+    settings is recorded as owner change (owner import with changelog entry), so the next incremental mapping run
+    gives the rules of the owner the new App label
   - app servers: the app data import gives all active app servers of an imported owner the App label of the owner
     and closes other App labels; at the end of every run it does the same for the active owners that were not part of
     the import files (e.g. created in the UI), which also fills their App labels after the upgrade. App servers saved
-    in the UI (by admins) and the app servers of an owner saved in the owner settings get it as well.
+    in the UI (by admins) and the app servers of an owner saved in the owner settings get it as well. Saving a changed
+    App key closes the App labels of the app servers under the former key and assigns those of the new key
   - csv upload of app servers (Settings - App Data Import): optional header columns label:<key> import labels of the
     app servers with the rules of the app data import (rejections are shown as warnings), and the App label of the
     owners is assigned once per owner after the upload; the whole upload shares one label change event The App key is rejected in
@@ -81,11 +85,13 @@
   label_key.app_label_key_configs, which restrict only labels of the key stored in config entry appLabelKey; its
   default App is now stored on install and upgrade). Changes are stored in
   labelling.connection_source_label / connection_destination_label with the AND-group number and recorded as
-  label_change_event (origin UI, actor, connection) and in the connection history. Connections using an interface
+  label_change_event (origin UI, actor, actor_id of the uiuser, connection) and in the connection history. Connections using an interface
   show the labels of the interface side; while label-based modelling is off, assigned labels are shown read-only.
   The connection overview lists the labels of each side
 - api: modeller may read, add and close the labels of connections of own apps and write UI label change events;
-  recertifier may read connection labels
+  recertifier may read connection labels. Hasura presets actor_id of a modeller's change event from the session, and a
+  modeller adds and closes label assignments only with an own change event from the UI, closes only active ones, adds
+  no AppRole / AppZone labels and adds labels only while label-based modelling is switched on
 - modelling: global setting labelBasedModelling ("Label-based Modelling" under Settings - Modelling, default off,
   issue #5553). It switches the selection of labels as source and destination in modelling (#5552) on; when off,
   labels already assigned to connections stay stored and are shown read-only, and reports keep showing imported
@@ -116,8 +122,10 @@
   other managements still only while they have external management data
 - settings: new device specific setting provisioningExcludedObjectTypes (Global to manager): modelling group types
   (AppRole, AppZone, NetworkArea, ServiceGroup) left out of the variance analysis and of provisioning; when writing,
-  groups have the type of their label key or naming convention, and the task of an excluded group is left out with
-  its member objects
+  groups have the type of their label key or the type their request task names (additional info GrpType, set by the
+  variance analysis and the modelling notifications), and the task of an excluded group is left out with its member
+  objects. The type is not guessed from a prefix of the naming convention, which may be empty or start other names;
+  a Guardicore group of unknown type is only written if it is named "key: value"
 - api: modeller, recertifier, reporter and reporter-viewall may read the device specific settings nodes and the
   values of modellingCreateAppZones, modellingImplementNetworkAreaObjects and provisioningExcludedObjectTypes, which
   the variance analysis needs; modeller, recertifier and reporter only the global and device type nodes and the
@@ -125,6 +133,8 @@
 - workflow: the action "Create implementation tasks" leaves out the gateways of other managements found by the path
   analysis for access tasks of a Guardicore management (gateways of its sub-managements are kept); access tasks of
   other vendors keep all gateways of the path analysis
+- maintenance: fworch-cleanup.sql keeps the import controls referenced by rule owner mappings and label change
+  events, which would otherwise be deleted with them (on delete cascade) or reopen the assignments they closed
 - upgrade: db upgrade file adds the labelling schema, the rule label columns and the Guardicore
   device types to existing installations, and grants the read-only database user fwo_ro read access to the labelling
   schema

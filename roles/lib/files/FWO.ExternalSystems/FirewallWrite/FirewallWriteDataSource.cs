@@ -2,11 +2,10 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
-using FWO.Config.Api.Data;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Labelling;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
-using FWO.Logging;
 
 namespace FWO.ExternalSystems.FirewallWrite
 {
@@ -24,8 +23,8 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// </summary>
     public sealed class ApiFirewallWriteDataSource(ApiConnection apiConnection) : IFirewallWriteDataSource
     {
-        private const string kNamingConventionKey = "modNamingConvention";
-        private const string kLogCategory = "Firewall Write";
+        private static readonly HashSet<string> kGroupTaskTypes =
+            [nameof(WfTaskType.group_create), nameof(WfTaskType.group_modify), nameof(WfTaskType.group_delete)];
 
         /// <inheritdoc/>
         public async Task<FirewallWriteContext> LoadContext(WfImplTask implTask)
@@ -91,26 +90,24 @@ namespace FWO.ExternalSystems.FirewallWrite
                 Settings = settings[0],
                 Rulebases = rulebases,
                 RuleLayerUids = ruleLayerUids,
-                NamingConvention = await LoadNamingConvention()
+                GroupObjectType = await LoadGroupObjectType(implTask)
             };
         }
 
         /// <summary>
-        /// Loads the naming convention of modelled objects from the global configuration. Without it groups are only told
-        /// by names "key: value", so a missing convention does not stop writes to other vendors.
+        /// Loads the modelling object type the request task of a group task names for its group (additional info
+        /// <c>GrpType</c>); other tasks and groups requested without a type have none.
         /// </summary>
-        private async Task<ModellingNamingConvention> LoadNamingConvention()
+        private async Task<ModellingTypes.ModObjectType?> LoadGroupObjectType(WfImplTask implTask)
         {
-            try
+            if (!kGroupTaskTypes.Contains(implTask.TaskType) || implTask.ReqTaskId <= 0)
             {
-                List<ConfigItem> items = await apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey, new { key = kNamingConventionKey });
-                return ModellingNamingConvention.FromJson(items.FirstOrDefault()?.Value);
+                return null;
             }
-            catch (Exception exception) when (exception is not OperationCanceledException)
-            {
-                Log.WriteWarning(kLogCategory, $"The naming convention could not be loaded, groups are only told by names \"key: value\": {exception.Message}");
-                return new ModellingNamingConvention();
-            }
+            List<WfReqTask> requestTasks = await apiConnection.SendQueryAsync<List<WfReqTask>>(RequestQueries.getRequestTaskAdditionalInfo,
+                new { id = implTask.ReqTaskId });
+            string? objectType = requestTasks.FirstOrDefault()?.GetAddInfoValue(AdditionalInfoKeys.GrpType);
+            return DynamicIpLabel.ParseObjectType(objectType);
         }
 
         /// <summary>

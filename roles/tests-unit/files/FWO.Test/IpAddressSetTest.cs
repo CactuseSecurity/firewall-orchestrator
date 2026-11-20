@@ -113,5 +113,106 @@ namespace FWO.Test
                 Assert.That(new IpAddressSet().IsEmpty, Is.True);
             });
         }
+
+        /// <summary>
+        /// Random adds and removes of small IPv4 and IPv6 intervals give the same addresses as a plain set of numbers,
+        /// and the intervals stay sorted, disjoint and not adjoining.
+        /// </summary>
+        [Test]
+        public void AddAndRemove_MatchAPlainSetOfAddresses()
+        {
+            const int kOperations = 2000;
+            const int kAddressSpace = 300;
+            const int kMaxLength = 8;
+            const int kSeed = 4711;
+            Random random = new(kSeed);
+            IpAddressSet set = new();
+            HashSet<(System.Net.Sockets.AddressFamily, int)> expected = [];
+            for (int operation = 0; operation < kOperations; operation++)
+            {
+                System.Net.Sockets.AddressFamily family = random.Next(2) == 0
+                    ? System.Net.Sockets.AddressFamily.InterNetwork
+                    : System.Net.Sockets.AddressFamily.InterNetworkV6;
+                int start = random.Next(kAddressSpace);
+                int end = start + random.Next(kMaxLength);
+                IpInterval interval = new(family, start, end);
+                bool add = random.Next(3) > 0;
+                if (add)
+                {
+                    set.Add(interval);
+                }
+                else
+                {
+                    set.Remove(interval);
+                }
+                for (int address = start; address <= end; address++)
+                {
+                    if (add)
+                    {
+                        expected.Add((family, address));
+                    }
+                    else
+                    {
+                        expected.Remove((family, address));
+                    }
+                }
+            }
+            HashSet<(System.Net.Sockets.AddressFamily, int)> actual = [];
+            foreach (IpInterval interval in set.Intervals)
+            {
+                for (int address = (int)interval.Start; address <= (int)interval.End; address++)
+                {
+                    actual.Add((interval.Family, address));
+                }
+            }
+            Assert.Multiple(() =>
+            {
+                Assert.That(actual.SetEquals(expected), Is.True);
+                Assert.That(IsSortedAndDisjoint(set.Intervals), Is.True);
+                Assert.That(set.Contains(new IpInterval(System.Net.Sockets.AddressFamily.InterNetwork, 0, kAddressSpace + kMaxLength)),
+                    Is.EqualTo(Enumerable.Range(0, kAddressSpace + kMaxLength + 1).All(address => expected.Contains((System.Net.Sockets.AddressFamily.InterNetwork, address)))));
+            });
+        }
+
+        /// <summary>
+        /// Adding many disjoint hosts stays fast: the intervals are found by binary search instead of a scan and a sort per add.
+        /// </summary>
+        [Test]
+        public void Add_ManyDisjointHostsStaysFast()
+        {
+            const int kHosts = 20000;
+            const int kMaxMilliseconds = 2000;
+            IpAddressSet set = new();
+            System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
+            for (int host = kHosts - 1; host >= 0; host--)
+            {
+                // every second address, so that no two hosts merge
+                set.Add(new IpInterval(System.Net.Sockets.AddressFamily.InterNetwork, host * 2, host * 2));
+            }
+            watch.Stop();
+            Assert.Multiple(() =>
+            {
+                Assert.That(set.Intervals, Has.Count.EqualTo(kHosts));
+                Assert.That(IsSortedAndDisjoint(set.Intervals), Is.True);
+                Assert.That(set.Contains(new IpInterval(System.Net.Sockets.AddressFamily.InterNetwork, 2, 2)), Is.True);
+                Assert.That(set.Contains(new IpInterval(System.Net.Sockets.AddressFamily.InterNetwork, 3, 3)), Is.False);
+                Assert.That(watch.ElapsedMilliseconds, Is.LessThan(kMaxMilliseconds));
+            });
+        }
+
+        private static bool IsSortedAndDisjoint(IReadOnlyList<IpInterval> intervals)
+        {
+            for (int index = 1; index < intervals.Count; index++)
+            {
+                IpInterval previous = intervals[index - 1];
+                IpInterval current = intervals[index];
+                bool ordered = previous.Family < current.Family || (previous.Family == current.Family && previous.End + 1 < current.Start);
+                if (!ordered)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 }

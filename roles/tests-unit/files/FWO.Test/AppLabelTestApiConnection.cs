@@ -20,6 +20,8 @@ namespace FWO.Test
         public List<RuleOwnerApp> ActiveRuleOwnerApps { get; } = [];
         public List<RuleLabelRow> ActiveRuleAppLabels { get; } = [];
         public List<OwnerAppServerAppLabels> Owners { get; } = [];
+        public List<FwoOwner> OwnersWithNetworks { get; } = [];
+        public List<string> ClosedKeys { get; } = [];
         public bool FailReads { get; set; }
         public bool FailImportReads { get; set; }
         public List<RuleManagement> RuleManagements { get; } = [];
@@ -85,6 +87,10 @@ namespace FWO.Test
             if (query == LabellingQueries.getOwnerAppServerAppLabels)
             {
                 return Owners;
+            }
+            if (query == OwnerQueries.getOwnersWithNetworks)
+            {
+                return OwnersWithNetworks;
             }
             return null;
         }
@@ -158,6 +164,10 @@ namespace FWO.Test
                 {
                     ClosedServerLabels.Add((ownerNetworkId, labelId, eventId));
                 }
+            }
+            else if (query == LabellingQueries.closeOwnerNetworkLabelsOfKey)
+            {
+                ClosedKeys.Add((string)Value(variables, "keyName")!);
             }
             else
             {

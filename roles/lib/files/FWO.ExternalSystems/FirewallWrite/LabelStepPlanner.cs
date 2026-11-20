@@ -31,14 +31,14 @@ namespace FWO.ExternalSystems.FirewallWrite
         }
 
         /// <summary>Returns the label a group task writes.</summary>
-        /// <exception cref="FirewallWriteException">Thrown if the group name is neither "key: value" nor an id string of the naming convention.</exception>
+        /// <exception cref="FirewallWriteException">Thrown if the group is neither named "key: value" nor requested as app role, app zone or network area.</exception>
         public static DynamicIpLabel Label(WfImplTask implTask, FirewallWriteContext context)
         {
             string groupName = ImplTaskStepPlanner.GroupName(implTask);
-            return DynamicIpLabel.FromGroupName(groupName, context.NamingConvention)
+            return DynamicIpLabel.FromGroupName(groupName, context.GroupObjectType)
                 ?? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
                     $"Group '{groupName}' of implementation task {implTask.Id} stands for no label: it is neither named \"key{DynamicIpLabel.kKeyValueSeparator}value\" " +
-                    "nor an app role, app zone or network area id string of the naming convention.");
+                    "nor requested as app role, app zone or network area.");
         }
 
         private static FirewallWriteStep LabelWriteStep(WfImplTask implTask, FirewallWriteContext context, bool replace)

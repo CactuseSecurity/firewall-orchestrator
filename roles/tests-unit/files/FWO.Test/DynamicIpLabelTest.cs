@@ -11,8 +11,6 @@ namespace FWO.Test
     [TestFixture]
     internal class DynamicIpLabelTest
     {
-        private static readonly ModellingNamingConvention NamingConvention = new() { AppRolePattern = "AR", AppZone = "AZ", NetworkAreaPattern = "NA" };
-        private static readonly ModellingNamingConvention OverlappingConvention = new() { AppRolePattern = "A", AppZone = "AZ" };
 
         [Test]
         public void ForModelledGroup_UsesTheKeyOfTheObjectType()
@@ -34,37 +32,51 @@ namespace FWO.Test
             Assert.Throws<ArgumentOutOfRangeException>(() => DynamicIpLabel.ForModelledGroup(ModellingTypes.ModObjectType.Service, "x"));
         }
 
-        [TestCase("AR4711-001", "AppRole", "AR4711-001")]
-        [TestCase("AZ4711", "AppZone", "AZ4711")]
-        [TestCase("NA50", "NetworkArea", "NA50")]
-        [TestCase("Stage: Prod", "Stage", "Prod")]
-        [TestCase(" AppRole: AR1 ", "AppRole", "AR1")]
-        public void FromGroupName_TellsKeyAndValue(string groupName, string key, string value)
+        [TestCase("AR4711-001", ModellingTypes.ModObjectType.AppRole, "AppRole", "AR4711-001")]
+        [TestCase("AZ4711", ModellingTypes.ModObjectType.AppZone, "AppZone", "AZ4711")]
+        [TestCase("NA50", ModellingTypes.ModObjectType.NetworkArea, "NetworkArea", "NA50")]
+        [TestCase("ARCHIVE_SRV", ModellingTypes.ModObjectType.AppZone, "AppZone", "ARCHIVE_SRV")]
+        [TestCase("Stage: Prod", null, "Stage", "Prod")]
+        [TestCase(" AppRole: AR1 ", ModellingTypes.ModObjectType.NetworkArea, "AppRole", "AR1")]
+        public void FromGroupName_TellsKeyAndValue(string groupName, ModellingTypes.ModObjectType? objectType, string key, string value)
         {
-            Assert.That(DynamicIpLabel.FromGroupName(groupName, NamingConvention), Is.EqualTo(new DynamicIpLabel(key, value)));
+            Assert.That(DynamicIpLabel.FromGroupName(groupName, objectType), Is.EqualTo(new DynamicIpLabel(key, value)));
         }
 
-        [TestCase("WebServers")]
-        [TestCase("AR")]
-        [TestCase(": Prod")]
-        [TestCase("Stage: ")]
-        [TestCase(null)]
-        public void FromGroupName_IsNullForOtherNames(string? groupName)
+        [TestCase("WebServers", null)]
+        [TestCase("AR4711-001", null)]
+        [TestCase("Svc", ModellingTypes.ModObjectType.ServiceGroup)]
+        [TestCase(": Prod", null)]
+        [TestCase("Stage: ", null)]
+        [TestCase(null, ModellingTypes.ModObjectType.AppRole)]
+        public void FromGroupName_IsNullForOtherNames(string? groupName, ModellingTypes.ModObjectType? objectType)
         {
-            Assert.That(DynamicIpLabel.FromGroupName(groupName, NamingConvention), Is.Null);
+            Assert.That(DynamicIpLabel.FromGroupName(groupName, objectType), Is.Null);
         }
 
         [Test]
-        public void GroupObjectType_PrefersTheLongestPrefixAndLabelKeys()
+        public void GroupObjectType_TakesLabelKeysElseTheRequestedType()
         {
             Assert.Multiple(() =>
             {
-                Assert.That(DynamicIpLabel.GroupObjectType("AZ4711", OverlappingConvention), Is.EqualTo(ModellingTypes.ModObjectType.AppZone));
-                Assert.That(DynamicIpLabel.GroupObjectType("AR4711", OverlappingConvention), Is.EqualTo(ModellingTypes.ModObjectType.AppRole));
-                Assert.That(DynamicIpLabel.GroupObjectType("NetworkArea: NA1", new ModellingNamingConvention()), Is.EqualTo(ModellingTypes.ModObjectType.NetworkArea));
-                Assert.That(DynamicIpLabel.GroupObjectType("Stage: Prod", NamingConvention), Is.Null);
-                Assert.That(DynamicIpLabel.GroupObjectType("AR4711", new ModellingNamingConvention()), Is.Null);
+                Assert.That(DynamicIpLabel.GroupObjectType("NetworkArea: NA1", ModellingTypes.ModObjectType.AppRole), Is.EqualTo(ModellingTypes.ModObjectType.NetworkArea));
+                Assert.That(DynamicIpLabel.GroupObjectType("Stage: Prod", ModellingTypes.ModObjectType.AppRole), Is.Null);
+                Assert.That(DynamicIpLabel.GroupObjectType("Svc", ModellingTypes.ModObjectType.ServiceGroup), Is.EqualTo(ModellingTypes.ModObjectType.ServiceGroup));
+                Assert.That(DynamicIpLabel.GroupObjectType("AR4711", null), Is.Null);
             });
+        }
+
+        [TestCase("AppRole", ModellingTypes.ModObjectType.AppRole)]
+        [TestCase(" NetworkArea ", ModellingTypes.ModObjectType.NetworkArea)]
+        [TestCase("ServiceGroup", ModellingTypes.ModObjectType.ServiceGroup)]
+        [TestCase("appRole", null)]
+        [TestCase("20", null)]
+        [TestCase("Unknown", null)]
+        [TestCase("", null)]
+        [TestCase(null, null)]
+        public void ParseObjectType_ReadsTheNamesOfObjectTypes(string? text, ModellingTypes.ModObjectType? expected)
+        {
+            Assert.That(DynamicIpLabel.ParseObjectType(text), Is.EqualTo(expected));
         }
     }
 }

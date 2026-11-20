@@ -97,16 +97,27 @@ namespace FWO.Basics
             return $"{start}{kRangeSeparator}{ToAddress(interval.End, interval.Family)}";
         }
 
-        /// <summary>Adds the addresses of an interval.</summary>
+        /// <summary>
+        /// Adds the addresses of an interval. The intervals stay sorted and disjoint, so the intervals it overlaps or
+        /// adjoins are found by binary search and merged in place.
+        /// </summary>
         public void Add(IpInterval interval)
         {
-            List<IpInterval> touching = [.. intervals.Where(existing => existing.Family == interval.Family
-                && existing.Start <= interval.End + 1 && interval.Start <= existing.End + 1)];
-            BigInteger start = touching.Select(existing => existing.Start).Append(interval.Start).Min();
-            BigInteger end = touching.Select(existing => existing.End).Append(interval.End).Max();
-            intervals.RemoveAll(touching.Contains);
-            intervals.Add(new IpInterval(interval.Family, start, end));
-            Sort();
+            int first = FirstEndingAtOrAfter(interval.Family, interval.Start - 1);
+            int last = first;
+            while (last < intervals.Count && intervals[last].Family == interval.Family && intervals[last].Start <= interval.End + 1)
+            {
+                last++;
+            }
+            BigInteger start = interval.Start;
+            BigInteger end = interval.End;
+            if (last > first)
+            {
+                start = BigInteger.Min(start, intervals[first].Start);
+                end = BigInteger.Max(end, intervals[last - 1].End);
+                intervals.RemoveRange(first, last - first);
+            }
+            intervals.Insert(first, new IpInterval(interval.Family, start, end));
         }
 
         /// <summary>Adds all addresses of another set.</summary>
@@ -121,26 +132,27 @@ namespace FWO.Basics
         /// <summary>Removes the addresses of an interval.</summary>
         public void Remove(IpInterval interval)
         {
-            List<IpInterval> remaining = [];
-            foreach (IpInterval existing in intervals)
+            int first = FirstEndingAtOrAfter(interval.Family, interval.Start);
+            int last = first;
+            while (last < intervals.Count && intervals[last].Family == interval.Family && intervals[last].Start <= interval.End)
             {
-                if (existing.Family != interval.Family || existing.End < interval.Start || interval.End < existing.Start)
-                {
-                    remaining.Add(existing);
-                    continue;
-                }
-                if (existing.Start < interval.Start)
-                {
-                    remaining.Add(existing with { End = interval.Start - 1 });
-                }
-                if (interval.End < existing.End)
-                {
-                    remaining.Add(existing with { Start = interval.End + 1 });
-                }
+                last++;
             }
-            intervals.Clear();
-            intervals.AddRange(remaining);
-            Sort();
+            if (last == first)
+            {
+                return;
+            }
+            List<IpInterval> remnants = [];
+            if (intervals[first].Start < interval.Start)
+            {
+                remnants.Add(intervals[first] with { End = interval.Start - 1 });
+            }
+            if (interval.End < intervals[last - 1].End)
+            {
+                remnants.Add(intervals[last - 1] with { Start = interval.End + 1 });
+            }
+            intervals.RemoveRange(first, last - first);
+            intervals.InsertRange(first, remnants);
         }
 
         /// <summary>Removes all addresses of another set.</summary>
@@ -155,13 +167,16 @@ namespace FWO.Basics
         /// <summary>Whether all addresses of an interval belong to the set.</summary>
         public bool Contains(IpInterval interval)
         {
-            return intervals.Exists(existing => existing.Family == interval.Family && existing.Start <= interval.Start && interval.End <= existing.End);
+            int index = FirstEndingAtOrAfter(interval.Family, interval.Start);
+            return index < intervals.Count && intervals[index].Family == interval.Family
+                && intervals[index].Start <= interval.Start && interval.End <= intervals[index].End;
         }
 
         /// <summary>Whether an interval and the set have an address in common.</summary>
         public bool Overlaps(IpInterval interval)
         {
-            return intervals.Exists(existing => existing.Family == interval.Family && existing.Start <= interval.End && interval.Start <= existing.End);
+            int index = FirstEndingAtOrAfter(interval.Family, interval.Start);
+            return index < intervals.Count && intervals[index].Family == interval.Family && intervals[index].Start <= interval.End;
         }
 
         /// <summary>Whether both sets hold the same addresses.</summary>
@@ -170,11 +185,30 @@ namespace FWO.Basics
         /// <summary>Returns a copy of the set.</summary>
         public IpAddressSet Copy() => Of(intervals);
 
-        private void Sort()
+        /// <summary>
+        /// Returns the index of the first interval of the family that ends at or after an address, or the index where such
+        /// an interval would be inserted. The intervals are sorted by family and start and do not overlap, so their ends
+        /// are sorted as well.
+        /// </summary>
+        private int FirstEndingAtOrAfter(AddressFamily family, BigInteger address)
         {
-            intervals.Sort((left, right) => left.Family != right.Family
-                ? left.Family.CompareTo(right.Family)
-                : left.Start.CompareTo(right.Start));
+            int low = 0;
+            int high = intervals.Count;
+            while (low < high)
+            {
+                int middle = low + (high - low) / 2;
+                IpInterval candidate = intervals[middle];
+                bool before = candidate.Family < family || (candidate.Family == family && candidate.End < address);
+                if (before)
+                {
+                    low = middle + 1;
+                }
+                else
+                {
+                    high = middle;
+                }
+            }
+            return low;
         }
 
         private static int Bits(AddressFamily family) => family == AddressFamily.InterNetworkV6 ? kIpv6Bits : kIpv4Bits;

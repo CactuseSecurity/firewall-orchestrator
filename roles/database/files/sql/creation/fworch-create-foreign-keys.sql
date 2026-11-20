@@ -467,6 +467,7 @@ ALTER TABLE labelling.label_value ADD CONSTRAINT labelling_label_value_label_key
 ALTER TABLE labelling.label_change_event ADD CONSTRAINT labelling_label_change_event_import_control_fkey FOREIGN KEY (import_control_id) REFERENCES import_control(control_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE labelling.label_change_event ADD CONSTRAINT labelling_label_change_event_request_ticket_fkey FOREIGN KEY (request_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE SET NULL;
 ALTER TABLE labelling.label_change_event ADD CONSTRAINT labelling_label_change_event_connection_fkey FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE SET NULL;
+ALTER TABLE labelling.label_change_event ADD CONSTRAINT labelling_label_change_event_actor_fkey FOREIGN KEY (actor_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE SET NULL;
 
 ALTER TABLE labelling.rule_source_label ADD CONSTRAINT labelling_rule_source_label_rule_fkey FOREIGN KEY (rule_id) REFERENCES firewall.rule(rule_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE labelling.rule_source_label ADD CONSTRAINT labelling_rule_source_label_label_value_fkey FOREIGN KEY (label_id) REFERENCES labelling.label_value(label_id) ON UPDATE RESTRICT ON DELETE CASCADE;

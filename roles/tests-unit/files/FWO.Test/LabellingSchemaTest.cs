@@ -38,6 +38,12 @@ namespace FWO.Test
         private static readonly string kCreationDirectory = Path.Combine("roles", "database", "files", "sql", "creation");
         private static readonly string kMetadataDirectory = Path.Combine("roles", "api", "files");
         private static readonly string kUpgradeDirectory = Path.Combine("roles", "database", "files", "upgrade");
+        private static readonly string kMaintenanceDirectory = Path.Combine("roles", "database", "files", "sql", "maintenance");
+        private const string kCleanupFile = "fworch-cleanup.sql";
+        private const string kOwnUiEventCheck = "{\"_and\":[{\"actor_id\":{\"_eq\":\"x-hasura-user-id\"}},{\"origin_is_ui\":{\"_eq\":true}}]}";
+        private const string kNoGroupKeysCheck = "{\"label_key\":{\"key_name\":{\"_nin\":[\"AppRole\",\"AppZone\"]}}}";
+        private const string kLabelBasedModellingCheck = "\"config_key\":{\"_eq\":\"labelBasedModelling\"}";
+        private static readonly List<string> kCleanupKeptReferences = ["FROM rule_owner", "FROM labelling.label_change_event"];
         private static readonly List<string> kGuardicoreDeviceTypes = ["'Guardicore Management','REST'", "'Guardicore Gateway','REST'"];
         private static readonly List<string> kRuleLabelColumns = ["rule_src_labels", "rule_dst_labels"];
         private static readonly List<string> kWriterRoles = [kImporterRole, kMiddlewareRole];
@@ -61,7 +67,7 @@ namespace FWO.Test
         private static readonly List<string> kReportRoles = ["modeller", "recertifier", "reporter", "reporter-viewall"];
         private static readonly List<string> kTenantRestrictedReportRoles = ["recertifier", "reporter"];
         private static readonly List<string> kRuleLabelReadTables = ["rule_label", "label_value", "label_key", "label_change_event"];
-        private static readonly List<string> kHiddenChangeEventColumns = ["actor", "request_id", "connection_id"];
+        private static readonly List<string> kHiddenChangeEventColumns = ["actor", "actor_id", "request_id", "connection_id"];
         private static readonly List<string> kWriteKinds = ["insert_permissions", "update_permissions"];
         private static readonly List<JsonNode> kNoNodes = [];
         private static readonly List<string> kRemovedEventColumns = [kRemovedEventColumn];
@@ -306,6 +312,56 @@ namespace FWO.Test
                 string eventCheck = Permission(FindTable(kChangeEventTable), "insert_permissions", "modeller")?["permission"]?["check"]?.ToJsonString() ?? "";
                 Assert.That(eventCheck, Does.Contain("\"origin_is_ui\":{\"_eq\":true}"));
                 Assert.That(eventCheck, Does.Contain("x-hasura-editable-owners"));
+            });
+        }
+
+        /// <summary>
+        /// Modellers attribute label changes to themselves: the API presets the user of a change event, and label
+        /// assignments are added and closed only with an event of the same user from the UI. Labels of app roles and app
+        /// zones stay out of connections, and labels are only added while label-based modelling is switched on.
+        /// Closing stays possible without it, e.g. when a connection takes a side over from an interface.
+        /// </summary>
+        [Test]
+        public void Metadata_TiesModellerLabelChangesToTheirOwnEvents()
+        {
+            JsonNode? eventInsert = Permission(FindTable(kChangeEventTable), "insert_permissions", "modeller")?["permission"];
+            Assert.Multiple(() =>
+            {
+                Assert.That(eventInsert?["set"]?["actor_id"]?.GetValue<string>(), Is.EqualTo("x-hasura-user-id"));
+                Assert.That(Columns(Permission(FindTable(kChangeEventTable), "insert_permissions", "modeller")), Does.Not.Contain("actor_id"));
+                Assert.That(foreignKeys, Does.Contain("FOREIGN KEY (actor_id) REFERENCES uiuser(uiuser_id)"));
+                Assert.That(upgrade, Does.Contain("FOREIGN KEY (actor_id) REFERENCES uiuser(uiuser_id)"));
+                foreach (string name in kConnectionSideTables)
+                {
+                    JsonNode? insert = Permission(FindTable(name), "insert_permissions", "modeller")?["permission"];
+                    JsonNode? update = Permission(FindTable(name), "update_permissions", "modeller")?["permission"];
+                    string insertCheck = insert?["check"]?.ToJsonString() ?? "";
+                    string updateFilter = update?["filter"]?.ToJsonString() ?? "";
+                    Assert.That(insertCheck, Does.Contain("\"created_event\":" + kOwnUiEventCheck), name);
+                    Assert.That(insertCheck, Does.Contain(kNoGroupKeysCheck), name);
+                    Assert.That(insertCheck, Does.Contain(kLabelBasedModellingCheck), name);
+                    Assert.That(update?["check"]?.ToJsonString(), Is.EqualTo("{\"removed_event\":" + kOwnUiEventCheck + "}"), name);
+                    Assert.That(updateFilter, Does.Contain("{\"removed_event_id\":{\"_is_null\":true}}"), name);
+                    Assert.That(updateFilter, Does.Not.Contain(kLabelBasedModellingCheck), name);
+                }
+            });
+        }
+
+        /// <summary>
+        /// The cleanup script keeps the import controls of owner imports and owner mapping runs, which only rule owner
+        /// mappings and label change events reference: deleting them would cascade into these rows.
+        /// </summary>
+        [Test]
+        public void Cleanup_KeepsImportControlsOfOwnerMappingsAndLabelEvents()
+        {
+            string cleanup = ReadFile(kMaintenanceDirectory, kCleanupFile);
+            string referencedImports = cleanup[..cleanup.IndexOf("DELETE FROM import_control ic", StringComparison.Ordinal)];
+            Assert.Multiple(() =>
+            {
+                foreach (string reference in kCleanupKeptReferences)
+                {
+                    Assert.That(referencedImports, Does.Contain(reference), reference);
+                }
             });
         }
 

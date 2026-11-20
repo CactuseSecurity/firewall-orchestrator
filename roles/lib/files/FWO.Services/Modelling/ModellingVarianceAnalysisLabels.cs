@@ -191,7 +191,11 @@ namespace FWO.Services.Modelling
                 .. LabelMembers(unchangedAppServers, RequestAction.unchanged, area.IdString),
                 .. LabelMembers(deletedAppServers, RequestAction.delete, area.IdString)
             ];
-            Dictionary<string, string> addInfo = new() { { AdditionalInfoKeys.GrpName, area.IdString } };
+            Dictionary<string, string> addInfo = new()
+            {
+                { AdditionalInfoKeys.GrpName, area.IdString },
+                { AdditionalInfoKeys.GrpType, nameof(ModellingTypes.ModObjectType.NetworkArea) }
+            };
             return new()
             {
                 Title = userConfig.GetText(titleKey) + area.IdString,
@@ -240,7 +244,7 @@ namespace FWO.Services.Modelling
                     List<DynamicIpLabel> obsoleteLabels = [.. requestedLabels
                         .Where(label => label.ObjectType == labelType && !current.Contains(label.Value) && prodGroupNames.Contains(label.Name))
                         .OrderBy(label => label.Value, StringComparer.Ordinal)];
-                    DeleteObjectTasksList.AddRange(obsoleteLabels.Select(label => ObsoleteLabelTask(label.Value, label.Name, mgt)));
+                    DeleteObjectTasksList.AddRange(obsoleteLabels.Select(label => ObsoleteLabelTask(label, mgt)));
                 }
             }
             catch (Exception exception)
@@ -274,13 +278,19 @@ namespace FWO.Services.Modelling
             return labelTypes;
         }
 
-        private WfReqTask ObsoleteLabelTask(string idString, string labelName, Management mgt)
+        private WfReqTask ObsoleteLabelTask(DynamicIpLabel label, Management mgt)
         {
+            string idString = label.Value;
+            string labelName = label.Name;
             List<WfReqElement> elements =
             [
                 new() { RequestAction = RequestAction.delete.ToString(), Field = ElemFieldType.source.ToString(), Name = labelName, GroupName = labelName }
             ];
-            Dictionary<string, string> addInfo = new() { { AdditionalInfoKeys.GrpName, idString } };
+            Dictionary<string, string> addInfo = new()
+            {
+                { AdditionalInfoKeys.GrpName, idString },
+                { AdditionalInfoKeys.GrpType, label.ObjectType?.ToString() ?? "" }
+            };
             return new()
             {
                 Title = userConfig.GetText("delete_obsolete_label") + labelName,
@@ -315,7 +325,8 @@ namespace FWO.Services.Modelling
             List<WfReqTask> tasks = await apiConnection.SendQueryAsync<List<WfReqTask>>(RequestQueries.getRequestedGroupsOfOwner,
                 new { ownerId = owner.Id, mgmId = mgt.Id });
             return [.. tasks
-                .Select(task => DynamicIpLabel.FromGroupName(task.GetAddInfoValue(AdditionalInfoKeys.GrpName), namingConvention))
+                .Select(task => DynamicIpLabel.FromGroupName(task.GetAddInfoValue(AdditionalInfoKeys.GrpName),
+                    DynamicIpLabel.ParseObjectType(task.GetAddInfoValue(AdditionalInfoKeys.GrpType))))
                 .OfType<DynamicIpLabel>()
                 .Where(label => label.ObjectType != null)
                 .Distinct()];

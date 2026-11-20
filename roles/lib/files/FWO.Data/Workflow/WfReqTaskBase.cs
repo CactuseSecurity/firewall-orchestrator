@@ -23,6 +23,11 @@ namespace FWO.Data.Workflow
         public const string ConnId = "ConnId";
         public const string ReqOwner = "ReqOwner";
         public const string GrpName = "GrpName";
+        /// <summary>
+        /// Modelling object type of the group of a group task (a name of ModellingTypes.ModObjectType, e.g. "AppRole"),
+        /// which the firewall write takes instead of guessing it from the group name.
+        /// </summary>
+        public const string GrpType = "GrpType";
         public const string GroupId = "GroupId";
         public const string RequestContactName = "requestContactName";
         public const string RequestContactId = "requestContactId";

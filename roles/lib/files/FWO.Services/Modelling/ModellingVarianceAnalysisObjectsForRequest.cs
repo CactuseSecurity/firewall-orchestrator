@@ -459,6 +459,21 @@ namespace FWO.Services.Modelling
             return false;
         }
 
+        /// <summary>
+        /// The additional info of a task of an app role or app zone: its id string, its object type, which the firewall
+        /// write takes instead of guessing it from the name, and its id.
+        /// </summary>
+        private static Dictionary<string, string> AppRoleAddInfo(ModellingAppRole appRole)
+        {
+            ModellingTypes.ModObjectType objectType = appRole is ModellingAppZone ? ModellingTypes.ModObjectType.AppZone : ModellingTypes.ModObjectType.AppRole;
+            return new()
+            {
+                { AdditionalInfoKeys.GrpName, appRole.IdString },
+                { AdditionalInfoKeys.GrpType, objectType.ToString() },
+                { AdditionalInfoKeys.AppRoleId, appRole.Id.ToString() }
+            };
+        }
+
         private void RequestNewAppRole(ModellingAppRole appRole, Management mgt)
         {
             string title = appRole.GetType() == typeof(ModellingAppZone) ? userConfig.GetText("new_app_zone") : userConfig.GetText("new_app_role");
@@ -477,7 +492,7 @@ namespace FWO.Services.Modelling
                     NetworkId = networkId
                 });
             }
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appRole.IdString }, { AdditionalInfoKeys.AppRoleId, appRole.Id.ToString() } };
+            Dictionary<string, string>? addInfo = AppRoleAddInfo(appRole);
             TaskList.Add(new()
             {
                 Title = title + appRole.IdString,
@@ -494,7 +509,7 @@ namespace FWO.Services.Modelling
         {
             string title = appRole.GetType() == typeof(ModellingAppZone) ? userConfig.GetText("update_app_zone") : userConfig.GetText("update_app_role");
             FillGroupMembers(appRole.IdString, mgt);
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, appRole.IdString }, { AdditionalInfoKeys.AppRoleId, appRole.Id.ToString() } };
+            Dictionary<string, string>? addInfo = AppRoleAddInfo(appRole);
             if (newGroupMembers.Count > 0)
             {
                 newGroupMembers.AddRange(unchangedGroupMembers);
@@ -676,7 +691,12 @@ namespace FWO.Services.Modelling
                     GroupName = svcGrp.Name
                 });
             }
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.GrpName, svcGrp.Name }, { AdditionalInfoKeys.SvcGrpId, svcGrp.Id.ToString() } };
+            Dictionary<string, string>? addInfo = new()
+            {
+                { AdditionalInfoKeys.GrpName, svcGrp.Name },
+                { AdditionalInfoKeys.GrpType, nameof(ModellingTypes.ModObjectType.ServiceGroup) },
+                { AdditionalInfoKeys.SvcGrpId, svcGrp.Id.ToString() }
+            };
             TaskList.Add(new()
             {
                 Title = userConfig.GetText("new_svc_grp") + svcGrp.Name,

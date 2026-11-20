@@ -7,6 +7,7 @@
 @using FWO.Data.Middleware
 @using FWO.Logging
 @using FWO.Middleware.Client
+@using FWO.Services.Labelling
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
@@ -310,9 +311,12 @@ OnCSVAppServerImportEvent(_.EventArgs));
                 string oldAppDataPath = globalConfig.ImportAppDataPath;
                 string oldSubnetDataPath = globalConfig.ImportSubnetDataPath;
                 string oldScriptArgs = globalConfig.ImportAppDataScriptArgs;
+                string oldAppLabelKey = globalConfig.AppLabelKey;
                 PrepareConfigData();
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 WriteImporterSettingsAudit(oldAppDataPath, oldSubnetDataPath, oldScriptArgs);
+                // the App labels of the app servers move to the new key; those of the rules follow with the next rule owner mapping run
+                await new AppLabelKeyChange(apiConnection).Apply(oldAppLabelKey, configData.AppLabelKey, LogRejectedAppLabel);
 
                 PathsToDelete = [];
                 PathsToAdd = [];
@@ -329,6 +333,12 @@ OnCSVAppServerImportEvent(_.EventArgs));
         {
             DisplayMessageInUi(exception, userConfig.GetText("import_app_data"), "", true);
         }
+    }
+
+    private Task LogRejectedAppLabel(int severity, string level, string description)
+    {
+        Log.WriteWarning(userConfig.GetText("import_app_data"), description);
+        return Task.CompletedTask;
     }
 
     private void PrepareConfigData()

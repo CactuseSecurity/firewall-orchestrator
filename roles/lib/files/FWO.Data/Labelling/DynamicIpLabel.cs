@@ -50,32 +50,52 @@ namespace FWO.Data.Labelling
         }
 
         /// <summary>
-        /// Returns the label a group of a task stands for: a name "key: value" gives key and value, else the naming
-        /// convention tells app roles, app zones and network areas by their prefix and the name is the value.
+        /// Returns the label a group of a task stands for: a name "key: value" gives key and value, else the object type
+        /// the request task names for its group (app role, app zone or network area) gives the key and the name is the
+        /// value. The type is not guessed from the name, as a prefix of the naming convention may be empty or also start
+        /// the names of other groups.
         /// </summary>
-        /// <returns>Null if the name is neither "key: value" nor an id string of the naming convention.</returns>
-        public static DynamicIpLabel? FromGroupName(string? groupName, ModellingNamingConvention namingConvention)
+        /// <param name="groupName">Name of the group of the task.</param>
+        /// <param name="objectType">Object type of the group as the request task names it (<c>GrpType</c>), null if it names none.</param>
+        /// <returns>Null if the name is not "key: value" and the type is none of app role, app zone and network area.</returns>
+        public static DynamicIpLabel? FromGroupName(string? groupName, ModellingTypes.ModObjectType? objectType)
         {
             string name = groupName?.Trim() ?? "";
             if (name.Contains(kKeyValueSeparator, StringComparison.Ordinal))
             {
                 return SplitKeyAndValue(name);
             }
-            ModellingTypes.ModObjectType? objectType = PrefixObjectType(name, namingConvention);
-            return objectType == null ? null : ForModelledGroup(objectType.Value, name);
+            return name.Length > 0 && objectType != null && IsLabelType(objectType.Value) ? ForModelledGroup(objectType.Value, name) : null;
         }
 
         /// <summary>
-        /// Returns the modelling object type of a group name: by the label key of a name "key: value", else by the prefix
-        /// the naming convention gives app zones, app roles and network areas (the longest matching prefix wins).
+        /// Returns the modelling object type of a group: by the label key of a name "key: value", else the type the request
+        /// task names for its group.
         /// </summary>
-        /// <returns>Null if the type cannot be told from the name.</returns>
-        public static ModellingTypes.ModObjectType? GroupObjectType(string? groupName, ModellingNamingConvention namingConvention)
+        /// <param name="groupName">Name of the group of the task.</param>
+        /// <param name="objectType">Object type of the group as the request task names it (<c>GrpType</c>), null if it names none.</param>
+        /// <returns>Null if the type is neither in the name nor named by the task.</returns>
+        public static ModellingTypes.ModObjectType? GroupObjectType(string? groupName, ModellingTypes.ModObjectType? objectType)
         {
             string name = groupName?.Trim() ?? "";
             return name.Contains(kKeyValueSeparator, StringComparison.Ordinal)
                 ? SplitKeyAndValue(name)?.ObjectType
-                : PrefixObjectType(name, namingConvention);
+                : objectType;
+        }
+
+        /// <summary>
+        /// Reads the object type a request task names for its group (<c>GrpType</c>), e.g. "AppRole".
+        /// </summary>
+        /// <returns>Null for an empty or unknown type.</returns>
+        public static ModellingTypes.ModObjectType? ParseObjectType(string? objectType)
+        {
+            string name = objectType?.Trim() ?? "";
+            bool isNumber = int.TryParse(name, out _);
+            if (name.Length == 0 || isNumber)
+            {
+                return null;
+            }
+            return Enum.TryParse(name, false, out ModellingTypes.ModObjectType parsed) && Enum.IsDefined(parsed) ? parsed : null;
         }
 
         /// <summary>Splits a name "key: value"; null if key or value is empty.</summary>
@@ -85,22 +105,6 @@ namespace FWO.Data.Labelling
             string key = name[..separatorIndex].Trim();
             string value = name[(separatorIndex + kKeyValueSeparator.Length)..].Trim();
             return key.Length > 0 && value.Length > 0 ? new DynamicIpLabel(key, value) : null;
-        }
-
-        /// <summary>The object type the naming convention gives a name by its prefix; the longest matching prefix wins.</summary>
-        private static ModellingTypes.ModObjectType? PrefixObjectType(string name, ModellingNamingConvention namingConvention)
-        {
-            List<(string Prefix, ModellingTypes.ModObjectType Type)> prefixes =
-            [
-                (namingConvention.AppZone, ModellingTypes.ModObjectType.AppZone),
-                (namingConvention.AppRolePattern, ModellingTypes.ModObjectType.AppRole),
-                (namingConvention.NetworkAreaPattern, ModellingTypes.ModObjectType.NetworkArea)
-            ];
-            return prefixes
-                .Where(entry => !string.IsNullOrEmpty(entry.Prefix) && name.Length > entry.Prefix.Length && name.StartsWith(entry.Prefix, StringComparison.Ordinal))
-                .OrderByDescending(entry => entry.Prefix.Length)
-                .Select(entry => (ModellingTypes.ModObjectType?)entry.Type)
-                .FirstOrDefault();
         }
     }
 }

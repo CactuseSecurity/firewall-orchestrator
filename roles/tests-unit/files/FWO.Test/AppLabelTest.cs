@@ -1,6 +1,7 @@
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Data;
 using FWO.Data.Labelling;
 using FWO.Data.Report;
 using FWO.Services.Labelling;
@@ -28,6 +29,11 @@ namespace FWO.Test
         private static readonly List<long> kRuleTwo = [2];
         private static readonly List<(long?, bool)> kImportEvent = [(kImportControlId, false)];
         private static readonly List<(long?, bool)> kUiEvent = [(null, true)];
+        private static readonly List<string> kOnlyRuleLabelRead = [LabellingQueries.getAllActiveRuleAppLabels];
+        private const long kFormerKeyLabelId = 55;
+        private static readonly List<(long, long)> kFormerKeyLabelOnRuleOne = [(1, kFormerKeyLabelId)];
+        private static readonly List<string> kClosedFormerKeys = ["App", "Application"];
+        private static readonly List<string> kNewKeyOnly = ["Application"];
         private const int kOwnImportManagement = 3;
         private const int kSubManagement = 4;
         private const int kSuperManagement = 5;
@@ -104,6 +110,9 @@ namespace FWO.Test
             Assert.That(api.AddedServerLabels, Is.Empty);
         }
 
+        /// <summary>
+        /// Without App key no App label is written; the rules are only read for App labels of a former key to close.
+        /// </summary>
         [Test]
         public async Task EmptyAppKey_SwitchesAppLabelsOff()
         {
@@ -113,8 +122,12 @@ namespace FWO.Test
             int changes = await new AppLabelHandler(api, " ").SyncAppServers(5, () => Task.FromResult(1L));
             await new RuleAppLabelSync(api, globalConfig).SyncAll(kImportControlId);
 
-            Assert.That(changes, Is.Zero);
-            Assert.That(api.Calls, Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(changes, Is.Zero);
+                Assert.That(api.Calls.Select(call => call.query), Is.EqualTo(kOnlyRuleLabelRead));
+                Assert.That(api.AddedRuleLabels.Count + api.ClosedRuleLabels.Count + api.ChangeEvents.Count, Is.Zero);
+            });
         }
 
         [Test]
@@ -238,6 +251,86 @@ namespace FWO.Test
                 Assert.That(api.ChangeEvents, Is.EqualTo(kUiEvent));
             });
         }
+
+        /// <summary>
+        /// A changed App key makes the next sync compare all rules again, which closes the App labels of the former key:
+        /// only App labels are written to the labels of rules as a whole.
+        /// </summary>
+        [Test]
+        public async Task ChangedAppKey_SyncsAllRulesAgainAndClosesTheLabelsOfTheFormerKey()
+        {
+            AppLabelTestApiConnection api = new();
+            api.ActiveRuleOwnerApps.Add(Mapping(1, "APP-1"));
+            api.ActiveRuleAppLabels.Add(new RuleLabelRow { RuleId = 1, LabelId = kFormerKeyLabelId });
+
+            await new RuleAppLabelSync(api, new GlobalConfig { AppLabelKey = "App" }).Sync(kRuleTwo, kImportControlId);
+            await new RuleAppLabelSync(api, new GlobalConfig { AppLabelKey = "App" }).Sync(kRuleTwo, kImportControlId + 1);
+            await new RuleAppLabelSync(api, new GlobalConfig { AppLabelKey = "Application" }).Sync(kRuleTwo, kImportControlId + 2);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(api.CallsOf(LabellingQueries.getAllActiveRuleOwnerApps), Is.EqualTo(2), "full sync first and after the key changed");
+                Assert.That(api.CallsOf(LabellingQueries.getActiveRuleOwnerApps), Is.EqualTo(1));
+                Assert.That(api.ClosedRuleLabels.Select(closed => (closed.ruleId, closed.labelId)), Does.Contain((1L, kFormerKeyLabelId)));
+                Assert.That(LabellingQueries.getAllActiveRuleAppLabels, Does.Not.Contain("key_name"));
+                Assert.That(LabellingQueries.getActiveRuleAppLabels, Does.Not.Contain("key_name"));
+            });
+        }
+
+        /// <summary>
+        /// Switching App labels off (empty key) closes the App labels of the rules instead of leaving them active.
+        /// </summary>
+        [Test]
+        public async Task SwitchedOffAppLabels_CloseTheAppLabelsOfTheRules()
+        {
+            AppLabelTestApiConnection api = new();
+            api.ActiveRuleOwnerApps.Add(Mapping(1, "APP-1"));
+            api.ActiveRuleAppLabels.Add(new RuleLabelRow { RuleId = 1, LabelId = kFormerKeyLabelId });
+
+            await new RuleAppLabelSync(api, new GlobalConfig { AppLabelKey = "" }).SyncAll(kImportControlId);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(api.ClosedRuleLabels.Select(closed => (closed.ruleId, closed.labelId)), Is.EqualTo(kFormerKeyLabelOnRuleOne));
+                Assert.That(api.AddedRuleLabels, Is.Empty);
+                Assert.That(api.CallsOf(LabellingQueries.getAllActiveRuleOwnerApps), Is.Zero, "no App label is wanted without key");
+                Assert.That(api.UpsertedKeys, Is.Empty);
+            });
+        }
+
+        /// <summary>
+        /// A changed App key closes the App labels of the app servers under the former key and gives the app servers of all
+        /// active owners the App label of the new key; an unchanged key changes nothing, an empty one only closes.
+        /// </summary>
+        [Test]
+        public async Task ChangedAppKey_MovesTheAppLabelsOfTheAppServers()
+        {
+            AppLabelTestApiConnection api = new();
+            api.Owners.Add(new OwnerAppServerAppLabels { AppIdExternal = "APP-1", AppServers = [new() { Id = 1 }, new() { Id = 2 }] });
+            api.OwnersWithNetworks.Add(new FwoOwner { Id = 5, Name = "Owner", Active = true, OwnerNetworks = [new()] });
+            api.OwnersWithNetworks.Add(new FwoOwner { Id = 6, Name = "Inactive", Active = false, OwnerNetworks = [new()] });
+            AppLabelKeyChange keyChange = new(api);
+
+            bool unchanged = await keyChange.Apply("App", " App ", NoLog);
+            int callsWhileUnchanged = api.Calls.Count;
+            bool changed = await keyChange.Apply("App", "Application", NoLog);
+            int addedByChange = api.AddedServerLabels.Count;
+            bool switchedOff = await keyChange.Apply("Application", "", NoLog);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(unchanged, Is.False);
+                Assert.That(callsWhileUnchanged, Is.Zero);
+                Assert.That(changed && switchedOff, Is.True);
+                Assert.That(api.ClosedKeys, Is.EqualTo(kClosedFormerKeys));
+                Assert.That(api.UpsertedKeys, Is.EqualTo(kNewKeyOnly));
+                Assert.That(addedByChange, Is.EqualTo(2), "both app servers of the active owner");
+                Assert.That(api.AddedServerLabels, Has.Count.EqualTo(addedByChange), "switching off adds nothing");
+                Assert.That(api.ChangeEvents.TrueForAll(changeEvent => changeEvent.importControlId == null && changeEvent.originIsUi), Is.True);
+            });
+        }
+
+        private static Task NoLog(int severity, string level, string description) => Task.CompletedTask;
 
         private static List<(long, long, long)> Assignments(params (long ruleId, long labelId)[] assignments)
         {

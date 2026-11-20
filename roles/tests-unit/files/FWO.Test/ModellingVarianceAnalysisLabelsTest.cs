@@ -126,6 +126,9 @@ namespace FWO.Test
                 Assert.That(Task(tasks, "New AppRole: AR504711-002").TaskType, Is.EqualTo(nameof(WfTaskType.group_create)));
                 Assert.That(removeMembers.Elements.Single(element => element.RequestAction == nameof(RequestAction.delete)).IpString, Is.EqualTo("9.9.9.9/32"));
                 Assert.That(tasks.Exists(task => task.Title.Contains("AZ4711")), Is.False, "the app zone label has all app servers");
+                Assert.That(Task(tasks, "New AppRole: AR504711-002").GetAddInfoValue(AdditionalInfoKeys.GrpType), Is.EqualTo("AppRole"),
+                    "the firewall write takes the label key from the requested type, not from the name");
+                Assert.That(removeMembers.GetAddInfoValue(AdditionalInfoKeys.GrpType), Is.EqualTo("AppRole"));
             });
         }
 
@@ -142,6 +145,7 @@ namespace FWO.Test
                 Assert.That(area.Elements.Single(element => element.RequestAction == nameof(RequestAction.create)).IpString, Is.EqualTo("10.50.0.0/16"));
                 Assert.That(area.Elements.Single(element => element.RequestAction == nameof(RequestAction.unchanged)).IpString, Is.EqualTo("10.50.0.0/24"));
                 Assert.That(area.Elements.TrueForAll(element => element.GroupName == "NA50"), Is.True);
+                Assert.That(area.GetAddInfoValue(AdditionalInfoKeys.GrpType), Is.EqualTo("NetworkArea"));
             });
         }
 
@@ -162,6 +166,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(obsolete.Elements.Single().GroupName, Is.EqualTo("AppRole: AR504711-009"));
+                Assert.That(obsolete.GetAddInfoValue(AdditionalInfoKeys.GrpType), Is.EqualTo("AppRole"));
                 Assert.That(deletedLabels, Is.EqualTo(kObsoleteLabels), "app role, app zone and network area labels, in this order");
                 Assert.That(tasks.IndexOf(obsolete), Is.EqualTo(tasks.Count - kObsoleteLabels.Count), "deletions come last");
                 Assert.That(tasks.Exists(task => task.Title.Contains("Stage: Prod")), Is.False, "labels never requested by FWO stay");

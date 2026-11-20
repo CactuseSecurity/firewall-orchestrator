@@ -26,7 +26,6 @@ namespace FWO.Test
             """{"field":"numeric_ip_addresses","op":"SUBNET","argument":"2.3.4.0/24"},""" +
             """{"field":"numeric_ip_addresses","op":"RANGE","argument":"1.1.1.0-1.1.1.17"}]}]""";
 
-        private static readonly ModellingNamingConvention NamingConvention = new() { AppRolePattern = "AR", AppZone = "AZ", NetworkAreaPattern = "NA" };
         private static readonly List<string> kExcludedAppRoles = [nameof(ModellingTypes.ModObjectType.AppRole)];
         private static readonly List<string> kExcludedAppServers = [nameof(ModellingTypes.ModObjectType.AppServer)];
         private static readonly List<string> kUpdatedCriteria = ["10.0.0.1/32", "10.0.0.3/32"];
@@ -74,8 +73,10 @@ namespace FWO.Test
             return simulation;
         }
 
-        private static FirewallWriteContext Context(GlobalDeviceSpecificSettings? settings = null, int deviceTypeId = FirewallVendors.kGuardicoreManagement) =>
-            FirewallWriteTestSupport.Context(deviceTypeId, settings) with { NamingConvention = NamingConvention };
+        /// <summary>The context of a task whose request task names its group an app role, as the variance analysis does.</summary>
+        private static FirewallWriteContext Context(GlobalDeviceSpecificSettings? settings = null, int deviceTypeId = FirewallVendors.kGuardicoreManagement,
+            ModellingTypes.ModObjectType? groupType = ModellingTypes.ModObjectType.AppRole) =>
+            FirewallWriteTestSupport.Context(deviceTypeId, settings) with { GroupObjectType = groupType };
 
         private static Task<ModifyFirewallResult> Write(FirewallSimulation simulation, WfImplTask task, FirewallWriteContext? context = null) =>
             new FirewallWriter(new FixedFirewallWriteDataSource(context ?? Context()), new SimulatedFirewallWriteClientFactory(simulation)).ModifyFirewall(task);
@@ -352,8 +353,32 @@ namespace FWO.Test
         [Test]
         public async Task GroupsThatStandForNoLabel_AreInvalidTaskData()
         {
-            ModifyFirewallResult result = await Write(Simulation(kNoLabels), FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "WebServers")));
+            ModifyFirewallResult result = await Write(Simulation(kNoLabels), FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "WebServers")),
+                Context(groupType: null));
             Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+        }
+
+        /// <summary>
+        /// The label key is taken from the object type the request task names, never guessed from a prefix of the name: an
+        /// app role id string without that type stands for no label, a group requested as app zone writes an AppZone label
+        /// whatever its name starts with.
+        /// </summary>
+        [Test]
+        public async Task LabelKeys_ComeFromTheRequestedTypeNotFromTheName()
+        {
+            FirewallSimulation untyped = Simulation(kNoLabels);
+            ModifyFirewallResult withoutType = await Write(untyped, FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1")), Context(groupType: null));
+            List<RenderedFirewallRequest> appZone = new FirewallWriter(new FixedFirewallWriteDataSource(Context()))
+                .RenderAll(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "ARCHIVE_SRV")),
+                    Context(groupType: ModellingTypes.ModObjectType.AppZone));
+            JsonNode body = JsonNode.Parse(appZone.Single().Body!)![0]!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(withoutType.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(untyped.Requests, Is.Empty);
+                Assert.That(body["key"]!.GetValue<string>(), Is.EqualTo("AppZone"));
+                Assert.That(body["value"]!.GetValue<string>(), Is.EqualTo("ARCHIVE_SRV"));
+            });
         }
 
         [Test]
@@ -429,15 +454,21 @@ namespace FWO.Test
         [Test]
         public void GroupTypes_OfTasks()
         {
-            FirewallWriteContext context = Context();
+            FirewallWriteContext appRole = Context();
+            FirewallWriteContext networkArea = Context(groupType: ModellingTypes.ModObjectType.NetworkArea);
+            FirewallWriteContext serviceGroup = Context(groupType: ModellingTypes.ModObjectType.ServiceGroup);
+            FirewallWriteContext untyped = Context(groupType: null);
             Assert.Multiple(() =>
             {
-                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_modify, Member("10.0.0.1", groupName: "AppZone: AZ1")), context),
-                    Is.EqualTo(ModellingTypes.ModObjectType.AppZone));
-                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_delete, Member("10.0.0.1", groupName: "NA50")), context),
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_modify, Member("10.0.0.1", groupName: "AppZone: AZ1")), appRole),
+                    Is.EqualTo(ModellingTypes.ModObjectType.AppZone), "the key of a name \"key: value\" wins");
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_delete, Member("10.0.0.1", groupName: "NA50")), networkArea),
                     Is.EqualTo(ModellingTypes.ModObjectType.NetworkArea));
-                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "Servers")), context), Is.Null);
-                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.access, Member("10.0.0.1")), context), Is.Null);
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "Svc")), serviceGroup),
+                    Is.EqualTo(ModellingTypes.ModObjectType.ServiceGroup));
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "AR4711-001")), untyped), Is.Null,
+                    "no type is guessed from a prefix of the name");
+                Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.access, Member("10.0.0.1")), appRole), Is.Null);
             });
         }
     }

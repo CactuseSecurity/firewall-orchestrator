@@ -48,7 +48,8 @@ create table if not exists labelling.label_change_event
     id BIGSERIAL PRIMARY KEY,
     import_control_id BIGINT,
     created_at Timestamp with time zone NOT NULL Default now(),
-    actor Varchar, -- distinguished name of the changing user
+    actor Varchar, -- distinguished name of the changing user as sent by the client, informational only
+    actor_id Integer, -- uiuser of the changing user, preset by the API from the session for UI roles
     request_id BIGINT,
     origin_is_ui Boolean NOT NULL Default TRUE, -- false when the change stems from an import
     connection_id Integer
@@ -150,6 +151,8 @@ ALTER TABLE labelling.label_change_event DROP CONSTRAINT IF EXISTS labelling_lab
 ALTER TABLE labelling.label_change_event ADD CONSTRAINT labelling_label_change_event_request_ticket_fkey FOREIGN KEY (request_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE SET NULL;
 ALTER TABLE labelling.label_change_event DROP CONSTRAINT IF EXISTS labelling_label_change_event_connection_fkey;
 ALTER TABLE labelling.label_change_event ADD CONSTRAINT labelling_label_change_event_connection_fkey FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE SET NULL;
+ALTER TABLE labelling.label_change_event DROP CONSTRAINT IF EXISTS labelling_label_change_event_actor_fkey;
+ALTER TABLE labelling.label_change_event ADD CONSTRAINT labelling_label_change_event_actor_fkey FOREIGN KEY (actor_id) REFERENCES uiuser(uiuser_id) ON UPDATE RESTRICT ON DELETE SET NULL;
 ALTER TABLE labelling.rule_source_label DROP CONSTRAINT IF EXISTS labelling_rule_source_label_rule_fkey;
 ALTER TABLE labelling.rule_source_label ADD CONSTRAINT labelling_rule_source_label_rule_fkey FOREIGN KEY (rule_id) REFERENCES firewall.rule(rule_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE labelling.rule_source_label DROP CONSTRAINT IF EXISTS labelling_rule_source_label_label_value_fkey;
@@ -215,6 +218,7 @@ ALTER TABLE labelling.owner_network_label ADD CONSTRAINT labelling_owner_network
 CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_import_control ON labelling.label_change_event (import_control_id) WHERE import_control_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_request ON labelling.label_change_event (request_id) WHERE request_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_connection ON labelling.label_change_event (connection_id) WHERE connection_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_actor ON labelling.label_change_event (actor_id) WHERE actor_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_source_label_active_unique ON labelling.rule_source_label (rule_id, label_id, and_group) WHERE removed_event_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_source_label_label_id ON labelling.rule_source_label (label_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_source_label_created_event ON labelling.rule_source_label (created_event_id);

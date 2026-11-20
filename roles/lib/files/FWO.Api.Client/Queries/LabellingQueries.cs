@@ -11,6 +11,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getOwnerNetworkLabels;
         public static readonly string addOwnerNetworkLabels;
         public static readonly string removeOwnerNetworkLabels;
+        public static readonly string closeOwnerNetworkLabelsOfKey;
         public static readonly string upsertAppLabelKey;
         public static readonly string upsertLabelValues;
         public static readonly string getActiveRuleOwnerApps;
@@ -39,6 +40,7 @@ namespace FWO.Api.Client.Queries
                 getOwnerNetworkLabels = GetQueryText("labelling/getOwnerNetworkLabels.graphql");
                 addOwnerNetworkLabels = GetQueryText("labelling/addOwnerNetworkLabels.graphql");
                 removeOwnerNetworkLabels = GetQueryText("labelling/removeOwnerNetworkLabels.graphql");
+                closeOwnerNetworkLabelsOfKey = GetQueryText("labelling/closeOwnerNetworkLabelsOfKey.graphql");
                 upsertAppLabelKey = GetQueryText("labelling/upsertAppLabelKey.graphql");
                 upsertLabelValues = GetQueryText("labelling/upsertLabelValues.graphql");
                 getActiveRuleOwnerApps = GetQueryText("labelling/getActiveRuleOwnerApps.graphql");

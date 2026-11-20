@@ -211,6 +211,7 @@ CREATE INDEX IF NOT EXISTS idx_log_entry_destination ON logging.log_entry (desti
 CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_import_control ON labelling.label_change_event (import_control_id) WHERE import_control_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_request ON labelling.label_change_event (request_id) WHERE request_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_connection ON labelling.label_change_event (connection_id) WHERE connection_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_labelling_label_change_event_actor ON labelling.label_change_event (actor_id) WHERE actor_id IS NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_source_label_active_unique ON labelling.rule_source_label (rule_id, label_id, and_group) WHERE removed_event_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_source_label_label_id ON labelling.rule_source_label (label_id);

@@ -3874,7 +3874,10 @@
                       "actor",
                       "connection_id",
                       "origin_is_ui"
-                    ]
+                    ],
+                    "set": {
+                      "actor_id": "x-hasura-user-id"
+                    }
                   }
                 },
                 {
@@ -3956,6 +3959,7 @@
                   "permission": {
                     "columns": [
                       "actor",
+                      "actor_id",
                       "connection_id",
                       "created_at",
                       "id",
@@ -3972,6 +3976,7 @@
                   "permission": {
                     "columns": [
                       "actor",
+                      "actor_id",
                       "connection_id",
                       "created_at",
                       "id",
@@ -3988,6 +3993,7 @@
                   "permission": {
                     "columns": [
                       "actor",
+                      "actor_id",
                       "connection_id",
                       "created_at",
                       "id",
@@ -4543,6 +4549,64 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "label_value": {
+                            "label_key": {
+                              "key_name": {
+                                "_nin": [
+                                  "AppRole",
+                                  "AppZone"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "created_event": {
+                            "_and": [
+                              {
+                                "actor_id": {
+                                  "_eq": "x-hasura-user-id"
+                                }
+                              },
+                              {
+                                "origin_is_ui": {
+                                  "_eq": true
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "_exists": {
+                            "_table": {
+                              "name": "config",
+                              "schema": "public"
+                            },
+                            "_where": {
+                              "_and": [
+                                {
+                                  "config_key": {
+                                    "_eq": "labelBasedModelling"
+                                  }
+                                },
+                                {
+                                  "config_user": {
+                                    "_eq": 0
+                                  }
+                                },
+                                {
+                                  "config_value": {
+                                    "_in": [
+                                      "true",
+                                      "True"
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          }
                         }
                       ]
                     },
@@ -4633,22 +4697,46 @@
                       "removed_event_id"
                     ],
                     "filter": {
-                      "connection": {
-                        "_or": [
+                      "_and": [
+                        {
+                          "connection": {
+                            "_or": [
+                              {
+                                "app_id": {
+                                  "_in": "x-hasura-editable-owners"
+                                }
+                              },
+                              {
+                                "app_id": {
+                                  "_is_null": true
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "removed_event_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
+                    "check": {
+                      "removed_event": {
+                        "_and": [
                           {
-                            "app_id": {
-                              "_in": "x-hasura-editable-owners"
+                            "actor_id": {
+                              "_eq": "x-hasura-user-id"
                             }
                           },
                           {
-                            "app_id": {
-                              "_is_null": true
+                            "origin_is_ui": {
+                              "_eq": true
                             }
                           }
                         ]
                       }
-                    },
-                    "check": {}
+                    }
                   }
                 },
                 {
@@ -4743,6 +4831,64 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "label_value": {
+                            "label_key": {
+                              "key_name": {
+                                "_nin": [
+                                  "AppRole",
+                                  "AppZone"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "created_event": {
+                            "_and": [
+                              {
+                                "actor_id": {
+                                  "_eq": "x-hasura-user-id"
+                                }
+                              },
+                              {
+                                "origin_is_ui": {
+                                  "_eq": true
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "_exists": {
+                            "_table": {
+                              "name": "config",
+                              "schema": "public"
+                            },
+                            "_where": {
+                              "_and": [
+                                {
+                                  "config_key": {
+                                    "_eq": "labelBasedModelling"
+                                  }
+                                },
+                                {
+                                  "config_user": {
+                                    "_eq": 0
+                                  }
+                                },
+                                {
+                                  "config_value": {
+                                    "_in": [
+                                      "true",
+                                      "True"
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          }
                         }
                       ]
                     },
@@ -4833,22 +4979,46 @@
                       "removed_event_id"
                     ],
                     "filter": {
-                      "connection": {
-                        "_or": [
+                      "_and": [
+                        {
+                          "connection": {
+                            "_or": [
+                              {
+                                "app_id": {
+                                  "_in": "x-hasura-editable-owners"
+                                }
+                              },
+                              {
+                                "app_id": {
+                                  "_is_null": true
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "removed_event_id": {
+                            "_is_null": true
+                          }
+                        }
+                      ]
+                    },
+                    "check": {
+                      "removed_event": {
+                        "_and": [
                           {
-                            "app_id": {
-                              "_in": "x-hasura-editable-owners"
+                            "actor_id": {
+                              "_eq": "x-hasura-user-id"
                             }
                           },
                           {
-                            "app_id": {
-                              "_is_null": true
+                            "origin_is_ui": {
+                              "_eq": true
                             }
                           }
                         ]
                       }
-                    },
-                    "check": {}
+                    }
                   }
                 },
                 {

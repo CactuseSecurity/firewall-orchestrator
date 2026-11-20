@@ -89,10 +89,11 @@ for a management. Only `AppRole`, `AppZone`, `NetworkArea`, and `ServiceGroup`
 (`GlobalDeviceSpecificSettings.ExcludableObjectTypes`) are accepted; app servers,
 networks, and services are members of these groups and cannot be excluded, and stored
 entries of other types are ignored. When writing, a group or label has the type of its
-label key or of the naming convention prefix, and the task of an excluded group is left
-out with all its steps, including the member objects created for it. A group whose type
-cannot be told from its name (e.g. a service group from the createTicket API) is never
-left out. The roles that run the variance analysis (modeller,
+label key (name "key: value"), else the type its request task names in the additional
+info `GrpType` (set by the variance analysis and the modelling notifications); the type is
+never guessed from a naming convention prefix. The task of an excluded group is left out
+with all its steps, including the member objects created for it. A group without such a
+type (e.g. a service group from the createTicket API) is never left out. The roles that run the variance analysis (modeller,
 recertifier, reporter, reporter-viewall) may read only this key and the modelling keys
 `modellingCreateAppZones` and `modellingImplementNetworkAreaObjects`.
 

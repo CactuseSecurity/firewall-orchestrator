@@ -67,8 +67,15 @@ namespace FWO.Test
         /// <summary>Network areas that exist (not deleted).</summary>
         public List<string> CurrentNetworkAreas { get; } = ["NA50"];
 
-        /// <summary>Group names requested for the owner by earlier group_create tasks.</summary>
-        public List<string> RequestedGroups { get; } = ["AR504711-001", "AR504711-009", "AZ4711", "AZ0815", "NA50", "NA60", "Servers"];
+        /// <summary>
+        /// Group names requested for the owner by earlier group_create tasks, with the object type the tasks name (GrpType);
+        /// a group requested without a type is not a label FWO deletes.
+        /// </summary>
+        public List<(string Name, string? Type)> RequestedGroups { get; } =
+        [
+            ("AR504711-001", "AppRole"), ("AR504711-009", "AppRole"), ("AZ4711", "AppZone"), ("AZ0815", "AppZone"),
+            ("NA50", "NetworkArea"), ("NA60", "NetworkArea"), ("Servers", null)
+        ];
 
         public GuardicoreVarianceTestApiConn()
         {
@@ -99,7 +106,7 @@ namespace FWO.Test
                 Type type when type == typeof(List<ModellingAppServer>) => new List<ModellingAppServer> { AppServer1, AppServerRange, AppServer3 },
                 Type type when type == typeof(List<ModellingAppRole>) => CurrentGroups(variables).Select(idString => new ModellingAppRole { IdString = idString }).ToList(),
                 Type type when type == typeof(List<WfReqTask>) && query == RequestQueries.getRequestedGroupsOfOwner =>
-                    RequestedGroups.Select(groupName => new WfReqTask { AdditionalInfo = $"{{\"GrpName\":\"{groupName}\"}}" }).ToList(),
+                    RequestedGroups.Select(RequestedGroupTask).ToList(),
                 Type type when type == typeof(List<Rule>) => new List<Rule>(),
                 Type type when type == typeof(List<ModellingConnection>) => new List<ModellingConnection>(),
                 Type type when type == typeof(List<ModellingNetworkArea>) => new List<ModellingNetworkArea>(),
@@ -133,6 +140,16 @@ namespace FWO.Test
                 DeviceType = new() { Id = ManagementDeviceTypeId, Name = "Guardicore Management" }, Devices = [new() { Id = 1 }]
             }
         ];
+
+        private static WfReqTask RequestedGroupTask((string Name, string? Type) group)
+        {
+            Dictionary<string, string> addInfo = new() { { AdditionalInfoKeys.GrpName, group.Name } };
+            if (group.Type != null)
+            {
+                addInfo[AdditionalInfoKeys.GrpType] = group.Type;
+            }
+            return new WfReqTask { AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo) };
+        }
 
         private static List<NetworkObject> ObjectsOfTypes(object? variables)
         {

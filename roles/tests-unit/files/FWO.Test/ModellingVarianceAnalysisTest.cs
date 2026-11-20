@@ -157,7 +157,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(10, TaskList.Count);
 
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[0].TaskType);
-            ClassicAssert.AreEqual("{\"GrpName\":\"AZ4711\",\"AppRoleId\":\"3\"}", TaskList[0].AdditionalInfo);
+            ClassicAssert.AreEqual("{\"GrpName\":\"AZ4711\",\"GrpType\":\"AppZone\",\"AppRoleId\":\"3\"}", TaskList[0].AdditionalInfo);
             ClassicAssert.AreEqual("modify", TaskList[0].RequestAction);
             ClassicAssert.AreEqual(1, TaskList[0].TaskNumber);
             ClassicAssert.AreEqual("Update AppZone: AZ4711: Add Members", TaskList[0].Title);
@@ -179,7 +179,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("1.0.0.0", TaskList[0].Elements[3].IpString);
 
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[1].TaskType);
-            ClassicAssert.AreEqual("{\"GrpName\":\"AR504711-001\",\"AppRoleId\":\"1\"}", TaskList[1].AdditionalInfo);
+            ClassicAssert.AreEqual("{\"GrpName\":\"AR504711-001\",\"GrpType\":\"AppRole\",\"AppRoleId\":\"1\"}", TaskList[1].AdditionalInfo);
             ClassicAssert.AreEqual("modify", TaskList[1].RequestAction);
             ClassicAssert.AreEqual(2, TaskList[1].TaskNumber);
             ClassicAssert.AreEqual("Update AppRole: AR504711-001: Add Members", TaskList[1].Title);
@@ -203,7 +203,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("unchanged", TaskList[1].Elements[2].RequestAction);
 
             ClassicAssert.AreEqual(WfTaskType.group_create.ToString(), TaskList[2].TaskType);
-            ClassicAssert.AreEqual("{\"GrpName\":\"AR504711-002\",\"AppRoleId\":\"2\"}", TaskList[2].AdditionalInfo);
+            ClassicAssert.AreEqual("{\"GrpName\":\"AR504711-002\",\"GrpType\":\"AppRole\",\"AppRoleId\":\"2\"}", TaskList[2].AdditionalInfo);
             ClassicAssert.AreEqual("create", TaskList[2].RequestAction);
             ClassicAssert.AreEqual(3, TaskList[2].TaskNumber);
             ClassicAssert.AreEqual("New AppRole: AR504711-002", TaskList[2].Title);
@@ -257,7 +257,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Delete Rule: FWOC4", TaskList[7].Title);
 
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[8].TaskType);
-            ClassicAssert.AreEqual("{\"GrpName\":\"AZ4711\",\"AppRoleId\":\"3\"}", TaskList[8].AdditionalInfo);
+            ClassicAssert.AreEqual("{\"GrpName\":\"AZ4711\",\"GrpType\":\"AppZone\",\"AppRoleId\":\"3\"}", TaskList[8].AdditionalInfo);
             ClassicAssert.AreEqual("modify", TaskList[8].RequestAction);
             ClassicAssert.AreEqual(4, TaskList[8].Elements.Count);
             ClassicAssert.AreEqual("AppServerOld", TaskList[8].Elements[0].Name);
@@ -269,7 +269,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("AppServerNew2", TaskList[8].Elements[3].Name);
 
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[9].TaskType);
-            ClassicAssert.AreEqual("{\"GrpName\":\"AR504711-001\",\"AppRoleId\":\"1\"}", TaskList[9].AdditionalInfo);
+            ClassicAssert.AreEqual("{\"GrpName\":\"AR504711-001\",\"GrpType\":\"AppRole\",\"AppRoleId\":\"1\"}", TaskList[9].AdditionalInfo);
             ClassicAssert.AreEqual("modify", TaskList[9].RequestAction);
             ClassicAssert.AreEqual(10, TaskList[9].TaskNumber);
             ClassicAssert.AreEqual("Update AppRole: AR504711-001: Remove Members", TaskList[9].Title);
@@ -313,7 +313,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[8].TaskType);
             ClassicAssert.AreEqual(WfTaskType.group_modify.ToString(), TaskList[9].TaskType);
 
-            ClassicAssert.AreEqual("{\"GrpName\":\"SvcGrp1\",\"SvcGrpId\":\"1\"}", TaskList[3].AdditionalInfo);
+            ClassicAssert.AreEqual("{\"GrpName\":\"SvcGrp1\",\"GrpType\":\"ServiceGroup\",\"SvcGrpId\":\"1\"}", TaskList[3].AdditionalInfo);
             ClassicAssert.AreEqual("create", TaskList[3].RequestAction);
             ClassicAssert.AreEqual(4, TaskList[3].TaskNumber);
             ClassicAssert.AreEqual("New Servicegroup: SvcGrp1", TaskList[3].Title);

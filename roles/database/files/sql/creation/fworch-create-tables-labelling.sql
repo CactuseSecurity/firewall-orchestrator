@@ -35,7 +35,8 @@ create table labelling.label_change_event
     id BIGSERIAL PRIMARY KEY,
     import_control_id BIGINT,
     created_at Timestamp with time zone NOT NULL Default now(),
-    actor Varchar, -- distinguished name of the changing user
+    actor Varchar, -- distinguished name of the changing user as sent by the client, informational only
+    actor_id Integer, -- uiuser of the changing user, preset by the API from the session for UI roles
     request_id BIGINT,
     origin_is_ui Boolean NOT NULL Default TRUE, -- false when the change stems from an import
     connection_id Integer

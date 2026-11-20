@@ -29,10 +29,11 @@ namespace FWO.ExternalSystems.FirewallWrite
         public FirewallGatewayRulebases Rulebases { get; init; } = FirewallGatewayRulebases.None;
 
         /// <summary>
-        /// Naming convention of modelled objects, telling app roles, app zones and network areas by the prefix of their name
-        /// (labels and the exclusion of object types from provisioning).
+        /// Modelling object type of the group of a group task, as its request task names it (additional info <c>GrpType</c>,
+        /// set by the variance analysis); null for other tasks and for groups requested without a type. It tells the label
+        /// an app role, app zone or network area is written as and the exclusion of object types from provisioning.
         /// </summary>
-        public ModellingNamingConvention NamingConvention { get; init; } = new();
+        public ModellingTypes.ModObjectType? GroupObjectType { get; init; }
 
         /// <summary>Layer uid of each existing rule of the task by rule uid, from the imported configuration.</summary>
         public IReadOnlyDictionary<string, string> RuleLayerUids { get; init; } = new Dictionary<string, string>();

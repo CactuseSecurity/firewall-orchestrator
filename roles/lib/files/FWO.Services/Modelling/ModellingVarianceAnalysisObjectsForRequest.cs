@@ -134,7 +134,7 @@ namespace FWO.Services.Modelling
 
         private WfReqTask ConstructCreateTask(Management mgt, ModellingConnection conn)
         {
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
+            Dictionary<string, string> addInfo = ModellingRequestExtraConfigs.AdditionalInfo(conn);
             return new()
             {
                 Title = ConstructCreateTaskTitle(conn),
@@ -157,7 +157,7 @@ namespace FWO.Services.Modelling
 
         private WfReqTask ConstructRuleTask(Management mgt, Rule rule, ModellingConnection conn, bool delete, List<WfReqElement> elements)
         {
-            Dictionary<string, string>? addInfo = new() { { AdditionalInfoKeys.ConnId, conn.Id.ToString() } };
+            Dictionary<string, string> addInfo = ModellingRequestExtraConfigs.AdditionalInfo(conn);
             List<WfReqElement> ruleElements =
             [
                 .. elements,

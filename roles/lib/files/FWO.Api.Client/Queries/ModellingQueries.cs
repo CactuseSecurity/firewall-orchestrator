@@ -95,7 +95,6 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateAppRole;
         public static readonly string updateNwGroupComment;
         public static readonly string deleteNwGroup;
-        // public static readonly string getAppServerForAppRole;
         public static readonly string addNwObjectToNwGroup;
         public static readonly string removeNwObjectFromNwGroup;
         public static readonly string updateNwObjectInNwGroup;

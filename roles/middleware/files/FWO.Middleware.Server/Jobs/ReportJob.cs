@@ -163,7 +163,7 @@ namespace FWO.Middleware.Server.Jobs
                         await SaveReportToArchive(reportFile, report.SetDescription(), apiConnectionUserContext);
                     }
 
-                    if (reportSchedule.Notifications.Any())
+                    if (reportSchedule.Notifications.Count != 0)
                     {
                         token.ThrowIfCancellationRequested();
                         await TrySendReportViaEmail(reportSchedule, report, userConfig);

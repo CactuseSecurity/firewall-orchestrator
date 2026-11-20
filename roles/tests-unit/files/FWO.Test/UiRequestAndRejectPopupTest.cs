@@ -103,7 +103,7 @@ namespace FWO.Test
             using BunitContext context = CreateContext(new RequestPopupNoImmediateApiConn(), Roles.Modeller);
             SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
             userConfig.ModReqInterfaceName = "req-interface";
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
                 context,
                 new FwoOwner { Id = 11, Name = "Selected", ExtAppId = "APP-42" },
@@ -309,7 +309,7 @@ namespace FWO.Test
                 (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>(),
                 new ModellingConnection { Id = 21, IsInterface = true });
             IRenderedComponent<RejectInterfacePopup> component = RenderRejectInterfacePopup(context, handler);
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             SetPrivateMember(component.Instance, "DisplayMessageInUi",
                 (Action<Exception?, string, string, bool>)((exception, title, message, isError) => messages.Add((exception, title, message, isError))));
 

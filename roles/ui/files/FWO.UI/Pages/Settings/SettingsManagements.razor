@@ -32,7 +32,7 @@
 </div>
 
 <div class="d-flex flex-column m-2 vheight75" data-toggle="tooltip" title="@(userConfig.PureLine("H5101"))">
-    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Management" Items="managements" @ref="table" PageSize="0" ColumnReorder="true">
+    <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="Management" Items="managements" PageSize="0" ColumnReorder="true">
         <Column TableItem="Management" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
                 <div class="btn-group">
@@ -266,7 +266,7 @@
 
 <ConfirmDelete @bind-Display="DeleteMode" PerformAction="Delete" Title="@userConfig.GetText("delete_management")" DeleteMessage="@deleteMessage"/>
 <ConfirmDelete @bind-Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@cleanupMessage"/>
-<AutoDiscovery @ref="autoDiscovery" Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
+<AutoDiscovery Actions="actActions" @bind-Display="AutoDiscoverMode" Closing="async () => {AutoDiscoverMode = false; await Refresh();}"/>
 <InProgress Display="workInProgress"/>
 
 
@@ -281,7 +281,6 @@
     private List<DeviceType> deviceTypes = [];
     private List<Credential> credentials = [];
 
-    private ITable<Management>? table;
 
     private bool EditMode = false;
     private bool DeleteMode = false;
@@ -295,7 +294,6 @@
     private Management actManagement = new();
     private Management? selectedSuperManagement;
 
-    private AutoDiscovery? autoDiscovery;
 
     private string deleteMessage = "";
     private string cleanupMessage = "";
@@ -579,11 +577,6 @@
             DisplayMessageInUi(null, checkCause, userConfig.GetText("E5102"), true);
             return false;
         }
-        // if (mgm.Uid == null && mgm.DeviceType.Manufacturer == "Check Point")
-        // {
-        //    DisplayMessageInUi(null, checkCause, userConfig.GetText("E5110"), true);
-        //    return false;
-        //}
         if(mgm.DeviceType.IsLegacyDevType() && mgm.Name.Contains(" "))
         {
             DisplayMessageInUi(null, checkCause, userConfig.GetText("E5109"), true);
@@ -626,7 +619,7 @@
             StateHasChanged();
             AutoDiscoveryBase actAutodiscovery = new AutoDiscoveryBase(superManagement, apiConnection, userConfig.ImportCheckCertificates);
             actActions = actAutodiscovery.ConvertToActions(await actAutodiscovery.Run());
-            int ChangeCounter = actActions.Count();
+            int ChangeCounter = actActions.Count;
             await AddAutoDiscoverLogEntry(0, userConfig.GetText("manual_autodiscovery"), (ChangeCounter > 0 ? ChangeCounter + userConfig.GetText("changes_found") : userConfig.GetText("found_no_changes")), superManagement.Id);
             workInProgress = false;
             AutoDiscoverMode = true;

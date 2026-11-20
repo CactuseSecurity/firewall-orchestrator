@@ -209,16 +209,13 @@
                                     <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("comment"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Comment)" Sortable="true" Filterable="false" Hideable="true" />
                                 }
 
-                                @if (_emptyColumns[13] == false)
+                                @if (_emptyColumns[13] == false && !_showLastModifiedAfterLastHit)
                                 {
-                                    @if (!_showLastModifiedAfterLastHit)
-                                    {
-                                        <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="LastModified" Field="@(ruleTreeItem => ruleTreeItem.Data!.LastModified)" Sortable="true" Filterable="false" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)RuleDisplayBase.DisplayLastModified(ruleTreeItem.Data!))
-                                            </Template>
-                                        </Column>
-                                    }
+                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="LastModified" Field="@(ruleTreeItem => ruleTreeItem.Data!.LastModified)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)RuleDisplayBase.DisplayLastModified(ruleTreeItem.Data!))
+                                        </Template>
+                                    </Column>
                                 }
 
                                 @if (_emptyColumns[14] == false && ShowLastHitColumn)
@@ -345,7 +342,6 @@
     private bool _showLastModifiedAfterLastHit => SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules;
     private bool ShowLastHitColumn => ReportTypeGroups.IsRuleReport(SelectedReportType);
 
-    private Rule? _lastClickedRule = null;
 
     #endregion
 
@@ -440,10 +436,6 @@
 
     private void OnNumberIconClickToggle(Rule rule, ManagementReport managementReport, DeviceReport deviceReport)
     {
-        // Capture clicked rule
-
-        _lastClickedRule = rule;
-
         // Get corresponding tree item for rule
 
         RuleTreeItem ruleTree = GetRuleTree(managementReport, deviceReport);

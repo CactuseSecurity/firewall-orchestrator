@@ -155,11 +155,6 @@ namespace FWO.Test
             ClassicAssert.AreEqual("owner-from-custom", value.ExtAppId);
         }
 
-        private static Rule CreateRule(int ownerId, string customFields)
-        {
-            return CreateRule(OwnerMappingSourceStm.CustomField, customFields, ownerId);
-        }
-
         private static Rule CreateRule(OwnerMappingSourceStm mappingSource, string customFields, params int[] ownerIds)
         {
             return CreateRule(

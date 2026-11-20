@@ -402,7 +402,7 @@ namespace FWO.Middleware.Server.Controllers
 
                 var queryVariables = new
                 {
-                    tokenHash = tokenHash,
+                    tokenHash,
                     currentTime = DateTime.UtcNow
                 };
 
@@ -434,9 +434,9 @@ namespace FWO.Middleware.Server.Controllers
 
                 var mutationVariables = new
                 {
-                    userId = userId,
-                    tokenHash = tokenHash,
-                    expiresAt = expiresAt,
+                    userId,
+                    tokenHash,
+                    expiresAt,
                     createdAt = DateTime.UtcNow
                 };
 
@@ -462,7 +462,7 @@ namespace FWO.Middleware.Server.Controllers
 
                 var mutationVariables = new
                 {
-                    tokenHash = tokenHash,
+                    tokenHash,
                     revokedAt = DateTime.UtcNow
                 };
 

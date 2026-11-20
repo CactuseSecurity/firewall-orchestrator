@@ -36,7 +36,7 @@
                                     <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="async () => await ShowApprovals(context)">
                                         @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
                                 }
-                                @if (!ReadOnlyDisplay && canActOnTask && IsEditable(context))
+                                @if (!ReadOnlyDisplay && canActOnTask && IsEditable())
                                 {
                                     @if (Phase > WorkflowPhases.request
                                         && WfHandler.MasterStateMatrix.PromotionMode == PromotionMode.Ticket)
@@ -289,7 +289,7 @@
         await WfHandler.ViewReqTaskInPhase(reqTask);
     }
 
-    private bool IsEditable(WfReqTask implTreqTasksk)
+    private bool IsEditable()
     {
         if(userConfig.ReqOwnerBased)
         {

@@ -7,7 +7,7 @@ using System.Net;
 
 namespace FWO.Services
 {
-    public class GroupAccess
+    public static class GroupAccess
     {
         static public async Task<List<UserGroup>> GetGroupsFromInternalLdap(MiddlewareClient middlewareClient, UserConfig userConfig,
             Action<Exception?, string, string, bool> DisplayMessageInUi, bool ownerGroupsOnly = false)

@@ -784,7 +784,7 @@ namespace FWO.Test
             {
                 CreationDate = new DateTime(2025, 1, 2),
                 Requester = new UiUser { Name = "Requester A", Dn = "cn=requester,dc=test" },
-                Tasks = new List<WfReqTask> { reqTask }
+                Tasks = [reqTask]
             };
             FwoOwner owner = new() { Name = "Owner A", ExtAppId = "APP-42" };
             NotificationPlaceholderResolver.NotificationPlaceholderValues values = (NotificationPlaceholderResolver.NotificationPlaceholderValues)

@@ -232,56 +232,58 @@ namespace FWO.Report.Filter.FilterTypes
 
         private void SetDeviceVisibility(Tenant tenantView)
         {
-            if ((userConfig == null || userConfig.User.Tenant == null || userConfig.User.Tenant.Id == 1) && tenantView.Id != 1)
+            bool isSimulatedByTenant0User = (userConfig == null || userConfig.User.Tenant == null || userConfig.User.Tenant.Id == 1) && tenantView.Id != 1;
+            if (isSimulatedByTenant0User)
             {
-                // filtering for tenant simulation only done by a tenant0 user
-                foreach (TenantGateway gw in tenantView.TenantGateways)
-                {
-                    if (!tenantView.VisibleGatewayIds.Contains(gw.VisibleGateway.Id))
-                    {
-                        tenantView.VisibleGatewayIds = [.. tenantView.VisibleGatewayIds, gw.VisibleGateway.Id];
-                    }
-                }
-
-                // also add all gateways of non-shared managments - necessary for simulated tenant filtering
-                foreach (TenantManagement mgm in tenantView.TenantManagements)
-                {
-                    if (!mgm.Shared)
-                    {
-                        foreach (Device gw in mgm.VisibleManagement.Devices)
-                        {
-                            if (!tenantView.VisibleGatewayIds.Contains(gw.Id))
-                            {
-                                tenantView.VisibleGatewayIds = [.. tenantView.VisibleGatewayIds, gw.Id];
-                            }
-                        }
-                    }
-                }
+                AddGatewaysForTenantSimulation(tenantView);
             }
 
             foreach (ManagementSelect mgm in DeviceFilter.Managements)
             {
-                mgm.Shared = false;
-                bool mgmVisible = false;
-                foreach (DeviceSelect gw in mgm.Devices)
+                ApplyGatewayVisibility(mgm, tenantView.VisibleGatewayIds);
+            }
+        }
+
+        /// <summary>
+        /// Adds the tenant gateways and all gateways of non-shared managements to the visible gateways.
+        /// Necessary for the tenant simulation, which is only done by a tenant0 user.
+        /// </summary>
+        private static void AddGatewaysForTenantSimulation(Tenant tenantView)
+        {
+            IEnumerable<int> tenantGatewayIds = tenantView.TenantGateways.Select(gw => gw.VisibleGateway.Id);
+            IEnumerable<int> unsharedManagementGatewayIds = tenantView.TenantManagements
+                .Where(mgm => !mgm.Shared)
+                .SelectMany(mgm => mgm.VisibleManagement.Devices)
+                .Select(gw => gw.Id);
+            IEnumerable<int> additionalGatewayIds = tenantGatewayIds.Concat(unsharedManagementGatewayIds).Except(tenantView.VisibleGatewayIds);
+            tenantView.VisibleGatewayIds = [.. tenantView.VisibleGatewayIds, .. additionalGatewayIds];
+        }
+
+        /// <summary>
+        /// Shows only the visible gateways of a management. Invisible gateways are deselected, and a management
+        /// with an invisible gateway is marked as shared. A management without visible gateway is hidden and deselected.
+        /// </summary>
+        private static void ApplyGatewayVisibility(ManagementSelect mgm, int[] visibleGatewayIds)
+        {
+            mgm.Shared = false;
+            bool mgmVisible = false;
+            foreach (DeviceSelect gw in mgm.Devices)
+            {
+                gw.Visible = visibleGatewayIds.Contains(gw.Id);
+                if (gw.Visible)
                 {
-                    gw.Visible = tenantView.VisibleGatewayIds.Contains(gw.Id);
-                    if (gw.Visible)
-                    {
-                        // one gateway is visible, so the management must be visible
-                        mgmVisible = true;
-                    }
-                    else
-                    {
-                        gw.Selected = false; // make sure invisible devices are not selected
-                        mgm.Shared = true; // if one gateway is not visible, the mgm is shared (filtered)
-                    }
+                    mgmVisible = true;
                 }
-                mgm.Visible = mgmVisible;
-                if (!mgm.Visible)
-                {   // make sure invisible managements are not selected
-                    mgm.Selected = false;
+                else
+                {
+                    gw.Selected = false;
+                    mgm.Shared = true;
                 }
+            }
+            mgm.Visible = mgmVisible;
+            if (!mgm.Visible)
+            {
+                mgm.Selected = false;
             }
         }
     }

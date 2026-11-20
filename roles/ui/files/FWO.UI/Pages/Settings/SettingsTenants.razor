@@ -117,13 +117,10 @@
         <div class="btn-group">
             <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
-                    @if (deleteAllowed && !AddTenantMode)
+                    @if (deleteAllowed && !AddTenantMode && actTenant.Id != GlobalConst.kTenant0Id)
                     {
-                        @if (actTenant.Id != GlobalConst.kTenant0Id)
-                        {
-                            <button type="button" class="btn btn-sm btn-danger"
-                                @onclick="() => RequestDeleteTenant(actTenant)">@(userConfig.GetText("delete_tenant"))</button>
-                        }
+                        <button type="button" class="btn btn-sm btn-danger"
+                            @onclick="() => RequestDeleteTenant(actTenant)">@(userConfig.GetText("delete_tenant"))</button>
                     }
                     <button type="button" class="btn btn-primary"
                         @onclick="() => LeaveModifyTenantMode(cancel:false)">@(userConfig.GetText("save"))</button>
@@ -238,10 +235,6 @@
             foreach (TenantGetReturnParameters apiTenant in middlewareServerResponse.Data)
             {
                 Tenant newTenant = new (apiTenant);
-                // foreach (TenantViewGateway tenantGateway in apiTenant.UnfilteredGateways)
-                //    newTenant.UnfilteredGatewayIds.Append(tenantGateway.Id);
-                // foreach (TenantViewGateway tenantGateway in apiTenant.SharedGateways)
-                //    newTenant.SharedGatewayIds.Append(tenantGateway.Id);
                 tenants.Add(newTenant);
             }
             AnalyseSampleTenants();

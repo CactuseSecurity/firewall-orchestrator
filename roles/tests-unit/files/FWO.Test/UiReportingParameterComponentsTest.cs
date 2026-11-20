@@ -191,7 +191,7 @@ namespace FWO.Test
         public async Task ReportSelectTime_ChangeReport_InvalidRange_ReportsValidationError()
         {
             await using BunitContext context = CreateContext(addDomEventService: true);
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             TimeFilter actTimeFilter = new()
             {
                 TimeRangeType = TimeRangeType.Fixeddates,

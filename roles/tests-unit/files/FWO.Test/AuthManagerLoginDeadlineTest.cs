@@ -86,7 +86,7 @@ namespace FWO.Test
                 RoleSearchPath = kRoleSearchPath,
                 TenantId = 1
             };
-            return new AuthManager(new JwtWriter(new RsaSecurityKey(RSA.Create(2048))), new List<Ldap> { ldap }, new SimulatedApiConnection())
+            return new AuthManager(new JwtWriter(new RsaSecurityKey(RSA.Create(2048))), [ldap], new SimulatedApiConnection())
             {
                 LoginTimeout = loginTimeout
             };

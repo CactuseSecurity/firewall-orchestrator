@@ -43,7 +43,7 @@ namespace FWO.Recert
                 userDn = userConfig.User.Dn,
                 recertified = rule.Metadata.Recert,
                 recertDate = DateTime.Now,
-                comment = comment,
+                comment,
                 ownerRecertId = owner?.LastRecertId == 0 ? null : owner?.LastRecertId
             };
             bool recertOk = (await apiConnection.SendQueryAsync<ReturnId>(RecertQueries.recertify, variables)).AffectedRows > 0;
@@ -64,9 +64,9 @@ namespace FWO.Recert
                 ownerId = owner.Id,
                 userDn = initialRecert ? userConfig.InitialRecertifier : userConfig.User.Dn,
                 recertified = !initialRecert,
-                recertDate = recertDate,
-                nextRecertDate = nextRecertDate,
-                comment = comment
+                recertDate,
+                nextRecertDate,
+                comment
             };
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.recertifyOwner, recertVariables)).ReturnIds;
             if (returnIds != null && returnIds.Length > 0)
@@ -112,7 +112,7 @@ namespace FWO.Recert
                 userDn = userConfig.User.Dn,
                 recertified = true,
                 recertDate = DateTime.Now,
-                comment = comment,
+                comment,
                 ownerRecertId = owner?.LastRecertId
             };
             return (await apiConnection.SendQueryAsync<ReturnIdWrapper>(RecertQueries.recertifyRuleDirectly, variables)).ReturnIds?[0].NewIdLong > 0;

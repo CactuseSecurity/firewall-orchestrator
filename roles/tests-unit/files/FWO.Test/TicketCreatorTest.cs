@@ -17,6 +17,8 @@ namespace FWO.Test
     [TestFixture]
     internal class TicketCreatorTest
     {
+        private static readonly string[] kExpectedRuleUids = ["rule-1", "rule-2"];
+
         private sealed class TicketCreatorTestApiConn : SimulatedApiConnection
         {
             private long nextId = 100;
@@ -527,7 +529,7 @@ namespace FWO.Test
                 Assert.That(tasks, Has.Count.EqualTo(2));
                 Assert.That(tasks.Select(task => task.TaskType), Is.All.EqualTo(WfTaskType.rule_delete.ToString()));
                 Assert.That(tasks.Select(task => task.Locked), Is.All.True);
-                Assert.That(tasks.Select(task => task.Elements.WfElementList.Single().RuleUid), Is.EqualTo(new[] { "rule-1", "rule-2" }));
+                Assert.That(tasks.Select(task => task.Elements.WfElementList.Single().RuleUid), Is.EqualTo(kExpectedRuleUids));
                 Assert.That(apiConn.Queries, Does.Contain(RequestQueries.newComment));
                 Assert.That(apiConn.Queries, Does.Contain(RequestQueries.addCommentToTicket));
             });

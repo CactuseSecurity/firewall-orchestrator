@@ -100,20 +100,20 @@ namespace FWO.Middleware.Server.Jobs
         {
             if (string.IsNullOrWhiteSpace(globalConfig.DailyCheckModules))
             {
-                return [.. Enum.GetValues(typeof(DailyCheckModule)).Cast<DailyCheckModule>()];
+                return [.. Enum.GetValues<DailyCheckModule>()];
             }
 
             try
             {
                 List<DailyCheckModule>? modules = System.Text.Json.JsonSerializer.Deserialize<List<DailyCheckModule>>(globalConfig.DailyCheckModules);
                 return modules == null
-                    ? [.. Enum.GetValues(typeof(DailyCheckModule)).Cast<DailyCheckModule>()]
+                    ? [.. Enum.GetValues<DailyCheckModule>()]
                     : [.. modules];
             }
             catch (System.Text.Json.JsonException)
             {
                 Log.WriteError(LogMessageTitle, $"Could not parse daily check modules config \"{globalConfig.DailyCheckModules}\". Using all modules.");
-                return [.. Enum.GetValues(typeof(DailyCheckModule)).Cast<DailyCheckModule>()];
+                return [.. Enum.GetValues<DailyCheckModule>()];
             }
         }
 

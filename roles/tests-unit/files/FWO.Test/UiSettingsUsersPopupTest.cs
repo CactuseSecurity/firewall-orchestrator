@@ -191,11 +191,11 @@ namespace FWO.Test
                         Assert.That(user.Dn, Is.EqualTo("uid=first,dc=example,dc=com"));
                         return Task.CompletedTask;
                     }))
-                    .Add(p => p.Users, new List<UiUser>
-                    {
+                    .Add(p => p.Users,
+                    [
                         new() { Dn = "uid=first,dc=example,dc=com" },
                         new() { Dn = "uid=second,dc=example,dc=com" }
-                    })
+                    ])
                     .Add(p => p.Title, "RoleX")
                     .Add(p => p.Label, "user")));
 

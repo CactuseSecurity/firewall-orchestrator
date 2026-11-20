@@ -89,7 +89,7 @@ namespace FWO.Test
             };
             ApiConnection.AsSub()
                 .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
-                .Returns(new List<Management> { new() { Id = 1, Name = "Mgmt1" } });
+                .Returns([new() { Id = 1, Name = "Mgmt1" }]);
             ApiConnection.AsSub()
                 .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
                 .Returns(policy);
@@ -126,7 +126,7 @@ namespace FWO.Test
         {
             ApiConnection.AsSub()
                 .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
-                .Returns(new List<Management> { new() { Id = 1, Name = "Mgmt1" } });
+                .Returns([new() { Id = 1, Name = "Mgmt1" }]);
             ApiConnection.AsSub()
                 .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
                 .Returns(new CompliancePolicy { Id = 5 });
@@ -162,7 +162,7 @@ namespace FWO.Test
             SetUpEmptyFlowGroups();
             ApiConnection.AsSub()
                 .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
-                .Returns(new List<Management> { new() { Id = 1, Name = "Mgmt1" } });
+                .Returns([new() { Id = 1, Name = "Mgmt1" }]);
             ApiConnection.AsSub()
                 .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
                 .Returns(ForbiddenServicePolicy("other-service-uid"));
@@ -249,16 +249,16 @@ namespace FWO.Test
         {
             ApiConnection.AsSub()
                 .SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowSyncNwGroups, Arg.Any<object>())
-                .Returns(new List<FlowNwGroup>());
+                .Returns([]);
             ApiConnection.AsSub()
                 .SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, Arg.Any<object>())
-                .Returns(new List<FlowNwObject>());
+                .Returns([]);
             ApiConnection.AsSub()
                 .SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowSyncSvcGroups, Arg.Any<object>())
-                .Returns(new List<FlowSvcGroup>());
+                .Returns([]);
             ApiConnection.AsSub()
                 .SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowSyncSvcObjects, Arg.Any<object>())
-                .Returns(new List<FlowSvcObject>());
+                .Returns([]);
         }
 
         private static readonly int[] kPolicyId5 = [5];
@@ -352,10 +352,10 @@ namespace FWO.Test
                     }
                 }
             };
-            List<Management> managements = new()
-            {
+            List<Management> managements =
+            [
                 new Management { Id = 1, Name = "Mgmt1" }
-            };
+            ];
             ApiConnection.AsSub()
                 .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
                 .Returns(managements);
@@ -368,8 +368,8 @@ namespace FWO.Test
             service.Port = null;
             service.PortEnd = null;
             service.ProtoId = GlobalConst.kAnyIpProtocolId;
-            List<int> policyIds = new() { policy.Id };
-            List<WfReqTask> requestTasks = new() { task };
+            List<int> policyIds = [policy.Id];
+            List<WfReqTask> requestTasks = [task];
 
             bool result = await checker.AreRequestTasksCompliant(policyIds, requestTasks);
 
@@ -399,11 +399,11 @@ namespace FWO.Test
                     }
                 }
             };
-            List<Management> managements = new()
-            {
+            List<Management> managements =
+            [
                 new Management { Id = 1, Name = "Mgmt1" },
                 new Management { Id = 2, Name = "Mgmt2" }
-            };
+            ];
             ApiConnection.AsSub().SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames).Returns(managements);
             ApiConnection.AsSub().SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>()).Returns(policy);
             WfReqTask forwardTask = CreateEligibleRequestTask(17);
@@ -412,8 +412,8 @@ namespace FWO.Test
             reverseTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = "10.0.1.1/32";
             reverseTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString()).IpString = "10.0.0.1/32";
             reverseTask.Elements.Single(element => element.Field == ElemFieldType.service.ToString()).Port = reversePort;
-            List<int> policyIds = new() { policy.Id };
-            List<WfReqTask> requestTasks = new() { forwardTask, reverseTask };
+            List<int> policyIds = [policy.Id];
+            List<WfReqTask> requestTasks = [forwardTask, reverseTask];
 
             bool result = await checker.AreRequestTasksCompliant(policyIds, requestTasks);
 
@@ -507,7 +507,7 @@ namespace FWO.Test
             SetUpRuleActions(new RuleAction { Id = 1, Name = "accept", Allowed = true }, new RuleAction { Id = 2, Name = "drop", Allowed = false });
             ApiConnection.AsSub()
                 .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
-                .Returns(new List<Management> { new() { Id = 1, Name = "Mgmt1" } });
+                .Returns([new() { Id = 1, Name = "Mgmt1" }]);
             ApiConnection.AsSub()
                 .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
                 .Returns(ForbiddenServicePolicy("443/TCP"));

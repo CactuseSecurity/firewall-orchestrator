@@ -61,7 +61,7 @@ namespace FWO.Test
             List<ModellingConnection> globalCommonServices = CreateConnections("Global common service");
 
             IRenderedComponent<ConnectionsReport> component = context.Render<ConnectionsReport>(parameters => parameters
-                .Add(p => p.OwnerData, new List<OwnerConnectionReport> { ownerReport })
+                .Add(p => p.OwnerData, [ownerReport])
                 .Add(p => p.AllCommonServices, globalCommonServices));
 
             Assert.Multiple(() =>
@@ -86,7 +86,7 @@ namespace FWO.Test
             };
 
             IRenderedComponent<ConnectionsReport> component = context.Render<ConnectionsReport>(parameters => parameters
-                .Add(p => p.OwnerData, new List<OwnerConnectionReport> { ownerReport }));
+                .Add(p => p.OwnerData, [ownerReport]));
 
             Assert.Multiple(() =>
             {
@@ -113,8 +113,8 @@ namespace FWO.Test
             };
 
             IRenderedComponent<RecertEventReport> component = context.Render<RecertEventReport>(parameters => parameters
-                .Add(p => p.OwnerData, new List<OwnerConnectionReport> { ownerReport })
-                .Add(p => p.Managements, new List<ManagementReport> { new ManagementReport { Name = "Mgmt One" } })
+                .Add(p => p.OwnerData, [ownerReport])
+                .Add(p => p.Managements, [new ManagementReport { Name = "Mgmt One" }])
                 .Add(p => p.RulesPerPage, 25));
 
             Assert.Multiple(() =>
@@ -151,7 +151,7 @@ namespace FWO.Test
             };
 
             IRenderedComponent<VariancesReport> component = context.Render<VariancesReport>(parameters => parameters
-                .Add(p => p.OwnerData, new List<OwnerConnectionReport> { ownerReport }));
+                .Add(p => p.OwnerData, [ownerReport]));
 
             Assert.Multiple(() =>
             {
@@ -213,14 +213,14 @@ namespace FWO.Test
 
         private static List<ModellingConnection> CreateConnections(string name)
         {
-            return new List<ModellingConnection>
-            {
+            return
+            [
                 new ModellingConnection
                 {
                     Id = 1,
                     Name = name
                 }
-            };
+            ];
         }
 
         private static Dictionary<int, List<ModellingAppRole>> CreateMissingAppRoles()

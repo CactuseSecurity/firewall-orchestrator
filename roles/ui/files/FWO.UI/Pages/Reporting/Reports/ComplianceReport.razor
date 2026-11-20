@@ -268,11 +268,9 @@
     private const int ColumnsCount = 22;
     private readonly bool[] EmptyColumns = new bool[ColumnsCount];
 
-    private NatRuleDisplayHtml? ruleDisplay;
     
     protected override void OnInitialized()
     {
-        ruleDisplay = new NatRuleDisplayHtml(userConfig);
         UpdateRuleViewData();
     }
 
@@ -300,13 +298,6 @@
         }
 
         return classes;
-    }
-
-    private string getHistoryString(Recertification recert)
-    {
-        string username = new DistName(recert.UserDn).UserName;
-        return $"{userConfig.GetText(recert.Recertified ? "recertified_by" : "decertified_by")} {username} " +
-            $"{userConfig.GetText("as_owner")} {recert.FwoOwner?.Name} {userConfig.GetText("comment")}: {recert.Comment}";
     }
 
     public void UpdateRuleViewData(ReportData? reportData = null)

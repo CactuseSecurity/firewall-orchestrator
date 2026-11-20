@@ -256,10 +256,10 @@ namespace FWO.Test
                 Assert.That(buttons[0].TextContent.Trim(), Is.EqualTo(userConfig.GetText("generate_report")));
             });
 
-            List<ConfigItem> changedItems = new()
-            {
+            List<ConfigItem> changedItems =
+            [
                 new ConfigItem { Key = "modIconify", Value = "true", User = userConfig.User.DbId }
-            };
+            ];
             await page.InvokeAsync(() => userConfig.SubscriptionUpdateHandler(changedItems.ToArray()));
 
             page.WaitForAssertion(() =>

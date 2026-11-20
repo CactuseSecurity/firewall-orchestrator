@@ -268,7 +268,8 @@ namespace FWO.Test
                 queries.Add((query, activeRole));
                 if (query == ExtRequestQueries.getLatestTicketId)
                 {
-                    return Task.FromResult((QueryResponseType)(object)(LatestTicket != null ? new List<TicketId> { new() { Id = LatestTicket.Id } } : new List<TicketId>()));
+                    List<TicketId> ticketIds = LatestTicket != null ? [new() { Id = LatestTicket.Id }] : [];
+                    return Task.FromResult((QueryResponseType)(object)ticketIds);
                 }
                 if (query == RequestQueries.getExtStates)
                 {

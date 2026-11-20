@@ -632,7 +632,6 @@ namespace FWO.Test
             public LocalizedString this[string name] => new(name, name, resourceNotFound: true);
             public LocalizedString this[string name, params object[] arguments] => new(name, string.Format(name, arguments), resourceNotFound: true);
             public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => [];
-            public EmptyStringLocalizer<T> WithCulture(System.Globalization.CultureInfo culture) => this;
         }
     }
 }

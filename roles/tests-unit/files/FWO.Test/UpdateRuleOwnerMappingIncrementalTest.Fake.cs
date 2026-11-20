@@ -236,14 +236,14 @@ namespace FWO.Test
                     {
                         throw new InvalidOperationException($"Simulated API failure for import_control {controlId}.");
                     }
-                    result = ruleChangesByImport.TryGetValue(controlId, out List<RuleChange>? changes) ? changes : new List<RuleChange>();
+                    result = ruleChangesByImport.TryGetValue(controlId, out List<RuleChange>? changes) ? changes : [];
                     return true;
                 }
 
                 if (query == OwnerQueries.getChangedOwnersForRuleOwnerMappingCustomField)
                 {
                     long controlId = ReadLong(variables, "controlId");
-                    result = ownerChangesByImport.TryGetValue(controlId, out List<OwnerChange>? changes) ? changes : new List<OwnerChange>();
+                    result = ownerChangesByImport.TryGetValue(controlId, out List<OwnerChange>? changes) ? changes : [];
                     return true;
                 }
 
@@ -350,7 +350,8 @@ namespace FWO.Test
                     {
                         throw new InvalidOperationException("Simulated failure while reading the rule_owner mapping run history.");
                     }
-                    result = StoredHistoryJson == null ? new List<ConfigItem>() : new List<ConfigItem> { new() { Value = StoredHistoryJson } };
+                    List<ConfigItem> configItems = StoredHistoryJson == null ? [] : [new() { Value = StoredHistoryJson }];
+                    result = configItems;
                     return true;
                 }
 

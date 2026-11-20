@@ -405,6 +405,41 @@ namespace FWO.Test
             }
         }
 
+        /// <summary>
+        /// An existing object named by the substitution of a modelling placeholder, e.g. an access role, is referenced by its
+        /// own name: the slash replacement for objects FWO creates does not apply.
+        /// </summary>
+        [Test]
+        public void Access_ReferencesExistingObjectsByTheirVerbatimName()
+        {
+            WfImplElement accessRole = Network(null, null);
+            accessRole.GroupName = "Office365/Users";
+            accessRole.KeepNameVerbatim = true;
+            WfImplElement areaGroup = Network(null, null, field: ElemFieldType.destination);
+            areaGroup.GroupName = "NA/50";
+            WfImplTask task = Task(WfTaskType.access, accessRole, areaGroup, Service("https", kTcp, 443));
+
+            List<FirewallWriteStep> steps = Plan(task);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(Value(steps[0], FirewallWritePlaceholders.RuleSources), Is.EqualTo("[\"Office365/Users\"]"));
+                Assert.That(Value(steps[0], FirewallWritePlaceholders.RuleDestinations), Is.EqualTo("[\"NA_50\"]"));
+            }
+        }
+
+        [Test]
+        public void Azure_ObjectWithoutAddressNamedVerbatim_IsUnsupported()
+        {
+            WfImplElement accessRole = Network(null, null);
+            accessRole.GroupName = "a_testUser";
+            accessRole.KeepNameVerbatim = true;
+            WfImplTask task = Task(WfTaskType.access, accessRole, Network("d", "10.0.1.1", field: ElemFieldType.destination), Service(null, kTcp, 443));
+            task.RuleAction = 1;
+
+            AssertKind(FirewallWriteErrorKind.Unsupported, () => Plan(task, FirewallVendors.kAzureFirewall));
+        }
+
         [Test]
         public void Azure_UsesAddressesAndCreatesNoObjects()
         {

@@ -260,7 +260,7 @@ namespace FWO.Services.Modelling
                 {
                     name = ActAppRole.Name,
                     idString = ActAppRole.IdString,
-                    appId = appId,
+                    appId,
                     comment = ActAppRole.Comment,
                     creator = userConfig.User.Name
                 };

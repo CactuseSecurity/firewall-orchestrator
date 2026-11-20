@@ -33,7 +33,7 @@ namespace FWO.Services.SystemUsage
         private const int kMinCpuFieldCount = 5;
         private const double kFullPercent = 100.0;
 
-        private readonly object sampleLock = new();
+        private readonly Lock sampleLock = new();
         private readonly ServiceUsageScanner serviceScanner = new(source);
 
         private SystemUsageSnapshot? lastSnapshot;

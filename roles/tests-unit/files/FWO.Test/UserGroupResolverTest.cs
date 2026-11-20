@@ -198,7 +198,7 @@ namespace FWO.Test
         {
             TestableLdap hosting = CreateLdap(new RecordingLdapClient(), kExternalUserPath, kExternalGroupPath, kExternalLdapId);
             TestableLdap internalLdap = CreateLdap(new RecordingLdapClient(), kInternalUserPath, kInternalGroupPath);
-            UserGroupResolver resolver = new(new List<Ldap> { hosting, internalLdap });
+            UserGroupResolver resolver = new([hosting, internalLdap]);
             LdapEntry userEntry = LdapTestSupport.CreateEntry("cn=testuser,ou=users,dc=example,dc=com");
             using CancellationTokenSource cancellation = new();
             cancellation.Cancel();
@@ -236,7 +236,7 @@ namespace FWO.Test
             RecordingLdapClient inactiveConnection = new();
             Ldap inactiveInternal = CreateLdap(inactiveConnection, kInternalUserPath, kInternalGroupPath);
             inactiveInternal.Active = false;
-            List<Ldap> configuredLdaps = new() { hosting, inactiveInternal };
+            List<Ldap> configuredLdaps = [hosting, inactiveInternal];
             UserGroupResolver resolver = new(configuredLdaps);
             LdapEntry userEntry = LdapTestSupport.CreateEntry(externalUserDn, new LdapAttribute("memberOf", externalGroupDn));
 
@@ -329,15 +329,6 @@ namespace FWO.Test
                 UserSearchPath = userSearchPath,
                 GroupSearchPath = groupSearchPath
             };
-        }
-
-        private static FakeSearchResults GroupSearchResultFor(string groupName, string memberDn, string groupPath = kInternalGroupPath)
-        {
-            return LdapTestSupport.CreateSearchResults(
-                LdapTestSupport.CreateEntry(
-                    $"cn={groupName},{groupPath}",
-                    new LdapAttribute("cn", groupName),
-                    new LdapAttribute("uniqueMember", memberDn)));
         }
     }
 }

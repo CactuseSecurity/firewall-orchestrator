@@ -153,8 +153,8 @@ INSERT INTO txt VALUES ('CreateFlow',	        'German', 	'Flow erzeugen');
 INSERT INTO txt VALUES ('CreateFlow',		    'English', 	'Create flow');
 INSERT INTO txt VALUES ('BundleTasks',	        'German', 	'Aufgaben b&uuml;ndeln');
 INSERT INTO txt VALUES ('BundleTasks',		    'English', 	'Bundle tasks');
-INSERT INTO txt VALUES ('CreateImplTasks',	    'German', 	'Implementierungs-Auftr&auml;ge erzeugen');
-INSERT INTO txt VALUES ('CreateImplTasks',	    'English', 	'Create implementation tasks');
+INSERT INTO txt VALUES ('CreateImplTasks',	    'German', 	'Umsetzung vorbereiten');
+INSERT INTO txt VALUES ('CreateImplTasks',	    'English', 	'Prepare implementation');
 INSERT INTO txt VALUES ('CreateExtRequests',	'German', 	'Externe Anfragen erzeugen');
 INSERT INTO txt VALUES ('CreateExtRequests',	'English', 	'Create external requests');
 INSERT INTO txt VALUES ('bundle_type',	        'German', 	'B&uuml;ndelungstyp');
@@ -1491,6 +1491,8 @@ INSERT INTO txt VALUES ('successState',         'German',   'Status bei Erfolg')
 INSERT INTO txt VALUES ('successState',         'English',  'Success state');
 INSERT INTO txt VALUES ('errorState',           'German',   'Status bei Fehler');
 INSERT INTO txt VALUES ('errorState',           'English',  'Error state');
+INSERT INTO txt VALUES ('ext_ticket_system_target_state', 'German',  'Antrags-Auftr&auml;ge an externes Ticketsystem bef&ouml;rdern auf');
+INSERT INTO txt VALUES ('ext_ticket_system_target_state', 'English', 'Promote request tasks of an external ticket system to');
 INSERT INTO txt VALUES ('checkResultLabel',     'German',   'Pr&uuml;fergebnis-Label');
 INSERT INTO txt VALUES ('checkResultLabel',     'English',  'Check result label');
 INSERT INTO txt VALUES ('PolicyCheck',          'German',   'Policy-Pr&uuml;fung');
@@ -4764,6 +4766,8 @@ INSERT INTO txt VALUES ('U8003', 'German',  'Sind sie sicher, dass sie abbrechen
 INSERT INTO txt VALUES ('U8003', 'English', 'Are you sure you want to cancel? Already Created tasks will be lost.');
 INSERT INTO txt VALUES ('U8004', 'German',  'Sind sie sicher, dass sie einen neuen Eigent&uuml;mer zuweisen wollen? Zust&auml;ndigkeiten k&ouml;nnen sich &auml;ndern.');
 INSERT INTO txt VALUES ('U8004', 'English', 'Are you sure you want to change owner? Responsibilities can be changed.');
+INSERT INTO txt VALUES ('U8005', 'German',  'Von der Aktion &quot;Umsetzung vorbereiten&quot; weitergeschaltet: Der Auftrag wird vom externen Ticketsystem geplant und umgesetzt.');
+INSERT INTO txt VALUES ('U8005', 'English', 'Promoted by the action &quot;Prepare implementation&quot;: the task is planned and implemented by the external ticket system.');
 
 INSERT INTO txt VALUES ('U9001', 'German',  'Sind sie sicher, dass sie folgende Verbindung l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U9001', 'English', 'Are you sure you want to delete connection: ');
@@ -5165,6 +5169,8 @@ INSERT INTO txt VALUES ('E5506', 'German',  'Nur die &Auml;nderungs-ID-Schl&uuml
 INSERT INTO txt VALUES ('E5506', 'English', 'Only the change-ID keys were saved, the owner mapping was left unchanged.');
 INSERT INTO txt VALUES ('E5507', 'German',  'Dieser Schl&uuml;ssel ist bereits vorhanden.');
 INSERT INTO txt VALUES ('E5507', 'English', 'This key already exists.');
+INSERT INTO txt VALUES ('E5508', 'German',  'Der Status f&uuml;r Antrags-Auftr&auml;ge an ein externes Ticketsystem muss existieren und darf nicht unter dem Endstatus der letzten aktiven Phase vor der Implementierung liegen. Kleinster erlaubter Status: ');
+INSERT INTO txt VALUES ('E5508', 'English', 'The state for request tasks of an external ticket system must exist and must not be below the end state of the last active phase before the implementation. Lowest allowed state: ');
 INSERT INTO txt VALUES ('E5601', 'German',   'Die L&auml;nge des fixen Teils muss gr&ouml;sser als die L&auml;nge des Netzwerkarea-Musters sein.');
 INSERT INTO txt VALUES ('E5601', 'English',  'The fixed part length must be greater than the length of the network area pattern.');
 INSERT INTO txt VALUES ('E5602', 'German',   'Das Muster App Rolle muss genauso lang wie das Muster Netzwerkarea sein.');
@@ -7614,6 +7620,8 @@ INSERT INTO txt VALUES ('H5538', 'German',  'Die Aktions&uuml;bersicht zeigt zus
 INSERT INTO txt VALUES ('H5538', 'English', 'The action overview additionally shows how many states use each action. The edit dialog is split into "General", "Action specific", and "Using states"; the linked states are listed there and can be added or removed directly.');
 INSERT INTO txt VALUES ('H5539', 'German',  'Request Tasks nach Task-Typ b&uuml;ndeln: Wenn aktiviert und Beantragte Verbindungen als angeh&auml;ngter Inhalt gew&auml;hlt ist, enth&auml;lt die Email alle passenden Request Tasks desselben Task-Typs. Eine automatische Einmal-Ausl&ouml;sung pro Task-Typ erfolgt nur, wenn der Workflow die Email-Aktionen gesammelt ausf&uuml;hrt, d.h. wenn ein Ticket zusammen mit seinen Request Tasks bef&ouml;rdert wird. In anderen Abl&auml;ufen beeinflusst die Option den Email-Inhalt, aber nicht zwingend die Anzahl der ausgel&ouml;sten Statusaktionen.');
 INSERT INTO txt VALUES ('H5539', 'English', 'Bundle request tasks by task type: If enabled and Requested Connections is selected as attached content, the email contains all matching request tasks of the same task type. Automatic single delivery per task type is only applied when the workflow executes email actions through a collector, i.e. when a ticket is promoted together with its request tasks. In other flows, the option affects the email content but does not necessarily reduce the number of triggered state actions.');
+INSERT INTO txt VALUES ('H5540', 'German',  'Antrags-Auftr&auml;ge an externes Ticketsystem bef&ouml;rdern auf: Antrags-Auftr&auml;ge, deren Management den Umsetzungsmodus externes Ticketsystem mit gew&auml;hltem System hat, bekommen keine Implementierungs-Auftr&auml;ge, da das externe Ticketsystem sie selbst plant. Die Aktion setzt sie nach der Genehmigung auf diesen Status, damit sie das Ticket nicht in der Planung festhalten. Standard ist &quot;To Implement&quot;. Die Aktion &quot;Externe Anfragen erzeugen&quot; sollte an denselben Status geh&auml;ngt werden: enth&auml;lt ein Ticket nur solche Antrags-Auftr&auml;ge, erreicht es direkt diesen Status und &uuml;berspringt fr&uuml;here. Der Status darf nicht unter dem Endstatus der letzten aktiven Phase vor der Implementierung liegen. Ohne solche Antrags-Auftr&auml;ge hat die Einstellung keine Wirkung.');
+INSERT INTO txt VALUES ('H5540', 'English', 'Promote request tasks of an external ticket system to: Request tasks whose management has the implementation mode external ticket system with a selected system get no implementation tasks, as the external ticket system plans them itself. After the approval the action sets them to this state, so that they do not hold the ticket in the planning. The default is &quot;To Implement&quot;. Attach the action &quot;Create external requests&quot; to the same state: a ticket with only such request tasks reaches this state directly and skips earlier ones. The state must not be below the end state of the last active phase before the implementation. Without such request tasks the setting has no effect.');
 INSERT INTO txt VALUES ('H5541', 'German',  'In der Status-Matrix werden die verarbeitbaren Status pro Phase und Tasktyp festgelegt.
     Es gibt eine Master-Matrix, welche die Eigenschaften auf Ticket-Ebene beschreibt, sowie und f&uuml;r jeden Tasktyp separate Matrizen.
     Oberhalb der Konfigurationsauswahl k&ouml;nnen Sichtbarkeitsgruppen und &Uuml;bergangsgruppen bearbeitet sowie neue leere Konfigurationen oder Kopien einer ausgew&auml;hlten Konfiguration angelegt werden. Nur inaktive Konfigurationen k&ouml;nnen gel&ouml;scht werden; nicht mehr verwendete Phasenmatrizen werden dabei ebenfalls entfernt. Mitglieder von Sichtbarkeitsgruppen k&ouml;nnen als DN eingegeben oder &uuml;ber die Benutzer- und Gruppensuche ausgew&auml;hlt werden. Beim L&ouml;schen einer Sichtbarkeitsgruppe wird ihre Zuordnung zu &Uuml;bergangsgruppen entfernt. Beim L&ouml;schen einer &Uuml;bergangsgruppe werden auch ihre &Uuml;berg&auml;nge und Phasenzuordnungen gel&ouml;scht. Genau eine Konfiguration ist aktiv und wird zur Laufzeit verwendet.

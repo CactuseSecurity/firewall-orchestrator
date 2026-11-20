@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Security.Claims;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -6,6 +7,7 @@ using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server.Controllers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
@@ -21,11 +23,22 @@ namespace FWO.Test
         private static readonly List<long> kExpectedSentTicketIds = [kTicketId];
 
         [Test]
+        public void Post_IsRestrictedToAdmins()
+        {
+            MethodInfo post = typeof(ExternalRequestController).GetMethod(nameof(ExternalRequestController.Post))
+                ?? throw new InvalidOperationException("Post is missing.");
+
+            AuthorizeAttribute? authorize = post.GetCustomAttribute<AuthorizeAttribute>();
+
+            Assert.That(authorize?.Roles, Is.EqualTo(Roles.Admin));
+        }
+
+        [Test]
         public async Task Post_ReturnsFalseWhenTicketIdIsNotPositive()
         {
             ExternalRequestControllerTestApiConnection apiConnection = new();
             RequestSender sender = new();
-            ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Modeller, kOwnApp.ToString());
+            ExternalRequestController controller = CreateController(apiConnection, sender);
 
             ActionResult<bool> result = await controller.Post(new ExternalRequestAddParameters { TicketId = 0 });
 
@@ -35,77 +48,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Post_ModellerOfTicketOwnerStartsRequests()
-        {
-            ExternalRequestControllerTestApiConnection apiConnection = new() { Ticket = CreateTicket(kOwnApp) };
-            RequestSender sender = new();
-            ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Modeller, $"[{kOwnApp}]");
-
-            ActionResult<bool> result = await controller.Post(new ExternalRequestAddParameters { TicketId = kTicketId });
-
-            Assert.That(result.Value, Is.True);
-            Assert.That(sender.SentTicketIds, Is.EqualTo(kExpectedSentTicketIds));
-        }
-
-        [Test]
-        public async Task Post_ModellerOfOtherOwnerGetsNotFound()
-        {
-            ExternalRequestControllerTestApiConnection apiConnection = new() { Ticket = CreateTicket(kForeignApp) };
-            RequestSender sender = new();
-            ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Modeller, $"[{kOwnApp}]");
-
-            ActionResult<bool> result = await controller.Post(new ExternalRequestAddParameters { TicketId = kTicketId });
-
-            Assert.That(result.Result, Is.InstanceOf<NotFoundResult>());
-            Assert.That(sender.SentTicketIds, Is.Empty);
-            Assert.That(apiConnection.UnfinishedRequestQueryCount, Is.Zero);
-        }
-
-        [Test]
-        public async Task Post_ModellerOwningOnlyPartOfTicketGetsNotFound()
-        {
-            ExternalRequestControllerTestApiConnection apiConnection = new() { Ticket = CreateTicket(kOwnApp, kForeignApp) };
-            RequestSender sender = new();
-            ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Modeller, $"[{kOwnApp}]");
-
-            ActionResult<bool> result = await controller.Post(new ExternalRequestAddParameters { TicketId = kTicketId });
-
-            Assert.That(result.Result, Is.InstanceOf<NotFoundResult>());
-            Assert.That(sender.SentTicketIds, Is.Empty);
-        }
-
-        [Test]
-        public async Task Post_ModellerWithoutEditableOwnersGetsNotFound()
-        {
-            ExternalRequestControllerTestApiConnection apiConnection = new() { Ticket = CreateTicket(kOwnApp) };
-            RequestSender sender = new();
-            ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Modeller, null);
-
-            ActionResult<bool> result = await controller.Post(new ExternalRequestAddParameters { TicketId = kTicketId });
-
-            Assert.That(result.Result, Is.InstanceOf<NotFoundResult>());
-            Assert.That(sender.SentTicketIds, Is.Empty);
-        }
-
-        [Test]
-        public async Task Post_ModellerGetsNotFoundForTicketWithoutOwners()
-        {
-            ExternalRequestControllerTestApiConnection apiConnection = new() { Ticket = CreateTicket() };
-            RequestSender sender = new();
-            ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Modeller, $"[{kOwnApp}]");
-
-            ActionResult<bool> result = await controller.Post(new ExternalRequestAddParameters { TicketId = kTicketId });
-
-            Assert.That(result.Result, Is.InstanceOf<NotFoundResult>());
-            Assert.That(sender.SentTicketIds, Is.Empty);
-        }
-
-        [Test]
         public async Task Post_NonExistingTicketGetsNotFound()
         {
             ExternalRequestControllerTestApiConnection apiConnection = new();
             RequestSender sender = new();
-            ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Admin, null);
+            ExternalRequestController controller = CreateController(apiConnection, sender);
 
             ActionResult<bool> result = await controller.Post(new ExternalRequestAddParameters { TicketId = kTicketId });
 
@@ -118,7 +65,7 @@ namespace FWO.Test
         {
             ExternalRequestControllerTestApiConnection apiConnection = new() { Ticket = CreateTicket(kForeignApp) };
             RequestSender sender = new();
-            ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Admin, null);
+            ExternalRequestController controller = CreateController(apiConnection, sender);
 
             ActionResult<bool> result = await controller.Post(new ExternalRequestAddParameters { TicketId = kTicketId });
 
@@ -133,7 +80,7 @@ namespace FWO.Test
             ticket.CompletionDate = DateTime.Now;
             ExternalRequestControllerTestApiConnection apiConnection = new() { Ticket = ticket };
             RequestSender sender = new();
-            ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Modeller, $"[{kOwnApp}]");
+            ExternalRequestController controller = CreateController(apiConnection, sender);
 
             ActionResult<bool> result = await controller.Post(new ExternalRequestAddParameters { TicketId = kTicketId });
 
@@ -150,7 +97,7 @@ namespace FWO.Test
                 UnfinishedRequests = [new ExternalRequest { Id = 1, TicketId = kTicketId }]
             };
             RequestSender sender = new();
-            ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Admin, null);
+            ExternalRequestController controller = CreateController(apiConnection, sender);
 
             ActionResult<bool> result = await controller.Post(new ExternalRequestAddParameters { TicketId = kTicketId });
 
@@ -167,7 +114,7 @@ namespace FWO.Test
                 UnfinishedRequests = [new ExternalRequest { Id = 1, TicketId = kTicketId + 1 }]
             };
             RequestSender sender = new();
-            ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Admin, null);
+            ExternalRequestController controller = CreateController(apiConnection, sender);
 
             ActionResult<bool> result = await controller.Post(new ExternalRequestAddParameters { TicketId = kTicketId });
 
@@ -180,7 +127,7 @@ namespace FWO.Test
         {
             ExternalRequestControllerTestApiConnection apiConnection = new() { Ticket = CreateTicket(kOwnApp) };
             RequestSender sender = new() { Result = false };
-            ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Modeller, $"[{kOwnApp}]");
+            ExternalRequestController controller = CreateController(apiConnection, sender);
 
             ActionResult<bool> result = await controller.Post(new ExternalRequestAddParameters { TicketId = kTicketId });
 
@@ -219,14 +166,9 @@ namespace FWO.Test
             };
         }
 
-        private static ExternalRequestController CreateController(ExternalRequestControllerTestApiConnection apiConnection,
-            RequestSender sender, string role, string? editableOwners)
+        private static ExternalRequestController CreateController(ExternalRequestControllerTestApiConnection apiConnection, RequestSender sender)
         {
-            List<Claim> claims = [new Claim(ClaimTypes.Role, role)];
-            if (editableOwners != null)
-            {
-                claims.Add(new Claim("x-hasura-editable-owners", editableOwners));
-            }
+            List<Claim> claims = [new Claim(ClaimTypes.Role, Roles.Admin)];
             return new ExternalRequestController(apiConnection, sender.Send)
             {
                 ControllerContext = new ControllerContext

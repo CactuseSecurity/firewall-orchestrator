@@ -5,10 +5,8 @@ using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Data.Workflow;
-using FWO.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -44,17 +42,18 @@ namespace FWO.Middleware.Server.Controllers
         /// </summary>
         /// <remarks>
         /// TicketId (required) &#xA;
-        /// Admins may start the external requests of any ticket. Modellers may only start them for tickets
-        /// whose request tasks all belong to owners they are allowed to edit. &#xA;
+        /// Only admins may start the external requests of a ticket, e.g. by the reinit in the monitoring. Otherwise
+        /// the provisioning only starts by the state action "Create external requests", so that it follows the
+        /// workflow, e.g. after the approval. &#xA;
         /// Tickets which are completed or still have an open external request are refused. &#xA;
         /// Creates the request for the next open entry of the provisioning work list of the ticket, see the state action
         /// "Create external requests"; finished entries are skipped, so this also continues a stopped ticket.
         /// </remarks>
         /// <param name="parameters">ExternalRequestAddParameters</param>
-        /// <returns>true if external request could be added; 404 if the ticket does not exist or is not accessible
-        /// for the caller; 409 if the ticket is completed or its external requests are still being processed</returns>
+        /// <returns>true if external request could be added; 404 if the ticket does not exist; 409 if the ticket is
+        /// completed or its external requests are still being processed</returns>
         [HttpPost]
-        [Authorize(Roles = $"{Roles.Modeller}, {Roles.Admin}")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(string), StatusCodes.Status409Conflict)]
@@ -66,7 +65,7 @@ namespace FWO.Middleware.Server.Controllers
             }
 
             WfTicket? ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = parameters.TicketId });
-            if (ticket == null || !CallerMayRequestTicket(ticket))
+            if (ticket == null)
             {
                 return NotFound();
             }
@@ -127,29 +126,6 @@ namespace FWO.Middleware.Server.Controllers
             using UserConfig userConfig = UserConfig.ForGlobalSettings(GlobalConfig, apiConnection);
             using ExternalRequestHandler extRequestHandler = new(userConfig, apiConnection);
             return await extRequestHandler.StartProvisioning(ticketId);
-        }
-
-        /// <summary>
-        /// Admins may handle every ticket, modellers only tickets whose request tasks all belong to editable owners.
-        /// Interface request tickets of other applications are not affected, as they are never handled via this endpoint.
-        /// </summary>
-        private bool CallerMayRequestTicket(WfTicket ticket)
-        {
-            ClaimsPrincipal caller = ControllerContext.HttpContext.User;
-            if (caller.IsInRole(Roles.Admin))
-            {
-                return true;
-            }
-
-            List<int> ticketOwnerIds = [.. ticket.Tasks.SelectMany(task => task.Owners).Select(owner => owner.Owner.Id).Distinct()];
-            List<int> editableOwnerIds = JwtClaimParser.ExtractIntClaimValues(caller.Claims, "x-hasura-editable-owners");
-            bool mayRequest = caller.IsInRole(Roles.Modeller) && ticketOwnerIds.Count > 0 && ticketOwnerIds.All(editableOwnerIds.Contains);
-            if (!mayRequest)
-            {
-                Log.WriteWarning("External Request", $"Denied external request for ticket {ticket.Id}. " +
-                    $"Caller='{caller.Identity?.Name}', ticketOwnerIds='{string.Join(",", ticketOwnerIds)}', editableOwnerIds='{string.Join(",", editableOwnerIds)}'.");
-            }
-            return mayRequest;
         }
 
         /// <summary>

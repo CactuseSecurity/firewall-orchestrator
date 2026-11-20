@@ -57,6 +57,9 @@
                     case nameof(StateActionTypes.BundleTasks):
                         <EditActionBundleTasks ActAction="actAction" Policies="Policies" />
                         break;
+                    case nameof(StateActionTypes.CreateImplTasks):
+                        <EditActionCreateImplTasks ActAction="actAction" States="States" />
+                        break;
                     default:
                         break;
                 }
@@ -231,9 +234,29 @@
                 return true;
             case nameof(StateActionTypes.SendEmail):
                 return sendEmailEditor != null && await sendEmailEditor.PrepareForSaveAsync();
+            case nameof(StateActionTypes.CreateImplTasks):
+                return await HasValidPrepareImplementationTarget();
             default:
                 return true;
         }
+    }
+
+    /// <summary>
+    /// Checks that the target state for request tasks of an external ticket system exists and is not below the end
+    /// of the phases before the implementation in any task type, as such a task would hold its ticket there.
+    /// </summary>
+    private async Task<bool> HasValidPrepareImplementationTarget()
+    {
+        StateMatrixDict stateMatrices = new();
+        await stateMatrices.Init(WorkflowPhases.implementation, apiConnection);
+        int requiredStateId = stateMatrices.GetHighestPreImplementationEndState();
+        PrepareImplementationActionParams actionParams = PrepareImplementationActionParams.FromExternalParams(actAction.ExternalParams);
+        if (actionParams.HasValidTargetState(States.Select(state => state.Id), requiredStateId))
+        {
+            return true;
+        }
+        DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E5508") + requiredStateId, true);
+        return false;
     }
 
     private async Task SaveNewAction()

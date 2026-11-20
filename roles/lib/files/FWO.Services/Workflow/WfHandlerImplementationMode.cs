@@ -26,16 +26,8 @@ namespace FWO.Services.Workflow
         /// <param name="reqTask">Request task to check.</param>
         private async Task<bool> IsHandedToExternalTicketSystem(WfReqTask reqTask)
         {
-            bool isRuleTask = IsRuleTaskType(reqTask.TaskType);
-            if ((!isRuleTask && !WfObjectTaskHelper.IsManagementObjectTask(reqTask.TaskType))
-                || reqTask.ManagementId is not int managementId || managementId <= 0)
-            {
-                return false;
-            }
-            List<int> managementIds = [managementId];
-            await EnsureAutoPlanSettings(kNoIds, managementIds);
-            GlobalDeviceSpecificSettings settings = GetResolvedSettings(DeviceSpecificScopeType.Management, managementId);
-            if (!settings.UsesExternalTicketSystem(isRuleTask))
+            (GlobalDeviceSpecificSettings Settings, int ManagementId)? resolved = await ResolveExternalTicketSystemSettings(reqTask);
+            if (resolved is not (GlobalDeviceSpecificSettings settings, int managementId))
             {
                 return false;
             }
@@ -48,6 +40,35 @@ namespace FWO.Services.Workflow
                 Log.WriteInfo(kImplementationModeLogTitle, $"No implementation task created for request task {reqTask.Id}: it is handed to an external ticket system.");
             }
             return true;
+        }
+
+        /// <summary>
+        /// Returns whether a request task is handed to an external ticket system that is selected for its management,
+        /// see <see cref="IsHandedToExternalTicketSystem"/>; nothing is reported.
+        /// </summary>
+        /// <param name="reqTask">Request task to check.</param>
+        private async Task<bool> IsHandedToSelectedExternalTicketSystem(WfReqTask reqTask)
+        {
+            (GlobalDeviceSpecificSettings Settings, int ManagementId)? resolved = await ResolveExternalTicketSystemSettings(reqTask);
+            return resolved?.Settings.RerouteToExternalTicketSystem is ExternalTicketSystemKind kind && kind != ExternalTicketSystemKind.Undefined;
+        }
+
+        /// <summary>
+        /// The settings of the management of a rule or object request task whose implementation mode for its kind of
+        /// task is external ticket system; null for any other request task.
+        /// </summary>
+        private async Task<(GlobalDeviceSpecificSettings Settings, int ManagementId)?> ResolveExternalTicketSystemSettings(WfReqTask reqTask)
+        {
+            bool isRuleTask = IsRuleTaskType(reqTask.TaskType);
+            if ((!isRuleTask && !WfObjectTaskHelper.IsManagementObjectTask(reqTask.TaskType))
+                || reqTask.ManagementId is not int managementId || managementId <= 0)
+            {
+                return null;
+            }
+            List<int> managementIds = [managementId];
+            await EnsureAutoPlanSettings(kNoIds, managementIds);
+            GlobalDeviceSpecificSettings settings = GetResolvedSettings(DeviceSpecificScopeType.Management, managementId);
+            return settings.UsesExternalTicketSystem(isRuleTask) ? (settings, managementId) : null;
         }
 
         /// <summary>

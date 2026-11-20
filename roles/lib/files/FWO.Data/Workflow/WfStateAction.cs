@@ -277,6 +277,61 @@ namespace FWO.Data.Workflow
         }
     }
 
+    /// <summary>
+    /// Parameters of the state action "Prepare implementation" (action type CreateImplTasks).
+    /// </summary>
+    public class PrepareImplementationActionParams
+    {
+        /// <summary>Id of the state "To Implement" created by every installation, the default target state.</summary>
+        public const int kToImplementStateId = 200;
+
+        /// <summary>
+        /// State the request tasks handed to an external ticket system are promoted to, as that system plans them
+        /// itself. It should be the state the action "Create external requests" is attached to. Default: "To Implement".
+        /// </summary>
+        [JsonPropertyName("external_ticket_system_target_state_id")]
+        public int ExternalTicketSystemTargetStateId { get; set; } = kToImplementStateId;
+
+        /// <summary>
+        /// Reads the parameters of an action; empty or invalid parameters give the defaults.
+        /// </summary>
+        /// <param name="externalParams">The external parameters stored with the action.</param>
+        public static PrepareImplementationActionParams FromExternalParams(string externalParams)
+        {
+            if (string.IsNullOrWhiteSpace(externalParams))
+            {
+                return new();
+            }
+
+            try
+            {
+                return System.Text.Json.JsonSerializer.Deserialize<PrepareImplementationActionParams>(externalParams) ?? new();
+            }
+            catch (System.Text.Json.JsonException exception)
+            {
+                Log.WriteWarning("Prepare Implementation", $"Configured action parameters are invalid JSON. Falling back to defaults. {exception.Message}");
+                return new();
+            }
+        }
+
+        /// <summary>The parameters as stored with the action.</summary>
+        public string ToExternalParams()
+        {
+            return System.Text.Json.JsonSerializer.Serialize(this);
+        }
+
+        /// <summary>
+        /// Whether the target state exists and is not below the given state, so that a promoted request task no longer
+        /// holds the ticket in a phase before the implementation.
+        /// </summary>
+        /// <param name="existingStateIds">Ids of all defined states.</param>
+        /// <param name="requiredStateId">Lowest allowed target state, e.g. the end of the planning.</param>
+        public bool HasValidTargetState(IEnumerable<int> existingStateIds, int requiredStateId)
+        {
+            return ExternalTicketSystemTargetStateId >= requiredStateId && existingStateIds.Contains(ExternalTicketSystemTargetStateId);
+        }
+    }
+
     public class WfStateActionDataHelper
     {
         [JsonProperty("sort_order"), JsonPropertyName("sort_order")]

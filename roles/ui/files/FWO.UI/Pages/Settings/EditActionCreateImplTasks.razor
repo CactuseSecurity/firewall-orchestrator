@@ -1,0 +1,55 @@
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<div class="col-sm-6">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5540"))">
+        <label class="col-sm-6 col-form-label col-form-label-sm">@(userConfig.GetText("ext_ticket_system_target_state")):</label>
+        <div class="col-sm-6">
+            <Dropdown ElementType="WfState"
+                      ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
+                      SelectedElement="selectedTargetState"
+                      SelectedElementChanged="OnTargetStateChanged"
+                      Elements="States">
+                <ElementTemplate Context="state">
+                    @DisplayService.DisplayStateWithId(userConfig, state)
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public WfStateAction ActAction { get; set; } = new();
+
+    [Parameter]
+    public List<WfState> States { get; set; } = [];
+
+    private PrepareImplementationActionParams actParams = new();
+    private WfState? selectedTargetState;
+
+    protected override void OnParametersSet()
+    {
+        actParams = PrepareImplementationActionParams.FromExternalParams(ActAction.ExternalParams);
+        selectedTargetState = States.FirstOrDefault(state => state.Id == actParams.ExternalTicketSystemTargetStateId);
+        UpdateExternalParams();
+    }
+
+    private Task OnTargetStateChanged(WfState? state)
+    {
+        selectedTargetState = state;
+        if (state != null)
+        {
+            actParams.ExternalTicketSystemTargetStateId = state.Id;
+        }
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Stores the parameters with the action, also the default for a new action.</summary>
+    private void UpdateExternalParams()
+    {
+        ActAction.ExternalParams = actParams.ToExternalParams();
+    }
+}

@@ -51,7 +51,7 @@ UPDATE device_specific_config_value SET config_value = 'true'::jsonb WHERE confi
 SELECT pg_temp.assert_migration('true'::jsonb);
 
 -- a switched on setting is the default: nothing is stored, the config entry is removed
-DELETE FROM device_specific_config_value;
+DELETE FROM device_specific_config_value WHERE config_key = 'resolveServiceGroups';
 INSERT INTO config VALUES ('modRolloutResolveServiceGroups', 'true', 0);
 
 -- @run-upgrade-10.0.0

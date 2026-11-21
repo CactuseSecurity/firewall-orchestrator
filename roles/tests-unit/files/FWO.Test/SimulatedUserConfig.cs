@@ -456,6 +456,7 @@ namespace FWO.Test
             {"E9005","Source/Destination changed" },
             {"E9020","Interface in use by other app" },
             {"E5102","Missing name or reason" },
+            {"E5131","Credentials name cannot be empty" },
             {"E9006","Missing source/destination or service" },
             {"U9022","Network areas on other side" },
             {"U9021","Interfaces cannot use areas" },

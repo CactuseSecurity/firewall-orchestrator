@@ -1,0 +1,14 @@
+mutation removeRuleLabels($ruleIds: [bigint!]!, $removedEventId: bigint!) {
+    update_labelling_rule_source_label(
+        where: { rule_id: { _in: $ruleIds }, removed_event_id: { _is_null: true } }
+        _set: { removed_event_id: $removedEventId }
+    ) {
+        affected_rows
+    }
+    update_labelling_rule_destination_label(
+        where: { rule_id: { _in: $ruleIds }, removed_event_id: { _is_null: true } }
+        _set: { removed_event_id: $removedEventId }
+    ) {
+        affected_rows
+    }
+}

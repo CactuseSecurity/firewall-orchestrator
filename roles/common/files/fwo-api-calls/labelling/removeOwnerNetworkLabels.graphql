@@ -1,0 +1,12 @@
+mutation removeOwnerNetworkLabels($ownerNetworkId: bigint!, $labelIds: [bigint!]!, $removedEventId: bigint!) {
+    update_labelling_owner_network_label(
+        where: {
+            owner_network_id: { _eq: $ownerNetworkId }
+            label_id: { _in: $labelIds }
+            removed_event_id: { _is_null: true }
+        }
+        _set: { removed_event_id: $removedEventId }
+    ) {
+        affected_rows
+    }
+}

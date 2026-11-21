@@ -23,6 +23,11 @@ namespace FWO.Data.Workflow
         public const string ConnId = "ConnId";
         public const string ReqOwner = "ReqOwner";
         public const string GrpName = "GrpName";
+        /// <summary>
+        /// Modelling object type of the group of a group task (a name of ModellingTypes.ModObjectType, e.g. "AppRole"),
+        /// which the firewall write takes instead of guessing it from the group name.
+        /// </summary>
+        public const string GrpType = "GrpType";
         public const string GroupId = "GroupId";
         public const string RequestContactName = "requestContactName";
         public const string RequestContactId = "requestContactId";
@@ -38,6 +43,13 @@ namespace FWO.Data.Workflow
         public const string ExtraConfigs = "ExtraConfigs";
         /// <summary>Extra configurations of the interface the modelled connection uses, as requested.</summary>
         public const string InterfaceExtraConfigs = "InterfaceExtraConfigs";
+        /// <summary>
+        /// Marker of the modelled connection of a rule task (e.g. "FWOC123"), by which rules written for it are found
+        /// again (Guardicore: the rule comment).
+        /// </summary>
+        public const string ConnMarker = "ConnMarker";
+        /// <summary>External app id of the owner of the modelled connection (e.g. "APP-1234"), the ruleset of its Guardicore rules.</summary>
+        public const string ExtAppId = "ExtAppId";
     }
 
     public class WfReqTaskBase : WfTaskBase

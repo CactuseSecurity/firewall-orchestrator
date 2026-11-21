@@ -1,0 +1,12 @@
+# the groups requested for an owner on a management by group_create tasks: their name is in additional_info (GrpName)
+query getRequestedGroupsOfOwner($ownerId: Int!, $mgmId: Int!) {
+  request_reqtask(
+    where: {
+      task_type: { _eq: "group_create" }
+      mgm_id: { _eq: $mgmId }
+      reqtask_owners: { owner_id: { _eq: $ownerId } }
+    }
+  ) {
+    additional_info
+  }
+}

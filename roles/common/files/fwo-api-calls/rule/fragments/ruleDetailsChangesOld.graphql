@@ -93,4 +93,5 @@ fragment ruleDetailsChangesOld on firewall_rule {
       name: dev_name
     }
   }
+  ...ruleLabelsBeforeChange
 }

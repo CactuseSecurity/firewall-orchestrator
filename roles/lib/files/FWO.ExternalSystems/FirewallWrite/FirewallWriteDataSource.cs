@@ -1,8 +1,11 @@
+using System.Collections.Frozen;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Labelling;
+using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 
 namespace FWO.ExternalSystems.FirewallWrite
@@ -21,6 +24,11 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// </summary>
     public sealed class ApiFirewallWriteDataSource(ApiConnection apiConnection) : IFirewallWriteDataSource
     {
+        private static readonly FrozenSet<string> kGroupTaskTypes =
+            [nameof(WfTaskType.group_create), nameof(WfTaskType.group_modify), nameof(WfTaskType.group_delete)];
+        private static readonly FrozenSet<string> kRuleTaskTypes =
+            [nameof(WfTaskType.access), nameof(WfTaskType.rule_modify), nameof(WfTaskType.rule_delete)];
+
         /// <inheritdoc/>
         public async Task<FirewallWriteContext> LoadContext(WfImplTask implTask)
         {
@@ -78,15 +86,39 @@ namespace FWO.ExternalSystems.FirewallWrite
             List<GlobalDeviceSpecificSettings> settings = await new DeviceSpecificSettingsManager(apiConnection).LoadEffectiveSettingsAsync(paths);
             FirewallGatewayRulebases rulebases = gateway == null ? FirewallGatewayRulebases.None : await LoadRulebases(gateway);
             Dictionary<string, string> ruleLayerUids = await LoadRuleLayers(implTask, management);
+            WfReqTask? requestTask = await LoadRequestTaskInfo(implTask);
             return new FirewallWriteContext
             {
                 Management = management,
                 Gateway = gateway,
                 Settings = settings[0],
                 Rulebases = rulebases,
-                RuleLayerUids = ruleLayerUids
+                RuleLayerUids = ruleLayerUids,
+                GroupObjectType = kGroupTaskTypes.Contains(implTask.TaskType)
+                    ? DynamicIpLabel.ParseObjectType(requestTask?.GetAddInfoValue(AdditionalInfoKeys.GrpType))
+                    : null,
+                ConnectionMarker = NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.ConnMarker)),
+                ExtAppId = NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.ExtAppId))
             };
         }
+
+        /// <summary>
+        /// Loads the additional info of the request task of a group or rule task: the modelling object type of a group
+        /// (<c>GrpType</c>), and the marker and app of the modelled connection of a rule (<c>ConnMarker</c>, <c>ExtAppId</c>);
+        /// null for other tasks and tasks without request task.
+        /// </summary>
+        private async Task<WfReqTask?> LoadRequestTaskInfo(WfImplTask implTask)
+        {
+            if ((!kGroupTaskTypes.Contains(implTask.TaskType) && !kRuleTaskTypes.Contains(implTask.TaskType)) || implTask.ReqTaskId <= 0)
+            {
+                return null;
+            }
+            List<WfReqTask> requestTasks = await apiConnection.SendQueryAsync<List<WfReqTask>>(RequestQueries.getRequestTaskAdditionalInfo,
+                new { id = implTask.ReqTaskId });
+            return requestTasks.FirstOrDefault();
+        }
+
+        private static string? NonBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
         /// <summary>
         /// Loads the layers of the existing rules a rule_modify or rule_delete task names from the imported configuration,

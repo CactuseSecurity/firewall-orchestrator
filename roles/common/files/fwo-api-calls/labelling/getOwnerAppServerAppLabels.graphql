@@ -1,0 +1,14 @@
+# the app id of an owner and the active App labels of its active app servers (nw_type 10)
+query getOwnerAppServerAppLabels($ownerId: Int!, $keyName: String!) {
+    owner(where: { id: { _eq: $ownerId } }) {
+        app_id_external
+        owner_networks(where: { nw_type: { _eq: 10 }, is_deleted: { _eq: false } }) {
+            id
+            owner_network_labels(
+                where: { removed_event_id: { _is_null: true }, label_value: { label_key: { key_name: { _eq: $keyName } } } }
+            ) {
+                label_id
+            }
+        }
+    }
+}

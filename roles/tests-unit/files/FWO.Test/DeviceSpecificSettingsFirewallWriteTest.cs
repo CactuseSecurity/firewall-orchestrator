@@ -11,7 +11,7 @@ namespace FWO.Test
     [Parallelizable]
     internal class DeviceSpecificSettingsFirewallWriteTest
     {
-        private const int kGuardicoreDeviceTypeId = 31;
+        private const int kGenericFirewallDeviceTypeId = 31;
         private static readonly List<DeviceSpecificSettingsScope> kNoPersistedScopes = [];
         private static readonly List<string> kSectionTextKeys =
             ["dss_fw_write_section", "dss_fw_write_section_intro", "dss_fw_write_not_supported", "dss_fw_write_uses_default",
@@ -36,7 +36,7 @@ namespace FWO.Test
         [Test]
         public void FirewallWriteFields_AreOfferedForSupportedDeviceTypesOnly()
         {
-            DeviceSpecificNode root = Hierarchy(Management(1, FirewallVendors.kCheckPointR8x), Management(2, kGuardicoreDeviceTypeId));
+            DeviceSpecificNode root = Hierarchy(Management(1, FirewallVendors.kCheckPointR8x), Management(2, kGenericFirewallDeviceTypeId));
             DeviceSpecificFieldDefinition endpoint = Field(FirewallWriteSettingKeys.Endpoints[FirewallWriteOperation.HostCreate]);
             DeviceSpecificFieldDefinition certificates = Field(FirewallWriteSettingKeys.CheckCertificates);
             using (Assert.EnterMultipleScope())
@@ -45,7 +45,7 @@ namespace FWO.Test
                 Assert.That(certificates.AppliesTo(root), Is.True);
                 Assert.That(endpoint.AppliesTo(Node(root, DeviceSpecificScopeType.Gateway, FirewallVendors.kCheckPointR8x)), Is.True);
                 Assert.That(certificates.AppliesTo(Node(root, DeviceSpecificScopeType.Gateway, FirewallVendors.kCheckPointR8x)), Is.False);
-                Assert.That(endpoint.AppliesTo(Node(root, DeviceSpecificScopeType.Management, kGuardicoreDeviceTypeId)), Is.False);
+                Assert.That(endpoint.AppliesTo(Node(root, DeviceSpecificScopeType.Management, kGenericFirewallDeviceTypeId)), Is.False);
                 Assert.That(Node(root, DeviceSpecificScopeType.Management, FirewallVendors.kCheckPointR8x).SupportsFirewallWrite, Is.True);
                 Assert.That(root.SupportsFirewallWrite, Is.False);
             }

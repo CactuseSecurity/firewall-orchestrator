@@ -96,6 +96,7 @@ namespace FWO.Services.Modelling
             ActConn = conn;
             ActConnOrig = new ModellingConnection(ActConn);
             RefreshParent = refreshParent;
+            LoadStoredLabels();
         }
 
         // Init + Refresh
@@ -109,9 +110,14 @@ namespace FWO.Services.Modelling
                     InitOngoing = true;
                     await RefreshObjects();
                     InterfaceName = await ExtractUsedInterface(ActConn);
+                    RefreshLabelGroups();
                     AllApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithConn);
                     AppRoleHandler = new(apiConnection, userConfig, new(), [], new(), [], [], false, DisplayMessageInUi);
                     DummyAppRole = await AppRoleHandler.GetDummyAppRole();
+                    if (LabelEditingEnabled)
+                    {
+                        await LoadSelectableLabels();
+                    }
                     await RefreshInterfaceData();
                     InitOngoing = false;
                 }
@@ -176,6 +182,7 @@ namespace FWO.Services.Modelling
                 if (conns.Count > 0)
                 {
                     ActConn = conns[0];
+                    LoadStoredLabels();
                 }
             }
             catch (Exception exception)
@@ -264,7 +271,8 @@ namespace FWO.Services.Modelling
                 SrcAreasToAdd.Count > 0 ||
                 SrcNwGroupsToAdd.Count > 0 ||
                 SrcAppServerToAdd.Count > 0 ||
-                SrcAppRolesToAdd.Count > 0;
+                SrcAppRolesToAdd.Count > 0 ||
+                SrcLabelGroups.Count > 0;
         }
 
         public bool DstFilledInWork(int dummyARCount = 0)
@@ -276,7 +284,8 @@ namespace FWO.Services.Modelling
                 DstAreasToAdd.Count > 0 ||
                 DstNwGroupsToAdd.Count > 0 ||
                 DstAppServerToAdd.Count > 0 ||
-                DstAppRolesToAdd.Count > 0;
+                DstAppRolesToAdd.Count > 0 ||
+                DstLabelGroups.Count > 0;
         }
 
         public bool SvcFilledInWork()
@@ -475,6 +484,7 @@ namespace FWO.Services.Modelling
                         await AddSvcObjects(ModellingServiceWrapper.Resolve(ActConn.Services).ToList(),
                             ModellingServiceGroupWrapper.Resolve(ActConn.ServiceGroups).ToList());
                     }
+                    await SaveLabels(ActConn.Id);
                     await ApplyPermittedOwnersOnInsert();
                     ActConn.Creator = userConfig.User.Name;
                     ActConn.CreationDate = DateTime.Now;
@@ -518,6 +528,7 @@ namespace FWO.Services.Modelling
                 await AddNwObjects(DstAppServerToAdd, DstAppRolesToAdd, DstAreasToAdd, DstNwGroupsToAdd, ModellingTypes.ConnectionField.Destination);
                 await RemoveSvcObjects();
                 await AddSvcObjects(SvcToAdd, SvcGrpToAdd);
+                await SaveLabels(ActConn.Id);
                 await EnsureUsingAppsPermittedIfRestricted();
                 await ApplyPermittedOwnersOnUpdate();
 
@@ -536,6 +547,7 @@ namespace FWO.Services.Modelling
         public void Reset()
         {
             ActConn = ActConnOrig;
+            LoadStoredLabels();
             if (!AddMode)
             {
                 Connections[Connections.FindIndex(x => x.Id == ActConn.Id)] = ActConnOrig;
@@ -566,6 +578,7 @@ namespace FWO.Services.Modelling
             SvcGrpToDelete = [];
             PermittedOwnersToAdd = [];
             PermittedOwnersToDelete = [];
+            RefreshLabelGroups();
             SearchNWObjectMode = false;
             AddExtraConfigMode = false;
             RemoveNwObjectMode = false;

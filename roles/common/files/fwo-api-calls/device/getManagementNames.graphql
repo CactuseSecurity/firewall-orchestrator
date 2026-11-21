@@ -5,6 +5,10 @@
     name: mgm_name
     uid: mgm_uid
     extMgtData: ext_mgm_data
+    deviceType: stm_dev_typ {
+      id: dev_typ_id
+      name: dev_typ_name
+    }
     devices {
       id: dev_id
       name: dev_name

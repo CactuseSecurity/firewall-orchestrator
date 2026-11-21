@@ -26,8 +26,6 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 MGM_ID = 7
-SUPPORTED_DEVICE_TYPE_ID = 9
-UNSUPPORTED_DEVICE_TYPE_ID = 1
 SLEEP_TIMER = 5
 API_FETCH_LIMIT = 150
 FWO_MAJOR_VERSION = 9
@@ -69,14 +67,10 @@ def _run_main_loop(pwd_file: Path, sleep_timer: int = SLEEP_TIMER) -> None:
 
 @pytest.fixture
 def single_mgm_mocks(mocker: MockerFixture) -> dict[str, MagicMock]:
-    mocker.patch("import_main_loop.ImportStateController.initialize_import")
-    mocker.patch("import_main_loop.register_global_state")
     return {
+        "initialize_import": mocker.patch("import_main_loop.ImportStateController.initialize_import"),
+        "register_global_state": mocker.patch("import_main_loop.register_global_state"),
         "wait": mocker.patch("import_main_loop.wait_with_shutdown_check"),
-        "mgm_details": mocker.patch(
-            "import_main_loop.ManagementController.get_mgm_details",
-            return_value={"deviceType": {"id": SUPPORTED_DEVICE_TYPE_ID}},
-        ),
         "import_management": mocker.patch("import_main_loop.import_management"),
         "info": mocker.patch("import_main_loop.FWOLogger.info"),
         "error": mocker.patch("import_main_loop.FWOLogger.error"),
@@ -93,18 +87,12 @@ class TestImportSingleManagement:
             MGM_ID, api_call, API_FETCH_LIMIT, False, suppress_consistency_check=False
         )
 
-    def test_unsupported_device_type_is_skipped(self, single_mgm_mocks: dict[str, MagicMock]) -> None:
-        single_mgm_mocks["mgm_details"].return_value = {"deviceType": {"id": UNSUPPORTED_DEVICE_TYPE_ID}}
-
-        _run_single_management(MagicMock())
-
-        single_mgm_mocks["import_management"].assert_not_called()
-
     def test_management_details_error_waits_and_skips(self, single_mgm_mocks: dict[str, MagicMock]) -> None:
-        single_mgm_mocks["mgm_details"].side_effect = FwoImporterError("no details")
+        single_mgm_mocks["initialize_import"].side_effect = FwoImporterError("no details")
 
         _run_single_management(MagicMock())
 
+        single_mgm_mocks["register_global_state"].assert_not_called()
         single_mgm_mocks["import_management"].assert_not_called()
         single_mgm_mocks["wait"].assert_called_with(SLEEP_TIMER)
         assert "error while getting FW management details" in single_mgm_mocks["error"].call_args.args[0]

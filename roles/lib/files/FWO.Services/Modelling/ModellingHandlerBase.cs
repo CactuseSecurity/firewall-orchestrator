@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Labelling;
 using FWO.Data.Modelling;
 using FWO.Encoders;
 using FWO.Logging;
@@ -240,8 +241,8 @@ namespace FWO.Services.Modelling
                     List<ModellingConnection> interf = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById, new { id = conn.UsedInterfaceId });
                     if (interf.Count > 0)
                     {
-                        conn.SrcFromInterface = interf[0].SourceFilled();
-                        conn.DstFromInterface = interf[0].DestinationFilled();
+                        conn.SrcFromInterface = interf[0].SourceFilledOrLabelled();
+                        conn.DstFromInterface = interf[0].DestinationFilledOrLabelled();
                         conn.InterfaceIsDecommissioned = interf[0].GetBoolProperty(ConState.Decommissioned.ToString());
                         conn.InterfaceNoPermission = EvaluateInterfaceNoPermission(interf[0], conn.AppId ?? Application.Id);
                         if (interf[0].IsRequested)
@@ -267,15 +268,17 @@ namespace FWO.Services.Modelling
 
         private static string ExtractFullInterface(ModellingConnection conn, ModellingConnection interf)
         {
-            if (interf.SourceFilled())
+            if (interf.SourceFilledOrLabelled())
             {
+                conn.SourceLabels = interf.SourceLabels;
                 conn.SourceAppServers = interf.SourceAppServers;
                 conn.SourceAppRoles = interf.SourceAppRoles;
                 conn.SourceAreas = interf.SourceAreas;
                 conn.SourceOtherGroups = interf.SourceOtherGroups;
             }
-            if (interf.DestinationFilled())
+            if (interf.DestinationFilledOrLabelled())
             {
+                conn.DestinationLabels = interf.DestinationLabels;
                 conn.DestinationAppServers = interf.DestinationAppServers;
                 conn.DestinationAppRoles = interf.DestinationAppRoles;
                 conn.DestinationAreas = interf.DestinationAreas;
@@ -413,6 +416,7 @@ namespace FWO.Services.Modelling
                 appServer.TooltipText = userConfig.GetText(DeactMsg);
             }
             names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.SrcFromInterface, conn.InterfaceIsDecommissioned)));
+            AddLabelNames(names, conn.SourceLabels);
             return names;
         }
 
@@ -456,7 +460,19 @@ namespace FWO.Services.Modelling
                 appServer.TooltipText = userConfig.GetText(DeactMsg);
             }
             names.AddRange(appServers.ConvertAll(s => s.DisplayWithIcon(conn.DstFromInterface, conn.InterfaceIsDecommissioned)));
+            AddLabelNames(names, conn.DestinationLabels);
             return names;
+        }
+
+        /// <summary>
+        /// Adds the labels of a connection side as one encoded entry with icon, e.g. "(Stage: Prod ∩ OS: Linux) ∪ (Stage: Test)".
+        /// </summary>
+        private static void AddLabelNames(List<string> names, List<ConnectionLabel> labels)
+        {
+            if (labels.Count > 0)
+            {
+                names.Add($"<span class=\"{Icons.Label}\"></span> {HtmlOutputEncoder.EncodeText(ConnectionLabelFormatter.Format(labels))}");
+            }
         }
 
         public static List<string> GetSvcNames(ModellingConnection conn, UserConfig userConfig)

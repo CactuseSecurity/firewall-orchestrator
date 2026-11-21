@@ -112,6 +112,8 @@ fragment ruleFragment on firewall_rule {
   rule_dst
   rule_dst_refs
   rule_dst_zone
+  rule_src_labels
+  rule_dst_labels
   rule_svc_neg
   rule_svc
   rule_svc_refs

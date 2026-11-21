@@ -1,0 +1,6 @@
+query getRuleManagements($ruleIds: [bigint!]!) {
+    firewall_rule(where: { rule_id: { _in: $ruleIds } }) {
+        rule_id
+        mgm_id
+    }
+}

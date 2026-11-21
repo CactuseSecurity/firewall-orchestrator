@@ -1,0 +1,11 @@
+mutation upsertLabelValues($values: [labelling_label_value_insert_input!]!) {
+    insert_labelling_label_value(
+        objects: $values
+        on_conflict: { constraint: labelling_label_value_key_id_value_unique, update_columns: [value] }
+    ) {
+        returning {
+            label_id
+            value
+        }
+    }
+}

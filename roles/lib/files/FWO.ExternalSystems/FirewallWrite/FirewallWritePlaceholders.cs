@@ -84,12 +84,23 @@ namespace FWO.ExternalSystems.FirewallWrite
         public const string RuleTracking = "@@RULE_TRACKING@@";
         public const string RuleComment = "@@RULE_COMMENT@@";
 
+        // ports of the one protocol of a rule (Guardicore): JSON lists of port numbers and of ranges {"start":..,"end":..}
+        public const string RulePorts = "@@RULE_PORTS@@";
+        public const string RulePortRanges = "@@RULE_PORT_RANGES@@";
+
+        // labels with IP criteria (Guardicore)
+        public const string LabelKey = "@@LABEL_KEY@@";
+        public const string LabelValue = "@@LABEL_VALUE@@";
+        public const string LabelCriteria = "@@LABEL_CRITERIA@@";
+
         // resolved by the vendor client at execution time, after login
         public const string ObjectUuid = "@@OBJECT_UUID@@";
         public const string MergedMembers = "@@MERGED_MEMBERS@@";
         public const string Location = "@@LOCATION@@";
+        public const string LabelId = "@@LABEL_ID@@";
+        public const string RuleId = "@@RULE_ID@@";
 
         /// <summary>Placeholders that only the vendor client can resolve, because they need data read from the firewall.</summary>
-        public static IReadOnlyList<string> RuntimePlaceholders { get; } = new List<string> { ObjectUuid, MergedMembers, Location }.AsReadOnly();
+        public static IReadOnlyList<string> RuntimePlaceholders { get; } = new List<string> { ObjectUuid, MergedMembers, Location, LabelId, RuleId }.AsReadOnly();
     }
 }

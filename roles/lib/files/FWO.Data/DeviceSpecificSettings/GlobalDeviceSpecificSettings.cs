@@ -1,3 +1,5 @@
+using FWO.Data.Modelling;
+
 namespace FWO.Data.DeviceSpecificSettings;
 
 /// <summary>Effective device specific setting values, initialized with their compiled defaults.</summary>
@@ -139,7 +141,42 @@ public class GlobalDeviceSpecificSettings
 
     public string ModellingConnectionIdTemplate { get; set; } = "FWOC{ID}";
 
+    /// <summary>
+    /// Whether the variance analysis requests the services of a service group directly instead of the group. Managements
+    /// that write labels always get the services, whatever the value.
+    /// </summary>
+    public bool ResolveServiceGroups { get; set; } = true;
+
     public string Templates { get; set; } = "{}";
+
+    /// <summary>
+    /// The modelling object types that can be excluded from the variance analysis and from provisioning: the groups the
+    /// variance analysis requests. App servers, networks and services are members of these groups and cannot be excluded.
+    /// </summary>
+    public static readonly IReadOnlyList<ModellingTypes.ModObjectType> ExcludableObjectTypes =
+    [
+        ModellingTypes.ModObjectType.AppRole,
+        ModellingTypes.ModObjectType.AppZone,
+        ModellingTypes.ModObjectType.NetworkArea,
+        ModellingTypes.ModObjectType.ServiceGroup
+    ];
+
+    /// <summary>
+    /// Names of the modelling object types (<see cref="ExcludableObjectTypes"/>) left out of the variance analysis and of
+    /// provisioning, e.g. AppRole and NetworkArea; empty by default.
+    /// </summary>
+    public List<string> ProvisioningExcludedObjectTypes { get; set; } = [];
+
+    /// <summary>
+    /// Whether objects of a modelling object type are left out of the variance analysis and of provisioning; never for a
+    /// type that cannot be excluded, even if it is listed.
+    /// </summary>
+    public bool IsExcludedFromProvisioning(ModellingTypes.ModObjectType objectType)
+    {
+        string typeName = objectType.ToString();
+        return ExcludableObjectTypes.Contains(objectType)
+            && ProvisioningExcludedObjectTypes.Exists(entry => string.Equals(entry.Trim(), typeName, StringComparison.Ordinal));
+    }
 
     /// <summary>Whether the server certificate of the firewall management is checked when writing to the firewall.</summary>
     public bool FwWriteCheckCertificates { get; set; } = true;

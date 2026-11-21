@@ -27,18 +27,13 @@ namespace FWO.Services.Modelling
             try
             {
                 List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-                managements = [.. managements.Where(m => !string.IsNullOrEmpty(m.ExtMgtData))];
                 RelevantManagements = [];
-                foreach (Management mgt in managements)
+                foreach (Management mgt in managements.Where(IsRequestTarget))
                 {
-                    ExtMgtData extMgtData = JsonSerializer.Deserialize<ExtMgtData>(mgt.ExtMgtData ?? "");
-                    if (!string.IsNullOrEmpty(extMgtData.ExtId) || !string.IsNullOrEmpty(extMgtData.ExtName))
+                    RelevantManagements.Add(mgt);
+                    if (!alreadyCreatedAppServers.ContainsKey(mgt.Id))
                     {
-                        RelevantManagements.Add(mgt);
-                        if (!alreadyCreatedAppServers.ContainsKey(mgt.Id))
-                        {
-                            alreadyCreatedAppServers.Add(mgt.Id, []);
-                        }
+                        alreadyCreatedAppServers.Add(mgt.Id, []);
                     }
                 }
             }
@@ -46,6 +41,28 @@ namespace FWO.Services.Modelling
             {
                 Log.WriteError(userConfig.GetText("managements"), "Init Managements leads to error: ", exception);
             }
+        }
+
+        /// <summary>
+        /// Whether the variance analysis compares the modelled connections with a management and requests their
+        /// differences there: a host based firewall (segmenting by labels, e.g. Guardicore) is always written to, since
+        /// it enforces the policy on every host; another management only while it has external management data, i.e.
+        /// is addressed via an external ticket system.
+        /// </summary>
+        private static bool IsRequestTarget(Management mgt)
+        {
+            return WritesLabels(mgt) || HasExternalManagementData(mgt);
+        }
+
+        /// <summary>Whether the external management data of a management holds an external id or name.</summary>
+        private static bool HasExternalManagementData(Management mgt)
+        {
+            if (string.IsNullOrEmpty(mgt.ExtMgtData))
+            {
+                return false;
+            }
+            ExtMgtData extMgtData = JsonSerializer.Deserialize<ExtMgtData>(mgt.ExtMgtData);
+            return !string.IsNullOrEmpty(extMgtData.ExtId) || !string.IsNullOrEmpty(extMgtData.ExtName);
         }
 
         private async Task<bool> GetModelledRulesProductionState(ModellingFilter modellingFilter, CancellationToken cancellationToken = default)
@@ -90,7 +107,7 @@ namespace FWO.Services.Modelling
             {
                 rule.ManagementName = mgt.Name;
                 rule.DeviceName = string.Join(", ", rule.EnforcingGateways.Select(g => g.Content.Name).Where(n => !string.IsNullOrEmpty(n)));
-                string? connRef = FindModelledMarker(rule);
+                string? connRef = FindModelledMarker(rule, MarkerLocationOf(mgt.Id));
                 if (connRef != null)
                 {
                     if (long.TryParse(connRef, out long connId))
@@ -106,9 +123,10 @@ namespace FWO.Services.Modelling
             }
         }
 
-        private string? FindModelledMarker(Rule rule)
+        /// <summary>Finds the id of the modelled connection in a rule, where the marker location says (default: the configured one).</summary>
+        private string? FindModelledMarker(Rule rule, string? markerLocation = null)
         {
-            return userConfig.ModModelledMarkerLocation switch
+            return (markerLocation ?? userConfig.ModModelledMarkerLocation) switch
             {
                 MarkerLocation.Rulename => !string.IsNullOrEmpty(rule.Name) && rule.Name.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Name) : null,
                 MarkerLocation.Comment => !string.IsNullOrEmpty(rule.Comment) && rule.Comment.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Comment) : null,
@@ -170,7 +188,7 @@ namespace FWO.Services.Modelling
             long? relImpId = importContext.ImportId;
             await GetRuleDevices(mgtId, modellingFilter);
 
-            if (relImpId != null && ShouldUseNameFieldRuleOwnerPreFilter(modellingFilter))
+            if (relImpId != null && MarkerLocationOf(mgtId) == MarkerLocation.Rulename && ShouldUseNameFieldRuleOwnerPreFilter(modellingFilter))
             {
                 List<Rule>? preFilteredRules = await TryGetPreFilteredRules(mgtId, relImpId.Value, importContext.ManagementIds, modellingFilter);
                 if (preFilteredRules != null)
@@ -212,7 +230,7 @@ namespace FWO.Services.Modelling
                 ["marker"] = $"%{userConfig.ModModelledMarker}%"
             };
 
-            string query = userConfig.ModModelledMarkerLocation switch
+            string query = MarkerLocationOf(mgtId) switch
             {
                 MarkerLocation.Rulename => RuleQueries.getModelledRulesByManagementName,
                 MarkerLocation.Comment => RuleQueries.getModelledRulesByManagementComment,

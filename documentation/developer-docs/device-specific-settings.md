@@ -10,8 +10,13 @@ restrictions apply to editing; inherited values remain available at descendant
 levels through `DeviceSpecificSettingsManager.LoadEffectiveValueAsync`.
 
 The settings page exposes the configuration contract for Guardicore integration.
-The Guardicore writer is separate work. Path analysis remains configured under
-General settings; no additional device specific path-analysis setting is introduced.
+The firewall write library writes groups to Guardicore as dynamic IP labels (operations
+`LabelWrite` and `LabelDelete`); `labelCreation` decides where the network objects and
+groups of Guardicore managements are implemented. Rules of modelled connections are written
+to the Allow section, one rule per protocol (operations `RuleCreate`, `RuleDelete` and
+`Publish`), found again by the connection marker in the rule comment. Path analysis remains
+configured under General settings; access tasks of Guardicore managements skip it and get one
+implementation task on the gateway of their management.
 
 "Config levels" are the levels at which the API accepts an override. The settings
 page offers a setting only down to its "UI levels"; an override stored deeper
@@ -53,6 +58,8 @@ remains effective and is shown as a dormant override that can be cleared there.
 | modellingConnectionIdField | enum | Name | Global, device type, manager | Global to manager |
 | modellingConnectionIdTemplate | string | FWOC{ID} | Global, device type, manager | Global to manager |
 | templates | string | {} | Device type | Device type |
+| provisioningExcludedObjectTypes | string array | [] | Global, device type, manager | Global to manager |
+| resolveServiceGroups | boolean | true | Global, device type, manager | Global to manager, not for Guardicore |
 
 Booleans are stored as JSON `true`/`false`. `installOn` offers `ANY` and `gatewaysInPath`.
 `ruleType` additionally offers `accessAndNat`, `accessAndIPS`, `accessNatIPS`, and
@@ -79,6 +86,31 @@ coverage and exactly one persisted zone. A fixed template therefore needs no zon
 matrix lookup. The rendered name is trimmed and uppercased once, while interior
 whitespace remains significant. The value inherits through Global > device type >
 manager > gateway like the other settings.
+
+`provisioningExcludedObjectTypes` lists the group types of `ModellingTypes.ModObjectType`
+that the variance analysis does not request and the firewall write library does not write
+for a management. Only `AppRole`, `AppZone`, `NetworkArea`, and `ServiceGroup`
+(`GlobalDeviceSpecificSettings.ExcludableObjectTypes`) are accepted; app servers,
+networks, and services are members of these groups and cannot be excluded, and stored
+entries of other types are ignored. When writing, a group or label has the type of its
+label key (name "key: value"), else the type its request task names in the additional
+info `GrpType` (set by the variance analysis and the modelling notifications); the type is
+never guessed from a naming convention prefix. The task of an excluded group is left out
+with all its steps, including the member objects created for it. A group without such a
+type (e.g. a service group from the createTicket API) is never left out. The roles that run the variance analysis (modeller,
+recertifier, reporter, reporter-viewall) may read only this key, the modelling keys
+`modellingCreateAppZones` and `modellingImplementNetworkAreaObjects`, `resolveServiceGroups`, and `fwWriteDeleteObjects`,
+which decides whether obsolete labels are requested for deletion.
+
+`resolveServiceGroups` decides whether the variance analysis requests the services of a service
+group directly in the access request of a connection instead of the group (until 10.0.0 the
+global modelling setting `modRolloutResolveServiceGroups`). Managements that write groups as
+labels (Guardicore) know no service groups: they always get the services, so the setting is
+not offered at or below their device type, and a stored value has no effect there. Service
+group tasks that reach such a management in another way (e.g. createTicket API) are left out
+with a note. As all ports of a Guardicore rule apply to all its protocols, a connection with
+services of different protocols becomes one rule per protocol; the variance analysis compares
+the connection with all rules of such a management that carry its ID together.
 
 `modellingConnectionIdField` offers `Name`, `Comment`, and `CustomField`: the field of
 a provisioned object that carries the ID of the modelling connection, formatted by

@@ -1,5 +1,6 @@
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Modelling;
 
 namespace FWO.ExternalSystems.FirewallWrite
 {
@@ -26,6 +27,22 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         /// <summary>Policy package and first access layer of the gateway from its imported rulebase links.</summary>
         public FirewallGatewayRulebases Rulebases { get; init; } = FirewallGatewayRulebases.None;
+
+        /// <summary>
+        /// Modelling object type of the group of a group task, as its request task names it (additional info <c>GrpType</c>,
+        /// set by the variance analysis); null for other tasks and for groups requested without a type. It tells the label
+        /// an app role, app zone or network area is written as and the exclusion of object types from provisioning.
+        /// </summary>
+        public ModellingTypes.ModObjectType? GroupObjectType { get; init; }
+
+        /// <summary>
+        /// Marker of the modelled connection of a rule task (additional info <c>ConnMarker</c>, e.g. "FWOC123"), by which a
+        /// vendor that writes labels finds the rules written for the connection again; null for other tasks.
+        /// </summary>
+        public string? ConnectionMarker { get; init; }
+
+        /// <summary>External app id of the owner of the modelled connection of a rule task (additional info <c>ExtAppId</c>).</summary>
+        public string? ExtAppId { get; init; }
 
         /// <summary>Layer uid of each existing rule of the task by rule uid, from the imported configuration.</summary>
         public IReadOnlyDictionary<string, string> RuleLayerUids { get; init; } = new Dictionary<string, string>();

@@ -93,7 +93,13 @@ namespace FWO.Services.Modelling
 
         private WfReqTask BuildAppRoleTask(ModellingAppRole appRole, FwoOwner owner, int stateId, int taskNumber)
         {
-            Dictionary<string, string> addInfo = new() { { AdditionalInfoKeys.GrpName, appRole.IdString }, { AdditionalInfoKeys.AppRoleId, appRole.Id.ToString() } };
+            ModellingTypes.ModObjectType objectType = appRole is ModellingAppZone ? ModellingTypes.ModObjectType.AppZone : ModellingTypes.ModObjectType.AppRole;
+            Dictionary<string, string> addInfo = new()
+            {
+                { AdditionalInfoKeys.GrpName, appRole.IdString },
+                { AdditionalInfoKeys.GrpType, objectType.ToString() },
+                { AdditionalInfoKeys.AppRoleId, appRole.Id.ToString() }
+            };
             return new()
             {
                 Title = userConfig.GetText("new_app_role") + appRole.IdString,
@@ -109,7 +115,12 @@ namespace FWO.Services.Modelling
 
         private WfReqTask BuildServiceGroupTask(ModellingServiceGroup serviceGroup, FwoOwner owner, int stateId, int taskNumber)
         {
-            Dictionary<string, string> addInfo = new() { { AdditionalInfoKeys.GrpName, serviceGroup.Name ?? "" }, { AdditionalInfoKeys.SvcGrpId, serviceGroup.Id.ToString() } };
+            Dictionary<string, string> addInfo = new()
+            {
+                { AdditionalInfoKeys.GrpName, serviceGroup.Name ?? "" },
+                { AdditionalInfoKeys.GrpType, nameof(ModellingTypes.ModObjectType.ServiceGroup) },
+                { AdditionalInfoKeys.SvcGrpId, serviceGroup.Id.ToString() }
+            };
             return new()
             {
                 Title = userConfig.GetText("new_svc_grp") + serviceGroup.Name,

@@ -46,6 +46,12 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             DefaultLayerName = kFwoRuleCollectionGroup
         };
+        private static readonly FirewallVendorProfile Guardicore = new("Any", "ALLOW", "BLOCK", "", "", false, true)
+        {
+            WritesLabels = true,
+            WritesRules = true,
+            NewRulesNeedPosition = false
+        };
 
         /// <summary>Whether a '/' in a name is escaped as "\/" where the name is part of a JSON-RPC url (FortiManager).</summary>
         public bool EscapeSlashInUrlNames { get; init; }
@@ -60,10 +66,23 @@ namespace FWO.ExternalSystems.FirewallWrite
         public bool GroupsHoldAddresses { get; init; }
 
         /// <summary>
-        /// Whether rules are written to the vendor. A new rule needs its position, which the rule positioning only
-        /// calculates for Check Point so far; the rules of other vendors are left to a person.
+        /// Whether groups are written as labels with IP criteria (Guardicore): app roles, app zones and network areas as
+        /// dynamic IP labels, while network objects exist only as criteria of the labels.
+        /// </summary>
+        public bool WritesLabels { get; init; }
+
+        /// <summary>
+        /// Whether rules are written to the vendor: Check Point, whose new rules get their position from the rule
+        /// positioning, and Guardicore, whose rules are written to the Allow section; the rules of other vendors are left
+        /// to a person.
         /// </summary>
         public bool WritesRules { get; init; }
+
+        /// <summary>
+        /// Whether a new rule is only written with a calculated position. Not for Guardicore: the order of the rules within
+        /// its Allow section does not matter.
+        /// </summary>
+        public bool NewRulesNeedPosition { get; init; } = true;
 
         /// <summary>
         /// Layer used when neither the rule position nor the imported rulebase links name one, instead of the gateway's
@@ -91,6 +110,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             FirewallVendor.FortiOs => FortiOs,
             FirewallVendor.OpnSense => OpnSense,
             FirewallVendor.Azure => Azure,
+            FirewallVendor.Guardicore => Guardicore,
             _ => throw new ArgumentOutOfRangeException(nameof(vendor), vendor, "The device type is not supported by the firewall write library.")
         };
 

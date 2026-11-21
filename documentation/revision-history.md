@@ -1,5 +1,184 @@
 # Firewall Orchestrator Revision History
 
+## 10.0.0 - 30.10.2026
+- database: add schema labelling for generic key/value labels (e.g. Guardicore labels, app roles, stages) as the
+  basis of the Guardicore integration (issue #4949): label keys and values, a label change history
+  (label_change_event, referencing import, ticket and connection) and label assignments to rules (source,
+  destination, whole rule), connections (source, destination, whole connection), owner networks and access flows
+- database: assignments keep their history - an assignment is closed by a removal event instead of being deleted,
+  and only one active assignment per object and label is allowed
+- database: add columns rule_src_labels and rule_dst_labels (jsonb) to firewall.rule for the labels of an imported rule
+- api: track the labelling tables in Hasura with read access for auditor, importer and middleware-server and write
+  access (no delete) for importer (labels, change events, rule assignments) and middleware-server
+- importer: new module for Akamai Guardicore Segmentation (device types Guardicore Management / Guardicore Gateway,
+  REST, issue #4945). Labels become network object groups of their IP addresses (IP criteria plus the IPs of the
+  assets carrying the label), ANDed labels of a rule side become groups of the intersection of their IP addresses.
+  Rules are split into chained rulebases named "<section number> <section> <ruleset>" so that their alphabetical
+  order matches the Guardicore section order (override allow, override alert, override block, allow, alert, block).
+  Services are built from protocols, ports, port ranges, excluded ports and ICMP matches; a protocol unknown to the
+  importer becomes a service of that name without protocol number, so that the rule is kept. Rule side fields that
+  cannot be expressed as addresses (e.g. processes, domains, user groups) become empty placeholder groups
+  "Unsupported: <field>" instead of turning the side into "any". Paging follows the total the API reports, so a page
+  size capped by the API does not truncate the lists, and the host CA bundle is used for the certificate check
+- importer: the main loop imports every management with an importer module or a config URI instead of a fixed list of
+  device types; Generic Firewall managements only with a config file or URI, and Check Point MDS managements are left
+  to the import of their domains
+- importer: create a dummy FWO gateway when importing a Guardicore management without a registered gateway.
+  Guardicore enforces policies on hosts; this record only groups policy links and rule assignments in FWO.
+  Existing gateways are reused. Deploy both the importer changes and Hasura metadata to enable registration
+- importer: the normalized config takes an optional list of labels (key, value) that is upserted into
+  labelling.label_key / labelling.label_value on every import
+- importer, middleware: rules carry the labels of their source and destination in rule_src_labels / rule_dst_labels as
+  list of ORed AND-groups [{"label-key": "label-value", ...}, ...], several values of one key in a group as array of
+  values, null without labels (issue #5531); the groups are written sorted, and the normalized config of the
+  middleware returns them, so that unchanged labels are not reported as rule changes
+- database: the source and destination label assignments of rules and connections get the AND-group number and_group
+  (part of the primary key and of the active unique index), so that the tables keep the ORed AND-groups (issue #5549)
+- importer: the label assignment tables are the authoritative source of rule labels (rule_src_labels / rule_dst_labels
+  are a copy). Every inserted rule version gets its assignments in labelling.rule_source_label /
+  rule_destination_label, the assignments of removed rule versions are closed; one label change event per import
+  (with import control id, origin import) covers all of them. Label values used by rules only are upserted as well
+- app data import: app servers may carry labels ("labels": [{"label_key": "stage", "label_value": "prod"}]), written
+  into labelling.owner_network_label. Missing labels leave the labels of the app server untouched, an empty list
+  removes them; deleted app servers lose their labels, reactivated ones get the imported labels again. Unknown keys
+  and values are created as imported; the keys AppRole and AppZone, several values of a single value key, more than
+  50 labels per app server and keys/values longer than 100/250 characters are rejected with a log entry. All label
+  changes of an import run share one label change event of the import control of the run, and a label change counts
+  as change of the owner (changelog_owner)
+- scripts: the app data csv helpers read app server labels from csv columns named "label:<key>"
+- reporting: rule-based reports (rules, resolved / technical rules, unused rules, NAT rules, recertification, app rules
+  and all change reports) show the labels of the rules in html, pdf, csv, json and the UI (issue #5550). Global
+  settings under Settings - Reporting: display of source / destination labels (own columns as default, instead of
+  the label objects - the groups an importer built from the labels of the side - in their cell, together with the
+  objects in one cell, or objects only) and showing the rule-level labels (labelling.rule_label, e.g. App).
+  Labels of a group are joined with ∩, groups with ∪ (csv: AND / OR), json keeps the group structure. Rule-level
+  labels are those active at the report time (via the import ids of their change events), in change reports those
+  before / after the change. Label columns and fields only appear if a rule of the report has such labels, so reports
+  without labels stay unchanged
+- labelling: App label (issue #5551). The CMDB is the master: every rule and every app server gets the App label of
+  its owner, the value being the external app id (app_id_external); Guardicore has to use the same key and values.
+  The key name is a global setting (appLabelKey, default App, under Settings - App Data Import; empty switches App
+  labels off). The key is kept imported, global and multi-valued, also if it was created before by an importer
+  - rules: the rule owner mapping keeps labelling.rule_label in line with the active rule_owner rows of the
+    configured mapping source, in full and incremental runs. The changes are stamped with the current relevant import
+    of the management of the rule (its last successful import with changes, or that of its super-manager if newer),
+    one label change event per import, so that rule reports show them right away; rules of managements without such
+    an import get the import control id of the run. The first run of the middleware process, the one after a failed
+    sync and the first one after the App key changed compare all rules, which also fills the App labels of the existing
+    mappings after the upgrade. Every row of labelling.rule_label names its writer (label_source, app_sync for these
+    App labels, import for the importer, which the API holds to its own rows); the sync closes only its own rows, so
+    labels of a former App key are closed, without App key all of them, while labels of other writers are kept. Owners without app id are skipped. A changed app id saved in the owner
+    settings is recorded as owner change (owner import with changelog entry), so the next incremental mapping run
+    gives the rules of the owner the new App label
+  - app servers: the app data import gives all active app servers of an imported owner the App label of the owner
+    and closes other App labels; at the end of every run it does the same for the active owners that were not part of
+    the import files (e.g. created in the UI), which also fills their App labels after the upgrade. App servers saved
+    in the UI (by admins) and the app servers of an owner saved in the owner settings get it as well. Saving a changed
+    App key closes the App labels of the app servers under the former key and assigns those of the new key
+  - csv upload of app servers (Settings - App Data Import): optional header columns label:<key> import labels of the
+    app servers with the rules of the app data import (rejections are shown as warnings), and the App label of the
+    owners is assigned once per owner after the upload; the whole upload shares one label change event The App key is rejected in
+    the labels of imported app servers, and imported labels never close the App label
+- modelling: labels as source and destination of connections, interfaces and common services (issue #5552), while
+  label-based modelling is switched on. A side may hold objects, labels or both; labels form AND-groups (∩), the
+  groups and the objects of a side are ORed (∪). Labels of AppRole and AppZone are not offered, App labels only of
+  own apps (also enforced by Hasura via the new relationships label_value.owners_by_app_id and
+  label_key.app_label_key_configs, which restrict only labels of the key stored in config entry appLabelKey; its
+  default App is now stored on install and upgrade). Changes are stored in
+  labelling.connection_source_label / connection_destination_label with the AND-group number and recorded as
+  label_change_event (origin UI, actor, actor_id of the uiuser, connection) and in the connection history. Connections using an interface
+  show the labels of the interface side; while label-based modelling is off, assigned labels are shown read-only.
+  The connection overview lists the labels of each side
+- api: modeller may read, add and close the labels of connections of own apps and write UI label change events;
+  recertifier may read connection labels. Hasura presets actor_id of a modeller's change event from the session, and a
+  modeller adds and closes label assignments only with an own change event from the UI, closes only active ones, adds
+  no AppRole / AppZone labels and adds labels only while label-based modelling is switched on
+- modelling: global setting labelBasedModelling ("Label-based Modelling" under Settings - Modelling, default off,
+  issue #5553). It switches the selection of labels as source and destination in modelling (#5552) on; when off,
+  labels already assigned to connections stay stored and are shown read-only, and reports keep showing imported
+  labels. Which firewalls get label-based configurations is set by the device specific setting labelCreation
+- api: modeller, recertifier, reporter and reporter-viewall may read labelling.rule_label, label_value, label_key
+  (reporter and recertifier only for the rules they see) and id / import id / time of label_change_event
+- provisioning: Guardicore as firewall write target (issue #4946). Groups are written as dynamic IP labels:
+  app roles, app zones and network areas as labels AppRole, AppZone and NetworkArea with their id string as value and
+  one IP criterion per member (SUBNET with a CIDR block, RANGE with start-end); a group named "key: value" writes that
+  label. New firewall write operations LabelWrite and LabelDelete (endpoint and template per device type like the
+  other operations), all through REST API v4.0 except the login (v3.0 only). Every label is looked up by key and
+  value first: a missing label is created; an existing one that differs from the target gets its criteria replaced by
+  the bulk update (override=true, append=false), keeping its IP criteria inside the target and all criteria FWO does
+  not manage, so repeated tasks write nothing twice. Static asset assignments of AppRole, AppZone and NetworkArea
+  labels are removed when FWO writes the label (the assets inside the target keep it through the IP criteria), those
+  of other labels are kept. Addresses to remove that no IP criterion holds (e.g. a further address of an asset that
+  matches the label through another one) fail the task and are named, instead of being requested again after every
+  import;
+  label values are only deleted while fwWriteDeleteObjects is on, label keys never. Network objects exist only as
+  criteria of the labels (object tasks write nothing), rules see below (#5785). The device specific
+  setting labelCreation now decides where network objects and groups of Guardicore managements are implemented
+- variance analysis: on Guardicore managements app roles, app zones and network areas are compared with their labels
+  (imported as groups "key: value" with one member per CIDR block) by their addresses; missing labels are created,
+  changed ones get their members added and removed, app role, app zone and network area labels requested for the owner
+  whose modelled object does not exist any more (deleted or renamed) are deleted while fwWriteDeleteObjects is on. Network area labels are requested while the device specific setting
+  modellingImplementNetworkAreaObjects is on; the device specific setting modellingCreateAppZones now switches the
+  app zone requests per management. Host based firewall managements (Guardicore) are always analysed and requested,
+  other managements still only while they have external management data
+- settings: new device specific setting provisioningExcludedObjectTypes (Global to manager): modelling group types
+  (AppRole, AppZone, NetworkArea, ServiceGroup) left out of the variance analysis and of provisioning; when writing,
+  groups have the type of their label key or the type their request task names (additional info GrpType, set by the
+  variance analysis and the modelling notifications), and the task of an excluded group is left out with its member
+  objects. The type is not guessed from a prefix of the naming convention, which may be empty or start other names;
+  a Guardicore group of unknown type is only written if it is named "key: value"
+- settings: the global modelling setting modRolloutResolveServiceGroups becomes the device specific setting
+  resolveServiceGroups (Global to manager, default on, issue #5787), so service groups can be resolved per device type
+  and management. The upgrade keeps a switched off value as global value and removes the config entry. Managements
+  that write labels (Guardicore) know no service groups: there the variance analysis always requests the services of
+  service groups, the setting is not offered, and service group tasks that reach them in another way (e.g. createTicket
+  API) are left out with a note instead of failing. All ports of a Guardicore rule apply to all its protocols, so a
+  connection with services of different protocols is implemented as one rule per protocol; the variance analysis
+  compares the connection with all its rules on such a management together
+- variance analysis: on managements that write labels (Guardicore) the sources and destinations of rules are compared
+  by label and by address: app roles, app zones, other groups and network areas implemented as labels
+  (modellingImplementNetworkAreaObjects) by the name of their label ("AppRole: AR504711-001"), whose members the label
+  variance analysis compares; app servers and network areas without label as one address set, so a range and its CIDR
+  blocks are equal. Labels and addresses the connection does not have are surplus
+- firewall write: Guardicore rules (#5785). Access, rule_modify and rule_delete tasks of modelled connections are
+  written to the Allow section, one rule per protocol, as all ports of a Guardicore rule apply to all its protocols:
+  ruleset = external app id of the owner, comment = connection marker (request task additional info ConnMarker and
+  ExtAppId, set by the variance analysis). The client lists the Allow rules carrying the marker, replaces the rule of
+  each protocol (PUT on the rule path) unless it already is as requested, creates missing ones, deletes the other rules
+  of the connection (all of them for rule_delete) and publishes a policy revision only after a change. Labels in the
+  sides are named "key: value" and replaced by their ids; a missing label fails the task and is named. Addresses are
+  written as CIDR subnets. New placeholders @@RULE_PORTS@@, @@RULE_PORT_RANGES@@ and the runtime placeholder
+  @@RULE_ID@@; new shipped Guardicore operations RuleCreate, RuleDelete and Publish. Guardicore rules need no rule
+  position (new vendor property NewRulesNeedPosition)
+- variance analysis: on managements that write labels the connection marker is read from the rule comment (their rule
+  name is the ruleset) and the rule owner prefilter, which needs the marker in the rule name, is not used; app roles and
+  network areas implemented as labels are requested by their label name, other network areas by their networks;
+  a connection is requested for such a management whenever it has no rule there, even if a gateway already implements
+  it; changed and deleted connections get one task per connection, which writes all their rules
+- variance analysis: label-based connections (#5555). While label-based modelling is on, the AND-groups of the labels of a
+  connection side are compared with the label groups of the rules of managements that write labels, by name as the
+  Guardicore import names them (labels sorted and joined by " & ", e.g. "OS: Linux & Stage: Prod"; one label is named
+  like the label), as sets of groups in any order and without resolving them into addresses; app roles, app zones and
+  network areas stay in the objects part. Access tasks for such managements request the label groups, which the
+  Guardicore writer writes as AND-groups of label ids. Managements that write no labels get the objects of a mixed side
+  only, and a connection with a side of labels only is not requested for them
+- api: modeller, recertifier, reporter and reporter-viewall may read the device specific settings nodes and the
+  values of modellingCreateAppZones, modellingImplementNetworkAreaObjects, provisioningExcludedObjectTypes,
+  resolveServiceGroups and fwWriteDeleteObjects, which the variance analysis needs; modeller, recertifier and reporter only the global and device type nodes and the
+  management and gateway nodes they may see
+- workflow: the action "Create implementation tasks" creates exactly one implementation task for an access task of a
+  management that writes labels (Guardicore), on the gateway of its management and without path analysis, which cannot
+  find a host based firewall; without gateway the fallback task without gateway applies. Entered devices still take
+  precedence, access tasks of other vendors keep all gateways of the path analysis
+- maintenance: fworch-cleanup.sql keeps the import controls referenced by rule owner mappings and label change
+  events, which would otherwise be deleted with them (on delete cascade) or reopen the assignments they closed
+- upgrade: db upgrade file adds the labelling schema, the rule label columns and the Guardicore
+  device types to existing installations, and grants the read-only database user fwo_ro read access to the labelling
+  schema
+  
+## 9.8.4 - 26.10.2026
+## 9.8.7 - 02.11.2026
+## 9.9.3 - 11.11.2026
 ## 9.9.4 - 17.11.2026
 - middleware REST API: `Rule/GetRulesByFilter` accepts `RuleUid` as an exact third selector alongside `OwnerId` and `IpAddress`; all current non-removed matches are ordered by rule ID and use the existing paging and SIEM logging behavior
 - request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket
@@ -601,9 +780,8 @@
   setting Settings - Logging - default log time range (default: 7 days, used for CSV imports), which a
   log data import file can override in the new optional top-level field log_time_range_in_seconds.
   The middleware warns about entries logged outside the supplied period. New setting to hide the log time column (default: on) (issue #5391).
-  
-## 9.6.2 - 02.10.2026
 
+## 9.6.2 - 02.10.2026
 - installer: Red Hat Enterprise Linux 8 is no longer supported. Fresh installations and
   upgrades now stop before changing the host if its OS release is unsupported. Supported
   platforms are Debian 12+, Ubuntu 22.04+ (LTS only), Red Hat Enterprise Linux 9+ and Rocky 9+;

@@ -170,6 +170,22 @@ class AppDataImportTests(unittest.TestCase):
             self.assertEqual(len(app_list), 1)
             self.assertEqual(app_list[0].app_id_external, "APP-001")
 
+    def test_extract_ip_data_from_csv_adds_labels_of_label_columns(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ip_csv_path: Path = Path(tmpdir) / "ips.csv"
+            with open(ip_csv_path, "w", encoding="utf-8") as fh:
+                fh.write("col: Alfabet-ID,col: IP,label:Stage,label:OS\nAPP-001,10.0.0.1,Prod,\nAPP-001,10.0.0.2,,\n")
+
+            owner: Owner = Owner("My App", "APP-001", 365, 365, import_source=self.import_source)
+            app_dict: dict[str, Owner] = {"APP-001": owner}
+
+            extract_ip_data_from_csv("ips.csv", app_dict, Appip, self.logger, self.debug_level, base_dir=tmpdir)
+
+            self.assertEqual(
+                [app_server.labels for app_server in owner.app_servers],
+                [[{"label_key": "Stage", "label_value": "Prod"}], []],
+            )
+
     def test_extract_ip_data_from_csv_adds_app_server(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             ip_csv_path: Path = Path(tmpdir) / "ips.csv"
@@ -192,6 +208,7 @@ class AppDataImportTests(unittest.TestCase):
             app_server: Appip = owner.app_servers[0]
             self.assertEqual(app_server.name, "host_10.0.0.1")
             self.assertEqual(str(app_server.ip_start), "10.0.0.1")
+            self.assertIsNone(app_server.labels)
             self.assertEqual(str(app_server.ip_end), "10.0.0.1")
             self.assertEqual(app_server.type, "host")
             self.assertEqual(app_server.app_id_external, "APP-001")

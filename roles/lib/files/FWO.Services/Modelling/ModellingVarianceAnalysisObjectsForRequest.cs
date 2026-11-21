@@ -29,13 +29,15 @@ namespace FWO.Services.Modelling
         {
             varianceResult = new() { Managements = RelevantManagements };
             AnalyseRules(conn);
-            if (varianceResult.ConnsNotImplemented.Count > 0)
+            if (varianceResult.ConnsNotImplemented.Count > 0 || IsMissingOnLabelWriter(mgt, conn))
             {
                 AddAccessTaskList.Add(ConstructCreateTask(mgt, conn));
             }
             else if (varianceResult.RuleDifferences.Count > 0)
             {
-                foreach (var rule in varianceResult.RuleDifferences[0].ImplementedRules.Where(r => r.MgmtId == mgt.Id))
+                IEnumerable<Rule> differingRules = varianceResult.RuleDifferences[0].ImplementedRules.Where(r => r.MgmtId == mgt.Id);
+                // a management that writes labels writes all rules of the connection with one task, see LabelRuleStepPlanner
+                foreach (var rule in WritesLabels(mgt) ? differingRules.Take(1) : differingRules)
                 {
                     ChangeAccessTaskList.Add(ConstructRuleTask(mgt, rule, conn, false, ReqElements));
                 }
@@ -46,9 +48,11 @@ namespace FWO.Services.Modelling
         {
             List<ModellingConnection> RegardedAsDeletedConns = [.. DeletedConns, .. dokuOnlyConnections];
             List<int> RegardedDeletedConnectionIds = RegardedAsDeletedConns.ConvertAll(c => c.Id);
+            HashSet<int> requestedConnIds = [];
             foreach (var rule in allModelledRules[mgt.Id].Where(r => !r.ModellFound))
             {
-                if (int.TryParse(FindModelledMarker(rule), out int connId) && RegardedDeletedConnectionIds.Contains(connId))
+                if (int.TryParse(FindModelledMarker(rule, MarkerLocationOf(mgt.Id)), out int connId) && RegardedDeletedConnectionIds.Contains(connId)
+                    && (!WritesLabels(mgt) || requestedConnIds.Add(connId)))
                 {
                     ModellingConnection deletedConn = RegardedAsDeletedConns.FirstOrDefault(c => c.Id == connId) ?? throw new KeyNotFoundException("Connection not found.");
                     DeleteAccessTaskList.Add(ConstructRuleTask(mgt, rule, deletedConn, true, GetElementsFromRule(rule, deletedConn)));
@@ -134,7 +138,7 @@ namespace FWO.Services.Modelling
 
         private WfReqTask ConstructCreateTask(Management mgt, ModellingConnection conn)
         {
-            Dictionary<string, string> addInfo = ModellingRequestExtraConfigs.AdditionalInfo(conn);
+            Dictionary<string, string> addInfo = RuleTaskAdditionalInfo(conn);
             return new()
             {
                 Title = ConstructCreateTaskTitle(conn),
@@ -157,7 +161,7 @@ namespace FWO.Services.Modelling
 
         private WfReqTask ConstructRuleTask(Management mgt, Rule rule, ModellingConnection conn, bool delete, List<WfReqElement> elements)
         {
-            Dictionary<string, string> addInfo = ModellingRequestExtraConfigs.AdditionalInfo(conn);
+            Dictionary<string, string> addInfo = RuleTaskAdditionalInfo(conn);
             List<WfReqElement> ruleElements =
             [
                 .. elements,
@@ -244,7 +248,7 @@ namespace FWO.Services.Modelling
             {
                 RequestAction = RequestAction.create.ToString(),
                 Field = isSource ? ElemFieldType.source.ToString() : ElemFieldType.destination.ToString(),
-                GroupName = appRole.IdString
+                GroupName = WritesLabels(mgt) ? ProdGroupName(appRole, mgt) : appRole.IdString
             });
         }
 

@@ -24,14 +24,16 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// <item>a label value is deleted by the rendered <see cref="FirewallWriteOperation.LabelDelete"/> call with its looked up id;
     /// a label that does not exist any more counts as deleted. Label keys are never deleted.</item>
     /// </list>
+    /// Rules are written to the Allow section, see the rule part of this class.
     /// </summary>
-    public class GuardicoreWriteClient : FirewallWriteClient
+    public partial class GuardicoreWriteClient : FirewallWriteClient
     {
         private const string kVendor = "Guardicore";
         private const string kLogCategory = "Firewall Write";
         private const int kPageSize = 1000;
         private const int kMaxPages = 100;
         private const int kStatusOk = 200;
+        private const int kStatusNotFound = 404;
         private const string kOverrideParameter = "override";
         private const string kAppendParameter = "append";
         private static readonly ImmutableArray<string> TokenFields = ["access_token", "token"];
@@ -77,6 +79,9 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 FirewallWriteOperation.LabelWrite => await WriteLabel(request),
                 FirewallWriteOperation.LabelDelete => await DeleteLabel(request),
+                FirewallWriteOperation.RuleCreate => await WriteRule(request),
+                FirewallWriteOperation.RuleDelete => await DeleteOtherRules(request),
+                FirewallWriteOperation.Publish => await PublishIfChanged(request),
                 _ => throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported, $"{request.Operation} is not supported for {kVendor}.")
             };
         }

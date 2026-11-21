@@ -277,6 +277,44 @@ namespace FWO.Test
             Assert.That(Task(tasks, "New Servicegroup: DnsGroup").Elements.Single().Name, Is.EqualTo("Dns"));
         }
 
+        /// <summary>
+        /// The access task of a connection for Guardicore names the connection marker and the app, by which the rules are
+        /// written and found again, and its app roles and network areas by their labels.
+        /// </summary>
+        [Test]
+        public async Task Request_AccessTaskNamesMarkerAppAndLabels()
+        {
+            List<WfReqTask> tasks = await Analysis(Api()).AnalyseModelledConnectionsForRequest(Connections);
+
+            WfReqTask access = tasks.Single(task => task.TaskType == nameof(WfTaskType.access));
+            List<string> sourceGroups = [.. access.Elements.Where(element => element.Field == nameof(ElemFieldType.source)).Select(element => element.GroupName ?? "")];
+            Assert.Multiple(() =>
+            {
+                Assert.That(access.GetAddInfoValue(AdditionalInfoKeys.ConnMarker), Is.EqualTo("FWOC1"));
+                Assert.That(access.GetAddInfoValue(AdditionalInfoKeys.ExtAppId), Is.EqualTo("4711"));
+                Assert.That(sourceGroups, Does.Contain("AppRole: AR504711-001"));
+                Assert.That(sourceGroups, Does.Contain("NetworkArea: NA50"));
+                Assert.That(access.Elements.Where(element => element.Field == nameof(ElemFieldType.destination)).Select(element => element.GroupName),
+                    Does.Contain("AppRole: AR504711-002"));
+            });
+        }
+
+        /// <summary>Network areas that are not written as labels are requested by the addresses of their networks.</summary>
+        [Test]
+        public async Task Request_NetworkAreasWithoutLabel_AreRequestedByTheirAddresses()
+        {
+            List<WfReqTask> tasks = await Analysis(Api(implementAreas: false)).AnalyseModelledConnectionsForRequest(Connections);
+
+            WfReqTask access = tasks.Single(task => task.TaskType == nameof(WfTaskType.access));
+            WfReqElement areaNetwork = access.Elements.Single(element => element.Name == "Net50");
+            Assert.Multiple(() =>
+            {
+                Assert.That(areaNetwork.IpString, Is.EqualTo("10.50.0.0/16"));
+                Assert.That(areaNetwork.GroupName, Is.Null);
+                Assert.That(access.Elements.Exists(element => element.GroupName == "NA50" || element.GroupName == "NetworkArea: NA50"), Is.False);
+            });
+        }
+
         [Test]
         public async Task AppZoneCheck_ComparesTheLabelByAddresses()
         {

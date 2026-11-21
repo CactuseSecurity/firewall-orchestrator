@@ -112,7 +112,7 @@
   matches the label through another one) fail the task and are named, instead of being requested again after every
   import;
   label values are only deleted while fwWriteDeleteObjects is on, label keys never. Network objects exist only as
-  criteria of the labels (object tasks write nothing), rules are not written yet (#4947). The device specific
+  criteria of the labels (object tasks write nothing), rules see below (#5785). The device specific
   setting labelCreation now decides where network objects and groups of Guardicore managements are implemented
 - variance analysis: on Guardicore managements app roles, app zones and network areas are compared with their labels
   (imported as groups "key: value" with one member per CIDR block) by their addresses; missing labels are created,
@@ -140,6 +140,21 @@
   (modellingImplementNetworkAreaObjects) by the name of their label ("AppRole: AR504711-001"), whose members the label
   variance analysis compares; app servers and network areas without label as one address set, so a range and its CIDR
   blocks are equal. Labels and addresses the connection does not have are surplus
+- firewall write: Guardicore rules (#5785). Access, rule_modify and rule_delete tasks of modelled connections are
+  written to the Allow section, one rule per protocol, as all ports of a Guardicore rule apply to all its protocols:
+  ruleset = external app id of the owner, comment = connection marker (request task additional info ConnMarker and
+  ExtAppId, set by the variance analysis). The client lists the Allow rules carrying the marker, replaces the rule of
+  each protocol (PUT on the rule path) unless it already is as requested, creates missing ones, deletes the other rules
+  of the connection (all of them for rule_delete) and publishes a policy revision only after a change. Labels in the
+  sides are named "key: value" and replaced by their ids; a missing label fails the task and is named. Addresses are
+  written as CIDR subnets. New placeholders @@RULE_PORTS@@, @@RULE_PORT_RANGES@@ and the runtime placeholder
+  @@RULE_ID@@; new shipped Guardicore operations RuleCreate, RuleDelete and Publish. Guardicore rules need no rule
+  position (new vendor property NewRulesNeedPosition)
+- variance analysis: on managements that write labels the connection marker is read from the rule comment (their rule
+  name is the ruleset) and the rule owner prefilter, which needs the marker in the rule name, is not used; app roles and
+  network areas implemented as labels are requested by their label name, other network areas by their networks;
+  a connection is requested for such a management whenever it has no rule there, even if a gateway already implements
+  it; changed and deleted connections get one task per connection, which writes all their rules
 - api: modeller, recertifier, reporter and reporter-viewall may read the device specific settings nodes and the
   values of modellingCreateAppZones, modellingImplementNetworkAreaObjects, provisioningExcludedObjectTypes,
   resolveServiceGroups and fwWriteDeleteObjects, which the variance analysis needs; modeller, recertifier and reporter only the global and device type nodes and the

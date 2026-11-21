@@ -12,8 +12,11 @@ levels through `DeviceSpecificSettingsManager.LoadEffectiveValueAsync`.
 The settings page exposes the configuration contract for Guardicore integration.
 The firewall write library writes groups to Guardicore as dynamic IP labels (operations
 `LabelWrite` and `LabelDelete`); `labelCreation` decides where the network objects and
-groups of Guardicore managements are implemented. Path analysis remains configured under
-General settings; no additional device specific path-analysis setting is introduced.
+groups of Guardicore managements are implemented. Rules of modelled connections are written
+to the Allow section, one rule per protocol (operations `RuleCreate`, `RuleDelete` and
+`Publish`), found again by the connection marker in the rule comment. Path analysis remains
+configured under General settings; access tasks of Guardicore managements skip it and get one
+implementation task on the gateway of their management.
 
 "Config levels" are the levels at which the API accepts an override. The settings
 page offers a setting only down to its "UI levels"; an override stored deeper

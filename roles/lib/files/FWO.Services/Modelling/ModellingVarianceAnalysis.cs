@@ -255,7 +255,14 @@ namespace FWO.Services.Modelling
                 foreach (var conn in connections.Where(c => !c.IsRequested && !c.IsDocumentationOnly()).OrderBy(c => c.Id))
                 {
                     ReqElements = [];
-                    AnalyseNetworkAreasForRequest(conn);
+                    if (WritesLabels(mgt))
+                    {
+                        AnalyseLabelWriterAreasForRequest(conn, mgt);
+                    }
+                    else
+                    {
+                        AnalyseNetworkAreasForRequest(conn);
+                    }
                     AnalyseAppRolesForRequest(conn, mgt);
                     AnalyseAppServersForRequest(conn);
                     AnalyseServiceGroupsForRequest(conn, mgt);

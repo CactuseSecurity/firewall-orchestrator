@@ -45,6 +45,33 @@ namespace FWO.Test
         /// A group task takes the object type its request task names for the group; other tasks and request tasks without
         /// a type have none, and other tasks do not ask for it.
         /// </summary>
+        /// <summary>Rule tasks take the marker and the app of the modelled connection from their request task.</summary>
+        [Test]
+        public async Task RuleTasksTakeTheConnectionMarkerAndAppOfTheirRequestTask()
+        {
+            const long kModelledRequestTaskId = 9;
+            const long kUnmodelledRequestTaskId = 10;
+            InMemoryDeviceSpecificSettingsApiConnection api = Api();
+            api.RequestTaskAdditionalInfo[kModelledRequestTaskId] = "{\"ConnId\":\"12\",\"ConnMarker\":\"FWOC12\",\"ExtAppId\":\" APP-1234 \"}";
+            api.RequestTaskAdditionalInfo[kUnmodelledRequestTaskId] = "{\"ConnMarker\":\"  \"}";
+            WfImplTask modelled = Task(WfTaskType.access);
+            modelled.ReqTaskId = kModelledRequestTaskId;
+            WfImplTask unmodelled = Task(WfTaskType.rule_modify);
+            unmodelled.ReqTaskId = kUnmodelledRequestTaskId;
+            ApiFirewallWriteDataSource dataSource = new(api);
+
+            FirewallWriteContext modelledContext = await dataSource.LoadContext(modelled);
+            FirewallWriteContext unmodelledContext = await dataSource.LoadContext(unmodelled);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(modelledContext.ConnectionMarker, Is.EqualTo("FWOC12"));
+                Assert.That(modelledContext.ExtAppId, Is.EqualTo("APP-1234"));
+                Assert.That(unmodelledContext.ConnectionMarker, Is.Null, "a blank marker is none");
+                Assert.That(unmodelledContext.ExtAppId, Is.Null);
+            }
+        }
+
         [Test]
         public async Task GroupTasksTakeTheObjectTypeOfTheirRequestTask()
         {
@@ -70,8 +97,8 @@ namespace FWO.Test
             {
                 Assert.That(typedContext.GroupObjectType, Is.EqualTo(FWO.Data.Modelling.ModellingTypes.ModObjectType.AppZone));
                 Assert.That(untypedContext.GroupObjectType, Is.Null);
-                Assert.That(ruleContext.GroupObjectType, Is.Null);
-                Assert.That(typeQueries, Is.EqualTo(typeQueriesBeforeRule));
+                Assert.That(ruleContext.GroupObjectType, Is.Null, "a rule task has no group type, even if its request task names one");
+                Assert.That(typeQueries, Is.EqualTo(typeQueriesBeforeRule + 1), "rule tasks read the connection of their request task");
             }
         }
 

@@ -78,6 +78,9 @@ namespace FWO.Services.Workflow
         /// <summary>Whether rules are written to the management of a gateway, see FirewallVendorProfile.WritesRules.</summary>
         bool WritesRules(int gatewayId);
 
+        /// <summary>Whether a new rule for a gateway is only written with a calculated position, see FirewallVendorProfile.NewRulesNeedPosition.</summary>
+        bool NewRulesNeedPosition(int gatewayId);
+
         /// <summary>
         /// Gateways the existing rules of a rule_modify or rule_delete task take effect on according to the import; empty
         /// for other tasks or rules not found.
@@ -360,7 +363,7 @@ namespace FWO.Services.Workflow
             {
                 return $"rules are not written to the vendor of gateway {gatewayId} yet.";
             }
-            if (implTask.TaskType == nameof(WfTaskType.access) && implTask.RulePosition == null)
+            if (implTask.TaskType == nameof(WfTaskType.access) && implTask.RulePosition == null && modes.NewRulesNeedPosition(gatewayId))
             {
                 return $"no rule position was calculated for gateway {gatewayId}, so the new rule is not written.";
             }

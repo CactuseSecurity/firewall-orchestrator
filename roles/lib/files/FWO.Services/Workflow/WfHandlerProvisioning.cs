@@ -174,8 +174,13 @@ namespace FWO.Services.Workflow
         /// <summary>Whether rules are written to the management of a gateway, by the device type of the management.</summary>
         private bool WritesRulesToGateway(int gatewayId)
         {
-            int deviceTypeId = Devices.FirstOrDefault(device => device.Id == gatewayId)?.Management?.DeviceType?.Id ?? 0;
-            return FirewallVendors.WritesRules(deviceTypeId);
+            return FirewallVendors.WritesRules(GatewayDeviceTypeId(gatewayId));
+        }
+
+        /// <summary>The device type of the management of a gateway; 0 if the gateway or its management is unknown.</summary>
+        private int GatewayDeviceTypeId(int gatewayId)
+        {
+            return Devices.FirstOrDefault(device => device.Id == gatewayId)?.Management?.DeviceType?.Id ?? 0;
         }
 
         /// <summary>The managements whose settings the work list needs: of the request tasks and the targets of their implementation tasks.</summary>
@@ -223,6 +228,12 @@ namespace FWO.Services.Workflow
             public bool WritesRules(int gatewayId)
             {
                 return handler.WritesRulesToGateway(gatewayId);
+            }
+
+            /// <inheritdoc/>
+            public bool NewRulesNeedPosition(int gatewayId)
+            {
+                return FirewallVendors.NewRulesNeedPosition(handler.GatewayDeviceTypeId(gatewayId));
             }
 
             /// <inheritdoc/>

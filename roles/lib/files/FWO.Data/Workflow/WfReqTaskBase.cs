@@ -43,6 +43,13 @@ namespace FWO.Data.Workflow
         public const string ExtraConfigs = "ExtraConfigs";
         /// <summary>Extra configurations of the interface the modelled connection uses, as requested.</summary>
         public const string InterfaceExtraConfigs = "InterfaceExtraConfigs";
+        /// <summary>
+        /// Marker of the modelled connection of a rule task (e.g. "FWOC123"), by which rules written for it are found
+        /// again (Guardicore: the rule comment).
+        /// </summary>
+        public const string ConnMarker = "ConnMarker";
+        /// <summary>External app id of the owner of the modelled connection (e.g. "APP-1234"), the ruleset of its Guardicore rules.</summary>
+        public const string ExtAppId = "ExtAppId";
     }
 
     public class WfReqTaskBase : WfTaskBase

@@ -18,8 +18,11 @@ namespace FWO.Test
         /// <summary>Device type of the management; the default device type unless a test needs another one.</summary>
         public int ManagementDeviceTypeId { get; set; }
 
-        /// <summary>Production rules returned instead of the standard rules, if set.</summary>
+        /// <summary>Production rules returned instead of the standard rules, if set; only those of the queried management.</summary>
         public List<Rule>? Rules { get; set; }
+
+        /// <summary>Managements returned instead of the standard management, if set.</summary>
+        public List<Management>? Managements { get; set; }
 
         public ModellingVarianceAnalysisTestApiConn()
         {
@@ -242,6 +245,11 @@ namespace FWO.Test
                 return response.Data;
             }
 
+            if (responseType == typeof(List<Management>) && Managements != null)
+            {
+                GraphQLResponse<dynamic> response = new() { Data = Managements };
+                return response.Data;
+            }
             if (responseType == typeof(List<Management>))
             {
                 List<Management>? managements =
@@ -291,7 +299,11 @@ namespace FWO.Test
             }
             else if (responseType == typeof(List<Rule>) && Rules != null)
             {
-                GraphQLResponse<dynamic> response = new() { Data = Rules.ConvertAll(rule => new Rule(rule)) };
+                int? managementId = variables is IDictionary<string, object?> values && values.TryGetValue("mgmId", out object? id) ? id as int? : null;
+                GraphQLResponse<dynamic> response = new()
+                {
+                    Data = Rules.Where(rule => managementId == null || rule.MgmtId == managementId).Select(rule => new Rule(rule)).ToList()
+                };
                 return response.Data;
             }
             else if (responseType == typeof(List<Rule>))

@@ -81,6 +81,10 @@ namespace FWO.Test
         private static Task<ModifyFirewallResult> Write(FirewallSimulation simulation, WfImplTask task, FirewallWriteContext? context = null) =>
             new FirewallWriter(new FixedFirewallWriteDataSource(context ?? Context()), new SimulatedFirewallWriteClientFactory(simulation)).ModifyFirewall(task);
 
+        /// <summary>The label call among the rendered calls, which also hold the publish call of the session.</summary>
+        private static RenderedFirewallRequest LabelWriteOf(List<RenderedFirewallRequest> requests) =>
+            requests.Single(request => request.Operation == FirewallWriteOperation.LabelWrite);
+
         private static WfImplElement Member(string ip, string? ipEnd = null, RequestAction action = RequestAction.create, string groupName = kAppRoleName)
         {
             WfImplElement member = FirewallWriteTestSupport.Network(ip, ip, ipEnd, action: action);
@@ -343,11 +347,18 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>Rules are only written for modelled connections, which the marker of the request task names.</summary>
         [Test]
-        public async Task RuleTasks_AreNotSupportedYet()
+        public async Task RuleTasks_WithoutConnectionMarker_AreInvalidTaskData()
         {
-            ModifyFirewallResult result = await Write(Simulation(kNoLabels), FirewallWriteTestSupport.Task(WfTaskType.access, Member("10.0.0.1")));
-            Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Unsupported));
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.access, Member("10.0.0.1")));
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(result.Message, Does.Contain("connection marker"));
+                Assert.That(simulation.Requests, Is.Empty);
+            });
         }
 
         [Test]
@@ -371,7 +382,7 @@ namespace FWO.Test
             List<RenderedFirewallRequest> appZone = new FirewallWriter(new FixedFirewallWriteDataSource(Context()))
                 .RenderAll(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "ARCHIVE_SRV")),
                     Context(groupType: ModellingTypes.ModObjectType.AppZone));
-            JsonNode body = JsonNode.Parse(appZone.Single().Body!)![0]!;
+            JsonNode body = JsonNode.Parse(LabelWriteOf(appZone).Body!)![0]!;
             Assert.Multiple(() =>
             {
                 Assert.That(withoutType.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
@@ -395,12 +406,12 @@ namespace FWO.Test
         {
             List<RenderedFirewallRequest> requests = new FirewallWriter(new FixedFirewallWriteDataSource(Context()))
                 .RenderAll(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1", groupName: "Stage: Prod")), Context());
-            JsonNode body = JsonNode.Parse(requests.Single().Body!)![0]!;
+            JsonNode body = JsonNode.Parse(LabelWriteOf(requests).Body!)![0]!;
             Assert.Multiple(() =>
             {
                 Assert.That(body["key"]!.GetValue<string>(), Is.EqualTo("Stage"));
                 Assert.That(body["value"]!.GetValue<string>(), Is.EqualTo("Prod"));
-                Assert.That(requests.Single().Step.ReplacesMembers, Is.True);
+                Assert.That(LabelWriteOf(requests).Step.ReplacesMembers, Is.True);
             });
         }
 

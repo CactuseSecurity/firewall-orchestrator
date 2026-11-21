@@ -107,7 +107,7 @@ namespace FWO.Services.Modelling
             {
                 rule.ManagementName = mgt.Name;
                 rule.DeviceName = string.Join(", ", rule.EnforcingGateways.Select(g => g.Content.Name).Where(n => !string.IsNullOrEmpty(n)));
-                string? connRef = FindModelledMarker(rule);
+                string? connRef = FindModelledMarker(rule, MarkerLocationOf(mgt.Id));
                 if (connRef != null)
                 {
                     if (long.TryParse(connRef, out long connId))
@@ -123,9 +123,10 @@ namespace FWO.Services.Modelling
             }
         }
 
-        private string? FindModelledMarker(Rule rule)
+        /// <summary>Finds the id of the modelled connection in a rule, where the marker location says (default: the configured one).</summary>
+        private string? FindModelledMarker(Rule rule, string? markerLocation = null)
         {
-            return userConfig.ModModelledMarkerLocation switch
+            return (markerLocation ?? userConfig.ModModelledMarkerLocation) switch
             {
                 MarkerLocation.Rulename => !string.IsNullOrEmpty(rule.Name) && rule.Name.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Name) : null,
                 MarkerLocation.Comment => !string.IsNullOrEmpty(rule.Comment) && rule.Comment.Contains(userConfig.ModModelledMarker) ? ParseFromString(rule.Comment) : null,
@@ -187,7 +188,7 @@ namespace FWO.Services.Modelling
             long? relImpId = importContext.ImportId;
             await GetRuleDevices(mgtId, modellingFilter);
 
-            if (relImpId != null && ShouldUseNameFieldRuleOwnerPreFilter(modellingFilter))
+            if (relImpId != null && MarkerLocationOf(mgtId) == MarkerLocation.Rulename && ShouldUseNameFieldRuleOwnerPreFilter(modellingFilter))
             {
                 List<Rule>? preFilteredRules = await TryGetPreFilteredRules(mgtId, relImpId.Value, importContext.ManagementIds, modellingFilter);
                 if (preFilteredRules != null)
@@ -229,7 +230,7 @@ namespace FWO.Services.Modelling
                 ["marker"] = $"%{userConfig.ModModelledMarker}%"
             };
 
-            string query = userConfig.ModModelledMarkerLocation switch
+            string query = MarkerLocationOf(mgtId) switch
             {
                 MarkerLocation.Rulename => RuleQueries.getModelledRulesByManagementName,
                 MarkerLocation.Comment => RuleQueries.getModelledRulesByManagementComment,

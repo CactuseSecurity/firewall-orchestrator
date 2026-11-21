@@ -48,7 +48,9 @@ namespace FWO.ExternalSystems.FirewallWrite
         };
         private static readonly FirewallVendorProfile Guardicore = new("Any", "ALLOW", "BLOCK", "", "", false, true)
         {
-            WritesLabels = true
+            WritesLabels = true,
+            WritesRules = true,
+            NewRulesNeedPosition = false
         };
 
         /// <summary>Whether a '/' in a name is escaped as "\/" where the name is part of a JSON-RPC url (FortiManager).</summary>
@@ -70,10 +72,17 @@ namespace FWO.ExternalSystems.FirewallWrite
         public bool WritesLabels { get; init; }
 
         /// <summary>
-        /// Whether rules are written to the vendor. A new rule needs its position, which the rule positioning only
-        /// calculates for Check Point so far; the rules of other vendors are left to a person.
+        /// Whether rules are written to the vendor: Check Point, whose new rules get their position from the rule
+        /// positioning, and Guardicore, whose rules are written to the Allow section; the rules of other vendors are left
+        /// to a person.
         /// </summary>
         public bool WritesRules { get; init; }
+
+        /// <summary>
+        /// Whether a new rule is only written with a calculated position. Not for Guardicore: the order of the rules within
+        /// its Allow section does not matter.
+        /// </summary>
+        public bool NewRulesNeedPosition { get; init; } = true;
 
         /// <summary>
         /// Layer used when neither the rule position nor the imported rulebase links name one, instead of the gateway's

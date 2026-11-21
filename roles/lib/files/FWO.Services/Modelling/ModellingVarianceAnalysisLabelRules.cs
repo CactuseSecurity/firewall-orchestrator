@@ -2,6 +2,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Labelling;
 using FWO.Data.Modelling;
+using FWO.Data.Workflow;
 
 namespace FWO.Services.Modelling
 {
@@ -24,7 +25,7 @@ namespace FWO.Services.Modelling
         {
             (List<ModellingAppServerWrapper> appServers, List<ModellingAppRoleWrapper> appRoles,
                 List<ModellingNetworkAreaWrapper> areas, List<ModellingNwGroupWrapper> otherGroups) = GetNwImplementationConfiguration(conn, source);
-            bool areasAsLabels = SettingsOf(mgt).ModellingImplementNetworkAreaObjects;
+            bool areasAsLabels = AreasAsLabels(mgt);
             List<ModellingNetworkArea> modelledAreas = [.. ModellingNetworkAreaWrapper.Resolve(areas)];
 
             List<NetworkObject> modelledLabels = [.. ModellingAppRoleWrapper.Resolve(appRoles).Select(appRole => LabelObject(ProdGroupName(appRole, mgt)))];
@@ -44,6 +45,75 @@ namespace FWO.Services.Modelling
             List<NetworkObject> prodAddresses = [.. networkLocations.Select(location => location.Object).Where(obj => !IsLabelObject(obj))];
             CompareLabelNames(modelledLabels, prodLabels, networkLocations, disregardedLocations);
             CompareAddressSets(modelledAddresses, prodAddresses, networkLocations, disregardedLocations);
+        }
+
+        /// <summary>
+        /// Where the marker of the modelled connection is found in the rules of a management: a management that writes labels
+        /// keeps it in the rule comment, as its rule name is the ruleset (app); other managements as configured.
+        /// </summary>
+        private string MarkerLocationOf(int mgtId) =>
+            RelevantManagements.Find(mgt => mgt.Id == mgtId) is Management mgt && WritesLabels(mgt) ? MarkerLocation.Comment : userConfig.ModModelledMarkerLocation;
+
+        /// <summary>
+        /// Whether a management that writes labels has no rule of the connection. Such a management enforces on the hosts,
+        /// so it needs every connection, unlike gateways, which only need the connections whose path leads through them.
+        /// </summary>
+        private bool IsMissingOnLabelWriter(Management mgt, ModellingConnection conn) =>
+            WritesLabels(mgt) && allModelledRules.TryGetValue(mgt.Id, out List<Rule>? rules) && !rules.Exists(rule => rule.ConnId == conn.Id);
+
+        /// <summary>Whether network areas are written as labels to a management that writes labels.</summary>
+        private bool AreasAsLabels(Management mgt) =>
+            SettingsOf(mgt).ModellingImplementNetworkAreaObjects && !IsExcluded(mgt, ModellingTypes.ModObjectType.NetworkArea);
+
+        /// <summary>
+        /// The additional info of a rule task of a modelled connection: the connection, its extra configurations, the
+        /// connection marker and the app of the owner, by which a management that writes labels finds and names its rules.
+        /// </summary>
+        private Dictionary<string, string> RuleTaskAdditionalInfo(ModellingConnection conn)
+        {
+            Dictionary<string, string> addInfo = ModellingRequestExtraConfigs.AdditionalInfo(conn);
+            addInfo[AdditionalInfoKeys.ConnMarker] = userConfig.ModModelledMarker + conn.Id;
+            if (!string.IsNullOrWhiteSpace(owner.ExtAppId))
+            {
+                addInfo[AdditionalInfoKeys.ExtAppId] = owner.ExtAppId;
+            }
+            return addInfo;
+        }
+
+        /// <summary>
+        /// Requests the network areas of a connection for a management that writes labels: as their label if network areas
+        /// are written as labels, else by the addresses of their networks.
+        /// </summary>
+        private void AnalyseLabelWriterAreasForRequest(ModellingConnection conn, Management mgt)
+        {
+            bool areasAsLabels = AreasAsLabels(mgt);
+            AddLabelWriterAreaElements(conn.SourceAreas, nameof(ElemFieldType.source), areasAsLabels);
+            AddLabelWriterAreaElements(conn.DestinationAreas, nameof(ElemFieldType.destination), areasAsLabels);
+        }
+
+        private void AddLabelWriterAreaElements(List<ModellingNetworkAreaWrapper> areas, string field, bool areasAsLabels)
+        {
+            foreach (ModellingNetworkArea area in ModellingNetworkAreaWrapper.Resolve(areas))
+            {
+                if (areasAsLabels)
+                {
+                    ReqElements.Add(new()
+                    {
+                        RequestAction = nameof(RequestAction.create),
+                        Field = field,
+                        GroupName = DynamicIpLabel.ForModelledGroup(ModellingTypes.ModObjectType.NetworkArea, area.IdString).Name
+                    });
+                    continue;
+                }
+                ReqElements.AddRange(AreaNetworks(area).Select(network => new WfReqElement
+                {
+                    RequestAction = nameof(RequestAction.create),
+                    Field = field,
+                    Name = network.Name,
+                    IpString = network.IP,
+                    IpEnd = network.IpEnd
+                }));
+            }
         }
 
         /// <summary>Whether an imported rule object stands for a label: a group named "key: value".</summary>

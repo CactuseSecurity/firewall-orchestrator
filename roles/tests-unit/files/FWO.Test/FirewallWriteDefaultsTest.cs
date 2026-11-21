@@ -197,7 +197,15 @@ namespace FWO.Test
                 Assert.That(FirewallVendors.FromDeviceTypeId(FirewallVendors.kGuardicoreManagement), Is.EqualTo(FirewallVendor.Guardicore));
                 Assert.That(FirewallVendors.WritesLabels(FirewallVendors.kGuardicoreGateway), Is.True);
                 Assert.That(FirewallVendors.WritesLabels(FirewallVendors.kCheckPointR8x), Is.False);
-                Assert.That(FirewallVendors.WritesRules(FirewallVendors.kGuardicoreManagement), Is.False);
+                Assert.That(FirewallVendors.WritesRules(FirewallVendors.kGuardicoreManagement), Is.True);
+                Assert.That(FirewallVendors.NewRulesNeedPosition(FirewallVendors.kGuardicoreManagement), Is.False);
+                Assert.That(FirewallVendors.NewRulesNeedPosition(FirewallVendors.kCheckPointR8x), Is.True);
+                Assert.That(FirewallWriteDefaults.GetEndpoint(FirewallVendors.kGuardicoreManagement, FirewallWriteOperation.RuleCreate),
+                    Is.EqualTo("POST /api/v4.0/visibility/policy/rules"));
+                Assert.That(FirewallWriteDefaults.GetEndpoint(FirewallVendors.kGuardicoreManagement, FirewallWriteOperation.RuleDelete),
+                    Is.EqualTo("DELETE /api/v4.0/visibility/policy/rules/@@RULE_ID@@"));
+                Assert.That(FirewallWriteDefaults.GetEndpoint(FirewallVendors.kGuardicoreManagement, FirewallWriteOperation.Publish),
+                    Is.EqualTo("POST /api/v4.0/visibility/policy/revisions"));
             }
         }
 

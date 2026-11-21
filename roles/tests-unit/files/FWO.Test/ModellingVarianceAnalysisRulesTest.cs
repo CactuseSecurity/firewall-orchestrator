@@ -59,6 +59,7 @@ namespace FWO.Test
         {
             Id = id,
             Name = $"FWOC1 part {id}",
+            Comment = "FWOC1",
             MgmtId = 1,
             Froms = [new(new(), ProdAppServer)],
             Tos = [new(new(), ProdAppServer)],

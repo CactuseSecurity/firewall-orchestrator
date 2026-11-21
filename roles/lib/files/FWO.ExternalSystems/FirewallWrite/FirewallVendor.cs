@@ -71,5 +71,12 @@ namespace FWO.ExternalSystems.FirewallWrite
             FirewallVendor vendor = FromDeviceTypeId(deviceTypeId);
             return vendor != FirewallVendor.Unsupported && FirewallVendorProfile.For(vendor).WritesRules;
         }
+
+        /// <summary>Whether a new rule needs a calculated position for a management of the device type, see <see cref="FirewallVendorProfile.NewRulesNeedPosition"/>.</summary>
+        public static bool NewRulesNeedPosition(int deviceTypeId)
+        {
+            FirewallVendor vendor = FromDeviceTypeId(deviceTypeId);
+            return vendor == FirewallVendor.Unsupported || FirewallVendorProfile.For(vendor).NewRulesNeedPosition;
+        }
     }
 }

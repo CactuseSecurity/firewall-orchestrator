@@ -2,6 +2,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Modelling;
+using FWO.Data.Workflow;
 using FWO.ExternalSystems.FirewallWrite;
 using FWO.Services;
 using FWO.Services.Modelling;
@@ -75,6 +76,7 @@ namespace FWO.Test
         {
             Id = 1,
             Name = "FWOC1",
+            Comment = "FWOC1",
             MgmtId = 1,
             Froms = [.. sources.Select(source => new NetworkLocation(new(), source))],
             Tos = [new(new(), Host32(100, "1.2.3.4/32"))],
@@ -176,6 +178,33 @@ namespace FWO.Test
                 ProdRule(Block(31, "10.50.0.0/17", "10.50.127.255/32"), Block(32, "10.50.128.0/17", "10.50.255.255/32")));
 
             Assert.That(result.RuleDifferences, Is.Empty);
+        }
+
+        /// <summary>
+        /// A host based firewall needs every connection: a connection implemented on a gateway is still requested for a
+        /// management that writes labels, but not for another gateway that lacks it.
+        /// </summary>
+        [Test]
+        public async Task Request_MissingRuleOnLabelWriter_IsRequestedThoughAnotherManagementHasIt()
+        {
+            const string kExtMgtData = "{\"id\":\"1\",\"name\":\"Ext\"}";
+            Rule checkPointRule = ProdRule(Host32(11, "1.2.3.4/32"));
+            ModellingVarianceAnalysisTestApiConn api = new()
+            {
+                Managements =
+                [
+                    new() { Id = 1, Name = "CheckPoint", ExtMgtData = kExtMgtData, DeviceType = new() { Id = 9 }, Devices = [new() { Id = 1 }] },
+                    new() { Id = 2, Name = "Guardicore", DeviceType = new() { Id = FirewallVendors.kGuardicoreManagement }, Devices = [new() { Id = 2 }] },
+                    new() { Id = 3, Name = "OtherCheckPoint", ExtMgtData = kExtMgtData, DeviceType = new() { Id = 9 }, Devices = [new() { Id = 3 }] }
+                ],
+                Rules = [checkPointRule]
+            };
+            SimulatedUserConfig userConfig = new() { RuleRecognitionOption = kRecognitionOption, ModRolloutNatHeuristic = false };
+            ModellingVarianceAnalysis analysis = new(api, new ExtStateHandler(ExtStateApiConnection), userConfig, Application, DefaultInit.DoNothing);
+
+            List<WfReqTask> tasks = await analysis.AnalyseModelledConnectionsForRequest([Connection(c => c.SourceAppServers = [new() { Content = Host }])]);
+
+            Assert.That(tasks.Where(task => task.TaskType == nameof(WfTaskType.access)).Select(task => task.ManagementId), Is.EqualTo(new List<int?> { 2 }));
         }
 
         [Test]

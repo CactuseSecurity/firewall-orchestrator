@@ -35,6 +35,15 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// </summary>
         public ModellingTypes.ModObjectType? GroupObjectType { get; init; }
 
+        /// <summary>
+        /// Marker of the modelled connection of a rule task (additional info <c>ConnMarker</c>, e.g. "FWOC123"), by which a
+        /// vendor that writes labels finds the rules written for the connection again; null for other tasks.
+        /// </summary>
+        public string? ConnectionMarker { get; init; }
+
+        /// <summary>External app id of the owner of the modelled connection of a rule task (additional info <c>ExtAppId</c>).</summary>
+        public string? ExtAppId { get; init; }
+
         /// <summary>Layer uid of each existing rule of the task by rule uid, from the imported configuration.</summary>
         public IReadOnlyDictionary<string, string> RuleLayerUids { get; init; } = new Dictionary<string, string>();
 

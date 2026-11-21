@@ -33,7 +33,8 @@ namespace FWO.ExternalSystems.FirewallWrite
         }
 
         /// <summary>Plans the steps of a task.</summary>
-        /// <exception cref="FirewallWriteException">Thrown for rule tasks, groups that stand for no label and members without addresses.</exception>
+        /// <exception cref="FirewallWriteException">Thrown for unknown task types, groups that stand for no label, members without addresses
+        /// and rules that cannot be written, see <see cref="LabelRuleStepPlanner"/>.</exception>
         public static List<FirewallWriteStep> Plan(WfImplTask implTask, FirewallWriteContext context)
         {
             ArgumentNullException.ThrowIfNull(implTask);
@@ -48,8 +49,10 @@ namespace FWO.ExternalSystems.FirewallWrite
                 nameof(WfTaskType.group_create) => [LabelWriteStep(implTask, context, true)],
                 nameof(WfTaskType.group_modify) => [LabelWriteStep(implTask, context, false)],
                 nameof(WfTaskType.group_delete) => [LabelDeleteStep(implTask, context)],
+                nameof(WfTaskType.access) or nameof(WfTaskType.rule_modify) or nameof(WfTaskType.rule_delete) =>
+                    LabelRuleStepPlanner.Plan(implTask, context, FirewallVendorProfile.For(context.Vendor)),
                 _ => throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
-                    $"Task type '{implTask.TaskType}' cannot be written to a firewall that segments by labels; only groups are written as labels so far.")
+                    $"Task type '{implTask.TaskType}' cannot be written to a firewall that segments by labels.")
             };
         }
 

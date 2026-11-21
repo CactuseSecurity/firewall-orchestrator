@@ -1,5 +1,12 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.5 - 21.11.2026
+- security fix: a report schedule repeated with an offset below 1 (e.g. "every 0 days") made the scheduled report job loop endlessly, so no scheduled report ran any more (GHSA-6mh5-c5hj-qjwp)
+  - the report job skips such a schedule and logs an error; the other schedules of the run are processed
+  - the schedule page refuses to save a repeated schedule with an offset below 1
+  - database: new constraint `report_schedule_repeat_positive` on `report_schedule`, default offset 1; the upgrade sets the offset of existing repeated schedules below 1 to 1 and deactivates them, so their owners review them before they run again
+
+
 ## 9.9.4 - 17.11.2026
 - middleware REST API: `Rule/GetRulesByFilter` accepts `RuleUid` as an exact third selector alongside `OwnerId` and `IpAddress`; all current non-removed matches are ordered by rule ID and use the existing paging and SIEM logging behavior
 - request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket

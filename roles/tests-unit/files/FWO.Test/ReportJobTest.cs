@@ -22,6 +22,7 @@ namespace FWO.Test
     internal class ReportJobTest
     {
         private static readonly TimeZoneInfo kBerlin = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
+        private static readonly TimeSpan kLoopTimeout = TimeSpan.FromSeconds(10);
         private object? originalConfigFileData;
 
         private sealed class ReportJobApiConnection : ApiConnection
@@ -692,6 +693,72 @@ namespace FWO.Test
             await (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, new DateTimeOffset(currentTimeRounded), CancellationToken.None])!;
 
             Assert.That(reportSchedule.StartTime, Is.EqualTo(new DateTime(2026, 4, 22, 10, 0, 0)));
+        }
+
+        [TestCase(SchedulerInterval.Days, 0)]
+        [TestCase(SchedulerInterval.Weeks, 0)]
+        [TestCase(SchedulerInterval.Months, 0)]
+        [TestCase(SchedulerInterval.Years, 0)]
+        [TestCase(SchedulerInterval.Days, -1)]
+        public void ProcessScheduledReport_NonPositiveRepeatOffset_SkipsScheduleWithoutLooping(SchedulerInterval interval, int repeatOffset)
+        {
+            MethodInfo processScheduledReport = GetPrivateInstanceMethod("ProcessScheduledReport");
+            ReportJob reportJob = CreateReportJob();
+            DateTime originalStartTime = new(2026, 4, 20, 10, 0, 0);
+            ReportSchedule reportSchedule = new()
+            {
+                Active = true,
+                StartTime = originalStartTime,
+                RepeatInterval = interval,
+                RepeatOffset = repeatOffset
+            };
+            DateTimeOffset currentTimeRounded = new(originalStartTime.AddDays(1));
+
+            // the loop is synchronous, so it has to run on its own thread to be stopped by the timeout
+            Task processing = Task.Run(() => (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, currentTimeRounded, CancellationToken.None])!);
+
+            Assert.That(processing.Wait(kLoopTimeout), Is.True, "Processing a schedule with a non-positive repeat offset did not return.");
+            Assert.That(reportSchedule.StartTime, Is.EqualTo(originalStartTime));
+        }
+
+        [Test]
+        public async Task ProcessScheduledReport_NeverRepeatedScheduleWithZeroOffset_IsNotSkipped()
+        {
+            MethodInfo processScheduledReport = GetPrivateInstanceMethod("ProcessScheduledReport");
+            ReportJob reportJob = CreateReportJob();
+            DateTime originalStartTime = new(2026, 4, 20, 10, 0, 0);
+            ReportSchedule reportSchedule = new()
+            {
+                Active = true,
+                StartTime = originalStartTime,
+                RepeatInterval = SchedulerInterval.Never,
+                RepeatOffset = 0
+            };
+
+            await (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, new DateTimeOffset(originalStartTime.AddDays(1)), CancellationToken.None])!;
+
+            Assert.That(reportSchedule.StartTime, Is.GreaterThan(originalStartTime.AddYears(1000)));
+        }
+
+        [Test]
+        public void Execute_ScheduleWithZeroRepeatOffset_StillProcessesOtherSchedules()
+        {
+            DateTime scheduleTime = new(2026, 4, 21, 10, 0, 0);
+            ReportSchedule brokenSchedule = CreateDailyTicketReportSchedule(scheduleTime.AddDays(-1));
+            brokenSchedule.Id = 18;
+            brokenSchedule.RepeatOffset = 0;
+            ReportJobApiConnection apiConnection = new()
+            {
+                ReportSchedules = [brokenSchedule, CreateDailyTicketReportSchedule(scheduleTime)],
+                LdapConnections = []
+            };
+            ReportJob reportJob = CreateReportJob(apiConnection, new FixedTimeProvider(scheduleTime.AddSeconds(30)));
+
+            Task execution = Task.Run(async () => await reportJob.Execute(null!));
+
+            Assert.That(execution.Wait(kLoopTimeout), Is.True, "The report job did not return.");
+            Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getLdapConnections));
+            Assert.That(brokenSchedule.StartTime, Is.EqualTo(scheduleTime.AddDays(-1)));
         }
 
         [Test]

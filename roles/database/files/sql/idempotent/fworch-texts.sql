@@ -4933,6 +4933,8 @@ INSERT INTO txt VALUES ('E2001', 'German',  'Bitte eine Vorlage ausw&auml;hlen')
 INSERT INTO txt VALUES ('E2001', 'English', 'Please select a template');
 INSERT INTO txt VALUES ('E2002', 'German',  'Reporttermin gespeichert, aber die Benachrichtigungs-Einstellungen konnten nicht aktualisiert werden.');
 INSERT INTO txt VALUES ('E2002', 'English', 'Report schedule saved, but notification settings could not be updated.');
+INSERT INTO txt VALUES ('E2003', 'German',  'Das Wiederholungsintervall muss mindestens 1 sein');
+INSERT INTO txt VALUES ('E2003', 'English', 'The repeat interval must be at least 1');
 
 INSERT INTO txt VALUES ('E4001', 'German',  'Bitte Kommentar hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('E4001', 'English', 'Please insert a comment');
@@ -6012,10 +6014,10 @@ INSERT INTO txt VALUES ('H2012', 'English', 'Start date and time: First executio
     Be aware of selecting some minutes ahead if execution should start by today, as there may be a timer delay of some minutes.
 ');
 INSERT INTO txt VALUES ('H2013', 'German',  'Wiederholungsintervall: Es k&ouml;nnen Abst&auml;nde in Tagen, Wochen, Monaten oder Jahren ausgew&auml;hlt werden.
-    Wenn "Niemals" gew&auml;hlt wird, wird der Auftrag nur einmal ausgef&uuml;hrt.
+    Die Anzahl muss mindestens 1 sein. Wenn "Niemals" gew&auml;hlt wird, wird der Auftrag nur einmal ausgef&uuml;hrt.
 ');
 INSERT INTO txt VALUES ('H2013', 'English', 'Repetition interval: Intervals in days, weeks, months or years can be selected.
-    If "Never" is selected, only one execution is scheduled.
+    The number must be at least 1. If "Never" is selected, only one execution is scheduled.
 ');
 INSERT INTO txt VALUES ('H2014', 'German',  'Vorlagen: Hier muss eine der vorbereiteten <a href="/help/reporting/templates">Vorlagen</a> ausgew&auml;hlt werden.');
 INSERT INTO txt VALUES ('H2014', 'English', 'Templates: Here one of the prepared <a href="/help/reporting/templates">Templates</a> has to be selected.');

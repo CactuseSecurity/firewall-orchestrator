@@ -85,6 +85,13 @@ namespace FWO.Middleware.Server.Jobs
             {
                 if (reportSchedule.Active)
                 {
+                    if (!reportSchedule.HasValidRepeatOffset())
+                    {
+                        // an offset below 1 never moves the start time forward, so the loop below would not end
+                        Log.WriteError(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" is skipped: " +
+                            $"repeat offset {reportSchedule.RepeatOffset} is not positive for interval {reportSchedule.RepeatInterval}.");
+                        return;
+                    }
                     TimeZoneInfo zone = timeProvider.LocalTimeZone;
                     // Add schedule interval as long as schedule time is smaller than current time
                     while (GetDueInstant(reportSchedule.StartTime, zone) < nowRounded)

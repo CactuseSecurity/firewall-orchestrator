@@ -44,7 +44,7 @@ namespace FWO.Services.Modelling
                 ruleFound = true;
                 if (WritesLabels(mgt))
                 {
-                    CompareRuleSetToConn(connRules, conn);
+                    CompareRuleSetToConn(connRules, conn, mgt);
                 }
                 else
                 {
@@ -162,12 +162,12 @@ namespace FWO.Services.Modelling
         /// the services of all rules together its services. Service groups are compared resolved, as these managements know
         /// no service groups. All rules get the same verdict.
         /// </summary>
-        private void CompareRuleSetToConn(List<Rule> rules, ModellingConnection conn)
+        private void CompareRuleSetToConn(List<Rule> rules, ModellingConnection conn, Management mgt)
         {
             bool isImpl = true;
             foreach (Rule rule in rules)
             {
-                isImpl &= IsNwPartImplementation(rule, conn);
+                isImpl &= IsNwPartImplementation(rule, conn, mgt);
             }
             isImpl &= IsSvcPartImplementation(rules, conn, true);
             RecordVerdict(rules, conn, isImpl);
@@ -195,7 +195,10 @@ namespace FWO.Services.Modelling
         /// Whether the rule is an active accept rule whose sources and destinations implement the connection; fills the
         /// disregarded network locations and the unused special user and updatable objects of the rule.
         /// </summary>
-        private bool IsNwPartImplementation(Rule rule, ModellingConnection conn)
+        /// <param name="rule">Production rule carrying the marker of the connection.</param>
+        /// <param name="conn">The connection.</param>
+        /// <param name="labelWriter">The management of the rule if it writes labels, see <see cref="CompareLabelWriterLocations"/>.</param>
+        private bool IsNwPartImplementation(Rule rule, ModellingConnection conn, Management? labelWriter = null)
         {
             bool isImpl = !rule.IsDropRule() && !rule.Disabled && !rule.SourceNegated && !rule.DestinationNegated;
             Dictionary<string, bool> SpecialUserObjects = conn.GetSpecialUserObjectNames();
@@ -203,8 +206,8 @@ namespace FWO.Services.Modelling
             List<NetworkLocation> disregardedFroms = [];
             List<NetworkLocation> disregardedTos = [];
 
-            isImpl &= IsNwImplementation(rule.Froms, SpecialUserObjects, UpdatableObjects, conn, true, ref disregardedFroms);
-            isImpl &= IsNwImplementation(rule.Tos, SpecialUserObjects, UpdatableObjects, conn, false, ref disregardedTos);
+            isImpl &= IsNwImplementation(rule.Froms, SpecialUserObjects, UpdatableObjects, conn, true, labelWriter, ref disregardedFroms);
+            isImpl &= IsNwImplementation(rule.Tos, SpecialUserObjects, UpdatableObjects, conn, false, labelWriter, ref disregardedTos);
             rule.DisregardedFroms = [.. disregardedFroms];
             rule.DisregardedTos = [.. disregardedTos];
             rule.UnusedSpecialUserObjects = [.. SpecialUserObjects.Keys.Where(x => !SpecialUserObjects[x])];
@@ -321,7 +324,7 @@ namespace FWO.Services.Modelling
         }
 
         private bool IsNwImplementation(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects,
-            Dictionary<string, bool> updatableObjects, ModellingConnection conn, bool source, ref List<NetworkLocation> disregardedLocations)
+            Dictionary<string, bool> updatableObjects, ModellingConnection conn, bool source, Management? labelWriter, ref List<NetworkLocation> disregardedLocations)
         {
             (List<ModellingAppServerWrapper> appServers, List<ModellingAppRoleWrapper> appRoles,
                 List<ModellingNetworkAreaWrapper> areas, List<ModellingNwGroupWrapper> otherGroups) = GetNwImplementationConfiguration(conn, source);
@@ -329,7 +332,14 @@ namespace FWO.Services.Modelling
             int updatableObjectAreaCount = GetRelevantAreaCount(areas, source ? AllowedSrcUpdatableObjAreas : AllowedDestUpdatableObjAreas);
 
             ResetSurplusFlags(networkLocations);
-            CompareNetworkLocations(networkLocations, appServers, appRoles, areas, otherGroups, disregardedLocations);
+            if (labelWriter != null)
+            {
+                CompareLabelWriterLocations(networkLocations, conn, source, labelWriter, disregardedLocations);
+            }
+            else
+            {
+                CompareNetworkLocations(networkLocations, appServers, appRoles, areas, otherGroups, disregardedLocations);
+            }
             AdjustWithSpecialUserObjects(networkLocations, specialUserObjects, source, specialUserAreaCount, ref disregardedLocations);
             AdjustWithUpdatableObjects(networkLocations, updatableObjects, source, updatableObjectAreaCount, ref disregardedLocations);
             return disregardedLocations.Count == 0 && networkLocations.Where(n => n.Object.IsSurplus).ToList().Count == 0;

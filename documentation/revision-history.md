@@ -135,13 +135,19 @@
   API) are left out with a note instead of failing. All ports of a Guardicore rule apply to all its protocols, so a
   connection with services of different protocols is implemented as one rule per protocol; the variance analysis
   compares the connection with all its rules on such a management together
+- variance analysis: on managements that write labels (Guardicore) the sources and destinations of rules are compared
+  by label and by address: app roles, app zones, other groups and network areas implemented as labels
+  (modellingImplementNetworkAreaObjects) by the name of their label ("AppRole: AR504711-001"), whose members the label
+  variance analysis compares; app servers and network areas without label as one address set, so a range and its CIDR
+  blocks are equal. Labels and addresses the connection does not have are surplus
 - api: modeller, recertifier, reporter and reporter-viewall may read the device specific settings nodes and the
   values of modellingCreateAppZones, modellingImplementNetworkAreaObjects, provisioningExcludedObjectTypes,
   resolveServiceGroups and fwWriteDeleteObjects, which the variance analysis needs; modeller, recertifier and reporter only the global and device type nodes and the
   management and gateway nodes they may see
-- workflow: the action "Create implementation tasks" leaves out the gateways of other managements found by the path
-  analysis for access tasks of a Guardicore management (gateways of its sub-managements are kept); access tasks of
-  other vendors keep all gateways of the path analysis
+- workflow: the action "Create implementation tasks" creates exactly one implementation task for an access task of a
+  management that writes labels (Guardicore), on the gateway of its management and without path analysis, which cannot
+  find a host based firewall; without gateway the fallback task without gateway applies. Entered devices still take
+  precedence, access tasks of other vendors keep all gateways of the path analysis
 - maintenance: fworch-cleanup.sql keeps the import controls referenced by rule owner mappings and label change
   events, which would otherwise be deleted with them (on delete cascade) or reopen the assignments they closed
 - upgrade: db upgrade file adds the labelling schema, the rule label columns and the Guardicore

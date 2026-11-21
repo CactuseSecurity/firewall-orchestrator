@@ -275,8 +275,12 @@ namespace FWO.Test
             Assert.That(DeviceIds(reqTask), Is.EqualTo(kTaskWithoutGateway));
         }
 
+        /// <summary>
+        /// A management that writes labels (Guardicore) has no gateway in a network path: the access task gets exactly one
+        /// implementation task, on the first gateway of its management, without path analysis.
+        /// </summary>
         [Test]
-        public async Task AccessTask_AlgorithmGatewaysOfOtherManagements_AreLeftOut()
+        public async Task AccessTask_OfLabelWriter_GetsOneTaskOnTheGatewayOfItsManagement()
         {
             WfHandler handler = CreateHandlerWithOtherManagementGateway();
             FixedPathAnalyzer analyzer = new(kFirstAndOtherManagementGateway);
@@ -285,7 +289,11 @@ namespace FWO.Test
 
             await InvokeAutoCreateImplTasks(handler, reqTask);
 
-            Assert.That(DeviceIds(reqTask), Is.EqualTo(kFirstGatewayTask));
+            Assert.Multiple(() =>
+            {
+                Assert.That(DeviceIds(reqTask), Is.EqualTo(kFirstGatewayTask));
+                Assert.That(analyzer.Requests, Is.Empty);
+            });
         }
 
         [Test]
@@ -301,20 +309,23 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AccessTask_AlgorithmGatewaysOfSubManagements_AreKept()
+        public async Task AccessTask_OfLabelWriterWithoutGateway_CreatesFallbackTaskWithoutGateway()
         {
             WfHandler handler = CreateHandlerWithOtherManagementGateway();
-            handler.Managements =
-            [
-                handler.Devices.First(device => device.Id == kFirstGatewayId).Management,
-                new Management { Id = kOtherManagementId, Name = "sub-mgm", SuperManagerId = kManagementId }
-            ];
-            handler.PathAnalyzerOverride = new FixedPathAnalyzer(kFirstAndOtherManagementGateway);
+            Management labelWriter = handler.Devices.First(device => device.Id == kFirstGatewayId).Management;
+            handler.Devices.RemoveAll(device => device.Management.Id == kManagementId);
+            handler.Managements = [labelWriter];
+            FixedPathAnalyzer analyzer = new(kOtherManagementGateway);
+            handler.PathAnalyzerOverride = analyzer;
             WfReqTask reqTask = CreateAccessTask(kNoGateway);
 
             await InvokeAutoCreateImplTasks(handler, reqTask);
 
-            Assert.That(DeviceIds(reqTask), Is.EqualTo(kFirstAndOtherManagementGatewayTasks));
+            Assert.Multiple(() =>
+            {
+                Assert.That(DeviceIds(reqTask), Is.EqualTo(kTaskWithoutGateway));
+                Assert.That(analyzer.Requests, Is.Empty, "the path analysis cannot find a host based firewall");
+            });
         }
 
         [Test]
@@ -328,18 +339,6 @@ namespace FWO.Test
             await InvokeAutoCreateImplTasks(handler, reqTask);
 
             Assert.That(DeviceIds(reqTask), Is.EqualTo(kFirstAndOtherManagementGatewayTasks));
-        }
-
-        [Test]
-        public async Task AccessTask_AlgorithmFindsOnlyGatewaysOfOtherManagements_CreatesFallbackTaskWithoutGateway()
-        {
-            WfHandler handler = CreateHandlerWithOtherManagementGateway();
-            handler.PathAnalyzerOverride = new FixedPathAnalyzer(kOtherManagementGateway);
-            WfReqTask reqTask = CreateAccessTask(kNoGateway);
-
-            await InvokeAutoCreateImplTasks(handler, reqTask);
-
-            Assert.That(DeviceIds(reqTask), Is.EqualTo(kTaskWithoutGateway));
         }
 
         [Test]

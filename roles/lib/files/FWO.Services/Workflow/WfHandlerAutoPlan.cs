@@ -2,6 +2,7 @@ using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
+using FWO.ExternalSystems.FirewallWrite;
 using FWO.Logging;
 using FWO.Services.PathAnalysis;
 
@@ -91,7 +92,8 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Returns the gateways of an access task: entered devices take precedence over the path analysis algorithm.
+        /// Returns the gateways of an access task: entered devices take precedence; an access task of a management that
+        /// writes labels (Guardicore) gets the gateway of its management; otherwise the path analysis algorithm decides.
         /// A null entry stands for one implementation task without gateway.
         /// </summary>
         private async Task<List<int?>> DetermineAccessTargets(WfReqTask reqTask)
@@ -104,75 +106,48 @@ namespace FWO.Services.Workflow
             {
                 return [.. reqTask.GetResolvedDeviceList(Devices).Distinct().Select(deviceId => (int?)deviceId)];
             }
+            List<int>? labelWriterGateway = await GetLabelWriterGateway(reqTask);
+            if (labelWriterGateway != null)
+            {
+                return [.. labelWriterGateway.Select(deviceId => (int?)deviceId)];
+            }
             List<int> algorithmDeviceIds = await GetAlgorithmDeviceIds(reqTask);
-            List<int> ownDeviceIds = await KeepGatewaysOfTaskManagement(reqTask, algorithmDeviceIds);
-            return [.. ownDeviceIds.Select(deviceId => (int?)deviceId)];
+            return [.. algorithmDeviceIds.Select(deviceId => (int?)deviceId)];
         }
 
         /// <summary>
-        /// Keeps the gateways found by the path analysis that belong to the Guardicore management of the access task or
-        /// to one of its sub-managements. The path analysis does not know the management, so the rule requested for a
-        /// Guardicore management would otherwise be written to e.g. a Check Point gateway a second time. Tasks of other
-        /// vendors keep all gateways of the path analysis, as do tasks without management. Gateways whose management is
-        /// unknown are kept. If the management hierarchy cannot be loaded, all gateways are kept.
+        /// Returns the gateway an access task of a management that writes labels (Guardicore) is implemented on. Such a
+        /// management enforces its policy on the hosts and has no gateway in a network path, so the path analysis cannot
+        /// find it: the rule is written once, on the gateway of the management (the first one, if it has several).
         /// </summary>
-        /// <param name="reqTask">Access task whose management restricts the gateways.</param>
-        /// <param name="deviceIds">Gateways found by the path analysis.</param>
-        /// <returns>The gateways of the management of the task and its sub-managements.</returns>
-        private async Task<List<int>> KeepGatewaysOfTaskManagement(WfReqTask reqTask, List<int> deviceIds)
+        /// <returns>
+        /// Null if the task has no management or its management does not write labels; an empty list if the management
+        /// has no gateway, so the fallback task without gateway applies.
+        /// </returns>
+        private async Task<List<int>?> GetLabelWriterGateway(WfReqTask reqTask)
         {
-            if (reqTask.ManagementId is not int taskManagementId || taskManagementId <= 0 || deviceIds.Count == 0)
+            if (reqTask.ManagementId is not int managementId || managementId <= 0)
             {
-                return deviceIds;
+                return null;
             }
             await EnsureDevicesLoaded();
-            if (deviceIds.TrueForAll(deviceId => IsGatewayOfManagement(deviceId, taskManagementId)))
+            List<Device> gateways = [.. Devices.Where(device => device.Management.Id == managementId).OrderBy(device => device.Id)];
+            DeviceType? deviceType = gateways.FirstOrDefault()?.Management.DeviceType;
+            if (deviceType == null)
             {
-                return deviceIds;
+                await EnsureManagementHierarchyLoaded();
+                deviceType = Managements.Find(management => management.Id == managementId)?.DeviceType;
             }
-            await EnsureManagementHierarchyLoaded();
-            if (Managements.Count == 0)
+            if (deviceType == null || !FirewallVendors.WritesLabels(deviceType.Id))
             {
-                Log.WriteWarning(kAutoPlanLogTitle, $"Request task {reqTask.Id}: without the management hierarchy the gateways of other " +
-                    "managements found by the path analysis are kept.");
-                return deviceIds;
+                return null;
             }
-            if (!IsGuardicoreManagement(taskManagementId))
-            {
-                return deviceIds;
-            }
-            List<int> ownDeviceIds = [.. deviceIds.Where(deviceId => IsGatewayOfManagement(deviceId, taskManagementId))];
-            Log.WriteDebug(kAutoPlanLogTitle, $"Request task {reqTask.Id}: {deviceIds.Count - ownDeviceIds.Count} gateway(s) found by the " +
-                $"path analysis belong to other managements than {taskManagementId} and its sub-managements and are left out.");
-            return ownDeviceIds;
+            return gateways.Count > 0 ? [gateways[0].Id] : [];
         }
 
         /// <summary>
-        /// Returns whether a management is a Guardicore management, by the management hierarchy or else by a loaded gateway.
-        /// </summary>
-        private bool IsGuardicoreManagement(int managementId)
-        {
-            DeviceType? deviceType = Managements.Find(management => management.Id == managementId)?.DeviceType
-                ?? Devices.Find(device => device.Management.Id == managementId)?.Management.DeviceType;
-            return deviceType?.Id == DeviceTypeIds.kGuardicoreManagement;
-        }
-
-        /// <summary>
-        /// Returns whether a gateway belongs to a management directly or through a sub-management of it. A gateway
-        /// whose management is unknown counts as belonging to it.
-        /// </summary>
-        private bool IsGatewayOfManagement(int deviceId, int managementId)
-        {
-            if (GetManagementIdOfDevice(deviceId) is not int gatewayManagementId || gatewayManagementId == managementId)
-            {
-                return true;
-            }
-            return Managements.Find(management => management.Id == gatewayManagementId)?.SuperManagerId == managementId;
-        }
-
-        /// <summary>
-        /// Loads the management hierarchy (with the super-manager of each management) unless it is already loaded,
-        /// e.g. by the UI initialization; the middleware server does not load it at initialization.
+        /// Loads the managements unless they are already loaded, e.g. by the UI initialization; the middleware server does
+        /// not load them at initialization.
         /// </summary>
         private async Task EnsureManagementHierarchyLoaded()
         {
@@ -186,7 +161,7 @@ namespace FWO.Services.Workflow
             }
             catch (Exception exception)
             {
-                Log.WriteError(kAutoPlanLogTitle, "Could not load the management hierarchy for the gateways of the path analysis.", exception);
+                Log.WriteError(kAutoPlanLogTitle, "Could not load the managements to find the device type of an access task.", exception);
             }
         }
 

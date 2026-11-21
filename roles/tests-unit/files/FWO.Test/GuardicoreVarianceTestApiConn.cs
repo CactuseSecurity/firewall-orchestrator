@@ -52,6 +52,12 @@ namespace FWO.Test
 
         public InMemoryDeviceSpecificSettingsApiConnection Settings { get; } = new();
 
+        /// <summary>Imported rules of the management; none unless a test sets them.</summary>
+        public List<Rule> Rules { get; set; } = [];
+
+        /// <summary>Imported labels (groups "key: value") replacing the standard ones, if set.</summary>
+        public List<NetworkObject>? ImportedLabels { get; set; }
+
         /// <summary>Device type of the management; Guardicore unless a test needs another one.</summary>
         public int ManagementDeviceTypeId { get; set; } = FirewallVendors.kGuardicoreManagement;
 
@@ -107,7 +113,7 @@ namespace FWO.Test
                 Type type when type == typeof(List<ModellingAppRole>) => CurrentGroups(variables).Select(idString => new ModellingAppRole { IdString = idString }).ToList(),
                 Type type when type == typeof(List<WfReqTask>) && query == RequestQueries.getRequestedGroupsOfOwner =>
                     RequestedGroups.Select(RequestedGroupTask).ToList(),
-                Type type when type == typeof(List<Rule>) => new List<Rule>(),
+                Type type when type == typeof(List<Rule>) => Rules.ConvertAll(rule => new Rule(rule)),
                 Type type when type == typeof(List<ModellingConnection>) => new List<ModellingConnection>(),
                 Type type when type == typeof(List<ModellingNetworkArea>) => new List<ModellingNetworkArea>(),
                 Type type when type == typeof(List<DeviceReport>) => new List<DeviceReport>(),
@@ -151,10 +157,10 @@ namespace FWO.Test
             return new WfReqTask { AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(addInfo) };
         }
 
-        private static List<NetworkObject> ObjectsOfTypes(object? variables)
+        private List<NetworkObject> ObjectsOfTypes(object? variables)
         {
             int[]? objectTypeIds = variables?.GetType().GetProperty("objTypeIds")?.GetValue(variables) as int[];
-            return objectTypeIds?.FirstOrDefault() == 2 ? Labels : Hosts;
+            return objectTypeIds?.FirstOrDefault() == 2 ? ImportedLabels ?? Labels : Hosts;
         }
     }
 }

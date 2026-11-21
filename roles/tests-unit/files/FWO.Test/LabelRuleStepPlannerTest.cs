@@ -95,6 +95,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public void LabelAndGroups_BecomeOneAndGroupEach()
+        {
+            WfImplTask task = AccessTask(Service(kTcp, 443));
+            task.ImplElements.Add(Label("OS: Linux & Stage: Prod", ElemFieldType.source));
+
+            JsonNode sources = Json(Plan(task)[0], FirewallWritePlaceholders.RuleSources);
+
+            Assert.That(sources.ToJsonString(),
+                Is.EqualTo("""{"labels":{"or_labels":[{"and_labels":["AppRole: AR504711-001"]},{"and_labels":["OS: Linux","Stage: Prod"]}]}}"""));
+        }
+
+        [Test]
         public void ServiceWithoutPort_AllowsAllPortsOfItsProtocol()
         {
             FirewallWriteStep rule = Plan(AccessTask(Service(kTcp, 443), Service(kTcp, null)))[0];

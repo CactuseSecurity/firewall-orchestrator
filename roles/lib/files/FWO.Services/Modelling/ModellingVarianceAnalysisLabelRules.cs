@@ -30,6 +30,7 @@ namespace FWO.Services.Modelling
 
             List<NetworkObject> modelledLabels = [.. ModellingAppRoleWrapper.Resolve(appRoles).Select(appRole => LabelObject(ProdGroupName(appRole, mgt)))];
             modelledLabels.AddRange(ModellingNwGroupWrapper.Resolve(otherGroups).Select(group => LabelObject(group.Name)));
+            modelledLabels.AddRange(ConnectionLabelGroupNames(conn, source).Select(LabelObject));
             List<NetworkObject> modelledAddresses = [.. ModellingAppServerWrapper.Resolve(appServers).Select(ModellingAppServer.ToNetworkObject)];
             if (areasAsLabels)
             {
@@ -115,6 +116,42 @@ namespace FWO.Services.Modelling
                 }));
             }
         }
+
+        /// <summary>
+        /// The AND-groups of the labels of a connection side (e.g. "OS: Linux &amp; Stage: Prod"), as the import of a rule
+        /// names its group of ANDed labels; none while label-based modelling is off.
+        /// </summary>
+        private List<string> ConnectionLabelGroupNames(ModellingConnection conn, bool source) =>
+            userConfig.LabelBasedModelling ? LabelAndGroups.GroupNames(source ? conn.SourceLabels : conn.DestinationLabels) : [];
+
+        /// <summary>Requests the AND-groups of the labels of a connection for a management that writes labels.</summary>
+        private void AnalyseConnectionLabelsForRequest(ModellingConnection conn, Management mgt)
+        {
+            if (!WritesLabels(mgt))
+            {
+                return;
+            }
+            AddLabelGroupElements(ConnectionLabelGroupNames(conn, true), nameof(ElemFieldType.source));
+            AddLabelGroupElements(ConnectionLabelGroupNames(conn, false), nameof(ElemFieldType.destination));
+        }
+
+        private void AddLabelGroupElements(List<string> groupNames, string field)
+        {
+            ReqElements.AddRange(groupNames.Select(groupName => new WfReqElement
+            {
+                RequestAction = nameof(RequestAction.create),
+                Field = field,
+                GroupName = groupName
+            }));
+        }
+
+        /// <summary>
+        /// Whether a connection cannot be written to a management that writes no labels, as one of its sides consists of
+        /// labels only. Mixed sides are requested with their objects only.
+        /// </summary>
+        private bool HasLabelOnlySideForObjectWriter(Management mgt, ModellingConnection conn) =>
+            !WritesLabels(mgt) && userConfig.LabelBasedModelling
+            && ((!conn.SourceFilled() && conn.SourceLabels.Count > 0) || (!conn.DestinationFilled() && conn.DestinationLabels.Count > 0));
 
         /// <summary>Whether an imported rule object stands for a label: a group named "key: value".</summary>
         private static bool IsLabelObject(NetworkObject networkObject) =>

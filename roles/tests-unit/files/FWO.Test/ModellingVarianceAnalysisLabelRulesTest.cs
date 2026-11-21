@@ -1,6 +1,7 @@
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Labelling;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.ExternalSystems.FirewallWrite;
@@ -83,12 +84,18 @@ namespace FWO.Test
             Services = [new() { Content = ProdHttps }]
         };
 
+        private static ConnectionLabel ConnLabel(int andGroup, string key, string value) =>
+            new() { AndGroup = andGroup, Label = new() { Value = value, Key = new() { Name = key } } };
+
+        /// <summary>The source (Stage: Prod AND OS: Linux) OR (Stage: Test).</summary>
+        private static readonly List<ConnectionLabel> kSourceLabels = [ConnLabel(0, "Stage", "Prod"), ConnLabel(0, "OS", "Linux"), ConnLabel(1, "Stage", "Test")];
+
         private static async Task<ModellingVarianceResult> Analyse(ModellingConnection connection, Rule rule, bool areasAsLabels = false,
-            int deviceTypeId = FirewallVendors.kGuardicoreManagement)
+            int deviceTypeId = FirewallVendors.kGuardicoreManagement, bool labelBasedModelling = true)
         {
             ModellingVarianceAnalysisTestApiConn api = new() { ManagementDeviceTypeId = deviceTypeId, Rules = [rule] };
             api.Settings.SetValue(1, DeviceSpecificSettingKeys.ModellingImplementNetworkAreaObjects, areasAsLabels);
-            SimulatedUserConfig userConfig = new() { RuleRecognitionOption = kRecognitionOption, ModRolloutNatHeuristic = false };
+            SimulatedUserConfig userConfig = new() { RuleRecognitionOption = kRecognitionOption, ModRolloutNatHeuristic = false, LabelBasedModelling = labelBasedModelling };
             ModellingVarianceAnalysis analysis = new(api, new ExtStateHandler(ExtStateApiConnection), userConfig, Application, DefaultInit.DoNothing);
             return await analysis.AnalyseRulesVsModelledConnections([connection], new());
         }
@@ -205,6 +212,34 @@ namespace FWO.Test
             List<WfReqTask> tasks = await analysis.AnalyseModelledConnectionsForRequest([Connection(c => c.SourceAppServers = [new() { Content = Host }])]);
 
             Assert.That(tasks.Where(task => task.TaskType == nameof(WfTaskType.access)).Select(task => task.ManagementId), Is.EqualTo(new List<int?> { 2 }));
+        }
+
+        /// <summary>The AND-groups of the labels of a connection side are compared with the label groups of the rule, in any order.</summary>
+        [Test]
+        public async Task LabelGroups_AreComparedAsSetsOfAndGroups()
+        {
+            ModellingVarianceResult same = await Analyse(Connection(c => c.SourceLabels = kSourceLabels),
+                ProdRule(Label(40, "Stage: Test"), Label(41, "OS: Linux & Stage: Prod")));
+            ModellingVarianceResult otherGroup = await Analyse(Connection(c => c.SourceLabels = kSourceLabels),
+                ProdRule(Label(40, "Stage: Test"), Label(42, "Stage: Prod")));
+
+            Rule differing = DifferingRule(otherGroup);
+            Assert.Multiple(() =>
+            {
+                Assert.That(same.RuleDifferences, Is.Empty);
+                Assert.That(same.OkRules, Has.Count.EqualTo(1));
+                Assert.That(differing.DisregardedFroms.Single().Object.Name, Is.EqualTo("OS: Linux & Stage: Prod"));
+                Assert.That(differing.Froms.Single(location => location.Object.Id == 42).Object.IsSurplus, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task LabelGroups_AreIgnoredWhileLabelBasedModellingIsOff()
+        {
+            ModellingVarianceResult result = await Analyse(Connection(c => { c.SourceLabels = kSourceLabels; c.SourceAppServers = [new() { Content = Host }]; }),
+                ProdRule(Host32(11, "1.2.3.4/32")), labelBasedModelling: false);
+
+            Assert.That(result.RuleDifferences, Is.Empty);
         }
 
         [Test]

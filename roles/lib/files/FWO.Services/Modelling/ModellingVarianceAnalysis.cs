@@ -265,9 +265,10 @@ namespace FWO.Services.Modelling
                     }
                     AnalyseAppRolesForRequest(conn, mgt);
                     AnalyseAppServersForRequest(conn);
+                    AnalyseConnectionLabelsForRequest(conn, mgt);
                     AnalyseServiceGroupsForRequest(conn, mgt);
                     AnalyseServicesForRequest(conn);
-                    if (!conn.IsInterface && ReqElements.Count > 0) // NOSONAR: populated via side effects in Analyse*ForRequest methods
+                    if (!conn.IsInterface && ReqElements.Count > 0 && !HasLabelOnlySideForObjectWriter(mgt, conn)) // NOSONAR: populated via side effects in Analyse*ForRequest methods
                     {
                         AnalyseConnectionForRequest(mgt, conn);
                     }

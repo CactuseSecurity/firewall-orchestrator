@@ -155,6 +155,13 @@
   network areas implemented as labels are requested by their label name, other network areas by their networks;
   a connection is requested for such a management whenever it has no rule there, even if a gateway already implements
   it; changed and deleted connections get one task per connection, which writes all their rules
+- variance analysis: label-based connections (#5555). While label-based modelling is on, the AND-groups of the labels of a
+  connection side are compared with the label groups of the rules of managements that write labels, by name as the
+  Guardicore import names them (labels sorted and joined by " & ", e.g. "OS: Linux & Stage: Prod"; one label is named
+  like the label), as sets of groups in any order and without resolving them into addresses; app roles, app zones and
+  network areas stay in the objects part. Access tasks for such managements request the label groups, which the
+  Guardicore writer writes as AND-groups of label ids. Managements that write no labels get the objects of a mixed side
+  only, and a connection with a side of labels only is not requested for them
 - api: modeller, recertifier, reporter and reporter-viewall may read the device specific settings nodes and the
   values of modellingCreateAppZones, modellingImplementNetworkAreaObjects, provisioningExcludedObjectTypes,
   resolveServiceGroups and fwWriteDeleteObjects, which the variance analysis needs; modeller, recertifier and reporter only the global and device type nodes and the

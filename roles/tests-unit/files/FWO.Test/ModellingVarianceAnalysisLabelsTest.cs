@@ -77,6 +77,35 @@ namespace FWO.Test
         private static ModellingVarianceAnalysis Analysis(GuardicoreVarianceTestApiConn api) =>
             new(api, new ExtStateHandler(ExtStateApiConnection), UserConfig, Application, DefaultInit.DoNothing);
 
+        private static ModellingVarianceAnalysis LabelModellingAnalysis(GuardicoreVarianceTestApiConn api) =>
+            new(api, new ExtStateHandler(ExtStateApiConnection), new SimulatedUserConfig
+            {
+                ModNamingConvention = UserConfig.ModNamingConvention,
+                CreateAppZones = true,
+                RuleRecognitionOption = kRecognitionOption,
+                LabelBasedModelling = true
+            }, Application, DefaultInit.DoNothing);
+
+        /// <summary>A connection whose source is (Stage: Prod AND OS: Linux) only.</summary>
+        private static List<ModellingConnection> LabelOnlySourceConnections() =>
+        [
+            new()
+            {
+                Id = 3,
+                AppId = Application.Id,
+                Name = "Conn3",
+                SourceLabels =
+                [
+                    new() { AndGroup = 0, Label = new() { Value = "Prod", Key = new() { Name = "Stage" } } },
+                    new() { AndGroup = 0, Label = new() { Value = "Linux", Key = new() { Name = "OS" } } }
+                ],
+                DestinationAppRoles = [new() { Content = UnchangedAppRole }],
+                Services = [new() { Content = new() { Id = 1, Name = "Service1", Port = 443, ProtoId = 6 } }]
+            }
+        ];
+
+        private static readonly List<string?> kLabelGroupSource = ["OS: Linux & Stage: Prod"];
+
         private static GuardicoreVarianceTestApiConn Api(bool implementAreas = true, bool deleteObjects = true)
         {
             GuardicoreVarianceTestApiConn api = new();
@@ -297,6 +326,30 @@ namespace FWO.Test
                 Assert.That(access.Elements.Where(element => element.Field == nameof(ElemFieldType.destination)).Select(element => element.GroupName),
                     Does.Contain("AppRole: AR504711-002"));
             });
+        }
+
+        /// <summary>The label AND-groups of a connection are requested for a management that writes labels.</summary>
+        [Test]
+        public async Task Request_LabelGroupsOfAConnection_AreRequestedForLabelWriters()
+        {
+            List<WfReqTask> tasks = await LabelModellingAnalysis(Api()).AnalyseModelledConnectionsForRequest(LabelOnlySourceConnections());
+
+            WfReqTask access = tasks.Single(task => task.TaskType == nameof(WfTaskType.access));
+            Assert.That(access.Elements.Where(element => element.Field == nameof(ElemFieldType.source)).Select(element => element.GroupName),
+                Is.EqualTo(kLabelGroupSource));
+        }
+
+        /// <summary>A management that writes no labels cannot implement a side of labels only: the connection is not requested there.</summary>
+        [Test]
+        public async Task Request_LabelOnlySide_IsNotRequestedForOtherManagements()
+        {
+            GuardicoreVarianceTestApiConn api = Api();
+            api.ManagementDeviceTypeId = kCheckPointManagementTypeId;
+            api.ManagementExtMgtData = kExternalManagementData;
+
+            List<WfReqTask> tasks = await LabelModellingAnalysis(api).AnalyseModelledConnectionsForRequest(LabelOnlySourceConnections());
+
+            Assert.That(tasks.Exists(task => task.TaskType == nameof(WfTaskType.access)), Is.False);
         }
 
         /// <summary>Network areas that are not written as labels are requested by the addresses of their networks.</summary>

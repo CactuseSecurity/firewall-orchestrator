@@ -94,12 +94,13 @@ namespace FWO.ExternalSystems.FirewallWrite
         }
 
         /// <summary>
-        /// A rule side: the labels named "key: value" as OR of single-label AND groups, and the addresses as CIDR subnets.
+        /// A rule side: the label groups as OR of AND groups (a group "OS: Linux &amp; Stage: Prod" ANDs its labels, see
+        /// <see cref="LabelAndGroups"/>), and the addresses as CIDR subnets.
         /// </summary>
         private static string SideJson(List<WfImplElement> elements, string field, WfImplTask implTask)
         {
             List<WfImplElement> sideElements = [.. elements.Where(element => element.Field == field)];
-            List<string> labels = [];
+            List<string> labelGroups = [];
             List<string> subnets = [];
             foreach (WfImplElement element in sideElements)
             {
@@ -109,7 +110,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 }
                 else if (element.GroupName?.Contains(DynamicIpLabel.kKeyValueSeparator, StringComparison.Ordinal) == true)
                 {
-                    labels.Add(element.GroupName.Trim());
+                    labelGroups.Add(element.GroupName.Trim());
                 }
                 else
                 {
@@ -117,15 +118,18 @@ namespace FWO.ExternalSystems.FirewallWrite
                         $"'{element.GroupName ?? element.Name}' is neither a label (\"key{DynamicIpLabel.kKeyValueSeparator}value\") nor an address.");
                 }
             }
-            if (labels.Count == 0 && subnets.Count == 0)
+            if (labelGroups.Count == 0 && subnets.Count == 0)
             {
                 throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
                     $"Implementation task {implTask.Id} has no {field}; a rule side is not widened to any.");
             }
             JsonObject side = [];
-            if (labels.Count > 0)
+            if (labelGroups.Count > 0)
             {
-                JsonArray orLabels = [.. labels.Distinct(StringComparer.Ordinal).Select(label => (JsonNode)new JsonObject { ["and_labels"] = new JsonArray(label) })];
+                JsonArray orLabels = [.. labelGroups.Distinct(StringComparer.Ordinal).Select(group => (JsonNode)new JsonObject
+                {
+                    ["and_labels"] = new JsonArray([.. LabelAndGroups.LabelNames(group).Select(label => (JsonNode)JsonValue.Create(label))])
+                })];
                 side["labels"] = new JsonObject { ["or_labels"] = orLabels };
             }
             if (subnets.Count > 0)

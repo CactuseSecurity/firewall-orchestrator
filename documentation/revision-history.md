@@ -65,8 +65,9 @@
     one label change event per import, so that rule reports show them right away; rules of managements without such
     an import get the import control id of the run. The first run of the middleware process, the one after a failed
     sync and the first one after the App key changed compare all rules, which also fills the App labels of the existing
-    mappings after the upgrade. Only App labels are written to labelling.rule_label, so labels of a former App key are
-    closed, without App key all of them. Owners without app id are skipped. A changed app id saved in the owner
+    mappings after the upgrade. Every row of labelling.rule_label names its writer (label_source, app_sync for these
+    App labels, import for the importer, which the API holds to its own rows); the sync closes only its own rows, so
+    labels of a former App key are closed, without App key all of them, while labels of other writers are kept. Owners without app id are skipped. A changed app id saved in the owner
     settings is recorded as owner change (owner import with changelog entry), so the next incremental mapping run
     gives the rules of the owner the new App label
   - app servers: the app data import gives all active app servers of an imported owner the App label of the owner

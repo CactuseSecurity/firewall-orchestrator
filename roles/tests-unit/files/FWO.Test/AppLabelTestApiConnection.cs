@@ -18,7 +18,11 @@ namespace FWO.Test
 
         public Dictionary<string, long> LabelIdsByAppId { get; } = [];
         public List<RuleOwnerApp> ActiveRuleOwnerApps { get; } = [];
+        /// <summary>Active labels of rules written by the App label sync (label source app_sync).</summary>
         public List<RuleLabelRow> ActiveRuleAppLabels { get; } = [];
+        /// <summary>Active labels of rules written by other writers, with their label source.</summary>
+        public List<(RuleLabelRow row, string source)> OtherWritersRuleLabels { get; } = [];
+        public List<string> AddedRuleLabelSources { get; } = [];
         public List<OwnerAppServerAppLabels> Owners { get; } = [];
         public List<FwoOwner> OwnersWithNetworks { get; } = [];
         public List<string> ClosedKeys { get; } = [];
@@ -77,12 +81,12 @@ namespace FWO.Test
             }
             if (query == LabellingQueries.getAllActiveRuleAppLabels)
             {
-                return ActiveRuleAppLabels;
+                return RuleLabelsOf((string)Value(variables, "labelSource")!);
             }
             if (query == LabellingQueries.getActiveRuleAppLabels)
             {
                 List<long> ruleIds = [.. (IEnumerable<long>)Value(variables, "ruleIds")!];
-                return ActiveRuleAppLabels.Where(label => ruleIds.Contains(label.RuleId)).ToList();
+                return RuleLabelsOf((string)Value(variables, "labelSource")!).Where(label => ruleIds.Contains(label.RuleId)).ToList();
             }
             if (query == LabellingQueries.getOwnerAppServerAppLabels)
             {
@@ -93,6 +97,13 @@ namespace FWO.Test
                 return OwnersWithNetworks;
             }
             return null;
+        }
+
+        /// <summary>The active labels of rules of one writer, as the API filters them by label source.</summary>
+        private List<RuleLabelRow> RuleLabelsOf(string source)
+        {
+            List<RuleLabelRow> ownLabels = source == RuleLabelSource.kAppSync ? ActiveRuleAppLabels : [];
+            return [.. ownLabels, .. OtherWritersRuleLabels.Where(label => label.source == source).Select(label => label.row)];
         }
 
         private object Write(string query, object? variables)
@@ -135,18 +146,24 @@ namespace FWO.Test
                 foreach (object label in (IEnumerable)Value(variables, "labels")!)
                 {
                     AddedRuleLabels.Add(((long)Value(label, "rule_id")!, (long)Value(label, "label_id")!, (long)Value(label, "created_event_id")!));
+                    AddedRuleLabelSources.Add((string)Value(label, "label_source")!);
                     ActiveRuleAppLabels.Add(new RuleLabelRow { RuleId = (long)Value(label, "rule_id")!, LabelId = (long)Value(label, "label_id")! });
                 }
             }
             else if (query == LabellingQueries.removeRuleLabelAssignments)
             {
                 long eventId = (long)Value(variables, "removedEventId")!;
+                string source = (string)Value(variables, "labelSource")!;
                 foreach (object assignment in (IEnumerable)Value(variables, "assignments")!)
                 {
                     long ruleId = (long)Value(Value(assignment, "rule_id"), "_eq")!;
                     long labelId = (long)Value(Value(assignment, "label_id"), "_eq")!;
                     ClosedRuleLabels.Add((ruleId, labelId, eventId));
-                    ActiveRuleAppLabels.RemoveAll(label => label.RuleId == ruleId && label.LabelId == labelId);
+                    if (source == RuleLabelSource.kAppSync)
+                    {
+                        ActiveRuleAppLabels.RemoveAll(label => label.RuleId == ruleId && label.LabelId == labelId);
+                    }
+                    OtherWritersRuleLabels.RemoveAll(label => label.source == source && label.row.RuleId == ruleId && label.row.LabelId == labelId);
                 }
             }
             else if (query == LabellingQueries.addOwnerNetworkLabels)

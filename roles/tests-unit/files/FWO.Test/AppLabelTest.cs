@@ -32,6 +32,9 @@ namespace FWO.Test
         private static readonly List<string> kOnlyRuleLabelRead = [LabellingQueries.getAllActiveRuleAppLabels];
         private const long kFormerKeyLabelId = 55;
         private static readonly List<(long, long)> kFormerKeyLabelOnRuleOne = [(1, kFormerKeyLabelId)];
+        private const long kOtherWriterLabelId = 77;
+        private const string kImportSource = "import";
+        private static readonly List<(long, long)> kAppOneOnRuleOne = [(1, 10)];
         private static readonly List<string> kClosedFormerKeys = ["App", "Application"];
         private static readonly List<string> kNewKeyOnly = ["Application"];
         private const int kOwnImportManagement = 3;
@@ -254,7 +257,7 @@ namespace FWO.Test
 
         /// <summary>
         /// A changed App key makes the next sync compare all rules again, which closes the App labels of the former key:
-        /// only App labels are written to the labels of rules as a whole.
+        /// the sync reads all its own labels of rules, of any key.
         /// </summary>
         [Test]
         public async Task ChangedAppKey_SyncsAllRulesAgainAndClosesTheLabelsOfTheFormerKey()
@@ -274,6 +277,35 @@ namespace FWO.Test
                 Assert.That(api.ClosedRuleLabels.Select(closed => (closed.ruleId, closed.labelId)), Does.Contain((1L, kFormerKeyLabelId)));
                 Assert.That(LabellingQueries.getAllActiveRuleAppLabels, Does.Not.Contain("key_name"));
                 Assert.That(LabellingQueries.getActiveRuleAppLabels, Does.Not.Contain("key_name"));
+            });
+        }
+
+        /// <summary>
+        /// The sync reads, writes and closes only its own labels of rules: labels of other writers stay active, also one
+        /// with the App label the sync adds, while its own label of a former App key is closed.
+        /// </summary>
+        [Test]
+        public async Task RuleLabelsOfOtherWriters_AreKeptBySync()
+        {
+            AppLabelTestApiConnection api = new();
+            api.LabelIdsByAppId["APP-1"] = 10;
+            api.ActiveRuleOwnerApps.Add(Mapping(1, "APP-1"));
+            api.ActiveRuleAppLabels.Add(new RuleLabelRow { RuleId = 1, LabelId = kFormerKeyLabelId });
+            api.OtherWritersRuleLabels.Add((new RuleLabelRow { RuleId = 1, LabelId = 10 }, kImportSource));
+            api.OtherWritersRuleLabels.Add((new RuleLabelRow { RuleId = 2, LabelId = kOtherWriterLabelId }, kImportSource));
+
+            await new RuleAppLabelSync(api, new GlobalConfig { AppLabelKey = "App" }).SyncAll(kImportControlId);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(api.ClosedRuleLabels.Select(closed => (closed.ruleId, closed.labelId)), Is.EqualTo(kFormerKeyLabelOnRuleOne));
+                Assert.That(api.AddedRuleLabels.Select(added => (added.ruleId, added.labelId)), Is.EqualTo(kAppOneOnRuleOne));
+                Assert.That(api.AddedRuleLabelSources, Is.All.EqualTo(RuleLabelSource.kAppSync));
+                Assert.That(api.OtherWritersRuleLabels, Has.Count.EqualTo(2), "labels of other writers stay active");
+                Assert.That(AppLabelTestApiConnection.Value(api.LastVariables(LabellingQueries.getAllActiveRuleAppLabels), "labelSource"),
+                    Is.EqualTo(RuleLabelSource.kAppSync));
+                Assert.That(AppLabelTestApiConnection.Value(api.LastVariables(LabellingQueries.removeRuleLabelAssignments), "labelSource"),
+                    Is.EqualTo(RuleLabelSource.kAppSync));
             });
         }
 

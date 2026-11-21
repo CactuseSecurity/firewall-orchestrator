@@ -223,7 +223,7 @@ CREATE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_label_id ON labe
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_created_event ON labelling.rule_destination_label (created_event_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_removed_event ON labelling.rule_destination_label (removed_event_id) WHERE removed_event_id IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_label_active_unique ON labelling.rule_label (rule_id, label_id) WHERE removed_event_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_label_active_unique ON labelling.rule_label (rule_id, label_id, label_source) WHERE removed_event_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_label_label_id ON labelling.rule_label (label_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_label_created_event ON labelling.rule_label (created_event_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_label_removed_event ON labelling.rule_label (removed_event_id) WHERE removed_event_id IS NOT NULL;

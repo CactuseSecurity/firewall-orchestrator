@@ -83,12 +83,15 @@ create table if not exists labelling.rule_destination_label
 );
 
 -- to firewall.rule as a whole: App
+-- label_source names the writer of the assignment (app_sync: RuleAppLabelSync, import: the importer); each writer closes
+-- only its own assignments, so the same label may be active once per writer
 create table if not exists labelling.rule_label
 (
     rule_id BIGINT NOT NULL,
     label_id BIGINT NOT NULL,
     created_event_id BIGINT NOT NULL,
     removed_event_id BIGINT,
+    label_source Varchar NOT NULL,
     primary key (rule_id, label_id, created_event_id)
 );
 
@@ -227,7 +230,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_active_un
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_label_id ON labelling.rule_destination_label (label_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_created_event ON labelling.rule_destination_label (created_event_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_destination_label_removed_event ON labelling.rule_destination_label (removed_event_id) WHERE removed_event_id IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_label_active_unique ON labelling.rule_label (rule_id, label_id) WHERE removed_event_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_labelling_rule_label_active_unique ON labelling.rule_label (rule_id, label_id, label_source) WHERE removed_event_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_label_label_id ON labelling.rule_label (label_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_label_created_event ON labelling.rule_label (created_event_id);
 CREATE INDEX IF NOT EXISTS idx_labelling_rule_label_removed_event ON labelling.rule_label (removed_event_id) WHERE removed_event_id IS NOT NULL;

@@ -70,12 +70,15 @@ create table labelling.rule_destination_label
 );
 
 -- to firewall.rule as a whole: App
+-- label_source names the writer of the assignment (app_sync: RuleAppLabelSync, import: the importer); each writer closes
+-- only its own assignments, so the same label may be active once per writer
 create table labelling.rule_label
 (
     rule_id BIGINT NOT NULL,
     label_id BIGINT NOT NULL,
     created_event_id BIGINT NOT NULL,
     removed_event_id BIGINT,
+    label_source Varchar NOT NULL,
     primary key (rule_id, label_id, created_event_id)
 );
 

@@ -4303,6 +4303,9 @@
                   "role": "importer",
                   "permission": {
                     "check": {},
+                    "set": {
+                      "label_source": "import"
+                    },
                     "columns": [
                       "created_event_id",
                       "label_id",
@@ -4319,6 +4322,7 @@
                     "columns": [
                       "created_event_id",
                       "label_id",
+                      "label_source",
                       "removed_event_id",
                       "rule_id"
                     ]
@@ -4333,6 +4337,7 @@
                     "columns": [
                       "created_event_id",
                       "label_id",
+                      "label_source",
                       "removed_event_id",
                       "rule_id"
                     ],
@@ -4345,6 +4350,7 @@
                     "columns": [
                       "created_event_id",
                       "label_id",
+                      "label_source",
                       "removed_event_id",
                       "rule_id"
                     ],
@@ -4372,6 +4378,7 @@
                     "columns": [
                       "created_event_id",
                       "label_id",
+                      "label_source",
                       "removed_event_id",
                       "rule_id"
                     ],
@@ -4399,6 +4406,7 @@
                     "columns": [
                       "created_event_id",
                       "label_id",
+                      "label_source",
                       "removed_event_id",
                       "rule_id"
                     ],
@@ -4411,6 +4419,7 @@
                     "columns": [
                       "created_event_id",
                       "label_id",
+                      "label_source",
                       "removed_event_id",
                       "rule_id"
                     ],
@@ -4424,6 +4433,7 @@
                     "columns": [
                       "created_event_id",
                       "label_id",
+                      "label_source",
                       "removed_event_id",
                       "rule_id"
                     ],
@@ -4437,6 +4447,7 @@
                     "columns": [
                       "created_event_id",
                       "label_id",
+                      "label_source",
                       "removed_event_id",
                       "rule_id"
                     ],
@@ -4452,7 +4463,11 @@
                     "columns": [
                       "removed_event_id"
                     ],
-                    "filter": {},
+                    "filter": {
+                      "label_source": {
+                        "_eq": "import"
+                      }
+                    },
                     "check": null
                   },
                   "comment": ""

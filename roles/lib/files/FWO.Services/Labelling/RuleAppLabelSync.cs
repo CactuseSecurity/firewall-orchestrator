@@ -17,8 +17,9 @@ namespace FWO.Services.Labelling
     /// label change event per import control the changes are stamped with: the relevant import of the management of the
     /// rule, so that the reports show the change from now on (see <see cref="RuleAppLabelImportStamps"/>). A full sync
     /// compares all rules; it runs after a full reinitialize, on the first run of the process (which fills the App labels
-    /// of existing mappings after the upgrade), after a failed sync and after the App key changed. Only App labels are
-    /// written to labelling.rule_label, so labels of a former App key are closed; without App key all are closed.
+    /// of existing mappings after the upgrade), after a failed sync and after the App key changed. The sync reads and
+    /// closes only the assignments it wrote itself (label source <see cref="RuleLabelSource.kAppSync"/>): labels of a former
+    /// App key are closed, without App key all of its labels, while labels of rules written by others are kept.
     /// A changed app id of an owner reaches the rules through the owner change it is recorded as (see
     /// <see cref="OwnerChangeRecorder"/>). Errors are logged instead of failing the mapping run.
     /// </remarks>
@@ -137,17 +138,18 @@ namespace FWO.Services.Labelling
         }
 
         /// <summary>
-        /// The active labels of the rules as a whole, of any key: only App labels are written there, so the labels of
-        /// another key than the configured one are App labels of a former App key, which are closed.
+        /// The active labels of the rules as a whole written by this sync, of any key: the labels of another key than the
+        /// configured one are App labels of a former App key, which are closed. Labels of other writers are not read.
         /// </summary>
         private async Task<List<RuleLabelRow>> LoadActiveAppLabels(List<long>? ruleIds)
         {
             if (ruleIds == null)
             {
-                return await apiConnection.SendQueryAsync<List<RuleLabelRow>>(LabellingQueries.getAllActiveRuleAppLabels);
+                return await apiConnection.SendQueryAsync<List<RuleLabelRow>>(LabellingQueries.getAllActiveRuleAppLabels,
+                    new { labelSource = RuleLabelSource.kAppSync });
             }
             return await apiConnection.SendQueryAsync<List<RuleLabelRow>>(LabellingQueries.getActiveRuleAppLabels,
-                new { ruleIds }, chunkingOptions: QueryChunks("ruleIds"));
+                new { ruleIds, labelSource = RuleLabelSource.kAppSync }, chunkingOptions: QueryChunks("ruleIds"));
         }
 
         private async Task Close(List<(long ruleId, long labelId)> assignments, Dictionary<long, long> stamps)
@@ -161,7 +163,8 @@ namespace FWO.Services.Labelling
                     label_id = new { _eq = assignment.labelId }
                 }).ToList();
                 await apiConnection.SendQueryAsync<ReturnId>(LabellingQueries.removeRuleLabelAssignments,
-                    new { assignments = conditions, removedEventId }, chunkingOptions: MutationChunks("assignments"));
+                    new { assignments = conditions, removedEventId, labelSource = RuleLabelSource.kAppSync },
+                    chunkingOptions: MutationChunks("assignments"));
             }
         }
 
@@ -174,7 +177,8 @@ namespace FWO.Services.Labelling
                 {
                     rule_id = assignment.ruleId,
                     label_id = assignment.labelId,
-                    created_event_id = createdEventId
+                    created_event_id = createdEventId,
+                    label_source = RuleLabelSource.kAppSync
                 }).ToList();
                 await apiConnection.SendQueryAsync<ReturnId>(LabellingQueries.addRuleLabelAssignments, new { labels },
                     chunkingOptions: MutationChunks("labels"));

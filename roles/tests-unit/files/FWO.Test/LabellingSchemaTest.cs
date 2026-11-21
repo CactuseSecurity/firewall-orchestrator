@@ -64,6 +64,9 @@ namespace FWO.Test
         private static readonly List<string> kReadAndInsertKinds = ["select_permissions", "insert_permissions"];
         private const string kAndGroupColumn = "and_group";
         private const string kRuleLabelTable = "rule_label";
+        private const string kLabelSourceColumn = "label_source";
+        private const string kImporterLabelSource = "{\"label_source\":\"import\"}";
+        private const string kImporterLabelSourceFilter = "{\"label_source\":{\"_eq\":\"import\"}}";
         private static readonly List<string> kReportRoles = ["modeller", "recertifier", "reporter", "reporter-viewall"];
         private static readonly List<string> kTenantRestrictedReportRoles = ["recertifier", "reporter"];
         private static readonly List<string> kRuleLabelReadTables = ["rule_label", "label_value", "label_key", "label_change_event"];
@@ -450,6 +453,51 @@ namespace FWO.Test
                     bool expected = kImporterLinkTables.Contains(name);
                     Assert.That(Roles(FindTable(name), "insert_permissions").Contains(kImporterRole), Is.EqualTo(expected), name);
                 }
+            });
+        }
+
+        /// <summary>
+        /// Every label of a rule as a whole names its writer, in creation and upgrade, and the same label may be active once
+        /// per writer, so that one writer closing its assignment keeps that of another.
+        /// </summary>
+        [Test]
+        public void RuleLabels_NameTheirWriterAndAreUniquePerWriter()
+        {
+            List<string> tableScripts = [creationTables, upgrade];
+            List<string> indexScripts = [indices, upgrade];
+            Assert.Multiple(() =>
+            {
+                foreach (string sql in tableScripts)
+                {
+                    Assert.That(sql, Does.Match($@"labelling\.{kRuleLabelTable}\s*\([^;]*{kLabelSourceColumn} Varchar NOT NULL,"));
+                }
+                foreach (string sql in indexScripts)
+                {
+                    Assert.That(sql, Does.Contain(
+                        $"{kRuleLabelTable}_active_unique ON labelling.{kRuleLabelTable} (rule_id, label_id, {kLabelSourceColumn}) WHERE removed_event_id IS NULL"));
+                }
+                foreach (JsonNode permission in Permissions(FindTable(kRuleLabelTable), "select_permissions"))
+                {
+                    Assert.That(Columns(permission), Does.Contain(kLabelSourceColumn), permission["role"]?.GetValue<string>());
+                }
+                Assert.That(Columns(Permission(FindTable(kRuleLabelTable), "insert_permissions", kMiddlewareRole)), Does.Contain(kLabelSourceColumn));
+            });
+        }
+
+        /// <summary>
+        /// The importer can neither write rule labels as another writer nor close the rule labels of another writer, e.g.
+        /// the App labels of the rule owner mapping: its source is preset and its updates are limited to its own rows.
+        /// </summary>
+        [Test]
+        public void Metadata_LetsTheImporterWriteAndCloseOnlyItsOwnRuleLabels()
+        {
+            JsonNode? insert = Permission(FindTable(kRuleLabelTable), "insert_permissions", kImporterRole);
+            JsonNode? update = Permission(FindTable(kRuleLabelTable), "update_permissions", kImporterRole);
+            Assert.Multiple(() =>
+            {
+                Assert.That(insert?["permission"]?["set"]?.ToJsonString(), Is.EqualTo(kImporterLabelSource));
+                Assert.That(Columns(insert), Does.Not.Contain(kLabelSourceColumn));
+                Assert.That(update?["permission"]?["filter"]?.ToJsonString(), Is.EqualTo(kImporterLabelSourceFilter));
             });
         }
 

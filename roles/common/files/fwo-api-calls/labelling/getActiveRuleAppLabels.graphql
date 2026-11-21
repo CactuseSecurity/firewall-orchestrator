@@ -1,9 +1,10 @@
-# the active labels of the rules as a whole: only the App labels are written there (RuleAppLabelSync), so labels of
-# another key are App labels of a former App key
-query getActiveRuleAppLabels($ruleIds: [bigint!]!) {
+# the active labels of the rules as a whole written by one writer (label_source): RuleAppLabelSync reads only its own
+# App labels, so labels of a former App key are among them, labels of other writers are not
+query getActiveRuleAppLabels($ruleIds: [bigint!]!, $labelSource: String!) {
     labelling_rule_label(
         where: {
             removed_event_id: { _is_null: true }
+            label_source: { _eq: $labelSource }
             rule_id: { _in: $ruleIds }
         }
     ) {

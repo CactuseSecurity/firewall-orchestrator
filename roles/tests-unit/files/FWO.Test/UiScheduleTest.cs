@@ -34,7 +34,7 @@ namespace FWO.Test
                 ],
                 []);
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), new List<string> { Roles.Reporter }, apiConnection, out _);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), [Roles.Reporter], apiConnection, out _);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
 
             wrapper.WaitForAssertion(() =>
@@ -67,7 +67,7 @@ namespace FWO.Test
                 ],
                 []);
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), new List<string> { Roles.Reporter }, apiConnection, out SimulatedUserConfig userConfig);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), [Roles.Reporter], apiConnection, out SimulatedUserConfig userConfig);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
             wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<List<ReportTemplate>>(wrapper.FindComponent<Schedule>().Instance, "reportTemplates"), Has.Count.EqualTo(1)));
 
@@ -119,7 +119,7 @@ namespace FWO.Test
                 []);
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), new List<string> { Roles.Reporter }, apiConnection, out SimulatedUserConfig userConfig);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), [Roles.Reporter], apiConnection, out SimulatedUserConfig userConfig);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, (exception, title, message, isError) => messages.Add((exception, title, message, isError)));
             wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<List<ReportTemplate>>(wrapper.FindComponent<Schedule>().Instance, "reportTemplates"), Has.Count.EqualTo(1)));
 
@@ -159,7 +159,7 @@ namespace FWO.Test
                     new FwoOwner { Id = 0, Name = "All" }
                 ]);
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Admin), new List<string> { Roles.Admin }, apiConnection, out _);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Admin), [Roles.Admin], apiConnection, out _);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
             wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<List<ReportSchedule>>(wrapper.FindComponent<Schedule>().Instance, "reportSchedules"), Has.Count.EqualTo(1)));
 
@@ -211,7 +211,7 @@ namespace FWO.Test
                 ],
                 []);
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), new List<string> { Roles.Reporter }, apiConnection, out _);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), [Roles.Reporter], apiConnection, out _);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
             wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<List<ReportSchedule>>(wrapper.FindComponent<Schedule>().Instance, "reportSchedules"), Has.Count.EqualTo(1)));
 
@@ -242,7 +242,7 @@ namespace FWO.Test
                 ],
                 []);
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Auditor), new List<string> { Roles.Auditor }, apiConnection, out SimulatedUserConfig userConfig);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Auditor), [Roles.Auditor], apiConnection, out SimulatedUserConfig userConfig);
             userConfig.ModIconify = false;
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
             wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<List<ReportSchedule>>(wrapper.FindComponent<Schedule>().Instance, "reportSchedules"), Has.Count.EqualTo(1)));
@@ -283,7 +283,7 @@ namespace FWO.Test
                 ],
                 []);
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Auditor), new List<string> { Roles.Auditor }, apiConnection, out SimulatedUserConfig userConfig);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Auditor), [Roles.Auditor], apiConnection, out SimulatedUserConfig userConfig);
             userConfig.ModIconify = false;
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
             Schedule component = wrapper.FindComponent<Schedule>().Instance;

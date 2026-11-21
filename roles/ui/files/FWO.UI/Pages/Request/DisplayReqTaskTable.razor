@@ -13,6 +13,10 @@
     }
     @if (WfHandler.ActTicket.Tasks.Count > 0)
     {
+        @if (ShowCompliance && WfHandler.ActTicket.Tasks.Any(ApprovalTaskDetailsEditorService.IsAccessTask))
+        {
+            <ApprovalComplianceRecheckButton Loading="compliance.IsLoading" Class="m-2" Recheck="RecheckCompliance" />
+        }
         <div class="m-2">
             <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfReqTask" Items="GetDisplayedTasks()" PageSize="0" ColumnReorder="true">
                 <Column TableItem="WfReqTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
@@ -93,6 +97,11 @@
                                 }
                             </div>
                         }
+                        @if (ShowCompliance && ApprovalTaskDetailsEditorService.IsAccessTask(context))
+                        {
+                            <ApprovalComplianceButton Compliance="@compliance.ComplianceOf(context)" Loading="compliance.IsLoading"
+                                                      Class="btn-sm ml-1" ShowReasons="OpenComplianceReasons" />
+                        }
                     </Template>
                 </Column>
                 <Column TableItem="WfReqTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
@@ -152,6 +161,7 @@
    form data and must not recreate the editor when SaveReqTask prepares the task. *@
 <DisplayRequestTask @key="@($"{WfHandler.DisplayReqTaskMode}-{WfHandler.ActReqTask.Id}-{FocusField}")" Phase="Phase" States="States" WfHandler="WfHandler" ResetParent="Reset" StartImplPhase="StartImplPhase" FocusField="FocusField"/>
 <AssignObject @bind-Display="WfHandler.DisplayAssignReqTaskMode" ResetParent="Reset" StatefulObject="WfHandler.ActReqTask" Assign="WfHandler.AssignReqTaskGroup" AssignBack="WfHandler.AssignReqTaskBack" ObjectName="@WfHandler.ActReqTask.Title" RoleList="validRoles"/>
+<ApprovalComplianceReasonsPopup @bind-Compliance="shownCompliance" />
 <DeleteObject @bind-Display="WfHandler.DisplayDeleteReqTaskMode" ResetParent="Reset" Delete="WfHandler.ConfDeleteReqTask" ObjectName="@WfHandler.ActReqTask.Title"/>
 
 
@@ -183,6 +193,38 @@
 
     [Parameter]
     public string? FocusField { get; set; }
+
+    private readonly ApprovalTaskComplianceService compliance = new();
+    private ApprovalTaskCompliance? shownCompliance;
+
+    /// <summary>The compliance status of access tasks is shown in the approval phase, if a policy check is configured.</summary>
+    private bool ShowCompliance => Phase == WorkflowPhases.approval && compliance.IsConfigured;
+
+    /// <summary>Checks the access tasks in the approval phase; repeated whenever the checked task content changes.</summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Phase == WorkflowPhases.approval && WfHandler.InitDone)
+        {
+            await compliance.UpdateAsync(WfHandler);
+        }
+    }
+
+    private void OpenComplianceReasons(ApprovalTaskCompliance taskCompliance)
+    {
+        shownCompliance = taskCompliance;
+    }
+
+    private async Task RecheckCompliance()
+    {
+        try
+        {
+            await compliance.RecheckAsync(WfHandler);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("approval_compliance_recheck"), "", true);
+        }
+    }
 
     static List<string> validRoles = new (){Roles.Planner};
     private TicketFieldVisibilityConfig TicketFieldVisibility => TicketFieldVisibilityConfig.Parse(userConfig.ReqTicketFieldVisibility);

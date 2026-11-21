@@ -95,5 +95,17 @@ namespace FWO.Data.Workflow
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
         public bool ShowComments { get; set; } = true;
+
+        /// <summary>Shows the task title in the approval views; the request dialog always shows it, as it is required.</summary>
+        [JsonProperty("title"), JsonPropertyName("title")]
+        public bool ShowTitle { get; set; } = true;
+
+        /// <summary>Shows the current handler in the approval views.</summary>
+        [JsonProperty("handler"), JsonPropertyName("handler")]
+        public bool ShowHandler { get; set; } = true;
+
+        /// <summary>Shows the assigned group in the approval views.</summary>
+        [JsonProperty("assigned"), JsonPropertyName("assigned")]
+        public bool ShowAssigned { get; set; } = true;
     }
 }

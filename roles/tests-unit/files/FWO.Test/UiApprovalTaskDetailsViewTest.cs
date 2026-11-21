@@ -554,6 +554,50 @@ internal class UiApprovalTaskDetailsViewTest : UiSharedEditorTestBase
     }
 
     [Test]
+    public async Task ApprovalTaskDetailsView_HidesConfiguredTitleHandlerAndAssignedOfAccessTasks()
+    {
+        await using BunitContext context = CreateContext();
+        SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
+        userConfig.ReqTicketFieldVisibility = new TicketFieldVisibilityConfig
+        {
+            AccessTask = new AccessTaskFieldVisibilityConfig { ShowTitle = false, ShowHandler = false, ShowAssigned = false }
+        }.ToConfigValue();
+
+        WfReqTask accessTask = new() { Id = 24, StateId = 1, Title = "Hidden access title", TaskType = WfTaskType.access.ToString() };
+        WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [accessTask] } };
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, handler));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Markup, Does.Not.Contain("Hidden access title"));
+            Assert.That(cut.Markup, Does.Not.Contain("handler:"));
+            Assert.That(cut.Markup, Does.Not.Contain("assigned:"));
+        });
+    }
+
+    [Test]
+    public async Task ApprovalTaskDetailsView_ShowsTitleHandlerAndAssignedByDefault()
+    {
+        await using BunitContext context = CreateContext();
+        WfReqTask task = new() { Id = 26, StateId = 1, Title = "Shown access title", TaskType = WfTaskType.access.ToString() };
+        WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [task] } };
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, handler));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Markup, Does.Contain("Shown access title"));
+            Assert.That(cut.Markup, Does.Contain("handler:"));
+            Assert.That(cut.Markup, Does.Contain("assigned:"));
+        });
+    }
+
+    [Test]
     public async Task ApprovalTaskDetailsView_OpensAllFieldEditors()
     {
         WfReqTask task = new()

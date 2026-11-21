@@ -24,7 +24,6 @@ namespace FWO.Test
         private static readonly SimulatedUserConfig UserConfig = new()
         {
             ModNamingConvention = "{\"networkAreaRequired\":false,\"fixedPartLength\":4,\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\",\"applicationZone\":\"AZ\"}",
-            ModRolloutResolveServiceGroups = true,
             CreateAppZones = true,
             RuleRecognitionOption = kRecognitionOption
         };
@@ -57,6 +56,19 @@ namespace FWO.Test
             Services = [new() { Content = new() { Id = 1, Name = "Service1", Port = 443, ProtoId = 6 } }]
         };
         private static readonly List<ModellingConnection> Connections = [Connection];
+        private static readonly ModellingService Dns = new() { Id = 2, Name = "Dns", Port = 53, PortEnd = 53, ProtoId = 17 };
+        private static readonly List<ModellingConnection> ConnectionsWithServiceGroup =
+        [
+            new()
+            {
+                Id = 2,
+                AppId = Application.Id,
+                Name = "Conn2",
+                SourceAppRoles = [new() { Content = UnchangedAppRole }],
+                DestinationAppRoles = [new() { Content = MissingAppRole }],
+                ServiceGroups = [new() { Content = new ModellingServiceGroup { Id = 7, Name = "DnsGroup", AppId = Application.Id, Services = [new() { Content = Dns }] } }]
+            }
+        ];
         private static readonly List<ModellingConnection> NoConnections = [];
 
         private static ModellingAppRole AppRole(long id, string idString, params ModellingAppServer[] appServers) =>
@@ -229,6 +241,40 @@ namespace FWO.Test
                 Assert.That(differing.IdString, Is.EqualTo("AR504711-003"));
                 Assert.That(differing.SurplusAppServers.Single().Content.Ip, Is.EqualTo("9.9.9.9/32"));
             });
+        }
+
+        /// <summary>
+        /// Guardicore knows no service groups: their services are requested directly even while resolveServiceGroups is
+        /// switched off for the management.
+        /// </summary>
+        [Test]
+        public async Task Request_ResolvesServiceGroupsOnLabelWritersWhateverTheSetting()
+        {
+            GuardicoreVarianceTestApiConn api = Api();
+            api.Settings.SetValue(3, DeviceSpecificSettingKeys.ResolveServiceGroups, false);
+
+            List<WfReqTask> tasks = await Analysis(api).AnalyseModelledConnectionsForRequest(ConnectionsWithServiceGroup);
+
+            List<WfReqElement> services = [.. tasks.SelectMany(task => task.Elements).Where(element => element.Field == nameof(ElemFieldType.service))];
+            Assert.Multiple(() =>
+            {
+                Assert.That(tasks.Exists(task => task.Title.StartsWith("New Servicegroup", StringComparison.Ordinal)), Is.False);
+                Assert.That(services.Exists(element => element.Name == "Dns" && element.Port == 53 && string.IsNullOrEmpty(element.GroupName)), Is.True);
+            });
+        }
+
+        /// <summary>Other managements follow the setting in effect for them: switched off, the service group is requested.</summary>
+        [Test]
+        public async Task Request_RequestsServiceGroupsOnOtherManagementsWhileResolvingIsOff()
+        {
+            GuardicoreVarianceTestApiConn api = Api();
+            api.ManagementDeviceTypeId = kCheckPointManagementTypeId;
+            api.ManagementExtMgtData = kExternalManagementData;
+            api.Settings.SetValue(1, DeviceSpecificSettingKeys.ResolveServiceGroups, false);
+
+            List<WfReqTask> tasks = await Analysis(api).AnalyseModelledConnectionsForRequest(ConnectionsWithServiceGroup);
+
+            Assert.That(Task(tasks, "New Servicegroup: DnsGroup").Elements.Single().Name, Is.EqualTo("Dns"));
         }
 
         [Test]

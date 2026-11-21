@@ -610,9 +610,6 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modRolloutActive"), JsonPropertyName("modRolloutActive")]
         public bool ModRolloutActive { get; set; } = true;
 
-        [JsonProperty("modRolloutResolveServiceGroups"), JsonPropertyName("modRolloutResolveServiceGroups")]
-        public bool ModRolloutResolveServiceGroups { get; set; } = true;
-
         [JsonProperty("modRolloutBundleTasks"), JsonPropertyName("modRolloutBundleTasks")]
         public bool ModRolloutBundleTasks { get; set; } = false;
 

@@ -638,7 +638,7 @@ namespace FWO.Services.Modelling
         {
             foreach (ModellingServiceGroup svcGrp in ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups))
             {
-                if (userConfig.ModRolloutResolveServiceGroups)
+                if (ResolvesServiceGroups(mgt))
                 {
                     AddResolvedServiceGroup(svcGrp);
                     continue;

@@ -141,6 +141,12 @@ public class GlobalDeviceSpecificSettings
 
     public string ModellingConnectionIdTemplate { get; set; } = "FWOC{ID}";
 
+    /// <summary>
+    /// Whether the variance analysis requests the services of a service group directly instead of the group. Managements
+    /// that write labels always get the services, whatever the value.
+    /// </summary>
+    public bool ResolveServiceGroups { get; set; } = true;
+
     public string Templates { get; set; } = "{}";
 
     /// <summary>

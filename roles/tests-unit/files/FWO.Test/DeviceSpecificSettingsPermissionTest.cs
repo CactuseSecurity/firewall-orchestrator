@@ -22,7 +22,7 @@ namespace FWO.Test
         private const string kImporterRole = "importer";
         private const string kImporterSettingsFilter = "{\"config_key\":{\"_in\":[\"importerHostName\",\"sshLegacyKeyExchange\"]}}";
         private const string kModellingSettingsFilter =
-            "{\"config_key\":{\"_in\":[\"fwWriteDeleteObjects\",\"modellingCreateAppZones\",\"modellingImplementNetworkAreaObjects\",\"provisioningExcludedObjectTypes\"]}}";
+            "{\"config_key\":{\"_in\":[\"fwWriteDeleteObjects\",\"modellingCreateAppZones\",\"modellingImplementNetworkAreaObjects\",\"provisioningExcludedObjectTypes\",\"resolveServiceGroups\"]}}";
         private const string kModellerRole = "modeller";
         private const string kRecertifierRole = "recertifier";
         private const string kReporterRole = "reporter";

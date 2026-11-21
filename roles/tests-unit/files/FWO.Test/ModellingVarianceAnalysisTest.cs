@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Modelling;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
@@ -26,7 +27,6 @@ namespace FWO.Test
         static readonly SimulatedUserConfig userConfig = new()
         {
             ModNamingConvention = "{\"networkAreaRequired\":true,\"fixedPartLength\":4,\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\"}",
-            ModRolloutResolveServiceGroups = true,
             CreateAppZones = true,
             RuleRecognitionOption = stdRecogOpt,
             ModSpecUserAreas = "[{\"area_id\":1,\"use_in_src\":true,\"use_in_dst\":false}, {\"area_id\":3,\"use_in_src\":true,\"use_in_dst\":true}]",
@@ -297,8 +297,9 @@ namespace FWO.Test
         public async Task TestAnalyseModelledConnectionsForRequestWithServiceGroups()
         {
             List<ModellingConnection> Connections = [Connection1];
-            userConfig.ModRolloutResolveServiceGroups = false;
-            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingVarianceAnalysisTestApiConn apiConnection = new();
+            apiConnection.Settings.SetValue(1, DeviceSpecificSettingKeys.ResolveServiceGroups, false);
+            ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             List<WfReqTask> TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
 
             ClassicAssert.AreEqual(10, TaskList.Count);
@@ -324,7 +325,6 @@ namespace FWO.Test
             ClassicAssert.AreEqual(4000, TaskList[3].Elements[0].Port);
             ClassicAssert.AreEqual("service", TaskList[3].Elements[0].Field);
             ClassicAssert.AreEqual("create", TaskList[3].Elements[0].RequestAction);
-            userConfig.ModRolloutResolveServiceGroups = true;
         }
 
         [Test]
@@ -520,7 +520,8 @@ namespace FWO.Test
         public async Task TestAnalyseModelledConnectionsForRequest_RequestOnlyOwnObjectsKeepsForeignServiceGroupsInAccessTask()
         {
             userConfig.ModRequestOnlyOwnObjects = true;
-            userConfig.ModRolloutResolveServiceGroups = false;
+            ModellingVarianceAnalysisTestApiConn apiConnection = new();
+            apiConnection.Settings.SetValue(1, DeviceSpecificSettingKeys.ResolveServiceGroups, false);
             try
             {
                 ModellingServiceGroup ownSvcGrp = new() { Id = 10, Name = "OwnSvcGrp", AppId = 1, Services = [new() { Content = Svc1 }] };
@@ -539,7 +540,7 @@ namespace FWO.Test
                     ]
                 };
 
-                ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+                ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
                 List<WfReqTask> taskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest([connection]);
                 WfReqTask? accessTask = taskList.FirstOrDefault(t => t.GetAddInfoValue(AdditionalInfoKeys.ConnId) == "69");
 
@@ -555,7 +556,6 @@ namespace FWO.Test
             }
             finally
             {
-                userConfig.ModRolloutResolveServiceGroups = true;
                 userConfig.ModRequestOnlyOwnObjects = false;
             }
         }
@@ -925,7 +925,6 @@ namespace FWO.Test
             return new()
             {
                 ModNamingConvention = userConfig.ModNamingConvention,
-                ModRolloutResolveServiceGroups = true,
                 CreateAppZones = false,
                 RuleRecognitionOption = recognitionOption,
                 ModSpecUserAreas = userConfig.ModSpecUserAreas,

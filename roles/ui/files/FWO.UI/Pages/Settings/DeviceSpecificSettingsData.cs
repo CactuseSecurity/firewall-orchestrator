@@ -87,6 +87,9 @@ namespace FWO.Ui.Pages.Settings
         /// <summary>Only shown for scopes below a Fortinet device type.</summary>
         public bool FortinetOnly { get; init; } = false;
 
+        /// <summary>Not shown at or below device types that write groups as labels (Guardicore), whose value is fixed.</summary>
+        public bool NotForLabelWriters { get; init; } = false;
+
         /// <summary>Formats the field's value of a resolved settings object for the editor.</summary>
         public required Func<GlobalDeviceSpecificSettings, string> Read { get; init; }
 
@@ -110,6 +113,7 @@ namespace FWO.Ui.Pages.Settings
         /// <summary>Whether the field is offered on the node's current device path.</summary>
         public bool AppliesTo(DeviceSpecificNode node) => AppliesToLevel(node.Level)
             && (!FortinetOnly || node.IsFortinet || node.Level == DeviceSpecificScopeType.Global)
+            && (!NotForLabelWriters || !node.WritesLabels)
             && (!FirewallWriteOnly || node.Level == DeviceSpecificScopeType.Global || node.SupportsFirewallWrite);
 
         /// <summary>The default shipped for the node's device type, or null if there is none.</summary>
@@ -143,6 +147,9 @@ namespace FWO.Ui.Pages.Settings
 
         /// <summary>True for nodes at or below a device type the firewall write library can write to.</summary>
         public bool SupportsFirewallWrite => DeviceTypeId is int deviceTypeId && FirewallVendors.FromDeviceTypeId(deviceTypeId) != FirewallVendor.Unsupported;
+
+        /// <summary>True for nodes at or below a device type that writes groups as labels (Guardicore).</summary>
+        public bool WritesLabels => DeviceTypeId is int deviceTypeId && FirewallVendors.WritesLabels(deviceTypeId);
 
         public string Id => $"{Level}:{Scope.ObjectKey}";
         public DeviceSpecificScopeType Level => Scope.ScopeType;
@@ -223,6 +230,7 @@ namespace FWO.Ui.Pages.Settings
             { "dss_modelling_connection_id_field", "H5199m" },
             { "dss_modelling_connection_id_template", "H5199m" },
             { "dss_provisioning_excluded_object_types", "H5200a" },
+            { "dss_resolve_service_groups", "H5200b" },
             { "dss_fw_write_check_certificates", "H5199n" },
             { "dss_fw_write_install_policy", "H5199o" },
             { "dss_fw_write_delete_objects", "H5199t" },
@@ -375,6 +383,8 @@ namespace FWO.Ui.Pages.Settings
             TextField(DeviceSpecificSettingKeys.ModellingConnectionIdTemplate, "dss_modelling_connection_id_template", s => s.ModellingConnectionIdTemplate,
                 maxLevel: DeviceSpecificScopeType.Management),
             ExcludedObjectTypesField(),
+            BoolField(DeviceSpecificSettingKeys.ResolveServiceGroups, "dss_resolve_service_groups", s => s.ResolveServiceGroups,
+                DeviceSpecificScopeType.Management, notForLabelWriters: true),
             TextField(DeviceSpecificSettingKeys.Templates, "dss_templates", s => s.Templates, DeviceSpecificFieldKind.TemplateText,
                 minLevel: DeviceSpecificScopeType.DeviceType, maxLevel: DeviceSpecificScopeType.DeviceType),
             .. RequestFields(),
@@ -731,7 +741,8 @@ namespace FWO.Ui.Pages.Settings
             string textKey,
             Func<GlobalDeviceSpecificSettings, bool> get,
             DeviceSpecificScopeType maxLevel = DeviceSpecificScopeType.Gateway,
-            DeviceSpecificFieldSection section = DeviceSpecificFieldSection.General) => new()
+            DeviceSpecificFieldSection section = DeviceSpecificFieldSection.General,
+            bool notForLabelWriters = false) => new()
             {
                 Key = key,
                 LabelTextKey = textKey,
@@ -741,6 +752,7 @@ namespace FWO.Ui.Pages.Settings
                 MaxLevel = maxLevel,
                 Section = section,
                 FirewallWriteOnly = section == DeviceSpecificFieldSection.FirewallWrite,
+                NotForLabelWriters = notForLabelWriters,
                 Read = s => get(s).ToString(),
                 SetOverride = (changes, value) => changes.Set(key, bool.Parse(value))
             };

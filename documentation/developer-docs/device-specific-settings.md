@@ -56,6 +56,7 @@ remains effective and is shown as a dormant override that can be cleared there.
 | modellingConnectionIdTemplate | string | FWOC{ID} | Global, device type, manager | Global to manager |
 | templates | string | {} | Device type | Device type |
 | provisioningExcludedObjectTypes | string array | [] | Global, device type, manager | Global to manager |
+| resolveServiceGroups | boolean | true | Global, device type, manager | Global to manager, not for Guardicore |
 
 Booleans are stored as JSON `true`/`false`. `installOn` offers `ANY` and `gatewaysInPath`.
 `ruleType` additionally offers `accessAndNat`, `accessAndIPS`, `accessNatIPS`, and
@@ -95,8 +96,18 @@ never guessed from a naming convention prefix. The task of an excluded group is 
 with all its steps, including the member objects created for it. A group without such a
 type (e.g. a service group from the createTicket API) is never left out. The roles that run the variance analysis (modeller,
 recertifier, reporter, reporter-viewall) may read only this key, the modelling keys
-`modellingCreateAppZones` and `modellingImplementNetworkAreaObjects`, and `fwWriteDeleteObjects`,
+`modellingCreateAppZones` and `modellingImplementNetworkAreaObjects`, `resolveServiceGroups`, and `fwWriteDeleteObjects`,
 which decides whether obsolete labels are requested for deletion.
+
+`resolveServiceGroups` decides whether the variance analysis requests the services of a service
+group directly in the access request of a connection instead of the group (until 10.0.0 the
+global modelling setting `modRolloutResolveServiceGroups`). Managements that write groups as
+labels (Guardicore) know no service groups: they always get the services, so the setting is
+not offered at or below their device type, and a stored value has no effect there. Service
+group tasks that reach such a management in another way (e.g. createTicket API) are left out
+with a note. As all ports of a Guardicore rule apply to all its protocols, a connection with
+services of different protocols becomes one rule per protocol; the variance analysis compares
+the connection with all rules of such a management that carry its ID together.
 
 `modellingConnectionIdField` offers `Name`, `Comment`, and `CustomField`: the field of
 a provisioned object that carries the ID of the modelling connection, formatted by

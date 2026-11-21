@@ -127,9 +127,17 @@
   variance analysis and the modelling notifications), and the task of an excluded group is left out with its member
   objects. The type is not guessed from a prefix of the naming convention, which may be empty or start other names;
   a Guardicore group of unknown type is only written if it is named "key: value"
+- settings: the global modelling setting modRolloutResolveServiceGroups becomes the device specific setting
+  resolveServiceGroups (Global to manager, default on, issue #5787), so service groups can be resolved per device type
+  and management. The upgrade keeps a switched off value as global value and removes the config entry. Managements
+  that write labels (Guardicore) know no service groups: there the variance analysis always requests the services of
+  service groups, the setting is not offered, and service group tasks that reach them in another way (e.g. createTicket
+  API) are left out with a note instead of failing. All ports of a Guardicore rule apply to all its protocols, so a
+  connection with services of different protocols is implemented as one rule per protocol; the variance analysis
+  compares the connection with all its rules on such a management together
 - api: modeller, recertifier, reporter and reporter-viewall may read the device specific settings nodes and the
-  values of modellingCreateAppZones, modellingImplementNetworkAreaObjects, provisioningExcludedObjectTypes and
-  fwWriteDeleteObjects, which the variance analysis needs; modeller, recertifier and reporter only the global and device type nodes and the
+  values of modellingCreateAppZones, modellingImplementNetworkAreaObjects, provisioningExcludedObjectTypes,
+  resolveServiceGroups and fwWriteDeleteObjects, which the variance analysis needs; modeller, recertifier and reporter only the global and device type nodes and the
   management and gateway nodes they may see
 - workflow: the action "Create implementation tasks" leaves out the gateways of other managements found by the path
   analysis for access tasks of a Guardicore management (gateways of its sub-managements are kept); access tasks of

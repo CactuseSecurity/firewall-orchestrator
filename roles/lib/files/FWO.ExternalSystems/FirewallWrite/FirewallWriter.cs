@@ -26,7 +26,8 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// The calls to send, the object deletions left out because deleting objects is switched off, and the steps left
         /// out because their object type is excluded from provisioning.
         /// </summary>
-        private sealed record RenderedTask(List<RenderedFirewallRequest> Requests, List<string> SkippedDeletions, List<string> Excluded);
+        private sealed record RenderedTask(List<RenderedFirewallRequest> Requests, List<string> SkippedDeletions, List<string> Excluded,
+            List<string> ServiceGroups);
 
         private readonly IFirewallWriteDataSource dataSource;
         private readonly IFirewallWriteClientFactory clientFactory;
@@ -68,8 +69,8 @@ namespace FWO.ExternalSystems.FirewallWrite
                 rendered = RenderTask(implTask, context);
                 if (rendered.Requests.Count == 0)
                 {
-                    return ModifyFirewallResult.Succeeded("Nothing to write." + SkippedNote(rendered.SkippedDeletions) + ExcludedNote(rendered.Excluded), [],
-                        rendered.SkippedDeletions);
+                    return ModifyFirewallResult.Succeeded("Nothing to write." + SkippedNote(rendered.SkippedDeletions) + ExcludedNote(rendered.Excluded)
+                        + ServiceGroupNote(rendered.ServiceGroups), [], rendered.SkippedDeletions);
                 }
                 client = clientFactory.Create(context);
             }
@@ -103,9 +104,12 @@ namespace FWO.ExternalSystems.FirewallWrite
                 : [.. planned.Where(step => ObjectDeletions.Contains(step.Operation))];
             List<string> skippedDeletions = [.. skipped.Select(step => $"{step.Operation} '{step.TargetName}'")];
             List<FirewallWriteStep> steps = [.. planned.Except(skipped)];
+            List<string> serviceGroups = FirewallVendorProfile.For(context.Vendor).WritesLabels && LabelStepPlanner.IsServiceGroupTask(implTask, context)
+                ? [$"service group '{ImplTaskStepPlanner.GroupName(implTask)}'"]
+                : [];
             if (steps.Count == 0)
             {
-                return new RenderedTask([], skippedDeletions, excludedSteps);
+                return new RenderedTask([], skippedDeletions, excludedSteps, serviceGroups);
             }
 
             IReadOnlyDictionary<string, FirewallPlaceholderValue> contextValues = ImplTaskStepPlanner.ContextValues(implTask, context, placement);
@@ -115,7 +119,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 AddSessionStep(steps, FirewallWriteOperation.InstallPolicy, context, contextValues);
             }
             List<RenderedFirewallRequest> requests = [.. steps.Select(step => Render(step, context))];
-            return new RenderedTask(requests, skippedDeletions, excludedSteps);
+            return new RenderedTask(requests, skippedDeletions, excludedSteps, serviceGroups);
         }
 
         private static string SkippedNote(List<string> skippedDeletions) => skippedDeletions.Count == 0
@@ -125,6 +129,10 @@ namespace FWO.ExternalSystems.FirewallWrite
         private static string ExcludedNote(List<string> excluded) => excluded.Count == 0
             ? ""
             : $" Not written, because the device specific settings exclude their object type from provisioning: {string.Join(", ", excluded)}.";
+
+        private static string ServiceGroupNote(List<string> serviceGroups) => serviceGroups.Count == 0
+            ? ""
+            : $" Not written, because the firewall knows no service groups; their services are written with the rules: {string.Join(", ", serviceGroups)}.";
 
         private static void AddSessionStep(List<FirewallWriteStep> steps, FirewallWriteOperation operation, FirewallWriteContext context,
             IReadOnlyDictionary<string, FirewallPlaceholderValue> contextValues)

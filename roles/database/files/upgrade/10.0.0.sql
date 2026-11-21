@@ -261,3 +261,19 @@ GRANT SELECT ON ALL TABLES IN SCHEMA labelling TO fwo_ro;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA labelling TO fwo_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA labelling GRANT SELECT ON TABLES TO fwo_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA labelling GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;
+
+-- resolving service groups is a device specific setting (issue #5787): the former global modelling setting
+-- modRolloutResolveServiceGroups becomes the global value of resolveServiceGroups where it differs from the default (true);
+-- a repeated upgrade finds no config entry any more and keeps a value an administrator set in the meantime
+INSERT INTO device_specific_config_node (node_type, object_key, display_name, sort_order)
+SELECT 'global', 'global', 'Global', 0
+WHERE EXISTS (SELECT 1 FROM config WHERE config_key = 'modRolloutResolveServiceGroups' AND config_user = 0
+    AND lower(trim(config_value)) = 'false')
+ON CONFLICT (node_type, object_key) DO NOTHING;
+INSERT INTO device_specific_config_value (node_id, config_key, config_value)
+SELECT n.id, 'resolveServiceGroups', 'false'::jsonb
+FROM device_specific_config_node n
+JOIN config c ON c.config_key = 'modRolloutResolveServiceGroups' AND c.config_user = 0 AND lower(trim(c.config_value)) = 'false'
+WHERE n.node_type = 'global' AND n.object_key = 'global'
+ON CONFLICT (node_id, config_key) DO NOTHING;
+DELETE FROM config WHERE config_key = 'modRolloutResolveServiceGroups';

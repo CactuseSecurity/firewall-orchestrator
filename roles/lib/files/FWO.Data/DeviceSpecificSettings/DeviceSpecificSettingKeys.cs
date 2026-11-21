@@ -122,6 +122,13 @@ public static class DeviceSpecificSettingKeys
     public static readonly DeviceSpecificSettingKey<string> ModellingConnectionIdTemplate =
         new("modellingConnectionIdTemplate", ManagerScopeTypes);
 
+    /// <summary>
+    /// Whether the variance analysis requests the services of a service group directly instead of the group; always on for
+    /// managements that write labels, which know no service groups.
+    /// </summary>
+    public static readonly DeviceSpecificSettingKey<bool> ResolveServiceGroups =
+        new("resolveServiceGroups", ManagerScopeTypes);
+
     public static readonly DeviceSpecificSettingKey<string> Templates =
         new("templates", DeviceTypeScopeTypes);
 
@@ -171,6 +178,7 @@ public static class DeviceSpecificSettingKeys
         ModellingDynIpLabelsVisibleAsGroups,
         ModellingConnectionIdField,
         ModellingConnectionIdTemplate,
+        ResolveServiceGroups,
         Templates,
         ProvisioningExcludedObjectTypes,
     }.Concat(FirewallWriteSettingKeys.All).Concat(SecureChangeTemplateSettingKeys.All).ToList().AsReadOnly();

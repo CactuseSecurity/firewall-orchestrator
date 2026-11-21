@@ -471,5 +471,60 @@ namespace FWO.Test
                 Assert.That(FirewallWriteExclusions.GroupType(FirewallWriteTestSupport.Task(WfTaskType.access, Member("10.0.0.1")), appRole), Is.Null);
             });
         }
+
+        /// <summary>
+        /// Guardicore knows no service groups: a service group task that reaches it (e.g. from the createTicket API) writes
+        /// nothing and succeeds with a note instead of failing as a group that stands for no label.
+        /// </summary>
+        [Test]
+        public async Task ServiceGroupTask_IsLeftOutWithANote()
+        {
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            WfImplElement https = FirewallWriteTestSupport.Service("Https", 6, 443);
+            https.GroupName = "WebServices";
+            WfImplTask task = FirewallWriteTestSupport.Task(WfTaskType.group_create, https);
+
+            ModifyFirewallResult result = await Write(simulation, task, Context(groupType: null));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(result.Message, Does.Contain("knows no service groups"));
+                Assert.That(result.Message, Does.Contain("service group 'WebServices'"));
+                Assert.That(simulation.Requests, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task ServiceGroupTask_NamedByItsRequest_IsLeftOutWithoutElements()
+        {
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            WfImplTask task = FirewallWriteTestSupport.Task(WfTaskType.group_delete);
+
+            ModifyFirewallResult result = await Write(simulation, task, Context(groupType: ModellingTypes.ModObjectType.ServiceGroup));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(result.Message, Does.Contain("service group 'rule-1'"));
+                Assert.That(simulation.Requests, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void IsServiceGroupTask_OnlyForGroupTasksOfServiceGroups()
+        {
+            WfImplElement https = FirewallWriteTestSupport.Service("Https", 6, 443);
+            Assert.Multiple(() =>
+            {
+                Assert.That(LabelStepPlanner.IsServiceGroupTask(FirewallWriteTestSupport.Task(WfTaskType.group_modify, https), Context(groupType: null)), Is.True);
+                Assert.That(LabelStepPlanner.IsServiceGroupTask(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1")),
+                    Context(groupType: ModellingTypes.ModObjectType.ServiceGroup)), Is.True);
+                Assert.That(LabelStepPlanner.IsServiceGroupTask(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1")), Context()), Is.False);
+                Assert.That(LabelStepPlanner.IsServiceGroupTask(FirewallWriteTestSupport.Task(WfTaskType.access, https), Context(groupType: null)), Is.False,
+                    "an access task with services is no group task");
+                Assert.That(LabelStepPlanner.Plan(FirewallWriteTestSupport.Task(WfTaskType.group_modify, https), Context(groupType: null)), Is.Empty);
+            });
+        }
     }
 }

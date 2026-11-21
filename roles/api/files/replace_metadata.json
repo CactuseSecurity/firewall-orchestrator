@@ -9824,7 +9824,8 @@
                           "fwWriteDeleteObjects",
                           "modellingCreateAppZones",
                           "modellingImplementNetworkAreaObjects",
-                          "provisioningExcludedObjectTypes"
+                          "provisioningExcludedObjectTypes",
+                          "resolveServiceGroups"
                         ]
                       }
                     }
@@ -9845,7 +9846,8 @@
                           "fwWriteDeleteObjects",
                           "modellingCreateAppZones",
                           "modellingImplementNetworkAreaObjects",
-                          "provisioningExcludedObjectTypes"
+                          "provisioningExcludedObjectTypes",
+                          "resolveServiceGroups"
                         ]
                       }
                     }
@@ -9866,7 +9868,8 @@
                           "fwWriteDeleteObjects",
                           "modellingCreateAppZones",
                           "modellingImplementNetworkAreaObjects",
-                          "provisioningExcludedObjectTypes"
+                          "provisioningExcludedObjectTypes",
+                          "resolveServiceGroups"
                         ]
                       }
                     }
@@ -9887,7 +9890,8 @@
                           "fwWriteDeleteObjects",
                           "modellingCreateAppZones",
                           "modellingImplementNetworkAreaObjects",
-                          "provisioningExcludedObjectTypes"
+                          "provisioningExcludedObjectTypes",
+                          "resolveServiceGroups"
                         ]
                       }
                     }

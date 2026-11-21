@@ -3,6 +3,7 @@ using FWO.Config.Api.DeviceSpecificSettings;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Modelling;
+using FWO.ExternalSystems.FirewallWrite;
 using FWO.Ui.Pages.Settings;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -34,7 +35,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
         "securityProfiles", "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName", "sshLegacyKeyExchange",
         "autoPlanImplementation", "autoPlanImplementationForRules", "modellingCreateAppZones",
         "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
-        "modellingConnectionIdField", "modellingConnectionIdTemplate", "templates", "provisioningExcludedObjectTypes",
+        "modellingConnectionIdField", "modellingConnectionIdTemplate", "resolveServiceGroups", "templates", "provisioningExcludedObjectTypes",
         .. FirewallWriteKeys(),
         .. kSecureChangeTemplateKeys
     ];
@@ -42,7 +43,7 @@ internal class DeviceSpecificSettingsGuardicoreTest
     [
         "ownerIdCustomFieldName", "changeIdCustomFieldName", "importerHostName", "sshLegacyKeyExchange",
         "modellingCreateAppZones", "modellingImplementNetworkAreaObjects", "modellingDynIpLabelsVisibleAsGroups",
-        "modellingConnectionIdField", "modellingConnectionIdTemplate", "provisioningExcludedObjectTypes",
+        "modellingConnectionIdField", "modellingConnectionIdTemplate", "provisioningExcludedObjectTypes", "resolveServiceGroups",
         "requestResponseTimeout", "requestMaxAttempts", "requestCyclesBetweenAttempts",
         "scUrl", "scCredential", "scLookupRequesterId"
     ];
@@ -367,5 +368,44 @@ internal class DeviceSpecificSettingsGuardicoreTest
             Assert.That(settings.IsExcludedFromProvisioning(ModellingTypes.ModObjectType.Service), Is.False);
             Assert.That(settings.IsExcludedFromProvisioning(ModellingTypes.ModObjectType.AppRole), Is.True);
         });
+    }
+
+    /// <summary>
+    /// Guardicore knows no service groups, so resolving them cannot be switched off there: the field is offered from Global
+    /// down to the management, but not at or below a device type that writes labels.
+    /// </summary>
+    [Test]
+    public void ResolveServiceGroups_IsNotOfferedForManagementsThatWriteLabels()
+    {
+        static Management Management(int id, int deviceTypeId) => new()
+        {
+            Id = id,
+            Name = $"m{id}",
+            DeviceType = new DeviceType { Id = deviceTypeId, Name = $"t{deviceTypeId}", Manufacturer = "x" },
+            Devices = [new Device { Id = id * 10, Name = $"g{id}" }]
+        };
+        DeviceSpecificNode root = DeviceSpecificSettingsData.BuildHierarchy(
+            [Management(1, FirewallVendors.kGuardicoreManagement), Management(2, FirewallVendors.kCheckPointR8x)], []);
+        DeviceSpecificNode Node(DeviceSpecificScopeType level, int deviceTypeId) =>
+            root.SelfAndDescendants().First(node => node.Level == level && node.DeviceTypeId == deviceTypeId);
+        DeviceSpecificFieldDefinition field = DeviceSpecificSettingsData.FindField(DeviceSpecificSettingKeys.ResolveServiceGroups)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(field.AppliesTo(root), Is.True);
+            Assert.That(field.AppliesTo(Node(DeviceSpecificScopeType.DeviceType, FirewallVendors.kCheckPointR8x)), Is.True);
+            Assert.That(field.AppliesTo(Node(DeviceSpecificScopeType.Management, FirewallVendors.kCheckPointR8x)), Is.True);
+            Assert.That(field.AppliesTo(Node(DeviceSpecificScopeType.Gateway, FirewallVendors.kCheckPointR8x)), Is.False);
+            Assert.That(field.AppliesTo(Node(DeviceSpecificScopeType.DeviceType, FirewallVendors.kGuardicoreManagement)), Is.False);
+            Assert.That(field.AppliesTo(Node(DeviceSpecificScopeType.Management, FirewallVendors.kGuardicoreManagement)), Is.False);
+            Assert.That(Node(DeviceSpecificScopeType.Management, FirewallVendors.kGuardicoreManagement).WritesLabels, Is.True);
+            Assert.That(root.WritesLabels, Is.False);
+        });
+    }
+
+    [Test]
+    public void ResolveServiceGroups_IsOnByDefault()
+    {
+        Assert.That(new GlobalDeviceSpecificSettings().ResolveServiceGroups, Is.True);
     }
 }

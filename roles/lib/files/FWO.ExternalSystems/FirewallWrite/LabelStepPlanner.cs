@@ -1,6 +1,8 @@
+using System.Collections.Frozen;
 using FWO.Basics;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Labelling;
+using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 
 namespace FWO.ExternalSystems.FirewallWrite
@@ -9,16 +11,37 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// Plans the steps of vendors that write groups as labels with IP criteria (Guardicore). A group task writes the label
     /// its group stands for (see <see cref="DynamicIpLabel.FromGroupName"/>): a new group gets exactly its members as IP
     /// criteria, a changed group gets its members to remove taken out and its other members added, and a deleted group
-    /// deletes the label value. Network objects exist only as criteria of labels, so object tasks write nothing.
+    /// deletes the label value. Network objects exist only as criteria of labels, so object tasks write nothing. These vendors
+    /// know no service groups either: the services are part of the rules, so service group tasks write nothing.
     /// </summary>
     public static class LabelStepPlanner
     {
+        private static readonly FrozenSet<string> GroupTaskTypes =
+            [nameof(WfTaskType.group_create), nameof(WfTaskType.group_modify), nameof(WfTaskType.group_delete)];
+
+        /// <summary>
+        /// Whether a task changes a service group: a group task whose request names the type service group, or whose
+        /// elements are services. Such tasks are left out of provisioning with a note.
+        /// </summary>
+        public static bool IsServiceGroupTask(WfImplTask implTask, FirewallWriteContext context)
+        {
+            ArgumentNullException.ThrowIfNull(implTask);
+            ArgumentNullException.ThrowIfNull(context);
+            return GroupTaskTypes.Contains(implTask.TaskType)
+                && (context.GroupObjectType == ModellingTypes.ModObjectType.ServiceGroup
+                    || implTask.ImplElements.Any(FirewallElementValues.IsServiceElement));
+        }
+
         /// <summary>Plans the steps of a task.</summary>
         /// <exception cref="FirewallWriteException">Thrown for rule tasks, groups that stand for no label and members without addresses.</exception>
         public static List<FirewallWriteStep> Plan(WfImplTask implTask, FirewallWriteContext context)
         {
             ArgumentNullException.ThrowIfNull(implTask);
             ArgumentNullException.ThrowIfNull(context);
+            if (IsServiceGroupTask(implTask, context))
+            {
+                return [];
+            }
             return implTask.TaskType switch
             {
                 nameof(WfTaskType.object_create) or nameof(WfTaskType.object_modify) => [],

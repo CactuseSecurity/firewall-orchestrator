@@ -59,6 +59,12 @@ namespace FWO.Services.Modelling
         /// <summary>Whether groups are written as labels to the management.</summary>
         private static bool WritesLabels(Management mgt) => FirewallVendors.WritesLabels(mgt.DeviceType.Id);
 
+        /// <summary>
+        /// Whether the services of service groups are requested for the management instead of the groups: as the device
+        /// specific setting resolveServiceGroups says, and always for managements that write labels, which know no service groups.
+        /// </summary>
+        private bool ResolvesServiceGroups(Management mgt) => WritesLabels(mgt) || SettingsOf(mgt).ResolveServiceGroups;
+
         /// <summary>Name of the production group of a modelled app role or app zone: its id string, or its label name.</summary>
         private static string ProdGroupName(ModellingAppRole appRole, Management mgt)
         {

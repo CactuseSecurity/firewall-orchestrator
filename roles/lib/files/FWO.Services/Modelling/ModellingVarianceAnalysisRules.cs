@@ -36,9 +36,19 @@ namespace FWO.Services.Modelling
             bool ruleFound = false;
             foreach (var mgt in RelevantManagements)
             {
-                foreach (var rule in allModelledRules[mgt.Id].Where(r => CompareRuleToConn(r, conn)))
+                List<Rule> connRules = [.. allModelledRules[mgt.Id].Where(r => r.ConnId == conn.Id)];
+                if (connRules.Count == 0)
                 {
-                    ruleFound = true;
+                    continue;
+                }
+                ruleFound = true;
+                if (WritesLabels(mgt))
+                {
+                    CompareRuleSetToConn(connRules, conn);
+                }
+                else
+                {
+                    connRules.ForEach(rule => CompareRuleToConn(rule, conn));
                 }
             }
             if (ruleFound)
@@ -137,12 +147,38 @@ namespace FWO.Services.Modelling
             }
         }
 
-        private bool CompareRuleToConn(Rule rule, ModellingConnection conn)
+        /// <summary>Compares a production rule carrying the marker of the connection with it.</summary>
+        private void CompareRuleToConn(Rule rule, ModellingConnection conn)
         {
-            if (rule.ConnId == conn.Id)
+            bool isImpl = IsNwPartImplementation(rule, conn);
+            isImpl &= IsSvcPartImplementation([rule], conn, ruleRecognitionOption.SvcResolveGroup);
+            RecordVerdict([rule], conn, isImpl);
+        }
+
+        /// <summary>
+        /// Compares all rules of a management that writes labels carrying the marker of the connection, together, with it.
+        /// Such a management splits a connection with services of different protocols into one rule per protocol, as all
+        /// ports of a rule apply to all its protocols. So each rule has to implement the network part of the connection, and
+        /// the services of all rules together its services. Service groups are compared resolved, as these managements know
+        /// no service groups. All rules get the same verdict.
+        /// </summary>
+        private void CompareRuleSetToConn(List<Rule> rules, ModellingConnection conn)
+        {
+            bool isImpl = true;
+            foreach (Rule rule in rules)
+            {
+                isImpl &= IsNwPartImplementation(rule, conn);
+            }
+            isImpl &= IsSvcPartImplementation(rules, conn, true);
+            RecordVerdict(rules, conn, isImpl);
+        }
+
+        private void RecordVerdict(List<Rule> rules, ModellingConnection conn, bool isImpl)
+        {
+            foreach (Rule rule in rules)
             {
                 rule.ModellFound = true;
-                if (IsImplementation(rule, conn))
+                if (isImpl)
                 {
                     conn.ProdRuleFound = true;
                     rule.ModellOk = true;
@@ -152,45 +188,60 @@ namespace FWO.Services.Modelling
                 {
                     varianceResult.AddDifference(conn, rule);
                 }
-                return true;
             }
-            return false;
         }
 
-        private bool IsImplementation(Rule rule, ModellingConnection conn)
+        /// <summary>
+        /// Whether the rule is an active accept rule whose sources and destinations implement the connection; fills the
+        /// disregarded network locations and the unused special user and updatable objects of the rule.
+        /// </summary>
+        private bool IsNwPartImplementation(Rule rule, ModellingConnection conn)
         {
             bool isImpl = !rule.IsDropRule() && !rule.Disabled && !rule.SourceNegated && !rule.DestinationNegated;
             Dictionary<string, bool> SpecialUserObjects = conn.GetSpecialUserObjectNames();
             Dictionary<string, bool> UpdatableObjects = conn.GetUpdatableObjectNames();
             List<NetworkLocation> disregardedFroms = [];
             List<NetworkLocation> disregardedTos = [];
-            List<NetworkService> disregardedServices = [];
-            (List<NetworkService> normConnSvc, List<NetworkService> normConnSvcGrp, List<NetworkService> normRuleSvc) = NormalizeServices(rule, conn);
 
             isImpl &= IsNwImplementation(rule.Froms, SpecialUserObjects, UpdatableObjects, conn, true, ref disregardedFroms);
             isImpl &= IsNwImplementation(rule.Tos, SpecialUserObjects, UpdatableObjects, conn, false, ref disregardedTos);
-            bool isSvcImpl = IsSvcImplementation(normRuleSvc, normConnSvc, normConnSvcGrp, disregardedServices);
-            isImpl &= isSvcImpl;
-            if (!isSvcImpl && ruleRecognitionOption.SvcSplitPortRanges)
-            {
-                disregardedServices = RebundlePortRanges(disregardedServices);
-                rule.Services = [.. RebundlePortRanges(normRuleSvc).ConvertAll(s => new ServiceWrapper() { Content = s })];
-            }
             rule.DisregardedFroms = [.. disregardedFroms];
             rule.DisregardedTos = [.. disregardedTos];
-            rule.DisregardedServices = [.. disregardedServices];
             rule.UnusedSpecialUserObjects = [.. SpecialUserObjects.Keys.Where(x => !SpecialUserObjects[x])];
             rule.UnusedUpdatableObjects = [.. UpdatableObjects.Keys.Where(x => !UpdatableObjects[x])];
             isImpl &= rule.UnusedSpecialUserObjects.Count == 0 && rule.UnusedUpdatableObjects.Count == 0;
             return isImpl;
         }
 
-        private (List<NetworkService>, List<NetworkService> normConnSvcGrp, List<NetworkService> normRuleSvc) NormalizeServices(Rule rule, ModellingConnection conn)
+        /// <summary>
+        /// Whether the services of the rules together implement the services of the connection. The modelled services the
+        /// rules miss are recorded at the first rule.
+        /// </summary>
+        /// <param name="rules">Rules carrying the marker of the connection, at least one.</param>
+        /// <param name="conn">The connection.</param>
+        /// <param name="resolveServiceGroups">Whether service groups are compared by their members.</param>
+        private bool IsSvcPartImplementation(List<Rule> rules, ModellingConnection conn, bool resolveServiceGroups)
         {
             List<NetworkService> normConnSvc = SplitPortRanges(ModellingServiceWrapper.Resolve(conn.Services).ToList().ConvertAll(s => ModellingService.ToNetworkService(s)));
             List<NetworkService> normConnSvcGrp = SplitPortRanges(ModellingServiceGroupWrapper.Resolve(conn.ServiceGroups).ToList().ConvertAll(a => a.ToNetworkServiceGroup()));
-            List<NetworkService> normRuleSvc = SplitPortRanges([.. rule.Services.ToList().ConvertAll(s => s.Content)]);
-            return (normConnSvc, normConnSvcGrp, normRuleSvc);
+            List<List<NetworkService>> normRuleSvcs = rules.ConvertAll(rule => SplitPortRanges([.. rule.Services.ToList().ConvertAll(s => s.Content)]));
+            List<NetworkService> allNormRuleSvc = [.. normRuleSvcs.SelectMany(services => services)];
+            List<NetworkService> disregardedServices = [];
+
+            bool isSvcImpl = IsSvcImplementation(allNormRuleSvc, normConnSvc, normConnSvcGrp, disregardedServices, resolveServiceGroups);
+            if (!isSvcImpl && ruleRecognitionOption.SvcSplitPortRanges)
+            {
+                disregardedServices = RebundlePortRanges(disregardedServices);
+                for (int index = 0; index < rules.Count; index++)
+                {
+                    rules[index].Services = [.. RebundlePortRanges(normRuleSvcs[index]).ConvertAll(s => new ServiceWrapper() { Content = s })];
+                }
+            }
+            for (int index = 0; index < rules.Count; index++)
+            {
+                rules[index].DisregardedServices = index == 0 ? [.. disregardedServices] : [];
+            }
+            return isSvcImpl;
         }
 
         private List<NetworkService> SplitPortRanges(List<NetworkService> servicesIn)
@@ -493,17 +544,19 @@ namespace FWO.Services.Modelling
             }
         }
 
-        private bool IsSvcImplementation(List<NetworkService> prodServices, List<NetworkService> modServices, List<NetworkService> modServiceGroups, List<NetworkService> disregardedServices)
+        private bool IsSvcImplementation(List<NetworkService> prodServices, List<NetworkService> modServices, List<NetworkService> modServiceGroups,
+            List<NetworkService> disregardedServices, bool resolveServiceGroups)
         {
-            bool isImpl = CompareServices(prodServices, modServices, modServiceGroups, disregardedServices);
-            return (ruleRecognitionOption.SvcResolveGroup || CompareSvcGroups(prodServices, modServiceGroups, disregardedServices)) && isImpl;
+            bool isImpl = CompareServices(prodServices, modServices, modServiceGroups, disregardedServices, resolveServiceGroups);
+            return (resolveServiceGroups || CompareSvcGroups(prodServices, modServiceGroups, disregardedServices)) && isImpl;
         }
 
-        private bool CompareServices(List<NetworkService> prodServices, List<NetworkService> modServices, List<NetworkService> modServiceGroups, List<NetworkService> disregardedServices)
+        private bool CompareServices(List<NetworkService> prodServices, List<NetworkService> modServices, List<NetworkService> modServiceGroups,
+            List<NetworkService> disregardedServices, bool resolveServiceGroups)
         {
             List<NetworkService> allProdServices = [.. prodServices.Where(s => s.Type.Name != ServiceType.Group)];
             List<NetworkService> allModServices = modServices;
-            if (ruleRecognitionOption.SvcResolveGroup)
+            if (resolveServiceGroups)
             {
                 foreach (var svc in prodServices.Where(n => n.Type.Name == ServiceType.Group))
                 {

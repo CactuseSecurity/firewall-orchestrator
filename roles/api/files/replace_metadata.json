@@ -9806,6 +9806,7 @@
                     "filter": {
                       "config_key": {
                         "_in": [
+                          "fwWriteDeleteObjects",
                           "modellingCreateAppZones",
                           "modellingImplementNetworkAreaObjects",
                           "provisioningExcludedObjectTypes"
@@ -9826,6 +9827,7 @@
                     "filter": {
                       "config_key": {
                         "_in": [
+                          "fwWriteDeleteObjects",
                           "modellingCreateAppZones",
                           "modellingImplementNetworkAreaObjects",
                           "provisioningExcludedObjectTypes"
@@ -9846,6 +9848,7 @@
                     "filter": {
                       "config_key": {
                         "_in": [
+                          "fwWriteDeleteObjects",
                           "modellingCreateAppZones",
                           "modellingImplementNetworkAreaObjects",
                           "provisioningExcludedObjectTypes"
@@ -9866,6 +9869,7 @@
                     "filter": {
                       "config_key": {
                         "_in": [
+                          "fwWriteDeleteObjects",
                           "modellingCreateAppZones",
                           "modellingImplementNetworkAreaObjects",
                           "provisioningExcludedObjectTypes"

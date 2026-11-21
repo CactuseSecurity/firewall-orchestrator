@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
@@ -12,9 +13,7 @@ namespace FWO.Services.Modelling
     /// </summary>
     public partial class ModellingConnectionHandler
     {
-        private static readonly List<string> kGroupLabelKeys = ["AppRole", "AppZone"];
-        /// <summary>No labels of its own, for a side taken over from a used interface; SaveSide only reads it.</summary>
-        private static readonly List<List<ConnectionLabel>> kNoLabelGroups = [];
+        private static readonly ImmutableArray<string> kGroupLabelKeys = [DynamicIpLabel.kAppRoleKey, DynamicIpLabel.kAppZoneKey];
         private List<ConnectionLabel> storedSrcLabels = [];
         private List<ConnectionLabel> storedDstLabels = [];
 
@@ -161,8 +160,8 @@ namespace FWO.Services.Modelling
                     new { connectionId, actor = userConfig.User.Dn })).Id ?? throw new InvalidOperationException("No label change event id returned.");
                 return changeEventId.Value;
             }
-            storedSrcLabels = await SaveSide(connectionId, storedSrcLabels, ActConn.SrcFromInterface ? kNoLabelGroups : SrcLabelGroups, ModellingTypes.ConnectionField.Source, GetChangeEventId);
-            storedDstLabels = await SaveSide(connectionId, storedDstLabels, ActConn.DstFromInterface ? kNoLabelGroups : DstLabelGroups, ModellingTypes.ConnectionField.Destination, GetChangeEventId);
+            storedSrcLabels = await SaveSide(connectionId, storedSrcLabels, ActConn.SrcFromInterface ? [] : SrcLabelGroups, ModellingTypes.ConnectionField.Source, GetChangeEventId);
+            storedDstLabels = await SaveSide(connectionId, storedDstLabels, ActConn.DstFromInterface ? [] : DstLabelGroups, ModellingTypes.ConnectionField.Destination, GetChangeEventId);
             if (!ActConn.SrcFromInterface)
             {
                 ActConn.SourceLabels = [.. storedSrcLabels];

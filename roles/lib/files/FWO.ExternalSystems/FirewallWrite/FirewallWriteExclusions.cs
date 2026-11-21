@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using FWO.Data.Labelling;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
@@ -13,7 +14,7 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// </summary>
     public static class FirewallWriteExclusions
     {
-        private static readonly HashSet<string> GroupTaskTypes =
+        private static readonly FrozenSet<string> GroupTaskTypes =
             [nameof(WfTaskType.group_create), nameof(WfTaskType.group_modify), nameof(WfTaskType.group_delete)];
 
         /// <summary>Returns the planned steps the settings of the target exclude from provisioning.</summary>

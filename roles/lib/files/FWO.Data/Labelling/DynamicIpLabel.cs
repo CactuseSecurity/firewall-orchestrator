@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using FWO.Data.Modelling;
 
 namespace FWO.Data.Labelling
@@ -23,12 +24,13 @@ namespace FWO.Data.Labelling
         /// <summary>Label key of network areas.</summary>
         public const string kNetworkAreaKey = "NetworkArea";
 
-        private static readonly Dictionary<ModellingTypes.ModObjectType, string> KeyByObjectType = new()
-        {
-            { ModellingTypes.ModObjectType.AppRole, kAppRoleKey },
-            { ModellingTypes.ModObjectType.AppZone, kAppZoneKey },
-            { ModellingTypes.ModObjectType.NetworkArea, kNetworkAreaKey }
-        };
+        private static readonly FrozenDictionary<ModellingTypes.ModObjectType, string> KeyByObjectType =
+            new Dictionary<ModellingTypes.ModObjectType, string>
+            {
+                { ModellingTypes.ModObjectType.AppRole, kAppRoleKey },
+                { ModellingTypes.ModObjectType.AppZone, kAppZoneKey },
+                { ModellingTypes.ModObjectType.NetworkArea, kNetworkAreaKey }
+            }.ToFrozenDictionary();
 
         /// <summary>Name of the label as imported: "key: value".</summary>
         public string Name => Key + kKeyValueSeparator + Value;

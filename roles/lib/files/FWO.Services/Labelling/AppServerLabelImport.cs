@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using System.Collections.Frozen;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
@@ -38,9 +40,9 @@ namespace FWO.Services.Labelling
         private const string LevelAppServer = "App Server";
         private const int kSeverityWarning = 1;
         private const string kLabelValueConstraint = "labelling_label_value_key_id_value_unique";
-        private static readonly List<string> kLabelValueUpdateColumns = ["value"];
-        private static readonly List<long> kNoLabelIds = [];
-        private static readonly HashSet<string> kRejectedKeys = new(StringComparer.OrdinalIgnoreCase) { "AppRole", "AppZone" };
+        private static readonly ImmutableArray<string> kLabelValueUpdateColumns = ["value"];
+        private static readonly FrozenSet<string> kRejectedKeys =
+            FrozenSet.Create(StringComparer.OrdinalIgnoreCase, DynamicIpLabel.kAppRoleKey, DynamicIpLabel.kAppZoneKey);
 
         private readonly ApiConnection apiConnection;
         private readonly Func<Task<long?>> getImportControlId;
@@ -144,7 +146,7 @@ namespace FWO.Services.Labelling
             try
             {
                 List<long> labelIdsToClose = [.. ActiveLabelIds(appServerId), .. LabelIdsOf(activeAppLabelIdsByAppServer, appServerId)];
-                await ApplyChanges(appServerId, kNoLabelIds, labelIdsToClose);
+                await ApplyChanges(appServerId, [], labelIdsToClose);
                 LabelIdsOf(activeAppLabelIdsByAppServer, appServerId).Clear();
             }
             catch (Exception exception)

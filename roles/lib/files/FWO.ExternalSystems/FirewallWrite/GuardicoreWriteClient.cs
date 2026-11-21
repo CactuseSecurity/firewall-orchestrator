@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Labelling;
@@ -33,9 +34,9 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const int kStatusOk = 200;
         private const string kOverrideParameter = "override";
         private const string kAppendParameter = "append";
-        private static readonly List<string> TokenFields = ["access_token", "token"];
-        private static readonly List<string> TotalFields = ["total_count", "total"];
-        private static readonly List<string> FailureFields = ["failed", "errors", "failed_items", "rejected", "invalid_labels"];
+        private static readonly ImmutableArray<string> TokenFields = ["access_token", "token"];
+        private static readonly ImmutableArray<string> TotalFields = ["total_count", "total"];
+        private static readonly ImmutableArray<string> FailureFields = ["failed", "errors", "failed_items", "rejected", "invalid_labels"];
 
         private string token = "";
 

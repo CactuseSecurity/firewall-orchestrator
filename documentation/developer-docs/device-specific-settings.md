@@ -94,8 +94,9 @@ info `GrpType` (set by the variance analysis and the modelling notifications); t
 never guessed from a naming convention prefix. The task of an excluded group is left out
 with all its steps, including the member objects created for it. A group without such a
 type (e.g. a service group from the createTicket API) is never left out. The roles that run the variance analysis (modeller,
-recertifier, reporter, reporter-viewall) may read only this key and the modelling keys
-`modellingCreateAppZones` and `modellingImplementNetworkAreaObjects`.
+recertifier, reporter, reporter-viewall) may read only this key, the modelling keys
+`modellingCreateAppZones` and `modellingImplementNetworkAreaObjects`, and `fwWriteDeleteObjects`,
+which decides whether obsolete labels are requested for deletion.
 
 `modellingConnectionIdField` offers `Name`, `Comment`, and `CustomField`: the field of
 a provisioned object that carries the ID of the modelling connection, formatted by

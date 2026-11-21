@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using System.Collections.Frozen;
 using FWO.Basics;
 using System.Text.Json.Nodes;
 
@@ -41,10 +43,10 @@ namespace FWO.ExternalSystems.FirewallWrite
         public const string kRangeOp = "RANGE";
 
         private const string kEqualsOp = "EQUALS";
-        private static readonly HashSet<string> IpOperators = [kSubnetOp, kRangeOp, kEqualsOp];
+        private static readonly FrozenSet<string> IpOperators = [kSubnetOp, kRangeOp, kEqualsOp];
 
         /// <summary>The properties of a criterion that are written back; ids and flags set by Guardicore are not.</summary>
-        private static readonly List<string> WritableProperties = ["field", "op", "argument", "compound_criteria"];
+        private static readonly ImmutableArray<string> WritableProperties = ["field", "op", "argument", "compound_criteria"];
 
         /// <summary>Returns the IP criterion of an address entry.</summary>
         public static GuardicoreCriterion ToCriterion(IpInterval interval)

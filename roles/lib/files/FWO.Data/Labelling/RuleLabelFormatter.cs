@@ -34,8 +34,6 @@ namespace FWO.Data.Labelling
         // names of the network objects an importer builds from labels (see GcNetworkObjectCollector.add_label /
         // add_and_labels of the Guardicore importer): "key: value", for an AND-group the sorted labels joined by " & "
         private const string kLabelObjectAndSeparator = " & ";
-        private static readonly List<Dictionary<string, List<string>>> kNoGroups = [];
-        private static readonly List<RuleLabelAssignment> kNoRuleLabels = [];
 
         /// <summary>
         /// Formats the labels of a rule side, e.g. "(AppRole: AR1 ∩ Stage: Prod) ∪ (AppRole: AR2)".
@@ -47,7 +45,7 @@ namespace FWO.Data.Labelling
         /// <returns>The formatted labels, not encoded.</returns>
         public static string FormatSideLabels(List<Dictionary<string, List<string>>>? groups, string andSeparator, string orSeparator)
         {
-            List<string> formattedGroups = [.. (groups ?? kNoGroups)
+            List<string> formattedGroups = [.. (groups ?? [])
                 .Select(group => string.Join(andSeparator, FormatLabels(group)))
                 .Where(formattedGroup => formattedGroup.Length > 0)];
             if (formattedGroups.Count <= 1)
@@ -66,7 +64,7 @@ namespace FWO.Data.Labelling
         public static HashSet<string> LabelObjectNames(List<Dictionary<string, List<string>>>? groups)
         {
             HashSet<string> names = new(StringComparer.Ordinal);
-            foreach (Dictionary<string, List<string>> group in groups ?? kNoGroups)
+            foreach (Dictionary<string, List<string>> group in groups ?? [])
             {
                 List<string> labels = [.. FormatLabels(group).Distinct()];
                 labels.Sort(StringComparer.Ordinal);
@@ -117,7 +115,7 @@ namespace FWO.Data.Labelling
         private static Dictionary<string, List<string>> GroupRuleLabels(List<RuleLabelAssignment>? labels)
         {
             Dictionary<string, List<string>> valuesByKey = [];
-            foreach (LabelValue label in (labels ?? kNoRuleLabels).Select(assignment => assignment.Label))
+            foreach (LabelValue label in (labels ?? []).Select(assignment => assignment.Label))
             {
                 if (!valuesByKey.TryGetValue(label.Key.Name, out List<string>? values))
                 {

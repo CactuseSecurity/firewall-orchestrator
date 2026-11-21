@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
@@ -23,7 +24,7 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// </summary>
     public sealed class ApiFirewallWriteDataSource(ApiConnection apiConnection) : IFirewallWriteDataSource
     {
-        private static readonly HashSet<string> kGroupTaskTypes =
+        private static readonly FrozenSet<string> kGroupTaskTypes =
             [nameof(WfTaskType.group_create), nameof(WfTaskType.group_modify), nameof(WfTaskType.group_delete)];
 
         /// <inheritdoc/>

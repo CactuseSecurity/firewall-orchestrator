@@ -127,8 +127,8 @@
   objects. The type is not guessed from a prefix of the naming convention, which may be empty or start other names;
   a Guardicore group of unknown type is only written if it is named "key: value"
 - api: modeller, recertifier, reporter and reporter-viewall may read the device specific settings nodes and the
-  values of modellingCreateAppZones, modellingImplementNetworkAreaObjects and provisioningExcludedObjectTypes, which
-  the variance analysis needs; modeller, recertifier and reporter only the global and device type nodes and the
+  values of modellingCreateAppZones, modellingImplementNetworkAreaObjects, provisioningExcludedObjectTypes and
+  fwWriteDeleteObjects, which the variance analysis needs; modeller, recertifier and reporter only the global and device type nodes and the
   management and gateway nodes they may see
 - workflow: the action "Create implementation tasks" leaves out the gateways of other managements found by the path
   analysis for access tasks of a Guardicore management (gateways of its sub-managements are kept); access tasks of

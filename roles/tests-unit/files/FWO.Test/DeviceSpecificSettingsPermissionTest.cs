@@ -22,7 +22,7 @@ namespace FWO.Test
         private const string kImporterRole = "importer";
         private const string kImporterSettingsFilter = "{\"config_key\":{\"_in\":[\"importerHostName\",\"sshLegacyKeyExchange\"]}}";
         private const string kModellingSettingsFilter =
-            "{\"config_key\":{\"_in\":[\"modellingCreateAppZones\",\"modellingImplementNetworkAreaObjects\",\"provisioningExcludedObjectTypes\"]}}";
+            "{\"config_key\":{\"_in\":[\"fwWriteDeleteObjects\",\"modellingCreateAppZones\",\"modellingImplementNetworkAreaObjects\",\"provisioningExcludedObjectTypes\"]}}";
         private const string kModellerRole = "modeller";
         private const string kRecertifierRole = "recertifier";
         private const string kReporterRole = "reporter";
@@ -127,8 +127,9 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// The roles that run the variance analysis read only the settings it needs: the modelling settings and the object
-        /// types excluded from provisioning, not the credentials and templates of the other settings.
+        /// The roles that run the variance analysis read only the settings it needs: the modelling settings, the object types
+        /// excluded from provisioning and whether objects may be deleted (obsolete labels), not the credentials and templates
+        /// of the other settings.
         /// </summary>
         [TestCase(kModellerRole)]
         [TestCase(kRecertifierRole)]

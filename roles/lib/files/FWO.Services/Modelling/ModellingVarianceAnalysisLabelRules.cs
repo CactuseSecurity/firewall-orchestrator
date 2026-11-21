@@ -121,8 +121,15 @@ namespace FWO.Services.Modelling
         /// The AND-groups of the labels of a connection side (e.g. "OS: Linux &amp; Stage: Prod"), as the import of a rule
         /// names its group of ANDed labels; none while label-based modelling is off.
         /// </summary>
-        private List<string> ConnectionLabelGroupNames(ModellingConnection conn, bool source) =>
-            userConfig.LabelBasedModelling ? LabelAndGroups.GroupNames(source ? conn.SourceLabels : conn.DestinationLabels) : [];
+        private List<string> ConnectionLabelGroupNames(ModellingConnection conn, bool source)
+        {
+            if (!userConfig.LabelBasedModelling)
+            {
+                return [];
+            }
+            List<ConnectionLabel> sideLabels = source ? conn.SourceLabels : conn.DestinationLabels;
+            return LabelAndGroups.GroupNames(sideLabels);
+        }
 
         /// <summary>Requests the AND-groups of the labels of a connection for a management that writes labels.</summary>
         private void AnalyseConnectionLabelsForRequest(ModellingConnection conn, Management mgt)

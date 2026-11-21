@@ -2,7 +2,7 @@ using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.ExternalSystems.FirewallWrite;
 using FWO.ExternalSystems.Tufin.SecureChange;
-using FWO.Services.RulePositioning.CheckPoint;
+using FWO.Services.DeviceSpecificSettings;
 using System.Globalization;
 
 namespace FWO.Ui.Pages.Settings
@@ -407,9 +407,9 @@ namespace FWO.Ui.Pages.Settings
         /// </summary>
         private static List<DeviceSpecificFieldDefinition> RequestFields() =>
         [
-            NumberField(DeviceSpecificSettingKeys.RequestResponseTimeout, "dss_request_response_timeout", s => s.RequestResponseTimeout, 1),
-            NumberField(DeviceSpecificSettingKeys.RequestMaxAttempts, "dss_request_max_attempts", s => s.RequestMaxAttempts, 1),
-            NumberField(DeviceSpecificSettingKeys.RequestCyclesBetweenAttempts, "dss_request_cycles_between_attempts", s => s.RequestCyclesBetweenAttempts, 0)
+            NumberField(DeviceSpecificSettingKeys.RequestResponseTimeout, "dss_request_response_timeout", s => s.RequestResponseTimeout),
+            NumberField(DeviceSpecificSettingKeys.RequestMaxAttempts, "dss_request_max_attempts", s => s.RequestMaxAttempts),
+            NumberField(DeviceSpecificSettingKeys.RequestCyclesBetweenAttempts, "dss_request_cycles_between_attempts", s => s.RequestCyclesBetweenAttempts)
         ];
 
         /// <summary>
@@ -511,19 +511,16 @@ namespace FWO.Ui.Pages.Settings
                 MinLevel = DeviceSpecificScopeType.DeviceType,
                 ShippedDefault = shippedDefault,
                 Read = s => store(s).GetValueOrDefault(operation, ""),
-                SetOverride = (changes, value) => changes.Set(key, ValidateFirewallWriteValue(kind, value))
+                SetOverride = (changes, value) => changes.Set(key, ValidateFirewallWriteValue(key, value))
             };
         }
 
-        /// <summary>Endpoints must have the form "METHOD path"; an empty value stands for the shipped default.</summary>
-        private static string ValidateFirewallWriteValue(DeviceSpecificFieldKind kind, string value)
-        {
-            if (kind == DeviceSpecificFieldKind.FirewallEndpoint && !string.IsNullOrWhiteSpace(value))
-            {
-                return FirewallWriteEndpoint.Parse(value).ToString();
-            }
-            return value;
-        }
+        /// <summary>
+        /// Endpoints must have the form "METHOD path"; an empty value stands for the shipped default. Checked by the value
+        /// rules shared with the import.
+        /// </summary>
+        private static string ValidateFirewallWriteValue(DeviceSpecificSettingKey<string> key, string value) =>
+            (string)DeviceSpecificSettingValueRules.Normalize(key, value);
 
         /// <summary>
         /// The endpoint value after its method or path was changed in the editor. While the value is empty, the part that
@@ -683,15 +680,9 @@ namespace FWO.Ui.Pages.Settings
                 ValidateCheckPointLayerGuardSectionNameTemplate(value))
         };
 
-        private static string ValidateCheckPointLayerGuardSectionNameTemplate(string value)
-        {
-            if (!CheckPointSectionNameTemplate.Parse(value).IsSuccess)
-            {
-                throw new ArgumentException("The Check Point LayerGuard section name template is invalid.",
-                    DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate.DatabaseKey);
-            }
-            return value;
-        }
+        /// <summary>Checks the template with the value rules shared with the import.</summary>
+        private static string ValidateCheckPointLayerGuardSectionNameTemplate(string value) =>
+            (string)DeviceSpecificSettingValueRules.Normalize(DeviceSpecificSettingKeys.CheckPointLayerGuardSectionNameTemplate, value);
 
         private static DeviceSpecificFieldDefinition BoolField(
             DeviceSpecificSettingKey<bool> key,
@@ -712,7 +703,12 @@ namespace FWO.Ui.Pages.Settings
                 SetOverride = (changes, value) => changes.Set(key, bool.Parse(value))
             };
 
-        /// <summary>A whole number of at least the given minimum, set from Global down to the management.</summary>
+        /// <summary>A whole number of at least the minimum of the shared value rules, set from Global down to the management.</summary>
+        private static DeviceSpecificFieldDefinition NumberField(
+            DeviceSpecificSettingKey<int> key,
+            string textKey,
+            Func<GlobalDeviceSpecificSettings, int> get) => NumberField(key, textKey, get, DeviceSpecificSettingValueRules.MinimumNumber(key));
+
         private static DeviceSpecificFieldDefinition NumberField(
             DeviceSpecificSettingKey<int> key,
             string textKey,

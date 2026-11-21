@@ -1,0 +1,18 @@
+# Writes the overrides of several levels in one request, i.e. in one transaction.
+mutation applyBulkPatch(
+  $upserts: [device_specific_config_value_insert_input!]!
+  $removals: device_specific_config_value_bool_exp!
+) {
+  removed_values: delete_device_specific_config_value(where: $removals) {
+    affected_rows
+  }
+  upserted_values: insert_device_specific_config_value(
+    objects: $upserts
+    on_conflict: {
+      constraint: device_specific_config_value_pkey
+      update_columns: [config_value]
+    }
+  ) {
+    affected_rows
+  }
+}

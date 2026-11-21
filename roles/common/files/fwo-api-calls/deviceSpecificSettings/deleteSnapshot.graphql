@@ -1,0 +1,5 @@
+mutation deleteSnapshot($id: bigint!) {
+  delete_device_specific_config_snapshot_by_pk(id: $id) {
+    id
+  }
+}

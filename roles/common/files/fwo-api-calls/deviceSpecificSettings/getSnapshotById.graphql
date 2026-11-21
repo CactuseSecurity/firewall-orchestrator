@@ -1,0 +1,10 @@
+query getSnapshotById($id: bigint!) {
+  device_specific_config_snapshot_by_pk(id: $id) {
+    id
+    name
+    description
+    fwo_version
+    created
+    content
+  }
+}

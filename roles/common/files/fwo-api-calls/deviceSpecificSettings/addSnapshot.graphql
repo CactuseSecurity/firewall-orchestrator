@@ -1,0 +1,11 @@
+mutation addSnapshot($name: String!, $description: String, $fwoVersion: String!, $content: jsonb!) {
+  insert_device_specific_config_snapshot_one(
+    object: {name: $name, description: $description, fwo_version: $fwoVersion, content: $content}
+  ) {
+    id
+    name
+    description
+    fwo_version
+    created
+  }
+}

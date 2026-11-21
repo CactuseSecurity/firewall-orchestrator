@@ -280,3 +280,6 @@ For a feature-centric, thematically grouped view see
 - Direct firewall write of rules on Check Point: new rules at the calculated position (also within sections) with install-on along the setting "Install on"; rules to modify or delete addressed in their imported layer; new rules of one request task in the same layer written once for all their gateways.
 - The routing of firewall config changes moves from "Firewall config changes - General" to the device specific settings (implementation modes for objects and rules, external ticket system, Tufin SecureChange connection, response timeout and retries); the ticket system list is removed.
 - Tasks nobody implements (e.g. no rule position, vendor without rule writing, inconsistent target management) raise a workflow alert; a rejected write rejects the open tasks of the ticket with the reason in their history.
+
+### 9.9.6 - 21.11.2026
+- Device specific settings can be exported as file, imported into another installation and stored as named snapshots. Levels are addressed by name instead of database IDs, credentials by name, secrets are never exported; the import validates the whole file, previews the changes per level and writes them in one transaction (merge or replace). The same functions are available through the middleware REST API under `/api/DeviceSpecificSettings`.

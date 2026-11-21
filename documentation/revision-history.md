@@ -1,5 +1,12 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.6 - 21.11.2026
+- device specific settings: export, import and snapshots (#5797)
+  - admins export the stored settings as JSON file (format `fwo-device-specific-settings`, version 1) with one entry per level, addressed by natural keys (device type name and version, management name, management and gateway name) instead of database ids; `scCredential` is exported as credential name, secrets are never exported; levels of deleted objects are left out and reported
+  - the import validates the whole file before anything is written (known keys, allowed levels, values like the settings page, unknown levels and credentials reported, never created), shows the added, changed and removed overrides per level and writes them in one transaction; mode merge (only the values of the file) or replace (the file is the complete state of the levels it names); at most 1 MiB and 10000 levels
+  - snapshots: named versions of the settings in the new table `device_specific_config_snapshot`, stored from the current settings and applied through the import preview, downloadable as file
+  - middleware REST API (admin): `GET /api/DeviceSpecificSettings` (export), `POST /api/DeviceSpecificSettings/Import` (`options.mode`, `options.dryRun`), `POST /api/DeviceSpecificSettings/Snapshots/List`, `GET /api/DeviceSpecificSettings/Snapshots/{id}`, `POST /api/DeviceSpecificSettings/Snapshots`; all with the expensive rate-limit policy
+
 ## 9.9.4 - 17.11.2026
 - middleware REST API: `Rule/GetRulesByFilter` accepts `RuleUid` as an exact third selector alongside `OwnerId` and `IpAddress`; all current non-removed matches are ordered by rule ID and use the existing paging and SIEM logging behavior
 - request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket

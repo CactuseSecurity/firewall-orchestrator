@@ -668,6 +668,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Die interne CA kann ohne Unterbrechung der Verbindungen zwischen den Firewall-Orchestrator-Komponenten ersetzt werden: ein Upgrade mit <code>internalca_ca_rotation=prepare</code> verteilt die neue CA an alle Hosts, ein zweites mit <code>internalca_ca_rotation=activate</code> stellt alle Zertifikate auf sie um und entzieht danach der bisherigen CA das Vertrauen.</li>
     <li>UI und Middleware protokollieren bei An- und Abmeldungen die tats&auml;chliche Adresse des Clients statt 127.0.0.1 bzw. der Adresse des UI-Servers. Anmeldungen &uuml;ber die UI werden dadurch je Client-Adresse begrenzt (Standard: 30 Versuche pro Minute); Benutzer hinter einer gemeinsamen Adresse (NAT, Terminalserver, vorgeschalteter Reverse Proxy) teilen sich dieses Limit.</li>
     <li>Modellierung: Der Report &quot;Modell: Soll-Ist&quot;, der Verbindungsstatus (&quot;Status aktualisieren&quot; und die Hintergrund-Analyse) und die Beantragung analysieren nun dieselben Verbindungen auf dieselbe Weise und beachten einheitlich die Einstellung &quot;Gel&ouml;schte App Server ausrollen&quot;. Verbindungen mit Modellierungsproblemen (z.B. leere App-Rollen, gel&ouml;schte Objekte, nicht nutzbare Schnittstellen) f&uuml;hrt der Report mit Grund unter &quot;Nicht analysierte Verbindungen&quot; auf; ihr Verbindungsstatus zeigt kein Soll-Ist-Ergebnis mehr. Reine Dokumentations-Verbindungen werden im Report nicht mehr verglichen. Mit der Option &quot;Gruppen aufl&ouml;sen&quot; z&auml;hlt eine Gruppe in Produktion mit zus&auml;tzlichen Mitgliedern als Abweichung, eine Gruppe mit genau den modellierten Mitgliedern dagegen nicht.</li>
+    <li>Ger&auml;tespezifische Einstellungen k&ouml;nnen von Administratoren als Datei exportiert, auf eine andere Installation importiert und als benannte Versionen gespeichert werden. Ebenen werden &uuml;ber Namen statt Datenbank-IDs angesprochen, Anmeldedaten &uuml;ber ihren Namen, Geheimnisse werden nie exportiert. Der Import pr&uuml;ft die ganze Datei, zeigt die &Auml;nderungen je Ebene als Vorschau und schreibt sie in einem Schritt (Zusammenf&uuml;hren oder Ersetzen). Dieselben Funktionen bietet die REST-Schnittstelle unter <code>/api/DeviceSpecificSettings</code>.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -698,6 +699,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>The internal CA can be replaced without interrupting the connections between the Firewall Orchestrator components: an upgrade with <code>internalca_ca_rotation=prepare</code> distributes the new CA to every host, a second one with <code>internalca_ca_rotation=activate</code> switches all certificates to it and then withdraws trust in the previous CA.</li>
     <li>UI and middleware log the real address of the client with logins and logouts instead of 127.0.0.1 or the address of the UI server. Logins through the UI are thereby limited per client address (default: 30 attempts per minute); users behind one shared address (NAT, terminal server, an upstream reverse proxy) share that limit.</li>
     <li>Modelling: the report &quot;Model: Variances&quot;, the connection state (&quot;Refresh State&quot; and the background analysis) and the request now analyse the same connections in the same way and all follow the setting &quot;Rollout removed App Servers&quot;. The report lists connections with modelling issues (e.g. empty app roles, deleted objects, unusable interfaces) with their reason under &quot;Connections not analysed&quot;; their connection state no longer shows a variance result. Documentation-only connections are no longer compared in the report. With the option &quot;Resolve Groups&quot;, a production group with additional members counts as a difference, while a group with exactly the modelled members does not.</li>
+    <li>Admins can export the device specific settings as file, import them into another installation and store them as named snapshots. Levels are addressed by name instead of database IDs, credentials by their name, secrets are never exported. The import checks the whole file, previews the changes per level and writes them in one step (merge or replace). The REST interface offers the same functions under <code>/api/DeviceSpecificSettings</code>.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3376,6 +3378,56 @@ INSERT INTO txt VALUES ('dss_settings_intro',  'German', 	'Einstellungen werden 
 INSERT INTO txt VALUES ('dss_settings_intro',  'English', 	'Settings are inherited from Global down through Device Type and Manager to Gateway. Select a level on the left and override individual values where needed.');
 INSERT INTO txt VALUES ('dss_hierarchy_hint',  'German', 	'Global &gt; Ger&auml;tetyp &gt; Manager &gt; Gateway');
 INSERT INTO txt VALUES ('dss_hierarchy_hint',  'English', 	'Global > Device Type > Manager > Gateway');
+INSERT INTO txt VALUES ('dss_import_settings', 'German', 	'Ger&auml;tespezifische Einstellungen importieren');
+INSERT INTO txt VALUES ('dss_import_settings', 'English', 	'Import device specific settings');
+INSERT INTO txt VALUES ('dss_import_source',   'German', 	'Quelle');
+INSERT INTO txt VALUES ('dss_import_source',   'English', 	'Source');
+INSERT INTO txt VALUES ('dss_fwo_version',     'German', 	'FWO-Version');
+INSERT INTO txt VALUES ('dss_fwo_version',     'English', 	'FWO version');
+INSERT INTO txt VALUES ('dss_levels',          'German', 	'Ebenen');
+INSERT INTO txt VALUES ('dss_levels',          'English', 	'levels');
+INSERT INTO txt VALUES ('dss_level',           'German', 	'Ebene');
+INSERT INTO txt VALUES ('dss_level',           'English', 	'Level');
+INSERT INTO txt VALUES ('dss_setting',         'German', 	'Einstellung');
+INSERT INTO txt VALUES ('dss_setting',         'English', 	'Setting');
+INSERT INTO txt VALUES ('dss_old_value',       'German', 	'Bisheriger Wert');
+INSERT INTO txt VALUES ('dss_old_value',       'English', 	'Current value');
+INSERT INTO txt VALUES ('dss_new_value',       'German', 	'Neuer Wert');
+INSERT INTO txt VALUES ('dss_new_value',       'English', 	'New value');
+INSERT INTO txt VALUES ('dss_changes',         'German', 	'&Auml;nderungen');
+INSERT INTO txt VALUES ('dss_changes',         'English', 	'changes');
+INSERT INTO txt VALUES ('dss_change_added',    'German', 	'neu');
+INSERT INTO txt VALUES ('dss_change_added',    'English', 	'added');
+INSERT INTO txt VALUES ('dss_change_changed',  'German', 	'ge&auml;ndert');
+INSERT INTO txt VALUES ('dss_change_changed',  'English', 	'changed');
+INSERT INTO txt VALUES ('dss_change_removed',  'German', 	'entfernt');
+INSERT INTO txt VALUES ('dss_change_removed',  'English', 	'removed');
+INSERT INTO txt VALUES ('dss_import_mode',     'German', 	'Modus');
+INSERT INTO txt VALUES ('dss_import_mode',     'English', 	'Mode');
+INSERT INTO txt VALUES ('dss_import_mode_merge',   'German', 	'Zusammenf&uuml;hren: nur die Werte der Datei setzen');
+INSERT INTO txt VALUES ('dss_import_mode_merge',   'English', 	'Merge: only set the values in the file');
+INSERT INTO txt VALUES ('dss_import_mode_replace', 'German', 	'Ersetzen: die Datei ist der vollst&auml;ndige Stand der genannten Ebenen');
+INSERT INTO txt VALUES ('dss_import_mode_replace', 'English', 	'Replace: the file is the complete state of the levels it names');
+INSERT INTO txt VALUES ('dss_import_errors',   'German', 	'Die Datei kann nicht importiert werden, es wurde nichts ge&auml;ndert:');
+INSERT INTO txt VALUES ('dss_import_errors',   'English', 	'The file cannot be imported, nothing was changed:');
+INSERT INTO txt VALUES ('dss_import_no_changes', 'German', 	'Die Datei entspricht den aktuellen Einstellungen, es gibt nichts zu importieren.');
+INSERT INTO txt VALUES ('dss_import_no_changes', 'English', 	'The file matches the current settings, there is nothing to import.');
+INSERT INTO txt VALUES ('dss_import_preview',  'German', 	'Der Import nimmt folgende &Auml;nderungen vor:');
+INSERT INTO txt VALUES ('dss_import_preview',  'English', 	'The import makes the following changes:');
+INSERT INTO txt VALUES ('dss_import_done',     'German', 	'Import abgeschlossen:');
+INSERT INTO txt VALUES ('dss_import_done',     'English', 	'Import finished:');
+INSERT INTO txt VALUES ('dss_export_warnings', 'German', 	'Nicht exportiert:');
+INSERT INTO txt VALUES ('dss_export_warnings', 'English', 	'Not exported:');
+INSERT INTO txt VALUES ('dss_snapshots',       'German', 	'Versionen');
+INSERT INTO txt VALUES ('dss_snapshots',       'English', 	'Snapshots');
+INSERT INTO txt VALUES ('dss_snapshots_intro', 'German', 	'Gespeicherte Versionen der ger&auml;tespezifischen Einstellungen. Anwenden zeigt zuerst die &Auml;nderungen als Vorschau an.');
+INSERT INTO txt VALUES ('dss_snapshots_intro', 'English', 	'Stored versions of the device specific settings. Applying one first shows the changes as a preview.');
+INSERT INTO txt VALUES ('dss_save_snapshot',   'German', 	'Aktuellen Stand speichern');
+INSERT INTO txt VALUES ('dss_save_snapshot',   'English', 	'Save current settings');
+INSERT INTO txt VALUES ('dss_apply_snapshot',  'German', 	'Anwenden');
+INSERT INTO txt VALUES ('dss_apply_snapshot',  'English', 	'Apply');
+INSERT INTO txt VALUES ('dss_no_snapshots',    'German', 	'Es sind noch keine Versionen gespeichert.');
+INSERT INTO txt VALUES ('dss_no_snapshots',    'English', 	'No snapshots stored yet.');
 INSERT INTO txt VALUES ('dss_global',          'German', 	'Global');
 INSERT INTO txt VALUES ('dss_global',          'English', 	'Global');
 INSERT INTO txt VALUES ('dss_device_type',     'German', 	'Ger&auml;tetyp');
@@ -4611,6 +4663,8 @@ INSERT INTO txt VALUES ('U5121', 'German',  'Statusanzeige des aktuellen Workflo
 INSERT INTO txt VALUES ('U5121', 'English', 'Shows the current workflow request status per application in Workflow notifications mode.');
 INSERT INTO txt VALUES ('U5122', 'German',  'Antragsstatus zur&uuml;cksetzen f&uuml;r ');
 INSERT INTO txt VALUES ('U5122', 'English', 'Reset request status for ');
+INSERT INTO txt VALUES ('U5123', 'German',  'Sind Sie sicher, dass Sie folgende Version der ger&auml;tespezifischen Einstellungen l&ouml;schen wollen: ');
+INSERT INTO txt VALUES ('U5123', 'English', 'Are you sure you want to delete the following snapshot of the device specific settings: ');
 
 INSERT INTO txt VALUES ('U5201', 'German',  'Sind sie sicher, dass sie folgenden Nutzer l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5201', 'English', 'Are you sure you want to delete user: ');
@@ -5147,6 +5201,10 @@ INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration konnte nicht gelesen 
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading or processing Config.');
 INSERT INTO txt VALUES ('E5302', 'German',  'Die Check-Point-LayerGuard-Sektionsnamensvorlage ist ung&uuml;ltig. Erlaubt sind fester Text und die Platzhalter @@SOURCE_ZONE@@ und @@DESTINATION_ZONE@@.');
 INSERT INTO txt VALUES ('E5302', 'English', 'The Check Point LayerGuard section name template is invalid. Use fixed text and the placeholders @@SOURCE_ZONE@@ and @@DESTINATION_ZONE@@.');
+INSERT INTO txt VALUES ('E5303', 'German',  'Die Datei ist keine g&uuml;ltige Exportdatei ger&auml;tespezifischer Einstellungen oder gr&ouml;&szlig;er als 1 MiB.');
+INSERT INTO txt VALUES ('E5303', 'English', 'The file is no valid export of device specific settings or larger than 1 MiB.');
+INSERT INTO txt VALUES ('E5304', 'German',  'Die Version konnte nicht gespeichert werden. Der Name muss eindeutig sein.');
+INSERT INTO txt VALUES ('E5304', 'English', 'The snapshot could not be stored. Its name must be unique.');
 
 INSERT INTO txt VALUES ('E5401', 'German',  'Bitte das alte Passwort eintragen');
 INSERT INTO txt VALUES ('E5401', 'English', 'Please insert the old password');
@@ -6858,6 +6916,20 @@ INSERT INTO txt VALUES ('H5168', 'German', 'Umsetzungsmodus f&uuml;r Objekte: gi
 INSERT INTO txt VALUES ('H5168', 'English', 'Implementation mode for objects: applies to object and group tasks only, rules have a setting of their own. Automatic (default) = the action &quot;Create implementation tasks&quot; creates an implementation task on this management; manual = none is created; external ticket system = none is created, a request task of this management is to be implemented by the selected external ticket system; the hand-over to that system is still configured in the workflow customizing settings for now. Such a task covers only this management and is handed over as a whole; super- and sub-managements are not evaluated. If such a management is only the target of a task on another management or without management and the ticket holds no object task of this management, nobody implements it; an alert points this out. The management the object is created on decides (see address, service and time object creation). Request tasks without management (&quot;All&quot; or from the REST interface) are spread over all target managements with mode automatic. Global, device type and manager. If an action is offered as a button, the person pressing it decides: targets set to manual then get implementation tasks as well and are written to the firewall, those set to external ticket system never.');
 INSERT INTO txt VALUES ('H5169', 'German', 'Installieren auf: legt fest, auf welchen Gateways eine neue Regel wirkt, die auf die Firewall geschrieben wird. ANY (Standard) = auf allen Zielen ihrer Policy (Check Point: install-on &quot;Policy Targets&quot;, auch auf sp&auml;ter hinzukommenden Gateways); Gateways im Pfad = nur auf den Gateways des Implementierungs-Auftrags. Bestehende Regeln werden beim &Auml;ndern und L&ouml;schen nicht angepasst. Eine selbst angepasste Vorlage f&uuml;r das Anlegen von Regeln muss dazu den Platzhalter @@INSTALL_ON@@ enthalten, sonst gilt der Standard des Herstellers.');
 INSERT INTO txt VALUES ('H5169', 'English', 'Install on: decides on which gateways a new rule written to the firewall takes effect. ANY (default) = on all targets of its policy (Check Point: install-on &quot;Policy Targets&quot;, also on gateways added later); gateways in path = only on the gateways of the implementation task. Existing rules are not adapted when they are modified or deleted. An own template for creating rules has to contain the placeholder @@INSTALL_ON@@ for this, otherwise the default of the vendor applies.');
+INSERT INTO txt VALUES ('H5170', 'German',  'Export, Import und Versionen (nur Admins): Die ger&auml;tespezifischen Einstellungen k&ouml;nnen als Datei gesichert, auf eine andere Installation &uuml;bertragen oder als Version gespeichert werden, z.B. um Testsysteme reproduzierbar aufzusetzen. Ebenen werden dabei &uuml;ber Namen statt Datenbank-IDs angesprochen: Ger&auml;tetyp &uuml;ber Name und Version, Management &uuml;ber seinen Namen, Gateway &uuml;ber Management- und Gateway-Namen.');
+INSERT INTO txt VALUES ('H5170', 'English', 'Export, import and snapshots (admins only): the device specific settings can be saved to a file, moved to another installation or stored as a snapshot, e.g. to set up test systems reproducibly. Levels are addressed by name instead of database IDs: a device type by name and version, a management by its name, a gateway by management and gateway name.');
+INSERT INTO txt VALUES ('H5170a', 'German', 'Exportieren: L&auml;dt alle Ebenen mit mindestens einem &uuml;berschriebenen Wert als JSON-Datei herunter, zusammen mit der FWO-Version und einer Formatversion. Einstellungen, die auf andere Objekte verweisen, enthalten deren Namen (die SecureChange-Anmeldedaten den Namen der Anmeldedaten); Geheimnisse sind nie Teil des Exports. Ebenen von inzwischen gel&ouml;schten Managements oder Gateways und Verweise auf gel&ouml;schte Anmeldedaten werden ausgelassen und gemeldet.');
+INSERT INTO txt VALUES ('H5170a', 'English', 'Export: downloads all levels with at least one overridden value as JSON file, together with the FWO version and a format version. Settings referencing other objects hold their names (the SecureChange credential the name of the credential); secrets are never part of the export. Levels of managements or gateways deleted in the meantime and references to deleted credentials are left out and reported.');
+INSERT INTO txt VALUES ('H5170b', 'German', 'Importieren: Pr&uuml;ft die ganze Datei (h&ouml;chstens 1 MiB und 10000 Ebenen), bevor etwas geschrieben wird: nur bekannte Einstellungen, nur auf den Ebenen, auf denen sie gesetzt werden d&uuml;rfen, Werte wie auf dieser Seite gepr&uuml;ft. Unbekannte Ger&auml;tetypen, Managements und Gateways sowie nicht gefundene oder mehrdeutige Anmeldedaten werden mit ihrem Pfad in der Datei gemeldet und nie angelegt. Bei einem Fehler wird nichts ge&auml;ndert.');
+INSERT INTO txt VALUES ('H5170b', 'English', 'Import: checks the whole file (at most 1 MiB and 10000 levels) before anything is written: only known settings, only at the levels they may be set at, values checked like on this page. Unknown device types, managements and gateways as well as missing or ambiguous credentials are reported with their path in the file and never created. If there is an error, nothing is changed.');
+INSERT INTO txt VALUES ('H5170c', 'German', 'Modus: Zusammenf&uuml;hren setzt nur die Werte der Datei, alle anderen &Uuml;berschreibungen bleiben erhalten. Ersetzen macht die Datei zum vollst&auml;ndigen Stand der Ebenen, die sie nennt: deren &uuml;brige &Uuml;berschreibungen werden entfernt, so dass sie wieder geerbt werden. Ebenen, die nicht in der Datei vorkommen, werden in beiden Modi nicht ver&auml;ndert.');
+INSERT INTO txt VALUES ('H5170c', 'English', 'Mode: merge only sets the values in the file, all other overrides are kept. Replace makes the file the complete state of the levels it names: their other overrides are removed, so that they are inherited again. Levels not named in the file are changed in neither mode.');
+INSERT INTO txt VALUES ('H5170d', 'German', 'Pr&uuml;fen zeigt die neuen, ge&auml;nderten und entfernten Werte je Ebene an, ohne etwas zu schreiben. &Auml;nderungen anwenden pr&uuml;ft die Datei erneut gegen den aktuellen Stand und schreibt alle Werte in einem Schritt; noch nicht gespeicherte Ebenen werden dabei unter ihrem aktuellen Ger&auml;tetyp bzw. Management angelegt.');
+INSERT INTO txt VALUES ('H5170d', 'English', 'Check shows the added, changed and removed values per level without writing anything. Apply changes checks the file again against the current state and writes all values in one step; levels not stored yet are created below their current device type or management.');
+INSERT INTO txt VALUES ('H5170e', 'German', 'Versionen: Speichert den aktuellen Stand unter einem eindeutigen Namen mit optionaler Beschreibung. Eine Version kann sp&auml;ter angewendet werden (&uuml;ber die Vorschau des Imports), als Datei heruntergeladen oder gel&ouml;scht werden.');
+INSERT INTO txt VALUES ('H5170e', 'English', 'Snapshots: stores the current settings under a unique name with an optional description. A snapshot can be applied later (through the import preview), downloaded as file or deleted.');
+INSERT INTO txt VALUES ('H5170f', 'German', 'REST-Schnittstelle der Middleware (Rolle admin): GET /api/DeviceSpecificSettings exportiert, POST /api/DeviceSpecificSettings/Import importiert (options.mode merge oder replace, options.dryRun nur pr&uuml;fen), POST /api/DeviceSpecificSettings/Snapshots/List listet die Versionen, GET /api/DeviceSpecificSettings/Snapshots/{id} liest eine Version, POST /api/DeviceSpecificSettings/Snapshots speichert den aktuellen Stand oder eine Datei als Version.');
+INSERT INTO txt VALUES ('H5170f', 'English', 'Middleware REST interface (role admin): GET /api/DeviceSpecificSettings exports, POST /api/DeviceSpecificSettings/Import imports (options.mode merge or replace, options.dryRun only checks), POST /api/DeviceSpecificSettings/Snapshots/List lists the snapshots, GET /api/DeviceSpecificSettings/Snapshots/{id} reads a snapshot, POST /api/DeviceSpecificSettings/Snapshots stores the current settings or a file as snapshot.');
 INSERT INTO txt VALUES ('H5171', 'German',  'Hier wird ein &Uuml;berblick &uuml;ber den Status der Importjobs der verschiedenen Managements gegeben.
     Dabei werden Managements, die Auff&auml;lligkeiten aufweisen (wie sie auch vom <a href="/help/monitoring/daily_checks">T&auml;glichen Check</a> beanstandet w&uuml;rden), rot unterlegt und zuerst aufgelistet,
     danach folgen gelb unterlegt die laufenden Imports, dann erst die &uuml;brigen Managements.

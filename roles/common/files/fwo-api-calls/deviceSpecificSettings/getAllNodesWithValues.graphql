@@ -1,0 +1,21 @@
+query getAllNodesWithValues {
+  device_specific_config_node(
+    order_by: [
+      {sort_order: asc_nulls_last}
+      {display_name: asc}
+      {id: asc}
+    ]
+  ) {
+    id
+    node_type
+    object_key
+    parent_id
+    display_name
+    sort_order
+    values(order_by: {config_key: asc}) {
+      node_id
+      config_key
+      config_value
+    }
+  }
+}

@@ -51,6 +51,27 @@ public sealed class DeviceSpecificSettingsChangeSet
         return this;
     }
 
+    /// <summary>
+    /// Stores a value whose type is only known at runtime, e.g. one read from an import package, as override of the
+    /// key on this level. The value must be of the key's value type.
+    /// </summary>
+    public DeviceSpecificSettingsChangeSet SetValue(DeviceSpecificSettingKey key, object value)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(value);
+        ValidateScope(key);
+        if (!key.ValueType.IsInstanceOfType(value))
+        {
+            throw new ArgumentException(
+                $"Setting '{key.DatabaseKey}' requires a value of type '{key.ValueType.Name}', not '{value.GetType().Name}'.",
+                nameof(value));
+        }
+
+        removals.Remove(key.DatabaseKey);
+        upserts[key.DatabaseKey] = new DeviceSpecificSettingOverride(key, value);
+        return this;
+    }
+
     /// <summary>Removes the override of the key from this level, so that the level inherits the value again.</summary>
     public DeviceSpecificSettingsChangeSet Remove(DeviceSpecificSettingKey key)
     {

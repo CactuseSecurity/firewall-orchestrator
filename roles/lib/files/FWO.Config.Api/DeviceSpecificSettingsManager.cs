@@ -258,6 +258,106 @@ public sealed class DeviceSpecificSettingsManager
     }
 
     /// <summary>
+    /// Returns all persisted nodes with their stored overrides, validated like <see cref="GetAllNodesAsync"/>: Global
+    /// first and every level before the one below it. Loads them with a single query.
+    /// </summary>
+    public async Task<List<DeviceSpecificStoredNode>> GetAllNodesWithValuesAsync()
+    {
+        List<DeviceSpecificConfigNodeData> nodes =
+            await apiConnection.SendQueryAsync<List<DeviceSpecificConfigNodeData>>(DeviceSpecificSettingsQueries.getAllNodesWithValues);
+        Dictionary<long, DeviceSpecificConfigNodeData> nodesById = nodes.ToDictionary(node => node.Id);
+        List<DeviceSpecificSettingsScope> orderedScopes = DeviceSpecificSettingsHierarchyValidator.ValidateTree(CreateScopeChain(nodes));
+
+        List<DeviceSpecificStoredNode> storedNodes = [];
+        foreach (DeviceSpecificSettingsScope scope in orderedScopes)
+        {
+            DeviceSpecificConfigNodeData node = nodesById[scope.NodeId];
+            ValidateSingleNodeValues(node, scope);
+            Dictionary<DeviceSpecificSettingKey, JToken> values = node.Values.ToDictionary(
+                value => DeviceSpecificSettingKeys.ByDatabaseKey[value.ConfigKey], value => value.ConfigValue);
+            storedNodes.Add(new DeviceSpecificStoredNode(scope, values));
+        }
+        return storedNodes;
+    }
+
+    /// <summary>
+    /// Writes the upserts and removals of several levels with one request, so that either all of them or none are
+    /// stored. Every change set must address a persisted node (node ID set); create missing nodes beforehand with
+    /// <see cref="EnsureNodeAsync"/>.
+    /// </summary>
+    /// <param name="changeSets">Changes per level; empty change sets are skipped.</param>
+    public async Task ApplyChangeSetsAsync(IReadOnlyList<DeviceSpecificSettingsChangeSet> changeSets)
+    {
+        ArgumentNullException.ThrowIfNull(changeSets);
+
+        List<object> upserts = [];
+        List<object> removalConditions = [];
+        foreach (DeviceSpecificSettingsChangeSet changes in changeSets.Where(changeSet => !changeSet.IsEmpty))
+        {
+            DeviceSpecificSettingsHierarchyValidator.ValidateLocator(changes.Scope);
+            if (changes.Scope.NodeId <= 0)
+            {
+                throw new ArgumentException(
+                    $"Device specific settings scope '{changes.Scope.ScopeType}:{changes.Scope.ObjectKey}' has no persisted node.",
+                    nameof(changeSets));
+            }
+
+            foreach (DeviceSpecificSettingOverride upsert in changes.Upserts)
+            {
+                ValidateKeyForScope(upsert.Key, changes.Scope.ScopeType);
+                upserts.Add(new
+                {
+                    node_id = changes.Scope.NodeId,
+                    config_key = upsert.Key.DatabaseKey,
+                    config_value = DeviceSpecificSettingValueSerializer.Serialize(upsert.Key, upsert.Value)
+                });
+            }
+
+            if (changes.Removals.Count > 0)
+            {
+                removalConditions.Add(BuildRemovalCondition(changes));
+            }
+        }
+
+        if (upserts.Count == 0 && removalConditions.Count == 0)
+        {
+            return;
+        }
+
+        await apiConnection.SendQueryAsync<ReturnId>(
+            DeviceSpecificSettingsQueries.applyBulkPatch,
+            new { upserts, removals = BuildRemovalFilter(removalConditions) });
+    }
+
+    /// <summary>Condition matching the removed overrides of one level.</summary>
+    private static object BuildRemovalCondition(DeviceSpecificSettingsChangeSet changes)
+    {
+        foreach (DeviceSpecificSettingKey removal in changes.Removals)
+        {
+            ValidateKeyForScope(removal, changes.Scope.ScopeType);
+        }
+        List<string> removedKeys = [.. changes.Removals.Select(key => key.DatabaseKey)];
+        return new
+        {
+            node_id = new Dictionary<string, object> { ["_eq"] = changes.Scope.NodeId },
+            config_key = new Dictionary<string, object> { ["_in"] = removedKeys }
+        };
+    }
+
+    /// <summary>
+    /// Filter of all removed overrides. Without removals it matches no row: an empty <c>_in</c> list is false, while an
+    /// empty <c>_or</c> list must never reach the delete.
+    /// </summary>
+    private static object BuildRemovalFilter(List<object> removalConditions)
+    {
+        if (removalConditions.Count == 0)
+        {
+            return new { node_id = new Dictionary<string, object> { ["_in"] = new List<long>() } };
+        }
+        return new Dictionary<string, object> { ["_or"] = removalConditions };
+    }
+
+    /// <summary>
     /// Names of the levels whose Tufin SecureChange connection logs in with the given credential. The database cannot
     /// prevent deleting such a credential, as the settings reference it by value.
     /// </summary>

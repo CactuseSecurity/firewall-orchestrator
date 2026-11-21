@@ -1,0 +1,14 @@
+query getSnapshots($where: device_specific_config_snapshot_bool_exp!, $limit: Int!, $offset: Int!) {
+  device_specific_config_snapshot(
+    where: $where
+    order_by: [{created: desc}, {id: desc}]
+    limit: $limit
+    offset: $offset
+  ) {
+    id
+    name
+    description
+    fwo_version
+    created
+  }
+}

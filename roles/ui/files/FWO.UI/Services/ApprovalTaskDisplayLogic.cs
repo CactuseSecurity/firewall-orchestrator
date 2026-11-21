@@ -184,20 +184,49 @@ namespace FWO.Ui.Services
 
         /// <summary>Builds the network-object columns for an access-task field.</summary>
         public IEnumerable<ApprovalTaskNetworkElementRow> NetworkElementRows(IEnumerable<WfReqTask> tasks, ElemFieldType field) =>
-            DisplayElements(tasks, field).Select(BuildNetworkElementRow);
+            DisplayElements(tasks, field).Select(element => BuildNetworkElementRow(element, field));
+
+        /// <summary>Returns the compliance zones overlapping the ip range of an element.</summary>
+        /// <param name="element">The network element.</param>
+        public string ZonesOf(WfReqElement element) => Zones(element);
+
+        /// <summary>Returns the technical content (protocol and ports) of a service element.</summary>
+        /// <param name="element">The service element.</param>
+        public string ServiceContent(WfReqElement element) => DisplayBase.DisplayService(ToServiceElement(element), ipProtocols);
 
         /// <summary>Builds the service columns for an access-task field.</summary>
         public IEnumerable<ApprovalTaskServiceElementRow> ServiceElementRows(IEnumerable<WfReqTask> tasks, ElemFieldType field) =>
             DisplayElements(tasks, field).Select(BuildServiceElementRow);
 
-        private ApprovalTaskNetworkElementRow BuildNetworkElementRow(WfReqElement element)
+        private ApprovalTaskNetworkElementRow BuildNetworkElementRow(WfReqElement element, ElemFieldType field)
         {
             string name = displayMode == ApprovalTaskElementDisplayMode.Technical ? "" : ElementDisplayName(element);
             string ip = displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups
                 ? ""
                 : NwObjDisplay.DisplayIp(element.IpString, element.IpEnd);
-            string zone = displayMode == ApprovalTaskElementDisplayMode.UnresolvedGroups ? "" : Zones(element);
-            return new ApprovalTaskNetworkElementRow(name, ip, zone);
+            return new ApprovalTaskNetworkElementRow(name, ip, ElementZones(element, field));
+        }
+
+        /// <summary>
+        /// Returns the zones of an element. An unresolved group shows the zones of its members.
+        /// </summary>
+        private string ElementZones(WfReqElement element, ElemFieldType field)
+        {
+            if (displayMode != ApprovalTaskElementDisplayMode.UnresolvedGroups || !IsGroupElement(element, field))
+            {
+                return Zones(element);
+            }
+
+            List<WfReqElement> members = [.. ExpandTicketGroup(element, field)
+                .Where(member => !ReferenceEquals(member, element) && !IsRemovedMember(member))];
+            if (members.Count == 0)
+            {
+                return Zones(element);
+            }
+
+            IEnumerable<string> memberZones = members
+                .SelectMany(member => Zones(member).Split(", ", StringSplitOptions.RemoveEmptyEntries));
+            return string.Join(", ", memberZones.Distinct());
         }
 
         private ApprovalTaskServiceElementRow BuildServiceElementRow(WfReqElement element)

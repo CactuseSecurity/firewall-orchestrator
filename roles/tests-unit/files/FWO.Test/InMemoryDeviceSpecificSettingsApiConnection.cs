@@ -234,9 +234,9 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
         object removals = RequiredProperty<object>(vars, "removals");
         LastBulkRemovals = removals;
         int removed = 0;
-        if (removals is IDictionary<string, object> orFilter)
+        if (((IDictionary<string, object>)removals).TryGetValue("_or", out object? conditions))
         {
-            foreach (object condition in (IEnumerable)orFilter["_or"])
+            foreach (object condition in (IEnumerable)conditions)
             {
                 long nodeId = (long)RequiredProperty<Dictionary<string, object>>(condition, "node_id")["_eq"];
                 List<string> keys = (List<string>)RequiredProperty<Dictionary<string, object>>(condition, "config_key")["_in"];
@@ -301,7 +301,7 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
         return Summary(snapshot);
     }
 
-    private object DeleteSnapshot(object? variables)
+    private ReturnId DeleteSnapshot(object? variables)
     {
         long id = RequiredProperty<long>(RequiredVariables(variables), "id");
         Snapshots.RemoveAll(snapshot => snapshot.Id == id);

@@ -309,9 +309,20 @@ public static class DeviceSpecificSettingsPackageValidator
             return new JValue(credentials[0].Id);
         }
 
-        errors.Add(new(path, credentials.Count > 1 ? $"Credential name '{name}' is ambiguous."
-            : context.HasCredentialNamed(name) ? $"Credential '{name}' is a key pair and cannot log in with a password."
-            : $"Credential '{name}' does not exist."));
+        string message;
+        if (credentials.Count > 1)
+        {
+            message = $"Credential name '{name}' is ambiguous.";
+        }
+        else if (context.HasCredentialNamed(name))
+        {
+            message = $"Credential '{name}' is a key pair and cannot log in with a password.";
+        }
+        else
+        {
+            message = $"Credential '{name}' does not exist.";
+        }
+        errors.Add(new(path, message));
         return null;
     }
 

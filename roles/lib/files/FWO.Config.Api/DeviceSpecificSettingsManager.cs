@@ -348,11 +348,11 @@ public sealed class DeviceSpecificSettingsManager
     /// Filter of all removed overrides. Without removals it matches no row: an empty <c>_in</c> list is false, while an
     /// empty <c>_or</c> list must never reach the delete.
     /// </summary>
-    private static object BuildRemovalFilter(List<object> removalConditions)
+    private static Dictionary<string, object> BuildRemovalFilter(List<object> removalConditions)
     {
         if (removalConditions.Count == 0)
         {
-            return new { node_id = new Dictionary<string, object> { ["_in"] = new List<long>() } };
+            return new Dictionary<string, object> { ["node_id"] = new Dictionary<string, object> { ["_in"] = new List<long>() } };
         }
         return new Dictionary<string, object> { ["_or"] = removalConditions };
     }

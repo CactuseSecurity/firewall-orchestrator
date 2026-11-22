@@ -44,12 +44,11 @@ internal class DeviceSpecificSettingsManagerChangeSetsTest
 
         await manager.ApplyChangeSetsAsync([new DeviceSpecificSettingsChangeSet(scope).SetValue(DeviceSpecificSettingKeys.RequestMaxAttempts, 5)]);
 
-        object removals = api.LastBulkRemovals!;
-        object nodeIdCondition = removals.GetType().GetProperty("node_id")!.GetValue(removals)!;
+        Dictionary<string, object> removals = (Dictionary<string, object>)api.LastBulkRemovals!;
         Assert.Multiple(() =>
         {
-            Assert.That(removals, Is.Not.InstanceOf<IDictionary<string, object>>(), "no _or list reaches the delete");
-            Assert.That((List<long>)((Dictionary<string, object>)nodeIdCondition)["_in"], Is.Empty);
+            Assert.That(removals.Keys, Is.EqualTo(new List<string> { "node_id" }), "no _or list reaches the delete");
+            Assert.That((List<long>)((Dictionary<string, object>)removals["node_id"])["_in"], Is.Empty);
             Assert.That(api.ReadValue(1, DeviceSpecificSettingKeys.ScUrl), Is.Not.Null);
         });
     }

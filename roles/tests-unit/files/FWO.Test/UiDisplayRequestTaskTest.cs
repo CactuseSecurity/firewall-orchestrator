@@ -203,6 +203,43 @@ namespace FWO.Test
             Assert.That(GetPrivateField<bool>(component, "WorkInProgress"), Is.True);
         }
 
+        [TestCase(WfTaskType.group_create, "create")]
+        [TestCase(WfTaskType.group_modify, "addAfterCreation")]
+        public async Task DisplayRequestTask_ReadOnlyGroupShowsMembersLabelAlignedWithGroupName(WfTaskType taskType, string requestAction)
+        {
+            WfReqTask task = new() { Id = 5, TaskNumber = 1, Title = "Group", TaskType = taskType.ToString() };
+            task.Elements.Add(new WfReqElement
+            {
+                Field = ElemFieldType.source.ToString(),
+                RequestAction = requestAction,
+                GroupName = "grp_web",
+                Name = "srv_web01",
+                IpString = "10.1.1.5"
+            });
+            WfHandler handler = new()
+            {
+                DisplayReqTaskMode = true,
+                ReadOnlyMode = true,
+                ActReqTask = task,
+                ActTicket = new WfTicket { Tasks = [task] }
+            };
+
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, new WfStateDict(), Roles.Requester);
+            UserConfig userConfig = context.Services.GetRequiredService<UserConfig>();
+
+            AngleSharp.Dom.IElement membersLabel = component.FindAll("label")
+                .First(label => label.TextContent.Trim() == $"{userConfig.GetText("members")}:");
+            AngleSharp.Dom.IElement groupLabel = component.FindAll("label")
+                .First(label => label.TextContent.Trim() == $"{userConfig.GetText("network_group")}:");
+            Assert.Multiple(() =>
+            {
+                Assert.That(membersLabel.ClassName, Is.EqualTo(groupLabel.ClassName));
+                Assert.That(membersLabel.NextElementSibling?.ClassList, Does.Contain("list-group"));
+                Assert.That(membersLabel.NextElementSibling?.TextContent, Does.Contain("srv_web01"));
+            });
+        }
+
         [Test]
         public async Task ConfiguredTaskActions_RequestTask_ExecutesNormalReloadAndResetPath()
         {

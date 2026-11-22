@@ -263,7 +263,7 @@ internal class UiDeviceSpecificSettingsSnapshotsTest
 
         setup.Dialog.Find("table button.btn-danger").Click();
         string confirmMessage = setup.Dialog.Markup;
-        setup.Dialog.FindAll("button.btn-danger").Last().Click();
+        setup.Dialog.FindAll("button.btn-danger")[^1].Click();
 
         Assert.Multiple(() =>
         {
@@ -282,7 +282,7 @@ internal class UiDeviceSpecificSettingsSnapshotsTest
         SnapshotsTestSetup setup = Render(context, api, Roles.Admin);
 
         setup.Dialog.Find("table button.btn-danger").Click();
-        setup.Dialog.FindAll("button.btn-danger").Last().Click();
+        setup.Dialog.FindAll("button.btn-danger")[^1].Click();
 
         Assert.Multiple(() =>
         {

@@ -35,7 +35,7 @@ internal class UiApprovalTaskAccessViewLayoutTest : UiSharedEditorTestBase
     /// <summary>The content area of each task card in display order, rendered by the Collapse component.</summary>
     private static List<string> CardContentClasses(IRenderedComponent<ApprovalTaskDetailsView> cut)
     {
-        return [.. cut.FindAll("div.card").Select(card => card.Children.Last().ClassName ?? "")];
+        return [.. cut.FindAll("div.card").Select(card => card.Children[^1].ClassName ?? "")];
     }
 
     private static IElement FieldOf(IRenderedComponent<ApprovalTaskDetailsView> cut, string label)

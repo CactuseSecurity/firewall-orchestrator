@@ -43,8 +43,7 @@
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", "col-xl-3 col-lg-6 mb-2 d-flex align-items-start");
         builder.OpenElement(2, "label");
-        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
-        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap approval-task-field-label");
         builder.AddContent(5, label + ":");
         builder.CloseElement();
         builder.OpenElement(6, "span");
@@ -59,8 +58,7 @@
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", $"{cssClass} d-flex align-items-start flex-nowrap");
         builder.OpenElement(2, "label");
-        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
-        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap approval-task-field-label");
         builder.AddContent(5, label + ":");
         builder.CloseElement();
         if (canEdit)

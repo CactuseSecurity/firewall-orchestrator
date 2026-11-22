@@ -7,20 +7,26 @@
 @inject UserConfig userConfig
 
 <div class="form-group row">
-    @ReadOnlyValue(userConfig.GetText("handler"), Handler)
-    @ReadOnlyValue(userConfig.GetText("assigned"), Assigned)
+    @if (ShowHandler)
+    {
+        @ReadOnlyValue(userConfig.GetText("handler"), Handler)
+    }
+    @if (ShowAssigned)
+    {
+        @ReadOnlyValue(userConfig.GetText("assigned"), Assigned)
+    }
     @if (ShowManagement)
     {
-        @EditableValue(userConfig.GetText("management"), Management, CanEditManagement, EditManagement, "col-xl-3 col-lg-6 mb-2")
+        @EditableValue(userConfig.GetText("management"), Management, CanEditManagement, EditManagement, ApprovalTaskFieldLayout.StandardColumnClass)
     }
     @if (ShowReason)
     {
-        @EditableValue(userConfig.GetText("reason"), Reason, CanEditReason, EditReason, "col-xl-3 col-lg-6 mb-2")
+        @EditableValue(userConfig.GetText("reason"), Reason, CanEditReason, EditReason, ReasonColumnClass)
     }
 </div>
 <div class="form-group row">
     <div class="col-12">
-        <DisplayObjectTaskElement ReqTask="Task" IsModify="IsModify" EditMode="false" DisplayIpProtos="Context.DisplayIpProtos">
+        <DisplayObjectTaskElement ReqTask="Task" IsModify="IsModify" EditMode="false" DisplayIpProtos="Context.DisplayIpProtos" LabelClass="approval-task-field-label">
             <ObjectNamePrefix>
                 @if (CanEditObject)
                 {
@@ -39,7 +45,9 @@
     [CascadingParameter] public ApprovalTaskViewContext Context { get; set; } = null!;
 
     private ApprovalTaskDisplayLogic DisplayLogic => Context.DisplayLogic;
-    private AccessTaskFieldVisibilityConfig Visibility => Context.Visibility;
+    private ObjectTaskFieldVisibilityConfig Visibility => Context.ObjectVisibility;
+    private bool ShowHandler => Visibility.ShowHandler;
+    private bool ShowAssigned => Visibility.ShowAssigned;
     // Object-modify tasks carry an unchanged element for the previous state.  Use
     // that persisted shape as a fallback as well, so the approval overview uses
     // the same comparison renderer as the object-task editor even when the task
@@ -52,6 +60,9 @@
     private string Reason => DisplayLogic.DistinctValues(TaskGroup, task => task.Reason);
     private bool ShowManagement => Visibility.ShowManagement;
     private bool ShowReason => Visibility.ShowReason;
+    /// <summary>The reason takes the columns of hidden handler, assigned or management fields, up to double width.</summary>
+    private string ReasonColumnClass => ApprovalTaskFieldLayout.ColumnClass(
+        ApprovalTaskFieldLayout.ExtendableWidths((ShowHandler ? 1 : 0) + (ShowAssigned ? 1 : 0) + (ShowManagement ? 1 : 0), 1)[0]);
     private bool CanEditManagement => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Management);
     private bool CanEditReason => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Reason);
     private bool CanEditObject => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Name)
@@ -65,8 +76,7 @@
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", "col-xl-3 col-lg-6 mb-2 d-flex align-items-start");
         builder.OpenElement(2, "label");
-        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
-        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap approval-task-field-label");
         builder.AddContent(5, label + ":");
         builder.CloseElement();
         builder.OpenElement(5, "span");
@@ -81,8 +91,7 @@
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", $"{cssClass} d-flex align-items-start flex-nowrap");
         builder.OpenElement(2, "label");
-        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
-        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap approval-task-field-label");
         builder.AddContent(5, label + ":");
         builder.CloseElement();
         if (canEdit)

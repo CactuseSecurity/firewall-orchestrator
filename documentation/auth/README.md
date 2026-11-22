@@ -223,7 +223,8 @@ whose single requests are expensive (`getFlowComplianceState`, `getIpDataForOwne
 `getImplTaskTargets`, `getAuditProofCriticalChanges`, `Rule/GetRulesByFilter`, `Rule/GetRuleLastHits`, `owners/get`,
 `Compliance/designatedZoneMatrix/zones`, the device specific settings export, import and snapshot endpoints
 (`GET DeviceSpecificSettings`, `DeviceSpecificSettings/Import`, `DeviceSpecificSettings/Snapshots`, `Snapshots/List`,
-`GET DeviceSpecificSettings/Snapshots/{id}`) and the user, tenant and LDAP lists `GET User`, `User/Get`, `GET Tenant`,
+`GET DeviceSpecificSettings/Snapshots/{id}`), the workflow configuration list, export and import (`WorkflowConfiguration/List`,
+`WorkflowConfiguration/Export`, `WorkflowConfiguration/Import`) and the user, tenant and LDAP lists `GET User`, `User/Get`, `GET Tenant`,
 `GET Group`, `Group/Get`, `Group/Members`, `Group/Memberships`, `Group/Resolve`) additionally run at most 2 requests
 of one user at the same time; up to 4 further requests wait, the rest are rejected. Their request bodies are limited
 to 1 MiB (`413` above). Rejected requests get `429` with `Retry-After: 60`.
@@ -263,6 +264,7 @@ are ordered:
 | `GET Group` | query parameters `limit`, `offset` | dn |
 | `GET Compliance/designatedZoneMatrix/zones` | query parameters `limit`, `offset` | zone id |
 | `DeviceSpecificSettings/Snapshots/List` | `options.limit`, `options.offset` | newest first, then id descending |
+| `WorkflowConfiguration/List` | `options.limit`, `options.offset` | name, id |
 
 The page size counts only the listed items. Objects nested in an item are not paged but returned complete: the
 members of the groups in `flow/getAddressGroups` and `getServiceGroups`, the network and service objects of the

@@ -283,3 +283,4 @@ For a feature-centric, thematically grouped view see
 
 ### 9.9.6 - 21.11.2026
 - Device specific settings can be exported as file, imported into another installation and stored as named snapshots. Levels are addressed by name instead of database IDs, credentials by name, secrets are never exported; the import validates the whole file, previews the changes per level and writes them in one transaction (merge or replace). The same functions are available through the middleware REST API under `/api/DeviceSpecificSettings`.
+- Workflow configurations can be listed, exported and imported (as new configuration or merged into an existing one) through the middleware REST API under `/api/WorkflowConfiguration`, with the same packages as on the workflow settings page.

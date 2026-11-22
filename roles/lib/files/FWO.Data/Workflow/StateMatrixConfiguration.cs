@@ -21,6 +21,46 @@ namespace FWO.Data.Workflow
         public List<WorkflowConfigurationPhase> Phases { get; set; } = [];
     }
 
+    /// <summary>
+    /// A workflow configuration without its phases, as listed for selecting a configuration to export.
+    /// </summary>
+    public class WorkflowConfigurationSummary
+    {
+        /// <summary>Database id of the configuration in this installation.</summary>
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        /// <summary>Unique name of the configuration.</summary>
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+
+        /// <summary>Optional description.</summary>
+        [JsonProperty("description"), JsonPropertyName("description")]
+        public string? Description { get; set; }
+
+        /// <summary>True for the single configuration that drives the workflow.</summary>
+        [JsonProperty("is_active"), JsonPropertyName("is_active")]
+        public bool IsActive { get; set; }
+    }
+
+    /// <summary>
+    /// Criteria of a workflow configuration list; a criterion that is null does not restrict the result.
+    /// </summary>
+    public class WorkflowConfigurationFilter
+    {
+        /// <summary>Exact configuration id.</summary>
+        public int? Id { get; set; }
+
+        /// <summary>Case-insensitive part of the name.</summary>
+        public string? Name { get; set; }
+
+        /// <summary>Case-insensitive part of the description.</summary>
+        public string? Description { get; set; }
+
+        /// <summary>Exact active flag.</summary>
+        public bool? IsActive { get; set; }
+    }
+
     public class WorkflowConfigurationPhase
     {
         [JsonProperty("task_type"), JsonPropertyName("task_type")]

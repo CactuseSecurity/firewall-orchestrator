@@ -22,5 +22,8 @@ query getModelledRulesByManagementName (
   offset: $offset
   ){
     ...ruleDetailsForReport
+    rulebase {
+      name
+    }
   }
 }

@@ -173,7 +173,7 @@ namespace FWO.Test
                 Assert.That(source, Does.Not.Contain("<script>"));
                 Assert.That(source, Does.Not.Contain("\" onmouseover"));
                 Assert.That(source, Does.Not.Contain("y'"));
-                Assert.That(destination, Does.Contain(Icons.Label).And.Contain("Stage: Prod"));
+                Assert.That(destination, Does.Contain(Icons.Role).And.Contain("Stage: Prod"));
             });
         }
 

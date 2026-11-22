@@ -132,6 +132,26 @@ namespace FWO.Test
             Assert.That(result.OkRules.Single().ImplementedRules, Has.Count.EqualTo(2));
         }
 
+        /// <summary>
+        /// The rules of a deleted (here: documentation only) connection are found by the marker where the management keeps
+        /// it: in the comment for Guardicore, although the configured location is the rule name.
+        /// </summary>
+        [Test]
+        public async Task LabelWriter_RulesOfDeletedConnectionsAreReported()
+        {
+            ModellingConnection documentationOnly = Connection();
+            documentationOnly.ExtraConfigs = [new() { ExtraConfigType = "Doku_only" }];
+            Rule rule = ProdRule(1, ProdHttps);
+            rule.Name = "APP-1";
+            ModellingVarianceAnalysisTestApiConn api = new() { ManagementDeviceTypeId = FirewallVendors.kGuardicoreManagement, Rules = [rule] };
+            SimulatedUserConfig userConfig = new() { RuleRecognitionOption = kRecognitionOption, ModRolloutNatHeuristic = false };
+            ModellingVarianceAnalysis analysis = new(api, new ExtStateHandler(ExtStateApiConnection), userConfig, Application, DefaultInit.DoNothing);
+
+            ModellingVarianceResult result = await analysis.AnalyseRulesVsModelledConnections([documentationOnly], new() { RulesForDeletedConns = true });
+
+            Assert.That(result.DeletedModelsRules.Values.SelectMany(rules => rules).Select(deleted => deleted.Id), Is.EqualTo(new List<long> { 1 }));
+        }
+
         [Test]
         public async Task OtherVendor_RulesAreComparedOneByOne()
         {

@@ -22,5 +22,8 @@ query getModelledRulesByManagementComment (
   offset: $offset
   ){
     ...ruleDetailsForReport
+    rulebase {
+      name
+    }
   }
 }

@@ -45,30 +45,86 @@ namespace FWO.Test
         /// A group task takes the object type its request task names for the group; other tasks and request tasks without
         /// a type have none, and other tasks do not ask for it.
         /// </summary>
-        /// <summary>Rule tasks take the marker and the app of the modelled connection from their request task.</summary>
-        [Test]
-        public async Task RuleTasksTakeTheConnectionMarkerAndAppOfTheirRequestTask()
-        {
-            const long kModelledRequestTaskId = 9;
-            const long kUnmodelledRequestTaskId = 10;
-            InMemoryDeviceSpecificSettingsApiConnection api = Api();
-            api.RequestTaskAdditionalInfo[kModelledRequestTaskId] = "{\"ConnId\":\"12\",\"ConnMarker\":\"FWOC12\",\"ExtAppId\":\" APP-1234 \"}";
-            api.RequestTaskAdditionalInfo[kUnmodelledRequestTaskId] = "{\"ConnMarker\":\"  \"}";
-            WfImplTask modelled = Task(WfTaskType.access);
-            modelled.ReqTaskId = kModelledRequestTaskId;
-            WfImplTask unmodelled = Task(WfTaskType.rule_modify);
-            unmodelled.ReqTaskId = kUnmodelledRequestTaskId;
-            ApiFirewallWriteDataSource dataSource = new(api);
+        private const long kRuleRequestTaskId = 9;
+        private const int kConnectionOwnerId = 5;
 
-            FirewallWriteContext modelledContext = await dataSource.LoadContext(modelled);
-            FirewallWriteContext unmodelledContext = await dataSource.LoadContext(unmodelled);
+        /// <summary>A Guardicore management with request task 9 for connection 12 of owner 5, marked "FWOC12".</summary>
+        private static InMemoryDeviceSpecificSettingsApiConnection GuardicoreApi(string marker = "FWOC12", int requestOwnerId = kConnectionOwnerId)
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = new();
+            api.Managements.Add(Management(FirewallVendors.kGuardicoreManagement));
+            api.AddNode(1, DeviceSpecificScopeType.Global, "global");
+            api.RequestTaskAdditionalInfo[kRuleRequestTaskId] = $"{{\"ConnId\":\"12\",\"ConnMarker\":\"{marker}\"}}";
+            api.RequestTaskOwners[kRuleRequestTaskId] = [requestOwnerId];
+            api.Connections.Add(new() { Id = 12, AppId = kConnectionOwnerId, App = new() { Id = kConnectionOwnerId, ExtAppId = " APP-1234 " } });
+            return api;
+        }
+
+        private static WfImplTask RuleTask(WfTaskType taskType = WfTaskType.access)
+        {
+            WfImplTask task = Task(taskType);
+            task.ReqTaskId = kRuleRequestTaskId;
+            return task;
+        }
+
+        private static async Task<FirewallWriteErrorKind?> LoadError(InMemoryDeviceSpecificSettingsApiConnection api)
+        {
+            try
+            {
+                await new ApiFirewallWriteDataSource(api).LoadContext(RuleTask());
+                return null;
+            }
+            catch (FirewallWriteException exception)
+            {
+                return exception.Error.Kind;
+            }
+        }
+
+        /// <summary>
+        /// A rule task of a management that writes labels takes the marker of its request task, checked to name the
+        /// connection of the request task, and the app of the owner of that connection as ruleset.
+        /// </summary>
+        [Test]
+        public async Task RuleTasksOfLabelWriters_TakeTheCheckedMarkerAndTheAppOfTheConnection()
+        {
+            FirewallWriteContext context = await new ApiFirewallWriteDataSource(GuardicoreApi()).LoadContext(RuleTask(WfTaskType.rule_delete));
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(modelledContext.ConnectionMarker, Is.EqualTo("FWOC12"));
-                Assert.That(modelledContext.ExtAppId, Is.EqualTo("APP-1234"));
-                Assert.That(unmodelledContext.ConnectionMarker, Is.Null, "a blank marker is none");
-                Assert.That(unmodelledContext.ExtAppId, Is.Null);
+                Assert.That(context.ConnectionMarker, Is.EqualTo("FWOC12"));
+                Assert.That(context.ExtAppId, Is.EqualTo("APP-1234"), "from the owner of the connection, not from the request task");
+            }
+        }
+
+        /// <summary>
+        /// The request task data can be changed by several roles: a marker that does not name the connection of the request
+        /// task, or a connection of another owner, must not let the writer change the rules of another connection.
+        /// </summary>
+        [Test]
+        public async Task RuleTasksOfLabelWriters_RefuseMarkersOfOtherConnectionsAndOwners()
+        {
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(await LoadError(GuardicoreApi(marker: "FWOC13")), Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData), "another connection");
+                Assert.That(await LoadError(GuardicoreApi(marker: "F")), Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData), "a shortened marker");
+                Assert.That(await LoadError(GuardicoreApi(marker: "12")), Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData), "no prefix");
+                Assert.That(await LoadError(GuardicoreApi(requestOwnerId: 6)), Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData), "another owner");
+                Assert.That(await LoadError(GuardicoreApi()), Is.Null);
+            }
+        }
+
+        [Test]
+        public async Task RuleTasksOfOtherVendors_LoadNoConnection()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = Api();
+            api.RequestTaskAdditionalInfo[kRuleRequestTaskId] = "{\"ConnId\":\"12\",\"ConnMarker\":\"F\"}";
+
+            FirewallWriteContext context = await new ApiFirewallWriteDataSource(api).LoadContext(RuleTask());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.ConnectionMarker, Is.Null);
+                Assert.That(api.Calls.Exists(call => call.Query == FWO.Api.Client.Queries.ModellingQueries.getConnectionById), Is.False);
             }
         }
 

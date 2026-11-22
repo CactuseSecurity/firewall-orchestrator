@@ -77,6 +77,7 @@ namespace FWO.Test
             Name = GuardicoreText(rule["ruleset_name"]),
             Comment = GuardicoreText(rule["comments"]),
             MgmtId = managementId,
+            Rulebase = new() { Name = $"04 Allow {GuardicoreText(rule["ruleset_name"])}" },
             Action = "accept",
             EnforcingGateways = [new() { Content = gateway }],
             Froms = [.. Side(rule["source"], 6000 + (index * 100))],

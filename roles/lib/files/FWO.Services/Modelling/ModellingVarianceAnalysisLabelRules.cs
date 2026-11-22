@@ -3,6 +3,7 @@ using FWO.Data;
 using FWO.Data.Labelling;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
+using FWO.ExternalSystems.FirewallWrite;
 
 namespace FWO.Services.Modelling
 {
@@ -56,6 +57,18 @@ namespace FWO.Services.Modelling
             RelevantManagements.Find(mgt => mgt.Id == mgtId) is Management mgt && WritesLabels(mgt) ? MarkerLocation.Comment : userConfig.ModModelledMarkerLocation;
 
         /// <summary>
+        /// Whether a rule of a management that writes labels lies in another policy section than the one FWO writes its
+        /// rules to (Guardicore: Allow), by the name the import gives its rulebase. FWO neither writes nor deletes such rules,
+        /// so they are no implementation of a connection even if they carry its marker. A rule without rulebase name counts
+        /// as inside.
+        /// </summary>
+        private static bool IsOutsideWrittenSection(Management mgt, Rule rule)
+        {
+            string rulebaseName = rule.Rulebase?.Name ?? "";
+            return WritesLabels(mgt) && rulebaseName.Length > 0 && !GuardicoreWriteDefaults.IsAllowRulebase(rulebaseName);
+        }
+
+        /// <summary>
         /// Whether a management that writes labels has no rule of the connection. Such a management enforces on the hosts,
         /// so it needs every connection, unlike gateways, which only need the connections whose path leads through them.
         /// </summary>
@@ -67,17 +80,14 @@ namespace FWO.Services.Modelling
             SettingsOf(mgt).ModellingImplementNetworkAreaObjects && !IsExcluded(mgt, ModellingTypes.ModObjectType.NetworkArea);
 
         /// <summary>
-        /// The additional info of a rule task of a modelled connection: the connection, its extra configurations, the
-        /// connection marker and the app of the owner, by which a management that writes labels finds and names its rules.
+        /// The additional info of a rule task of a modelled connection: the connection, its extra configurations and the
+        /// connection marker, by which a management that writes labels finds its rules (the writer checks that the marker
+        /// names the connection and takes the ruleset from the owner of the connection).
         /// </summary>
         private Dictionary<string, string> RuleTaskAdditionalInfo(ModellingConnection conn)
         {
             Dictionary<string, string> addInfo = ModellingRequestExtraConfigs.AdditionalInfo(conn);
             addInfo[AdditionalInfoKeys.ConnMarker] = userConfig.ModModelledMarker + conn.Id;
-            if (!string.IsNullOrWhiteSpace(owner.ExtAppId))
-            {
-                addInfo[AdditionalInfoKeys.ExtAppId] = owner.ExtAppId;
-            }
             return addInfo;
         }
 
@@ -121,14 +131,18 @@ namespace FWO.Services.Modelling
         /// The AND-groups of the labels of a connection side (e.g. "OS: Linux &amp; Stage: Prod"), as the import of a rule
         /// names its group of ANDed labels; none while label-based modelling is off.
         /// </summary>
-        private List<string> ConnectionLabelGroupNames(ModellingConnection conn, bool source)
+        private List<string> ConnectionLabelGroupNames(ModellingConnection conn, bool source) =>
+            [.. ConnectionLabelGroups(conn, source).Select(group => group.Name)];
+
+        /// <summary>The AND-groups of the labels of a connection side with their labels; none while label-based modelling is off.</summary>
+        private List<LabelAndGroup> ConnectionLabelGroups(ModellingConnection conn, bool source)
         {
             if (!userConfig.LabelBasedModelling)
             {
                 return [];
             }
             List<ConnectionLabel> sideLabels = source ? conn.SourceLabels : conn.DestinationLabels;
-            return LabelAndGroups.GroupNames(sideLabels);
+            return LabelAndGroups.Groups(sideLabels);
         }
 
         /// <summary>Requests the AND-groups of the labels of a connection for a management that writes labels.</summary>
@@ -138,18 +152,23 @@ namespace FWO.Services.Modelling
             {
                 return;
             }
-            AddLabelGroupElements(ConnectionLabelGroupNames(conn, true), nameof(ElemFieldType.source));
-            AddLabelGroupElements(ConnectionLabelGroupNames(conn, false), nameof(ElemFieldType.destination));
+            AddLabelGroupElements(ConnectionLabelGroups(conn, true), nameof(ElemFieldType.source));
+            AddLabelGroupElements(ConnectionLabelGroups(conn, false), nameof(ElemFieldType.destination));
         }
 
-        private void AddLabelGroupElements(List<string> groupNames, string field)
+        /// <summary>
+        /// Adds one element per label of each AND-group: the label as name, the group as group name. The labels are passed on
+        /// one by one, so a writer never has to split the group name, whose separator may occur in a label value.
+        /// </summary>
+        private void AddLabelGroupElements(List<LabelAndGroup> groups, string field)
         {
-            ReqElements.AddRange(groupNames.Select(groupName => new WfReqElement
+            ReqElements.AddRange(groups.SelectMany(group => group.LabelNames.Select(labelName => new WfReqElement
             {
                 RequestAction = nameof(RequestAction.create),
                 Field = field,
-                GroupName = groupName
-            }));
+                Name = labelName,
+                GroupName = group.Name
+            })));
         }
 
         /// <summary>

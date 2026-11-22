@@ -105,6 +105,7 @@ namespace FWO.Test
         ];
 
         private static readonly List<string?> kLabelGroupSource = ["OS: Linux & Stage: Prod"];
+        private static readonly List<string?> kLabelGroupLabels = ["OS: Linux", "Stage: Prod"];
 
         private static GuardicoreVarianceTestApiConn Api(bool implementAreas = true, bool deleteObjects = true)
         {
@@ -307,11 +308,11 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// The access task of a connection for Guardicore names the connection marker and the app, by which the rules are
-        /// written and found again, and its app roles and network areas by their labels.
+        /// The access task of a connection for Guardicore names the connection marker, by which the rules are written and
+        /// found again, and its app roles and network areas by their labels.
         /// </summary>
         [Test]
-        public async Task Request_AccessTaskNamesMarkerAppAndLabels()
+        public async Task Request_AccessTaskNamesMarkerAndLabels()
         {
             List<WfReqTask> tasks = await Analysis(Api()).AnalyseModelledConnectionsForRequest(Connections);
 
@@ -320,7 +321,6 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(access.GetAddInfoValue(AdditionalInfoKeys.ConnMarker), Is.EqualTo("FWOC1"));
-                Assert.That(access.GetAddInfoValue(AdditionalInfoKeys.ExtAppId), Is.EqualTo("4711"));
                 Assert.That(sourceGroups, Does.Contain("AppRole: AR504711-001"));
                 Assert.That(sourceGroups, Does.Contain("NetworkArea: NA50"));
                 Assert.That(access.Elements.Where(element => element.Field == nameof(ElemFieldType.destination)).Select(element => element.GroupName),
@@ -335,8 +335,12 @@ namespace FWO.Test
             List<WfReqTask> tasks = await LabelModellingAnalysis(Api()).AnalyseModelledConnectionsForRequest(LabelOnlySourceConnections());
 
             WfReqTask access = tasks.Single(task => task.TaskType == nameof(WfTaskType.access));
-            Assert.That(access.Elements.Where(element => element.Field == nameof(ElemFieldType.source)).Select(element => element.GroupName),
-                Is.EqualTo(kLabelGroupSource));
+            List<WfReqElement> source = [.. access.Elements.Where(element => element.Field == nameof(ElemFieldType.source))];
+            Assert.Multiple(() =>
+            {
+                Assert.That(source.Select(element => element.GroupName).Distinct(), Is.EqualTo(kLabelGroupSource), "one AND-group");
+                Assert.That(source.Select(element => element.Name), Is.EqualTo(kLabelGroupLabels), "one element per label of the group");
+            });
         }
 
         /// <summary>A management that writes no labels cannot implement a side of labels only: the connection is not requested there.</summary>

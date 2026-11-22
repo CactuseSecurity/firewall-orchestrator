@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Globalization;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
@@ -87,6 +88,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             FirewallGatewayRulebases rulebases = gateway == null ? FirewallGatewayRulebases.None : await LoadRulebases(gateway);
             Dictionary<string, string> ruleLayerUids = await LoadRuleLayers(implTask, management);
             WfReqTask? requestTask = await LoadRequestTaskInfo(implTask);
+            (string? connectionMarker, string? extAppId) = await LoadModelledConnection(implTask, requestTask, management);
             return new FirewallWriteContext
             {
                 Management = management,
@@ -97,8 +99,8 @@ namespace FWO.ExternalSystems.FirewallWrite
                 GroupObjectType = kGroupTaskTypes.Contains(implTask.TaskType)
                     ? DynamicIpLabel.ParseObjectType(requestTask?.GetAddInfoValue(AdditionalInfoKeys.GrpType))
                     : null,
-                ConnectionMarker = NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.ConnMarker)),
-                ExtAppId = NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.ExtAppId))
+                ConnectionMarker = connectionMarker,
+                ExtAppId = extAppId
             };
         }
 
@@ -116,6 +118,42 @@ namespace FWO.ExternalSystems.FirewallWrite
             List<WfReqTask> requestTasks = await apiConnection.SendQueryAsync<List<WfReqTask>>(RequestQueries.getRequestTaskAdditionalInfo,
                 new { id = implTask.ReqTaskId });
             return requestTasks.FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Loads the modelled connection of a rule task of a management that writes labels, whose writer finds, replaces and
+        /// deletes the rules of the connection by its marker: the marker of the request task (<c>ConnMarker</c>) and the
+        /// external app id of the owner of the connection, the ruleset of its rules. The request task data can be changed by
+        /// several roles, so the marker has to name exactly the connection of the request task (<c>ConnId</c>), and the
+        /// connection has to belong to an owner of the request task. Other tasks and tasks without marker have none.
+        /// </summary>
+        /// <exception cref="FirewallWriteException">Thrown if the marker names another connection or the connection does not
+        /// exist or belongs to none of the owners of the request task.</exception>
+        private async Task<(string? Marker, string? ExtAppId)> LoadModelledConnection(WfImplTask implTask, WfReqTask? requestTask, Management management)
+        {
+            string? marker = NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.ConnMarker));
+            if (requestTask == null || marker == null || !kRuleTaskTypes.Contains(implTask.TaskType) || !FirewallVendors.WritesLabels(management.DeviceType.Id))
+            {
+                return (null, null);
+            }
+            string connectionIdText = NonBlank(requestTask.GetAddInfoValue(AdditionalInfoKeys.ConnId)) ?? "";
+            if (!GuardicoreRules.TryParseMarker(marker, out string markedId) || markedId != connectionIdText
+                || !int.TryParse(connectionIdText, NumberStyles.None, CultureInfo.InvariantCulture, out int connectionId))
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                    $"Implementation task {implTask.Id}: the connection marker of its request task does not name its connection '{connectionIdText}'.");
+            }
+            List<ModellingConnection> connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getConnectionById,
+                new { id = connectionId });
+            ModellingConnection connection = connections.FirstOrDefault()
+                ?? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                    $"Implementation task {implTask.Id}: the connection {connectionId} of its request task does not exist.");
+            if (connection.AppId is not int appId || !requestTask.Owners.Exists(owner => owner.Owner.Id == appId))
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                    $"Implementation task {implTask.Id}: the connection {connectionId} belongs to none of the owners of its request task.");
+            }
+            return (marker, NonBlank(connection.App.ExtAppId));
         }
 
         private static string? NonBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

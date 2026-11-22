@@ -27,6 +27,8 @@ namespace FWO.ExternalSystems.FirewallWrite
     {
         private const int kMaxPrefixBits = 128;
         private const int kIpv4Bits = 32;
+        /// <summary>Most CIDR blocks an interval can need: at most two per prefix length, one on each side of the largest block.</summary>
+        private const int kMaxCidrBlocks = 2 * kMaxPrefixBits;
         private const string kIcmp = "ICMP";
 
         private static readonly FrozenDictionary<int, string> ProtocolNames = new Dictionary<int, string>
@@ -94,13 +96,15 @@ namespace FWO.ExternalSystems.FirewallWrite
         }
 
         /// <summary>
-        /// A rule side: the label groups as OR of AND groups (a group "OS: Linux &amp; Stage: Prod" ANDs its labels, see
-        /// <see cref="LabelAndGroups"/>), and the addresses as CIDR subnets.
+        /// A rule side: the label groups as OR of AND groups, and the addresses as CIDR subnets. The elements of an AND-group
+        /// share its group name ("OS: Linux &amp; Stage: Prod", see <see cref="LabelAndGroups"/>) and name one label each; an
+        /// element of a group without label name (e.g. an app role "AppRole: AR4711-001") stands for the label of that name.
         /// </summary>
         private static string SideJson(List<WfImplElement> elements, string field, WfImplTask implTask)
         {
             List<WfImplElement> sideElements = [.. elements.Where(element => element.Field == field)];
-            List<string> labelGroups = [];
+            Dictionary<string, List<string>> labelGroups = [];
+            List<string> groupOrder = [];
             List<string> subnets = [];
             foreach (WfImplElement element in sideElements)
             {
@@ -110,7 +114,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 }
                 else if (element.GroupName?.Contains(DynamicIpLabel.kKeyValueSeparator, StringComparison.Ordinal) == true)
                 {
-                    labelGroups.Add(element.GroupName.Trim());
+                    AddToLabelGroup(labelGroups, groupOrder, element);
                 }
                 else
                 {
@@ -126,9 +130,9 @@ namespace FWO.ExternalSystems.FirewallWrite
             JsonObject side = [];
             if (labelGroups.Count > 0)
             {
-                JsonArray orLabels = [.. labelGroups.Distinct(StringComparer.Ordinal).Select(group => (JsonNode)new JsonObject
+                JsonArray orLabels = [.. groupOrder.Select(group => (JsonNode)new JsonObject
                 {
-                    ["and_labels"] = new JsonArray([.. LabelAndGroups.LabelNames(group).Select(label => (JsonNode)JsonValue.Create(label))])
+                    ["and_labels"] = new JsonArray([.. LabelsOfGroup(group, labelGroups[group]).Select(label => (JsonNode)JsonValue.Create(label))])
                 })];
                 side["labels"] = new JsonObject { ["or_labels"] = orLabels };
             }
@@ -138,6 +142,25 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
             return side.ToJsonString();
         }
+
+        private static void AddToLabelGroup(Dictionary<string, List<string>> labelGroups, List<string> groupOrder, WfImplElement element)
+        {
+            string groupName = element.GroupName!.Trim();
+            if (!labelGroups.TryGetValue(groupName, out List<string>? labels))
+            {
+                labels = [];
+                labelGroups[groupName] = labels;
+                groupOrder.Add(groupName);
+            }
+            string? labelName = element.Name?.Trim();
+            if (labelName?.Contains(DynamicIpLabel.kKeyValueSeparator, StringComparison.Ordinal) == true && !labels.Contains(labelName, StringComparer.Ordinal))
+            {
+                labels.Add(labelName);
+            }
+        }
+
+        /// <summary>The labels of an AND-group: the label names of its elements, or the group itself if they name none.</summary>
+        private static List<string> LabelsOfGroup(string groupName, List<string> labelNames) => labelNames.Count > 0 ? labelNames : [groupName];
 
         /// <summary>The ports of the service elements grouped by protocol, in protocol order.</summary>
         private static SortedDictionary<string, ProtocolPorts> PortsByProtocol(List<WfImplElement> elements, WfImplTask implTask)
@@ -173,7 +196,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             int bits = interval.Family == AddressFamily.InterNetworkV6 ? kMaxPrefixBits : kIpv4Bits;
             List<string> blocks = [];
             BigInteger start = interval.Start;
-            for (int count = 0; start <= interval.End && count <= 2 * kMaxPrefixBits; count++)
+            for (int count = 0; start <= interval.End && count <= kMaxCidrBlocks; count++)
             {
                 int size = 0;
                 while (size < bits && (start & (BigInteger.One << size)) == 0 && start + (BigInteger.One << (size + 1)) - 1 <= interval.End)

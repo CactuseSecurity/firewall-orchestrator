@@ -67,6 +67,7 @@ namespace FWO.Test
         {
             Id = 1,
             AppId = Application.Id,
+            App = Application,
             Name = "Conn1",
             SourceAppRoles = [new() { Content = AppRole }],
             DestinationAppServers = [new() { Content = GuardicoreVarianceTestApiConn.AppServerRange }],
@@ -118,12 +119,15 @@ namespace FWO.Test
             {
                 List<WfReqTask> requested = await Request(connections, reimport);
                 WfTicket ticket = new() { Id = kTicketId, Tasks = requested };
+                Api.Connections.RemoveAll(stored => connections.Exists(connection => connection.Id == stored.Id));
+                Api.Connections.AddRange(connections);
                 foreach (WfReqTask reqTask in requested)
                 {
                     reqTask.Id = nextReqTaskId++;
                     reqTask.TicketId = kTicketId;
                     reqTask.StateId = kOpenStateId;
                     Api.RequestTaskAdditionalInfo[reqTask.Id] = reqTask.AdditionalInfo ?? "{}";
+                    Api.RequestTaskOwners[reqTask.Id] = [.. reqTask.Owners.Select(owner => owner.Owner.Id)];
                 }
                 await Handler().CreateMissingImplTasksForTicket(ticket);
                 List<(WfImplTask Task, ModifyFirewallResult Result)> written = [];

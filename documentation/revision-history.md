@@ -142,25 +142,32 @@
   blocks are equal. Labels and addresses the connection does not have are surplus
 - firewall write: Guardicore rules (#5785). Access, rule_modify and rule_delete tasks of modelled connections are
   written to the Allow section, one rule per protocol, as all ports of a Guardicore rule apply to all its protocols:
-  ruleset = external app id of the owner, comment = connection marker (request task additional info ConnMarker and
-  ExtAppId, set by the variance analysis). The client lists the Allow rules carrying the marker, replaces the rule of
+  ruleset = external app id of the owner of the connection, comment = connection marker (request task additional info
+  ConnMarker, set by the variance analysis). As several roles can change the request task data, the write checks that
+  the marker is a prefix without digits followed by exactly the ConnId of the request task and that the connection
+  belongs to an owner of the request task, else the task fails; a marker is only found as a whole word, so a shortened
+  marker matches no rule. The client lists the Allow rules carrying the marker, replaces the rule of
   each protocol (PUT on the rule path) unless it already is as requested, creates missing ones, deletes the other rules
   of the connection (all of them for rule_delete) and publishes a policy revision only after a change. Labels in the
   sides are named "key: value" and replaced by their ids; a missing label fails the task and is named. Addresses are
   written as CIDR subnets. New placeholders @@RULE_PORTS@@, @@RULE_PORT_RANGES@@ and the runtime placeholder
   @@RULE_ID@@; new shipped Guardicore operations RuleCreate, RuleDelete and Publish. Guardicore rules need no rule
-  position (new vendor property NewRulesNeedPosition)
+  position (new vendor property NewRulesNeedPosition). If a task fails, the client undoes its rule changes before
+  anything is published (created rules are deleted, replaced ones restored, deleted ones created again)
 - variance analysis: on managements that write labels the connection marker is read from the rule comment (their rule
   name is the ruleset) and the rule owner prefilter, which needs the marker in the rule name, is not used; app roles and
   network areas implemented as labels are requested by their label name, other network areas by their networks;
   a connection is requested for such a management whenever it has no rule there, even if a gateway already implements
-  it; changed and deleted connections get one task per connection, which writes all their rules
+  it; changed and deleted connections get one task per connection, which writes all their rules. Rules of other sections
+  than Allow (by the rulebase name the import gives them, "04 Allow <ruleset>") are not modelled even if they carry a
+  marker, as FWO never writes them; the report of rules of deleted connections also finds the marker in the comment
 - variance analysis: label-based connections (#5555). While label-based modelling is on, the AND-groups of the labels of a
   connection side are compared with the label groups of the rules of managements that write labels, by name as the
   Guardicore import names them (labels sorted and joined by " & ", e.g. "OS: Linux & Stage: Prod"; one label is named
   like the label), as sets of groups in any order and without resolving them into addresses; app roles, app zones and
-  network areas stay in the objects part. Access tasks for such managements request the label groups, which the
-  Guardicore writer writes as AND-groups of label ids. Managements that write no labels get the objects of a mixed side
+  network areas stay in the objects part. Access tasks for such managements request the label groups with one element
+  per label (label as name, group as group name), so a label value containing " & " stays one label; the Guardicore
+  writer writes them as AND-groups of label ids. Managements that write no labels get the objects of a mixed side
   only, and a connection with a side of labels only is not requested for them
 - api: modeller, recertifier, reporter and reporter-viewall may read the device specific settings nodes and the
   values of modellingCreateAppZones, modellingImplementNetworkAreaObjects, provisioningExcludedObjectTypes,

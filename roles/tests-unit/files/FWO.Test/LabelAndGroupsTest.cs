@@ -3,13 +3,14 @@ using NUnit.Framework;
 
 namespace FWO.Test
 {
-    /// <summary>Guards the names of AND-groups of labels, which must match those of the Guardicore import.</summary>
+    /// <summary>Guards the names of AND-groups of labels, which must match those of the Guardicore import, and their label lists.</summary>
     [TestFixture]
     [Parallelizable]
     internal class LabelAndGroupsTest
     {
         private static readonly List<string> kGroupNames = ["OS: Linux & Stage: Prod", "Stage: Test"];
         private static readonly List<string> kLabelNames = ["OS: Linux", "Stage: Prod"];
+        private static readonly List<string> kLabelWithSeparator = ["Team: R & D"];
 
         private static ConnectionLabel Label(int andGroup, string key, string value) =>
             new() { AndGroup = andGroup, Label = new() { Value = value, Key = new() { Name = key } } };
@@ -23,12 +24,15 @@ namespace FWO.Test
         }
 
         [Test]
-        public void LabelNames_SplitAGroupName()
+        public void Groups_KeepTheLabelsOfEachGroupAsList()
         {
+            List<LabelAndGroup> groups = LabelAndGroups.Groups([Label(0, "Stage", "Prod"), Label(0, "OS", "Linux"), Label(1, "Team", "R & D")]);
+
             Assert.Multiple(() =>
             {
-                Assert.That(LabelAndGroups.LabelNames("OS: Linux & Stage: Prod"), Is.EqualTo(kLabelNames));
-                Assert.That(LabelAndGroups.LabelNames("Stage: Test").Single(), Is.EqualTo("Stage: Test"));
+                Assert.That(groups[0].LabelNames, Is.EqualTo(kLabelNames));
+                Assert.That(groups[1].Name, Is.EqualTo("Team: R & D"));
+                Assert.That(groups[1].LabelNames, Is.EqualTo(kLabelWithSeparator), "a value containing the separator stays one label");
                 Assert.That(LabelAndGroups.GroupName(["Stage: Prod", "OS: Linux", "OS: Linux"]), Is.EqualTo(kGroupNames[0]));
             });
         }

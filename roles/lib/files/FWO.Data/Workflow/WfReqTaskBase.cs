@@ -48,8 +48,6 @@ namespace FWO.Data.Workflow
         /// again (Guardicore: the rule comment).
         /// </summary>
         public const string ConnMarker = "ConnMarker";
-        /// <summary>External app id of the owner of the modelled connection (e.g. "APP-1234"), the ruleset of its Guardicore rules.</summary>
-        public const string ExtAppId = "ExtAppId";
     }
 
     public class WfReqTaskBase : WfTaskBase

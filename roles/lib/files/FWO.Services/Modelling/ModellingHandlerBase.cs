@@ -471,7 +471,7 @@ namespace FWO.Services.Modelling
         {
             if (labels.Count > 0)
             {
-                names.Add($"<span class=\"{Icons.Label}\"></span> {HtmlOutputEncoder.EncodeText(ConnectionLabelFormatter.Format(labels))}");
+                names.Add($"<span class=\"{Icons.Role}\"></span> {HtmlOutputEncoder.EncodeText(ConnectionLabelFormatter.Format(labels))}");
             }
         }
 

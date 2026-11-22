@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace FWO.ExternalSystems.FirewallWrite
 {
@@ -6,25 +8,41 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// Reads Guardicore segmentation rules as the rule list returns them: whether a rule belongs to a modelled connection
     /// (its marker in the comment), which protocols it has, and whether it already is as FWO would write it.
     /// </summary>
-    public static class GuardicoreRules
+    public static partial class GuardicoreRules
     {
         private const string kLabels = "labels";
         private const string kSubnets = "subnets";
         private const string kOrLabels = "or_labels";
         private const string kAndLabels = "and_labels";
-        private static readonly List<string> SideKeys = ["source", "destination"];
-        private static readonly List<string> TextKeys = ["section_position", "action", "ruleset_name", "comments"];
+        private static readonly ImmutableArray<string> SideKeys = ["source", "destination"];
+        private static readonly ImmutableArray<string> TextKeys = ["section_position", "action", "ruleset_name", "comments"];
 
         /// <summary>The id of a rule; empty if it has none.</summary>
         public static string Id(JsonNode? rule) => GuardicoreLabelCriteria.Text(rule?["id"]);
 
         /// <summary>
-        /// Whether a comment names the marker of a connection (e.g. "FWOC12"), as a whole token: "FWOC123" and "XFWOC12"
-        /// are other connections.
+        /// Reads a connection marker: a prefix without digits and whitespace (the configured marker, e.g. "FWOC") followed by
+        /// the id of the connection (e.g. "FWOC12").
+        /// </summary>
+        /// <returns>False if the marker has another form.</returns>
+        public static bool TryParseMarker(string? marker, out string connectionId)
+        {
+            Match match = MarkerPattern().Match(marker ?? "");
+            connectionId = match.Success ? match.Groups["id"].Value : "";
+            return match.Success;
+        }
+
+        [GeneratedRegex(@"^[^\d\s]+(?<id>\d+)$", RegexOptions.CultureInvariant)]
+        private static partial Regex MarkerPattern();
+
+        /// <summary>
+        /// Whether a comment names the marker of a connection (e.g. "FWOC12") as a whole word: "FWOC123", "XFWOC12" and
+        /// "FWOC12x" name other things. A marker that is not of the form of <see cref="TryParseMarker"/> is never found, so a
+        /// shortened marker cannot match the markers of other connections.
         /// </summary>
         public static bool HasMarker(string? comment, string marker)
         {
-            if (string.IsNullOrEmpty(comment) || string.IsNullOrEmpty(marker))
+            if (string.IsNullOrEmpty(comment) || !TryParseMarker(marker, out _))
             {
                 return false;
             }
@@ -33,7 +51,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 int after = index + marker.Length;
                 bool startsToken = index == 0 || !char.IsLetterOrDigit(comment[index - 1]);
-                bool endsToken = after == comment.Length || !char.IsDigit(comment[after]);
+                bool endsToken = after == comment.Length || !char.IsLetterOrDigit(comment[after]);
                 if (startsToken && endsToken)
                 {
                     return true;

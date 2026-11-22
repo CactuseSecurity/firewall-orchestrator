@@ -94,16 +94,22 @@ namespace FWO.Test
             });
         }
 
+        private static WfImplElement GroupLabel(string groupName, string labelName, ElemFieldType field) =>
+            new() { GroupName = groupName, Name = labelName, Field = field.ToString(), ImplAction = nameof(RequestAction.create) };
+
+        /// <summary>The elements of an AND-group name one label each; the group name is never split.</summary>
         [Test]
         public void LabelAndGroups_BecomeOneAndGroupEach()
         {
             WfImplTask task = AccessTask(Service(kTcp, 443));
-            task.ImplElements.Add(Label("OS: Linux & Stage: Prod", ElemFieldType.source));
+            task.ImplElements.Add(GroupLabel("OS: Linux & Stage: Prod", "OS: Linux", ElemFieldType.source));
+            task.ImplElements.Add(GroupLabel("OS: Linux & Stage: Prod", "Stage: Prod", ElemFieldType.source));
+            task.ImplElements.Add(GroupLabel("Team: R & D", "Team: R & D", ElemFieldType.source));
 
             JsonNode sources = Json(Plan(task)[0], FirewallWritePlaceholders.RuleSources);
 
-            Assert.That(sources.ToJsonString(),
-                Is.EqualTo("""{"labels":{"or_labels":[{"and_labels":["AppRole: AR504711-001"]},{"and_labels":["OS: Linux","Stage: Prod"]}]}}"""));
+            Assert.That(sources.ToJsonString(), Is.EqualTo(
+                """{"labels":{"or_labels":[{"and_labels":["AppRole: AR504711-001"]},{"and_labels":["OS: Linux","Stage: Prod"]},{"and_labels":["Team: R \u0026 D"]}]}}"""));
         }
 
         [Test]

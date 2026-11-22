@@ -97,11 +97,15 @@ internal sealed class InMemoryDeviceSpecificSettingsApiConnection : SimulatedApi
     /// <summary>Additional info of request tasks by id, for getRequestTaskAdditionalInfo.</summary>
     public Dictionary<long, string> RequestTaskAdditionalInfo { get; } = [];
 
+    /// <summary>Owner ids of request tasks by id, for getRequestTaskAdditionalInfo.</summary>
+    public Dictionary<long, List<int>> RequestTaskOwners { get; } = [];
+
     private List<FWO.Data.Workflow.WfReqTask> RequestTasksById(object? variables)
     {
         long id = RequiredProperty<long>(RequiredVariables(variables), "id");
+        List<FwoOwnerDataHelper> owners = [.. RequestTaskOwners.GetValueOrDefault(id, []).Select(ownerId => new FwoOwnerDataHelper { Owner = new() { Id = ownerId } })];
         return RequestTaskAdditionalInfo.TryGetValue(id, out string? additionalInfo)
-            ? [new() { Id = id, AdditionalInfo = additionalInfo }]
+            ? [new() { Id = id, AdditionalInfo = additionalInfo, Owners = owners }]
             : [];
     }
 

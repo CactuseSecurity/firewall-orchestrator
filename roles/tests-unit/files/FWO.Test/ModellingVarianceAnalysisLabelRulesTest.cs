@@ -242,6 +242,30 @@ namespace FWO.Test
             Assert.That(result.RuleDifferences, Is.Empty);
         }
 
+        /// <summary>
+        /// FWO writes Guardicore rules to the Allow section only: a rule of another section that carries the marker (e.g. a
+        /// copy in Override Allow) is no implementation of the connection, so the writer is not asked again and again to
+        /// change a rule it never touches.
+        /// </summary>
+        [Test]
+        public async Task MarkerRuleOutsideTheAllowSection_IsNotModelled()
+        {
+            Rule overrideRule = ProdRule(Host32(11, "1.2.3.4/32"));
+            overrideRule.Rulebase = new() { Name = "01 Override Allow APP-1" };
+            Rule allowRule = ProdRule(Host32(11, "1.2.3.4/32"));
+            allowRule.Rulebase = new() { Name = "04 Allow APP-1" };
+
+            ModellingVarianceResult outside = await Analyse(Connection(c => c.SourceAppServers = [new() { Content = Host }]), overrideRule);
+            ModellingVarianceResult inside = await Analyse(Connection(c => c.SourceAppServers = [new() { Content = Host }]), allowRule);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(outside.ConnsNotImplemented.Select(conn => conn.Id), Is.EqualTo(new List<int> { 1 }));
+                Assert.That(outside.UnModelledRules.Values.Single(), Has.Count.EqualTo(1));
+                Assert.That(inside.OkRules, Has.Count.EqualTo(1));
+            });
+        }
+
         [Test]
         public async Task OtherVendor_KeepsTheGroupComparison()
         {

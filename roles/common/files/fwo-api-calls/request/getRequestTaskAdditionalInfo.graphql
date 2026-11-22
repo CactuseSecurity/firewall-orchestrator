@@ -1,6 +1,12 @@
-# the additional info of a request task, e.g. the object type (GrpType) of the group of a group task
+# the additional info of a request task, e.g. the object type (GrpType) of the group of a group task or the modelled
+# connection (ConnId, ConnMarker) of a rule task, and the owners of the task, to whom that connection has to belong
 query getRequestTaskAdditionalInfo($id: bigint!) {
   request_reqtask(where: { id: { _eq: $id } }) {
     additional_info
+    owners: reqtask_owners {
+      owner: owner {
+        id
+      }
+    }
   }
 }

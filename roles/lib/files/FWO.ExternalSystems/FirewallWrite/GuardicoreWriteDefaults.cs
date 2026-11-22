@@ -34,6 +34,19 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <summary>Section of the policy FWO writes its rules to.</summary>
         public const string kAllowSection = "ALLOW";
 
+        /// <summary>
+        /// Name of the rulebase the importer gives the rules of the Allow section: section number and name, followed by the
+        /// ruleset (e.g. "04 Allow APP-1234"), see get_rulebase_name of the Guardicore importer.
+        /// </summary>
+        public const string kAllowRulebaseName = "04 Allow";
+
+        /// <summary>Whether an imported rulebase holds rules of the Allow section.</summary>
+        public static bool IsAllowRulebase(string rulebaseName)
+        {
+            ArgumentNullException.ThrowIfNull(rulebaseName);
+            return rulebaseName == kAllowRulebaseName || rulebaseName.StartsWith(kAllowRulebaseName + " ", StringComparison.Ordinal);
+        }
+
         private const string kLabelCreateBody = """[{"key":"@@LABEL_KEY@@","value":"@@LABEL_VALUE@@","criteria":@@LABEL_CRITERIA@@}]""";
 
         /// <summary>

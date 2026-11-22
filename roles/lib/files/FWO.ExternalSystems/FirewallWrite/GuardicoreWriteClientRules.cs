@@ -18,13 +18,57 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// <item>the delete step deletes the rules of the connection the rule steps did not write (all of them for rule_delete),</item>
     /// <item>publish creates a policy revision only if a rule was changed, so label changes and repeated requests publish nothing.</item>
     /// </list>
+    /// Every rule change is recorded with the call that undoes it. If the task fails, <see cref="Discard"/> undoes the changes
+    /// made so far in reverse order (created rules are deleted, replaced ones restored, deleted ones created again), so no
+    /// half-written connection waits unpublished for the next revision.
     /// </summary>
     public partial class GuardicoreWriteClient
     {
         private readonly Dictionary<string, List<JsonObject>> connectionRules = new(StringComparer.Ordinal);
         private readonly HashSet<string> writtenRuleIds = new(StringComparer.Ordinal);
         private readonly Dictionary<string, string?> labelIdsByName = new(StringComparer.Ordinal);
+        private readonly List<RuleUndo> undoSteps = [];
         private bool policyChanged;
+
+        /// <summary>A call that undoes one rule change of the task.</summary>
+        private sealed record RuleUndo(Method Method, string Path, string? Body, string Description);
+
+        /// <summary>Undoes the rule changes of a failed task in reverse order; failures are logged, as the task has failed anyway.</summary>
+        public override async Task Discard()
+        {
+            for (int index = undoSteps.Count - 1; index >= 0; index--)
+            {
+                RuleUndo undo = undoSteps[index];
+                try
+                {
+                    RestRequest request = new(undo.Path, undo.Method);
+                    if (undo.Body != null)
+                    {
+                        request.AddStringBody(undo.Body, ContentType.Json);
+                    }
+                    RestResponse response = await SendAuthenticated(request);
+                    if (!response.IsSuccessful)
+                    {
+                        Log.WriteWarning(kLogCategory, $"Could not {undo.Description} of the failed task: {(int)response.StatusCode} {FirewallWriteErrors.NativeMessage(response)}");
+                    }
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError(kLogCategory, $"Could not {undo.Description} of the failed task.", exception);
+                }
+            }
+            undoSteps.Clear();
+        }
+
+        private static string RulePath(string ruleId) => $"{GuardicoreWriteDefaults.kRulesPath}/{Uri.EscapeDataString(ruleId)}";
+
+        /// <summary>A rule as it can be created again: without its id.</summary>
+        private static string WithoutId(JsonObject rule)
+        {
+            JsonObject copy = rule.DeepClone().AsObject();
+            copy.Remove("id");
+            return copy.ToJsonString();
+        }
 
         private async Task<FirewallStepResult> WriteRule(RenderedFirewallRequest request)
         {
@@ -43,7 +87,11 @@ namespace FWO.ExternalSystems.FirewallWrite
             if (existing == null)
             {
                 FirewallStepResult created = await base.Execute(request);
-                policyChanged |= created.Success;
+                if (created.Success)
+                {
+                    policyChanged = true;
+                    RecordCreatedRule(request, created);
+                }
                 return created;
             }
             string ruleId = GuardicoreRules.Id(existing);
@@ -52,26 +100,46 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 return Succeeded(request, $"{kAlreadyPresentNote} The rule {ruleId} is unchanged.");
             }
-            RestRequest replaceRequest = new($"{GuardicoreWriteDefaults.kRulesPath}/{Uri.EscapeDataString(ruleId)}", Method.Put);
+            RestRequest replaceRequest = new(RulePath(ruleId), Method.Put);
             replaceRequest.AddStringBody(request.Body, ContentType.Json);
             Log.WriteDebug(kLogCategory, $"{request.Operation}: replacing rule {ruleId} of '{request.Step.TargetName}'");
             RestResponse response = await SendAuthenticated(replaceRequest);
             FirewallStepResult replaced = ToResult(request, response, IsSuccess(response));
-            policyChanged |= replaced.Success;
+            if (replaced.Success)
+            {
+                policyChanged = true;
+                undoSteps.Add(new RuleUndo(Method.Put, RulePath(ruleId), WithoutId(existing), $"restore the rule {ruleId}"));
+            }
             return replaced;
+        }
+
+        /// <summary>Records how to delete a created rule again, by the id its creation answered.</summary>
+        private void RecordCreatedRule(RenderedFirewallRequest request, FirewallStepResult created)
+        {
+            string createdId = GuardicoreRules.Id(ParseJson(created.Message));
+            if (createdId.Length > 0)
+            {
+                undoSteps.Add(new RuleUndo(Method.Delete, RulePath(createdId), null, $"delete the created rule {createdId}"));
+            }
+            else
+            {
+                Log.WriteWarning(kLogCategory, $"{request.Operation} on '{request.Step.TargetName}': the answer names no rule id, so the rule cannot be deleted again if the task fails.");
+            }
         }
 
         /// <summary>Deletes the rules of the connection that the rule steps of the task did not write.</summary>
         private async Task<FirewallStepResult> DeleteOtherRules(RenderedFirewallRequest request)
         {
             string marker = StepText(request, FirewallWritePlaceholders.RuleComment);
-            List<string> ruleIds = [.. (await ConnectionRules(request, marker)).Select(GuardicoreRules.Id).Where(id => id.Length > 0 && !writtenRuleIds.Contains(id))];
+            List<JsonObject> otherRules = [.. (await ConnectionRules(request, marker)).Where(rule => GuardicoreRules.Id(rule).Length > 0 && !writtenRuleIds.Contains(GuardicoreRules.Id(rule)))];
+            List<string> ruleIds = [.. otherRules.Select(GuardicoreRules.Id)];
             if (ruleIds.Count == 0)
             {
                 return Succeeded(request, "The connection has no other rule.");
             }
-            foreach (string ruleId in ruleIds)
+            foreach (JsonObject rule in otherRules)
             {
+                string ruleId = GuardicoreRules.Id(rule);
                 RenderedFirewallRequest deleteRequest = new() { Step = request.Step, Method = request.Method, Path = request.Path, Body = request.Body };
                 Dictionary<string, FirewallPlaceholderValue> values = new() { { FirewallWritePlaceholders.RuleId, new(ruleId, false) } };
                 FirewallTemplateRenderer.ResolveRuntimePlaceholders(deleteRequest, values);
@@ -81,6 +149,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                     return result;
                 }
                 policyChanged = true;
+                undoSteps.Add(new RuleUndo(Method.Post, GuardicoreWriteDefaults.kRulesPath, WithoutId(rule), $"create the deleted rule {ruleId} again"));
             }
             return Succeeded(request, $"Deleted the rules {string.Join(", ", ruleIds)}.");
         }

@@ -93,7 +93,7 @@ namespace FWO.Services.Modelling
                 List<Rule> rulesForDeletedModels = [];
                 foreach (var rule in allModelledRules[mgt].Where(r => !r.ModellFound))
                 {
-                    if (int.TryParse(FindModelledMarker(rule), out int connId) && RegardedDeletedConnectionIds.Contains(connId))
+                    if (int.TryParse(FindModelledMarker(rule, MarkerLocationOf(mgt)), out int connId) && RegardedDeletedConnectionIds.Contains(connId))
                     {
                         rulesForDeletedModels.Add(rule);
                     }

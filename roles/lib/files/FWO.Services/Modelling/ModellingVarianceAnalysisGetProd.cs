@@ -107,7 +107,7 @@ namespace FWO.Services.Modelling
             {
                 rule.ManagementName = mgt.Name;
                 rule.DeviceName = string.Join(", ", rule.EnforcingGateways.Select(g => g.Content.Name).Where(n => !string.IsNullOrEmpty(n)));
-                string? connRef = FindModelledMarker(rule, MarkerLocationOf(mgt.Id));
+                string? connRef = IsOutsideWrittenSection(mgt, rule) ? null : FindModelledMarker(rule, MarkerLocationOf(mgt.Id));
                 if (connRef != null)
                 {
                     if (long.TryParse(connRef, out long connId))

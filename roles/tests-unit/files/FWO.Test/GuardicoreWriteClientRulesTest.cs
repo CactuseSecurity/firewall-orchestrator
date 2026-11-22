@@ -199,7 +199,84 @@ namespace FWO.Test
                 Assert.That(GuardicoreRules.HasMarker("FWOC123", kMarker), Is.False);
                 Assert.That(GuardicoreRules.HasMarker("XFWOC12", kMarker), Is.False);
                 Assert.That(GuardicoreRules.HasMarker("FWOC123 FWOC12", kMarker), Is.True);
+                Assert.That(GuardicoreRules.HasMarker("FWOC12x", kMarker), Is.False, "a marker ends at a word boundary");
                 Assert.That(GuardicoreRules.HasMarker(null, kMarker), Is.False);
+            });
+        }
+
+        /// <summary>A marker of another form, e.g. a shortened one, would match the markers of all connections: it matches none.</summary>
+        [Test]
+        public void MalformedMarkers_MatchNothing()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(GuardicoreRules.HasMarker("FWOC12", "F"), Is.False);
+                Assert.That(GuardicoreRules.HasMarker("FWOC12", "FWOC"), Is.False);
+                Assert.That(GuardicoreRules.HasMarker("12", "12"), Is.False);
+                Assert.That(GuardicoreRules.HasMarker("FWO C12", "FWO C12"), Is.False);
+                Assert.That(GuardicoreRules.TryParseMarker("FWOC12", out string connectionId), Is.True);
+                Assert.That(connectionId, Is.EqualTo("12"));
+                Assert.That(GuardicoreRules.TryParseMarker("FWOC", out _), Is.False);
+            });
+        }
+
+        /// <summary>
+        /// A task that fails after rule changes undoes them before anything is published: created rules are deleted, replaced
+        /// ones restored and deleted ones created again, so no half-written connection waits for the next revision.
+        /// </summary>
+        [Test]
+        public async Task FailedTask_UndoesItsRuleChanges()
+        {
+            JsonObject changed = WrittenTcpRule("r-tcp");
+            changed["ports"] = new JsonArray(8443);
+            FirewallSimulation simulation = Simulation([changed, OtherRule("r-icmp", "ICMP")]);
+            Func<RecordedFirewallRequest, RestResponse> answer = simulation.Handler;
+            simulation.Handler = request => request.Method == Method.Post && request.Resource == kRulesPath && request.Body!.Contains("\"UDP\"")
+                ? FirewallWriteTestSupport.Response(System.Net.HttpStatusCode.InternalServerError, "{\"error\":\"failed\"}")
+                : answer(request);
+
+            ModifyFirewallResult result = await Write(simulation, AccessTask(WfTaskType.rule_modify));
+
+            List<RecordedFirewallRequest> afterFailure = [.. simulation.Requests.SkipWhile(request => !(request.Method == Method.Post && request.Body!.Contains("\"UDP\""))).Skip(1)];
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(Calls(simulation, Method.Put, $"{kRulesPath}/r-tcp"), Has.Count.EqualTo(2), "the TCP rule was replaced before the failure, then restored");
+                Assert.That(afterFailure.Single(request => request.Method == Method.Put).Resource, Is.EqualTo($"{kRulesPath}/r-tcp"), "and is restored");
+                Assert.That(JsonNode.Parse(afterFailure.Single(request => request.Method == Method.Put).Body!)!["ports"]!.ToJsonString(), Is.EqualTo("[8443]"));
+                Assert.That(Calls(simulation, Method.Post, kRevisionsPath), Is.Empty, "nothing is published");
+            });
+        }
+
+        [Test]
+        public async Task FailedTask_DeletesTheRulesItCreated()
+        {
+            FirewallSimulation simulation = Simulation([]);
+            Func<RecordedFirewallRequest, RestResponse> answer = simulation.Handler;
+            simulation.Handler = request => request.Method == Method.Post && request.Resource == kRulesPath && request.Body!.Contains("\"UDP\"")
+                ? FirewallWriteTestSupport.Response(System.Net.HttpStatusCode.InternalServerError, "{\"error\":\"failed\"}")
+                : answer(request);
+
+            ModifyFirewallResult result = await Write(simulation, AccessTask());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(Calls(simulation, Method.Delete, $"{kRulesPath}/new-rule"), Has.Count.EqualTo(1), "the created TCP rule is deleted again");
+                Assert.That(Calls(simulation, Method.Post, kRevisionsPath), Is.Empty);
+            });
+        }
+
+        [Test]
+        public void AllowRulebases_AreRecognizedByTheImportedName()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(GuardicoreWriteDefaults.IsAllowRulebase("04 Allow APP-1234"), Is.True);
+                Assert.That(GuardicoreWriteDefaults.IsAllowRulebase("04 Allow"), Is.True);
+                Assert.That(GuardicoreWriteDefaults.IsAllowRulebase("01 Override Allow APP-1234"), Is.False);
+                Assert.That(GuardicoreWriteDefaults.IsAllowRulebase("05 Alert APP-1234"), Is.False);
+                Assert.That(GuardicoreWriteDefaults.IsAllowRulebase("04 Allowed"), Is.False);
             });
         }
 

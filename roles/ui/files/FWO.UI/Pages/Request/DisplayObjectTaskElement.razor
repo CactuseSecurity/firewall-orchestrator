@@ -115,7 +115,7 @@
         @if (HasObjectName)
         {
             <div class="col-xl-4 col-lg-6 mb-2 d-flex align-items-start flex-nowrap">
-                <label class="col-form-label col-form-label-sm mr-2 mb-0 text-nowrap" style="min-width: 10rem;">@(userConfig.GetText(ObjectTypeTextKey())):</label>
+                <label class="col-form-label col-form-label-sm mr-2 mb-0 text-nowrap @LabelClass">@(userConfig.GetText(ObjectTypeTextKey())):</label>
                 @ObjectNamePrefix
                 <span class="border bg-secondary px-2 py-1 d-inline-block flex-grow-1 text-break">@ObjectName()</span>
             </div>
@@ -195,6 +195,12 @@
 
     [Parameter]
     public RenderFragment? ObjectNamePrefix { get; set; }
+
+    /// <summary>
+    /// CSS class setting the width of the object label in the read-only display, e.g. to align it with the fields around it.
+    /// </summary>
+    [Parameter]
+    public string LabelClass { get; set; } = "object-task-element-label";
 
     private WfReqTask? initializedTask;
     private ObjectTaskKind kind;

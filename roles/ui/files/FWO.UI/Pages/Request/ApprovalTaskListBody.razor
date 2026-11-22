@@ -58,7 +58,7 @@
     protected override void OnParametersSet()
     {
         rows = new ApprovalTaskListRowBuilder(Context, userConfig, States) { ComplianceResults = Compliance?.Results }.Build(TaskGroups, Table);
-        List<ApprovalTaskListColumn> visibleColumns = ApprovalTaskListRowBuilder.VisibleColumns(Table, Context.Visibility, Compliance?.IsConfigured == true);
+        List<ApprovalTaskListColumn> visibleColumns = ApprovalTaskListRowBuilder.VisibleColumns(Table, Context.Visibility, Compliance?.IsConfigured == true, Context.ObjectVisibility);
         string signature = $"{string.Join("|", visibleColumns.Select(column => column.Key))}|{ShowActions}";
         if (signature != columnSignature)
         {

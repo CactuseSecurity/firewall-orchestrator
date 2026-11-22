@@ -9,7 +9,7 @@
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
-<PopUp Title="@ApprovalTaskViewTitle" Show="@Display" Size="@(ListView ? PopupSize.FullScreen : PopupSize.XLarge)" OnClose="ClosePopup">
+<PopUp Title="@ApprovalTaskViewTitle" Show="@Display" Size="PopupSize.FullScreen" OnClose="ClosePopup">
     <Body>
         @if (Display && ListView)
         {
@@ -30,7 +30,8 @@
         }
         else if (Display)
         {
-            List<List<WfReqTask>> taskGroups = GetTaskGroups().ToList();
+            List<List<WfReqTask>> taskGroups = ApprovalTaskDetailsEditorService.AccessTasksFirst(GetTaskGroups());
+            bool hasAccessTasks = taskGroups.Any(group => IsAccessTask(group[0]));
             bool accessToggleShown = false;
             @foreach (List<WfReqTask> taskGroup in taskGroups)
             {
@@ -46,7 +47,7 @@
                 {
                     continue;
                 }
-                <Collapse StartToggled="@(!IsAccessTask(task))" Style="secondary" UseHtmlTitle="true" TitleWithHtml="@TaskHeader(task, taskGroup)">
+                <Collapse StartToggled="@(hasAccessTasks && !IsAccessTask(task))" Style="secondary" UseHtmlTitle="true" TitleWithHtml="@TaskHeader(task, taskGroup)">
                     <div class="card-body">
                         <CascadingValue Value="@CreateTaskViewContext()">
                             @if (IsAccessTask(task))

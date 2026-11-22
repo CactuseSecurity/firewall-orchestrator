@@ -109,9 +109,12 @@ namespace FWO.Ui.Services
         /// <param name="table">The table.</param>
         /// <param name="visibility">The configured field visibility.</param>
         /// <param name="showCompliance">Shows the compliance status of access tasks directly after the id.</param>
+        /// <param name="objectVisibility">The configured visibility of handler, assigned, management and reason of the
+        /// tables other than the access table; defaults to all visible.</param>
         public static List<ApprovalTaskListColumn> VisibleColumns(ApprovalTaskListTable table, AccessTaskFieldVisibilityConfig visibility,
-            bool showCompliance = false)
+            bool showCompliance = false, ObjectTaskFieldVisibilityConfig? objectVisibility = null)
         {
+            ObjectTaskFieldVisibilityConfig otherVisibility = objectVisibility ?? new();
             List<ApprovalTaskListColumn> columns = [new(kId, "id")];
             AddIf(columns, showCompliance && table == ApprovalTaskListTable.Access, new(kCompliance, "approval_list_compliance"));
             // access tasks show their rule content first; title, task type and state follow just before the handler
@@ -139,20 +142,19 @@ namespace FWO.Ui.Services
                     columns.Add(new(kObject, "object"));
                     break;
             }
-            AddIf(columns, table != ApprovalTaskListTable.Access && visibility.ShowManagement, new(kManagement, "management"));
-            AddIf(columns, visibility.ShowReason, new(kReason, "reason"));
+            bool isAccess = table == ApprovalTaskListTable.Access;
+            AddIf(columns, !isAccess && otherVisibility.ShowManagement, new(kManagement, "management"));
+            AddIf(columns, isAccess ? visibility.ShowReason : otherVisibility.ShowReason, new(kReason, "reason"));
             AddIf(columns, visibility.ShowFreeText && table is ApprovalTaskListTable.Access or ApprovalTaskListTable.Other,
                 new(kFreeText, "free_text"));
-            bool isAccess = table == ApprovalTaskListTable.Access;
             if (isAccess)
             {
                 AddIf(columns, visibility.ShowTitle, new(kTitle, "title"));
                 columns.Add(new(kTaskType, "task_type"));
                 columns.Add(new(kState, "state"));
             }
-            // title, handler and assigned are only configurable for access tasks
-            AddIf(columns, !isAccess || visibility.ShowHandler, new(kHandler, "handler"));
-            AddIf(columns, !isAccess || visibility.ShowAssigned, new(kAssigned, "assigned"));
+            AddIf(columns, isAccess ? visibility.ShowHandler : otherVisibility.ShowHandler, new(kHandler, "handler"));
+            AddIf(columns, isAccess ? visibility.ShowAssigned : otherVisibility.ShowAssigned, new(kAssigned, "assigned"));
             return columns;
         }
 

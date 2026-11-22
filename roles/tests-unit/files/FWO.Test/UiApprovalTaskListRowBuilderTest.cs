@@ -109,6 +109,44 @@ internal class UiApprovalTaskListRowBuilderTest
     }
 
     [Test]
+    public void ObjectVisibilityFor_AppliesOnlyToTablesHoldingOnlyObjectAndGroupTasks()
+    {
+        ObjectTaskFieldVisibilityConfig objectVisibility = new() { ShowHandler = false };
+        WfReqTask networkObject = new() { Id = 1, TaskType = WfTaskType.object_create.ToString() };
+        networkObject.Elements.Add(new WfReqElement { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.create.ToString() });
+        WfReqTask timeObject = new() { Id = 2, TaskType = WfTaskType.object_create.ToString() };
+        timeObject.Elements.Add(new WfReqElement { Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.create.ToString() });
+        WfReqTask generic = new() { Id = 3, TaskType = WfTaskType.generic.ToString() };
+        List<List<WfReqTask>> onlyObjects = [[networkObject], [timeObject]];
+        List<List<WfReqTask>> mixed = [[networkObject], [timeObject], [generic]];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(ApprovalTaskListTable.Address, mixed, objectVisibility), Is.SameAs(objectVisibility));
+            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(ApprovalTaskListTable.Other, onlyObjects, objectVisibility), Is.SameAs(objectVisibility));
+            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(ApprovalTaskListTable.Other, mixed, objectVisibility), Is.Null);
+            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(ApprovalTaskListTable.Access, onlyObjects, objectVisibility), Is.Null);
+        });
+    }
+
+    [Test]
+    public void VisibleColumns_MixedOtherTableKeepsColumnsOfOtherTasks()
+    {
+        AccessTaskFieldVisibilityConfig accessVisibility = new() { ShowManagement = false, ShowHandler = false, ShowAssigned = false };
+
+        List<string> other = [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Other, accessVisibility, false, null)
+            .Select(column => column.Key)];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(other, Does.Not.Contain(ApprovalTaskListRowBuilder.kManagement));
+            Assert.That(other, Does.Contain(ApprovalTaskListRowBuilder.kReason));
+            Assert.That(other, Does.Contain(ApprovalTaskListRowBuilder.kHandler));
+            Assert.That(other, Does.Contain(ApprovalTaskListRowBuilder.kAssigned));
+        });
+    }
+
+    [Test]
     public void VisibleColumns_AccessTableIgnoresObjectTaskVisibility()
     {
         ObjectTaskFieldVisibilityConfig objectVisibility = new() { ShowHandler = false, ShowAssigned = false, ShowManagement = false, ShowReason = false };

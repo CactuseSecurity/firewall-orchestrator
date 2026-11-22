@@ -109,12 +109,12 @@ namespace FWO.Ui.Services
         /// <param name="table">The table.</param>
         /// <param name="visibility">The configured field visibility.</param>
         /// <param name="showCompliance">Shows the compliance status of access tasks directly after the id.</param>
-        /// <param name="objectVisibility">The configured visibility of handler, assigned, management and reason of the
-        /// tables other than the access table; defaults to all visible.</param>
+        /// <param name="objectVisibility">The configured visibility of handler, assigned, management and reason of
+        /// object and group tasks; null if the table is not restricted to object and group tasks (see
+        /// <see cref="ObjectVisibilityFor"/>), then the columns of other tasks apply.</param>
         public static List<ApprovalTaskListColumn> VisibleColumns(ApprovalTaskListTable table, AccessTaskFieldVisibilityConfig visibility,
             bool showCompliance = false, ObjectTaskFieldVisibilityConfig? objectVisibility = null)
         {
-            ObjectTaskFieldVisibilityConfig otherVisibility = objectVisibility ?? new();
             List<ApprovalTaskListColumn> columns = [new(kId, "id")];
             AddIf(columns, showCompliance && table == ApprovalTaskListTable.Access, new(kCompliance, "approval_list_compliance"));
             // access tasks show their rule content first; title, task type and state follow just before the handler
@@ -143,8 +143,9 @@ namespace FWO.Ui.Services
                     break;
             }
             bool isAccess = table == ApprovalTaskListTable.Access;
-            AddIf(columns, !isAccess && otherVisibility.ShowManagement, new(kManagement, "management"));
-            AddIf(columns, isAccess ? visibility.ShowReason : otherVisibility.ShowReason, new(kReason, "reason"));
+            ObjectTaskFieldVisibilityConfig metadataVisibility = MetadataVisibility(table, visibility, objectVisibility);
+            AddIf(columns, !isAccess && metadataVisibility.ShowManagement, new(kManagement, "management"));
+            AddIf(columns, metadataVisibility.ShowReason, new(kReason, "reason"));
             AddIf(columns, visibility.ShowFreeText && table is ApprovalTaskListTable.Access or ApprovalTaskListTable.Other,
                 new(kFreeText, "free_text"));
             if (isAccess)
@@ -153,9 +154,48 @@ namespace FWO.Ui.Services
                 columns.Add(new(kTaskType, "task_type"));
                 columns.Add(new(kState, "state"));
             }
-            AddIf(columns, isAccess ? visibility.ShowHandler : otherVisibility.ShowHandler, new(kHandler, "handler"));
-            AddIf(columns, isAccess ? visibility.ShowAssigned : otherVisibility.ShowAssigned, new(kAssigned, "assigned"));
+            AddIf(columns, metadataVisibility.ShowHandler, new(kHandler, "handler"));
+            AddIf(columns, metadataVisibility.ShowAssigned, new(kAssigned, "assigned"));
             return columns;
+        }
+
+        /// <summary>
+        /// Returns the object and group task visibility if all tasks of the table are object or group tasks, otherwise
+        /// null: the address and service tables only hold those, the other tasks table may mix them with e.g. generic
+        /// or interface tasks, which keep their columns.
+        /// </summary>
+        /// <param name="table">The table.</param>
+        /// <param name="taskGroups">All request task groups of the ticket.</param>
+        /// <param name="objectVisibility">The configured object and group task visibility.</param>
+        public static ObjectTaskFieldVisibilityConfig? ObjectVisibilityFor(ApprovalTaskListTable table,
+            IEnumerable<List<WfReqTask>> taskGroups, ObjectTaskFieldVisibilityConfig objectVisibility)
+        {
+            bool onlyObjectTasks = taskGroups
+                .Where(taskGroup => taskGroup.Count > 0 && TableOf(taskGroup[0]) == table)
+                .All(taskGroup => IsObjectOrGroupTask(taskGroup[0]));
+            return table != ApprovalTaskListTable.Access && onlyObjectTasks ? objectVisibility : null;
+        }
+
+        /// <summary>Returns whether a task is an object or group task.</summary>
+        /// <param name="task">The request task.</param>
+        public static bool IsObjectOrGroupTask(WfReqTask task)
+        {
+            return WfObjectTaskHelper.IsObjectTask(task.TaskType) || ApprovalTaskDetailsEditorService.IsGroupTask(task);
+        }
+
+        /// <summary>
+        /// Visibility of handler, assigned, management and reason: access tasks use their own settings, tables of
+        /// object and group tasks the object task settings; other tasks always show handler and assigned and follow
+        /// the access task settings for management and reason.
+        /// </summary>
+        private static ObjectTaskFieldVisibilityConfig MetadataVisibility(ApprovalTaskListTable table,
+            AccessTaskFieldVisibilityConfig visibility, ObjectTaskFieldVisibilityConfig? objectVisibility)
+        {
+            if (table == ApprovalTaskListTable.Access)
+            {
+                return new() { ShowHandler = visibility.ShowHandler, ShowAssigned = visibility.ShowAssigned, ShowManagement = false, ShowReason = visibility.ShowReason };
+            }
+            return objectVisibility ?? new() { ShowManagement = visibility.ShowManagement, ShowReason = visibility.ShowReason };
         }
 
         private static void AddAccessColumns(List<ApprovalTaskListColumn> columns, AccessTaskFieldVisibilityConfig visibility)
@@ -230,10 +270,36 @@ namespace FWO.Ui.Services
                     cells[kObject] = new(NonEmptyValues(task.Elements.Select(element => element.Name ?? "")), ObjectTaskEdit(task));
                     break;
             }
+            if (IsObjectOrGroupTask(task))
+            {
+                ClearHiddenObjectTaskCells(cells);
+            }
             return new ApprovalTaskListRow(task, cells)
             {
                 Compliance = table == ApprovalTaskListTable.Access ? ApprovalTaskCompliance.Of(taskGroup, ComplianceResults) : null
             };
+        }
+
+        /// <summary>Empties the cells an object or group task hides, as its row may share the other tasks table with other tasks.</summary>
+        private void ClearHiddenObjectTaskCells(Dictionary<string, ApprovalTaskListCell> cells)
+        {
+            ObjectTaskFieldVisibilityConfig objectVisibility = context.ObjectVisibility;
+            if (!objectVisibility.ShowHandler)
+            {
+                cells[kHandler] = ReadOnly("");
+            }
+            if (!objectVisibility.ShowAssigned)
+            {
+                cells[kAssigned] = ReadOnly("");
+            }
+            if (!objectVisibility.ShowManagement)
+            {
+                cells[kManagement] = ReadOnly("");
+            }
+            if (!objectVisibility.ShowReason)
+            {
+                cells[kReason] = ReadOnly("");
+            }
         }
 
         private void AddAccessCells(Dictionary<string, ApprovalTaskListCell> cells, WfReqTask task, List<WfReqTask> taskGroup)

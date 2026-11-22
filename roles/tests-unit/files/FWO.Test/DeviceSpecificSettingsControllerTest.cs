@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace FWO.Test;
@@ -132,6 +133,45 @@ internal class DeviceSpecificSettingsControllerTest
             Assert.That(applied.Applied, Is.True);
             Assert.That(applied.Mode, Is.EqualTo(DeviceSpecificSettingsImportMode.Merge));
             Assert.That(api.Nodes.Single(item => item.NodeType == "management").Values.Single().ConfigKey, Is.EqualTo("importerHostName"));
+        });
+    }
+
+    [Test]
+    public async Task ImportReportsNumbersOutOfRangeAsPackageErrorsAndWritesNothing()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        ImportDeviceSpecificSettingsRequest request = new()
+        {
+            Package = Package("{\"level\":\"global\",\"values\":{\"requestMaxAttempts\":99999999999999999999,\"requestResponseTimeout\":1e400}}")
+        };
+
+        ActionResult result = (await CreateController(api).Import(request)).Result!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ErrorPaths(result), Is.EquivalentTo(
+                ["package.nodes[0].values.requestMaxAttempts", "package.nodes[0].values.requestResponseTimeout"]));
+            Assert.That(api.BulkPatchCallCount, Is.Zero);
+            Assert.That(api.ReadValue(1, DeviceSpecificSettingKeys.RequestMaxAttempts)?.Value<int>(), Is.EqualTo(4));
+        });
+    }
+
+    [Test]
+    public async Task SettingsLargerThanAnExportFileAnswerConflictAndStoreNoSnapshot()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        api.SetValue(1, DeviceSpecificSettingKeys.ScUrl, new string('u', (int)DeviceSpecificSettingsPackage.kMaxPackageBytes));
+        DeviceSpecificSettingsController controller = CreateController(api);
+
+        ActionResult export = (await controller.Export()).Result!;
+        ActionResult snapshot = (await controller.AddSnapshot(new AddDeviceSpecificSettingsSnapshotRequest { Name = kSnapshotName })).Result!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(export, Is.InstanceOf<ConflictObjectResult>());
+            Assert.That(((ConflictObjectResult)export).Value, Does.Contain("bytes"));
+            Assert.That(snapshot, Is.InstanceOf<ConflictObjectResult>());
+            Assert.That(api.Snapshots, Is.Empty);
         });
     }
 

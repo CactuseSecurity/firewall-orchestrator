@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Services.DeviceSpecificSettings;
 using NUnit.Framework;
@@ -52,6 +53,25 @@ internal class DeviceSpecificSettingsSnapshotServiceTest
     }
 
     [Test]
+    public void ASnapshotLargerThanAnExportFileIsRejected()
+    {
+        DeviceSpecificSettingsPackage tooLarge = PackageWithUrl(new string('u', (int)DeviceSpecificSettingsPackage.kMaxPackageBytes));
+        DeviceSpecificSettingsPackage fitting = PackageWithUrl("https://securechange.example");
+        DeviceSpecificSettingsSnapshotService service = new(new InMemoryDeviceSpecificSettingsApiConnection());
+
+        List<DeviceSpecificSettingsImportIssue> tooLargeIssues = DeviceSpecificSettingsSnapshotService.ValidateSnapshot("large", null, tooLarge);
+        List<DeviceSpecificSettingsImportIssue> fittingIssues = DeviceSpecificSettingsSnapshotService.ValidateSnapshot("small", null, fitting);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(tooLargeIssues.Select(issue => issue.Path), Is.EqualTo(new List<string> { "package" }));
+            Assert.That(fittingIssues, Is.Empty);
+            Assert.ThrowsAsync<InvalidDataException>(() => service.AddSnapshotAsync("large", null, tooLarge));
+            Assert.That(DeviceSpecificSettingsPackageJson.FitsSizeLimit(fitting), Is.True);
+        });
+    }
+
+    [Test]
     public void TheFilterOnlyContainsSetCriteriaAndEscapesWildcards()
     {
         DateTimeOffset created = new(2026, 11, 21, 0, 0, 0, TimeSpan.Zero);
@@ -75,4 +95,13 @@ internal class DeviceSpecificSettingsSnapshotServiceTest
             Assert.That(((Dictionary<string, object>)all["created"])["_eq"], Is.EqualTo(created));
         });
     }
+
+    private static DeviceSpecificSettingsPackage PackageWithUrl(string url) => new()
+    {
+        Nodes = [new DeviceSpecificSettingsPackageNode
+        {
+            Level = "global",
+            Values = new Dictionary<string, JsonElement> { [DeviceSpecificSettingKeys.ScUrl.DatabaseKey] = JsonSerializer.SerializeToElement(url) }
+        }]
+    };
 }

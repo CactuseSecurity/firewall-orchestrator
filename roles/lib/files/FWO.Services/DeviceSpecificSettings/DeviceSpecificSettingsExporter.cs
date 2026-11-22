@@ -26,6 +26,10 @@ public static class DeviceSpecificSettingsExporter
     /// referenced object no longer exists are left out and reported as warnings.
     /// </summary>
     /// <exception cref="CollectionLimitExceededException">More than <see cref="DeviceSpecificSettingsPackage.kMaxNodes"/> levels would be exported.</exception>
+    /// <exception cref="SizeLimitExceededException">
+    /// The package written as file would be larger than <see cref="DeviceSpecificSettingsPackage.kMaxPackageBytes"/>, so
+    /// it could not be imported again.
+    /// </exception>
     public static DeviceSpecificSettingsExportResult Export(DeviceSpecificSettingsTransferContext context, DateTimeOffset exportedAt)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -64,6 +68,10 @@ public static class DeviceSpecificSettingsExporter
                 .ThenBy(exported => exported.SortKey, StringComparer.Ordinal)
                 .Select(exported => exported.Node)]
         };
+        if (!DeviceSpecificSettingsPackageJson.FitsSizeLimit(package))
+        {
+            throw new SizeLimitExceededException(DeviceSpecificSettingsPackage.kMaxPackageBytes);
+        }
         return new DeviceSpecificSettingsExportResult(package, warnings);
     }
 

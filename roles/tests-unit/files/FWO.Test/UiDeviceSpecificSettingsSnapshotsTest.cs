@@ -2,6 +2,7 @@ using Bunit;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Services.DeviceSpecificSettings;
@@ -25,6 +26,7 @@ internal class UiDeviceSpecificSettingsSnapshotsTest
     private const string kScUrl = "https://securechange.example";
     private const string kExistingName = "before upgrade";
     private const string kNewName = "after upgrade";
+    private const int kMoreThanListedSnapshots = 1001;
 
     private sealed class SnapshotsTestSetup(InMemoryDeviceSpecificSettingsApiConnection api)
     {
@@ -49,6 +51,7 @@ internal class UiDeviceSpecificSettingsSnapshotsTest
             Assert.That(setup.Dialog.Markup, Does.Contain("9.9.4"));
             Assert.That(setup.Dialog.FindAll("#dss-snapshot-name"), Has.Count.EqualTo(1), "admins can store snapshots");
             Assert.That(setup.Dialog.FindAll("table button.btn-danger"), Has.Count.EqualTo(1), "admins can delete snapshots");
+            Assert.That(setup.Dialog.Markup, Does.Not.Contain("dss_snapshots_limited"), "all snapshots are listed");
             Assert.That(setup.Messages, Is.Empty);
         });
     }
@@ -66,6 +69,46 @@ internal class UiDeviceSpecificSettingsSnapshotsTest
             Assert.That(setup.Dialog.FindAll("#dss-snapshot-name"), Is.Empty);
             Assert.That(setup.Dialog.FindAll("table button.btn-danger"), Is.Empty);
             Assert.That(setup.Dialog.FindAll("table button.btn-primary"), Has.Count.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public void MoreSnapshotsThanListedShowANote()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        DateTimeOffset firstCreated = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        for (int index = 1; index <= kMoreThanListedSnapshots; index++)
+        {
+            api.Snapshots.Add(new DeviceSpecificSettingsSnapshotData { Id = index, Name = $"snapshot {index}", Created = firstCreated.AddMinutes(index) });
+        }
+        using BunitContext context = new();
+
+        SnapshotsTestSetup setup = Render(context, api, Roles.Admin);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(setup.Dialog.Markup, Does.Contain("dss_snapshots_limited"));
+            Assert.That(setup.Dialog.FindAll("table button.btn-danger"), Has.Count.EqualTo(kMoreThanListedSnapshots - 1), "only the newest are listed");
+            Assert.That(setup.Dialog.Markup, Does.Contain($"snapshot {kMoreThanListedSnapshots}"), "the newest snapshot is listed");
+        });
+    }
+
+    [Test]
+    public void SavingSettingsLargerThanAnExportFileShowsTheLimit()
+    {
+        InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
+        api.SetValue(1, DeviceSpecificSettingKeys.ScUrl, new string('u', (int)DeviceSpecificSettingsPackage.kMaxPackageBytes));
+        using BunitContext context = new();
+        SnapshotsTestSetup setup = Render(context, api, Roles.Admin);
+
+        setup.Dialog.Find("#dss-snapshot-name").Change(kNewName);
+        setup.Dialog.Find("button.btn-success").Click();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(api.Snapshots, Is.Empty);
+            Assert.That(setup.Messages.Single().Message, Is.EqualTo("E5305"));
+            Assert.That(setup.Messages.Single().Exception, Is.InstanceOf<SizeLimitExceededException>());
         });
     }
 

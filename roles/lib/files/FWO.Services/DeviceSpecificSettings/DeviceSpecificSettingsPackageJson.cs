@@ -25,6 +25,16 @@ public static class DeviceSpecificSettingsPackageJson
         return System.Text.Json.JsonSerializer.Serialize(package, WriteOptions);
     }
 
+    /// <summary>Size in bytes of the package written as file by <see cref="Serialize"/>.</summary>
+    public static long FileSize(DeviceSpecificSettingsPackage package) => Encoding.UTF8.GetByteCount(Serialize(package));
+
+    /// <summary>
+    /// Whether the package written as file stays within <see cref="DeviceSpecificSettingsPackage.kMaxPackageBytes"/>, so
+    /// that it can be read again by <see cref="Deserialize"/> and sent to the import.
+    /// </summary>
+    public static bool FitsSizeLimit(DeviceSpecificSettingsPackage package) =>
+        FileSize(package) <= DeviceSpecificSettingsPackage.kMaxPackageBytes;
+
     /// <summary>Reads a package of at most <see cref="DeviceSpecificSettingsPackage.kMaxPackageBytes"/> bytes.</summary>
     /// <exception cref="InvalidDataException">The text is too large, no JSON, or not shaped like a package.</exception>
     public static DeviceSpecificSettingsPackage Deserialize(string json)

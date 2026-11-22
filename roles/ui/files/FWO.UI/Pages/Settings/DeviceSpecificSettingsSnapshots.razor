@@ -1,4 +1,5 @@
 @using System.Text
+@using FWO.Basics.Exceptions
 @using FWO.Data.DeviceSpecificSettings
 @using FWO.Services.DeviceSpecificSettings
 
@@ -41,6 +42,10 @@
             }
             else
             {
+                @if (hasMoreSnapshots)
+                {
+                    <div class="alert alert-info small">@(string.Format(userConfig.GetText("dss_snapshots_limited"), kMaxListedSnapshots))</div>
+                }
                 <Table class="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header"
                        TableItem="DeviceSpecificSettingsSnapshotSummary" Items="snapshots" PageSize="0">
                     <Column TableItem="DeviceSpecificSettingsSnapshotSummary" Title="@(userConfig.GetText("action"))" Field="@(snapshot => snapshot.Id)" Sortable="false" Filterable="false">
@@ -99,7 +104,11 @@
     /// <summary>Most snapshots listed, newest first.</summary>
     private const int kMaxListedSnapshots = 1000;
 
+    /// <summary>Bytes of one MiB, to show the package size limit.</summary>
+    private const long kBytesPerMebibyte = 1024 * 1024;
+
     private List<DeviceSpecificSettingsSnapshotSummary>? snapshots;
+    private bool hasMoreSnapshots;
     private string newName = "";
     private string newDescription = "";
     private bool working;
@@ -124,15 +133,19 @@
 
     private DeviceSpecificSettingsSnapshotService SnapshotService => new(apiConnection);
 
+    /// <summary>Loads the newest snapshots and one more, to tell whether older ones are not listed.</summary>
     private async Task LoadSnapshots()
     {
         try
         {
-            snapshots = await SnapshotService.GetSnapshotsAsync(null, kMaxListedSnapshots, 0);
+            List<DeviceSpecificSettingsSnapshotSummary> fetched = await SnapshotService.GetSnapshotsAsync(null, kMaxListedSnapshots + 1, 0);
+            hasMoreSnapshots = fetched.Count > kMaxListedSnapshots;
+            snapshots = [.. fetched.Take(kMaxListedSnapshots)];
         }
         catch (Exception exception)
         {
             snapshots = [];
+            hasMoreSnapshots = false;
             DisplayMessageInUi(exception, userConfig.GetText("dss_snapshots"), "", true);
         }
     }
@@ -150,6 +163,10 @@
             newName = "";
             newDescription = "";
             await LoadSnapshots();
+        }
+        catch (Exception exception) when (IsExportLimitExceeded(exception))
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("dss_snapshots"), ExportLimitMessage(userConfig), true);
         }
         catch (Exception exception)
         {
@@ -238,6 +255,14 @@
             DisplayMessageInUi(null, userConfig.GetText(titleKey), $"{userConfig.GetText("dss_export_warnings")} {string.Join(" ", warnings)}", true);
         }
     }
+
+    /// <summary>Whether an export failed because the settings exceed the level or size limit of a package.</summary>
+    public static bool IsExportLimitExceeded(Exception exception) =>
+        exception is CollectionLimitExceededException or SizeLimitExceededException;
+
+    /// <summary>Localized message for settings that exceed the level or size limit of a package.</summary>
+    public static string ExportLimitMessage(UserConfig config) =>
+        string.Format(config.GetText("E5305"), DeviceSpecificSettingsPackage.kMaxNodes, DeviceSpecificSettingsPackage.kMaxPackageBytes / kBytesPerMebibyte);
 
     /// <summary>File name of a snapshot download: the snapshot name with characters not allowed in file names replaced.</summary>
     public static string SnapshotFileName(string snapshotName)

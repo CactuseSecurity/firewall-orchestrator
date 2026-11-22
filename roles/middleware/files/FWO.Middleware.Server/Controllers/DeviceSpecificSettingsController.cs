@@ -37,7 +37,8 @@ public class DeviceSpecificSettingsController(ApiConnection apiConnection, Devic
     /// One entry per stored level with at least one override, addressed by device type name and version, management name
     /// or management and gateway name. Settings referencing other objects hold the object's name (<c>scCredential</c> the
     /// credential name); secrets are never exported. Levels whose object no longer exists are left out and logged. The
-    /// package holds at most 10000 levels; a larger tree answers 409.
+    /// package holds at most 10000 levels and is at most 1 MiB large as file, so that it can always be imported again;
+    /// larger settings answer 409.
     /// </remarks>
     [HttpGet]
     [Authorize(Roles = Roles.Admin)]
@@ -55,7 +56,11 @@ public class DeviceSpecificSettingsController(ApiConnection apiConnection, Devic
         }
         catch (CollectionLimitExceededException exception)
         {
-            return Conflict($"The device specific settings have more than {exception.Limit} levels and cannot be exported.");
+            return Conflict(TooManyLevelsMessage(exception));
+        }
+        catch (SizeLimitExceededException exception)
+        {
+            return Conflict(TooLargeMessage(exception));
         }
         catch (Exception exception)
         {
@@ -202,8 +207,9 @@ public class DeviceSpecificSettingsController(ApiConnection apiConnection, Devic
     /// Stores a package, or the current settings of this installation, as a new snapshot.
     /// </summary>
     /// <remarks>
-    /// A given package is only checked for its structure, so versions of other installations can be kept; it is
-    /// validated against this installation when it is imported. A name that is already used answers 409.
+    /// A given package is only checked for its structure and its size as file (at most 1 MiB), so versions of other
+    /// installations can be kept; it is validated against this installation when it is imported. A name that is already
+    /// used answers 409, as do current settings that are too large to be exported.
     /// </remarks>
     [HttpPost("Snapshots")]
     [Authorize(Roles = Roles.Admin)]
@@ -234,7 +240,11 @@ public class DeviceSpecificSettingsController(ApiConnection apiConnection, Devic
         }
         catch (CollectionLimitExceededException exception)
         {
-            return Conflict($"The device specific settings have more than {exception.Limit} levels and cannot be exported.");
+            return Conflict(TooManyLevelsMessage(exception));
+        }
+        catch (SizeLimitExceededException exception)
+        {
+            return Conflict(TooLargeMessage(exception));
         }
         catch (InvalidOperationException exception) when (IsUniqueNameViolation(exception))
         {
@@ -268,6 +278,12 @@ public class DeviceSpecificSettingsController(ApiConnection apiConnection, Devic
         FwoVersion = filter.FwoVersion,
         Created = filter.Created
     };
+
+    private static string TooManyLevelsMessage(CollectionLimitExceededException exception) =>
+        $"The device specific settings have more than {exception.Limit} levels and cannot be exported.";
+
+    private static string TooLargeMessage(SizeLimitExceededException exception) =>
+        $"The device specific settings are larger than {exception.LimitBytes} bytes as file and cannot be exported.";
 
     private static bool IsUniqueNameViolation(InvalidOperationException exception) =>
         exception.Message.Contains(kUniqueNameViolation, StringComparison.Ordinal)

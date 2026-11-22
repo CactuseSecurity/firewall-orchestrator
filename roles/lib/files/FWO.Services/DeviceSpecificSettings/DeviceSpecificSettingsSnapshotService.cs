@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Services.Workflow;
 
 namespace FWO.Services.DeviceSpecificSettings;
 
@@ -32,6 +33,8 @@ public sealed class DeviceSpecificSettingsSnapshotFilter
 /// </summary>
 public sealed class DeviceSpecificSettingsSnapshotService(ApiConnection apiConnection)
 {
+    private const string kPackagePath = "package";
+
     /// <summary>
     /// Lists snapshots, newest first and then by descending ID, matching the filter.
     /// </summary>
@@ -81,7 +84,9 @@ public sealed class DeviceSpecificSettingsSnapshotService(ApiConnection apiConne
     /// <summary>
     /// Checks the name (required, at most <see cref="DeviceSpecificSettingsSnapshotSummary.kMaxNameLength"/> characters),
     /// the description (at most <see cref="DeviceSpecificSettingsSnapshotSummary.kMaxDescriptionLength"/> characters) and
-    /// the structure of the package. Paths are relative to the snapshot: <c>name</c>, <c>description</c>, <c>package.*</c>.
+    /// the structure of the package and its size as file (at most <see cref="DeviceSpecificSettingsPackage.kMaxPackageBytes"/>
+    /// bytes, so that every snapshot can be read, downloaded and imported again). Paths are relative to the snapshot:
+    /// <c>name</c>, <c>description</c>, <c>package.*</c>.
     /// </summary>
     public static List<DeviceSpecificSettingsImportIssue> ValidateSnapshot(string? name, string? description, DeviceSpecificSettingsPackage? package)
     {
@@ -100,8 +105,14 @@ public sealed class DeviceSpecificSettingsSnapshotService(ApiConnection apiConne
             errors.Add(new("description", $"A snapshot description must not be longer than {DeviceSpecificSettingsSnapshotSummary.kMaxDescriptionLength} characters."));
         }
 
-        errors.AddRange(DeviceSpecificSettingsPackageValidator.ValidateStructure(package)
-            .Select(error => new DeviceSpecificSettingsImportIssue(error.Path.Length == 0 ? "package" : $"package.{error.Path}", error.Message)));
+        List<DeviceSpecificSettingsImportIssue> structureErrors = DeviceSpecificSettingsPackageValidator.ValidateStructure(package);
+        errors.AddRange(structureErrors
+            .Select(error => new DeviceSpecificSettingsImportIssue(error.Path.Length == 0 ? kPackagePath : $"{kPackagePath}.{error.Path}", error.Message)));
+        if (structureErrors.Count == 0 && !DeviceSpecificSettingsPackageJson.FitsSizeLimit(package!))
+        {
+            errors.Add(new(kPackagePath, $"A snapshot package written as file must not be larger than {DeviceSpecificSettingsPackage.kMaxPackageBytes} bytes, "
+                + "so that it can be imported again."));
+        }
         return errors;
     }
 
@@ -119,11 +130,11 @@ public sealed class DeviceSpecificSettingsSnapshotService(ApiConnection apiConne
         }
         if (filter.Name is not null)
         {
-            where["name"] = new Dictionary<string, object> { ["_ilike"] = ContainsPattern(filter.Name) };
+            where["name"] = new Dictionary<string, object> { ["_ilike"] = WfObjectSearch.ToContainsPattern(filter.Name) };
         }
         if (filter.Description is not null)
         {
-            where["description"] = new Dictionary<string, object> { ["_ilike"] = ContainsPattern(filter.Description) };
+            where["description"] = new Dictionary<string, object> { ["_ilike"] = WfObjectSearch.ToContainsPattern(filter.Description) };
         }
         if (filter.FwoVersion is not null)
         {
@@ -134,12 +145,5 @@ public sealed class DeviceSpecificSettingsSnapshotService(ApiConnection apiConne
             where["created"] = new Dictionary<string, object> { ["_eq"] = created };
         }
         return where;
-    }
-
-    /// <summary>An ILIKE pattern matching the text anywhere, with the wildcards and the escape character of the text escaped.</summary>
-    private static string ContainsPattern(string text)
-    {
-        string escaped = text.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
-        return $"%{escaped}%";
     }
 }

@@ -268,20 +268,23 @@ public static class DeviceSpecificSettingsPackageValidator
         return values;
     }
 
-    /// <summary>Checks one value with the serializer and the value rules and returns it typed and as stored.</summary>
+    /// <summary>
+    /// Checks one value with the serializer and the value rules and returns it typed and as stored. A number outside the
+    /// range the API layer can read is reported like any other invalid value.
+    /// </summary>
     private static ValidatedDeviceSpecificValue? ValidateValue(DeviceSpecificSettingKey key, JsonElement element, string path,
         DeviceSpecificSettingsTransferContext context, List<DeviceSpecificSettingsImportIssue> errors)
     {
-        JToken? json = key == DeviceSpecificSettingKeys.ScCredential
-            ? ResolveCredential(element, path, context, errors)
-            : DeviceSpecificSettingsPackageJson.ToJToken(element);
-        if (json is null)
-        {
-            return null;
-        }
-
         try
         {
+            JToken? json = key == DeviceSpecificSettingKeys.ScCredential
+                ? ResolveCredential(element, path, context, errors)
+                : DeviceSpecificSettingsPackageJson.ToJToken(element);
+            if (json is null)
+            {
+                return null;
+            }
+
             object value = DeviceSpecificSettingValueRules.Normalize(key, DeviceSpecificSettingValueSerializer.Deserialize(key, json));
             return new ValidatedDeviceSpecificValue(value, DeviceSpecificSettingValueSerializer.Serialize(key, value));
         }
@@ -290,7 +293,19 @@ public static class DeviceSpecificSettingsPackageValidator
             errors.Add(new(path, exception.Message));
             return null;
         }
+        catch (Exception exception) when (IsNumberOutOfRange(exception))
+        {
+            errors.Add(new(path, $"Setting '{key.DatabaseKey}' does not accept this value: the number is out of range."));
+            return null;
+        }
     }
+
+    /// <summary>
+    /// Whether reading a value failed because of a number the API layer cannot represent: an integer beyond 64 bits
+    /// (read as big integer, which cannot be cast) or a number beyond the decimal range (rejected by the JSON reader).
+    /// </summary>
+    private static bool IsNumberOutOfRange(Exception exception) =>
+        exception is InvalidCastException or OverflowException or Newtonsoft.Json.JsonReaderException;
 
     /// <summary>Maps a credential name to the ID of the single password credential of that name.</summary>
     private static JValue? ResolveCredential(JsonElement element, string path, DeviceSpecificSettingsTransferContext context,

@@ -396,6 +396,10 @@ else
                 DisplayMessageInUi(null, userConfig.GetText("export"), $"{userConfig.GetText("dss_export_warnings")} {string.Join(" ", export.Warnings)}", true);
             }
         }
+        catch (Exception exception) when (DeviceSpecificSettingsSnapshots.IsExportLimitExceeded(exception))
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("export"), DeviceSpecificSettingsSnapshots.ExportLimitMessage(userConfig), true);
+        }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("export"), "", true);

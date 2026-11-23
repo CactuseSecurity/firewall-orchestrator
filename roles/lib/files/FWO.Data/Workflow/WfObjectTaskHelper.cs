@@ -361,6 +361,26 @@ namespace FWO.Data.Workflow
         }
 
         /// <summary>
+        /// Copies the current requested values while preserving the target element's identity and references.
+        /// </summary>
+        /// <param name="target">Persisted snapshot receiving current values.</param>
+        /// <param name="source">Current requested object state.</param>
+        public static void CopyRequestedStateSnapshot(WfReqElement target, WfReqElement source)
+        {
+            target.IpString = source.IpString ?? (source.Cidr?.Valid == true ? source.Cidr.CidrString : null);
+            target.IpEnd = source.IpEnd ?? (source.CidrEnd?.Valid == true ? source.CidrEnd.CidrString : null);
+            target.Cidr = source.Cidr;
+            target.CidrEnd = source.CidrEnd;
+            target.Port = source.Port;
+            target.PortEnd = source.PortEnd;
+            target.ProtoId = source.ProtoId;
+            target.GroupName = source.GroupName;
+            target.Name = source.Name;
+            target.StartTime = source.StartTime;
+            target.EndTime = source.EndTime;
+        }
+
+        /// <summary>
         /// Returns the current requested element for an element that references a ticket-local object task.
         /// The access element remains the persisted snapshot; this method only supplies the current value for
         /// display and other read-only projections.

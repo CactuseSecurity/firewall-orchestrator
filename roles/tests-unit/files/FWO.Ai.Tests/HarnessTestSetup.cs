@@ -79,20 +79,31 @@ internal static class HarnessTestSetup
     }
 
     /// <summary>
-    /// Creates the agent of the default test user holding the given roles.
+    /// Creates the agent of the default test user holding the given roles, in its token and for the role filters of
+    /// the AI functions.
     /// </summary>
     internal static FwoUserAgent CreateUserAgent(FwoAgentFactory factory, params string[] roles)
     {
         string accessToken = McpTestServer.CreateMiddlewareToken(roles);
-        return CreateUserAgent(factory, _ => ValueTask.FromResult(accessToken));
+        return CreateUserAgent(factory, _ => ValueTask.FromResult(accessToken), roles);
     }
 
     /// <summary>
-    /// Creates the agent of a user, asking the given provider for the token.
+    /// Creates the agent of a user, asking the given provider for the token; the user holds no roles for the role
+    /// filters of the AI functions unless given.
     /// </summary>
-    internal static FwoUserAgent CreateUserAgent(FwoAgentFactory factory, Func<CancellationToken, ValueTask<string>> accessTokenProvider)
+    internal static FwoUserAgent CreateUserAgent(FwoAgentFactory factory, Func<CancellationToken, ValueTask<string>> accessTokenProvider,
+        params string[] userRoles)
     {
-        return factory.CreateUserAgent(new McpConnectionSettings { Endpoint = kTestMcpEndpoint, AccessTokenProvider = accessTokenProvider });
+        return factory.CreateUserAgent(CreateMcpSettings(accessTokenProvider), userRoles);
+    }
+
+    /// <summary>
+    /// Creates the connection settings of the MCP server of the test server, asking the given provider for the token.
+    /// </summary>
+    internal static McpConnectionSettings CreateMcpSettings(Func<CancellationToken, ValueTask<string>> accessTokenProvider)
+    {
+        return new McpConnectionSettings { Endpoint = kTestMcpEndpoint, AccessTokenProvider = accessTokenProvider };
     }
 
     /// <summary>

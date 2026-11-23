@@ -77,15 +77,17 @@ public sealed class FwoAgentFactory : IDisposable
     /// <summary>
     /// Creates the agent running the turns of a user with the user's JWT. It connects to the MCP server only when a
     /// turn runs, so creating it per request is cheap. It refuses the turns of AI functions that are switched off in the
-    /// agent settings of the factory, see <see cref="AgentFeatureGate"/>.
+    /// agent settings of the factory or not allowed there for the roles of the user, see <see cref="AgentFeatureGate"/>.
     /// </summary>
     /// <param name="userConnection">MCP endpoint and the provider of the user's JWT</param>
+    /// <param name="userRoles">Roles of the user, read from the validated JWT of the request</param>
     /// <exception cref="ObjectDisposedException">The factory has been disposed.</exception>
-    public FwoUserAgent CreateUserAgent(McpConnectionSettings userConnection)
+    public FwoUserAgent CreateUserAgent(McpConnectionSettings userConnection, IReadOnlyCollection<string> userRoles)
     {
         ArgumentNullException.ThrowIfNull(userConnection);
+        ArgumentNullException.ThrowIfNull(userRoles);
         ObjectDisposedException.ThrowIf(disposed, this);
-        return new FwoUserAgent(sharedAgent, historyReducer, agentSettings, userConnection, mcpHandlerFactory, loggerFactory);
+        return new FwoUserAgent(sharedAgent, historyReducer, agentSettings, [.. userRoles], userConnection, mcpHandlerFactory, loggerFactory);
     }
 
     /// <summary>

@@ -1,5 +1,6 @@
 using FWO.Ai.Harness.Agent;
 using FWO.Ai.Harness.Hosting;
+using FWO.Data.Ai;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace FWO.Ai.Harness.Settings;
@@ -90,8 +91,10 @@ public sealed class AiSettingsRefresher
         try
         {
             agentFactories.SetFactory(createAgentFactory(settings));
-            logger.LogInformation("Applied the AI settings: provider {Provider}, model {Model}, chat {ChatEnabled}, reason check {ReasonCheckEnabled}.",
-                settings.Values.Provider, settings.Values.Model, settings.Values.ChatEnabled, settings.Values.ReasonCheckEnabled);
+            logger.LogInformation("Applied the AI settings: provider {Provider}, model {Model}, chat {ChatEnabled} (roles {ChatRoles}), "
+                + "reason check {ReasonCheckEnabled} (roles {ReasonCheckRoles}).", settings.Values.Provider, settings.Values.Model,
+                settings.Values.ChatEnabled, AiFunctionRoles.Serialize(settings.Values.ChatRoles),
+                settings.Values.ReasonCheckEnabled, AiFunctionRoles.Serialize(settings.Values.ReasonCheckRoles));
         }
         catch (Exception exception)
         {

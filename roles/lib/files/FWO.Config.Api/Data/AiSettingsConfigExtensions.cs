@@ -9,13 +9,16 @@ namespace FWO.Config.Api.Data
     public static class AiSettingsConfigExtensions
     {
         /// <summary>
-        /// Returns a copy of the AI settings of the config.
+        /// Returns a copy of the AI settings of the config. A function with an unreadable role filter is returned switched
+        /// off, as the AI harness treats it, see <see cref="AiFunctionRoles.TryParse"/>.
         /// </summary>
         /// <param name="config">Config holding the AI settings</param>
         /// <returns>The AI settings.</returns>
         public static AiSettings GetAiSettings(this ConfigData config)
         {
             ArgumentNullException.ThrowIfNull(config);
+            bool chatRolesReadable = AiFunctionRoles.TryParse(config.AiChatRoles, out List<string> chatRoles);
+            bool reasonCheckRolesReadable = AiFunctionRoles.TryParse(config.AiReasonCheckRoles, out List<string> reasonCheckRoles);
             return new AiSettings
             {
                 Provider = config.AiProvider,
@@ -29,8 +32,10 @@ namespace FWO.Config.Api.Data
                 MaxIterationsPerRequest = config.AiMaxIterationsPerRequest,
                 MaxConsecutiveErrorsPerRequest = config.AiMaxConsecutiveErrorsPerRequest,
                 CompactionReserveTokens = config.AiCompactionReserveTokens,
-                ChatEnabled = config.AiChatEnabled,
-                ReasonCheckEnabled = config.AiReasonCheckEnabled
+                ChatEnabled = config.AiChatEnabled && chatRolesReadable,
+                ReasonCheckEnabled = config.AiReasonCheckEnabled && reasonCheckRolesReadable,
+                ChatRoles = chatRoles,
+                ReasonCheckRoles = reasonCheckRoles
             };
         }
 
@@ -56,6 +61,41 @@ namespace FWO.Config.Api.Data
             config.AiCompactionReserveTokens = settings.CompactionReserveTokens;
             config.AiChatEnabled = settings.ChatEnabled;
             config.AiReasonCheckEnabled = settings.ReasonCheckEnabled;
+            config.AiChatRoles = AiFunctionRoles.Serialize(settings.ChatRoles);
+            config.AiReasonCheckRoles = AiFunctionRoles.Serialize(settings.ReasonCheckRoles);
+        }
+
+        /// <summary>
+        /// Tells whether a user holding the given roles may chat with the AI assistant: the chat is switched on and its
+        /// role filter allows one of the roles. An unreadable role filter allows nobody.
+        /// </summary>
+        /// <param name="config">Config holding the AI settings</param>
+        /// <param name="userRoles">Roles of the user</param>
+        public static bool MayUseAiChat(this ConfigData config, IEnumerable<string> userRoles)
+        {
+            ArgumentNullException.ThrowIfNull(config);
+            return config.AiChatEnabled && IsAllowedByRoleFilter(config.AiChatRoles, userRoles);
+        }
+
+        /// <summary>
+        /// Tells whether a user holding the given roles may let the AI assistant check the functional reason: the reason
+        /// check is switched on and its role filter allows one of the roles. An unreadable role filter allows nobody.
+        /// </summary>
+        /// <param name="config">Config holding the AI settings</param>
+        /// <param name="userRoles">Roles of the user</param>
+        public static bool MayUseAiReasonCheck(this ConfigData config, IEnumerable<string> userRoles)
+        {
+            ArgumentNullException.ThrowIfNull(config);
+            return config.AiReasonCheckEnabled && IsAllowedByRoleFilter(config.AiReasonCheckRoles, userRoles);
+        }
+
+        /// <summary>
+        /// Tells whether the stored role filter allows one of the roles; false if it cannot be read.
+        /// </summary>
+        private static bool IsAllowedByRoleFilter(string storedRoles, IEnumerable<string> userRoles)
+        {
+            bool readable = AiFunctionRoles.TryParse(storedRoles, out List<string> allowedRoles);
+            return readable && AiFunctionRoles.IsAllowed(allowedRoles, userRoles);
         }
 
         /// <summary>

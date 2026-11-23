@@ -8,6 +8,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Ai;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
@@ -32,6 +33,8 @@ namespace FWO.Test
     [TestFixture]
     internal partial class UiEditNetworkModellingComponentsTest
     {
+        private static readonly List<string> kModellerRoles = [Roles.Modeller];
+
         private static readonly ReturnIdWrapper NewAppServerWrapper = new()
         {
             ReturnIds = [new ReturnId { NewIdLong = 77 }]
@@ -231,6 +234,26 @@ namespace FWO.Test
                 Assert.That(arguments["kind"], Is.EqualTo("interface"));
                 Assert.That(arguments["language"], Is.EqualTo("German"));
             });
+        }
+
+        /// <summary>
+        /// Verifies that the reason check limited to roles is shown only to a user holding one of them.
+        /// </summary>
+        [TestCase(Roles.Modeller, true)]
+        [TestCase(Roles.Reporter, false)]
+        public async Task EditConn_AiReasonCheckLimitedToRoles_ShowsTheCheckOnlyForThem(string userRole, bool expectedShown)
+        {
+            await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
+            userConfig.AiReasonCheckEnabled = true;
+            userConfig.AiReasonCheckRoles = AiFunctionRoles.Serialize(kModellerRoles);
+            userConfig.User.Roles = [userRole];
+            RegisterAiReasonCheckServices(context);
+            ModellingConnection connection = new() { Name = "conn", Reason = "reason" };
+            ModellingConnectionHandler handler = CreateConnectionHandler(new SimulatedApiConnection(), userConfig, connection, readOnly: true);
+
+            IRenderedComponent<EditConn> component = RenderEditConn(context, handler, display: true);
+
+            Assert.That(component.FindComponents<AiReasonCheck>(), Has.Count.EqualTo(expectedShown ? 1 : 0));
         }
 
         [Test]

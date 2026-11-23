@@ -81,7 +81,8 @@ public sealed class AiRuntimeSettings
     }
 
     /// <summary>
-    /// Returns the settings of the agent loop, the compaction and the AI functions the users may run.
+    /// Returns the settings of the agent loop, the compaction and the AI functions the users may run, with the roles
+    /// allowed to run them.
     /// </summary>
     public AgentSettings ToAgentSettings()
     {
@@ -91,7 +92,9 @@ public sealed class AiRuntimeSettings
             MaxConsecutiveErrorsPerRequest = Values.MaxConsecutiveErrorsPerRequest,
             CompactionReserveTokens = Values.CompactionReserveTokens > 0 ? Values.CompactionReserveTokens : null,
             ChatEnabled = Values.ChatEnabled,
-            ReasonCheckEnabled = Values.ReasonCheckEnabled
+            ReasonCheckEnabled = Values.ReasonCheckEnabled,
+            ChatRoles = [.. Values.ChatRoles],
+            ReasonCheckRoles = [.. Values.ReasonCheckRoles]
         };
     }
 
@@ -122,13 +125,15 @@ public sealed class AiRuntimeSettings
     }
 
     /// <summary>
-    /// Returns all values that decide about the agent factory, for <see cref="HasSameValues"/>; the switches of the AI
-    /// functions too, as the factory hands them to its agents.
+    /// Returns all values that decide about the agent factory, for <see cref="HasSameValues"/>; the switches and role
+    /// filters of the AI functions too, as the factory hands them to its agents. The role filters are compared in their
+    /// normalized stored form, as lists compare by reference.
     /// </summary>
-    private (AiProvider, string, string, int, int, int, int, int, int, AiAuthMethod, string, string?, string?, string?, bool, bool) GetComparableValues()
+    private (AiProvider, string, string, int, int, int, int, int, int, AiAuthMethod, string, string?, string?, string?, bool, bool, string, string) GetComparableValues()
     {
         return (Values.Provider, Values.Model, Values.Endpoint, Values.CredentialId, Values.ContextWindowTokens, Values.MaxOutputTokens,
             Values.MaxIterationsPerRequest, Values.MaxConsecutiveErrorsPerRequest, Values.CompactionReserveTokens, Values.AuthMethod,
-            Values.TokenUrl, ClientId, Secret, Problem, Values.ChatEnabled, Values.ReasonCheckEnabled);
+            Values.TokenUrl, ClientId, Secret, Problem, Values.ChatEnabled, Values.ReasonCheckEnabled,
+            AiFunctionRoles.Serialize(Values.ChatRoles), AiFunctionRoles.Serialize(Values.ReasonCheckRoles));
     }
 }

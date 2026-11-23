@@ -437,6 +437,20 @@ namespace FWO.Config.Api.Data
         [JsonProperty(AiSettings.kReasonCheckKey), JsonPropertyName(AiSettings.kReasonCheckKey)]
         public bool AiReasonCheckEnabled { get; set; } = false;
 
+        /// <summary>
+        /// Roles allowed to chat with the AI assistant as JSON array of role names, every user if empty, see
+        /// <see cref="AiSettings.ChatRoles"/>.
+        /// </summary>
+        [JsonProperty(AiSettings.kChatRolesKey), JsonPropertyName(AiSettings.kChatRolesKey)]
+        public string AiChatRoles { get; set; } = AiFunctionRoles.kNoRestriction;
+
+        /// <summary>
+        /// Roles allowed to let the AI assistant check the functional reason as JSON array of role names, every user if
+        /// empty, see <see cref="AiSettings.ReasonCheckRoles"/>.
+        /// </summary>
+        [JsonProperty(AiSettings.kReasonCheckRolesKey), JsonPropertyName(AiSettings.kReasonCheckRolesKey)]
+        public string AiReasonCheckRoles { get; set; } = AiFunctionRoles.kNoRestriction;
+
         [JsonProperty("overviewDisplayLines"), JsonPropertyName("overviewDisplayLines")]
         public int OverviewDisplayLines { get; set; } = 3;
 

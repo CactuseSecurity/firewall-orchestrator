@@ -88,7 +88,8 @@ internal static class HarnessServerSetup
 
     /// <summary>
     /// Creates the agent of the calling user, calling the MCP server with the bearer token of the request, which the
-    /// authorization has validated. The agent factory of the current AI settings is leased until the response has
+    /// authorization has validated, and deciding about the AI functions with the roles of that token
+    /// (<see cref="JwtClaimTypes.kRole"/>). The agent factory of the current AI settings is leased until the response has
     /// ended, so that a change of the settings does not dispose it during the run. Returns null, i.e. 404, for a request
     /// without bearer token.
     /// </summary>
@@ -108,7 +109,8 @@ internal static class HarnessServerSetup
             AccessTokenProvider = _ => ValueTask.FromResult(accessToken),
             ConnectionTimeout = settings.McpConnectionTimeout
         };
-        return lease.Factory.CreateUserAgent(userConnection);
+        List<string> userRoles = [.. context.User.FindAll(JwtClaimTypes.kRole).Select(roleClaim => roleClaim.Value)];
+        return lease.Factory.CreateUserAgent(userConnection, userRoles);
     }
 
     /// <summary>

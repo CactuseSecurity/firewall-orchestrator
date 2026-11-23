@@ -1,4 +1,5 @@
 using FWO.Ai.Client;
+using FWO.Basics;
 using FWO.Data.Ai;
 using FWO.Ui.Services;
 using Microsoft.Extensions.AI;
@@ -23,6 +24,8 @@ namespace FWO.Test
             new TestCaseData(false, AiProvider.None, false)
         };
 
+        private static readonly List<string> kAdminAndModellerRoles = [Roles.Admin, Roles.Modeller];
+
         private static readonly List<TestCaseData> kStateCases = new()
         {
             new TestCaseData(AiChatAnswerState.Running, null, "", kErrorAlert).SetName("StateMessage_Running"),
@@ -39,6 +42,37 @@ namespace FWO.Test
             SimulatedUserConfig userConfig = new() { AiChatEnabled = chatEnabled, AiProvider = provider };
 
             Assert.That(AiChatDisplay.IsAvailable(userConfig), Is.EqualTo(expected));
+        }
+
+        /// <summary>
+        /// Verifies that a chat limited to roles is offered only to a user holding one of them.
+        /// </summary>
+        [TestCase(Roles.Admin, true)]
+        [TestCase(Roles.Modeller, true)]
+        [TestCase(Roles.Reporter, false)]
+        public void IsAvailable_NeedsOneOfTheRolesOfTheChat(string userRole, bool expected)
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                AiChatEnabled = true,
+                AiProvider = AiProvider.OpenAi,
+                AiChatRoles = AiFunctionRoles.Serialize(kAdminAndModellerRoles)
+            };
+            userConfig.User.Roles = [userRole];
+
+            Assert.That(AiChatDisplay.IsAvailable(userConfig), Is.EqualTo(expected));
+        }
+
+        /// <summary>
+        /// Verifies that the chat is not offered while its stored roles cannot be read, as the AI harness refuses it then.
+        /// </summary>
+        [Test]
+        public void IsAvailable_WithUnreadableRoles_IsFalse()
+        {
+            SimulatedUserConfig userConfig = new() { AiChatEnabled = true, AiProvider = AiProvider.OpenAi, AiChatRoles = "admin" };
+            userConfig.User.Roles = [Roles.Admin];
+
+            Assert.That(AiChatDisplay.IsAvailable(userConfig), Is.False);
         }
 
         [TestCaseSource(nameof(kStateCases))]

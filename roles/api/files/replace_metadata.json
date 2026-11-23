@@ -7785,7 +7785,9 @@
                               "aiAuthMethod",
                               "aiTokenUrl",
                               "aiChat",
-                              "aiReasonCheck"
+                              "aiReasonCheck",
+                              "aiChatRoles",
+                              "aiReasonCheckRoles"
                             ]
                           }
                         }

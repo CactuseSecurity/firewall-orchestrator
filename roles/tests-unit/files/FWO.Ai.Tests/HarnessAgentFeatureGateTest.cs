@@ -11,9 +11,10 @@ using System.Text.Json;
 namespace FWO.Ai.Tests;
 
 /// <summary>
-/// Tests the switches of the AI functions in the harness: which function a turn belongs to (the reason check prompt
-/// to the reason check, everything else to the chat), and that a turn of a function switched off is refused before it
-/// reaches the MCP server or the AI provider, by the user agent and through the AG-UI endpoint.
+/// Tests the switches and role filters of the AI functions in the harness: which function a turn belongs to (the reason
+/// check prompt to the reason check, everything else to the chat), and that a turn of a function switched off or not
+/// allowed for the roles of the user is refused before it reaches the MCP server or the AI provider, by the user agent
+/// and through the AG-UI endpoint, which takes the roles from the JWT.
 /// </summary>
 [TestFixture]
 internal class HarnessAgentFeatureGateTest
@@ -27,6 +28,24 @@ internal class HarnessAgentFeatureGateTest
     private const AgentFeature kUnknownFeature = (AgentFeature)99;
 
     private static readonly List<ChatMessage> kNoMessages = [];
+    private static readonly List<string> kNoRoles = [];
+    private static readonly List<string> kAdminRoles = [Roles.Admin];
+    private static readonly List<string> kModellerRoles = [Roles.Modeller];
+    private static readonly List<string> kReporterRoles = [Roles.Reporter];
+    private static readonly List<string> kReporterAndAdminRoles = [Roles.Reporter, Roles.Admin];
+    private static readonly List<string> kUpperCaseModellerRoles = ["MODELLER"];
+
+    private static readonly List<TestCaseData> kRoleFilterCases =
+    [
+        new TestCaseData(AgentFeature.Chat, kNoRoles, kAdminRoles, kNoRoles, true).SetName("ChatWithoutRolesAllowsUserWithoutRoles"),
+        new TestCaseData(AgentFeature.Chat, kAdminRoles, kNoRoles, kReporterAndAdminRoles, true).SetName("ChatAllowsUserHoldingOneRole"),
+        new TestCaseData(AgentFeature.Chat, kAdminRoles, kNoRoles, kReporterRoles, false).SetName("ChatRefusesUserWithOtherRole"),
+        new TestCaseData(AgentFeature.Chat, kAdminRoles, kNoRoles, kNoRoles, false).SetName("ChatRefusesUserWithoutRoles"),
+        new TestCaseData(AgentFeature.ReasonCheck, kAdminRoles, kNoRoles, kReporterRoles, true).SetName("ReasonCheckFollowsItsOwnRoles"),
+        new TestCaseData(AgentFeature.ReasonCheck, kNoRoles, kModellerRoles, kUpperCaseModellerRoles, true).SetName("ReasonCheckIgnoresCaseOfRoles"),
+        new TestCaseData(AgentFeature.ReasonCheck, kNoRoles, kModellerRoles, kReporterRoles, false).SetName("ReasonCheckRefusesUserWithOtherRole"),
+        new TestCaseData(kUnknownFeature, kNoRoles, kNoRoles, kAdminRoles, false).SetName("UnknownFeatureIsNotAllowed")
+    ];
     private static readonly List<ChatMessage> kQuestionMessages = [new(ChatRole.User, kQuestion)];
     private static readonly Dictionary<string, string> kReasonArguments = new() { [HarnessTestSetup.kReasonArgument] = kReason };
 
@@ -45,6 +64,95 @@ internal class HarnessAgentFeatureGateTest
             Assert.That(AgentFeatureGate.IsSwitchedOn(AgentFeature.Chat, agentSettings), Is.False);
             Assert.That(AgentFeatureGate.IsSwitchedOn(AgentFeature.ReasonCheck, agentSettings), Is.False);
         });
+    }
+
+    /// <summary>
+    /// Verifies that the AI functions are not limited to roles unless roles are set, so that switching a function on is
+    /// enough to offer it to every user.
+    /// </summary>
+    [Test]
+    public void AgentSettings_LimitNoFeatureToRolesByDefault()
+    {
+        AgentSettings agentSettings = new();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(agentSettings.ChatRoles, Is.Empty);
+            Assert.That(agentSettings.ReasonCheckRoles, Is.Empty);
+            Assert.That(AgentFeatureGate.IsAllowedForRoles(AgentFeature.Chat, agentSettings, kNoRoles), Is.True);
+            Assert.That(AgentFeatureGate.IsAllowedForRoles(AgentFeature.ReasonCheck, agentSettings, kNoRoles), Is.True);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the snapshot of the settings keeps the roles they had, so that changing the lists afterwards does
+    /// not change the roles of a factory.
+    /// </summary>
+    [Test]
+    public void CreateSnapshot_CopiesRoles()
+    {
+        List<string> chatRoles = [Roles.Admin];
+        List<string> reasonCheckRoles = [Roles.Modeller];
+        AgentSettings agentSettings = new() { ChatRoles = chatRoles, ReasonCheckRoles = reasonCheckRoles };
+
+        AgentSettings snapshot = agentSettings.CreateSnapshot();
+        chatRoles.Add(Roles.Reporter);
+        reasonCheckRoles.Clear();
+
+        Assert.That(snapshot.ChatRoles, Is.EqualTo(kAdminRoles));
+        Assert.That(snapshot.ReasonCheckRoles, Is.EqualTo(kModellerRoles));
+    }
+
+    /// <summary>
+    /// Verifies that each AI function follows its own roles only, that a user needs one of them (ignoring case), that
+    /// no roles allow every user, and that an unknown function is not allowed (fail closed).
+    /// </summary>
+    [TestCaseSource(nameof(kRoleFilterCases))]
+    public void IsAllowedForRoles_FollowsTheRolesOfTheFeature(AgentFeature feature, List<string> chatRoles, List<string> reasonCheckRoles,
+        List<string> userRoles, bool expected)
+    {
+        AgentSettings agentSettings = new() { ChatRoles = chatRoles, ReasonCheckRoles = reasonCheckRoles };
+
+        Assert.That(AgentFeatureGate.IsAllowedForRoles(feature, agentSettings, userRoles), Is.EqualTo(expected));
+    }
+
+    /// <summary>
+    /// Verifies that a turn of a user holding none of the roles of its function is refused with the function, and a
+    /// turn of a user holding one of them is not.
+    /// </summary>
+    [Test]
+    public void EnsureAllowed_RefusesTurnOfUserWithoutAllowedRole()
+    {
+        TurnInput turnInput = TurnInput.Read(kQuestionMessages, null);
+        AgentSettings agentSettings = new() { ChatEnabled = true, ChatRoles = kAdminRoles };
+
+        AgentFeatureNotPermittedException? exception = Assert.Throws<AgentFeatureNotPermittedException>(
+            () => AgentFeatureGate.EnsureAllowed(turnInput, agentSettings, kReporterRoles));
+        Assert.That(exception!.Feature, Is.EqualTo(AgentFeature.Chat));
+        Assert.That(exception.Message, Does.Contain(nameof(AgentFeature.Chat)));
+        Assert.DoesNotThrow(() => AgentFeatureGate.EnsureAllowed(turnInput, agentSettings, kReporterAndAdminRoles));
+    }
+
+    /// <summary>
+    /// Verifies that a function switched off is refused as switched off, whatever the roles of the user.
+    /// </summary>
+    [Test]
+    public void EnsureAllowed_ReportsSwitchedOffBeforeRoles()
+    {
+        TurnInput turnInput = TurnInput.Read(kQuestionMessages, null);
+        AgentSettings agentSettings = new() { ChatRoles = kAdminRoles };
+
+        Assert.Throws<AgentFeatureDisabledException>(() => AgentFeatureGate.EnsureAllowed(turnInput, agentSettings, kReporterRoles));
+        Assert.Throws<AgentFeatureDisabledException>(() => AgentFeatureGate.EnsureAllowed(turnInput, agentSettings, kAdminRoles));
+    }
+
+    /// <summary>
+    /// Verifies that missing user roles are refused.
+    /// </summary>
+    [Test]
+    public void IsAllowedForRoles_WithoutUserRoles_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => AgentFeatureGate.IsAllowedForRoles(AgentFeature.Chat, new AgentSettings(), null!));
     }
 
     /// <summary>
@@ -101,15 +209,15 @@ internal class HarnessAgentFeatureGateTest
     /// Verifies that a turn of a function switched off is refused with the function it belongs to, and one switched on is not.
     /// </summary>
     [Test]
-    public void EnsureSwitchedOn_RefusesTurnOfFeatureSwitchedOff()
+    public void EnsureAllowed_RefusesTurnOfFeatureSwitchedOff()
     {
         TurnInput turnInput = TurnInput.Read(kQuestionMessages, null);
 
         AgentFeatureDisabledException? exception = Assert.Throws<AgentFeatureDisabledException>(
-            () => AgentFeatureGate.EnsureSwitchedOn(turnInput, new AgentSettings { ReasonCheckEnabled = true }));
+            () => AgentFeatureGate.EnsureAllowed(turnInput, new AgentSettings { ReasonCheckEnabled = true }, kNoRoles));
         Assert.That(exception!.Feature, Is.EqualTo(AgentFeature.Chat));
         Assert.That(exception.Message, Does.Contain(nameof(AgentFeature.Chat)));
-        Assert.DoesNotThrow(() => AgentFeatureGate.EnsureSwitchedOn(turnInput, new AgentSettings { ChatEnabled = true }));
+        Assert.DoesNotThrow(() => AgentFeatureGate.EnsureAllowed(turnInput, new AgentSettings { ChatEnabled = true }, kNoRoles));
     }
 
     /// <summary>
@@ -182,6 +290,88 @@ internal class HarnessAgentFeatureGateTest
         Assert.ThrowsAsync<AgentFeatureDisabledException>(async () =>
             await agent.RunAsync(kNoMessages, options: HarnessTestSetup.CreatePromptRunOptions(HarnessTestSetup.kAccessRequestPrompt, kReasonArguments)));
         Assert.That(chatClient.ReceivedMessages, Has.Count.EqualTo(1));
+    }
+
+    /// <summary>
+    /// Verifies that the agent refuses a text of a user holding none of the roles of the chat, without asking the AI
+    /// provider, and runs it for a user holding one of them.
+    /// </summary>
+    [Test]
+    public async Task RunStreamingAsync_WithChatNotAllowedForRoles_RefusesTextWithoutAskingProvider()
+    {
+        await using WebApplication app = await McpTestServer.Start();
+        ScriptedChatClient chatClient = new ScriptedChatClient().RespondWithText(kAnswer);
+        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, new AgentSettings { ChatEnabled = true, ChatRoles = kAdminRoles });
+
+        AgentFeatureNotPermittedException? exception = Assert.ThrowsAsync<AgentFeatureNotPermittedException>(
+            async () => await HarnessTestSetup.RunStreamingAsync(HarnessTestSetup.CreateUserAgent(factory, Roles.Reporter), kQuestion));
+        Assert.That(exception!.Feature, Is.EqualTo(AgentFeature.Chat));
+        Assert.That(chatClient.ReceivedMessages, Is.Empty);
+
+        AgentResponse response = await HarnessTestSetup.CreateUserAgent(factory, Roles.Admin).RunAsync(kQuestion);
+        Assert.That(response.Text, Is.EqualTo(kAnswer));
+    }
+
+    /// <summary>
+    /// Verifies that the reason check limited to modellers runs for a modeller and is refused for a reporter, while the
+    /// chat without roles stays open to the reporter.
+    /// </summary>
+    [Test]
+    public async Task RunAsync_WithReasonCheckLimitedToModellers_RefusesOtherRoles()
+    {
+        await using WebApplication app = await McpTestServer.Start();
+        ScriptedChatClient chatClient = new ScriptedChatClient().RespondWithText(kAnswer).RespondWithText(kAnswer);
+        AgentSettings agentSettings = new() { ChatEnabled = true, ReasonCheckEnabled = true, ReasonCheckRoles = kModellerRoles };
+        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, agentSettings);
+        FwoUserAgent reporterAgent = HarnessTestSetup.CreateUserAgent(factory, Roles.Reporter);
+
+        AgentFeatureNotPermittedException? exception = Assert.ThrowsAsync<AgentFeatureNotPermittedException>(async () =>
+            await reporterAgent.RunAsync(kNoMessages, options: HarnessTestSetup.CreatePromptRunOptions(HarnessTestSetup.kConnectionPrompt, kReasonArguments)));
+        Assert.That(exception!.Feature, Is.EqualTo(AgentFeature.ReasonCheck));
+        Assert.That(chatClient.ReceivedMessages, Is.Empty);
+
+        AgentResponse reasonCheck = await HarnessTestSetup.CreateUserAgent(factory, Roles.Modeller).RunAsync(kNoMessages,
+            options: HarnessTestSetup.CreatePromptRunOptions(HarnessTestSetup.kConnectionPrompt, kReasonArguments));
+        AgentResponse chat = await reporterAgent.RunAsync(kQuestion);
+        Assert.That(reasonCheck.Text, Is.EqualTo(kAnswer));
+        Assert.That(chat.Text, Is.EqualTo(kAnswer));
+        Assert.That(chatClient.ReceivedMessages, Has.Count.EqualTo(2));
+    }
+
+    /// <summary>
+    /// Verifies that the AG-UI endpoint takes the roles from the JWT of the request: a run of a user whose token holds
+    /// none of the roles of the chat ends with a run error without asking the AI provider, a run of a user whose token
+    /// holds one of them is answered.
+    /// </summary>
+    [Test]
+    public async Task Run_WithChatLimitedToRoles_ChecksRolesOfToken()
+    {
+        await using WebApplication mcpApp = await McpTestServer.Start();
+        ScriptedChatClient chatClient = new ScriptedChatClient().RespondWithText(kAnswer);
+        HarnessSettings settings = new() { McpEndpoint = HarnessTestSetup.kTestMcpEndpoint };
+        AgentSettings agentSettings = new() { ChatEnabled = true, ChatRoles = kAdminRoles };
+        AgentFactoryHolder agentFactories = new(HarnessTestSetup.CreateFactory(mcpApp, chatClient, agentSettings));
+        await using WebApplication app = await HarnessTestServer.StartOnLoopback(settings, agentFactories);
+        using HttpClient httpClient = new() { BaseAddress = McpTestServer.GetBaseAddress(app) };
+
+        using HttpResponseMessage refused = await HarnessTestServer.PostRun(httpClient, McpTestServer.CreateMiddlewareToken(Roles.Reporter),
+            HarnessTestServer.CreateRunBody(kThreadId, kQuestion));
+        List<JsonElement> refusedEvents = await HarnessTestServer.ReadEventsAsync(refused);
+        Assert.Multiple(() =>
+        {
+            Assert.That(HarnessTestServer.GetEventTypes(refusedEvents), Does.Contain(HarnessTestServer.kRunError));
+            Assert.That(chatClient.ReceivedMessages, Is.Empty);
+        });
+
+        using HttpResponseMessage answered = await HarnessTestServer.PostRun(httpClient, McpTestServer.CreateMiddlewareToken(Roles.Reporter, Roles.Admin),
+            HarnessTestServer.CreateRunBody(kThreadId, kQuestion));
+        List<JsonElement> answeredEvents = await HarnessTestServer.ReadEventsAsync(answered);
+        Assert.Multiple(() =>
+        {
+            Assert.That(HarnessTestServer.GetEventTypes(answeredEvents), Does.Not.Contain(HarnessTestServer.kRunError));
+            Assert.That(HarnessTestServer.GetEventTypes(answeredEvents), Does.Contain(HarnessTestServer.kMessagesSnapshot));
+            Assert.That(chatClient.ReceivedMessages, Has.Count.EqualTo(1));
+        });
     }
 
     /// <summary>

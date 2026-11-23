@@ -1,6 +1,7 @@
 using FWO.Ai.Harness.Agent;
 using FWO.Ai.Harness.Providers;
 using FWO.Ai.Harness.Settings;
+using FWO.Basics;
 using FWO.Data.Ai;
 using NUnit.Framework;
 
@@ -122,6 +123,37 @@ internal class HarnessAiRuntimeSettingsTest
             Assert.That(agentSettings.ReasonCheckEnabled, Is.EqualTo(reasonCheckEnabled));
             Assert.That(runtimeSettings.HasSameValues(new AiRuntimeSettings(CreateSettings(AiProvider.OpenAi), kApiKey)), Is.False);
             Assert.That(runtimeSettings.HasSameValues(new AiRuntimeSettings(switchedSettings, kApiKey)), Is.True);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the roles of the AI functions are passed on to the agent settings as copies, and that a change of
+    /// the roles changes the settings, so that the refresher replaces the agent factory, while the same roles in
+    /// another list or order do not.
+    /// </summary>
+    [Test]
+    public void ToAgentSettings_PassesRolesOnAndHasSameValuesComparesThem()
+    {
+        AiSettings limitedSettings = CreateSettings(AiProvider.OpenAi);
+        limitedSettings.ChatRoles = [Roles.Admin, Roles.Modeller];
+        limitedSettings.ReasonCheckRoles = [Roles.Modeller];
+        AiSettings reorderedSettings = CreateSettings(AiProvider.OpenAi);
+        reorderedSettings.ChatRoles = [Roles.Modeller, Roles.Admin];
+        reorderedSettings.ReasonCheckRoles = [Roles.Modeller];
+        AiSettings otherReasonCheckRoles = CreateSettings(AiProvider.OpenAi);
+        otherReasonCheckRoles.ChatRoles = [Roles.Admin, Roles.Modeller];
+        AiRuntimeSettings runtimeSettings = new(limitedSettings, kApiKey);
+
+        AgentSettings agentSettings = runtimeSettings.ToAgentSettings();
+        limitedSettings.ChatRoles.Clear();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(agentSettings.ChatRoles, Is.EquivalentTo(reorderedSettings.ChatRoles));
+            Assert.That(agentSettings.ReasonCheckRoles, Is.EqualTo(reorderedSettings.ReasonCheckRoles));
+            Assert.That(new AiRuntimeSettings(reorderedSettings, kApiKey).HasSameValues(new AiRuntimeSettings(reorderedSettings, kApiKey)), Is.True);
+            Assert.That(new AiRuntimeSettings(otherReasonCheckRoles, kApiKey).HasSameValues(new AiRuntimeSettings(reorderedSettings, kApiKey)), Is.False);
+            Assert.That(new AiRuntimeSettings(CreateSettings(AiProvider.OpenAi), kApiKey).HasSameValues(new AiRuntimeSettings(reorderedSettings, kApiKey)), Is.False);
         });
     }
 

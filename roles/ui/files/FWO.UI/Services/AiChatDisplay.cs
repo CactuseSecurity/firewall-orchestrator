@@ -1,4 +1,5 @@
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data.Ai;
 
 namespace FWO.Ui.Services
@@ -66,13 +67,14 @@ namespace FWO.Ui.Services
         public const string kRejectedBadgeClass = "badge bg-secondary";
 
         /// <summary>
-        /// Returns whether the chat is offered: it is switched on in the AI settings and an AI provider is configured.
-        /// The AI harness refuses runs of the chat while it is switched off, whatever the UI shows.
+        /// Returns whether the chat is offered: it is switched on in the AI settings, allowed there for one of the roles
+        /// of the user, and an AI provider is configured. The AI harness refuses runs of the chat while it is switched off
+        /// or not allowed for the roles of the user, whatever the UI shows.
         /// </summary>
-        /// <param name="userConfig">Config of the user, holding the global AI settings</param>
+        /// <param name="userConfig">Config of the user, holding the global AI settings and the roles of the user</param>
         public static bool IsAvailable(UserConfig userConfig)
         {
-            return userConfig.AiChatEnabled && userConfig.AiProvider != AiProvider.None;
+            return userConfig.MayUseAiChat(userConfig.User.Roles) && userConfig.AiProvider != AiProvider.None;
         }
 
         /// <summary>

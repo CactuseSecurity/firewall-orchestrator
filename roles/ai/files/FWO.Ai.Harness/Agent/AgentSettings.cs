@@ -4,7 +4,8 @@ namespace FWO.Ai.Harness.Agent;
 
 /// <summary>
 /// Settings of the agents created by an <see cref="FwoAgentFactory"/>: agent loop, history compaction and the AI
-/// functions the users may run, taken from the AI settings of the UI (see <see cref="Settings.AiRuntimeSettings"/>).
+/// functions the users may run, with the roles allowed to run them, taken from the AI settings of the UI (see
+/// <see cref="Settings.AiRuntimeSettings"/>).
 /// </summary>
 public class AgentSettings
 {
@@ -54,6 +55,16 @@ public class AgentSettings
     public bool ReasonCheckEnabled { get; set; }
 
     /// <summary>
+    /// Roles allowed to chat with the agent; every user if empty (see <see cref="AiFunctionRoles"/>).
+    /// </summary>
+    public IReadOnlyList<string> ChatRoles { get; set; } = [];
+
+    /// <summary>
+    /// Roles allowed to run the reason check; every user if empty (see <see cref="AiFunctionRoles"/>).
+    /// </summary>
+    public IReadOnlyList<string> ReasonCheckRoles { get; set; } = [];
+
+    /// <summary>
     /// Returns the compaction reserve for the given context window, see <see cref="CompactionReserveTokens"/>.
     /// </summary>
     /// <param name="contextWindowTokens">Context window of the model in tokens</param>
@@ -67,6 +78,9 @@ public class AgentSettings
     /// </summary>
     internal AgentSettings CreateSnapshot()
     {
-        return (AgentSettings)MemberwiseClone();
+        AgentSettings snapshot = (AgentSettings)MemberwiseClone();
+        snapshot.ChatRoles = [.. ChatRoles];
+        snapshot.ReasonCheckRoles = [.. ReasonCheckRoles];
+        return snapshot;
     }
 }

@@ -165,8 +165,10 @@ The prompt name, the argument names, the kinds, the limits and the language patt
 ## AI chat in the UI
 
 The UI offers a chat with the FWO agent on every page. It is shown only if the chat is switched on in the AI settings
-(`aiChat`) and an AI provider is configured (`AiChatDisplay.IsAvailable`); the harness refuses chat runs while the
-switch is off, whatever the UI shows (see [AI harness](ai-harness.md#ai-functions)).
+(`aiChat`), allowed there for one of the roles of the user (`aiChatRoles`, every user if empty) and an AI provider is
+configured (`AiChatDisplay.IsAvailable`); the harness refuses chat runs while the switch is off or the user holds none
+of the roles, whatever the UI shows (see [AI harness](ai-harness.md#ai-functions)). The button of the reason check is
+shown in the same way (`aiReasonCheck`, `aiReasonCheckRoles`).
 
 | Part | Role |
 |---|---|

@@ -20,8 +20,9 @@ using NUnit.Framework;
 namespace FWO.Test;
 
 /// <summary>
-/// Tests the AI settings page: it offers the credentials that can hold an API key, checks the settings like the AI
-/// harness does before it stores them, and lets only an admin save.
+/// Tests the AI settings page: it offers the credentials that can hold an API key and the roles of the internal LDAP for
+/// the role filters of the AI functions, checks the settings like the AI harness does before it stores them, and lets
+/// only an admin save.
 /// </summary>
 [TestFixture]
 [NonParallelizable]
@@ -38,7 +39,20 @@ internal class UiSettingsAiTest
     private const string kCredentialInputSelector = "#dropdown-input-aiCredential";
     private const string kCredentialChoiceSelector = "button[id^='dropdown-menu-element-aiCredential']";
     private const string kSelectedCredentialSelector = "button[id^='dropdown-menu-selected-aiCredential']";
+    private const string kChatRolesInputSelector = "#dropdown-input-aiChatRoles";
+    private const string kReasonCheckRolesInputSelector = "#dropdown-input-aiReasonCheckRoles";
+    private const string kChatRoleChoiceSelector = "button[id^='dropdown-menu-element-aiChatRoles']";
+    private const string kSelectedChatRoleSelector = "button[id^='dropdown-menu-selected-aiChatRoles']";
+    private const string kStoredOnlyRole = "legacy-role";
     private static readonly List<int> kOfferedCredentialIds = [kAnthropicCredentialId, kApiKeyCredentialId];
+    private static readonly List<string> kLdapRoleNames =
+        [Roles.Reporter, Roles.Admin, Roles.MiddlewareServer, Roles.Modeller, Roles.Anonymous, Roles.AiHarness];
+    private static readonly List<string> kOfferedLdapRoles = [Roles.Admin, Roles.Modeller, Roles.Reporter];
+    private static readonly List<string> kOfferedRolesWithStoredRole = [Roles.Admin, kStoredOnlyRole, Roles.Modeller, Roles.Reporter];
+    private static readonly List<string> kModellerRoles = [Roles.Modeller];
+    private static readonly List<string> kModellerAndAdminRoles = [Roles.Modeller, Roles.Admin];
+    private static readonly List<string> kAdminAndModellerRoles = [Roles.Admin, Roles.Modeller];
+    private static readonly List<string> kMarkupPayloadRoles = [kMarkupPayload];
 
     /// <summary>
     /// Verifies that an admin can save.
@@ -319,6 +333,171 @@ internal class UiSettingsAiTest
     }
 
     /// <summary>
+    /// Verifies that the page shows the stored roles of each AI function in its dropdown, and "all" for a function
+    /// without roles.
+    /// </summary>
+    [Test]
+    public async Task SettingsAi_ShowsStoredRolesOfAiFunctions()
+    {
+        SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+        globalConfig.AiChatRoles = "[\"modeller\"]";
+        await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), globalConfig);
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+        wrapper.WaitForState(() => GetInputText(wrapper, kChatRolesInputSelector) != null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(GetInputText(wrapper, kChatRolesInputSelector), Is.EqualTo(Roles.Modeller));
+            Assert.That(GetInputText(wrapper, kReasonCheckRolesInputSelector), Is.EqualTo(CreateUserConfig(Roles.Admin).GetText("all")));
+            Assert.That(GetAiSettings(wrapper).ChatRoles, Is.EqualTo(kModellerRoles));
+            Assert.That(GetAiSettings(wrapper).ReasonCheckRoles, Is.Empty);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that selecting a role in the dropdown of the chat adds it to the roles of the chat, and that removing
+    /// the selection leaves the chat to every user again.
+    /// </summary>
+    [Test]
+    public async Task SettingsAi_SelectingAndRemovingRoleSetsRolesOfChat()
+    {
+        await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), CreateGlobalConfig());
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+        await OpenChatRolesDropdown(wrapper);
+        List<string> choiceTexts = [.. wrapper.FindAll(kChatRoleChoiceSelector).Select(choice => choice.TextContent.Trim())];
+        wrapper.FindAll(kChatRoleChoiceSelector).Single(choice => choice.TextContent.Trim() == Roles.Modeller).Click();
+        wrapper.WaitForState(() => GetAiSettings(wrapper).ChatRoles.Count == 1);
+        List<string> selectedRoles = [.. GetAiSettings(wrapper).ChatRoles];
+
+        wrapper.Find(kSelectedChatRoleSelector).Click();
+        wrapper.WaitForState(() => GetAiSettings(wrapper).ChatRoles.Count == 0);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(choiceTexts, Is.EqualTo(kOfferedLdapRoles));
+            Assert.That(selectedRoles, Is.EqualTo(kModellerRoles));
+            Assert.That(GetAiSettings(wrapper).ChatRoles, Is.Empty);
+            Assert.That(GetAiSettings(wrapper).ReasonCheckRoles, Is.Empty);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that role names are shown as text, so that markup in a stored role name is not executed.
+    /// </summary>
+    [Test]
+    public async Task SettingsAi_RendersRoleNamesAsText()
+    {
+        SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+        globalConfig.AiChatRoles = AiFunctionRoles.Serialize(kMarkupPayloadRoles);
+        await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), globalConfig);
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+        await OpenChatRolesDropdown(wrapper);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(wrapper.Find(kSelectedChatRoleSelector).TextContent.Trim(), Is.EqualTo(kMarkupPayload));
+            Assert.That(wrapper.FindAll("img"), Is.Empty);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the roles of the internal LDAP are offered without technical and anonymous roles, together with
+    /// stored roles the LDAP does not know, sorted by name.
+    /// </summary>
+    [Test]
+    public async Task OnInitializedAsync_OffersUserRolesOfLdapAndStoredRoles()
+    {
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+        SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+        globalConfig.AiReasonCheckRoles = $"[\"{kStoredOnlyRole}\",\"{Roles.Admin}\"]";
+        SettingsAi component = CreateComponent(CreateApiConnection(), globalConfig, messages);
+
+        await InvokePrivateTask(component, "OnInitializedAsync");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(GetMember<List<string>>(component, "offeredRoles"), Is.EqualTo(kOfferedRolesWithStoredRole));
+            Assert.That(GetMember<bool>(component, "rolesLoaded"), Is.True);
+            Assert.That(messages, Is.Empty);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that an LDAP without roles is reported, and that the stored roles are still offered.
+    /// </summary>
+    [Test]
+    public async Task OnInitializedAsync_WithoutLdapRoles_ShowsMessageAndOffersStoredRoles()
+    {
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+        SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+        globalConfig.AiChatRoles = "[\"modeller\"]";
+        SettingsAi component = CreateComponent(CreateApiConnection(), globalConfig, messages, new MockMiddlewareClient());
+
+        await InvokePrivateTask(component, "OnInitializedAsync");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(messages.Single().IsError, Is.True);
+            Assert.That(messages.Single().Message, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("E5251")));
+            Assert.That(GetMember<List<string>>(component, "offeredRoles"), Is.EqualTo(kModellerRoles));
+            Assert.That(GetMember<bool>(component, "rolesLoaded"), Is.True);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that a failure to read the roles is shown, and that the role dropdowns are rendered nevertheless.
+    /// </summary>
+    [Test]
+    public async Task OnInitializedAsync_ShowsErrorWhenRolesCannotBeRead()
+    {
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+        MockMiddlewareClient middlewareClient = new() { GetAllRolesException = new HttpRequestException("middleware not reachable") };
+        SettingsAi component = CreateComponent(CreateApiConnection(), CreateGlobalConfig(), messages, middlewareClient);
+
+        await InvokePrivateTask(component, "OnInitializedAsync");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(messages.Single().Exception, Is.TypeOf<HttpRequestException>());
+            Assert.That(messages.Single().IsError, Is.True);
+            Assert.That(GetMember<List<string>>(component, "offeredRoles"), Is.Empty);
+            Assert.That(GetMember<bool>(component, "rolesLoaded"), Is.True);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the roles of the AI functions are stored as normalized JSON arrays, which the harness reads back.
+    /// </summary>
+    [Test]
+    public async Task Save_StoresRolesOfAiFunctions()
+    {
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+        RecordingSettingsApiConn apiConnection = CreateApiConnection();
+        SettingsAi component = CreateComponent(apiConnection, CreateGlobalConfig(), messages);
+        await InvokePrivateTask(component, "OnInitializedAsync");
+        AiSettings aiSettings = GetMember<AiSettings>(component, "aiSettings");
+        aiSettings.ChatEnabled = true;
+        InvokePrivate<object?>(component, "OnChatRolesChanged", kModellerAndAdminRoles);
+        InvokePrivate<object?>(component, "OnReasonCheckRolesChanged", kModellerRoles);
+
+        await InvokePrivateTask(component, "Save");
+
+        Dictionary<string, string?> storedValues = apiConnection.LastUpsertConfigItems.ToDictionary(item => item.Key, item => (string?)item.Value);
+        AiSettings readBack = AiSettings.FromConfigValues(storedValues);
+        Assert.Multiple(() =>
+        {
+            Assert.That(messages.Single().IsError, Is.False);
+            Assert.That(storedValues[AiSettings.kChatRolesKey], Is.EqualTo("[\"admin\",\"modeller\"]"));
+            Assert.That(storedValues[AiSettings.kReasonCheckRolesKey], Is.EqualTo("[\"modeller\"]"));
+            Assert.That(readBack.ChatRoles, Is.EqualTo(kAdminAndModellerRoles));
+            Assert.That(readBack.ReasonCheckRoles, Is.EqualTo(kModellerRoles));
+        });
+    }
+
+    /// <summary>
     /// Verifies that no provider is shown with the localized text for none.
     /// </summary>
     [Test]
@@ -352,6 +531,33 @@ internal class UiSettingsAiTest
     }
 
     /// <summary>
+    /// Returns the text the input of a dropdown shows, null while it is not rendered.
+    /// </summary>
+    private static string? GetInputText(IRenderedComponent<CascadingAuthenticationState> wrapper, string inputSelector)
+    {
+        return wrapper.FindAll(inputSelector).SingleOrDefault()?.GetAttribute("value");
+    }
+
+    /// <summary>
+    /// Opens the menu of the role dropdown of the chat by focusing its input and waits until it shows roles.
+    /// </summary>
+    private static async Task OpenChatRolesDropdown(IRenderedComponent<CascadingAuthenticationState> wrapper)
+    {
+        wrapper.WaitForState(() => wrapper.FindAll(kChatRolesInputSelector).Count == 1);
+        await wrapper.InvokeAsync(() => wrapper.Find(kChatRolesInputSelector).Focus());
+        wrapper.WaitForState(() => wrapper.FindAll(kChatRoleChoiceSelector).Count + wrapper.FindAll(kSelectedChatRoleSelector).Count > 0);
+    }
+
+    /// <summary>
+    /// Creates the middleware client answering the role query with the roles of the test LDAP, technical and
+    /// anonymous roles among them.
+    /// </summary>
+    private static MockMiddlewareClient CreateMiddlewareClient()
+    {
+        return new MockMiddlewareClient { AllRoles = [.. kLdapRoleNames.Select(MockMiddlewareClient.CreateLdapRole)] };
+    }
+
+    /// <summary>
     /// Returns the AI settings edited by the rendered page.
     /// </summary>
     private static AiSettings GetAiSettings(IRenderedComponent<CascadingAuthenticationState> wrapper)
@@ -380,7 +586,7 @@ internal class UiSettingsAiTest
         context.Services.AddSingleton<ApiConnection>(apiConnection);
         context.Services.AddSingleton<GlobalConfig>(globalConfig);
         context.Services.AddSingleton<UserConfig>(CreateUserConfig(role));
-        context.Services.AddSingleton<MiddlewareClient>(new MockMiddlewareClient());
+        context.Services.AddSingleton<MiddlewareClient>(CreateMiddlewareClient());
         return context;
     }
 
@@ -393,12 +599,13 @@ internal class UiSettingsAiTest
     }
 
     private static SettingsAi CreateComponent(ApiConnection apiConnection, GlobalConfig globalConfig,
-        List<(Exception? Exception, string Title, string Message, bool IsError)>? messages = null)
+        List<(Exception? Exception, string Title, string Message, bool IsError)>? messages = null, MiddlewareClient? middlewareClient = null)
     {
         SettingsAi component = new();
         SetMember(component, "apiConnection", apiConnection);
         SetMember(component, "globalConfig", globalConfig);
         SetMember(component, "userConfig", CreateUserConfig(Roles.Admin));
+        SetMember(component, "middlewareClient", middlewareClient ?? CreateMiddlewareClient());
         SetMember(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, isError) =>
         {
             messages?.Add((exception, title, message, isError));

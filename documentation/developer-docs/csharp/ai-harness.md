@@ -104,19 +104,25 @@ harness.
 ### AI functions
 
 The AI settings switch two functions on and off: the chat (`aiChat`) and the reason check (`aiReasonCheck`), both off
-by default (see [Settings](#settings)). Right after reading the input of a run (`TurnInput`), before connecting to the
-MCP server, the agent checks the function the run belongs to (`AgentFeatureGate`):
+by default (see [Settings](#settings)). Each function can be limited to roles (`aiChatRoles`, `aiReasonCheckRoles`): a
+user may run it only if the JWT of the request holds at least one of these roles (claim `role`); no roles allow every
+user. Right after reading the input of a run (`TurnInput`), before connecting to the MCP server, the agent checks the
+function the run belongs to (`AgentFeatureGate`):
 
 - the MCP prompt `check_connection_reason` belongs to the reason check (`AgentFeatureGate.kReasonCheckPromptName`; keep
   it in step with the MCP server and with `ConnectionReasonCheck.kPromptName` of the client, `ClientConformanceTest`
   checks it),
 - everything else belongs to the chat: a new user message, the answers to tool approvals and any other MCP prompt. A
-  new prompt without a switch of its own is thus refused while the chat is off (fail closed).
+  new prompt without a switch of its own is thus refused while the chat is off or not allowed for the user (fail
+  closed).
 
-A run of a function switched off fails with `RUN_ERROR` (`AgentFeatureDisabledException`, logged as warning) and reaches
-neither the MCP server nor the AI provider. The switches hold for every client of the AG-UI endpoint, not only for the
-UI, which hides the functions that are off. A change of a switch replaces the agent factory like any other change of
-the AI settings.
+A run of a function switched off fails with `RUN_ERROR` (`AgentFeatureDisabledException`, logged as warning), a run of a
+user holding none of its roles likewise (`AgentFeatureNotPermittedException`); neither reaches the MCP server or the AI
+provider. The switches and roles hold for every client of the AG-UI endpoint, not only for the UI, which hides the
+functions that are off or not allowed for the user. A stored role list that is not a JSON array of role names switches
+its function off (`AiFunctionRoles.TryParse`), so that it is not offered to every user by mistake. As the roles are read
+from the JWT, a changed role assignment applies with the next JWT of the user. A change of a switch or of the roles
+replaces the agent factory like any other change of the AI settings.
 
 ### Tool confirmation
 
@@ -245,6 +251,8 @@ AI settings (`FWO.Data.Ai.AiSettings`, config keys in `AiSettings.kKeys`):
 | Compaction reserve | `aiCompactionReserveTokens` | 0 for a quarter of the context window; must be smaller than the context window and larger than the max output tokens if those are set |
 | AI chat | `aiChat` | `True` lets the users chat with the agent, see [AI functions](#ai-functions); off (`False`) by default and for any other value |
 | AI check of reason | `aiReasonCheck` | `True` lets modellers run the reason check of a connection; off (`False`) by default and for any other value |
+| Roles of the AI chat | `aiChatRoles` | JSON array of the role names allowed to chat, e.g. `["admin","modeller"]`; `[]` (default) for every user, see [AI functions](#ai-functions) |
+| Roles of the reason check | `aiReasonCheckRoles` | JSON array of the role names allowed to run the reason check; `[]` (default) for every user |
 
 The settings page checks the settings the way the harness does (`AiSettings.Validate`) and does not store invalid ones.
 The harness checks them again when it reads them: without a provider, or with settings it cannot use, every run fails
@@ -339,7 +347,7 @@ The unit tests are in `roles/tests-unit/files/FWO.Ai.Tests`. They run the harnes
 test server, with a scripted chat client instead of a real AI provider, both directly (`FwoUserAgent`) and through the
 AG-UI endpoint on a second test server (`HarnessServerTest`). `HarnessTurnInputTest`, `HarnessConversationFilterTest`
 and `HarnessConversationSnapshotTest` test what a run takes from the conversation, what it sends to the provider and
-what it returns. `HarnessAgentFeatureGateTest` tests the switches of the AI functions, in the agent and through the
+what it returns. `HarnessAgentFeatureGateTest` tests the switches and roles of the AI functions, in the agent and through the
 AG-UI endpoint. A strict mode of the scripted chat client rejects requests the way
 the providers do (`ProviderHistoryRules`).
 `HarnessFwoAiConfigReaderTest`, `HarnessFwoAiSettingsSourceTest`, `HarnessAiSettingsRefresherTest`,

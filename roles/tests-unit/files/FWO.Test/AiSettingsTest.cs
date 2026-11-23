@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Config.Api.Data;
 using FWO.Data.Ai;
 using FWO.Ui.Pages.Settings;
@@ -19,6 +20,11 @@ internal class AiSettingsTest
     private const int kCredentialId = 4;
     private const int kContextWindowTokens = 100000;
     private static readonly List<AiSettingsProblem> kCredentialMissing = [AiSettingsProblem.CredentialMissing];
+    private static readonly List<string> kNoRoles = [];
+    private static readonly List<string> kAdminRoles = [Roles.Admin];
+    private static readonly List<string> kModellerRoles = [Roles.Modeller];
+    private static readonly List<string> kReporterRoles = [Roles.Reporter];
+    private static readonly List<string> kAdminAndModellerRoles = [Roles.Admin, Roles.Modeller];
 
     /// <summary>
     /// Verifies that all items are read, the provider ignoring case and the texts trimmed.
@@ -215,6 +221,106 @@ internal class AiSettingsTest
     }
 
     /// <summary>
+    /// Verifies that the role filters are read from their own keys, normalized, which the harness reads too, and that
+    /// they leave the switches as they are.
+    /// </summary>
+    [Test]
+    public void FromConfigValues_ReadsRolesOfEachFunctionFromItsKey()
+    {
+        Dictionary<string, string?> configValues = new()
+        {
+            [AiSettings.kChatKey] = "True",
+            [AiSettings.kReasonCheckKey] = "True",
+            [AiSettings.kChatRolesKey] = "[\"modeller\",\" admin \"]",
+            [AiSettings.kReasonCheckRolesKey] = "[\"modeller\"]"
+        };
+
+        AiSettings settings = AiSettings.FromConfigValues(configValues);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(settings.ChatEnabled, Is.True);
+            Assert.That(settings.ReasonCheckEnabled, Is.True);
+            Assert.That(settings.ChatRoles, Is.EqualTo(kAdminAndModellerRoles));
+            Assert.That(settings.ReasonCheckRoles, Is.EqualTo(kModellerRoles));
+            Assert.That(AiSettings.kKeys, Does.Contain(AiSettings.kChatRolesKey));
+            Assert.That(AiSettings.kKeys, Does.Contain(AiSettings.kReasonCheckRolesKey));
+        });
+    }
+
+    /// <summary>
+    /// Verifies that missing role filters restrict nothing, so that installations without them keep offering the
+    /// functions that are switched on to every user.
+    /// </summary>
+    [Test]
+    public void FromConfigValues_WithoutRoles_RestrictsNothing()
+    {
+        Dictionary<string, string?> configValues = new()
+        {
+            [AiSettings.kChatKey] = "True",
+            [AiSettings.kReasonCheckKey] = "True"
+        };
+
+        AiSettings settings = AiSettings.FromConfigValues(configValues);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(settings.ChatRoles, Is.Empty);
+            Assert.That(settings.ReasonCheckRoles, Is.Empty);
+            Assert.That(settings.MayUseChat(kReporterRoles), Is.True);
+            Assert.That(settings.MayUseReasonCheck(kNoRoles), Is.True);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that an unreadable role filter switches its function off, so that it is not offered to every user by
+    /// mistake, and leaves the other function as it is.
+    /// </summary>
+    [TestCase("admin")]
+    [TestCase("{}")]
+    [TestCase("[1]")]
+    public void FromConfigValues_WithUnreadableRoles_SwitchesFunctionOff(string unreadableRoles)
+    {
+        Dictionary<string, string?> configValues = new()
+        {
+            [AiSettings.kChatKey] = "True",
+            [AiSettings.kReasonCheckKey] = "True",
+            [AiSettings.kChatRolesKey] = unreadableRoles,
+            [AiSettings.kReasonCheckRolesKey] = "[\"modeller\"]"
+        };
+
+        AiSettings settings = AiSettings.FromConfigValues(configValues);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(settings.ChatEnabled, Is.False);
+            Assert.That(settings.ChatRoles, Is.Empty);
+            Assert.That(settings.ReasonCheckEnabled, Is.True);
+            Assert.That(settings.ReasonCheckRoles, Is.EqualTo(kModellerRoles));
+        });
+    }
+
+    /// <summary>
+    /// Verifies that a user may use a function only while it is switched on and the user holds one of its roles, each
+    /// function by its own switch and roles.
+    /// </summary>
+    [Test]
+    public void MayUse_NeedsSwitchAndOneOfTheRoles()
+    {
+        AiSettings settings = new() { ChatEnabled = true, ChatRoles = [Roles.Admin], ReasonCheckRoles = [Roles.Modeller] };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(settings.MayUseChat(kAdminRoles), Is.True);
+            Assert.That(settings.MayUseChat(kReporterRoles), Is.False);
+            Assert.That(settings.MayUseReasonCheck(kModellerRoles), Is.False);
+        });
+        settings.ReasonCheckEnabled = true;
+        Assert.That(settings.MayUseReasonCheck(kModellerRoles), Is.True);
+        Assert.That(settings.MayUseReasonCheck(kAdminRoles), Is.False);
+    }
+
+    /// <summary>
     /// Verifies that OAuth 2.0 needs a credential too, but no API key.
     /// </summary>
     [Test]
@@ -368,6 +474,90 @@ internal class AiSettingsTest
     }
 
     /// <summary>
+    /// Verifies that the role filters are stored in the global config as normalized JSON arrays and read back.
+    /// </summary>
+    [Test]
+    public void ConfigExtensions_StoreAndReadRoles()
+    {
+        ConfigData config = new();
+        AiSettings settings = CreateValidSettings(AiProvider.Ollama);
+        settings.ChatEnabled = true;
+        settings.ReasonCheckEnabled = true;
+        settings.ChatRoles = [Roles.Modeller, $" {Roles.Admin} ", Roles.Admin.ToUpperInvariant()];
+        settings.ReasonCheckRoles = [Roles.Modeller];
+
+        config.SetAiSettings(settings);
+        AiSettings readBack = config.GetAiSettings();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(config.AiChatRoles, Is.EqualTo("[\"admin\",\"modeller\"]"));
+            Assert.That(config.AiReasonCheckRoles, Is.EqualTo("[\"modeller\"]"));
+            Assert.That(readBack.ChatEnabled, Is.True);
+            Assert.That(readBack.ReasonCheckEnabled, Is.True);
+            Assert.That(readBack.ChatRoles, Is.EqualTo(kAdminAndModellerRoles));
+            Assert.That(readBack.ReasonCheckRoles, Is.EqualTo(kModellerRoles));
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the settings page reads a function with an unreadable role filter as switched off, the way the
+    /// harness treats it, and that no user may use it.
+    /// </summary>
+    [Test]
+    public void ConfigExtensions_WithUnreadableRoles_ReadFunctionSwitchedOff()
+    {
+        ConfigData config = new()
+        {
+            AiChatEnabled = true,
+            AiReasonCheckEnabled = true,
+            AiChatRoles = "not json",
+            AiReasonCheckRoles = "{\"role\":\"modeller\"}"
+        };
+
+        AiSettings settings = config.GetAiSettings();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(settings.ChatEnabled, Is.False);
+            Assert.That(settings.ReasonCheckEnabled, Is.False);
+            Assert.That(settings.ChatRoles, Is.Empty);
+            Assert.That(settings.ReasonCheckRoles, Is.Empty);
+            Assert.That(config.MayUseAiChat(kAdminRoles), Is.False);
+            Assert.That(config.MayUseAiReasonCheck(kModellerRoles), Is.False);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the UI offers a function to a user only while it is switched on and the user holds one of its
+    /// roles, or no roles are set.
+    /// </summary>
+    [Test]
+    public void ConfigExtensions_MayUse_NeedsSwitchAndOneOfTheRoles()
+    {
+        ConfigData switchedOff = new() { AiChatRoles = "[\"admin\"]" };
+        ConfigData limited = new()
+        {
+            AiChatEnabled = true,
+            AiReasonCheckEnabled = true,
+            AiChatRoles = "[\"admin\"]",
+            AiReasonCheckRoles = "[\"modeller\"]"
+        };
+        ConfigData unlimited = new() { AiChatEnabled = true, AiReasonCheckEnabled = true };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(switchedOff.MayUseAiChat(kAdminRoles), Is.False);
+            Assert.That(limited.MayUseAiChat(kAdminAndModellerRoles), Is.True);
+            Assert.That(limited.MayUseAiChat(kModellerRoles), Is.False);
+            Assert.That(limited.MayUseAiReasonCheck(kModellerRoles), Is.True);
+            Assert.That(limited.MayUseAiReasonCheck(kReporterRoles), Is.False);
+            Assert.That(unlimited.MayUseAiChat(kNoRoles), Is.True);
+            Assert.That(unlimited.MayUseAiReasonCheck(kReporterRoles), Is.True);
+        });
+    }
+
+    /// <summary>
     /// Verifies that the defaults of the global config are those of the AI settings, so that an installation without
     /// stored AI settings behaves like the harness expects.
     /// </summary>
@@ -389,6 +579,12 @@ internal class AiSettingsTest
             Assert.That(fromConfig.ReasonCheckEnabled, Is.False);
             Assert.That(defaults.ChatEnabled, Is.False);
             Assert.That(defaults.ReasonCheckEnabled, Is.False);
+            Assert.That(new ConfigData().AiChatRoles, Is.EqualTo(AiFunctionRoles.kNoRestriction));
+            Assert.That(new ConfigData().AiReasonCheckRoles, Is.EqualTo(AiFunctionRoles.kNoRestriction));
+            Assert.That(fromConfig.ChatRoles, Is.Empty);
+            Assert.That(fromConfig.ReasonCheckRoles, Is.Empty);
+            Assert.That(defaults.ChatRoles, Is.Empty);
+            Assert.That(defaults.ReasonCheckRoles, Is.Empty);
         });
     }
 

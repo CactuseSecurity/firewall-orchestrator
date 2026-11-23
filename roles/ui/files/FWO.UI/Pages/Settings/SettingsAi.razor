@@ -1,5 +1,6 @@
 @using System.Globalization
 @using FWO.Data.Ai
+@using FWO.Middleware.Client
 
 @page "/settings/ai"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -7,6 +8,7 @@
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
 
 <div class="input-group">
     <h3>@(userConfig.GetText("ai_settings"))</h3>
@@ -85,16 +87,44 @@
     </div>
     <hr />
     <h5>@(userConfig.GetText("ai_functions"))</h5>
-    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5385"))">
-        <label for="aiChat" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_chat")):</label>
-        <div class="col-sm-1">
+    <div class="form-group row mt-2">
+        <label for="aiChat" class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5385"))">@(userConfig.GetText("ai_chat")):</label>
+        <div class="col-sm-1 d-flex align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5385"))">
             <input id="aiChat" type="checkbox" class="w-100" @bind="aiSettings.ChatEnabled" />
         </div>
+        <label for="@($"dropdown-input-{kChatRolesDropdownId}")" class="col-sm-1 col-form-label col-form-label-sm"
+               data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">@(userConfig.GetText("roles")):</label>
+        <div class="col-sm-6" data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">
+            @if (rolesLoaded)
+            {
+                <Dropdown Id="@kChatRolesDropdownId" ElementType="string" Elements="offeredRoles"
+                          SelectedElements="aiSettings.ChatRoles" SelectedElementsChanged="OnChatRolesChanged"
+                          Multiselect="true" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                    <ElementTemplate Context="role">
+                        @role
+                    </ElementTemplate>
+                </Dropdown>
+            }
+        </div>
     </div>
-    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5386"))">
-        <label for="aiReasonCheck" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_reason_check")):</label>
-        <div class="col-sm-1">
+    <div class="form-group row mt-2">
+        <label for="aiReasonCheck" class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5386"))">@(userConfig.GetText("ai_reason_check")):</label>
+        <div class="col-sm-1 d-flex align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5386"))">
             <input id="aiReasonCheck" type="checkbox" class="w-100" @bind="aiSettings.ReasonCheckEnabled" />
+        </div>
+        <label for="@($"dropdown-input-{kReasonCheckRolesDropdownId}")" class="col-sm-1 col-form-label col-form-label-sm"
+               data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">@(userConfig.GetText("roles")):</label>
+        <div class="col-sm-6" data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">
+            @if (rolesLoaded)
+            {
+                <Dropdown Id="@kReasonCheckRolesDropdownId" ElementType="string" Elements="offeredRoles"
+                          SelectedElements="aiSettings.ReasonCheckRoles" SelectedElementsChanged="OnReasonCheckRolesChanged"
+                          Multiselect="true" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                    <ElementTemplate Context="role">
+                        @role
+                    </ElementTemplate>
+                </Dropdown>
+            }
         </div>
     </div>
     <hr />
@@ -139,6 +169,8 @@
     private const int kMaxModelLength = 256;
     private const int kMaxEndpointLength = 2048;
     private const string kCredentialDropdownId = "aiCredential";
+    private const string kChatRolesDropdownId = "aiChatRoles";
+    private const string kReasonCheckRolesDropdownId = "aiReasonCheckRoles";
 
     private static readonly List<AiProvider> kProviders = [.. Enum.GetValues<AiProvider>()];
 
@@ -152,12 +184,23 @@
     private AiSettings aiSettings = new();
     private List<Credential> credentials = [];
     private Credential? selectedCredential;
+    private List<string> offeredRoles = [];
+    private bool rolesLoaded;
 
     /// <summary>
-    /// Loads the AI settings and the credentials that can hold an API key or an OAuth client secret (no key pairs),
-    /// without their secrets.
+    /// Loads the AI settings, the credentials that can hold an API key or an OAuth client secret (no key pairs),
+    /// without their secrets, and the roles offered for the role filters of the AI functions.
     /// </summary>
     protected override async Task OnInitializedAsync()
+    {
+        await LoadSettingsAndCredentials();
+        await LoadOfferedRoles();
+    }
+
+    /// <summary>
+    /// Loads the AI settings and the credentials that can hold an API key or an OAuth client secret.
+    /// </summary>
+    private async Task LoadSettingsAndCredentials()
     {
         try
         {
@@ -173,6 +216,51 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
+    }
+
+    /// <summary>
+    /// Loads the roles offered for the role filters of the AI functions: the roles of the internal LDAP that are
+    /// neither technical nor anonymous, and the roles the settings already name, so that these stay visible and can be
+    /// removed even if the LDAP does not know them (any more) or cannot be read. The role dropdowns are rendered only
+    /// afterwards, as they show their selection as of their first rendering.
+    /// </summary>
+    private async Task LoadOfferedRoles()
+    {
+        List<string> userRoleNames = [];
+        try
+        {
+            List<Role> ldapRoles = await RoleAccess.GetRolesFromInternalLdap(middlewareClient);
+            userRoleNames = [.. ldapRoles.Select(role => role.Name).Where(roleName => !RoleGroups.IsTechnicalOrAnonymous(roleName))];
+            if (userRoleNames.Count == 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), "", true);
+        }
+        IEnumerable<string> roleNames = userRoleNames.Concat(aiSettings.ChatRoles).Concat(aiSettings.ReasonCheckRoles);
+        offeredRoles = [.. roleNames.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(roleName => roleName, StringComparer.OrdinalIgnoreCase)];
+        rolesLoaded = true;
+    }
+
+    /// <summary>
+    /// Sets the roles allowed to use the AI chat; none allows every user.
+    /// </summary>
+    /// <param name="roles">The selected roles</param>
+    private void OnChatRolesChanged(IEnumerable<string> roles)
+    {
+        aiSettings.ChatRoles = [.. roles];
+    }
+
+    /// <summary>
+    /// Sets the roles allowed to use the AI check of the reason; none allows every user.
+    /// </summary>
+    /// <param name="roles">The selected roles</param>
+    private void OnReasonCheckRolesChanged(IEnumerable<string> roles)
+    {
+        aiSettings.ReasonCheckRoles = [.. roles];
     }
 
     /// <summary>

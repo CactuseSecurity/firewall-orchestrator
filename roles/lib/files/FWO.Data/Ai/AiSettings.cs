@@ -45,10 +45,11 @@ namespace FWO.Data.Ai
     }
 
     /// <summary>
-    /// Settings of the AI provider, of the agent loop of the AI harness (FWO.Ai.Harness) and the switches of the AI
-    /// functions offered to the users, stored as global config items (config_user 0) under the keys below. Edited on the
-    /// AI settings page of the UI and read by the AI harness with its technical user, which refuses the runs of a function
-    /// that is switched off. Secrets are not part of the settings: they reference a credential of the credential
+    /// Settings of the AI provider, of the agent loop of the AI harness (FWO.Ai.Harness) and the switches and role filters
+    /// of the AI functions offered to the users, stored as global config items (config_user 0) under the keys below.
+    /// Edited on the AI settings page of the UI and read by the AI harness with its technical user, which refuses the runs
+    /// of a function that is switched off or not allowed for the roles of the user. Secrets are not part of the settings:
+    /// they reference a credential of the credential
     /// store (<see cref="CredentialId"/>), whose secret is the API key, or for OAuth 2.0 (<see cref="AuthMethod"/>) whose
     /// user name is the client id and whose secret is the client secret.
     /// </summary>
@@ -96,6 +97,12 @@ namespace FWO.Data.Ai
         /// <summary>Config key of <see cref="ReasonCheckEnabled"/>.</summary>
         public const string kReasonCheckKey = "aiReasonCheck";
 
+        /// <summary>Config key of <see cref="ChatRoles"/>.</summary>
+        public const string kChatRolesKey = "aiChatRoles";
+
+        /// <summary>Config key of <see cref="ReasonCheckRoles"/>.</summary>
+        public const string kReasonCheckRolesKey = "aiReasonCheckRoles";
+
         /// <summary>
         /// Default maximum number of model requests offering the tools per turn. Lower than the default of
         /// Microsoft.Extensions.AI (40), to bound the cost of a single turn.
@@ -118,7 +125,7 @@ namespace FWO.Data.Ai
         [
             kProviderKey, kModelKey, kEndpointKey, kCredentialIdKey, kContextWindowTokensKey, kMaxOutputTokensKey,
             kMaxIterationsPerRequestKey, kMaxConsecutiveErrorsPerRequestKey, kCompactionReserveTokensKey, kAuthMethodKey, kTokenUrlKey,
-            kChatKey, kReasonCheckKey
+            kChatKey, kReasonCheckKey, kChatRolesKey, kReasonCheckRolesKey
         ];
 
         /// <summary>Provider to talk to; <see cref="AiProvider.None"/> if the AI functions are not available.</summary>
@@ -175,6 +182,17 @@ namespace FWO.Data.Ai
         /// </summary>
         public bool ReasonCheckEnabled { get; set; }
 
+        /// <summary>
+        /// Roles allowed to chat with the AI assistant, see <see cref="AiFunctionRoles"/>; every user if empty.
+        /// </summary>
+        public List<string> ChatRoles { get; set; } = [];
+
+        /// <summary>
+        /// Roles allowed to let the AI assistant check the functional reason, see <see cref="AiFunctionRoles"/>; every
+        /// user if empty.
+        /// </summary>
+        public List<string> ReasonCheckRoles { get; set; } = [];
+
         /// <summary>Whether an AI provider is configured.</summary>
         public bool IsConfigured => Provider != AiProvider.None;
 
@@ -217,9 +235,29 @@ namespace FWO.Data.Ai
             settings.MaxIterationsPerRequest = ReadNumber(configValues, kMaxIterationsPerRequestKey, settings.MaxIterationsPerRequest);
             settings.MaxConsecutiveErrorsPerRequest = ReadNumber(configValues, kMaxConsecutiveErrorsPerRequestKey, settings.MaxConsecutiveErrorsPerRequest);
             settings.CompactionReserveTokens = ReadNumber(configValues, kCompactionReserveTokensKey, settings.CompactionReserveTokens);
-            settings.ChatEnabled = ReadSwitch(configValues, kChatKey);
-            settings.ReasonCheckEnabled = ReadSwitch(configValues, kReasonCheckKey);
+            (settings.ChatEnabled, settings.ChatRoles) = ReadFunction(configValues, kChatKey, kChatRolesKey);
+            (settings.ReasonCheckEnabled, settings.ReasonCheckRoles) = ReadFunction(configValues, kReasonCheckKey, kReasonCheckRolesKey);
             return settings;
+        }
+
+        /// <summary>
+        /// Tells whether a user holding the given roles may chat with the AI assistant: the chat is switched on and the
+        /// user holds one of the <see cref="ChatRoles"/>, if any are set.
+        /// </summary>
+        /// <param name="userRoles">Roles of the user</param>
+        public bool MayUseChat(IEnumerable<string> userRoles)
+        {
+            return ChatEnabled && AiFunctionRoles.IsAllowed(ChatRoles, userRoles);
+        }
+
+        /// <summary>
+        /// Tells whether a user holding the given roles may run the reason check: it is switched on and the user holds
+        /// one of the <see cref="ReasonCheckRoles"/>, if any are set.
+        /// </summary>
+        /// <param name="userRoles">Roles of the user</param>
+        public bool MayUseReasonCheck(IEnumerable<string> userRoles)
+        {
+            return ReasonCheckEnabled && AiFunctionRoles.IsAllowed(ReasonCheckRoles, userRoles);
         }
 
         /// <summary>
@@ -382,6 +420,17 @@ namespace FWO.Data.Ai
         {
             string text = ReadText(configValues, key);
             return bool.TryParse(text, out bool switchedOn) && switchedOn;
+        }
+
+        /// <summary>
+        /// Reads the switch and the role filter of an AI function. A missing role filter restricts nothing; an
+        /// unreadable one switches the function off, so that it is not offered to every user by mistake.
+        /// </summary>
+        private static (bool Enabled, List<string> Roles) ReadFunction(IReadOnlyDictionary<string, string?> configValues,
+            string switchKey, string rolesKey)
+        {
+            bool rolesReadable = AiFunctionRoles.TryParse(ReadText(configValues, rolesKey), out List<string> roles);
+            return (ReadSwitch(configValues, switchKey) && rolesReadable, roles);
         }
     }
 }

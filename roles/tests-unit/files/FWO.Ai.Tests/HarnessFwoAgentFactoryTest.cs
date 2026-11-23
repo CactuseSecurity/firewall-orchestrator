@@ -42,6 +42,8 @@ internal class HarnessFwoAgentFactoryTest
 
     private static readonly List<string> kReporterTools = [HarnessTestSetup.kCurrentUserTool];
     private static readonly List<string> kAdminTools = [HarnessTestSetup.kCurrentUserTool, HarnessTestSetup.kRandomNumberTool];
+    private static readonly List<string> kReporterRoles = [Roles.Reporter];
+    private static readonly List<string> kNoRoles = [];
 
     private static readonly List<TestCaseData> kInvalidAgentSettings =
     [
@@ -163,7 +165,7 @@ internal class HarnessFwoAgentFactoryTest
         ScriptedChatClient chatClient = new ScriptedChatClient().RespondWithText(kAnswer);
         using FwoAgentFactory factory = new(chatClient, kContextWindowTokens, new AgentSettings { ChatEnabled = true });
 
-        await factory.CreateUserAgent(mcpSettings).RunAsync(kQuestion);
+        await factory.CreateUserAgent(mcpSettings, kReporterRoles).RunAsync(kQuestion);
 
         Assert.That(HarnessTestSetup.GetToolNames(chatClient.ReceivedOptions.Single()), Is.EquivalentTo(kReporterTools));
     }
@@ -180,7 +182,7 @@ internal class HarnessFwoAgentFactoryTest
         McpConnectionSettings mcpSettings = CreateMcpSettings(new Uri(kRemoteHttpMcpEndpoint), () => tokenRequested = true);
         ScriptedChatClient chatClient = new();
         using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient);
-        FwoUserAgent agent = factory.CreateUserAgent(mcpSettings);
+        FwoUserAgent agent = factory.CreateUserAgent(mcpSettings, kNoRoles);
 
         Assert.ThrowsAsync<ArgumentException>(async () => await agent.RunAsync(kQuestion));
 
@@ -210,7 +212,20 @@ internal class HarnessFwoAgentFactoryTest
         await using WebApplication app = await McpTestServer.Start();
         using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, new ScriptedChatClient());
 
-        Assert.Throws<ArgumentNullException>(() => factory.CreateUserAgent(null!));
+        Assert.Throws<ArgumentNullException>(() => factory.CreateUserAgent(null!, kNoRoles));
+    }
+
+    /// <summary>
+    /// Verifies that missing user roles are refused, as they decide which AI functions the user may run.
+    /// </summary>
+    [Test]
+    public async Task CreateUserAgent_WithoutUserRoles_Throws()
+    {
+        await using WebApplication app = await McpTestServer.Start();
+        using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, new ScriptedChatClient());
+        McpConnectionSettings mcpSettings = HarnessTestSetup.CreateMcpSettings(_ => ValueTask.FromResult(kToken));
+
+        Assert.Throws<ArgumentNullException>(() => factory.CreateUserAgent(mcpSettings, null!));
     }
 
     /// <summary>
@@ -223,7 +238,7 @@ internal class HarnessFwoAgentFactoryTest
         bool tokenRequested = false;
         ScriptedChatClient chatClient = new();
         using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient);
-        FwoUserAgent agent = factory.CreateUserAgent(CreateMcpSettings(HarnessTestSetup.kTestMcpEndpoint, () => tokenRequested = true));
+        FwoUserAgent agent = factory.CreateUserAgent(CreateMcpSettings(HarnessTestSetup.kTestMcpEndpoint, () => tokenRequested = true), kNoRoles);
         using CancellationTokenSource cancellation = new();
         await cancellation.CancelAsync();
 

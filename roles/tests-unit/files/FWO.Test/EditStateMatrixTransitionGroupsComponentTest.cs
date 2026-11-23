@@ -192,6 +192,8 @@ namespace FWO.Test
             }
 
             Assert.That(rendered.FindAll("button.dropdown-item"), Is.Not.Empty);
+            Assert.That(rendered.FindComponent<Dropdown<int?>>().Instance.ElementToString(99), Is.Empty);
+            Assert.That(rendered.FindComponents<Dropdown<int>>().First().Instance.ElementToString(99), Is.Empty);
         }
 
         [Test]
@@ -338,7 +340,11 @@ namespace FWO.Test
         [Test]
         public void StateDisplayName_ContainsNameAndId()
         {
-            Assert.That(InvokeStatic("StateDisplayName", new WfState { Id = 42, Name = "Done" }), Is.EqualTo("Done (42)"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokeStatic("StateDisplayName", new WfState { Id = 42, Name = "Done" }), Is.EqualTo("Done (42)"));
+                Assert.That(InvokeStatic("StateDisplayName", new object?[] { null }), Is.Empty);
+            });
         }
 
         [Test]

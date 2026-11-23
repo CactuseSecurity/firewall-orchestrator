@@ -332,6 +332,7 @@ namespace FWO.Test
             });
             setup.Rendered.FindComponent<Dropdown<int?>>().Find("input").Focus();
             Assert.That(setup.Rendered.FindAll("button.dropdown-item"), Is.Not.Empty);
+            Assert.That(additionalCredentialDropdown.ElementToString(99), Is.Empty);
         }
 
         /// <summary>

@@ -167,6 +167,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ApplyLogTimeRangeUnit_DoesNothingWhenUnitIsUnchanged()
+        {
+            SettingsLogging component = CreateComponentWithMaxEntries(1000);
+            SetPrivateField(component, "logTimeRangeUnit", LogTimeRangeUnit.Days);
+            GetPrivateField<ConfigData>(component, "configData").DefaultLogTimeRangeInSeconds = 123;
+
+            InvokePrivateMethodWithUnit("ApplyLogTimeRangeUnit", component, LogTimeRangeUnit.Days);
+
+            Assert.That(GetPrivateField<ConfigData>(component, "configData").DefaultLogTimeRangeInSeconds, Is.EqualTo(123));
+        }
+
+        [Test]
         public void PrepareConfigData_RaisesANonPositiveLogTimeRangeToOneSecond()
         {
             SettingsLogging component = CreateComponentWithMaxEntries(1000);

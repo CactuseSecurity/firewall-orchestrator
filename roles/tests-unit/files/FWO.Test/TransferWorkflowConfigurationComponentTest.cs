@@ -82,6 +82,7 @@ namespace FWO.Test
             {
                 Assert.That(Invoke(component, "ConfigurationSelectionText", 0), Is.EqualTo("import_as_new_configuration"));
                 Assert.That(Invoke(component, "ConfigurationSelectionText", 7), Is.EqualTo("add_to_configuration: Shared"));
+                Assert.That(Invoke(component, "ConfigurationSelectionText", 99), Is.EqualTo("add_to_configuration: "));
             });
         }
 

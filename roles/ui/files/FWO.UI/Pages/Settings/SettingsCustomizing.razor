@@ -335,9 +335,9 @@
             <div class="col-sm-3">
                 <Dropdown Id="pathAnalysisAlgorithm" ElementType="long" @bind-SelectedElement="configData!.PathAnalysisAlgorithm"
                           Elements="pathAnalysisAlgorithms.Select(algorithm => algorithm.Id)"
-                          ElementToString="@(id => AlgorithmDisplayName(pathAnalysisAlgorithms.First(algorithm => algorithm.Id == id)))">
+                          ElementToString="@(id => AlgorithmDisplayName(pathAnalysisAlgorithms.FirstOrDefault(algorithm => algorithm.Id == id)))">
                     <ElementTemplate Context="id">
-                        @AlgorithmDisplayName(pathAnalysisAlgorithms.First(algorithm => algorithm.Id == id))
+                        @AlgorithmDisplayName(pathAnalysisAlgorithms.FirstOrDefault(algorithm => algorithm.Id == id))
                     </ElementTemplate>
                 </Dropdown>
             </div>
@@ -568,8 +568,13 @@ else
     /// Returns the localized name of a path analysis algorithm, derived from its API name. An algorithm without API
     /// name, e.g. added to the database manually, keeps its stored name.
     /// </summary>
-    private string AlgorithmDisplayName(PathAnalysisAlgorithm algorithm)
+    private string AlgorithmDisplayName(PathAnalysisAlgorithm? algorithm)
     {
+        if (algorithm == null)
+        {
+            return "";
+        }
+
         string? apiName = PathAnalysisAlgorithmNames.GetName(algorithm.Id);
         return apiName == null ? algorithm.Name : userConfig.GetText(kAlgorithmTextPrefix + apiName);
     }

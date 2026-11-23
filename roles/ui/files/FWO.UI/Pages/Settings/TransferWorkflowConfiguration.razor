@@ -158,9 +158,13 @@
             string.Equals(configuration.Name, importName.Trim(), StringComparison.OrdinalIgnoreCase))));
     private string Title => userConfig.GetText(ImportMode ? "import_configuration" : "export_configuration");
 
+    /// <summary>
+    /// Returns the localized label for a new or existing target configuration.
+    /// </summary>
+    /// <param name="configurationId">The selected target configuration ID, or zero for a new configuration.</param>
     private string ConfigurationSelectionText(int configurationId) => configurationId == 0
         ? userConfig.GetText("import_as_new_configuration")
-        : $"{userConfig.GetText("add_to_configuration")}: {ExistingConfigurations.First(configuration => configuration.Id == configurationId).Name}";
+        : $"{userConfig.GetText("add_to_configuration")}: {ExistingConfigurations.FirstOrDefault(configuration => configuration.Id == configurationId)?.Name ?? ""}";
 
     protected override void OnParametersSet()
     {

@@ -409,13 +409,31 @@ else
         tokenLifetimeUnit = unit;
     }
 
-    private void SetAccessTokenLifetimeUnit(TokenLifetimeUnit unit) =>
-        SetDynamicTokenLifetimeMinValue(unit, ref DynamicAccessTokenLifetimeMinValue,
-            ref accessTokenLifetimeValue, ref accessTokenLifetimeUnit);
+    /// <summary>
+    /// Updates the access-token lifetime unit and enforces its minimum value.
+    /// </summary>
+    /// <param name="unit">The selected lifetime unit.</param>
+    private void SetAccessTokenLifetimeUnit(TokenLifetimeUnit unit)
+    {
+        if (accessTokenLifetimeUnit != unit)
+        {
+            SetDynamicTokenLifetimeMinValue(unit, ref DynamicAccessTokenLifetimeMinValue,
+                ref accessTokenLifetimeValue, ref accessTokenLifetimeUnit);
+        }
+    }
 
-    private void SetRefreshTokenLifetimeUnit(TokenLifetimeUnit unit) =>
-        SetDynamicTokenLifetimeMinValue(unit, ref DynamicRefreshTokenLifetimeMinValue,
-            ref refreshTokenLifetimeValue, ref refreshTokenLifetimeUnit);
+    /// <summary>
+    /// Updates the refresh-token lifetime unit and enforces its minimum value.
+    /// </summary>
+    /// <param name="unit">The selected lifetime unit.</param>
+    private void SetRefreshTokenLifetimeUnit(TokenLifetimeUnit unit)
+    {
+        if (refreshTokenLifetimeUnit != unit)
+        {
+            SetDynamicTokenLifetimeMinValue(unit, ref DynamicRefreshTokenLifetimeMinValue,
+                ref refreshTokenLifetimeValue, ref refreshTokenLifetimeUnit);
+        }
+    }
 
     private bool IsTokenLifetimeValid()
     {

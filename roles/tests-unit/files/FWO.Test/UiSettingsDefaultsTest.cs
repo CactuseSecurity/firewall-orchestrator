@@ -201,6 +201,23 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void SettingsDefaults_TokenLifetimeUnitDoesNothingWhenUnitIsUnchanged()
+        {
+            SettingsDefaults component = new();
+            SetPrivateField(component, "accessTokenLifetimeValue", 7);
+            SetPrivateField(component, "accessTokenLifetimeUnit", TokenLifetimeUnit.Hours);
+            SetPrivateField(component, "DynamicAccessTokenLifetimeMinValue", 3);
+
+            InvokePrivate(component, "SetAccessTokenLifetimeUnit", TokenLifetimeUnit.Hours);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<int>(component, "accessTokenLifetimeValue"), Is.EqualTo(7));
+                Assert.That(GetPrivateField<int>(component, "DynamicAccessTokenLifetimeMinValue"), Is.EqualTo(3));
+            });
+        }
+
         private static BunitContext CreateContext()
         {
             SimulatedGlobalConfig globalConfig = new()

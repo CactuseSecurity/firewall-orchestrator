@@ -77,10 +77,10 @@
                 <div class="col-sm-9">
                     <Dropdown ElementType="int?" @bind-SelectedElement="editGroup.VisibilityGroupId"
                               Elements="visibilityGroups.Select(group => (int?)group.Id)"
-                              ElementToString="@(id => visibilityGroups.First(group => group.Id == id).Name)"
+                              ElementToString="@(id => visibilityGroups.FirstOrDefault(group => group.Id == id)?.Name ?? "")"
                               NoneSelectedText="-" Nullable="true">
                         <ElementTemplate Context="id">
-                            @visibilityGroups.First(group => group.Id == id).Name
+                            @(visibilityGroups.FirstOrDefault(group => group.Id == id)?.Name ?? "")
                         </ElementTemplate>
                     </Dropdown>
                 </div>
@@ -120,9 +120,9 @@
                     <Template>
                         <Dropdown ElementType="int" @bind-SelectedElement="context.FromStateId"
                                   Elements="States.Select(state => state.Id)"
-                                  ElementToString="@(id => StateDisplayName(States.First(state => state.Id == id)))">
+                                  ElementToString="@(id => StateDisplayName(States.FirstOrDefault(state => state.Id == id)))">
                             <ElementTemplate Context="id">
-                                @StateDisplayName(States.First(state => state.Id == id))
+                                @StateDisplayName(States.FirstOrDefault(state => state.Id == id))
                             </ElementTemplate>
                         </Dropdown>
                     </Template>
@@ -131,9 +131,9 @@
                     <Template>
                         <Dropdown ElementType="int" @bind-SelectedElement="context.ToStateId"
                                   Elements="States.Select(state => state.Id)"
-                                  ElementToString="@(id => StateDisplayName(States.First(state => state.Id == id)))">
+                                  ElementToString="@(id => StateDisplayName(States.FirstOrDefault(state => state.Id == id)))">
                             <ElementTemplate Context="id">
-                                @StateDisplayName(States.First(state => state.Id == id))
+                                @StateDisplayName(States.FirstOrDefault(state => state.Id == id))
                             </ElementTemplate>
                         </Dropdown>
                     </Template>
@@ -373,7 +373,7 @@
     /// <summary>
     /// Formats a state for selection in a transition group.
     /// </summary>
-    private static string StateDisplayName(WfState state) => $"{state.Name} ({state.Id})";
+    private static string StateDisplayName(WfState? state) => state == null ? "" : $"{state.Name} ({state.Id})";
 
     private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

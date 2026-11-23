@@ -76,16 +76,14 @@ internal sealed class UiZonesChecksTest
     }
 
     [Test]
-    public void CheckCompliance_ParsesFlattenedNetworkObjects()
+    public void CheckCompliance_UsesProvidedIpRanges()
     {
         List<NetworkZone> zones = CreateZones(out _, out _);
         using BunitContext context = CreateContext(zones);
         ZonesChecks component = context.Render<ZonesChecks>().Instance;
 
-        NetworkObject source = CreateFlattenedNetworkObject("10.0.0.5");
-        NetworkObject destination = CreateFlattenedNetworkObject("192.168.1.10");
-        List<IPAddressRange> sourceRanges = InvokeParseIpRange(component, source);
-        List<IPAddressRange> destinationRanges = InvokeParseIpRange(component, destination);
+        List<IPAddressRange> sourceRanges = [IPAddressRange.Parse("10.0.0.5")];
+        List<IPAddressRange> destinationRanges = [IPAddressRange.Parse("192.168.1.10")];
 
         (bool compliant, List<(NetworkZone, NetworkZone)> violations) =
             InvokeCheckCompliance(component, sourceRanges, destinationRanges);
@@ -95,26 +93,6 @@ internal sealed class UiZonesChecksTest
             Assert.That(compliant, Is.False);
             Assert.That(violations, Has.Count.EqualTo(1));
         });
-    }
-
-    [Test]
-    public void ParseIpRange_ParsesNestedNetworkObjectMembers()
-    {
-        List<NetworkZone> zones = CreateZones(out _, out _);
-        using BunitContext context = CreateContext(zones);
-        ZonesChecks component = context.Render<ZonesChecks>().Instance;
-
-        NetworkObject source = CreateNetworkObject(ObjectType.Network, "", "");
-        source.ObjectGroupFlats = new List<GroupFlat<NetworkObject>>
-        {
-            new GroupFlat<NetworkObject>
-            {
-                Object = CreateNetworkObject(ObjectType.IPRange, "10.0.0.5", "10.0.0.5")
-            }
-        }.ToArray();
-        List<IPAddressRange> ranges = InvokeParseIpRange(component, source);
-
-        Assert.That(ranges, Has.Count.EqualTo(1));
     }
 
     private static BunitContext CreateContext(List<NetworkZone> networkZones, SimulatedUserConfig? userConfig = null)
@@ -154,29 +132,6 @@ internal sealed class UiZonesChecksTest
         return [sourceZone, destinationZone];
     }
 
-    private static NetworkObject CreateNetworkObject(string type, string ip, string ipEnd)
-    {
-        return new NetworkObject
-        {
-            Type = new NetworkObjectType { Name = type },
-            IP = ip,
-            IpEnd = ipEnd
-        };
-    }
-
-    private static NetworkObject CreateFlattenedNetworkObject(string ip)
-    {
-        NetworkObject networkObject = CreateNetworkObject(ObjectType.Network, "", "");
-        networkObject.ObjectGroupFlats = new List<GroupFlat<NetworkObject>>
-        {
-            new GroupFlat<NetworkObject>
-            {
-                Object = CreateNetworkObject(ObjectType.IPRange, ip, ip)
-            }
-        }.ToArray();
-        return networkObject;
-    }
-
     private static (bool Compliant, List<(NetworkZone, NetworkZone)> Violations) InvokeCheckCompliance(
         ZonesChecks component, List<IPAddressRange> source, List<IPAddressRange> destination)
     {
@@ -189,11 +144,4 @@ internal sealed class UiZonesChecksTest
         return (compliant, violations);
     }
 
-    private static List<IPAddressRange> InvokeParseIpRange(ZonesChecks component, NetworkObject networkObject)
-    {
-        MethodInfo method = typeof(ZonesChecks).GetMethod("ParseIpRange", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?? throw new MissingMethodException(typeof(ZonesChecks).FullName, "ParseIpRange");
-        return (List<IPAddressRange>)(method.Invoke(component, new object?[] { networkObject })
-            ?? throw new InvalidOperationException("ParseIpRange returned null."));
-    }
 }

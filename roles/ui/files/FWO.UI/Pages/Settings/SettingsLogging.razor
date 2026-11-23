@@ -169,8 +169,17 @@ else
         }
     }
 
+    /// <summary>
+    /// Updates the default log time range unit and recalculates the stored duration.
+    /// </summary>
+    /// <param name="unit">The selected log time range unit.</param>
     private void ApplyLogTimeRangeUnit(LogTimeRangeUnit unit)
     {
+        if (logTimeRangeUnit == unit)
+        {
+            return;
+        }
+
         logTimeRangeUnit = unit;
         ApplyLogTimeRange();
     }

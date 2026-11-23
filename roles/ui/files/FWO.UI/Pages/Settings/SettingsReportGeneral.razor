@@ -192,7 +192,7 @@ else
     private bool ShowMigrateSchedulerConfigDialog;
     private List<string> availableRoles = [];
     private bool rolesLoaded = false;
-    private string selectedRole = "";
+    private string? selectedRole;
     private Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> reportTypeVisibilityByRole = [];
 
     /// <summary>
@@ -223,7 +223,7 @@ else
 
             availableRoles = (await RoleAccess.GetRolesFromInternalLdap(middlewareClient)).Select(r => r.Name)
                 .Where(n => !RoleGroups.IsTechnicalOrAnonymous(n)).OrderBy(s => s).ToList();
-            selectedRole = "";
+            selectedRole = null;
             savedReportTypeVisibilityByRole = ReportTypeRoleVisibilityConfig.Parse(configData.ReportTypeVisibilityByRole);
             reportTypeVisibilityByRole = BuildReportTypeVisibilityByRole(availableRoles, savedReportTypeVisibilityByRole);
             if (availableRoles.Count == 0)

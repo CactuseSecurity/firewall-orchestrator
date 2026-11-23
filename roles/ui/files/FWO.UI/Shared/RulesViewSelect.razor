@@ -1,6 +1,6 @@
 @inject UserConfig userConfig
 
-<Dropdown Id="@Id" ElementType="bool" SelectedElement="ManagementRulebaseView" SelectedElementChanged="OnChange" Elements="kViewOptions"
+<Dropdown Id="@(Id ?? generatedId)" ElementType="bool" SelectedElement="ManagementRulebaseView" SelectedElementChanged="OnChange" Elements="kViewOptions"
           ElementToString="@(managementView => managementView
               ? userConfig.GetText("management_rulebases_view")
               : userConfig.GetText("gateway_rules_view"))"
@@ -15,6 +15,7 @@
 @code
 {
     private static readonly IReadOnlyList<bool> kViewOptions = [false, true];
+    private readonly string generatedId = Guid.NewGuid().ToString();
 
     /// <summary>
     /// Html id of the select element.
@@ -31,8 +32,17 @@
     [Parameter]
     public EventCallback<bool> ManagementRulebaseViewChanged { get; set; }
 
+    /// <summary>
+    /// Applies a changed rulebase view and notifies the parent component.
+    /// </summary>
+    /// <param name="selectedView">Whether the management rulebase view is selected.</param>
     private async Task OnChange(bool selectedView)
     {
+        if (ManagementRulebaseView == selectedView)
+        {
+            return;
+        }
+
         ManagementRulebaseView = selectedView;
         await ManagementRulebaseViewChanged.InvokeAsync(selectedView);
     }

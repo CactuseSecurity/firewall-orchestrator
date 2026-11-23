@@ -267,6 +267,7 @@ namespace FWO.Test
             IRenderedComponent<Dropdown<long>> algorithmDropdown = wrapper.FindComponent<Dropdown<long>>();
             algorithmDropdown.Find("input").Focus();
             Assert.That(wrapper.FindAll("button.dropdown-item"), Is.Not.Empty);
+            Assert.That(algorithmDropdown.Instance.ElementToString(99), Is.Empty);
         }
 
         [Test]

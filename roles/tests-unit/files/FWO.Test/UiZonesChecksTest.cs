@@ -76,7 +76,7 @@ internal sealed class UiZonesChecksTest
     }
 
     [Test]
-    public void CheckRuleCompliance_ParsesFlattenedNetworkObjects()
+    public void CheckCompliance_ParsesFlattenedNetworkObjects()
     {
         List<NetworkZone> zones = CreateZones(out _, out _);
         using BunitContext context = CreateContext(zones);
@@ -84,9 +84,11 @@ internal sealed class UiZonesChecksTest
 
         NetworkObject source = CreateFlattenedNetworkObject("10.0.0.5");
         NetworkObject destination = CreateFlattenedNetworkObject("192.168.1.10");
-        Rule rule = CreateRule(source, destination);
+        List<IPAddressRange> sourceRanges = InvokeParseIpRange(component, source);
+        List<IPAddressRange> destinationRanges = InvokeParseIpRange(component, destination);
 
-        (bool compliant, List<(NetworkZone, NetworkZone)> violations) = InvokeCheckRuleCompliance(component, rule);
+        (bool compliant, List<(NetworkZone, NetworkZone)> violations) =
+            InvokeCheckCompliance(component, sourceRanges, destinationRanges);
 
         Assert.Multiple(() =>
         {
@@ -149,7 +151,7 @@ internal sealed class UiZonesChecksTest
             Name = "DMZ",
             IPRanges = new List<IPAddressRange> { IPAddressRange.Parse("192.168.0.0/16") }.ToArray()
         };
-        return new List<NetworkZone> { sourceZone, destinationZone };
+        return [sourceZone, destinationZone];
     }
 
     private static NetworkObject CreateNetworkObject(string type, string ip, string ipEnd)
@@ -175,25 +177,14 @@ internal sealed class UiZonesChecksTest
         return networkObject;
     }
 
-    private static Rule CreateRule(NetworkObject source, NetworkObject destination)
+    private static (bool Compliant, List<(NetworkZone, NetworkZone)> Violations) InvokeCheckCompliance(
+        ZonesChecks component, List<IPAddressRange> source, List<IPAddressRange> destination)
     {
-        NetworkLocation sourceLocation = new(new NetworkUser(), source);
-        NetworkLocation destinationLocation = new(new NetworkUser(), destination);
-        return new Rule
-        {
-            Froms = new List<NetworkLocation> { sourceLocation }.ToArray(),
-            Tos = new List<NetworkLocation> { destinationLocation }.ToArray()
-        };
-    }
-
-    private static (bool Compliant, List<(NetworkZone, NetworkZone)> Violations) InvokeCheckRuleCompliance(
-        ZonesChecks component, Rule rule)
-    {
-        MethodInfo method = typeof(ZonesChecks).GetMethod("CheckRuleCompliance", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?? throw new MissingMethodException(typeof(ZonesChecks).FullName, "CheckRuleCompliance");
-        object?[] parameters = { rule, null };
+        MethodInfo method = typeof(ZonesChecks).GetMethod("CheckCompliance", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new MissingMethodException(typeof(ZonesChecks).FullName, "CheckCompliance");
+        object?[] parameters = { source, destination, null };
         bool compliant = (bool)(method.Invoke(component, parameters) ?? throw new InvalidOperationException());
-        List<(NetworkZone, NetworkZone)> violations = (List<(NetworkZone, NetworkZone)>)(parameters[1]
+        List<(NetworkZone, NetworkZone)> violations = (List<(NetworkZone, NetworkZone)>)(parameters[2]
             ?? throw new InvalidOperationException("The method did not set forbidden communications."));
         return (compliant, violations);
     }

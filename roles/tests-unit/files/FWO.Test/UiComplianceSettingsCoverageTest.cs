@@ -28,8 +28,8 @@ internal sealed class UiComplianceSettingsCoverageTest
     public async Task ComplianceFixCriteria_LoadsNonMatrixCriteriaAndRemovesSelectedCriterion()
     {
         ComplianceSettingsApiConnection apiConnection = new();
-        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
-        await using BunitContext context = CreateContext(apiConnection, messages);
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+        await using BunitContext context = CreateContext(apiConnection);
         IRenderedComponent<CascadingAuthenticationState> wrapper = RenderFixCriteria(context, messages);
         ComplianceFixCriteria component = wrapper.FindComponent<ComplianceFixCriteria>().Instance;
 
@@ -80,8 +80,8 @@ internal sealed class UiComplianceSettingsCoverageTest
     public async Task ComplianceFixCriteria_RemoveCriterionFailureReportsError()
     {
         ComplianceSettingsApiConnection apiConnection = new() { ThrowOnRemoveCriterion = true };
-        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
-        await using BunitContext context = CreateContext(apiConnection, messages);
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+        await using BunitContext context = CreateContext(apiConnection);
         IRenderedComponent<CascadingAuthenticationState> wrapper = RenderFixCriteria(context, messages);
         ComplianceFixCriteria component = wrapper.FindComponent<ComplianceFixCriteria>().Instance;
         SetField(component, "ActCrit", new ComplianceCriterion { Id = 4, Name = "Failing" });
@@ -97,8 +97,8 @@ internal sealed class UiComplianceSettingsCoverageTest
     {
         ComplianceSettingsApiConnection apiConnection = new();
         SimulatedGlobalConfig globalConfig = new() { ComplianceCheckPolicyId = 5 };
-        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
-        await using BunitContext context = CreateContext(apiConnection, messages, globalConfig);
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+        await using BunitContext context = CreateContext(apiConnection, globalConfig: globalConfig);
         IRenderedComponent<CascadingAuthenticationState> page = RenderSettingsCompliance(context, messages);
         SettingsCompliance component = page.FindComponent<SettingsCompliance>().Instance;
 
@@ -146,8 +146,8 @@ internal sealed class UiComplianceSettingsCoverageTest
             ResponseStatus = ResponseStatus.Completed,
             IsSuccessStatusCode = false
         };
-        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
-        await using BunitContext context = CreateContext(new ComplianceSettingsApiConnection(), messages, middlewareClient: middlewareClient);
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+        await using BunitContext context = CreateContext(new ComplianceSettingsApiConnection(), middlewareClient: middlewareClient);
         IRenderedComponent<CascadingAuthenticationState> page = RenderSettingsCompliance(context, messages);
         SettingsCompliance component = page.FindComponent<SettingsCompliance>().Instance;
 
@@ -192,8 +192,8 @@ internal sealed class UiComplianceSettingsCoverageTest
                 IsSuccessStatusCode = false
             }
         };
-        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
-        await using BunitContext context = CreateContext(new ComplianceSettingsApiConnection(), messages, middlewareClient: middlewareClient);
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+        await using BunitContext context = CreateContext(new ComplianceSettingsApiConnection(), middlewareClient: middlewareClient);
         IRenderedComponent<CascadingAuthenticationState> page = RenderSettingsCompliance(context, messages);
         SettingsCompliance component = page.FindComponent<SettingsCompliance>().Instance;
         SetField(component, "complianceCheckJobId", "job-2");
@@ -246,7 +246,6 @@ internal sealed class UiComplianceSettingsCoverageTest
 
     private static BunitContext CreateContext(
         ComplianceSettingsApiConnection apiConnection,
-        List<(Exception? Exception, string Title, string Message, bool IsError)>? messages = null,
         SimulatedGlobalConfig? globalConfig = null,
         MockMiddlewareClient? middlewareClient = null)
     {
@@ -328,11 +327,11 @@ internal sealed class UiComplianceSettingsCoverageTest
 
     private sealed class ComplianceSettingsApiConnection : SimulatedApiConnection
     {
-        private readonly List<ComplianceCriterion> criteria = new()
-        {
+        private readonly List<ComplianceCriterion> criteria =
+        [
             new ComplianceCriterion { Id = 1, Name = "Matrix", CriterionType = CriterionType.Matrix.ToString() },
             new ComplianceCriterion { Id = 2, Name = "Source", CriterionType = CriterionType.ForbidZonesAsSource.ToString() }
-        };
+        ];
 
         public int RemoveCriterionCalls { get; private set; }
         public int UpsertConfigCalls { get; private set; }

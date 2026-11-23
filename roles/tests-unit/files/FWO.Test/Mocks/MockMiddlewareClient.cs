@@ -58,7 +58,7 @@ namespace FWO.Test.Mocks
             new(new RestRequest())
             {
                 StatusCode = HttpStatusCode.OK,
-                Data = new List<RoleGetReturnParameters>(),
+                Data = [],
                 ResponseStatus = ResponseStatus.Completed,
                 IsSuccessStatusCode = true
             };

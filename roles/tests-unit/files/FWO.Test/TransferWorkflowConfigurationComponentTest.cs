@@ -331,7 +331,7 @@ namespace FWO.Test
                 Assert.That(component.Markup, Does.Contain("Shared"));
                 Assert.That(component.Markup, Does.Contain("import_as_new_configuration"));
                 IRenderedComponent<Dropdown<int>> targetDropdown = component.FindComponent<Dropdown<int>>();
-                Assert.That(targetDropdown.Instance.Elements, Is.EquivalentTo(new List<int> { 0, 5 }));
+                Assert.That(targetDropdown.Instance.Elements, Is.EquivalentTo([0, 5]));
                 Assert.That(targetDropdown.Instance.NoneSelectedText, Is.EqualTo("import_as_new_configuration"));
                 Assert.That(component.Find("input.form-control"), Is.Not.Null);
             });

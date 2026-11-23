@@ -189,7 +189,7 @@ namespace FWO.Test
         [Test]
         public async Task ComplianceMatrix_EmptyMatrices_ShowsNoNetworkZones()
         {
-            MatrixApiConnection apiConnection = new() { Matrices = new List<ComplianceCriterion>() };
+            MatrixApiConnection apiConnection = new() { Matrices = [] };
             UserConfig userConfig = CreateAdminUserConfig(new SimulatedGlobalConfig());
 
             await using BunitContext context = CreateContext(apiConnection, userConfig);
@@ -209,10 +209,10 @@ namespace FWO.Test
         {
             MatrixApiConnection apiConnection = new MatrixApiConnection
             {
-                Matrices = new List<ComplianceCriterion>
-                {
+                Matrices =
+                [
                     new ComplianceCriterion { Id = 1, Name = "Imported", ImportSource = "import" }
-                }
+                ]
             };
             SimulatedGlobalConfig globalConfig = new() { ImportedMatrixReadOnly = true };
             UserConfig userConfig = CreateAdminUserConfig(globalConfig);
@@ -237,7 +237,7 @@ namespace FWO.Test
         {
             MatrixApiConnection apiConnection = new MatrixApiConnection
             {
-                LinkedPolicies = new List<LinkedPolicy> { new LinkedPolicy { PolicyId = 7 } }
+                LinkedPolicies = [new LinkedPolicy { PolicyId = 7 }]
             };
             UserConfig userConfig = CreateAdminUserConfig(new SimulatedGlobalConfig());
 
@@ -278,7 +278,7 @@ namespace FWO.Test
             MatrixApiConnection apiConnection = new();
             UserConfig userConfig = CreateAdminUserConfig(new SimulatedGlobalConfig());
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages =
-                new List<(Exception? Exception, string Title, string Message, bool IsError)>();
+                [];
 
             await using BunitContext context = CreateContext(apiConnection, userConfig, messages);
             IRenderedComponent<CascadingAuthenticationState> root = context.Render<CascadingAuthenticationState>(parameters => parameters
@@ -306,7 +306,7 @@ namespace FWO.Test
         private static UserConfig CreateAdminUserConfig(SimulatedGlobalConfig globalConfig)
         {
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            userConfig.User.Roles = new List<string> { Roles.Admin };
+            userConfig.User.Roles = [Roles.Admin];
             userConfig.SetExecutionMode(Roles.Admin);
             return userConfig;
         }
@@ -360,11 +360,11 @@ namespace FWO.Test
                 new NetworkZone { Id = 1, IdString = "manual-zone", Name = "Manual zone" }
             ];
 
-            public List<ComplianceCriterion> Matrices { get; init; } = new List<ComplianceCriterion>
-            {
+            public List<ComplianceCriterion> Matrices { get; init; } =
+            [
                 new ComplianceCriterion { Id = 1, Name = "Manual matrix" }
-            };
-            public List<LinkedPolicy> LinkedPolicies { get; init; } = new List<LinkedPolicy>();
+            ];
+            public List<LinkedPolicy> LinkedPolicies { get; init; } = [];
             public int AutoCalculatedInternetZoneAdditions { get; private set; }
             public int AutoCalculatedUndefinedInternalZoneRemovals { get; private set; }
             public int NetworkZoneLoads { get; private set; }

@@ -48,7 +48,7 @@ internal sealed class UiSettingsAppDataImportTest
     [Test]
     public async Task AppDataImport_FileUploadErrorIsReported()
     {
-        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
         await using BunitContext context = CreateContext(CreateGlobalConfig(), new AppDataImportApiConnection(), CreateMiddlewareClient());
         IRenderedComponent<CascadingAuthenticationState> page = RenderComponent(context, messages);
         SettingsAppDataImport component = page.FindComponent<SettingsAppDataImport>().Instance;
@@ -73,11 +73,11 @@ internal sealed class UiSettingsAppDataImportTest
         SettingsAppDataImport component = page.FindComponent<SettingsAppDataImport>().Instance;
         AppServerImportEventArgs eventArgs = new(true)
         {
-            Appserver = new List<string> { "app-1" },
-            Errors = new List<CSVFileUploadErrorModel>
-            {
+            Appserver = ["app-1"],
+            Errors =
+            [
                 new CSVFileUploadErrorModel { EntryData = "bad", Message = "invalid" }
-            }
+            ]
         };
 
         await page.InvokeAsync(() => Invoke(component, "OnCSVAppServerImportEvent", eventArgs));
@@ -94,7 +94,7 @@ internal sealed class UiSettingsAppDataImportTest
     public async Task AppDataImport_SaveFailureReportsError()
     {
         AppDataImportApiConnection apiConnection = new() { ThrowOnUpsert = true };
-        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
         await using BunitContext context = CreateContext(CreateGlobalConfig(), apiConnection, CreateMiddlewareClient());
         IRenderedComponent<CascadingAuthenticationState> page = RenderComponent(context, messages);
         SettingsAppDataImport component = page.FindComponent<SettingsAppDataImport>().Instance;
@@ -109,7 +109,7 @@ internal sealed class UiSettingsAppDataImportTest
     [Test]
     public void AppDataImport_AddSettingChangeOnlyAddsChangedValuesAndRedactsSecrets()
     {
-        List<string> changes = new();
+        List<string> changes = [];
         InvokeStaticVoid("AddSettingChange", changes, "Path", "old", "new", false);
         InvokeStaticVoid("AddSettingChange", changes, "Same", "same", "same", false);
         InvokeStaticVoid("AddSettingChange", changes, "Script", "old-secret", "new-secret", true);
@@ -168,14 +168,14 @@ internal sealed class UiSettingsAppDataImportTest
     [Test]
     public void AppDataImport_BuildRolesBlocksDisallowedRoleCategories()
     {
-        List<OwnerResponsibleType> types = new()
-        {
+        List<OwnerResponsibleType> types =
+        [
             new OwnerResponsibleType { Id = 1, Name = "Owner type", AllowModelling = false, AllowRecertification = false }
-        };
-        List<string> roles = new() { Roles.Modeller, Roles.Recertifier, Roles.Auditor };
+        ];
+        List<string> roles = [Roles.Modeller, Roles.Recertifier, Roles.Auditor];
         Dictionary<int, List<string>> selected = new()
         {
-            [1] = new List<string> { Roles.Modeller, Roles.Recertifier, Roles.Auditor }
+            [1] = [Roles.Modeller, Roles.Recertifier, Roles.Auditor]
         };
 
         Dictionary<int, Dictionary<string, bool>> result = InvokeStatic<Dictionary<int, Dictionary<string, bool>>>(
@@ -252,12 +252,12 @@ internal sealed class UiSettingsAppDataImportTest
             GetAllRolesResponse = new RestResponse<List<RoleGetReturnParameters>>(new RestRequest())
             {
                 StatusCode = HttpStatusCode.OK,
-                Data = new List<RoleGetReturnParameters>
-                {
+                Data =
+                [
                     new RoleGetReturnParameters { Role = "cn=admin,ou=roles,dc=fworch,dc=internal" },
                     new RoleGetReturnParameters { Role = "cn=anonymous,ou=roles,dc=fworch,dc=internal" },
                     new RoleGetReturnParameters { Role = "cn=auditor,ou=roles,dc=fworch,dc=internal" }
-                },
+                ],
                 ResponseStatus = ResponseStatus.Completed,
                 IsSuccessStatusCode = true
             }
@@ -349,10 +349,10 @@ internal sealed class UiSettingsAppDataImportTest
         {
             if (query == OwnerQueries.getOwnerResponsibleTypes && typeof(QueryResponseType) == typeof(List<OwnerResponsibleType>))
             {
-                List<OwnerResponsibleType> types = new()
-                {
+                List<OwnerResponsibleType> types =
+                [
                     new OwnerResponsibleType { Id = 1, Name = "Owner type", Active = true, AllowModelling = true, AllowRecertification = true }
-                };
+                ];
                 return Task.FromResult((QueryResponseType)(object)types);
             }
             if (query == ConfigQueries.upsertConfigItems)

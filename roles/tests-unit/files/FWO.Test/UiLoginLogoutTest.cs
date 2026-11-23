@@ -227,6 +227,7 @@ public sealed class UiLoginLogoutTest
         context.Services.AddSingleton<ApiConnection>(new MockApiConnection());
         context.Services.AddSingleton(globalConfig);
         context.Services.AddSingleton(userConfig);
+        context.Services.AddSingleton(new UiClientAddress());
         context.Services.AddSingleton<NavigationManager>(navigationManager);
         context.Services.AddSingleton(navigationManager);
         return context;

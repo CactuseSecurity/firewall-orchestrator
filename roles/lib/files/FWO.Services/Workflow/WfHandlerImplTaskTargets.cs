@@ -68,6 +68,10 @@ namespace FWO.Services.Workflow
             {
                 SyncActTicketFromReqTask(scopeTask);
             }
+            if (dbAcc != null)
+            {
+                await dbAcc.RefreshTicketRequestSnapshots(ActTicket);
+            }
             int previousCount = CountImplTasks(ActTicket);
             List<WfReqTask> openTasks = [.. ActTicket.Tasks.Where(RequestTaskIsOpen)];
             if (scopeTask != null)

@@ -14,6 +14,10 @@ internal sealed class ImplTaskCreationApiConnection(WfTicket storedTicket) : Sim
     private long nextImplementationElementId = 500;
 
     public int InsertCount { get; private set; }
+    public int SnapshotMutationCount { get; private set; }
+    public bool ReturnInvalidSnapshotProof { get; set; }
+    public List<string> QueryLog { get; } = [];
+    public List<Dictionary<string, object?>> SnapshotUpdates { get; private set; } = [];
     public TaskCompletionSource? InsertStarted { get; set; }
     public TaskCompletionSource? ReleaseInsert { get; set; }
 
@@ -23,6 +27,7 @@ internal sealed class ImplTaskCreationApiConnection(WfTicket storedTicket) : Sim
         string? operationName = null,
         QueryChunkingOptions? chunkingOptions = null)
     {
+        QueryLog.Add(query);
         if (query == RequestQueries.getTicketById)
         {
             return (T)(object)storedTicket;
@@ -40,6 +45,18 @@ internal sealed class ImplTaskCreationApiConnection(WfTicket storedTicket) : Sim
                 ReturnIds = [new ReturnId { NewIdLong = ++nextImplementationTaskId }]
             };
         }
+        if (query == RequestQueries.updateRequestElementSnapshots)
+        {
+            SnapshotMutationCount++;
+            SnapshotUpdates = ReadSnapshotUpdates(variables);
+            List<ReturnId?> results = SnapshotUpdates
+                .Select((_, index) => (ReturnId?)new ReturnId
+                {
+                    AffectedRows = ReturnInvalidSnapshotProof && index == 0 ? 0 : 1
+                })
+                .ToList();
+            return (T)(object)results;
+        }
         if (query == RequestQueries.newImplementationElement)
         {
             return (T)(object)new ReturnIdWrapper
@@ -56,5 +73,12 @@ internal sealed class ImplTaskCreationApiConnection(WfTicket storedTicket) : Sim
             return (T)(object)new ReturnId { AffectedRows = 1 };
         }
         throw new InvalidOperationException($"Unexpected implementation-task creation query: {query}");
+    }
+
+    private static List<Dictionary<string, object?>> ReadSnapshotUpdates(object? variables)
+    {
+        object? updates = variables?.GetType().GetProperty("updates")?.GetValue(variables);
+        return (List<Dictionary<string, object?>>)(updates
+            ?? throw new InvalidOperationException("Snapshot updates missing."));
     }
 }

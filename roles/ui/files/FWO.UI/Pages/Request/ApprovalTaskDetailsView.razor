@@ -23,6 +23,7 @@
                         ShowActions="@WfHandler.CanPromoteTaskInCurrentPhase()"
                         CanPromoteTask="CanShowTaskPromotion"
                         PromoteTask="@(task => RunWithProgress(() => OpenTaskPromotion(task)))"
+                        TaskActions="VisibleTaskActions" PerformTaskAction="PerformTaskAction"
                         Compliance="compliance" ShowComplianceReasons="OpenComplianceReasons"
                         HeaderButtons="@(table == ApprovalTaskListTable.Access ? AccessTaskButtons : null)" />
                 }
@@ -195,39 +196,40 @@
             builder.AddContent(10, DisplayService.DisplayButton(userConfig, "promote", Icons.ChangeState));
             builder.CloseElement();
         }
+        builder.AddContent(11, TaskActionButtons([.. taskGroup]));
         if (ShowTitle(task) && CanEdit(taskGroup, WorkflowEditableFieldKeys.Title))
         {
-            builder.OpenElement(11, "button");
-            builder.AddAttribute(12, "type", "button");
-            builder.AddAttribute(13, "class", "btn btn-sm btn-secondary");
-            builder.AddAttribute(14, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this,
+            builder.OpenElement(111, "button");
+            builder.AddAttribute(112, "type", "button");
+            builder.AddAttribute(113, "class", "btn btn-sm btn-secondary");
+            builder.AddAttribute(114, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(this,
                 () => OpenTextEditor(task, WorkflowEditableFieldKeys.Title, task.Title)));
-            builder.AddEventStopPropagationAttribute(15, "onclick", true);
-            builder.AddContent(16, DisplayService.DisplayButton(userConfig, "edit", Icons.Edit));
+            builder.AddEventStopPropagationAttribute(115, "onclick", true);
+            builder.AddContent(116, DisplayService.DisplayButton(userConfig, "edit", Icons.Edit));
             builder.CloseElement();
         }
-        builder.OpenElement(17, "strong");
-        builder.AddAttribute(18, "class", "mr-2");
-        builder.AddContent(19, TaskDisplayTitle(task));
+        builder.OpenElement(117, "strong");
+        builder.AddAttribute(118, "class", "mr-2");
+        builder.AddContent(119, TaskDisplayTitle(task));
         builder.CloseElement();
         if (taskGroup.Count() > 1)
         {
-            builder.OpenElement(20, "span");
-            builder.AddAttribute(21, "class", "badge badge-secondary ml-2");
-            builder.AddContent(22, taskGroup.Count());
+            builder.OpenElement(120, "span");
+            builder.AddAttribute(121, "class", "badge badge-secondary ml-2");
+            builder.AddContent(122, taskGroup.Count());
             builder.CloseElement();
         }
-        builder.OpenElement(23, "span");
-        builder.AddAttribute(24, "class", "ml-auto");
-        builder.AddContent(25, States.GetName(task.StateId));
+        builder.OpenElement(123, "span");
+        builder.AddAttribute(124, "class", "ml-auto");
+        builder.AddContent(125, States.GetName(task.StateId));
         builder.CloseElement();
         if (compliance.IsConfigured && IsAccessTask(task))
         {
-            builder.OpenComponent<ApprovalComplianceButton>(26);
-            builder.AddComponentParameter(27, nameof(ApprovalComplianceButton.Compliance), compliance.ComplianceOf(taskGroup));
-            builder.AddComponentParameter(28, nameof(ApprovalComplianceButton.Loading), compliance.IsLoading);
-            builder.AddComponentParameter(29, nameof(ApprovalComplianceButton.Class), "btn-sm");
-            builder.AddComponentParameter(30, nameof(ApprovalComplianceButton.ShowReasons),
+            builder.OpenComponent<ApprovalComplianceButton>(126);
+            builder.AddComponentParameter(127, nameof(ApprovalComplianceButton.Compliance), compliance.ComplianceOf(taskGroup));
+            builder.AddComponentParameter(128, nameof(ApprovalComplianceButton.Loading), compliance.IsLoading);
+            builder.AddComponentParameter(129, nameof(ApprovalComplianceButton.Class), "btn-sm");
+            builder.AddComponentParameter(130, nameof(ApprovalComplianceButton.ShowReasons),
                 EventCallback.Factory.Create<ApprovalTaskCompliance>(this, OpenComplianceReasons));
             builder.CloseComponent();
         }
@@ -238,6 +240,27 @@
     {
         return CanPromoteTasks && !WfHandler.ReadOnlyMode && WfHandler.CanActOnReqTaskInCurrentPhase(task);
     }
+
+    /// <summary>The configured request task actions offered for a task or a bundle displayed as one.</summary>
+    private IReadOnlyList<WfStateAction> VisibleTaskActions(IReadOnlyList<WfReqTask> taskGroup)
+    {
+        if (taskGroup.Count == 0)
+        {
+            return [];
+        }
+        bool canChangeTasks = !WfHandler.ReadOnlyMode && taskGroup.All(WfHandler.CanActOnReqTaskInCurrentPhase);
+        return WorkflowTaskActions.Visible(WfHandler, taskGroup[0], WfObjectScopes.RequestTask, canChangeTasks);
+    }
+
+    /// <summary>Performs a configured task action on every task of the group and reloads the ticket afterwards.</summary>
+    private Task PerformTaskAction(IReadOnlyList<WfReqTask> taskGroup, WfStateAction action)
+    {
+        return RunWithProgress(() => WorkflowTaskActions.Perform(WfHandler, action, WfObjectScopes.RequestTask,
+            taskGroup.Select(task => ((WfStatefulObject)task, task.Owners.FirstOrDefault()?.Owner, task.TicketId))));
+    }
+
+    private RenderFragment TaskActionButtons(IReadOnlyList<WfReqTask> taskGroup) =>
+        WorkflowTaskActions.Buttons(VisibleTaskActions(taskGroup), action => PerformTaskAction(taskGroup, action));
 
     private bool displayTaskPromotion;
 

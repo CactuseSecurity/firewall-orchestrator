@@ -35,6 +35,10 @@
     [Parameter] public bool ShowActions { get; set; }
     [Parameter] public Func<WfReqTask, bool> CanPromoteTask { get; set; } = _ => false;
     [Parameter] public Func<WfReqTask, Task> PromoteTask { get; set; } = _ => Task.CompletedTask;
+    /// <summary>The configured task actions offered for the tasks of a row; the actions column is also shown if any row has one.</summary>
+    [Parameter] public Func<IReadOnlyList<WfReqTask>, IReadOnlyList<WfStateAction>> TaskActions { get; set; } = _ => [];
+    /// <summary>Performs a configured task action on all tasks of a row.</summary>
+    [Parameter] public Func<IReadOnlyList<WfReqTask>, WfStateAction, Task> PerformTaskAction { get; set; } = (_, _) => Task.CompletedTask;
     /// <summary>Compliance status of the ticket's access tasks; the column is only shown if a policy check is configured.</summary>
     [Parameter] public ApprovalTaskComplianceService? Compliance { get; set; }
     /// <summary>Shows the violation reasons of a not compliant row.</summary>
@@ -60,7 +64,7 @@
         rows = new ApprovalTaskListRowBuilder(Context, userConfig, States) { ComplianceResults = Compliance?.Results }.Build(TaskGroups, Table);
         List<ApprovalTaskListColumn> visibleColumns = ApprovalTaskListRowBuilder.VisibleColumns(Table, Context.Visibility, Compliance?.IsConfigured == true,
             ApprovalTaskListRowBuilder.ObjectVisibilityFor(Table, TaskGroups, Context.ObjectVisibility));
-        string signature = $"{string.Join("|", visibleColumns.Select(column => column.Key))}|{ShowActions}";
+        string signature = $"{string.Join("|", visibleColumns.Select(column => column.Key))}|{ShowActionsColumn}";
         if (signature != columnSignature)
         {
             columnSignature = signature;
@@ -89,11 +93,13 @@
     private List<FancyColumn<ApprovalTaskListRow>> BuildColumns(List<ApprovalTaskListColumn> visibleColumns)
     {
         List<FancyColumn<ApprovalTaskListRow>> fancyColumns = [.. visibleColumns.Select(BuildColumn)];
-        if (!ShowActions)
+        if (!ShowActionsColumn)
         {
             return fancyColumns;
         }
-        fancyColumns.Add(new FancyColumn<ApprovalTaskListRow>
+        // the actions follow directly after the id, so they stay in view without scrolling horizontally
+        int actionsPosition = fancyColumns.FindIndex(column => column.Key == ApprovalTaskListRowBuilder.kId) + 1;
+        fancyColumns.Insert(actionsPosition, new FancyColumn<ApprovalTaskListRow>
         {
             Key = kActionsColumn,
             Title = userConfig.GetText("actions"),
@@ -183,13 +189,18 @@
         @<ApprovalComplianceButton Compliance="row.Compliance" Loading="@(Compliance?.IsLoading == true)" ShowNotChecked="true"
                                    Class="approval-task-list-compliance" ShowReasons="ShowComplianceReasons" />;
 
+    /// <summary>The actions column is shown for task-by-task promotion or if a row offers a configured task action.</summary>
+    private bool ShowActionsColumn => ShowActions || rows.Any(row => TaskActions(row.TaskGroup).Count > 0);
+
     private RenderFragment ActionsCell(ApprovalTaskListRow row) =>
-        @<text>
-            @if (CanPromoteTask(row.Task))
+        @<div class="d-flex flex-nowrap gap-1">
+            @if (ShowActions && CanPromoteTask(row.Task))
             {
                 <button type="button" class="btn btn-sm btn-warning" @onclick="() => PromoteTask(row.Task)">
                     @(DisplayService.DisplayButton(userConfig, "promote", Icons.ChangeState))
                 </button>
             }
-        </text>;
+            <ConfiguredTaskActions OfferedActions="TaskActions(row.TaskGroup)" ActionVisibility="_ => true"
+                ActionRequested="action => PerformTaskAction(row.TaskGroup, action)" />
+        </div>;
 }

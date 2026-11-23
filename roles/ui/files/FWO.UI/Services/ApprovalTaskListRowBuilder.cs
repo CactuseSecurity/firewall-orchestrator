@@ -276,6 +276,7 @@ namespace FWO.Ui.Services
             }
             return new ApprovalTaskListRow(task, cells)
             {
+                TaskGroup = taskGroup,
                 Compliance = table == ApprovalTaskListTable.Access ? ApprovalTaskCompliance.Of(taskGroup, ComplianceResults) : null
             };
         }

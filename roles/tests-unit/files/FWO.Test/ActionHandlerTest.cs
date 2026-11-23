@@ -1266,6 +1266,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetOfferedActions_OffersBundleTasksOnlyOnTicketLevel()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            apiConn.States =
+            [
+                new WfState
+                {
+                    Id = 1,
+                    Actions =
+                    [
+                        CreateAction(StateActionEvents.OfferButton.ToString(), StateActionTypes.BundleTasks.ToString(), WfObjectScopes.Ticket.ToString()),
+                        CreateAction(StateActionEvents.OfferButton.ToString(), StateActionTypes.BundleTasks.ToString(), WfObjectScopes.RequestTask.ToString()),
+                        CreateAction(StateActionEvents.OfferButton.ToString(), StateActionTypes.DoNothing.ToString(), WfObjectScopes.RequestTask.ToString())
+                    ]
+                }
+            ];
+            ActionHandler handler = new(apiConn, new WfHandler());
+            await handler.Init();
+
+            List<WfStateAction> ticketActions = handler.GetOfferedActions(new WfTicket { StateId = 1 }, WfObjectScopes.Ticket, WorkflowPhases.approval);
+            List<WfStateAction> taskActions = handler.GetOfferedActions(new WfReqTask { StateId = 1 }, WfObjectScopes.RequestTask, WorkflowPhases.approval);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ticketActions.Select(action => action.ActionType), Is.EqualTo(new[] { StateActionTypes.BundleTasks.ToString() }));
+                Assert.That(taskActions.Select(action => action.ActionType), Is.EqualTo(new[] { StateActionTypes.DoNothing.ToString() }));
+            });
+        }
+
+        [Test]
         public async Task InitWithPreloadedStates_DoesNotFetchStates()
         {
             ActionHandlerTestApiConn apiConn = new();

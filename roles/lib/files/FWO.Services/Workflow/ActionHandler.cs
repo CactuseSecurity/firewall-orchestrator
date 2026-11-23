@@ -82,6 +82,11 @@ namespace FWO.Services.Workflow
             List<WfStateAction> stateActions = GetRelevantActions(statefulObject, scope);
             foreach (var action in stateActions.Where(x => x.Event == StateActionEvents.OfferButton.ToString()))
             {
+                // bundling regroups the tasks of the whole ticket, so it is only offered on ticket level
+                if (scope != WfObjectScopes.Ticket && action.ActionType == nameof(StateActionTypes.BundleTasks))
+                {
+                    continue;
+                }
                 if (action.Phase == "" || action.Phase == phase.ToString())
                 {
                     offeredActions.Add(action);

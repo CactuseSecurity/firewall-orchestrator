@@ -68,6 +68,9 @@ namespace FWO.Ui.Services
         /// <summary>The displayed request task; for a bundle its first task, which receives the edits for the whole bundle.</summary>
         public WfReqTask Task { get; }
 
+        /// <summary>All tasks of the row: the task itself or the tasks of a bundle displayed as one.</summary>
+        public IReadOnlyList<WfReqTask> TaskGroup { get; init; } = [];
+
         /// <summary>Compliance status of the row's tasks; null if they were not checked.</summary>
         public ApprovalTaskCompliance? Compliance { get; init; }
 

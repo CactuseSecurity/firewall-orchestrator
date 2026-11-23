@@ -465,27 +465,45 @@
         builder.AddAttribute(3, "class", "text-dark mr-2 text-nowrap");
         builder.AddContent(4, $"{userConfig.GetText("id")}: {implementationTask.Id}");
         builder.CloseElement();
-        builder.OpenElement(5, "strong");
-        builder.AddAttribute(6, "class", "mr-2");
-        builder.AddContent(7, ImplementationTaskTitle(implementationTask));
+        if (!CreationMode)
+        {
+            builder.AddContent(5, ImplementationTaskActionButtons(implementationTask));
+        }
+        builder.OpenElement(6, "strong");
+        builder.AddAttribute(7, "class", "mr-2");
+        builder.AddContent(8, ImplementationTaskTitle(implementationTask));
         builder.CloseElement();
-        builder.OpenElement(8, "span");
-        builder.AddAttribute(9, "class", "ms-auto");
-        builder.AddContent(10, States.GetName(implementationTask.StateId));
+        builder.OpenElement(9, "span");
+        builder.AddAttribute(10, "class", "ms-auto");
+        builder.AddContent(11, States.GetName(implementationTask.StateId));
         builder.CloseElement();
         if (!CreationMode && CanEditImplementationTask(implementationTask))
         {
-            builder.OpenElement(11, "button");
-            builder.AddAttribute(12, "type", "button");
-            builder.AddAttribute(13, "class", "btn btn-sm btn-danger ml-2");
-            builder.AddAttribute(14, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this,
+            builder.OpenElement(12, "button");
+            builder.AddAttribute(13, "type", "button");
+            builder.AddAttribute(14, "class", "btn btn-sm btn-danger ml-2");
+            builder.AddAttribute(15, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this,
                 () => DeleteImplementationTask(implementationTask)));
-            builder.AddEventStopPropagationAttribute(15, "onclick", true);
-            builder.AddContent(16, DisplayService.DisplayButton(userConfig, "delete", Icons.Delete));
+            builder.AddEventStopPropagationAttribute(16, "onclick", true);
+            builder.AddContent(17, DisplayService.DisplayButton(userConfig, "delete", Icons.Delete));
             builder.CloseElement();
         }
         builder.CloseElement();
     };
+
+    private RenderFragment ImplementationTaskActionButtons(WfImplTask implementationTask) =>
+        WorkflowTaskActions.Buttons(
+            WorkflowTaskActions.Visible(WfHandler, implementationTask, WfObjectScopes.ImplementationTask,
+                !WfHandler.ReadOnlyMode && WfHandler.CanActOnImplTaskInCurrentPhase(implementationTask)),
+            action => PerformImplementationTaskAction(implementationTask, action));
+
+    /// <summary>Performs a configured action on an implementation task, then reloads the ticket and resets the parent.</summary>
+    private async Task PerformImplementationTaskAction(WfImplTask implementationTask, WfStateAction action)
+    {
+        await WorkflowTaskActions.Perform(WfHandler, action, WfObjectScopes.ImplementationTask,
+            [(implementationTask, RequestTask.Owners.FirstOrDefault()?.Owner, RequestTask.TicketId)]);
+        await ResetParent();
+    }
 
     private string RuleActionName(WfImplTask implementationTask)
     {

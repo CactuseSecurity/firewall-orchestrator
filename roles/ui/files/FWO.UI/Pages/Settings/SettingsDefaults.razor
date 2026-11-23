@@ -394,17 +394,6 @@ else
             kCertificateContentType, certificatePem);
     }
 
-    private void SetDynamicTokenLifetimeMinValue(ChangeEventArgs e, 
-        ref int variableMinVal, 
-        ref int tokenLifetimeVal, 
-        ref TokenLifetimeUnit tokenLifetimeUnit)
-    {
-        if (Enum.TryParse<TokenLifetimeUnit>(e.Value?.ToString(), out TokenLifetimeUnit unit))
-        {
-            SetDynamicTokenLifetimeMinValue(unit, ref variableMinVal, ref tokenLifetimeVal, ref tokenLifetimeUnit);
-        }
-    }
-
     private static void SetDynamicTokenLifetimeMinValue(TokenLifetimeUnit unit,
         ref int variableMinVal,
         ref int tokenLifetimeVal,

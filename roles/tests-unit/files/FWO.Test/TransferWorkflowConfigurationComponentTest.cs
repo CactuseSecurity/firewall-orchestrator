@@ -69,6 +69,23 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ConfigurationSelectionText_FormatsNewAndExistingConfigurations()
+        {
+            TransferWorkflowConfiguration component = new();
+            SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "ExistingConfigurations", new List<WorkflowConfiguration>
+            {
+                new() { Id = 7, Name = "Shared" }
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(Invoke(component, "ConfigurationSelectionText", 0), Is.EqualTo("import_as_new_configuration"));
+                Assert.That(Invoke(component, "ConfigurationSelectionText", 7), Is.EqualTo("add_to_configuration: Shared"));
+            });
+        }
+
+        [Test]
         public void SuggestedImportName_AddsFirstAvailableSuffix()
         {
             TransferWorkflowConfiguration component = new();

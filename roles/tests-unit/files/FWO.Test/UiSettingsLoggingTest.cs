@@ -1,9 +1,15 @@
+using Bunit;
+using FWO.Api.Client;
+using FWO.Config.Api;
 using System.Reflection;
 using System.Text.Json;
 using System.Linq;
 using FWO.Config.Api.Data;
 using FWO.Data.Enums;
+using FWO.Ui.Services;
 using FWO.Ui.Pages.Settings;
+using FWO.Ui.Shared;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -25,6 +31,22 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<List<string>>(component, "pathsToAdd"), Has.One.EqualTo("/usr/local/fworch/scripts/customizing/log_data_import/import_log_data_from_git.py"));
                 Assert.That(GetPrivateField<string>(component, "activePath"), Is.Empty);
             });
+        }
+
+        [Test]
+        public async Task SettingsLogging_RendersImportAndDefaultRangeSelectors()
+        {
+            await using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<ApiConnection>(new SimulatedApiConnection());
+            context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<SettingsLogging> rendered = context.Render<SettingsLogging>();
+
+            Assert.That(rendered.FindComponents<Dropdown<LogDataImportIntervalUnit>>(), Has.Count.EqualTo(1));
+            Assert.That(rendered.FindComponents<Dropdown<LogTimeRangeUnit>>(), Has.Count.EqualTo(1));
         }
 
         [Test]

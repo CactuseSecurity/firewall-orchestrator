@@ -1,8 +1,17 @@
+using Bunit;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Ui.Services;
 using FWO.Ui.Pages.Settings;
+using FWO.Ui.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using System.Reflection;
@@ -133,6 +142,41 @@ namespace FWO.Test
                 Assert.That(source.Transitions[0].ToStateId, Is.EqualTo(2));
                 Assert.That(GetField<StateMatrixTransitionGroup>(component, "originalGroup").Transitions[0].ToStateId, Is.EqualTo(2));
             });
+        }
+
+        [Test]
+        public async Task Editor_RendersPhaseVisibilityAndTransitionDropdowns()
+        {
+            await using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<ApiConnection>(new RecordingWorkflowApiConnection());
+            context.Services.AddLocalization();
+
+            IRenderedComponent<EditStateMatrixTransitionGroups> rendered = context.Render<EditStateMatrixTransitionGroups>(parameters => parameters
+                .Add(parameter => parameter.States,
+                [
+                    new WfState { Id = 1, Name = "Open" },
+                    new WfState { Id = 2, Name = "Closed" }
+                ]));
+            EditStateMatrixTransitionGroups component = rendered.Instance;
+            SetField(component, "visibilityGroups", new List<WorkflowVisibilityGroup> { new() { Id = 7, Name = "Operators" } });
+            SetField(component, "editGroup", new StateMatrixTransitionGroup
+            {
+                Phase = WorkflowPhases.request.ToString(),
+                VisibilityGroupId = 7,
+                Transitions = [new() { FromStateId = 1, ToStateId = 2 }]
+            });
+            SetField(component, "EditMode", true);
+            rendered.Render();
+
+            Assert.That(rendered.FindComponents<Dropdown<string>>(), Has.Count.EqualTo(1));
+            Assert.That(rendered.FindComponents<Dropdown<int?>>(), Has.Count.EqualTo(1));
+            Assert.That(rendered.FindComponents<Dropdown<int>>(), Has.Count.EqualTo(2));
         }
 
         [Test]

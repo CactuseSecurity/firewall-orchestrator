@@ -42,6 +42,7 @@ namespace FWO.Test
             context.Services.AddSingleton<GlobalConfig>(new SimulatedGlobalConfig());
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
             context.Services.AddSingleton<DomEventService>();
+            context.Services.AddLocalization();
 
             IRenderedComponent<SettingsLogging> rendered = context.Render<SettingsLogging>();
 

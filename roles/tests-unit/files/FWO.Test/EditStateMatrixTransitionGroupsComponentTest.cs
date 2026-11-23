@@ -180,6 +180,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Display_RendersGroupsAndOpensTheEditor()
+        {
+            await using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            RecordingWorkflowApiConnection api = new();
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups,
+                new List<StateMatrixTransitionGroup> { new() { Id = 8, Name = "Approval" } });
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups,
+                new List<WorkflowVisibilityGroup> { new() { Id = 7, Name = "Operators" } });
+            context.Services.AddSingleton<ApiConnection>(api);
+            context.Services.AddLocalization();
+
+            IRenderedComponent<EditStateMatrixTransitionGroups> rendered = context.Render<EditStateMatrixTransitionGroups>(parameters => parameters
+                .Add(parameter => parameter.Display, true)
+                .Add(parameter => parameter.States, [new WfState { Id = 1, Name = "Open" }]));
+
+            rendered.WaitForAssertion(() => Assert.That(rendered.Markup, Does.Contain("Approval")));
+            rendered.Find("button.btn-success").Click();
+
+            Assert.That(GetField<bool>(rendered.Instance, "EditMode"), Is.True);
+        }
+
+        [Test]
         public async Task OnParametersSet_LoadsGroupsAndOpensRequestedGroup()
         {
             RecordingWorkflowApiConnection api = new();

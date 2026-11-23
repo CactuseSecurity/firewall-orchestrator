@@ -1,11 +1,18 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using FWO.Basics;
 
 
 namespace FWO.Api.Client.Queries
 {
+    [SuppressMessage("Design", "CA1052:Static holder types should be Static or NotInheritable", Justification = "Base class of all query classes, which inherit GetQueryText")]
     public class Queries
     {
+        /// <summary>
+        /// Only derived query classes are instantiated.
+        /// </summary>
+        protected Queries() { }
+
         protected static string QueryPath => Path.Combine(GetQueryBasePath(), "fwo-api-calls") + Path.DirectorySeparatorChar;
 
         protected static string GetQueryText(string relativeQueryFileName)
@@ -22,7 +29,7 @@ namespace FWO.Api.Client.Queries
         public static string Compact(string raw_query)
         {
             // Split the input into lines
-            var lines = raw_query.Split(new[] { '\n' }, StringSplitOptions.None);
+            var lines = raw_query.Split('\n', StringSplitOptions.None);
 
             // Remove comments and process each line
             for (int i = 0; i < lines.Length; i++)

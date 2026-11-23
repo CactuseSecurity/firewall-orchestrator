@@ -18,7 +18,7 @@ namespace FWO.DeviceAutoDiscovery
         public async Task<RestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd, string domainString = "")
         {
             List<object> dataList = [];
-            dataList.Add(new { passwd = pwd, user = user });
+            dataList.Add(new { passwd = pwd, user });
 
             List<object> paramList = [];
             paramList.Add(new { data = dataList, url = "/sys/login/user" });
@@ -37,7 +37,7 @@ namespace FWO.DeviceAutoDiscovery
         public async Task<RestResponse<SessionAuthInfo>> DeAuthenticateUser(string session)
         {
             List<object> paramList = [];
-            paramList.Add(new { session = session, url = "/sys/logout" });
+            paramList.Add(new { session, url = "/sys/logout" });
 
             var body = new
             {

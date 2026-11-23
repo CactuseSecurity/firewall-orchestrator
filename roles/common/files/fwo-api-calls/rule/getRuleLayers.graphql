@@ -1,0 +1,24 @@
+query getRuleLayers(
+  $managementId: Int!
+  $ruleUids: [String!]!
+  $ruleLimit: Int!
+) {
+  rules: firewall_rule(
+    limit: $ruleLimit
+    where: {
+      mgm_id: { _eq: $managementId }
+      rule_uid: { _in: $ruleUids }
+      removed: { _is_null: true }
+      access_rule: { _eq: true }
+    }
+    order_by: { rule_id: asc }
+  ) {
+    rule_uid
+    rulebase_id
+    rulebase {
+      id
+      uid
+      name
+    }
+  }
+}

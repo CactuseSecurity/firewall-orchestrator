@@ -72,7 +72,7 @@ namespace FWO.Test
 
         internal static MethodInfo GetPrivateMethod(Type type, string methodName)
         {
-            return type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+            return type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
                 ?? throw new MissingMethodException(type.FullName, methodName);
         }
 

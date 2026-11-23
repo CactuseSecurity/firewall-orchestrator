@@ -530,7 +530,7 @@
             DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5273") + string.Join(", ", overlappingLdaps.Select(x => string.IsNullOrEmpty(x.Name) ? x.Host() : x.Name)), true);
             return false;
         }
-        if (!AddMode && wasActive && !actLdapConnection.Active && connectedLdaps.Where(x => x.Active).Count() == 1)
+        if (!AddMode && wasActive && !actLdapConnection.Active && connectedLdaps.Count(x => x.Active) == 1)
         {
             DisplayMessageInUi(null, userConfig.GetText("save_ldap_conn"), userConfig.GetText("E5260"), true);
             return false;

@@ -10,7 +10,7 @@ namespace FWO.Data.Middleware
     {
         public string GroupDn { get; set; } = "";
         public bool OwnerGroup { get; set; } = false;
-        public List<string> Members { get; set; } = new List<string>();
+        public List<string> Members { get; set; } = [];
     }
 
     public class GroupAddDeleteParameters
@@ -44,6 +44,6 @@ namespace FWO.Data.Middleware
 
     public class GroupResolveParameters : PagingParameters
     {
-        public List<string> Dns { get; set; } = new();
+        public List<string> Dns { get; set; } = [];
     }
 }

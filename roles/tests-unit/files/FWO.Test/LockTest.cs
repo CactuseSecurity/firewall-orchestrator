@@ -9,8 +9,8 @@ namespace FWO.Test
     [TestFixture]
     public class LockTest
     {
-        private string lockFilePath = Log.LockFilePath;
-        private static Random random = new Random();
+        private readonly string lockFilePath = Log.LockFilePath;
+        private static readonly Random random = new Random();
 
         [SetUp]
         public async Task SetUp()

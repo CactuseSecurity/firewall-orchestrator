@@ -9,13 +9,17 @@ set +a
 
 # Set default python path
 PYTHON_CMD=("python")
+# How the messages below tell you to call that python
+PYTHON_HINT="python"
 
 if [ -f ".venv/Scripts/activate" ]; then
     # Using virtual environment from .venv (Windows)
     source ".venv/Scripts/activate"
+    PYTHON_HINT=".venv/Scripts/python"
 elif [ -f ".venv/bin/activate" ]; then
     # Using virtual environment from .venv (Unix)
     source ".venv/bin/activate"
+    PYTHON_HINT=".venv/bin/python"
 elif [ -d ".venv" ]; then
     # The directory exists but carries no activate script. "python -m venv" leaves
     # exactly this behind when it cannot bootstrap pip - on Debian and Ubuntu that is
@@ -28,7 +32,20 @@ elif [ -d ".venv" ]; then
     echo "  .venv/bin/python -m pip install -r roles/importer/files/importer/requirements.txt"
     exit 1
 elif command -v conda >/dev/null 2>&1 && [ -n "${CONDA_ENV:-}" ]; then
-    PYTHON_CMD=("conda" "run" "--no-capture-output" "-n" "$CONDA_ENV" "python")
+    # Ask conda once for the python of the environment and call it directly afterwards:
+    # every "conda run" starts conda anew, and on Windows it passes its command through a
+    # temporary batch file, in which cmd.exe mangles quoted arguments.
+    if ! CONDA_PYTHON="$(conda run --no-capture-output -n "$CONDA_ENV" python -c 'import sys; print(sys.executable)' \
+            | tr -d '\r' | grep -v '^$' | tail -n 1)" || [ -z "$CONDA_PYTHON" ]; then
+        echo "Error: Could not find python in the conda environment '$CONDA_ENV' (CONDA_ENV in $CONFIG_FILE)."
+        exit 1
+    fi
+    if command -v cygpath >/dev/null 2>&1; then
+        # Git Bash on Windows: turn C:\...\python.exe into a path bash can run
+        CONDA_PYTHON="$(cygpath -u "$CONDA_PYTHON")"
+    fi
+    PYTHON_CMD=("$CONDA_PYTHON")
+    PYTHON_HINT="conda run -n $CONDA_ENV python"
 else
     echo "Warning: No virtual environment found. Assuming python (with ruff and pyright) is available in base environment."
 fi
@@ -48,14 +65,18 @@ fi
 # Assure ruff and pyright are available
 for python_tool in ruff pyright; do
     if ! "${PYTHON_CMD[@]}" -m "$python_tool" --version >/dev/null 2>&1; then
-        echo "Error: 'python -m $python_tool' is not available. Please install $python_tool in the active environment."
+        echo "Error: '${PYTHON_HINT} -m $python_tool' is not available. Install it with:"
+        echo "  ${PYTHON_HINT} -m pip install -r roles/importer/files/importer/requirements.txt"
         exit 1
     fi
 done
 
-required_ruff_version="$("${PYTHON_CMD[@]}" -c 'from pathlib import Path; import re; text = Path("pyproject.toml").read_text(encoding="utf-8"); match = re.search(r"required-version\s*=\s*[\"'\'']([^\"'\'']+)[\"'\'']", text); print(match.group(1) if match else "")')"
+# Read the ruff pins with sed rather than a "python -c" one-liner: on Windows "conda run" passes
+# its command through a temporary batch file, and cmd.exe mangles the quotes inside the code.
+# [^[:space:]] also keeps the carriage return of CRLF checkouts out of the captured version.
+required_ruff_version="$(sed -n -E "s/^[[:space:]]*required-version[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*/\1/p" pyproject.toml | head -n 1)"
 installed_ruff_version="$("${PYTHON_CMD[@]}" -m ruff --version | awk '{print $2}')"
-requirements_ruff_version="$("${PYTHON_CMD[@]}" -c 'from pathlib import Path; import re; text = Path("roles/importer/files/importer/requirements.txt").read_text(encoding="utf-8"); match = re.search(r"^ruff==(.+)$", text, re.MULTILINE); print(match.group(1) if match else "")')"
+requirements_ruff_version="$(sed -n -E 's/^ruff==([^[:space:]]+).*/\1/p' roles/importer/files/importer/requirements.txt | head -n 1)"
 
 if [ -z "$required_ruff_version" ]; then
     echo "Error: Could not read [tool.ruff].required-version from pyproject.toml."
@@ -70,9 +91,9 @@ if [ "$requirements_ruff_version" != "$required_ruff_version" ]; then
     echo "  update roles/importer/files/importer/requirements.txt to ruff==${required_ruff_version}"
     echo "  or change pyproject.toml [tool.ruff].required-version to ${requirements_ruff_version} if that is the intended project version"
     echo "Then rerun:"
-    echo "  ${PYTHON_CMD[*]} -m pip install -r roles/importer/files/importer/requirements.txt"
-    echo "  ${PYTHON_CMD[*]} -m ruff check --fix"
-    echo "  ${PYTHON_CMD[*]} -m ruff format"
+    echo "  ${PYTHON_HINT} -m pip install -r roles/importer/files/importer/requirements.txt"
+    echo "  ${PYTHON_HINT} -m ruff check --fix"
+    echo "  ${PYTHON_HINT} -m ruff format"
     exit 1
 fi
 
@@ -80,11 +101,11 @@ if [ "$installed_ruff_version" != "$required_ruff_version" ]; then
     echo "Error: Ruff version mismatch."
     echo "Installed ruff is ${installed_ruff_version}, but pyproject.toml requires ${required_ruff_version}."
     echo
-    echo "Fix this by installing the pinned ruff version in the active environment:"
-    echo "  ${PYTHON_CMD[*]} -m pip install --upgrade ruff==${required_ruff_version}"
+    echo "Fix this by installing the pinned ruff version in the environment the hook uses:"
+    echo "  ${PYTHON_HINT} -m pip install --upgrade ruff==${required_ruff_version}"
     echo "Then rerun:"
-    echo "  ${PYTHON_CMD[*]} -m ruff check --fix"
-    echo "  ${PYTHON_CMD[*]} -m ruff format"
+    echo "  ${PYTHON_HINT} -m ruff check --fix"
+    echo "  ${PYTHON_HINT} -m ruff format"
     exit 1
 fi
 
@@ -98,25 +119,32 @@ while IFS= read -r -d '' staged_file; do
 done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.py')
 
 if [ "${#STAGED_PYRIGHT_FILES[@]}" -gt 0 ]; then
+    # pyright resolves imports with the first python on PATH. A conda environment used without
+    # activation is not on PATH, so name the python running the checks.
+    PYTHON_EXECUTABLE="$("${PYTHON_CMD[@]}" -c 'import sys; print(sys.executable)' | tr -d '\r')"
     echo "Info: running pyright with $("${PYTHON_CMD[@]}" -m pyright --version) on ${#STAGED_PYRIGHT_FILES[@]} staged Python file(s)."
-    "${PYTHON_CMD[@]}" -m pyright "${STAGED_PYRIGHT_FILES[@]}"
+    "${PYTHON_CMD[@]}" -m pyright --pythonpath "$PYTHON_EXECUTABLE" "${STAGED_PYRIGHT_FILES[@]}"
 fi
 
-# Determine changed Dotnet files
+# Determine changed Dotnet files. Keep the paths as they are: dotnet format resolves --include
+# against the current directory (the repository root), not against the "roles" workspace.
 STAGED_ROLES_DOTNET_FORMAT_FILES=()
 while IFS= read -r -d '' staged_file; do
     case "$staged_file" in
         roles/*.cs|roles/*.razor|roles/*.cshtml)
-            STAGED_ROLES_DOTNET_FORMAT_FILES+=("${staged_file#roles/}")
+            STAGED_ROLES_DOTNET_FORMAT_FILES+=("$staged_file")
             ;;
     esac
 done < <(git diff --cached --name-only -z --diff-filter=ACMR -- '*.cs' '*.razor' '*.cshtml')
 
 # If any Dotnet files have been changed run
-# Dotnet checks
-if [ "${#STAGED_ROLES_DOTNET_FORMAT_FILES[@]}" -gt 0 ]; then
-    dotnet format roles --no-restore --include "${STAGED_ROLES_DOTNET_FORMAT_FILES[@]}"
-fi
+# Dotnet checks. Windows limits a command line to 32767 characters and dotnet format
+# passes its arguments on to a child process, so a commit with many files (e.g. a merge)
+# is formatted in chunks of files.
+DOTNET_FORMAT_CHUNK_SIZE=150
+for ((chunk_start = 0; chunk_start < ${#STAGED_ROLES_DOTNET_FORMAT_FILES[@]}; chunk_start += DOTNET_FORMAT_CHUNK_SIZE)); do
+    dotnet format roles --no-restore --include "${STAGED_ROLES_DOTNET_FORMAT_FILES[@]:chunk_start:DOTNET_FORMAT_CHUNK_SIZE}"
+done
 
 # Prevent accidental submodule pointer updates.
 #

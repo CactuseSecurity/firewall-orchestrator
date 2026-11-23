@@ -102,12 +102,12 @@ namespace FWO.Services
                 return (new List<Rule>(), new List<FwoOwner>(), new List<RuleOwner>());
             }
 
-            if (ownersToAdd.Any())
+            if (ownersToAdd.Count != 0)
             {
                 rulesToMap = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwnerIpBased);
             }
 
-            if (ownersToRemove.Any())
+            if (ownersToRemove.Count != 0)
             {
                 ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByOwner, new { ownerIds = ownersToRemove.Select(o => o.Id).ToList() });
             }
@@ -139,7 +139,7 @@ namespace FWO.Services
             }
 
             // compare start and end IPs to ensure start is less than or equal to end
-            int cmp = 0;
+            int cmp;
             if (startIp.AddressFamily == AddressFamily.InterNetwork)
             {
                 cmp = IpOperations.IpToUint(startIp).CompareTo(IpOperations.IpToUint(endIp));
@@ -167,7 +167,7 @@ namespace FWO.Services
         public List<OwnerNetworkPrepared> PrepareOwnerNetworks(List<FwoOwner> ownersToMap)
         {
             return ownersToMap
-                    .Where(o => o.OwnerNetworks != null && o.OwnerNetworks.Any())
+                    .Where(o => o.OwnerNetworks != null && o.OwnerNetworks.Length != 0)
                     .Select(o => new OwnerNetworkPrepared
                     {
                         OwnerId = o.Id,
@@ -209,7 +209,7 @@ namespace FWO.Services
                                                        .Concat
                                              (rule.Tos.Where(n => n?.Object != null).Select(n => (Obj: n.Object!, Direction: "To"))).ToList();
 
-            if (!ruleNetworksWithDirections.Any())
+            if (ruleNetworksWithDirections.Count == 0)
             {
                 log.Info($"Rule {rule.Id} has no network locations and will be skipped.");
                 return matchesByOwner;
@@ -238,23 +238,24 @@ namespace FWO.Services
                         .Where(intersection => intersection != null)
                         .ToList();
 
-                    if (!overlappingRanges.Any())
+                    if (overlappingRanges.Count == 0)
                     {
                         continue;
                     }
 
                     if (!matchesByOwner.TryGetValue(owner.OwnerId, out var dictForOwner))
                     {
-                        dictForOwner = new Dictionary<string, List<NetworkObject>>();
+                        dictForOwner = [];
                         matchesByOwner[owner.OwnerId] = dictForOwner;
                     }
 
-                    if (!dictForOwner.ContainsKey(direction))
+                    if (!dictForOwner.TryGetValue(direction, out List<NetworkObject>? matchesForDirection))
                     {
-                        dictForOwner[direction] = new List<NetworkObject>();
+                        matchesForDirection = [];
+                        dictForOwner[direction] = matchesForDirection;
                     }
 
-                    dictForOwner[direction].Add(new NetworkObject
+                    matchesForDirection.Add(new NetworkObject
                     {
                         Id = obj.Id,
                         Name = obj.Name,
@@ -273,7 +274,7 @@ namespace FWO.Services
         public class OwnerNetworkPrepared
         {
             public int OwnerId { get; set; }
-            public List<OwnerRange?> Ranges { get; set; } = new List<OwnerRange?>();
+            public List<OwnerRange?> Ranges { get; set; } = [];
         }
 
         public class OwnerRange

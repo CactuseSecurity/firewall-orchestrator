@@ -52,5 +52,12 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             return VendorByDeviceType.GetValueOrDefault(deviceTypeId, FirewallVendor.Unsupported);
         }
+
+        /// <summary>Whether rules are written to a management of the device type, see <see cref="FirewallVendorProfile.WritesRules"/>.</summary>
+        public static bool WritesRules(int deviceTypeId)
+        {
+            FirewallVendor vendor = FromDeviceTypeId(deviceTypeId);
+            return vendor != FirewallVendor.Unsupported && FirewallVendorProfile.For(vendor).WritesRules;
+        }
     }
 }

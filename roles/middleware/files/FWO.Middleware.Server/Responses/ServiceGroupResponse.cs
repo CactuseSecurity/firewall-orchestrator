@@ -40,18 +40,10 @@ public sealed class ServiceGroupResponse
     /// <summary>
     /// Represents the ServiceGroupMemberResponse type.
     /// </summary>
-    public sealed class ServiceGroupMemberResponse
+    public sealed class ServiceGroupMemberResponse : ServiceObjectResponse, IOptionalTechnicalDetailsResponse
     {
-        /// <summary>
-        /// Gets the Id value.
-        /// </summary>
-        [JsonPropertyName("id")]
-        public long Id { get; set; }
-
-        /// <summary>
-        /// Gets the Name value.
-        /// </summary>
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        /// <inheritdoc />
+        [JsonIgnore]
+        public bool IncludeTechnicalDetails { get; set; }
     }
 }

@@ -58,29 +58,15 @@
     private bool UploadDisabled { get; set; } = true;
     private bool Loading { get; set; }
 
-    private List<AppServerType> AppServerTypes = new();
-
     protected override void OnParametersSet()
     {
         if(string.IsNullOrWhiteSpace(AuthorizedRoles))
             throw new UnauthorizedAccessException($"Parameter {nameof(AuthorizedRoles)} cannot be empty!");
 
         if(string.IsNullOrWhiteSpace(SupportedFileFormats))
-            throw new ArgumentNullException($"Parameter {nameof(SupportedFileFormats)} cannot be empty!");
+            throw new InvalidOperationException($"Parameter {nameof(SupportedFileFormats)} cannot be empty!");
 
         base.OnParametersSet();
-    }
-
-    protected override void OnInitialized()
-    {
-        try
-        {
-            if(UserConfig.ModAppServerTypes != "")
-            {
-                AppServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(UserConfig.ModAppServerTypes) ?? new();
-            }
-        }
-        catch(Exception) { }
     }
 
     private void SingleUpload(InputFileChangeEventArgs e)

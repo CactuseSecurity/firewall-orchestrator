@@ -1,0 +1,895 @@
+@using FWO.Ui.Services
+@using FWO.Ui.Display
+@using Microsoft.AspNetCore.Components.Rendering
+@using FWO.Data.Flow
+@using FWO.Ui.Shared
+
+@inject UserConfig userConfig
+@inject ApiConnection apiConnection
+
+@if (ImplementationTasks.Count > 0)
+{
+    @foreach (WfImplTask implementationTask in ImplementationTasks.OrderBy(task => task.Id))
+    {
+        <div>
+            <Collapse @key="implementationTask.Id" StartToggled="@(!IsInitiallyExpanded)" Style="secondary" HeaderClass="bg-secondary-subtle text-dark" Class="mb-1"
+                      UseHtmlTitle="true" TitleWithHtml="@ImplementationTaskHeader(implementationTask)">
+                <div class="card-body">
+                    @if (IsRuleImplementationTask(implementationTask))
+                    {
+                        <div class="form-group row">
+                            @ReadOnlyValue(userConfig.GetText("management"), ManagementName(implementationTask),
+                                edit: CanEditImplementationTask(implementationTask) ? () => OpenManagementEditor(implementationTask) : null)
+                            @ReadOnlyValue(userConfig.GetText("device"), DeviceName(implementationTask),
+                                edit: CanEditImplementationTask(implementationTask) ? () => OpenDeviceEditor(implementationTask) : null)
+                            @if (HasFreeText(implementationTask))
+                            {
+                                @ReadOnlyValue(userConfig.GetText("free_text"), implementationTask.FreeText ?? "", "col-xl-6 col-lg-6 mb-2",
+                                    CanEditImplementationTask(implementationTask) && CanEditFreeText(implementationTask) ? () => OpenFreeTextEditor(implementationTask) : null)
+                            }
+                        </div>
+                    }
+                    else if (WfObjectTaskHelper.IsManagementObjectTask(implementationTask.TaskType))
+                    {
+                        <div class="form-group row">
+                            @ReadOnlyValue(userConfig.GetText("management"), ManagementName(implementationTask),
+                                edit: CanEditImplementationTask(implementationTask) ? () => OpenManagementEditor(implementationTask) : null)
+                        </div>
+                    }
+                    else if (implementationTask.TaskType == WfTaskType.new_interface.ToString())
+                    {
+                        <div class="form-group row">
+                            @ReadOnlyValue(userConfig.GetText("owner"), OwnerName(), "col-xl-6 col-lg-6 mb-2")
+                            @if (!string.IsNullOrWhiteSpace(WfHandler.GetRequestingOwner()))
+                            {
+                                @ReadOnlyValue(userConfig.GetText("requesting_owner"), WfHandler.GetRequestingOwner(), "col-xl-6 col-lg-6 mb-2")
+                            }
+                        </div>
+                    }
+                    @if (!IsRuleImplementationTask(implementationTask) && HasFreeText(implementationTask))
+                    {
+                        <div class="form-group row">
+                            @ReadOnlyValue(userConfig.GetText("free_text"), implementationTask.FreeText ?? "", "col-xl-6 col-lg-6 mb-2",
+                                CanEditImplementationTask(implementationTask) && CanEditFreeText(implementationTask) ? () => OpenFreeTextEditor(implementationTask) : null)
+                        </div>
+                    }
+                    <div class="form-group row">
+                    @if (IsRuleTask(implementationTask))
+                    {
+                        @ReadOnlyValue(userConfig.GetText("rule_action"), RuleActionName(implementationTask))
+                        @ReadOnlyValue(userConfig.GetText("track"), TrackingName(implementationTask))
+                    }
+                    @if (!string.IsNullOrWhiteSpace(TimeRestriction(implementationTask)))
+                    {
+                        @ReadOnlyValue(userConfig.GetText("time_restriction"), TimeRestriction(implementationTask), cssClass: "col-xl-6 col-lg-6 mb-2")
+                    }
+                    </div>
+                    @if (implementationTask.TaskType == WfTaskType.access.ToString()
+                        || implementationTask.TaskType == WfTaskType.rule_modify.ToString())
+                    {
+                        <div class="form-group row">
+                            @ReadOnlyValue(userConfig.GetText("rule_position"),
+                                RulePositionDisplayHelper.Format(implementationTask.RulePosition, userConfig), "col-12")
+                        </div>
+                        <div class="form-group row mt-2">
+                            @ImplementationElementValue(userConfig.GetText("source"), implementationTask, ElemFieldType.source)
+                            @ImplementationElementValue(userConfig.GetText("destination"), implementationTask, ElemFieldType.destination)
+                            @ImplementationElementValue(userConfig.GetText("services"), implementationTask, ElemFieldType.service)
+                        </div>
+                    }
+                    else if (implementationTask.TaskType == WfTaskType.group_create.ToString()
+                        || implementationTask.TaskType == WfTaskType.group_modify.ToString())
+                    {
+                        <div class="form-group row">
+                            @ReadOnlyValue(userConfig.GetText("name"), GroupName(implementationTask), "col-xl-6 col-lg-6 mb-2",
+                                CanEditImplementationTask(implementationTask) ? () => OpenNameEditor(implementationTask) : null)
+                        </div>
+                        <div class="form-group row">
+                            @ImplementationMembersValue(implementationTask)
+                        </div>
+                    }
+                    else if (implementationTask.TaskType == WfTaskType.rule_delete.ToString())
+                    {
+                        <div class="form-group row">
+                            @ReadOnlyValue(userConfig.GetText("rule_uid"), RuleUid(implementationTask), "col-xl-6 col-lg-6 mb-2")
+                        </div>
+                    }
+                    else if (WfObjectTaskHelper.IsObjectTask(implementationTask.TaskType)
+                        && !IsTimeObjectTask(implementationTask))
+                    {
+                        <div class="form-group row">
+                            <div class="col-12">
+                                <DisplayObjectTaskElement ReqTask="@CreateEditorTask(implementationTask)"
+                                    IsModify="false" EditMode="false" DisplayIpProtos="ipProtocols">
+                                    <ObjectNamePrefix>
+                                        @if (CanEditImplementationTask(implementationTask))
+                                        {
+                                            <button type="button" class="btn btn-sm btn-secondary mr-2"
+                                                @onclick="() => OpenNameEditor(implementationTask)">
+                                                @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                                            </button>
+                                        }
+                                    </ObjectNamePrefix>
+                                </DisplayObjectTaskElement>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </Collapse>
+        </div>
+    }
+}
+
+<ManagementEditor @bind-Display="displayManagementEditor" SelectedManagement="@selectedManagement"
+    Managements="@WfHandler.Managements" Saved="SaveManagement" />
+<DeviceEditor @bind-Display="displayDeviceEditor" SelectedDevice="@selectedDevice"
+    Devices="@AvailableDevices(WfHandler.ActImplTask)" Saved="SaveDevice" />
+<TextEditor @bind-Display="displayTextEditor" Text="@textEditorValue" TextKey="free_text"
+    Multiline="true" Saved="SaveFreeText" />
+<TextEditor @bind-Display="displayNameEditor" Text="@nameEditorValue" TextKey="name"
+    Multiline="false" Saved="SaveName" />
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    [Parameter] public List<WfImplTask> ImplementationTasks { get; set; } = [];
+    [Parameter] public WfReqTask RequestTask { get; set; } = new();
+    [Parameter] public WfHandler WfHandler { get; set; } = new();
+    [Parameter] public WfStateDict States { get; set; } = new();
+    [Parameter] public WorkflowPhases Phase { get; set; } = WorkflowPhases.planning;
+    [Parameter] public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
+    [Parameter] public bool CreationMode { get; set; }
+    [Parameter] public Func<WfImplTask, Task> DeleteImplementationTask { get; set; } = _ => Task.CompletedTask;
+
+    private List<RuleAction> ruleActions = [];
+    private List<Tracking> trackings = [];
+    private Management? selectedManagement;
+    private Device? selectedDevice;
+    private string textEditorValue = "";
+    private string nameEditorValue = "";
+    private bool displayManagementEditor;
+    private bool displayDeviceEditor;
+    private bool displayTextEditor;
+    private bool displayNameEditor;
+    private List<IpProtocol> ipProtocols = [];
+    private const int kMaxDisplayedElements = 5;
+    private bool IsInitiallyExpanded => CreationMode || RequestTask.TaskType == WfTaskType.access.ToString();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
+            trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
+            List<IpProtocol> protocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
+            ipProtocols = ProtocolDisplayHelper.CustomSortProtocols(protocols, null, false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_data"), "", true);
+        }
+    }
+
+    private Task OpenManagementEditor(WfImplTask implementationTask)
+    {
+        if (!CanEditImplementationTask(implementationTask))
+        {
+            return Task.CompletedTask;
+        }
+        WfHandler.SelectImplTask(implementationTask, ObjAction.edit);
+        selectedManagement = WfHandler.Managements.FirstOrDefault(management => management.Id == EffectiveManagementId(implementationTask));
+        displayManagementEditor = true;
+        return Task.CompletedTask;
+    }
+
+    private Task OpenFreeTextEditor(WfImplTask implementationTask)
+    {
+        if (!CanEditImplementationTask(implementationTask))
+        {
+            return Task.CompletedTask;
+        }
+        WfHandler.SelectImplTask(implementationTask, ObjAction.edit);
+        textEditorValue = implementationTask.FreeText ?? "";
+        displayTextEditor = true;
+        return Task.CompletedTask;
+    }
+
+    private Task OpenNameEditor(WfImplTask implementationTask)
+    {
+        if (!CanEditImplementationTask(implementationTask))
+        {
+            return Task.CompletedTask;
+        }
+        WfHandler.SelectImplTask(implementationTask, ObjAction.edit);
+        nameEditorValue = IsGroupTask(implementationTask) ? GroupName(implementationTask) : ObjectName(implementationTask);
+        displayNameEditor = true;
+        return Task.CompletedTask;
+    }
+
+    private Task OpenDeviceEditor(WfImplTask implementationTask)
+    {
+        if (!CanEditImplementationTask(implementationTask))
+        {
+            return Task.CompletedTask;
+        }
+        WfHandler.SelectImplTask(implementationTask, ObjAction.edit);
+        selectedDevice = WfHandler.Devices.FirstOrDefault(device => device.Id == implementationTask.DeviceId);
+        displayDeviceEditor = true;
+        return Task.CompletedTask;
+    }
+
+    private static WfReqTask CreateEditorTask(WfImplTask implementationTask)
+    {
+        IEnumerable<WfImplElement> elements = implementationTask.ImplElements;
+        if (WfObjectTaskHelper.IsObjectTask(implementationTask.TaskType))
+        {
+            List<WfImplElement> requestedElements = implementationTask.ImplElements
+                .Where(element => element.ImplAction == RequestAction.create.ToString()
+                    || element.ImplAction == RequestAction.modify.ToString())
+                .Take(1)
+                .ToList();
+            if (requestedElements.Count > 0)
+            {
+                elements = requestedElements;
+            }
+        }
+
+        WfReqTask editorTask = new()
+        {
+            Id = implementationTask.Id,
+            TaskType = implementationTask.TaskType,
+            Elements = elements.Select(ToRequestElement).ToList()
+        };
+        return editorTask;
+    }
+
+    private static WfReqElement ToRequestElement(WfImplElement element)
+    {
+        return new WfReqElement
+        {
+            Id = element.Id,
+            TaskId = element.ImplTaskId,
+            Field = element.Field,
+            RequestAction = element.ImplAction,
+            IpString = element.IpString,
+            IpEnd = element.IpEnd,
+            Port = element.Port,
+            PortEnd = element.PortEnd,
+            ProtoId = element.ProtoId,
+            NetworkId = element.NetworkId,
+            ServiceId = element.ServiceId,
+            FlowNetworkObjectId = element.FlowNetworkObjectId,
+            FlowNetworkGroupId = element.FlowNetworkGroupId,
+            FlowServiceObjectId = element.FlowServiceObjectId,
+            FlowServiceGroupId = element.FlowServiceGroupId,
+            GroupName = element.GroupName ?? "",
+            Name = element.Name,
+            ObjectTaskId = element.ObjectTaskId,
+            StartTime = element.StartTime,
+            EndTime = element.EndTime,
+            TimeObjId = element.TimeObjId,
+            FlowTimeObjectId = element.FlowTimeObjectId
+        };
+    }
+
+    private RenderFragment ImplementationMembersValue(WfImplTask implementationTask) => builder =>
+    {
+        ElemFieldType field = HasServiceElements(implementationTask) ? ElemFieldType.service : ElemFieldType.source;
+        List<(string Name, string Content, string Action)> members = field == ElemFieldType.service
+            ? GroupServiceDisplayRows(implementationTask)
+            : GroupNetworkDisplayRows(implementationTask, field);
+
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "col-12 d-flex align-items-start");
+        builder.OpenElement(2, "label");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-2 text-nowrap");
+        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddContent(5, userConfig.GetText("members") + ":");
+        builder.CloseElement();
+        builder.OpenElement(6, "div");
+        builder.AddAttribute(7, "class", "list-group flex-grow-1");
+        if (members.Count == 0)
+        {
+            AddMemberListRow(builder, "-", "");
+        }
+        else
+        {
+            foreach ((string name, string content, string action) in members)
+            {
+                string display = string.IsNullOrWhiteSpace(content) || string.Equals(name, content, StringComparison.OrdinalIgnoreCase)
+                    ? name
+                    : $"{name} ({content})";
+                AddMemberListRow(builder, display, action);
+            }
+        }
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private static List<(string Name, string Content, string Action)> GroupNetworkDisplayRows(WfImplTask implementationTask, ElemFieldType field)
+    {
+        return implementationTask.ImplElements
+            .Where(element => element.Field == field.ToString())
+            .Select(element => (element.Name ?? element.GroupName ?? "",
+                NwObjDisplay.DisplayIp(element.IpString ?? element.Cidr?.CidrString,
+                    element.IpEnd ?? element.CidrEnd?.CidrString),
+                element.ImplAction))
+            .ToList();
+    }
+
+    private List<(string Name, string Content, string Action)> GroupServiceDisplayRows(WfImplTask implementationTask)
+    {
+        return implementationTask.ImplElements
+            .Where(element => element.Field == ElemFieldType.service.ToString())
+            .Select(element => (element.Name ?? element.GroupName ?? "",
+                DisplayBase.DisplayService(ToServiceElement(element), ipProtocols),
+                element.ImplAction))
+            .ToList();
+    }
+
+    private void AddMemberListRow(RenderTreeBuilder builder, string value, string action)
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "list-group-item border bg-secondary d-flex align-items-start");
+        builder.OpenElement(2, "span");
+        builder.AddAttribute(3, "class", "border bg-secondary px-2 py-1 d-inline-block flex-grow-1 text-break");
+        builder.AddContent(4, value);
+        builder.CloseElement();
+        if (!string.IsNullOrWhiteSpace(action))
+        {
+            builder.OpenElement(5, "span");
+            builder.AddAttribute(6, "class", $"badge {MemberBadgeClass(action)} ml-2 text-nowrap");
+            builder.AddAttribute(7, "style", "min-width: 7rem;");
+            builder.AddContent(8, MemberAction(action));
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    }
+
+    private string MemberAction(string action) => action switch
+    {
+        nameof(RequestAction.delete) => userConfig.GetText("remove_member"),
+        nameof(RequestAction.unchanged) => userConfig.GetText("unchanged"),
+        _ => userConfig.GetText("add_member")
+    };
+
+    private static string MemberBadgeClass(string action) => action switch
+    {
+        nameof(RequestAction.delete) => "text-bg-danger",
+        nameof(RequestAction.unchanged) => "text-bg-secondary",
+        _ => "text-bg-success"
+    };
+
+    private async Task SaveManagement(Management? management)
+    {
+        WfImplTask implementationTask = WfHandler.ActImplTask;
+        implementationTask.ManagementId = management?.Id;
+        if (!IsDeviceCompatible(implementationTask, FindDevice(implementationTask.DeviceId)))
+        {
+            implementationTask.DeviceId = null;
+        }
+        await SaveImplementationTask();
+    }
+
+    private async Task SaveFreeText(string freeText)
+    {
+        WfHandler.ActImplTask.FreeText = freeText;
+        await SaveImplementationTask();
+    }
+
+    private async Task SaveName(string name)
+    {
+        WfImplTask implementationTask = WfHandler.ActImplTask;
+        if (IsGroupTask(implementationTask))
+        {
+            foreach (WfImplElement element in implementationTask.ImplElements
+                .Where(element => element.Field == ElemFieldType.source.ToString()
+                    || element.Field == ElemFieldType.service.ToString()))
+            {
+                element.GroupName = name;
+            }
+        }
+        else
+        {
+            WfImplElement? element = implementationTask.ImplElements.FirstOrDefault(candidate => candidate.Field == ElemFieldType.time.ToString())
+                ?? ElementsForDisplay(implementationTask, ObjectElementField(implementationTask)).FirstOrDefault();
+            if (element != null)
+            {
+                element.Name = name;
+            }
+        }
+
+        await SaveImplementationTask();
+    }
+
+    private async Task SaveDevice(Device? device)
+    {
+        WfImplTask implementationTask = WfHandler.ActImplTask;
+        if (!IsDeviceCompatible(implementationTask, device))
+        {
+            return;
+        }
+
+        if (device?.Management?.Id > 0 && !ConfiguredManagementId(implementationTask).HasValue)
+        {
+            implementationTask.ManagementId = device.Management.Id;
+        }
+        implementationTask.DeviceId = device?.Id;
+        await SaveImplementationTask();
+    }
+
+    private async Task SaveImplementationTask()
+    {
+        if (!CanEditImplementationTask(WfHandler.ActImplTask))
+        {
+            return;
+        }
+        if (!IsDeviceCompatible(WfHandler.ActImplTask, FindDevice(WfHandler.ActImplTask.DeviceId)))
+        {
+            return;
+        }
+        if (CreationMode)
+        {
+            int index = ImplementationTasks.FindIndex(task => task.TaskNumber == WfHandler.ActImplTask.TaskNumber);
+            if (index >= 0)
+            {
+                ImplementationTasks[index] = new WfImplTask(WfHandler.ActImplTask);
+            }
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+        await WfHandler.ChangeImplTask();
+        await ResetParent();
+    }
+
+    private string ImplementationTaskTitle(WfImplTask implementationTask)
+    {
+        if (WfObjectTaskHelper.IsManagementObjectTask(implementationTask.TaskType))
+        {
+            return ManagementName(implementationTask);
+        }
+
+        string deviceName = DeviceName(implementationTask);
+        return string.IsNullOrWhiteSpace(deviceName)
+            ? userConfig.GetText("implementation")
+            : deviceName;
+    }
+
+    private RenderFragment ImplementationTaskHeader(WfImplTask implementationTask) => builder =>
+    {
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "d-flex align-items-center flex-wrap gap-2");
+        builder.OpenElement(2, "small");
+        builder.AddAttribute(3, "class", "text-dark mr-2 text-nowrap");
+        builder.AddContent(4, $"{userConfig.GetText("id")}: {implementationTask.Id}");
+        builder.CloseElement();
+        builder.OpenElement(5, "strong");
+        builder.AddAttribute(6, "class", "mr-2");
+        builder.AddContent(7, ImplementationTaskTitle(implementationTask));
+        builder.CloseElement();
+        builder.OpenElement(8, "span");
+        builder.AddAttribute(9, "class", "ms-auto");
+        builder.AddContent(10, States.GetName(implementationTask.StateId));
+        builder.CloseElement();
+        if (!CreationMode && CanEditImplementationTask(implementationTask))
+        {
+            builder.OpenElement(11, "button");
+            builder.AddAttribute(12, "type", "button");
+            builder.AddAttribute(13, "class", "btn btn-sm btn-danger ml-2");
+            builder.AddAttribute(14, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this,
+                () => DeleteImplementationTask(implementationTask)));
+            builder.AddEventStopPropagationAttribute(15, "onclick", true);
+            builder.AddContent(16, DisplayService.DisplayButton(userConfig, "delete", Icons.Delete));
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+
+    private string RuleActionName(WfImplTask implementationTask)
+    {
+        return ruleActions.FirstOrDefault(action => action.Id == implementationTask.RuleAction)?.Name
+            ?? implementationTask.RuleAction?.ToString()
+            ?? "";
+    }
+
+    private List<(string Name, string Ip)> NetworkDisplayRows(WfImplTask implementationTask, ElemFieldType field)
+    {
+        List<(string Name, string Ip)> rows = [];
+        foreach (WfImplElement element in ElementsForDisplay(implementationTask, field))
+        {
+            List<WfReqElement> members = FindGroupMembers(element, field);
+            if (members.Count > 0)
+            {
+                rows.Add((element.GroupName ?? element.Name ?? "",
+                    TruncatedGroupContent(members.Select(NetworkMemberContent))));
+                continue;
+            }
+
+            rows.Add((element.Name ?? element.GroupName ?? "",
+                NwObjDisplay.DisplayIp(element.IpString ?? element.Cidr?.CidrString, element.IpEnd ?? element.CidrEnd?.CidrString)));
+        }
+        return rows;
+    }
+
+    private List<(string Name, string Content)> ServiceDisplayRows(WfImplTask implementationTask)
+    {
+        List<(string Name, string Content)> rows = [];
+        foreach (WfImplElement element in ElementsForDisplay(implementationTask, ElemFieldType.service))
+        {
+            List<WfReqElement> members = FindGroupMembers(element, ElemFieldType.service);
+            if (members.Count > 0)
+            {
+                rows.Add((element.GroupName ?? element.Name ?? "",
+                    TruncatedGroupContent(members.Select(member => DisplayBase.DisplayService(ToServiceElement(member), ipProtocols)))));
+                continue;
+            }
+
+            rows.Add((element.Name ?? element.GroupName ?? "",
+                DisplayBase.DisplayService(ToServiceElement(element), ipProtocols)));
+        }
+        return rows;
+    }
+
+    private static string TruncatedGroupContent(IEnumerable<string> values)
+    {
+        List<string> content = values.Where(value => !string.IsNullOrWhiteSpace(value)).ToList();
+        string result = string.Join(", ", content.Take(kMaxDisplayedElements));
+        return content.Count > kMaxDisplayedElements
+            ? $"{result}, … (+{content.Count - kMaxDisplayedElements})"
+            : result;
+    }
+
+    private static IEnumerable<WfImplElement> ElementsForDisplay(WfImplTask implementationTask, ElemFieldType field)
+    {
+        IEnumerable<WfImplElement> elements = implementationTask.ImplElements
+            .Where(element => element.Field == field.ToString());
+        if (!WfObjectTaskHelper.IsObjectTask(implementationTask.TaskType))
+        {
+            return elements;
+        }
+
+        List<WfImplElement> requestedElements = elements
+            .Where(element => element.ImplAction == RequestAction.create.ToString()
+                || element.ImplAction == RequestAction.modify.ToString())
+            .Take(1)
+            .ToList();
+        return requestedElements.Count > 0 ? requestedElements : elements.Take(1);
+    }
+
+    private static string NetworkMemberContent(WfReqElement member)
+    {
+        string ip = NwObjDisplay.DisplayIp(member.IpString, member.IpEnd);
+        return string.IsNullOrWhiteSpace(ip) ? member.Name ?? member.GroupName ?? "" : ip;
+    }
+
+    private List<WfReqElement> FindGroupMembers(WfImplElement element, ElemFieldType field)
+    {
+        string memberField = field == ElemFieldType.service
+            ? ElemFieldType.service.ToString()
+            : ElemFieldType.source.ToString();
+        WfReqTask? groupTask = element.ObjectTaskId is > 0
+            ? WfHandler.ActTicket.Tasks.FirstOrDefault(task => task.Id == element.ObjectTaskId)
+            : null;
+        string groupName = element.GroupName ?? element.Name ?? "";
+        groupTask ??= WfHandler.ActTicket.Tasks.FirstOrDefault(task =>
+            IsGroupTask(task)
+            && (string.Equals(task.GetAddInfoValue(AdditionalInfoKeys.GrpName), groupName, StringComparison.OrdinalIgnoreCase)
+                || task.Elements.Any(member => string.Equals(member.GroupName ?? member.Name, groupName, StringComparison.OrdinalIgnoreCase))));
+        return groupTask?.Elements
+            .Where(member => member.Field == memberField)
+            .Where(member => member.RequestAction != RequestAction.delete.ToString())
+            .ToList() ?? [];
+    }
+
+    private static bool IsGroupTask(WfReqTask task) => task.TaskType is nameof(WfTaskType.group_create)
+        or nameof(WfTaskType.group_modify);
+
+    private static NwServiceElement ToServiceElement(WfElementBase element) => new()
+    {
+        ElemId = element is WfReqElement requestElement ? requestElement.Id : (element as WfImplElement)?.Id ?? 0,
+        Port = element.Port,
+        PortEnd = element.PortEnd,
+        ProtoId = element.ProtoId ?? 0,
+        HasProtocol = element.ProtoId.HasValue,
+        ServiceId = element.ServiceId,
+        FlowServiceObjectId = element.FlowServiceObjectId,
+        FlowServiceGroupId = element.FlowServiceGroupId,
+        ObjectTaskId = element.ObjectTaskId,
+        Name = element.Name,
+        GroupName = element.GroupName
+    };
+
+    private string TrackingName(WfImplTask implementationTask)
+    {
+        return trackings.FirstOrDefault(tracking => tracking.Id == implementationTask.Tracking)?.Name
+            ?? implementationTask.Tracking?.ToString()
+            ?? "";
+    }
+
+    private static bool HasServiceElements(WfImplTask implementationTask) => implementationTask.GetServiceElements().Count > 0;
+
+    private bool IsTimeObjectTask(WfImplTask implementationTask) => implementationTask.ImplElements
+        .Any(element => element.Field == ElemFieldType.time.ToString());
+
+    private static ElemFieldType ObjectElementField(WfImplTask implementationTask) => implementationTask.GetServiceElements().Count > 0
+        ? ElemFieldType.service
+        : ElemFieldType.source;
+
+    private static bool IsRuleImplementationTask(WfImplTask implementationTask) => implementationTask.TaskType == WfTaskType.access.ToString()
+        || implementationTask.TaskType == WfTaskType.rule_delete.ToString()
+        || implementationTask.TaskType == WfTaskType.rule_modify.ToString();
+
+    private static bool IsRuleTask(WfImplTask implementationTask) => implementationTask.TaskType == WfTaskType.access.ToString()
+        || implementationTask.TaskType == WfTaskType.rule_modify.ToString();
+
+    private static bool IsGroupTask(WfImplTask implementationTask) => implementationTask.TaskType == WfTaskType.group_create.ToString()
+        || implementationTask.TaskType == WfTaskType.group_modify.ToString();
+
+    private static bool HasFreeText(WfImplTask implementationTask) => !string.IsNullOrWhiteSpace(implementationTask.FreeText)
+        || implementationTask.TaskType == WfTaskType.generic.ToString();
+
+    private static bool CanEditFreeText(WfImplTask implementationTask) => !WfObjectTaskHelper.IsManagementObjectTask(implementationTask.TaskType);
+
+    private bool CanEditImplementationTask(WfImplTask implementationTask) =>
+        !WfHandler.ReadOnlyMode
+        && WfHandler.CanActOnReqTaskInCurrentPhase(RequestTask)
+        && (CreationMode || WfHandler.CanActOnImplTaskInCurrentPhase(implementationTask));
+
+    private static string RuleUid(WfImplTask implementationTask)
+    {
+        return implementationTask.ImplElements
+            .FirstOrDefault(element => element.Field == ElemFieldType.rule.ToString())?.RuleUid ?? "";
+    }
+
+    private string ManagementName(WfImplTask implementationTask)
+    {
+        return WfHandler.GetImplTaskManagementName(implementationTask, RequestTask.ManagementId);
+    }
+
+    private string GroupName(WfImplTask implementationTask)
+    {
+        string implementationGroupName = implementationTask.ImplElements
+            .Where(element => element.Field == ElemFieldType.source.ToString()
+                || element.Field == ElemFieldType.service.ToString())
+            .Select(element => element.GroupName ?? element.Name)
+            .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name))
+            ?? "";
+        return !string.IsNullOrWhiteSpace(implementationGroupName)
+            ? implementationGroupName
+            : RequestTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+    }
+
+    private string ObjectName(WfImplTask implementationTask)
+    {
+        WfImplElement? element = implementationTask.ImplElements.FirstOrDefault(candidate => candidate.Field == ElemFieldType.time.ToString())
+            ?? ElementsForDisplay(implementationTask, ObjectElementField(implementationTask)).FirstOrDefault();
+        return element?.Name ?? "";
+    }
+
+    private string OwnerName()
+    {
+        return RequestTask.Owners.FirstOrDefault()?.Owner.Display() ?? "";
+    }
+
+    private int? EffectiveManagementId(WfImplTask implementationTask)
+    {
+        if (implementationTask.ManagementId.HasValue)
+        {
+            return implementationTask.ManagementId;
+        }
+
+        if (implementationTask.DeviceId is int deviceId && deviceId > 0)
+        {
+            return WfHandler.Devices.FirstOrDefault(device => device.Id == deviceId)?.Management?.Id;
+        }
+
+        return RequestTask.ManagementId;
+    }
+
+    private List<Device> AvailableDevices(WfImplTask implementationTask)
+    {
+        int? managementId = EffectiveManagementId(implementationTask);
+        return managementId is int id && id > 0
+            ? WfHandler.Devices.Where(device => device.Management?.Id == id).ToList()
+            : WfHandler.Devices;
+    }
+
+    private int? ConfiguredManagementId(WfImplTask implementationTask)
+    {
+        return implementationTask.ManagementId ?? RequestTask.ManagementId;
+    }
+
+    private Device? FindDevice(int? deviceId)
+    {
+        return deviceId is int id && id > 0
+            ? WfHandler.Devices.FirstOrDefault(device => device.Id == id)
+            : null;
+    }
+
+    private bool IsDeviceCompatible(WfImplTask implementationTask, Device? device)
+    {
+        int? managementId = ConfiguredManagementId(implementationTask);
+        return device == null || managementId is not int id || device.Management?.Id == id;
+    }
+
+    private string DeviceName(WfImplTask implementationTask)
+    {
+        if (implementationTask.DeviceId == null || implementationTask.DeviceId == 0)
+        {
+            return implementationTask.TaskType == WfTaskType.access.ToString() && RequestTask.HasAllDevicesSelected()
+                ? userConfig.GetText("all")
+                : "";
+        }
+        return WfHandler.Devices.FirstOrDefault(device => device.Id == implementationTask.DeviceId)?.Name ?? "";
+    }
+
+    private RenderFragment ImplementationElementValue(string label, WfImplTask implementationTask, ElemFieldType field) => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "col-xl-4 col-lg-6 mb-2");
+        builder.OpenElement(2, "div");
+        builder.AddAttribute(3, "class", "d-flex align-items-start mb-1");
+        builder.OpenElement(4, "label");
+        builder.AddAttribute(5, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
+        builder.AddAttribute(6, "style", "min-width: 10rem;");
+        builder.AddContent(7, label + ":");
+        builder.CloseElement();
+        builder.CloseElement();
+        builder.OpenElement(13, "div");
+        builder.AddAttribute(14, "class", "border bg-secondary d-block text-break");
+        builder.OpenElement(15, "table");
+        builder.AddAttribute(16, "class", "table table-sm table-borderless mb-0");
+        builder.OpenElement(17, "thead");
+        builder.OpenElement(18, "tr");
+        if (field != ElemFieldType.service)
+        {
+            AddTableHeader(builder, 19, "name");
+            AddTableHeader(builder, 21, "content");
+        }
+        else
+        {
+            AddTableHeader(builder, 23, "name");
+            AddTableHeader(builder, 25, "content");
+        }
+        builder.CloseElement();
+        builder.CloseElement();
+        builder.OpenElement(27, "tbody");
+        if (field == ElemFieldType.service)
+        {
+            List<(string Name, string Content)> elements = ServiceDisplayRows(implementationTask);
+            if (elements.Count == 0)
+            {
+                AddEmptyTableRow(builder, 29, 2);
+            }
+            foreach ((string name, string content) in elements.Take(kMaxDisplayedElements))
+            {
+                AddTableRow(builder, name, content);
+            }
+            AddTruncationRow(builder, elements.Count);
+        }
+        else
+        {
+            List<(string Name, string Ip)> elements = NetworkDisplayRows(implementationTask, field);
+            if (elements.Count == 0)
+            {
+                AddEmptyTableRow(builder, 31, 2);
+            }
+            foreach ((string name, string ip) in elements.Take(kMaxDisplayedElements))
+            {
+                AddTableRow(builder, name, ip);
+            }
+            AddTruncationRow(builder, elements.Count);
+        }
+        builder.CloseElement();
+        builder.CloseElement();
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private void AddTableHeader(RenderTreeBuilder builder, int sequence, string textKey)
+    {
+        builder.OpenElement(sequence, "th");
+        builder.AddContent(sequence + 1, userConfig.GetText(textKey));
+        builder.CloseElement();
+    }
+
+    private static void AddTableRow(RenderTreeBuilder builder, string firstValue, string secondValue)
+    {
+        builder.OpenElement(100, "tr");
+        builder.OpenElement(101, "td");
+        builder.AddContent(102, firstValue);
+        builder.CloseElement();
+        builder.OpenElement(103, "td");
+        builder.AddContent(104, secondValue);
+        builder.CloseElement();
+        builder.CloseElement();
+    }
+
+    private static void AddEmptyTableRow(RenderTreeBuilder builder, int sequence, int columnCount)
+    {
+        builder.OpenElement(sequence, "tr");
+        builder.OpenElement(sequence + 1, "td");
+        builder.AddAttribute(sequence + 2, "colspan", columnCount);
+        builder.AddContent(sequence + 3, "-");
+        builder.CloseElement();
+        builder.CloseElement();
+    }
+
+    private static void AddTruncationRow(RenderTreeBuilder builder, int elementCount)
+    {
+        if (elementCount <= kMaxDisplayedElements)
+        {
+            return;
+        }
+        AddTableRow(builder, "…", $"(+{elementCount - kMaxDisplayedElements})");
+    }
+
+    private string TimeRestriction(WfImplTask implementationTask)
+    {
+        WfImplElement? timeElement = implementationTask.ImplElements
+            .FirstOrDefault(element => element.Field == ElemFieldType.time.ToString());
+        string name = timeElement?.Name
+            ?? TimeObjectElementHelper.Find(RequestTask.Elements)?.Name
+            ?? "";
+        DateTime? beginDate = timeElement?.StartTime ?? implementationTask.TargetBeginDate;
+        DateTime? endDate = timeElement?.EndTime ?? implementationTask.TargetEndDate;
+        string precision = FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration).TimeObjectPrecision;
+        string begin = TimeObjectDisplayHelper.FormatValue(beginDate, precision, false, "dd.MM.yyyy");
+        string end = TimeObjectDisplayHelper.FormatValue(endDate, precision, true, "dd.MM.yyyy");
+        if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(begin) && string.IsNullOrWhiteSpace(end))
+        {
+            return "";
+        }
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = TimeObjectNamingHelper.BuildDateBasedName(
+                beginDate,
+                endDate,
+                FlowIntegrationConfig.Parse(userConfig.ReqFlowIntegration).TimeObjectPrecision);
+        }
+        string validity = "";
+        if (!string.IsNullOrWhiteSpace(begin) || !string.IsNullOrWhiteSpace(end))
+        {
+            if (string.IsNullOrWhiteSpace(begin))
+            {
+                validity = end;
+            }
+            else if (string.IsNullOrWhiteSpace(end))
+            {
+                validity = begin;
+            }
+            else
+            {
+                validity = $"{begin} - {end}";
+            }
+        }
+        return string.IsNullOrWhiteSpace(validity) ? name : $"{name} ({validity})";
+    }
+
+    private RenderFragment ReadOnlyValue(string label, string value, string cssClass = "col-xl-3 col-lg-6 mb-2", Func<Task>? edit = null) => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", $"{cssClass} d-flex align-items-start");
+        builder.OpenElement(2, "label");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
+        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddContent(5, label + ":");
+        builder.CloseElement();
+        if (edit != null)
+        {
+            builder.OpenElement(6, "button");
+            builder.AddAttribute(7, "type", "button");
+            builder.AddAttribute(8, "class", "btn btn-sm btn-secondary ml-2");
+            builder.AddAttribute(9, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this, edit));
+            builder.AddContent(10, DisplayService.DisplayButton(userConfig, "edit", Icons.Edit));
+            builder.CloseElement();
+        }
+        builder.OpenElement(11, "span");
+        builder.AddAttribute(12, "class", "border bg-secondary px-2 py-1 d-inline-block flex-grow-1 text-break");
+        builder.AddContent(13, string.IsNullOrWhiteSpace(value) ? "-" : value);
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+}

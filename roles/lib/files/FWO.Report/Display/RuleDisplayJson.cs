@@ -11,7 +11,7 @@ namespace FWO.Ui.Display
 {
     public class RuleDisplayJson(UserConfig userConfig) : RuleDisplayBase(userConfig)
     {
-        private string DisplayJsonPlain(string tag, string? value)
+        private static string DisplayJsonPlain(string tag, string? value)
         {
             return (value != null ? $"\"{tag}\": {value}," : "");
         }
@@ -27,7 +27,7 @@ namespace FWO.Ui.Display
         }
 
 
-        private string DisplayNumber(Rule rule)
+        private static string DisplayNumber(Rule rule)
         {
             return DisplayJsonPlain("number", rule.OrderNumber.ToString(CultureInfo.InvariantCulture));
         }
@@ -263,7 +263,7 @@ namespace FWO.Ui.Display
 
         protected static string ListFirewallZones(FirewallZone[] firewallZones)
         {
-            List<string> displayedZones = new List<string>();
+            List<string> displayedZones = [];
             foreach (FirewallZone networkZone in firewallZones)
             {
                 displayedZones.Add(JsonConvert.ToString(networkZone.Name));

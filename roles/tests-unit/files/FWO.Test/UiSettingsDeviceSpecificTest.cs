@@ -26,20 +26,20 @@ internal sealed class UiSettingsDeviceSpecificTest
     private static readonly string kLoggingSwitchSelector = $"#dss-override-{DeviceSpecificSettingKeys.RuleLoggingOverride.DatabaseKey}";
     private static readonly string kLoggingSelectSelector = $"#dss-field-{DeviceSpecificSettingKeys.RuleLoggingOverride.DatabaseKey} select";
 
-    /// <summary>Admin can pick a configured external ticket system, which is stored by its ID.</summary>
+    /// <summary>Admin can pick Tufin SecureChange as external ticket system, which is stored by its storage name.</summary>
     [Test]
     public async Task Admin_CanSelectExternalTicketSystem()
     {
         InMemoryDeviceSpecificSettingsApiConnection api = CreateApi();
-        await using BunitContext context = CreateContext(Roles.Admin, api, "[{\"Id\":3,\"Name\":\"Ticketing\"}]");
+        await using BunitContext context = CreateContext(Roles.Admin, api);
         IRenderedComponent<CascadingAuthenticationState> page = RenderPage(context);
         string key = DeviceSpecificSettingKeys.RerouteToExternalTicketSystem.DatabaseKey;
         page.Find($"#dss-override-{key}").Change(true);
-        Assert.That(page.FindAll($"#dss-field-{key} select option").Select(option => option.TextContent),
-            Does.Contain("Ticketing (3)"));
-        page.Find($"#dss-field-{key} select").Change("3");
+        Assert.That(page.FindAll($"#dss-field-{key} select option").Select(option => option.GetAttribute("value")),
+            Does.Contain(nameof(ExternalTicketSystemKind.TufinSecureChange)));
+        page.Find($"#dss-field-{key} select").Change(nameof(ExternalTicketSystemKind.TufinSecureChange));
         await Button(page, "Save").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
-        Assert.That(api.ReadValue(kGlobalNodeId, DeviceSpecificSettingKeys.RerouteToExternalTicketSystem)?.ToObject<int>(), Is.EqualTo(3));
+        Assert.That(api.ReadValue(kGlobalNodeId, DeviceSpecificSettingKeys.RerouteToExternalTicketSystem)?.ToObject<string>(), Is.EqualTo("tufinSecureChange"));
     }
 
     /// <summary>Boolean settings are edited as yes/no and stored as JSON booleans.</summary>
@@ -375,13 +375,12 @@ internal sealed class UiSettingsDeviceSpecificTest
         return api;
     }
 
-    private static BunitContext CreateContext(string role, InMemoryDeviceSpecificSettingsApiConnection? api = null, string extTicketSystems = "")
+    private static BunitContext CreateContext(string role, InMemoryDeviceSpecificSettingsApiConnection? api = null)
     {
         api ??= CreateApi();
 
         SimulatedUserConfig userConfig = new();
-        userConfig.User.Roles = new List<string> { role };
-        userConfig.ExtTicketSystems = extTicketSystems;
+        userConfig.User.Roles = [role];
 
         BunitContext context = new();
         context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -396,7 +395,7 @@ internal sealed class UiSettingsDeviceSpecificTest
 
     private sealed class RoleAuthStateProvider(string role) : AuthenticationStateProvider
     {
-        private readonly List<Claim> claims = new() { new Claim(ClaimTypes.Role, role) };
+        private readonly List<Claim> claims = [new Claim(ClaimTypes.Role, role)];
 
         private AuthenticationState authenticationState => new(new ClaimsPrincipal(new ClaimsIdentity(
             claims, authenticationType: "Test", nameType: ClaimTypes.Name, roleType: ClaimTypes.Role)));

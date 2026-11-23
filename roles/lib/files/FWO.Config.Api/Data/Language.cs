@@ -13,10 +13,5 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("culture_info"), JsonPropertyName("culture_info")]
         public string CultureInfo { get; set; } = "";
-
-        // might later also add the full culture name, if needed:
-        // [JsonProperty("culture_name_english"), JsonPropertyName("culture_name_english")]
-        // public string CultureNameEnglish { get; set; }
-
     }
 }

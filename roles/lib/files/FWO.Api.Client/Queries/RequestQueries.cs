@@ -12,14 +12,19 @@ namespace FWO.Api.Client.Queries
         public static readonly string reqTaskOverviewFragment;
         public static readonly string ticketOverviewFragment;
         public static readonly string ticketDetailsReqTaskOverviewFragment;
+        public static readonly string ticketDetailsReqTaskOverviewWithHandlersFragment;
 
         public static readonly string getTickets;
         public static readonly string getTicketsByTicketState;
+        public static readonly string getTicketsWithHandlers;
+        public static readonly string getTicketsWithHandlersByTicketState;
         public static readonly string getFullTickets;
         public static readonly string getFullTicketsByTicketState;
         public static readonly string getFullTicketsPaged;
         public static readonly string getOwnerTicketIds;
         public static readonly string getTicketById;
+        public static readonly string getTicketOverviewsByIds;
+        public static readonly string getTicketStatesByIds;
         public static readonly string getTicketRequesterId;
         public static readonly string getAuditProofCriticalChangesForTicket;
         public static readonly string getWorkflowTaskHistoryForTicket;
@@ -41,6 +46,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateRequestElement;
         public static readonly string updateRequestElementFlowIds;
         public static readonly string updateRequestElementFlowTimeObjId;
+        public static readonly string updateRequestElementObjectTaskId;
         public static readonly string deleteRequestElement;
         public static readonly string newImplementationTask;
         public static readonly string updateImplementationTask;
@@ -110,9 +116,15 @@ namespace FWO.Api.Client.Queries
                 reqTaskOverviewFragment = OwnerQueries.ownerDetailsFragment + GetQueryText("request/fragments/reqTaskOverview.graphql");
                 ticketOverviewFragment = reqTaskOverviewFragment + GetQueryText("request/fragments/ticketOverview.graphql");
                 ticketDetailsReqTaskOverviewFragment = commentDetailsFragment + reqTaskOverviewFragment + GetQueryText("request/fragments/ticketDetailsReqTaskOverview.graphql");
+                ticketDetailsReqTaskOverviewWithHandlersFragment = commentDetailsFragment + reqTaskOverviewFragment
+                    + GetQueryText("request/fragments/reqTaskOverviewWithHandlers.graphql")
+                    + GetQueryText("request/fragments/ticketDetailsReqTaskOverviewWithHandlers.graphql");
 
                 getTickets = ticketDetailsReqTaskOverviewFragment + GetQueryText("request/getTickets.graphql");
                 getTicketsByTicketState = ticketDetailsReqTaskOverviewFragment + GetQueryText("request/getTicketsByTicketState.graphql");
+                getTicketsWithHandlers = ticketDetailsReqTaskOverviewWithHandlersFragment + GetQueryText("request/getTicketsWithHandlers.graphql");
+                getTicketsWithHandlersByTicketState = ticketDetailsReqTaskOverviewWithHandlersFragment
+                    + GetQueryText("request/getTicketsWithHandlersByTicketState.graphql");
                 getFullTickets = ticketDetailsFragment + GetQueryText("request/getFullTickets.graphql");
                 getFullTicketsByTicketState = ticketDetailsFragment + GetQueryText("request/getFullTicketsByTicketState.graphql");
                 getFullTicketsPaged = ticketDetailsFragment + GetQueryText("request/getFullTicketsPaged.graphql");
@@ -120,6 +132,8 @@ namespace FWO.Api.Client.Queries
                 getTicketsByParameters = ticketDetailsReqTaskOverviewFragment + GetQueryText("request/getTicketsByParameters.graphql");
                 getRequestTasksByIds = reqTaskDetailsFragment + GetQueryText("request/getRequestTasksByIds.graphql");
                 getTicketById = ticketDetailsFragment + GetQueryText("request/getTicketById.graphql");
+                getTicketOverviewsByIds = GetQueryText("request/getTicketOverviewsByIds.graphql");
+                getTicketStatesByIds = GetQueryText("request/getTicketStatesByIds.graphql");
                 getTicketRequesterId = GetQueryText("request/getTicketRequesterId.graphql");
                 getAuditProofCriticalChangesForTicket = GetQueryText("request/getAuditProofCriticalChangesForTicket.graphql");
                 getWorkflowTaskHistoryForTicket = GetQueryText("request/getWorkflowTaskHistoryForTicket.graphql");
@@ -139,6 +153,7 @@ namespace FWO.Api.Client.Queries
                 updateRequestElement = GetQueryText("request/updateRequestElement.graphql");
                 updateRequestElementFlowIds = GetQueryText("request/updateRequestElementFlowIds.graphql");
                 updateRequestElementFlowTimeObjId = GetQueryText("request/updateRequestElementFlowTimeObjId.graphql");
+                updateRequestElementObjectTaskId = GetQueryText("request/updateRequestElementObjectTaskId.graphql");
                 deleteRequestElement = GetQueryText("request/deleteRequestElement.graphql");
                 newImplementationTask = GetQueryText("request/newImplementationTask.graphql");
                 updateImplementationTask = GetQueryText("request/updateImplementationTask.graphql");

@@ -25,6 +25,28 @@ namespace FWO.Data.Modelling
             ExtraConfigText = conf.ExtraConfigText;
         }
 
+        /// <summary>
+        /// Whether the entry names a user object, e.g. a Check Point access role, standing in for a placeholder area of the
+        /// "Network Areas for Users": its type ends with "_user" or "-user", ignoring case.
+        /// </summary>
+        public bool IsSpecialUser()
+        {
+            return ExtraConfigType.EndsWith(GlobalConst.k_user, StringComparison.OrdinalIgnoreCase)
+                || ExtraConfigType.EndsWith(GlobalConst.k_user2, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Whether the entry names an updatable object standing in for a placeholder area of the "Network Areas for
+        /// Updatable Objects": its type starts with "updatable", ignoring case.
+        /// </summary>
+        public bool IsUpdatableObject() => ExtraConfigType.StartsWith(GlobalConst.kUpdatable, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Whether the entry marks its connection as for documentation only: its type starts with "Doku_".</summary>
+        public bool IsDocumentationOnly() => ExtraConfigType.StartsWith(GlobalConst.kDoku_);
+
+        /// <summary>Whether the entry asks for network address translation: its type is "NAT", ignoring case.</summary>
+        public bool IsNat() => string.Equals(ExtraConfigType, GlobalConst.kNAT, StringComparison.OrdinalIgnoreCase);
+
         public string Display()
         {
             return ExtraConfigType.StartsWith(GlobalConst.kDoku_) ?

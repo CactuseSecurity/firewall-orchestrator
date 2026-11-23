@@ -135,7 +135,7 @@ namespace FWO.Test
             StateMatrixApiConnection apiConnection = new(configurations);
             StateMatrix matrix = new();
 
-            await matrix.Init(WorkflowPhases.request, apiConnection, new List<WfState>(), WfTaskType.new_interface);
+            await matrix.Init(WorkflowPhases.request, apiConnection, [], WfTaskType.new_interface);
 
             Assert.That(matrix.MinTicketCompleted, Is.EqualTo(15));
         }
@@ -408,9 +408,9 @@ namespace FWO.Test
 
                 Assert.Multiple(() =>
                 {
-                    Assert.That(dict.Matrices, Has.Count.EqualTo(Enum.GetValues(typeof(WfTaskType)).Length));
+                    Assert.That(dict.Matrices, Has.Count.EqualTo(Enum.GetValues<WfTaskType>().Length));
                     Assert.That(dict.Matrices.Values.All(matrix => matrix.AutomaticOnlyStates.SetEquals([3])), Is.True);
-                    Assert.That(matrices.SelectMany(matrix => matrix.InitializedTaskTypes), Is.EquivalentTo(Enum.GetValues(typeof(WfTaskType))));
+                    Assert.That(matrices.SelectMany(matrix => matrix.InitializedTaskTypes), Is.EquivalentTo(Enum.GetValues<WfTaskType>()));
                 });
             }
             finally
@@ -431,6 +431,7 @@ namespace FWO.Test
             source.GlobalMatrix[WorkflowPhases.approval].LowestStartedState = 50;
             source.GlobalMatrix[WorkflowPhases.approval].LowestEndState = 60;
             source.GlobalMatrix[WorkflowPhases.approval].VisibilityMode = PhaseVisibilityMode.TicketState;
+            source.GlobalMatrix[WorkflowPhases.approval].PromotionMode = PromotionMode.Task;
 
             List<WorkflowConfiguration> configurations = StateMatrixConfigurationTestHelper.FromGlobalMatrix(source, WfTaskType.access);
             StateMatrixTransitionGroup approvalGroup = configurations[0].Phases
@@ -449,6 +450,7 @@ namespace FWO.Test
                 Assert.That(matrix.ExclusiveVisibilityGroupIds, Does.Contain(3));
                 Assert.That(matrix.GetVisibilityGroupIds(49), Does.Contain(3));
                 Assert.That(matrix.VisibilityMode, Is.EqualTo(PhaseVisibilityMode.TicketState));
+                Assert.That(matrix.PromotionMode, Is.EqualTo(PromotionMode.Task));
             });
         }
 

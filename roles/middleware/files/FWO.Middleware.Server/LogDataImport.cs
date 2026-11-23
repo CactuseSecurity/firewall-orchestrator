@@ -54,7 +54,7 @@ namespace FWO.Middleware.Server
             cancellationToken.ThrowIfCancellationRequested();
             List<string> sources = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportLogDataPath)
                 ?? throw new JsonException("Log data import sources could not be deserialized.");
-            List<string> failedImports = new();
+            List<string> failedImports = [];
 
             foreach (string source in sources)
             {
@@ -104,7 +104,7 @@ namespace FWO.Middleware.Server
         private static List<NormalizedLogEntry> NormalizeValidEntries(IEnumerable<LogDataImportEntry> entries, DateTimeOffset importTime,
             bool allowPortWithoutProtocol)
         {
-            List<NormalizedLogEntry> normalizedEntries = new();
+            List<NormalizedLogEntry> normalizedEntries = [];
             foreach (LogDataImportEntry entry in entries)
             {
                 try
@@ -228,7 +228,7 @@ namespace FWO.Middleware.Server
         /// <returns>The entries without duplicated flows.</returns>
         public static List<FirewallLogEntryInput> MergeDuplicateEntries(List<FirewallLogEntryInput> entries)
         {
-            Dictionary<string, FirewallLogEntryInput> mergedEntries = new();
+            Dictionary<string, FirewallLogEntryInput> mergedEntries = [];
             foreach (FirewallLogEntryInput entry in entries)
             {
                 string flowKey = BuildFlowKey(entry);
@@ -630,7 +630,7 @@ namespace FWO.Middleware.Server
         {
             // the owner lookup matches app_id_external case sensitively, so the cache has to
             // distinguish the same spellings, otherwise 'app-1' would inherit the owner of 'APP-1'
-            List<FirewallLogEntryInput> resolvedEntries = new();
+            List<FirewallLogEntryInput> resolvedEntries = [];
             foreach (NormalizedLogEntry normalizedEntry in normalizedEntries)
             {
                 string appId = normalizedEntry.AppId;

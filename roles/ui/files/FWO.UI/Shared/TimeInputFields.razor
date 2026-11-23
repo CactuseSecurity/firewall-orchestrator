@@ -1,0 +1,183 @@
+@using System.Globalization
+@using FWO.Data.Workflow
+
+<div class="d-flex flex-wrap gap-1">
+    <input @attributes="DateAttributes" type="date" class="form-control form-control-sm @(ValidationClass)" value="@dateInput" @oninput="SetDate" />
+    @if (ShowHourInput)
+    {
+        <input @attributes="HourAttributes" type="number" min="0" max="23" class="form-control form-control-sm @(ValidationClass)" value="@hourInput" @oninput="SetHour" />
+    }
+    else if (ShowTimeInput)
+    {
+        <input @attributes="TimeAttributes" type="time" step="@TimeInputStep" class="form-control form-control-sm @(ValidationClass)" value="@timeInput" @oninput="SetTime" />
+    }
+</div>
+
+@code
+{
+    [Parameter]
+    public DateTime? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<DateTime?> ValueChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ValidChanged { get; set; }
+
+    [Parameter]
+    public bool? InputValid { get; set; }
+
+    [Parameter]
+    public string Precision { get; set; } = FlowIntegrationTimePrecisionOptions.Seconds;
+
+    [Parameter]
+    public bool IsEndValue { get; set; }
+
+    [Parameter]
+    public bool DisplayEndDateAsInclusive { get; set; }
+
+    [Parameter]
+    public string DefaultStartTimeInput { get; set; } = WfObjectTaskHelper.kDefaultStartTimeInput;
+
+    [Parameter]
+    public string DefaultEndTimeInput { get; set; } = WfObjectTaskHelper.kDefaultEndTimeInput;
+
+    [Parameter]
+    public string? DateInputId { get; set; }
+
+    [Parameter]
+    public string? TimeInputId { get; set; }
+
+    [Parameter]
+    public string? HourInputId { get; set; }
+
+    private string dateInput = "";
+    private string timeInput = "";
+    private string hourInput = "";
+    private DateTime? displayedValue;
+    private string displayedPrecision = "";
+    private bool displayedAsInclusive;
+    private bool initialized;
+
+    private string ActivePrecision => FlowIntegrationTimePrecisionOptions.All.Contains(Precision)
+        ? Precision
+        : FlowIntegrationTimePrecisionOptions.Seconds;
+
+    private bool ShowHourInput => ActivePrecision == FlowIntegrationTimePrecisionOptions.Hours;
+    private bool ShowTimeInput => ActivePrecision != FlowIntegrationTimePrecisionOptions.Date;
+    private int TimeInputStep => ActivePrecision switch
+    {
+        FlowIntegrationTimePrecisionOptions.Hours => 3600,
+        FlowIntegrationTimePrecisionOptions.Minutes => 60,
+        _ => 1
+    };
+
+    private string ValidationClass => InputValid switch
+    {
+        true => "is-valid",
+        false => "is-invalid",
+        _ => ""
+    };
+
+    private IReadOnlyDictionary<string, object> DateAttributes => BuildIdAttributes(DateInputId);
+    private IReadOnlyDictionary<string, object> TimeAttributes => BuildIdAttributes(TimeInputId);
+    private IReadOnlyDictionary<string, object> HourAttributes => BuildIdAttributes(HourInputId);
+
+    protected override void OnParametersSet()
+    {
+        if (initialized && Value == displayedValue && ActivePrecision == displayedPrecision
+            && DisplayEndDateAsInclusive == displayedAsInclusive)
+        {
+            return;
+        }
+
+        dateInput = FormatDateInput(Value);
+        timeInput = FormatTimeInput(Value);
+        hourInput = Value?.Hour.ToString(CultureInfo.InvariantCulture) ?? "";
+        displayedValue = Value;
+        displayedPrecision = ActivePrecision;
+        displayedAsInclusive = DisplayEndDateAsInclusive;
+        initialized = true;
+    }
+
+    private async Task SetDate(ChangeEventArgs args)
+    {
+        dateInput = args.Value?.ToString() ?? "";
+        if (!string.IsNullOrWhiteSpace(dateInput) && ShowHourInput)
+        {
+            hourInput = string.IsNullOrWhiteSpace(hourInput) ? "0" : hourInput;
+            timeInput = BuildHourTimeInput(hourInput);
+        }
+        else if (!string.IsNullOrWhiteSpace(dateInput) && string.IsNullOrWhiteSpace(timeInput))
+        {
+            timeInput = IsEndValue ? DefaultEndTimeInput : DefaultStartTimeInput;
+        }
+        await UpdateValue();
+    }
+
+    private async Task SetTime(ChangeEventArgs args)
+    {
+        timeInput = args.Value?.ToString() ?? "";
+        await UpdateValue();
+    }
+
+    private async Task SetHour(ChangeEventArgs args)
+    {
+        hourInput = args.Value?.ToString() ?? "";
+        timeInput = BuildHourTimeInput(hourInput);
+        await UpdateValue();
+    }
+
+    private async Task UpdateValue()
+    {
+        bool valid = WfObjectTaskHelper.TryParseDateTimeInput(dateInput, timeInput,
+            IsEndValue ? DefaultEndTimeInput : DefaultStartTimeInput, out DateTime? value);
+        await ValidChanged.InvokeAsync(valid);
+        if (valid)
+        {
+            await ValueChanged.InvokeAsync(value);
+        }
+    }
+
+    private string FormatDateInput(DateTime? value)
+    {
+        if (!value.HasValue)
+        {
+            return "";
+        }
+
+        DateTime displayedDate = value.Value;
+        if (IsEndValue && DisplayEndDateAsInclusive && ActivePrecision == FlowIntegrationTimePrecisionOptions.Date
+            && displayedDate.TimeOfDay == TimeSpan.Zero)
+        {
+            displayedDate = displayedDate.Date.AddDays(-1);
+        }
+        return displayedDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    }
+
+    private string FormatTimeInput(DateTime? value)
+    {
+        if (!value.HasValue || ActivePrecision == FlowIntegrationTimePrecisionOptions.Hours)
+        {
+            return "";
+        }
+
+        return ActivePrecision == FlowIntegrationTimePrecisionOptions.Minutes
+            ? value.Value.ToString("HH:mm", CultureInfo.InvariantCulture)
+            : value.Value.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+    }
+
+    private static string BuildHourTimeInput(string value)
+    {
+        return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int hour) && hour is >= 0 and <= 23
+            ? $"{hour:00}:00"
+            : "";
+    }
+
+    private static IReadOnlyDictionary<string, object> BuildIdAttributes(string? id)
+    {
+        return string.IsNullOrWhiteSpace(id)
+            ? new Dictionary<string, object>()
+            : new Dictionary<string, object> { ["id"] = id };
+    }
+}

@@ -1,4 +1,8 @@
 @using FWO.Ui.Data
+@using FWO.Ui.Services
+
+@inject UiClientAddress clientAddress
+
 <CascadingAuthenticationState>
     <Router AppAssembly="@typeof(Program).Assembly">
         <Found Context="routeData">
@@ -31,3 +35,17 @@
         </NotFound>
     </Router>
 </CascadingAuthenticationState>
+
+@code
+{
+    /// <summary>
+    /// Address of the browser, read by _Host.cshtml while the page is requested.
+    /// </summary>
+    [Parameter]
+    public string? ClientAddress { get; set; }
+
+    protected override void OnInitialized()
+    {
+        clientAddress.Set(ClientAddress);
+    }
+}

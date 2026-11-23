@@ -95,7 +95,6 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateAppRole;
         public static readonly string updateNwGroupComment;
         public static readonly string deleteNwGroup;
-        // public static readonly string getAppServerForAppRole;
         public static readonly string addNwObjectToNwGroup;
         public static readonly string removeNwObjectFromNwGroup;
         public static readonly string updateNwObjectInNwGroup;
@@ -169,7 +168,7 @@ namespace FWO.Api.Client.Queries
                 getConnectionIdsForAppServer = GetQueryText("modelling/getConnectionIdsForAppServer.graphql");
 
                 getPublishedInterfaces = connectionDetailsFragment + GetQueryText("modelling/getPublishedInterfaces.graphql");
-                getRequestedInterfaces = connectionDetailsFragment + GetQueryText("modelling/getRequestedInterfaces.graphql");
+                getRequestedInterfaces = GetQueryText("modelling/getRequestedInterfaces.graphql");
                 getConnectionById = connectionDetailsFragment + GetQueryText("modelling/getConnectionById.graphql");
                 getConnectionForNotification = GetQueryText("modelling/getConnectionForNotification.graphql");
                 getConnections = connectionDetailsFragment + GetQueryText("modelling/getConnections.graphql");

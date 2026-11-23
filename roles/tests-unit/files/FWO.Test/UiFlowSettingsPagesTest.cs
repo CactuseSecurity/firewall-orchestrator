@@ -75,6 +75,7 @@ namespace FWO.Test
 
             IRenderedComponent<SettingsFlowNetworkObjects> component = RenderPage<SettingsFlowNetworkObjects>(context);
 
+            component.Find("input.form-control").Input("192.0.2.10");
             component.WaitForAssertion(() =>
             {
                 Assert.That(component.Markup, Does.Contain("192.0.2.10-192.0.2.20"));
@@ -150,6 +151,7 @@ namespace FWO.Test
 
             IRenderedComponent<SettingsFlowNetworkGroups> component = RenderPage<SettingsFlowNetworkGroups>(context);
 
+            component.Find("input.form-control").Input("Flow Network Group");
             component.WaitForAssertion(() =>
             {
                 var tables = component.FindAll("table");
@@ -170,6 +172,7 @@ namespace FWO.Test
             IRenderedComponent<SettingsFlowServiceObjects> component = RenderPage<SettingsFlowServiceObjects>(context);
 
             component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("Flow Service Object")));
+            component.Find("input.form-control").Input("Flow Service Object");
             component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("TCP")));
         }
 
@@ -891,6 +894,7 @@ namespace FWO.Test
 
             IRenderedComponent<SettingsFlowNetworkObjects> component = RenderPage<SettingsFlowNetworkObjects>(context);
 
+            component.Find("input.form-control").Input("192.0.2.10");
             component.WaitForAssertion(() =>
             {
                 Assert.That(component.Markup, Does.Contain("192.0.2.10-192.0.2.20"));

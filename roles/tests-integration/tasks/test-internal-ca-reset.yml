@@ -30,14 +30,27 @@
   run_once: true
   become: true
 
+# Both directions, parsed with splitlines: the file is read here independently of
+# create-ca.yml, so a parser there that keeps several recorded names as one entry - which
+# happens once a rotation or an earlier reset has recorded a name before this one - fails.
 - name: Verify the reset recorded the internal CA it retired
   assert:
     that:
       - hostvars[internalca_ca_host].internalca_previous_ca_common_names | default([], true) | length > 0
       - >-
         hostvars[internalca_ca_host].internalca_previous_ca_common_names
-        | difference((test_reset_retired_ca_names.content | b64decode).split('\n') | map('trim') | list)
+        | difference(test_reset_recorded_ca_names)
         | length == 0
+      - >-
+        test_reset_recorded_ca_names
+        | difference(hostvars[internalca_ca_host].internalca_previous_ca_common_names | default([], true))
+        | length == 0
+  vars:
+    test_reset_recorded_ca_names: >-
+      {{
+        (test_reset_retired_ca_names.content | b64decode).splitlines()
+        | map('trim') | reject('equalto', '') | list
+      }}
     fail_msg: >-
       The certificate reset did not record the subject of the internal CA it replaced in
       {{ internalca_retired_ca_names }}, so a host that missed this run would have its

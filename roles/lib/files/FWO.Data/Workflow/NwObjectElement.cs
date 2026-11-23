@@ -20,7 +20,7 @@ namespace FWO.Data.Workflow
         [JsonProperty("ip_end"), JsonPropertyName("ip_end")]
         public string IpEndString
         {
-            get { return CidrEnd.CidrString; } // ?? Cidr.CidrString; }
+            get { return CidrEnd.CidrString; }
             set { CidrEnd = new Cidr(value ?? Cidr.CidrString); }   // if End value is not set, asume host and set start ip as end ip
         }
         public Cidr CidrEnd { get; set; } = new();
@@ -35,6 +35,7 @@ namespace FWO.Data.Workflow
         public long? NetworkId { get; set; }
         public long? FlowNetworkObjectId { get; set; }
         public long? FlowNetworkGroupId { get; set; }
+        public long? ObjectTaskId { get; set; }
         public string GroupName { get; set; } = "";
         public string RequestAction { get; set; } = Workflow.RequestAction.create.ToString();
 
@@ -69,6 +70,7 @@ namespace FWO.Data.Workflow
                 NetworkId = NetworkId,
                 FlowNetworkObjectId = FlowNetworkObjectId,
                 FlowNetworkGroupId = FlowNetworkGroupId,
+                ObjectTaskId = ObjectTaskId,
                 GroupName = GroupName,
                 RequestAction = RequestAction,
                 Name = Name
@@ -86,6 +88,7 @@ namespace FWO.Data.Workflow
                 Cidr = new Cidr(Cidr.CidrString),
                 CidrEnd = new Cidr(CidrEnd.CidrString),
                 NetworkId = NetworkId,
+                ObjectTaskId = ObjectTaskId,
                 GroupName = GroupName,
                 Name = Name
             };

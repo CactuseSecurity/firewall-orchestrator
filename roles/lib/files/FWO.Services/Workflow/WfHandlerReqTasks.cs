@@ -1,5 +1,6 @@
 using FWO.Services.PathAnalysis;
 using FWO.Data.Workflow;
+using FWO.Logging;
 using System.Text.Json;
 
 namespace FWO.Services.Workflow
@@ -237,16 +238,26 @@ namespace FWO.Services.Workflow
                 ActReqTask.StateId = actPossibleStates[0];
                 if (Phase == WorkflowPhases.approval)
                 {
-                    await SetApprovalEnv();
-                    List<int> nextApprovalState = ActStateMatrix.getAllowedTransitions(ActApproval.StateId);
-                    if (nextApprovalState.Count == 1 && nextApprovalState[0] >= ActStateMatrix.LowestStartedState && nextApprovalState[0] < ActStateMatrix.LowestEndState)
+                    WfApproval? pendingApproval = ActReqTask.Approvals
+                        .FirstOrDefault(approval => approval.StateId < ActStateMatrix.LowestEndState);
+                    if (pendingApproval != null)
                     {
-                        ActApproval.StateId = nextApprovalState[0];
-                        await UpdateActApproval();
+                        await SetApprovalEnv(pendingApproval, false);
+                        List<int> nextApprovalState = ActStateMatrix.getAllowedTransitions(ActApproval.StateId);
+                        if (nextApprovalState.Count == 1 && nextApprovalState[0] >= ActStateMatrix.LowestStartedState && nextApprovalState[0] < ActStateMatrix.LowestEndState)
+                        {
+                            ActApproval.StateId = nextApprovalState[0];
+                            await UpdateActApproval();
+                        }
                     }
                 }
             }
+            if (ActReqTask.Start == null && ActReqTask.StateId >= ActStateMatrix.LowestStartedState)
+            {
+                ActReqTask.Start = DateTime.Now;
+            }
             await UpdateActReqTaskState();
+            await PromoteLaggingBundledRequestTasks(ActReqTask.StateId, ActReqTask.CurrentHandler);
             await UpdateActTicketStateFromReqTasks();
             SetReqTaskMode(action);
         }
@@ -295,9 +306,13 @@ namespace FWO.Services.Workflow
             DisplayAssignReqTaskMode = false;
         }
 
-        public async Task AddReqTask()
+        /// <summary>
+        /// Adds the active request task to the ticket.
+        /// </summary>
+        /// <param name="allowLockedApprovalUpdate">Allows the dedicated approval editor to add a task to a locked ticket.</param>
+        public async Task AddReqTask(bool allowLockedApprovalUpdate = false)
         {
-            if (ActTicket.Locked || !CheckActTicketChangeable())
+            if ((ActTicket.Locked && !allowLockedApprovalUpdate) || !CheckActTicketChangeable())
             {
                 return;
             }
@@ -307,6 +322,7 @@ namespace FWO.Services.Workflow
                 await AddApproval();
             }
 
+            string complianceFingerprint = RequestTaskCompliance.Fingerprint(ActTicket);
             if (ActTicket.Id > 0) // ticket already created -> write directly to db
             {
                 ActReqTask.TicketId = ActTicket.Id;
@@ -324,10 +340,12 @@ namespace FWO.Services.Workflow
                     {
                         ActTicket.Tasks.Add(ActReqTask);
                     }
+                    await UpdateStoredComplianceResults(complianceFingerprint);
                     return;
                 }
             }
             ActTicket.Tasks.Add(ActReqTask);
+            await UpdateStoredComplianceResults(complianceFingerprint);
         }
 
         /// <summary>
@@ -336,16 +354,19 @@ namespace FWO.Services.Workflow
         /// <param name="allowLockedApprovalUpdate">Allows the explicitly permitted approval-phase field update on a locked task.</param>
         public async Task ChangeReqTask(bool allowLockedApprovalUpdate = false)
         {
-            if ((ActReqTask.Locked && !allowLockedApprovalUpdate) || !CheckActTicketChangeable())
+            if ((ActReqTask.Locked && !allowLockedApprovalUpdate)
+                || !CheckActTicketChangeable())
             {
                 return;
             }
 
+            string complianceFingerprint = RequestTaskCompliance.Fingerprint(ActTicket);
             if (ActReqTask.Id > 0 && dbAcc != null)
             {
                 await dbAcc.UpdateReqTaskInDb(ActReqTask, allowLockedApprovalUpdate);
             }
             ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.TaskNumber == ActReqTask.TaskNumber)] = ActReqTask;
+            await UpdateStoredComplianceResults(complianceFingerprint);
         }
 
         public async Task ChangeOwner()
@@ -362,14 +383,28 @@ namespace FWO.Services.Workflow
             ActTicket.Tasks[ActTicket.Tasks.FindIndex(x => x.TaskNumber == ActReqTask.TaskNumber)] = ActReqTask;
         }
 
-        public async Task ConfDeleteReqTask()
+        /// <summary>
+        /// Deletes the active request task from the ticket.
+        /// </summary>
+        public Task ConfDeleteReqTask()
         {
-            if (ActTicket.Locked || !CheckActTicketChangeable())
+            return ConfDeleteReqTask(false);
+        }
+
+        /// <summary>
+        /// Deletes the active request task from the ticket, optionally bypassing the locked-ticket guard
+        /// for the dedicated approval editor.
+        /// </summary>
+        /// <param name="allowLockedApprovalUpdate">Allows the dedicated approval editor to delete a task from a locked ticket.</param>
+        public async Task ConfDeleteReqTask(bool allowLockedApprovalUpdate)
+        {
+            if ((ActTicket.Locked && !allowLockedApprovalUpdate) || !CheckActTicketChangeable())
             {
                 DisplayDeleteReqTaskMode = false;
                 return;
             }
 
+            string complianceFingerprint = RequestTaskCompliance.Fingerprint(ActTicket);
             if (ActReqTask.Id > 0 && dbAcc != null)
             {
                 await dbAcc.DeleteReqTaskFromDb(ActReqTask);
@@ -378,6 +413,40 @@ namespace FWO.Services.Workflow
             ActTicket.Tasks.RemoveAll(x => x.Id == ActReqTask.Id);
             // todo: adapt TaskNumbers of following tasks?
             DisplayDeleteReqTaskMode = false;
+            await UpdateStoredComplianceResults(complianceFingerprint);
+        }
+
+        /// <summary>
+        /// Keeps the stored compliance results of the ticket's access tasks up to date after a change of the ticket's tasks:
+        /// if the checked content changed and the ticket already has stored results, all access tasks are checked again,
+        /// as a changed object or group task can affect other tasks, and the results that changed are stored.
+        /// Tickets without stored results are checked when displayed.
+        /// </summary>
+        /// <param name="fingerprintBefore">The compliance fingerprint of the ticket before the change.</param>
+        /// <remarks>
+        /// Some editors change the elements of the ticket's tasks in place before saving, so the fingerprint before the change
+        /// can already contain the change; therefore the content is also compared with the content of the last check.
+        /// Without a last check there is nothing to compare with, so the tasks are checked again.
+        /// If the check fails, the stored results are removed, so the tasks are checked when displayed.
+        /// </remarks>
+        private async Task UpdateStoredComplianceResults(string fingerprintBefore)
+        {
+            try
+            {
+                if (ActionHandler == null
+                    || ActTicket.Id <= 0
+                    || !ActTicket.Tasks.Any(task => RequestTaskCompliance.StoredResult(task) != null)
+                    || (RequestTaskCompliance.Fingerprint(ActTicket) == fingerprintBefore
+                        && ActionHandler.MatchesLastComplianceCheck(ActTicket) == true))
+                {
+                    return;
+                }
+                await ActionHandler.CheckRequestTaskCompliance(ActTicket, recheckAll: true, storeResults: true);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Policy Check", "Stored compliance results could not be updated.", exception);
+            }
         }
 
         public async Task ConfAddCommentToReqTask(string commentText)

@@ -72,7 +72,7 @@ namespace FWO.Test
         private static BunitContext CreateContext(string role)
         {
             SimulatedUserConfig userConfig = new();
-            userConfig.User.Roles = new List<string> { role };
+            userConfig.User.Roles = [role];
             userConfig.SetExecutionMode(role);
 
             BunitContext context = new();
@@ -113,7 +113,7 @@ namespace FWO.Test
             public MonitoringLayoutAuthStateProvider(string role)
             {
                 ClaimsIdentity identity = new(
-                    new List<Claim> { new(ClaimTypes.Role, role) },
+                    [new(ClaimTypes.Role, role)],
                     authenticationType: "Test",
                     nameType: ClaimTypes.Name,
                     roleType: ClaimTypes.Role);

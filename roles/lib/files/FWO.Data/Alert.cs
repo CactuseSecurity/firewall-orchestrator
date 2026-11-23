@@ -29,6 +29,7 @@ namespace FWO.Data
         ImportAreaSubnetData = 42,
         AdjustAppServerNames = 43,
         ImportLogData = 44,
+        ImportRuleHits = 45,
 
         ImportChangeNotify = 51,
         RuleOwnerMapping = 52,
@@ -85,14 +86,4 @@ namespace FWO.Data
         public AlertCode? AlertCode { get; set; }
 
     }
-    // public class AlertInteractiveDiscovery
-    // {
-    //     public UiUser UiUser { get; set; } = new UiUser();
-    //     public string Title { get; set; } = "";
-    //     public string Description { get; set; } = "";
-    //     public Management SuperManager { get; set; } = new Management();
-    //     public Device Device { get; set; } = new Device();
-    //     public Dictionary<string, string> JsonData { get; set; } = new Dictionary<string, string>();
-    //     public int RefAlertId { get; set; }
-    // }
 }

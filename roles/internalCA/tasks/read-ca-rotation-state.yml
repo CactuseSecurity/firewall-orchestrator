@@ -1,0 +1,60 @@
+---
+# Reads where a two-pass CA rotation stands. The state lives beside the CA on
+# internalca_ca_host and nowhere else, so it survives an interrupted run and is the same
+# for every host. Each host reads it itself rather than through run_once, so the facts
+# below are plain host facts wherever they are used.
+#
+#   staged    pass 1 has created the next CA; it is trusted but signs nothing yet
+#   promoted  pass 2 has switched to it; the previous CA is still trusted
+#   both      pass 2 was interrupted while switching, only pass 2 may continue
+- name: Look for a staged internal CA
+  stat:
+    path: "{{ internalca_next_ca_certificate }}"
+  register: internalca_rotation_next_stat
+  delegate_to: "{{ internalca_ca_host }}"
+  become: true
+
+- name: Look for an internal CA that was switched away from
+  stat:
+    path: "{{ internalca_previous_ca_certificate }}"
+  register: internalca_rotation_previous_stat
+  delegate_to: "{{ internalca_ca_host }}"
+  become: true
+
+# The CA every host has to trust before pass 2 may switch: the staged one, or - once the
+# switch has happened - the one now in force.
+- name: Read the internal CA a rotation is crossing to
+  community.crypto.x509_certificate_info:
+    path: >-
+      {{ internalca_next_ca_certificate if internalca_rotation_next_stat.stat.exists
+         else internalca_ca_certificate }}
+  register: internalca_rotation_incoming_info
+  changed_when: false
+  delegate_to: "{{ internalca_ca_host }}"
+  become: true
+  when: internalca_rotation_next_stat.stat.exists or internalca_rotation_previous_stat.stat.exists
+
+- name: Read the rotation marker of this host
+  slurp:
+    src: "{{ internalca_ca_rotation_marker_dir }}/{{ inventory_hostname }}"
+  register: internalca_rotation_marker_content
+  failed_when: false
+  changed_when: false
+  delegate_to: "{{ internalca_ca_host }}"
+  become: true
+  when: internalca_rotation_next_stat.stat.exists or internalca_rotation_previous_stat.stat.exists
+
+- name: Record the CA rotation state
+  set_fact:
+    internalca_rotation_staged: "{{ internalca_rotation_next_stat.stat.exists }}"
+    internalca_rotation_promoted: "{{ internalca_rotation_previous_stat.stat.exists }}"
+    internalca_rotation_incoming_fingerprint: >-
+      {{ (internalca_rotation_incoming_info.fingerprints | default({}, true)).get('sha256', '') }}
+    # A marker only counts for the CA it was written for: a staged CA that was created
+    # again since is a different anchor, and the services have not seen it yet.
+    internalca_rotation_marker_current: >-
+      {{
+        internalca_rotation_incoming_info.fingerprints is defined
+        and (internalca_rotation_marker_content.content | default('') | b64decode | trim)
+            == internalca_rotation_incoming_info.fingerprints.sha256
+      }}

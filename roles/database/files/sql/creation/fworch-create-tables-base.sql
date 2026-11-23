@@ -211,6 +211,14 @@ Create table "import_control"
  primary key ("control_id")
 );
 
+-- pending rule hit import runs: written by the middleware scheduler, removed by the importer handling the run
+Create table "rule_hit_import_request"
+(
+	"mgm_id" Integer NOT NULL,
+	"requested_at" Timestamp with time zone NOT NULL Default now(),
+ primary key ("mgm_id")
+);
+
 -- temporary table for storing the fw-relevant config during import
 CREATE table "import_config" (
     "import_id" bigint NOT NULL,
@@ -391,6 +399,14 @@ Create table "config"
 	"config_value" VARCHAR,
 	"config_user" Integer,
 	primary key ("config_key","config_user")
+);
+
+-- Config keys a user may set personally (config_user other than 0). They are the
+-- properties marked [UserConfigData] in ConfigData.cs; all other keys are global only.
+Create table "config_user_key"
+(
+	"config_key" VARCHAR NOT NULL,
+	primary key ("config_key")
 );
 
 -- Upgrade snapshots contain restricted device specific settings data. Keep this archive

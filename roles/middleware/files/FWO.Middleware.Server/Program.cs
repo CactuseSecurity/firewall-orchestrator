@@ -83,6 +83,7 @@ builder.Services.AddSingleton(tokenLifetimeProvider);
 builder.Services.AddSingleton(internalApiTokenService);
 builder.Services.AddSingleton<INotificationEmailSender, NotificationEmailSender>();
 builder.Services.AddRulePositioning();
+builder.Services.AddSingleton<IExternalRequestProvisioning, ExternalRequestProvisioning>();
 builder.Services.AddSingleton<DeviceSpecificSettingsManager>();
 builder.Services.AddHostedService<InternalApiTokenRefreshService>();
 
@@ -92,6 +93,7 @@ builder.Services.AddSingleton<AutoDiscoverSchedulerService>();
 builder.Services.AddSingleton<DailyCheckSchedulerService>();
 builder.Services.AddSingleton<ImportAppDataSchedulerService>();
 builder.Services.AddSingleton<ImportLogDataSchedulerService>();
+builder.Services.AddSingleton<ImportRuleHitsSchedulerService>();
 builder.Services.AddSingleton<ImportIpDataSchedulerService>();
 builder.Services.AddSingleton<ImportChangeNotifySchedulerService>();
 builder.Services.AddSingleton<VarianceAnalysisSchedulerService>();
@@ -213,7 +215,7 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-app.UseForwardedHeaders(ReverseProxyForwardingOptions.Create());
+app.UseForwardedHeaders(FWO.Basics.ReverseProxyForwardingOptions.Create());
 
 app.MapOpenApi(kApiDocsRoute);
 app.MapScalarApiReference(kApiDocsPageRoute, options =>
@@ -229,8 +231,6 @@ app.MapScalarApiReference(kApiDocsPageRoute, options =>
 });
 app.UseSwaggerRedirect(kApiDocsPageRoute);
 
-//app.UseHttpsRedirection();
-
 app.UseRouting();
 
 app.UseAuthentication();
@@ -245,6 +245,7 @@ app.Services.GetRequiredService<AutoDiscoverSchedulerService>();
 app.Services.GetRequiredService<DailyCheckSchedulerService>();
 app.Services.GetRequiredService<ImportAppDataSchedulerService>();
 app.Services.GetRequiredService<ImportLogDataSchedulerService>();
+app.Services.GetRequiredService<ImportRuleHitsSchedulerService>();
 app.Services.GetRequiredService<ImportIpDataSchedulerService>();
 app.Services.GetRequiredService<ImportChangeNotifySchedulerService>();
 app.Services.GetRequiredService<VarianceAnalysisSchedulerService>();

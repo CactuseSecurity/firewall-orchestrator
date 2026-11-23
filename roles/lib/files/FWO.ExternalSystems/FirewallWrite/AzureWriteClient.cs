@@ -48,8 +48,8 @@ namespace FWO.ExternalSystems.FirewallWrite
         private string? accessToken;
 
         /// <summary>Creates a client for Azure Resource Manager.</summary>
-        public AzureWriteClient(Management management, bool checkCertificates)
-            : base(kArmBaseUrl, management, checkCertificates)
+        public AzureWriteClient(Management management, bool checkCertificates, int? responseTimeout = null)
+            : base(kArmBaseUrl, management, checkCertificates, responseTimeout)
         { }
 
         /// <inheritdoc/>

@@ -12,16 +12,16 @@ namespace FWO.Basics
         /// <summary>
         /// Direct Children of this item.
         /// </summary>
-        public List<ITreeItem<TItem>> Children { get; set; } = new();
+        public List<ITreeItem<TItem>> Children { get; set; } = [];
         /// <summary>
         /// A flat list of every tree item that is somewhere in the tree.
         /// </summary>
-        public List<ITreeItem<TItem>> ElementsFlat { get; set; } = new();
+        public List<ITreeItem<TItem>> ElementsFlat { get; set; } = [];
 
         /// <summary>
         /// N-dimensional numeric indicator for the position of this item in the tree.
         /// </summary>
-        public List<int>? Position { get; set; } = new();
+        public List<int>? Position { get; set; } = [];
         /// <summary>
         /// Direct parent of this tree item.
         /// </summary>
@@ -123,7 +123,7 @@ namespace FWO.Basics
         /// <summary>
         /// Creates items that can be serialized to a json.
         /// </summary>
-        private SerializableTreeNode BuildSerializableNode(ITreeItem<TItem> node)
+        private static SerializableTreeNode BuildSerializableNode(ITreeItem<TItem> node)
         {
             var serializable = new SerializableTreeNode();
 
@@ -147,9 +147,9 @@ namespace FWO.Basics
                 serializable.Position = node.GetPositionString();
             }
 
-            if (node.Children.Any())
+            if (node.Children.Count != 0)
             {
-                serializable.Children = new();
+                serializable.Children = [];
 
                 foreach (var child in node.Children)
                 {

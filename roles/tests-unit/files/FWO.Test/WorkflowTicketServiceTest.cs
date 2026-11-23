@@ -27,6 +27,9 @@ namespace FWO.Test;
 internal class WorkflowTicketServiceTest
 {
     private const int kTrustedCallerId = 77;
+    private static readonly List<string> kUnknownLoggingErrorPaths = ["rules[0].logging"];
+    private static readonly List<string> kAllRuleErrorPaths =
+        ["rules[0].sourceObjects[0]", "rules[0].action", "rules[0].logging", "rules[0].ownerId", "rules[0].timeObjectId"];
 
     [Test]
     public async Task GetTicketStatusAsync_ReturnsStateNameAndLatestComment()
@@ -305,7 +308,7 @@ internal class WorkflowTicketServiceTest
             Assert.That(GetVariable(apiConnection.NewTicketVariables, "preWorkflowTicketReference"), Is.EqualTo("Ticket-12345"));
             Assert.That(apiConnection.CreatedTicket!.PreWorkflowTicketReference, Is.EqualTo("Ticket-12345"));
             Assert.That(accessTask.RuleAction, Is.EqualTo(1));
-            Assert.That(accessTask.Elements.WfElementList, Has.Count.EqualTo(3));
+            Assert.That(accessTask.Elements.WfElementList, Has.Count.EqualTo(4));
             Assert.That(accessTask.Elements.WfElementList.All(element => element.NetworkId == null && element.ServiceId == null), Is.True);
             Assert.That(accessTask.Elements.WfElementList.Single(element => element.Field == ElemFieldType.service.ToString()).ProtoId, Is.EqualTo(expectedProtocolId));
             Assert.That(accessTask.NetworkGroupId, Is.Null);
@@ -317,7 +320,7 @@ internal class WorkflowTicketServiceTest
             Assert.That(apiConnection.CreatedTicket!.Reason, Is.EqualTo("Ticket-level notes"));
             Assert.That(accessTask.FreeText, Is.EqualTo("Task description"));
             Assert.That(accessTask.Reason, Is.EqualTo("Business approved.\nTask reason"));
-            Assert.That(accessTask.GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("-3"));
+            Assert.That(accessTask.Elements.WfElementList.Single(element => element.Field == ElemFieldType.time.ToString()).TimeObjId, Is.Null);
             Assert.That(accessTask.GetAddInfoValue("timeStart"), Is.EqualTo(""));
             Assert.That(accessTask.GetAddInfoValue("timeEnd"), Is.EqualTo(""));
             Assert.That(objectTasks.Select(task => task.Elements.WfElementList.Single().Field),
@@ -501,7 +504,8 @@ internal class WorkflowTicketServiceTest
             Assert.That(elements.Count(element => element.Field == ElemFieldType.service.ToString()), Is.EqualTo(2));
             Assert.That(elements.Single(element => element.FlowServiceObjectId == 303).FlowServiceObjectId, Is.EqualTo(303));
             Assert.That(elements.Single(element => element.FlowServiceGroupId == 303).FlowServiceGroupId, Is.EqualTo(303));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("404"));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList
+                .Single(element => element.Field == ElemFieldType.time.ToString()).FlowTimeObjectId, Is.EqualTo(404));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate, Is.EqualTo(startTime));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate, Is.EqualTo(endTime));
         });
@@ -806,17 +810,17 @@ internal class WorkflowTicketServiceTest
     {
         WorkflowTicketServiceApiConn apiConnection = new()
         {
-            States = new List<WfState>
-            {
+            States =
+            [
                 new() { Id = 17, Name = "requested" },
                 new() { Id = 0, Name = "draft" }
-            },
-            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } },
-            WorkflowConfigurations = new List<WorkflowConfiguration>
-            {
+            ],
+            Protocols = [new() { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
                 CreateWorkflowConfiguration("request-active",
                     CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))
-            }
+            ]
         };
         WorkflowTicketService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
 
@@ -1904,8 +1908,8 @@ internal class WorkflowTicketServiceTest
     {
         WorkflowTicketServiceApiConn apiConnection = new()
         {
-            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
-            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
+            States = [new() { Id = 0, Name = "draft" }],
+            Protocols = [new() { Id = 6, Name = "tcp" }]
         };
         WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
         controller.ControllerContext = new ControllerContext
@@ -1973,8 +1977,8 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = 17,
                     Name = "requested",
-                    Actions = new List<WfStateActionDataHelper>
-                    {
+                    Actions =
+                    [
                         new()
                         {
                             SortOrder = 1,
@@ -1987,7 +1991,7 @@ internal class WorkflowTicketServiceTest
                                 ExternalParams = "{invalid"
                             }
                         }
-                    }
+                    ]
                 },
                 new WfState { Id = 0, Name = "draft" }
             ],
@@ -2068,12 +2072,12 @@ internal class WorkflowTicketServiceTest
     {
         WorkflowTicketServiceApiConn apiConnection = new()
         {
-            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
-            Protocols = new List<IpProtocol>
-            {
+            States = [new() { Id = 0, Name = "draft" }],
+            Protocols =
+            [
                 new() { Id = 6, Name = "tcp" },
                 new() { Id = 17, Name = "udp" }
-            }
+            ]
         };
         WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
@@ -2131,8 +2135,8 @@ internal class WorkflowTicketServiceTest
     {
         WorkflowTicketController controller = new(new WorkflowTicketService(new WorkflowTicketServiceApiConn
         {
-            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
-            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
+            States = [new() { Id = 0, Name = "draft" }],
+            Protocols = [new() { Id = 6, Name = "tcp" }]
         }, new GlobalConfig()));
         controller.ControllerContext = new ControllerContext
         {
@@ -2190,8 +2194,8 @@ internal class WorkflowTicketServiceTest
     {
         WorkflowTicketController controller = new(new WorkflowTicketService(new WorkflowTicketServiceApiConn
         {
-            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
-            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
+            States = [new() { Id = 0, Name = "draft" }],
+            Protocols = [new() { Id = 6, Name = "tcp" }]
         }, new GlobalConfig()));
         controller.ControllerContext = new ControllerContext
         {
@@ -2249,8 +2253,8 @@ internal class WorkflowTicketServiceTest
     {
         WorkflowTicketServiceApiConn apiConnection = new()
         {
-            States = new List<WfState> { new() { Id = 0, Name = "draft" } },
-            Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } },
+            States = [new() { Id = 0, Name = "draft" }],
+            Protocols = [new() { Id = 6, Name = "tcp" }],
             ExtStateErrors = new List<string> { "external state query failed" }.ToArray()
         };
         WorkflowTicketService service = new(apiConnection, new GlobalConfig());
@@ -2531,6 +2535,7 @@ internal class WorkflowTicketServiceTest
                 new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "not-a-rule-action",
+                    Logging = "not-a-logging",
                     SourceObjects = [-2],
                     TimeObjectId = -2,
                     OwnerId = 999
@@ -2539,8 +2544,72 @@ internal class WorkflowTicketServiceTest
         });
 
         RequestValidationErrorResponse errors = GetValidationResponse(result);
-        Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(
-            ["rules[0].sourceObjects[0]", "rules[0].action", "rules[0].ownerId", "rules[0].timeObjectId"]));
+        Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(kAllRuleErrorPaths));
+    }
+
+    [Test]
+    public async Task CreateTicket_DefaultsRuleLoggingToLog()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
+
+        await service.CreateTicketAsync(CreateBaseRequest("Default logging"), 77);
+
+        WfReqTaskWriter accessTask = apiConnection.LastTicketWriter!.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString());
+        Assert.Multiple(() =>
+        {
+            Assert.That(apiConnection.SentQueries, Does.Contain(StmQueries.getTracking));
+            Assert.That(accessTask.Tracking, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task CreateTicket_ResolvesRequestedRuleLoggingCaseInsensitive()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
+        CreateTicketRequest request = CreateBaseRequest("Explicit logging");
+        request.Rules[0].Logging = " None ";
+
+        await service.CreateTicketAsync(request, 77);
+
+        WfReqTaskWriter accessTask = apiConnection.LastTicketWriter!.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString());
+        Assert.That(accessTask.Tracking, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task CreateTicket_ReturnsBadRequestForUnknownRuleLogging()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
+        };
+        CreateTicketRequest request = CreateBaseRequest("Unknown logging");
+        request.Rules[0].Logging = "verbose";
+
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(request);
+
+        RequestValidationErrorResponse errors = GetValidationResponse(result);
+        Assert.Multiple(() =>
+        {
+            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(kUnknownLoggingErrorPaths));
+            Assert.That(errors.Errors.Single().Message, Does.Contain("Unknown rule logging 'verbose'"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Null);
+        });
     }
 
     [Test]
@@ -3019,13 +3088,12 @@ internal class WorkflowTicketServiceTest
     private static ClaimsPrincipal CreateTrustedRequesterPrincipal()
     {
         return new ClaimsPrincipal(new ClaimsIdentity(
-            new List<Claim>
-            {
+            [
                 new("x-hasura-user-id", $"{kTrustedCallerId}"),
                 new("unique_name", "trusted-caller"),
                 new(ClaimTypes.Name, "Trusted Requester"),
                 new("x-hasura-uuid", "uid=trusted,dc=fworch,dc=internal")
-            },
+            ],
             "test"));
     }
 
@@ -3133,6 +3201,7 @@ internal class WorkflowTicketServiceTest
         public List<IpProtocol> Protocols { get; set; } = [];
         public List<FwoOwner> Owners { get; set; } = [];
         public List<RuleAction> RuleActions { get; set; } = [new RuleAction { Id = 1, Name = "accept", Allowed = true }];
+        public List<Tracking> Trackings { get; set; } = [new Tracking { Id = 1, Name = "log" }, new Tracking { Id = 2, Name = "none" }];
         public List<FlowNwObject> FlowNetworkObjects { get; set; } = [];
         public List<FlowNwGroup> FlowNetworkGroups { get; set; } = [];
         public List<FlowSvcObject> FlowServiceObjects { get; set; } = [];
@@ -3252,6 +3321,11 @@ internal class WorkflowTicketServiceTest
             if (responseType == typeof(List<RuleAction>))
             {
                 return Task.FromResult((QueryResponseType)(object)RuleActions);
+            }
+
+            if (responseType == typeof(List<Tracking>))
+            {
+                return Task.FromResult((QueryResponseType)(object)Trackings);
             }
 
             if (responseType == typeof(List<FlowNwObject>))

@@ -34,13 +34,13 @@ namespace FWO.Test
             await using BunitContext context = CreateContext(out _, out _);
             FwoOwner existingOwner = new() { Id = 11, Name = "existing" };
             FwoOwner selectedOwner = new() { Id = 12, Name = "selected" };
-            List<FwoOwner> permittedOwners = new List<FwoOwner> { existingOwner };
-            List<FwoOwner> ownersToAdd = new List<FwoOwner>();
-            List<FwoOwner> ownersToDelete = new List<FwoOwner>();
+            List<FwoOwner> permittedOwners = [existingOwner];
+            List<FwoOwner> ownersToAdd = [];
+            List<FwoOwner> ownersToDelete = [];
 
             IRenderedComponent<PermittedOwnersSelection> component = RenderPermittedOwnersSelection(
                 context,
-                new List<FwoOwner> { existingOwner, selectedOwner },
+                [existingOwner, selectedOwner],
                 permittedOwners,
                 ownersToAdd,
                 ownersToDelete,
@@ -66,10 +66,10 @@ namespace FWO.Test
 
             IRenderedComponent<PermittedOwnersSelection> component = RenderPermittedOwnersSelection(
                 context,
-                new List<FwoOwner> { owner },
-                new List<FwoOwner> { owner },
-                new List<FwoOwner>(),
-                new List<FwoOwner>(),
+                [owner],
+                [owner],
+                [],
+                [],
                 readonlyMode: true);
 
             Assert.That(component.Markup, Does.Contain("readonly-owner"));

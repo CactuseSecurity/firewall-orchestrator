@@ -23,7 +23,6 @@ namespace FWO.Test
     {
         private static readonly int[] kOwnerOptionIds = [-2, -1, 1, 2];
         private static readonly int[] kDeviceOptionIds = [11, 12, 0, -1];
-        private static readonly long[] kRemovedElementIds = [1L, 2L, 3L];
         internal static readonly int[] kDeviceListIds = [101, 102];
 
         internal static void SetMember(object instance, string memberName, object? value)
@@ -424,7 +423,7 @@ namespace FWO.Test
             int resetCalls = 0;
             bool? changedDisplay = null;
             WfHandler handler = new();
-            List<WfApproval> approvals = new() { new WfApproval { Id = 6, Comments = [] } };
+            List<WfApproval> approvals = [new WfApproval { Id = 6, Comments = [] }];
             IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(
                 context, handler, approvals, displayChanged: value => changedDisplay = value,
                 resetParent: () =>
@@ -452,6 +451,22 @@ namespace FWO.Test
                 context, new WfHandler(), [new WfApproval { Id = 10, Comments = [] }], display: false);
 
             Assert.That(component.FindAll("table"), Is.Empty);
+        }
+
+        [Test]
+        public async Task DisplayApprovals_HidesDeadlineWhenDeadlineFieldIsDisabled()
+        {
+            await using BunitContext context = new();
+            IRenderedComponent<DisplayApprovals> component = RenderDisplayApprovals(
+                context,
+                new WfHandler(),
+                [new WfApproval { Id = 10, Deadline = new DateTime(2026, 2, 3), Comments = [] }],
+                userConfig: new RequestCoverageUserConfig
+                {
+                    ReqTicketFieldVisibility = new TicketFieldVisibilityConfig { ShowDeadline = false }.ToConfigValue()
+                });
+
+            Assert.That(component.Markup, Does.Not.Contain("deadline"));
         }
 
         [Test]
@@ -541,11 +556,12 @@ namespace FWO.Test
             bool display = true,
             bool? readOnlyMode = null,
             Action<bool>? displayChanged = null,
-            Func<Task>? resetParent = null)
+            Func<Task>? resetParent = null,
+            UserConfig? userConfig = null)
         {
             context.Services.AddAuthorizationCore();
             context.Services.AddLocalization();
-            context.Services.AddSingleton<UserConfig>(new RequestCoverageUserConfig());
+            context.Services.AddSingleton(userConfig ?? new RequestCoverageUserConfig());
             context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new TestAuthStateProvider(Roles.Approver));

@@ -7,11 +7,11 @@ using System.Net;
 
 namespace FWO.Ui.Services
 {
-    public class RoleAccess
+    public static class RoleAccess
     {
         static public async Task<List<Role>> GetRolesFromInternalLdap(MiddlewareClient middlewareClient)
         {
-            List<Role> roles = new();
+            List<Role> roles = [];
             RestResponse<List<RoleGetReturnParameters>> middlewareServerResponse = await middlewareClient.GetAllRoles();
             if (middlewareServerResponse.StatusCode == HttpStatusCode.OK && middlewareServerResponse.Data != null)
             {
@@ -38,7 +38,7 @@ namespace FWO.Ui.Services
 
         static public async Task<List<UiUser>> GetRoleMembers(MiddlewareClient middlewareClient, string roleName)
         {
-            List<UiUser> users = new();
+            List<UiUser> users = [];
             List<Role> roles = await GetRolesFromInternalLdap(middlewareClient);
             Role? role = roles.FirstOrDefault(x => x.Name == roleName);
             if (role != null)

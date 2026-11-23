@@ -1,0 +1,95 @@
+@using FWO.Data.Workflow
+@using FWO.Ui.Pages.Request
+
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("create_time_object_task"))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <div class="form-group row mt-2">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("name")):</label>
+                <div class="col-sm-8">
+                    <input class="form-control form-control-sm" @bind="editingModel.FlowTimeObjectName" />
+                </div>
+            </div>
+            <DisplayTaskTargetDates TargetBeginDate="editingModel.BeginDate"
+                                    TargetBeginDateChanged="OnTargetBeginDateChanged"
+                                    TargetEndDate="editingModel.EndDate"
+                                    TargetEndDateChanged="OnTargetEndDateChanged"
+                                    CanEditTargetBeginDate="true"
+                                    CanEditTargetEndDate="true"
+                                    ShowTargetBeginDate="ShowBeginDate"
+                                    ShowTargetEndDate="ShowEndDate"
+                                    ForceManualTimeObjectSelection="true"
+                                    TargetDatesValidChanged="SetTargetDatesValid"
+                                    FullWidthLayout="true" />
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanSave)" @onclick="Save">
+            @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">
+            @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
+        </button>
+    </Footer>
+</PopUp>
+
+@code {
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public TargetDatesEditorModel Model { get; set; } = new();
+    [Parameter] public EventCallback<TargetDatesEditorModel> Saved { get; set; }
+    [Parameter] public bool ShowBeginDate { get; set; } = true;
+    [Parameter] public bool ShowEndDate { get; set; } = true;
+
+    private TargetDatesEditorModel editingModel = new();
+    private TargetDatesEditorModel? sourceModel;
+    private bool targetDatesValid = true;
+
+    private bool CanSave => targetDatesValid
+        && !string.IsNullOrWhiteSpace(editingModel.FlowTimeObjectName)
+        && (editingModel.BeginDate.HasValue || editingModel.EndDate.HasValue);
+
+    protected override void OnParametersSet()
+    {
+        if (Display && !ReferenceEquals(sourceModel, Model))
+        {
+            editingModel = new TargetDatesEditorModel(Model);
+            sourceModel = Model;
+            targetDatesValid = true;
+        }
+    }
+
+    private void SetTargetDatesValid(bool valid)
+    {
+        targetDatesValid = valid;
+    }
+
+    private Task OnTargetBeginDateChanged(DateTime? value)
+    {
+        editingModel.BeginDate = value;
+        return Task.CompletedTask;
+    }
+
+    private Task OnTargetEndDateChanged(DateTime? value)
+    {
+        editingModel.EndDate = value;
+        return Task.CompletedTask;
+    }
+
+    private async Task Save()
+    {
+        if (CanSave)
+        {
+            await Saved.InvokeAsync(editingModel);
+            Close();
+        }
+    }
+
+    private void Close()
+    {
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+}

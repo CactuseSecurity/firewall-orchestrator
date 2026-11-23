@@ -45,11 +45,11 @@ namespace FWO.Test
 
             ];
 
-            List<NetworkZone> definedAndExcludedZones = new List<NetworkZone>
-            {
+            List<NetworkZone> definedAndExcludedZones =
+            [
                 networkZoneOne,
                 networkZoneTwo
-            };
+            ];
 
             IPAddressRange[] expectedInternetZone =
             [
@@ -105,12 +105,12 @@ namespace FWO.Test
                 new IPAddressRange(IPAddress.Parse("191.255.255.255"), IPAddress.Parse("224.0.0.0")),
             ];
 
-            List<NetworkZone> definedAndExcludedZones = new List<NetworkZone>
-            {
+            List<NetworkZone> definedAndExcludedZones =
+            [
                 networkZoneOne,
                 networkZoneTwo,
                 overlaps
-            };
+            ];
 
             IPAddressRange[] expectedInternetZone = new IPAddressRange[]
             {
@@ -140,8 +140,8 @@ namespace FWO.Test
             // Arrange
 
             NetworkZone internalZone = new();
-            List<IPAddressRange> internalZoneRanges = new()
-            {
+            List<IPAddressRange> internalZoneRanges =
+            [
                 // Private address space
 
                 IpOperations.GetIPAdressRange("10.0.0.0/8"),        // RFC 1918
@@ -175,8 +175,8 @@ namespace FWO.Test
                 IpOperations.GetIPAdressRange("192.88.99.0/24"),    // 6to4 Relay Anycast (deprecated; should not be routed) (RFC 7526)
 
 
-            };
-            List<NetworkZone> definedZones = new();
+            ];
+            List<NetworkZone> definedZones = [];
             IPAddressRange[] expectedinternalZone = internalZoneRanges
                                                         .Where(range => !range.ToString().Equals("255.255.255.255")) // Only disjoint ranges. 255.255.255.255/32 is in 240.0.0.0/4.
                                                         .ToArray();
@@ -202,12 +202,12 @@ namespace FWO.Test
 
             NetworkZone internalZone = new();
 
-            List<IPAddressRange> internalZoneRanges = new()
-            {
+            List<IPAddressRange> internalZoneRanges =
+            [
                 IpOperations.GetIPAdressRange("10.0.0.0/8"),        // Private address space — RFC 1918
                 IpOperations.GetIPAdressRange("172.16.0.0/12"),     // Private address space — RFC 1918
                 IpOperations.GetIPAdressRange("192.168.0.0/16"),    // Private address space — RFC 1918
-            };
+            ];
 
             NetworkZone networkZoneOne = new();
 
@@ -225,11 +225,11 @@ namespace FWO.Test
                 new IPAddressRange(IPAddress.Parse("192.169.0.0"), IPAddress.Parse("255.255.255.255"))
             ];
 
-            List<NetworkZone> definedZones = new List<NetworkZone>
-            {
+            List<NetworkZone> definedZones =
+            [
                 networkZoneOne,
                 networkZoneTwo
-            };
+            ];
 
             IPAddressRange[] expectedinternalZone = internalZoneRanges.ToArray();
 
@@ -254,12 +254,12 @@ namespace FWO.Test
 
             NetworkZone internalZone = new();
 
-            List<IPAddressRange> internalZoneRanges = new()
-            {
+            List<IPAddressRange> internalZoneRanges =
+            [
                 IpOperations.GetIPAdressRange("10.0.0.0/8"),        // Private address space — RFC 1918
                 IpOperations.GetIPAdressRange("172.16.0.0/12"),     // Private address space — RFC 1918
                 IpOperations.GetIPAdressRange("192.168.0.0/16"),    // Private address space — RFC 1918
-            };
+            ];
 
             NetworkZone networkZoneOne = new();
 
@@ -276,11 +276,11 @@ namespace FWO.Test
                 new IPAddressRange(IPAddress.Parse("192.169.0.0"), IPAddress.Parse("255.255.255.255"))
             ];
 
-            List<NetworkZone> definedZones = new List<NetworkZone>
-            {
+            List<NetworkZone> definedZones =
+            [
                 networkZoneOne,
                 networkZoneTwo
-            };
+            ];
 
             IPAddressRange[] expectedinternalZone =
             [
@@ -395,11 +395,11 @@ namespace FWO.Test
                 AutoCalculateInternetZone = true,
                 AutoCalculateUndefinedInternalZone = false
             };
-            List<IPAddressRange> dummyRanges = new()
-            {
+            List<IPAddressRange> dummyRanges =
+            [
                 IpOperations.GetIPAdressRange("8.8.8.0/24"),
                 IpOperations.GetIPAdressRange("10.0.0.0/8")
-            };
+            ];
             NetworkZone dummyInternetZone = new()
             {
                 Id = 1,
@@ -408,10 +408,10 @@ namespace FWO.Test
                 Name = "Internet placeholder",
                 IPRanges = dummyRanges.ToArray()
             };
-            List<NetworkZone> existingZones = new()
-            {
+            List<NetworkZone> existingZones =
+            [
                 dummyInternetZone
-            };
+            ];
             mock.Sub
                 .SendQueryAsync<List<NetworkZone>>(
                     NetworkZoneQueries.getNetworkZonesForMatrix,

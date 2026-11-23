@@ -51,8 +51,6 @@ namespace FWO.Test
         static Rule Rule2 = new();
         static Rule Rule2Changed = new();
         static Rule NatRule = new();
-        static Rule RecertRule1 = new();
-        static Rule RecertRule2 = new();
 
         private const string ToCAnkerIdGroupName = "ToCAnkerId";
         private readonly string ToCRegexPattern = $"<a href=\"#(?'{ToCAnkerIdGroupName}'.*?)\">(.*?)<\\/a>";
@@ -1186,7 +1184,7 @@ namespace FWO.Test
                                         "\"rule_tos\": [" +
                                         "{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"type\": {\"id\": 0,\"name\": \"ip_range\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 0,\"user_uid\": \"\",\"user_name\": \"\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
                                         "\"rule_action\": \"accept\",\"rule_track\": \"none\",\"section_header\": \"\"," +
-                                        "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"created_import\": null,\"removed\": null,\"removed_import\": null,\"rule_first_hit\": null,\"rule_last_hit\": \"2022-04-19T00:00:00Z\",\"recertification\": [],\"recert_history\": [],\"rule_uid\": \"\",\"rules\": [],\"Recert\": false}," +
+                                        "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"created_import\": null,\"removed\": null,\"removed_import\": null,\"rule_first_hit\": null,\"rule_last_hit\": \"2022-04-19T00:00:00Z\",\"rule_hits\": [],\"recertification\": [],\"recert_history\": [],\"rule_uid\": \"\",\"rules\": [],\"Recert\": false}," +
                                         "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
                                         "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"rule_custom_fields\": \"\",\"rule_implied\": false,\"nat_rule\": false,\"access_rule\": true,\"rulebase_id\": 0,\"rule_enforced_on_gateways\": [],\"rule_installon\": null,\"rule_time\": null,\"rule_times\": [],\"violations\": [],\"rulebase\": {\"id\": 0,\"name\": \"\",\"uid\": \"\",\"mgm_id\": 0,\"is_global\": false,\"created\": 0,\"removed\": 0,\"rules\": []},\"uiuser\": null,\"rule\": null,\"ruleByXlateRule\": null,\"rule_owners\": [],\"xlate_rule\": null,\"flow_access_id\": null,\"flow_access\": null,\"removed\": null,\"ChangeID\": \"\",\"AdoITID\": \"\",\"Compliance\": 0,\"ViolationDetails\": \"\",\"DisplayOrderNumberString\": \"1.1\",\"DisplayOrderNumber\": 2,\"OrderNumber\": 1,\"Certified\": false,\"DeviceName\": \"\",\"RulebaseName\": \"\",\"DisregardedFroms\": [],\"DisregardedTos\": [],\"DisregardedServices\": [],\"ShowDisregarded\": false}," +
                                         "{\"rule_id\": 2,\"rule_uid\": \"uid2:123\",\"mgm_id\": 0,\"rule_num_numeric\": 2,\"rule_name\": \"TestRule2\",\"rule_comment\": \"comment2\",\"rule_disabled\": false," +
@@ -1199,7 +1197,7 @@ namespace FWO.Test
                                         "\"rule_tos\": [" +
                                         "{\"object\": {\"obj_id\": 3,\"obj_name\": \"TestIpRange\",\"obj_ip\": \"1.2.3.4/32\",\"obj_ip_end\": \"1.2.3.5/32\",\"obj_uid\": \"019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"zone\": null,\"active\": false,\"obj_create\": 0,\"obj_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"type\": {\"id\": 0,\"name\": \"ip_range\"},\"obj_color\": null,\"obj_comment\": \"Comment-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_names\": \"Member-019e44c0-4816-7c9a-9b94-5417d3cbb15f\",\"obj_member_refs\": \"\",\"objgrps\": [],\"objgrp_flats\": [],\"flow_nwobj_id\": null,\"flow_nwobject\": null,\"flow_nwgrp_id\": null,\"flow_nwgroup\": null,\"flow_active\": false,\"removed\": null},\"usr\": {\"user_id\": 2,\"user_uid\": \"\",\"user_name\": \"TestUser2\",\"user_comment\": \"\",\"user_lastname\": \"\",\"user_firstname\": \"\",\"usr_typ_id\": 0,\"type\": {\"usr_typ_name\": \"group\"},\"user_create\": 0,\"user_create_time\": {\"time\": \"0001-01-01T00:00:00\"},\"user_member_names\": \"\",\"user_member_refs\": \"\",\"usergrps\": [],\"usergrp_flats\": []}}]," +
                                         "\"rule_action\": \"deny\",\"rule_track\": \"none\",\"section_header\": \"\"," +
-                                        "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"created_import\": null,\"removed\": null,\"removed_import\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"recertification\": [],\"recert_history\": [],\"rule_uid\": \"\",\"rules\": [],\"Recert\": false}," +
+                                        "\"rule_metadatum\": {\"rule_metadata_id\": 0,\"rule_created\": null,\"created_import\": null,\"removed\": null,\"removed_import\": null,\"rule_first_hit\": null,\"rule_last_hit\": null,\"rule_hits\": [],\"recertification\": [],\"recert_history\": [],\"rule_uid\": \"\",\"rules\": [],\"Recert\": false}," +
                                         "\"translate\": {\"rule_svc_neg\": false,\"rule_svc\": \"\",\"rule_services\": [],\"rule_src_neg\": false,\"rule_src\": \"\",\"rule_froms\": [],\"rule_dst_neg\": false,\"rule_dst\": \"\",\"rule_tos\": []}," +
                                         "\"owner_name\": \"\",\"owner_id\": null,\"matches\": \"\",\"rule_custom_fields\": \"\",\"rule_implied\": false,\"nat_rule\": false,\"access_rule\": true,\"rulebase_id\": 0,\"rule_enforced_on_gateways\": [],\"rule_installon\": null,\"rule_time\": null,\"rule_times\": [],\"violations\": [],\"rulebase\": {\"id\": 0,\"name\": \"\",\"uid\": \"\",\"mgm_id\": 0,\"is_global\": false,\"created\": 0,\"removed\": 0,\"rules\": []},\"uiuser\": null,\"rule\": null,\"ruleByXlateRule\": null,\"rule_owners\": [],\"xlate_rule\": null,\"flow_access_id\": null,\"flow_access\": null,\"removed\": null,\"ChangeID\": \"\",\"AdoITID\": \"\",\"Compliance\": 0,\"ViolationDetails\": \"\",\"DisplayOrderNumberString\": \"1.2\",\"DisplayOrderNumber\": 3,\"OrderNumber\": 2,\"Certified\": false,\"DeviceName\": \"\",\"RulebaseName\": \"\",\"DisregardedFroms\": [],\"DisregardedTos\": [],\"DisregardedServices\": [],\"ShowDisregarded\": false}]}]," +
                                         "\"changelog_rules\": null,\"changelog_objects\": null,\"changelog_services\": null,\"changelog_users\": null,\"import\": {\"aggregate\": {\"max\": {\"id\": null}}},\"import_controls\": [],\"RelevantImportId\": null,\"is_super_manager\": false,\"multi_device_manager_id\": null,\"management\": null,\"managementByMultiDeviceManagerId\": [],\"networkObjects\": [],\"serviceObjects\": [],\"userObjects\": [],\"zoneObjects\": []," +
@@ -1265,7 +1263,7 @@ namespace FWO.Test
         public void ResolvedRulesGenerateJsonWithoutRules()
         {
             Log.WriteInfo("Test Log", "starting resolved rules report json generation");
-            ReportRules reportRules = ConstructReportRulesWithoutRules(true, query, userConfig, ReportType.ResolvedRules);
+            ReportRules reportRules = ConstructReportRulesWithoutRules(query, userConfig, ReportType.ResolvedRules);
 
             string expectedJsonResult =
             "{\"report type\": \"Rules Report (resolved)\",\"report generation date\": \"2026-05-20T10:00:36Z (UTC)\"," +
@@ -1596,33 +1594,6 @@ namespace FWO.Test
             };
         }
 
-        //If possible use ConstructReportRules below so that this can be deprecated
-        private static ReportData ConstructRuleReportData(bool resolved)
-        {
-            Rule1 = InitRule1(resolved);
-            Rule2 = InitRule2(resolved);
-            return new ReportData()
-            {
-                ManagementData =
-                [
-                    new ()
-                    {
-                        Name = "TestMgt",
-                        ReportObjects = [TestIp1, TestIp2, TestIpRange],
-                        ReportServices = [TestService1, TestService2],
-                        ReportUsers = [TestUser1, TestUser2],
-                        Devices =
-                        [
-                            new ()
-                            {
-                                Name = "TestDev"
-                            }
-                        ]
-                    }
-                ]
-            };
-        }
-
         /// <summary>
         /// Every column of the object, service and user tables of a rules report holds a value the
         /// importer stored, so each of them is parameterized with markup here and the export is checked
@@ -1696,7 +1667,7 @@ namespace FWO.Test
             Dictionary<int, int> references = new() { [rulebase.Id] = -1 };
             managementData.Devices =
             [
-                CreateRuleTree(-1, "Start A", rulebase.Id, new Dictionary<int, int>()),
+                CreateRuleTree(-1, "Start A", rulebase.Id, []),
                 CreateRuleTree(-2, "Start B", rulebase.Id, references)
             ];
             reportRules.TryBuildMockRuleTree();
@@ -1762,7 +1733,7 @@ namespace FWO.Test
             return report;
         }
 
-        private Rule[] ConstructRuleReportRules(bool resolved)
+        private static Rule[] ConstructRuleReportRules(bool resolved)
         {
             return [
                 InitRule1(resolved),
@@ -1770,7 +1741,7 @@ namespace FWO.Test
             ];
         }
 
-        private Rule[] ConstructRecertReportRules(bool resolved, DateTime referenceDate)
+        private static Rule[] ConstructRecertReportRules(bool resolved, DateTime referenceDate)
         {
             Rule rule1 = InitRule1(resolved);
             rule1.Metadata.RuleRecertification =
@@ -1803,7 +1774,7 @@ namespace FWO.Test
             return [rule1, rule2];
         }
 
-        private static ReportRules ConstructReportRulesWithoutRules(bool resolved, DynGraphqlQuery query, UserConfig userConfig, ReportType reportType)
+        private static MockReportRules ConstructReportRulesWithoutRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType)
         {
             RulebaseReport[] rulebases = [
                 MockReportRules.CreateRulebaseReport(numberOfRules: 0)
@@ -2007,14 +1978,6 @@ namespace FWO.Test
                     }
                 ]
             };
-        }
-
-        private static async Task<ReportData> ConstructAppRulesReport()
-        {
-            ReportData reportData = ConstructRuleReportData(false);
-            ModellingVarianceAnalysisTestApiConn apiConnection = new();
-            reportData.ManagementData = await ReportAppRules.PrepareAppRulesReport(reportData.ManagementData, new ModellingFilter(), apiConnection, 1);
-            return reportData;
         }
 
         private static ReportData ConstructConnectionReport()

@@ -53,6 +53,7 @@ namespace FWO.Test
                         LowestStartState = matrix.LowestStartedState,
                         LowestEndState = matrix.LowestEndState,
                         VisibilityMode = matrix.VisibilityMode,
+                        PromotionMode = matrix.PromotionMode,
                         DerivedStates = matrix.DerivedStates
                             .Where(entry => entry.Key != entry.Value)
                             .Select(entry => new StateMatrixDerivedState

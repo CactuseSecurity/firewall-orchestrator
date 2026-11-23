@@ -37,6 +37,11 @@ internal class DeviceSpecificSettingValueSerializerTest
             {
                 yield return new TestCaseData(key, 7).SetName($"RoundTrip_{key.DatabaseKey}_Id");
             }
+            else if (key.ValueType == typeof(int))
+            {
+                yield return new TestCaseData(key, 0).SetName($"RoundTrip_{key.DatabaseKey}_Zero");
+                yield return new TestCaseData(key, 42).SetName($"RoundTrip_{key.DatabaseKey}_Number");
+            }
             else if (key.ValueType == typeof(List<string>))
             {
                 yield return new TestCaseData(key, new List<string> { "Strict", "ScanAll" })
@@ -67,7 +72,7 @@ internal class DeviceSpecificSettingValueSerializerTest
         JToken serialized = DeviceSpecificSettingValueSerializer.Serialize(key, originalValue);
         object roundTripped = DeviceSpecificSettingValueSerializer.Deserialize(key, serialized);
 
-        if (key.ValueType == typeof(bool) || key.ValueType == typeof(int?))
+        if (key.ValueType == typeof(bool) || key.ValueType == typeof(int?) || key.ValueType == typeof(int))
         {
             Assert.That(serialized.Type, Is.EqualTo(key.ValueType == typeof(bool) ? JTokenType.Boolean : JTokenType.Integer));
             Assert.That(roundTripped, Is.EqualTo(originalValue));
@@ -103,6 +108,22 @@ internal class DeviceSpecificSettingValueSerializerTest
         JToken stored = new JValue(DeviceSpecificSettingValueSerializer.kUndefinedEnumName);
 
         Assert.Throws<InvalidOperationException>(() => DeviceSpecificSettingValueSerializer.Deserialize(key, stored));
+    }
+
+    [Test]
+    public void Serialize_RejectsANegativeNumber()
+    {
+        Assert.Throws<ArgumentException>(() => DeviceSpecificSettingValueSerializer.Serialize(
+            DeviceSpecificSettingKeys.RequestMaxAttempts, -1));
+    }
+
+    [TestCase("-1")]
+    [TestCase("\"3\"")]
+    [TestCase("2.5")]
+    public void Deserialize_RejectsAStoredValueThatIsNoNonNegativeInteger(string stored)
+    {
+        Assert.Throws<InvalidOperationException>(() => DeviceSpecificSettingValueSerializer.Deserialize(
+            DeviceSpecificSettingKeys.RequestCyclesBetweenAttempts, JToken.Parse(stored)));
     }
 
     [Test]

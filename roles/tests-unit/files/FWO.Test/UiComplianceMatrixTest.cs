@@ -29,7 +29,7 @@ namespace FWO.Test
                 AutoCalculateUndefinedInternalZone = false
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            userConfig.User.Roles = new List<string> { Roles.Admin };
+            userConfig.User.Roles = [Roles.Admin];
             userConfig.SetExecutionMode(Roles.Admin);
 
             using BunitContext context = new();
@@ -63,7 +63,7 @@ namespace FWO.Test
                 AutoCalculateUndefinedInternalZone = false
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            userConfig.User.Roles = new List<string> { Roles.Admin };
+            userConfig.User.Roles = [Roles.Admin];
             userConfig.SetExecutionMode(Roles.Admin);
 
             using BunitContext context = new();
@@ -112,7 +112,7 @@ namespace FWO.Test
                 AutoCalculateUndefinedInternalZone = true
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            userConfig.User.Roles = new List<string> { Roles.Admin };
+            userConfig.User.Roles = [Roles.Admin];
             userConfig.SetExecutionMode(Roles.Admin);
 
             using BunitContext context = new();
@@ -146,7 +146,7 @@ namespace FWO.Test
                 AutoCalculateUndefinedInternalZone = true
             };
             UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-            userConfig.User.Roles = new List<string> { Roles.Admin };
+            userConfig.User.Roles = [Roles.Admin];
             userConfig.SetExecutionMode(Roles.Admin);
             NetworkZoneService networkZoneService = new();
 
@@ -355,10 +355,10 @@ namespace FWO.Test
 
         private sealed class MatrixApiConnection : SimulatedApiConnection
         {
-            private readonly List<NetworkZone> networkZones = new()
-            {
+            private readonly List<NetworkZone> networkZones =
+            [
                 new NetworkZone { Id = 1, IdString = "manual-zone", Name = "Manual zone" }
-            };
+            ];
 
             public List<ComplianceCriterion> Matrices { get; init; } = new List<ComplianceCriterion>
             {
@@ -480,8 +480,7 @@ namespace FWO.Test
 
             public void AddUndefinedInternalZoneWithCommunication()
             {
-                List<NetworkZone> allowedDestinations = new();
-                allowedDestinations.Add(networkZones[0]);
+                List<NetworkZone> allowedDestinations = [networkZones[0]];
                 networkZones.Add(new NetworkZone
                 {
                     Id = 3,

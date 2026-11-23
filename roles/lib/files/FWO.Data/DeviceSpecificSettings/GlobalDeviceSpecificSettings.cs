@@ -3,6 +3,10 @@ namespace FWO.Data.DeviceSpecificSettings;
 /// <summary>Effective device specific setting values, initialized with their compiled defaults.</summary>
 public class GlobalDeviceSpecificSettings
 {
+    public const int kDefaultRequestResponseTimeout = 300;
+    public const int kDefaultRequestMaxAttempts = 3;
+    public const int kDefaultRequestCyclesBetweenAttempts = 5;
+
     public DeviceSpecificSettingsScope Scope { get; set; } = new();
 
     public ProvisioningInstallOn InstallOn { get; set; } = ProvisioningInstallOn.Any;
@@ -31,12 +35,30 @@ public class GlobalDeviceSpecificSettings
 
     public ProvisioningImplementationMode ImplementationMode { get; set; } = ProvisioningImplementationMode.Automatic;
 
-    public ProvisioningRuleImplementationMode ImplementationModeOverrideForRules { get; set; } = ProvisioningRuleImplementationMode.Automatic;
+    public ProvisioningRuleImplementationMode ImplementationModeForRules { get; set; } = ProvisioningRuleImplementationMode.Automatic;
 
-    /// <summary>ID of the external ticket system to reroute to; null while undefined.</summary>
-    public int? RerouteToExternalTicketSystem { get; set; }
+    /// <summary>External ticket system to hand tasks to in the external ticket system mode; undefined unless set.</summary>
+    public ExternalTicketSystemKind RerouteToExternalTicketSystem { get; set; } = ExternalTicketSystemKind.Undefined;
 
-    public List<string> SecurityProfiles { get; set; } = new();
+    /// <summary>Base URL of the Tufin SecureChange API; empty while undefined.</summary>
+    public string ScUrl { get; set; } = "";
+
+    /// <summary>ID of the credential used to log into Tufin SecureChange; null while undefined.</summary>
+    public int? ScCredential { get; set; }
+
+    /// <summary>Whether the Tufin SecureChange user ID of the requester is looked up and set as requester of the ticket.</summary>
+    public bool ScLookupRequesterId { get; set; } = false;
+
+    /// <summary>Seconds a call to the external ticket system or the firewall may take before it fails.</summary>
+    public int RequestResponseTimeout { get; set; } = kDefaultRequestResponseTimeout;
+
+    /// <summary>How often an external request is sent before it is rejected, if its errors may pass.</summary>
+    public int RequestMaxAttempts { get; set; } = kDefaultRequestMaxAttempts;
+
+    /// <summary>Job cycles to wait before the next attempt, multiplied by the number of attempts so far.</summary>
+    public int RequestCyclesBetweenAttempts { get; set; } = kDefaultRequestCyclesBetweenAttempts;
+
+    public List<string> SecurityProfiles { get; set; } = [];
 
     public string OwnerIdCustomFieldName { get; set; } = "OwnerId";
 
@@ -78,7 +100,7 @@ public class GlobalDeviceSpecificSettings
     }
 
     /// <summary>
-    /// Returns the implementation mode of a kind of task: <see cref="ImplementationModeOverrideForRules"/> for rule
+    /// Returns the implementation mode of a kind of task: <see cref="ImplementationModeForRules"/> for rule
     /// tasks, <see cref="ImplementationMode"/> for objects. Each setting stands alone, there is no fallback between
     /// them. Undefined counts as Automatic, the compiled default.
     /// </summary>
@@ -89,7 +111,7 @@ public class GlobalDeviceSpecificSettings
         {
             return ImplementationMode == ProvisioningImplementationMode.Undefined ? ProvisioningImplementationMode.Automatic : ImplementationMode;
         }
-        return ImplementationModeOverrideForRules switch
+        return ImplementationModeForRules switch
         {
             ProvisioningRuleImplementationMode.Manual => ProvisioningImplementationMode.Manual,
             ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem => ProvisioningImplementationMode.RerouteToExternalTicketSystem,

@@ -1,0 +1,64 @@
+@using FWO.Data
+@using FWO.Ui.Display
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("edit_owner"))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <SelectOwner SelectedOwner="selectedOwner" SelectedOwnerChanged="OwnerChanged"
+                Apps="Owners" WithConnectionStatus="false" Nullable="true" />
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+    </Footer>
+</PopUp>
+
+@code {
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public FwoOwner SelectedOwner { get; set; } = new();
+    [Parameter] public List<FwoOwner> Owners { get; set; } = [];
+    [Parameter] public EventCallback<FwoOwner> Saved { get; set; }
+
+    private FwoOwner selectedOwner = new();
+    private int? initializedOwnerId;
+
+    protected override void OnParametersSet()
+    {
+        if (!Display || initializedOwnerId == SelectedOwner.Id)
+        {
+            return;
+        }
+
+        selectedOwner = Owners.FirstOrDefault(owner => owner.Id == SelectedOwner.Id) ?? SelectedOwner;
+        initializedOwnerId = SelectedOwner.Id;
+    }
+
+    private Task OwnerChanged(FwoOwner owner)
+    {
+        selectedOwner = owner;
+        return Task.CompletedTask;
+    }
+
+    private async Task Save()
+    {
+        if (selectedOwner.Id == 0)
+        {
+            return;
+        }
+
+        await Saved.InvokeAsync(selectedOwner);
+        Close();
+    }
+
+    private void Close()
+    {
+        initializedOwnerId = null;
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+}

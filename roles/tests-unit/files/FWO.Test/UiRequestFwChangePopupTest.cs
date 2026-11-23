@@ -57,12 +57,6 @@ namespace FWO.Test
             return wrapper.FindComponent<RequestFwChangePopup>();
         }
 
-        private static TValue GetPrivateField<TValue>(object instance, string fieldName)
-        {
-            FieldInfo? field = instance.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
-            return field != null ? (TValue)field.GetValue(instance)! : throw new MissingFieldException(instance.GetType().FullName, fieldName);
-        }
-
         private static void SetPrivateProperty(object instance, string propertyName, object? value)
         {
             PropertyInfo? property = instance.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
@@ -401,7 +395,7 @@ namespace FWO.Test
             RequestFwChangePopupTestApiConn apiConn = new();
             SimulatedUserConfig userConfig = CreateUserConfig();
             FwoOwner selectedApp = new() { Id = 7, Name = "App" };
-            List<ModellingConnection> connections = new();
+            List<ModellingConnection> connections = [];
 
             using BunitContext context = new();
             IRenderedComponent<RequestFwChangePopup> component = RenderPopup(context, apiConn, userConfig, selectedApp, connections);
@@ -428,7 +422,7 @@ namespace FWO.Test
             RequestFwChangePopupTestApiConn apiConn = new();
             SimulatedUserConfig userConfig = CreateUserConfig();
             FwoOwner selectedApp = new() { Id = 7, Name = "App" };
-            List<ModellingConnection> connections = new();
+            List<ModellingConnection> connections = [];
 
             using BunitContext context = new();
             IRenderedComponent<RequestFwChangePopup> component = RenderPopup(context, apiConn, userConfig, selectedApp, connections);
@@ -478,8 +472,8 @@ namespace FWO.Test
 
         private static WfReqTask CreateGroupModifyTask()
         {
-            List<WfReqElement> elements = new()
-            {
+            List<WfReqElement> elements =
+            [
                 new()
                 {
                     RequestAction = RequestAction.unchanged.ToString(),
@@ -508,7 +502,7 @@ namespace FWO.Test
                     Name = "removed-host",
                     IpString = "192.0.2.13/32"
                 }
-            };
+            ];
 
             return new()
             {
@@ -520,8 +514,8 @@ namespace FWO.Test
 
         private static WfReqTask CreateServiceGroupCreateTask()
         {
-            List<WfReqElement> elements = new()
-            {
+            List<WfReqElement> elements =
+            [
                 new()
                 {
                     RequestAction = RequestAction.create.ToString(),
@@ -531,7 +525,7 @@ namespace FWO.Test
                     ProtoId = 6,
                     GroupName = "MyServiceGroup"
                 }
-            };
+            ];
 
             return new()
             {

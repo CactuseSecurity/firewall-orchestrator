@@ -1,5 +1,6 @@
 // source: https://blog.christian-schou.dk/send-emails-with-asp-net-core-with-mailkit/
 
+using MailKit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
@@ -43,7 +44,7 @@ namespace FWO.Mail
     {
         private const string kTlsLogCategory = "Email TLS";
         private static readonly HashSet<string> uncheckedServersWarned = [];
-        private static readonly object uncheckedServerLock = new();
+        private static readonly Lock uncheckedServerLock = new();
 
         /// <summary>
         /// Applies the certificate checking setting of the email connection to the SMTP client.

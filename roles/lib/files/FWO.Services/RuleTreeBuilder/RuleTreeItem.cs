@@ -9,7 +9,7 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// Direct Children of this tree item.
         /// </summary>
-        new public List<RuleTreeItem> Children { get; set; } = new();
+        new public List<RuleTreeItem> Children { get; set; } = [];
         /// <summary>
         /// The object that is organized with its kins in the tree structure
         /// </summary>
@@ -17,7 +17,7 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// A flat list of every tree item that is somewhere in the tree.
         /// </summary>
-        new public List<RuleTreeItem> ElementsFlat { get; set; } = new();
+        new public List<RuleTreeItem> ElementsFlat { get; set; } = [];
         /// <summary>
         /// Lookup of flat tree items by their report rule instance.
         /// </summary>
@@ -88,7 +88,7 @@ namespace FWO.Services.RuleTreeBuilder
         /// <summary>
         /// Tree items without children that were reached during the last traversal down.
         /// </summary>
-        public List<RuleTreeItem> SelectedRuleTreeLeafs { get; set; } = new();
+        public List<RuleTreeItem> SelectedRuleTreeLeafs { get; set; } = [];
 
         #endregion
 

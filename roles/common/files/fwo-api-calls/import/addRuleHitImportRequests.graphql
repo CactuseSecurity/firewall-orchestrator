@@ -1,0 +1,8 @@
+mutation addRuleHitImportRequests($requests: [rule_hit_import_request_insert_input!]!) {
+  insert_rule_hit_import_request(
+    objects: $requests
+    on_conflict: { constraint: rule_hit_import_request_pkey, update_columns: [] }
+  ) {
+    affected_rows
+  }
+}

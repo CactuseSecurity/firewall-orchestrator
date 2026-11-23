@@ -123,14 +123,14 @@ namespace FWO.Test.Fixtures
         {
             if (allCompliant)
             {
-                return new List<Rule>
-                {
+                return
+                [
                     CreateSimpleRule(1),
                     CreateSimpleRule(2),
                     CreateSimpleRule(3),
                     CreateSimpleRule(4),
                     CreateSimpleRule(5)
-                };
+                ];
             }
             else
             {
@@ -152,14 +152,14 @@ namespace FWO.Test.Fixtures
 
                 Rule ruleCompliant = CreateSimpleRule(5);
 
-                return new List<Rule>
-                {
+                return
+                [
                     ruleNotAssessable,
                     ruleMatrixViolation,
                     ruleMatrixViolationAutoCalcInternet,
                     ruleForbiddenService,
                     ruleCompliant
-                };
+                ];
             }
         }
 
@@ -273,8 +273,8 @@ namespace FWO.Test.Fixtures
 
         protected virtual List<NetworkZone> CreateNetworkZones(bool createInternetZone, bool createUndefinedInternalZone, int criterionId = 1)
         {
-            List<NetworkZone> networkZones = new()
-            {
+            List<NetworkZone> networkZones =
+            [
                 new()
                 {
                     Id = 1,
@@ -303,7 +303,7 @@ namespace FWO.Test.Fixtures
                         )
                     ]
                 }
-            };
+            ];
 
             if (createInternetZone)
             {

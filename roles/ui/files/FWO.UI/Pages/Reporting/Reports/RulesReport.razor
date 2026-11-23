@@ -75,7 +75,7 @@
                                 {
                                     <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("last_hit"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Metadata.LastHit)" Sortable="false" Filterable="false">
                                         <Template>
-                                            @((MarkupString)RuleDisplayHtml.DisplayLastHit(ruleTreeItem.Data!.Metadata))
+                                            @((MarkupString)_ruleDisplay.DisplayLastHit(ruleTreeItem.Data!.Metadata, GatewayHitContext.For(management, device, ruleTreeItem.Data!, ManagementRulebaseView)))
                                         </Template>
                                     </Column>
                                     @if (_showLastModifiedAfterLastHit && _emptyColumns[13] == false)
@@ -209,23 +209,20 @@
                                     <Column TableItem="RuleTreeItem" Title="@(userConfig.GetText("comment"))" Field="@(ruleTreeItem => ruleTreeItem.Data!.Comment)" Sortable="true" Filterable="false" Hideable="true" />
                                 }
 
-                                @if (_emptyColumns[13] == false)
+                                @if (_emptyColumns[13] == false && !_showLastModifiedAfterLastHit)
                                 {
-                                    @if (!_showLastModifiedAfterLastHit)
-                                    {
-                                        <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="LastModified" Field="@(ruleTreeItem => ruleTreeItem.Data!.LastModified)" Sortable="true" Filterable="false" Hideable="true">
-                                            <Template>
-                                                @((MarkupString)RuleDisplayBase.DisplayLastModified(ruleTreeItem.Data!))
-                                            </Template>
-                                        </Column>
-                                    }
+                                    <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="LastModified" Field="@(ruleTreeItem => ruleTreeItem.Data!.LastModified)" Sortable="true" Filterable="false" Hideable="true">
+                                        <Template>
+                                            @((MarkupString)RuleDisplayBase.DisplayLastModified(ruleTreeItem.Data!))
+                                        </Template>
+                                    </Column>
                                 }
 
                                 @if (_emptyColumns[14] == false && ShowLastHitColumn)
                                 {
                                     <Column TableItem="RuleTreeItem" Context="ruleTreeItem" Title="@(userConfig.GetText("last_hit"))" Field="@(r => r.Data.Metadata.LastHit)" Sortable="true" Hideable="true" Class="minw-80">
                                         <Template>
-                                            @((MarkupString)RuleDisplayHtml.DisplayLastHit(ruleTreeItem.Data.Metadata))
+                                            @((MarkupString)_ruleDisplay.DisplayLastHit(ruleTreeItem.Data.Metadata, GatewayHitContext.For(management, device, ruleTreeItem.Data, ManagementRulebaseView)))
                                         </Template>
                                     </Column>
                                 }
@@ -288,6 +285,13 @@
     public bool Recertification { get; set; } = false;
 
     /// <summary>
+    /// True if the report lists every rulebase once per management. The last hit column then shows the latest
+    /// hit across all gateways instead of the hit on the gateway the rules are listed below.
+    /// </summary>
+    [Parameter]
+    public bool ManagementRulebaseView { get; set; } = false;
+
+    /// <summary>
     /// Scrolls to the rule tree that lists a referenced rulebase completely (management rulebases view).
     /// </summary>
     private async Task ScrollToRuleTree(int managementId, int treeId)
@@ -338,7 +342,6 @@
     private bool _showLastModifiedAfterLastHit => SelectedReportType == ReportType.UnusedRules || SelectedReportType == ReportType.AppRules;
     private bool ShowLastHitColumn => ReportTypeGroups.IsRuleReport(SelectedReportType);
 
-    private Rule? _lastClickedRule = null;
 
     #endregion
 
@@ -433,10 +436,6 @@
 
     private void OnNumberIconClickToggle(Rule rule, ManagementReport managementReport, DeviceReport deviceReport)
     {
-        // Capture clicked rule
-
-        _lastClickedRule = rule;
-
         // Get corresponding tree item for rule
 
         RuleTreeItem ruleTree = GetRuleTree(managementReport, deviceReport);

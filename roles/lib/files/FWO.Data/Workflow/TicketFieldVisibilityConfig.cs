@@ -24,8 +24,14 @@ namespace FWO.Data.Workflow
         [JsonProperty("comments"), JsonPropertyName("comments")]
         public bool ShowComments { get; set; } = false;
 
+        [JsonProperty("handlerDisplayMode"), JsonPropertyName("handlerDisplayMode")]
+        public TicketHandlerDisplayMode HandlerDisplayMode { get; set; } = TicketHandlerDisplayMode.None;
+
         [JsonProperty("accessTask"), JsonPropertyName("accessTask")]
         public AccessTaskFieldVisibilityConfig AccessTask { get; set; } = new();
+
+        [JsonProperty("objectTask"), JsonPropertyName("objectTask")]
+        public ObjectTaskFieldVisibilityConfig ObjectTask { get; set; } = new();
 
         /// <summary>
         /// Parses a serialized ticket and access-task field visibility configuration.
@@ -43,6 +49,7 @@ namespace FWO.Data.Workflow
             {
                 TicketFieldVisibilityConfig config = System.Text.Json.JsonSerializer.Deserialize<TicketFieldVisibilityConfig>(serializedConfig) ?? new();
                 config.AccessTask ??= new();
+                config.ObjectTask ??= new();
                 return config;
             }
             catch (System.Text.Json.JsonException)
@@ -72,6 +79,12 @@ namespace FWO.Data.Workflow
         [JsonProperty("owner"), JsonPropertyName("owner")]
         public bool ShowOwner { get; set; } = true;
 
+        [JsonProperty("ruleAction"), JsonPropertyName("ruleAction")]
+        public bool ShowRuleAction { get; set; } = true;
+
+        [JsonProperty("tracking"), JsonPropertyName("tracking")]
+        public bool ShowTracking { get; set; } = true;
+
         [JsonProperty("validFrom"), JsonPropertyName("validFrom")]
         public bool ShowValidFrom { get; set; } = true;
 
@@ -86,5 +99,39 @@ namespace FWO.Data.Workflow
 
         [JsonProperty("comments"), JsonPropertyName("comments")]
         public bool ShowComments { get; set; } = true;
+
+        /// <summary>Shows the task title in the approval views; the request dialog always shows it, as it is required.</summary>
+        [JsonProperty("title"), JsonPropertyName("title")]
+        public bool ShowTitle { get; set; } = true;
+
+        /// <summary>Shows the current handler in the approval views.</summary>
+        [JsonProperty("handler"), JsonPropertyName("handler")]
+        public bool ShowHandler { get; set; } = true;
+
+        /// <summary>Shows the assigned group in the approval views.</summary>
+        [JsonProperty("assigned"), JsonPropertyName("assigned")]
+        public bool ShowAssigned { get; set; } = true;
+    }
+
+    /// <summary>
+    /// Configures which fields of object and group request tasks are displayed in the approval views.
+    /// </summary>
+    public class ObjectTaskFieldVisibilityConfig
+    {
+        /// <summary>Shows the current handler.</summary>
+        [JsonProperty("handler"), JsonPropertyName("handler")]
+        public bool ShowHandler { get; set; } = true;
+
+        /// <summary>Shows the assigned group.</summary>
+        [JsonProperty("assigned"), JsonPropertyName("assigned")]
+        public bool ShowAssigned { get; set; } = true;
+
+        /// <summary>Shows the management.</summary>
+        [JsonProperty("management"), JsonPropertyName("management")]
+        public bool ShowManagement { get; set; } = true;
+
+        /// <summary>Shows the reason.</summary>
+        [JsonProperty("reason"), JsonPropertyName("reason")]
+        public bool ShowReason { get; set; } = true;
     }
 }

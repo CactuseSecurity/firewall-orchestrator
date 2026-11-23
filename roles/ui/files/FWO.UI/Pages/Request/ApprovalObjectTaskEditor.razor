@@ -1,0 +1,73 @@
+@using FWO.Data
+@using FWO.Data.Workflow
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+<PopUp Title="@PopupTitle" Show="@Display" Size="PopupSize.Small" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            @if (!string.IsNullOrWhiteSpace(validationError))
+            {
+                <div class="alert alert-danger" role="alert">@(userConfig.GetText(validationError))</div>
+            }
+            <DisplayObjectTaskElement @ref="objectTaskElement" ReqTask="Task" IsModify="IsModify"
+                ManagementId="@Task.ManagementId" EditMode="true" SelectableIpProtos="SelectableIpProtos"
+                DisplayIpProtos="DisplayIpProtos" ObjectKind="ObjectKind"
+                AllowModifySelection="false" IncludePreviousElementName="false" />
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+    </Footer>
+</PopUp>
+
+@code {
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public WfReqTask Task { get; set; } = new();
+    [Parameter] public List<IpProtocol> SelectableIpProtos { get; set; } = [];
+    [Parameter] public List<IpProtocol> DisplayIpProtos { get; set; } = [];
+    [Parameter] public ObjectTaskKind ObjectKind { get; set; } = ObjectTaskKind.Network;
+    [Parameter] public bool IsModify { get; set; }
+    [Parameter] public Func<WfReqTask, Task> Saved { get; set; } = _ => System.Threading.Tasks.Task.CompletedTask;
+
+    private DisplayObjectTaskElement? objectTaskElement;
+    private string? validationError;
+    private string ObjectName => WfObjectTaskHelper.GetOriginalElement(Task)?.Name
+        ?? WfObjectTaskHelper.GetRequestedElement(Task)?.Name
+        ?? "";
+    private string PopupTitle
+    {
+        get
+        {
+            string action = userConfig.GetText(IsModify ? "object_modify" : "object_create");
+            return string.IsNullOrWhiteSpace(ObjectName) ? action : $"{action}: {ObjectName}";
+        }
+    }
+
+    private async Task Save()
+    {
+        if (objectTaskElement == null)
+        {
+            return;
+        }
+
+        validationError = objectTaskElement.ApplyToTask();
+        if (validationError != null)
+        {
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        await Saved(Task);
+        Close();
+    }
+
+    private void Close()
+    {
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+}

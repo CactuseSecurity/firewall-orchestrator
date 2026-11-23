@@ -41,8 +41,8 @@ namespace FWO.Test
         [Test]
         public void NormalizeEntries_UsesHighestCountsAndNormalizesIps()
         {
-            List<LogDataImportEntry> entries = new()
-            {
+            List<LogDataImportEntry> entries =
+            [
                 new()
                 {
                     AppId = "APP-LOW",
@@ -60,7 +60,7 @@ namespace FWO.Test
                     Port = 443,
                     Action = "deny"
                 }
-            };
+            ];
 
             List<FirewallLogEntryInput> normalized = LogDataImport.LimitEntries(LogDataImport.NormalizeEntries(entries, ImportTime), 1);
 
@@ -77,12 +77,12 @@ namespace FWO.Test
         [Test]
         public void MergeDuplicateEntries_MergesSameFlowOfSameOwner()
         {
-            List<FirewallLogEntryInput> entries = new()
-            {
+            List<FirewallLogEntryInput> entries =
+            [
                 BuildEntry(1, 3, 6, 443, ImportTime),
                 BuildEntry(1, 4, 6, 443, ImportTime.AddMinutes(1)),
                 BuildEntry(2, 5, 6, 443, ImportTime)
-            };
+            ];
             entries[1].LoggingRuleName = "later rule";
 
             List<FirewallLogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
@@ -103,12 +103,12 @@ namespace FWO.Test
         {
             // a blocked flow reported thousands of times must not disappear behind the few times
             // the same flow was accepted: both results are displayed with their own count
-            List<FirewallLogEntryInput> entries = new()
-            {
+            List<FirewallLogEntryInput> entries =
+            [
                 BuildEntry(1, 9000, 6, 443, ImportTime),
                 BuildEntry(1, 2, 6, 443, ImportTime.AddMinutes(1)),
                 BuildEntry(1, 1, 6, 443, ImportTime.AddMinutes(2))
-            };
+            ];
             entries[0].Allowed = false;
 
             List<FirewallLogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
@@ -125,12 +125,12 @@ namespace FWO.Test
         [Test]
         public void MergeDuplicateEntries_MergesFlowsWithoutService()
         {
-            List<FirewallLogEntryInput> entries = new()
-            {
+            List<FirewallLogEntryInput> entries =
+            [
                 BuildEntry(1, 1, null, null, ImportTime),
                 BuildEntry(1, 2, null, null, ImportTime),
                 BuildEntry(1, 4, 1, null, ImportTime)
-            };
+            ];
 
             List<FirewallLogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
 
@@ -145,14 +145,14 @@ namespace FWO.Test
         [Test]
         public void MergeDuplicateEntries_KeepsFlowsDifferingInASingleKeyField()
         {
-            List<FirewallLogEntryInput> entries = new()
-            {
+            List<FirewallLogEntryInput> entries =
+            [
                 BuildEntry(1, 1, 6, 443, ImportTime),
                 BuildEntry(1, 1, 6, 80, ImportTime),
                 BuildEntry(1, 1, 17, 443, ImportTime),
                 BuildEntry(2, 1, 6, 443, ImportTime),
                 BuildEntry(1, 1, 6, 443, ImportTime)
-            };
+            ];
             entries[4].Destination = "192.0.2.9/32";
 
             List<FirewallLogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
@@ -163,11 +163,11 @@ namespace FWO.Test
         [Test]
         public void MergeDuplicateEntries_KeepsLogCountWithinIntegerRange()
         {
-            List<FirewallLogEntryInput> entries = new()
-            {
+            List<FirewallLogEntryInput> entries =
+            [
                 BuildEntry(1, int.MaxValue, 6, 443, ImportTime),
                 BuildEntry(1, 1, 6, 443, ImportTime)
-            };
+            ];
 
             List<FirewallLogEntryInput> merged = LogDataImport.MergeDuplicateEntries(entries);
 
@@ -178,7 +178,7 @@ namespace FWO.Test
         [Test]
         public void MergeDuplicateEntries_ReturnsEmptyListForNoEntries()
         {
-            Assert.That(LogDataImport.MergeDuplicateEntries(new List<FirewallLogEntryInput>()), Is.Empty);
+            Assert.That(LogDataImport.MergeDuplicateEntries([]), Is.Empty);
         }
 
         private static FirewallLogEntryInput BuildEntry(int ownerId, int logCount, int? protocol, int? port, DateTimeOffset logTime)
@@ -199,12 +199,12 @@ namespace FWO.Test
         [Test]
         public void LimitEntries_KeepsTheFlowsWithTheHighestCounts()
         {
-            List<FirewallLogEntryInput> entries = new()
-            {
+            List<FirewallLogEntryInput> entries =
+            [
                 BuildEntry(1, 5, 6, 443, ImportTime),
                 BuildEntry(1, 90, 6, 80, ImportTime),
                 BuildEntry(1, 40, 17, 53, ImportTime)
-            };
+            ];
 
             List<FirewallLogEntryInput> limited = LogDataImport.LimitEntries(entries, 2);
 
@@ -215,13 +215,13 @@ namespace FWO.Test
         [Test]
         public void LimitEntries_AppliesTheMaximumToEveryOwner()
         {
-            List<FirewallLogEntryInput> entries = new()
-            {
+            List<FirewallLogEntryInput> entries =
+            [
                 BuildEntry(1, 1000, 6, 443, ImportTime),
                 BuildEntry(1, 900, 6, 80, ImportTime),
                 BuildEntry(2, 10, 17, 53, ImportTime),
                 BuildEntry(2, 5, 6, 22, ImportTime)
-            };
+            ];
 
             List<FirewallLogEntryInput> limited = LogDataImport.LimitEntries(entries, 1);
 
@@ -236,13 +236,13 @@ namespace FWO.Test
         [Test]
         public void LimitEntries_RanksAFlowByItsMergedCount()
         {
-            List<FirewallLogEntryInput> entries = new()
-            {
+            List<FirewallLogEntryInput> entries =
+            [
                 BuildEntry(1, 30, 6, 443, ImportTime),
                 BuildEntry(1, 30, 6, 443, ImportTime),
                 BuildEntry(1, 30, 6, 443, ImportTime),
                 BuildEntry(1, 50, 6, 80, ImportTime)
-            };
+            ];
 
             List<FirewallLogEntryInput> limited = LogDataImport.LimitEntries(LogDataImport.MergeDuplicateEntries(entries), 1);
 
@@ -252,10 +252,10 @@ namespace FWO.Test
         [Test]
         public void NormalizeEntries_RemovesTheZoneIndexOfALinkLocalAddress()
         {
-            List<LogDataImportEntry> entries = new()
-            {
+            List<LogDataImportEntry> entries =
+            [
                 new() { AppId = "APP-1", LogCount = 1, Source = "fe80::1%3", Destination = "fe80::2" }
-            };
+            ];
 
             List<FirewallLogEntryInput> normalized = LogDataImport.NormalizeEntries(entries, ImportTime);
 
@@ -269,8 +269,8 @@ namespace FWO.Test
         [Test]
         public void NormalizeEntries_SkipsPortForNonTransportProtocol()
         {
-            List<LogDataImportEntry> entries = new()
-            {
+            List<LogDataImportEntry> entries =
+            [
                 new()
                 {
                     AppId = "APP-1",
@@ -280,7 +280,7 @@ namespace FWO.Test
                     Protocol = 1,
                     Port = 8
                 }
-            };
+            ];
 
             Assert.That(LogDataImport.NormalizeEntries(entries, ImportTime), Is.Empty);
         }
@@ -288,12 +288,12 @@ namespace FWO.Test
         [Test]
         public void NormalizeEntries_TreatsAnUnknownActionAsAllowed()
         {
-            List<LogDataImportEntry> entries = new()
-            {
+            List<LogDataImportEntry> entries =
+            [
                 new() { AppId = "APP-1", LogCount = 3, Source = "192.0.2.1", Destination = "192.0.2.2", Action = "Client Encrypt" },
                 new() { AppId = "APP-1", LogCount = 2, Source = "192.0.2.3", Destination = "192.0.2.4", Action = "Block" },
                 new() { AppId = "APP-1", LogCount = 1, Source = "192.0.2.5", Destination = "192.0.2.6", Action = "" }
-            };
+            ];
 
             List<FirewallLogEntryInput> normalized = LogDataImport.NormalizeEntries(entries, ImportTime);
 
@@ -308,10 +308,10 @@ namespace FWO.Test
         [Test]
         public void NormalizeEntries_SkipsPortWithoutProtocolByDefault()
         {
-            List<LogDataImportEntry> entries = new()
-            {
+            List<LogDataImportEntry> entries =
+            [
                 new() { AppId = "APP-1", LogCount = 1, Source = "192.0.2.1", Destination = "192.0.2.2", Port = 443 }
-            };
+            ];
 
             Assert.That(LogDataImport.NormalizeEntries(entries, ImportTime), Is.Empty);
         }
@@ -319,10 +319,10 @@ namespace FWO.Test
         [Test]
         public void NormalizeEntries_KeepsPortWithoutProtocolWhenConfigured()
         {
-            List<LogDataImportEntry> entries = new()
-            {
+            List<LogDataImportEntry> entries =
+            [
                 new() { AppId = "APP-1", LogCount = 1, Source = "192.0.2.1", Destination = "192.0.2.2", Port = 443 }
-            };
+            ];
 
             List<FirewallLogEntryInput> normalized = LogDataImport.NormalizeEntries(entries, ImportTime, allowPortWithoutProtocol: true);
 
@@ -336,10 +336,10 @@ namespace FWO.Test
         [Test]
         public void NormalizeEntries_KeepsRejectingAPortOfANonTransportProtocol()
         {
-            List<LogDataImportEntry> entries = new()
-            {
+            List<LogDataImportEntry> entries =
+            [
                 new() { AppId = "APP-1", LogCount = 1, Source = "192.0.2.1", Destination = "192.0.2.2", Protocol = 1, Port = 8 }
-            };
+            ];
 
             Assert.That(LogDataImport.NormalizeEntries(entries, ImportTime, allowPortWithoutProtocol: true), Is.Empty);
         }
@@ -347,13 +347,13 @@ namespace FWO.Test
         [Test]
         public void NormalizeEntries_KeepsTheValidEntriesOfAFileWithInvalidOnes()
         {
-            List<LogDataImportEntry> entries = new()
-            {
+            List<LogDataImportEntry> entries =
+            [
                 new() { AppId = "APP-1", LogCount = 7, Source = "192.0.2.1", Destination = "192.0.2.2" },
                 new() { AppId = "", LogCount = 9, Source = "192.0.2.3", Destination = "192.0.2.4" },
                 new() { AppId = "APP-1", LogCount = 3, Source = "not an ip", Destination = "192.0.2.5" },
                 new() { AppId = "APP-1", LogCount = 5, Source = "192.0.2.6", Destination = "192.0.2.7" }
-            };
+            ];
 
             List<FirewallLogEntryInput> normalizedEntries = LogDataImport.NormalizeEntries(entries, ImportTime);
 

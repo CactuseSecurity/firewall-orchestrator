@@ -15,13 +15,8 @@ public static class RulePositioningContextValidator
         {
             return false;
         }
-        return HasCompatibleGatewaySelection(requestTask!, implementationTask!.DeviceId!.Value) &&
-            HasConsistentRequestManagementScope(requestTask!);
+        return HasCompatibleGatewaySelection(requestTask!, implementationTask!.DeviceId!.Value);
     }
-
-    /// <summary>Returns the implementation override or request-task management.</summary>
-    public static int EffectiveManagementId(WfReqTask requestTask, WfImplTask implementationTask) =>
-        implementationTask.ManagementId ?? requestTask.ManagementId ?? 0;
 
     /// <summary>Validates the complete manager contract, including workflow identity relationships.</summary>
     public static RulePositioningFailureCategory? ValidateManagerContext(RulePositioningContext? context)
@@ -120,16 +115,14 @@ public static class RulePositioningContextValidator
         {
             return false;
         }
-        return HasConsistentTargetManagement(context) &&
-            HasConsistentRequestManagementScope(context.ParentRequestTask);
+        return HasConsistentTargetManagement(context);
     }
 
     /// <summary>Checks workflow task identifiers and the effective target identifiers.</summary>
     private static bool HasValidTaskIdentity(WfReqTask? requestTask, WfImplTask? implementationTask) =>
         requestTask != null && implementationTask != null &&
         requestTask.Id > 0 && implementationTask.Id > 0 &&
-        implementationTask.ReqTaskId == requestTask.Id && implementationTask.DeviceId is > 0 &&
-        EffectiveManagementId(requestTask, implementationTask) > 0;
+        implementationTask.ReqTaskId == requestTask.Id && implementationTask.DeviceId is > 0;
 
     /// <summary>Checks an implementation gateway against an optional finite request selection.</summary>
     private static bool HasCompatibleGatewaySelection(WfReqTask requestTask, int gatewayId)
@@ -140,17 +133,16 @@ public static class RulePositioningContextValidator
         return !hasExplicitFiniteGatewaySelection || requestGatewayIds.Contains(gatewayId);
     }
 
-    /// <summary>Checks loaded target management and gateway ownership against the effective management.</summary>
+    /// <summary>Checks loaded target management against the canonical gateway ownership contract.</summary>
     private static bool HasConsistentTargetManagement(RulePositioningContext context)
     {
-        int effectiveManagementId = EffectiveManagementId(context.ParentRequestTask, context.ImplementationTask);
-        return effectiveManagementId > 0 && context.TargetManagement.Id == effectiveManagementId &&
-            context.TargetGateway.Management?.Id == effectiveManagementId;
+        return WfImplTaskTargetManagementResolver.TryResolveManagementId(
+                context.ParentRequestTask,
+                context.ImplementationTask,
+                context.TargetGateway,
+                out int managementId) &&
+            context.TargetManagement.Id == managementId;
     }
-
-    /// <summary>Checks the optional request management object against its identifier.</summary>
-    private static bool HasConsistentRequestManagementScope(WfReqTask requestTask) =>
-        requestTask.OnManagement == null || requestTask.OnManagement.Id == requestTask.ManagementId;
 
     /// <summary>Checks whether the effective settings select a supported positioning algorithm.</summary>
     private static bool HasUsableConfiguration(GatewayDeviceSpecificSettings? settings)

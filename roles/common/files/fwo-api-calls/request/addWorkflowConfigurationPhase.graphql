@@ -5,6 +5,7 @@ mutation addWorkflowConfigurationPhase(
   $name: String!
   $active: Boolean!
   $phaseVisibilityMode: String!
+  $promotionMode: String!
   $lowestInputState: Int!
   $lowestStartState: Int!
   $lowestEndState: Int!
@@ -20,6 +21,7 @@ mutation addWorkflowConfigurationPhase(
       phase: $phase
       active: $active
       phase_visibility_mode: $phaseVisibilityMode
+      promotion_mode: $promotionMode
       lowest_input_state: $lowestInputState
       lowest_start_state: $lowestStartState
       lowest_end_state: $lowestEndState

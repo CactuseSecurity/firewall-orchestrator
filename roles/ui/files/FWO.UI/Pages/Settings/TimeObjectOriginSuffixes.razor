@@ -1,0 +1,69 @@
+@using System.Text.Json
+@using FWO.Data.Workflow
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("time_object_origin_suffixes"))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            <div class="form-group row mt-2">
+                <label class="col-form-label col-sm-5">@(userConfig.GetText("time_object_origin_suffix_requester")):</label>
+                <div class="col-sm-7">
+                    <input class="form-control form-control-sm" @bind="RequesterSuffix" />
+                </div>
+            </div>
+            <div class="form-group row mt-2">
+                <label class="col-form-label col-sm-5">@(userConfig.GetText("time_object_origin_suffix_approver")):</label>
+                <div class="col-sm-7">
+                    <input class="form-control form-control-sm" @bind="ApproverSuffix" />
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Confirm">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+    </Footer>
+</PopUp>
+
+@code {
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public string ConfigValue { get; set; } = "";
+    [Parameter] public EventCallback<string> ConfigValueChanged { get; set; }
+
+    private Dictionary<string, string> suffixes = TimeObjectNamingHelper.ParseSuffixes(null);
+
+    private string RequesterSuffix
+    {
+        get => suffixes.GetValueOrDefault("requester", "");
+        set => suffixes["requester"] = value ?? "";
+    }
+
+    private string ApproverSuffix
+    {
+        get => suffixes.GetValueOrDefault("approver", "");
+        set => suffixes["approver"] = value ?? "";
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Display)
+        {
+            suffixes = TimeObjectNamingHelper.ParseSuffixes(ConfigValue);
+        }
+    }
+
+    private async Task Confirm()
+    {
+        await ConfigValueChanged.InvokeAsync(JsonSerializer.Serialize(suffixes));
+        Close();
+    }
+
+    private void Close()
+    {
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+}

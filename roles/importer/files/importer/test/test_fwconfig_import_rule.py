@@ -117,6 +117,21 @@ class TestFwConfigImportRule:
         assert rule_changes[0]["new_rule_id"] == new_rule_id
         assert rule_changes[0]["old_rule_id"] == old_rule_id
 
+    def test_new_rule_metadata_leaves_last_hit_to_the_rule_hit_import(
+        self, fwconfig_import_rule: FwConfigImportRule, mocker: MockerFixture
+    ) -> None:
+        normalized_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        normalized_rule.last_hit = "2026-11-06T08:15:00+00:00"
+        fwconfig_import_rule.normalized_config = mocker.Mock()
+        fwconfig_import_rule.import_details = mocker.Mock()
+        fwconfig_import_rule.import_details.state.mgm_details.current_mgm_id = 1
+        fwconfig_import_rule.import_details.state.import_id = 5
+
+        metadata = fwconfig_import_rule.prepare_new_rule_metadata([normalized_rule])
+
+        assert metadata[0]["rule_uid"] == "rule-uid"
+        assert metadata[0]["rule_last_hit"] is None
+
     @pytest.mark.parametrize(
         ("changed_field", "changed_value"),
         [

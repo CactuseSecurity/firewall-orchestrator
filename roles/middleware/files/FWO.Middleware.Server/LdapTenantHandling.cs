@@ -22,10 +22,10 @@ namespace FWO.Middleware.Server
             {
                 using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
-                LdapAttributeSet attributeSet = new()
-                {
+                LdapAttributeSet attributeSet =
+                [
                     new LdapAttribute("objectclass", "organizationalUnit")
-                };
+                ];
 
                 LdapEntry newEntry = new(TenantNameToDn(tenantName), attributeSet);
 

@@ -1,0 +1,60 @@
+@using FWO.Ui.Display
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<PopUp Title="@(userConfig.GetText("edit") + ": " + userConfig.GetText(TextKey))" Show="@Display" Size="PopupSize.Small" OnClose="Close">
+    <Body>
+        @if (Display)
+        {
+            @if (Multiline)
+            {
+                <textarea class="form-control form-control-sm" rows="@Rows" @bind="editedText"></textarea>
+            }
+            else
+            {
+                <input type="text" class="form-control form-control-sm" @bind="editedText" />
+            }
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
+    </Footer>
+</PopUp>
+
+@code {
+    [Parameter] public bool Display { get; set; }
+    [Parameter] public EventCallback<bool> DisplayChanged { get; set; }
+    [Parameter] public string Text { get; set; } = "";
+    [Parameter] public string TextKey { get; set; } = "text";
+    [Parameter] public bool Multiline { get; set; }
+    [Parameter] public int Rows { get; set; } = 4;
+    [Parameter] public EventCallback<string> Saved { get; set; }
+
+    private string editedText = "";
+    private bool initialized;
+
+    protected override void OnParametersSet()
+    {
+        if (!Display || initialized)
+        {
+            return;
+        }
+
+        editedText = Text;
+        initialized = true;
+    }
+
+    private async Task Save()
+    {
+        await Saved.InvokeAsync(editedText);
+        Close();
+    }
+
+    private void Close()
+    {
+        initialized = false;
+        _ = DisplayChanged.InvokeAsync(false);
+    }
+}

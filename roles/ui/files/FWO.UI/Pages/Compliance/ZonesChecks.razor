@@ -86,25 +86,6 @@
 		}
 	}
 
-	private bool CheckRuleCompliance(Rule rule, out List<(NetworkZone, NetworkZone)> forbiddenCommunication)
-	{
-		List<IPAddressRange> froms = [];
-		List<IPAddressRange> tos = [];
-
-		foreach (NetworkLocation networkLocation in rule.Froms)
-		{
-			// Determine all source ip ranges
-			froms.AddRange(ParseIpRange(networkLocation.Object));
-		}
-		foreach (NetworkLocation networkLocation in rule.Tos)
-		{
-			// Determine all destination ip ranges
-			tos.AddRange(ParseIpRange(networkLocation.Object));
-		}
-
-		return CheckCompliance(froms, tos, out forbiddenCommunication);
-	}
-
 	private bool CheckCompliance(List<IPAddressRange> source, List<IPAddressRange> destination, out List<(NetworkZone, NetworkZone)> forbiddenCommunication)
 	{
 		// Determine all matching source zones
@@ -153,7 +134,7 @@
 
 		// Get ip ranges that are not in any zone
 		List<IPAddressRange> undefinedIpRanges = unseenIpAddressRanges.SelectMany(x => x).ToList();
-		if (undefinedIpRanges.Count() > 0)
+		if (undefinedIpRanges.Count > 0)
 		{
 			result.Add
 			(

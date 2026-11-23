@@ -18,6 +18,11 @@ namespace FWO.Test
         /// </summary>
         private static readonly GlobalDeviceSpecificSettings kAllAutoPlanned = new() { AutoPlanImplementationForRules = true };
         private static readonly int[] kExpectedDeviceIds = [21, 22];
+        private static readonly string[] kExpectedSourceOneAndTwoNames = ["src-1", "src-2"];
+        private static readonly string[] kExpectedSharedSourceAndDestinations = ["shared-source", "dst-1", "dst-2"];
+        private static readonly string[] kExpectedSourceThreeName = ["src-3"];
+        private static readonly string[] kExpectedSourceTwoName = ["src-2"];
+        private static readonly string[] kExpectedSourceOneName = ["src-1"];
 
         private static void SetMatrix(WfHandler handler, string taskType, StateMatrix? matrix = null)
         {
@@ -164,8 +169,10 @@ namespace FWO.Test
         public async Task AddImplTask_AddsActiveImplementationTask()
         {
             WfHandler handler = new();
-            handler.ActReqTask = new WfReqTask();
-            handler.ActImplTask = new WfImplTask { TaskNumber = 1, Title = "Impl" };
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType, new StateMatrix { LowestInputState = 0, LowestEndState = 10 });
+            handler.ActReqTask = new WfReqTask { TaskType = taskType, StateId = 1 };
+            handler.ActImplTask = new WfImplTask { TaskType = taskType, StateId = 1, TaskNumber = 1, Title = "Impl" };
 
             await handler.AddImplTask();
 
@@ -187,6 +194,7 @@ namespace FWO.Test
                 ActImplTask = new WfImplTask(requestTask) { DeviceId = 21, StateId = 4 },
                 ActTicket = new WfTicket { Id = 7, Tasks = { requestTask } }
             };
+            SetMatrix(handler, requestTask.TaskType, new StateMatrix { LowestInputState = 0, LowestEndState = 10 });
             RecordingRulePositioningWorkflowCaller caller = RecordingRulePositioningWorkflowCaller.WithProductionApplicability();
             SetDbAccess(handler, new ImplTaskCreationApiConnection(handler.ActTicket), caller);
 
@@ -204,9 +212,11 @@ namespace FWO.Test
         public async Task ChangeImplTask_ReplacesTaskByTaskNumber()
         {
             WfHandler handler = new();
-            WfImplTask oldTask = new() { Id = 21, TaskNumber = 2, Title = "Old" };
-            handler.ActReqTask = new WfReqTask { ImplementationTasks = { oldTask } };
-            handler.ActImplTask = new WfImplTask { Id = 21, TaskNumber = 2, Title = "New" };
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType, new StateMatrix { LowestInputState = 0, LowestEndState = 10 });
+            WfImplTask oldTask = new() { Id = 21, TaskType = taskType, StateId = 1, TaskNumber = 2, Title = "Old" };
+            handler.ActReqTask = new WfReqTask { TaskType = taskType, StateId = 1, ImplementationTasks = { oldTask } };
+            handler.ActImplTask = new WfImplTask { Id = 21, TaskType = taskType, StateId = 1, TaskNumber = 2, Title = "New" };
 
             await handler.ChangeImplTask();
 
@@ -236,8 +246,10 @@ namespace FWO.Test
         public async Task ConfDeleteImplTask_RemovesTaskAndClearsFlag()
         {
             WfHandler handler = new();
-            WfImplTask implTask = new() { Id = 7 };
-            handler.ActReqTask = new WfReqTask();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType, new StateMatrix { LowestInputState = 0, LowestEndState = 10 });
+            WfImplTask implTask = new() { Id = 7, TaskType = taskType, StateId = 1 };
+            handler.ActReqTask = new WfReqTask { TaskType = taskType, StateId = 1 };
             handler.ActReqTask.ImplementationTasks.Add(implTask);
             handler.ActImplTask = implTask;
             handler.DisplayDeleteImplTaskMode = true;
@@ -246,6 +258,60 @@ namespace FWO.Test
 
             Assert.That(handler.ActReqTask.ImplementationTasks, Is.Empty);
             Assert.That(handler.DisplayDeleteImplTaskMode, Is.False);
+        }
+
+        [TestCase(1, false, true)]
+        [TestCase(-1, false, false)]
+        [TestCase(10, false, false)]
+        [TestCase(1, true, false)]
+        public async Task AddImplTask_OnlyWritesForActionablePhaseAndWritableMode(int stateId, bool readOnly, bool shouldWrite)
+        {
+            WfHandler handler = new() { ReadOnlyMode = readOnly };
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType, new StateMatrix { LowestInputState = 0, LowestEndState = 10 });
+            handler.ActReqTask = new WfReqTask { TaskType = taskType, StateId = stateId };
+            handler.ActImplTask = new WfImplTask { TaskType = taskType, StateId = stateId, TaskNumber = 1 };
+
+            await handler.AddImplTask();
+
+            Assert.That(handler.ActReqTask.ImplementationTasks, Has.Count.EqualTo(shouldWrite ? 1 : 0));
+        }
+
+        [TestCase(1, false, true)]
+        [TestCase(-1, false, false)]
+        [TestCase(10, false, false)]
+        [TestCase(1, true, false)]
+        public async Task ChangeImplTask_OnlyWritesForActionablePhaseAndWritableMode(int stateId, bool readOnly, bool shouldWrite)
+        {
+            WfHandler handler = new() { ReadOnlyMode = readOnly };
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType, new StateMatrix { LowestInputState = 0, LowestEndState = 10 });
+            WfImplTask existingTask = new() { Id = 21, TaskType = taskType, StateId = stateId, TaskNumber = 1, Title = "Old" };
+            handler.ActReqTask = new WfReqTask { TaskType = taskType, StateId = stateId, ImplementationTasks = { existingTask } };
+            handler.ActImplTask = new WfImplTask { Id = 21, TaskType = taskType, StateId = stateId, TaskNumber = 1, Title = "New" };
+
+            await handler.ChangeImplTask();
+
+            Assert.That(handler.ActReqTask.ImplementationTasks.Single(), Is.SameAs(shouldWrite ? handler.ActImplTask : existingTask));
+            Assert.That(handler.ActReqTask.ImplementationTasks.Single().Title, Is.EqualTo(shouldWrite ? "New" : "Old"));
+        }
+
+        [TestCase(1, false, true)]
+        [TestCase(-1, false, false)]
+        [TestCase(10, false, false)]
+        [TestCase(1, true, false)]
+        public async Task ConfDeleteImplTask_OnlyWritesForActionablePhaseAndWritableMode(int stateId, bool readOnly, bool shouldWrite)
+        {
+            WfHandler handler = new() { ReadOnlyMode = readOnly };
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType, new StateMatrix { LowestInputState = 0, LowestEndState = 10 });
+            WfImplTask implementationTask = new() { Id = 21, TaskType = taskType, StateId = stateId };
+            handler.ActReqTask = new WfReqTask { TaskType = taskType, StateId = stateId, ImplementationTasks = { implementationTask } };
+            handler.ActImplTask = implementationTask;
+
+            await handler.ConfDeleteImplTask();
+
+            Assert.That(handler.ActReqTask.ImplementationTasks, Has.Count.EqualTo(shouldWrite ? 0 : 1));
         }
 
         [Test]
@@ -668,8 +734,8 @@ namespace FWO.Test
 
             Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
             Assert.That(secondTask.ImplementationTasks, Has.Count.EqualTo(1));
-            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-1" }));
-            Assert.That(secondTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-2" }));
+            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(kExpectedSourceOneName));
+            Assert.That(secondTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(kExpectedSourceTwoName));
         }
 
         [Test]
@@ -686,8 +752,8 @@ namespace FWO.Test
             Assert.That(secondTask.ImplementationTasks, Is.Empty);
             Assert.That(unbundledTask.ImplementationTasks, Has.Count.EqualTo(1));
             Assert.That(firstTask.ImplementationTasks[0].ReqTaskId, Is.EqualTo(11));
-            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-1", "src-2" }));
-            Assert.That(unbundledTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(new[] { "src-3" }));
+            Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(kExpectedSourceOneAndTwoNames));
+            Assert.That(unbundledTask.ImplementationTasks[0].ImplElements.Select(element => element.Name), Is.EqualTo(kExpectedSourceThreeName));
         }
 
         [Test]
@@ -777,7 +843,7 @@ namespace FWO.Test
 
             Assert.That(firstTask.ImplementationTasks, Has.Count.EqualTo(1));
             Assert.That(firstTask.ImplementationTasks[0].ImplElements.Select(element => element.Name),
-                Is.EqualTo(new[] { "shared-source", "dst-1", "dst-2" }));
+                Is.EqualTo(kExpectedSharedSourceAndDestinations));
         }
 
         [Test]
@@ -812,7 +878,7 @@ namespace FWO.Test
             List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler, [overviewFirstTask, overviewSecondTask]);
 
             Assert.That(requestTasks, Has.Count.EqualTo(1));
-            Assert.That(requestTasks[0].Elements.Select(element => element.Name), Is.EqualTo(new[] { "src-1", "src-2" }));
+            Assert.That(requestTasks[0].Elements.Select(element => element.Name), Is.EqualTo(kExpectedSourceOneAndTwoNames));
         }
 
         [Test]
@@ -844,7 +910,7 @@ namespace FWO.Test
             SetDbAccess(handler, new RequestTaskDetailsApiConn(new WfTicket { Id = 7 }));
 
             List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler,
-                new List<WfReqTask> { newInterfaceTask });
+                [newInterfaceTask]);
 
             Assert.That(requestTasks, Has.Count.EqualTo(1));
             Assert.That(requestTasks[0], Is.SameAs(newInterfaceTask));
@@ -873,7 +939,7 @@ namespace FWO.Test
             WfTicket storedTicket = new() { Id = 7, Tasks = { storedTask } };
             WfHandler handler = CreateImplementationCreationHandler(overviewTask, implementationInputState: 99);
             SetDbAccess(handler, new RequestTaskDetailsApiConn(storedTicket));
-            List<WfReqTask> candidateTasks = new() { overviewTask };
+            List<WfReqTask> candidateTasks = [overviewTask];
 
             List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler, candidateTasks);
 

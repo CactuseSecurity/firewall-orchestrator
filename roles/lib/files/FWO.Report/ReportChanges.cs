@@ -3,6 +3,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Report;
+using FWO.Encoders;
 using FWO.Logging;
 using FWO.Report.Filter;
 using FWO.Ui.Display;
@@ -104,10 +105,10 @@ namespace FWO.Report
 
             foreach (var management in ReportData.ManagementData)
             {
-                if (managementImportIds.ContainsKey(management.Id) && managementImportIds[management.Id].Count > i) // Null check
+                if (managementImportIds.TryGetValue(management.Id, out List<long>? importIds) && importIds.Count > i) // Null check
                 {
-                    long importIdOld = managementImportIds[management.Id][i - 1];
-                    long importIdNew = managementImportIds[management.Id][i];
+                    long importIdOld = importIds[i - 1];
+                    long importIdNew = importIds[i];
                     SetMgtQueryVars(management.Id, importIdOld, importIdNew, IncludeObjects);
 
                     ManagementReport newData = (await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables)).First(); // Error
@@ -196,7 +197,7 @@ namespace FWO.Report
 
         private void AppendRuleChangeRowsCSV(StringBuilder report, ManagementReport management, RuleChangeDisplayCsv ruleChangeDisplayCsv)
         {
-            if (management.RuleChanges != null && management.RuleChanges?.Any() == true)
+            if (management.RuleChanges != null && management.RuleChanges.Length > 0)
             {
                 foreach (var ruleChange in management.RuleChanges)
                 {
@@ -223,7 +224,7 @@ namespace FWO.Report
 
         private static void AppendObjectChangeRowsCSV(StringBuilder report, ManagementReport management, RuleChangeDisplayCsv ruleChangeDisplayCsv)
         {
-            if (management.ObjectChanges != null && management.ObjectChanges?.Any() == true)
+            if (management.ObjectChanges != null && management.ObjectChanges.Length > 0)
             {
                 foreach (var objectChange in management.ObjectChanges)
                 {
@@ -244,7 +245,7 @@ namespace FWO.Report
 
         private static void AppendServiceChangeRowsCSV(StringBuilder report, ManagementReport management, RuleChangeDisplayCsv ruleChangeDisplayCsv)
         {
-            if (management.ServiceChanges != null && management.ServiceChanges?.Any() == true)
+            if (management.ServiceChanges != null && management.ServiceChanges.Length > 0)
             {
                 foreach (var serviceChange in management.ServiceChanges)
                 {
@@ -266,7 +267,7 @@ namespace FWO.Report
 
         private static void AppendUserChangeRowsCSV(StringBuilder report, ManagementReport management, RuleChangeDisplayCsv ruleChangeDisplayCsv)
         {
-            if (management.UserChanges != null && management.UserChanges?.Any() == true)
+            if (management.UserChanges != null && management.UserChanges.Length > 0)
             {
                 report.AppendLine($"#");
                 report.AppendLine("\"User objects\"");
@@ -374,7 +375,7 @@ namespace FWO.Report
 
         private void AppendRuleChangeRowsHTML(StringBuilder report, ManagementReport management, RuleChangeDisplayHtml ruleChangeDisplayHtml)
         {
-            if (management.RuleChanges != null && management.RuleChanges?.Any() == true)
+            if (management.RuleChanges != null && management.RuleChanges.Length > 0)
             {
                 foreach (var ruleChange in management.RuleChanges)
                 {
@@ -424,7 +425,7 @@ namespace FWO.Report
 
         private void AppendObjectChangeRowsHTML(StringBuilder report, ManagementReport management, RuleChangeDisplayHtml ruleChangeDisplayHtml)
         {
-            if (management.ObjectChanges != null && management.ObjectChanges?.Any() == true)
+            if (management.ObjectChanges != null && management.ObjectChanges.Length > 0)
             {
                 foreach (var objectChange in management.ObjectChanges)
                 {
@@ -449,7 +450,7 @@ namespace FWO.Report
         }
         private void AppendServiceChangeRowsHTML(StringBuilder report, ManagementReport management, RuleChangeDisplayHtml ruleChangeDisplayHtml)
         {
-            if (management.ServiceChanges != null && management.ServiceChanges?.Any() == true)
+            if (management.ServiceChanges != null && management.ServiceChanges.Length > 0)
             {
                 foreach (var serviceChange in management.ServiceChanges)
                 {
@@ -475,7 +476,7 @@ namespace FWO.Report
         }
         private void AppendUserChangeRowsHTML(StringBuilder report, ManagementReport management, RuleChangeDisplayHtml ruleChangeDisplayHtml)
         {
-            if (management.UserChanges != null && management.UserChanges?.Any() == true)
+            if (management.UserChanges != null && management.UserChanges.Length > 0)
             {
                 report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">User objects</h4>");
                 report.AppendLine("<table>");
@@ -486,7 +487,7 @@ namespace FWO.Report
                 report.AppendLine($"<th>{userConfig.GetText("comment")}</th>");
                 report.AppendLine("</tr>");
 
-                if (management.UserChanges != null && management.UserChanges?.Any() == true)
+                if (management.UserChanges != null && management.UserChanges.Length > 0)
                 {
                     foreach (var userChange in management.UserChanges)
                     {
@@ -525,7 +526,7 @@ namespace FWO.Report
         {
             RuleChangeDisplayJson ruleChangeDisplayJson = new(userConfig);
             JObject report = ParseJsonObjectFragment(DisplayReportHeaderJson());
-            JArray managements = new();
+            JArray managements = [];
             foreach (var management in ReportData.ManagementData.Where(mgt => !mgt.Ignore))
             {
                 JObject managementReport = new()
@@ -557,7 +558,7 @@ namespace FWO.Report
             }
         }
 
-        private JObject BuildJsonObject(Action<StringBuilder> appendProperties)
+        private static JObject BuildJsonObject(Action<StringBuilder> appendProperties)
         {
             StringBuilder properties = new();
             appendProperties(properties);
@@ -567,13 +568,13 @@ namespace FWO.Report
         private static JObject ParseJsonObjectFragment(string jsonFragment)
         {
             string trimmedFragment = jsonFragment.Trim().TrimEnd(',');
-            return string.IsNullOrEmpty(trimmedFragment) ? new JObject() : JObject.Parse($"{{{trimmedFragment}}}");
+            return string.IsNullOrEmpty(trimmedFragment) ? [] : JObject.Parse($"{{{trimmedFragment}}}");
         }
 
         private JArray BuildRuleChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
         {
-            JArray changes = new();
-            if (management.RuleChanges != null && management.RuleChanges.Any())
+            JArray changes = [];
+            if (management.RuleChanges != null && management.RuleChanges.Length > 0)
             {
                 foreach (var ruleChange in management.RuleChanges)
                 {
@@ -620,10 +621,10 @@ namespace FWO.Report
             properties.Append(ruleChangeDisplayJson.DisplayTranslatedServices(ruleChange, ReportType));
         }
 
-        private JArray BuildObjectChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
+        private static JArray BuildObjectChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
         {
-            JArray changes = new();
-            if (management.ObjectChanges != null && management.ObjectChanges.Any())
+            JArray changes = [];
+            if (management.ObjectChanges != null && management.ObjectChanges.Length > 0)
             {
                 foreach (var objectChange in management.ObjectChanges)
                 {
@@ -643,10 +644,10 @@ namespace FWO.Report
             return changes;
         }
 
-        private JArray BuildServiceChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
+        private static JArray BuildServiceChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
         {
-            JArray changes = new();
-            if (management.ServiceChanges != null && management.ServiceChanges.Any())
+            JArray changes = [];
+            if (management.ServiceChanges != null && management.ServiceChanges.Length > 0)
             {
                 foreach (var serviceChange in management.ServiceChanges)
                 {
@@ -667,10 +668,10 @@ namespace FWO.Report
             return changes;
         }
 
-        private JArray BuildUserChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
+        private static JArray BuildUserChangeArrayJson(ManagementReport management, RuleChangeDisplayJson ruleChangeDisplayJson)
         {
-            JArray changes = new();
-            if (management.UserChanges != null && management.UserChanges.Any())
+            JArray changes = [];
+            if (management.UserChanges != null && management.UserChanges.Length > 0)
             {
                 foreach (var userChange in management.UserChanges)
                 {

@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using Bunit;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -189,6 +190,8 @@ namespace FWO.Test
                 Assert.That(stored.ShowComments, Is.False);
                 Assert.That(stored.AccessTask.ShowManagement, Is.True);
                 Assert.That(stored.AccessTask.ShowOwner, Is.True);
+                Assert.That(stored.AccessTask.ShowRuleAction, Is.True);
+                Assert.That(stored.AccessTask.ShowTracking, Is.True);
                 Assert.That(stored.AccessTask.ShowValidFrom, Is.True);
                 Assert.That(stored.AccessTask.ShowValidTo, Is.True);
                 Assert.That(stored.AccessTask.ShowReason, Is.True);
@@ -203,11 +206,11 @@ namespace FWO.Test
             SettingsCustomizing component = new();
             WorkflowCustomizingApiConn apiConnection = new()
             {
-                States = new List<WfState>
-                {
+                States =
+                [
                     new() { Id = 0, Name = "draft" },
                     new() { Id = 17, Name = "requested" }
-                }
+                ]
             };
             SimulatedGlobalConfig globalConfig = new()
             {
@@ -294,6 +297,32 @@ namespace FWO.Test
             Assert.That(algorithmConfig.Value, Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree.ToString()));
         }
 
+        [Test]
+        public async Task Save_PersistsExternalRequestSettings()
+        {
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new() { ReqAvailableTaskTypes = "[]", ReqPriorities = "[]" };
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.ExternalRequestSleepTime = 120;
+            editableConfig.ExternalRequestWaitCycles = 4;
+            editableConfig.ExtTicketSystemsCheckCertificates = false;
+            SettingsCustomizing component = CreateSavableComponent(apiConnection, globalConfig, editableConfig);
+            // the start is edited as time of day and date
+            SetMember(component, "extReqStartDate", new DateTime(2026, 11, 5, 18, 0, 0));
+            SetMember(component, "extReqStartTime", new DateTime(2000, 1, 1, 6, 30, 0));
+
+            await (Task)GetPrivateMethod(typeof(SettingsCustomizing), "Save").Invoke(component, kNoArguments)!;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(editableConfig.ExternalRequestStartAt, Is.EqualTo(new DateTime(2026, 11, 5, 6, 30, 0)));
+                Assert.That(FindConfigItem(apiConnection.LastConfigItems, "externalRequestSleepTime").Value, Is.EqualTo("120"));
+                Assert.That(FindConfigItem(apiConnection.LastConfigItems, "externalRequestWaitCycles").Value, Is.EqualTo("4"));
+                Assert.That(FindConfigItem(apiConnection.LastConfigItems, ConfigData.kExtTicketSystemsCheckCertificatesKey).Value, Is.EqualTo("False"));
+                Assert.That(apiConnection.LastConfigItems.Any(item => item.Key == "externalRequestStartAt"), Is.True);
+            }
+        }
+
         private static SettingsCustomizing CreateSavableComponent(WorkflowCustomizingApiConn apiConnection, SimulatedGlobalConfig globalConfig, ConfigData editableConfig)
         {
             SettingsCustomizing component = new();
@@ -342,23 +371,51 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SettingsCustomizing_RendersPlannerOwnerAndEditModeSettings()
+        {
+            await using BunitContext context = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqAllowOwnerChangesByPlanner = true,
+                ReqPlannerEditMode = PlannerEditMode.PlanningView
+            };
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderCustomizing(context, globalConfig);
+
+            wrapper.WaitForAssertion(() =>
+            {
+                IElement ownerCheckbox = wrapper.Find("#cbx_allow_owner_changes_by_planner");
+                IElement plannerMode = wrapper.Find("#dropdown-sel_planning_edit_mode");
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(ownerCheckbox.HasAttribute("checked"), Is.True);
+                    Assert.That(plannerMode, Is.Not.Null);
+                    Assert.That(wrapper.Markup, Does.Contain("sel_approval_edit_mode"));
+                });
+            });
+        }
+
+        [Test]
         public async Task SettingsCustomizing_FiltersApiTicketInitialStatesToActivePhaseStates()
         {
             await using BunitContext context = new();
             WorkflowCustomizingApiConn apiConnection = new()
             {
-                States = new List<WfState>
-                {
+                States =
+                [
                     new() { Id = 0, Name = "draft" },
                     new() { Id = 17, Name = "requested" },
                     new() { Id = 50, Name = "approval" }
-                },
-                WorkflowConfigurations = new List<WorkflowConfiguration>
-                {
+                ],
+                WorkflowConfigurations =
+                [
                     CreateWorkflowConfiguration("request-active",
                         CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 101),
                         CreateWorkflowConfigurationPhase(WorkflowPhases.approval, false, 50, 60, 102))
-                }
+                ]
             };
             SimulatedGlobalConfig globalConfig = new()
             {
@@ -477,6 +534,34 @@ namespace FWO.Test
             Assert.That(apiConnection.LastConfigItems[0].Key, Is.EqualTo("reqFlowIntegration"));
             Assert.That(apiConnection.LastConfigItems[0].Value, Is.EqualTo(newValue));
             Assert.That(editableConfig.ReqFlowIntegration, Is.EqualTo(newValue));
+        }
+
+        [Test]
+        public async Task HandleTimeObjectOriginSuffixesChanged_PersistsConfigImmediately()
+        {
+            SettingsCustomizing component = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new() { ReqAvailableTaskTypes = "[]" };
+            SimulatedUserConfig userConfig = new();
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            string newValue = "{\"requester\":\"_user\",\"approver\":\"_approver\"}";
+
+            SetMember(component, "apiConnection", apiConnection);
+            SetMember(component, "globalConfig", globalConfig);
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, "configData", editableConfig);
+
+            Task handlerTask = (Task)GetPrivateMethod(typeof(SettingsCustomizing), "HandleTimeObjectOriginSuffixesChanged")
+                .Invoke(component, [newValue])!;
+            await handlerTask;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.LastConfigItems.Single().Key, Is.EqualTo("reqTimeObjectOriginSuffixes"));
+                Assert.That(apiConnection.LastConfigItems.Single().Value, Is.EqualTo(newValue));
+                Assert.That(editableConfig.ReqTimeObjectOriginSuffixes, Is.EqualTo(newValue));
+            });
         }
 
         [Test]
@@ -1088,22 +1173,22 @@ namespace FWO.Test
             public List<ConfigItem> LastConfigItems { get; private set; } = [];
             public List<WfState> States { get; set; } = [new WfState { Id = 0, Name = "draft" }];
             public bool ThrowOnUpsertConfig { get; set; } = false;
-            public List<PathAnalysisAlgorithm> PathAnalysisAlgorithms { get; set; } = new List<PathAnalysisAlgorithm>
-            {
+            public List<PathAnalysisAlgorithm> PathAnalysisAlgorithms { get; set; } =
+            [
                 // ordered by name like the query
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmForEachDevice, Name = "For each device" },
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree, Name = kNetworkZoneTreeAlgorithmName },
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmNone, Name = kNoneAlgorithmName },
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmFirstDevice, Name = "First device (if available)" }
-            };
-            public List<WorkflowConfiguration> WorkflowConfigurations { get; set; } = new List<WorkflowConfiguration>
-            {
+            ];
+            public List<WorkflowConfiguration> WorkflowConfigurations { get; set; } =
+            [
                 new()
                 {
                     Id = 1,
                     Name = "default",
-                    Phases = new List<WorkflowConfigurationPhase>
-                    {
+                    Phases =
+                    [
                         new()
                         {
                             TaskType = WfTaskType.master.ToString(),
@@ -1119,9 +1204,9 @@ namespace FWO.Test
                                 LowestEndState = 0
                             }
                         }
-                    }
+                    ]
                 }
-            };
+            ];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {

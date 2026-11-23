@@ -32,16 +32,6 @@ namespace FWO.Test
             field.SetValue(component, value);
         }
 
-        private static T GetPrivateField<T>(EditPolicy component, string fieldName)
-        {
-            FieldInfo? field = typeof(EditPolicy).GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
-            if (field == null)
-            {
-                throw new MissingFieldException(typeof(EditPolicy).FullName, fieldName);
-            }
-            return (T)field.GetValue(component)!;
-        }
-
         [Test]
         public async Task Save_AddModeWithEmptyName_DoesNotInsertPolicy()
         {
@@ -137,7 +127,7 @@ namespace FWO.Test
                     .Add(p => p.Display, true)
                     .Add(p => p.AddMode, false)
                     .Add(p => p.Policy, policy)
-                    .Add(p => p.Policies, new List<CompliancePolicy> { policy })));
+                    .Add(p => p.Policies, [policy])));
             EditPolicy editPolicy = component.FindComponent<EditPolicy>().Instance;
 
             SetPrivateField(editPolicy, "CriteriaToDelete", new List<ComplianceCriterion> { criterion });

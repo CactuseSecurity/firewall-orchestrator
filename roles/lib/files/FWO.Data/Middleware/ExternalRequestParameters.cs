@@ -12,5 +12,7 @@ namespace FWO.Data.Middleware
         public int TaskNumber { get; set; }
         public string ExtQueryVariables { get; set; } = "";
         public string ExtRequestState { get; set; } = "";
+        /// <summary>Implementation task of a request writing it to the firewall; null for a request to an external ticket system.</summary>
+        public long? ImplTaskId { get; set; }
     }
 }

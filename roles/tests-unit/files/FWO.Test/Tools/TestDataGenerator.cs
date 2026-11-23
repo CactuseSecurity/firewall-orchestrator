@@ -6,7 +6,7 @@ namespace FWO.Test
     {
         public static List<NetworkZone> CreateNetworkZones(int numberOfZones, bool createInternetZone, bool createUndefinedInternalZone)
         {
-            List<NetworkZone> zones = new();
+            List<NetworkZone> zones = [];
 
             for (int i = 0; i < numberOfZones; i++)
             {

@@ -13,7 +13,8 @@ namespace FWO.Logging
         private const string lockDirEnvVar = "FWO_LOG_LOCK_DIR";
         private const string defaultLockDir = "/var/fworch/lock";
 
-        private static SemaphoreSlim semaphore = new(1, 1);
+        private static readonly SemaphoreSlim semaphore = new(1, 1);
+        private const long kForcedLockReleaseMilliseconds = 10_000;
         private static readonly Random random = new();
 
         /// <summary>
@@ -36,72 +37,88 @@ namespace FWO.Logging
             Task.Factory.StartNew(async () =>
             {
                 // log switch - log file locking
-                bool logOwnedByExternal = false;
-                Stopwatch stopwatch = new();
+                LockFileState lockState = new();
 
                 while (true)
                 {
                     try
                     {
-                        // Open file
-                        using FileStream file = await GetFile(LockFilePath);
-                        // Read file content
-                        using StreamReader reader = new(file);
-                        string lockFileContent = (await reader.ReadToEndAsync()).Trim();
-
-                        // Forcefully release lock after timeout
-                        if (logOwnedByExternal && stopwatch.ElapsedMilliseconds > 10_000)
-                        {
-                            using StreamWriter writer = new(file);
-                            await writer.WriteLineAsync("FORCEFULLY RELEASED");
-                            stopwatch.Reset();
-                            semaphore.Release();
-                            logOwnedByExternal = false;
-                        }
-                        // GRANTED - lock was granted by us
-                        else if (lockFileContent.EndsWith("GRANTED"))
-                        {
-                            // Request lock if it is not already requested by us
-                            // (in case of restart with log already granted)
-                            if (!logOwnedByExternal)
-                            {
-                                semaphore.Wait();
-                                stopwatch.Restart();
-                                logOwnedByExternal = true;
-                            }
-                        }
-                        // REQUESTED - lock was requested by log swap process
-                        else if (lockFileContent.EndsWith("REQUESTED"))
-                        {
-                            // only request lock if it is not already requested by us
-                            if (!logOwnedByExternal)
-                            {
-                                semaphore.Wait();
-                                stopwatch.Restart();
-                                logOwnedByExternal = true;
-                            }
-                            using StreamWriter writer = new(file);
-                            await writer.WriteLineAsync("GRANTED");
-                        }
-                        // RELEASED - lock was released by log swap process
-                        else if (lockFileContent.EndsWith("RELEASED"))
-                        {
-                            // only release lock if it was formerly requested by us
-                            if (logOwnedByExternal)
-                            {
-                                stopwatch.Reset();
-                                semaphore.Release();
-                                logOwnedByExternal = false;
-                            }
-                        }
+                        await HandleLockFile(lockState);
                     }
                     catch (Exception)
                     {
-                        //WriteError("Log file locking", "Error while accessing log lock file.", e);
+                        // errors of the lock file cannot be logged, as logging itself depends on it - retry
                     }
                     await Task.Delay(1000);
                 }
             }, TaskCreationOptions.LongRunning);
+        }
+
+        /// <summary>
+        /// Reads the lock file once and reacts to the state written by the log swap process.
+        /// </summary>
+        private static async Task HandleLockFile(LockFileState lockState)
+        {
+            using FileStream file = await GetFile(LockFilePath);
+            using StreamReader reader = new(file);
+            string lockFileContent = (await reader.ReadToEndAsync()).Trim();
+
+            // Forcefully release lock after timeout
+            if (lockState.OwnedByExternal && lockState.Stopwatch.ElapsedMilliseconds > kForcedLockReleaseMilliseconds)
+            {
+                using StreamWriter writer = new(file);
+                await writer.WriteLineAsync("FORCEFULLY RELEASED");
+                lockState.Release();
+            }
+            // GRANTED - lock was granted by us, request it if not already done (in case of restart with log already granted)
+            else if (lockFileContent.EndsWith("GRANTED"))
+            {
+                lockState.Acquire();
+            }
+            // REQUESTED - lock was requested by log swap process
+            else if (lockFileContent.EndsWith("REQUESTED"))
+            {
+                lockState.Acquire();
+                using StreamWriter writer = new(file);
+                await writer.WriteLineAsync("GRANTED");
+            }
+            // RELEASED - lock was released by log swap process, only release lock if it was formerly requested by us
+            else if (lockFileContent.EndsWith("RELEASED") && lockState.OwnedByExternal)
+            {
+                lockState.Release();
+            }
+        }
+
+        /// <summary>
+        /// Tracks whether the log swap process currently owns the log, and since when.
+        /// </summary>
+        private sealed class LockFileState
+        {
+            public bool OwnedByExternal { get; private set; }
+            public Stopwatch Stopwatch { get; } = new();
+
+            /// <summary>
+            /// Takes the log semaphore for the log swap process, unless it already owns it.
+            /// </summary>
+            public void Acquire()
+            {
+                if (!OwnedByExternal)
+                {
+                    semaphore.Wait();
+                    Stopwatch.Restart();
+                    OwnedByExternal = true;
+                }
+            }
+
+            /// <summary>
+            /// Gives the log semaphore back.
+            /// </summary>
+            public void Release()
+            {
+                Stopwatch.Reset();
+                semaphore.Release();
+                OwnedByExternal = false;
+            }
         }
 
         private static async Task<FileStream> GetFile(string path)
@@ -114,7 +131,7 @@ namespace FWO.Logging
                 }
                 catch (Exception)
                 {
-                    //WriteDebug("Log file locking", $"Could not access log lock file: {e.Message}.");
+                    // errors of the lock file cannot be logged, as logging itself depends on it - retry
                 }
                 await Task.Delay(random.Next(100));
             }
@@ -123,17 +140,17 @@ namespace FWO.Logging
         [Conditional("DEBUG")]
         public static void WriteDebug(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteLog("Debug", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.White);
+            WriteLog("Debug", Title, Text, callerFile, callerLineNumber, ConsoleColor.White);
         }
 
         public static void WriteInfo(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteLog("Info", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Cyan);
+            WriteLog("Info", Title, Text, callerFile, callerLineNumber, ConsoleColor.Cyan);
         }
 
         public static void WriteWarning(string Title, string Text, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
         {
-            WriteLog("Warning", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.DarkYellow);
+            WriteLog("Warning", Title, Text, callerFile, callerLineNumber, ConsoleColor.DarkYellow);
         }
 
         public static void WriteError(string Title, string? Text = null, Exception? Error = null, string? User = null, string? Role = null, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
@@ -147,7 +164,7 @@ namespace FWO.Logging
                 $"Exception thrown: \n {Error}"
                 : "");
 
-            WriteLog("Error", Title, DisplayText, callerName, callerFile, callerLineNumber, ConsoleColor.Red);
+            WriteLog("Error", Title, DisplayText, callerFile, callerLineNumber, ConsoleColor.Red);
         }
 
         public static void WriteError(string Title, string Text, bool LogStackTrace, [CallerMemberName] string callerName = "", [CallerFilePath] string callerFile = "", [CallerLineNumber] int callerLineNumber = 0)
@@ -161,7 +178,7 @@ namespace FWO.Logging
                 $"Stack Trace: \n {Environment.StackTrace}"
                 : "");
 
-            WriteLog("Error", Title, DisplayText, callerName, callerFile, callerLineNumber, ConsoleColor.Red);
+            WriteLog("Error", Title, DisplayText, callerFile, callerLineNumber, ConsoleColor.Red);
         }
 
         /// <summary>
@@ -181,7 +198,7 @@ namespace FWO.Logging
                 Text += $"{Environment.NewLine}----{Environment.NewLine}";
             }
 
-            WriteLog("Audit", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
+            WriteLog("Audit", Title, Text, callerFile, callerLineNumber, ConsoleColor.Yellow);
         }
 
         /// <summary>
@@ -213,10 +230,10 @@ namespace FWO.Logging
                 Text += $"{Environment.NewLine}----{Environment.NewLine}";
             }
 
-            WriteLog("Audit", Title, Text, callerName, callerFile, callerLineNumber, ConsoleColor.Yellow);
+            WriteLog("Audit", Title, Text, callerFile, callerLineNumber, ConsoleColor.Yellow);
         }
 
-        private static void WriteLog(string LogType, string Title, string Text, string Method, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
+        private static void WriteLog(string LogType, string Title, string Text, string Path, int Line, ConsoleColor? ForegroundColor = null, ConsoleColor? BackgroundColor = null)
         {
             string File = Path.Split('\\', '/').Last(); // do not show the full file path, just the basename
             WriteInColor($"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzz")} {LogType} - {Title} ({File} in line {Line}), {Text}", ForegroundColor, BackgroundColor);

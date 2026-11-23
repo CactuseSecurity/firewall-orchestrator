@@ -29,8 +29,10 @@ namespace FWO.Test;
 [TestFixture]
 internal class WorkflowChangeHistoryControllerTest
 {
-    private static readonly List<string> kControllerRoutes = new() { "api/workflow" };
+    private static readonly List<string> kControllerRoutes = ["api/workflow"];
     internal const int kMaxLimit = GlobalConst.kDefaultMaxRestResponseObjectLimit;
+    private const int kRequesterId = 1;
+    private const int kEditorId = 8;
     // Unspecified on purpose: change_history.change_time is a timezone-naive column, so this is the
     // kind Newtonsoft produces for a stored row. Building fixtures as Utc hid the mismatch of F3.
     private static readonly DateTime kFirstChangeTime = new(2026, 9, 11, 8, 11, 0, DateTimeKind.Unspecified);
@@ -121,7 +123,7 @@ internal class WorkflowChangeHistoryControllerTest
         List<string> paths = errors.Errors.Select(error => error.Path).ToList();
         Assert.Multiple(() =>
         {
-            Assert.That(paths, Is.EquivalentTo(new List<string> { "ticketId", "ticket_id", "options.limit", "options.offset", "options.sortBy", "options.filter.changer" }));
+            Assert.That(paths, Is.EquivalentTo(["ticketId", "ticket_id", "options.limit", "options.offset", "options.sortBy", "options.filter.changer"]));
             Assert.That(errors.Errors.Single(error => error.Path == "ticketId").Message,
                 Does.Contain("must be greater than 0"));
             Assert.That(errors.Errors.Single(error => error.Path == "options.filter.changer").Message,
@@ -138,7 +140,7 @@ internal class WorkflowChangeHistoryControllerTest
         Assert.Multiple(() =>
         {
             Assert.That(errors.Errors.Select(error => error.Path),
-                Is.EquivalentTo(new List<string> { "ticketId", "options.filter.changer" }));
+                Is.EquivalentTo(["ticketId", "options.filter.changer"]));
             Assert.That(errors.Errors.Single(error => error.Path == "ticketId").Message,
                 Does.Contain("is required"));
         });
@@ -190,10 +192,10 @@ internal class WorkflowChangeHistoryControllerTest
             Assert.That(apiConnection.Queries, Is.EqualTo(new List<string>
             {
                 RequestQueries.getAuditProofCriticalChangesForTicket,
-                RequestQueries.getWorkflowTaskHistoryForTicket,
-                RequestQueries.getTicketById
+                RequestQueries.getTicketById,
+                RequestQueries.getWorkflowTaskHistoryForTicket
             }));
-            Assert.That(SerializeVariables(apiConnection.LastVariables), Does.Contain("\"id\":1234"));
+            Assert.That(SerializeVariables(apiConnection.LastVariables), Does.Contain("\"ticketId\":1234"));
             Assert.That(response.Changes, Has.Count.EqualTo(2));
             Assert.That(response.Changes[0].ChangeTime, Is.EqualTo(kSecondChangeTime));
             Assert.That(response.Changes[0].ChangeUserName, Is.EqualTo("DEF"));
@@ -469,7 +471,7 @@ internal class WorkflowChangeHistoryControllerTest
         Assert.Multiple(() =>
         {
             Assert.That(notFound.StatusCode, Is.EqualTo(404));
-            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(new List<string> { "ticketId" }));
+            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(["ticketId"]));
             Assert.That(errors.Errors[0].Message, Does.Contain("does not exist"));
             Assert.That(errors.Errors[0].Message, Does.Contain("999"));
         });
@@ -494,13 +496,13 @@ internal class WorkflowChangeHistoryControllerTest
 
         await controller.GetAuditProofCriticalChanges(new GetAuditProofCriticalChangesRequest { TicketId = 1234 });
 
-        // A returned change proves the ticket exists, so no existence probe is needed; the task-state
-        // evidence still needs its own history query.
+        // A returned change proves the ticket exists, so no existence probe is needed. The ticket is read
+        // to confirm the flags against its requester; the task-state evidence needs its own history query.
         Assert.That(apiConnection.Queries, Is.EqualTo(new List<string>
         {
             RequestQueries.getAuditProofCriticalChangesForTicket,
-            RequestQueries.getWorkflowTaskHistoryForTicket,
-            RequestQueries.getTicketById
+            RequestQueries.getTicketById,
+            RequestQueries.getWorkflowTaskHistoryForTicket
         }));
     }
 
@@ -597,7 +599,7 @@ internal class WorkflowChangeHistoryControllerTest
         RequestValidationErrorResponse errors = (RequestValidationErrorResponse)badRequest.Value!;
         Assert.Multiple(() =>
         {
-            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(new List<string> { "ticketId" }));
+            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(["ticketId"]));
             Assert.That(apiConnection.Queries, Is.Empty);
         });
     }
@@ -622,11 +624,11 @@ internal class WorkflowChangeHistoryControllerTest
 
         // The audit query and task-history query select these columns and filter and order on the
         // ticket/module/audit markers. Hasura resolves all of them through this role's permission.
-        Assert.That(columns, Is.SupersetOf(new List<string>
-        {
+        Assert.That(columns, Is.SupersetOf(
+        [
             "id", "changer", "changer_id", "change_text", "change_time", "ticket_id", "module", "audit_proof_critical",
             "change_type", "object_type", "object_id", "old_data", "new_data"
-        }));
+        ]));
     }
 
     /// <summary>
@@ -709,7 +711,7 @@ internal class WorkflowChangeHistoryControllerTest
     }
 
     [Test]
-    public async Task AChangeWrittenByAutomationReportsNoUserId()
+    public async Task AChangeWrittenByAutomationIsNotAuditProofCritical()
     {
         AuditProofCriticalChangesApiConnection apiConnection = new()
         {
@@ -728,7 +730,8 @@ internal class WorkflowChangeHistoryControllerTest
         GetAuditProofCriticalChangesResponse response =
             (await new WorkflowChangeHistoryService(apiConnection).GetAuditProofCriticalChangesAsync(1234, null))!;
 
-        Assert.That(response.Changes[0].ChangeUserId, Is.Null);
+        // without a user id the flag cannot be confirmed: only a known user other than the requester counts
+        Assert.That(response.Changes, Is.Empty);
     }
 
     [Test]
@@ -792,7 +795,7 @@ internal class WorkflowChangeHistoryControllerTest
         {
             Entries =
             [
-                new ModellingHistoryEntry { ChangeTime = kFirstChangeTime, Changer = null!, ChangerId = null, ChangeText = null! }
+                new ModellingHistoryEntry { ChangeTime = kFirstChangeTime, Changer = null!, ChangerId = 42, ChangeText = null! }
             ]
         };
 
@@ -801,7 +804,8 @@ internal class WorkflowChangeHistoryControllerTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(response.Changes[0].ChangeUserName, Is.Empty);
+            // a user that cannot be resolved is named by its id, never by the stored free text
+            Assert.That(response.Changes[0].ChangeUserName, Is.EqualTo("42"));
             Assert.That(response.Changes[0].ChangeContent, Is.Empty);
         });
     }
@@ -855,6 +859,8 @@ internal class WorkflowChangeHistoryControllerTest
             ObjectId = implementationTaskId,
             ChangeTime = kSecondChangeTime,
             Changer = changer,
+            ChangerId = kEditorId,
+            ChangerUser = new UiUser { DbId = kEditorId, Name = changer },
             ChangeText = changeText,
             AuditProofCritical = true
         };
@@ -902,6 +908,7 @@ internal class WorkflowChangeHistoryControllerTest
                     ChangeTime = kSecondChangeTime,
                     Changer = "DEF",
                     ChangerId = 8,
+                    ChangerUser = new UiUser { DbId = 8, Name = "DEF" },
                     ChangeText = "Updated workflow request task"
                 },
                 new ModellingHistoryEntry
@@ -909,6 +916,7 @@ internal class WorkflowChangeHistoryControllerTest
                     ChangeTime = kFirstChangeTime,
                     Changer = "abc",
                     ChangerId = 42,
+                    ChangerUser = new UiUser { DbId = 42, Name = "abc" },
                     ChangeText = "Updated workflow ticket"
                 }
             ]
@@ -924,10 +932,16 @@ internal class WorkflowChangeHistoryControllerTest
         public List<WfReqTask> CurrentTasks { get; set; } = [];
 
         /// <summary>
+        /// Gets or sets the requester of the simulated ticket. Defaults to a user none of the fixtures'
+        /// changers is, so their flagged changes count as changes of someone else.
+        /// </summary>
+        public int RequesterId { get; set; } = kRequesterId;
+
+        /// <summary>
         /// Gets or sets the ticket ids the simulated API knows. Defaults to the ids the fixtures use,
         /// so a test that only cares about changes does not have to declare the ticket as well.
         /// </summary>
-        public List<long> ExistingTicketIds { get; set; } = new() { 1234, 4321 };
+        public List<long> ExistingTicketIds { get; set; } = [1234, 4321];
 
         public List<string> Queries { get; } = [];
 
@@ -950,7 +964,12 @@ internal class WorkflowChangeHistoryControllerTest
 
             if (query == RequestQueries.getTicketById && typeof(QueryResponseType) == typeof(WfTicket))
             {
-                return Task.FromResult((QueryResponseType)(object)new WfTicket { Id = TicketIdOf(variables), Tasks = CurrentTasks });
+                return Task.FromResult((QueryResponseType)(object)new WfTicket
+                {
+                    Id = TicketIdOf(variables),
+                    Tasks = CurrentTasks,
+                    Requester = new UiUser { DbId = RequesterId }
+                });
             }
 
             if (query == RequestQueries.getTicketIdIfExists && typeof(QueryResponseType) == typeof(List<WfTicketBase>))

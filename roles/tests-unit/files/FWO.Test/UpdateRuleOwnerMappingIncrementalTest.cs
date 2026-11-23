@@ -64,7 +64,7 @@ namespace FWO.Test
             {
                 Assert.That(result, Is.True, "both imports should be processed without error");
                 Assert.That(apiConnection.CompletedImports, Is.EquivalentTo(new List<long> { 1, 2 }), "the owner import must not stay pending");
-                Assert.That(apiConnection.ActivePairs, Is.EquivalentTo(new List<string> { "101->1" }), "the rule must keep exactly one active mapping");
+                Assert.That(apiConnection.ActivePairs, Is.EquivalentTo(["101->1"]), "the rule must keep exactly one active mapping");
                 Assert.That(apiConnection.RaisedAlerts, Is.Empty, "a clean run must not raise an alert");
             });
         }
@@ -771,7 +771,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result, Is.True, "there was nothing to do, which is not a failure");
-                Assert.That(apiConnection.ActivePairs, Is.EquivalentTo(new List<string> { "101->1" }), "the existing mappings must survive");
+                Assert.That(apiConnection.ActivePairs, Is.EquivalentTo(["101->1"]), "the existing mappings must survive");
                 Assert.That(apiConnection.RaisedAlerts, Is.Empty, "nothing was observed, so nothing is reported");
                 Assert.That(apiConnection.StoredRuns, Is.Empty, "a run that could not judge must not be recorded");
                 Assert.That(apiConnection.CompletedImports, Does.Contain(7L), "the backlog still has to drain");

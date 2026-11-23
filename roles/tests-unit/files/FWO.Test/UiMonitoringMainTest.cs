@@ -3,6 +3,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
 using FWO.Middleware.Client;
@@ -28,6 +29,7 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class UiMonitoringMainTest
     {
+        private static readonly List<string> kSecureChangeLevels = ["Global"];
         private static MethodInfo GetPrivateMethod(string name)
         {
             return typeof(MonitoringMain).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
@@ -117,7 +119,7 @@ namespace FWO.Test
             MonitoringMain monitoring = setup.Component;
 
             Alert alert = new() { Id = 123, Source = "test" };
-            List<Alert> alerts = new() { alert };
+            List<Alert> alerts = [alert];
             SetPrivateField(monitoring, "alertEntrys", alerts);
 
             await InvokePrivateTask(monitoring, "Acknowledge", alert);
@@ -133,11 +135,11 @@ namespace FWO.Test
             setup.ApiConn.AckAllAffectedRows = 2;
             MonitoringMain monitoring = setup.Component;
 
-            List<Alert> alerts = new()
-            {
+            List<Alert> alerts =
+            [
                 new Alert { Id = 1, Source = "test" },
                 new Alert { Id = 2, Source = "test" }
-            };
+            ];
             SetPrivateField(monitoring, "alertEntrys", alerts);
 
             await InvokePrivateTask(monitoring, "AcknowledgeAllOpen");
@@ -153,7 +155,7 @@ namespace FWO.Test
             setup.ApiConn.AckAllAffectedRows = -1;
             MonitoringMain monitoring = setup.Component;
 
-            List<Alert> alerts = new() { new Alert { Id = 1, Source = "test" } };
+            List<Alert> alerts = [new Alert { Id = 1, Source = "test" }];
             SetPrivateField(monitoring, "alertEntrys", alerts);
 
             await InvokePrivateTask(monitoring, "AcknowledgeAllOpen");
@@ -239,7 +241,7 @@ namespace FWO.Test
         {
             using MonitoringMainTestSetup setup = RenderComponent();
             MonitoringMain monitoring = setup.Component;
-            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = [];
             SetPrivateProperty(monitoring, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
                 messages.Add((exception, title, message, errorFlag))));
 
@@ -257,7 +259,7 @@ namespace FWO.Test
         {
             using MonitoringMainTestSetup setup = RenderComponent();
             MonitoringMain monitoring = setup.Component;
-            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = [];
             SetPrivateProperty(monitoring, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
                 messages.Add((exception, title, message, errorFlag))));
 
@@ -276,14 +278,14 @@ namespace FWO.Test
         {
             using MonitoringMainTestSetup setup = RenderComponent();
             MonitoringMain monitoring = setup.Component;
-            List<ImportControl> controls = new List<ImportControl>
-            {
+            List<ImportControl> controls =
+            [
                 new ImportControl
                 {
                     ControlId = 9,
                     StartTime = DateTime.UtcNow
                 }
-            };
+            ];
             Alert alert = new()
             {
                 ManagementId = 55,
@@ -304,7 +306,7 @@ namespace FWO.Test
         {
             using MonitoringMainTestSetup setup = RenderComponent();
             MonitoringMain monitoring = setup.Component;
-            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = [];
             SetPrivateProperty(monitoring, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
                 messages.Add((exception, title, message, errorFlag))));
 
@@ -386,18 +388,18 @@ namespace FWO.Test
             TestMiddlewareClient middlewareClient = new("http://localhost/");
             MonitoringMainCleanupHandler handler = new()
             {
-                InternalGroups = new List<GroupGetReturnParameters>
-                {
+                InternalGroups =
+                [
                     new GroupGetReturnParameters { GroupDn = "cn=group_demo,ou=groups,dc=example,dc=com" },
                     new GroupGetReturnParameters { GroupDn = "cn=group_regular,ou=groups,dc=example,dc=com" }
-                }
+                ]
             };
             middlewareClient.UseHandler(handler);
 
             await using MonitoringMainTestSetup setup = RenderComponent(middlewareClient);
             setup.UserConfig.User.Roles.Add(Roles.Admin);
             MonitoringMain monitoring = setup.Component;
-            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = [];
             SetPrivateProperty(monitoring, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
                 messages.Add((exception, title, message, errorFlag))));
 
@@ -453,13 +455,10 @@ namespace FWO.Test
         {
             await using MonitoringMainTestSetup setup = RenderComponent();
             MonitoringMain monitoring = setup.Component;
-            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = [];
             SetPrivateProperty(monitoring, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
                 messages.Add((exception, title, message, errorFlag))));
-            setup.UserConfig.ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem>
-            {
-                new() { Id = 1, Name = "Tufin", CredentialId = 3 }
-            });
+            setup.ApiConn.LevelsUsingCredential[3] = kSecureChangeLevels;
             setup.ApiConn.Credentials.Clear();
             setup.ApiConn.Credentials.Add(new Credential { Id = 3, Name = "used_demo" });
             setup.ApiConn.Credentials.Add(new Credential { Id = 4, Name = "unused_demo" });
@@ -470,27 +469,8 @@ namespace FWO.Test
             Assert.That(GetPrivateField<int>(monitoring, "deletedSampleCredentials"), Is.EqualTo(1));
             Assert.That(messages, Has.Count.EqualTo(1));
             Assert.That(messages[0].ErrorFlag, Is.True);
-            Assert.That(messages[0].Message, Does.Contain(setup.UserConfig.GetText("E5113")).And.Contain("used_demo: Tufin"));
+            Assert.That(messages[0].Message, Does.Contain(setup.UserConfig.GetText("E5113")).And.Contain("used_demo: Global"));
         }
-
-        [Test]
-        public void Cancel_ClosesAllModals()
-        {
-            using MonitoringMainTestSetup setup = RenderComponent();
-            MonitoringMain monitoring = setup.Component;
-            SetPrivateField(monitoring, "RemoveSampleDataMode", true);
-            SetPrivateField(monitoring, "AckAllMode", true);
-            SetPrivateField(monitoring, "DetailsMode", true);
-            SetPrivateField(monitoring, "RollbackMode", true);
-
-            InvokePrivateVoid(monitoring, "Cancel");
-
-            Assert.That(GetPrivateField<bool>(monitoring, "RemoveSampleDataMode"), Is.False);
-            Assert.That(GetPrivateField<bool>(monitoring, "AckAllMode"), Is.False);
-            Assert.That(GetPrivateField<bool>(monitoring, "DetailsMode"), Is.False);
-            Assert.That(GetPrivateField<bool>(monitoring, "RollbackMode"), Is.False);
-        }
-
     }
 
     internal sealed class MonitoringMainTestSetup : IDisposable, IAsyncDisposable
@@ -521,7 +501,7 @@ namespace FWO.Test
 
     internal sealed class MonitoringMainTestApiConn : SimulatedApiConnection
     {
-        public List<long> AcknowledgedAlertIds { get; } = new();
+        public List<long> AcknowledgedAlertIds { get; } = [];
         public int AcknowledgeAllCalls { get; private set; }
         public int AckAllAffectedRows { get; set; } = 1;
         public int ManagementQueryCalls { get; private set; }
@@ -532,15 +512,16 @@ namespace FWO.Test
         public int OwnerQueryCalls { get; private set; }
         public int ManagementDeleteQueryCalls { get; private set; }
         public int CredentialDeleteQueryCalls { get; private set; }
+        public Dictionary<int, List<string>> LevelsUsingCredential { get; } = [];
         public int UserDeleteQueryCalls { get; private set; }
         public int TenantDeleteQueryCalls { get; private set; }
         public int OwnerDeleteQueryCalls { get; private set; }
-        public List<Management> Managements { get; } = new List<Management> { new Management { Id = 1, Name = "mgm_demo" } };
-        public List<Credential> Credentials { get; } = new List<Credential> { new Credential { Id = 2, Name = "cred_demo" } };
-        public List<UiUser> Users { get; } = new List<UiUser> { new UiUser { DbId = 3, Name = "user_demo", LdapConnection = new UiLdapConnection { Id = 13 } } };
-        public List<Tenant> Tenants { get; } = new List<Tenant> { new Tenant { Id = 4, Name = "tenant_demo" } };
-        public List<FwoOwner> Owners { get; } = new List<FwoOwner> { new FwoOwner { Id = 5, Name = "owner_demo" } };
-        public List<Alert> OpenAlerts { get; } = new List<Alert> { new Alert { Id = 1, Source = "monitoring", Title = "alert" } };
+        public List<Management> Managements { get; } = [new Management { Id = 1, Name = "mgm_demo" }];
+        public List<Credential> Credentials { get; } = [new Credential { Id = 2, Name = "cred_demo" }];
+        public List<UiUser> Users { get; } = [new UiUser { DbId = 3, Name = "user_demo", LdapConnection = new UiLdapConnection { Id = 13 } }];
+        public List<Tenant> Tenants { get; } = [new Tenant { Id = 4, Name = "tenant_demo" }];
+        public List<FwoOwner> Owners { get; } = [new FwoOwner { Id = 5, Name = "owner_demo" }];
+        public List<Alert> OpenAlerts { get; } = [new Alert { Id = 1, Source = "monitoring", Title = "alert" }];
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
@@ -578,6 +559,14 @@ namespace FWO.Test
             {
                 OwnerQueryCalls++;
                 return Task.FromResult((QueryResponseType)(object)new List<FwoOwner>(Owners));
+            }
+
+            if (query == DeviceSpecificSettingsQueries.getNodesUsingCredential)
+            {
+                int credentialId = Convert.ToInt32(variables?.GetType().GetProperty("credentialId")?.GetValue(variables) ?? 0);
+                List<DeviceSpecificConfigNodeData> nodes = [.. (LevelsUsingCredential.TryGetValue(credentialId, out List<string>? levels) ? levels : [])
+                    .Select(level => new DeviceSpecificConfigNodeData { DisplayName = level })];
+                return Task.FromResult((QueryResponseType)(object)nodes);
             }
 
             if (typeof(QueryResponseType) == typeof(ReturnId))
@@ -629,7 +618,7 @@ namespace FWO.Test
 
     internal sealed class MonitoringMainCleanupHandler : HttpMessageHandler
     {
-        public List<GroupGetReturnParameters> InternalGroups { get; set; } = new List<GroupGetReturnParameters>();
+        public List<GroupGetReturnParameters> InternalGroups { get; set; } = [];
         public int DeleteUserCalls { get; private set; }
         public int DeleteTenantCalls { get; private set; }
         public int DeleteGroupCalls { get; private set; }
@@ -681,7 +670,7 @@ namespace FWO.Test
 
         public MonitoringTestAuthStateProvider(params string[] roles)
         {
-            List<Claim> claims = new();
+            List<Claim> claims = [];
             foreach (string role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));

@@ -177,11 +177,11 @@ namespace FWO.Test
             await InvokePrivateTask(component, "OnInitializedAsync");
 
             FwoOwner originalOwner = GetPrivateField<FwoOwner>(component, "SelectedOwner");
-            List<FwoOwner> owners = new()
-            {
+            List<FwoOwner> owners =
+            [
                 originalOwner,
                 new FwoOwner { Id = 12, Name = "Owner 2" }
-            };
+            ];
             SetPrivateField(component, "Owners", owners);
             SetPrivateField(component, "RemoveAllOrphansMode", true);
 
@@ -332,34 +332,34 @@ namespace FWO.Test
         public async Task RemoveAllOrphans_RemovesMatchingConnectionsAndReportsSummary()
         {
             MonitorModellingTestApiConn apiConn = new();
-            apiConn.OwnerConnections = new List<ModellingConnection>
-            {
+            apiConn.OwnerConnections =
+            [
                 new ModellingConnection
                 {
                     Id = 100,
                     UsedInterfaceId = 201,
-                    SourceAppRoles = new List<ModellingAppRoleWrapper>
-                    {
+                    SourceAppRoles =
+                    [
                         new ModellingAppRoleWrapper { Content = new ModellingAppRole { Id = 501, GroupType = (int)ModellingTypes.ModObjectType.AppRole } }
-                    },
-                    SourceAppServers = new List<ModellingAppServerWrapper>
-                    {
+                    ],
+                    SourceAppServers =
+                    [
                         new ModellingAppServerWrapper { Content = new ModellingAppServer { Id = 601 } }
-                    }
+                    ]
                 }
-            };
-            apiConn.ResolvedOwnerConnections = new List<ModellingConnection>
-            {
+            ];
+            apiConn.ResolvedOwnerConnections =
+            [
                 new ModellingConnection
                 {
                     Id = 200,
                     UsedInterfaceId = 202,
-                    SourceAreas = new List<ModellingNetworkAreaWrapper>
-                    {
+                    SourceAreas =
+                    [
                         new ModellingNetworkAreaWrapper { Content = new ModellingNetworkArea { Id = 901 } }
-                    }
+                    ]
                 }
-            };
+            ];
             apiConn.ConnectionByIdResponses = new Dictionary<long, ModellingConnection>
             {
                 {
@@ -367,14 +367,14 @@ namespace FWO.Test
                     new ModellingConnection
                     {
                         Id = 201,
-                        SourceAppRoles = new List<ModellingAppRoleWrapper>
-                        {
+                        SourceAppRoles =
+                        [
                             new ModellingAppRoleWrapper { Content = new ModellingAppRole { Id = 1, GroupType = (int)ModellingTypes.ModObjectType.AppRole } }
-                        },
-                        SourceAppServers = new List<ModellingAppServerWrapper>
-                        {
+                        ],
+                        SourceAppServers =
+                        [
                             new ModellingAppServerWrapper { Content = new ModellingAppServer { Id = 2 } }
-                        }
+                        ]
                     }
                 },
                 {
@@ -382,10 +382,10 @@ namespace FWO.Test
                     new ModellingConnection
                     {
                         Id = 202,
-                        SourceAreas = new List<ModellingNetworkAreaWrapper>
-                        {
+                        SourceAreas =
+                        [
                             new ModellingNetworkAreaWrapper { Content = new ModellingNetworkArea { Id = 3 } }
-                        }
+                        ]
                     }
                 }
             };
@@ -395,7 +395,7 @@ namespace FWO.Test
             await InvokePrivateTask(component, "OnInitializedAsync");
             SetPrivateField(component, "HandlerBase", new MonitorModellingHandlerStub(apiConn, new SimulatedUserConfig()));
 
-            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = [];
             SetPrivateProperty(component, "DisplayMessageInUi", new Action<Exception?, string, string, bool>((exception, title, message, errorFlag) =>
                 messages.Add((exception, title, message, errorFlag))));
 
@@ -415,8 +415,8 @@ namespace FWO.Test
 
     internal sealed class MonitorModellingTestApiConn : SimulatedApiConnection
     {
-        public List<NwGroupRemoval> NwGroupRemovals { get; } = new();
-        public List<ServiceGroupRemoval> ServiceGroupRemovals { get; } = new();
+        public List<NwGroupRemoval> NwGroupRemovals { get; } = [];
+        public List<ServiceGroupRemoval> ServiceGroupRemovals { get; } = [];
         public int OwnerQueryCount { get; private set; }
         public int AppRoleQueryCount { get; private set; }
         public int AppServerQueryCount { get; private set; }
@@ -431,15 +431,15 @@ namespace FWO.Test
         public int RemoveAppServerCalls { get; private set; }
         public int RemoveServiceGroupCalls => ServiceGroupRemovals.Count;
         public int RemoveServiceCalls { get; private set; }
-        public List<ModellingConnection> OwnerConnections { get; set; } = new();
-        public List<ModellingConnection> ResolvedOwnerConnections { get; set; } = new();
-        public Dictionary<long, ModellingConnection> ConnectionByIdResponses { get; set; } = new();
-        private static readonly List<FwoOwner> kOwners = new() { new FwoOwner { Id = 11, Name = "Owner 1" } };
-        private static readonly List<ModellingAppRole> kAppRoles = new() { new ModellingAppRole { Id = 21, Name = "AppRole 1" } };
-        private static readonly List<ModellingAppServer> kAppServers = new() { new ModellingAppServer { Id = 31, Name = "AppServer 1", Ip = "192.0.2.31/32" } };
-        private static readonly List<ModellingNetworkArea> kNetworkAreas = new() { new ModellingNetworkArea { Id = 41, Name = "Area 1" } };
-        private static readonly List<ModellingServiceGroup> kServiceGroups = new() { new ModellingServiceGroup { Id = 51, Name = "ServiceGroup 1" } };
-        private static readonly List<ModellingService> kServices = new() { new ModellingService { Id = 61, Name = "Service 1" } };
+        public List<ModellingConnection> OwnerConnections { get; set; } = [];
+        public List<ModellingConnection> ResolvedOwnerConnections { get; set; } = [];
+        public Dictionary<long, ModellingConnection> ConnectionByIdResponses { get; set; } = [];
+        private static readonly List<FwoOwner> kOwners = [new FwoOwner { Id = 11, Name = "Owner 1" }];
+        private static readonly List<ModellingAppRole> kAppRoles = [new ModellingAppRole { Id = 21, Name = "AppRole 1" }];
+        private static readonly List<ModellingAppServer> kAppServers = [new ModellingAppServer { Id = 31, Name = "AppServer 1", Ip = "192.0.2.31/32" }];
+        private static readonly List<ModellingNetworkArea> kNetworkAreas = [new ModellingNetworkArea { Id = 41, Name = "Area 1" }];
+        private static readonly List<ModellingServiceGroup> kServiceGroups = [new ModellingServiceGroup { Id = 51, Name = "ServiceGroup 1" }];
+        private static readonly List<ModellingService> kServices = [new ModellingService { Id = 61, Name = "Service 1" }];
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {

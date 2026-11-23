@@ -145,34 +145,23 @@ namespace FWO.DeviceAutoDiscovery
         private async Task<string> LoginCp(Management mgm, CheckPointClient restClientCP)
         {
             string? domainString = mgm.ConfigPath;
-            string sessionId = "";
             if (mgm.DomainUid != null && mgm.DomainUid != "")
                 domainString = mgm.DomainUid;
             RestResponse<CpSessionAuthInfo> sessionResponse = await restClientCP.AuthenticateUser(mgm.ImportCredential.ImportUser, mgm.ImportCredential.Secret, domainString);
-            if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && sessionResponse.Data?.SessionId != null && sessionResponse.Data?.SessionId != "")
+            if (sessionResponse.StatusCode == HttpStatusCode.OK && sessionResponse.IsSuccessful && sessionResponse.Data != null && !string.IsNullOrEmpty(sessionResponse.Data.SessionId))
             {
-                if (sessionResponse?.Data?.SessionId == null || sessionResponse.Data.SessionId == "")
-                {
-                    Log.WriteWarning(Autodiscovery, $"Did not receive a correct session ID when trying to login to manager {SuperManagement.Name} (id={SuperManagement.Id})");
-                }
-                else
-                {
-                    sessionId = sessionResponse.Data.SessionId;
-                    Log.WriteDebug(Autodiscovery, $"successful CP Manager login");
-                }
+                Log.WriteDebug(Autodiscovery, $"successful CP Manager login");
+                return sessionResponse.Data.SessionId;
             }
-            else
+
+            string errorTxtCatch = $"{SuperManagement.Name}";
+            string errorTxt = $"error while logging in to {SuperManagement.Name}: {sessionResponse.ErrorMessage} ";
+            if (string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
             {
-                string errorTxtCatch = $"{SuperManagement.Name}";
-                string errorTxt = $"error while logging in to {SuperManagement.Name}: {sessionResponse.ErrorMessage} ";
-                if (string.IsNullOrEmpty(sessionResponse.Data?.SessionId))
-                {
-                    errorTxt += $"could not authenticate to {SuperManagement.Name} - got empty session ID";
-                }
-                Log.WriteWarning(Autodiscovery, errorTxt);
-                throw new AuthenticationException(errorTxtCatch);
+                errorTxt += $"could not authenticate to {SuperManagement.Name} - got empty session ID";
             }
-            return sessionId;
+            Log.WriteWarning(Autodiscovery, errorTxt);
+            throw new AuthenticationException(errorTxtCatch);
         }
 
         private async Task<bool> LogoutCp(CheckPointClient restClientCP, string sessionId)

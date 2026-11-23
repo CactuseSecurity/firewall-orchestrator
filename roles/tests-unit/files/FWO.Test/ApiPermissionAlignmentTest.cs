@@ -110,6 +110,14 @@ namespace FWO.Test
         private static readonly List<string> kDistinctTableRoots = ["alert", "modelling_connection"];
 
         /// <summary>
+        /// Request-element columns refreshed by the Create Implementation Task workflow action.
+        /// </summary>
+        private static readonly List<string> kRequestSnapshotColumns =
+        [
+            "ip", "ip_end", "port", "port_end", "ip_proto_id", "group_name", "name", "start_time", "end_time"
+        ];
+
+        /// <summary>
         /// A metadata document tracking two tables which reach two root field names, as the tracked tables
         /// of replace_metadata.json do.
         /// </summary>
@@ -192,6 +200,19 @@ namespace FWO.Test
         {
             AssertNoGaps(CollectGaps(FindReturnGaps),
                 "A role may run these mutations but cannot select the columns they return:");
+        }
+
+        /// <summary>
+        /// Create Implementation Task executes through the middleware-server role and refreshes ticket-local
+        /// snapshots before producing firewall work, so every column of that narrow mutation must remain writable.
+        /// </summary>
+        [Test]
+        public void RequestSnapshots_AreWritableByTheWorkflowActionRole()
+        {
+            TableMetadata requestElements = ReadMetadata()["request_reqelement"];
+
+            Assert.That(requestElements.WritableColumns[(kUpdateOperation, "middleware-server")],
+                Is.SupersetOf(kRequestSnapshotColumns));
         }
 
         /// <summary>

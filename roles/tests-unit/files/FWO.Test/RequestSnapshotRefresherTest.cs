@@ -164,6 +164,33 @@ internal sealed class RequestSnapshotRefresherTest
         Assert.That(target.IpString, Is.EqualTo("10.0.0.10/32"));
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void CreatePlan_RejectsDuplicatePersistedElementIds(bool acrossTasks)
+    {
+        WfTicket ticket = CreateNetworkTicket();
+        WfReqTask firstConsumer = ticket.Tasks.Single(task => task.Id == 20);
+        if (acrossTasks)
+        {
+            Element(ticket, 301).Id = 201;
+        }
+        else
+        {
+            firstConsumer.Elements.Add(new WfReqElement(firstConsumer.Elements[0]));
+        }
+
+        Assert.Throws<InvalidDataException>(() => RequestSnapshotRefresher.CreatePlan(ticket));
+    }
+
+    [Test]
+    public void CreatePlan_RejectsElementWhoseTaskIdDoesNotMatchItsOwner()
+    {
+        WfTicket ticket = CreateNetworkTicket();
+        Element(ticket, 201).TaskId = 999;
+
+        Assert.Throws<InvalidDataException>(() => RequestSnapshotRefresher.CreatePlan(ticket));
+    }
+
     [Test]
     public void ApplyPlan_ChangesOnlyPlannedValueFields()
     {

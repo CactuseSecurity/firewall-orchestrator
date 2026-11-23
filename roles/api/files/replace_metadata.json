@@ -34882,7 +34882,16 @@
                       "flow_svcgrp_id",
                       "flow_svcobj_id",
                       "object_task_id",
-                      "flow_timeobj_id"
+                      "flow_timeobj_id",
+                      "ip",
+                      "ip_end",
+                      "port",
+                      "port_end",
+                      "ip_proto_id",
+                      "group_name",
+                      "name",
+                      "start_time",
+                      "end_time"
                     ],
                     "filter": {},
                     "check": {}

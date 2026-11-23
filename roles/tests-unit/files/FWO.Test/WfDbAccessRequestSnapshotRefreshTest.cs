@@ -95,6 +95,18 @@ internal sealed class WfDbAccessRequestSnapshotRefreshTest
     }
 
     [Test]
+    public void RefreshTicketRequestSnapshots_ZeroRowProofIdentifiesEveryPlannedElement()
+    {
+        WfTicket ticket = CreateTicket();
+        RecordingApiConnection apiConnection = new() { ResultShape = BatchResultShape.ZeroRows };
+
+        InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await CreateDbAccess(apiConnection).RefreshTicketRequestSnapshots(ticket))!;
+
+        Assert.That(exception.Message, Does.Contain("201=0").And.Contain("301=1"));
+    }
+
+    [Test]
     public async Task RefreshTicketRequestSnapshots_HistoryFailureKeepsSuccessfulRefresh()
     {
         WfTicket ticket = CreateTicket();

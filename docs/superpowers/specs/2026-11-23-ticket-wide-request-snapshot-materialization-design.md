@@ -64,13 +64,13 @@ Before persistence, reject malformed data needed for this operation: a reference
 
 The planning step does not mutate the caller's ticket.
 
-### 2. Persist atomically
+### 2. Persist as one checked batch
 
 If the plan is empty, continue directly to implementation-task creation.
 
 Otherwise, send one narrow GraphQL batch mutation containing the changed element IDs and only their refreshed value fields. Require one affected row for every submitted update. Any validation, transport, authorization, or affected-row failure aborts the action before implementation tasks are created.
 
-The implementation must verify that the selected GraphQL operation is atomic at the database boundary. If the available batch mutation cannot provide that guarantee, use the smallest server-side transaction mechanism available rather than adding partial-write recovery logic.
+Hasura executes the `update_many` entries in a transaction and rolls them all back when an entry errors. An entry matching no row is not an error, however: the exact affected-row proof then fails after any preceding successful entries have committed. This local and recoverable residual is accepted deliberately. Those committed rows already contain the correct snapshots, the action creates no implementation tasks, and the logged per-element results force a reload or retry from current database state. Do not add a database function or partial-write recovery for this case.
 
 No strict full-ticket readback is required: the submitted plan and exact affected-row result are the success proof.
 
@@ -91,7 +91,7 @@ External-ticket dispatch and unrelated manual UI construction do not receive sep
 ## Failure behavior
 
 - Invalid references or structures: fail before persistence.
-- Batch persistence failure or unexpected affected-row count: fail before changing memory or creating implementation tasks.
+- Batch transport/authorization failure: fail before changing memory or creating implementation tasks. An unexpected affected-row count also fails before those steps and logs each planned element's result; preceding successful snapshot rows may already contain their correct values as described above.
 - Successful persistence: update memory and history, then create implementation tasks.
 - No stale copies: perform no snapshot mutation or materialization history write.
 

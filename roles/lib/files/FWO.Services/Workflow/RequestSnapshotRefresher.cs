@@ -14,6 +14,7 @@ public static class RequestSnapshotRefresher
     /// <returns>Ordered replacements for every stale exact reference.</returns>
     public static RequestSnapshotRefreshPlan CreatePlan(WfTicket ticket)
     {
+        ValidateElementIdentities(ticket);
         Dictionary<long, WfReqTask> tasksById = ticket.Tasks
             .Where(task => task.Id > 0)
             .ToDictionary(task => task.Id);
@@ -42,6 +43,28 @@ public static class RequestSnapshotRefresher
             }
         }
         return new RequestSnapshotRefreshPlan(replacements, changedTaskIds);
+    }
+
+    /// <summary>
+    /// Refuses malformed in-memory graphs which could address one persisted element more than once.
+    /// </summary>
+    private static void ValidateElementIdentities(WfTicket ticket)
+    {
+        HashSet<long> persistedElementIds = [];
+        foreach (WfReqTask task in ticket.Tasks)
+        {
+            foreach (WfReqElement element in task.Elements)
+            {
+                if (element.TaskId != task.Id)
+                {
+                    throw new InvalidDataException("A request element does not belong to its containing task.");
+                }
+                if (element.Id > 0 && !persistedElementIds.Add(element.Id))
+                {
+                    throw new InvalidDataException("A persisted request element occurs more than once in the ticket.");
+                }
+            }
+        }
     }
 
     /// <summary>

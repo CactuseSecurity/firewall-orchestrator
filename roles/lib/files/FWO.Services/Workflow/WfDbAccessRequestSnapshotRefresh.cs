@@ -31,7 +31,7 @@ public partial class WfDbAccess
         if (results == null || results.Count != updates.Count
             || results.Any(result => result == null || result.AffectedRows != 1))
         {
-            throw new InvalidOperationException("The request snapshot refresh did not update every planned element exactly once.");
+            throw InvalidSnapshotRefreshResult(plan, results);
         }
 
         RequestSnapshotRefresher.ApplyPlan(ticket, plan);
@@ -46,6 +46,30 @@ public partial class WfDbAccess
                 ticket.Requester,
                 true);
         }
+    }
+
+    /// <summary>
+    /// Describes every planned element in a failed batch proof so the workflow error log identifies partial success.
+    /// </summary>
+    private static InvalidOperationException InvalidSnapshotRefreshResult(RequestSnapshotRefreshPlan plan,
+        IReadOnlyList<ReturnId?>? results)
+    {
+        if (results == null)
+        {
+            return new InvalidOperationException(
+                "The request snapshot refresh returned no result; no implementation tasks were created.");
+        }
+
+        List<string> outcomes = plan.Replacements.Select((element, index) =>
+            $"{element.Id}={(index < results.Count && results[index] != null ? results[index]!.AffectedRows : "missing")}")
+            .ToList();
+        if (results.Count > plan.Replacements.Count)
+        {
+            outcomes.Add($"extra results={results.Count - plan.Replacements.Count}");
+        }
+        return new InvalidOperationException(
+            "The request snapshot refresh did not update every planned element exactly once; "
+            + $"affected rows by element: {string.Join(", ", outcomes)}. No implementation tasks were created.");
     }
 
     private static Dictionary<string, object?> CreateSnapshotUpdate(WfReqElement element)

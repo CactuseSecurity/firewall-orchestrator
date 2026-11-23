@@ -160,7 +160,7 @@
   }
   ```
 
-  Declare and load `RequestQueries.updateRequestElementSnapshots` beside the existing request-element operations. Confirm against the pinned Hasura `v2.50.3` behavior that one `update_many` mutation is transactional; if it is not, stop and revise the design rather than adding partial-write recovery.
+  Declare and load `RequestQueries.updateRequestElementSnapshots` beside the existing request-element operations. Hasura runs the entries in one transaction and rolls them back on an error. A zero-row result is not an error; accept that preceding successful rows may retain their correct refreshed values, log the per-element results, and fail before changing memory or creating implementation tasks. Do not add partial-write recovery or a database function for this local, retry-repairable case.
 
 - [ ] **Step 4: Implement strict batch persistence**
 

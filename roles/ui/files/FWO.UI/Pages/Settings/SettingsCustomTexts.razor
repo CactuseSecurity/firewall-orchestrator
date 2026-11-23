@@ -137,12 +137,9 @@
         }
         foreach(var entry in actCustomDict)
         {
-            if (!(ignoreHelpTexts && entry.Key.StartsWith("H")) && entry.Value.Contains(searchString))
+            if (!(ignoreHelpTexts && entry.Key.StartsWith("H")) && entry.Value.Contains(searchString) && results.FirstOrDefault(x => x.Key == entry.Key) == null)
             {
-                if(results.FirstOrDefault(x => x.Key == entry.Key) == null)
-                {
-                    results.Add(new TextEntry(){ Key = entry.Key, Text = actDict.ContainsKey(entry.Key) ? actDict[entry.Key] : "", CustomText = entry.Value});
-                }
+                results.Add(new TextEntry(){ Key = entry.Key, Text = actDict.ContainsKey(entry.Key) ? actDict[entry.Key] : "", CustomText = entry.Value});
             }
         }
         displayResults = true;

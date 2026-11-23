@@ -87,7 +87,7 @@ namespace FWO.Data.Workflow
                 {
                     DeviceId = reqtask.Elements.FirstOrDefault(element => element.Field == ElemFieldType.rule.ToString())?.DeviceId;
                 }
-                ImplElements = new List<WfImplElement>();
+                ImplElements = [];
                 foreach (WfReqElement element in reqtask.Elements)
                 {
                     ImplElements.Add(new WfImplElement(element));

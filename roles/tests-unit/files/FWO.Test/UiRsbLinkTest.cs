@@ -55,7 +55,7 @@ namespace FWO.Test
 
             // Act
             Rule selectedRule = currentReport.ReportData.ManagementData[0].Rulebases[0].Rules[0];
-            List<Rule> selectedRules = new() { selectedRule };
+            List<Rule> selectedRules = [selectedRule];
             IRenderedComponent<RightSidebar> cut = Render<RightSidebar>(parameters => parameters
                 .Add(p => p.CurrentReport, currentReport)
                 .Add(p => p.SelectedRules, selectedRules));
@@ -74,7 +74,7 @@ namespace FWO.Test
             Assert.That(IsElementVisible(element), Is.True, "Element is not visible (might be incorrect tab or collapsed)");
         }
 
-        private bool IsElementVisible(IElement? element)
+        private static bool IsElementVisible(IElement? element)
         {
             while (element != null)
             {

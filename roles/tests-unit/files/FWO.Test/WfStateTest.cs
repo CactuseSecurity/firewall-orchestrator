@@ -6,6 +6,8 @@ namespace FWO.Test
     [TestFixture]
     internal class WfStateTest
     {
+        private static readonly int[] kExpectedPolicyIds = [1, 2];
+
         [Test]
         public void ActionList_ReturnsCommaSeparatedNames()
         {
@@ -129,7 +131,7 @@ namespace FWO.Test
             Assert.That(toStateId, Is.Null);
             Assert.That(conditionalParams, Is.Not.Null);
             Assert.That(conditionalParams?.ToBeCalled, Is.EqualTo(ToBeCalled.PolicyCheck));
-            Assert.That(conditionalParams?.PolicyIds, Is.EqualTo(new[] { 1, 2 }));
+            Assert.That(conditionalParams?.PolicyIds, Is.EqualTo(kExpectedPolicyIds));
             Assert.That(conditionalParams?.CheckResultLabel, Is.EqualTo("policy_check"));
             Assert.That(conditionalParams?.IfCompliantState, Is.EqualTo(3));
             Assert.That(conditionalParams?.IfNotCompliantState, Is.EqualTo(4));

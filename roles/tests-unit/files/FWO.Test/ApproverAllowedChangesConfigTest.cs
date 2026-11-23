@@ -8,7 +8,7 @@ namespace FWO.Test
     public class ApproverAllowedChangesConfigTest
     {
         [Test]
-    public void Catalog_OffersObjectNameAndContentFieldsForObjectTasks()
+        public void Catalog_OffersObjectNameAndContentFieldsForObjectTasks()
         {
             List<string> createFields = ApproverAllowedChangesCatalog.TaskTypeFields[WfTaskType.object_create].ConvertAll(field => field.Key);
             List<string> modifyFields = ApproverAllowedChangesCatalog.TaskTypeFields[WfTaskType.object_modify].ConvertAll(field => field.Key);

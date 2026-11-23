@@ -8,11 +8,24 @@ namespace FWO.Report.Filter.FilterTypes
         public readonly DateTime? Start;
         public readonly DateTime? End;
 
-        public DateTimeRange(AstNodeFilterDateTimeRange filter)
+        /// <summary>
+        /// Resolves the date filter relative to the current local time.
+        /// </summary>
+        /// <param name="filter">The date filter node holding operator and value.</param>
+        public DateTimeRange(AstNodeFilterDateTimeRange filter) : this(filter, DateTime.Now)
+        { }
+
+        /// <summary>
+        /// Resolves the date filter relative to the given reference time: "now", "this month", "last year" etc.
+        /// refer to the time, month and year of <paramref name="referenceTime"/>.
+        /// </summary>
+        /// <param name="filter">The date filter node holding operator and value.</param>
+        /// <param name="referenceTime">The point in time the relative values are resolved against.</param>
+        public DateTimeRange(AstNodeFilterDateTimeRange filter, DateTime referenceTime)
         {
             bool isSingleDate = DateTime.TryParse(filter.Value.Text, out DateTime time);
-            int currentYear = DateTime.Now.Year;
-            int currentMonth = DateTime.Now.Month;
+            DateTime startOfCurrentYear = new(referenceTime.Year, 1, 1, 0, 0, 0, referenceTime.Kind);
+            DateTime startOfCurrentMonth = new(referenceTime.Year, referenceTime.Month, 1, 0, 0, 0, referenceTime.Kind);
 
             switch (filter.Operator.Kind)
             {
@@ -22,25 +35,24 @@ namespace FWO.Report.Filter.FilterTypes
                     {
                         // todo: add today, yesterday, this week, last week
                         case "now":
-                            DateTime now = DateTime.Now;
-                            Start = now;
-                            End = now;
+                            Start = referenceTime;
+                            End = referenceTime;
                             break;
                         case "this year":
-                            Start = new DateTime(currentYear, 01, 01, 00, 00, 00);
-                            End = new DateTime(currentYear + 1, 01, 01, 00, 00, 00);
+                            Start = startOfCurrentYear;
+                            End = startOfCurrentYear.AddYears(1);
                             break;
                         case "last year":
-                            Start = new DateTime(currentYear - 1, 01, 01, 00, 00, 00);
-                            End = new DateTime(currentYear, 01, 01, 00, 00, 00);
+                            Start = startOfCurrentYear.AddYears(-1);
+                            End = startOfCurrentYear;
                             break;
                         case "this month":
-                            Start = new DateTime(currentYear, currentMonth, 01, 00, 00, 00);
-                            End = new DateTime(currentYear, currentMonth + 1, 01, 00, 00, 00);
+                            Start = startOfCurrentMonth;
+                            End = startOfCurrentMonth.AddMonths(1);
                             break;
                         case "last month":
-                            Start = new DateTime(currentYear, currentMonth - 1, 01, 00, 00, 00);
-                            End = new DateTime(currentYear, currentMonth, 01, 00, 00, 00);
+                            Start = startOfCurrentMonth.AddMonths(-1);
+                            End = startOfCurrentMonth;
                             break;
                         default:
                             if (isSingleDate)

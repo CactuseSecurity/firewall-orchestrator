@@ -9,7 +9,6 @@
 }
 
 .zone-header {
-    cursor: pointer;
     padding-left: 5px;
     padding-right: 5px;
     max-width: 250px;
@@ -17,7 +16,6 @@
 }
 
 .zone-header-rotated {
-    cursor: pointer;
     padding-top: 5px;
     padding-bottom: 5px;
     width: 25px;

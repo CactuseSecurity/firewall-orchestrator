@@ -4,6 +4,7 @@
 @inject AuthenticationStateProvider AuthService
 @inject NavigationManager NavigationManager
 @inject UserConfig userConfig
+@inject UiClientAddress clientAddress
 
 @page "/logout"
 
@@ -26,7 +27,7 @@
         }
         finally
         {
-            Log.WriteAudit("Logout", $"User \"{user.Name}\" with DN: \"{user.Dn}\" logged out.");
+            Log.WriteAudit("Logout", $"User \"{user.Name}\" with DN: \"{user.Dn}\" logged out from client address {clientAddress.Description}.");
         }
     }
 }

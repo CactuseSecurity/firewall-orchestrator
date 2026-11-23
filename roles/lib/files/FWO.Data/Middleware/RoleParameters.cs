@@ -9,7 +9,7 @@ namespace FWO.Data.Middleware
     public class RoleGetReturnParameters
     {
         public string Role { get; set; } = "";
-        public List<RoleAttribute> Attributes { get; set; } = new List<RoleAttribute>();
+        public List<RoleAttribute> Attributes { get; set; } = [];
     }
 
     public class RoleAttribute

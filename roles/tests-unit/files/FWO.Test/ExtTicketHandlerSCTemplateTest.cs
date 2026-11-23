@@ -53,7 +53,7 @@ namespace FWO.Test
             })
         ];
 
-        private static SimulatedUserConfig UserConfig(ExternalTicketSystem system) => new()
+        private static SimulatedUserConfig UserConfig() => new()
         {
             ExternalRequestWaitCycles = 3,
             ReqPriorities = ExtTicketHandlerTest.reqPrios,
@@ -67,7 +67,7 @@ namespace FWO.Test
             ExtTicketHandlerTestApiConn apiConnection = new();
             FixedSCTemplateSource templateSource = new(GlobalTemplates,
                 new Dictionary<int, List<ExternalTicketTemplate>> { [kStartManagementId] = ManagementTemplates() });
-            using ExternalRequestHandler handler = new ExternalRequestHandler(UserConfig(TufinSystem), apiConnection, null)
+            using ExternalRequestHandler handler = new ExternalRequestHandler(UserConfig(), apiConnection, null)
             {
                 SCTemplateSource = templateSource
             }.WithProvisioningSettings(ExtTicketHandlerTest.ExternalTicketSystemSettings(TufinSystem));
@@ -125,7 +125,7 @@ namespace FWO.Test
         private static async Task<bool> CanBundle(SCTemplateLookup templates, string? startUrl = null)
         {
             GlobalDeviceSpecificSettings settings = ExtTicketHandlerTest.ExternalTicketSystemSettings(TufinSystem);
-            using ExternalRequestHandler handler = new ExternalRequestHandler(UserConfig(TufinSystem), new ExtTicketHandlerTestApiConn(), null)
+            using ExternalRequestHandler handler = new ExternalRequestHandler(UserConfig(), new ExtTicketHandlerTestApiConn(), null)
                 .WithProvisioningSettings(settings);
             SetField(handler, "scTemplates", templates);
             ExternalTicketSystem startSystem = ExternalTicketSystem.FromSecureChangeSettings(settings);

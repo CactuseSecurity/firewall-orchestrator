@@ -110,7 +110,7 @@ namespace FWO.Test
         {
             public override Task<AuthenticationState> GetAuthenticationStateAsync()
             {
-                ClaimsIdentity identity = new(new List<Claim> { new(ClaimTypes.Role, Roles.Admin) }, "Test", ClaimTypes.Name, ClaimTypes.Role);
+                ClaimsIdentity identity = new([new(ClaimTypes.Role, Roles.Admin)], "Test", ClaimTypes.Name, ClaimTypes.Role);
                 return Task.FromResult(new AuthenticationState(new ClaimsPrincipal(identity)));
             }
         }

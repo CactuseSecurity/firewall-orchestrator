@@ -39,8 +39,11 @@ namespace FWO.Middleware.Server.Controllers
         private const string kRevokeLogCategory = "Token Revoke";
         private const string kSessionCheckLogCategory = "Session Check";
         private static readonly string[] kRefreshTokenErrors = [SessionCheckParameters.kRefreshTokenDescription];
+        private static readonly string[] kClientAddressErrors = [AuthenticationTokenGetOptions.kClientAddressDescription];
+        private const string kClientAddressPath = "options.clientAddress";
         private const string kLoginLogCategory = "User Authentication";
         private const string kTokenGenerationLogCategory = "Token Generation";
+        private const string kLoginParametersRequired = "Login parameters are required.";
 
         private enum RefreshTokenConsumptionState
         {
@@ -63,21 +66,69 @@ namespace FWO.Middleware.Server.Controllers
 
         private CancellationToken RequestAborted => HttpContext?.RequestAborted ?? default;
 
-        private IPAddress? ClientAddress => HttpContext?.Connection.RemoteIpAddress;
+        /// <summary>
+        /// Address of the caller: the peer of the connection, or the client of the local Apache reverse proxy.
+        /// </summary>
+        private IPAddress? CallerAddress => HttpContext?.Connection.RemoteIpAddress;
 
         /// <summary>
         /// Admits a login attempt to the directories, unless the client or the user name exceeded its login limit.
         /// </summary>
         /// <param name="userName">Login name of the attempt; null for anonymous requests, which are never limited.</param>
+        /// <param name="reportedClient">Client address the caller reported with the login; null if it reported none.</param>
         /// <returns>The attempt, to be disposed when it ends, or null if it has to be answered with 429 (see ThrottledResult).</returns>
-        private LoginAttempt? BeginAttempt(string? userName)
+        private LoginAttempt? BeginAttempt(string? userName, IPAddress? reportedClient = null)
         {
-            LoginAttempt? attempt = loginThrottle.BeginAttempt(userName, ClientAddress);
+            if (reportedClient != null && !loginThrottle.IsTrustedClient(CallerAddress))
+            {
+                Log.WriteDebug(kLoginLogCategory, $"Ignoring the client address reported by {ClientAddressFormat.Describe(CallerAddress)}: "
+                    + "the caller is neither this host nor listed in login_trusted_client_hosts.");
+            }
+
+            LoginAttempt? attempt = loginThrottle.BeginAttempt(userName, CallerAddress, reportedClient);
             if (attempt == null)
             {
-                Log.WriteWarning(kLoginLogCategory, $"Login attempt for user \"{userName}\" from {ClientAddress} refused: login limit exceeded.");
+                Log.WriteWarning(kLoginLogCategory, $"Login attempt for user \"{userName}\" from {DescribeClient(reportedClient)} refused: login limit exceeded.");
             }
             return attempt;
+        }
+
+        /// <summary>
+        /// Names the client of a login for the log: the client reported by a trusted caller, otherwise the caller.
+        /// </summary>
+        /// <param name="reportedClient">Client address the caller reported with the login; null if it reported none.</param>
+        /// <returns>The address text, or a placeholder if the address is not known.</returns>
+        private string DescribeClient(IPAddress? reportedClient)
+        {
+            return ClientAddressFormat.Describe(loginThrottle.ResolveClient(CallerAddress, reportedClient));
+        }
+
+        /// <summary>
+        /// Validates a login request and returns all errors found, keyed by their request path.
+        /// </summary>
+        /// <param name="parameters">The request.</param>
+        /// <param name="reportedClient">The client address of the request; null if it has none or an invalid one.</param>
+        /// <returns>The errors; empty if the request is valid.</returns>
+        internal static Dictionary<string, string[]> ValidateLogin(AuthenticationTokenGetParameters? parameters, out IPAddress? reportedClient)
+        {
+            Dictionary<string, string[]> errors = [];
+            reportedClient = null;
+            string? clientAddress = parameters?.Options?.ClientAddress;
+            if (clientAddress != null && !ClientAddressFormat.TryParse(clientAddress, out reportedClient))
+            {
+                errors.Add(kClientAddressPath, kClientAddressErrors);
+            }
+            return errors;
+        }
+
+        /// <summary>
+        /// Answers a request that failed its validation with all errors found.
+        /// </summary>
+        /// <param name="errors">The errors, keyed by their request path.</param>
+        /// <returns>A 400 listing the errors.</returns>
+        private BadRequestObjectResult ValidationResult(Dictionary<string, string[]> errors)
+        {
+            return BadRequest(new ValidationProblemDetails(errors) { Status = StatusCodes.Status400BadRequest });
         }
 
         /// <summary>
@@ -106,13 +157,44 @@ namespace FWO.Middleware.Server.Controllers
         /// the response body, where it would expose the internal API endpoint.
         /// </summary>
         /// <param name="exception">Exception that indicates the unreachable API.</param>
+        /// <param name="userName">Login name of the failed attempt.</param>
+        /// <param name="reportedClient">Client address the caller reported with the login; null if it reported none.</param>
         /// <returns>A retryable 503 without transport details.</returns>
-        private ObjectResult ApiUnreachableLoginResult(Exception exception)
+        private ObjectResult ApiUnreachableLoginResult(Exception exception, string? userName, IPAddress? reportedClient = null)
         {
-            Log.WriteError(kTokenGenerationLogCategory, "Could not reach the API while logging in", exception);
+            Log.WriteError(kTokenGenerationLogCategory,
+                $"Could not reach the API while logging in user \"{userName}\" from client {DescribeClient(reportedClient)}", exception);
 
             return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 "The API could not be reached while logging in. Please retry.");
+        }
+
+        /// <summary>
+        /// Answers a login that the directories refused for lack of capacity, and logs it with its client.
+        /// </summary>
+        /// <param name="exception">The refusal.</param>
+        /// <param name="userName">Login name of the refused attempt.</param>
+        /// <param name="reportedClient">Client address the caller reported with the login; null if it reported none.</param>
+        /// <returns>The refusal with its status code and a retry hint.</returns>
+        private ObjectResult LoginCapacityResult(LoginCapacityException exception, string? userName, IPAddress? reportedClient = null)
+        {
+            Log.WriteWarning(kLoginLogCategory,
+                $"Login attempt for user \"{userName}\" from client {DescribeClient(reportedClient)} refused: {exception.Message}");
+            return CapacityResult(exception);
+        }
+
+        /// <summary>
+        /// Answers a failed login with its error, and logs it with its client.
+        /// </summary>
+        /// <param name="exception">The cause of the failure.</param>
+        /// <param name="userName">Login name of the failed attempt.</param>
+        /// <param name="reportedClient">Client address the caller reported with the login; null if it reported none.</param>
+        /// <returns>A 400 carrying the error message.</returns>
+        private BadRequestObjectResult LoginFailedResult(Exception exception, string? userName, IPAddress? reportedClient)
+        {
+            Log.WriteError(kTokenGenerationLogCategory,
+                $"Error generating token for user \"{userName}\" from client {DescribeClient(reportedClient)}", exception);
+            return BadRequest(exception.Message);
         }
 
         /// <summary>
@@ -136,7 +218,10 @@ namespace FWO.Middleware.Server.Controllers
         /// </summary>
         /// <remarks>This endpoint is typically used during user login to obtain tokens for subsequent
         /// authenticated requests. The refresh token is stored in the database as a hash for security purposes. Ensure
-        /// that the credentials provided are valid to receive a token pair.</remarks>
+        /// that the credentials provided are valid to receive a token pair. &#xA;
+        /// Options (optional): defaults to an empty object. &#xA;
+        /// Options.ClientAddress (optional): see <see cref="AuthenticationTokenGetOptions.kClientAddressDescription"/>. The login is
+        /// logged and limited per client address for it. An invalid value is refused for every caller.</remarks>
         /// <param name="parameters">The authentication parameters containing the user's credentials. Must include a valid username and password.
         /// Cannot be null.</param>
         /// <returns>An <see cref="ActionResult{TokenPair}"/> containing the generated access and refresh tokens if
@@ -144,6 +229,12 @@ namespace FWO.Middleware.Server.Controllers
         [HttpPost("GetTokenPair")]
         public async Task<ActionResult<TokenPair>> GetTokenPair([FromBody] AuthenticationTokenGetParameters parameters)
         {
+            Dictionary<string, string[]> errors = ValidateLogin(parameters, out IPAddress? reportedClient);
+            if (errors.Count > 0)
+            {
+                return ValidationResult(errors);
+            }
+
             try
             {
                 UiUser? user = null;
@@ -157,7 +248,7 @@ namespace FWO.Middleware.Server.Controllers
                         user = new UiUser { Name = username, Password = password };
                 }
 
-                using LoginAttempt? attempt = BeginAttempt(user?.Name);
+                using LoginAttempt? attempt = BeginAttempt(user?.Name, reportedClient);
                 if (attempt == null)
                 {
                     return ThrottledResult();
@@ -171,22 +262,21 @@ namespace FWO.Middleware.Server.Controllers
                 TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedUser);
                 WriteTokenPairAudit("IssueTokenPair", tokenPair, authenticatedUser, authenticatedUser == null
                     ? "Issued anonymous bootstrap token pair."
-                    : "Issued token pair after successful authentication.");
+                    : $"Issued token pair after successful authentication from client {DescribeClient(reportedClient)}.");
 
                 return Ok(tokenPair);
             }
             catch (LoginCapacityException ex)
             {
-                return CapacityResult(ex);
+                return LoginCapacityResult(ex, parameters?.Username, reportedClient);
             }
             catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
             {
-                return ApiUnreachableLoginResult(exception);
+                return ApiUnreachableLoginResult(exception, parameters?.Username, reportedClient);
             }
             catch (Exception ex)
             {
-                Log.WriteError(kTokenGenerationLogCategory, "Error generating token pair", ex);
-                return BadRequest(ex.Message);
+                return LoginFailedResult(ex, parameters?.Username, reportedClient);
             }
         }
 
@@ -205,6 +295,11 @@ namespace FWO.Middleware.Server.Controllers
         [HttpPost("GetTokenPairForUser")]
         public async Task<ActionResult<TokenPair>> GetTokenPairForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
         {
+            if (parameters == null)
+            {
+                return BadRequest(kLoginParametersRequired);
+            }
+
             try
             {
                 using LoginAttempt? attempt = BeginAttempt(parameters.AdminUsername);
@@ -239,15 +334,15 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (LoginCapacityException e)
             {
-                return CapacityResult(e);
+                return LoginCapacityResult(e, parameters.AdminUsername);
             }
             catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
             {
-                return ApiUnreachableLoginResult(e);
+                return ApiUnreachableLoginResult(e, parameters.AdminUsername);
             }
             catch (Exception e)
             {
-                return BadRequest(e.Message);
+                return LoginFailedResult(e, parameters.AdminUsername, null);
             }
         }
 
@@ -258,13 +353,20 @@ namespace FWO.Middleware.Server.Controllers
         /// Deprecated: This endpoint will be dropped in the next major release. Use /api/AuthenticationToken/GetTokenPair instead.
         ///
         /// Username (required)&#xA;
-        /// Password (required)
+        /// Password (required)&#xA;
+        /// Options.ClientAddress (optional): see <see cref="AuthenticationTokenGetOptions.kClientAddressDescription"/>.
         /// </remarks>
         /// <param name="parameters">Credentials</param>
         /// <returns>Jwt, if credentials are vaild.</returns>
         [HttpPost("Get")]
         public async Task<ActionResult<string>> GetAsync([FromBody] AuthenticationTokenGetParameters parameters)
         {
+            Dictionary<string, string[]> errors = ValidateLogin(parameters, out IPAddress? reportedClient);
+            if (errors.Count > 0)
+            {
+                return ValidationResult(errors);
+            }
+
             try
             {
                 UiUser? user = null;
@@ -279,7 +381,7 @@ namespace FWO.Middleware.Server.Controllers
                         user = new UiUser { Name = username, Password = password };
                 }
 
-                using LoginAttempt? attempt = BeginAttempt(user?.Name);
+                using LoginAttempt? attempt = BeginAttempt(user?.Name, reportedClient);
                 if (attempt == null)
                 {
                     return ThrottledResult();
@@ -295,26 +397,26 @@ namespace FWO.Middleware.Server.Controllers
 
                 WriteJwtAudit("IssueAccessToken", jwt, authenticatedUser, authenticatedUser == null
                     ? "Issued anonymous bootstrap access token."
-                    : "Issued access token after successful authentication.");
+                    : $"Issued access token after successful authentication from client {DescribeClient(reportedClient)}.");
 
                 return Ok(jwt);
             }
             catch (LoginCapacityException e)
             {
-                return CapacityResult(e);
+                return LoginCapacityResult(e, parameters?.Username, reportedClient);
             }
             catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
             {
-                return ApiUnreachableLoginResult(e);
+                return ApiUnreachableLoginResult(e, parameters?.Username, reportedClient);
             }
             catch (Exception e)
             {
-                return BadRequest(e.Message);
+                return LoginFailedResult(e, parameters?.Username, reportedClient);
             }
         }
 
         /// <summary>
-        /// Generates an authentication token (jwt) for the specified user given valid admin credentials.  
+        /// Generates an authentication token (jwt) for the specified user given valid admin credentials.
         /// </summary>
         /// <remarks>
         /// AdminUsername (required) - Example: "admin" &#xA;
@@ -327,6 +429,11 @@ namespace FWO.Middleware.Server.Controllers
         [HttpPost("GetForUser")]
         public async Task<ActionResult<string>> GetAsyncForUser([FromBody] AuthenticationTokenGetForUserParameters parameters)
         {
+            if (parameters == null)
+            {
+                return BadRequest(kLoginParametersRequired);
+            }
+
             try
             {
                 string adminUsername = parameters.AdminUsername;
@@ -376,15 +483,15 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (LoginCapacityException e)
             {
-                return CapacityResult(e);
+                return LoginCapacityResult(e, parameters.AdminUsername);
             }
             catch (Exception e) when (ApiReachability.IndicatesUnreachableApi(e))
             {
-                return ApiUnreachableLoginResult(e);
+                return ApiUnreachableLoginResult(e, parameters.AdminUsername);
             }
             catch (Exception e)
             {
-                return BadRequest(e.Message);
+                return LoginFailedResult(e, parameters.AdminUsername, null);
             }
         }
 

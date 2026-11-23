@@ -45,6 +45,7 @@ namespace FWO.Test
         static readonly ModellingAppRole AR2 = new() { Id = 2, Name = "AppRole2", IdString = "AR504711-002", AppServers = [new() { Content = AS3 }] };
         static readonly ModellingAppRole AR3 = new() { Id = 3, Name = "AppRole3", IdString = "AR504711-003", AppServers = [new() { Content = AS1 }] };
 
+        static readonly List<string> kRequestedNatOfConnection6 = ["NAT: To x.x.x.x"];
         static readonly ModellingService Svc1 = new() { Id = 1, Name = "Service1", Port = 1000, PortEnd = 2000, ProtoId = 6 };
         static readonly ModellingService Svc2 = new() { Id = 2, Name = "Service2", Port = 4000, ProtoId = 6 };
         // Distinct object but port/protocol-equal to Svc1, so the comparer treats both as the same service.
@@ -215,7 +216,10 @@ namespace FWO.Test
             ClassicAssert.AreEqual("addAfterCreation", TaskList[2].Elements[0].RequestAction);
 
             ClassicAssert.AreEqual(WfTaskType.access.ToString(), TaskList[3].TaskType);
-            ClassicAssert.AreEqual("{\"ConnId\":\"6\"}", TaskList[3].AdditionalInfo);
+            Assert.That(TaskList[3].GetAddInfoValue(AdditionalInfoKeys.ConnId), Is.EqualTo("6"));
+            Assert.That(ModellingRequestExtraConfigs.Read(TaskList[3], AdditionalInfoKeys.ExtraConfigs)?.Select(config => config.Display()),
+                Is.EqualTo(kRequestedNatOfConnection6), "the extra configurations are saved with the request task as requested");
+            Assert.That(ModellingRequestExtraConfigs.Read(TaskList[3], AdditionalInfoKeys.InterfaceExtraConfigs), Is.Empty);
             ClassicAssert.AreEqual(1, TaskList[3].Comments.Count);
             ClassicAssert.AreEqual("FWOC6, Implementation Instructions: NAT: To x.x.x.x", TaskList[3].Comments[0].Comment.CommentText);
             ClassicAssert.AreEqual("create", TaskList[3].RequestAction);

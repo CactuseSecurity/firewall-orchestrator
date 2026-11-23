@@ -52,6 +52,12 @@ namespace FWO.Test
         private const string kRoleSearchPath = "ou=roles,dc=fworch,dc=internal";
         private const string kRoleUserDn = "uid=login-user,ou=users,dc=fworch,dc=internal";
         private static readonly IPAddress kThrottledClient = IPAddress.Parse("192.0.2.20");
+        private static readonly IPAddress kTrustedCaller = IPAddress.Parse("198.51.100.5");
+        private static readonly List<IPAddress> kTrustedCallers = [kTrustedCaller];
+        private const string kReportedClient = "192.0.2.30";
+        private const string kOtherReportedClient = "192.0.2.31";
+        private const string kClientAddressPath = "options.clientAddress";
+        private static readonly string[] kClientAddressErrorKeys = [kClientAddressPath];
 
         [Test]
         public async Task GetAsync_ReturnsAnonymousJwt_WhenCredentialsAreMissing()
@@ -155,6 +161,7 @@ namespace FWO.Test
             ActionResult<string> result = await controller.GetAsyncForUser(null!);
 
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result!).Value, Is.EqualTo("Login parameters are required."));
         }
 
         [Test]
@@ -176,6 +183,7 @@ namespace FWO.Test
             ActionResult<TokenPair> result = await controller.GetTokenPairForUser(null!);
 
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result!).Value, Is.EqualTo("Login parameters are required."));
         }
 
         [Test]
@@ -313,7 +321,7 @@ namespace FWO.Test
                 }
             };
             AuthenticationTokenController controller = CreateController(
-                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                [CreateAuthLdap(CreateRefreshLdapClient())],
                 apiConnection);
             RefreshTokenRequest refreshRequest = new() { RefreshToken = "shared-refresh-token" };
 
@@ -390,7 +398,7 @@ namespace FWO.Test
                 }
             };
             AuthenticationTokenController controller = CreateController(
-                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                [CreateAuthLdap(CreateRefreshLdapClient())],
                 apiConnection);
 
             ActionResult<TokenPair> failedResult = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = refreshToken });
@@ -539,7 +547,7 @@ namespace FWO.Test
                 }
             };
             AuthenticationTokenController controller = CreateController(
-                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                [CreateAuthLdap(CreateRefreshLdapClient())],
                 apiConnection);
 
             ActionResult<TokenPair>[] results = await Task.WhenAll(
@@ -666,7 +674,7 @@ namespace FWO.Test
             };
             apiConnection.QueueResult(kRefreshTokenUserId7);
             AuthenticationTokenController controller = CreateController(
-                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                [CreateAuthLdap(CreateRefreshLdapClient())],
                 apiConnection);
 
             ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
@@ -704,7 +712,7 @@ namespace FWO.Test
             };
             apiConnection.QueueResult(kRefreshTokenUserId7);
             AuthenticationTokenController controller = CreateController(
-                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                [CreateAuthLdap(CreateRefreshLdapClient())],
                 apiConnection);
 
             string log = await ConsoleOutput.CaptureAsync(async () =>
@@ -792,7 +800,7 @@ namespace FWO.Test
             };
             apiConnection.QueueResult(kRefreshTokenUserId7);
             AuthenticationTokenController controller = CreateController(
-                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                [CreateAuthLdap(CreateRefreshLdapClient())],
                 apiConnection);
 
             ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
@@ -819,7 +827,7 @@ namespace FWO.Test
             };
             apiConnection.QueueResult(kRefreshTokenUserId7);
             AuthenticationTokenController controller = CreateController(
-                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                [CreateAuthLdap(CreateRefreshLdapClient())],
                 apiConnection);
 
             string log = await ConsoleOutput.CaptureAsync(() => RefreshAsync(controller,
@@ -918,7 +926,7 @@ namespace FWO.Test
             };
             RecordingLdapClient ldapClient = CreateLoginLdapClient();
             AuthenticationTokenController controller = CreateController(
-                new List<Ldap> { CreateAuthLdap(ldapClient) },
+                [CreateAuthLdap(ldapClient)],
                 apiConnection);
 
             ActionResult<TokenPair> result = await controller.GetTokenPair(new AuthenticationTokenGetParameters
@@ -953,7 +961,7 @@ namespace FWO.Test
                     : QueryResponse(query, resultType)
             };
             AuthenticationTokenController controller = CreateController(
-                new List<Ldap> { CreateAuthLdap(CreateLoginLdapClient()) },
+                [CreateAuthLdap(CreateLoginLdapClient())],
                 apiConnection);
 
             ActionResult<TokenPair> result = await controller.GetTokenPair(new AuthenticationTokenGetParameters
@@ -1023,7 +1031,7 @@ namespace FWO.Test
                     ? throw new HttpRequestException("connection reset by peer")
                     : QueryResponse(query, resultType)
             };
-            return CreateController(new List<Ldap> { CreateAuthLdap(CreateLoginLdapClient()) }, apiConnection);
+            return CreateController([CreateAuthLdap(CreateLoginLdapClient())], apiConnection);
         }
 
         private static AuthenticationTokenGetForUserParameters CreateDelegatedLoginParameters()
@@ -1245,7 +1253,7 @@ namespace FWO.Test
             inactiveLdap.Active = false;
             TestableLdap activeLdap = CreateRoleLdap();
             object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(),
-                new List<Ldap> { inactiveLdap, activeLdap });
+                [inactiveLdap, activeLdap]);
 
             await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser(), CancellationToken.None);
 
@@ -1262,7 +1270,7 @@ namespace FWO.Test
             TestableLdap inactiveLdap = CreateRoleLdap();
             inactiveLdap.Active = false;
             object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(),
-                new List<Ldap> { inactiveLdap });
+                [inactiveLdap]);
 
             List<string> roles = await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser(), CancellationToken.None);
 
@@ -1278,7 +1286,7 @@ namespace FWO.Test
         {
             TestableLdap ldapWithoutRoles = CreateRoleLdap(roleSearchPath: "");
             object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(),
-                new List<Ldap> { ldapWithoutRoles });
+                [ldapWithoutRoles]);
 
             await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser(), CancellationToken.None);
 
@@ -1289,7 +1297,7 @@ namespace FWO.Test
         public async Task GetTokenPair_Returns429BeforeLdapWork_WhenClientLimitIsExceeded()
         {
             TestableLdap ldap = CreateAuthLdap(new RecordingLdapClient());
-            AuthenticationTokenController controller = CreateThrottledController(new List<Ldap> { ldap }, new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 1, userFailures: 10));
+            AuthenticationTokenController controller = CreateThrottledController([ldap], new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 1, userFailures: 10));
 
             ActionResult<TokenPair> first = await controller.GetTokenPair(new AuthenticationTokenGetParameters { Username = "alice", Password = "wrong" });
             int connectsAfterFirstAttempt = ldap.ConnectCount;
@@ -1308,7 +1316,7 @@ namespace FWO.Test
         [Test]
         public async Task GetTokenPair_Returns429_AfterRepeatedInvalidCredentialsOfOneUser()
         {
-            AuthenticationTokenController controller = CreateThrottledController(new List<Ldap> { CreateAuthLdap(new RecordingLdapClient()) },
+            AuthenticationTokenController controller = CreateThrottledController([CreateAuthLdap(new RecordingLdapClient())],
                 new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 100, userFailures: 2));
             AuthenticationTokenGetParameters alice = new() { Username = "alice", Password = "wrong" };
 
@@ -1329,7 +1337,7 @@ namespace FWO.Test
         [Test]
         public async Task GetTokenPairForUser_Returns429_AfterInvalidAdminCredentials()
         {
-            AuthenticationTokenController controller = CreateThrottledController(new List<Ldap> { CreateAuthLdap(new RecordingLdapClient()) },
+            AuthenticationTokenController controller = CreateThrottledController([CreateAuthLdap(new RecordingLdapClient())],
                 new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 100, userFailures: 1));
             AuthenticationTokenGetForUserParameters parameters = new() { AdminUsername = "admin", AdminPassword = "wrong", TargetUserName = "target" };
 
@@ -1343,7 +1351,7 @@ namespace FWO.Test
         [Test]
         public async Task GetAsyncForUser_Returns429_AfterInvalidAdminCredentials()
         {
-            AuthenticationTokenController controller = CreateThrottledController(new List<Ldap> { CreateAuthLdap(new RecordingLdapClient()) },
+            AuthenticationTokenController controller = CreateThrottledController([CreateAuthLdap(new RecordingLdapClient())],
                 new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 100, userFailures: 1));
             AuthenticationTokenGetForUserParameters parameters = new() { AdminUsername = "admin", AdminPassword = "wrong", TargetUserName = "target" };
 
@@ -1367,6 +1375,156 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetTokenPair_LimitsTheClientReportedByATrustedCaller()
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 1, userFailures: 10);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle);
+
+            ActionResult<TokenPair> first = await controller.GetTokenPair(CreateLogin("alice", kReportedClient));
+            ActionResult<TokenPair> sameClient = await controller.GetTokenPair(CreateLogin("bob", kReportedClient));
+            ActionResult<TokenPair> otherClient = await controller.GetTokenPair(CreateLogin("carol", kOtherReportedClient));
+            ActionResult<TokenPair> noClient = await controller.GetTokenPair(CreateLogin("dave", null));
+            ActionResult<TokenPair> noClientAgain = await controller.GetTokenPair(CreateLogin("erin", null));
+
+            AssertInvalidCredentials(first.Result);
+            AssertCapacityResult(sameClient.Result, StatusCodes.Status429TooManyRequests, "A0006");
+            AssertInvalidCredentials(otherClient.Result);
+            AssertInvalidCredentials(noClient.Result);
+            AssertInvalidCredentials(noClientAgain.Result);
+        }
+
+        [Test]
+        public async Task GetTokenPair_IgnoresTheClientReportedByAnUntrustedCaller()
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 1, userFailures: 10);
+            AuthenticationTokenController untrustedCaller = CreateControllerForCaller(kThrottledClient, throttle);
+            AuthenticationTokenController trustedCaller = CreateControllerForCaller(kTrustedCaller, throttle);
+
+            ActionResult<TokenPair> first = await untrustedCaller.GetTokenPair(CreateLogin("alice", kReportedClient));
+            ActionResult<TokenPair> otherReportedClient = await untrustedCaller.GetTokenPair(CreateLogin("bob", kOtherReportedClient));
+            ActionResult<TokenPair> trustedReport = await untrustedCaller.GetTokenPair(CreateLogin("carol", kTrustedCaller.ToString()));
+            ActionResult<TokenPair> reportedClientItself = await trustedCaller.GetTokenPair(CreateLogin("dave", kReportedClient));
+
+            AssertInvalidCredentials(first.Result);
+            // the attempts count against the caller, whatever client it reports
+            AssertCapacityResult(otherReportedClient.Result, StatusCodes.Status429TooManyRequests, "A0006");
+            AssertCapacityResult(trustedReport.Result, StatusCodes.Status429TooManyRequests, "A0006");
+            // and the caller did not use up the limit of the client it reported
+            AssertInvalidCredentials(reportedClientItself.Result);
+        }
+
+        [Test]
+        public async Task GetTokenPair_KeepsTheUserFailureLimit_WhenTheReportedClientChanges()
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 100, userFailures: 1);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle);
+
+            ActionResult<TokenPair> failure = await controller.GetTokenPair(CreateLogin("alice", kReportedClient));
+            ActionResult<TokenPair> blocked = await controller.GetTokenPair(CreateLogin("alice", kOtherReportedClient));
+
+            AssertInvalidCredentials(failure.Result);
+            AssertCapacityResult(blocked.Result, StatusCodes.Status429TooManyRequests, "A0006");
+        }
+
+        [TestCase("")]
+        [TestCase(" 192.0.2.30")]
+        [TestCase("192.0.2.30, 192.0.2.31")]
+        [TestCase("192.0.2.30:443")]
+        [TestCase("[2001:db8::1]")]
+        [TestCase("fe80::1%3")]
+        [TestCase("127.1")]
+        [TestCase("ui-srv.example.org")]
+        [TestCase("192.0.2.30\nLogin of user admin succeeded")]
+        public async Task GetTokenPair_RejectsAnInvalidClientAddressBeforeAnyLdapWork(string clientAddress)
+        {
+            TestableLdap ldap = CreateAuthLdap(new RecordingLdapClient());
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 1, userFailures: 1);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle, ldap);
+
+            ActionResult<TokenPair> rejected = await controller.GetTokenPair(CreateLogin("alice", clientAddress));
+            int connectsAfterRejection = ldap.ConnectCount;
+            ActionResult<TokenPair> valid = await controller.GetTokenPair(CreateLogin("alice", kReportedClient));
+
+            AssertClientAddressRejected(rejected.Result);
+            // the rejected request neither reached the directory nor used up a login limit
+            Assert.That(connectsAfterRejection, Is.Zero);
+            AssertInvalidCredentials(valid.Result);
+            Assert.That(ldap.ConnectCount, Is.GreaterThan(0));
+        }
+
+        [Test]
+        public async Task GetTokenPair_RejectsAnInvalidClientAddressOfAnUntrustedCaller()
+        {
+            TestableLdap ldap = CreateAuthLdap(new RecordingLdapClient());
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 1, userFailures: 1);
+            AuthenticationTokenController controller = CreateControllerForCaller(kThrottledClient, throttle, ldap);
+
+            ActionResult<TokenPair> rejected = await controller.GetTokenPair(CreateLogin("alice", "192.0.2.30, 192.0.2.31"));
+
+            AssertClientAddressRejected(rejected.Result);
+            Assert.That(ldap.ConnectCount, Is.Zero);
+        }
+
+        [Test]
+        public async Task GetAsync_LimitsTheClientReportedByATrustedCaller()
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 1, userFailures: 10);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle);
+
+            ActionResult<string> first = await controller.GetAsync(CreateLogin("alice", kReportedClient));
+            ActionResult<string> sameClient = await controller.GetAsync(CreateLogin("bob", kReportedClient));
+            ActionResult<string> otherClient = await controller.GetAsync(CreateLogin("carol", kOtherReportedClient));
+
+            AssertInvalidCredentials(first.Result);
+            AssertCapacityResult(sameClient.Result, StatusCodes.Status429TooManyRequests, "A0006");
+            AssertInvalidCredentials(otherClient.Result);
+        }
+
+        [Test]
+        public async Task GetAsync_RejectsAnInvalidClientAddress()
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 1, userFailures: 1);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle);
+
+            ActionResult<string> rejected = await controller.GetAsync(CreateLogin("alice", "192.0.2.30:443"));
+
+            AssertClientAddressRejected(rejected.Result);
+        }
+
+        [Test]
+        public void ValidateLogin_AcceptsARequestWithoutClientAddress()
+        {
+            Dictionary<string, string[]> withoutParameters = AuthenticationTokenController.ValidateLogin(null, out IPAddress? clientWithoutParameters);
+            Dictionary<string, string[]> withoutOptions = AuthenticationTokenController.ValidateLogin(
+                new AuthenticationTokenGetParameters { Options = null }, out IPAddress? clientWithoutOptions);
+            Dictionary<string, string[]> withDefaults = AuthenticationTokenController.ValidateLogin(
+                new AuthenticationTokenGetParameters(), out IPAddress? clientWithDefaults);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(withoutParameters, Is.Empty);
+                Assert.That(withoutOptions, Is.Empty);
+                Assert.That(withDefaults, Is.Empty);
+                Assert.That(clientWithoutParameters, Is.Null);
+                Assert.That(clientWithoutOptions, Is.Null);
+                Assert.That(clientWithDefaults, Is.Null);
+                Assert.That(new AuthenticationTokenGetParameters().Options, Is.Not.Null, "options default to an empty object");
+            });
+        }
+
+        [Test]
+        public void ValidateLogin_ReturnsTheNormalizedClientAddress()
+        {
+            Dictionary<string, string[]> errors = AuthenticationTokenController.ValidateLogin(CreateLogin("alice", $"::ffff:{kReportedClient}"), out IPAddress? client);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(errors, Is.Empty);
+                Assert.That(client, Is.EqualTo(IPAddress.Parse(kReportedClient)));
+            });
+        }
+
+        [Test]
         public async Task GetAsync_Returns429_WhenClientLimitIsExceeded()
         {
             AuthenticationTokenController controller = CreateThrottledController([], new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 1, userFailures: 10));
@@ -1381,7 +1539,7 @@ namespace FWO.Test
         public async Task GetTokenPair_Returns503WithoutLdapWork_WhenMoreActiveLdapsThanTheCap()
         {
             List<TestableLdap> ldaps = CreateTooManyLdaps();
-            AuthenticationTokenController controller = CreateController(new List<Ldap>(ldaps), new RecordingApiConnection());
+            AuthenticationTokenController controller = CreateController([.. ldaps], new RecordingApiConnection());
 
             ActionResult<TokenPair> result = await controller.GetTokenPair(new AuthenticationTokenGetParameters { Username = "alice", Password = "secret" });
 
@@ -1392,7 +1550,7 @@ namespace FWO.Test
         [Test]
         public async Task GetAsyncForUser_ReportsCapacityInsteadOfInvalidCredentials()
         {
-            AuthenticationTokenController controller = CreateController(new List<Ldap>(CreateTooManyLdaps()), new RecordingApiConnection());
+            AuthenticationTokenController controller = CreateController([.. CreateTooManyLdaps()], new RecordingApiConnection());
 
             ActionResult<string> result = await controller.GetAsyncForUser(new AuthenticationTokenGetForUserParameters
             {
@@ -1407,7 +1565,7 @@ namespace FWO.Test
         [Test]
         public async Task GetTokenPairForUser_ReportsCapacityInsteadOfInvalidCredentials()
         {
-            AuthenticationTokenController controller = CreateController(new List<Ldap>(CreateTooManyLdaps()), new RecordingApiConnection());
+            AuthenticationTokenController controller = CreateController([.. CreateTooManyLdaps()], new RecordingApiConnection());
 
             ActionResult<TokenPair> result = await controller.GetTokenPairForUser(new AuthenticationTokenGetForUserParameters
             {
@@ -1427,7 +1585,7 @@ namespace FWO.Test
                 Responder = (query, _, resultType) => QueryResponse(query, resultType)
             };
             apiConnection.QueueResult(kRefreshTokenUserId7);
-            AuthenticationTokenController controller = CreateController(new List<Ldap>(CreateTooManyLdaps()), apiConnection);
+            AuthenticationTokenController controller = CreateController([.. CreateTooManyLdaps()], apiConnection);
 
             ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
@@ -1439,13 +1597,101 @@ namespace FWO.Test
         public void AuthManagerGetRoles_StopsBeforeConnecting_WhenCancelled()
         {
             TestableLdap roleLdap = CreateRoleLdap();
-            object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(), new List<Ldap> { roleLdap });
+            object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(), [roleLdap]);
             using CancellationTokenSource cancellation = new();
             cancellation.Cancel();
 
             Assert.CatchAsync<OperationCanceledException>(async () =>
                 await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser(), cancellation.Token));
             Assert.That(roleLdap.ConnectCount, Is.Zero);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Login_LogsTheReportedClient_WhenTheCredentialsAreInvalid(bool deprecatedEndpoint)
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 10, userFailures: 10);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle);
+
+            string log = await ConsoleOutput.CaptureAsync(async () =>
+                AssertInvalidCredentials(await InvokeLogin(controller, CreateLogin("alice", kReportedClient), deprecatedEndpoint)));
+
+            Assert.That(log, Does.Contain($"Error generating token for user \"alice\" from client {kReportedClient}"));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Login_LogsTheReportedClient_WhenTheDirectoriesAreAtCapacity(bool deprecatedEndpoint)
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 10, userFailures: 10);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle,
+                [.. CreateTooManyLdaps()], new RecordingApiConnection());
+
+            string log = await ConsoleOutput.CaptureAsync(async () =>
+                AssertCapacityResult(await InvokeLogin(controller, CreateLogin("alice", kReportedClient), deprecatedEndpoint),
+                    StatusCodes.Status503ServiceUnavailable, "A0007"));
+
+            Assert.That(log, Does.Contain($"Login attempt for user \"alice\" from client {kReportedClient} refused: A0007"));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Login_LogsTheReportedClient_WhenTheApiCannotBeReached(bool deprecatedEndpoint)
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 10, userFailures: 10);
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, variables, resultType) => query == AuthQueries.getUserByDn
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle,
+                [CreateAuthLdap(CreateLoginLdapClient())], apiConnection);
+            AuthenticationTokenGetParameters login = new()
+            {
+                Username = "login-user",
+                Password = "password",
+                Options = new AuthenticationTokenGetOptions { ClientAddress = kReportedClient }
+            };
+
+            string log = await ConsoleOutput.CaptureAsync(async () =>
+                AssertServiceUnavailableWithoutTransportDetails(await InvokeLogin(controller, login, deprecatedEndpoint)));
+
+            Assert.That(log, Does.Contain($"Could not reach the API while logging in user \"login-user\" from client {kReportedClient}"));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task DelegatedLogin_LogsTheCaller_WhenTheAdminCredentialsAreInvalid(bool deprecatedEndpoint)
+        {
+            using LoginThrottle throttle = CreateTrustingLoginThrottle(clientAttempts: 10, userFailures: 10);
+            AuthenticationTokenController controller = CreateControllerForCaller(kTrustedCaller, throttle);
+            AuthenticationTokenGetForUserParameters parameters = new() { AdminUsername = "admin", AdminPassword = "wrong", TargetUserName = "target" };
+
+            string log = await ConsoleOutput.CaptureAsync(async () =>
+                Assert.That(await InvokeDelegatedLogin(controller, parameters, deprecatedEndpoint), Is.TypeOf<BadRequestObjectResult>()));
+
+            Assert.That(log, Does.Contain($"Error generating token for user \"admin\" from client {kTrustedCaller}"));
+        }
+
+        /// <summary>
+        /// Logs in through GetTokenPair or the deprecated Get endpoint.
+        /// </summary>
+        private static async Task<ActionResult?> InvokeLogin(AuthenticationTokenController controller, AuthenticationTokenGetParameters login, bool deprecatedEndpoint)
+        {
+            return deprecatedEndpoint
+                ? (await controller.GetAsync(login)).Result
+                : (await controller.GetTokenPair(login)).Result;
+        }
+
+        /// <summary>
+        /// Logs in on behalf of another user through GetTokenPairForUser or the deprecated GetForUser endpoint.
+        /// </summary>
+        private static async Task<ActionResult?> InvokeDelegatedLogin(AuthenticationTokenController controller, AuthenticationTokenGetForUserParameters login, bool deprecatedEndpoint)
+        {
+            return deprecatedEndpoint
+                ? (await controller.GetAsyncForUser(login)).Result
+                : (await controller.GetTokenPairForUser(login)).Result;
         }
 
         private static AuthenticationTokenController CreateController()
@@ -1474,6 +1720,71 @@ namespace FWO.Test
             httpContext.Connection.RemoteIpAddress = kThrottledClient;
             controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
             return controller;
+        }
+
+        /// <summary>
+        /// Builds a controller whose requests come from the given caller and share the given login limits.
+        /// </summary>
+        private static AuthenticationTokenController CreateControllerForCaller(IPAddress caller, LoginThrottle loginThrottle, TestableLdap? ldap = null)
+        {
+            List<Ldap> ldaps = [ldap ?? CreateAuthLdap(new RecordingLdapClient())];
+            return CreateControllerForCaller(caller, loginThrottle, ldaps, new RecordingApiConnection());
+        }
+
+        /// <summary>
+        /// Builds a controller whose requests come from the given caller, with the given directories and API.
+        /// </summary>
+        private static AuthenticationTokenController CreateControllerForCaller(IPAddress caller, LoginThrottle loginThrottle, List<Ldap> ldaps, ApiConnection apiConnection)
+        {
+            AuthenticationTokenController controller = CreateController(ldaps, apiConnection, loginThrottle);
+            DefaultHttpContext httpContext = new();
+            httpContext.Connection.RemoteIpAddress = caller;
+            controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+            return controller;
+        }
+
+        /// <summary>
+        /// Login limits that trust <see cref="kTrustedCaller"/>, like the middleware trusts the UI hosts.
+        /// </summary>
+        private static LoginThrottle CreateTrustingLoginThrottle(int clientAttempts, int userFailures)
+        {
+            return new LoginThrottle(new LoginThrottleSettings
+            {
+                ClientAttemptsPerMinute = clientAttempts,
+                UserFailuresPerMinute = userFailures,
+                TrustedClientAddresses = kTrustedCallers
+            });
+        }
+
+        private static AuthenticationTokenGetParameters CreateLogin(string userName, string? clientAddress)
+        {
+            return new AuthenticationTokenGetParameters
+            {
+                Username = userName,
+                Password = "wrong",
+                Options = new AuthenticationTokenGetOptions { ClientAddress = clientAddress }
+            };
+        }
+
+        /// <summary>
+        /// Asserts that a login reached the directories and failed there, i.e. that no login limit refused it.
+        /// </summary>
+        private static void AssertInvalidCredentials(IActionResult? result)
+        {
+            Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result!).Value, Is.Not.InstanceOf<ValidationProblemDetails>());
+        }
+
+        private static void AssertClientAddressRejected(IActionResult? result)
+        {
+            Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
+            ValidationProblemDetails? problem = ((BadRequestObjectResult)result!).Value as ValidationProblemDetails;
+            Assert.That(problem, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(problem!.Errors.Keys, Is.EquivalentTo(kClientAddressErrorKeys));
+                Assert.That(problem.Errors[kClientAddressPath], Does.Contain(AuthenticationTokenGetOptions.kClientAddressDescription));
+            });
         }
 
         private static LoginThrottle CreateLoginThrottle(int clientAttempts, int userFailures)
@@ -1568,7 +1879,7 @@ namespace FWO.Test
             return Activator.CreateInstance(
                 authManagerType,
                 new JwtWriter(new RsaSecurityKey(rsa)),
-                ldaps ?? new List<Ldap>(),
+                ldaps ?? [],
                 apiConnection,
                 tokenLifetimeProvider ?? new FixedTokenLifetimeProvider())!;
         }

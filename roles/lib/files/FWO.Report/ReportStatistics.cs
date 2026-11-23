@@ -59,8 +59,7 @@ namespace FWO.Report
         public override string ExportToJson()
         {
             globalStatisticsManagement.Name = "global statistics";
-            List<ManagementReport> combinedManagements = new() { globalStatisticsManagement };
-            combinedManagements.AddRange(ReportData.ManagementData.Where(mgt => !mgt.Ignore));
+            List<ManagementReport> combinedManagements = [globalStatisticsManagement, .. ReportData.ManagementData.Where(mgt => !mgt.Ignore)];
             return JsonSerializer.Serialize(combinedManagements, new JsonSerializerOptions { WriteIndented = true });
         }
 

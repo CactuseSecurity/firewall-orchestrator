@@ -33,11 +33,7 @@ namespace FWO.Test
 
         public static LdapEntry CreateEntry(string dn, params LdapAttribute[] attributes)
         {
-            LdapAttributeSet attributeSet = new();
-            foreach (LdapAttribute attribute in attributes)
-            {
-                attributeSet.Add(attribute);
-            }
+            LdapAttributeSet attributeSet = [.. attributes];
             return new LdapEntry(dn, attributeSet);
         }
 
@@ -84,14 +80,14 @@ namespace FWO.Test
         public LdapEntry? ReadResult { get; set; }
         public ILdapSearchResults? SearchResults { get; set; }
         public Func<string?, int, string, string[]?, bool, ILdapSearchResults?>? SearchResponder { get; set; }
-        public List<string> BoundUsers { get; } = new();
-        public List<(string User, string Password)> BindCalls { get; } = new();
-        public List<string> ReadCalls { get; } = new();
-        public List<(string? BaseDn, int Scope, string Filter, string[]? Attributes, bool TypesOnly)> SearchCalls { get; } = new();
-        public List<LdapEntry> AddedEntries { get; } = new();
-        public List<string> DeletedDns { get; } = new();
-        public List<(string DistinguishedName, LdapModification[] Mods)> ModifyCalls { get; } = new();
-        public List<(string DistinguishedName, string NewRdn, bool DeleteOldRdn)> RenameCalls { get; } = new();
+        public List<string> BoundUsers { get; } = [];
+        public List<(string User, string Password)> BindCalls { get; } = [];
+        public List<string> ReadCalls { get; } = [];
+        public List<(string? BaseDn, int Scope, string Filter, string[]? Attributes, bool TypesOnly)> SearchCalls { get; } = [];
+        public List<LdapEntry> AddedEntries { get; } = [];
+        public List<string> DeletedDns { get; } = [];
+        public List<(string DistinguishedName, LdapModification[] Mods)> ModifyCalls { get; } = [];
+        public List<(string DistinguishedName, string NewRdn, bool DeleteOldRdn)> RenameCalls { get; } = [];
         public Dictionary<string, LdapEntry?> ReadResultsByDn { get; } = new(StringComparer.OrdinalIgnoreCase);
         public bool ThrowOnAdd { get; set; }
         public bool ThrowOnDelete { get; set; }
@@ -108,7 +104,7 @@ namespace FWO.Test
         /// <summary>
         /// Attribute lists of the reads that requested specific attributes.
         /// </summary>
-        public List<string[]> ReadAttributeCalls { get; } = new();
+        public List<string[]> ReadAttributeCalls { get; } = [];
 
         public Task<LdapEntry?> ReadAsync(string distinguishedName, string[] attributes, CancellationToken cancellationToken)
         {

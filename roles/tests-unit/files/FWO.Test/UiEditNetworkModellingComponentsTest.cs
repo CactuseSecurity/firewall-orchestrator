@@ -552,26 +552,26 @@ namespace FWO.Test
                     [WorkflowPhases.recertification] = CreateMatrix(299, 310, 349, false)
                 }
             });
-            public List<ModellingNetworkArea> Areas { get; set; } = new List<ModellingNetworkArea>();
-            public List<ModellingAppServer> ManualServers { get; set; } = new List<ModellingAppServer>();
-            public List<ModellingAppServer> CsvServers { get; set; } = new List<ModellingAppServer>();
-            public List<ModellingServiceGroup> GlobalServiceGroups { get; set; } = new List<ModellingServiceGroup>();
-            public List<ModellingService> GlobalServices { get; set; } = new List<ModellingService>();
-            public List<ModellingConnection> ConnectionsForServiceGroup { get; set; } = new List<ModellingConnection>();
-            public List<ModellingHistoryEntry> HistoryForApp { get; set; } = new List<ModellingHistoryEntry>();
-            public List<ModellingHistoryEntry> HistoryAll { get; set; } = new List<ModellingHistoryEntry>();
-            public List<ModellingConnection> PublishedInterfaces { get; set; } = new List<ModellingConnection>();
-            public List<ModellingNwGroup> NwGroupObjects { get; set; } = new List<ModellingNwGroup>();
+            public List<ModellingNetworkArea> Areas { get; set; } = [];
+            public List<ModellingAppServer> ManualServers { get; set; } = [];
+            public List<ModellingAppServer> CsvServers { get; set; } = [];
+            public List<ModellingServiceGroup> GlobalServiceGroups { get; set; } = [];
+            public List<ModellingService> GlobalServices { get; set; } = [];
+            public List<ModellingConnection> ConnectionsForServiceGroup { get; set; } = [];
+            public List<ModellingHistoryEntry> HistoryForApp { get; set; } = [];
+            public List<ModellingHistoryEntry> HistoryAll { get; set; } = [];
+            public List<ModellingConnection> PublishedInterfaces { get; set; } = [];
+            public List<ModellingNwGroup> NwGroupObjects { get; set; } = [];
             public WfTicket TicketById { get; set; } = new();
-            public List<WfState> States { get; set; } = new()
-            {
+            public List<WfState> States { get; set; } =
+            [
                 new WfState { Id = 0 },
                 new WfState { Id = 1 },
                 new WfState { Id = 7 },
                 new WfState { Id = 49 },
                 new WfState { Id = 249 }
-            };
-            public List<WfExtState> ExtStates { get; set; } = new();
+            ];
+            public List<WfExtState> ExtStates { get; set; } = [];
             public int UpdateConnectionCalls { get; private set; }
             public int UpdateTicketStateCalls { get; private set; }
             public int UpdateRequestTaskStateCalls { get; private set; }
@@ -869,9 +869,8 @@ namespace FWO.Test
 
             public LocalizedString this[string name, params object[] arguments] => new(name, string.Format(name, arguments), resourceNotFound: true);
 
-            public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => new List<LocalizedString>();
+            public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => [];
 
-            public EmptyStringLocalizer<T> WithCulture(System.Globalization.CultureInfo culture) => this;
         }
     }
 }

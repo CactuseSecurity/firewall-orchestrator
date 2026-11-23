@@ -213,3 +213,314 @@
     that:
       - api_query_admin.content is search('obj_typ_name')
     fail_msg: "unexpected version test result (does not contain obj_typ_name): {{ api_query_admin.content }}"
+
+# Personal settings (#5734): the UI roles may write rows of table config only for their own user and only for the keys
+# in config_user_key; all other settings are global only (config_user 0). Each role that may write config is
+# impersonated with the admin secret and sends the mutation of the personal settings page (upsertConfigItems), which
+# inserts or, on a conflict, updates a row. config_user references uiuser, so the checks use the local users of the
+# two sample users (created when they log in) and user 0, which holds the global rows.
+- name: "config: user rows are limited to personal settings"
+  vars:
+    api_config_writing_roles:
+      - approver
+      - auditor
+      - implementer
+      - modeller
+      - planner
+      - recertifier
+      - reporter
+      - reporter-viewall
+      - requester
+      - reviewer
+    api_config_keys:
+      personal: reportingPersonalPreferredCollapseState
+      personal_with_global_row: elementsPerFetch
+      global_only: uiHostName
+      seeded_global_only: welcomeMessage
+    api_config_inserted_value: Expanded
+    api_config_updated_value: Collapsed
+    api_config_seeded_value: row of the sample user written by the admin role
+    api_config_changed_global_value: "{{ ((api_config_global_values_before | first | default('0')) | int) + 1 }}"
+    api_config_permission_error: permission-error|check constraint
+    api_config_upsert_mutation: >-
+      {{ lookup('file', role_path + '/../common/files/fwo-api-calls/config/upsertConfigItems.graphql') | regex_replace('^﻿', '') }}
+    api_config_users_query: >-
+      query getConfigCheckUsers($names: [String!]!) { uiuser(where: {uiuser_username: {_in: $names}}) { uiuser_id uiuser_username } }
+    api_config_global_value_query: >-
+      query getConfigCheckGlobalValue($key: String!) { config(where: {config_user: {_eq: 0}, config_key: {_eq: $key}}) { config_value } }
+    api_config_reset_mutation: >-
+      mutation resetConfigCheckRows($users: [Int!]!, $keys: [String!]!, $seed: [config_insert_input!]!) {
+      delete_config(where: {config_user: {_in: $users}, config_key: {_in: $keys}}) { affected_rows }
+      insert_config(objects: $seed) { affected_rows } }
+    api_config_read_query: >-
+      query readConfigCheckRows($own: Int!, $other: Int!, $personalKey: String!, $personalKeyWithGlobalRow: String!,
+      $globalKey: String!, $seededKey: String!) {
+      ownPersonal: config(where: {config_user: {_eq: $own}, config_key: {_eq: $personalKey}}) { config_value }
+      ownGlobal: config(where: {config_user: {_eq: $own}, config_key: {_eq: $globalKey}}) { config_value }
+      ownSeeded: config(where: {config_user: {_eq: $own}, config_key: {_eq: $seededKey}}) { config_value }
+      otherPersonal: config(where: {config_user: {_eq: $other}, config_key: {_eq: $personalKey}}) { config_value }
+      globalPersonal: config(where: {config_user: {_eq: 0}, config_key: {_eq: $personalKeyWithGlobalRow}}) { config_value } }
+    api_config_remove_mutation: >-
+      mutation removeConfigCheckRows($users: [Int!]!, $keys: [String!]!) {
+      delete_config(where: {config_user: {_in: $users}, config_key: {_in: $keys}}) { affected_rows } }
+    api_config_restore_global_mutation: >-
+      mutation restoreConfigCheckGlobalValue($key: String!, $value: String!) {
+      update_config(where: {config_user: {_eq: 0}, config_key: {_eq: $key}, config_value: {_neq: $value}},
+      _set: {config_value: $value}) { affected_rows } }
+    api_config_remove_global_mutation: >-
+      mutation removeConfigCheckGlobalRow($key: String!) {
+      delete_config(where: {config_user: {_eq: 0}, config_key: {_eq: $key}}) { affected_rows } }
+    # session_user and row_user name entries of api_config_user_ids, key names an entry of api_config_keys
+    api_config_write_cases:
+      - name: insert the own row of a personal setting
+        session_user: own
+        row_user: own
+        key: personal
+        value: "{{ api_config_inserted_value }}"
+        expect: written
+      - name: update the own row of a personal setting
+        session_user: own
+        row_user: own
+        key: personal
+        value: "{{ api_config_updated_value }}"
+        expect: written
+      - name: insert an own row of a setting that is not personal
+        session_user: own
+        row_user: own
+        key: global_only
+        value: "https://config-check.invalid"
+        expect: rejected
+      - name: insert a row of another user
+        session_user: own
+        row_user: other
+        key: personal
+        value: "{{ api_config_inserted_value }}"
+        expect: rejected
+      - name: update the row of another user
+        session_user: other
+        row_user: own
+        key: personal
+        value: Intermediate
+        expect: unchanged
+      - name: update the global row of a personal setting
+        session_user: own
+        row_user: global_settings
+        key: personal_with_global_row
+        value: "{{ api_config_changed_global_value }}"
+        expect: unchanged
+      - name: update an existing own row of a setting that is not personal
+        session_user: own
+        row_user: own
+        key: seeded_global_only
+        value: changed by the role
+        expect: unchanged
+  block:
+    - name: "config: log in the second sample user, which creates its local user"
+      uri:
+        url: "{{ test_middleware_uri }}api/AuthenticationToken/Get/"
+        method: POST
+        headers:
+          Content-Type: application/json
+        body:
+          Username: user2{{ test_postfix }}
+          Password: "{{ test_user2_pw }}"
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        client_cert: "{{ internalca_client_certificate }}"
+        client_key: "{{ internalca_client_private_key }}"
+        return_content: true
+      register: api_config_user2_login
+      become: true
+      changed_when: false
+      failed_when: false
+      environment: "{{ proxy_env }}"
+      no_log: true
+
+    - name: "config: read the local users of the sample users"
+      uri:
+        url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+        method: POST
+        headers:
+          Content-Type: application/json
+          x-hasura-role: admin
+          x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+        body: >-
+          {{ {'query': api_config_users_query, 'variables': {'names': ['user1' ~ test_postfix, 'user2' ~ test_postfix]}} }}
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        client_cert: "{{ internalca_client_certificate }}"
+        client_key: "{{ internalca_client_private_key }}"
+        return_content: true
+      register: api_config_users_result
+      become: true
+      changed_when: false
+      failed_when: false
+      environment: "{{ proxy_env }}"
+      no_log: true
+
+    - name: "config: keep the local user ids of the sample users"
+      set_fact:
+        api_config_user_ids:
+          own: "{{ api_config_users | selectattr('uiuser_username', 'equalto', 'user1' ~ test_postfix) | map(attribute='uiuser_id') | first | default(0) }}"
+          other: "{{ api_config_users | selectattr('uiuser_username', 'equalto', 'user2' ~ test_postfix) | map(attribute='uiuser_id') | first | default(0) }}"
+          global_settings: 0
+      vars:
+        api_config_users: "{{ api_config_users_result.json.data.uiuser | default([]) }}"
+
+    # the cleanup below deletes rows of these users, so it must never get user 0
+    - name: "config: both sample users have a local user other than user 0"
+      assert:
+        that:
+          - api_config_user2_login.status | default(0) == 200
+          - api_config_users_result.status | default(0) == 200
+          - api_config_users_result.json.errors is not defined
+          - api_config_user_ids.own | int > 0
+          - api_config_user_ids.other | int > 0
+          - api_config_user_ids.own | int != api_config_user_ids.other | int
+        fail_msg: >-
+          the local users of the sample users were not found (login of user2: HTTP
+          {{ api_config_user2_login.status | default('-') }}): {{ api_config_users_result.content | default('') }}
+
+    - name: "config: keep the ids of the sample users for the cleanup"
+      set_fact:
+        api_config_sample_user_ids: "{{ [api_config_user_ids.own | int, api_config_user_ids.other | int] }}"
+
+    - name: "config: read the global value of the personal setting the checks try to change"
+      uri:
+        url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+        method: POST
+        headers:
+          Content-Type: application/json
+          x-hasura-role: admin
+          x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+        body: >-
+          {{ {'query': api_config_global_value_query, 'variables': {'key': api_config_keys.personal_with_global_row}} }}
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        client_cert: "{{ internalca_client_certificate }}"
+        client_key: "{{ internalca_client_private_key }}"
+        return_content: true
+      register: api_config_global_before
+      become: true
+      changed_when: false
+      failed_when: false
+      environment: "{{ proxy_env }}"
+      no_log: true
+
+    - name: "config: global value of the personal setting read"
+      assert:
+        that:
+          - api_config_global_before.status | default(0) == 200
+          - api_config_global_before.json.errors is not defined
+        fail_msg: >-
+          the global value could not be read: HTTP {{ api_config_global_before.status | default('-') }}
+          {{ api_config_global_before.content | default('') }}
+
+    - name: "config: keep the global value of the personal setting"
+      set_fact:
+        api_config_global_values_before: "{{ api_config_global_before.json.data.config | map(attribute='config_value') | list }}"
+
+    - name: "config: check the config writes of each UI role"
+      include_tasks: test-api-config-user-rows-case.yml
+      loop: "{{ api_config_writing_roles }}"
+      loop_control:
+        loop_var: api_config_role
+
+  always:
+    - name: "config: remove the rows of the sample users written by the checks"
+      uri:
+        url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+        method: POST
+        headers:
+          Content-Type: application/json
+          x-hasura-role: admin
+          x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+        body: >-
+          {{ {'query': api_config_remove_mutation,
+              'variables': {'users': api_config_sample_user_ids, 'keys': api_config_keys.values() | list}} }}
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        client_cert: "{{ internalca_client_certificate }}"
+        client_key: "{{ internalca_client_private_key }}"
+        return_content: true
+      register: api_config_cleanup
+      become: true
+      changed_when: false
+      failed_when: false
+      environment: "{{ proxy_env }}"
+      no_log: true
+      when: api_config_sample_user_ids is defined
+
+    # the global value is only written back if a check changed it
+    - name: "config: restore the global value of the personal setting"
+      uri:
+        url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+        method: POST
+        headers:
+          Content-Type: application/json
+          x-hasura-role: admin
+          x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+        body: >-
+          {{ {'query': api_config_restore_global_mutation,
+              'variables': {'key': api_config_keys.personal_with_global_row, 'value': api_config_global_values_before | first}} }}
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        client_cert: "{{ internalca_client_certificate }}"
+        client_key: "{{ internalca_client_private_key }}"
+        return_content: true
+      register: api_config_global_restore
+      become: true
+      changed_when: false
+      failed_when: false
+      environment: "{{ proxy_env }}"
+      no_log: true
+      when:
+        - api_config_global_values_before is defined
+        - api_config_global_values_before | length > 0
+        - api_config_global_values_before | first is string
+
+    - name: "config: remove a global row of the personal setting that did not exist before the checks"
+      uri:
+        url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+        method: POST
+        headers:
+          Content-Type: application/json
+          x-hasura-role: admin
+          x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+        body: >-
+          {{ {'query': api_config_remove_global_mutation, 'variables': {'key': api_config_keys.personal_with_global_row}} }}
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        client_cert: "{{ internalca_client_certificate }}"
+        client_key: "{{ internalca_client_private_key }}"
+        return_content: true
+      register: api_config_global_removal
+      become: true
+      changed_when: false
+      failed_when: false
+      environment: "{{ proxy_env }}"
+      no_log: true
+      when:
+        - api_config_global_values_before is defined
+        - api_config_global_values_before | length == 0
+
+    - name: "config: rows of the checks removed"
+      assert:
+        that:
+          - api_config_cleanup is skipped or (api_config_cleanup.status | default(0) == 200 and api_config_cleanup.json.errors is not defined)
+          - >-
+            api_config_global_restore is skipped
+            or (api_config_global_restore.status | default(0) == 200 and api_config_global_restore.json.errors is not defined)
+          - >-
+            api_config_global_removal is skipped
+            or (api_config_global_removal.status | default(0) == 200 and api_config_global_removal.json.errors is not defined)
+        fail_msg: >-
+          the rows of the config checks could not be removed:
+          {{ api_config_cleanup.content | default('') }} {{ api_config_global_restore.content | default('') }}
+          {{ api_config_global_removal.content | default('') }}

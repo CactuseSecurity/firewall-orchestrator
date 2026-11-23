@@ -16,6 +16,8 @@ namespace FWO.Test
     [TestFixture]
     internal class SecurityHardeningTest
     {
+        private static readonly string[] kExpectedModellerAndAuditorRoles = ["modeller", "auditor"];
+
         [Test]
         public void EscapeFilterValue_EscapesRfc4515SpecialCharacters()
         {
@@ -96,7 +98,7 @@ namespace FWO.Test
 
             string[] roles = await Task.WhenAll(modellerTask, auditorTask);
 
-            Assert.That(roles, Is.EquivalentTo(new[] { "modeller", "auditor" }));
+            Assert.That(roles, Is.EquivalentTo(kExpectedModellerAndAuditorRoles));
             Assert.That(connection.GetActRole(), Is.Empty);
         }
 

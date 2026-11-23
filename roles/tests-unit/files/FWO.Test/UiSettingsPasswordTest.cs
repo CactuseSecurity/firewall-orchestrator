@@ -164,7 +164,7 @@ namespace FWO.Test
 
             middlewareClient = new MockMiddlewareClient();
             userConfig = new SimulatedUserConfig();
-            userConfig.User.Roles = new List<string> { role };
+            userConfig.User.Roles = [role];
             globalConfig = new SimulatedGlobalConfig();
 
             context.Services.AddSingleton<MiddlewareClient>(middlewareClient);

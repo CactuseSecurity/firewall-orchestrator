@@ -31,13 +31,10 @@ namespace FWO.Report.Filter.Ast
                     ExtractDisabledQuery(query);
                     break;
                 case TokenKind.SourceNegated:
-                    // ExtractSourceNegatedQuery(query);
                     throw new NotSupportedException("Token of type \"SourceNegated\" is currently not supported.");
                 case TokenKind.DestinationNegated:
-                    // ExtractDestinationNegatedQuery(query);
                     throw new NotSupportedException("Token of type \"DestinationNegated\" is currently not supported.");
                 case TokenKind.ServiceNegated:
-                    // ExtractServiceNegatedQuery(query);
                     throw new NotSupportedException("Token of type \"ServiceNegated\" is currently not supported.");
                 case TokenKind.Remove:
                     ExtractRemoveFilter(query);

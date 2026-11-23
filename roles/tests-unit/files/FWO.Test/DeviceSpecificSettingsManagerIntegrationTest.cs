@@ -71,7 +71,7 @@ internal class DeviceSpecificSettingsManagerIntegrationTest
             DeviceSpecificSettingsChangeSet initialChanges = new DeviceSpecificSettingsChangeSet(requested)
                 .Set(DeviceSpecificSettingKeys.ImplementationMode, ProvisioningImplementationMode.Manual)
                 .Set(DeviceSpecificSettingKeys.RuleLoggingOverride, ProvisioningLoggingMode.Log)
-                .Set(DeviceSpecificSettingKeys.SecurityProfiles, new List<string> { "Strict", "ScanAll" })
+                .Set(DeviceSpecificSettingKeys.SecurityProfiles, ["Strict", "ScanAll"])
                 .Set(DeviceSpecificSettingKeys.RuleZoneFromOverride, "integration-zone");
 
             DeviceSpecificSettingsScope persisted = await manager.ApplyChangesAsync(initialChanges);

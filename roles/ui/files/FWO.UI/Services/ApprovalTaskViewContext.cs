@@ -40,6 +40,8 @@ namespace FWO.Ui.Services
         public ApprovalTaskDisplayLogic DisplayLogic { get; }
         /// <summary>Fields enabled for display in the current view.</summary>
         public AccessTaskFieldVisibilityConfig Visibility { get; }
+        /// <summary>Fields of object and group tasks enabled for display in the current view.</summary>
+        public ObjectTaskFieldVisibilityConfig ObjectVisibility { get; }
         /// <summary>Protocols available for technical element display.</summary>
         public List<IpProtocol> DisplayIpProtos { get; }
         /// <summary>Determines whether a field can be edited.</summary>
@@ -72,10 +74,12 @@ namespace FWO.Ui.Services
             ApprovalTaskDisplayLogic displayLogic,
             AccessTaskFieldVisibilityConfig visibility,
             List<IpProtocol> displayIpProtos,
-            ApprovalTaskViewActions actions)
+            ApprovalTaskViewActions actions,
+            ObjectTaskFieldVisibilityConfig? objectVisibility = null)
         {
             DisplayLogic = displayLogic;
             Visibility = visibility;
+            ObjectVisibility = objectVisibility ?? new();
             DisplayIpProtos = displayIpProtos;
             CanEdit = actions.CanEdit;
             CanEditTimeObject = actions.CanEditTimeObject;

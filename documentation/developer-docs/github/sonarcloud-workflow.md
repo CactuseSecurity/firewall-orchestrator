@@ -47,6 +47,29 @@ Like every `pull_request_target` workflow, it runs the workflow file of the defa
 in the pull request or in `develop`. Changes to `sonarcloud-pr.yml` therefore take effect for pull requests only
 once they have reached `main`.
 
+### Rules enforced by the build
+
+Rules that the code base is free of are raised to `warning` in the root [`.editorconfig`](../../../.editorconfig).
+Because [`roles/Directory.Build.props`](../../../roles/Directory.Build.props) sets `TreatWarningsAsErrors` and
+`EnforceCodeStyleInBuild`, a new finding fails the local build instead of showing up in SonarCloud later.
+
+| Build rule | SonarCloud rule | Checks |
+| --- | --- | --- |
+| CA1822 | (imported) | members that can be `static` (private and internal members only) |
+| CA1825, CA1829, CA1854, CA1860, CA1861, CA2263, SYSLIB1045 | (imported) | performance and modernization rules of the .NET analyzers |
+| CA1052 | S1118 | classes with only static members are `static` or `sealed` |
+| CA2201 | S112 | no `throw new Exception(...)` |
+| CA2208 | S3928 | argument exceptions name a real parameter |
+| IDE0044 | S2933 | fields that are only set in the constructor are `readonly` |
+| IDE0051, IDE0052 | S1144, S4487 | no unused or never read private members |
+| IDE0060 | S1172 | no unused parameters in non-public methods |
+| IDE0028, IDE0037, IDE0059 | (imported) | collection expressions, inferred member names, no unnecessary assignments |
+
+`EnforceCodeStyleInBuild` makes the build report every IDE rule whose default severity is "suggestion", and SonarCloud
+imports these as `external_roslyn` issues. IDE0028, IDE0037 and IDE0059 are such rules, so they are locked as well.
+Only add a rule there once all its findings are fixed, otherwise the build breaks. The build does not check Razor
+markup and `@code` blocks, so SonarCloud still reports those findings there.
+
 ### Required Actions policy
 
 From 2 December 2026, GitHub blocks workflows triggered by `pull_request_target` in public repositories by default.

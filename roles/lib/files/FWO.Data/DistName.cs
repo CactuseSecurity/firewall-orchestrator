@@ -31,74 +31,63 @@ namespace FWO.Data
 
         public DistName(string? dn)
         {
-            //Regex r = new Regex("(?:^|,\\s?)(?:(?<name>[A-Z]+)=(?<val>\"(?:[^\"]| \"\")+\"|(?:\\,|[^,])+))+");
-            //GroupCollection groups = r.Match(dn ?? "").Groups;
-            //foreach (string group in r.GetGroupNames())
-            //{
-            //    groups[group];
-            //}
-
             UserName = "";
             Role = "";
             Group = "";
             Root = [];
             Path = [];
-            bool lastValue = false;
-            if (dn != null)
+            string remainingDn = dn ?? "";
+            int indexPrefixDelim = remainingDn.IndexOf('=');
+            while (indexPrefixDelim > 0)
             {
-                while (lastValue == false)
-                {
-                    int indexPrefixDelim = dn.IndexOf('=');
-                    if (indexPrefixDelim > 0)
-                    {
-                        string name = dn[..indexPrefixDelim];
-                        (string value, string remainingDn) = ReadDnValue(dn[(indexPrefixDelim + 1)..]);
-                        dn = remainingDn;
-                        lastValue = dn.Length == 0;
+                string name = remainingDn[..indexPrefixDelim];
+                (string value, remainingDn) = ReadDnValue(remainingDn[(indexPrefixDelim + 1)..]);
+                AddDnComponent(name, value);
+                indexPrefixDelim = remainingDn.IndexOf('=');
+            }
+        }
 
-                        switch (name.ToLower())
-                        {
-                            case "uid":
-                            case "samaccountname":
-                            case "userprincipalname":
-                            case "mail":
-                                UserName = value;
-                                break;
-                            case "cn":
-                                if (UserName == "")
-                                {
-                                    // the first one may be the user if not delivered as uid or a role or a group
-                                    UserName = value;
-                                    Role = value;
-                                    Group = value;
-                                }
-                                else
-                                {
-                                    // following ones belong to the path
-                                    Path.Add(value);
-                                }
-                                break;
-                            case "ou":
-                            case "o":
-                            case "l":
-                            case "st":
-                            case "street":
-                                Path.Add(value);
-                                break;
-                            case "dc":
-                            case "c":
-                                Root.Add(value);
-                                Path.Add(value);
-                                break;
-                            default:
-                                break;
-                        }
+        /// <summary>
+        /// Assigns a single dn component (e.g. "cn=value") to user name, role, group, path or root.
+        /// </summary>
+        private void AddDnComponent(string name, string value)
+        {
+            switch (name.ToLower())
+            {
+                case "uid":
+                case "samaccountname":
+                case "userprincipalname":
+                case "mail":
+                    UserName = value;
+                    break;
+                case "cn":
+                    if (UserName == "")
+                    {
+                        // the first one may be the user if not delivered as uid or a role or a group
+                        UserName = value;
+                        Role = value;
+                        Group = value;
                     }
                     else
                     {
-                        lastValue = true;
+                        // following ones belong to the path
+                        Path.Add(value);
                     }
-                }
+                    break;
+                case "ou":
+                case "o":
+                case "l":
+                case "st":
+                case "street":
+                    Path.Add(value);
+                    break;
+                case "dc":
+                case "c":
+                    Root.Add(value);
+                    Path.Add(value);
+                    break;
+                default:
+                    break;
             }
         }
 

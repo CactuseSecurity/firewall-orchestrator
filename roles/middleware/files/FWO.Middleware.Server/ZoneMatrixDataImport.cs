@@ -458,7 +458,7 @@ namespace FWO.Middleware.Server
         private async Task CreateMatrix(string matrixName, string importFileName, string? comment)
         {
             ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.addCriterion,
-                new { name = matrixName, importSource = importFileName, comment = comment, criterionType = CriterionType.Matrix.ToString() })).ReturnIds;
+                new { name = matrixName, importSource = importFileName, comment, criterionType = CriterionType.Matrix.ToString() })).ReturnIds;
             if (returnIds != null && returnIds.Length > 0)
             {
                 MatrixId = returnIds[0].InsertedId;
@@ -481,7 +481,7 @@ namespace FWO.Middleware.Server
         private async Task UpdateMatrix(string importFileName, string? comment)
         {
             await apiConnection.SendQueryAsync<ReturnIdWrapper>(ComplianceQueries.updateCriterionMetadata,
-                new { id = MatrixId, importSource = importFileName, comment = comment });
+                new { id = MatrixId, importSource = importFileName, comment });
         }
 
         private async Task<bool> SaveZone(NetworkZoneData incomingZone)

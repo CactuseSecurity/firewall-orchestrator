@@ -291,11 +291,6 @@
         }
 
         lastContentRef = Content;
-        lastContentType = Content.GetType();
-        if (TryGetContentId(Content, out long contentId))
-        {
-            lastContentId = contentId;
-        }
 
         if (!IsDetailed(ObjCategory.all))
         {
@@ -394,22 +389,6 @@
         return false;
     }
 
-    private static bool TryGetContentId(object content, out long id)
-    {
-        switch (content)
-        {
-            case ManagementReport managementReport:
-                id = managementReport.Id;
-                return true;
-            case Rule rule:
-                id = rule.Id;
-                return true;
-            default:
-                id = 0;
-                return false;
-        }
-    }
-
     private async Task FetchContent(ObjCategory objCategory)
     {
         if (FetchObjects != null && !IsDetailed(objCategory))
@@ -441,6 +420,4 @@
     }
 
     private object? lastContentRef;
-    private long? lastContentId;
-    private Type? lastContentType;
 }

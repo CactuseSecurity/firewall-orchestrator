@@ -85,7 +85,7 @@ namespace FWO.Ui.Pages.Settings
             catch (Exception exception)
             {
                 Log.WriteWarning(kLogTitle, $"Planning phases could not be read: {exception.Message}");
-                return new Dictionary<string, bool>();
+                return [];
             }
         }
 

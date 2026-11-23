@@ -641,7 +641,7 @@ namespace FWO.Services.Workflow
             foreach (WfReqTask reqtask in requestTasks)
             {
                 StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[reqtask.TaskType];
-                List<int> synchronizationTicketStates = new() { synchronizationTicketStateId };
+                List<int> synchronizationTicketStates = [synchronizationTicketStateId];
                 int newReqTaskState = reqTaskMatrix.getDerivedStateFromSubStates(synchronizationTicketStates);
                 if (Phase == WorkflowPhases.approval && synchronizationTicketStateId >= reqTaskMatrix.LowestEndState)
                 {

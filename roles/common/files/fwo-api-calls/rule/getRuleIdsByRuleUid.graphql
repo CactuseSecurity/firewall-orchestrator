@@ -1,0 +1,15 @@
+query getRuleIdsByRuleUid(
+    $ruleUid: String!
+    $rule_type_filters: [firewall_rule_bool_exp!] = []
+) {
+    firewall_rule(
+        where: {
+            rule_uid: { _eq: $ruleUid }
+            removed: { _is_null: true }
+            _and: $rule_type_filters
+        }
+        order_by: { rule_id: asc }
+    ) {
+        rule_id
+    }
+}

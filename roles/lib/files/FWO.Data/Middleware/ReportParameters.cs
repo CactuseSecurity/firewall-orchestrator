@@ -3,31 +3,37 @@ using Newtonsoft.Json;
 
 namespace FWO.Data.Middleware
 {
+    /// <summary>
+    /// Parameters of a report request.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// {
+    ///     "device-filter": {
+    ///         "management-ids": [2, 4],
+    ///         "gateway-ids": [6,8, 9]
+    ///     },
+    ///     "report-type": "rules [default] |changes|....",
+    ///     "report-view": ["standard|resolved|technical|with-zones|with-labels|..."],
+    ///     "rule-filter": {
+    ///         "source-ip": ["1.2.3.0/24", "3.4.5.6"],
+    ///         "destination-ip": ["1.2.3.0/24", "3.4.5.6"],
+    ///         "ip": ["1.2.3.0/24", "3.4.5.6"],
+    ///         "service": [
+    ///         {
+    ///             "protocol": 17,
+    ///             "name": "http",
+    ///             "port": 4711
+    ///         }
+    ///     ],
+    ///     "action": "allow",
+    ///     "active":  true
+    ///     }
+    /// }
+    /// </code>
+    /// </example>
     public class ReportGetParameters
     {
-        // {
-        //     "device-filter": {
-        //         "management-ids": [2, 4],
-        //         "gateway-ids": [6,8, 9]
-        //     },
-        //     "report-type": "rules [default] |changes|....",
-        //     "report-view": ["standard|resolved|technical|with-zones|with-labels|..."],
-        //     "rule-filter": {
-        //         "source-ip": ["1.2.3.0/24", "3.4.5.6"],
-        //         "destination-ip": ["1.2.3.0/24", "3.4.5.6"],
-        //         "ip": ["1.2.3.0/24", "3.4.5.6"],
-        //         "service": [
-        //         {
-        //             "protocol": 17,
-        //             "name": "http",
-        //             "port": 4711
-        //         }
-        //     ],
-        //     "action": "allow",
-        //     "active":  true
-        //     }
-        // }
-
         [JsonProperty("device-filter"), JsonPropertyName("device-filter")]
         public ApiDeviceFilter ApiDeviceFilter { get; set; } = new();
 

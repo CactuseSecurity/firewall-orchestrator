@@ -35,11 +35,11 @@ namespace FWO.Test
             await using BunitContext context = CreateContext(out RecordingApiConnection apiConn, out SimulatedUserConfig userConfig);
             ModellingNwGroup keepObject = new() { Id = 501, Name = "keep", IdString = "NA501" };
             ModellingNwGroup filteredObject = new() { Id = 502, Name = "filtered", IdString = "NA502" };
-            apiConn.NwGroupObjects = new List<ModellingNwGroup> { keepObject, filteredObject };
-            List<ModellingNwGroupWrapper> objectList = new List<ModellingNwGroupWrapper>
-            {
+            apiConn.NwGroupObjects = [keepObject, filteredObject];
+            List<ModellingNwGroupWrapper> objectList =
+            [
                 new ModellingNwGroupWrapper { Content = filteredObject }
-            };
+            ];
             int addCalls = 0;
             int refreshCalls = 0;
 
@@ -176,8 +176,8 @@ namespace FWO.Test
                 AppId = 22,
                 InterfacePermission = InterfacePermissions.Public.ToString()
             };
-            apiConn.PublishedInterfaces = new List<ModellingConnection> { firstInterface, secondInterface };
-            List<ModellingConnection> preselectedInterfaces = new List<ModellingConnection> { firstInterface };
+            apiConn.PublishedInterfaces = [firstInterface, secondInterface];
+            List<ModellingConnection> preselectedInterfaces = [firstInterface];
             bool displayChanged = true;
 
             IRenderedComponent<SearchInterface> component = RenderSearchInterface(

@@ -5,7 +5,7 @@ namespace FWO.Logging
 {
     public class MockLogger : Mock<ILogger>
     {
-        public Dictionary<DateTime, string> Logmessages = new();
+        public Dictionary<DateTime, string> Logmessages = [];
         protected override void Configure(ILogger sub)
         {
             // Info

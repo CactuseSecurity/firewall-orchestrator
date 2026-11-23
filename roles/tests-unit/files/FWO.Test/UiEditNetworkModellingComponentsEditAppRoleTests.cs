@@ -63,7 +63,7 @@ namespace FWO.Test
                 {
                     Assert.That(handler.ActAppRole.Area, Is.Not.Null);
                     Assert.That(handler.ActAppRole.Area!.Id, Is.EqualTo(area1.Id));
-                    Assert.That(handler.AppServersInArea.Select(server => server.Id), Is.EquivalentTo(new List<long> { matchingServer.Id }));
+                    Assert.That(handler.AppServersInArea.Select(server => server.Id), Is.EquivalentTo([matchingServer.Id]));
                     Assert.That(area1.MemberCount, Is.EqualTo(1));
                     Assert.That(area2.MemberCount, Is.EqualTo(0));
                 });
@@ -92,7 +92,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(handler.AppServerToAdd.Select(item => item.Id), Is.EquivalentTo(new List<long> { server.Id }));
+                Assert.That(handler.AppServerToAdd.Select(item => item.Id), Is.EquivalentTo([server.Id]));
                 Assert.That(componentContainer.AppServerElements, Is.Empty);
             });
             await Task.CompletedTask;
@@ -152,7 +152,7 @@ namespace FWO.Test
             {
                 Assert.That(displayChanged, Is.False);
                 Assert.That(appRole.Id, Is.EqualTo(89));
-                Assert.That(handler.AppRoles.Select(role => role.Id), Is.EquivalentTo(new List<long> { appRole.Id }));
+                Assert.That(handler.AppRoles.Select(role => role.Id), Is.EquivalentTo([appRole.Id]));
                 Assert.That(handler.AvailableNwElems, Has.Count.EqualTo(1));
                 Assert.That(apiConn.NewAppRoleCalls, Is.EqualTo(1));
                 Assert.That(apiConn.HistoryEntryCalls, Is.EqualTo(1));
@@ -206,7 +206,7 @@ namespace FWO.Test
                 Assert.That(handler.AppServerToAdd, Is.Empty);
                 Assert.That(handler.ActAppRole.Area, Is.Not.Null);
                 Assert.That(handler.ActAppRole.Area!.Id, Is.EqualTo(area2.Id));
-                Assert.That(handler.AppServersInArea.Select(server => server.Id), Is.EquivalentTo(new List<long> { areaServer.Id }));
+                Assert.That(handler.AppServersInArea.Select(server => server.Id), Is.EquivalentTo([areaServer.Id]));
             });
         }
 
@@ -231,7 +231,7 @@ namespace FWO.Test
             List<ModellingAppServer> selectable = (List<ModellingAppServer>)GetPrivateMethod(typeof(EditAppRoleLeftSide), "GetSelectableAppServers")
                 .Invoke(component.Instance, null)!;
 
-            Assert.That(selectable.Select(server => server.Id), Is.EquivalentTo(new List<long> { 1L }));
+            Assert.That(selectable.Select(server => server.Id), Is.EquivalentTo([1L]));
         }
 
         [Test]
@@ -273,9 +273,9 @@ namespace FWO.Test
                 new RecordingApiConnection(),
                 userConfig,
                 networkAreaRequired: false,
-                availableAppServers: new List<ModellingAppServer> { server },
+                availableAppServers: [server],
                 appRole: new ModellingAppRole());
-            handler.AppServersInArea = new List<ModellingAppServer> { server };
+            handler.AppServersInArea = [server];
 
             IRenderedComponent<EditAppRoleLeftSide> component = RenderEditAppRoleLeftSide(context, handler);
 

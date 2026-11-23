@@ -22,8 +22,8 @@ namespace FWO.Test;
 internal class ModellingObjectsControllerTest
 {
     private const string kRequiredRoles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}";
-    private static readonly List<string> kModellerRole = new() { Roles.Modeller };
-    private static readonly List<string> kAdminAndModellerRoles = new() { Roles.Admin, Roles.Modeller };
+    private static readonly List<string> kModellerRole = [Roles.Modeller];
+    private static readonly List<string> kAdminAndModellerRoles = [Roles.Admin, Roles.Modeller];
 
     [TestCase(nameof(ModellingObjectsController.GetAvailableInterfacesForApp), "getAvailableInterfacesForApp")]
     [TestCase(nameof(ModellingObjectsController.GetAppRolesPerApp), "getAppRolesPerApp")]
@@ -93,7 +93,7 @@ internal class ModellingObjectsControllerTest
         ModellingObjectsApiConnection apiConnection = new()
         {
             Owners = CreateOwners((7, "APP-7")),
-            Interfaces = new() { CreateInterface(11, "Restricted") }
+            Interfaces = [CreateInterface(11, "Restricted")]
         };
         ModellingObjectsController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
@@ -137,7 +137,7 @@ internal class ModellingObjectsControllerTest
         ModellingObjectsApiConnection apiConnection = new()
         {
             Owners = CreateOwners((7, "APP-7")),
-            Interfaces = new() { CreateInterface(11, null), CreateInterface(12, "Public") }
+            Interfaces = [CreateInterface(11, null), CreateInterface(12, "Public")]
         };
         ModellingObjectsController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Auditor));
 
@@ -196,7 +196,7 @@ internal class ModellingObjectsControllerTest
         ModellingObjectsApiConnection apiConnection = new()
         {
             Owners = CreateOwners((7, "APP-7")),
-            Interfaces = new() { CreateInterface(11, "Private") }
+            Interfaces = [CreateInterface(11, "Private")]
         };
         ModellingObjectsController controller = CreateController(apiConnection,
             PrincipalWithRolesAndClaims(kModellerRole, new Claim(ApplicationAddressQueryBuilder.kEditableOwnersClaim, "{ 7 }")));
@@ -251,9 +251,9 @@ internal class ModellingObjectsControllerTest
                 Offset = -1,
                 Filter = new AvailableInterfacesFilter
                 {
-                    ConnectionId = new() { 0 },
-                    Permission = new() { "secret" },
-                    InterfaceName = new() { "bad\u0001value" }
+                    ConnectionId = [0],
+                    Permission = ["secret"],
+                    InterfaceName = ["bad\u0001value"]
                 }
             }
         });
@@ -261,15 +261,15 @@ internal class ModellingObjectsControllerTest
         ValidationProblemDetails problem = GetValidationProblem(result.Result);
         Assert.Multiple(() =>
         {
-            Assert.That(problem.Errors.Keys, Is.EquivalentTo(new List<string>
-            {
+            Assert.That(problem.Errors.Keys, Is.EquivalentTo(
+            [
                 "appIdExternal",
                 "options.limit",
                 "options.offset",
                 "options.filter.connectionId[0]",
                 "options.filter.permission[0]",
                 "options.filter.interfaceName[0]"
-            }));
+            ]));
             Assert.That(apiConnection.Queries, Is.Empty);
         });
     }
@@ -287,8 +287,8 @@ internal class ModellingObjectsControllerTest
                 Filter = new ModellingGroupFilter
                 {
                     IdString = CreateValues(ModellingObjectRequestLimits.kMaxFilterValues + 1),
-                    Name = new() { null! },
-                    Id = new() { -1 }
+                    Name = [null!],
+                    Id = [-1]
                 }
             }
         };
@@ -300,15 +300,15 @@ internal class ModellingObjectsControllerTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(nullOptionsErrors.Keys, Is.EquivalentTo(new List<string> { "options" }));
-            Assert.That(oversizedErrors.Keys, Is.EquivalentTo(new List<string>
-            {
+            Assert.That(nullOptionsErrors.Keys, Is.EquivalentTo(["options"]));
+            Assert.That(oversizedErrors.Keys, Is.EquivalentTo(
+            [
                 "appIdExternal",
                 "options.limit",
                 "options.filter.idString",
                 "options.filter.name[0]",
                 "options.filter.id[0]"
-            }));
+            ]));
         });
     }
 
@@ -324,7 +324,7 @@ internal class ModellingObjectsControllerTest
                 Offset = 0,
                 Filter = new AvailableInterfacesFilter
                 {
-                    Permission = new() { " Public", "restricted", "PRIVATE" },
+                    Permission = [" Public", "restricted", "PRIVATE"],
                     ProvidingAppIdExternal = CreateValues(ModellingObjectRequestLimits.kMaxFilterValues)
                 }
             }
@@ -339,14 +339,14 @@ internal class ModellingObjectsControllerTest
         ModellingObjectsApiConnection apiConnection = new()
         {
             Owners = CreateOwners((7, "APP-7")),
-            AppRoles = new() { CreateAppRole(1223, "AR4404711-123", ("2.3.4.5/32", "2.3.4.9/32"), ("5.6.7.0/24", "5.6.7.255/24"), ("5.6.7.0", "5.6.7.255")) }
+            AppRoles = [CreateAppRole(1223, "AR4404711-123", ("2.3.4.5/32", "2.3.4.9/32"), ("5.6.7.0/24", "5.6.7.255/24"), ("5.6.7.0", "5.6.7.255"))]
         };
         ModellingObjectsController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
         ActionResult<AppRolesPerAppResponse> result = await controller.GetAppRolesPerApp(new GetAppRolesPerAppRequest
         {
             AppIdExternal = "APP-7",
-            Options = new ModellingListOptions<ModellingGroupFilter> { Filter = new ModellingGroupFilter { IdString = new() { "AR44*" } } }
+            Options = new ModellingListOptions<ModellingGroupFilter> { Filter = new ModellingGroupFilter { IdString = ["AR44*"] } }
         });
 
         ModellingAppRoleResponse appRole = GetOkValue(result).AppRoles.Single();
@@ -382,13 +382,13 @@ internal class ModellingObjectsControllerTest
 
         ActionResult<AppRolesPerAppResponse> result = await controller.GetAppRolesPerApp(new GetAppRolesPerAppRequest());
 
-        Assert.That(GetValidationProblem(result.Result).Errors.Keys, Is.EquivalentTo(new List<string> { "appIdExternal" }));
+        Assert.That(GetValidationProblem(result.Result).Errors.Keys, Is.EquivalentTo(["appIdExternal"]));
     }
 
     [Test]
     public async Task GetNetworkAreasServesAdminWithoutBody()
     {
-        ModellingObjectsApiConnection apiConnection = new() { Areas = new() { CreateArea(47, "NA47") } };
+        ModellingObjectsApiConnection apiConnection = new() { Areas = [CreateArea(47, "NA47")] };
         ModellingObjectsController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
         ActionResult<NetworkAreasResponse> result = await controller.GetNetworkAreas(null);
@@ -413,7 +413,7 @@ internal class ModellingObjectsControllerTest
         {
             Options = new ModellingListOptions<ModellingGroupFilter>
             {
-                Filter = new ModellingGroupFilter { IdString = new() { "NA47", "NA5?" }, Name = new() { "dmz" }, Id = new() { 47 } }
+                Filter = new ModellingGroupFilter { IdString = ["NA47", "NA5?"], Name = ["dmz"], Id = [47] }
             }
         });
 
@@ -467,7 +467,7 @@ internal class ModellingObjectsControllerTest
         ModellingObjectsApiConnection apiConnection = new()
         {
             Owners = CreateOwners((7, "APP-7")),
-            Areas = new() { CreateArea(47, "NA47") }
+            Areas = [CreateArea(47, "NA47")]
         };
         ModellingObjectsController controller = CreateController(apiConnection,
             PrincipalWithRolesAndClaims(kModellerRole, new Claim(ApplicationAddressQueryBuilder.kEditableOwnersClaim, "{ 7 }")));
@@ -561,12 +561,12 @@ internal class ModellingObjectsControllerTest
             Id = id,
             IdString = idString,
             Name = $"area-{id}",
-            IpData = new()
-            {
+            IpData =
+            [
                 new NetworkDataWrapper { Content = new NetworkSubnet { Ip = "2.3.4.5/32", IpEnd = "2.3.4.9/32" } },
                 new NetworkDataWrapper { Content = new NetworkSubnet { Ip = "5.6.7.0/24", IpEnd = "5.6.7.255/24" } },
                 new NetworkDataWrapper { Content = new NetworkSubnet { Ip = "1:2:ed::45/128", IpEnd = "1:2:ed::45/128" } }
-            }
+            ]
         };
     }
 
@@ -582,13 +582,13 @@ internal class ModellingObjectsControllerTest
             Id = 47,
             IdString = "NA47",
             Name = "dmz",
-            IpData = new() { new NetworkDataWrapper { Content = new NetworkSubnet { Ip = "5.6.7.0/24", IpEnd = "5.6.7.255/24" } } }
+            IpData = [new NetworkDataWrapper { Content = new NetworkSubnet { Ip = "5.6.7.0/24", IpEnd = "5.6.7.255/24" } }]
         };
         ModellingServiceGroup serviceGroup = new()
         {
             Id = 21,
             Name = "app-ports-02",
-            Services = new() { new ModellingServiceWrapper { Content = CreateService(14, 1000, 2000, "UDP") } }
+            Services = [new ModellingServiceWrapper { Content = CreateService(14, 1000, 2000, "UDP") }]
         };
         return new ModellingInterfaceQueryResult
         {
@@ -597,18 +597,18 @@ internal class ModellingObjectsControllerTest
             Reason = $"description-{id}",
             InterfacePermission = permission,
             Owner = new FwoOwner { Id = 667, Name = "provider", ExtAppId = "APP-667" },
-            DestinationAppServers = new() { CreateAppServer(504, "1:2:ed::45/128", "1:2:ed::45/128") },
-            DestinationAppRoles = new()
-            {
+            DestinationAppServers = [CreateAppServer(504, "1:2:ed::45/128", "1:2:ed::45/128")],
+            DestinationAppRoles =
+            [
                 new ModellingAppRoleWrapper
                 {
                     Content = CreateAppRole(1223, "AR667-002", ("1.4.5.6/32", "1.4.5.6/32"), ("4.56.0.0/22", "4.56.3.255/22"), ("1.2.3.8", "1.2.3.18"))
                 }
-            },
-            DestinationAreas = new() { new ModellingNetworkAreaWrapper { Content = area } },
-            DestinationOtherGroups = new() { new ModellingAppRoleWrapper { Content = CreateAppRole(77, "NG-077", ("10.1.1.10", "")) } },
-            Services = new() { new ModellingServiceWrapper { Content = CreateService(11, 443, 443, "TCP") } },
-            ServiceGroups = new() { new ModellingServiceGroupWrapper { Content = serviceGroup } }
+            ],
+            DestinationAreas = [new ModellingNetworkAreaWrapper { Content = area }],
+            DestinationOtherGroups = [new ModellingAppRoleWrapper { Content = CreateAppRole(77, "NG-077", ("10.1.1.10", "")) }],
+            Services = [new ModellingServiceWrapper { Content = CreateService(11, 443, 443, "TCP") }],
+            ServiceGroups = [new ModellingServiceGroupWrapper { Content = serviceGroup }]
         };
     }
 

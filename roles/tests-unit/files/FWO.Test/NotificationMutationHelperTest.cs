@@ -9,6 +9,8 @@ namespace FWO.Test
     [Parallelizable]
     internal class NotificationMutationHelperTest
     {
+        private static readonly int[] kExpectedDeletedIds = [23];
+
         [Test]
         public async Task AddAsync_PersistsNotificationAndReturnsAssignedId()
         {
@@ -62,7 +64,7 @@ namespace FWO.Test
 
             await NotificationMutationHelper.DeleteAsync(apiConnection, 23);
 
-            Assert.That(apiConnection.DeletedIds, Is.EqualTo(new[] { 23 }));
+            Assert.That(apiConnection.DeletedIds, Is.EqualTo(kExpectedDeletedIds));
         }
 
         private static FwoNotification NewNotification()

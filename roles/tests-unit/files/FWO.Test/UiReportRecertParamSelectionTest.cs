@@ -28,11 +28,11 @@ namespace FWO.Test
             context.Services.AddScoped<DomEventService>();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(Roles.Admin));
-            context.Services.AddSingleton<ApiConnection>(new ReportRecertParamSelectionTestApiConn(new List<FwoOwner>
-            {
+            context.Services.AddSingleton<ApiConnection>(new ReportRecertParamSelectionTestApiConn(
+            [
                 new() { Id = 11, Name = "App One" }
-            }));
-            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig { User = { Roles = new List<string> { Roles.Admin } } });
+            ]));
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig { User = { Roles = [Roles.Admin] } });
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
                 parameters.AddChildContent<ReportRecertParamSelection>(childParameters => childParameters
@@ -59,12 +59,12 @@ namespace FWO.Test
             context.Services.AddScoped<DomEventService>();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(Roles.Admin));
-            context.Services.AddSingleton<ApiConnection>(new ReportRecertParamSelectionTestApiConn(new List<FwoOwner>
-            {
+            context.Services.AddSingleton<ApiConnection>(new ReportRecertParamSelectionTestApiConn(
+            [
                 new() { Id = 11, Name = "App One" },
                 new() { Id = 12, Name = "App Two" }
-            }));
-            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig { User = { Roles = new List<string> { Roles.Admin } } });
+            ]));
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig { User = { Roles = [Roles.Admin] } });
 
             RecertFilter recertFilter = new()
             {
@@ -129,7 +129,7 @@ namespace FWO.Test
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
             context.Services.AddSingleton<AuthenticationStateProvider>(new MonitoringTestAuthStateProvider(Roles.Reporter));
             context.Services.AddSingleton<ApiConnection>(new ReportRecertParamSelectionTestApiConn());
-            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig { User = { Roles = new List<string> { Roles.Reporter } } });
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig { User = { Roles = [Roles.Reporter] } });
 
             RecertFilter recertFilter = new()
             {
@@ -199,12 +199,12 @@ namespace FWO.Test
 
         public ReportRecertParamSelectionTestApiConn(List<FwoOwner>? owners = null, List<OwnerRecertification>? ownerRecerts = null)
         {
-            this.owners = owners ?? new List<FwoOwner>
-            {
+            this.owners = owners ??
+            [
                 new() { Id = 11, Name = "App One" },
                 new() { Id = 12, Name = "App Two" }
-            };
-            this.ownerRecerts = ownerRecerts ?? new List<OwnerRecertification>();
+            ];
+            this.ownerRecerts = ownerRecerts ?? [];
         }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)

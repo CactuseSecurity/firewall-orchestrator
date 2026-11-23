@@ -9,10 +9,10 @@ namespace FWO.Services.Modelling
 {
     public class ModellingServiceGroupHandler : ModellingHandlerBase
     {
-        public List<ModellingServiceGroup> ServiceGroups { get; set; } = new();
+        public List<ModellingServiceGroup> ServiceGroups { get; set; } = [];
         public ModellingServiceGroup ActServiceGroup { get; set; } = new();
         public ModellingServiceHandler? ServiceHandler;
-        public List<ModellingService> SvcToDelete { get; set; } = new();
+        public List<ModellingService> SvcToDelete { get; set; } = [];
         public bool AddServiceMode = false;
         public bool EditServiceMode = false;
         public bool DeleteServiceMode = false;
@@ -240,8 +240,8 @@ namespace FWO.Services.Modelling
         public void Close()
         {
             DeleteServiceMode = false;
-            SvcToAdd = new List<ModellingService>();
-            SvcToDelete = new List<ModellingService>();
+            SvcToAdd = [];
+            SvcToDelete = [];
         }
     }
 }

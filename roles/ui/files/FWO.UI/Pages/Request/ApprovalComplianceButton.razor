@@ -1,0 +1,41 @@
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+@* Compliance status of an access task: green "Ok", or red "not allowed" with the reasons as tooltip and, on click, in a popup. *@
+@if (Compliance != null)
+{
+    @if (Compliance.IsCompliant)
+    {
+        <span class="btn btn-success approval-compliance-button approval-compliance-ok @Class">@Compliance.StatusText(userConfig)</span>
+    }
+    else
+    {
+        <button type="button" class="btn btn-danger approval-compliance-button @Class"
+                data-toggle="tooltip" title="@Compliance.Tooltip"
+                @onclick="() => ShowReasons.InvokeAsync(Compliance)" @onclick:stopPropagation="true">
+            @Compliance.StatusText(userConfig)
+        </button>
+    }
+}
+else if (Loading)
+{
+    <span class="btn btn-light disabled approval-compliance-button approval-compliance-loading @Class">...</span>
+}
+else if (ShowNotChecked)
+{
+    <span class="approval-compliance-none">-</span>
+}
+
+@code {
+    /// <summary>The compliance status; null if the task was not (yet) checked.</summary>
+    [Parameter] public ApprovalTaskCompliance? Compliance { get; set; }
+    /// <summary>Whether the check is running.</summary>
+    [Parameter] public bool Loading { get; set; }
+    /// <summary>Shows "-" for tasks that were not checked instead of nothing.</summary>
+    [Parameter] public bool ShowNotChecked { get; set; }
+    /// <summary>Additional css classes, e.g. for the size or to fill a table cell.</summary>
+    [Parameter] public string Class { get; set; } = "";
+    /// <summary>Shows the violation reasons of a not compliant task.</summary>
+    [Parameter] public EventCallback<ApprovalTaskCompliance> ShowReasons { get; set; }
+}

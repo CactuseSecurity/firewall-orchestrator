@@ -17,6 +17,14 @@ namespace FWO.Data.Workflow
         public Cidr? Cidr { get; set; } = new();
         public Cidr? CidrEnd { get; set; } = new();
 
+        /// <summary>
+        /// Set for an element that names an existing object on the firewall by its own name, e.g. an access role standing
+        /// in for a modelling placeholder area: the firewall write sends the name as it is, without the vendor's name
+        /// normalization for objects FWO creates. Only held in memory, never stored.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public bool KeepNameVerbatim { get; set; }
+
         public WfImplElement()
         { }
 
@@ -27,6 +35,7 @@ namespace FWO.Data.Workflow
             ImplAction = element.ImplAction;
             Cidr = element.Cidr;
             CidrEnd = element.CidrEnd;
+            KeepNameVerbatim = element.KeepNameVerbatim;
         }
 
         public WfImplElement(WfReqElement element)

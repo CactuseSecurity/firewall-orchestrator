@@ -281,5 +281,5 @@ For a feature-centric, thematically grouped view see
 - The routing of firewall config changes moves from "Firewall config changes - General" to the device specific settings (implementation modes for objects and rules, external ticket system, Tufin SecureChange connection, response timeout and retries); the ticket system list is removed.
 - Tasks nobody implements (e.g. no rule position, vendor without rule writing, inconsistent target management) raise a workflow alert; a rejected write rejects the open tasks of the ticket with the reason in their history.
 
-### 9.9.5 - 18.11.2026
+### 9.9.5 - 23.11.2026
 - Notifications: an email priority (Low, Normal, High) can be set per notification; Low and High set the Importance, Priority and X-Priority headers, which common email clients show as a marker.

@@ -1,5 +1,9 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.5 - 23.11.2026
+- notifications: new setting email priority (Low, Normal, High) per notification (`notification.email_priority`, default Normal); Low and High set the email headers Importance, Priority and X-Priority, Normal sets none; applies to all notifications edited in the notification editor, including workflow action emails; report schedule emails stay at Normal
+
+
 ## 9.9.4 - 17.11.2026
 - middleware REST API: `Rule/GetRulesByFilter` accepts `RuleUid` as an exact third selector alongside `OwnerId` and `IpAddress`; all current non-removed matches are ordered by rule ID and use the existing paging and SIEM logging behavior
 - middleware REST API: `Rule/GetRulesByFilter` gets the rule type filter `options.filter.ruleTypes` (`access` and/or `nat`) for all selectors (`OwnerId`, `IpAddress`, `RuleUid`), applied before paging
@@ -35,7 +39,6 @@
 - workflow UI: the pre-workflow ticket reference is shown in ticket dialog, ticket list and task view headlines if a label (e.g. "ChangeId") is set in the new setting `reqPreWorkflowTicketReferenceLabel` (default empty = hidden)
 - workflow UI: access task view opens full screen with access tasks first (other tasks start collapsed only next to access tasks); owner and management (access tasks) and reason (object and group tasks) use the space of fields hidden by the visibility settings, labels of all task types take less space
 - workflow UI: new Workflow Customizing setting "Object and Group Task Field Visibility" (handler, assigned, management, reason) for object and group tasks in the approval views; so far they followed the access task field visibility (management, reason) or were always shown (handler, assigned)
-- notifications: new setting email priority (Low, Normal, High) per notification (`notification.email_priority`, default Normal); Low and High set the email headers Importance, Priority and X-Priority, Normal sets none; applies to all notifications edited in the notification editor, including workflow action emails; report schedule emails stay at Normal
 
 
 ## 9.9.3 - 14.11.2026

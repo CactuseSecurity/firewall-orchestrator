@@ -525,7 +525,7 @@
           {{ api_config_cleanup.content | default('') }} {{ api_config_global_restore.content | default('') }}
           {{ api_config_global_removal.content | default('') }}
 
-# Email priority (9.9.4): the notification mutations of the UI accept the three values of the C# enum EmailPriority,
+# Email priority (9.9.5): the notification mutations of the UI accept the three values of the C# enum EmailPriority,
 # getNotifications loads them, and the database rejects any other value, so a client's notifications stay loadable.
 # The checks use the mutation and query files of the application with the admin role and remove their rows afterwards.
 - name: "notification: email priority is limited to the values of the application"

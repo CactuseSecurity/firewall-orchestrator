@@ -378,6 +378,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqImplicitApprovalComment"), JsonPropertyName("reqImplicitApprovalComment")]
         public string ReqImplicitApprovalComment { get; set; } = "Automatically approved because the request task was promoted beyond the approval phase.";
 
+        /// <summary>
+        /// Label of the ticket reference from a preceding workflow (e.g. "ChangeId"). An empty label hides the reference in the UI.
+        /// </summary>
+        [JsonProperty("reqPreWorkflowTicketReferenceLabel"), JsonPropertyName("reqPreWorkflowTicketReferenceLabel")]
+        public string ReqPreWorkflowTicketReferenceLabel { get; set; } = "";
+
         [JsonProperty("ruleOwnershipMode"), JsonPropertyName("ruleOwnershipMode")]
         public RuleOwnershipMode RuleOwnershipMode { get; set; } = RuleOwnershipMode.mixed;
 

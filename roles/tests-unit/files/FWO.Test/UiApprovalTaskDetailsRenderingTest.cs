@@ -344,6 +344,38 @@ internal class UiApprovalTaskDetailsRenderingTest : UiSharedEditorTestBase
     }
 
     [Test]
+    public async Task ApprovalTaskDetailsView_ShowsZoneColumnInEveryDisplayMode()
+    {
+        await using BunitContext context = CreateContext();
+        WfReqTask accessTask = new()
+        {
+            Id = 53,
+            StateId = 2,
+            Title = "Access with zones",
+            TaskType = WfTaskType.access.ToString(),
+            Elements = [new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "source", IpString = "10.40.0.2" }]
+        };
+        WfHandler handler = new() { ActTicket = new WfTicket { Tasks = [accessTask] } };
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = context.Render<ApprovalTaskDetailsView>(parameters => parameters
+            .Add(p => p.Display, true)
+            .Add(p => p.WfHandler, handler)
+            .Add(p => p.States, new WfStateDict { Name = { [2] = "Approval" } }));
+
+        List<int> zoneHeaderCounts = [cut.FindAll("th.approval-task-zone-column").Count];
+        cut.Find("button.approval-task-display-toggle").Click();
+        zoneHeaderCounts.Add(cut.FindAll("th.approval-task-zone-column").Count);
+        cut.Find("button.approval-task-display-toggle").Click();
+        zoneHeaderCounts.Add(cut.FindAll("th.approval-task-zone-column").Count);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Markup, Does.Contain("resolved_view"));
+            Assert.That(zoneHeaderCounts, Has.All.EqualTo(2));
+        });
+    }
+
+    [Test]
     public async Task ApprovalTaskDetailsView_DoesNotOfferEditorsForCompletedTask()
     {
         await using BunitContext context = CreateContext();

@@ -122,7 +122,7 @@ is `true`, `app` is `false`).
 
 `autoPlanImplementation` and `autoPlanImplementationForRules` (formerly `planImplementation` and
 `planImplementationOverrideForRules`, renamed by the 9.8.3 upgrade with their values) decide which implementation
-tasks the state action "Create implementation tasks" creates; nothing else creates them automatically, and the
+tasks the state action "Prepare implementation" (formerly "Create implementation tasks") creates; nothing else creates them automatically, and the
 planning phase plays no role for it. Rule tasks (access, rule_modify, rule_delete) need both settings, every other
 task type `autoPlanImplementation`. The action resolves the values of the gateway (access and rule changes) or the
 target management (object tasks) along the hierarchy above; without gateway the global values apply.

@@ -1,0 +1,5 @@
+mutation updateRequestElementSnapshots($updates: [request_reqelement_updates!]!) {
+  update_request_reqelement_many(updates: $updates) {
+    affected_rows
+  }
+}

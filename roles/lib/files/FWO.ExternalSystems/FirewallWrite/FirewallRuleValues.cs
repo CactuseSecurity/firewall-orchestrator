@@ -169,9 +169,19 @@ namespace FWO.ExternalSystems.FirewallWrite
         private static List<WfImplElement> Removed(List<WfImplElement> elements) =>
             [.. elements.Where(element => element.ImplAction == nameof(RequestAction.delete))];
 
-        /// <summary>Names of network elements. Vendors referencing objects by address skip elements without name.</summary>
+        /// <summary>
+        /// Names of network elements. Vendors referencing objects by address skip elements without name; an element naming
+        /// an existing object without address, see <see cref="WfImplElement.KeepNameVerbatim"/>, cannot be written to them.
+        /// </summary>
+        /// <exception cref="FirewallWriteException">Thrown for an object without address on a vendor referencing objects by address.</exception>
         private static List<string> Names(List<WfImplElement> elements, FirewallVendorProfile profile)
         {
+            WfImplElement? verbatimElement = elements.FirstOrDefault(element => element.KeepNameVerbatim);
+            if (profile.ReferencesObjectsByAddress && verbatimElement != null)
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
+                    $"The object '{verbatimElement.GroupName}' has no address, and rules of this firewall reference objects by address only.");
+            }
             return profile.ReferencesObjectsByAddress
                 ? [.. elements.Where(element => !string.IsNullOrWhiteSpace(element.Name)).Select(element => element.Name!.Trim()).Distinct()]
                 : [.. elements.Select(element => ReferenceName(element, profile)).Distinct()];
@@ -179,13 +189,15 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         /// <summary>
         /// The name a rule references a network element by. An element without name but with a group name refers to the
-        /// whole group, as modelling requests do for app roles and network areas; any other element needs a name.
+        /// whole group, as modelling requests do for app roles and network areas; any other element needs a name. The name
+        /// of an existing object kept verbatim, see <see cref="WfImplElement.KeepNameVerbatim"/>, is not normalized.
         /// </summary>
         private static string ReferenceName(WfImplElement element, FirewallVendorProfile profile)
         {
             if (string.IsNullOrWhiteSpace(element.Name) && !string.IsNullOrWhiteSpace(element.GroupName))
             {
-                return profile.NormalizeName(element.GroupName.Trim());
+                string groupName = element.GroupName.Trim();
+                return element.KeepNameVerbatim ? groupName : profile.NormalizeName(groupName);
             }
             return FirewallElementValues.RequireName(element, profile);
         }

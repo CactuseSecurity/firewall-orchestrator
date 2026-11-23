@@ -189,7 +189,7 @@ public sealed class RuleLastHitService
     {
         if (!scope.SeesManagement(managementId) || AsksForHiddenRuleNames(options.Filter, scope))
         {
-            List<RuleLastHitResponse> noRules = new();
+            List<RuleLastHitResponse> noRules = [];
             return new ListPage<RuleLastHitResponse>(noRules, false);
         }
 

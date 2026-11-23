@@ -238,7 +238,7 @@ namespace FWO.Report
                     report.Append($"{{\"{gateway.Name}\": {{\n\"{itemsPropertyName}\": [");
 
                     var items = getItems(gateway, management).ToList();
-                    if (items.Any())
+                    if (items.Count != 0)
                     {
                         foreach (var item in items)
                         {

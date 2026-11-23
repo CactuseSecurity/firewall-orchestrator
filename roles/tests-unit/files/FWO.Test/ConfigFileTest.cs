@@ -142,7 +142,7 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
         [Test]
         public void IncorrectSyntaxConfigFile()
         {
-            Assert.Catch(typeof(TargetInvocationException), () => CreateAndReadConfigFile(1, incorrectSyntaxConfigFile));
+            Assert.Catch<TargetInvocationException>(() => CreateAndReadConfigFile(1, incorrectSyntaxConfigFile));
         }
 
         [Test]

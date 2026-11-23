@@ -173,7 +173,7 @@
         selectedOwnerRecert = newOwnerRecert;
         ModellingFilter.OwnerRecertId = newOwnerRecert?.Id;
         ModellingFilter.ReportId = newOwnerRecert?.ReportId;
-        TimeFilter.ReportTime = (DateTime)(newOwnerRecert?.RecertDate ?? new());
+        TimeFilter.ReportTime = newOwnerRecert?.RecertDate ?? DateTime.MinValue;
     }
 
     private async Task LoadOwnerRecerts(FwoOwner owner)

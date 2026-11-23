@@ -26,8 +26,6 @@ namespace FWO.Test
         private const int kOpenStateId = 210;
         private const int kDoneStateId = 631;
 
-        private static readonly List<ExternalTicketSystem> kTicketSystems = [ExtTicketHandlerTest.ticketSystem];
-
         private static readonly WfReqElement kGroupMember = new()
         {
             Id = 1,

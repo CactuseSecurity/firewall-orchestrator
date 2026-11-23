@@ -66,11 +66,6 @@ header {
     width: 100%;
 }
 
-/* .managementSelect .deviceSelect {
-    position: absolute;
-    left: 0;
-    top: 40px;
-} */
 
 .deviceCell {
     padding-left: 6px;
@@ -194,7 +189,6 @@ h5 {
 
 .btn.three-state-button {
     height: 2rem;
-    /* width: 33%; */
 }
 
 /* add horizontal margin 13px */
@@ -228,7 +222,6 @@ h5 {
 }
 
 .main .top-row {
-    /* background-color: #f7f7f7; */
     background-image: linear-gradient(#e4e8ec, #9b9797);
     border-bottom: 1px solid #d6d5d5;
     justify-content: flex-end;
@@ -259,7 +252,6 @@ h5 {
     top: 70px;
     height: 95%;
     z-index: 10;
-    /* color: black; */
     color-scheme: dark;
     background-image: linear-gradient(#e4e8ec, #9b9797);
     overflow: auto;
@@ -370,15 +362,7 @@ h5 {
 
 .whitespace-div {
     white-space: pre-wrap;
-    /* css-3 */
-    white-space: -moz-pre-wrap;
-    /* Mozilla, since 1999 */
-    white-space: -pre-wrap;
-    /* Opera 4-6 */
-    white-space: -o-pre-wrap;
-    /* Opera 7 */
     word-wrap: break-word;
-    /* Internet Explorer 5.5+ */
 }
 
 thead {
@@ -499,24 +483,6 @@ div[role="tooltip"] {
 .h-90 {
     height: 90%;
 }
-/* Popups */
-
-/* .modal-body {
-    overflow: auto;
-}
-
-.modal-body:has(.table-responsive) {
-overflow: hidden;
-}
-
-.modal-body > * {
-max-width: 99%;
-}
-
-.table-responsive:has(> .table.table-bordered.th-bg-secondary.table-responsive.overflow-auto.sticky-header)
-{
-    padding-bottom: 30px;
-} */
 
 div.modal-body > div.table-responsive {
     overflow-x: inherit;
@@ -622,6 +588,14 @@ div.modal-content .sticky-header thead {
     background-color: var(--bs-warning-bg-subtle);
     box-shadow: 0 0 0 2px var(--bs-warning);
 }
+.approval-task-field-label {
+    min-width: 6.5rem;
+}
+
+.object-task-element-label {
+    min-width: 10rem;
+}
+
 .approval-task-network-table {
     table-layout: fixed;
     width: 100%;
@@ -631,6 +605,65 @@ div.modal-content .sticky-header thead {
     width: 33%;
 }
 
-.approval-task-network-table-technical .approval-task-zone-column {
+.approval-task-network-table-two-columns .approval-task-zone-column {
     width: 50%;
+}
+
+.approval-task-list {
+    overflow-x: auto;
+}
+
+.approval-task-list .approval-task-list-cell {
+    white-space: nowrap;
+    vertical-align: top;
+}
+
+.approval-task-list .approval-task-list-value {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.approval-task-list .approval-task-list-badge {
+    margin-left: 0.75rem;
+}
+
+/* The compliance status fills the whole cell with its color. */
+.approval-task-list td.approval-task-list-compliance-cell {
+    position: relative;
+    padding: 0;
+    text-align: center;
+}
+
+.approval-task-list .approval-task-list-compliance {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    border-radius: 0;
+    white-space: nowrap;
+}
+
+.approval-task-list .approval-compliance-none {
+    display: inline-block;
+    padding: 0.5rem;
+}
+
+/* The green compliance status is no action, so it does not react like a button. */
+.approval-compliance-ok {
+    cursor: default;
+    pointer-events: none;
+}
+
+.approval-compliance-button {
+    white-space: nowrap;
+}
+
+.approval-task-list .approval-task-list-edit {
+    display: block;
+    width: 100%;
+    color: inherit;
+    text-decoration: underline dotted;
 }

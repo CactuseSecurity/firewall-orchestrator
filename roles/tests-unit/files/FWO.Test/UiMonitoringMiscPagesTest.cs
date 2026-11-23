@@ -376,13 +376,13 @@ namespace FWO.Test
 
     internal sealed class MonitorPagesTestApiConn : SimulatedApiConnection
     {
-        public List<LogEntry> DailyCheckLogs { get; } = new List<LogEntry>();
-        public List<LogEntry> AutodiscoveryLogs { get; } = new List<LogEntry>();
-        public List<LogEntry> UiLogs { get; } = new List<LogEntry>();
-        public List<LogEntry> AllUiLogs { get; } = new List<LogEntry>();
-        public List<UiUser> Users { get; } = new List<UiUser>();
-        public List<Management> Managements { get; } = new List<Management>();
-        public List<ImportStatus> ImportStatuses { get; } = new List<ImportStatus>();
+        public List<LogEntry> DailyCheckLogs { get; } = [];
+        public List<LogEntry> AutodiscoveryLogs { get; } = [];
+        public List<LogEntry> UiLogs { get; } = [];
+        public List<LogEntry> AllUiLogs { get; } = [];
+        public List<UiUser> Users { get; } = [];
+        public List<Management> Managements { get; } = [];
+        public List<ImportStatus> ImportStatuses { get; } = [];
 
         public int DailyCheckQueryCount { get; private set; }
         public int AutodiscoveryQueryCount { get; private set; }
@@ -393,7 +393,7 @@ namespace FWO.Test
         public int ImportStatusQueryCount { get; private set; }
         public string? LastQuery { get; private set; }
         public int LastUiLogUserId { get; private set; }
-        public List<int> UiLogUserIds { get; } = new List<int>();
+        public List<int> UiLogUserIds { get; } = [];
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {

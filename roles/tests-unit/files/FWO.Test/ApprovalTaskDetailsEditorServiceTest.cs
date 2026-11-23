@@ -54,7 +54,7 @@ internal sealed class ApprovalTaskDetailsEditorServiceTest
         service.ReadOnlyDisplay = true;
         service.PlannerOwnerChangesAllowed = true;
 
-        Assert.That(service.CanEdit(new List<WfReqTask> { task }, WorkflowEditableFieldKeys.Owner), Is.False);
+        Assert.That(service.CanEdit([task], WorkflowEditableFieldKeys.Owner), Is.False);
     }
 
     [Test]

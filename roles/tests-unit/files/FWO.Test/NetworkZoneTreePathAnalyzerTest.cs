@@ -63,12 +63,12 @@ internal class NetworkZoneTreePathAnalyzerTest
         {
             Assert.That(result.AlgorithmId, Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree));
             Assert.That(result.Segments, Has.Count.EqualTo(1));
-            Assert.That(result.Devices.Select(device => device.Name), Is.EquivalentTo(new List<string>
-            {
+            Assert.That(result.Devices.Select(device => device.Name), Is.EquivalentTo(
+            [
                 PathAnalysisTestData.kAccessAName,
                 PathAnalysisTestData.kCoreName,
                 PathAnalysisTestData.kAccessBName
-            }));
+            ]));
         });
     }
 

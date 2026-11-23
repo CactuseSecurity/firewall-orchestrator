@@ -21,17 +21,17 @@ namespace FWO.Test
         private static readonly string kSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
         private static readonly string[] kGroupMembers = { kMemberDn, kNestedGroupDn };
         private static readonly string[] kNestedGroupMembers = { kNestedMemberDn };
-        private static readonly List<string> kUserDnList = new() { kUserDn };
-        private static readonly List<string> kGroupDnList = new() { kGroupDn };
-        private static readonly List<string> kUnknownDnList = new() { kUnknownDn };
-        private static readonly List<int> kUserIds = new() { 3, 5 };
+        private static readonly List<string> kUserDnList = [kUserDn];
+        private static readonly List<string> kGroupDnList = [kGroupDn];
+        private static readonly List<string> kUnknownDnList = [kUnknownDn];
+        private static readonly List<int> kUserIds = [3, 5];
 
         [Test]
         public async Task ResolveLocalUserIds_MatchesUserDnsIgnoringCase()
         {
             SessionRevocationApiConnection apiConnection = CreateApiConnection();
-            UserSessionRevocation revocation = new(apiConnection, new List<MiddlewareLdap>());
-            List<string> upperCaseDns = new() { kUserDn.ToUpperInvariant() };
+            UserSessionRevocation revocation = new(apiConnection, []);
+            List<string> upperCaseDns = [kUserDn.ToUpperInvariant()];
 
             List<int> userIds = await revocation.ResolveLocalUserIds(upperCaseDns);
 
@@ -49,17 +49,17 @@ namespace FWO.Test
                     [kNestedGroupDn] = LdapTestSupport.CreateEntry(kNestedGroupDn, new LdapAttribute("uniqueMember", kNestedGroupMembers))
                 }
             };
-            UserSessionRevocation revocation = new(CreateApiConnection(), new List<MiddlewareLdap> { CreateGroupLdap(client) });
+            UserSessionRevocation revocation = new(CreateApiConnection(), [CreateGroupLdap(client)]);
 
             List<int> userIds = await revocation.ResolveLocalUserIds(kGroupDnList);
 
-            Assert.That(userIds, Is.EquivalentTo(new List<int> { 2, 4 }));
+            Assert.That(userIds, Is.EquivalentTo([2, 4]));
         }
 
         [Test]
         public async Task ResolveLocalUserIds_IgnoresDnsWithoutLocalUser()
         {
-            UserSessionRevocation revocation = new(CreateApiConnection(), new List<MiddlewareLdap>());
+            UserSessionRevocation revocation = new(CreateApiConnection(), []);
 
             List<int> userIds = await revocation.ResolveLocalUserIds(kUnknownDnList);
 
@@ -71,7 +71,7 @@ namespace FWO.Test
         {
             SessionRevocationApiConnection apiConnection = CreateApiConnection();
             apiConnection.UserQueryException = new InvalidOperationException("api down");
-            UserSessionRevocation revocation = new(apiConnection, new List<MiddlewareLdap>());
+            UserSessionRevocation revocation = new(apiConnection, []);
 
             List<int> userIds = await revocation.ResolveLocalUserIds(kUserDnList);
 
@@ -83,7 +83,7 @@ namespace FWO.Test
         {
             SessionRevocationApiConnection apiConnection = CreateApiConnection();
             apiConnection.RevokedRows = 4;
-            UserSessionRevocation revocation = new(apiConnection, new List<MiddlewareLdap>());
+            UserSessionRevocation revocation = new(apiConnection, []);
 
             int revoked = await revocation.RevokeSessions(kUserIds, kReason);
 
@@ -95,9 +95,9 @@ namespace FWO.Test
         public async Task RevokeSessions_SendsNothingWithoutUsers()
         {
             SessionRevocationApiConnection apiConnection = CreateApiConnection();
-            UserSessionRevocation revocation = new(apiConnection, new List<MiddlewareLdap>());
+            UserSessionRevocation revocation = new(apiConnection, []);
 
-            int revoked = await revocation.RevokeSessions(new List<int>(), kReason);
+            int revoked = await revocation.RevokeSessions([], kReason);
 
             Assert.That(revoked, Is.Zero);
             Assert.That(apiConnection.RevokedUserIds, Is.Empty);
@@ -108,7 +108,7 @@ namespace FWO.Test
         {
             SessionRevocationApiConnection apiConnection = CreateApiConnection();
             apiConnection.RevocationException = new InvalidOperationException("api down");
-            UserSessionRevocation revocation = new(apiConnection, new List<MiddlewareLdap>());
+            UserSessionRevocation revocation = new(apiConnection, []);
 
             int revoked = await revocation.RevokeSessions(kUserIds, kReason);
 
@@ -119,7 +119,7 @@ namespace FWO.Test
         public async Task RevokeSessionsOfUser_RevokesTheTokensOfTheUser()
         {
             SessionRevocationApiConnection apiConnection = CreateApiConnection();
-            UserSessionRevocation revocation = new(apiConnection, new List<MiddlewareLdap>());
+            UserSessionRevocation revocation = new(apiConnection, []);
 
             await revocation.RevokeSessionsOfUser(7, kReason);
 
@@ -130,7 +130,7 @@ namespace FWO.Test
         public async Task RevokeSessionsOfDns_RevokesTheTokensOfTheResolvedUsers()
         {
             SessionRevocationApiConnection apiConnection = CreateApiConnection();
-            UserSessionRevocation revocation = new(apiConnection, new List<MiddlewareLdap>());
+            UserSessionRevocation revocation = new(apiConnection, []);
 
             await revocation.RevokeSessionsOfDns(kUserDnList, kReason);
 

@@ -10,7 +10,7 @@ namespace FWO.Data.Flow
         public int SuperMgmId { get; set; }
 
         [JsonProperty("sub_mgms"), JsonPropertyName("sub_mgms")]
-        public List<SubMgmId> SubMgmIds { get; set; } = new();
+        public List<SubMgmId> SubMgmIds { get; set; } = [];
     }
 
     public class SubMgmId

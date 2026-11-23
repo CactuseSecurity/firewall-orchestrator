@@ -540,7 +540,7 @@ namespace FWO.Test
                         LowestInputState = 0,
                         LowestStartedState = 1,
                         LowestEndState = 100,
-                        Matrix = new Dictionary<int, List<int>>()
+                        Matrix = []
                     });
                 return Task.CompletedTask;
             }

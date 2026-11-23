@@ -22,7 +22,7 @@
 @if(InitDone)
 {
     @* ==== LEFT SIDEBAR ==== *@
-    <Sidebar @ref="deviceSelectionSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth">
+    <Sidebar Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth">
         <div class="p-3 mt-2">
             <h5 class="text-start">@(userConfig.GetText("report_type"))</h5>
             <Dropdown ElementType="ReportType" ElementToString="@(r => userConfig.GetText(r.ToString()))" SelectedElement="actReportFilters.ReportType"
@@ -298,7 +298,7 @@
     private List<RuleViewData> _selectedItemsComplianceReportTable = [];
 
     private List<ReportType> availableReportTypes { get; set; } = [];
-    private ReportFilters actReportFilters = new();
+    private readonly ReportFilters actReportFilters = new();
     /// <summary>
     /// Switches the rules report between gateway rules view and management rulebases view.
     /// </summary>
@@ -349,7 +349,7 @@
     private bool ShowSelectTimeDialog = false;
     private bool ShowCreateTicketDialog = false;
 
-    private int rulesPerPage = 0;   // todo: remove - no pagination implemented?
+    private readonly int rulesPerPage = 0;   // todo: remove - no pagination implemented?
 
     private int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth;
     private int sidebarRightWidth = GlobalConst.kSidebarRightWidth;
@@ -359,7 +359,6 @@
     private ReportBase? currentReport;
     private List<string>? availableOwnerAddInfoNames;
 
-    private Sidebar? deviceSelectionSidebar;
 
     private string filterFeedbackStart = "";
     private string filterFeedbackError = "";

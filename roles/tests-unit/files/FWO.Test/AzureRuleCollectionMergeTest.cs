@@ -99,7 +99,7 @@ namespace FWO.Test
         [Test]
         public void GroupWithoutCollections_Fails()
         {
-            Assert.Throws<ConfigException>(() => AzureRuleCollectionMerge.Apply(new JsonObject(), FirewallWriteOperation.RuleCreate,
+            Assert.Throws<ConfigException>(() => AzureRuleCollectionMerge.Apply([], FirewallWriteOperation.RuleCreate,
                 Fragment("""{"rule":{"name":"r"}}""")));
         }
     }

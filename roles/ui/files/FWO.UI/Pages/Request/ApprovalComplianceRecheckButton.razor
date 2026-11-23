@@ -1,0 +1,20 @@
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+@* Checks all access tasks of the ticket again, ignoring the stored results. *@
+<button type="button" class="btn btn-sm btn-success approval-compliance-recheck @Class" disabled="@Loading"
+        @onclick="Recheck" @onclick:stopPropagation="true">
+    @(DisplayService.DisplayButton(userConfig, "approval_compliance_recheck", Icons.Refresh))
+</button>
+
+@code {
+    /// <summary>Whether the check is running; the button is disabled meanwhile.</summary>
+    [Parameter] public bool Loading { get; set; }
+
+    /// <summary>Additional CSS classes, e.g. for the spacing.</summary>
+    [Parameter] public string Class { get; set; } = "";
+
+    /// <summary>Starts the new check.</summary>
+    [Parameter] public EventCallback Recheck { get; set; }
+}

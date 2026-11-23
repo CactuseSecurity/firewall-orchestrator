@@ -206,11 +206,11 @@ namespace FWO.Test
             SettingsCustomizing component = new();
             WorkflowCustomizingApiConn apiConnection = new()
             {
-                States = new List<WfState>
-                {
+                States =
+                [
                     new() { Id = 0, Name = "draft" },
                     new() { Id = 17, Name = "requested" }
-                }
+                ]
             };
             SimulatedGlobalConfig globalConfig = new()
             {
@@ -403,18 +403,18 @@ namespace FWO.Test
             await using BunitContext context = new();
             WorkflowCustomizingApiConn apiConnection = new()
             {
-                States = new List<WfState>
-                {
+                States =
+                [
                     new() { Id = 0, Name = "draft" },
                     new() { Id = 17, Name = "requested" },
                     new() { Id = 50, Name = "approval" }
-                },
-                WorkflowConfigurations = new List<WorkflowConfiguration>
-                {
+                ],
+                WorkflowConfigurations =
+                [
                     CreateWorkflowConfiguration("request-active",
                         CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 101),
                         CreateWorkflowConfigurationPhase(WorkflowPhases.approval, false, 50, 60, 102))
-                }
+                ]
             };
             SimulatedGlobalConfig globalConfig = new()
             {
@@ -1172,22 +1172,22 @@ namespace FWO.Test
             public List<ConfigItem> LastConfigItems { get; private set; } = [];
             public List<WfState> States { get; set; } = [new WfState { Id = 0, Name = "draft" }];
             public bool ThrowOnUpsertConfig { get; set; } = false;
-            public List<PathAnalysisAlgorithm> PathAnalysisAlgorithms { get; set; } = new List<PathAnalysisAlgorithm>
-            {
+            public List<PathAnalysisAlgorithm> PathAnalysisAlgorithms { get; set; } =
+            [
                 // ordered by name like the query
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmForEachDevice, Name = "For each device" },
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree, Name = kNetworkZoneTreeAlgorithmName },
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmNone, Name = kNoneAlgorithmName },
                 new() { Id = GlobalConst.kPathAnalysisAlgorithmFirstDevice, Name = "First device (if available)" }
-            };
-            public List<WorkflowConfiguration> WorkflowConfigurations { get; set; } = new List<WorkflowConfiguration>
-            {
+            ];
+            public List<WorkflowConfiguration> WorkflowConfigurations { get; set; } =
+            [
                 new()
                 {
                     Id = 1,
                     Name = "default",
-                    Phases = new List<WorkflowConfigurationPhase>
-                    {
+                    Phases =
+                    [
                         new()
                         {
                             TaskType = WfTaskType.master.ToString(),
@@ -1203,9 +1203,9 @@ namespace FWO.Test
                                 LowestEndState = 0
                             }
                         }
-                    }
+                    ]
                 }
-            };
+            ];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {

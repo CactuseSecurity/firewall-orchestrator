@@ -184,7 +184,7 @@ namespace FWO.Test
         {
             FwoOwner owner = new()
             {
-                AdditionalInfo = new Dictionary<string, string>()
+                AdditionalInfo = []
             };
 
             Assert.That(OwnerRecertDisplay.MatchesAdditionalInfoFilter(owner, new AddInfoFilter

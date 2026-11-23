@@ -16,7 +16,7 @@ namespace FWO.Test
         [Test]
         public void MailData_InitializesRecipientsAndSubject()
         {
-            List<string> recipients = new() { "to@example.test" };
+            List<string> recipients = ["to@example.test"];
 
             MailData mail = new(recipients, "Subject")
             {
@@ -36,10 +36,10 @@ namespace FWO.Test
         [Test]
         public void CopyMailData_CopiesCollectionsWithoutSharingThem()
         {
-            MailData source = new(new List<string> { "to@example.test" }, "Subject")
+            MailData source = new(["to@example.test"], "Subject")
             {
-                Cc = new List<string> { "cc@example.test" },
-                Bcc = new List<string> { "bcc@example.test" },
+                Cc = ["cc@example.test"],
+                Bcc = ["bcc@example.test"],
                 From = "from@example.test",
                 DisplayName = "Sender",
                 ReplyTo = "reply@example.test",
@@ -136,9 +136,9 @@ namespace FWO.Test
         [TestCase(true)]
         public void HasRecipients_RecognizesPresentAddresses(bool present)
         {
-            MailData mail = new(new List<string> { present ? "to@example.test" : " " }, "Subject")
+            MailData mail = new([present ? "to@example.test" : " "], "Subject")
             {
-                Cc = new List<string> { present ? "cc@example.test" : " " }
+                Cc = [present ? "cc@example.test" : " "]
             };
 
             bool result = Invoke<bool>("HasRecipients", mail);
@@ -149,10 +149,10 @@ namespace FWO.Test
         [Test]
         public void RemoveRecipient_RemovesMatchingAddressFromAnyRecipientList()
         {
-            MailData mail = new(new List<string> { "to@example.test" }, "Subject")
+            MailData mail = new(["to@example.test"], "Subject")
             {
-                Cc = new List<string> { " CC@example.test " },
-                Bcc = new List<string> { "bcc@example.test" }
+                Cc = [" CC@example.test "],
+                Bcc = ["bcc@example.test"]
             };
 
             bool removed = Invoke<bool>("RemoveRecipient", mail, "cc@example.test");
@@ -169,7 +169,7 @@ namespace FWO.Test
         [Test]
         public void RemoveRecipient_ReturnsFalseWhenAddressIsUnknown()
         {
-            MailData mail = new(new List<string> { "to@example.test" }, "Subject");
+            MailData mail = new(["to@example.test"], "Subject");
 
             bool removed = Invoke<bool>("RemoveRecipient", mail, "missing@example.test");
 
@@ -179,10 +179,10 @@ namespace FWO.Test
         [Test]
         public void RemoveRecipient_SearchesToAndBccAfterEarlierLists()
         {
-            MailData mail = new(new List<string> { "to@example.test" }, "Subject")
+            MailData mail = new(["to@example.test"], "Subject")
             {
-                Cc = new List<string> { "cc@example.test" },
-                Bcc = new List<string> { "bcc@example.test" }
+                Cc = ["cc@example.test"],
+                Bcc = ["bcc@example.test"]
             };
 
             bool removedTo = Invoke<bool>("RemoveRecipient", mail, "to@example.test");
@@ -200,10 +200,10 @@ namespace FWO.Test
         [Test]
         public void AddRecipients_AddsSenderRecipientsAndReplyTo()
         {
-            MailData mail = new(new List<string> { "to@example.test", " " }, "Subject")
+            MailData mail = new(["to@example.test", " "], "Subject")
             {
-                Cc = new List<string> { "cc@example.test" },
-                Bcc = new List<string> { " bcc@example.test " },
+                Cc = ["cc@example.test"],
+                Bcc = [" bcc@example.test "],
                 ReplyTo = "reply@example.test",
                 ReplyToName = "Reply"
             };
@@ -228,7 +228,7 @@ namespace FWO.Test
         public async Task AddContent_CreatesPlainTextBodyAndAttachments()
         {
             FormFile attachment = CreateFile("attachment.txt", "text/plain", "attachment");
-            MailData mail = new(new List<string>(), "Subject")
+            MailData mail = new([], "Subject")
             {
                 Body = "Plain body",
                 Attachments = new FormFileCollection { attachment }
@@ -251,7 +251,7 @@ namespace FWO.Test
         public async Task AddContent_SkipsEmptyAttachments()
         {
             FormFile attachment = CreateFile("empty.txt", "text/plain", "");
-            MailData mail = new(new List<string>(), "Subject")
+            MailData mail = new([], "Subject")
             {
                 Body = "Plain body",
                 Attachments = new FormFileCollection { attachment }
@@ -266,7 +266,7 @@ namespace FWO.Test
         [Test]
         public async Task AddContent_CreatesHtmlBodyWithoutAttachments()
         {
-            MailData mail = new(new List<string>(), "Subject") { Body = "<p>HTML body</p>" };
+            MailData mail = new([], "Subject") { Body = "<p>HTML body</p>" };
             MimeMessage message = new();
 
             await InvokeAsync("AddContent", mail, message, true);
@@ -283,7 +283,7 @@ namespace FWO.Test
         [TestCase(EmailEncryptionMethod.Tls)]
         public async Task SendAsync_ReturnsFalseWhenConnectionFails(EmailEncryptionMethod encryption)
         {
-            MailData mail = new(new List<string> { "to@example.test" }, "Subject");
+            MailData mail = new(["to@example.test"], "Subject");
             EmailConnection connection = new("127.0.0.1", 1, encryption, "", "", "sender@example.test");
 
             bool result = await MailKitMailer.SendAsync(mail, connection);
@@ -298,7 +298,7 @@ namespace FWO.Test
             listener.Start();
             int port = ((IPEndPoint)listener.LocalEndpoint).Port;
             Task server = RunSmtpServer(listener);
-            MailData mail = new(new List<string> { "bad@example.test", "good@example.test" }, "Subject")
+            MailData mail = new(["bad@example.test", "good@example.test"], "Subject")
             {
                 Body = "Body"
             };
@@ -324,7 +324,7 @@ namespace FWO.Test
             listener.Start();
             int port = ((IPEndPoint)listener.LocalEndpoint).Port;
             Task server = RunSmtpServer(listener, rejectFirstRecipient: false);
-            MailData mail = new(new List<string> { "not an address <<", "good@example.test" }, "Subject")
+            MailData mail = new(["not an address <<", "good@example.test"], "Subject")
             {
                 Body = "Body",
                 Cc = kUnparseableCc
@@ -344,7 +344,7 @@ namespace FWO.Test
         [Test]
         public void RemoveUnparseableRecipients_KeepsValidAndEmptyEntries()
         {
-            MailData mail = new(new List<string> { "a@example.test", "broken<<", " " }, "Subject")
+            MailData mail = new(["a@example.test", "broken<<", " "], "Subject")
             {
                 Cc = ["c@example.test", "@@"],
                 Bcc = ["b@example.test"]

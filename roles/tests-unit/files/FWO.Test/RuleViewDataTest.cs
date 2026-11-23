@@ -46,7 +46,6 @@ namespace FWO.Test
         [Test]
         public void GetFromCustomField_KeyOne_ReturnsCorrectValue()
         {
-            RuleViewData rvd = new RuleViewData();
             Rule rule = new Rule
             {
                 CustomFields = "{'field-2':'Change123','field-3':'Ado456'}"
@@ -60,7 +59,6 @@ namespace FWO.Test
         [Test]
         public void GetFromCustomField_KeyTwo_ReturnsCorrectValue()
         {
-            RuleViewData rvd = new RuleViewData();
             Rule rule = new Rule
             {
                 CustomFields = "{'ChangeID':'Change123','AdoIT':'Ado456'}"
@@ -74,7 +72,6 @@ namespace FWO.Test
         [Test]
         public void GetFromCustomField_Example_ReturnsCorrectValue()
         {
-            RuleViewData rvd = new RuleViewData();
             Rule rule = new Rule
             {
                 CustomFields = "{'AdoIT': \"Infr-AdoIT:X\", 'Datum-Regelpruefung': 'dd.mm.yyyy'}"
@@ -210,8 +207,7 @@ namespace FWO.Test
             {
                 CustomFields = "{'field-2':'invalid', 'Datum-Regelpruefung':'Change123'}"
             };
-
-            var result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out var errorMessage);
+            _ = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, "[\"field-2\",\"Datum-Regelpruefung\"]", out var errorMessage);
 
             Assert.That(errorMessage, Is.Null);
         }

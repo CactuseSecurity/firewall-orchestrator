@@ -267,7 +267,7 @@ namespace FWO.Data
                 NotificationClient.AppDecomm => [NotificationDeadline.None, NotificationDeadline.DecommissionDate],
                 NotificationClient.InterfaceDecomm => [NotificationDeadline.None],
                 NotificationClient.WfAction => [NotificationDeadline.None],
-                _ => Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>().ToList()
+                _ => Enum.GetValues<NotificationDeadline>().ToList()
             };
         }
     }

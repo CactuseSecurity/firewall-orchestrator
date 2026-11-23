@@ -81,7 +81,7 @@ namespace FWO.Test
         [Test]
         public void UiUserUpdate_ConstrainsTheRowAfterTheUpdateAsWellAsBefore()
         {
-            List<string> violations = new();
+            List<string> violations = [];
 
             foreach (JsonElement permission in ReadUpdatePermissions())
             {
@@ -117,7 +117,7 @@ namespace FWO.Test
         [Test]
         public void UiUserUpdate_ScopesNonServiceRolesToTheirOwnRow()
         {
-            List<string> violations = new();
+            List<string> violations = [];
             string expected = $"{{\"{kSubjectColumn}\":{{\"_eq\":\"{kSubjectSessionVariable}\"}}}}";
 
             foreach (JsonElement permission in ReadUpdatePermissions())
@@ -190,7 +190,7 @@ namespace FWO.Test
                     // every check below, so an empty list is the correct answer and not a skip.
                     if (!table.TryGetProperty("update_permissions", out JsonElement permissions))
                     {
-                        return new List<JsonElement>();
+                        return [];
                     }
                     // Cloned, because the elements outlive the JsonDocument they were read from.
                     return permissions.EnumerateArray().Select(entry => entry.Clone()).ToList();

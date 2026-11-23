@@ -59,7 +59,7 @@
         try
         {
             bool shortened = false;
-            MatrixName = Sanitizer.SanitizeMand(MatrixName, ref shortened);
+            MatrixName = MatrixName.SanitizeMand(ref shortened);
             if (shortened)
             {
                 DisplayMessageInUi(null, userConfig.GetText("save"), userConfig.GetText("U0001"), true);

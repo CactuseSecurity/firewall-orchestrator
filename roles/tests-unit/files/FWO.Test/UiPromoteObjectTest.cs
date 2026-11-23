@@ -35,7 +35,7 @@ namespace FWO.Test
 
             public CommentAuthStateProvider(params string[] roles)
             {
-                List<Claim> claims = new();
+                List<Claim> claims = [];
                 foreach (string role in roles)
                 {
                     claims.Add(new Claim(ClaimTypes.Role, role));
@@ -123,7 +123,7 @@ namespace FWO.Test
             userConfig.User.Roles.Add(Roles.Admin);
             SetMember(component, "userConfig", userConfig);
             SetMember(component, nameof(PromoteObject.StateMatrix),
-                new StateMatrix { Matrix = new() { [0] = new List<int> { 5 } } });
+                new StateMatrix { Matrix = new() { [0] = [5] } });
             SetMember(component, nameof(PromoteObject.Save), (Func<WfStatefulObject, Task>)(_ =>
             {
                 saveCalls++;
@@ -159,7 +159,7 @@ namespace FWO.Test
             userConfig.User.Roles.Add(Roles.Admin);
             SetMember(component, "userConfig", userConfig);
             SetMember(component, nameof(PromoteObject.StateMatrix),
-                new StateMatrix { Matrix = new() { [0] = new List<int> { 5 } } });
+                new StateMatrix { Matrix = new() { [0] = [5] } });
             SetMember(component, nameof(PromoteObject.Save), (Func<WfStatefulObject, Task>)(async _ =>
             {
                 saveStarted.SetResult();
@@ -188,7 +188,7 @@ namespace FWO.Test
             userConfig.User.Roles.Add(Roles.Admin);
             SetMember(component, "userConfig", userConfig);
             SetMember(component, nameof(PromoteObject.StateMatrix),
-                new StateMatrix { Matrix = new() { [0] = new List<int> { 5, 6 } } });
+                new StateMatrix { Matrix = new() { [0] = [5, 6] } });
             SetMember(component, nameof(PromoteObject.Save), (Func<WfStatefulObject, Task>)(_ =>
             {
                 saveCalls++;

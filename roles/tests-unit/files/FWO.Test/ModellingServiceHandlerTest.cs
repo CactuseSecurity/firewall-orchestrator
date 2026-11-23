@@ -192,8 +192,8 @@ namespace FWO.Test
                 Port = 80,
                 PortEnd = 80
             };
-            List<ModellingService> available = new List<ModellingService>();
-            List<KeyValuePair<int, int>> availableSvcElems = new List<KeyValuePair<int, int>>();
+            List<ModellingService> available = [];
+            List<KeyValuePair<int, int>> availableSvcElems = [];
             ModellingServiceHandler handler = new(
                 apiConn,
                 CreateUserConfig(),
@@ -230,8 +230,8 @@ namespace FWO.Test
                 Port = 80,
                 PortEnd = 80
             };
-            List<ModellingService> available = new List<ModellingService> { service };
-            List<KeyValuePair<int, int>> availableSvcElems = new List<KeyValuePair<int, int>>();
+            List<ModellingService> available = [service];
+            List<KeyValuePair<int, int>> availableSvcElems = [];
             ModellingServiceHandler handler = new(
                 apiConn,
                 CreateUserConfig(),

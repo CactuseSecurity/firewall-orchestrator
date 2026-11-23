@@ -34,7 +34,6 @@ namespace FWO.Test
         private static readonly string[] kOverrideRecipients = ["override@example.test"];
         private static readonly string[] kScopedRecipients = ["scoped@example.test"];
         private static readonly string[] kAliceBobRecipients = ["alice@example.test", "bob@example.test"];
-        private static readonly string[] kAliceRecipients = ["alice@example.test"];
         private static readonly string[] kAliceAndEmptyRecipients = ["alice@example.test", string.Empty];
         private static readonly List<string> kOtherAddressRecipients = ["a@test", "b@test"];
         private static readonly List<string> kJsonOtherAddressList = ["json-a@test", "json-b@test"];
@@ -154,7 +153,7 @@ namespace FWO.Test
             {
                 Requester = true,
                 OtherAddresses = true,
-                OtherAddressList = new List<string> { "cc@example.test" }
+                OtherAddressList = ["cc@example.test"]
             };
             FwoNotification notification = new()
             {
@@ -547,11 +546,11 @@ namespace FWO.Test
             EmailRecipientSelection selection = new()
             {
                 None = false,
-                OwnerResponsibleTypeIds = new List<int>
-                {
+                OwnerResponsibleTypeIds =
+                [
                     GlobalConst.kOwnerResponsibleTypeSupporting,
                     GlobalConst.kOwnerResponsibleTypeMain
-                }
+                ]
             };
 
             List<string> recipients = await helper.GetRecipients(selection.ToConfigValue(), owner, null);
@@ -562,8 +561,8 @@ namespace FWO.Test
         [Test]
         public async Task GetRecipientsResolvesAssignedGroupUsersThroughOwnerGroups()
         {
-            List<UserGroup> ownerGroups = new()
-            {
+            List<UserGroup> ownerGroups =
+            [
                 new UserGroup
                 {
                     Dn = "cn=network-team,dc=test",
@@ -573,7 +572,7 @@ namespace FWO.Test
                         new UiUser { Dn = "cn=bob,dc=test" }
                     ]
                 }
-            };
+            ];
             EmailHelper helper = CreateEmailHelper(
                 ownerGroups,
                 useDummyEmailAddress: false);
@@ -596,8 +595,8 @@ namespace FWO.Test
         [Test]
         public async Task GetRecipientsReturnsEmptyForUnresolvedAssignedGroupMembers()
         {
-            List<UserGroup> ownerGroups = new()
-            {
+            List<UserGroup> ownerGroups =
+            [
                 new UserGroup
                 {
                     Dn = "cn=network-team,dc=test",
@@ -607,7 +606,7 @@ namespace FWO.Test
                         new UiUser { Dn = "cn=missing,dc=test" }
                     ]
                 }
-            };
+            ];
             EmailHelper helper = CreateEmailHelper(
                 ownerGroups,
                 useDummyEmailAddress: false);
@@ -655,7 +654,7 @@ namespace FWO.Test
                 NotificationClient.InterfaceRequest,
                 globalConfig,
                 new NotificationServiceWithRecipientsApiConn(),
-                new List<UserGroup>());
+                []);
 
             FwoNotification notification = new()
             {
@@ -742,7 +741,7 @@ namespace FWO.Test
             EmailRecipientSelection selection = new()
             {
                 OtherAddresses = true,
-                OtherAddressList = new List<string> { "other@test", "", "dup@test" },
+                OtherAddressList = ["other@test", "", "dup@test"],
                 EnsureAtLeastOneNotification = true,
                 OwnerResponsibleTypeIds = [99]
             };
@@ -1208,10 +1207,10 @@ namespace FWO.Test
         public async Task GetRecipientsFallbackUsesMainWhenSupportingHasNoUsableEmail(string? supportingEmail)
         {
             EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false);
-            List<UiUser> users = new()
-            {
+            List<UiUser> users =
+            [
                 new() { Dn = "cn=main,dc=test", Email = "main@example.test" }
-            };
+            ];
             if (supportingEmail != null)
             {
                 users.Add(new UiUser { Dn = "cn=support,dc=test", Email = supportingEmail });

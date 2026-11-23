@@ -3,17 +3,15 @@ from random import randint
 from netaddr import IPNetwork
 
 
-def createTenantTestData(tenantTopIpNet, numberOfTenantNetworks, tenantId):
+def createTenantTestData(tenantTopIpNet: IPNetwork, numberOfTenantNetworks: int, tenantId: int) -> str:
 	code = ""
 	i = 0
 	mask = 0
 	tenantTopIpNetTypecasted = IPNetwork(tenantTopIpNet)
-	# numberOfPossibleIPs = tenantTopIpNet.num_addresses
 	numberOfPossibleIPs = tenantTopIpNetTypecasted.size
 
 	while i< numberOfTenantNetworks:
 		i += 1
-		# mask = randint(28, 32)
 		mask = 32
 		randomIndex = randint(0,numberOfPossibleIPs-1)
 		randomIp = tenantTopIpNetTypecasted[randomIndex]

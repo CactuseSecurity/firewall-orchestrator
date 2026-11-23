@@ -50,7 +50,7 @@ class GroupFlatsMapper:
         self.service_object_flats = {}
         self.user_flats = {}
 
-    def get_network_object_flats(self, uids: list[str]) -> list[str]:
+    def get_network_object_flats(self, uids: list[str]) -> set[str]:
         """
         Flatten the network object UIDs to all members, including group objects, and the top-level group object itself.
         Does not check if the given objects are group objects or not.
@@ -59,18 +59,18 @@ class GroupFlatsMapper:
             uids (list[str]): The list of network object UIDs to flatten.
 
         Returns:
-            list[str]: The flattened network object UIDs.
+            set[str]: The flattened network object UIDs.
 
         """
         if self.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE} - networks")
-            return []
+            return set()
         all_members: set[str] = set()
         for uid in uids:
             members = self.flat_nwobj_members_recursive(uid)
             if members is not None:
                 all_members.update(members)
-        return list(all_members)
+        return all_members
 
     def flat_nwobj_members_recursive(self, group_uid: str, recursion_level: int = 0) -> set[str] | None:
         if recursion_level > MAX_RECURSION_LEVEL:
@@ -102,7 +102,7 @@ class GroupFlatsMapper:
             nwobj = self.global_normalized_config.network_objects.get(group_uid, None)
         return nwobj
 
-    def get_service_object_flats(self, uids: list[str]) -> list[str]:
+    def get_service_object_flats(self, uids: list[str]) -> set[str]:
         """
         Flatten the service object UIDs to all members, including group objects, and the top-level group object itself.
         Does not check if the given objects are group objects or not.
@@ -111,18 +111,18 @@ class GroupFlatsMapper:
             uids (list[str]): The list of service object UIDs to flatten.
 
         Returns:
-            list[str]: The flattened service object UIDs.
+            set[str]: The flattened service object UIDs.
 
         """
         if self.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE} - services")
-            return []
+            return set()
         all_members: set[str] = set()
         for uid in uids:
             members = self.flat_svcobj_members_recursive(uid)
             if members is not None:
                 all_members.update(members)
-        return list(all_members)
+        return all_members
 
     def flat_svcobj_members_recursive(self, group_uid: str, recursion_level: int = 0) -> set[str] | None:
         if recursion_level > MAX_RECURSION_LEVEL:
@@ -154,7 +154,7 @@ class GroupFlatsMapper:
             svcobj = self.global_normalized_config.service_objects.get(group_uid, None)
         return svcobj
 
-    def get_user_flats(self, uids: list[str]) -> list[str]:
+    def get_user_flats(self, uids: list[str]) -> set[str]:
         """
         Flatten the user UIDs to all members, including groups, and the top-level group itself.
         Does not check if the given users are groups or not.
@@ -163,18 +163,18 @@ class GroupFlatsMapper:
             uids (list[str]): The list of user UIDs to flatten.
 
         Returns:
-            list[str]: The flattened user UIDs.
+            set[str]: The flattened user UIDs.
 
         """
         if self.normalized_config is None:
             self.log_error(f"{CONFIG_NOT_SET_MESSAGE} - users")
-            return []
+            return set()
         all_members: set[str] = set()
         for uid in uids:
             members = self.flat_user_members_recursive(uid)
             if members is not None:
                 all_members.update(members)
-        return list(all_members)
+        return all_members
 
     def flat_user_members_recursive(self, group_uid: str, recursion_level: int = 0) -> set[str] | None:
         if recursion_level > MAX_RECURSION_LEVEL:

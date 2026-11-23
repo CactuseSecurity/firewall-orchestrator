@@ -117,11 +117,11 @@ namespace FWO.Test
                 Type = new NetworkServiceType { Name = ServiceType.Group }
             };
 
-            List<GroupFlat<NetworkService>> groupMembers = new()
-            {
+            List<GroupFlat<NetworkService>> groupMembers =
+            [
                 new GroupFlat<NetworkService> { Id = 15, Object = nestedGroup },
                 new GroupFlat<NetworkService> { Id = 16, Object = leaf }
-            };
+            ];
 
             NetworkService group = new()
             {
@@ -131,7 +131,7 @@ namespace FWO.Test
                 ServiceGroupFlats = groupMembers.ToArray()
             };
 
-            List<NetworkService> input = new() { group };
+            List<NetworkService> input = [group];
             List<NetworkService> result = InvokePrivateFlatten<NetworkService>("GetRuleServicesWithMembers", input);
 
             ClassicAssert.AreEqual(2, result.Count);

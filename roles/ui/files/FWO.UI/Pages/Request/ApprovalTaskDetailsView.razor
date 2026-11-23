@@ -4,15 +4,34 @@
 @using FWO.Ui.Display
 @using FWO.Ui.Shared
 @using FWO.Ui.Services
+@using FWO.Services.Workflow
 
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
-<PopUp Title="@ApprovalTaskViewTitle" Show="@Display" Size="PopupSize.XLarge" OnClose="ClosePopup">
+<PopUp Title="@ApprovalTaskViewTitle" Show="@Display" Size="PopupSize.FullScreen" OnClose="ClosePopup">
     <Body>
-        @if (Display)
+        @if (Display && ListView)
         {
-            List<List<WfReqTask>> taskGroups = GetTaskGroups().ToList();
+            List<List<WfReqTask>> listTaskGroups = GetTaskGroups().ToList();
+            List<List<WfReqTask>> shownListTaskGroups = [.. listTaskGroups.Where(IsShown)];
+            <CascadingValue Value="@CreateTaskViewContext()">
+                @* the tables come from all tasks, so the access table and its filter button stay when no task matches the filter *@
+                @foreach (ApprovalTaskListTable table in ListTables(listTaskGroups))
+                {
+                    <ApprovalTaskListBody @key="table" Table="table" TaskGroups="shownListTaskGroups" States="States"
+                        ShowActions="@WfHandler.CanPromoteTaskInCurrentPhase()"
+                        CanPromoteTask="CanShowTaskPromotion"
+                        PromoteTask="@(task => RunWithProgress(() => OpenTaskPromotion(task)))"
+                        Compliance="compliance" ShowComplianceReasons="OpenComplianceReasons"
+                        HeaderButtons="@(table == ApprovalTaskListTable.Access ? AccessTaskButtons : null)" />
+                }
+            </CascadingValue>
+        }
+        else if (Display)
+        {
+            List<List<WfReqTask>> taskGroups = ApprovalTaskDetailsEditorService.AccessTasksFirst(GetTaskGroups());
+            bool hasAccessTasks = taskGroups.Any(group => IsAccessTask(group[0]));
             bool accessToggleShown = false;
             @foreach (List<WfReqTask> taskGroup in taskGroups)
             {
@@ -21,12 +40,14 @@
                 {
                     accessToggleShown = true;
                     <div class="d-flex justify-content-end mb-3">
-                        <button type="button" class="btn btn-sm btn-primary approval-task-display-toggle" @onclick="ToggleAccessElementDisplay">
-                            @(DisplayService.DisplayButton(userConfig, NextDisplayModeTextKey(), Icons.Swap))
-                        </button>
+                        @AccessTaskButtons
                     </div>
                 }
-                <Collapse StartToggled="@(!IsAccessTask(task))" Style="secondary" UseHtmlTitle="true" TitleWithHtml="@TaskHeader(task, taskGroup)">
+                @if (!IsShown(taskGroup))
+                {
+                    continue;
+                }
+                <Collapse StartToggled="@(hasAccessTasks && !IsAccessTask(task))" Style="secondary" UseHtmlTitle="true" TitleWithHtml="@TaskHeader(task, taskGroup)">
                     <div class="card-body">
                         <CascadingValue Value="@CreateTaskViewContext()">
                             @if (IsAccessTask(task))
@@ -103,6 +124,7 @@
     CancelParent="CancelTaskPromotion" ObjectName="@WfHandler.ActReqTask.Title"
     Save="PromoteSelectedTask" StatefulObject="WfHandler.ActReqTask"
     StateMatrix="WfHandler.ActStateMatrix" States="States" />
+<ApprovalComplianceReasonsPopup @bind-Compliance="shownCompliance" />
 <InProgress Display="workInProgress" />
 
 @code {
@@ -118,8 +140,13 @@
     [Parameter] public bool ShowCancel { get; set; }
     [Parameter] public Func<Task> PromoteTicket { get; set; } = DefaultInit.DoNothing;
     [Parameter] public Func<Task> Closed { get; set; } = DefaultInit.DoNothing;
+    /// <summary>Shows every request task as one table row instead of one card per task.</summary>
+    [Parameter] public bool ListView { get; set; }
 
     private readonly ApprovalTaskDetailsEditorService editorService = new();
+
+    private readonly ApprovalTaskComplianceService compliance = new();
+    private ApprovalTaskCompliance? shownCompliance;
 
     private bool CanPerformTicketAction(WfStateAction action) => WfHandler.CanPerformActionOnActTicket(action);
 
@@ -133,7 +160,8 @@
             {
                 metadata += $", {userConfig.GetText("requester")}: {requester}";
             }
-            return $"{userConfig.GetText("ticket")}: {WfHandler.ActTicket.Title} ({metadata})";
+            string headline = PreWorkflowTicketReferenceDisplay.TicketHeadline(userConfig.GetText("ticket"), userConfig.ReqPreWorkflowTicketReferenceLabel, WfHandler.ActTicket);
+            return $"{headline} ({metadata})";
         }
     }
 
@@ -142,8 +170,11 @@
         string taskType = string.IsNullOrWhiteSpace(task.TaskType)
             ? userConfig.GetText("task")
             : userConfig.GetText(task.TaskType);
-        return string.IsNullOrWhiteSpace(task.Title) ? taskType : $"{taskType}: {task.Title}";
+        return string.IsNullOrWhiteSpace(task.Title) || !ShowTitle(task) ? taskType : $"{taskType}: {task.Title}";
     }
+
+    /// <summary>The title of access tasks can be hidden in the settings; other tasks always show it.</summary>
+    private bool ShowTitle(WfReqTask task) => !IsAccessTask(task) || AccessTaskVisibility.ShowTitle;
 
     private RenderFragment TaskHeader(WfReqTask task, IEnumerable<WfReqTask> taskGroup) => builder =>
     {
@@ -164,7 +195,7 @@
             builder.AddContent(10, DisplayService.DisplayButton(userConfig, "promote", Icons.ChangeState));
             builder.CloseElement();
         }
-        if (CanEdit(taskGroup, WorkflowEditableFieldKeys.Title))
+        if (ShowTitle(task) && CanEdit(taskGroup, WorkflowEditableFieldKeys.Title))
         {
             builder.OpenElement(11, "button");
             builder.AddAttribute(12, "type", "button");
@@ -190,6 +221,16 @@
         builder.AddAttribute(24, "class", "ml-auto");
         builder.AddContent(25, States.GetName(task.StateId));
         builder.CloseElement();
+        if (compliance.IsConfigured && IsAccessTask(task))
+        {
+            builder.OpenComponent<ApprovalComplianceButton>(26);
+            builder.AddComponentParameter(27, nameof(ApprovalComplianceButton.Compliance), compliance.ComplianceOf(taskGroup));
+            builder.AddComponentParameter(28, nameof(ApprovalComplianceButton.Loading), compliance.IsLoading);
+            builder.AddComponentParameter(29, nameof(ApprovalComplianceButton.Class), "btn-sm");
+            builder.AddComponentParameter(30, nameof(ApprovalComplianceButton.ShowReasons),
+                EventCallback.Factory.Create<ApprovalTaskCompliance>(this, OpenComplianceReasons));
+            builder.CloseComponent();
+        }
         builder.CloseElement();
     };
 
@@ -439,6 +480,104 @@
         ConfigureEditorService();
     }
 
+    /// <summary>Runs the compliance check of the access tasks when the view of a ticket is opened.</summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Display)
+        {
+            compliance.Reset();
+            // a retained component must not open the next ticket with the filter active
+            showOnlyNotAllowed = false;
+            return;
+        }
+        await compliance.UpdateAsync(WfHandler);
+    }
+
+    /// <summary>Repeats the compliance check after a change of the ticket, without blocking the change.</summary>
+    private async Task UpdateComplianceAfterChange()
+    {
+        try
+        {
+            if (await compliance.UpdateAsync(WfHandler))
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Approval task view", "Compliance check could not be repeated.", exception);
+        }
+    }
+
+    private void OpenComplianceReasons(ApprovalTaskCompliance taskCompliance)
+    {
+        shownCompliance = taskCompliance;
+    }
+
+    /// <summary>Buttons for the access tasks: recheck compliance and toggle the element display.</summary>
+    private RenderFragment AccessTaskButtons =>
+        @<text>
+            @if (compliance.IsConfigured)
+            {
+                <button type="button" class="btn btn-sm @(showOnlyNotAllowed ? "btn-danger" : "btn-outline-danger") mr-2 approval-compliance-filter"
+                        aria-pressed="@(showOnlyNotAllowed ? "true" : "false")" @onclick="ToggleNotAllowedFilter" @onclick:stopPropagation="true">
+                    @(DisplayService.DisplayButton(userConfig, "approval_compliance_filter_not_allowed", Icons.Filter))
+                </button>
+            }
+            @RecheckComplianceButton
+            <button type="button" class="btn btn-sm btn-primary approval-task-display-toggle" @onclick="ToggleAccessElementDisplay">
+                @(DisplayService.DisplayButton(userConfig, NextDisplayModeTextKey(), Icons.Swap))
+            </button>
+        </text>;
+
+    private bool showOnlyNotAllowed;
+
+    private void ToggleNotAllowedFilter()
+    {
+        showOnlyNotAllowed = !showOnlyNotAllowed;
+    }
+
+    /// <summary>
+    /// Whether the task group is displayed: with the filter for not allowed access tasks, access tasks are only displayed
+    /// if they are not allowed; other tasks are always displayed. Without a configured policy check the filter button
+    /// is not offered, so the filter is ignored and nothing is hidden.
+    /// </summary>
+    private bool IsShown(List<WfReqTask> taskGroup)
+    {
+        return !showOnlyNotAllowed
+            || !compliance.IsConfigured
+            || taskGroup.Count == 0
+            || !IsAccessTask(taskGroup[0])
+            || compliance.ComplianceOf(taskGroup)?.IsCompliant == false;
+    }
+
+    /// <summary>Button checking all access tasks again; only shown if a policy check is configured.</summary>
+    private RenderFragment RecheckComplianceButton => builder =>
+    {
+        if (!compliance.IsConfigured)
+        {
+            return;
+        }
+        builder.OpenComponent<ApprovalComplianceRecheckButton>(0);
+        builder.AddComponentParameter(1, nameof(ApprovalComplianceRecheckButton.Loading), compliance.IsLoading);
+        builder.AddComponentParameter(2, nameof(ApprovalComplianceRecheckButton.Class), "mr-2");
+        builder.AddComponentParameter(3, nameof(ApprovalComplianceRecheckButton.Recheck),
+            EventCallback.Factory.Create(this, RecheckCompliance));
+        builder.CloseComponent();
+    };
+
+    private async Task RecheckCompliance()
+    {
+        try
+        {
+            await compliance.RecheckAsync(WfHandler);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Approval task view", "Compliance check could not be repeated.", exception);
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         ConfigureEditorService();
@@ -451,6 +590,15 @@
     {
         ConfigureEditorService();
         return editorService.GetTaskGroups();
+    }
+
+    /// <summary>Returns the list-view tables that contain at least one task, in display order.</summary>
+    private static List<ApprovalTaskListTable> ListTables(List<List<WfReqTask>> taskGroups)
+    {
+        HashSet<ApprovalTaskListTable> usedTables = [.. taskGroups
+            .Where(taskGroup => taskGroup.Count > 0)
+            .Select(taskGroup => ApprovalTaskListRowBuilder.TableOf(taskGroup[0]))];
+        return [.. Enum.GetValues<ApprovalTaskListTable>().Where(usedTables.Contains)];
     }
 
     private static bool IsAccessTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsAccessTask(task);
@@ -495,6 +643,11 @@
     {
         try
         {
+            if (Display)
+            {
+                // Sets the loading state at once; the check itself runs in the background.
+                _ = UpdateComplianceAfterChange();
+            }
             await InvokeAsync(StateHasChanged);
         }
         catch (InvalidOperationException)

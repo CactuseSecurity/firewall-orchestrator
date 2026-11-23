@@ -248,6 +248,43 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// An empty name, also one that is empty after sanitizing, is reported specifically and nothing is saved.
+        /// </summary>
+        [TestCase("")]
+        [TestCase("   ")]
+        public async Task Save_ShowsEmptyNameMessageWhenNameMissing(string name)
+        {
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+            await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin, messages);
+            RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
+            SettingsCredentials component = setup.Component;
+            InvokePrivateVoid(component, "Add");
+            SetMember(component, "actCredential", new Credential
+            {
+                Name = name,
+                ImportUser = "import-user",
+                Secret = "",
+                IsKeyPair = false
+            });
+
+            await component.Save();
+
+            UserConfig userConfig = GetMember<UserConfig>(component, "userConfig");
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages.Any(message => message.Message == userConfig.GetText("U0001")), Is.False);
+                Assert.That(messages.Any(message =>
+                    message.Title == "Save credential" &&
+                    message.Message == userConfig.GetText("E5131") &&
+                    message.IsError), Is.True);
+                Assert.That(apiConnection.Queries.Any(query => query == DeviceQueries.newCredential || query == DeviceQueries.updateCredential), Is.False);
+            });
+        }
+
+        /// <summary>
+        /// A missing username is reported as missing mandatory field and nothing is saved.
+        /// </summary>
         [Test]
         public async Task Save_ShowsValidationWhenRequiredFieldsMissing()
         {
@@ -258,8 +295,8 @@ namespace FWO.Test
             InvokePrivateVoid(component, "Add");
             SetMember(component, "actCredential", new Credential
             {
-                Name = "",
-                ImportUser = "import-user",
+                Name = "cred-name",
+                ImportUser = "",
                 Secret = "",
                 IsKeyPair = false
             });
@@ -632,7 +669,6 @@ namespace FWO.Test
             public LocalizedString this[string name] => new(name, name, resourceNotFound: true);
             public LocalizedString this[string name, params object[] arguments] => new(name, string.Format(name, arguments), resourceNotFound: true);
             public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => [];
-            public EmptyStringLocalizer<T> WithCulture(System.Globalization.CultureInfo culture) => this;
         }
     }
 }

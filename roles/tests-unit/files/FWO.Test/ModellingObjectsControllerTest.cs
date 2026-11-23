@@ -69,6 +69,7 @@ internal class ModellingObjectsControllerTest
             Assert.That(query, Does.Contain("order_by: [{ name: asc }, { id: asc }]"));
             Assert.That(query, Does.Contain("group_type: { _nin: [20, 23] }, is_deleted: { _eq: false }"));
             Assert.That(query, Does.Contain("owner_network: { is_deleted: { _eq: false } }"));
+            Assert.That(query, Does.Contain("{ owner: { active: { _eq: true }, import_source: { _is_null: false }, owner_networks: { is_deleted: { _eq: false } } } }"));
         });
     }
 

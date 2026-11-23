@@ -147,6 +147,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public void PublishedInterfacesQuery_OnlyOffersForeignInterfacesOfActiveImportedAppsWithIpAddresses()
+        {
+            string query = ModellingQueries.getPublishedInterfaces;
+            Assert.Multiple(() =>
+            {
+                Assert.That(query, Does.Contain("query getPublishedInterfaces($appId: Int!)"));
+                Assert.That(query, Does.Contain("{ app_id: { _eq: $appId } }"));
+                Assert.That(query, Does.Contain("{ owner: { active: { _eq: true }, import_source: { _is_null: false }, owner_networks: { is_deleted: { _eq: false } } } }"));
+            });
+        }
+
+        [Test]
         public async Task SearchInterface_OnParametersSetAsync_LoadsSelectableInterfaces_AndSelectInterfaceCloses()
         {
             await using BunitContext context = CreateContext(out RecordingApiConnection apiConn, out SimulatedUserConfig userConfig);
@@ -181,6 +193,7 @@ namespace FWO.Test
                 Assert.Multiple(() =>
                 {
                     Assert.That(apiConn.PublishedInterfaceCalls, Is.EqualTo(1));
+                    Assert.That(apiConn.PublishedInterfacesAppId, Is.EqualTo(22));
                     Assert.That(selectable, Has.Count.EqualTo(1));
                     Assert.That(selectable[0].Id, Is.EqualTo(secondInterface.Id));
                 });

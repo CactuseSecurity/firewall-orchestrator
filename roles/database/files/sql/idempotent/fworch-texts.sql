@@ -9914,10 +9914,12 @@ INSERT INTO txt VALUES ('H9021', 'English', 'Connections are the main components
 INSERT INTO txt VALUES ('H9022', 'German',  'Schnittstellen: Sie dienen in erster Linie der Modellierung von (aus Sicht der Applikation) externen Verbindungen oder der B&uuml;ndelung interner Objekte.
     Es m&uuml;ssen in der Applikation neben dem Dienst entweder Quelle oder Ziel definiert werden. Die Schnittstellen k&ouml;nnen durch Setzen des entsprechendenn H&auml;kchens ver&ouml;ffentlicht und dadurch in den anderen Applikationen
     zur Auswahl angeboten werden. Sie k&ouml;nnen dann dort in der Definition von eigenen Verbindungen verwendet werden.
+    Angeboten werden neben den eigenen Schnittstellen nur Schnittstellen von Applikationen, die aktuell per Import (z.B. aus der CMDB) geliefert werden und mindestens eine IP-Adresse, ein Netz oder einen Bereich besitzen.
 ');
 INSERT INTO txt VALUES ('H9022', 'English', 'Interfaces: They serve primarily the modelling of (relative to the application) external connections or the bundling of internal objects.
     Besides the service either source or destination have to be defined in the application. The interfaces can be published by setting the respective flag and are then offered to other applications to use
     them in the definition of own connections.
+    Besides the own interfaces, only interfaces of applications are offered which are currently delivered by import (e.g. from the CMDB) and own at least one IP address, network or range.
 ');
 INSERT INTO txt VALUES ('H9023', 'German',  'Standard: Zentrale Objekte zur Modellierung der Kommunikationsverbindungen. Dabei m&uuml;ssen Quelle, Dienst und Ziel aus den in der Bibliothek
     angebotenen Ntzwerkobjekten bzw. Services gew&auml;hlt werden. Es k&ouml;nnen auch eigene oder externe Schnittstellen eingebunden werden. Dann m&uuml;ssen nur noch die "offenen Enden"

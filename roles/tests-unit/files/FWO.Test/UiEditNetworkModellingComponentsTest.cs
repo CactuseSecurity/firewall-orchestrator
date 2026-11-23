@@ -588,6 +588,7 @@ namespace FWO.Test
             public int HistoryForAppCalls { get; private set; }
             public int HistoryCalls { get; private set; }
             public int PublishedInterfaceCalls { get; private set; }
+            public int? PublishedInterfacesAppId { get; private set; }
             public int AddSelectedConnectionCalls { get; private set; }
             public int AddSelectedNwGroupObjectCalls { get; private set; }
             public int RemoveSelectedConnectionCalls { get; private set; }
@@ -674,6 +675,7 @@ namespace FWO.Test
                 if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getPublishedInterfaces)
                 {
                     PublishedInterfaceCalls++;
+                    PublishedInterfacesAppId = GetVariable<int>(variables, "appId");
                     return Task.FromResult((QueryResponseType)(object)PublishedInterfaces);
                 }
 

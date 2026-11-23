@@ -554,7 +554,8 @@
           x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
         body: >-
           {{ {'query': api_notification_add_mutation, 'variables': {'client': api_notification_client,
-              'channel': 'Email', 'name': item, 'layout': 'SimpleText', 'active': false, 'emailPriority': item}} }}
+              'channel': 'Email', 'name': item, 'layout': 'SimpleText', 'active': false, 'logging': 'send_only',
+              'emailPriority': item}} }}
         body_format: json
         validate_certs: true
         ca_path: "{{ internalca_trust_bundle }}"
@@ -578,7 +579,7 @@
           x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
         body: >-
           {{ {'query': api_notification_add_mutation, 'variables': {'client': api_notification_client,
-              'channel': 'Email', 'name': 'rejected', 'layout': 'SimpleText', 'active': false,
+              'channel': 'Email', 'name': 'rejected', 'layout': 'SimpleText', 'active': false, 'logging': 'send_only',
               'emailPriority': api_notification_invalid_priority}} }}
         body_format: json
         validate_certs: true

@@ -38,6 +38,8 @@ namespace FWO.Test
                 Assert.That(rendered.FindComponent<Dropdown<bool>>(), Is.Not.Null);
                 Assert.That(rendered.Find("input#dropdown-input-rulesView").GetAttribute("value"), Is.EqualTo(expectedText));
             });
+            rendered.FindComponent<Dropdown<bool>>().Find("input").Focus();
+            Assert.That(rendered.FindAll("button.dropdown-item"), Is.Not.Empty);
         }
 
         [TestCase(false, true)]

@@ -264,6 +264,9 @@ namespace FWO.Test
                     Is.EqualTo(kAlgorithmTextKeysInOrder[1]));
                 Assert.That(wrapper.FindAll(".text-warning"), Is.Empty);
             });
+            IRenderedComponent<Dropdown<long>> algorithmDropdown = wrapper.FindComponent<Dropdown<long>>();
+            algorithmDropdown.Find("input").Focus();
+            Assert.That(wrapper.FindAll("button.dropdown-item"), Is.Not.Empty);
         }
 
         [Test]

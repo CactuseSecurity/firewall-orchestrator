@@ -177,6 +177,21 @@ namespace FWO.Test
             Assert.That(rendered.FindComponents<Dropdown<string>>(), Has.Count.EqualTo(1));
             Assert.That(rendered.FindComponents<Dropdown<int?>>(), Has.Count.EqualTo(1));
             Assert.That(rendered.FindComponents<Dropdown<int>>(), Has.Count.EqualTo(2));
+
+            foreach (IRenderedComponent<Dropdown<string>> dropdown in rendered.FindComponents<Dropdown<string>>())
+            {
+                dropdown.Find("input").Focus();
+            }
+            foreach (IRenderedComponent<Dropdown<int?>> dropdown in rendered.FindComponents<Dropdown<int?>>())
+            {
+                dropdown.Find("input").Focus();
+            }
+            foreach (IRenderedComponent<Dropdown<int>> dropdown in rendered.FindComponents<Dropdown<int>>())
+            {
+                dropdown.Find("input").Focus();
+            }
+
+            Assert.That(rendered.FindAll("button.dropdown-item"), Is.Not.Empty);
         }
 
         [Test]

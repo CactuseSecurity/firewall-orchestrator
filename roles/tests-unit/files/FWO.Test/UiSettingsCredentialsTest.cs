@@ -330,6 +330,8 @@ namespace FWO.Test
                 Assert.That(additionalCredentialDropdown.NoneSelectedText, Is.EqualTo("None"));
                 Assert.That(additionalCredentialDropdown.Elements, Is.EquivalentTo(expectedCredentialIds));
             });
+            setup.Rendered.FindComponent<Dropdown<int?>>().Find("input").Focus();
+            Assert.That(setup.Rendered.FindAll("button.dropdown-item"), Is.Not.Empty);
         }
 
         /// <summary>

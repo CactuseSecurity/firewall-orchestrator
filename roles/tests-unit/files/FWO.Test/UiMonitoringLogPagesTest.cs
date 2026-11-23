@@ -142,6 +142,11 @@ namespace FWO.Test
                 Assert.That(typeDropdown.Elements, Does.Contain("InterfaceRequest"));
                 Assert.That(typeDropdown.Elements, Does.Not.Contain("None"));
             });
+            foreach (IRenderedComponent<Dropdown<string>> dropdown in setup.Rendered.FindComponents<Dropdown<string>>())
+            {
+                dropdown.Find("input").Focus();
+            }
+            Assert.That(setup.Rendered.FindAll("button.dropdown-item"), Is.Not.Empty);
         }
 
         [Test]

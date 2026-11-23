@@ -6,6 +6,7 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Jobs;
+using FWO.Middleware.Server.Services;
 using FWO.Report;
 using FWO.Report.Filter;
 using FWO.Test.Helpers;
@@ -759,6 +760,105 @@ namespace FWO.Test
             Assert.That(execution.Wait(kLoopTimeout), Is.True, "The report job did not return.");
             Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getLdapConnections));
             Assert.That(brokenSchedule.StartTime, Is.EqualTo(scheduleTime.AddDays(-1)));
+        }
+
+        [TestCase(SchedulerInterval.Days, 1)]
+        [TestCase(SchedulerInterval.Days, 3)]
+        [TestCase(SchedulerInterval.Weeks, 1)]
+        [TestCase(SchedulerInterval.Weeks, 2)]
+        public void SkipElapsedDayIntervals_StartTimeFarInPast_LeavesAtMostTwoSteps(SchedulerInterval interval, int repeatOffset)
+        {
+            MethodInfo skipElapsedDayIntervals = GetPrivateStaticMethod("SkipElapsedDayIntervals");
+            DateTime startTime = new(1, 1, 1, 10, 0, 0);
+            ReportSchedule reportSchedule = new() { StartTime = startTime, RepeatInterval = interval, RepeatOffset = repeatOffset };
+            DateTimeOffset nowRounded = new(2026, 11, 23, 9, 17, 0, TimeSpan.Zero);
+            DateTime localNow = TimeZoneInfo.ConvertTime(nowRounded, kBerlin).DateTime;
+            int intervalDays = interval == SchedulerInterval.Weeks ? repeatOffset * GlobalConst.kDaysPerWeek : repeatOffset;
+
+            DateTime skipped = (DateTime)skipElapsedDayIntervals.Invoke(null, [reportSchedule, nowRounded, kBerlin])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(skipped, Is.LessThan(localNow));
+                Assert.That(localNow - skipped, Is.LessThanOrEqualTo(TimeSpan.FromDays(2 * intervalDays)));
+                Assert.That((skipped - startTime).Ticks % TimeSpan.FromDays(intervalDays).Ticks, Is.Zero);
+            });
+        }
+
+        [TestCase(SchedulerInterval.Months, 1)]
+        [TestCase(SchedulerInterval.Years, 1)]
+        [TestCase(SchedulerInterval.Never, 0)]
+        public void SkipElapsedDayIntervals_IntervalWithoutFixedDayCount_KeepsStartTime(SchedulerInterval interval, int repeatOffset)
+        {
+            MethodInfo skipElapsedDayIntervals = GetPrivateStaticMethod("SkipElapsedDayIntervals");
+            DateTime startTime = new(2000, 1, 31, 10, 0, 0);
+            ReportSchedule reportSchedule = new() { StartTime = startTime, RepeatInterval = interval, RepeatOffset = repeatOffset };
+
+            DateTime skipped = (DateTime)skipElapsedDayIntervals.Invoke(null, [reportSchedule, new DateTimeOffset(2026, 11, 23, 9, 17, 0, TimeSpan.Zero), kBerlin])!;
+
+            Assert.That(skipped, Is.EqualTo(startTime));
+        }
+
+        [Test]
+        public void SkipElapsedDayIntervals_StartTimeInFuture_KeepsStartTime()
+        {
+            MethodInfo skipElapsedDayIntervals = GetPrivateStaticMethod("SkipElapsedDayIntervals");
+            DateTime startTime = new(2027, 1, 1, 10, 0, 0);
+            ReportSchedule reportSchedule = new() { StartTime = startTime, RepeatInterval = SchedulerInterval.Days, RepeatOffset = 1 };
+
+            DateTime skipped = (DateTime)skipElapsedDayIntervals.Invoke(null, [reportSchedule, new DateTimeOffset(2026, 11, 23, 9, 17, 0, TimeSpan.Zero), kBerlin])!;
+
+            Assert.That(skipped, Is.EqualTo(startTime));
+        }
+
+        private static IEnumerable<TestCaseData> SkippedAdvanceCases()
+        {
+            DateTime[] startTimes = [new(1900, 1, 1, 2, 30, 0), new(2019, 10, 27, 2, 30, 0), new(2026, 3, 29, 2, 30, 0)];
+            (SchedulerInterval Interval, int Offset)[] repeats = [(SchedulerInterval.Days, 1), (SchedulerInterval.Days, 3), (SchedulerInterval.Weeks, 1), (SchedulerInterval.Weeks, 2)];
+            // first and second 02:47 of the autumn switch, just after the spring gap, and a regular day
+            DateTimeOffset[] checks =
+            [
+                new(2026, 10, 25, 0, 47, 0, TimeSpan.Zero),
+                new(2026, 10, 25, 1, 47, 0, TimeSpan.Zero),
+                new(2027, 3, 28, 1, 5, 0, TimeSpan.Zero),
+                new(2026, 11, 23, 9, 17, 0, TimeSpan.Zero)
+            ];
+            foreach (DateTime startTime in startTimes)
+            {
+                foreach ((SchedulerInterval interval, int offset) in repeats)
+                {
+                    foreach (DateTimeOffset check in checks)
+                    {
+                        yield return new TestCaseData(startTime, interval, offset, check);
+                    }
+                }
+            }
+        }
+
+        [TestCaseSource(nameof(SkippedAdvanceCases))]
+        public async Task ProcessScheduledReport_DayIntervals_AdvancesLikeStepwiseLoop(DateTime startTime, SchedulerInterval interval, int repeatOffset, DateTimeOffset nowRounded)
+        {
+            MethodInfo processScheduledReport = GetPrivateInstanceMethod("ProcessScheduledReport");
+            ReportJob reportJob = CreateReportJob(timeProvider: new SteppingTimeProvider(nowRounded, kBerlin));
+            ReportSchedule reportSchedule = new() { Active = true, StartTime = startTime, RepeatInterval = interval, RepeatOffset = repeatOffset };
+
+            await (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, nowRounded, CancellationToken.None])!;
+
+            Assert.That(reportSchedule.StartTime, Is.EqualTo(AdvanceStepwise(startTime, interval, repeatOffset, nowRounded)));
+        }
+
+        /// <summary>
+        /// Reference: the advance of the report job before whole intervals were skipped, one interval per step.
+        /// </summary>
+        private static DateTime AdvanceStepwise(DateTime startTime, SchedulerInterval interval, int repeatOffset, DateTimeOffset nowRounded)
+        {
+            int intervalDays = interval == SchedulerInterval.Weeks ? repeatOffset * GlobalConst.kDaysPerWeek : repeatOffset;
+            DateTime runTime = startTime;
+            while (WallClockSchedule.ToInstant(runTime.AddTicks(-(runTime.Ticks % TimeSpan.TicksPerMinute)), kBerlin) < nowRounded)
+            {
+                runTime = runTime.AddDays(intervalDays);
+            }
+            return runTime;
         }
 
         [Test]

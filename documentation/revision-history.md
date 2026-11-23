@@ -3,6 +3,7 @@
 ## 9.9.5 - 21.11.2026
 - security fix: a report schedule repeated with an offset below 1 (e.g. "every 0 days") made the scheduled report job loop endlessly, so no scheduled report ran any more (GHSA-6mh5-c5hj-qjwp)
   - the report job skips such a schedule and logs an error; the other schedules of the run are processed
+  - the report job skips whole elapsed intervals of daily and weekly schedules instead of stepping through them one by one, so a start time far in the past no longer costs noticeable time on every check
   - the schedule page refuses to save a repeated schedule with an offset below 1
   - database: new constraint `report_schedule_repeat_positive` on `report_schedule`, default offset 1; the upgrade sets the offset of existing repeated schedules below 1 to 1 and deactivates them, so their owners review them before they run again
 

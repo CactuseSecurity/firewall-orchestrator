@@ -70,7 +70,7 @@ namespace FWO.Test
         [Test]
         public void MailData_DefaultsToNormalPriority()
         {
-            MailData mail = new(new List<string>(), "Subject");
+            MailData mail = new([], "Subject");
 
             Assert.That(mail.Priority, Is.EqualTo(EmailPriority.Normal));
         }
@@ -124,7 +124,7 @@ namespace FWO.Test
         [Test]
         public async Task AddContent_AppliesPriorityOfMailData()
         {
-            MailData mail = new(new List<string>(), "Subject") { Body = "Body", Priority = EmailPriority.High };
+            MailData mail = new([], "Subject") { Body = "Body", Priority = EmailPriority.High };
             MimeMessage message = new();
 
             await InvokeAsync("AddContent", mail, message, false);

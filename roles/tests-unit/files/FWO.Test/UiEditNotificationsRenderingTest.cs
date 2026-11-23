@@ -531,7 +531,7 @@ namespace FWO.Test
             public EditorContext(NotificationClient client, FwoNotification? notification = null, string role = Roles.Admin)
             {
                 this.client = client;
-                ApiConnection = new EditNotificationsApiConn { Notifications = notification == null ? new List<FwoNotification>() : new List<FwoNotification> { notification } };
+                ApiConnection = new EditNotificationsApiConn { Notifications = notification == null ? [] : [notification] };
                 UserConfig = new SimulatedUserConfig();
                 UserConfig.User.Roles = [role];
                 UserConfig.SetExecutionMode(role);

@@ -63,6 +63,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddAsync_SendsNormalForUndefinedPriority()
+        {
+            RecordingNotificationApiConnection apiConnection = new();
+            FwoNotification notification = NewNotification();
+            notification.EmailPriority = (EmailPriority)42;
+
+            await NotificationMutationHelper.AddAsync(apiConnection, NotificationClient.Report, notification);
+
+            Assert.That(apiConnection.AddCalls[0].EmailPriority, Is.EqualTo(nameof(EmailPriority.Normal)));
+        }
+
+        [Test]
         public async Task DeleteAsync_DeletesNotificationById()
         {
             RecordingNotificationApiConnection apiConnection = new();

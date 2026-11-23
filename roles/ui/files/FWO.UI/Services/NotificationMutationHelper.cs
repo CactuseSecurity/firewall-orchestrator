@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics.Enums;
 using FWO.Data;
 
 namespace FWO.Ui.Services
@@ -156,7 +157,7 @@ namespace FWO.Ui.Services
 
             public bool active { get; init; }
 
-            public string emailPriority { get; init; } = "";
+            public string emailPriority { get; init; } = nameof(EmailPriority.Normal);
 
             protected NotificationMutationVariables()
             {
@@ -219,8 +220,19 @@ namespace FWO.Ui.Services
                     repetitionsAfterDeadline = notification.RepetitionsAfterDeadline,
                     logging = notification.Logging,
                     active = notification.Active,
-                    emailPriority = notification.EmailPriority.ToString()
+                    emailPriority = ToPersistedPriority(notification.EmailPriority)
                 };
+            }
+
+            /// <summary>
+            /// Returns the stored name of a priority; an undefined enum value is sent as Normal,
+            /// because the database only accepts the defined priorities.
+            /// </summary>
+            /// <param name="priority">Priority of the notification.</param>
+            /// <returns>Name of the priority to store.</returns>
+            private static string ToPersistedPriority(EmailPriority priority)
+            {
+                return Enum.IsDefined(priority) ? priority.ToString() : nameof(EmailPriority.Normal);
             }
         }
 

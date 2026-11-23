@@ -24,7 +24,7 @@ mutation updateNotification(
   $repetitionsAfterDeadline: Int
   $logging: String
   $active: Boolean!
-  $emailPriority: String
+  $emailPriority: String!
   ) {
   update_notification_by_pk(
     pk_columns: { id: $id }

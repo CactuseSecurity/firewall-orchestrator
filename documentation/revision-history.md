@@ -2,6 +2,10 @@
 
 ## 9.9.4 - 17.11.2026
 - middleware REST API: `Rule/GetRulesByFilter` accepts `RuleUid` as an exact third selector alongside `OwnerId` and `IpAddress`; all current non-removed matches are ordered by rule ID and use the existing paging and SIEM logging behavior
+- middleware REST API: `Rule/GetRulesByFilter` gets the rule type filter `options.filter.ruleTypes` (`access` and/or `nat`) for all selectors (`OwnerId`, `IpAddress`, `RuleUid`), applied before paging
+  - contract change: without the filter only access rules are returned. Before, `IpAddress` and `RuleUid` also returned NAT rules, including the separate translated row of a NAT rule. `OwnerId` is mostly unaffected: the full owner mapping rebuild only maps access rules, but the incremental custom field mapping does not filter by rule type, so a NAT rule mapped that way was returned before and now needs `nat`
+  - every rule carries `ruleType`; NAT rules carry their translated source, destination and service in `translation`. The IP filter of a NAT rule checks its original source and destination
+  - an empty list, more than two values or any other value is rejected with 400; selector, paging and filter errors are returned together, and the SIEM entry logs the requested rule types
 - request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket
   - a request task of a management with the implementation mode external ticket system is handed to Tufin SecureChange as a whole; implementation tasks with mode automatic are written directly to the firewall with the firewall write library (`ext_request.impltask_id`)
   - offered as a button, implementation tasks on targets set to manual are written as well within the scope of the action (ticket or request task); on an implementation task it writes only this one task

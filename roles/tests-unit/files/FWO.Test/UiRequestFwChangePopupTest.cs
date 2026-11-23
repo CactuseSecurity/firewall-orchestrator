@@ -219,6 +219,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task StartRequests_FullyIntegrated_CreatesTicketWithoutStartingTheProvisioning()
+        {
+            RequestFwChangePopupTestApiConn apiConn = new();
+            SimulatedUserConfig userConfig = CreateUserConfig();
+            List<(string Title, string Message, bool Error)> messages = [];
+            FwoOwner selectedApp = new() { Id = 7, Name = "App" };
+            List<ModellingConnection> connections = [CreateConnection(41)];
+
+            using BunitContext context = new();
+            IRenderedComponent<RequestFwChangePopup> component = RenderPopup(context, apiConn, userConfig, selectedApp, connections);
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn-primary").Any(button => !button.HasAttribute("disabled")), Is.True));
+            // the tasks are built in the notification mode, as the variance analysis of the full integration needs the
+            // production data; the mode only decides at the end of the rollout
+            userConfig.ModIntegrationMode = ModIntegrationMode.FullyIntegrated;
+            SetPrivateProperty(component.Instance, "DisplayMessageInUi",
+                new Action<Exception?, string, string, bool>((_, title, message, error) => messages.Add((title, message, error))));
+            // without middleware client, starting the provisioning directly would fail with an error message
+            SetPrivateProperty(component.Instance, "middlewareClient", null);
+
+            await (Task)InvokePrivate(component.Instance, "StartRequests")!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.NewTicketCalls, Is.EqualTo(1));
+                Assert.That(messages.Where(message => message.Error), Is.Empty);
+                Assert.That(messages.Select(message => message.Title), Does.Contain(userConfig.GetText("U9020")));
+            });
+        }
+
+        [Test]
         public async Task StartRequests_WithWorkflowNotifications_MarksOnlyUnrequestedConnections()
         {
             RequestFwChangePopupTestApiConn apiConn = new();
@@ -255,8 +285,9 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(connections[0].RequestedOnFw, Is.True);
-                Assert.That(connections[1].RequestedOnFw, Is.False);
-                Assert.That(refreshCalls, Is.EqualTo(0));
+                Assert.That(connections[1].RequestedOnFw, Is.True);
+                Assert.That(apiConn.UpdateConnectionFwRequestedCalls, Is.EqualTo(1), "only the connection not requested before is marked");
+                Assert.That(refreshCalls, Is.EqualTo(1));
                 Assert.That(displayChanged, Is.True);
             });
         }
@@ -661,7 +692,7 @@ namespace FWO.Test
             if (query == ModellingQueries.updateConnectionFwRequested)
             {
                 UpdateConnectionFwRequestedCalls++;
-                return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
+                return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper { ReturnIds = [new ReturnId { AffectedRows = 1 }] });
             }
             if (query == ModellingQueries.addHistoryEntry)
             {
@@ -700,10 +731,10 @@ namespace FWO.Test
                 Id = ticketId,
                 Title = GetVariable<string>(variables, "title"),
                 StateId = GetVariable<int>(variables, "state"),
-                Reason = GetVariable<string>(variables, "reason") ?? "",
-                Priority = GetVariable<int>(variables, "priority"),
+                Reason = GetOptionalVariable<string>(variables, "reason") ?? "",
+                Priority = GetOptionalVariable<int?>(variables, "priority"),
                 Locked = GetVariable<bool>(variables, "locked"),
-                Requester = new UiUser { DbId = GetVariable<int>(variables, "requesterId"), Name = "Requester" }
+                Requester = new UiUser { DbId = GetOptionalVariable<int?>(variables, "requesterId") ?? 0, Name = "Requester" }
             };
 
             long taskId = ticketId * 10;
@@ -762,9 +793,20 @@ namespace FWO.Test
             };
         }
 
+        /// <summary>Reads a variable that may be null, e.g. an optional priority; null if it is null.</summary>
+        private static TValue? GetOptionalVariable<TValue>(object? variables, string propertyName)
+        {
+            object? value = variables is IDictionary<string, object?> dictionary
+                ? dictionary[propertyName]
+                : variables?.GetType().GetProperties().First(p => p.Name == propertyName).GetValue(variables, null);
+            return value is TValue typedValue ? typedValue : default;
+        }
+
         private static TValue GetVariable<TValue>(object? variables, string propertyName)
         {
-            object? value = variables?.GetType().GetProperties().First(p => p.Name == propertyName).GetValue(variables, null);
+            object? value = variables is IDictionary<string, object?> dictionary
+                ? dictionary[propertyName]
+                : variables?.GetType().GetProperties().First(p => p.Name == propertyName).GetValue(variables, null);
             return value is TValue typedValue ? typedValue : throw new AssertionException($"Variable {propertyName} missing");
         }
 

@@ -14,10 +14,10 @@ public static class RequestSnapshotRefresher
     /// <returns>Ordered replacements for every stale exact reference.</returns>
     public static RequestSnapshotRefreshPlan CreatePlan(WfTicket ticket)
     {
-        ValidateElementIdentities(ticket);
         Dictionary<long, WfReqTask> tasksById = ticket.Tasks
             .Where(task => task.Id > 0)
             .ToDictionary(task => task.Id);
+        ValidateElementIdentities(ticket, tasksById);
         List<WfReqElement> replacements = [];
         List<long> changedTaskIds = [];
         HashSet<long> changedTasks = [];
@@ -48,7 +48,8 @@ public static class RequestSnapshotRefresher
     /// <summary>
     /// Refuses malformed in-memory graphs which could address one persisted element more than once.
     /// </summary>
-    private static void ValidateElementIdentities(WfTicket ticket)
+    private static void ValidateElementIdentities(WfTicket ticket,
+        IReadOnlyDictionary<long, WfReqTask> tasksById)
     {
         HashSet<long> persistedElementIds = [];
         foreach (WfReqTask task in ticket.Tasks)
@@ -63,8 +64,54 @@ public static class RequestSnapshotRefresher
                 {
                     throw new InvalidDataException("A persisted request element occurs more than once in the ticket.");
                 }
+                ValidateGroupMember(task, element, tasksById);
             }
         }
+    }
+
+    /// <summary>
+    /// Refuses nested ticket-local groups and group members that cannot be identified after persistence.
+    /// </summary>
+    private static void ValidateGroupMember(WfReqTask task, WfReqElement element,
+        IReadOnlyDictionary<long, WfReqTask> tasksById)
+    {
+        if (!IsGroupMemberTask(task.TaskType))
+        {
+            return;
+        }
+        if (element.ObjectTaskId is > 0)
+        {
+            if (tasksById.TryGetValue(element.ObjectTaskId.Value, out WfReqTask? referencedTask)
+                && IsGroupTask(referencedTask.TaskType))
+            {
+                throw new InvalidDataException("A ticket-local group cannot contain another ticket-local group.");
+            }
+            return;
+        }
+        if (!HasStableIdentity(element))
+        {
+            throw new InvalidDataException("A request group member has no stable object identity.");
+        }
+    }
+
+    /// <summary>
+    /// Determines whether a task stores group members that must remain identifiable.
+    /// </summary>
+    private static bool IsGroupMemberTask(string taskType)
+    {
+        return taskType == WfTaskType.group_create.ToString()
+            || taskType == WfTaskType.group_modify.ToString();
+    }
+
+    /// <summary>
+    /// Determines whether a group member refers to a persisted catalog or Flow object.
+    /// </summary>
+    private static bool HasStableIdentity(WfReqElement element)
+    {
+        return element.NetworkId is > 0
+            || element.ServiceId is > 0
+            || element.TimeObjId is > 0
+            || WfObjectTaskHelper.HasFlowDbReference(element);
     }
 
     /// <summary>

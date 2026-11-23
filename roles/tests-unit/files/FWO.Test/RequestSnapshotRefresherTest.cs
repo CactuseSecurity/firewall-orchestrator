@@ -44,6 +44,71 @@ internal sealed class RequestSnapshotRefresherTest
         });
     }
 
+    [TestCase(WfTaskType.group_create)]
+    [TestCase(WfTaskType.group_modify)]
+    public void CreatePlan_RejectsNestedTicketLocalGroupMember(WfTaskType taskType)
+    {
+        WfTicket ticket = CreateNetworkTicket();
+        WfReqTask containingGroup = ticket.Tasks.Single(task => task.Id == 20);
+        containingGroup.TaskType = taskType.ToString();
+        WfReqTask referencedGroup = new()
+        {
+            Id = 21,
+            TicketId = 100,
+            TaskType = WfTaskType.group_create.ToString(),
+            Elements =
+            [
+                new WfReqElement
+                {
+                    Id = 211,
+                    TaskId = 21,
+                    NetworkId = 77,
+                    Field = ElemFieldType.source.ToString()
+                }
+            ]
+        };
+        ticket.Tasks.Add(referencedGroup);
+        Element(ticket, 201).ObjectTaskId = referencedGroup.Id;
+
+        Assert.Throws<InvalidDataException>(() => RequestSnapshotRefresher.CreatePlan(ticket));
+    }
+
+    [TestCase(WfTaskType.group_create, null, null)]
+    [TestCase(WfTaskType.group_create, 0L, null)]
+    [TestCase(WfTaskType.group_create, -1L, null)]
+    [TestCase(WfTaskType.group_create, null, 0L)]
+    [TestCase(WfTaskType.group_create, null, -1L)]
+    [TestCase(WfTaskType.group_modify, null, null)]
+    [TestCase(WfTaskType.group_modify, 0L, null)]
+    [TestCase(WfTaskType.group_modify, -1L, null)]
+    [TestCase(WfTaskType.group_modify, null, 0L)]
+    [TestCase(WfTaskType.group_modify, null, -1L)]
+    public void CreatePlan_RejectsGroupMemberWithoutStableIdentity(WfTaskType taskType,
+        long? objectTaskId, long? networkId)
+    {
+        WfTicket ticket = CreateNetworkTicket();
+        WfReqTask group = ticket.Tasks.Single(task => task.Id == 20);
+        group.TaskType = taskType.ToString();
+        WfReqElement member = Element(ticket, 203);
+        member.ObjectTaskId = objectTaskId;
+        member.NetworkId = networkId;
+
+        Assert.Throws<InvalidDataException>(() => RequestSnapshotRefresher.CreatePlan(ticket));
+    }
+
+    [Test]
+    public void CreatePlan_AcceptsFlowBackedGroupMemberWithoutObjectTaskReference()
+    {
+        WfTicket ticket = CreateNetworkTicket();
+        WfReqElement member = Element(ticket, 203);
+        member.NetworkId = null;
+        member.FlowNetworkObjectId = 77;
+
+        RequestSnapshotRefreshPlan plan = RequestSnapshotRefresher.CreatePlan(ticket);
+
+        Assert.That(plan.Replacements.Select(element => element.Id), Does.Not.Contain(member.Id));
+    }
+
     [Test]
     public void CreatePlan_RefreshesNetworkServiceAndTimeValues()
     {

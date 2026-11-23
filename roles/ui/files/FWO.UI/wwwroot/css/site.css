@@ -573,6 +573,14 @@ div.modal-content .sticky-header thead {
     background-color: var(--bs-warning-bg-subtle);
     box-shadow: 0 0 0 2px var(--bs-warning);
 }
+.approval-task-field-label {
+    min-width: 6.5rem;
+}
+
+.object-task-element-label {
+    min-width: 10rem;
+}
+
 .approval-task-network-table {
     table-layout: fixed;
     width: 100%;

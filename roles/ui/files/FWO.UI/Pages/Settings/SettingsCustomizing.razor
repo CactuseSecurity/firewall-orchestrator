@@ -123,6 +123,26 @@
                 </div>
             </div>
         </SettingsRow>
+        <SettingsRow LabelKey="reqObjectTaskFieldVisibility" TooltipKey="H5579e" AlignTop="true">
+            <div class="settings-check-grid">
+                <div class="form-check">
+                    <input id="cbx_show_object_task_handler" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.ObjectTask.ShowHandler" />
+                    <label for="cbx_show_object_task_handler" class="form-check-label">@(userConfig.GetText("handler"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_object_task_assigned" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.ObjectTask.ShowAssigned" />
+                    <label for="cbx_show_object_task_assigned" class="form-check-label">@(userConfig.GetText("assigned"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_object_task_management" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.ObjectTask.ShowManagement" />
+                    <label for="cbx_show_object_task_management" class="form-check-label">@(userConfig.GetText("management"))</label>
+                </div>
+                <div class="form-check">
+                    <input id="cbx_show_object_task_reason" type="checkbox" class="form-check-input" @bind="ticketFieldVisibilityConfig.ObjectTask.ShowReason" />
+                    <label for="cbx_show_object_task_reason" class="form-check-label">@(userConfig.GetText("reason"))</label>
+                </div>
+            </div>
+        </SettingsRow>
         <hr />
         <SettingsRow LabelKey="reqPriorities" TooltipKey="H5563" AlignTop="true">
             <div class="w-100 vheight75">
@@ -190,6 +210,9 @@
             <button type="button" class="btn btn-sm btn-warning" @onclick="() => editCreateRequestTaskSortConfigMode = true">
                 @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
             </button>
+        </SettingsRow>
+        <SettingsRow LabelKey="reqPreWorkflowTicketReferenceLabel" TooltipKey="H5546a" LabelFor="txt_pre_workflow_ticket_reference_label">
+            <input id="txt_pre_workflow_ticket_reference_label" type="text" class="form-control form-control-sm settings-input-md" @bind="configData!.ReqPreWorkflowTicketReferenceLabel" />
         </SettingsRow>
         <SettingsRow LabelKey="reqActivatePathAnalysis" TooltipKey="H5567" LabelFor="cbx_activate_path_analysis">
             <div class="form-check form-switch">
@@ -447,6 +470,7 @@ else
                 configData.ReqAvailableTaskTypes = JsonSerializer.Serialize(availableTaskTypes);
                 configData.ReqPriorities = JsonSerializer.Serialize(prioList);
                 configData.ReqTicketFieldVisibility = ticketFieldVisibilityConfig.ToConfigValue();
+                configData.ReqPreWorkflowTicketReferenceLabel = configData.ReqPreWorkflowTicketReferenceLabel.Trim();
                 configData.ExternalRequestStartAt = extReqStartDate.Date.Add(extReqStartTime.TimeOfDay);
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);

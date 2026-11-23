@@ -1,7 +1,19 @@
 # Firewall Orchestrator Revision History
 
+## 9.9.5 - 24.11.2026
+- UI: consistent settings layout, movable and resizable popups, login position
+  - settings pages share a two-column row layout (new `SettingsRow` component): all inputs of a page are aligned, small Bootstrap controls with width presets, switches for yes/no settings, check box groups in a wrapping grid; migrated: defaults, personal, user, password, password policy, email, importer, logging, notifications, report, recertification, compliance, modelling notifications, modelling, workflow customizing, change trigger, app data import, internet, network matrix and the external request settings in workflow customizing; the edit dialogs behind list pages keep their layout for now
+  - popups can be moved by their top strip and resized by a handle in the lower right corner (not for full screen popups, extra small popups only movable); a moved or resized popup is kept inside the window when the window shrinks; title and round close button stay visible while the popup body scrolls
+  - the login form is placed in the upper third of the page; switches, check boxes and radio buttons show the pointer cursor
+  - compliance settings: the labels "Elements per fetch" and "Available processors" are localized (new text keys)
+
+
 ## 9.9.4 - 17.11.2026
 - middleware REST API: `Rule/GetRulesByFilter` accepts `RuleUid` as an exact third selector alongside `OwnerId` and `IpAddress`; all current non-removed matches are ordered by rule ID and use the existing paging and SIEM logging behavior
+- middleware REST API: `Rule/GetRulesByFilter` gets the rule type filter `options.filter.ruleTypes` (`access` and/or `nat`) for all selectors (`OwnerId`, `IpAddress`, `RuleUid`), applied before paging
+  - contract change: without the filter only access rules are returned. Before, `IpAddress` and `RuleUid` also returned NAT rules, including the separate translated row of a NAT rule. `OwnerId` is mostly unaffected: the full owner mapping rebuild only maps access rules, but the incremental custom field mapping does not filter by rule type, so a NAT rule mapped that way was returned before and now needs `nat`
+  - every rule carries `ruleType`; NAT rules carry their translated source, destination and service in `translation`. The IP filter of a NAT rule checks its original source and destination
+  - an empty list, more than two values or any other value is rejected with 400; selector, paging and filter errors are returned together, and the SIEM entry logs the requested rule types
 - request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket
   - a request task of a management with the implementation mode external ticket system is handed to Tufin SecureChange as a whole; implementation tasks with mode automatic are written directly to the firewall with the firewall write library (`ext_request.impltask_id`)
   - offered as a button, implementation tasks on targets set to manual are written as well within the scope of the action (ticket or request task); on an implementation task it writes only this one task
@@ -28,11 +40,9 @@
   - reports the middleware generates for a user (scheduled reports, `POST /api/Report/Get`, `POST /api/Compliance/Report`) now also use the user's values of these settings, as they already did for the other personal settings; so far the global values replaced them. Of these settings, only `resolveNetworkAreas` is read while generating a report (network objects of connection and variance analysis reports), so compliance reports are unchanged
   - the personal settings page saves only the settings changed on the page; a global value that changed while the page was open is no longer saved as the user's value
   - readers of global settings only read the global rows, as the API calls already do: the settings of a UI session and of the reports the middleware generates for a user apply rows of the user only for personal settings, and the rule ownership mode of the rule owner views (`v_rule_ownership_mode`, also replaced by the upgrade) and the encryption of the stored email password read only the global row
-- UI: consistent settings layout, movable and resizable popups, login position
-  - settings pages share a two-column row layout (new `SettingsRow` component): all inputs of a page are aligned, small Bootstrap controls with width presets, switches for yes/no settings, check box groups in a wrapping grid; migrated: defaults, personal, user, password, password policy, email, importer, logging, notifications, report, recertification, compliance, modelling notifications, modelling, workflow customizing, change trigger, app data import, internet, network matrix and the external request settings in workflow customizing; the edit dialogs behind list pages keep their layout for now
-  - popups can be moved by their top strip and resized by a handle in the lower right corner (not for full screen popups, extra small popups only movable); a moved or resized popup is kept inside the window when the window shrinks; title and round close button stay visible while the popup body scrolls
-  - the login form is placed in the upper third of the page; switches, check boxes and radio buttons show the pointer cursor
-  - compliance settings: the labels "Elements per fetch" and "Available processors" are localized (new text keys)
+- workflow UI: the pre-workflow ticket reference is shown in ticket dialog, ticket list and task view headlines if a label (e.g. "ChangeId") is set in the new setting `reqPreWorkflowTicketReferenceLabel` (default empty = hidden)
+- workflow UI: access task view opens full screen with access tasks first (other tasks start collapsed only next to access tasks); owner and management (access tasks) and reason (object and group tasks) use the space of fields hidden by the visibility settings, labels of all task types take less space
+- workflow UI: new Workflow Customizing setting "Object and Group Task Field Visibility" (handler, assigned, management, reason) for object and group tasks in the approval views; so far they followed the access task field visibility (management, reason) or were always shown (handler, assigned)
 
 
 ## 9.9.3 - 14.11.2026

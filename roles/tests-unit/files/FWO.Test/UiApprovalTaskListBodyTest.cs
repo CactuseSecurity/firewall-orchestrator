@@ -436,6 +436,47 @@ internal class UiApprovalTaskListBodyTest : UiSharedEditorTestBase
 
     private static readonly List<string> kViolationReasons = ["forbidden service", "zone violation"];
 
+    [Test]
+    public async Task ApprovalTaskDetailsView_ListViewObjectVisibilityKeepsColumnsOfOtherTaskTypes()
+    {
+        await using BunitContext context = CreateListContext();
+        SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
+        userConfig.ReqTicketFieldVisibility = new TicketFieldVisibilityConfig
+        {
+            ObjectTask = new ObjectTaskFieldVisibilityConfig { ShowHandler = false, ShowReason = false }
+        }.ToConfigValue();
+        WfReqTask networkObjectTask = new() { Id = 81, StateId = 2, Title = "network object", Reason = "network reason", TaskType = WfTaskType.object_create.ToString() };
+        networkObjectTask.Elements.Add(new WfReqElement { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.create.ToString(), Name = "srv_web01", IpString = "10.1.1.5" });
+        WfReqTask timeObjectTask = new() { Id = 82, StateId = 2, Title = "time object", Reason = "time reason", TaskType = WfTaskType.object_create.ToString() };
+        timeObjectTask.Elements.Add(new WfReqElement
+        {
+            Field = ElemFieldType.time.ToString(),
+            RequestAction = RequestAction.create.ToString(),
+            Name = "maintenance",
+            StartTime = new DateTime(2026, 8, 1, 8, 0, 0),
+            EndTime = new DateTime(2026, 8, 1, 17, 0, 0)
+        });
+        WfReqTask genericTask = new() { Id = 83, StateId = 2, Title = "generic", Reason = "generic reason", TaskType = WfTaskType.generic.ToString() };
+        WfReqTask interfaceTask = new() { Id = 84, StateId = 2, Title = "interface", Reason = "interface reason", TaskType = WfTaskType.new_interface.ToString() };
+        WfHandler handler = new() { ActTicket = new WfTicket { Id = 8, Tasks = [networkObjectTask, timeObjectTask, genericTask, interfaceTask] } };
+
+        IRenderedComponent<ApprovalTaskDetailsView> cut = RenderListView(context, handler);
+
+        string addressTable = cut.Find(".approval-task-list[data-table=\"Address\"]").OuterHtml;
+        string otherTable = cut.Find(".approval-task-list[data-table=\"Other\"]").OuterHtml;
+        Assert.Multiple(() =>
+        {
+            Assert.That(ColumnPosition(addressTable, "handler"), Is.Negative);
+            Assert.That(ColumnPosition(addressTable, "reason"), Is.Negative);
+            Assert.That(addressTable, Does.Not.Contain("network reason"));
+            Assert.That(ColumnPosition(otherTable, "handler"), Is.GreaterThanOrEqualTo(0));
+            Assert.That(ColumnPosition(otherTable, "reason"), Is.GreaterThanOrEqualTo(0));
+            Assert.That(otherTable, Does.Contain("generic reason"));
+            Assert.That(otherTable, Does.Contain("interface reason"));
+            Assert.That(otherTable, Does.Not.Contain("time reason"));
+        });
+    }
+
     private static int ColumnPosition(string markup, string columnKey)
     {
         return markup.IndexOf($"data-column-key=\"{columnKey}\"", StringComparison.Ordinal);

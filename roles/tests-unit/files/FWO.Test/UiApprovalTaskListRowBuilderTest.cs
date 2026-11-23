@@ -88,6 +88,100 @@ internal class UiApprovalTaskListRowBuilderTest
         });
     }
 
+    [TestCase(ApprovalTaskListTable.Address)]
+    [TestCase(ApprovalTaskListTable.Service)]
+    [TestCase(ApprovalTaskListTable.Other)]
+    public void VisibleColumns_NonAccessTablesFollowObjectTaskVisibility(ApprovalTaskListTable table)
+    {
+        AccessTaskFieldVisibilityConfig accessVisibility = new() { ShowManagement = false, ShowReason = false };
+        ObjectTaskFieldVisibilityConfig objectVisibility = new() { ShowHandler = false, ShowAssigned = false };
+
+        List<string> columns = [.. ApprovalTaskListRowBuilder.VisibleColumns(table, accessVisibility, false, objectVisibility)
+            .Select(column => column.Key)];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(columns, Does.Contain(ApprovalTaskListRowBuilder.kManagement));
+            Assert.That(columns, Does.Contain(ApprovalTaskListRowBuilder.kReason));
+            Assert.That(columns, Does.Not.Contain(ApprovalTaskListRowBuilder.kHandler));
+            Assert.That(columns, Does.Not.Contain(ApprovalTaskListRowBuilder.kAssigned));
+        });
+    }
+
+    [Test]
+    public void ObjectVisibilityFor_AppliesOnlyToTablesHoldingOnlyObjectAndGroupTasks()
+    {
+        ObjectTaskFieldVisibilityConfig objectVisibility = new() { ShowHandler = false };
+        WfReqTask networkObject = new() { Id = 1, TaskType = WfTaskType.object_create.ToString() };
+        networkObject.Elements.Add(new WfReqElement { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.create.ToString() });
+        WfReqTask timeObject = new() { Id = 2, TaskType = WfTaskType.object_create.ToString() };
+        timeObject.Elements.Add(new WfReqElement { Field = ElemFieldType.time.ToString(), RequestAction = RequestAction.create.ToString() });
+        WfReqTask generic = new() { Id = 3, TaskType = WfTaskType.generic.ToString() };
+        List<List<WfReqTask>> onlyObjects = [[networkObject], [timeObject]];
+        List<List<WfReqTask>> mixed = [[networkObject], [timeObject], [generic]];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(ApprovalTaskListTable.Address, mixed, objectVisibility), Is.SameAs(objectVisibility));
+            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(ApprovalTaskListTable.Other, onlyObjects, objectVisibility), Is.SameAs(objectVisibility));
+            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(ApprovalTaskListTable.Other, mixed, objectVisibility), Is.Null);
+            Assert.That(ApprovalTaskListRowBuilder.ObjectVisibilityFor(ApprovalTaskListTable.Access, onlyObjects, objectVisibility), Is.Null);
+        });
+    }
+
+    [Test]
+    public void VisibleColumns_MixedOtherTableKeepsColumnsOfOtherTasks()
+    {
+        AccessTaskFieldVisibilityConfig accessVisibility = new() { ShowManagement = false, ShowHandler = false, ShowAssigned = false };
+
+        List<string> other = [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Other, accessVisibility, false, null)
+            .Select(column => column.Key)];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(other, Does.Not.Contain(ApprovalTaskListRowBuilder.kManagement));
+            Assert.That(other, Does.Contain(ApprovalTaskListRowBuilder.kReason));
+            Assert.That(other, Does.Contain(ApprovalTaskListRowBuilder.kHandler));
+            Assert.That(other, Does.Contain(ApprovalTaskListRowBuilder.kAssigned));
+        });
+    }
+
+    [Test]
+    public void VisibleColumns_AccessTableIgnoresObjectTaskVisibility()
+    {
+        ObjectTaskFieldVisibilityConfig objectVisibility = new() { ShowHandler = false, ShowAssigned = false, ShowManagement = false, ShowReason = false };
+
+        List<string> access = [.. ApprovalTaskListRowBuilder.VisibleColumns(ApprovalTaskListTable.Access, new AccessTaskFieldVisibilityConfig(), false, objectVisibility)
+            .Select(column => column.Key)];
+
+        Assert.That(access, Is.SupersetOf((List<string>)[ApprovalTaskListRowBuilder.kManagement, ApprovalTaskListRowBuilder.kReason,
+            ApprovalTaskListRowBuilder.kHandler, ApprovalTaskListRowBuilder.kAssigned]));
+    }
+
+    [Test]
+    public void TicketFieldVisibilityConfig_ObjectTaskDefaultsToVisibleAndRoundTrips()
+    {
+        TicketFieldVisibilityConfig withoutObjectTask = TicketFieldVisibilityConfig.Parse("{\"accessTask\":{\"management\":false}}");
+        TicketFieldVisibilityConfig nullObjectTask = TicketFieldVisibilityConfig.Parse("{\"objectTask\":null}");
+        TicketFieldVisibilityConfig roundTrip = TicketFieldVisibilityConfig.Parse(new TicketFieldVisibilityConfig
+        {
+            ObjectTask = new ObjectTaskFieldVisibilityConfig { ShowManagement = false, ShowReason = false }
+        }.ToConfigValue());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(withoutObjectTask.AccessTask.ShowManagement, Is.False);
+            Assert.That(withoutObjectTask.ObjectTask.ShowManagement, Is.True);
+            Assert.That(withoutObjectTask.ObjectTask.ShowHandler, Is.True);
+            Assert.That(withoutObjectTask.ObjectTask.ShowAssigned, Is.True);
+            Assert.That(withoutObjectTask.ObjectTask.ShowReason, Is.True);
+            Assert.That(nullObjectTask.ObjectTask, Is.Not.Null);
+            Assert.That(roundTrip.ObjectTask.ShowManagement, Is.False);
+            Assert.That(roundTrip.ObjectTask.ShowReason, Is.False);
+            Assert.That(roundTrip.ObjectTask.ShowHandler, Is.True);
+        });
+    }
+
     [Test]
     public void VisibleColumns_AddressAndServiceTablesShowOnlyObjectRelevantColumns()
     {

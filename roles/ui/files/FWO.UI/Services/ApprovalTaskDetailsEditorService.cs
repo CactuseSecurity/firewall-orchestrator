@@ -53,6 +53,9 @@ internal sealed class ApprovalTaskDetailsEditorService
     internal AccessTaskFieldVisibilityConfig AccessTaskVisibility =>
         TicketFieldVisibilityConfig.Parse(context.UserConfig.ReqTicketFieldVisibility).AccessTask;
 
+    internal ObjectTaskFieldVisibilityConfig ObjectTaskVisibility =>
+        TicketFieldVisibilityConfig.Parse(context.UserConfig.ReqTicketFieldVisibility).ObjectTask;
+
     internal ApprovalTaskElementDisplayMode accessElementDisplayMode
     {
         get => state.AccessElementDisplayMode;
@@ -284,6 +287,14 @@ internal sealed class ApprovalTaskDetailsEditorService
 
     internal static bool IsAccessTask(WfReqTask task) => task.TaskType == WfTaskType.access.ToString();
 
+    /// <summary>
+    /// Orders the task groups so access tasks come first; the order within access and other tasks is kept.
+    /// </summary>
+    internal static List<List<WfReqTask>> AccessTasksFirst(IEnumerable<List<WfReqTask>> taskGroups)
+    {
+        return [.. taskGroups.OrderBy(group => group.Count > 0 && IsAccessTask(group[0]) ? 0 : 1)];
+    }
+
     internal static bool IsGroupTask(WfReqTask task) => task.TaskType == WfTaskType.group_create.ToString()
         || task.TaskType == WfTaskType.group_modify.ToString()
         || task.TaskType == WfTaskType.group_delete.ToString();
@@ -315,7 +326,8 @@ internal sealed class ApprovalTaskDetailsEditorService
             EditObjectTask = elementsEditor.OpenExistingObjectTaskEditor,
             EditText = metadataEditor.OpenTextEditor,
             EditTargetDates = timeObjectEditor.OpenTargetDatesEditor
-        });
+        },
+        ObjectTaskVisibility);
 
     internal bool CanEdit(IEnumerable<WfReqTask> tasks, string fieldKey)
     {

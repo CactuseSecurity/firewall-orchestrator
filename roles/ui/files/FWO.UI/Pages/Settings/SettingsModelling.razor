@@ -26,54 +26,40 @@
 @if(configData != null && initComplete)
 {
     <form onsubmit="return false">
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5602"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("predef_services")):</label>
-            <div class="col-sm-6">
-                <button type="button" class="btn btn-sm btn-dark" @onclick="PredefServices">
-                    @(DisplayService.DisplayButton(userConfig, "predef_services", Icons.ServiceGroup))
-                </button>
-            </div>
-        </div>
+        <SettingsRow LabelKey="predef_services" TooltipKey="H5602">
+            <button type="button" class="btn btn-sm btn-dark" @onclick="PredefServices">
+                @(DisplayService.DisplayButton(userConfig, "predef_services", Icons.ServiceGroup))
+            </button>
+        </SettingsRow>
         <hr />
-        <div class="form-group row mt-2">
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5603"))">
-                <label for="cbx_allow_server_in_conn" class="col-form-label col-sm-8">@(userConfig.GetText("allowServerInConn")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_allow_server_in_conn" type="checkbox" class="w-100" @bind="configData!.AllowServerInConn">
-                </div>
+        <SettingsRow LabelKey="allowServerInConn" TooltipKey="H5603" LabelFor="cbx_allow_server_in_conn">
+            <div class="form-check form-switch">
+                <input id="cbx_allow_server_in_conn" type="checkbox" role="switch" class="form-check-input" @bind="configData!.AllowServerInConn">
             </div>
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5604"))">
-                <label for="cbx_allow_service_in_conn" class="col-form-label col-sm-8">@(userConfig.GetText("allowServiceInConn")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_allow_service_in_conn" type="checkbox" class="w-100" @bind="configData!.AllowServiceInConn">
-                </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="allowServiceInConn" TooltipKey="H5604" LabelFor="cbx_allow_service_in_conn">
+            <div class="form-check form-switch">
+                <input id="cbx_allow_service_in_conn" type="checkbox" role="switch" class="form-check-input" @bind="configData!.AllowServiceInConn">
             </div>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row mt-2">
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5605"))">
-                <label class="col-form-label col-sm-8">@(userConfig.GetText("overviewDisplayLines"))*:</label>
-                <input type="number" min="0" class="col-sm-3" @bind="configData!.OverviewDisplayLines" />
+        <SettingsRow LabelKey="overviewDisplayLines" TooltipKey="H5605" Marked="true" LabelFor="overviewDisplayLines">
+            <input id="overviewDisplayLines" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.OverviewDisplayLines" />
+        </SettingsRow>
+        <SettingsRow LabelKey="reducedProtocolSet" TooltipKey="H5617" LabelFor="cbx_reduced_protocol_set">
+            <div class="form-check form-switch">
+                <input id="cbx_reduced_protocol_set" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ReducedProtocolSet">
             </div>
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5617"))">
-                <label for="cbx_reduced_protocol_set" class="col-form-label col-sm-7">@(userConfig.GetText("reducedProtocolSet")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_reduced_protocol_set" type="checkbox" class="w-100" @bind="configData!.ReducedProtocolSet">
-                </div>
-                <div class="col-sm-2">
-                    <button type="button" class="btn btn-sm btn-warning" data-toggle="tooltip" title="@(userConfig.PureLine("H5617"))" @onclick="OpenReducedProtocolSelection">
-                        @(DisplayService.DisplayButton(userConfig, "select_visible_protocols", Icons.Edit))
-                    </button>
-                </div>
-            </div>
-        </div>
+            <button type="button" class="btn btn-sm btn-warning" @onclick="OpenReducedProtocolSelection">
+                @(DisplayService.DisplayButton(userConfig, "select_visible_protocols", Icons.Edit))
+            </button>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5627"))">
-            <label class="col-form-label col-sm-4">@userConfig.GetText("app_server_types"):</label>
-            <div class="col-sm-6">
-                <div class="row">
-                    <label class="col-form-label col-sm-2">@userConfig.GetText("default_app_server_type"):</label>
-                    <input type="text" class="col-sm-10" @bind="appServerDefaultTypeName" />
+        <SettingsRow LabelKey="app_server_types" TooltipKey="H5627" AlignTop="true">
+            <div class="settings-input-lg">
+                <div class="settings-subgrid mb-1">
+                    <label for="appServerDefaultTypeName">@userConfig.GetText("default_app_server_type"):</label>
+                    <input id="appServerDefaultTypeName" type="text" class="form-control form-control-sm" @bind="appServerDefaultTypeName" />
                 </div>
                 <EditList ElementType="AppServerType" Elements="appServerTypes.Where(x => x.Id != 0).ToArray()" ElementsToAdd="appServerTypesToAdd" ElementsToDelete="appServerTypesToDelete" StdLayout="false">
                     <Display>
@@ -83,21 +69,19 @@
                         </div>
                     </Display>
                 </EditList>
-                <div class="row col-sm-12 mt-1">
-                    <input type="number" class="col-sm-2" @bind="actAppServerType.Id" />
-                    <input type="text" class="col-sm-8" @bind="actAppServerType.Name" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddAppServerType" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                <div class="input-group input-group-sm mt-1">
+                    <input type="number" class="form-control settings-input-sm" @bind="actAppServerType.Id" />
+                    <input type="text" class="form-control" @bind="actAppServerType.Name" />
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="AddAppServerType" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5620"))">
-            <label class="col-form-label col-sm-4">@userConfig.GetText("common_areas"):</label>
+        </SettingsRow>
+        <SettingsRow LabelKey="common_areas" TooltipKey="H5620" AlignTop="true">
             <CommonAreaSelection CommonAreas="CommonAreas" CommAreasToDelete="CommAreasToDelete" SearchCommonArea="SearchCommonArea"/>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5637"))">
-            <label class="col-form-label col-sm-4">@userConfig.GetText("extra_params"):</label>
-            <div class="col-sm-3">
+        <SettingsRow LabelKey="extra_params" TooltipKey="H5637" AlignTop="true">
+            <div class="settings-input-md">
                 <EditList ElementType="string" Elements="ExtraConfigs.ToArray()" ElementsToAdd="ExtraConfigsToAdd" ElementsToDelete="ExtraConfigsToDelete" StdLayout="false">
                     <Display>
                         <div class="row">
@@ -105,110 +89,82 @@
                         </div>
                     </Display>
                 </EditList>
-                <div class="row col-sm-12 mt-1">
-                    <input type="text" class="col-sm-10" @bind="actExtraConfig" />
-                    <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddExtraConfig" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+                <div class="input-group input-group-sm mt-1">
+                    <input type="text" class="form-control" @bind="actExtraConfig" />
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="AddExtraConfig" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                 </div>
             </div>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5655"))">
-            <label class="col-form-label col-sm-4">@userConfig.GetText("special_user_areas"):</label>
+        <SettingsRow LabelKey="special_user_areas" TooltipKey="H5655" AlignTop="true">
             <CommonAreaSelection CommonAreas="SpecUserAreas" CommAreasToDelete="SpecUserAreasToDelete" SearchCommonArea="SearchSpecUserArea"/>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5659"))">
-            <label class="col-form-label col-sm-4">@userConfig.GetText("updatable_obj_areas"):</label>
+        <SettingsRow LabelKey="updatable_obj_areas" TooltipKey="H5659" AlignTop="true">
             <CommonAreaSelection CommonAreas="UpdObjAreas" CommAreasToDelete="UpdObjAreasToDelete" SearchCommonArea="SearchUpdObjArea"/>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5659a"))">
-            <label class="col-form-label col-sm-4">@userConfig.GetText("com_svc_excluded_areas"):</label>
+        <SettingsRow LabelKey="com_svc_excluded_areas" TooltipKey="H5659a" AlignTop="true">
             <CommonAreaSelection CommonAreas="ComSvcExcludedAreas" CommAreasToDelete="ComSvcExcludedAreasToDelete" SearchCommonArea="SearchComSvcExcludedArea" ShowUsageFlags="false"/>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row">
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5606"))">
-                <label for="cbx_network_area_required" class="col-form-label col-sm-8">@(userConfig.GetText("networkAreaRequired")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_network_area_required" type="checkbox" @bind="namingConvention.NetworkAreaRequired">
-                </div>
+        <SettingsRow LabelKey="networkAreaRequired" TooltipKey="H5606" LabelFor="cbx_network_area_required">
+            <div class="form-check form-switch">
+                <input id="cbx_network_area_required" type="checkbox" role="switch" class="form-check-input" @bind="namingConvention.NetworkAreaRequired">
             </div>
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5609"))">
-                <label class="col-form-label col-sm-5">@userConfig.GetText("networkAreaPattern"):</label>
-                <input type="text" class="col-sm-4" @bind="namingConvention.NetworkAreaPattern" />
+        </SettingsRow>
+        <SettingsRow LabelKey="networkAreaPattern" TooltipKey="H5609" LabelFor="networkAreaPattern">
+            <input id="networkAreaPattern" type="text" class="form-control form-control-sm settings-input-md" @bind="namingConvention.NetworkAreaPattern" />
+        </SettingsRow>
+        <SettingsRow LabelKey="appRolePattern" TooltipKey="H5610" LabelFor="appRolePattern">
+            <input id="appRolePattern" type="text" class="form-control form-control-sm settings-input-md" @bind="namingConvention.AppRolePattern" />
+        </SettingsRow>
+        <SettingsRow LabelKey="fixedPartLength" TooltipKey="H5607" LabelFor="fixedPartLength">
+            <input id="fixedPartLength" type="number" min="@(namingConvention.NetworkAreaRequired ? namingConvention.NetworkAreaPattern.Length + 1 : 0)" class="form-control form-control-sm settings-input-sm" @bind="namingConvention.FixedPartLength" />
+        </SettingsRow>
+        <SettingsRow LabelKey="useAppPart" TooltipKey="H5619" LabelFor="cbx_use_app_part">
+            <div class="form-check form-switch">
+                <input id="cbx_use_app_part" type="checkbox" role="switch" class="form-check-input" @bind="namingConvention.UseAppPart">
             </div>
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5610"))">
-                <label class="col-form-label col-sm-5">@userConfig.GetText("appRolePattern"):</label>
-                <input type="text" class="col-sm-4" @bind="namingConvention.AppRolePattern" />
+        </SettingsRow>
+        <SettingsRow LabelKey="freePartLength" TooltipKey="H5608" LabelFor="freePartLength">
+            <input id="freePartLength" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="namingConvention.FreePartLength" />
+        </SettingsRow>
+        <SettingsRow LabelKey="app_zone_creation" TooltipKey="H5636" LabelFor="cbx_create_app_zones">
+            <div class="form-check form-switch">
+                <input id="cbx_create_app_zones" type="checkbox" role="switch" class="form-check-input" @bind="configData!.CreateAppZones">
             </div>
-        </div>
-        <div class="form-group row mt-2">
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5607"))">
-                <label class="col-form-label col-sm-5">@userConfig.GetText("fixedPartLength"):</label>
-                <input type="number" min="@(namingConvention.NetworkAreaRequired ? namingConvention.NetworkAreaPattern.Length + 1 : 0)" class="col-sm-4" @bind="namingConvention.FixedPartLength" />
+        </SettingsRow>
+        <SettingsRow LabelKey="app_zone_pattern" TooltipKey="H5635" LabelFor="appZonePattern">
+            <input id="appZonePattern" type="text" disabled="@(!configData.CreateAppZones)" class="form-control form-control-sm settings-input-md" @bind="namingConvention.AppZone" />
+        </SettingsRow>
+        <SettingsRow LabelKey="appServerPrefix" TooltipKey="H5633" LabelFor="appServerPrefix">
+            <input id="appServerPrefix" type="text" class="form-control form-control-sm settings-input-md" @bind="namingConvention.AppServerPrefix" />
+        </SettingsRow>
+        <SettingsRow LabelKey="networkPrefix" TooltipKey="H5645" LabelFor="networkPrefix">
+            <input id="networkPrefix" type="text" class="form-control form-control-sm settings-input-md" @bind="namingConvention.NetworkPrefix" />
+        </SettingsRow>
+        <SettingsRow LabelKey="ipRangePrefix" TooltipKey="H5646" LabelFor="ipRangePrefix">
+            <input id="ipRangePrefix" type="text" class="form-control form-control-sm settings-input-md" @bind="namingConvention.IpRangePrefix" />
+        </SettingsRow>
+        <SettingsRow LabelKey="dns_lookup" TooltipKey="H5643" LabelFor="cbx_dns_lookup">
+            <div class="form-check form-switch">
+                <input id="cbx_dns_lookup" type="checkbox" role="switch" class="form-check-input" @bind="configData!.DnsLookup">
             </div>
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5619"))">
-                <label for="cbx_use_app_part" class="col-form-label col-sm-8">@(userConfig.GetText("useAppPart")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_use_app_part" type="checkbox" @bind="namingConvention.UseAppPart">
-                </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="overwrite_exiting_names" TooltipKey="H5644" LabelFor="cbx_overwrite_names">
+            <div class="form-check form-switch">
+                <input id="cbx_overwrite_names" type="checkbox" role="switch" class="form-check-input" @bind="configData!.OverwriteExistingNames">
             </div>
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5608"))">
-                <label class="col-form-label col-sm-5">@userConfig.GetText("freePartLength"):</label>
-                <input type="number" min="0" class="col-sm-4" @bind="namingConvention.FreePartLength" />
+        </SettingsRow>
+        <SettingsRow LabelKey="auto_replace_app_server" TooltipKey="H5647" LabelFor="cbx_replace_appserver">
+            <div class="form-check form-switch">
+                <input id="cbx_replace_appserver" type="checkbox" role="switch" class="form-check-input" @bind="configData!.AutoReplaceAppServer">
             </div>
-        </div>
-        <div class="form-group row mt-2">
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5636"))">
-                <label for="cbx_create_app_zones" class="col-form-label col-sm-8">@(userConfig.GetText("app_zone_creation")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_create_app_zones" type="checkbox" @bind="configData!.CreateAppZones">
-                </div>
-            </div>
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5635"))">
-                <label class="col-form-label col-sm-5">@userConfig.GetText("app_zone_pattern"):</label>
-                <input disabled="@(!configData.CreateAppZones)" type="text" class="col-sm-4" @bind="namingConvention.AppZone" />               
-            </div>
-        </div>
-        <div class="form-group row mt-2">
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5633"))">
-                <label class="col-form-label col-sm-5">@userConfig.GetText("appServerPrefix"):</label>
-                <input type="text" class="col-sm-4" @bind="namingConvention.AppServerPrefix" />
-            </div>
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5645"))">
-                <label class="col-form-label col-sm-5">@userConfig.GetText("networkPrefix"):</label>
-                <input type="text" class="col-sm-4" @bind="namingConvention.NetworkPrefix" />
-            </div>
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5646"))">
-                <label class="col-form-label col-sm-5">@userConfig.GetText("ipRangePrefix"):</label>
-                <input type="text" class="col-sm-4" @bind="namingConvention.IpRangePrefix" />
-            </div>
-        </div>
-        <div class="form-group row mt-2">
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5643"))">
-                <label for="cbx_dns_lookup" class="col-form-label col-sm-8">@(userConfig.GetText("dns_lookup")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_dns_lookup" type="checkbox" @bind="configData!.DnsLookup">
-                </div>
-            </div>
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5644"))">
-                <label for="cbx_overwrite_names" class="col-form-label col-sm-8">@(userConfig.GetText("overwrite_exiting_names")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_overwrite_names" type="checkbox" @bind="configData!.OverwriteExistingNames">
-                </div>
-            </div>
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5647"))">
-                <label for="cbx_replace_appserver" class="col-form-label col-sm-8">@(userConfig.GetText("auto_replace_app_server")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_replace_appserver" type="checkbox" @bind="configData!.AutoReplaceAppServer">
-                </div>
-            </div>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5679"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modIntegrationMode")):</label>
-            <div class="col-sm-3">
+        <SettingsRow LabelKey="modIntegrationMode" TooltipKey="H5679">
+            <div class="settings-input-md">
                 <Dropdown ElementType="ModIntegrationMode" @bind-SelectedElement="configData!.ModIntegrationMode"
                         ElementToString="@(mode => userConfig.GetText(mode.ToString()))"
                         Elements="Enum.GetValues(typeof(ModIntegrationMode)).Cast<ModIntegrationMode>()">
@@ -219,117 +175,89 @@
             </div>
             @if (configData.ModIntegrationMode == ModIntegrationMode.WorkflowNotifications)
             {
-                <div class="col-sm-3">
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="ModIntegrationStates" @onclick:preventDefault>
-                        @(DisplayService.DisplayButton(userConfig, "modIntegrationStates", Icons.Edit))
-                    </button>
-                </div>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="ModIntegrationStates" @onclick:preventDefault>
+                    @(DisplayService.DisplayButton(userConfig, "modIntegrationStates", Icons.Edit))
+                </button>
             }
-        </div>
-        <div class="form-group row mt-2">
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5634"))">
-                <label for="cbx_rollout_active" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutActive")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_rollout_active" type="checkbox" class="w-100" @bind="configData!.ModRolloutActive">
-                </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="modRolloutActive" TooltipKey="H5634" LabelFor="cbx_rollout_active">
+            <div class="form-check form-switch">
+                <input id="cbx_rollout_active" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ModRolloutActive">
             </div>
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5631"))">
-                <label for="cbx_rollout_resolve_service_groups" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutResolveServiceGroups")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_rollout_resolve_service_groups" type="checkbox" class="w-100" @bind="configData!.ModRolloutResolveServiceGroups">
-                </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="modRolloutResolveServiceGroups" TooltipKey="H5631" LabelFor="cbx_rollout_resolve_service_groups">
+            <div class="form-check form-switch">
+                <input id="cbx_rollout_resolve_service_groups" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ModRolloutResolveServiceGroups">
             </div>
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5632"))">
-                <label for="cbx_rollout_bundle_tasks" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutBundleTasks")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_rollout_bundle_tasks" type="checkbox" class="w-100" @bind="configData!.ModRolloutBundleTasks">
-                </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="modRolloutBundleTasks" TooltipKey="H5632" LabelFor="cbx_rollout_bundle_tasks">
+            <div class="form-check form-switch">
+                <input id="cbx_rollout_bundle_tasks" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ModRolloutBundleTasks">
             </div>
-        </div>
-        <div class="form-group row mt-2">
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5656"))">
-                <label for="cbx_request_nat" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutNatHeuristic")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_request_nat" type="checkbox" class="w-100" @bind="configData!.ModRolloutNatHeuristic">
-                </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="modRolloutNatHeuristic" TooltipKey="H5656" LabelFor="cbx_request_nat">
+            <div class="form-check form-switch">
+                <input id="cbx_request_nat" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ModRolloutNatHeuristic">
             </div>
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5667"))">
-                <label for="cbx_rollout_removed" class="col-form-label col-sm-8">@(userConfig.GetText("modRolloutRemovedAppServers")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_rollout_removed" type="checkbox" class="w-100" @bind="configData!.ModRolloutRemovedAppServers">
-                </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="modRolloutRemovedAppServers" TooltipKey="H5667" LabelFor="cbx_rollout_removed">
+            <div class="form-check form-switch">
+                <input id="cbx_rollout_removed" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ModRolloutRemovedAppServers">
             </div>
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5668"))">
-                <label for="cbx_request_only_own_objects" class="col-form-label col-sm-8">@(userConfig.GetText("modRequestOnlyOwnObjects")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_request_only_own_objects" type="checkbox" class="w-100" @bind="configData!.ModRequestOnlyOwnObjects">
-                </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="modRequestOnlyOwnObjects" TooltipKey="H5668" LabelFor="cbx_request_only_own_objects">
+            <div class="form-check form-switch">
+                <input id="cbx_request_only_own_objects" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ModRequestOnlyOwnObjects">
             </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5639"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modRolloutErrorText")):</label>
-            <input type="text" class="col-sm-6" @bind="configData!.ModRolloutErrorText" />
-        </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="modRolloutErrorText" TooltipKey="H5639" LabelFor="modRolloutErrorText">
+            <input id="modRolloutErrorText" type="text" class="form-control form-control-sm settings-input-lg" @bind="configData!.ModRolloutErrorText" />
+        </SettingsRow>
         <hr />
-        <div class="form-group row mt-2">
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5648"))">
-                <label class="col-form-label col-sm-5">@userConfig.GetText("modelledMarker"):</label>
-                <input type="text" class="col-sm-4" @bind="configData!.ModModelledMarker" />
-            </div>
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5649"))">
-                <label class="col-form-label col-sm-5">@userConfig.GetText("modelledMarkerLocation"):</label>
-                <input type="text" class="col-sm-4" @bind="configData!.ModModelledMarkerLocation" />
-            </div>
-            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5650"))">
-                 <label class="col-form-label col-sm-7">@userConfig.GetText("rule_recognition_options"):</label>
-                 <button type="button" class="col-sm-1 btn btn-sm btn-warning" @onclick="VarianceOptions" 
+        <SettingsRow LabelKey="modelledMarker" TooltipKey="H5648" LabelFor="modModelledMarker">
+            <input id="modModelledMarker" type="text" class="form-control form-control-sm settings-input-md" @bind="configData!.ModModelledMarker" />
+        </SettingsRow>
+        <SettingsRow LabelKey="modelledMarkerLocation" TooltipKey="H5649" LabelFor="modModelledMarkerLocation">
+            <input id="modModelledMarkerLocation" type="text" class="form-control form-control-sm settings-input-md" @bind="configData!.ModModelledMarkerLocation" />
+        </SettingsRow>
+        <SettingsRow LabelKey="rule_recognition_options" TooltipKey="H5650">
+            <button type="button" class="btn btn-sm btn-warning" @onclick="VarianceOptions"
                     @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "rule_recognition_options", Icons.Edit))</button>
+        </SettingsRow>
+        <SettingsRow LabelKey="varianceAnalysisSync" TooltipKey="H5651" LabelFor="cbx_var_ana_sync">
+            <div class="form-check form-switch">
+                <input id="cbx_var_ana_sync" type="checkbox" role="switch" class="form-check-input" @bind="configData!.VarianceAnalysisSync">
             </div>
-        </div>
-        <div class="form-group row mt-2">
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5651"))">
-                <label for="cbx_var_ana_sync" class="col-form-label col-sm-8">@(userConfig.GetText("varianceAnalysisSync")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_var_ana_sync" type="checkbox" class="w-100" @bind="configData!.VarianceAnalysisSync">
-                </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="varianceAnalysisRefresh" TooltipKey="H5654" LabelFor="cbx_var_ana_refresh">
+            <div class="form-check form-switch">
+                <input id="cbx_var_ana_refresh" type="checkbox" role="switch" class="form-check-input" @bind="configData!.VarianceAnalysisRefresh">
             </div>
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5654"))">
-                <label for="cbx_var_ana_refresh" class="col-form-label col-sm-8">@(userConfig.GetText("varianceAnalysisRefresh")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_var_ana_refresh" type="checkbox" class="w-100" @bind="configData!.VarianceAnalysisRefresh">
-                </div>
-            </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5652"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("varianceAnalysisSleepTime")):</label>
-            <input type="number" min="0" class="col-sm-2" @bind="configData!.VarianceAnalysisSleepTime" />
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5653"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("varianceAnalysisStartAt")):</label>
-            <input type="time" step="60" class="col-sm-2" @bind="varAnalysisTime" />
-            <input type="date" class="col-sm-2" @bind="varAnalysisDate" />
-        </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="varianceAnalysisSleepTime" TooltipKey="H5652" LabelFor="varianceAnalysisSleepTime">
+            <input id="varianceAnalysisSleepTime" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.VarianceAnalysisSleepTime" />
+        </SettingsRow>
+        <SettingsRow LabelKey="varianceAnalysisStartAt" TooltipKey="H5653" LabelFor="varianceAnalysisStartTime">
+            <input id="varianceAnalysisStartTime" type="time" step="60" class="form-control form-control-sm w-auto" @bind="varAnalysisTime" />
+            <input type="date" class="form-control form-control-sm w-auto" @bind="varAnalysisDate" />
+        </SettingsRow>
         <hr />
-        <div class="form-group row mt-2">
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5657"))">
-                <label for="cbx_recert_active" class="col-form-label col-sm-8">@(userConfig.GetText("modRecertActive")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_recert_active" type="checkbox" class="w-100" @bind="configData!.ModRecertActive">
-                </div>
+        <SettingsRow LabelKey="modRecertActive" TooltipKey="H5657" LabelFor="cbx_recert_active">
+            <div class="form-check form-switch">
+                <input id="cbx_recert_active" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ModRecertActive">
             </div>
-            <div class="row col-sm-4 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5663"))">
-                <label for="cbx_expect_modelled" class="col-form-label col-sm-8">@(userConfig.GetText("modRecertExpectAllModelled")):</label>
-                <div class="col-sm-2">
-                    <input id="cbx_expect_modelled" type="checkbox" class="w-100" @bind="configData!.ModRecertExpectAllModelled">
-                </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="modRecertExpectAllModelled" TooltipKey="H5663" LabelFor="cbx_expect_modelled">
+            <div class="form-check form-switch">
+                <input id="cbx_expect_modelled" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ModRecertExpectAllModelled">
             </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5658"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modRecertText")):</label>
-            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData!.ModRecertText"></textarea>
-        </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="modRecertText" TooltipKey="H5658" LabelFor="modRecertText" AlignTop="true">
+            <textarea id="modRecertText" class="form-control form-control-sm settings-input-lg" rows="4" name="text" @bind="configData!.ModRecertText"></textarea>
+        </SettingsRow>
         <hr />
     </form>
+
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>

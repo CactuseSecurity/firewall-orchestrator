@@ -576,8 +576,9 @@ namespace FWO.Test
             });
 
             IRenderedComponent<SettingsModelling> component = wrapper.FindComponent<SettingsModelling>();
-            IElement predefinedServicesLabel = component.Find("div.form-group label");
-            IElement predefinedServicesButton = component.Find("div.form-group button");
+            IElement predefinedServicesRow = component.Find(".settings-row");
+            IElement predefinedServicesLabel = predefinedServicesRow.QuerySelector("label.settings-label")!;
+            IElement predefinedServicesButton = predefinedServicesRow.QuerySelector(".settings-value button")!;
 
             Assert.Multiple(() =>
             {

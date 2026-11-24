@@ -48,7 +48,7 @@ internal sealed record PromptRequest(string Name, Dictionary<string, object?> Ar
         string name = ReadName(prompt);
         Dictionary<string, object?> arguments = prompt.TryGetProperty(kArgumentsProperty, out JsonElement argumentsElement)
             ? ReadArguments(argumentsElement)
-            : new Dictionary<string, object?>();
+            : [];
         return new PromptRequest(name, arguments);
     }
 
@@ -81,7 +81,7 @@ internal sealed record PromptRequest(string Name, Dictionary<string, object?> Ar
         {
             throw new ArgumentException("The prompt arguments must be an object.", nameof(argumentsElement));
         }
-        Dictionary<string, object?> arguments = new();
+        Dictionary<string, object?> arguments = [];
         foreach (JsonProperty argument in argumentsElement.EnumerateObject())
         {
             if (arguments.Count == kMaxArguments)

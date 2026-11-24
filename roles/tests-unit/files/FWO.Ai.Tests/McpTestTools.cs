@@ -73,8 +73,8 @@ internal class McpTestPrompts
     /// </summary>
     [McpServerPrompt(Name = kEmptyPrompt)]
     [Description("Prompt without messages.")]
-    public GetPromptResult GetEmptyPrompt()
+    public static GetPromptResult GetEmptyPrompt()
     {
-        return new GetPromptResult { Messages = new List<PromptMessage>() };
+        return new GetPromptResult { Messages = [] };
     }
 }

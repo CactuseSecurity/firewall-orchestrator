@@ -37,11 +37,13 @@ internal class HarnessConversationSnapshotTest
     public void Create_WithApprovedToolCall_HoldsConversationWithoutApprovals()
     {
         ToolApprovalRequestContent approvalRequest = new(kRequestId, new FunctionCallContent(kCallId, kToolName));
+        List<AIContent> requestContents = [approvalRequest];
+        List<AIContent> responseContents = [approvalRequest.CreateResponse(true)];
         List<ChatMessage> runMessages =
         [
             new ChatMessage(ChatRole.User, kQuestion),
-            new ChatMessage(ChatRole.Assistant, new List<AIContent> { approvalRequest }),
-            new ChatMessage(ChatRole.User, new List<AIContent> { approvalRequest.CreateResponse(true) })
+            new ChatMessage(ChatRole.Assistant, requestContents),
+            new ChatMessage(ChatRole.User, responseContents)
         ];
         List<AgentResponseUpdate> responseUpdates =
         [
@@ -70,12 +72,8 @@ internal class HarnessConversationSnapshotTest
     public void Create_WithUnansweredToolCall_LeavesItOut()
     {
         List<ChatMessage> runMessages = [new ChatMessage(ChatRole.User, kQuestion)];
-        AgentResponseUpdate textWithCall = new(new ChatResponseUpdate(ChatRole.Assistant, new List<AIContent>
-        {
-            new TextContent(kAnswer),
-            new FunctionCallContent(kUnansweredCallId, kToolName)
-        })
-        { MessageId = "message-1" });
+        List<AIContent> contents = [new TextContent(kAnswer), new FunctionCallContent(kUnansweredCallId, kToolName)];
+        AgentResponseUpdate textWithCall = new(new ChatResponseUpdate(ChatRole.Assistant, contents) { MessageId = "message-1" });
         List<AgentResponseUpdate> responseUpdates = [textWithCall];
 
         List<ChatMessage> conversation = ReadSnapshot(ConversationSnapshot.Create(runMessages, responseUpdates));
@@ -92,11 +90,13 @@ internal class HarnessConversationSnapshotTest
     public void Create_WithStructuredToolResult_SerializesItAsJson()
     {
         Dictionary<string, object?> result = new() { [kNameProperty] = kUserName, [kRolesProperty] = kRoles };
+        List<AIContent> callContents = [new FunctionCallContent(kCallId, kToolName)];
+        List<AIContent> resultContents = [new FunctionResultContent(kCallId, result)];
         List<ChatMessage> runMessages =
         [
             new ChatMessage(ChatRole.User, kQuestion),
-            new ChatMessage(ChatRole.Assistant, new List<AIContent> { new FunctionCallContent(kCallId, kToolName) }),
-            new ChatMessage(ChatRole.Tool, new List<AIContent> { new FunctionResultContent(kCallId, result) })
+            new ChatMessage(ChatRole.Assistant, callContents),
+            new ChatMessage(ChatRole.Tool, resultContents)
         ];
         List<AgentResponseUpdate> responseUpdates = [CreateUpdate(ChatRole.Assistant, "message-1", new TextContent(kAnswer))];
 
@@ -116,11 +116,13 @@ internal class HarnessConversationSnapshotTest
     {
         ToolApprovalRequestContent approvalRequest = new(kRequestId, new FunctionCallContent(kCallId, kToolName));
         ChatMessage question = new(ChatRole.User, kQuestion);
+        List<AIContent> assistantContents = [new TextContent(kAnswer), approvalRequest];
+        List<AIContent> responseContents = [approvalRequest.CreateResponse(false)];
         List<ChatMessage> messages =
         [
             question,
-            new ChatMessage(ChatRole.Assistant, new List<AIContent> { new TextContent(kAnswer), approvalRequest }),
-            new ChatMessage(ChatRole.User, new List<AIContent> { approvalRequest.CreateResponse(false) })
+            new ChatMessage(ChatRole.Assistant, assistantContents),
+            new ChatMessage(ChatRole.User, responseContents)
         ];
 
         List<ChatMessage> keptMessages = ConversationSnapshot.WithoutApprovals(messages);
@@ -149,7 +151,8 @@ internal class HarnessConversationSnapshotTest
     /// </summary>
     private static AgentResponseUpdate CreateUpdate(ChatRole role, string messageId, AIContent content)
     {
-        return new AgentResponseUpdate(new ChatResponseUpdate(role, new List<AIContent> { content }) { MessageId = messageId });
+        List<AIContent> contents = [content];
+        return new AgentResponseUpdate(new ChatResponseUpdate(role, contents) { MessageId = messageId });
     }
 
     /// <summary>

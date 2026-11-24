@@ -75,12 +75,14 @@ public sealed class WorkflowTicketService : IDisposable
         (WorkflowPhases ticketPhase, int ticketStateId) = await ResolveInitialRequestPhaseAndStateAsync();
         Dictionary<int, FwoOwner> ownersById = await ResolveOwnersAsync();
         Dictionary<string, int> ruleActionIds = await ResolveRuleActionIdsAsync();
+        Dictionary<string, int> trackingIds = await ResolveTrackingIdsAsync();
         Dictionary<string, int> protocolIds = await ResolveProtocolIdsAsync();
         FlowReferenceCatalog flowReferences = await flowReferenceService.ResolveAsync(request);
         WfTicket ticket;
         try
         {
-            ticket = ticketBuilder.Build(request, ticketStateId, requesterId, ownersById, ruleActionIds, protocolIds, flowReferences);
+            RuleTaskLookups lookups = new(ownersById, ruleActionIds, trackingIds);
+            ticket = ticketBuilder.Build(request, ticketStateId, requesterId, lookups, protocolIds, flowReferences);
         }
         catch (CreateTicketValidationException exception) when (!aggregateValidationErrors)
         {
@@ -232,6 +234,18 @@ public sealed class WorkflowTicketService : IDisposable
         return ruleActions
             .Where(ruleAction => !string.IsNullOrWhiteSpace(ruleAction.Name))
             .GroupBy(ruleAction => ruleAction.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Resolves the available STM tracking (rule logging) ids by name.
+    /// </summary>
+    private async Task<Dictionary<string, int>> ResolveTrackingIdsAsync()
+    {
+        List<Tracking> trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking) ?? [];
+        return trackings
+            .Where(tracking => !string.IsNullOrWhiteSpace(tracking.Name))
+            .GroupBy(tracking => tracking.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
     }
 

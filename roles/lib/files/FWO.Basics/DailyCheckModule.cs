@@ -15,7 +15,7 @@ namespace FWO.Basics
     {
         public static string AllModulesNumList()
         {
-            return $"[{string.Join(",", Enum.GetValues(typeof(DailyCheckModule)).Cast<DailyCheckModule>().Select(m => (int)m).ToList())}]";
+            return $"[{string.Join(",", Enum.GetValues<DailyCheckModule>().Select(m => (int)m).ToList())}]";
         }
     }
 }

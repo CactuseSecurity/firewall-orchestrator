@@ -37,11 +37,13 @@ internal class HarnessConversationFilterTest
     {
         FunctionCallContent call = new(kCallId, kToolName);
         FunctionResultContent result = new(kCallId, kResult);
+        List<AIContent> callContents = [call];
+        List<AIContent> resultContents = [result];
         List<ChatMessage> messages =
         [
             new ChatMessage(ChatRole.User, kQuestion),
-            new ChatMessage(ChatRole.Assistant, new List<AIContent> { call }),
-            new ChatMessage(ChatRole.Tool, new List<AIContent> { result }),
+            new ChatMessage(ChatRole.Assistant, callContents),
+            new ChatMessage(ChatRole.Tool, resultContents),
             new ChatMessage(ChatRole.Assistant, kAnswer)
         ];
 
@@ -87,19 +89,21 @@ internal class HarnessConversationFilterTest
     public void Apply_WithOtherContents_DropsThem()
     {
         ToolApprovalRequestContent approvalRequest = new(kRequestId, new FunctionCallContent(kCallId, kToolName));
+        List<AIContent> userContents =
+        [
+            new TextContent(kQuestion),
+            new TextContent(" "),
+            new DataContent(kImageBytes, kMediaType),
+            new TextReasoningContent(kInstructions),
+            new FunctionCallContent(kOtherCallId, kToolName),
+            approvalRequest
+        ];
+        List<AIContent> assistantContents = [new TextReasoningContent(kInstructions)];
         List<ChatMessage> messages =
         [
-            new ChatMessage(ChatRole.User, new List<AIContent>
-            {
-                new TextContent(kQuestion),
-                new TextContent(" "),
-                new DataContent(kImageBytes, kMediaType),
-                new TextReasoningContent(kInstructions),
-                new FunctionCallContent(kOtherCallId, kToolName),
-                approvalRequest
-            }),
+            new ChatMessage(ChatRole.User, userContents),
             new ChatMessage(ChatRole.Tool, kInstructions),
-            new ChatMessage(ChatRole.Assistant, new List<AIContent> { new TextReasoningContent(kInstructions) })
+            new ChatMessage(ChatRole.Assistant, assistantContents)
         ];
 
         List<ChatMessage> conversation = ConversationFilter.Apply(messages);
@@ -124,11 +128,13 @@ internal class HarnessConversationFilterTest
         {
             AdditionalProperties = new AdditionalPropertiesDictionary { [kPropertyName] = kInstructions }
         };
+        List<AIContent> callContents = [call];
+        List<AIContent> resultContents = [new FunctionResultContent(kCallId, kResult)];
         List<ChatMessage> messages =
         [
             question,
-            new ChatMessage(ChatRole.Assistant, new List<AIContent> { call }),
-            new ChatMessage(ChatRole.Tool, new List<AIContent> { new FunctionResultContent(kCallId, kResult) })
+            new ChatMessage(ChatRole.Assistant, callContents),
+            new ChatMessage(ChatRole.Tool, resultContents)
         ];
 
         List<ChatMessage> conversation = ConversationFilter.Apply(messages);
@@ -147,11 +153,13 @@ internal class HarnessConversationFilterTest
     public void Apply_WithApprovals_KeepsThem()
     {
         ToolApprovalRequestContent approvalRequest = new(kRequestId, new FunctionCallContent(kCallId, kToolName));
+        List<AIContent> requestContents = [approvalRequest];
+        List<AIContent> responseContents = [approvalRequest.CreateResponse(true)];
         List<ChatMessage> messages =
         [
             new ChatMessage(ChatRole.User, kQuestion),
-            new ChatMessage(ChatRole.Assistant, new List<AIContent> { approvalRequest }),
-            new ChatMessage(ChatRole.User, new List<AIContent> { approvalRequest.CreateResponse(true) })
+            new ChatMessage(ChatRole.Assistant, requestContents),
+            new ChatMessage(ChatRole.User, responseContents)
         ];
 
         List<ChatMessage> conversation = ConversationFilter.Apply(messages);
@@ -195,7 +203,8 @@ internal class HarnessConversationFilterTest
     [Test]
     public void HoldsApprovalsOnlyAndApply_WithoutContents_AreHandled()
     {
-        Assert.That(ConversationFilter.HoldsApprovalsOnly(new ChatMessage(ChatRole.User, new List<AIContent>())), Is.False);
+        List<AIContent> emptyContents = [];
+        Assert.That(ConversationFilter.HoldsApprovalsOnly(new ChatMessage(ChatRole.User, emptyContents)), Is.False);
         Assert.Throws<ArgumentNullException>(() => ConversationFilter.Apply(null!));
     }
 
@@ -204,7 +213,8 @@ internal class HarnessConversationFilterTest
     /// </summary>
     private static ChatMessage CreateCall(string callId)
     {
-        return new ChatMessage(ChatRole.Assistant, new List<AIContent> { new FunctionCallContent(callId, kToolName) });
+        List<AIContent> contents = [new FunctionCallContent(callId, kToolName)];
+        return new ChatMessage(ChatRole.Assistant, contents);
     }
 
     /// <summary>
@@ -212,6 +222,7 @@ internal class HarnessConversationFilterTest
     /// </summary>
     private static ChatMessage CreateResult(string callId)
     {
-        return new ChatMessage(ChatRole.Tool, new List<AIContent> { new FunctionResultContent(callId, kResult) });
+        List<AIContent> contents = [new FunctionResultContent(callId, kResult)];
+        return new ChatMessage(ChatRole.Tool, contents);
     }
 }

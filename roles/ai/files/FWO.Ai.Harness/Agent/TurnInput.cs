@@ -98,7 +98,7 @@ internal sealed class TurnInput
     internal async Task<List<ChatMessage>> GetNewMessagesAsync(FwoMcpConnection mcpConnection, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(mcpConnection);
-        List<ChatMessage> turnMessages = new(newInput);
+        List<ChatMessage> turnMessages = [.. newInput];
         if (prompt != null)
         {
             List<ChatMessage> promptMessages = await mcpConnection.GetPromptMessagesAsync(prompt.Name, prompt.Arguments, cancellationToken);

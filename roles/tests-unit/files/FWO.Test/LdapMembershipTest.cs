@@ -51,8 +51,7 @@ namespace FWO.Test
                 GroupWritePath = "ou=write,dc=example,dc=com"
             };
 
-            LdapAttributeSet attrs = new();
-            attrs.Add(new LdapAttribute("memberOf", kWritePathMembers));
+            LdapAttributeSet attrs = [new LdapAttribute("memberOf", kWritePathMembers)];
             LdapEntry user = new("cn=test,dc=example,dc=com", attrs);
 
             var groups = ldap.GetGroups(user);
@@ -70,8 +69,7 @@ namespace FWO.Test
                 GroupWritePath = "ou=write,dc=example,dc=com"
             };
 
-            LdapAttributeSet attrs = new();
-            attrs.Add(new LdapAttribute("memberOf", kSearchPathMembers));
+            LdapAttributeSet attrs = [new LdapAttribute("memberOf", kSearchPathMembers)];
             LdapEntry user = new("cn=test,dc=example,dc=com", attrs);
 
             var groups = ldap.GetGroups(user);
@@ -89,8 +87,7 @@ namespace FWO.Test
                 GroupWritePath = "ou=write,dc=example,dc=com"
             };
 
-            LdapAttributeSet attrs = new();
-            attrs.Add(new LdapAttribute("memberOf", kUnrelatedMembers));
+            LdapAttributeSet attrs = [new LdapAttribute("memberOf", kUnrelatedMembers)];
             LdapEntry user = new("cn=test,dc=example,dc=com", attrs);
 
             var groups = ldap.GetGroups(user);

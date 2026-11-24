@@ -16,8 +16,8 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class UiReportOwnerRecertParamSelectionTest
     {
-        private static readonly List<FwoOwner> kOwnerLabelOwners = new()
-        {
+        private static readonly List<FwoOwner> kOwnerLabelOwners =
+        [
             new FwoOwner
             {
                 AdditionalInfo = new Dictionary<string, string>
@@ -34,7 +34,7 @@ namespace FWO.Test
                     { "service_tier", "gold" }
                 }
             }
-        };
+        ];
 
         [Test]
         public async Task ReportOwnerRecertParamSelection_RendersMergeAndLabelFields()
@@ -192,7 +192,7 @@ namespace FWO.Test
                         Name = "custom_owner_label"
                     }
                 })
-                .Add(p => p.AvailableAddInfoNames, new List<string> { "team_label" }));
+                .Add(p => p.AvailableAddInfoNames, ["team_label"]));
 
             IRenderedComponent<AddInfoFilterEditor> editor = cut.FindComponent<AddInfoFilterEditor>();
             List<string> availableAddInfoNames = GetPrivateMember<List<string>>(editor.Instance, "availableAddInfoNames");

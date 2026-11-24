@@ -22,7 +22,6 @@ namespace FWO.Ai.Tests;
 internal class HarnessFwoAgentFactoryTest
 {
     private const string kModel = "test-model";
-    private const string kApiKey = "sk-harness-test-key-4711";
     private const string kQuestion = "Which roles do I have?";
     private const string kAnswer = "You are a reporter.";
     private const string kCallId = "call-1";
@@ -390,7 +389,7 @@ internal class HarnessFwoAgentFactoryTest
             .Respond((_, _, _) => tokenProvider.FailFromNowOn(ScriptedChatClient.CreateFunctionCallResponse(kCallId, HarnessTestSetup.kCurrentUserTool)));
         using FwoAgentFactory factory = HarnessTestSetup.CreateFactory(app, chatClient, new AgentSettings { MaxConsecutiveErrorsPerRequest = kNoErrorsAllowed, ChatEnabled = true });
         FwoUserAgent agent = HarnessTestSetup.CreateUserAgent(factory, tokenProvider.GetTokenAsync);
-        List<AgentResponseUpdate> updates = new();
+        List<AgentResponseUpdate> updates = [];
 
         Assert.CatchAsync<Exception>(async () =>
         {
@@ -487,6 +486,7 @@ internal class HarnessFwoAgentFactoryTest
         /// </summary>
         internal ValueTask<string> GetTokenAsync(CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (fail)
             {
                 throw new InvalidOperationException(kTokenFailureDetail);

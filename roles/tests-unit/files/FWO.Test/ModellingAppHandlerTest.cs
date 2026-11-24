@@ -69,13 +69,39 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Init_AnalysesStatusWithTheSharedSelectionAndTheDummyAppRole()
+        {
+            ModellingConnection withDeletedAppServer = SimulatedVarianceConnections.WithDeletedAppServer();
+            withDeletedAppServer.AddProperty(ConState.VarianceChecked.ToString());
+            withDeletedAppServer.AddProperty(ConState.VarianceFound.ToString());
+            ModellingConnection withDummyAppRole = SimulatedVarianceConnections.WithEmptyDummyAppRole();
+            List<ModellingConnection> connections = [withDeletedAppServer, withDummyAppRole];
+            SimulatedVarianceApiConnection apiConnection = new() { DummyAppRoleId = SimulatedVarianceConnections.kDummyAppRoleId };
+            SimulatedUserConfig userConfig = new() { VarianceAnalysisSync = true };
+            ModellingAppHandler handler = CreateHandler(connections, userConfig, apiConnection: apiConnection);
+
+            await handler.Init(connections);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(withDeletedAppServer.GetBoolProperty(ConState.DeletedObjects.ToString()), Is.True);
+                Assert.That(withDeletedAppServer.GetBoolProperty(ConState.VarianceChecked.ToString()), Is.False, "an excluded connection is not analysed");
+                Assert.That(withDeletedAppServer.GetBoolProperty(ConState.VarianceFound.ToString()), Is.False, "stale variance flags are removed");
+
+                Assert.That(withDummyAppRole.GetBoolProperty(ConState.VarianceChecked.ToString()), Is.True, "the dummy app role does not exclude the connection");
+                Assert.That(withDummyAppRole.GetBoolProperty(ConState.NotImplemented.ToString()), Is.True);
+                Assert.That(withDummyAppRole.GetBoolProperty(ConState.EmptyAppRoles.ToString()), Is.False);
+            });
+        }
+
+        [Test]
         public void GetInterfaces_ExcludesRejectedAndDecommissioned_WhenNotRequested()
         {
             ModellingConnection visible = new()
             {
                 Id = 1,
                 IsInterface = true,
-                Props = new Dictionary<string, string>()
+                Props = []
             };
             ModellingConnection rejected = new()
             {

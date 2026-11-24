@@ -35,7 +35,7 @@ namespace FWO.Config.File
             "LDAP server certificates are validated against.";
 
         private static readonly TimeSpan retryInterval = TimeSpan.FromSeconds(30);
-        private static readonly object certificateLock = new();
+        private static readonly Lock certificateLock = new();
         private static X509Certificate2Collection? certificates;
         private static string cachedPath = "";
         private static DateTime cachedWriteTimeUtc = DateTime.MinValue;

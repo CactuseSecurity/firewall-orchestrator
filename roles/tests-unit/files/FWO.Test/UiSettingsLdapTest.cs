@@ -245,8 +245,7 @@ namespace FWO.Test
         [Test]
         public void CheckValues_AcceptsAnEmptyPasswordWhenEditingAnExistingConnection()
         {
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-            SettingsLdap component = CreateBareComponent(out messages);
+            SettingsLdap component = CreateBareComponent(out List<(Exception? Exception, string Title, string Message, bool IsError)> messages);
             SetMember(component, "AddMode", false);
             SetMember(component, "connectedLdaps", new List<UiLdapConnection>());
             UiLdapConnection ldapConnection = BuildLdap(1, "ldap-edit", "ldap.example.org", roleHandling: false, internalLdap: true);
@@ -277,7 +276,7 @@ namespace FWO.Test
         [Test]
         public void EncryptPasswords_LeavesEmptyPasswordsUntouched()
         {
-            SettingsLdap component = CreateBareComponent(out List<(Exception? Exception, string Title, string Message, bool IsError)> messages);
+            SettingsLdap component = CreateBareComponent(out _);
             UiLdapConnection ldapConnection = BuildLdap(1, "ldap-edit", "ldap.example.org", roleHandling: false, internalLdap: true);
             ldapConnection.SearchUserPwd = "";
             ldapConnection.WriteUserPwd = "";
@@ -342,14 +341,6 @@ namespace FWO.Test
         {
             messages = [];
             return CreateBareComponent(new RecordingLdapApiConnection(), new TestMiddlewareClient(), messages);
-        }
-
-        private static SettingsLdap CreateComponent(
-            RecordingLdapApiConnection apiConnection,
-            TestMiddlewareClient middlewareClient,
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages)
-        {
-            return CreateBareComponent(apiConnection, middlewareClient, messages);
         }
 
         private static SettingsLdap CreateBareComponent(

@@ -41,8 +41,8 @@ namespace FWO.Test.Mocks
 
         public List<ManagementReport> SetupSingleManagementReportEmpty()
         {
-            List<ManagementReport> reports = new()
-            {
+            List<ManagementReport> reports =
+            [
                 new ManagementReport
                 {
                     Rulebases = [],
@@ -51,7 +51,7 @@ namespace FWO.Test.Mocks
                         CreateDeviceReport()
                     ]
                 }
-            };
+            ];
 
             return reports;
         }
@@ -65,7 +65,7 @@ namespace FWO.Test.Mocks
                 rulebaseName = $"Mock Rulebase {RulebaseId}";
             }
 
-            List<Rule> rules = new();
+            List<Rule> rules = [];
 
             if (numberOfRules > 0)
             {

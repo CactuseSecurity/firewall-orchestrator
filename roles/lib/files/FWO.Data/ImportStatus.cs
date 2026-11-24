@@ -82,6 +82,6 @@ namespace FWO.Data
     public class InsertImportControl
     {
         [JsonProperty("returning"), JsonPropertyName("returning")]
-        public List<ImportControl> Returning { get; set; } = new();
+        public List<ImportControl> Returning { get; set; } = [];
     }
 }

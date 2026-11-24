@@ -12,7 +12,7 @@ namespace FWO.Data.Networking
     /// </summary>
     public class NetworkObjectRangeAnalyzer
     {
-        private readonly Dictionary<string, IPAddress?> _parseCache = new();
+        private readonly Dictionary<string, IPAddress?> _parseCache = [];
 
         /// <summary>
         /// Creates range analyses for a set of network objects.

@@ -16,25 +16,25 @@ namespace FWO.Test
         private const string kWarningAlert = "alert alert-warning";
         private const string kErrorAlert = "alert alert-danger";
 
-        private static readonly List<TestCaseData> kAvailabilityCases = new()
-        {
+        private static readonly List<TestCaseData> kAvailabilityCases =
+        [
             new TestCaseData(true, AiProvider.OpenAi, true),
             new TestCaseData(true, AiProvider.None, false),
             new TestCaseData(false, AiProvider.Anthropic, false),
             new TestCaseData(false, AiProvider.None, false)
-        };
+        ];
 
         private static readonly List<string> kAdminAndModellerRoles = [Roles.Admin, Roles.Modeller];
 
-        private static readonly List<TestCaseData> kStateCases = new()
-        {
+        private static readonly List<TestCaseData> kStateCases =
+        [
             new TestCaseData(AiChatAnswerState.Running, null, "", kErrorAlert).SetName("StateMessage_Running"),
             new TestCaseData(AiChatAnswerState.Completed, null, "", kErrorAlert).SetName("StateMessage_Completed"),
             new TestCaseData(AiChatAnswerState.Cancelled, null, AiChatDisplay.kCancelledTextKey, kWarningAlert).SetName("StateMessage_Cancelled"),
             new TestCaseData(AiChatAnswerState.Failed, null, "E9034", kErrorAlert).SetName("StateMessage_FailedRun"),
             new TestCaseData(AiChatAnswerState.Failed, AgentClientFailure.Forbidden, "E9036", kWarningAlert).SetName("StateMessage_Forbidden"),
             new TestCaseData(AiChatAnswerState.Failed, AgentClientFailure.Unavailable, "E9041", kErrorAlert).SetName("StateMessage_Unavailable")
-        };
+        ];
 
         [TestCaseSource(nameof(kAvailabilityCases))]
         public void IsAvailable_NeedsTheSwitchAndAProvider(bool chatEnabled, AiProvider provider, bool expected)

@@ -3,11 +3,13 @@ using FWO.Basics;
 using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data.Report;
+using FWO.Encoders;
 using FWO.Logging;
 using FWO.Report.Data;
 using FWO.Report.Filter;
 using FWO.Services;
 using FWO.Services.RuleTreeBuilder;
+using System.Globalization;
 using System.Text;
 using System.Reflection;
 using PuppeteerSharp;
@@ -397,13 +399,17 @@ namespace FWO.Report
 
         protected static string ToUtcString(string? timestring)
         {
+            if (timestring == null)
+            {
+                return "";
+            }
             try
             {
-                return timestring != null ? DateTime.Parse(timestring).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK") : "";
+                return DateTime.Parse(timestring, CultureInfo.InvariantCulture).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK");
             }
-            catch (Exception)
+            catch (FormatException)
             {
-                return timestring ?? "";
+                return timestring;
             }
         }
 

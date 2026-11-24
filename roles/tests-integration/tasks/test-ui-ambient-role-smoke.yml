@@ -14,6 +14,13 @@
       dest: "{{ ui_ambient_role_smoke_dir }}/"
       mode: "0644"
 
+  # the smoke tests are built outside {{ fworch_home }}, so they need their own sdk pin
+  - name: pin the dotnet sdk to {{ dotnet_version }} for the ambient role smoke tests
+    copy:
+      content: "{{ dotnet_sdk_global_json | to_nice_json }}\n"
+      dest: "{{ ui_ambient_role_smoke_dir }}/global.json"
+      mode: "0644"
+
   - name: check ambient role smoke browser executable
     stat:
       path: "{{ ui_ambient_role_smoke_browser_executable }}"

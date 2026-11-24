@@ -103,7 +103,7 @@ namespace FWO.Test
         /// <returns>The query text of each mapping source query by its field name.</returns>
         private static Dictionary<string, string> MappingSourceQueries()
         {
-            Dictionary<string, string> mappingSourceQueries = new();
+            Dictionary<string, string> mappingSourceQueries = [];
             foreach (FieldInfo field in typeof(RuleQueries).GetFields(BindingFlags.Public | BindingFlags.Static))
             {
                 if (field.FieldType == typeof(string) && field.Name.StartsWith(kMappingSourceQueryPrefix, StringComparison.Ordinal))
@@ -169,7 +169,7 @@ namespace FWO.Test
         /// <returns>The value of each entry by its field name.</returns>
         private static Dictionary<string, string> TopLevelEntriesOf(string braceGroup)
         {
-            Dictionary<string, string> entries = new();
+            Dictionary<string, string> entries = [];
             string content = braceGroup[1..^1];
             int position = 0;
             while (position < content.Length)

@@ -33,7 +33,6 @@ internal class HarnessFwoUserAgentTest
     private const string kSecondInstruction = "Keep UIDs exactly as given.";
 
     private static readonly List<ChatRole> kToolTurnRoles = [ChatRole.User, ChatRole.Assistant, ChatRole.Tool, ChatRole.Assistant];
-    private static readonly List<string> kQuestionAndAnswer = [kQuestion, kAnswer];
     private static readonly List<string> kSecondTurnRequest = [kQuestion, kAnswer, kNextQuestion];
     private static readonly List<string> kSecondTurnOnly = [kNextQuestion];
     private static readonly List<ChatMessage> kNoMessages = [];

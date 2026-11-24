@@ -37,8 +37,8 @@ internal class ProviderHistoryRulesTest
     [Test]
     public void FindViolation_WithValidHistory_ReturnsNull()
     {
-        List<ChatMessage> history = new()
-        {
+        List<ChatMessage> history =
+        [
             new ChatMessage(ChatRole.System, kInstructions),
             User(kQuestion),
             Call(kCallId),
@@ -47,10 +47,11 @@ internal class ProviderHistoryRulesTest
             Result(kOtherCallId),
             Assistant(kAnswer),
             User(kQuestion)
-        };
+        ];
 
+        List<ChatMessage> emptyHistory = [];
         Assert.That(ProviderHistoryRules.FindViolation(history), Is.Null);
-        Assert.That(ProviderHistoryRules.FindViolation(new List<ChatMessage>()), Is.Null);
+        Assert.That(ProviderHistoryRules.FindViolation(emptyHistory), Is.Null);
     }
 
     /// <summary>
@@ -69,7 +70,7 @@ internal class ProviderHistoryRulesTest
     public void GetResponseAsync_StrictWithBrokenRequest_RejectsRequest()
     {
         ScriptedChatClient chatClient = new ScriptedChatClient { Strict = true }.RespondWithText(kAnswer);
-        List<ChatMessage> request = new() { User(kQuestion), Call(kCallId) };
+        List<ChatMessage> request = [User(kQuestion), Call(kCallId)];
 
         Assert.ThrowsAsync<InvalidOperationException>(async () => await chatClient.GetResponseAsync(request));
 
@@ -97,7 +98,8 @@ internal class ProviderHistoryRulesTest
     /// </summary>
     private static ChatMessage Call(string callId)
     {
-        return new ChatMessage(ChatRole.Assistant, new List<AIContent> { new FunctionCallContent(callId, kToolName) });
+        List<AIContent> contents = [new FunctionCallContent(callId, kToolName)];
+        return new ChatMessage(ChatRole.Assistant, contents);
     }
 
     /// <summary>
@@ -105,7 +107,8 @@ internal class ProviderHistoryRulesTest
     /// </summary>
     private static ChatMessage Result(string callId)
     {
-        return new ChatMessage(ChatRole.Tool, new List<AIContent> { new FunctionResultContent(callId, kResult) });
+        List<AIContent> contents = [new FunctionResultContent(callId, kResult)];
+        return new ChatMessage(ChatRole.Tool, contents);
     }
 
     /// <summary>
@@ -114,6 +117,7 @@ internal class ProviderHistoryRulesTest
     private static ChatMessage ApprovalRequest()
     {
         ToolApprovalRequestContent approvalRequest = new(kRequestId, new FunctionCallContent(kCallId, kToolName));
-        return new ChatMessage(ChatRole.Assistant, new List<AIContent> { approvalRequest });
+        List<AIContent> contents = [approvalRequest];
+        return new ChatMessage(ChatRole.Assistant, contents);
     }
 }

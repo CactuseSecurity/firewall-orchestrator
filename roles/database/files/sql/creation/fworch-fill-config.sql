@@ -65,6 +65,7 @@ insert into config (config_key, config_value, config_user) VALUES ('reqAllowManu
 insert into config (config_key, config_value, config_user) VALUES ('reqActivatePathAnalysis', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqShowCompliance', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqImplicitApprovalComment', 'Automatically approved because the request task was promoted beyond the approval phase.', 0);
+insert into config (config_key, config_value, config_user) VALUES ('reqPreWorkflowTicketReferenceLabel', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('unusedTolerance', '400', 0);
 insert into config (config_key, config_value, config_user) VALUES ('creationTolerance', '90', 0);
 insert into config (config_key, config_value, config_user) VALUES ('ruleOwnershipMode', 'mixed', 0);
@@ -97,6 +98,9 @@ insert into config (config_key, config_value, config_user) VALUES ('importLogDat
 insert into config (config_key, config_value, config_user) VALUES ('importLogDataSleepTimeUnit', 'Hours', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importLogDataStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importLogDataMaxEntries', '1000', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importRuleHitsSleepTime', '1', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importRuleHitsSleepTimeUnit', 'Days', 0);
+insert into config (config_key, config_value, config_user) VALUES ('importRuleHitsStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('logDataRetentionDays', '90', 0);
 insert into config (config_key, config_value, config_user) VALUES ('allowLogDataPortWithoutProtocol', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('resolveLogDataDns', 'True', 0);
@@ -212,6 +216,20 @@ insert into config (config_key, config_value, config_user) VALUES ('reqCreateReq
 INSERT INTO config (config_key, config_value, config_user) VALUES ('pathAnalysisAlgorithm', '1', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRollback', 'false', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('designatedZoneMatrix', '0', 0);
+
+-- keys of personal settings (properties marked [UserConfigData] in ConfigData.cs)
+INSERT INTO config_user_key (config_key) VALUES ('maxMessages');
+INSERT INTO config_user_key (config_key) VALUES ('elementsPerFetch');
+INSERT INTO config_user_key (config_key) VALUES ('defaultManagementRulebaseView');
+INSERT INTO config_user_key (config_key) VALUES ('unusedTolerance');
+INSERT INTO config_user_key (config_key) VALUES ('creationTolerance');
+INSERT INTO config_user_key (config_key) VALUES ('recertificationDisplayPeriod');
+INSERT INTO config_user_key (config_key) VALUES ('minCollapseAllDevices');
+INSERT INTO config_user_key (config_key) VALUES ('messageViewTime');
+INSERT INTO config_user_key (config_key) VALUES ('overviewDisplayLines');
+INSERT INTO config_user_key (config_key) VALUES ('modIconify');
+INSERT INTO config_user_key (config_key) VALUES ('resolveNetworkAreas');
+INSERT INTO config_user_key (config_key) VALUES ('reportingPersonalPreferredCollapseState');
 
 INSERT INTO device_specific_config_node (node_type, object_key, display_name, sort_order)
 VALUES ('global', 'global', 'Global', 0)

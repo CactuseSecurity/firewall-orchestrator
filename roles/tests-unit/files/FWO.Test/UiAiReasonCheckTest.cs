@@ -37,30 +37,30 @@ namespace FWO.Test
 
         private static readonly Dictionary<string, string> kPromptArguments = new() { { "reason", "nightly backup of the database" } };
         private static readonly AgentPromptRequest kPromptRequest = new(ConnectionReasonCheck.kPromptName, kPromptArguments);
-        private static readonly List<AIContent> kApprovalRequests = new()
-        {
+        private static readonly List<AIContent> kApprovalRequests =
+        [
             new ToolApprovalRequestContent("interrupt-1", new FunctionCallContent("call-1", "delete_owner"))
-        };
-        private static readonly List<AIContent> kRunError = new() { new ErrorContent("no provider configured") { ErrorCode = "provider" } };
-        private static readonly List<string> kInjectedAttributes = new() { "onerror", "onmouseover", "onclick" };
+        ];
+        private static readonly List<AIContent> kRunError = [new ErrorContent("no provider configured") { ErrorCode = "provider" }];
+        private static readonly List<string> kInjectedAttributes = ["onerror", "onmouseover", "onclick"];
 
-        private static readonly List<string> kInjectionPayloads = new()
-        {
+        private static readonly List<string> kInjectionPayloads =
+        [
             "<img src=x onerror=alert(1)>",
             "\"><script>alert(1)</script>",
             "' onmouseover='x"
-        };
+        ];
 
-        private static readonly List<TestCaseData> kVerdictCases = new()
-        {
+        private static readonly List<TestCaseData> kVerdictCases =
+        [
             new TestCaseData("Verdict: GENUINE\nCriteria: met", "bg-success", "ai_verdict_genuine").SetName("Verdict_Genuine"),
             new TestCaseData("Verdict: INSUFFICIENT\nQuestions: which data?", "bg-warning", "ai_verdict_insufficient").SetName("Verdict_Insufficient"),
             new TestCaseData("Verdict: NOT_GENUINE\nNo purpose", "bg-danger", "ai_verdict_not_genuine").SetName("Verdict_NotGenuine"),
             new TestCaseData("The answer names no verdict.", "bg-secondary", "ai_verdict_unknown").SetName("Verdict_Unknown")
-        };
+        ];
 
-        private static readonly List<TestCaseData> kFailureCases = new()
-        {
+        private static readonly List<TestCaseData> kFailureCases =
+        [
             new TestCaseData(AgentClientFailure.Unauthorized, "E9035", kWarningAlert),
             new TestCaseData(AgentClientFailure.Forbidden, "E9036", kWarningAlert),
             new TestCaseData(AgentClientFailure.RateLimited, "E9037", kWarningAlert),
@@ -69,7 +69,7 @@ namespace FWO.Test
             new TestCaseData(AgentClientFailure.ServerError, "E9042", kErrorAlert),
             new TestCaseData(AgentClientFailure.Timeout, "E9043", kErrorAlert),
             new TestCaseData(AgentClientFailure.ProtocolError, "E9044", kErrorAlert)
-        };
+        ];
 
         private IFwoAgentChatClientFactory chatClientFactory = null!;
         private ScriptedChatClient chatClient = null!;

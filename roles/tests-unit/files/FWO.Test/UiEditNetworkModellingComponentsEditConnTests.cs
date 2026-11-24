@@ -448,7 +448,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(GetPrivateField<List<string>>(component.Instance, "availableExtraConfigs"), Is.EquivalentTo(new List<string> { "cfg-a", "cfg-b" }));
+                Assert.That(GetPrivateField<List<string>>(component.Instance, "availableExtraConfigs"), Is.EquivalentTo(["cfg-a", "cfg-b"]));
                 Assert.That(GetPrivateProperty<List<FWO.Basics.Module>>(component.Instance, "availableModules"), Does.Contain(FWO.Basics.Module.Workflow));
                 Assert.That(GetPrivateField<int>(component.Instance, "sidebarLeftWidth"), Is.EqualTo(GlobalConst.kGlobLibraryWidth));
             });

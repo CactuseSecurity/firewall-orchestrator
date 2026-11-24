@@ -15,4 +15,16 @@ public sealed record RequestFilterValidationSchema(
         [
             new RequestKeyDefinition("visibleInRequest", "Include only objects visible in the current request.")
         ]);
+
+    /// <summary>
+    /// Creates the validation schema used by Flow Catalog group endpoints.
+    /// </summary>
+    public static RequestFilterValidationSchema ForFlowCatalogGroups(string endpointName) => new(
+        endpointName,
+        [
+            new RequestKeyDefinition("visibleInRequest", "Include only objects visible in the current request."),
+            new RequestKeyDefinition(
+                "includeTechnicalDetails",
+                "Include the standalone object fields for every group member.")
+        ]);
 }

@@ -92,7 +92,7 @@ namespace FWO.Data.Modelling
             {
                 Id = Id,
                 Number = Number,
-                Name = IdAsName ? IdString : Name + " (" + IdString + ")" ?? IdString ?? "",
+                Name = IdAsName ? IdString : $"{Name} ({IdString})",
                 Comment = Comment ?? "",
                 Type = new NetworkObjectType() { Name = ObjectType.Group },
                 ObjectGroups = objectGroups,

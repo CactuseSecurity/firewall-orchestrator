@@ -1,6 +1,6 @@
 ﻿@inject UserConfig userConfig
 
-<div class="col-sm-6">
+<div class="settings-input-lg">
     <EditList ElementType="CommonArea" Elements="CommonAreas.ToArray()" ElementsToDelete="CommAreasToDelete" StdLayout="false">
         <Display>
             <div class="row align-items-center">
@@ -27,8 +27,8 @@
             </div>
         </Display>
     </EditList>
-    <div class="row col-sm-12 mt-1">
-        <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="() => SearchCommonArea()" @onclick:preventDefault>
+    <div class="mt-1">
+        <button type="button" class="btn btn-sm btn-primary" @onclick="() => SearchCommonArea()" @onclick:preventDefault>
             @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
         </button>
     </div>

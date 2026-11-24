@@ -95,7 +95,7 @@ internal static class ConversationFilter
             }
         }
         HashSet<string> keptCallIds = new(StringComparer.Ordinal);
-        List<ChatMessage> matchedMessages = new();
+        List<ChatMessage> matchedMessages = [];
         foreach (ChatMessage message in messages)
         {
             List<AIContent> contents = message.Contents

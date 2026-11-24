@@ -26,7 +26,7 @@ internal static class ProviderHistoryRules
         {
             return $"The conversation starts with a {conversation[0].Role} message instead of a user message.";
         }
-        HashSet<string> openCallIds = new();
+        HashSet<string> openCallIds = [];
         ChatRole? previousRole = null;
         foreach (ChatMessage message in conversation)
         {

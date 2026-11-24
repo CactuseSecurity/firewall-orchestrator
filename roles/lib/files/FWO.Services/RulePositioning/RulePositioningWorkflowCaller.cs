@@ -45,13 +45,13 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
                 RulePositioningWorkflowStatus.NotApplicable);
         }
 
-        RulePositioningFailureCategory failureCategory;
+        RulePositioningFailure failure;
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             (Device Gateway, Management Management) target = await LoadTargetAsync(
-                implementationTask.DeviceId!.Value,
-                RulePositioningContextValidator.EffectiveManagementId(requestTask, implementationTask));
+                requestTask,
+                implementationTask);
             cancellationToken.ThrowIfCancellationRequested();
             DeviceSpecificSettingsLevel<GatewayDeviceSpecificSettings> settings =
                 await settingsManager.LoadLevelAsync<GatewayDeviceSpecificSettings>(
@@ -59,7 +59,6 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
             cancellationToken.ThrowIfCancellationRequested();
             IReadOnlyCollection<WfReqTask>? ticketTasks = await LoadTicketTasksIfRequiredAsync(
                 requestTask,
-                target.Management.Id,
                 settings.Settings.PositioningAlgorithm,
                 cancellationToken);
             RulePositioningConfiguration? configuration = await LoadConfigurationIfRequiredAsync(
@@ -87,9 +86,8 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
                     cancellationToken);
             }
 
-            failureCategory = calculation is RulePositioningFailure failure
-                ? failure.Category
-                : RulePositioningFailureCategory.CalculationFailed;
+            failure = calculation as RulePositioningFailure
+                ?? new RulePositioningFailure(RulePositioningFailureCategory.CalculationFailed);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -97,15 +95,32 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
         }
         catch (Exception)
         {
-            failureCategory = RulePositioningFailureCategory.CalculationFailed;
+            cancellationToken.ThrowIfCancellationRequested();
+            failure = new RulePositioningFailure(RulePositioningFailureCategory.CalculationFailed);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+        LogCalculationFailure(requestTask, implementationTask, failure);
         return await PersistAsync(
             implementationTask.Id,
             null,
             RulePositioningWorkflowStatus.ClearedAfterFailure,
-            failureCategory,
+            failure.Category,
             cancellationToken);
+    }
+
+    /// <summary>Writes one correlated summary using a known cause when available.</summary>
+    private static void LogCalculationFailure(
+        WfReqTask requestTask,
+        WfImplTask implementationTask,
+        RulePositioningFailure failure)
+    {
+        string technicalSummary = failure.TechnicalDiagnostic ?? failure.Diagnostic;
+        Log.WriteError(
+            kLogTitle,
+            $"Rule positioning failed for implementation task {implementationTask.Id}, " +
+            $"request task {requestTask.Id}, ticket {requestTask.TicketId}, " +
+            $"gateway {implementationTask.DeviceId ?? 0}: {failure.Category}; {technicalSummary}");
     }
 
     /// <summary>Loads one current immutable global-settings snapshot for customer positioning.</summary>
@@ -127,10 +142,9 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
             currentConfig.GetText("internet_local_zone"));
     }
 
-    /// <summary>Loads and validates the management-specific ticket slice only for ticket-aware positioning.</summary>
+    /// <summary>Loads and validates the ticket container only for ticket-aware positioning.</summary>
     private async Task<IReadOnlyCollection<WfReqTask>?> LoadTicketTasksIfRequiredAsync(
         WfReqTask requestTask,
-        int managementId,
         ProvisioningPositioningAlgorithm algorithm,
         CancellationToken cancellationToken)
     {
@@ -138,7 +152,7 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
         {
             return null;
         }
-        if (requestTask.TicketId <= 0 || managementId <= 0)
+        if (requestTask.TicketId <= 0)
         {
             throw new InvalidOperationException("The rule-positioning ticket context is invalid.");
         }
@@ -153,7 +167,7 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
         }
 
         List<WfReqTask> tasks = [.. ticket.Tasks.Where(task =>
-                IsValidTicketTask(task, ticket.Id, managementId))
+                IsValidTicketTask(task, ticket.Id))
             .OrderBy(task => task.TaskNumber).ThenBy(task => task.Id)];
         if (tasks.Count(task => task.Id == requestTask.Id) != 1)
         {
@@ -162,10 +176,10 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
         return tasks.AsReadOnly();
     }
 
-    /// <summary>Checks one ticket task against the requested ticket and management slice.</summary>
-    private static bool IsValidTicketTask(WfReqTask? task, long ticketId, int managementId) =>
+    /// <summary>Checks one task against the loaded ticket container.</summary>
+    private static bool IsValidTicketTask(WfReqTask? task, long ticketId) =>
         task != null && task.Id > 0 && task.TaskNumber > 0 &&
-        task.TicketId == ticketId && task.ManagementId == managementId;
+        task.TicketId == ticketId;
 
     /// <summary>Checks task shape and identity before loading any external context.</summary>
     public bool IsApplicable(WfReqTask? requestTask, WfImplTask? implementationTask)
@@ -173,18 +187,22 @@ public sealed class RulePositioningWorkflowCaller : IRulePositioningWorkflowCall
         return RulePositioningContextValidator.IsApplicable(requestTask, implementationTask);
     }
 
-    /// <summary>Loads exactly one gateway and validates its effective management.</summary>
+    /// <summary>Loads exactly one gateway and resolves its canonical target management.</summary>
     private async Task<(Device Gateway, Management Management)> LoadTargetAsync(
-        int gatewayId,
-        int effectiveManagementId)
+        WfReqTask requestTask,
+        WfImplTask implementationTask)
     {
+        int gatewayId = implementationTask.DeviceId!.Value;
         List<Device> gateways = await apiConnection.SendQueryAsync<List<Device>>(
-            DeviceQueries.getRulePositioningTarget,
+            DeviceQueries.getImplementationTaskGatewayTarget,
             new { gatewayId });
-        if (gateways.Count != 1
-            || gateways[0].Id != gatewayId
-            || gateways[0].Management == null
-            || gateways[0].Management.Id != effectiveManagementId)
+        if (gateways.Count != 1 ||
+            !WfImplTaskTargetManagementResolver.TryResolveManagementId(
+                requestTask,
+                implementationTask,
+                gateways[0],
+                out int managementId) ||
+            gateways[0].Management.Id != managementId)
         {
             throw new InvalidOperationException("The rule-positioning target is unavailable or inconsistent.");
         }

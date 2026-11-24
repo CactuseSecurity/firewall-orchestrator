@@ -408,11 +408,13 @@ internal class HarnessAgentFeatureGateTest
     {
         FunctionCallContent call = new(kRequestId, kToolName);
         ToolApprovalRequestContent request = new(kRequestId, call);
+        List<AIContent> requestContents = [request];
+        List<AIContent> responseContents = [request.CreateResponse(true)];
         return
         [
             new ChatMessage(ChatRole.User, kQuestion),
-            new ChatMessage(ChatRole.Assistant, new List<AIContent> { request }),
-            new ChatMessage(ChatRole.User, new List<AIContent> { request.CreateResponse(true) })
+            new ChatMessage(ChatRole.Assistant, requestContents),
+            new ChatMessage(ChatRole.User, responseContents)
         ];
     }
 }

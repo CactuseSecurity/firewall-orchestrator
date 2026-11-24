@@ -509,7 +509,8 @@ internal class HarnessServerTest
     [Test]
     public void GetPartitionKey_WithoutDn_UsesNameOrSharedPartition()
     {
-        ClaimsPrincipal namedUser = new(new ClaimsIdentity(new List<Claim> { new(ClaimTypes.Name, McpTestServer.kUserName) }, "test"));
+        List<Claim> claims = [new(ClaimTypes.Name, McpTestServer.kUserName)];
+        ClaimsPrincipal namedUser = new(new ClaimsIdentity(claims, "test"));
         ClaimsPrincipal anonymousUser = new(new ClaimsIdentity());
 
         Assert.That(HarnessRateLimiting.GetPartitionKey(namedUser), Does.Contain(McpTestServer.kUserName));
@@ -571,7 +572,7 @@ internal class HarnessServerTest
     /// </summary>
     private static JsonArray CreateConversation(params string[] texts)
     {
-        JsonArray messages = new();
+        JsonArray messages = [];
         for (int index = 0; index < texts.Length; index++)
         {
             string role = index % 2 == 0 ? "user" : "assistant";
@@ -601,7 +602,8 @@ internal class HarnessServerTest
     /// </summary>
     private static string CreateTokenWithoutDn(string role)
     {
-        ClaimsIdentity subject = new(new List<Claim> { new(ClaimTypes.Name, McpTestServer.kUserName), new(ClaimTypes.Role, role) });
+        List<Claim> claims = [new(ClaimTypes.Name, McpTestServer.kUserName), new(ClaimTypes.Role, role)];
+        ClaimsIdentity subject = new(claims);
         JwtSecurityTokenHandler tokenHandler = new();
         JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken(
             issuer: JwtConstants.Issuer,

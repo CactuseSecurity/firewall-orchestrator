@@ -23,7 +23,7 @@ internal static class UnansweredToolCallFilter
             .SelectMany(message => message.Contents.OfType<FunctionResultContent>())
             .Select(result => result.CallId)
             .ToHashSet();
-        List<ChatMessage> answeredMessages = new();
+        List<ChatMessage> answeredMessages = [];
         foreach (ChatMessage message in messages)
         {
             List<AIContent> answeredContents = message.Contents

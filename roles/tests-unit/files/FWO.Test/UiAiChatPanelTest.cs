@@ -43,16 +43,16 @@ namespace FWO.Test
         private const string kEnterKey = "Enter";
 
         private static readonly Dictionary<string, object?> kStoreArguments = new() { { "value", "42" } };
-        private static readonly List<string> kInjectedAttributes = new() { "onerror", "onmouseover", "onclick" };
-        private static readonly List<string> kInjectedElements = new() { "img", "script" };
-        private static readonly List<string> kApprovalAnswerTextKeys = new() { AiChatDisplay.kApprovedTextKey, AiChatDisplay.kRejectedTextKey };
+        private static readonly List<string> kInjectedAttributes = ["onerror", "onmouseover", "onclick"];
+        private static readonly List<string> kInjectedElements = ["img", "script"];
+        private static readonly List<string> kApprovalAnswerTextKeys = [AiChatDisplay.kApprovedTextKey, AiChatDisplay.kRejectedTextKey];
 
-        private static readonly List<string> kInjectionPayloads = new()
-        {
+        private static readonly List<string> kInjectionPayloads =
+        [
             "<img src=x onerror=alert(1)>",
             "\"><script>alert(1)</script>",
             "' onmouseover='x"
-        };
+        ];
 
         private BunitContext context = null!;
         private AiChatUserConfig userConfig = null!;

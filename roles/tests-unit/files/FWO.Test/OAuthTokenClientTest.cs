@@ -259,6 +259,23 @@ namespace FWO.Test
             Assert.That(exception!.Failure, Is.EqualTo(OAuthTokenFailure.Unreachable));
         }
 
+        /// <summary>
+        /// Verifies that the configured timeout ends a token request that is still waiting for an answer.
+        /// </summary>
+        [Test]
+        public void Request_ConfiguredTimeout_CancelsPendingResponse()
+        {
+            TaskCompletionSource responseGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            OAuthTestEndpoint endpoint = new() { Gate = responseGate.Task };
+            TimeSpan requestTimeout = TimeSpan.FromMilliseconds(50);
+            using OAuthTokenClient client = new(endpoint, requestTimeout: requestTimeout);
+
+            OAuthTokenException? exception = Assert.ThrowsAsync<OAuthTokenException>(async () =>
+                await client.RequestClientCredentialsTokenAsync(Credentials(), CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5)));
+
+            Assert.That(exception!.Failure, Is.EqualTo(OAuthTokenFailure.Unreachable));
+        }
+
         [Test]
         public void Request_FailureWhileReading_IsUnreachable()
         {

@@ -93,6 +93,8 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | Tufin SecureChange ticket templates as device specific settings (global, per device type and per management) | 9.8.5 |
 | Semantic rule positioning for Check Point access-rule implementation tasks | 9.8.7 |
 | Approval-phase task details view with resolved, technical and read-only displays, configurable field editing, and task-specific editors | 9.9.1 |
+| Implementation of tickets through external requests (state action "Create external requests"): Tufin SecureChange or direct firewall write, routed by the implementation modes in the device specific settings | 9.9.4 |
+| Direct firewall write of objects, groups and rules (rules on Check Point: position incl. sections, install-on, modify and delete in the imported layer) | 9.9.4 |
 
 ## Recertification
 
@@ -156,11 +158,12 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | Email recipients setting | 8.3 (8.2.4) |
 | Email notification fall-back to main owner if group empty | 8.4.1 |
 | Notification service | 8.8 (8.8.9) |
+| New notification parameters | 8.9.6 |
 | Configurable rule-expiry notification | 9.0 (9.0.12) |
 | Owner decommission notification | 9.0 (9.0.14) |
 | Extended notification handling | 9.0 (9.0.20) |
 | BCC on notifications | 9.0.23 |
-| New notification parameters | 8.9.6 |
+| Email priority on notifications (Importance, Priority, X-Priority headers) | 9.9.5 |
 
 ## Owner / application-data import
 

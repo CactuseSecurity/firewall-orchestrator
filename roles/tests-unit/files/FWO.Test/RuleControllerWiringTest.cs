@@ -153,7 +153,7 @@ namespace FWO.Test
         [Test]
         public void ConvertRuleList_ShouldIncludeDirectServicesAlongsideServiceGroups()
         {
-            List<Rule> input = new() { CreateRuleWithServiceGroupAndDirectService() };
+            List<Rule> input = [CreateRuleWithServiceGroupAndDirectService()];
             List<RuleDetail> rules = InvokeConvertRuleList(input);
 
             ClassicAssert.AreEqual(1, rules.Count);
@@ -227,8 +227,8 @@ namespace FWO.Test
         private static UserConfig CreateUserConfig(string ownerKeys = @"[""owner_key""]", string changeIdKeys = @"[""change_key""]")
         {
             GlobalConfig globalConfig = new();
-            globalConfig.LangDict[GlobalConst.kEnglish] = new Dictionary<string, string>();
-            globalConfig.OverDict[GlobalConst.kEnglish] = new Dictionary<string, string>();
+            globalConfig.LangDict[GlobalConst.kEnglish] = [];
+            globalConfig.OverDict[GlobalConst.kEnglish] = [];
             globalConfig.CustomFieldOwnerKey = ownerKeys;
             globalConfig.CustomFieldChangeIdKey = changeIdKeys;
 
@@ -289,11 +289,11 @@ namespace FWO.Test
         {
             NetworkService groupedService = CreateServiceObject(401, "Grouped Service", 443, 6, "TCP");
             NetworkService directService = CreateServiceObject(402, "Direct Service", 8443, 6, "TCP");
-            List<ServiceWrapper> services = new()
-            {
+            List<ServiceWrapper> services =
+            [
                 new ServiceWrapper { Content = CreateServiceGroup(300, "Service Group", groupedService) },
                 new ServiceWrapper { Content = directService }
-            };
+            ];
 
             return new Rule { Services = services.ToArray() };
         }

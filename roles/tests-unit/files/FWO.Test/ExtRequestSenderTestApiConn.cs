@@ -4,7 +4,6 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using FWO.Services;
-using FWO.ExternalSystems.CheckPoint;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using GraphQL;
 
@@ -14,9 +13,9 @@ namespace FWO.Test
     {
         public List<string> UpdateExtRequestCreation = [];
         public List<string> UpdateExtRequestProcess = [];
+        public List<string> UpdateExtRequestFinal = [];
         public int TriedToGetLdapsForHandleStateChange = 0;
         public bool ManualRequestsOnly = false;
-        public bool CheckPointRequestsOnly = false;
         public List<ExternalRequest>? OpenRequests { get; set; }
         public Credential? Credential { get; set; }
         public List<string> CredentialQueryVars { get; } = [];
@@ -56,23 +55,6 @@ namespace FWO.Test
             Name = "Custom",
             Url = "https://custom-ticket-system.example/api/"
         };
-        readonly ExternalTicketSystem checkPointTicketSystem = new()
-        {
-            Id = 3,
-            TypeId = 9,
-            Authorization = "X-chkp-sid: xyz",
-            Name = "CheckPoint",
-            Url = "https://checkpoint-test.xxx.de/web_api/",
-            Templates =
-            [
-                new()
-                {
-                    TaskType = CheckPointTaskTypes.Publish,
-                    TicketTemplate = "{}"
-                }
-            ]
-        };
-
         private readonly string TicketContent = "{ \"ticketText\": \"\" }";
         // private readonly string TicketContent = "{\"ticketText\": \"{ \"ticket\": { \"subject\": \"tick2\"} }\" }";
         // private readonly string TicketContent = "{\"ticketText\": \"{ \u0022ticket\u0022: { \u0022subject\u0022: \u0022tick2\u0022} }\" }";
@@ -116,22 +98,6 @@ namespace FWO.Test
                     };
                     GraphQLResponse<dynamic> manualResponse = new() { Data = manualRequests };
                     return manualResponse.Data;
-                }
-                if (CheckPointRequestsOnly)
-                {
-                    string serializedCheckPointTicketSystem = System.Text.Json.JsonSerializer.Serialize(checkPointTicketSystem);
-                    ExternalRequestDataHelper checkPointRequests = new()
-                    {
-                        ExternalRequests =
-                        [
-                            new(){ Id = 7, TicketId = 7, ExtTicketSystem = serializedCheckPointTicketSystem, ExtRequestState = ExtStates.ExtReqInitialized.ToString(),
-                                ExtRequestType = WfTaskType.access.ToString(), ExtRequestContent = "{\"source\":[\"src-group\"]}",
-                                ExtQueryVariables = ""
-                            }
-                        ]
-                    };
-                    GraphQLResponse<dynamic> checkPointResponse = new() { Data = checkPointRequests };
-                    return checkPointResponse.Data;
                 }
                 ExternalRequestDataHelper openRequests = new()
                 {
@@ -216,6 +182,13 @@ namespace FWO.Test
                 else if (query == ExtRequestQueries.updateExtRequestProcess)
                 {
                     UpdateExtRequestProcess.Add(variables?.ToString() ?? "no variables");
+                    ReturnId returnId = new() { UpdatedIdLong = 1 };
+                    GraphQLResponse<dynamic> response = new() { Data = returnId };
+                    return response.Data;
+                }
+                else if (query == ExtRequestQueries.updateExtRequestFinal)
+                {
+                    UpdateExtRequestFinal.Add(variables?.ToString() ?? "no variables");
                     ReturnId returnId = new() { UpdatedIdLong = 1 };
                     GraphQLResponse<dynamic> response = new() { Data = returnId };
                     return response.Data;

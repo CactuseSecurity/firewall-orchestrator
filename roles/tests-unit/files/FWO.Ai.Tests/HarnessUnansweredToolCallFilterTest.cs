@@ -37,7 +37,7 @@ internal class HarnessUnansweredToolCallFilterTest
     [Test]
     public void Apply_WithAnsweredCalls_KeepsMessages()
     {
-        List<ChatMessage> messages = new() { CreateCall(kAnsweredCallId), CreateResult(kAnsweredCallId), new ChatMessage(ChatRole.Assistant, kAnswer) };
+        List<ChatMessage> messages = [CreateCall(kAnsweredCallId), CreateResult(kAnsweredCallId), new ChatMessage(ChatRole.Assistant, kAnswer)];
 
         List<ChatMessage> filtered = UnansweredToolCallFilter.Apply(messages);
 
@@ -59,7 +59,7 @@ internal class HarnessUnansweredToolCallFilterTest
     {
         ChatMessage answeredCall = CreateCall(kAnsweredCallId);
         ChatMessage result = CreateResult(kAnsweredCallId);
-        List<ChatMessage> messages = new() { answeredCall, result, CreateCall(kUnansweredCallId) };
+        List<ChatMessage> messages = [answeredCall, result, CreateCall(kUnansweredCallId)];
 
         List<ChatMessage> filtered = UnansweredToolCallFilter.Apply(messages);
 
@@ -77,12 +77,13 @@ internal class HarnessUnansweredToolCallFilterTest
     [Test]
     public void Apply_WithTextAndUnansweredCall_KeepsTextWithoutCall()
     {
-        ChatMessage textWithCall = new(ChatRole.Assistant, new List<AIContent> { new TextContent(kAnswer), new FunctionCallContent(kUnansweredCallId, kToolName) })
+        List<AIContent> contents = [new TextContent(kAnswer), new FunctionCallContent(kUnansweredCallId, kToolName)];
+        ChatMessage textWithCall = new(ChatRole.Assistant, contents)
         {
             AuthorName = kAuthorName,
             MessageId = kMessageId
         };
-        List<ChatMessage> messages = new() { textWithCall };
+        List<ChatMessage> messages = [textWithCall];
 
         List<ChatMessage> filtered = UnansweredToolCallFilter.Apply(messages);
 
@@ -102,12 +103,13 @@ internal class HarnessUnansweredToolCallFilterTest
     [Test]
     public void Apply_WithAnsweredAndUnansweredCallInOneMessage_KeepsAnsweredCall()
     {
-        ChatMessage calls = new(ChatRole.Assistant, new List<AIContent>
-        {
+        List<AIContent> callContents =
+        [
             new FunctionCallContent(kAnsweredCallId, kToolName),
             new FunctionCallContent(kUnansweredCallId, kToolName)
-        });
-        List<ChatMessage> messages = new() { calls, CreateResult(kAnsweredCallId) };
+        ];
+        ChatMessage calls = new(ChatRole.Assistant, callContents);
+        List<ChatMessage> messages = [calls, CreateResult(kAnsweredCallId)];
 
         List<ChatMessage> filtered = UnansweredToolCallFilter.Apply(messages);
 
@@ -124,10 +126,12 @@ internal class HarnessUnansweredToolCallFilterTest
     public void Apply_WithApprovalContentsAndResultWithoutCall_KeepsThem()
     {
         ToolApprovalRequestContent approvalRequest = new(kApprovalRequestId, new FunctionCallContent(kUnansweredCallId, kToolName));
-        ChatMessage requestMessage = new(ChatRole.Assistant, new List<AIContent> { approvalRequest });
-        ChatMessage responseMessage = new(ChatRole.User, new List<AIContent> { approvalRequest.CreateResponse(true) });
+        List<AIContent> requestContents = [approvalRequest];
+        List<AIContent> responseContents = [approvalRequest.CreateResponse(true)];
+        ChatMessage requestMessage = new(ChatRole.Assistant, requestContents);
+        ChatMessage responseMessage = new(ChatRole.User, responseContents);
         ChatMessage resultWithoutCall = CreateResult(kAnsweredCallId);
-        List<ChatMessage> messages = new() { requestMessage, responseMessage, resultWithoutCall };
+        List<ChatMessage> messages = [requestMessage, responseMessage, resultWithoutCall];
 
         List<ChatMessage> filtered = UnansweredToolCallFilter.Apply(messages);
 
@@ -143,12 +147,15 @@ internal class HarnessUnansweredToolCallFilterTest
     [Test]
     public void Apply_WithMessageWithoutContents_KeepsMessage()
     {
-        ChatMessage emptyMessage = new(ChatRole.Assistant, new List<AIContent>());
+        List<AIContent> emptyContents = [];
+        ChatMessage emptyMessage = new(ChatRole.Assistant, emptyContents);
+        List<ChatMessage> messages = [emptyMessage];
+        List<ChatMessage> emptyMessages = [];
 
-        List<ChatMessage> filtered = UnansweredToolCallFilter.Apply(new List<ChatMessage> { emptyMessage });
+        List<ChatMessage> filtered = UnansweredToolCallFilter.Apply(messages);
 
         Assert.That(filtered.Single(), Is.SameAs(emptyMessage));
-        Assert.That(UnansweredToolCallFilter.Apply(new List<ChatMessage>()), Is.Empty);
+        Assert.That(UnansweredToolCallFilter.Apply(emptyMessages), Is.Empty);
     }
 
     /// <summary>
@@ -203,11 +210,12 @@ internal class HarnessUnansweredToolCallFilterTest
     public async Task RunStreamingAsync_TextWithToolCallAfterMaxIterations_ReturnsTextWithoutCall()
     {
         await using WebApplication app = await McpTestServer.Start();
-        ChatMessage textWithCall = new(ChatRole.Assistant, new List<AIContent>
-        {
+        List<AIContent> contents =
+        [
             new TextContent(kAnswer),
             new FunctionCallContent(kUnansweredCallId, HarnessTestSetup.kCurrentUserTool)
-        });
+        ];
+        ChatMessage textWithCall = new(ChatRole.Assistant, contents);
         ScriptedChatClient chatClient = new ScriptedChatClient { Strict = true }
             .RespondWithFunctionCall(kAnsweredCallId, HarnessTestSetup.kCurrentUserTool)
             .Respond((_, _, _) => Task.FromResult(new ChatResponse(textWithCall)));
@@ -242,8 +250,7 @@ internal class HarnessUnansweredToolCallFilterTest
     /// </summary>
     private static List<ChatMessage> PrependQuestion(List<ChatMessage> messages)
     {
-        List<ChatMessage> request = new() { new ChatMessage(ChatRole.User, kQuestion) };
-        request.AddRange(messages);
+        List<ChatMessage> request = [new ChatMessage(ChatRole.User, kQuestion), .. messages];
         return request;
     }
 
@@ -252,7 +259,8 @@ internal class HarnessUnansweredToolCallFilterTest
     /// </summary>
     private static ChatMessage CreateCall(string callId)
     {
-        return new ChatMessage(ChatRole.Assistant, new List<AIContent> { new FunctionCallContent(callId, kToolName) });
+        List<AIContent> contents = [new FunctionCallContent(callId, kToolName)];
+        return new ChatMessage(ChatRole.Assistant, contents);
     }
 
     /// <summary>
@@ -260,6 +268,7 @@ internal class HarnessUnansweredToolCallFilterTest
     /// </summary>
     private static ChatMessage CreateResult(string callId)
     {
-        return new ChatMessage(ChatRole.Tool, new List<AIContent> { new FunctionResultContent(callId, kToolResult) });
+        List<AIContent> contents = [new FunctionResultContent(callId, kToolResult)];
+        return new ChatMessage(ChatRole.Tool, contents);
     }
 }

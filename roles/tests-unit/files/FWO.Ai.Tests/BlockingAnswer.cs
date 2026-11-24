@@ -29,6 +29,8 @@ internal sealed class BlockingAnswer
     /// </summary>
     internal async Task<ChatResponse> AnswerAsync(List<ChatMessage> messages, ChatOptions? options, CancellationToken cancellationToken)
     {
+        _ = messages;
+        _ = options;
         started.TrySetResult();
         string answer = await released.Task.WaitAsync(cancellationToken);
         return ScriptedChatClient.CreateTextResponse(answer);

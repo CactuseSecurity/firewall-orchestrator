@@ -1,5 +1,5 @@
 query getAiSettings($keys: [String!]!) {
-  config(where: { _and: [{ config_user: { _eq: 0 } }, { config_key: { _in: $keys } }] }) {
+  config(where: { config_user: { _eq: 0 }, config_key: { _in: $keys } }) {
     config_key
     config_value
   }

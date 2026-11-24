@@ -66,6 +66,41 @@ internal class DeviceSpecificSettingsDataTest
         [nameof(ProvisioningRuleImplementationMode.Automatic), nameof(ProvisioningRuleImplementationMode.Manual)];
 
     [Test]
+    public void RequestSettings_AreNumbersOfferedUpToTheManagementOnly()
+    {
+        DeviceSpecificFieldDefinition timeout = Field(DeviceSpecificSettingKeys.RequestResponseTimeout);
+        DeviceSpecificFieldDefinition cycles = Field(DeviceSpecificSettingKeys.RequestCyclesBetweenAttempts);
+        Assert.Multiple(() =>
+        {
+            Assert.That(timeout.Kind, Is.EqualTo(DeviceSpecificFieldKind.Number));
+            Assert.That(timeout.Section, Is.EqualTo(DeviceSpecificFieldSection.ExternalRequests));
+            Assert.That(timeout.AppliesToLevel(DeviceSpecificScopeType.Management), Is.True);
+            Assert.That(timeout.AppliesToLevel(DeviceSpecificScopeType.Gateway), Is.False);
+            Assert.That(timeout.MinimumNumber, Is.EqualTo(1));
+            Assert.That(Field(DeviceSpecificSettingKeys.RequestMaxAttempts).MinimumNumber, Is.EqualTo(1));
+            Assert.That(cycles.MinimumNumber, Is.Zero);
+            Assert.That(timeout.Read(new GlobalDeviceSpecificSettings()), Is.EqualTo("300"));
+        });
+    }
+
+    [TestCase("0", 0, 0)]
+    [TestCase(" 12 ", 1, 12)]
+    public void ParseNumber_AcceptsWholeNumbersFromTheMinimum(string value, int minimum, int expected)
+    {
+        Assert.That(DeviceSpecificSettingsData.ParseNumber(DeviceSpecificSettingKeys.RequestMaxAttempts, value, minimum), Is.EqualTo(expected));
+    }
+
+    [TestCase("0", 1)]
+    [TestCase("-1", 0)]
+    [TestCase("2.5", 0)]
+    [TestCase("", 0)]
+    [TestCase("ten", 0)]
+    public void ParseNumber_RejectsOtherValues(string value, int minimum)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => DeviceSpecificSettingsData.ParseNumber(DeviceSpecificSettingKeys.RequestMaxAttempts, value, minimum));
+    }
+
+    [Test]
     public void ExternalTicketSystemSettings_AreOfferedUpToTheManagementOnly()
     {
         Assert.Multiple(() =>
@@ -73,14 +108,14 @@ internal class DeviceSpecificSettingsDataTest
             Assert.That(Field(DeviceSpecificSettingKeys.ImplementationMode).AppliesToLevel(DeviceSpecificScopeType.Management), Is.True);
             Assert.That(Field(DeviceSpecificSettingKeys.ImplementationMode).AppliesToLevel(DeviceSpecificScopeType.Gateway), Is.False);
             Assert.That(Field(DeviceSpecificSettingKeys.RerouteToExternalTicketSystem).AppliesToLevel(DeviceSpecificScopeType.Gateway), Is.False);
-            Assert.That(Field(DeviceSpecificSettingKeys.ImplementationModeOverrideForRules).AppliesToLevel(DeviceSpecificScopeType.Gateway), Is.True);
+            Assert.That(Field(DeviceSpecificSettingKeys.ImplementationModeForRules).AppliesToLevel(DeviceSpecificScopeType.Gateway), Is.True);
         });
     }
 
     [Test]
     public void RuleImplementationMode_OffersExternalTicketSystemUpToTheManagementOnly()
     {
-        DeviceSpecificFieldDefinition field = Field(DeviceSpecificSettingKeys.ImplementationModeOverrideForRules);
+        DeviceSpecificFieldDefinition field = Field(DeviceSpecificSettingKeys.ImplementationModeForRules);
         string automatic = nameof(ProvisioningRuleImplementationMode.Automatic);
         string external = nameof(ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem);
 
@@ -271,6 +306,12 @@ internal class DeviceSpecificSettingsDataTest
                     : new() { ScopeType = DeviceSpecificScopeType.Global, ObjectKey = DeviceSpecificSettingsData.GlobalObjectKey };
                 DeviceSpecificSettingsChangeSet changes = new(fieldScope);
                 field.SetOverride(changes, option.Value);
+                if (option.Value.Length == 0)
+                {
+                    // the empty option stands for undefined, which is not stored, so the level inherits
+                    Assert.That(changes.Removals, Does.Contain(field.Key), field.Id);
+                    continue;
+                }
                 Assert.That(changes.Upserts.Single().Value.ToString(), Is.EqualTo(option.Value), $"{field.Id}/{option.Value}");
             }
         }
@@ -369,7 +410,7 @@ internal class DeviceSpecificSettingsDataTest
                 {
                     storable.Remove(nameof(ProvisioningObjectCreationMode.Ignore));
                 }
-                Assert.That(field.Options.Select(o => o.Value), Is.EquivalentTo(storable), field.Id);
+                Assert.That(field.Options.Select(o => o.Value).Where(value => value.Length > 0), Is.EquivalentTo(storable), field.Id);
             }
         }
     }

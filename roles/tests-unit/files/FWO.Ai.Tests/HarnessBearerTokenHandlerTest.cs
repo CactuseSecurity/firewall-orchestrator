@@ -63,7 +63,7 @@ internal class HarnessBearerTokenHandlerTest
         /// <summary>
         /// Authorization headers of the requests, in the order they were sent.
         /// </summary>
-        internal List<string> AuthorizationHeaders { get; } = new();
+        internal List<string> AuthorizationHeaders { get; } = [];
 
         /// <summary>
         /// Records the authorization header and answers with 200.

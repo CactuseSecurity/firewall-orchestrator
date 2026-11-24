@@ -34,15 +34,97 @@ namespace FWO.Compliance
             return await complianceCheck.AreRulesCompliant(selectedPolicyIds, assessment.Rules);
         }
 
+        /// <summary>
+        /// Evaluates the requested rules against the selected policies and returns the result with the violation reasons
+        /// per checked request task. Tasks that cannot be mapped to a technical rule are reported as not compliant.
+        /// </summary>
+        /// <param name="policyIds">Compliance policy identifiers to evaluate.</param>
+        /// <param name="requestTasks">Request tasks of the ticket, including the group tasks defining requested group members.</param>
+        public async Task<IReadOnlyDictionary<long, RequestTaskComplianceResult>> CheckRequestTasks(IEnumerable<int> policyIds, IEnumerable<WfReqTask> requestTasks)
+        {
+            Dictionary<long, RequestTaskComplianceResult> results = [];
+            List<int> selectedPolicyIds = policyIds.Where(id => id > 0).Distinct().ToList();
+            if (selectedPolicyIds.Count == 0)
+            {
+                return results;
+            }
+
+            List<TaskAssessment> assessments = await AssessRequestTasks(requestTasks);
+            List<Rule> rules = [.. assessments.Where(assessment => assessment.MappedRule != null).Select(assessment => assessment.MappedRule!)];
+            List<ComplianceViolation>? violations = rules.Count == 0
+                ? []
+                : await new ComplianceCheck(userConfig, apiConnection).GetRuleViolations(selectedPolicyIds, rules);
+
+            foreach (TaskAssessment assessment in assessments)
+            {
+                long taskId = assessment.RequestTask.Id;
+                if (assessment.MappedRule == null)
+                {
+                    results[taskId] = NotCompliant(taskId, userConfig.GetText("compliance_task_not_assessable"));
+                }
+                else if (violations == null)
+                {
+                    results[taskId] = NotCompliant(taskId, userConfig.GetText("compliance_task_check_failed"));
+                }
+                else
+                {
+                    List<string> reasons = [.. violations
+                        .Where(violation => violation.RuleId == taskId)
+                        .Select(ViolationReason)
+                        .Distinct()];
+                    results[taskId] = new RequestTaskComplianceResult(taskId, reasons.Count == 0, reasons);
+                }
+            }
+            return results;
+        }
+
+        private static RequestTaskComplianceResult NotCompliant(long taskId, string reason)
+        {
+            List<string> reasons = [reason];
+            return new RequestTaskComplianceResult(taskId, false, reasons);
+        }
+
+        private static string ViolationReason(ComplianceViolation violation)
+        {
+            if (!string.IsNullOrWhiteSpace(violation.Details))
+            {
+                return violation.Details;
+            }
+            return violation.Criterion?.Name ?? violation.CriterionId.ToString();
+        }
+
         private async Task<RuleBuildResult> BuildRuleAssessmentFromRequestTasks(IEnumerable<WfReqTask> requestTasks)
+        {
+            List<TaskAssessment> assessments = await AssessRequestTasks(requestTasks);
+            if (assessments.Any(assessment => assessment.MappedRule == null && assessment.UnresolvedGroup))
+            {
+                List<Rule> noRules = [];
+                return new RuleBuildResult(noRules, true);
+            }
+
+            foreach (TaskAssessment assessment in assessments.Where(assessment => assessment.MappedRule == null))
+            {
+                Log.WriteWarning("ComplianceRequestedRulePolicyChecker",
+                    $"Skipping request task {assessment.RequestTask.Id} because it contains elements that cannot be mapped to a technical rule.");
+            }
+
+            List<Rule> mappedRules = [.. assessments.Where(assessment => assessment.MappedRule != null).Select(assessment => assessment.MappedRule!)];
+            return new RuleBuildResult(mappedRules, assessments.Any(assessment => assessment.MappedRule == null));
+        }
+
+        /// <summary>
+        /// Maps every checkable request task (no deletion, with source, destination and service) to a technical rule.
+        /// The rule gets the task id, so that the violations of the check can be assigned to the task.
+        /// </summary>
+        private async Task<List<TaskAssessment>> AssessRequestTasks(IEnumerable<WfReqTask> requestTasks)
         {
             List<WfReqTask> tasks = requestTasks.ToList();
             Dictionary<string, List<NwObjectElement>> networkGroupMembers = BuildNetworkGroupMembers(tasks);
             Dictionary<string, List<NwServiceElement>> serviceGroupMembers = BuildServiceGroupMembers(tasks);
             await AddFlowNetworkGroupMembers(tasks, networkGroupMembers);
             await AddFlowServiceGroupMembers(tasks, serviceGroupMembers);
-            List<Rule> rules = [];
-            bool hasUnassessableTasks = false;
+            IReadOnlyDictionary<int, RuleAction> ruleActions = await LoadRuleActions(tasks);
+            List<TaskAssessment> assessments = [];
 
             foreach (WfReqTask task in tasks
                 .Where(task => !string.Equals(task.RequestAction, nameof(RequestAction.delete), StringComparison.OrdinalIgnoreCase))
@@ -50,25 +132,37 @@ namespace FWO.Compliance
                 .Where(task => task.GetNwObjectElements(ElemFieldType.destination).Count > 0)
                 .Where(task => task.GetServiceElements().Count > 0))
             {
-                Rule? rule = BuildRuleFromRequestTask(task, networkGroupMembers, serviceGroupMembers);
-                if (rule != null)
-                {
-                    rules.Add(rule);
-                }
-                else if (HasUnresolvedGroup(task, networkGroupMembers, serviceGroupMembers))
-                {
-                    return new RuleBuildResult([], true);
-                }
-                else
-                {
-                    hasUnassessableTasks = true;
-                    Log.WriteWarning("ComplianceRequestedRulePolicyChecker",
-                        $"Skipping request task {task.Id} because it contains elements that cannot be mapped to a technical rule.");
-                }
+                Rule? rule = BuildRuleFromRequestTask(task, networkGroupMembers, serviceGroupMembers, ruleActions);
+                assessments.Add(new TaskAssessment(task, rule,
+                    rule == null && HasUnresolvedGroup(task, networkGroupMembers, serviceGroupMembers)));
             }
 
-            return new RuleBuildResult(rules, hasUnassessableTasks);
+            return assessments;
         }
+
+        /// <summary>
+        /// Loads the workflow rule actions if a task selects one; an empty catalog if none is selected or the catalog cannot be loaded,
+        /// so the selected actions are unknown and the tasks are not assessable.
+        /// </summary>
+        private async Task<IReadOnlyDictionary<int, RuleAction>> LoadRuleActions(IEnumerable<WfReqTask> tasks)
+        {
+            if (!tasks.Any(task => task.RuleAction.HasValue))
+            {
+                return new Dictionary<int, RuleAction>();
+            }
+            try
+            {
+                List<RuleAction> ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions) ?? [];
+                return ruleActions.DistinctBy(ruleAction => ruleAction.Id).ToDictionary(ruleAction => ruleAction.Id);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteWarning("ComplianceRequestedRulePolicyChecker", $"Rule actions could not be loaded: {exception.Message}");
+                return new Dictionary<int, RuleAction>();
+            }
+        }
+
+        private sealed record TaskAssessment(WfReqTask RequestTask, Rule? MappedRule, bool UnresolvedGroup);
 
         private sealed record RuleBuildResult(List<Rule> Rules, bool HasUnassessableTasks);
 
@@ -377,8 +471,16 @@ namespace FWO.Compliance
 
         private static Rule? BuildRuleFromRequestTask(WfReqTask requestTask,
             IReadOnlyDictionary<string, List<NwObjectElement>> networkGroupMembers,
-            IReadOnlyDictionary<string, List<NwServiceElement>> serviceGroupMembers)
+            IReadOnlyDictionary<string, List<NwServiceElement>> serviceGroupMembers,
+            IReadOnlyDictionary<int, RuleAction> ruleActions)
         {
+            string? action = GetRuleAction(requestTask, ruleActions);
+            if (action == null)
+            {
+                Log.WriteWarning("ComplianceRequestedRulePolicyChecker",
+                    $"Request task {requestTask.Id} selects the unknown rule action {requestTask.RuleAction}.");
+                return null;
+            }
             List<NwObjectElement> sourceElements = requestTask.GetNwObjectElements(ElemFieldType.source);
             List<NwObjectElement> destinationElements = requestTask.GetNwObjectElements(ElemFieldType.destination);
             List<NwServiceElement> serviceElements = requestTask.GetServiceElements();
@@ -414,12 +516,13 @@ namespace FWO.Compliance
 
             return new Rule()
             {
+                Id = requestTask.Id,
                 Uid = requestTask.GetRuleElements()
                     .Select(rule => rule.RuleUid)
                     .FirstOrDefault(uid => !string.IsNullOrWhiteSpace(uid)) ?? "",
                 MgmtId = requestTask.ManagementId ?? 0,
                 Name = requestTask.Title,
-                Action = GetRuleAction(requestTask),
+                Action = action,
                 Froms = [.. froms],
                 Tos = [.. tos],
                 Services = [.. services]
@@ -622,15 +725,27 @@ namespace FWO.Compliance
             return !string.Equals(element.RequestAction, nameof(RequestAction.delete), StringComparison.OrdinalIgnoreCase);
         }
 
-        private static string GetRuleAction(WfReqTask requestTask)
+        /// <summary>
+        /// Returns the action of the requested rule: deletions and selected rule actions that do not allow traffic drop,
+        /// other requests accept; without a selected rule action the request allows traffic, as in the Flow synchronization.
+        /// </summary>
+        /// <returns>Null if the selected rule action is unknown.</returns>
+        private static string? GetRuleAction(WfReqTask requestTask, IReadOnlyDictionary<int, RuleAction> ruleActions)
         {
             if (string.Equals(requestTask.TaskType, WfTaskType.rule_delete.ToString(), StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(requestTask.RequestAction, nameof(RequestAction.delete), StringComparison.OrdinalIgnoreCase))
             {
                 return RuleActions.Drop;
             }
-
-            return RuleActions.Accept;
+            if (!requestTask.RuleAction.HasValue)
+            {
+                return RuleActions.Accept;
+            }
+            if (!ruleActions.TryGetValue(requestTask.RuleAction.Value, out RuleAction? ruleAction))
+            {
+                return null;
+            }
+            return ruleAction.Allowed ? RuleActions.Accept : RuleActions.Drop;
         }
     }
 

@@ -60,10 +60,10 @@ namespace FWO.Config.Api.Data
         [JsonProperty("defaultManagementRulebaseView"), JsonPropertyName("defaultManagementRulebaseView"), UserConfigData]
         public bool DefaultManagementRulebaseView { get; set; } = false;
 
-        [JsonProperty("unusedTolerance"), JsonPropertyName("unusedTolerance")]
+        [JsonProperty("unusedTolerance"), JsonPropertyName("unusedTolerance"), UserConfigData]
         public int UnusedTolerance { get; set; } = 400;
 
-        [JsonProperty("creationTolerance"), JsonPropertyName("creationTolerance")]
+        [JsonProperty("creationTolerance"), JsonPropertyName("creationTolerance"), UserConfigData]
         public int CreationTolerance { get; set; } = 90;
 
         [JsonProperty("availableReportTypes"), JsonPropertyName("availableReportTypes")]
@@ -162,7 +162,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("recertificationNoticePeriod"), JsonPropertyName("recertificationNoticePeriod")]
         public int RecertificationNoticePeriod { get; set; } = 30;
 
-        [JsonProperty("recertificationDisplayPeriod"), JsonPropertyName("recertificationDisplayPeriod")]
+        [JsonProperty("recertificationDisplayPeriod"), JsonPropertyName("recertificationDisplayPeriod"), UserConfigData]
         public int RecertificationDisplayPeriod { get; set; } = 30;
 
         [JsonProperty("ruleRemovalGracePeriod"), JsonPropertyName("ruleRemovalGracePeriod")]
@@ -367,11 +367,23 @@ namespace FWO.Config.Api.Data
         [JsonProperty("reqAllowedChangesByApprover"), JsonPropertyName("reqAllowedChangesByApprover")]
         public string ReqAllowedChangesByApprover { get; set; } = System.Text.Json.JsonSerializer.Serialize(new ApproverAllowedChangesConfig());
 
+        [JsonProperty("reqAllowOwnerChangesByPlanner"), JsonPropertyName("reqAllowOwnerChangesByPlanner")]
+        public bool ReqAllowOwnerChangesByPlanner { get; set; } = false;
+
         [JsonProperty("reqApprovalEditMode"), JsonPropertyName("reqApprovalEditMode")]
         public ApprovalEditMode ReqApprovalEditMode { get; set; } = ApprovalEditMode.Classic;
 
+        [JsonProperty("reqPlannerEditMode"), JsonPropertyName("reqPlannerEditMode")]
+        public PlannerEditMode ReqPlannerEditMode { get; set; } = PlannerEditMode.Classic;
+
         [JsonProperty("reqImplicitApprovalComment"), JsonPropertyName("reqImplicitApprovalComment")]
         public string ReqImplicitApprovalComment { get; set; } = "Automatically approved because the request task was promoted beyond the approval phase.";
+
+        /// <summary>
+        /// Label of the ticket reference from a preceding workflow (e.g. "ChangeId"). An empty label hides the reference in the UI.
+        /// </summary>
+        [JsonProperty("reqPreWorkflowTicketReferenceLabel"), JsonPropertyName("reqPreWorkflowTicketReferenceLabel")]
+        public string ReqPreWorkflowTicketReferenceLabel { get; set; } = "";
 
         [JsonProperty("ruleOwnershipMode"), JsonPropertyName("ruleOwnershipMode")]
         public RuleOwnershipMode RuleOwnershipMode { get; set; } = RuleOwnershipMode.mixed;
@@ -458,7 +470,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty(AiSettings.kReasonCheckRolesKey), JsonPropertyName(AiSettings.kReasonCheckRolesKey)]
         public string AiReasonCheckRoles { get; set; } = AiFunctionRoles.kNoRestriction;
 
-        [JsonProperty("overviewDisplayLines"), JsonPropertyName("overviewDisplayLines")]
+        [JsonProperty("overviewDisplayLines"), JsonPropertyName("overviewDisplayLines"), UserConfigData]
         public int OverviewDisplayLines { get; set; } = 3;
 
         [JsonProperty("reducedProtocolSet"), JsonPropertyName("reducedProtocolSet")]
@@ -508,6 +520,15 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("importLogDataMaxEntries"), JsonPropertyName("importLogDataMaxEntries")]
         public int ImportLogDataMaxEntries { get; set; } = 1000;
+
+        [JsonProperty("importRuleHitsSleepTime"), JsonPropertyName("importRuleHitsSleepTime")]
+        public int ImportRuleHitsSleepTime { get; set; } = 1;
+
+        [JsonProperty("importRuleHitsSleepTimeUnit"), JsonPropertyName("importRuleHitsSleepTimeUnit")]
+        public RuleHitImportIntervalUnit ImportRuleHitsSleepTimeUnit { get; set; } = RuleHitImportIntervalUnit.Days;
+
+        [JsonProperty("importRuleHitsStartAt"), JsonPropertyName("importRuleHitsStartAt")]
+        public DateTime ImportRuleHitsStartAt { get; set; } = DateTime.Now.Date;
 
         [JsonProperty("logDataRetentionDays"), JsonPropertyName("logDataRetentionDays")]
         public int LogDataRetentionDays { get; set; } = 90;
@@ -692,9 +713,6 @@ namespace FWO.Config.Api.Data
         [JsonProperty("externalRequestWaitCycles"), JsonPropertyName("externalRequestWaitCycles")]
         public int ExternalRequestWaitCycles { get; set; } = 0;
 
-        [JsonProperty("extTicketSystems"), JsonPropertyName("extTicketSystems")]
-        public string ExtTicketSystems { get; set; } = "";
-
         /// <summary>
         /// Whether TLS certificates of all external ticket systems are checked.
         /// </summary>
@@ -757,7 +775,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("varianceAnalysisRefresh"), JsonPropertyName("varianceAnalysisRefresh")]
         public bool VarianceAnalysisRefresh { get; set; } = false;
 
-        [JsonProperty("resolveNetworkAreas"), JsonPropertyName("resolveNetworkAreas")]
+        [JsonProperty("resolveNetworkAreas"), JsonPropertyName("resolveNetworkAreas"), UserConfigData]
         public bool ResolveNetworkAreas { get; set; } = false;
 
         [JsonProperty("complianceCheckSleepTime"), JsonPropertyName("complianceCheckSleepTime")]
@@ -899,11 +917,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceDiffFilterExistingViolations"), JsonPropertyName("complianceDiffFilterExistingViolations")]
         public bool ComplianceDiffFilterExistingViolations { get; set; } = false;
 
-        [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
+        [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState"), UserConfigData]
         public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;
-
-        [JsonProperty("fwConfigChangeMgmSettings"), JsonPropertyName("fwConfigChangeMgmSettings")]
-        public string FwConfigChangeMgmSettings { get; set; } = "[]";
 
         [JsonProperty("allowFullRollback"), JsonPropertyName("allowFullRollback")]
         public bool AllowFullRollback { get; set; } = false;

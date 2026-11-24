@@ -42,7 +42,8 @@ internal class HarnessSettingsTest
     [Test]
     public void FromConfiguration_WithoutSection_UsesDefaults()
     {
-        HarnessSettings settings = HarnessSettings.FromConfiguration(CreateConfiguration(new Dictionary<string, string?>()));
+        Dictionary<string, string?> settingsValues = [];
+        HarnessSettings settings = HarnessSettings.FromConfiguration(CreateConfiguration(settingsValues));
 
         Assert.That(settings.McpEndpoint, Is.EqualTo(new Uri(HarnessSettings.kDefaultMcpEndpoint)));
         Assert.That(settings.McpConnectionTimeout, Is.Null);

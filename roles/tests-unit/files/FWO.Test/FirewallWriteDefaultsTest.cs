@@ -40,7 +40,8 @@ namespace FWO.Test
             FirewallWritePlaceholders.RuleDestinations, FirewallWritePlaceholders.RuleServices, FirewallWritePlaceholders.RuleSourcesToAdd,
             FirewallWritePlaceholders.RuleSourcesToRemove, FirewallWritePlaceholders.RuleDestinationsToAdd, FirewallWritePlaceholders.RuleDestinationsToRemove,
             FirewallWritePlaceholders.RuleServicesToAdd, FirewallWritePlaceholders.RuleServicesToRemove, FirewallWritePlaceholders.RuleSourceAddresses,
-            FirewallWritePlaceholders.RuleDestinationAddresses, FirewallWritePlaceholders.RuleServicePorts, FirewallWritePlaceholders.RuleServiceProtocols
+            FirewallWritePlaceholders.RuleDestinationAddresses, FirewallWritePlaceholders.RuleServicePorts, FirewallWritePlaceholders.RuleServiceProtocols,
+            FirewallWritePlaceholders.InstallOn
         ];
 
         private static readonly List<string> kNameObjectPlaceholders =

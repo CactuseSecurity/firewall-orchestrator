@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Config.File;
 using FWO.Logging;
 using System.Net;
@@ -22,12 +23,13 @@ namespace FWO.Middleware.Server
         /// <summary>Credentialed login attempts per minute and client address; trusted clients are exempt.</summary>
         public int ClientAttemptsPerMinute { get; init; } = kDefaultClientAttemptsPerMinute;
 
-        /// <summary>Failed logins per minute for one user name from one client address.</summary>
+        /// <summary>Failed logins per minute for one user name from one caller address.</summary>
         public int UserFailuresPerMinute { get; init; } = kDefaultUserFailuresPerMinute;
 
         /// <summary>
-        /// Client addresses exempt from the per-client limit: this host and the configured UI hosts, whose
-        /// address is shared by all users logging in through the UI.
+        /// Addresses of this host and the configured UI hosts. They are exempt from the per-client limit, and
+        /// the client address they report with a login is accepted: the UI logs in for its users and reports
+        /// their address, so that they are limited and logged by their own address.
         /// </summary>
         public List<IPAddress> TrustedClientAddresses { get; init; } = [];
 
@@ -71,7 +73,7 @@ namespace FWO.Middleware.Server
                     Log.WriteWarning(kLogCategory, $"Trusted login client host \"{host}\" could not be resolved and is not exempt: {exception.Message}");
                 }
             }
-            return addresses.ConvertAll(LoginThrottle.Normalize);
+            return addresses.ConvertAll(ClientAddressFormat.Normalize);
         }
 
         private static List<IPAddress> GetLocalAddresses()
@@ -87,7 +89,7 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteWarning(kLogCategory, $"Local addresses could not be read, only loopback is exempt: {exception.Message}");
             }
-            return addresses.ConvertAll(LoginThrottle.Normalize);
+            return addresses.ConvertAll(ClientAddressFormat.Normalize);
         }
 
         private static int PositiveOrDefault(int? value, int defaultValue)
@@ -108,7 +110,7 @@ namespace FWO.Middleware.Server
         private readonly int userFailuresPerWindow;
         // attempts of a user name and client that are still running: each of them may still fail
         private readonly Dictionary<string, int> pendingAttempts = [];
-        private readonly object attemptLock = new();
+        private readonly Lock attemptLock = new();
 
         /// <summary>Retry hint for rejected clients, matching the limiter window.</summary>
         public const int kRetryAfterSeconds = 60;
@@ -124,7 +126,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         internal LoginThrottle(LoginThrottleSettings settings, TimeSpan window)
         {
-            trustedClients = settings.TrustedClientAddresses.Select(Normalize).ToHashSet();
+            trustedClients = settings.TrustedClientAddresses.Select(ClientAddressFormat.Normalize).ToHashSet();
             clientAttempts = CreateLimiter(settings.ClientAttemptsPerMinute, window);
             userFailures = CreateLimiter(settings.UserFailuresPerMinute, window);
             userFailuresPerWindow = settings.UserFailuresPerMinute;
@@ -135,16 +137,22 @@ namespace FWO.Middleware.Server
         /// that are still running as possible failures: otherwise concurrent attempts would all pass the check before
         /// the first failure is recorded.
         /// </summary>
+        /// <remarks>
+        /// The failures of the user stay keyed by the caller even if it reports another client: a caller on a
+        /// trusted host could otherwise evade the failure limit by reporting a new client address with every guess.
+        /// </remarks>
         /// <param name="userName">Login name of the attempt; null or empty for anonymous requests.</param>
-        /// <param name="client">Client address as seen after forwarded-header processing.</param>
+        /// <param name="caller">Address of the caller as seen after forwarded-header processing.</param>
+        /// <param name="reportedClient">Client the caller logs in for, see <see cref="ResolveClient"/>; null if it reported none.</param>
         /// <returns>The attempt, to be disposed when it ends, or null if the attempt must not proceed to the directories.</returns>
-        public LoginAttempt? BeginAttempt(string? userName, IPAddress? client)
+        public LoginAttempt? BeginAttempt(string? userName, IPAddress? caller, IPAddress? reportedClient = null)
         {
             if (string.IsNullOrWhiteSpace(userName))
             {
                 return new LoginAttempt(this, null);
             }
-            string userKey = UserKey(userName, client);
+            string userKey = UserKey(userName, caller);
+            IPAddress? client = ResolveClient(caller, reportedClient);
             lock (attemptLock)
             {
                 long availableFailures = userFailures.GetStatistics(userKey)?.CurrentAvailablePermits ?? userFailuresPerWindow;
@@ -156,6 +164,33 @@ namespace FWO.Middleware.Server
                 pendingAttempts[userKey] = pending + 1;
             }
             return new LoginAttempt(this, userKey);
+        }
+
+        /// <summary>
+        /// Returns the client a login is counted and logged for. A trusted caller (this host or a configured UI
+        /// host) logs in for its own clients and may report their address; the address reported by any other
+        /// caller is ignored, as it would let that caller choose its logged address and its login limit.
+        /// </summary>
+        /// <param name="caller">Address of the caller as seen after forwarded-header processing.</param>
+        /// <param name="reportedClient">Client address reported by the caller; null if it reported none.</param>
+        /// <returns>The reported client of a trusted caller, otherwise the caller.</returns>
+        public IPAddress? ResolveClient(IPAddress? caller, IPAddress? reportedClient)
+        {
+            if (reportedClient == null || !IsTrustedClient(caller))
+            {
+                return caller;
+            }
+            return ClientAddressFormat.Normalize(reportedClient);
+        }
+
+        /// <summary>
+        /// Tells whether an address belongs to this host or a configured UI host.
+        /// </summary>
+        /// <param name="address">Address to check.</param>
+        /// <returns>True if the address is trusted.</returns>
+        public bool IsTrustedClient(IPAddress? address)
+        {
+            return address != null && trustedClients.Contains(ClientAddressFormat.Normalize(address));
         }
 
         /// <summary>
@@ -188,24 +223,16 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Consumes one attempt of the client address; trusted clients (UI and middleware hosts) are not limited.
         /// </summary>
-        /// <param name="client">Client address as seen after forwarded-header processing.</param>
+        /// <param name="client">Client of the attempt, see <see cref="ResolveClient"/>.</param>
         /// <returns>True if the client may make another attempt.</returns>
         private bool TryConsumeClientAttempt(IPAddress? client)
         {
-            if (client != null && trustedClients.Contains(Normalize(client)))
+            if (IsTrustedClient(client))
             {
                 return true;
             }
             using RateLimitLease lease = clientAttempts.AttemptAcquire(ClientKey(client));
             return lease.IsAcquired;
-        }
-
-        /// <summary>
-        /// Maps IPv4-mapped IPv6 addresses to IPv4 so both notations share one partition.
-        /// </summary>
-        internal static IPAddress Normalize(IPAddress address)
-        {
-            return address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
         }
 
         /// <inheritdoc />
@@ -215,9 +242,15 @@ namespace FWO.Middleware.Server
             userFailures.Dispose();
         }
 
+        /// <summary>
+        /// Returns the partition key of a client: its normalized address (see <see cref="ClientAddressFormat.Normalize"/>),
+        /// so that both notations of an IPv4 address and an IPv6 address with and without scope id share one partition.
+        /// </summary>
+        /// <param name="client">Client address; null if it is not known.</param>
+        /// <returns>The address text, or <see cref="ClientAddressFormat.kUnknown"/>.</returns>
         private static string ClientKey(IPAddress? client)
         {
-            return client == null ? "unknown" : Normalize(client).ToString();
+            return ClientAddressFormat.Describe(client);
         }
 
         private static string UserKey(string userName, IPAddress? client)

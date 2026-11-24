@@ -106,7 +106,7 @@ public sealed class FwoUserAgent : DelegatingAIAgent
         List<ChatMessage> instructionMessages = await mcpConnection.GetPromptMessagesAsync(kInstructionsPromptName, cancellationToken: cancellationToken);
         ChatClientAgentRunOptions runOptions = CreateRunOptions(ToolApproval.RequireApprovalUnlessReadOnly(mcpTools),
             JoinInstructions(instructionMessages));
-        List<AgentResponseUpdate> responseUpdates = new();
+        List<AgentResponseUpdate> responseUpdates = [];
         await foreach (AgentResponseUpdate update in InnerAgent.RunStreamingAsync(runMessages, session, runOptions, cancellationToken))
         {
             responseUpdates.Add(update);

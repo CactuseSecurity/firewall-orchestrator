@@ -41,7 +41,7 @@ internal static class ConversationSnapshot
     /// </summary>
     internal static List<ChatMessage> WithoutApprovals(IEnumerable<ChatMessage> messages)
     {
-        List<ChatMessage> keptMessages = new();
+        List<ChatMessage> keptMessages = [];
         foreach (ChatMessage message in messages)
         {
             List<AIContent> contents = message.Contents

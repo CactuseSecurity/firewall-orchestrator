@@ -5,7 +5,7 @@ namespace FWO.Test.Mocks
 {
     public class MockApiConnection : Mock<ApiConnection>
     {
-        public List<(string Query, object Variables)> SentQueries { get; } = new();
+        public List<(string Query, object Variables)> SentQueries { get; } = [];
 
         protected override void Configure(ApiConnection sub)
         {

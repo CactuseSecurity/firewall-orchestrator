@@ -62,7 +62,7 @@ public sealed class AgentPromptRequest
     /// </summary>
     internal JsonElement CreateForwardedProperties()
     {
-        JsonObject arguments = new();
+        JsonObject arguments = [];
         foreach (KeyValuePair<string, string> argument in Arguments)
         {
             arguments[argument.Key] = argument.Value;

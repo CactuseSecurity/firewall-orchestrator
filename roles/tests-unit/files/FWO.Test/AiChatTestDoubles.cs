@@ -56,7 +56,7 @@ internal sealed class AiChatAuthenticationStateProvider : AuthenticationStatePro
         {
             return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
         }
-        List<Claim> claims = new() { new Claim(AiChatSession.kUserDnClaim, userDn) };
+        List<Claim> claims = [new Claim(AiChatSession.kUserDnClaim, userDn)];
         return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(claims, "Test")));
     }
 }
@@ -161,7 +161,7 @@ internal static class AiChatTestUpdates
     internal static ChatResponseUpdate ApprovalRequest(string requestId, string toolName, IDictionary<string, object?>? arguments = null)
     {
         FunctionCallContent call = new($"call-{requestId}", toolName, arguments);
-        List<AIContent> contents = new() { new ToolApprovalRequestContent(requestId, call) };
+        List<AIContent> contents = [new ToolApprovalRequestContent(requestId, call)];
         return new ChatResponseUpdate(ChatRole.Assistant, contents);
     }
 
@@ -170,7 +170,7 @@ internal static class AiChatTestUpdates
     /// </summary>
     internal static ChatResponseUpdate RunError(string message)
     {
-        List<AIContent> contents = new() { new ErrorContent(message) { ErrorCode = "run_error" } };
+        List<AIContent> contents = [new ErrorContent(message) { ErrorCode = "run_error" }];
         return new ChatResponseUpdate(ChatRole.Assistant, contents);
     }
 

@@ -32,7 +32,7 @@ internal sealed class FwoAgentChatClient : DelegatingChatClient
     public override async Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        List<ChatResponseUpdate> updates = new();
+        List<ChatResponseUpdate> updates = [];
         await foreach (ChatResponseUpdate update in GetStreamingResponseAsync(messages, options, cancellationToken))
         {
             updates.Add(update);

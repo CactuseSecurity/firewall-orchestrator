@@ -10,14 +10,19 @@ using FWO.Data.RulePositioning;
 using FWO.Data.RulePositioning.CheckPoint;
 using FWO.Data.Workflow;
 using FWO.Services.RulePositioning;
+using FWO.Services.RulePositioning.Blocks;
+using FWO.Services.RulePositioning.CheckPoint;
+using FWO.Test.Helpers;
 using NUnit.Framework;
 
 namespace FWO.Test;
 
 [TestFixture]
+[NonParallelizable]
 internal class RulePositioningWorkflowCallerTest
 {
     private const int kManagementId = 11;
+    private const int kGatewayManagementId = 12;
     private const int kGatewayId = 21;
     private const long kRequestTaskId = 31;
     private const long kImplementationTaskId = 41;
@@ -53,26 +58,204 @@ internal class RulePositioningWorkflowCallerTest
         });
     }
 
+    [TestCase(null)]
+    [TestCase(kGatewayManagementId)]
+    public async Task CalculateAndPersistAsync_UsesCrossManagementGatewayOwner(
+        int? implementationManagementId)
+    {
+        RecordingApiConnection api = new() { TargetManagementId = kGatewayManagementId };
+        RecordingStrategy strategy = new(Success());
+        RulePositioningWorkflowCaller caller = Caller(api, strategy);
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        implementationTask.ManagementId = implementationManagementId;
+
+        RulePositioningWorkflowOutcome outcome = await caller.CalculateAndPersistAsync(
+            requestTask,
+            implementationTask,
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.Stored));
+            Assert.That(strategy.Context!.TargetManagement.Id, Is.EqualTo(kGatewayManagementId));
+            Assert.That(api.TargetReads, Is.EqualTo(1));
+            Assert.That(api.SettingsReads, Is.EqualTo(1));
+            Assert.That(strategy.CalculationCount, Is.EqualTo(1));
+            Assert.That(api.LastPosition, Is.TypeOf<CheckPointRulePosition>());
+        });
+    }
+
     [Test]
-    public async Task CustomerAlgorithm_LoadsOrderedManagementTicketSliceAndKeepsSuppliedParent()
+    public async Task CalculateAndPersistAsync_RejectsExplicitManagementThatDiffersFromGatewayOwnerBeforeSettings()
+    {
+        RecordingApiConnection api = new() { TargetManagementId = kGatewayManagementId };
+        RecordingStrategy strategy = new(Success());
+        RulePositioningWorkflowCaller caller = Caller(api, strategy);
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        implementationTask.ManagementId = kManagementId;
+
+        RulePositioningWorkflowOutcome outcome = await caller.CalculateAndPersistAsync(
+            requestTask,
+            implementationTask,
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.ClearedAfterFailure));
+            Assert.That(outcome.FailureCategory, Is.EqualTo(RulePositioningFailureCategory.CalculationFailed));
+            Assert.That(api.TargetReads, Is.EqualTo(1));
+            Assert.That(api.SettingsReads, Is.Zero);
+            Assert.That(api.ConfigReads, Is.Zero);
+            Assert.That(api.TicketReads, Is.Zero);
+            Assert.That(strategy.CalculationCount, Is.Zero);
+            Assert.That(api.LastPosition, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task CalculateAndPersistAsync_UsesGatewayOwnerWithoutRequestOrImplementationManagement()
+    {
+        RecordingApiConnection api = new() { TargetManagementId = kGatewayManagementId };
+        RecordingStrategy strategy = new(Success());
+        RulePositioningWorkflowCaller caller = Caller(api, strategy);
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        requestTask.ManagementId = null;
+        implementationTask.ManagementId = null;
+
+        RulePositioningWorkflowOutcome outcome = await caller.CalculateAndPersistAsync(
+            requestTask,
+            implementationTask,
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.Stored));
+            Assert.That(strategy.Context!.TargetManagement.Id, Is.EqualTo(kGatewayManagementId));
+            Assert.That(api.SettingsReads, Is.EqualTo(1));
+            Assert.That(strategy.CalculationCount, Is.EqualTo(1));
+        });
+    }
+
+    [TestCase(null)]
+    [TestCase(0)]
+    public async Task CustomerAlgorithm_WithoutRequestManagementLoadsTicketAndStoresPosition(
+        int? requestManagementId)
     {
         RecordingApiConnection api = new()
         {
-            PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection
+            PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection,
+            TargetManagementId = kGatewayManagementId
+        };
+        RecordingStrategy strategy = new(Success(
+            ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        requestTask.ManagementId = requestManagementId;
+        implementationTask.ManagementId = null;
+        WfReqTask persistedParent = TicketTask(kRequestTaskId, requestTask.TaskNumber, kManagementId);
+        List<WfReqTask> expectedTicketTasks = [persistedParent];
+        api.Ticket = new WfTicket
+        {
+            Id = requestTask.TicketId,
+            Tasks = [persistedParent]
+        };
+
+        RulePositioningWorkflowOutcome outcome = await Caller(api, strategy).CalculateAndPersistAsync(
+            requestTask,
+            implementationTask,
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.Stored));
+            Assert.That(api.TargetReads, Is.EqualTo(1));
+            Assert.That(api.SettingsReads, Is.EqualTo(1));
+            Assert.That(api.TicketReads, Is.EqualTo(1));
+            Assert.That(api.ConfigReads, Is.EqualTo(1));
+            Assert.That(api.PositionWrites, Is.EqualTo(1));
+            Assert.That(api.LastPosition, Is.TypeOf<CheckPointRulePosition>());
+            Assert.That(strategy.CalculationCount, Is.EqualTo(1));
+            Assert.That(strategy.Context?.ParentRequestTask, Is.SameAs(requestTask));
+            Assert.That(strategy.Context?.TargetManagement.Id, Is.EqualTo(kGatewayManagementId));
+            Assert.That(strategy.Context?.TicketRequestTasks, Is.EqualTo(expectedTicketTasks));
+        });
+    }
+
+    [TestCase(InvalidTargetCase.Missing)]
+    [TestCase(InvalidTargetCase.Duplicate)]
+    [TestCase(InvalidTargetCase.WrongGateway)]
+    [TestCase(InvalidTargetCase.MissingManagement)]
+    [TestCase(InvalidTargetCase.InvalidManagement)]
+    public async Task CalculateAndPersistAsync_RejectsInvalidGatewayResultBeforeSettings(
+        InvalidTargetCase invalidTargetCase)
+    {
+        RecordingApiConnection api = new();
+        switch (invalidTargetCase)
+        {
+            case InvalidTargetCase.Missing:
+                api.TargetCount = 0;
+                break;
+            case InvalidTargetCase.Duplicate:
+                api.TargetCount = 2;
+                break;
+            case InvalidTargetCase.WrongGateway:
+                api.TargetGatewayId = kGatewayId + 1;
+                break;
+            case InvalidTargetCase.MissingManagement:
+                api.TargetHasManagement = false;
+                break;
+            case InvalidTargetCase.InvalidManagement:
+                api.TargetManagementId = 0;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(invalidTargetCase));
+        }
+        RecordingStrategy strategy = new(Success());
+        RulePositioningWorkflowCaller caller = Caller(api, strategy);
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+
+        RulePositioningWorkflowOutcome outcome = await caller.CalculateAndPersistAsync(
+            requestTask,
+            implementationTask,
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.ClearedAfterFailure));
+            Assert.That(api.TargetReads, Is.EqualTo(1));
+            Assert.That(api.SettingsReads, Is.Zero);
+            Assert.That(strategy.CalculationCount, Is.Zero);
+        });
+    }
+
+    [TestCase(null)]
+    [TestCase(kGatewayManagementId)]
+    public async Task CustomerAlgorithm_LoadsOrderedTicketContainerAndUsesGatewayOwner(
+        int? implementationManagementId)
+    {
+        RecordingApiConnection api = new()
+        {
+            PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection,
+            TargetManagementId = kGatewayManagementId
         };
         RecordingStrategy strategy = new(Success(
             ProvisioningPositioningAlgorithm.CheckPointLayerGuardEndOfZonePairSection));
         RulePositioningWorkflowCaller caller = Caller(api, strategy);
         (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        implementationTask.ManagementId = implementationManagementId;
         WfReqTask persistedParent = TicketTask(kRequestTaskId, 3, kManagementId);
-        WfReqTask earlier = TicketTask(51, 1, kManagementId);
+        WfReqTask earlier = TicketTask(51, 1, 999);
+        WfReqTask middle = TicketTask(61, 2, kGatewayManagementId);
+        WfReqTask otherTicket = TicketTask(71, 1, kManagementId);
+        otherTicket.TicketId = requestTask.TicketId + 1;
+        List<WfReqTask> expectedTicketTasks = [earlier, middle, persistedParent];
         api.Ticket = new WfTicket
         {
             Id = requestTask.TicketId,
             Tasks =
             [
                 persistedParent,
-                TicketTask(61, 2, 999),
+                middle,
+                otherTicket,
                 earlier
             ]
         };
@@ -87,8 +270,10 @@ internal class RulePositioningWorkflowCallerTest
             Assert.That(outcome.Status, Is.EqualTo(RulePositioningWorkflowStatus.Stored));
             Assert.That(api.TicketReads, Is.EqualTo(1));
             Assert.That(strategy.Context!.ParentRequestTask, Is.SameAs(requestTask));
-            Assert.That(strategy.Context.TicketRequestTasks, Is.EqualTo([earlier, persistedParent]));
+            Assert.That(strategy.Context.TargetManagement.Id, Is.EqualTo(kGatewayManagementId));
+            Assert.That(strategy.Context.TicketRequestTasks, Is.EqualTo(expectedTicketTasks));
             Assert.That(strategy.Context.TicketRequestTasks, Is.Not.SameAs(api.Ticket.Tasks));
+            Assert.That(strategy.Context.TicketRequestTasks!.Count(task => task.Id == requestTask.Id), Is.EqualTo(1));
         });
     }
 
@@ -239,6 +424,135 @@ internal class RulePositioningWorkflowCallerTest
         });
     }
 
+    [TestCase(CheckPointSectionScopeBlock.kKind)]
+    [TestCase(CheckPointLayerGuardScopeBlock.kKind)]
+    public async Task CalculateAndPersistAsync_LogsBlockKindWithKnownScopeFailure(string blockKind)
+    {
+        string technicalDiagnostic =
+            $"recipe execution / {blockKind} / ScopeNotFound: " +
+            "The requested positioning scope was not found.";
+        RecordingApiConnection api = new();
+        RulePositioningWorkflowCaller caller = Caller(
+            api,
+            new RecordingStrategy(new RulePositioningFailure(
+                RulePositioningFailureCategory.CalculationFailed,
+                technicalDiagnostic)));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+            await caller.CalculateAndPersistAsync(requestTask, implementationTask, CancellationToken.None));
+
+        List<string> errorLines = CalculationErrorLines(output);
+        Assert.Multiple(() =>
+        {
+            Assert.That(errorLines, Has.Count.EqualTo(1));
+            Assert.That(errorLines[0], Does.Contain("implementation task 41"));
+            Assert.That(errorLines[0], Does.Contain("request task 31"));
+            Assert.That(errorLines[0], Does.Contain("ticket 71"));
+            Assert.That(errorLines[0], Does.Contain("gateway 21"));
+            Assert.That(errorLines[0], Does.Contain(nameof(RulePositioningFailureCategory.CalculationFailed)));
+            Assert.That(errorLines[0], Does.Contain(nameof(PositioningBlockFailureCategory.ScopeNotFound)));
+            Assert.That(errorLines[0], Does.Contain(blockKind));
+            Assert.That(errorLines[0], Does.Contain("The requested positioning scope was not found."));
+        });
+    }
+
+    [Test]
+    public async Task CalculateAndPersistAsync_CategoryOnlyFailureLogsSafeFallback()
+    {
+        RecordingApiConnection api = new();
+        RulePositioningWorkflowCaller caller = Caller(
+            api,
+            new RecordingStrategy(new RulePositioningFailure(RulePositioningFailureCategory.InvalidInput)));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+            await caller.CalculateAndPersistAsync(requestTask, implementationTask, CancellationToken.None));
+
+        List<string> errorLines = CalculationErrorLines(output);
+        Assert.Multiple(() =>
+        {
+            Assert.That(errorLines, Has.Count.EqualTo(1));
+            Assert.That(errorLines[0], Does.Contain(nameof(RulePositioningFailureCategory.InvalidInput)));
+            Assert.That(errorLines[0], Does.Contain("The rule-positioning input is invalid."));
+        });
+    }
+
+    [Test]
+    public async Task CalculateAndPersistAsync_CallerCancellationDoesNotLogCalculationFailure()
+    {
+        RecordingApiConnection api = new();
+        RulePositioningWorkflowCaller caller = Caller(api, new RecordingStrategy(Success()));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        using CancellationTokenSource cancellation = new();
+        cancellation.Cancel();
+
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+        {
+            Assert.CatchAsync<OperationCanceledException>(async () =>
+                await caller.CalculateAndPersistAsync(requestTask, implementationTask, cancellation.Token));
+        });
+
+        Assert.That(CalculationErrorLines(output), Is.Empty);
+    }
+
+    [Test]
+    public async Task CalculateAndPersistAsync_CancellationWhileReadFaultsRemainsQuietAndDoesNotWrite()
+    {
+        RecordingApiConnection api = new() { DelayTargetRead = true };
+        RulePositioningWorkflowCaller caller = Caller(api, new RecordingStrategy(Success()));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        using CancellationTokenSource cancellation = new();
+
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+        {
+            Task<RulePositioningWorkflowOutcome> call = caller.CalculateAndPersistAsync(
+                requestTask,
+                implementationTask,
+                cancellation.Token);
+            await api.TargetReadStarted.Task;
+            cancellation.Cancel();
+            api.FailTargetRead(new InvalidOperationException("sensitive late target failure"));
+
+            Assert.CatchAsync<OperationCanceledException>(async () => await call);
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(CalculationErrorLines(output), Is.Empty);
+            Assert.That(api.PositionWrites, Is.Zero);
+        });
+    }
+
+    [Test]
+    public async Task CalculateAndPersistAsync_LogsCalculationCauseWhenClearingPositionFails()
+    {
+        const string technicalDiagnostic =
+            "recipe execution / NoInsertionPoint: No valid insertion point exists in the requested scope.";
+        RecordingApiConnection api = new() { ThrowOnPositionWrite = true };
+        RulePositioningWorkflowCaller caller = Caller(
+            api,
+            new RecordingStrategy(new RulePositioningFailure(
+                RulePositioningFailureCategory.CalculationFailed,
+                technicalDiagnostic)));
+        (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
+        RulePositioningWorkflowOutcome? outcome = null;
+
+        string output = await ConsoleOutput.CaptureAsync(async () =>
+            outcome = await caller.CalculateAndPersistAsync(
+                requestTask,
+                implementationTask,
+                CancellationToken.None));
+
+        List<string> errorLines = CalculationErrorLines(output);
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome!.Status, Is.EqualTo(RulePositioningWorkflowStatus.PersistenceFailed));
+            Assert.That(errorLines, Has.Count.EqualTo(1));
+            Assert.That(errorLines[0], Does.Contain(nameof(PositioningBlockFailureCategory.NoInsertionPoint)));
+        });
+    }
+
     [Test]
     public async Task CalculateAndPersistAsync_ClearsAfterUnexpectedContextLoadFailure()
     {
@@ -376,14 +690,14 @@ internal class RulePositioningWorkflowCallerTest
     }
 
     [Test]
-    public void IsApplicable_RejectsMissingEffectiveManagement()
+    public void IsApplicable_AcceptsGatewayTaskWithoutRequestOrImplementationManagement()
     {
         RulePositioningWorkflowCaller caller = Caller(new(), new RecordingStrategy(Success()));
         (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
         requestTask.ManagementId = null;
         implementationTask.ManagementId = null;
 
-        Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.False);
+        Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.True);
     }
 
     [TestCase(WfTaskType.generic, WfTaskType.access)]
@@ -435,13 +749,13 @@ internal class RulePositioningWorkflowCallerTest
     }
 
     [Test]
-    public void IsApplicable_RejectsInconsistentRequestManagement()
+    public void IsApplicable_IgnoresInconsistentRequestManagement()
     {
         RulePositioningWorkflowCaller caller = Caller(new(), new RecordingStrategy(Success()));
         (WfReqTask requestTask, WfImplTask implementationTask) = Tasks();
         requestTask.OnManagement = new Management { Id = 999 };
 
-        Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.False);
+        Assert.That(caller.IsApplicable(requestTask, implementationTask), Is.True);
     }
 
     private static RulePositioningWorkflowCaller Caller(
@@ -488,6 +802,13 @@ internal class RulePositioningWorkflowCallerTest
         });
     }
 
+    private static List<string> CalculationErrorLines(string output)
+    {
+        return output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+            .Where(line => line.Contains(" Error - Rule positioning ", StringComparison.Ordinal))
+            .ToList();
+    }
+
     private static WfReqTask TicketTask(long id, int taskNumber, int managementId) => new()
     {
         Id = id,
@@ -525,8 +846,13 @@ internal class RulePositioningWorkflowCallerTest
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public bool ThrowOnTargetRead { get; set; }
+        public bool DelayTargetRead { get; set; }
         public bool ThrowOnPositionWrite { get; set; }
         public bool DelayPositionWrite { get; set; }
+        public int TargetCount { get; set; } = 1;
+        public int TargetGatewayId { get; set; } = kGatewayId;
+        public int TargetManagementId { get; set; } = kManagementId;
+        public bool TargetHasManagement { get; set; } = true;
         public int TargetReads { get; private set; }
         public int SettingsReads { get; private set; }
         public int TicketReads { get; private set; }
@@ -541,10 +867,21 @@ internal class RulePositioningWorkflowCallerTest
         public WfTicket? Ticket { get; set; }
         public TaskCompletionSource WriteStarted { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource TargetReadStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private TaskCompletionSource TargetReadRelease { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private Exception? DelayedTargetFailure { get; set; }
 
         public void CompletePositionWrite()
         {
             writeCompletion.TrySetResult(new ReturnId { UpdatedIdLong = kImplementationTaskId });
+        }
+
+        public void FailTargetRead(Exception exception)
+        {
+            DelayedTargetFailure = exception;
+            TargetReadRelease.TrySetResult();
         }
 
         public override async Task<T> SendQueryAsync<T>(
@@ -553,14 +890,21 @@ internal class RulePositioningWorkflowCallerTest
             string? operationName = null,
             QueryChunkingOptions? chunkingOptions = null)
         {
-            if (query == DeviceQueries.getRulePositioningTarget)
+            if (query == DeviceQueries.getImplementationTaskGatewayTarget)
             {
                 TargetReads++;
+                if (DelayTargetRead)
+                {
+                    TargetReadStarted.TrySetResult();
+                    await TargetReadRelease.Task;
+                    throw DelayedTargetFailure ??
+                        new InvalidOperationException("Delayed target read did not receive a failure.");
+                }
                 if (ThrowOnTargetRead)
                 {
                     throw new InvalidOperationException("sensitive target load failure");
                 }
-                return (T)(object)new List<Device> { Target() };
+                return (T)(object)Enumerable.Range(0, TargetCount).Select(_ => Target()).ToList();
             }
             if (query == ConfigQueries.getConfigItemsByUser)
             {
@@ -633,20 +977,20 @@ internal class RulePositioningWorkflowCallerTest
             throw new InvalidOperationException("Unexpected query in rule-positioning caller test.");
         }
 
-        private static Device Target()
+        private Device Target()
         {
             Management management = new()
             {
-                Id = kManagementId,
+                Id = TargetManagementId,
                 Name = "Management",
                 DeviceType = new DeviceType { Id = 9, Name = "Check Point", Version = "R8x" }
             };
             return new Device
             {
-                Id = kGatewayId,
+                Id = TargetGatewayId,
                 Name = "Gateway",
                 DeviceType = new DeviceType { Id = 9, Name = "Check Point", Version = "R8x" },
-                Management = management
+                Management = TargetHasManagement ? management : null!
             };
         }
 
@@ -656,5 +1000,13 @@ internal class RulePositioningWorkflowCallerTest
                 ?? throw new InvalidOperationException($"Missing variable {name}.");
             return (TValue)property.GetValue(variables)!;
         }
+    }
+    public enum InvalidTargetCase
+    {
+        Missing,
+        Duplicate,
+        WrongGateway,
+        MissingManagement,
+        InvalidManagement
     }
 }

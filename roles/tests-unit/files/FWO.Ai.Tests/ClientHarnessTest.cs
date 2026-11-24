@@ -319,10 +319,10 @@ internal class ClientHarnessTest
         internal List<ChatMessage>? Conversation { get; private set; }
 
         /// <summary>Tool approval requests that interrupted the run.</summary>
-        internal List<ToolApprovalRequestContent> ApprovalRequests { get; } = new();
+        internal List<ToolApprovalRequestContent> ApprovalRequests { get; } = [];
 
         /// <summary>Errors the run ended with.</summary>
-        internal List<ErrorContent> Errors { get; } = new();
+        internal List<ErrorContent> Errors { get; } = [];
 
         /// <summary>
         /// Sends a run with the given messages and options and collects its updates.

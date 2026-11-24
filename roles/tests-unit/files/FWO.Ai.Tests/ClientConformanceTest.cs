@@ -35,7 +35,7 @@ internal class ClientConformanceTest
         IList<McpClientPrompt> prompts = await client.ListPromptsAsync();
 
         McpClientPrompt prompt = prompts.Single(offeredPrompt => offeredPrompt.Name == ConnectionReasonCheck.kPromptName);
-        List<string> argumentNames = prompt.ProtocolPrompt.Arguments?.Select(argument => argument.Name).ToList() ?? new List<string>();
+        List<string> argumentNames = prompt.ProtocolPrompt.Arguments?.Select(argument => argument.Name).ToList() ?? [];
         Assert.That(argumentNames, Is.SupersetOf(ConnectionReasonCheck.kArgumentNames));
     }
 

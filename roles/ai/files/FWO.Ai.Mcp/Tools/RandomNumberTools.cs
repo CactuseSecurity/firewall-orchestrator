@@ -17,7 +17,7 @@ internal class RandomNumberTools
     [McpServerTool(ReadOnly = true)]
     [Description("Generates a random number between the specified minimum and maximum values.")]
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
-    public int GetRandomNumber(
+    public static int GetRandomNumber(
         [Description("Minimum value (inclusive)")] int min = 0,
         [Description("Maximum value (exclusive)")] int max = 100)
     {

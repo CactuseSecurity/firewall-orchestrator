@@ -11,7 +11,7 @@ namespace FWO.Test
     /// </summary>
     public class SimulatedSCClient : SCClient
     {
-        private readonly Dictionary<string, Queue<RestResponse<int>>> queuedResponses = new();
+        private readonly Dictionary<string, Queue<RestResponse<int>>> queuedResponses = [];
 
         /// <summary>
         /// constructor

@@ -67,7 +67,7 @@ public static class AgentConversation
             messages = null;
             return false;
         }
-        IEnumerable<AGUIMessage> snapshotMessages = snapshot.Messages ?? new List<AGUIMessage>();
+        IEnumerable<AGUIMessage> snapshotMessages = snapshot.Messages ?? [];
         messages = snapshotMessages.AsChatMessages().ToList();
         return true;
     }

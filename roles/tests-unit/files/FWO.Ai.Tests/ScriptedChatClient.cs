@@ -14,10 +14,10 @@ internal sealed class ScriptedChatClient : IChatClient
 
     private readonly object recordLock = new();
     private readonly Queue<Func<List<ChatMessage>, ChatOptions?, CancellationToken, Task<ChatResponse>>> script = new();
-    private readonly List<(Func<List<ChatMessage>, ChatOptions?, bool> Matches, Func<List<ChatMessage>, ChatResponse> Respond)> rules = new();
-    private readonly List<List<ChatMessage>> receivedMessages = new();
-    private readonly List<ChatOptions?> receivedOptions = new();
-    private readonly List<string> rejections = new();
+    private readonly List<(Func<List<ChatMessage>, ChatOptions?, bool> Matches, Func<List<ChatMessage>, ChatResponse> Respond)> rules = [];
+    private readonly List<List<ChatMessage>> receivedMessages = [];
+    private readonly List<ChatOptions?> receivedOptions = [];
+    private readonly List<string> rejections = [];
     private int disposeCount;
 
     /// <summary>
@@ -45,7 +45,7 @@ internal sealed class ScriptedChatClient : IChatClient
         {
             lock (recordLock)
             {
-                return new List<string>(rejections);
+                return [.. rejections];
             }
         }
     }
@@ -73,7 +73,7 @@ internal sealed class ScriptedChatClient : IChatClient
         {
             lock (recordLock)
             {
-                return new List<ChatOptions?>(receivedOptions);
+                return [.. receivedOptions];
             }
         }
     }
@@ -131,7 +131,7 @@ internal sealed class ScriptedChatClient : IChatClient
     /// </summary>
     internal static ChatResponse CreateFunctionCallResponse(string callId, string toolName, IDictionary<string, object?>? arguments = null)
     {
-        List<AIContent> contents = new() { new FunctionCallContent(callId, toolName, arguments) };
+        List<AIContent> contents = [new FunctionCallContent(callId, toolName, arguments)];
         return new ChatResponse(new ChatMessage(ChatRole.Assistant, contents));
     }
 
@@ -156,7 +156,7 @@ internal sealed class ScriptedChatClient : IChatClient
             }
             answer = SelectAnswer(requestMessages, options);
         }
-        return answer(new List<ChatMessage>(requestMessages), options, cancellationToken);
+        return answer([.. requestMessages], options, cancellationToken);
     }
 
     /// <summary>

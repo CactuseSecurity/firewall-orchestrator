@@ -62,6 +62,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FWO.Ai.Harness", "ai\files\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Ai.Client", "lib\files\FWO.Ai.Client\FWO.Ai.Client.csproj", "{B931F527-B434-4243-8DE9-36EFED23C6E4}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FWO.Encoders", "lib\files\FWO.Encoders\FWO.Encoders.csproj", "{F79F356C-E21F-4444-AC2C-14B23CD2D4AF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -168,6 +170,10 @@ Global
 		{B931F527-B434-4243-8DE9-36EFED23C6E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B931F527-B434-4243-8DE9-36EFED23C6E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B931F527-B434-4243-8DE9-36EFED23C6E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F79F356C-E21F-4444-AC2C-14B23CD2D4AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F79F356C-E21F-4444-AC2C-14B23CD2D4AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F79F356C-E21F-4444-AC2C-14B23CD2D4AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F79F356C-E21F-4444-AC2C-14B23CD2D4AF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -188,6 +194,7 @@ Global
 		{9FA6936F-5CB9-FA76-0C70-89016199990D} = {E98CB371-3754-48D2-9306-630F304EFD14}
 		{030A668F-7846-4E49-8002-EF9910BC1779} = {E98CB371-3754-48D2-9306-630F304EFD14}
 		{F6DFE3B7-DF23-4448-8F3E-389A655CABE1} = {E98CB371-3754-48D2-9306-630F304EFD14}
+		{F79F356C-E21F-4444-AC2C-14B23CD2D4AF} = {CE55F125-0CD2-4789-A3C1-045DEF33ABA5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {68364621-1011-4D44-9CF5-518F0DC3F459}

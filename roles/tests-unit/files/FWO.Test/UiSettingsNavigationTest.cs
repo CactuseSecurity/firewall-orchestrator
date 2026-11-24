@@ -10,17 +10,18 @@ namespace FWO.Test
     internal class UiSettingsNavigationTest
     {
         private const int kSectionCount = 11;
+        private const int kEntryCount = 41;
         private const string kUnmatchableTerm = "qqzzxx";
 
         private const string kExternalDn = "uid=tester,ou=people,dc=example,dc=org";
 
-        private static readonly List<string> TopologyHrefs = new() { "/settings/matrix", "/settings/internet" };
-        private static readonly List<string> AdminRoles = new() { Roles.Admin };
-        private static readonly List<string> AuditorRoles = new() { Roles.Auditor };
-        private static readonly List<string> RemovedFwAdminRoles = new() { "fw-admin" };
-        private static readonly List<string> ImporterRoles = new() { Roles.Importer };
-        private static readonly List<string> PersonalOnly = new() { "personal" };
-        private static readonly List<string> PasswordPolicyOnly = new() { "settings/passwordpolicy" };
+        private static readonly List<string> TopologyHrefs = ["/settings/matrix", "/settings/internet"];
+        private static readonly List<string> AdminRoles = [Roles.Admin];
+        private static readonly List<string> AuditorRoles = [Roles.Auditor];
+        private static readonly List<string> RemovedFwAdminRoles = ["fw-admin"];
+        private static readonly List<string> ImporterRoles = [Roles.Importer];
+        private static readonly List<string> PersonalOnly = ["personal"];
+        private static readonly List<string> PasswordPolicyOnly = ["settings/passwordpolicy"];
 
         private readonly SimulatedUserConfig userConfig = CreateUserConfig(AdminRoles, InternalDn());
 
@@ -34,7 +35,7 @@ namespace FWO.Test
                 Assert.That(sections, Has.Count.EqualTo(kSectionCount));
                 Assert.That(sections[0].TextKey, Is.EqualTo("devices"));
                 Assert.That(sections[^1].TextKey, Is.EqualTo("personal"));
-                Assert.That(sections.Sum(section => section.Entries.Count), Is.EqualTo(43));
+                Assert.That(sections.Sum(section => section.Entries.Count), Is.EqualTo(kEntryCount));
             });
         }
 
@@ -130,7 +131,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(sections, Has.Count.EqualTo(kSectionCount));
-                Assert.That(sections.Sum(section => section.Entries.Count), Is.EqualTo(43));
+                Assert.That(sections.Sum(section => section.Entries.Count), Is.EqualTo(kEntryCount));
             });
         }
 
@@ -251,7 +252,7 @@ namespace FWO.Test
                 User =
                 {
                     Dn = userDn,
-                    Roles = new(roles)
+                    Roles = [.. roles]
                 }
             };
         }
@@ -266,12 +267,12 @@ namespace FWO.Test
         /// </summary>
         private sealed class LabelledUserConfig : SimulatedUserConfig
         {
-            public Dictionary<string, string> Labels { get; } = new();
+            public Dictionary<string, string> Labels { get; } = [];
 
             public LabelledUserConfig(List<string> roles, string userDn)
             {
                 User.Dn = userDn;
-                User.Roles = new(roles);
+                User.Roles = [.. roles];
             }
 
             public override string GetText(string key)

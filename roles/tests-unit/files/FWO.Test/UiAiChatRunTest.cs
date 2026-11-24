@@ -13,7 +13,7 @@ namespace FWO.Test
         private const string kThreadId = "thread-7";
         private const string kTool = "delete_owner";
 
-        private static readonly List<string> kConversationTexts = new() { "question", "answer" };
+        private static readonly List<string> kConversationTexts = ["question", "answer"];
         private static readonly Dictionary<string, object?> kArguments = new() { { "ownerId", 7 }, { "name", "App 1" } };
 
         [Test]

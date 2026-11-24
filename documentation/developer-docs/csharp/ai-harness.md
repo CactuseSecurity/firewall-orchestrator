@@ -350,7 +350,7 @@ host and runs it as the service `fworch-ai-harness` (`roles/ai/templates/fworch-
 - The installer does not configure the AI provider, so runs fail until an admin sets it on the AI settings page, see
   [Settings](#settings).
 - The installer creates the technical LDAP user `ai-harness` (`ai_harness_user_dn`, in `tree_operators.ldif.j2` and the
-  9.9.4 LDAP upgrade) with a random password in `ai_harness_password_file` (`/usr/local/fworch/etc/secrets/ai_harness_pwd`,
+  9.9.6 LDAP upgrade) with a random password in `ai_harness_password_file` (`/usr/local/fworch/etc/secrets/ai_harness_pwd`,
   readable by the fworch user only), and sets it in LDAP on every run (`roles/middleware/tasks/set_ai_harness_password.yml`).
   The unit passes the user, the file and `ai_harness_settings_refresh_seconds` (`Harness__TechnicalUser`,
   `Harness__TechnicalUserPasswordFile`, `Harness__SettingsRefreshSeconds`).

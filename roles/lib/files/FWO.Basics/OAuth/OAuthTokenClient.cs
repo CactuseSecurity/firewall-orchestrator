@@ -37,14 +37,16 @@ namespace FWO.Basics.OAuth
 
         private readonly HttpClient httpClient;
         private readonly TimeProvider timeProvider;
+        private readonly TimeSpan requestTimeout;
 
         /// <summary>
         /// Creates a client with its own connection handling.
         /// </summary>
         /// <param name="checkCertificates">False accepts any server certificate of the token endpoint</param>
         /// <param name="timeProvider">Clock the expiry of a token is computed with; the system clock if null</param>
-        public OAuthTokenClient(bool checkCertificates = true, TimeProvider? timeProvider = null)
-            : this(CreateHandler(checkCertificates), timeProvider)
+        /// <param name="requestTimeout">Time limit for a token request; uses the default if null.</param>
+        public OAuthTokenClient(bool checkCertificates = true, TimeProvider? timeProvider = null, TimeSpan? requestTimeout = null)
+            : this(CreateHandler(checkCertificates), timeProvider, requestTimeout)
         { }
 
         /// <summary>
@@ -53,12 +55,14 @@ namespace FWO.Basics.OAuth
         /// </summary>
         /// <param name="handler">Sends the token requests</param>
         /// <param name="timeProvider">Clock the expiry of a token is computed with; the system clock if null</param>
-        public OAuthTokenClient(HttpMessageHandler handler, TimeProvider? timeProvider = null)
+        /// <param name="requestTimeout">Time limit for a token request; uses the default if null.</param>
+        public OAuthTokenClient(HttpMessageHandler handler, TimeProvider? timeProvider = null, TimeSpan? requestTimeout = null)
         {
             ArgumentNullException.ThrowIfNull(handler);
             // the timeout is applied per request, reading the answer included, see RequestClientCredentialsTokenAsync
             httpClient = new HttpClient(handler, disposeHandler: true) { Timeout = Timeout.InfiniteTimeSpan };
             this.timeProvider = timeProvider ?? TimeProvider.System;
+            this.requestTimeout = requestTimeout ?? kRequestTimeout;
         }
 
         /// <summary>
@@ -76,7 +80,7 @@ namespace FWO.Basics.OAuth
             RequireSecureTokenUrl(credentials.TokenUrl);
             string host = credentials.TokenUrl.Host;
             using CancellationTokenSource timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutSource.CancelAfter(kRequestTimeout);
+            timeoutSource.CancelAfter(requestTimeout);
             DateTimeOffset requestedAt = timeProvider.GetUtcNow();
             try
             {
@@ -88,7 +92,7 @@ namespace FWO.Basics.OAuth
             catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
             {
                 throw new OAuthTokenException(OAuthTokenFailure.Unreachable,
-                    $"The token endpoint {host} did not answer within {kRequestTimeout.TotalSeconds} seconds.", innerException: exception);
+                    $"The token endpoint {host} did not answer within {requestTimeout.TotalSeconds} seconds.", innerException: exception);
             }
             catch (HttpRequestException exception)
             {
@@ -193,7 +197,7 @@ namespace FWO.Basics.OAuth
         /// Returns the access token of an answer.
         /// </summary>
         /// <exception cref="OAuthTokenException">The answer is an error, or has no access token or one of another type.</exception>
-        private OAuthAccessToken ParseAnswer(bool isSuccess, int statusCode, string content, string host, DateTimeOffset requestedAt)
+        private static OAuthAccessToken ParseAnswer(bool isSuccess, int statusCode, string content, string host, DateTimeOffset requestedAt)
         {
             JsonObject? answer = ParseJsonObject(content);
             if (!isSuccess)

@@ -4,6 +4,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Encoders;
 using FWO.Middleware.Client;
 using FWO.Ui.Pages.Reporting;
 using FWO.Ui.Shared;

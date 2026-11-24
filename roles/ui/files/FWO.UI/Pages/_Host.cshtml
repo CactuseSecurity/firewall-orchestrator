@@ -1,9 +1,12 @@
 @page "/"
 @namespace FWO.Ui.Pages
+@using FWO.Basics
 @using FWO.Config.Api
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
     Layout = null;
+    // The circuit has no HTTP request of its own, so the address of the browser is handed over as parameter.
+    string clientAddress = ClientAddressFormat.ToText(HttpContext.Connection.RemoteIpAddress);
 }
 @inject GlobalConfig globalConfig
 
@@ -20,7 +23,7 @@
 </head>
 <body class="sticky-group sticky-group-35 sticky-group-40 sticky-group-60 vheight100">
     <app>
-        <component type="typeof(App)" render-mode="ServerPrerendered" />
+        <component type="typeof(App)" render-mode="ServerPrerendered" param-ClientAddress="@clientAddress" />
     </app>
 
     <div id="blazor-error-ui">
@@ -43,11 +46,7 @@
     <script src="/js/clipboardCopy.js" asp-append-version="true"></script>
     <script src="/js/globalKeyboardListener.js" asp-append-version="true"></script>
     <script src="/js/logDataTable.js" asp-append-version="true"></script>
+    <script src="/js/popup.js" asp-append-version="true"></script>
     <script src="/js/blazorStart.js" asp-append-version="true"></script>
 </body>
 </html>
-
-@functions {
-    // Needed to prevent browser from caching files from previous versions
-    //string VersionedLink(string path) => $"{path}?v={globalConfig.ProductVersion}";
-}

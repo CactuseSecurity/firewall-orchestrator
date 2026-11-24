@@ -279,19 +279,56 @@ namespace FWO.Data.Modelling
             return DestinationAppServers.Count > 0 || DestinationAppRoles.Count > 0 || DestinationAreas.Count > 0 || DestinationOtherGroups.Count > 0;
         }
 
-        public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId, bool rolloutRemoved = false, bool withInterfaces = false)
+        /// <summary>
+        /// Decides whether the connection takes part in the variance analysis and in requests.
+        /// Interfaces only take part if requested (withInterfaces) and published.
+        /// </summary>
+        /// <param name="dummyAppRoleId">Id of the dummy app role, which never counts as empty.</param>
+        /// <param name="rolloutRemoved">Setting "rollout removed app servers": deleted app servers in app roles do not exclude the connection.</param>
+        /// <param name="withInterfaces">Lets published interfaces take part.</param>
+        public bool IsRelevantForVarianceAnalysis(long dummyAppRoleId, bool rolloutRemoved, bool withInterfaces = false)
         {
-            return !((IsInterface && !(withInterfaces && IsPublished)) ||
-                GetBoolProperty(ConState.InterfaceRequested.ToString()) ||
-                GetBoolProperty(ConState.InterfaceRejected.ToString()) ||
-                GetBoolProperty(ConState.InterfaceDecommissioned.ToString()) ||
-                GetBoolProperty(ConState.InterfaceNoPermission.ToString()) || // or not ??
-                EmptyAppRolesFound(dummyAppRoleId) ||
-                DeletedObjectsFound(rolloutRemoved) ||
-                EmptyServiceGroupsFound());
+            return !(IsInterface && !(withInterfaces && IsPublished)) &&
+                GetVarianceExclusionReason(dummyAppRoleId, rolloutRemoved) == null;
         }
 
-        public bool IsRelevantForNotificationRequest(long dummyAppRoleId, bool rolloutRemoved = false)
+        /// <summary>
+        /// Gets the reason why the connection is left out of the variance analysis, or null if it is analysed.
+        /// All variance views (report, connection status, request) use this single rule, so that they
+        /// always analyse the same connections.
+        /// </summary>
+        /// <param name="dummyAppRoleId">Id of the dummy app role, which never counts as empty.</param>
+        /// <param name="rolloutRemoved">Setting "rollout removed app servers": deleted app servers in app roles do not exclude the connection.</param>
+        public ConState? GetVarianceExclusionReason(long dummyAppRoleId, bool rolloutRemoved)
+        {
+            if (GetBoolProperty(ConState.InterfaceRejected.ToString()))
+            {
+                return ConState.InterfaceRejected;
+            }
+            if (GetBoolProperty(ConState.InterfaceRequested.ToString()))
+            {
+                return ConState.InterfaceRequested;
+            }
+            if (GetBoolProperty(ConState.InterfaceDecommissioned.ToString()))
+            {
+                return ConState.InterfaceDecommissioned;
+            }
+            if (GetBoolProperty(ConState.InterfaceNoPermission.ToString()))
+            {
+                return ConState.InterfaceNoPermission;
+            }
+            if (EmptyAppRolesFound(dummyAppRoleId))
+            {
+                return ConState.EmptyAppRoles;
+            }
+            if (DeletedObjectsFound(rolloutRemoved))
+            {
+                return ConState.DeletedObjects;
+            }
+            return EmptyServiceGroupsFound() ? ConState.EmptySvcGrps : null;
+        }
+
+        public bool IsRelevantForNotificationRequest(long dummyAppRoleId, bool rolloutRemoved)
         {
             return NotAlreadyRequested() &&
                 !IsDocumentationOnly() &&
@@ -425,16 +462,15 @@ namespace FWO.Data.Modelling
             => ServiceGroups.Any(_ => _.Content.Services.Count == 0);
 
         public bool IsDocumentationOnly()
-            => ExtraConfigs.Any(_ => _.ExtraConfigType.StartsWith(GlobalConst.kDoku_));
+            => ExtraConfigs.Any(_ => _.IsDocumentationOnly());
 
         public bool IsNat()
-            => ExtraConfigs.Any(_ => _.ExtraConfigType.ToUpper() == GlobalConst.kNAT);
+            => ExtraConfigs.Any(_ => _.IsNat());
 
         public Dictionary<string, bool> GetSpecialUserObjectNames()
         {
             Dictionary<string, bool> userObjectNames = [];
-            foreach (var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user)
-                                                            || e.ExtraConfigType.ToLower().EndsWith(GlobalConst.k_user2)))
+            foreach (var extraConfig in ExtraConfigs.Where(e => e.IsSpecialUser()))
             {
                 userObjectNames.Add(extraConfig.ExtraConfigText.ToLower(), false);
             }
@@ -444,7 +480,7 @@ namespace FWO.Data.Modelling
         public Dictionary<string, bool> GetUpdatableObjectNames()
         {
             Dictionary<string, bool> updatableObjectNames = [];
-            foreach (var extraConfig in ExtraConfigs.Where(e => e.ExtraConfigType.ToLower().StartsWith(GlobalConst.kUpdatable)))
+            foreach (var extraConfig in ExtraConfigs.Where(e => e.IsUpdatableObject()))
             {
                 updatableObjectNames.Add(extraConfig.ExtraConfigText.ToLower(), false);
             }

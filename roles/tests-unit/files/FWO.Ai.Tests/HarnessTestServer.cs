@@ -106,7 +106,7 @@ internal static class HarnessTestServer
     /// </summary>
     internal static JsonObject CreateRunInput(string threadId, params string[] userTexts)
     {
-        JsonArray messages = new();
+        JsonArray messages = [];
         for (int index = 0; index < userTexts.Length; index++)
         {
             messages.Add(new JsonObject { ["id"] = kMessageIdPrefix + index, ["role"] = kUserRole, ["content"] = userTexts[index] });

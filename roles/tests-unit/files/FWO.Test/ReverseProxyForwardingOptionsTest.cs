@@ -10,7 +10,7 @@ using System.Net;
 namespace FWO.Test;
 
 /// <summary>
-/// Tests the forwarding configuration for the local Apache proxy, shared by the middleware server and the AI MCP server.
+/// Tests the forwarding configuration of the UI, middleware and AI MCP server for the local Apache proxy.
 /// </summary>
 [TestFixture]
 internal class ReverseProxyForwardingOptionsTest

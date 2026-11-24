@@ -49,7 +49,8 @@ internal class HarnessToolApprovalTest
         await using McpClient mcpClient = await McpTestServer.ConnectAsync(app.GetTestClient(), Roles.Reporter);
         McpClientTool readOnlyTool = CreateMcpTool(mcpClient, new ToolAnnotations { ReadOnlyHint = true });
 
-        List<AITool> tools = ToolApproval.RequireApprovalUnlessReadOnly(new List<AITool> { readOnlyTool });
+        List<AITool> givenTools = [readOnlyTool];
+        List<AITool> tools = ToolApproval.RequireApprovalUnlessReadOnly(givenTools);
 
         Assert.That(tools.Single(), Is.SameAs(readOnlyTool));
     }
@@ -68,7 +69,8 @@ internal class HarnessToolApprovalTest
         ToolAnnotations? annotations = withoutAnnotations ? null : new ToolAnnotations { ReadOnlyHint = withoutHint ? null : false, IdempotentHint = true };
         McpClientTool mcpTool = CreateMcpTool(mcpClient, annotations);
 
-        List<AITool> tools = ToolApproval.RequireApprovalUnlessReadOnly(new List<AITool> { mcpTool });
+        List<AITool> givenTools = [mcpTool];
+        List<AITool> tools = ToolApproval.RequireApprovalUnlessReadOnly(givenTools);
 
         ApprovalRequiredAIFunction approvalFunction = (ApprovalRequiredAIFunction)tools.Single();
         Assert.That(GetWrappedFunction(approvalFunction, mcpTool), Is.SameAs(mcpTool));
@@ -83,7 +85,8 @@ internal class HarnessToolApprovalTest
     {
         AIFunction plainFunction = AIFunctionFactory.Create(() => kValue, kToolName);
 
-        List<AITool> tools = ToolApproval.RequireApprovalUnlessReadOnly(new List<AITool> { plainFunction });
+        List<AITool> givenTools = [plainFunction];
+        List<AITool> tools = ToolApproval.RequireApprovalUnlessReadOnly(givenTools);
 
         Assert.That(GetWrappedFunction((ApprovalRequiredAIFunction)tools.Single(), plainFunction), Is.SameAs(plainFunction));
     }
@@ -98,7 +101,8 @@ internal class HarnessToolApprovalTest
         await using McpClient mcpClient = await McpTestServer.ConnectAsync(app.GetTestClient(), Roles.Reporter);
         WrappingFunction wrapper = new(CreateMcpTool(mcpClient, new ToolAnnotations { ReadOnlyHint = true }));
 
-        List<AITool> tools = ToolApproval.RequireApprovalUnlessReadOnly(new List<AITool> { wrapper });
+        List<AITool> givenTools = [wrapper];
+        List<AITool> tools = ToolApproval.RequireApprovalUnlessReadOnly(givenTools);
 
         Assert.That(GetWrappedFunction((ApprovalRequiredAIFunction)tools.Single(), wrapper), Is.SameAs(wrapper));
     }
@@ -112,7 +116,8 @@ internal class HarnessToolApprovalTest
         ApprovalRequiredAIFunction approvalFunction = new(AIFunctionFactory.Create(() => kValue, kToolName));
         WrappingFunction wrappedApprovalFunction = new(approvalFunction);
 
-        List<AITool> tools = ToolApproval.RequireApprovalUnlessReadOnly(new List<AITool> { approvalFunction, wrappedApprovalFunction });
+        List<AITool> givenTools = [approvalFunction, wrappedApprovalFunction];
+        List<AITool> tools = ToolApproval.RequireApprovalUnlessReadOnly(givenTools);
 
         Assert.That(tools[0], Is.SameAs(approvalFunction));
         Assert.That(tools[1], Is.SameAs(wrappedApprovalFunction));
@@ -127,7 +132,8 @@ internal class HarnessToolApprovalTest
         HostedWebSearchTool hostedTool = new();
         AIFunctionDeclaration declaration = AIFunctionFactory.CreateDeclaration(kToolName, null, JsonDocument.Parse("{\"type\":\"object\"}").RootElement);
 
-        List<AITool> tools = ToolApproval.RequireApprovalUnlessReadOnly(new List<AITool> { hostedTool, declaration });
+        List<AITool> givenTools = [hostedTool, declaration];
+        List<AITool> tools = ToolApproval.RequireApprovalUnlessReadOnly(givenTools);
 
         Assert.That(tools[0], Is.SameAs(hostedTool));
         Assert.That(tools[1], Is.SameAs(declaration));
@@ -141,7 +147,7 @@ internal class HarnessToolApprovalTest
     {
         AIFunction firstFunction = AIFunctionFactory.Create(() => kValue, kToolName);
         HostedWebSearchTool hostedTool = new();
-        List<AITool> givenTools = new() { firstFunction, hostedTool };
+        List<AITool> givenTools = [firstFunction, hostedTool];
 
         List<AITool> tools = ToolApproval.RequireApprovalUnlessReadOnly(givenTools);
 
@@ -158,7 +164,7 @@ internal class HarnessToolApprovalTest
     [Test]
     public void RequireApprovalUnlessReadOnly_WithNull_Throws()
     {
-        List<AITool> toolsWithNull = new() { AIFunctionFactory.Create(() => kValue, kToolName), null! };
+        List<AITool> toolsWithNull = [AIFunctionFactory.Create(() => kValue, kToolName), null!];
 
         Assert.Throws<ArgumentNullException>(() => ToolApproval.RequireApprovalUnlessReadOnly(null!));
         Assert.Throws<ArgumentNullException>(() => ToolApproval.RequireApprovalUnlessReadOnly(toolsWithNull));
@@ -325,11 +331,11 @@ internal class HarnessToolApprovalTest
     {
         McpTestToolCalls toolCalls = new();
         await using WebApplication app = await StartWithWriteTool(toolCalls);
-        List<AIContent> calls = new()
-        {
+        List<AIContent> calls =
+        [
             new FunctionCallContent(kReadOnlyCallId, HarnessTestSetup.kCurrentUserTool),
             new FunctionCallContent(kCallId, McpTestWriteTools.kStoreValueTool, CreateArguments(kValue))
-        };
+        ];
         ScriptedChatClient chatClient = new ScriptedChatClient { Strict = true }
             .Respond((_, _, _) => Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, calls))))
             .RespondWithText(kAnswer)
@@ -403,11 +409,14 @@ internal class HarnessToolApprovalTest
     private static List<ChatMessage> WithApproval(List<ChatMessage> conversation, ToolApprovalRequestContent approvalRequest,
         ToolApprovalResponseContent approvalResponse)
     {
-        List<ChatMessage> messages = new(conversation)
-        {
-            new ChatMessage(ChatRole.Assistant, new List<AIContent> { approvalRequest }),
-            new ChatMessage(ChatRole.User, new List<AIContent> { approvalResponse })
-        };
+        List<AIContent> requestContents = [approvalRequest];
+        List<AIContent> responseContents = [approvalResponse];
+        List<ChatMessage> messages =
+        [
+            .. conversation,
+            new ChatMessage(ChatRole.Assistant, requestContents),
+            new ChatMessage(ChatRole.User, responseContents)
+        ];
         return messages;
     }
 

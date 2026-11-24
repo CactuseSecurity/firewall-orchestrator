@@ -20,14 +20,14 @@ namespace FWO.Test
         private const string kErrorMessage = "no provider";
         private const string kOtherErrorMessage = "later error";
 
-        private static readonly List<AIContent> kTwoApprovalRequests = new()
-        {
+        private static readonly List<AIContent> kTwoApprovalRequests =
+        [
             new ToolApprovalRequestContent("interrupt-1", new FunctionCallContent("call-1", "delete_owner")),
             new ToolApprovalRequestContent("interrupt-2", new FunctionCallContent("call-2", "delete_owner"))
-        };
-        private static readonly List<AIContent> kToolResult = new() { new FunctionResultContent("call-1", "result text") };
-        private static readonly List<AIContent> kFirstError = new() { new ErrorContent(kErrorMessage) { ErrorCode = "provider" } };
-        private static readonly List<AIContent> kSecondError = new() { new ErrorContent(kOtherErrorMessage) };
+        ];
+        private static readonly List<AIContent> kToolResult = [new FunctionResultContent("call-1", "result text")];
+        private static readonly List<AIContent> kFirstError = [new ErrorContent(kErrorMessage) { ErrorCode = "provider" }];
+        private static readonly List<AIContent> kSecondError = [new ErrorContent(kOtherErrorMessage)];
 
         /// <summary>
         /// Verifies that the texts of a message are passed on as they are, and that the text of another message starts

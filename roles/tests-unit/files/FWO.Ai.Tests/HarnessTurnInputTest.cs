@@ -65,15 +65,16 @@ internal class HarnessTurnInputTest
     [Test]
     public async Task Read_WithOtherContent_TakesTextOnly()
     {
-        ChatMessage userMessage = new(ChatRole.User, new List<AIContent>
-        {
+        List<AIContent> userContents =
+        [
             new TextContent(kNewQuestion),
             new TextContent(" "),
             new DataContent(kImageBytes, kImageMediaType),
             new FunctionResultContent(kFirstRequestId, kOldAnswer)
-        });
+        ];
+        List<ChatMessage> messages = [new ChatMessage(ChatRole.User, userContents)];
 
-        List<ChatMessage> turnMessages = await GetTurnMessagesAsync(new List<ChatMessage> { userMessage });
+        List<ChatMessage> turnMessages = await GetTurnMessagesAsync(messages);
 
         Assert.That(turnMessages.Single().Contents.Single(), Is.InstanceOf<TextContent>());
         Assert.That(turnMessages.Single().Text, Is.EqualTo(kNewQuestion));
@@ -153,13 +154,17 @@ internal class HarnessTurnInputTest
         FunctionCallContent call = new(kFirstRequestId, kToolName);
         ToolApprovalRequestContent firstRequest = new(kFirstRequestId, call);
         ToolApprovalRequestContent secondRequest = new(kSecondRequestId, call);
+        List<AIContent> firstRequestContents = [firstRequest];
+        List<AIContent> firstResponseContents = [firstRequest.CreateResponse(true)];
+        List<AIContent> secondRequestContents = [secondRequest];
+        List<AIContent> secondResponseContents = [secondRequest.CreateResponse(false)];
         List<ChatMessage> messages =
         [
             new ChatMessage(ChatRole.User, kNewQuestion),
-            new ChatMessage(ChatRole.Assistant, new List<AIContent> { firstRequest }),
-            new ChatMessage(ChatRole.User, new List<AIContent> { firstRequest.CreateResponse(true) }),
-            new ChatMessage(ChatRole.Assistant, new List<AIContent> { secondRequest }),
-            new ChatMessage(ChatRole.User, new List<AIContent> { secondRequest.CreateResponse(false) })
+            new ChatMessage(ChatRole.Assistant, firstRequestContents),
+            new ChatMessage(ChatRole.User, firstResponseContents),
+            new ChatMessage(ChatRole.Assistant, secondRequestContents),
+            new ChatMessage(ChatRole.User, secondResponseContents)
         ];
 
         List<ChatMessage> turnMessages = await GetTurnMessagesAsync(messages);
@@ -179,11 +184,13 @@ internal class HarnessTurnInputTest
     public void Read_WithResumeEntries_TakesNoNewInput()
     {
         ToolApprovalRequestContent request = new(kFirstRequestId, new FunctionCallContent(kFirstRequestId, kToolName));
+        List<AIContent> requestContents = [request];
+        List<AIContent> responseContents = [request.CreateResponse(true)];
         List<ChatMessage> messages =
         [
             new ChatMessage(ChatRole.User, kNewQuestion),
-            new ChatMessage(ChatRole.Assistant, new List<AIContent> { request }),
-            new ChatMessage(ChatRole.User, new List<AIContent> { request.CreateResponse(true) })
+            new ChatMessage(ChatRole.Assistant, requestContents),
+            new ChatMessage(ChatRole.User, responseContents)
         ];
 
         Assert.DoesNotThrow(() => TurnInput.Read(messages, null));
@@ -196,7 +203,7 @@ internal class HarnessTurnInputTest
     [Test]
     public void Read_WithClientTools_Throws()
     {
-        RunAgentInput aguiInput = new() { Tools = new List<AGUITool> { new() { Name = kClientTool } } };
+        RunAgentInput aguiInput = new() { Tools = [new() { Name = kClientTool }] };
         List<ChatMessage> messages = [new ChatMessage(ChatRole.User, kNewQuestion)];
 
         Assert.Throws<NotSupportedException>(() => TurnInput.Read(messages, HarnessTestSetup.CreateAguiRunOptions(aguiInput)));

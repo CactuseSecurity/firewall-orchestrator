@@ -2,9 +2,9 @@ using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
-using FWO.ExternalSystems.CheckPoint;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using FWO.Middleware.Server;
 using FWO.Services;
@@ -14,9 +14,11 @@ using System.Reflection;
 namespace FWO.Test
 {
     [TestFixture]
-    [Parallelizable]
+    [NonParallelizable]
     internal class ExtTicketHandlerTest
     {
+        private const int kDoneStateId = 631;
+        private static readonly List<long> kFinishedBeforeBundle = [1, 2, 3, 4, 5, 7];
         private static readonly ExternalCertificateChecks CertificateChecks = new(FirewallConnections: true, TicketSystems: true);
         internal readonly static ExternalTicketSystem ticketSystem = new()
         {
@@ -82,13 +84,11 @@ namespace FWO.Test
         internal readonly static string reqPrios = "[{\"numeric_prio\":1,\"name\":\"Highest\",\"ticket_deadline\":1,\"approval_deadline\":1},{\"numeric_prio\":2,\"name\":\"High\",\"ticket_deadline\":3,\"approval_deadline\":2},{\"numeric_prio\":3,\"name\":\"Medium\",\"ticket_deadline\":7,\"approval_deadline\":3},{\"numeric_prio\":4,\"name\":\"Low\",\"ticket_deadline\":14,\"approval_deadline\":7},{\"numeric_prio\":5,\"name\":\"Lowest\",\"ticket_deadline\":30,\"approval_deadline\":14}]";
         internal readonly static string namingConvention = "{\"networkAreaRequired\":true,\"useAppPart\":true,\"fixedPartLength\":4,\"freePartLength\":3,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\",\"applicationZone\":\"AZ\",\"appServerPrefix\":\"host_\",\"networkPrefix\":\"net_\",\"ipRangePrefix\":\"range_\"}";
 
-        readonly static List<ExternalTicketSystem> ticketSystemList = [ticketSystem];
         // the SecureChange templates are device specific settings; the tests use the templates of the test ticket system
         static readonly FixedSCTemplateSource TestSCTemplates = new(ticketSystem.Templates);
         readonly SimulatedUserConfig userConfig = new()
         {
             ExternalRequestWaitCycles = 3,
-            ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(ticketSystemList),
             ReqPriorities = reqPrios,
             ModNamingConvention = namingConvention,
             ModRolloutBundleTasks = true
@@ -260,16 +260,28 @@ namespace FWO.Test
             ClassicAssert.AreEqual(0, noWaitHandler.GetWaitCycles(WfTaskType.access.ToString(), oldRequest, ticketSystem));
         }
 
-        [Test]
-        public void TestGetLastTaskNumber()
-        {
-            string extQueryVars = "{\"BundledTasks\":[1,2,3]}";
+        /// <summary>Credential of the SecureChange connection in the tests.</summary>
+        internal const int kTestCredentialId = 1;
 
-            ClassicAssert.AreEqual(3, ExternalRequestHandler.GetLastTaskNumber(extQueryVars, 0));
+        /// <summary>
+        /// Settings handing every task of the tests to Tufin SecureChange, reached at the URL of the given system with the
+        /// given credential.
+        /// </summary>
+        internal static GlobalDeviceSpecificSettings ExternalTicketSystemSettings(ExternalTicketSystem system, int? credentialId = kTestCredentialId)
+        {
+            return new GlobalDeviceSpecificSettings
+            {
+                ImplementationMode = ProvisioningImplementationMode.RerouteToExternalTicketSystem,
+                ImplementationModeForRules = ProvisioningRuleImplementationMode.RerouteToExternalTicketSystem,
+                RerouteToExternalTicketSystem = ExternalTicketSystemKind.TufinSecureChange,
+                ScUrl = system.Url,
+                ScCredential = credentialId,
+                ScLookupRequesterId = system.LookupRequesterId
+            };
         }
 
         [Test]
-        public async Task HandleStateChangeUsesConfiguredSystemForRuleChanges()
+        public async Task HandleStateChangeUsesTheConnectionOfTheDeviceSpecificSettings()
         {
             ExternalTicketSystem tufinSystem = new()
             {
@@ -280,35 +292,9 @@ namespace FWO.Test
                 Url = "https://tufin-test.xxx.de/securechangeworkflow/api/securechange/",
                 Templates = ticketSystem.Templates
             };
-
-            ExternalTicketSystem cpSystem = new()
-            {
-                Id = 3,
-                TypeId = 9,
-                Authorization = "X-chkp-sid: xyz",
-                Name = "CheckPoint",
-                Url = "https://checkpoint-test.xxx.de/web_api/",
-                Templates = checkPointTicketSystem.Templates
-            };
-
             SimulatedUserConfig localUserConfig = new()
             {
                 ExternalRequestWaitCycles = 3,
-                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { tufinSystem, cpSystem }),
-                FwConfigChangeMgmSettings = System.Text.Json.JsonSerializer.Serialize(new List<ManagementFwConfigChangeState>
-        {
-            new()
-            {
-                Id = 1,
-                Name = "Checkpoint",
-                Enabled = true,
-                SelectedChanges = new()
-                {
-                    [ManagementFwConfigChangeCategories.ObjectChanges] = cpSystem.Id.ToString(),
-                    [ManagementFwConfigChangeCategories.RuleChanges] = tufinSystem.Id.ToString()
-                }
-            }
-        }),
                 ReqPriorities = reqPrios,
                 ModNamingConvention = namingConvention,
                 ModRolloutBundleTasks = true
@@ -316,8 +302,13 @@ namespace FWO.Test
 
             ExtTicketHandlerTestApiConn localApiConnection = new();
 
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
+            using ExternalRequestHandler handler = new ExternalRequestHandler(localUserConfig, localApiConnection, null)
+            {
+                SCTemplateSource = TestSCTemplates
+            }.WithProvisioningSettings(ExternalTicketSystemSettings(tufinSystem));
 
+            // the request of task 1 is finished already
+            ExtTicketHandlerTestApiConn.SetReqTaskState(1, kDoneStateId);
             await handler.HandleStateChange(new ExternalRequest
             {
                 Id = 2,
@@ -329,7 +320,8 @@ namespace FWO.Test
             });
 
             StringAssert.Contains("taskNumber = 4", localApiConnection.AddExtRequestVars ?? "");
-            StringAssert.Contains("\"Name\":\"Tufin\"", localApiConnection.AddedExtTicketSystem ?? "");
+            Assert.That(localApiConnection.AddedExtTicketSystem ?? "", Does.Contain($"\"Url\":\"{tufinSystem.Url}\""));
+            Assert.That(localApiConnection.AddedExtTicketSystem ?? "", Does.Contain($"\"CredentialId\":{kTestCredentialId}"));
             StringAssert.Contains("\"TypeId\":2", localApiConnection.AddedExtTicketSystem ?? "");
         }
 
@@ -349,21 +341,6 @@ namespace FWO.Test
             SimulatedUserConfig localUserConfig = new()
             {
                 ExternalRequestWaitCycles = 3,
-                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { tufinSystem }),
-                FwConfigChangeMgmSettings = System.Text.Json.JsonSerializer.Serialize(new List<ManagementFwConfigChangeState>
-        {
-            new()
-            {
-                Id = 1,
-                Name = "Checkpoint",
-                Enabled = true,
-                SelectedChanges = new()
-                {
-                    [ManagementFwConfigChangeCategories.ObjectChanges] = tufinSystem.Id.ToString(),
-                    [ManagementFwConfigChangeCategories.RuleChanges] = tufinSystem.Id.ToString()
-                }
-            }
-        }),
                 ReqPriorities = reqPrios,
                 ModNamingConvention = namingConvention,
                 ModRolloutBundleTasks = true
@@ -371,7 +348,10 @@ namespace FWO.Test
 
             ExtTicketHandlerTestApiConn localApiConnection = new();
 
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
+            using ExternalRequestHandler handler = new ExternalRequestHandler(localUserConfig, localApiConnection, null)
+            {
+                SCTemplateSource = TestSCTemplates
+            }.WithProvisioningSettings(ExternalTicketSystemSettings(tufinSystem));
 
             ExternalRequest externalRequest = new()
             {
@@ -383,6 +363,8 @@ namespace FWO.Test
                 ExtQueryVariables = "{\"BundledTasks\":[2,3]}"
             };
 
+            // the request of task 1 is finished already
+            ExtTicketHandlerTestApiConn.SetReqTaskState(1, kDoneStateId);
             await handler.HandleStateChange(externalRequest);
 
             StringAssert.Contains("taskNumber = 4", localApiConnection.AddExtRequestVars ?? "");
@@ -390,6 +372,33 @@ namespace FWO.Test
             StringAssert.Contains("\"BundledTasks\":[4,5]", localApiConnection.AddExtRequestVars ?? "");
             ClassicAssert.IsTrue(localApiConnection.History.Any(h => h.Contains("changeType = 11") && h.Contains("Task2")));
             ClassicAssert.IsTrue(localApiConnection.History.Any(h => h.Contains("changeType = 11") && h.Contains("Task3")));
+        }
+
+        [Test]
+        public async Task StartProvisioningBundlesAcrossFinishedTasks()
+        {
+            SimulatedUserConfig localUserConfig = new()
+            {
+                ReqPriorities = reqPrios,
+                ModNamingConvention = namingConvention,
+                ModRolloutBundleTasks = true
+            };
+            ExtTicketHandlerTestApiConn localApiConnection = new();
+            using ExternalRequestHandler handler = new ExternalRequestHandler(localUserConfig, localApiConnection, null)
+            {
+                SCTemplateSource = TestSCTemplates
+            }.WithProvisioningSettings(ExternalTicketSystemSettings(ticketSystem));
+            // tasks 1 to 5 are implemented, and task 7 was set to done by hand
+            foreach (long finishedTaskId in kFinishedBeforeBundle)
+            {
+                ExtTicketHandlerTestApiConn.SetReqTaskState(finishedTaskId, kDoneStateId);
+            }
+
+            bool result = await handler.StartProvisioning(123);
+
+            Assert.That(result, Is.True);
+            Assert.That(localApiConnection.AddExtRequestVars ?? "", Does.Contain("taskNumber = 6"));
+            Assert.That(localApiConnection.AddExtRequestVars ?? "", Does.Contain("\"BundledTasks\":[6,8]"));
         }
 
         [Test]
@@ -416,21 +425,6 @@ namespace FWO.Test
             SimulatedUserConfig localUserConfig = new()
             {
                 ExternalRequestWaitCycles = 3,
-                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { ticketSystem }),
-                FwConfigChangeMgmSettings = System.Text.Json.JsonSerializer.Serialize(new List<ManagementFwConfigChangeState>
-        {
-            new()
-            {
-                Id = 1,
-                Name = "Checkpoint",
-                Enabled = true,
-                SelectedChanges = new()
-                {
-                    [ManagementFwConfigChangeCategories.ObjectChanges] = ticketSystem.Id.ToString(),
-                    [ManagementFwConfigChangeCategories.RuleChanges] = ticketSystem.Id.ToString()
-                }
-            }
-        }),
                 ReqPriorities = reqPrios,
                 ModNamingConvention = namingConvention,
                 ModRolloutBundleTasks = true
@@ -439,7 +433,10 @@ namespace FWO.Test
             ExtTicketHandlerTestApiConn.ResetTicketTasks();
             ExtTicketHandlerTestApiConn localApiConnection = new();
 
-            using ExternalRequestHandler externalRequestHandler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
+            using ExternalRequestHandler externalRequestHandler = new ExternalRequestHandler(localUserConfig, localApiConnection, null)
+            {
+                SCTemplateSource = TestSCTemplates
+            }.WithProvisioningSettings(ExternalTicketSystemSettings(ticketSystem));
             ExternalRequest externalRequest = new()
             {
                 Id = 1,
@@ -539,41 +536,20 @@ namespace FWO.Test
             StringAssert.DoesNotContain("AR7", localApiConnection.AddExtRequestVars ?? "");
             StringAssert.Contains("AR8", localApiConnection.AddExtRequestVars ?? "");
 
+            // without bundling only the rule change on the other gateway is merged; the finished tasks 4 and 5 are not requested again
             localUserConfig.ModRolloutBundleTasks = false;
             await externalRequestHandler.HandleStateChange(externalRequest);
-            ClassicAssert.AreEqual(15, localApiConnection.History.Count);
+            Assert.That(localApiConnection.History, Has.Count.EqualTo(16));
             ClassicAssert.IsTrue(localApiConnection.History[12].Contains("changeType = 11"));
             ClassicAssert.IsTrue(localApiConnection.History[12].Contains("Task4"));
             ClassicAssert.IsTrue(localApiConnection.History[13].Contains("changeType = 11"));
             ClassicAssert.IsTrue(localApiConnection.History[13].Contains("Task5"));
             ClassicAssert.IsTrue(localApiConnection.History[14].Contains("changeType = 10"));
-            ClassicAssert.IsTrue(localApiConnection.History[14].Contains("Task5"));
-        }
-
-        private static SimulatedUserConfig CreateInternalWorkRuleChangeConfig()
-        {
-            return new SimulatedUserConfig
-            {
-                ExternalRequestWaitCycles = 3,
-                ExtTicketSystems = System.Text.Json.JsonSerializer.Serialize(new List<ExternalTicketSystem> { ticketSystem }),
-                FwConfigChangeMgmSettings = System.Text.Json.JsonSerializer.Serialize(new List<ManagementFwConfigChangeState>
-        {
-            new()
-            {
-                Id = 1,
-                Name = "Checkpoint",
-                Enabled = true,
-                SelectedChanges = new()
-                {
-                    [ManagementFwConfigChangeCategories.ObjectChanges] = ticketSystem.Id.ToString(),
-                    [ManagementFwConfigChangeCategories.RuleChanges] = ManagementFwConfigChangeTargets.InternalWork
-                }
-            }
-        }),
-                ReqPriorities = reqPrios,
-                ModNamingConvention = namingConvention,
-                ModRolloutBundleTasks = true
-            };
+            Assert.That(localApiConnection.History[14], Does.Contain("Task6"));
+            Assert.That(localApiConnection.History[15], Does.Contain("changeType = 10"));
+            Assert.That(localApiConnection.History[15], Does.Contain("Task7"));
+            Assert.That(localApiConnection.AddExtRequestVars ?? "", Does.Contain("taskNumber = 6"));
+            Assert.That(localApiConnection.AddExtRequestVars ?? "", Does.Contain("\"BundledTasks\":[6,7]"));
         }
 
         [Test]
@@ -605,320 +581,6 @@ namespace FWO.Test
                 WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
                 ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
                 ClassicAssert.AreEqual("4711", task!.GetAddInfoValue(AdditionalInfoKeys.ExtIcketId));
-            }
-        }
-
-        [Test]
-        public async Task HandleStateChangeDonePromotesAllConsecutiveInternalWorkRuleTasksToPlanningWhenApprovalIsInactive()
-        {
-            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
-            ExtTicketHandlerTestApiConn.ResetTicketTasks();
-            ExtTicketHandlerTestApiConn localApiConnection = new();
-
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
-
-            ExternalRequest externalRequest = new()
-            {
-                Id = 1,
-                TicketId = 123,
-                TaskNumber = 1,
-                ExtRequestState = ExtStates.ExtReqDone.ToString(),
-                ExtTicketId = "4711"
-            };
-
-            await handler.HandleStateChange(externalRequest);
-
-            ClassicAssert.IsNull(localApiConnection.AddExtRequestVars);
-
-            for (int taskNumber = 2; taskNumber <= 8; ++taskNumber)
-            {
-                WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
-                ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
-                ClassicAssert.AreEqual(99, task!.StateId, $"Task {taskNumber} should be promoted to planning input state.");
-            }
-
-            WfReqTask? task9 = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(9);
-            ClassicAssert.IsNotNull(task9);
-            ClassicAssert.AreEqual(0, task9!.StateId);
-        }
-
-        [Test]
-        public async Task HandleStateChangeDonePromotesInternalWorkRuleTasksToPlanningWhenTaskTypeApprovalIsInactive()
-        {
-            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
-            ExtTicketHandlerTestApiConn.ResetTicketTasks();
-            ExtTicketHandlerTestApiConn localApiConnection = new()
-            {
-                ApprovalPhaseActiveForMasterOnly = true
-            };
-
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
-
-            await handler.HandleStateChange(new ExternalRequest
-            {
-                Id = 1,
-                TicketId = 123,
-                TaskNumber = 1,
-                ExtRequestState = ExtStates.ExtReqDone.ToString(),
-                ExtTicketId = "4711"
-            });
-
-            for (int taskNumber = 2; taskNumber <= 8; ++taskNumber)
-            {
-                WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
-                ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
-                ClassicAssert.AreEqual(99, task!.StateId, $"Task {taskNumber} should be promoted to planning input state.");
-            }
-        }
-
-        [Test]
-        public async Task HandleStateChangeDonePromotesInternalWorkRuleTasksToPlanningWhenMasterApprovalIsInactive()
-        {
-            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
-            ExtTicketHandlerTestApiConn.ResetTicketTasks();
-            ExtTicketHandlerTestApiConn localApiConnection = new()
-            {
-                ApprovalPhaseActiveForTaskTypesOnly = true
-            };
-
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
-
-            await handler.HandleStateChange(new ExternalRequest
-            {
-                Id = 1,
-                TicketId = 123,
-                TaskNumber = 1,
-                ExtRequestState = ExtStates.ExtReqDone.ToString(),
-                ExtTicketId = "4711"
-            });
-
-            for (int taskNumber = 2; taskNumber <= 8; ++taskNumber)
-            {
-                WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
-                ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
-                ClassicAssert.AreEqual(99, task!.StateId, $"Task {taskNumber} should be promoted to planning input state.");
-            }
-        }
-
-        [Test]
-        public async Task HandleStateChangeDonePromotesAllConsecutiveInternalWorkRuleTasksToApprovalWhenApprovalIsActive()
-        {
-            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
-            ExtTicketHandlerTestApiConn.ResetTicketTasks();
-            ExtTicketHandlerTestApiConn localApiConnection = new()
-            {
-                ApprovalPhaseActive = true
-            };
-
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
-
-            await handler.HandleStateChange(new ExternalRequest
-            {
-                Id = 1,
-                TicketId = 123,
-                TaskNumber = 1,
-                ExtRequestState = ExtStates.ExtReqDone.ToString(),
-                ExtTicketId = "4711"
-            });
-
-            ClassicAssert.IsNull(localApiConnection.AddExtRequestVars);
-
-            for (int taskNumber = 2; taskNumber <= 8; ++taskNumber)
-            {
-                WfReqTask? task = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(taskNumber);
-                ClassicAssert.IsNotNull(task, $"Task {taskNumber} should exist.");
-                ClassicAssert.AreEqual(60, task!.StateId, $"Task {taskNumber} should be promoted to approval started state.");
-                ClassicAssert.AreEqual(ManagementFwConfigChangeTargets.InternalWork,
-                    task.GetAddInfoValue(AdditionalInfoKeys.FwConfigChangeTarget));
-            }
-
-            WfReqTask? task9 = ExtTicketHandlerTestApiConn.GetReqTaskByNumber(9);
-            ClassicAssert.IsNotNull(task9);
-            ClassicAssert.AreEqual(0, task9!.StateId);
-        }
-
-        [Test]
-        public async Task ContinueAfterInternalWorkCompletionDoesNothingWhileBatchIsIncomplete()
-        {
-            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
-            ExtTicketHandlerTestApiConn.ResetTicketTasks();
-            ExtTicketHandlerTestApiConn localApiConnection = new();
-
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
-
-            await handler.HandleStateChange(new ExternalRequest
-            {
-                Id = 1,
-                TicketId = 123,
-                TaskNumber = 1,
-                ExtRequestState = ExtStates.ExtReqDone.ToString(),
-                ExtTicketId = "4711"
-            });
-
-            for (int taskId = 2; taskId <= 8; ++taskId)
-            {
-                ExtTicketHandlerTestApiConn.MarkReqTaskAsInternalWork(taskId);
-            }
-
-            ExtTicketHandlerTestApiConn.SetReqTaskState(2, 249);
-            ExtTicketHandlerTestApiConn.SetReqTaskState(3, 149);
-
-            bool continued = await handler.ContinueAfterInternalWorkCompletion(123, 2);
-
-            ClassicAssert.IsFalse(continued);
-            ClassicAssert.IsNull(localApiConnection.AddExtRequestVars);
-        }
-
-        [Test]
-        public async Task ContinueAfterInternalWorkCompletionStartsNextExternalObjectRequestWhenBatchIsDone()
-        {
-            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
-            ExtTicketHandlerTestApiConn.ResetTicketTasks();
-            ExtTicketHandlerTestApiConn localApiConnection = new();
-
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
-
-            await handler.HandleStateChange(new ExternalRequest
-            {
-                Id = 1,
-                TicketId = 123,
-                TaskNumber = 1,
-                ExtRequestState = ExtStates.ExtReqDone.ToString(),
-                ExtTicketId = "4711"
-            });
-
-            for (int taskId = 2; taskId <= 8; ++taskId)
-            {
-                ExtTicketHandlerTestApiConn.MarkReqTaskAsInternalWork(taskId);
-                ExtTicketHandlerTestApiConn.SetReqTaskState(taskId, 249);
-            }
-
-            bool continued = await handler.ContinueAfterInternalWorkCompletion(123, 2);
-
-            ClassicAssert.IsTrue(continued);
-            ClassicAssert.IsNotNull(localApiConnection.AddExtRequestVars);
-            StringAssert.Contains("taskNumber = 9", localApiConnection.AddExtRequestVars ?? "");
-            StringAssert.Contains("\"ManagementId\":[1]", localApiConnection.AddExtRequestVars ?? "");
-            StringAssert.Contains("\"Name\":\"Tufin\"", localApiConnection.AddedExtTicketSystem ?? "");
-        }
-
-        [Test]
-        public async Task SendFirstRequestStopsWhenInternalWorkBatchIsIncomplete()
-        {
-            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
-            ExtTicketHandlerTestApiConn.ResetTicketTasks();
-            ExtTicketHandlerTestApiConn localApiConnection = new();
-
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
-
-            for (int taskId = 2; taskId <= 8; ++taskId)
-            {
-                ExtTicketHandlerTestApiConn.MarkReqTaskAsInternalWork(taskId);
-                ExtTicketHandlerTestApiConn.SetReqTaskState(taskId, 60);
-            }
-
-            bool result = await handler.SendFirstRequest(123);
-
-            ClassicAssert.IsTrue(result);
-            ClassicAssert.IsNull(localApiConnection.AddExtRequestVars);
-        }
-
-        [Test]
-        public async Task SendFirstRequestStartsNextExternalRequestAfterCompletedInternalWorkBatch()
-        {
-            SimulatedUserConfig localUserConfig = CreateInternalWorkRuleChangeConfig();
-            ExtTicketHandlerTestApiConn.ResetTicketTasks();
-            ExtTicketHandlerTestApiConn localApiConnection = new();
-
-            using ExternalRequestHandler handler = new(localUserConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
-
-            ExtTicketHandlerTestApiConn.SetReqTaskState(1, 600);
-
-            for (int taskId = 2; taskId <= 8; ++taskId)
-            {
-                ExtTicketHandlerTestApiConn.MarkReqTaskAsInternalWork(taskId);
-                ExtTicketHandlerTestApiConn.SetReqTaskState(taskId, 249);
-            }
-
-            bool result = await handler.SendFirstRequest(123);
-
-            ClassicAssert.IsTrue(result);
-            ClassicAssert.IsNotNull(localApiConnection.AddExtRequestVars);
-            StringAssert.Contains("taskNumber = 9", localApiConnection.AddExtRequestVars ?? "");
-        }
-
-        [Test]
-        public async Task RunInternalWorkStateChangeActionsSafe_ReturnsForEmptyCollector()
-        {
-            using ExternalRequestHandler handler = new(userConfig, apiConnection, null) { SCTemplateSource = TestSCTemplates };
-            WorkflowEmailBundleCollector collector = new();
-
-            await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
-
-            ClassicAssert.IsEmpty(collector.PendingItems);
-        }
-
-        [Test]
-        public async Task RunInternalWorkStateChangeActionsSafe_ClearsCollectorWhenFallbackCannotRun()
-        {
-            WorkflowEmailBundleCollector collector = new();
-            collector.TryAdd(new WfStateAction { Id = 7, ExternalParams = "params" }, new WfReqTask { Id = 11, TicketId = 123, TaskType = WfTaskType.access.ToString() }, null, null);
-            using ExternalRequestHandler handler = new(userConfig, new FailingWorkflowInitApiConn(), null);
-
-            await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
-
-            ClassicAssert.IsEmpty(collector.PendingItems);
-        }
-
-        [Test]
-        public async Task RunInternalWorkStateChangeActionsSafe_ClearsCollectorWhenIndividualFallbackSucceeds()
-        {
-            WorkflowEmailBundleCollector collector = new();
-            WfStateAction action = new()
-            {
-                Id = 7,
-                ExternalParams = System.Text.Json.JsonSerializer.Serialize(new EmailActionParams
-                {
-                    Subject = "Internal work",
-                    Body = "done"
-                })
-            };
-            collector.TryAdd(action, new WfReqTask
-            {
-                Id = 2,
-                TicketId = 123,
-                TaskNumber = 2,
-                TaskType = WfTaskType.access.ToString()
-            }, null, null);
-            ExtTicketHandlerTestApiConn localApiConnection = new()
-            {
-                ReturnNullOnFirstTicketQuery = true
-            };
-            using ExternalRequestHandler handler = new(userConfig, localApiConnection, null) { SCTemplateSource = TestSCTemplates };
-
-            await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
-
-            ClassicAssert.IsEmpty(collector.PendingItems);
-            ClassicAssert.IsTrue(localApiConnection.TicketQueryCount >= 2);
-        }
-
-        private static async Task InvokeRunInternalWorkStateChangeActionsSafe(ExternalRequestHandler handler, long ticketId, WorkflowEmailBundleCollector collector)
-        {
-            MethodInfo method = typeof(ExternalRequestHandler).GetMethod("RunInternalWorkStateChangeActionsSafe", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new MissingMethodException(typeof(ExternalRequestHandler).FullName, "RunInternalWorkStateChangeActionsSafe");
-            object?[] arguments = new List<object?> { ticketId, collector }.ToArray();
-            await (Task)(method.Invoke(handler, arguments) ?? throw new InvalidOperationException("RunInternalWorkStateChangeActionsSafe returned null."));
-        }
-
-        private sealed class FailingWorkflowInitApiConn : ExtTicketHandlerTestApiConn
-        {
-            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
-            {
-                if (typeof(QueryResponseType) == typeof(List<WfState>))
-                {
-                    throw new InvalidOperationException("state initialization failed");
-                }
-                return base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
             }
         }
     }

@@ -57,11 +57,14 @@
                         }
                     }
                 </div>
-                <div class="mt-3">
-                    <button type="button" class="btn btn-sm btn-success" @onclick="CreateObjectTaskRequested">
-                        @(DisplayService.DisplayButton(userConfig, "add_task", Icons.Add))
-                    </button>
-                </div>
+                @if (ShowCreateObjectTask)
+                {
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-sm btn-success" @onclick="async () => await CreateObjectTaskRequested()">
+                            @(DisplayService.DisplayButton(userConfig, "add_task", Icons.Add))
+                        </button>
+                    </div>
+                }
             }
         }
     </Body>
@@ -81,6 +84,7 @@
     [Parameter] public List<IpProtocol> SelectableIpProtos { get; set; } = [];
     [Parameter] public Func<string, IReadOnlyList<NwObjectElement>, IReadOnlyList<NwObjectElement>, IReadOnlyList<NwServiceElement>, Task> Saved { get; set; } = (_, _, _, _) => System.Threading.Tasks.Task.CompletedTask;
     [Parameter] public Func<Task> CreateObjectTaskRequested { get; set; } = () => System.Threading.Tasks.Task.CompletedTask;
+    [Parameter] public bool ShowCreateObjectTask { get; set; } = true;
 
     private readonly List<FlowNwObject> flowNetworkObjects = [];
     private readonly List<FlowSvcObject> flowServiceObjects = [];

@@ -505,7 +505,7 @@ namespace FWO.Test
                 NotificationClient.InterfaceRequest,
                 localConfig,
                 bundledApiConnection,
-                new List<UserGroup>());
+                []);
             FwoOwner owner = new() { Name = "Owner", ExtAppId = "1" };
 
             FwoNotification bundledA = notificationService.Notifications[0];
@@ -526,7 +526,7 @@ namespace FWO.Test
                 EmailBody = "single body"
             };
 
-            List<FwoNotification> bundledNotifications = new() { bundledA, bundledB, standalone };
+            List<FwoNotification> bundledNotifications = [bundledA, bundledB, standalone];
             int emailsSent = await notificationService.SendBundledNotifications(bundledNotifications, owner, "body");
             int updatedNotifications = await notificationService.UpdateNotificationsLastSent();
             List<int> expectedUpdatedNotificationIds = [bundledA.Id, bundledB.Id, standalone.Id];
@@ -548,7 +548,7 @@ namespace FWO.Test
                 NotificationClient.InterfaceRequest,
                 localConfig,
                 apiConnection,
-                new List<UserGroup>());
+                []);
             FwoNotification sendable = notificationService.Notifications[0];
             sendable.BundleType = BundleType.Attachments;
             sendable.BundleId = "mixed-bundle";
@@ -710,10 +710,10 @@ namespace FWO.Test
                 NotificationClient.InterfaceRequest,
                 globalConfig,
                 apiConnection,
-                new List<UserGroup>());
+                []);
             FwoOwner owner = new() { Name = "Owner", ExtAppId = "1" };
 
-            List<FwoNotification> noNotifications = new();
+            List<FwoNotification> noNotifications = [];
             int emailsSent = await notificationService.SendBundledNotifications(noNotifications, owner, "body");
             int updatedNotifications = await notificationService.UpdateNotificationsLastSent();
 
@@ -735,7 +735,7 @@ namespace FWO.Test
             MethodInfo? prepareBundledEmail = typeof(NotificationService).GetMethod("PrepareBundledEmail", BindingFlags.Instance | BindingFlags.NonPublic);
             ClassicAssert.IsNotNull(prepareBundledEmail);
 
-            List<FwoNotification> notifications = new() { notification };
+            List<FwoNotification> notifications = [notification];
             object?[] invokeArgs = new object?[] { notifications, null, owner, null, "" };
             Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareBundledEmail?.Invoke(notificationService, invokeArgs)
                 ?? throw new InvalidOperationException("PrepareBundledEmail returned null task."));
@@ -757,7 +757,7 @@ namespace FWO.Test
             MethodInfo? prepareBundledEmail = typeof(NotificationService).GetMethod("PrepareBundledEmail", BindingFlags.Instance | BindingFlags.NonPublic);
             ClassicAssert.IsNotNull(prepareBundledEmail);
 
-            List<FwoNotification> notifications = new() { notification };
+            List<FwoNotification> notifications = [notification];
             object?[] invokeArgs = new object?[] { notifications, null, owner, new TestReport(), "" };
             Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareBundledEmail?.Invoke(notificationService, invokeArgs)
                 ?? throw new InvalidOperationException("PrepareBundledEmail returned null task."));

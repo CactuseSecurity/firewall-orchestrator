@@ -21,6 +21,37 @@ namespace FWO.Test
     [TestFixture]
     internal class AppDataImportTest
     {
+        private static readonly string[] kExpectedAppSupportGroupIdentifiers = ["app-support"];
+        private static readonly string[] kExpectedAppSupportGroupDns =
+        [
+            "cn=app-support,ou=groups,dc=example,dc=com"
+        ];
+        private static readonly string[] kExpectedMissingUserIdentifiers = ["missing.user", "missing.user"];
+        private static readonly string[] kExpectedGroupOnlyResponsibleDns =
+        [
+            "cn=group1,ou=groups,dc=example,dc=com"
+        ];
+        private static readonly string[] kExpectedMainAndSupportIdentifiers = ["main.user", "support.user"];
+        private static readonly string[] kExpectedSupportingResponsibleDns =
+        [
+            "cn=support.user,ou=users,dc=example,dc=com",
+            "cn=group1,ou=groups,dc=example,dc=com"
+        ];
+        private static readonly int[] kExpectedCheckedOwnerIds = [36];
+        private static readonly string[] kExpectedHandledUserDnsMixedUserOrGroup =
+        [
+            "cn=user-or-group,ou=mixed,dc=example,dc=com"
+        ];
+        private static readonly string[] kExpectedHandledUserDnsUserOneAndTwo =
+        [
+            "cn=user1,ou=users,dc=example,dc=com",
+            "cn=user2,ou=users,dc=example,dc=com"
+        ];
+        private static readonly string[] kExpectedExistingRoles = ["roleA", "roleB"];
+        private static readonly string[] kExpectedSupportRoles = ["supportRole"];
+        private static readonly string[] kExpectedMainRoles = ["mainRole"];
+        private static readonly int[] kExpectedParsedKeys = [1, 2];
+        private static readonly string[] kExpectedSupportingRoles = ["roleA", "roleB"];
 
         [SetUp]
         public void Initialize()
@@ -47,7 +78,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(2));
             Assert.That(result.Exists(r => r.Dn == "cn=user1,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
@@ -80,7 +111,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(2));
             Assert.That(result.Exists(r => r.Dn == "cn=first,dc=example,dc=com" && r.ResponsibleTypeId == 2), Is.True);
@@ -111,7 +142,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(2));
             Assert.That(result.Exists(r => r.Dn == "cn=first,dc=example,dc=com" && r.ResponsibleTypeId == 2), Is.True);
@@ -142,7 +173,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result.Exists(r => r.Dn == "cn=first,dc=example,dc=com" && r.ResponsibleTypeId == 2), Is.True);
@@ -175,7 +206,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Is.Empty);
         }
@@ -198,7 +229,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].Dn, Is.EqualTo("cn=kept,dc=example,dc=com"));
@@ -227,7 +258,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].Dn, Is.EqualTo("cn=user1,dc=example,dc=com"));
@@ -251,11 +282,7 @@ namespace FWO.Test
                 Responsibles = null
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(
-                import,
-                incomingApp,
-                "cn=support,dc=example,dc=com",
-                ["cn=optional,dc=example,dc=com"]);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result.Exists(r => r.Dn == "cn=main,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
@@ -279,7 +306,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=support,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result.Exists(r => r.Dn == "cn=main,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
@@ -298,10 +325,10 @@ namespace FWO.Test
                 Name = "App-E2",
                 ExtAppId = "APP-5-2",
                 MainUser = "cn=main,dc=example,dc=com",
-                Responsibles = new Dictionary<string, List<string>>()
+                Responsibles = []
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=support,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result.Exists(r => r.Dn == "cn=main,dc=example,dc=com" && r.ResponsibleTypeId == 1), Is.True);
@@ -322,14 +349,10 @@ namespace FWO.Test
                 Name = "App-E3",
                 ExtAppId = "APP-5-3",
                 MainUser = "cn=main,dc=example,dc=com",
-                Responsibles = new Dictionary<string, List<string>>()
+                Responsibles = []
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(
-                import,
-                incomingApp,
-                "cn=support,dc=example,dc=com",
-                ["cn=optional,dc=example,dc=com"]);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Is.Empty);
         }
@@ -351,7 +374,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(1));
             Assert.That(result[0].ResponsibleTypeId, Is.EqualTo(1));
@@ -376,7 +399,7 @@ namespace FWO.Test
                 }
             };
 
-            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp, "cn=fallback,dc=example,dc=com", []);
+            List<OwnerResponsible> result = InvokeBuildOwnerResponsibles(import, incomingApp);
 
             Assert.That(result, Has.Count.EqualTo(2));
             Assert.That(result.Exists(r => r.ResponsibleTypeId == 1), Is.True);
@@ -453,7 +476,7 @@ namespace FWO.Test
             Dictionary<int, List<string>> parsed = InvokeParseRolesWithImport("[\"roleA\",\"roleB\"]");
 
             Assert.That(parsed.Keys, Is.EquivalentTo(new[] { GlobalConst.kOwnerResponsibleTypeSupporting }));
-            Assert.That(parsed[GlobalConst.kOwnerResponsibleTypeSupporting], Is.EquivalentTo(new[] { "roleA", "roleB" }));
+            Assert.That(parsed[GlobalConst.kOwnerResponsibleTypeSupporting], Is.EquivalentTo(kExpectedSupportingRoles));
         }
 
         [Test]
@@ -461,9 +484,9 @@ namespace FWO.Test
         {
             Dictionary<int, List<string>> parsed = InvokeParseRolesWithImport("{\"1\":[\"mainRole\"],\"x\":[\"ignored\"],\"2\":[\"supportRole\"]}");
 
-            Assert.That(parsed.Keys, Is.EquivalentTo(new[] { 1, 2 }));
-            Assert.That(parsed[1], Is.EquivalentTo(new[] { "mainRole" }));
-            Assert.That(parsed[2], Is.EquivalentTo(new[] { "supportRole" }));
+            Assert.That(parsed.Keys, Is.EquivalentTo(kExpectedParsedKeys));
+            Assert.That(parsed[1], Is.EquivalentTo(kExpectedMainRoles));
+            Assert.That(parsed[2], Is.EquivalentTo(kExpectedSupportRoles));
         }
 
         [Test]
@@ -554,7 +577,7 @@ namespace FWO.Test
             List<string> existing = InvokeGetRolesForType(import, 7);
             List<string> missing = InvokeGetRolesForType(import, 8);
 
-            Assert.That(existing, Is.EquivalentTo(new[] { "roleA", "roleB" }));
+            Assert.That(existing, Is.EquivalentTo(kExpectedExistingRoles));
             Assert.That(missing, Is.Empty);
         }
 
@@ -663,11 +686,7 @@ namespace FWO.Test
             await InvokeAddResponsibleDnToUiUser(import, "cn=group1,ou=external-groups,dc=example,dc=com", handledUserDns, handledGroupDnsByLdap);
 
             Assert.That(handledGroupDnsByLdap.Contains("5|cn=group1,ou=external-groups,dc=example,dc=com"), Is.True);
-            Assert.That(handledUserDns, Is.EquivalentTo(new[]
-            {
-                "cn=user1,ou=users,dc=example,dc=com",
-                "cn=user2,ou=users,dc=example,dc=com"
-            }));
+            Assert.That(handledUserDns, Is.EquivalentTo(kExpectedHandledUserDnsUserOneAndTwo));
         }
 
         [Test]
@@ -699,10 +718,7 @@ namespace FWO.Test
 
             await InvokeAddResponsibleDnToUiUser(import, "cn=user-or-group,ou=mixed,dc=example,dc=com", handledUserDns, handledGroupDnsByLdap);
 
-            Assert.That(handledUserDns, Is.EquivalentTo(new[]
-            {
-                "cn=user-or-group,ou=mixed,dc=example,dc=com"
-            }));
+            Assert.That(handledUserDns, Is.EquivalentTo(kExpectedHandledUserDnsMixedUserOrGroup));
             Assert.That(handledGroupDnsByLdap, Is.Empty);
         }
 
@@ -1458,7 +1474,7 @@ namespace FWO.Test
             bool imported = await InvokeSaveApp(import, incomingApp, new OwnerChangeImportTracker(apiConn));
 
             Assert.That(imported, Is.True);
-            Assert.That(import.CheckedOwners.Select(owner => owner.Id), Is.EqualTo(new[] { 36 }));
+            Assert.That(import.CheckedOwners.Select(owner => owner.Id), Is.EqualTo(kExpectedCheckedOwnerIds));
         }
 
         [Test]
@@ -2008,12 +2024,8 @@ namespace FWO.Test
             ModellingImportAppData normalizedApp = await InvokeNormalizeImportedUserReferences(import, incomingApp);
 
             Assert.That(normalizedApp.MainUser, Is.EqualTo("cn=main.user,ou=users,dc=example,dc=com"));
-            Assert.That(normalizedApp.Responsibles?["1"], Is.EquivalentTo(new[]
-            {
-                "cn=support.user,ou=users,dc=example,dc=com",
-                "cn=group1,ou=groups,dc=example,dc=com"
-            }));
-            Assert.That(import.ResolvedIdentifiers, Is.EqualTo(new[] { "main.user", "support.user" }));
+            Assert.That(normalizedApp.Responsibles?["1"], Is.EquivalentTo(kExpectedSupportingResponsibleDns));
+            Assert.That(import.ResolvedIdentifiers, Is.EqualTo(kExpectedMainAndSupportIdentifiers));
         }
 
         [Test]
@@ -2038,11 +2050,8 @@ namespace FWO.Test
             ModellingImportAppData normalizedApp = await InvokeNormalizeImportedUserReferences(import, incomingApp);
 
             Assert.That(normalizedApp.MainUser, Is.Null);
-            Assert.That(normalizedApp.Responsibles?["1"], Is.EqualTo(new[]
-            {
-                "cn=group1,ou=groups,dc=example,dc=com"
-            }));
-            Assert.That(import.ResolvedIdentifiers, Is.EqualTo(new[] { "missing.user", "missing.user" }));
+            Assert.That(normalizedApp.Responsibles?["1"], Is.EqualTo(kExpectedGroupOnlyResponsibleDns));
+            Assert.That(import.ResolvedIdentifiers, Is.EqualTo(kExpectedMissingUserIdentifiers));
         }
 
         private static readonly List<string> kExistingGroupDn = ["cn=group1,ou=groups,dc=example,dc=com"];
@@ -2107,7 +2116,7 @@ namespace FWO.Test
                 Name = "App-Directory",
                 ExtAppId = "APP-DIRECTORY",
                 MainUser = kDirectoryUserDn,
-                Responsibles = new Dictionary<string, List<string>> { ["1"] = new List<string>(kDirectoryUserDnList) }
+                Responsibles = new Dictionary<string, List<string>> { ["1"] = [.. kDirectoryUserDnList] }
             };
         }
 
@@ -2125,7 +2134,7 @@ namespace FWO.Test
                 Name = "App-Forged",
                 ExtAppId = "APP-FORGED",
                 MainUser = "cn=forged.admin,ou=users,dc=example,dc=com",
-                Responsibles = new Dictionary<string, List<string>> { ["1"] = new List<string>(kForgedAndExistingDns) }
+                Responsibles = new Dictionary<string, List<string>> { ["1"] = [.. kForgedAndExistingDns] }
             };
 
             ModellingImportAppData normalizedApp = await InvokeNormalizeImportedUserReferences(import, incomingApp);
@@ -2161,11 +2170,8 @@ namespace FWO.Test
 
             ModellingImportAppData normalizedApp = await InvokeNormalizeImportedUserReferences(import, incomingApp);
 
-            Assert.That(normalizedApp.Responsibles?["2"], Is.EqualTo(new[]
-            {
-                "cn=app-support,ou=groups,dc=example,dc=com"
-            }));
-            Assert.That(import.ResolvedGroupIdentifiers, Is.EqualTo(new[] { "app-support" }));
+            Assert.That(normalizedApp.Responsibles?["2"], Is.EqualTo(kExpectedAppSupportGroupDns));
+            Assert.That(import.ResolvedGroupIdentifiers, Is.EqualTo(kExpectedAppSupportGroupIdentifiers));
         }
 
         private static AppDataImport CreateImportWithTypeMap(Dictionary<string, int> typeMap)
@@ -2248,7 +2254,7 @@ namespace FWO.Test
             field.SetValue(import, value);
         }
 
-        private static List<OwnerResponsible> InvokeBuildOwnerResponsibles(AppDataImport import, ModellingImportAppData incomingApp, string userGroupDn, IEnumerable<string> extraDns)
+        private static List<OwnerResponsible> InvokeBuildOwnerResponsibles(AppDataImport import, ModellingImportAppData incomingApp)
         {
             MethodInfo method = typeof(AppDataImport).GetMethod(
                 "BuildOwnerResponsibles",
@@ -2337,15 +2343,6 @@ namespace FWO.Test
                 BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("ConvertLdapToUiUser helper not found.");
             return await (Task<UiUser?>)method.Invoke(import, [userDn])!;
-        }
-
-        private static async Task InvokeImportApps(AppDataImport import, string importfileName, OwnerChangeImportTracker tracker)
-        {
-            MethodInfo method = typeof(AppDataImport).GetMethod(
-                "ImportApps",
-                BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new InvalidOperationException("ImportApps helper not found.");
-            await (Task)method.Invoke(import, [importfileName, tracker, CancellationToken.None])!;
         }
 
         private static async Task<bool> InvokeSaveApp(AppDataImport import, ModellingImportAppData incomingApp, OwnerChangeImportTracker tracker)
@@ -2505,10 +2502,10 @@ namespace FWO.Test
                 {
                     return Task.FromResult((QueryResponseType)(object)new InsertImportControl
                     {
-                        Returning = new List<ImportControl>
-                        {
+                        Returning =
+                        [
                             new ImportControl { ControlId = 123 }
-                        }
+                        ]
                     });
                 }
 
@@ -2759,10 +2756,10 @@ namespace FWO.Test
                 {
                     return Task.FromResult((QueryResponseType)(object)new InsertImportControl
                     {
-                        Returning = new List<ImportControl>
-                        {
+                        Returning =
+                        [
                             new ImportControl { ControlId = 123 }
-                        }
+                        ]
                     });
                 }
 

@@ -48,15 +48,18 @@ namespace FWO.ExternalSystems.FirewallWrite
             { "TooManyRequests", "Throttled", "SubscriptionRequestsThrottled" };
 
         private readonly bool checkCertificates;
+        private readonly TimeSpan? tokenRequestTimeout;
         private string? accessToken;
 
         /// <summary>Creates a client for Azure Resource Manager.</summary>
         /// <param name="management">Management with tenant id and export credentials.</param>
         /// <param name="checkCertificates">False accepts any server certificate, of Resource Manager and of the Entra ID login.</param>
-        public AzureWriteClient(Management management, bool checkCertificates)
-            : base(kArmBaseUrl, management, checkCertificates)
+        /// <param name="responseTimeout">Request timeout in seconds, when configured.</param>
+        public AzureWriteClient(Management management, bool checkCertificates, int? responseTimeout = null)
+            : base(kArmBaseUrl, management, checkCertificates, responseTimeout)
         {
             this.checkCertificates = checkCertificates;
+            tokenRequestTimeout = responseTimeout is > 0 ? TimeSpan.FromSeconds(responseTimeout.Value) : null;
         }
 
         /// <inheritdoc/>
@@ -86,13 +89,13 @@ namespace FWO.ExternalSystems.FirewallWrite
         }
 
         /// <summary>
-        /// Creates the client of the Entra ID token endpoint, with the certificate checking of this client. Unit tests
-        /// override this to simulate the token endpoint.
+        /// Creates the client of the Entra ID token endpoint with this client's certificate checking and timeout.
+        /// Unit tests override this to simulate the token endpoint.
         /// </summary>
         /// <returns>The token client; the caller disposes it.</returns>
         protected virtual OAuthTokenClient CreateTokenClient()
         {
-            return new OAuthTokenClient(checkCertificates);
+            return new OAuthTokenClient(checkCertificates, requestTimeout: tokenRequestTimeout);
         }
 
         /// <inheritdoc/>

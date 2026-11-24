@@ -26,39 +26,39 @@ namespace FWO.Test
         private const string kValue = "42";
 
         private static readonly TimeSpan kWaitTimeout = TimeSpan.FromSeconds(5);
-        private static readonly List<string> kQuestionOnly = new() { kQuestion };
-        private static readonly List<string> kFirstTurnTexts = new() { kQuestion, kAnswer };
-        private static readonly List<string> kNextTurnTexts = new() { kNextQuestion, kNextAnswer };
-        private static readonly List<AiChatEntryKind> kUserThenAssistant = new() { AiChatEntryKind.User, AiChatEntryKind.Assistant };
-        private static readonly List<string> kNextQuestionOnly = new() { kNextQuestion };
-        private static readonly List<string> kSecondTurnTexts = new() { kQuestion, kAnswer, kNextQuestion };
-        private static readonly List<bool> kApprovalAnswers = new() { true, false };
-        private static readonly List<string> kApprovalRequestIds = new() { kFirstRequest, kSecondRequest };
+        private static readonly List<string> kQuestionOnly = [kQuestion];
+        private static readonly List<string> kFirstTurnTexts = [kQuestion, kAnswer];
+        private static readonly List<string> kNextTurnTexts = [kNextQuestion, kNextAnswer];
+        private static readonly List<AiChatEntryKind> kUserThenAssistant = [AiChatEntryKind.User, AiChatEntryKind.Assistant];
+        private static readonly List<string> kNextQuestionOnly = [kNextQuestion];
+        private static readonly List<string> kSecondTurnTexts = [kQuestion, kAnswer, kNextQuestion];
+        private static readonly List<bool> kApprovalAnswers = [true, false];
+        private static readonly List<string> kApprovalRequestIds = [kFirstRequest, kSecondRequest];
         private static readonly Dictionary<string, object?> kStoreArguments = new() { { kValueArgument, kValue } };
 
-        private static readonly List<TestCaseData> kIgnoredMessages = new()
-        {
+        private static readonly List<TestCaseData> kIgnoredMessages =
+        [
             new TestCaseData("").SetName("SendAsync_IgnoresEmptyMessage"),
             new TestCaseData("   ").SetName("SendAsync_IgnoresBlankMessage"),
             new TestCaseData(null).SetName("SendAsync_IgnoresMissingMessage"),
             new TestCaseData(new string('x', AiChatSession.kMaxMessageLength + 1)).SetName("SendAsync_IgnoresTooLongMessage")
-        };
+        ];
 
-        private static readonly List<TestCaseData> kPanelWidths = new()
-        {
+        private static readonly List<TestCaseData> kPanelWidths =
+        [
             new TestCaseData(100, AiChatSession.kMinPanelWidth),
             new TestCaseData(500, 500),
             new TestCaseData(5000, AiChatSession.kMaxPanelWidth)
-        };
+        ];
 
-        private static readonly List<TestCaseData> kSameUserCases = new()
-        {
+        private static readonly List<TestCaseData> kSameUserCases =
+        [
             new TestCaseData("", "", true),
             new TestCaseData("uid=a,dc=example", "uid=a,dc=example", true),
             new TestCaseData("uid=a,dc=example", "", false),
             new TestCaseData("", "uid=a,dc=example", false),
             new TestCaseData("uid=a,dc=example", "uid=b,dc=example", false)
-        };
+        ];
 
         private AiChatTestSession test = null!;
 

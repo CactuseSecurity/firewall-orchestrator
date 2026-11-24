@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data.Report;
+using FWO.Encoders;
 using FWO.Logging;
 using FWO.Report.Filter;
 using System.Text;
@@ -58,8 +59,7 @@ namespace FWO.Report
         public override string ExportToJson()
         {
             globalStatisticsManagement.Name = "global statistics";
-            List<ManagementReport> combinedManagements = new() { globalStatisticsManagement };
-            combinedManagements.AddRange(ReportData.ManagementData.Where(mgt => !mgt.Ignore));
+            List<ManagementReport> combinedManagements = [globalStatisticsManagement, .. ReportData.ManagementData.Where(mgt => !mgt.Ignore)];
             return JsonSerializer.Serialize(combinedManagements, new JsonSerializerOptions { WriteIndented = true });
         }
 

@@ -146,6 +146,19 @@ namespace FWO.Test
             Assert.That(userConfig.ReqDeviceInput, Is.EqualTo(ReqDeviceInputOptions.never));
         }
 
+        /// <summary>Planner task details view is opt-in to preserve the classic default.</summary>
+        [Test]
+        public void ConfigData_DefaultsPlannerEditModeToClassic()
+        {
+            Assert.That(new ConfigData().ReqPlannerEditMode, Is.EqualTo(PlannerEditMode.Classic));
+        }
+
+        [Test]
+        public void ConfigData_DisablesPlannerOwnerChangesByDefault()
+        {
+            Assert.That(new ConfigData().ReqAllowOwnerChangesByPlanner, Is.False);
+        }
+
         [Test]
         public void Constructor_AppliesGlobalConfigToScheduledUserConfig()
         {
@@ -530,6 +543,30 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.ImportLogDataSleepTimeUnit, Is.EqualTo(LogDataImportIntervalUnit.Hours));
+        }
+
+        [Test]
+        public void RuleHitImportSubscription_ContainsTheSchedule()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(ConfigQueries.subscribeImportRuleHitsConfigChanges, Does.Contain("importRuleHitsSleepTime"));
+                Assert.That(ConfigQueries.subscribeImportRuleHitsConfigChanges, Does.Contain("importRuleHitsSleepTimeUnit"));
+                Assert.That(ConfigQueries.subscribeImportRuleHitsConfigChanges, Does.Contain("importRuleHitsStartAt"));
+            });
+        }
+
+        [Test]
+        public void ConfigData_RequestsRuleHitImportsDailyAtMidnightByDefault()
+        {
+            ConfigData configData = new();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(configData.ImportRuleHitsSleepTime, Is.EqualTo(1));
+                Assert.That(configData.ImportRuleHitsSleepTimeUnit, Is.EqualTo(RuleHitImportIntervalUnit.Days));
+                Assert.That(configData.ImportRuleHitsStartAt.TimeOfDay, Is.EqualTo(TimeSpan.Zero));
+            });
         }
 
         [Test]

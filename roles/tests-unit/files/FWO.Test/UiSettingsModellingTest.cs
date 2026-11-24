@@ -186,7 +186,7 @@ namespace FWO.Test
                 NetworkAreaPattern = networkAreaPattern,
                 AppRolePattern = appRolePattern
             });
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             SetPrivateProperty(component, "DisplayMessageInUi",
                 new Action<Exception?, string, string, bool>((exception, title, message, isError) => messages.Add((exception, title, message, isError))));
 
@@ -224,7 +224,7 @@ namespace FWO.Test
                 AppRolePattern = ""
             };
             SetPrivateField(component, "namingConvention", namingConvention);
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             SetPrivateProperty(component, "DisplayMessageInUi",
                 new Action<Exception?, string, string, bool>((exception, title, message, isError) => messages.Add((exception, title, message, isError))));
 
@@ -578,8 +578,9 @@ namespace FWO.Test
             });
 
             IRenderedComponent<SettingsModelling> component = wrapper.FindComponent<SettingsModelling>();
-            IElement predefinedServicesLabel = component.Find("div.form-group label");
-            IElement predefinedServicesButton = component.Find("div.form-group button");
+            IElement predefinedServicesRow = component.Find(".settings-row");
+            IElement predefinedServicesLabel = predefinedServicesRow.QuerySelector("label.settings-label")!;
+            IElement predefinedServicesButton = predefinedServicesRow.QuerySelector(".settings-value button")!;
 
             Assert.Multiple(() =>
             {

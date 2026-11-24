@@ -80,8 +80,7 @@ internal class FwoUserPolicyTest
 
     private static ClaimsPrincipal CreateUser(string? authenticationType, string roleClaimType, params string[] roles)
     {
-        List<Claim> claims = new() { new Claim(JwtClaimTypes.kName, kUserName) };
-        claims.AddRange(roles.Select(role => new Claim(roleClaimType, role)));
+        List<Claim> claims = [new Claim(JwtClaimTypes.kName, kUserName), .. roles.Select(role => new Claim(roleClaimType, role))];
         return new ClaimsPrincipal(new ClaimsIdentity(claims, authenticationType, JwtClaimTypes.kName, JwtClaimTypes.kRole));
     }
 

@@ -40,10 +40,10 @@ namespace FWO.ExternalSystems.FirewallWrite
                 nameof(WfTaskType.object_create) or nameof(WfTaskType.object_modify) => PlanObjectTask(implTask, profile),
                 nameof(WfTaskType.group_create) => PlanGroupCreate(implTask, profile),
                 nameof(WfTaskType.group_modify) => PlanGroupModify(implTask, profile),
-                nameof(WfTaskType.group_delete) => [GroupStep(FirewallWriteOperation.GroupDelete, implTask, profile, new List<WfImplElement>())],
+                nameof(WfTaskType.group_delete) => [GroupStep(FirewallWriteOperation.GroupDelete, implTask, profile, [])],
                 nameof(WfTaskType.access) => PlanRuleCreate(implTask, profile),
-                nameof(WfTaskType.rule_modify) => [RuleStep(FirewallWriteOperation.RuleModify, implTask, profile, RuleUid(implTask))],
-                nameof(WfTaskType.rule_delete) => PlanRuleDelete(implTask, profile),
+                nameof(WfTaskType.rule_modify) => PlanRuleModify(implTask, profile, context),
+                nameof(WfTaskType.rule_delete) => PlanRuleDelete(implTask, profile, context),
                 _ => throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported, $"Task type '{implTask.TaskType}' cannot be written to a firewall.")
             };
 
@@ -89,7 +89,33 @@ namespace FWO.ExternalSystems.FirewallWrite
                 .SetText(FirewallWritePlaceholders.TaskId, implTask.Id.ToString(CultureInfo.InvariantCulture))
                 .SetText(FirewallWritePlaceholders.TaskNumber, implTask.TaskNumber.ToString(CultureInfo.InvariantCulture))
                 .SetJson(FirewallWritePlaceholders.RulePosition, effectivePlacement.ToJson());
+            SetInstallOn(values, context, profile);
             return values.Values;
+        }
+
+        /// <summary>
+        /// Sets the install-on list of a new rule along the install-on setting: with gateways in path the uids (else names)
+        /// of the gateways to install on, otherwise the vendor's value for all targets of the policy (Check Point: "Policy
+        /// Targets"). A vendor without such a value gets the gateways as well.
+        /// </summary>
+        private static void SetInstallOn(FirewallWriteStep values, FirewallWriteContext context, FirewallVendorProfile profile)
+        {
+            if (context.Settings.InstallOn != ProvisioningInstallOn.GatewaysInPath && profile.AllTargetsInstallOn != null)
+            {
+                List<string> allTargets = [profile.AllTargetsInstallOn];
+                values.SetStringList(FirewallWritePlaceholders.InstallOn, allTargets);
+                return;
+            }
+            List<string> gateways = [.. context.EffectiveInstallOnGateways
+                .Select(gateway => FirstNonBlank(gateway.Uid, gateway.Name))
+                .OfType<string>()
+                .Distinct()];
+            if (gateways.Count == 0)
+            {
+                values.SetMissing(FirewallWritePlaceholders.InstallOn, kNoGateway);
+                return;
+            }
+            values.SetStringList(FirewallWritePlaceholders.InstallOn, gateways);
         }
 
         private static List<FirewallWriteStep> PlanObjectTask(WfImplTask implTask, FirewallVendorProfile profile)
@@ -249,14 +275,50 @@ namespace FWO.ExternalSystems.FirewallWrite
             return steps;
         }
 
-        private static List<FirewallWriteStep> PlanRuleDelete(WfImplTask implTask, FirewallVendorProfile profile)
+        /// <summary>
+        /// Plans the change of an existing rule, written as its complete target state; a task without a current element
+        /// on one side is refused, see <see cref="FirewallRuleValues.EnsureCompleteTargetState"/>.
+        /// </summary>
+        private static List<FirewallWriteStep> PlanRuleModify(WfImplTask implTask, FirewallVendorProfile profile, FirewallWriteContext context)
         {
-            List<string> ruleUids = [.. implTask.GetRuleElements().Select(rule => rule.RuleUid).Where(uid => !string.IsNullOrWhiteSpace(uid)).Distinct()];
+            FirewallRuleValues.EnsureCompleteTargetState(implTask);
+            return [ExistingRuleStep(FirewallWriteOperation.RuleModify, implTask, profile, RuleUid(implTask), context)];
+        }
+
+        /// <summary>Plans the deletion of the existing rules a rule_delete task names, one step per rule in its imported layer.</summary>
+        private static List<FirewallWriteStep> PlanRuleDelete(WfImplTask implTask, FirewallVendorProfile profile, FirewallWriteContext context)
+        {
+            List<string> ruleUids = implTask.GetRuleUids();
             if (ruleUids.Count == 0)
             {
                 throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Implementation task {implTask.Id} has no rule to delete.");
             }
-            return [.. ruleUids.Select(uid => RuleStep(FirewallWriteOperation.RuleDelete, implTask, profile, uid))];
+            return [.. ruleUids.Select(uid => ExistingRuleStep(FirewallWriteOperation.RuleDelete, implTask, profile, uid, context))];
+        }
+
+        /// <summary>
+        /// Plans the step of an existing rule. Where the vendor addresses rules within their layer, the step gets the layer
+        /// of this rule from the imported configuration, as the rules of one task may lie in different layers; a rule
+        /// missing in the import fails before anything is sent instead of being looked for in a guessed layer.
+        /// </summary>
+        private static FirewallWriteStep ExistingRuleStep(FirewallWriteOperation operation, WfImplTask implTask, FirewallVendorProfile profile,
+            string ruleUid, FirewallWriteContext context)
+        {
+            FirewallWriteStep step = RuleStep(operation, implTask, profile, ruleUid);
+            if (!profile.AddressesRulesInImportedLayer)
+            {
+                return step;
+            }
+            if (context.RuleLayerUids.TryGetValue(ruleUid, out string? layerUid))
+            {
+                step.SetText(FirewallWritePlaceholders.LayerName, layerUid);
+            }
+            else
+            {
+                step.SetMissing(FirewallWritePlaceholders.LayerName, $"the rule '{ruleUid}' is not found in the imported configuration of the management",
+                    FirewallWriteErrorKind.Configuration);
+            }
+            return step;
         }
 
         private static FirewallWriteStep RuleStep(FirewallWriteOperation operation, WfImplTask implTask, FirewallVendorProfile profile, string ruleUid)
@@ -284,7 +346,7 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         private static string RuleUid(WfImplTask implTask)
         {
-            string? ruleUid = implTask.GetRuleElements().Select(rule => rule.RuleUid).FirstOrDefault(uid => !string.IsNullOrWhiteSpace(uid));
+            string? ruleUid = implTask.GetRuleUids().FirstOrDefault();
             return ruleUid ?? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData, $"Implementation task {implTask.Id} has no rule to modify.");
         }
 

@@ -16,8 +16,8 @@ namespace FWO.Ai.Tests;
 [TestFixture]
 internal class HarnessHistoryCompactionTest
 {
-    private const int kMessageCharacters = 400;
     private const int kMessageTokens = 100;
+    private const int kMessageCharacters = kMessageTokens * 4;
     private const int kContextWindowTokens = 1000;
     private const int kReserveTokens = 250;
     private const int kLargeReserveTokens = 500;
@@ -147,7 +147,7 @@ internal class HarnessHistoryCompactionTest
         Assert.That(HarnessTestSetup.GetCallIds(reduced.Take(2)), Has.Count.EqualTo(1));
         Assert.That(HarnessTestSetup.GetResultCallIds(reduced.Take(3)), Has.Count.EqualTo(1));
         Assert.That(ProviderHistoryRules.FindViolation(reduced), Is.Null);
-        List<ChatMessage> withAssistantSummary = new(reduced);
+        List<ChatMessage> withAssistantSummary = [.. reduced];
         withAssistantSummary[0] = new ChatMessage(ChatRole.Assistant, reduced[0].Text);
         Assert.That(ProviderHistoryRules.FindViolation(withAssistantSummary), Is.Not.Null);
     }
@@ -161,10 +161,13 @@ internal class HarnessHistoryCompactionTest
         ScriptedChatClient summarizer = new ScriptedChatClient().RespondWithText(kSummary);
         IChatReducer reducer = HistoryCompaction.CreateReducer(summarizer, kContextWindowTokens, kReserveTokens);
         // groups: u1, tool call with result, a1 u2 a2 u3 a3 (summarized), u4 a4 u5 a5 (the 4 most recent)
-        List<ChatMessage> history = new() { CreateMessage(ChatRole.User, kUserLabel + 1) };
-        history.AddRange(CreateToolCallGroup());
-        history.Add(CreateMessage(ChatRole.Assistant, kAssistantLabel + 1));
-        history.AddRange(CreateTurns(2, kTurnsAboveThreshold));
+        List<ChatMessage> history =
+        [
+            CreateMessage(ChatRole.User, kUserLabel + 1),
+            .. CreateToolCallGroup(),
+            CreateMessage(ChatRole.Assistant, kAssistantLabel + 1),
+            .. CreateTurns(2, kTurnsAboveThreshold),
+        ];
 
         List<ChatMessage> reduced = (await reducer.ReduceAsync(history, CancellationToken.None)).ToList();
 
@@ -315,7 +318,7 @@ internal class HarnessHistoryCompactionTest
     /// </summary>
     private static async Task<List<ChatMessage>> RunTurnsAsync(FwoUserAgent agent, int turnCount)
     {
-        List<ChatMessage> conversation = new();
+        List<ChatMessage> conversation = [];
         for (int turn = 1; turn <= turnCount; turn++)
         {
             List<ChatMessage> messages = [.. conversation, new ChatMessage(ChatRole.User, CreateText(kUserLabel + turn))];
@@ -393,7 +396,7 @@ internal class HarnessHistoryCompactionTest
     /// </summary>
     private static List<ChatMessage> CreateTurns(int firstTurn, int lastTurn)
     {
-        List<ChatMessage> messages = new();
+        List<ChatMessage> messages = [];
         for (int turn = firstTurn; turn <= lastTurn; turn++)
         {
             messages.Add(CreateMessage(ChatRole.User, kUserLabel + turn));
@@ -407,9 +410,11 @@ internal class HarnessHistoryCompactionTest
     /// </summary>
     private static List<ChatMessage> CreateToolCallGroup()
     {
-        ChatMessage call = new(ChatRole.Assistant, new List<AIContent> { new FunctionCallContent(kCallId, kToolName) });
-        ChatMessage result = new(ChatRole.Tool, new List<AIContent> { new FunctionResultContent(kCallId, kToolResult) });
-        return new List<ChatMessage> { call, result };
+        List<AIContent> callContents = [new FunctionCallContent(kCallId, kToolName)];
+        List<AIContent> resultContents = [new FunctionResultContent(kCallId, kToolResult)];
+        ChatMessage call = new(ChatRole.Assistant, callContents);
+        ChatMessage result = new(ChatRole.Tool, resultContents);
+        return [call, result];
     }
 
     /// <summary>

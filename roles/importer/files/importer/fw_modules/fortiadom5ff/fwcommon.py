@@ -16,6 +16,7 @@ from fwo_enums import ConfigAction
 from fwo_exceptions import FwLoginFailedError, ImportInterruptionError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
+from model_controllers.rule_hit_extractor import extract_rule_hits
 from models.fw_common import FwCommon
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
     from model_controllers.import_state_controller import ImportStateController
     from models.import_state import ImportState
     from models.management import Management
+    from models.rule_hit import RuleHit
 
 
 class FortiAdom5ffCommon(FwCommon):
@@ -33,6 +35,19 @@ class FortiAdom5ffCommon(FwCommon):
         self, config_in: FwConfigManagerListController, import_state: ImportStateController
     ) -> tuple[int, FwConfigManagerListController]:
         return get_config(config_in, import_state)
+
+    def supports_rule_hits(self) -> bool:
+        return True
+
+    def get_rule_hits(self, import_state: ImportStateController) -> list[RuleHit]:
+        """
+        Read the last hits from the policy packages and store them for every gateway using the package.
+
+        FortiManager reports the last hit (_last_hit) per policy package rule, not per device.
+        """
+        config_in = FwConfigManagerListController.generate_empty_config(import_state.state.mgm_details.is_super_manager)
+        _, normalized_config = get_config(config_in, import_state)
+        return extract_rule_hits(normalized_config, import_state.state.management_map)
 
 
 def get_config(
@@ -374,7 +389,10 @@ def assign_case_all(
 ):
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
-            adom_device_vdom_policy_package_structure[adom][device][vdom]["global"] = global_assignment["assign_name"]
+            vdom_structure = adom_device_vdom_policy_package_structure[adom][device][vdom]
+            if not _vdom_has_local_package(vdom_structure, device, vdom):
+                continue
+            vdom_structure["global"] = global_assignment["assign_name"]
 
 
 def assign_case_include(
@@ -384,9 +402,10 @@ def assign_case_include(
 ):
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
-            match_assign_and_vdom_policy_package(
-                global_assignment, adom_device_vdom_policy_package_structure[adom][device][vdom], is_include=True
-            )
+            vdom_structure = adom_device_vdom_policy_package_structure[adom][device][vdom]
+            if not _vdom_has_local_package(vdom_structure, device, vdom):
+                continue
+            match_assign_and_vdom_policy_package(global_assignment, vdom_structure, is_include=True)
 
 
 def assign_case_exclude(
@@ -396,20 +415,34 @@ def assign_case_exclude(
 ):
     for device in adom_device_vdom_policy_package_structure[adom]:
         for vdom in adom_device_vdom_policy_package_structure[adom][device]:
-            match_assign_and_vdom_policy_package(
-                global_assignment, adom_device_vdom_policy_package_structure[adom][device][vdom], is_include=False
-            )
+            vdom_structure = adom_device_vdom_policy_package_structure[adom][device][vdom]
+            if not _vdom_has_local_package(vdom_structure, device, vdom):
+                continue
+            match_assign_and_vdom_policy_package(global_assignment, vdom_structure, is_include=False)
+
+
+def _vdom_has_local_package(vdom_structure: dict[str, Any] | str, device: str, vdom: str) -> bool:
+    """
+    VDOMs without an installed local policy package keep the "" placeholder set by
+    get_devices_from_manager. A global policy package cannot be attached to them.
+    """
+    if isinstance(vdom_structure, dict):
+        return True
+    FWOLogger.debug(f"skipping global package assignment for {device}_{vdom}: no local policy package installed")
+    return False
 
 
 def match_assign_and_vdom_policy_package(
     global_assignment: dict[str, Any], vdom_structure: dict[str, Any], is_include: bool
 ):
-    for package in global_assignment["pkg list"]:
-        if is_include:
-            if package["name"] == vdom_structure["local"]:
-                vdom_structure["global"] = global_assignment["assign_name"]
-        elif package["name"] != vdom_structure["local"]:
-            vdom_structure["global"] = global_assignment["assign_name"]
+    """
+    Include mode assigns the global package only to the listed local packages,
+    exclude mode assigns it to every local package that is not listed.
+    """
+    listed_package_names = {package["name"] for package in global_assignment.get("pkg list", [])}
+    is_listed = vdom_structure["local"] in listed_package_names
+    if is_listed == is_include:
+        vdom_structure["global"] = global_assignment["assign_name"]
 
 
 def initialize_device_config(mgm_details_device: dict[str, Any]) -> dict[str, Any]:

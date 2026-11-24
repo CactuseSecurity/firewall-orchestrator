@@ -56,10 +56,10 @@ internal class FwoAgentChatClientEventStreamTest
     private const int kStreamWaitSeconds = 10;
 
     private static readonly Uri kMiddlewareServerUri = new("https://fwo.example:8888/");
-    private static readonly List<ChatMessage> kQuestionOnly = new() { new ChatMessage(ChatRole.User, kQuestion) };
-    private static readonly List<string> kAnswerDeltas = new() { kFirstDelta, kSecondDelta };
-    private static readonly List<ChatRole> kSnapshotRoles = new() { ChatRole.User, ChatRole.Assistant };
-    private static readonly List<string> kSnapshotTexts = new() { kSnapshotQuestion, kSnapshotAnswer };
+    private static readonly List<ChatMessage> kQuestionOnly = [new ChatMessage(ChatRole.User, kQuestion)];
+    private static readonly List<string> kAnswerDeltas = [kFirstDelta, kSecondDelta];
+    private static readonly List<ChatRole> kSnapshotRoles = [ChatRole.User, ChatRole.Assistant];
+    private static readonly List<string> kSnapshotTexts = [kSnapshotQuestion, kSnapshotAnswer];
 
     /// <summary>
     /// Verifies that a completed run returns the answer text piece by piece, and the thread the harness names.
@@ -337,7 +337,7 @@ internal class FwoAgentChatClientEventStreamTest
     private static async Task<List<ChatResponseUpdate>> CollectAsync(AgUiFakeHandler handler)
     {
         using FwoAgentChatClientFactory factory = new(new HttpClient(handler), kMiddlewareServerUri);
-        List<ChatResponseUpdate> updates = new();
+        List<ChatResponseUpdate> updates = [];
         await foreach (ChatResponseUpdate update in factory.CreateChatClient(ProvideToken).GetStreamingResponseAsync(kQuestionOnly))
         {
             updates.Add(update);

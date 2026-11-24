@@ -21,10 +21,20 @@ if TYPE_CHECKING:
 WORKFLOW_DIRECTORY = Path(__file__).parents[2] / ".github" / "workflows"
 SONAR_PR_WORKFLOW_PATH = WORKFLOW_DIRECTORY / "sonarcloud-pr.yml"
 SONAR_BRANCH_WORKFLOW_PATH = WORKFLOW_DIRECTORY / "sonarcloud.yml"
+TEST_INSTALL_WORKFLOW_PATH = WORKFLOW_DIRECTORY / "test-install.yml"
 TRUSTED_SOURCE_GATE_STEP_NAME = "Gate trusted PR sources"
 PULL_REQUEST_CHECKOUT_STEP_NAME = "Checkout PR head"
 CHECKOUT_ACTION = "actions/checkout"
 ALLOWED_PULL_REQUEST_CODE_SECRETS = frozenset({"SONAR_TOKEN"})
+# GitHub runs workflow files with either suffix.
+WORKFLOW_SUFFIXES = (".yml", ".yaml")
+# Workflow paths that the repository Actions policy "Allow PR_target" exempts from the default block of
+# pull_request_target by GitHub, as they exist on this branch. pull_request_target runs the workflow file of the
+# default branch main, so after a rename the policy keeps the old path as well until the rename has reached main.
+# See section "Required Actions policy" in documentation/developer-docs/github/sonarcloud-workflow.md.
+ACTIONS_POLICY_PULL_REQUEST_TARGET_WORKFLOWS = frozenset(
+    {".github/workflows/sonarcloud-pr.yml", ".github/workflows/version-gate.yml"}
+)
 READ_ONLY_PERMISSIONS = {"contents": "read"}
 WRITE_PERMISSION_VALUES = frozenset({"write", "write-all"})
 PULL_REQUEST_HEAD_EXPRESSIONS = (
@@ -71,9 +81,9 @@ WorkflowLoader.add_implicit_resolver(  # pyright: ignore[reportUnknownMemberType
 )
 
 
-def active_workflow_paths() -> list[Path]:
-    """Return all workflows GitHub would run (disabled ones are not named *.yml)."""
-    return sorted(WORKFLOW_DIRECTORY.glob("*.yml"))
+def active_workflow_paths(workflow_directory: Path = WORKFLOW_DIRECTORY) -> list[Path]:
+    """Return all workflows GitHub would run: *.yml and *.yaml (disabled ones carry another suffix)."""
+    return sorted(path for suffix in WORKFLOW_SUFFIXES for path in workflow_directory.glob(f"*{suffix}"))
 
 
 def read_workflow(path: Path) -> str:
@@ -218,6 +228,16 @@ def privileged_pull_request_workflows() -> list[Path]:
     return [path for path in active_workflow_paths() if runs_pull_request_code_privileged(read_workflow(path))]
 
 
+def pull_request_target_workflows() -> set[str]:
+    """Return the repository relative paths of the workflows triggered by pull_request_target."""
+    repository_root = WORKFLOW_DIRECTORY.parents[1]
+    return {
+        path.relative_to(repository_root).as_posix()
+        for path in active_workflow_paths()
+        if "pull_request_target" in workflow_trigger_names(read_workflow(path))
+    }
+
+
 def test_workflow_trigger_names_ignores_nested_keys() -> None:
     text = "on:\n  push:\n    branches:\n      - develop\n  pull_request:\n\njobs:\n  build:\n"
     assert workflow_trigger_names(text) == {"push", "pull_request"}
@@ -343,8 +363,24 @@ def test_merge_ref_checkout_counts_as_pull_request_code() -> None:
     assert runs_pull_request_code_privileged(text)
 
 
+def test_active_workflow_paths_finds_yml_and_yaml_but_not_disabled_workflows(tmp_path: Path) -> None:
+    for name in ("build.yml", "gate.yaml", "old.yml.disabled", "notes.md"):
+        (tmp_path / name).write_text("on: push\n", encoding="utf-8")
+    assert active_workflow_paths(tmp_path) == [tmp_path / "build.yml", tmp_path / "gate.yaml"]
+
+
 def test_sonar_pull_request_workflow_is_the_only_privileged_pull_request_build() -> None:
     assert privileged_pull_request_workflows() == [SONAR_PR_WORKFLOW_PATH]
+
+
+def test_pull_request_target_workflows_match_the_actions_policy() -> None:
+    assert pull_request_target_workflows() == ACTIONS_POLICY_PULL_REQUEST_TARGET_WORKFLOWS, (
+        "GitHub blocks pull_request_target unless the repository Actions policy 'Allow PR_target' lists the workflow. "
+        "Add new workflow paths to the policy (Settings > Actions > Policies) and update "
+        "ACTIONS_POLICY_PULL_REQUEST_TARGET_WORKFLOWS. pull_request_target runs the workflow files of the default "
+        "branch main: on a rename, keep the old path in the policy until the rename has reached main. See "
+        "documentation/developer-docs/github/sonarcloud-workflow.md, 'Required Actions policy'."
+    )
 
 
 @pytest.mark.parametrize("workflow_path", privileged_pull_request_workflows(), ids=lambda path: path.name)
@@ -429,3 +465,55 @@ def test_workflows_pin_actions_to_commit_shas(workflow_path: Path) -> None:
 )
 def test_is_pinned_action(action: str, *, expected: bool) -> None:
     assert is_pinned_action(action) is expected
+
+
+def granted_write_scopes(permissions: object) -> list[str]:
+    """Return the write scopes of one permissions block, in either the string or the mapping form."""
+    if isinstance(permissions, str):
+        return [permissions] if permissions in WRITE_PERMISSION_VALUES else []
+    if isinstance(permissions, dict):
+        scopes = cast("dict[object, object]", permissions)
+        return [str(scope) for scope, level in scopes.items() if level in WRITE_PERMISSION_VALUES]
+    return []
+
+
+@pytest.mark.parametrize("workflow_path", active_workflow_paths(), ids=lambda path: path.name)
+def test_every_workflow_declares_top_level_permissions(workflow_path: Path) -> None:
+    # Without the block every job gets the repository's default token, which is write-scoped.
+    workflow = parse_workflow(read_workflow(workflow_path))
+    assert "permissions" in workflow, f"{workflow_path.name} has no top-level permissions block"
+
+
+def test_test_install_workflow_writes_only_in_the_merge_failure_report() -> None:
+    workflow = parse_workflow(read_workflow(TEST_INSTALL_WORKFLOW_PATH))
+    assert granted_write_scopes(workflow["permissions"]) == []
+    jobs = cast("dict[str, dict[str, object]]", workflow["jobs"])
+    writing_jobs = {name: granted_write_scopes(job.get("permissions")) for name, job in jobs.items()}
+    assert {name: scopes for name, scopes in writing_jobs.items() if scopes} == {
+        "report-merge-failure": ["pull-requests"]
+    }
+
+
+def test_test_install_workflow_grants_pull_request_read_only_to_the_installs() -> None:
+    # Only the version check of the install jobs reads pull requests (gh pr view); every other
+    # job gets the workflow-level contents: read alone.
+    workflow = parse_workflow(read_workflow(TEST_INSTALL_WORKFLOW_PATH))
+    assert workflow["permissions"] == READ_ONLY_PERMISSIONS
+    jobs = cast("dict[str, dict[str, object]]", workflow["jobs"])
+    assert jobs["test-install"]["permissions"] == {"contents": "read", "pull-requests": "read"}
+    readers = sorted(name for name, job in jobs.items() if "pull-requests" in str(job.get("permissions", "")))
+    assert readers == ["report-merge-failure", "test-install"]
+
+
+@pytest.mark.parametrize(
+    ("permissions", "expected"),
+    [
+        ("write-all", ["write-all"]),
+        ("read-all", []),
+        ({"contents": "read", "pull-requests": "write"}, ["pull-requests"]),
+        ({"contents": "read"}, []),
+        (None, []),
+    ],
+)
+def test_granted_write_scopes(permissions: object, expected: list[str]) -> None:
+    assert granted_write_scopes(permissions) == expected

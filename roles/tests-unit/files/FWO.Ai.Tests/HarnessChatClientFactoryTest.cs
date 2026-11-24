@@ -291,7 +291,7 @@ internal class HarnessChatClientFactoryTest
     [Test]
     public async Task Create_WithMaxOutputTokens_AppliesItToRequestWithoutMaximum()
     {
-        List<JsonElement> requests = new();
+        List<JsonElement> requests = [];
         await using WebApplication ollamaStub = await StartOllamaStub(requests);
         using IChatClient chatClient = ChatClientFactory.Create(CreateOllamaStubSettings(ollamaStub, kConfiguredMaxOutputTokens));
 
@@ -308,7 +308,7 @@ internal class HarnessChatClientFactoryTest
     [Test]
     public async Task Create_WithMaxOutputTokens_KeepsMaximumOfRequest()
     {
-        List<JsonElement> requests = new();
+        List<JsonElement> requests = [];
         await using WebApplication ollamaStub = await StartOllamaStub(requests);
         using IChatClient chatClient = ChatClientFactory.Create(CreateOllamaStubSettings(ollamaStub, kConfiguredMaxOutputTokens));
         ChatOptions requestOptions = new() { MaxOutputTokens = kExplicitMaxOutputTokens };
@@ -326,7 +326,7 @@ internal class HarnessChatClientFactoryTest
     [Test]
     public async Task Create_Ollama_SendsContextWindowAsNumCtx()
     {
-        List<JsonElement> requests = new();
+        List<JsonElement> requests = [];
         await using WebApplication ollamaStub = await StartOllamaStub(requests);
         using IChatClient chatClient = ChatClientFactory.Create(CreateOllamaStubSettings(ollamaStub, null));
 
@@ -343,7 +343,7 @@ internal class HarnessChatClientFactoryTest
     [Test]
     public async Task Create_Ollama_KeepsNumCtxOfRequest()
     {
-        List<JsonElement> requests = new();
+        List<JsonElement> requests = [];
         await using WebApplication ollamaStub = await StartOllamaStub(requests);
         using IChatClient chatClient = ChatClientFactory.Create(CreateOllamaStubSettings(ollamaStub, kConfiguredMaxOutputTokens));
         ChatOptions requestOptions = new ChatOptions().AddOllamaOption(OllamaOption.NumCtx, kRequestContextWindowTokens);
@@ -363,7 +363,7 @@ internal class HarnessChatClientFactoryTest
     [Test]
     public async Task Create_Ollama_WithNullNumCtxOfRequest_SendsContextWindow()
     {
-        List<JsonElement> requests = new();
+        List<JsonElement> requests = [];
         await using WebApplication ollamaStub = await StartOllamaStub(requests);
         using IChatClient chatClient = ChatClientFactory.Create(CreateOllamaStubSettings(ollamaStub, null));
         ChatOptions requestOptions = new ChatOptions().AddOllamaOption(OllamaOption.NumCtx, null);
@@ -381,7 +381,7 @@ internal class HarnessChatClientFactoryTest
     [Test]
     public async Task Create_Ollama_WithOtherAdditionalProperties_LeavesCallerDictionaryUnchanged()
     {
-        List<JsonElement> requests = new();
+        List<JsonElement> requests = [];
         await using WebApplication ollamaStub = await StartOllamaStub(requests);
         using IChatClient chatClient = ChatClientFactory.Create(CreateOllamaStubSettings(ollamaStub, null));
         AdditionalPropertiesDictionary additionalProperties = new() { [kOtherAdditionalProperty] = kOtherAdditionalValue };
@@ -401,7 +401,7 @@ internal class HarnessChatClientFactoryTest
     [Test]
     public async Task Create_OpenAiWithMaxOutputTokens_SendsMaximumWithoutNumCtx()
     {
-        List<JsonElement> requests = new();
+        List<JsonElement> requests = [];
         await using WebApplication openAiStub = await StartProviderStub(requests, kOpenAiChatPath, () => Results.Text(kOpenAiResponse, kJsonContentType));
         AiProviderSettings settings = CreateSettings(AiProvider.OpenAi);
         settings.Endpoint = new Uri(McpTestServer.GetBaseAddress(openAiStub), kOpenAiBasePath);

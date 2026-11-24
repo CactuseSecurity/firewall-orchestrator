@@ -1,4 +1,4 @@
-using FWO.Basics;
+using FWO.Encoders;
 using NUnit.Framework;
 
 namespace FWO.Test

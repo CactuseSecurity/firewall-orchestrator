@@ -45,6 +45,24 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DisplayTicket_ReadOnlyPlanningTicketUsesClassicTaskDisplay()
+        {
+            WfHandler handler = new()
+            {
+                ReadOnlyMode = true,
+                EditTicketMode = false,
+                ActTicket = new WfTicket { Tasks = [new WfReqTask { Id = 11 }] }
+            };
+            RequestWorkflowUserConfig userConfig = new()
+            {
+                ReqPlannerEditMode = PlannerEditMode.PlanningView
+            };
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.planning, userConfig: userConfig);
+
+            Assert.That(GetMember<bool>(component, "UsePlanningDetailsView"), Is.False);
+        }
+
+        [Test]
         public async Task DisplayTicket_InitSaveTicketCopiesSelectedPriorityAndOpensSavePopup()
         {
             WfHandler handler = new()
@@ -547,6 +565,7 @@ namespace FWO.Test
             WfHandler handler = new()
             {
                 EditTicketMode = true,
+                Phase = WorkflowPhases.planning,
                 ActTicket = new WfTicket { Id = 10, StateId = 0 },
                 MasterStateMatrix = new StateMatrix { Matrix = { [0] = [1] }, LowestEndState = 5 }
             };
@@ -561,6 +580,56 @@ namespace FWO.Test
                 Assert.That(allowed, Is.True);
                 Assert.That(readOnly, Is.False);
             });
+        }
+
+        [TestCase(PromotionMode.Ticket, true)]
+        [TestCase(PromotionMode.Task, false)]
+        [TestCase(PromotionMode.Both, true)]
+        [TestCase(PromotionMode.ActionButtonsOnly, false)]
+        public void DisplayTicket_PlanningPromotionButtonFollowsPromotionMode(PromotionMode mode, bool expected)
+        {
+            RequestWorkflowUserConfig userConfig = new()
+            {
+                ReqPlannerEditMode = PlannerEditMode.PlanningView
+            };
+            WfHandler handler = new()
+            {
+                EditTicketMode = true,
+                Phase = WorkflowPhases.planning,
+                ActTicket = new WfTicket { Id = 10, StateId = 0 },
+                MasterStateMatrix = new StateMatrix
+                {
+                    PromotionMode = mode,
+                    LowestStartedState = 0,
+                    LowestEndState = 5,
+                    Matrix = { [0] = [1] }
+                }
+            };
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.planning, userConfig: userConfig);
+
+            bool visible = InvokePrivateBool(component, "CanShowTicketPromotionButton");
+
+            Assert.That(visible, Is.EqualTo(expected));
+        }
+
+        [TestCase(PromotionMode.Ticket, true)]
+        [TestCase(PromotionMode.Task, false)]
+        [TestCase(PromotionMode.Both, true)]
+        [TestCase(PromotionMode.ActionButtonsOnly, false)]
+        public void DisplayTicket_PlanningClassicSavePromoteButtonFollowsPromotionMode(PromotionMode mode, bool expected)
+        {
+            RequestWorkflowUserConfig userConfig = new();
+            WfHandler handler = new()
+            {
+                EditTicketMode = true,
+                Phase = WorkflowPhases.planning,
+                MasterStateMatrix = new StateMatrix { PromotionMode = mode }
+            };
+            DisplayTicket component = CreateDisplayTicket(handler, WorkflowPhases.planning, userConfig: userConfig);
+
+            bool visible = InvokePrivateBool(component, "CanShowClassicTicketSaveButton");
+
+            Assert.That(visible, Is.EqualTo(expected));
         }
 
         [Test]

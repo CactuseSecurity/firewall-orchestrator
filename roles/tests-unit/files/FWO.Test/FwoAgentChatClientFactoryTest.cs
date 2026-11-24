@@ -47,12 +47,12 @@ internal class FwoAgentChatClientFactoryTest
     private const string kUriWithUserInfo = "http://admin:" + kUserInfoSecret + "@" + kUserInfoHost + ":8888/";
 
     private static readonly Uri kMiddlewareServerUri = new(kMiddlewareUri);
-    private static readonly List<TimeSpan> kInvalidRunTimeouts = new() { TimeSpan.Zero, TimeSpan.FromSeconds(-1), TimeSpan.MaxValue };
+    private static readonly List<TimeSpan> kInvalidRunTimeouts = [TimeSpan.Zero, TimeSpan.FromSeconds(-1), TimeSpan.MaxValue];
     private static readonly IReadOnlyDictionary<string, string> kPromptArguments = new Dictionary<string, string> { [kReasonArgument] = kReason };
-    private static readonly List<string> kEventStreamAccept = new() { AgUiFakeHandler.kEventStreamMediaType };
-    private static readonly List<string?> kUnusableTokens = new() { null, "", " ", "secret token", "token\r\nX-Injected: 1" };
-    private static readonly List<ChatMessage> kNoMessages = new();
-    private static readonly List<ChatMessage> kQuestionOnly = new() { new ChatMessage(ChatRole.User, kQuestion) };
+    private static readonly List<string> kEventStreamAccept = [AgUiFakeHandler.kEventStreamMediaType];
+    private static readonly List<string?> kUnusableTokens = [null, "", " ", "secret token", "token\r\nX-Injected: 1"];
+    private static readonly List<ChatMessage> kNoMessages = [];
+    private static readonly List<ChatMessage> kQuestionOnly = [new ChatMessage(ChatRole.User, kQuestion)];
     private static readonly Dictionary<string, object?> kToolArguments = new() { [kToolArgumentName] = kToolArgumentValue };
 
     /// <summary>
@@ -230,12 +230,12 @@ internal class FwoAgentChatClientFactoryTest
     public async Task MessageRun_PostsWholeConversation()
     {
         AgUiFakeHandler handler = AgUiFakeHandler.WithEventStream(kFinishedRun);
-        List<ChatMessage> conversation = new()
-        {
+        List<ChatMessage> conversation =
+        [
             new ChatMessage(ChatRole.User, kQuestion),
             new ChatMessage(ChatRole.Assistant, kAnswer),
             new ChatMessage(ChatRole.User, kFollowUp)
-        };
+        ];
 
         await RunAsync(handler, conversation, new ChatOptions { ConversationId = kThreadId });
 
@@ -256,11 +256,12 @@ internal class FwoAgentChatClientFactoryTest
     {
         AgUiFakeHandler handler = AgUiFakeHandler.WithEventStream(kFinishedRun);
         ToolApprovalRequestContent approvalRequest = new(kInterruptId, new FunctionCallContent(kToolCallId, kToolName, kToolArguments));
-        List<ChatMessage> conversation = new()
-        {
+        List<AIContent> responseContents = [approvalRequest.CreateResponse(true)];
+        List<ChatMessage> conversation =
+        [
             new ChatMessage(ChatRole.User, kQuestion),
-            new ChatMessage(ChatRole.User, new List<AIContent> { approvalRequest.CreateResponse(true) })
-        };
+            new ChatMessage(ChatRole.User, responseContents)
+        ];
 
         await RunAsync(handler, conversation, new ChatOptions { ConversationId = kThreadId });
 
@@ -283,7 +284,8 @@ internal class FwoAgentChatClientFactoryTest
     public async Task Runs_AskTokenProviderForEveryRun()
     {
         AgUiFakeHandler handler = AgUiFakeHandler.WithEventStream(kFinishedRun);
-        Queue<string> tokens = new(new List<string> { kAccessToken, kOtherAccessToken });
+        List<string> accessTokens = [kAccessToken, kOtherAccessToken];
+        Queue<string> tokens = new(accessTokens);
         using FwoAgentChatClientFactory factory = new(new HttpClient(handler), kMiddlewareServerUri);
         IChatClient chatClient = factory.CreateChatClient(_ => Task.FromResult<string?>(tokens.Dequeue()));
 
@@ -451,7 +453,7 @@ internal class FwoAgentChatClientFactoryTest
     /// </summary>
     private static async Task<List<ChatResponseUpdate>> CollectAsync(IChatClient chatClient, IEnumerable<ChatMessage> messages)
     {
-        List<ChatResponseUpdate> updates = new();
+        List<ChatResponseUpdate> updates = [];
         await foreach (ChatResponseUpdate update in chatClient.GetStreamingResponseAsync(messages))
         {
             updates.Add(update);

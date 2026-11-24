@@ -89,15 +89,15 @@ namespace FWO.Compliance
         /// <summary>
         /// Collection that is suitable for parallel processing and receives and holds insert arguments for newly found violations.
         /// </summary>
-        private readonly ConcurrentBag<ComplianceViolationBase> _violationsToAdd = new();
+        private readonly ConcurrentBag<ComplianceViolationBase> _violationsToAdd = [];
         /// <summary>
         /// Collection that is suitable for parallel processing and receives and holds remove arguments for deprecated violations.
         /// </summary>
-        private readonly ConcurrentBag<ComplianceViolation> _violationsToRemove = new();
+        private readonly ConcurrentBag<ComplianceViolation> _violationsToRemove = [];
         /// <summary>
         /// Collection that is suitable for parallel processing and receives and holds violations as a result of the current check.
         /// </summary>
-        private readonly ConcurrentBag<ComplianceViolation> _currentViolations = new();
+        private readonly ConcurrentBag<ComplianceViolation> _currentViolations = [];
         /// <summary>
         /// Rule and criterion pairs of the current check that could not be evaluated. Their stored violations are kept.
         /// </summary>
@@ -216,11 +216,29 @@ namespace FWO.Compliance
         /// <param name="rulesToCheck">Rules to check for compliance.</param>
         public async Task<bool> AreRulesCompliant(IEnumerable<int> policyIds, IEnumerable<Rule> rulesToCheck)
         {
+            List<ComplianceViolation>? violations = await EvaluateRulesAgainstPolicies(policyIds, rulesToCheck, true);
+            return violations != null && violations.Count == 0;
+        }
+
+        /// <summary>
+        /// Evaluates the provided rules against all selected policies and returns the violations of all policies.
+        /// The violations reference the checked rules by their id.
+        /// </summary>
+        /// <param name="policyIds">Compliance policy identifiers to evaluate.</param>
+        /// <param name="rulesToCheck">Rules to check for compliance.</param>
+        /// <returns>The violations, or null if the check could not be performed.</returns>
+        public Task<List<ComplianceViolation>?> GetRuleViolations(IEnumerable<int> policyIds, IEnumerable<Rule> rulesToCheck)
+        {
+            return EvaluateRulesAgainstPolicies(policyIds, rulesToCheck, false);
+        }
+
+        private async Task<List<ComplianceViolation>?> EvaluateRulesAgainstPolicies(IEnumerable<int> policyIds, IEnumerable<Rule> rulesToCheck, bool stopAtFirstViolation)
+        {
             GlobalConfig? globalConfig = _userConfig.GlobalConfig;
             if (globalConfig == null)
             {
                 Logger.TryWriteInfo("Compliance Check", "Global config is necessary for compliance check, but was not found. Aborting compliance check.", true);
-                return false;
+                return null;
             }
 
             List<int> selectedPolicyIds = policyIds.Where(id => id > 0).Distinct().ToList();
@@ -228,32 +246,34 @@ namespace FWO.Compliance
 
             if (selectedPolicyIds.Count == 0 || selectedRules.Count == 0)
             {
-                return false;
+                return null;
             }
 
             ApplyGlobalConfig(globalConfig);
             Managements = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
+            List<ComplianceViolation> violations = [];
 
             foreach (int policyId in selectedPolicyIds)
             {
                 Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = policyId });
                 if (Policy == null || Policy.Criteria.Count == 0)
                 {
-                    return false;
+                    return null;
                 }
 
                 PrepareRuleComplianceState();
                 await LoadNetworkZonesAsync();
                 await CalculateCompliance(selectedRules.Select(rule => new Rule(rule)).ToList());
                 CurrentViolationsInCheck = _currentViolations.ToList();
+                violations.AddRange(CurrentViolationsInCheck);
 
-                if (CurrentViolationsInCheck.Count > 0)
+                if (stopAtFirstViolation && violations.Count > 0)
                 {
-                    return false;
+                    return violations;
                 }
             }
 
-            return true;
+            return violations;
         }
 
         /// <summary>
@@ -661,14 +681,6 @@ namespace FWO.Compliance
             _currentViolations.Clear();
             _criteriaNotEvaluated.Clear();
             _networkZonesByCriterion.Clear();
-        }
-
-        /// <summary>
-        /// Loads managements for the current compliance evaluation.
-        /// </summary>
-        private async Task LoadManagementsAsync()
-        {
-            Managements = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
         }
 
         /// <summary>

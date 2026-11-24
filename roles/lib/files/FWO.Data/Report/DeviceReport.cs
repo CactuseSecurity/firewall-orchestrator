@@ -27,6 +27,32 @@ namespace FWO.Data.Report
         public ObjectStatistics UnusedRulesStatistics { get; set; } = new();
 
         /// <summary>
+        /// Gets or sets at most one rule hit stored for this gateway. Rule reports read from it whether the rule
+        /// hit import has delivered hits for the gateway at all. Empty when the query did not select it. Read
+        /// from the API only: it is not part of the report exports.
+        /// </summary>
+        [JsonProperty("importedRuleHits"), JsonPropertyName("importedRuleHits")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWriting)]
+        public List<RuleHit> ImportedRuleHits { get; set; } = [];
+
+        /// <summary>
+        /// Keeps <see cref="ImportedRuleHits"/> out of what Newtonsoft.Json writes.
+        /// </summary>
+        public static bool ShouldSerializeImportedRuleHits()
+        {
+            return false;
+        }
+
+        /// <summary>
+        /// Tells whether the rule hit import has stored at least one hit for this gateway. Without any hit a
+        /// rule that has no hit on the gateway cannot be told apart from a gateway whose hits were never read.
+        /// </summary>
+        public bool HasImportedRuleHits()
+        {
+            return ImportedRuleHits.Count > 0;
+        }
+
+        /// <summary>
         /// Management rulebases view only: rulebases of this rule tree that are listed completely in an earlier
         /// rule tree of the management, mapped to the id of that tree (not part of the API data or exports).
         /// </summary>

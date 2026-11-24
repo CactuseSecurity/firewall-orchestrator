@@ -36,7 +36,7 @@ internal sealed class ScriptedChatClient : IChatClient
     }
 
     /// <summary>Calls received, in order.</summary>
-    internal List<ScriptedChatCall> Calls { get; } = new();
+    internal List<ScriptedChatCall> Calls { get; } = [];
 
     /// <summary>
     /// Creates a client answering every call with the given updates.
@@ -200,7 +200,7 @@ internal sealed class AgUiFakeHandler : HttpMessageHandler
     }
 
     /// <summary>Requests received, in order.</summary>
-    internal List<AgUiRecordedRequest> Requests { get; } = new();
+    internal List<AgUiRecordedRequest> Requests { get; } = [];
 
     /// <summary>Number of times the handler was disposed.</summary>
     internal int DisposeCount { get; private set; }

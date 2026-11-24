@@ -37,6 +37,11 @@ internal sealed class ApprovalTaskDetailsEditorService
     internal WfHandler WfHandler => context.WfHandler;
     internal UserConfig userConfig => context.UserConfig;
 
+    /// <summary>Disables all request-task editors while retaining their shared details presentation.</summary>
+    internal bool ReadOnlyDisplay { get; set; }
+
+    internal bool PlannerOwnerChangesAllowed { get; set; }
+
     internal void Configure(WfHandler wfHandler, UserConfig config, Func<Task> refresh)
     {
         context.Configure(wfHandler, config, refresh);
@@ -47,6 +52,9 @@ internal sealed class ApprovalTaskDetailsEditorService
 
     internal AccessTaskFieldVisibilityConfig AccessTaskVisibility =>
         TicketFieldVisibilityConfig.Parse(context.UserConfig.ReqTicketFieldVisibility).AccessTask;
+
+    internal ObjectTaskFieldVisibilityConfig ObjectTaskVisibility =>
+        TicketFieldVisibilityConfig.Parse(context.UserConfig.ReqTicketFieldVisibility).ObjectTask;
 
     internal ApprovalTaskElementDisplayMode accessElementDisplayMode
     {
@@ -279,6 +287,14 @@ internal sealed class ApprovalTaskDetailsEditorService
 
     internal static bool IsAccessTask(WfReqTask task) => task.TaskType == WfTaskType.access.ToString();
 
+    /// <summary>
+    /// Orders the task groups so access tasks come first; the order within access and other tasks is kept.
+    /// </summary>
+    internal static List<List<WfReqTask>> AccessTasksFirst(IEnumerable<List<WfReqTask>> taskGroups)
+    {
+        return [.. taskGroups.OrderBy(group => group.Count > 0 && IsAccessTask(group[0]) ? 0 : 1)];
+    }
+
     internal static bool IsGroupTask(WfReqTask task) => task.TaskType == WfTaskType.group_create.ToString()
         || task.TaskType == WfTaskType.group_modify.ToString()
         || task.TaskType == WfTaskType.group_delete.ToString();
@@ -299,7 +315,7 @@ internal sealed class ApprovalTaskDetailsEditorService
         new ApprovalTaskViewActions
         {
             CanEdit = CanEdit,
-            CanEditTimeObject = timeObjectEditor.CanEditTimeObject,
+            CanEditTimeObject = tasks => !ReadOnlyDisplay && timeObjectEditor.CanEditTimeObject(tasks),
             EditableTimeObjectField = timeObjectEditor.EditableTimeObjectField,
             EditOwner = metadataEditor.OpenOwnerEditor,
             EditRuleAction = metadataEditor.OpenRuleActionEditor,
@@ -310,15 +326,27 @@ internal sealed class ApprovalTaskDetailsEditorService
             EditObjectTask = elementsEditor.OpenExistingObjectTaskEditor,
             EditText = metadataEditor.OpenTextEditor,
             EditTargetDates = timeObjectEditor.OpenTargetDatesEditor
-        });
+        },
+        ObjectTaskVisibility);
 
     internal bool CanEdit(IEnumerable<WfReqTask> tasks, string fieldKey)
     {
+        bool plannerOwnerEdit = PlannerOwnerChangesAllowed && fieldKey == WorkflowEditableFieldKeys.Owner;
+        if (ReadOnlyDisplay && !plannerOwnerEdit)
+        {
+            return false;
+        }
+
         List<WfReqTask> taskList = tasks.ToList();
         if (taskList.Count == 0
             || taskList.Any(task => !context.WfHandler.CanActOnReqTaskInCurrentPhase(task)))
         {
             return false;
+        }
+
+        if (plannerOwnerEdit)
+        {
+            return context.WfHandler.Phase == WorkflowPhases.planning && !context.WfHandler.ReadOnlyMode;
         }
 
         WfReqTask firstTask = taskList.First();

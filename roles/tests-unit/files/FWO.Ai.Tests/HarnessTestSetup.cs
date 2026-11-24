@@ -140,7 +140,7 @@ internal static class HarnessTestSetup
         JsonObject prompt = new() { [PromptRequest.kNameProperty] = promptName };
         if (arguments != null)
         {
-            JsonObject argumentObject = new();
+            JsonObject argumentObject = [];
             foreach (KeyValuePair<string, string> argument in arguments)
             {
                 argumentObject[argument.Key] = argument.Value;
@@ -157,7 +157,7 @@ internal static class HarnessTestSetup
     internal static async Task<List<AgentResponseUpdate>> RunStreamingAsync(AIAgent agent, IEnumerable<ChatMessage> messages,
         AgentSession? session = null, AgentRunOptions? options = null)
     {
-        List<AgentResponseUpdate> updates = new();
+        List<AgentResponseUpdate> updates = [];
         await foreach (AgentResponseUpdate update in agent.RunStreamingAsync(messages, session, options))
         {
             updates.Add(update);
@@ -170,7 +170,7 @@ internal static class HarnessTestSetup
     /// </summary>
     internal static Task<List<AgentResponseUpdate>> RunStreamingAsync(AIAgent agent, string userText)
     {
-        List<ChatMessage> messages = new() { new ChatMessage(ChatRole.User, userText) };
+        List<ChatMessage> messages = [new ChatMessage(ChatRole.User, userText)];
         return RunStreamingAsync(agent, messages);
     }
 
@@ -236,6 +236,6 @@ internal static class HarnessTestSetup
     /// </summary>
     internal static List<string> GetToolNames(ChatOptions? options)
     {
-        return options?.Tools?.Select(tool => tool.Name).ToList() ?? new List<string>();
+        return options?.Tools?.Select(tool => tool.Name).ToList() ?? [];
     }
 }

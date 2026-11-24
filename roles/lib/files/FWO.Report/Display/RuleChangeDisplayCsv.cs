@@ -401,9 +401,9 @@ namespace FWO.Ui.Display
             }
             else
             {
-                List<string> unchanged = new List<string>();
-                List<string> added = new List<string>();
-                List<string> deleted = new List<string>();
+                List<string> unchanged = [];
+                List<string> added = [];
+                List<string> deleted = [];
 
                 oldElement = oldElement.Replace("\"", "");
                 newElement = newElement.Replace("\"", "");

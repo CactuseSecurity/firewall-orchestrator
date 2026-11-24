@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.9.4 - 17.11.2026
+## 9.9.6 - 24.11.2026
 - new AI MCP server (service `fworch-ai-mcp`, endpoint `/mcp` on the middleware host): offers FWO tools and prompts to MCP clients such as Claude Code or Codex, limited to what the roles of the calling user allow
 - new AI harness (service `fworch-ai-harness`, endpoint `/agui`): runs an AI agent (Ollama, OpenAI, Anthropic or Google) on the MCP tools over AG-UI with the rights of the calling user; tools that change data need the user's confirmation
 - both AI servers are installed by default on the middleware host; skip them with `install_ai_server=no`
@@ -16,7 +16,124 @@
 - the AI settings can add HTTP headers to every request to the AI provider (`aiCustomHeaders`, JSON array of name and value, e.g. the profile name an API gateway in front of the model expects); not sent to the token URL, stored in plain text, so headers carrying credentials (`Authorization`, `x-api-key`, ...) or framing the message (`Host`, `Content-Type`, ...) are refused
 - the AI settings limit each AI function to roles selected in a dropdown (`aiChatRoles`, `aiReasonCheckRoles`, every user if none is selected); the UI hides the function from other users and the AI harness refuses their runs, checking the roles of the user's JWT
 - new AI chat in the UI: a navigation bar button opens a resizable panel docked on the right over every page, minimizes it and shows a badge for a running answer, a new answer or pending approvals; answers stream as plain text, tool calls that change data need the approval of the user, the conversation lasts until reload, logout or "New Chat"; the footer messages are shown left of the open panel; online help page `/help/ai`
-- FWO.Mail: `Microsoft.AspNetCore.Http` 2.3.14 and `Microsoft.AspNetCore.WebUtilities` pinned to 2.3.14, as 2.3.13 and lower are vulnerable (CVE-2026-118750, denial of service)
+
+## 9.9.5 - 23.11.2026
+- security fix: a report schedule repeated with an offset below 1 (e.g. "every 0 days") made the scheduled report job loop endlessly, so no scheduled report ran any more (GHSA-6mh5-c5hj-qjwp)
+  - the report job skips such a schedule and logs an error; the other schedules of the run are processed
+  - the report job skips whole elapsed intervals of daily and weekly schedules instead of stepping through them one by one, so a start time far in the past no longer costs noticeable time on every check
+  - the schedule page refuses to save a repeated schedule with an offset below 1
+  - database: new constraint `report_schedule_repeat_positive` on `report_schedule`, default offset 1; the upgrade sets the offset of existing repeated schedules below 1 to 1 and deactivates them, so their owners review them before they run again
+- importer: the total time limit of a config file download (30 minutes) is also enforced while a read is blocked (#5415)
+  - covers the proxy and TLS handshakes, the response headers and the body, including compressed data that never decodes to any content
+  - a download cut off at the limit is reported as a failed import, never processed truncated
+  - a redirect is rejected without reading its body (GHSA-8xmf-c89r-584p)
+- notifications: new setting email priority (Low, Normal, High) per notification (`notification.email_priority`, default Normal); Low and High set the email headers Importance, Priority and X-Priority, Normal sets none; applies to all notifications edited in the notification editor, including workflow action emails; report schedule emails stay at Normal
+- UI: consistent settings layout, movable and resizable popups, login position
+  - settings pages share a two-column row layout (new `SettingsRow` component): all inputs of a page are aligned, small Bootstrap controls with width presets, switches for yes/no settings, check box groups in a wrapping grid; migrated: defaults, personal, user, password, password policy, email, importer, logging, notifications, report, recertification, compliance, modelling notifications, modelling, workflow customizing, change trigger, app data import, internet, network matrix and the external request settings in workflow customizing; the edit dialogs behind list pages keep their layout for now
+  - popups can be moved by their top strip and resized by a handle in the lower right corner (not for full screen popups, extra small popups only movable); a moved or resized popup is kept inside the window when the window shrinks; title and round close button stay visible while the popup body scrolls
+  - the login form is placed in the upper third of the page; switches, check boxes and radio buttons show the pointer cursor
+  - compliance settings: the labels "Elements per fetch" and "Available processors" are localized (new text keys)
+
+
+## 9.9.4 - 17.11.2026
+- middleware REST API: `Rule/GetRulesByFilter` accepts `RuleUid` as an exact third selector alongside `OwnerId` and `IpAddress`; all current non-removed matches are ordered by rule ID and use the existing paging and SIEM logging behavior
+- middleware REST API: `Rule/GetRulesByFilter` gets the rule type filter `options.filter.ruleTypes` (`access` and/or `nat`) for all selectors (`OwnerId`, `IpAddress`, `RuleUid`), applied before paging
+  - contract change: without the filter only access rules are returned. Before, `IpAddress` and `RuleUid` also returned NAT rules, including the separate translated row of a NAT rule. `OwnerId` is mostly unaffected: the full owner mapping rebuild only maps access rules, but the incremental custom field mapping does not filter by rule type, so a NAT rule mapped that way was returned before and now needs `nat`
+  - every rule carries `ruleType`; NAT rules carry their translated source, destination and service in `translation`. The IP filter of a NAT rule checks its original source and destination
+  - an empty list, more than two values or any other value is rejected with 400; selector, paging and filter errors are returned together, and the SIEM entry logs the requested rule types
+- request workflow: new state action "Create external requests" (`CreateExtRequests`) implements a ticket step by step through external requests, ordered by request task and implementation task, at most one active request per ticket
+  - a request task of a management with the implementation mode external ticket system is handed to Tufin SecureChange as a whole; implementation tasks with mode automatic are written directly to the firewall with the firewall write library (`ext_request.impltask_id`)
+  - offered as a button, implementation tasks on targets set to manual are written as well within the scope of the action (ticket or request task); on an implementation task it writes only this one task
+  - tasks nobody implements (e.g. external ticket system without selected system, rule without position) raise a workflow alert
+- request workflow: the routing of firewall config changes moves from the setting "Firewall config changes - General" to the device specific settings: implementation mode for objects and for rules, external ticket system, Tufin SecureChange connection, response timeout and retries; the upgrade migrates the previous settings, the ticket system list page is removed
+- firewall write: rules are written to Check Point
+  - new rules at the position calculated by the rule positioning and with install-on along the setting "Install on" (ANY = Policy Targets, gateways in path = the gateways of the tasks)
+  - new rules of one request task going to the same layer are written once, installed on the gateways of all of these tasks; the other tasks take over the result
+  - rules to modify or delete are addressed in their layer according to the import (sections traced up to their layer); their implementation mode is the strictest one of all gateways they take effect on, a manual gateway is reported with an alert; a rule already deleted counts as done once its layer is verified
+  - objects already present as requested count as created
+  - new rules targeting a section are written at the top or bottom of that section
+  - provisioning uses the shared target management of implementation tasks (the management of the gateway); a task whose stored management contradicts its gateway is reported with an alert instead of being written, and choosing a gateway in the implementation task view takes over its management
+- flow compliance API (`getFlowComplianceState`): a service with protocol `any` or `-1` is checked as the canonical ANY service (ports ignored) and now violates every port/protocol entry of a ForbiddenService criterion, like imported ANY services do; previously it was reported as compliant
+- logging: UI and middleware log the real client address of logins instead of `127.0.0.1` or the address of the UI server (#5659)
+  - the UI evaluates the `X-Forwarded-For` and `X-Forwarded-Proto` headers of its local Apache reverse proxy, like the middleware already does; only the entry appended by that proxy is used. The UI vhosts now set `X-Forwarded-Proto`
+  - the UI keeps the address of the browser per session and logs it with successful and failed logins, logouts and sessions ended after a revocation
+  - the middleware logs issued tokens, failed logins (including the delegated logins `GetTokenPairForUser` and `GetForUser`) and logins refused by the login limits with the client address
+  - middleware REST API: `GetTokenPair` (and the deprecated `Get`) accept `options.clientAddress`, the client a trusted frontend logs in for. It is only accepted from this host and the hosts in `login_trusted_client_hosts`; from any other caller it is ignored. A value that is not a single canonical IP address is answered with `400`
+  - behaviour change: logins through the UI are limited per browser address (`login_client_attempts_per_minute`, default 30) instead of being exempt via the address of the UI server. Users behind one shared address (NAT, terminal server, a reverse proxy in front of the UI) share that limit: raise it, or add the proxy to `login_trusted_client_hosts`. The per-user failure limit is unchanged and stays counted per calling host
+- settings: values of a single user are only stored for personal settings (#5734)
+  - the new table `config_user_key` lists the keys of the personal settings (the settings of the personal settings page and `maxMessages`). The API accepts values of a user only for these keys and only in the user's own rows (insert and update permissions of all roles except admin and middleware-server); all other settings are only stored globally
+  - upgrade: rows of a user in table `config` for keys that are not personal settings are removed, so the global value of these settings applies to every user
+  - `unusedTolerance`, `creationTolerance`, `recertificationDisplayPeriod`, `overviewDisplayLines` and `resolveNetworkAreas` are now personal settings, as is `reportingPersonalPreferredCollapseState`, which has no global value: a value the user saved on the personal settings page is kept when an admin changes the global settings. So far a change of the global settings replaced it with the global value for the rest of the UI session
+  - reports the middleware generates for a user (scheduled reports, `POST /api/Report/Get`, `POST /api/Compliance/Report`) now also use the user's values of these settings, as they already did for the other personal settings; so far the global values replaced them. Of these settings, only `resolveNetworkAreas` is read while generating a report (network objects of connection and variance analysis reports), so compliance reports are unchanged
+  - the personal settings page saves only the settings changed on the page; a global value that changed while the page was open is no longer saved as the user's value
+  - readers of global settings only read the global rows, as the API calls already do: the settings of a UI session and of the reports the middleware generates for a user apply rows of the user only for personal settings, and the rule ownership mode of the rule owner views (`v_rule_ownership_mode`, also replaced by the upgrade) and the encryption of the stored email password read only the global row
+- workflow UI: the pre-workflow ticket reference is shown in ticket dialog, ticket list and task view headlines if a label (e.g. "ChangeId") is set in the new setting `reqPreWorkflowTicketReferenceLabel` (default empty = hidden)
+- workflow UI: access task view opens full screen with access tasks first (other tasks start collapsed only next to access tasks); owner and management (access tasks) and reason (object and group tasks) use the space of fields hidden by the visibility settings, labels of all task types take less space
+- workflow UI: new Workflow Customizing setting "Object and Group Task Field Visibility" (handler, assigned, management, reason) for object and group tasks in the approval views; so far they followed the access task field visibility (management, reason) or were always shown (handler, assigned)
+
+
+## 9.9.3 - 14.11.2026
+- workflow UI: the approval edit mode setting offers a new list view that shows the approval-task details with one request task (or one bundle displayed as one) per row of horizontally scrollable tables: access tasks (id, compliance status, task type, state, title, source/destination zone, source/destination with name and IP, service, time restriction, ..., handler, assigned), address tasks and service tasks (object, content or members, zone for addresses; object changes shown as "old → new", members of modified groups marked as added, removed or unchanged; no rule action or logging), and other tasks, with objects before groups; the compliance status (green "Ok" or red "not allowed" with the reasons as tooltip and popup; also shown at the end of the access task header in access-task view mode and in the actions column in classic mode) comes from the policy check of the conditional auto-promote action, which now also returns the violation reasons per request task; the result is stored per access task (additional info `compliance_ok`, written by the conditional auto-promote action and after relevant task changes), so only tasks that are not allowed or not checked yet are checked when displayed, a "recheck compliance" button checks all access tasks again, and an "only not allowed" button filters the access tasks to the not allowed ones; clicking a field that is editable according to the approver-allowed changes opens the respective editor; the actions column for task promotion is only shown if the promotion mode allows task-by-task promotion
+- request workflow: the policy check of requested rules takes the selected rule action into account: actions that do not allow traffic are checked as drop rules instead of allow rules; an unknown rule action makes the task not assessable
+- workflow UI: the access task field visibility settings can also hide the title, handler and assigned group of access tasks in the approval views (list and access-task view); in the list view the access task table shows title, task type and state just before the handler
+- workflow UI: the approval-task details view shows the zone of access elements in all three displays; unresolved groups show the zones of their members
+- request workflow: rule-positioning and firewall-write operations resolve gateway-bound implementation tasks against the gateway's management and reject inconsistent task data
+- middleware REST API: `getAddressGroups` and `getServiceGroups` accept `filter.includeTechnicalDetails=true` to include each member's standalone address or service object fields; omitted, null or false keep the existing compact id/name response, and address details can be combined with separated zone groups
+- CI: the version gate no longer loses its result when a pull request is pushed while the version gate refresh runs (#5674)
+  - version-gate.yml has no concurrency group anymore, so a refresh re-run of an older head cannot cancel the gate of the current head
+  - the refresh skips a pull request whose head moved since it read the pull request list
+- CI: shorter pull request checks and less queueing on the shared runners (#5674), see documentation/developer-docs/github/test-install-workflow.md
+  - a pull request installs on Ubuntu 24.04 only; Ubuntu 22.04 (ansible-core 2.18) is added when it changes Ansible files; every merge into develop or main installs on Ubuntu 22.04, 24.04 and 26.04
+  - each install uses the system's own Python and the installer environment script like an installation, instead of a 15 job OS x Python matrix
+  - Python unit tests run on Python 3.11 on a pull request, and on 3.10 - 3.14 after a merge and on Dependabot pip updates; pyright checks against Python 3.10 and 3.14 on every pull request
+  - the installs no longer run the unit tests (new tag `unittests_run`); the C# unit tests run in the Sonar workflows only
+  - each install of a pull request checks the version first and stops within seconds when it needs a bump; `test-install.yml` gets a read-only token by default
+  - every merge into develop gets its own run, and a failure is commented on the merged pull request
+  - removed the PDF test step of the install job, which only rebuilt the test project to skip the test on GitHub Actions
+  - importer unit tests: the autouse service provider fixture builds its test doubles on first use only (about 7 times faster)
+  - Dependabot groups minor and patch updates per directory into one pull request
+- customizing script tests and scripts/performance/create_large_ruleset.py run on Python 3.10 again (no `typing.Self` and `datetime.UTC` imports)
+- UI fix: links from rule report objects to the right sidebar work again on the first click and no longer jump to another page on a following click (#4919). The per-page API role is now determined from the current page with every request instead of a navigation handler, which had broken the browser's in-page navigation
+- importer: last hits are read by a separate rule hit import instead of the regular import (#3297)
+  - the regular import no longer reads or writes last hits (Check Point no longer requests hits), so unchanged Check Point configurations no longer leave last hits outdated
+  - the new middleware scheduler "ImportRuleHitsJob" requests a rule hit import for every imported top-level management (table `rule_hit_import_request`); the responsible importer runs it right after the configuration import of the management and removes the request
+  - schedule: new importer settings `importRuleHitsSleepTime`, `importRuleHitsSleepTimeUnit` (minutes, hours, days) and `importRuleHitsStartAt`; default once a day at 00:00, 0 switches it off
+  - the run holds the import lock of the management as `import_control` row of the new import type 5 "rule hit", which never counts as configuration change; a management locked by a running import is skipped until the next request; failures raise an import error alert
+  - last hits are stored per gateway in the new table `firewall.rule_hit`; `rule_metadata.rule_last_hit` keeps the latest hit across all gateways and never moves backwards, so reports and filters are unchanged
+  - Check Point: hits are fetched per gateway (`hits-settings.target`); global layers of a multi-domain server are not covered. FortiManager: the last hit of the policy package is stored for every gateway using the package
+  - manual run: `import_mgm.py -m <mgm_id> --rule_hits`
+  - "last import" queries (rollback, import status, daily check, last complete/successful import) only consider configuration imports
+- middleware REST API: new endpoint `POST /api/Rule/GetRuleLastHits` returns the last hits of the rules of a management, aggregated and per gateway (#5670)
+  - roles: admin, auditor, reporter, reporter-viewall, recertifier. Callers other than admin, auditor and reporter-viewall only get managements and gateways visible to their tenant (a management that is not visible answers with an empty list); callers of a tenant other than tenant0 get no rule names
+  - filters in `options.filter`: `mgmId`, `ruleUid`, `ruleName`, `lastHitAfter`, `lastHitBefore`, `neverHit`, `devId`, `gatewayName`; paging with `options.limit` / `options.offset` and the `X-Has-More` header, at most 1000 gateways per rule (`gatewaysTruncated`)
+  - expensive rate-limit policy and request body size limit; validation returns all key-level errors together
+- reports: rule reports show the last hit per gateway (#5669)
+  - rules listed below a gateway (Rules, Resolved, Technical, NAT, Unused; UI and HTML/PDF export) show the last hit on that gateway instead of the latest hit across all gateways: "no hits" for a rule never hit on a gateway that reports hits, "unsupported" for a gateway whose management does not report hits. Where the hit on the gateway is not known, the latest hit across all gateways is shown as before: for a gateway without any imported hit (e.g. before the first rule hit import) and for a rule of another management (global rules) without a hit on the gateway. The management rulebases view, the recertification report, the `lasthit` filter and the unused-rules cut-off keep using the latest hit across all gateways
+  - the rule details list the last hit of every gateway
+  - new column `stm_dev_typ.dev_typ_supports_rule_hits`, set for Check Point R8x, Check Point MDS R8x, FortiADOM and FortiManager
+  - Hasura: `firewall.rule_hit` is readable for auditor and reporter-viewall, and for reporter, recertifier and modeller restricted to their visible gateways (tenant0 sees all)
+- installer: pin the .NET SDK to `dotnet_version` (10.0) with a `global.json` below `/usr/local/fworch`, so a newer major SDK installed alongside (e.g. .NET 11 on GitHub runners) no longer builds the middleware, UI and unit tests; the repository and the CI workflows use the same pin, and the test-install workflow checks that all pins match (#5700)
+- importer (Cisco ASA): access-list entries with a source port no longer always fail the import (so far listed as "still not supported" since 9.7.1, GHSA-p8qh-59qx-rjj4)
+  - permit entries are imported for all source ports, and a warning quoting the entry and its source port is logged. The imported rule is therefore more permissive than the real one
+  - deny entries with a source port still fail the import, because a deny widened to all source ports would hide traffic the firewall permits
+- installer: supported two-pass rotation of the internal CA without loss of connectivity between FWO components (#5130)
+  - pass 1 (`-e "installation_mode=upgrade internalca_ca_rotation=prepare"`) stages the next CA on the CA host and makes every host trust both CAs - Apache client CA file, trust bundle and operating-system store - restarting the services that cache their anchors; nothing is re-signed, and the pass can be repeated until every host is reached
+  - pass 2 (`internalca_ca_rotation=activate`) runs against the complete inventory only and refuses to start until every host has confirmed pass 1; it switches to the next CA, re-signs every FWO-managed identity, restarts its consumers and only then withdraws trust in the previous CA
+  - interrupting either pass leaves a working installation and rerunning it resumes; pass 1 is accepted inside the critical CA expiry window, since it is the remedy for it
+- installer: fixed reading the retired internal CA names once more than one is recorded - a second certificate reset, or a reset after a CA rotation, took every FWO-issued Apache and OpenLDAP identity for a customer certificate and stopped the upgrade
+- installer: Apache proxies the UI and the API with `ProxyPass ... upgrade=websocket` instead of rewrite rules. `mod_proxy_http` tunnels the websocket connections itself (Apache 2.4.47 or later), so new installations no longer enable `proxy_wstunnel`; upgraded installations keep the module enabled, unused
+  - API port: websocket connections are only proxied below `/api/`; so far a websocket upgrade request on any path reached `/v1/graphql`
+  - API port: `/api` without a trailing slash is redirected to `/api/`, and requests below `/api/` reach Hasura without a doubled leading slash
+- dependencies: update NuGet packages (AngleSharp 1.10.4, coverlet.collector 10.1.1, MailKit 5.0.0, MimeKit 5.0.0, Microsoft.NET.Test.Sdk 18.12.0, PuppeteerSharp 25.17.1, Scalar.AspNetCore 3.0.0, SoPro.FancyTable 1.7.0)
+
+
+## 9.9.2 - 10.11.2026
+- dependencies: update NuGet packages (AngleSharp 1.10.1, bunit 2.15.2, IPNetwork2 5.0.1, Microsoft.AspNetCore.Http 2.3.14, Microsoft.NET.Test.Sdk 18.11.1, Quartz 4.7.3, Scalar.AspNetCore 2.20.0, SoPro.FancyTable 1.5.0)
+- dependencies: update ASP.NET Core packages to 10.0.15 (Microsoft.AspNetCore.Authentication.JwtBearer, Microsoft.AspNetCore.Components, Microsoft.AspNetCore.Mvc.Testing, Microsoft.AspNetCore.OpenApi), .NET 10.0.15 security release
+- dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.1 (security fix, FWO not exploitable).
+- dependencies: update the graphql-core Python package of the importer and customizing scripts to 3.3.2 (denial-of-service fixes in validator and parser).
+- workflow UI: planning-phase tickets can use a dedicated planning view that groups request tasks with their implementation tasks, keeps request-task details read-only, and allows planners to create, edit and delete implementation tasks; the view also supports configurable offered actions and optional owner changes
+
 
 ## 9.9.1 - 05.11.2026
 - request workflow: access-task elements reference their ticket-local object-create task, so updates to the defining task remain consistent
@@ -36,6 +153,7 @@
   - rules are ordered by rule collection group and rule collection priority
 - Azure gateway autodiscovery: Azure managements can now be autodiscovered (scheduled and manually); the Azure Firewalls of the subscription whose firewall policy lies in the configured resource group are proposed as gateways with the policy name as local rulebase; firewalls with classic rules are skipped
 - new importer setting "Skip unsupported rules" (`importSkipUnsupportedRules`, default active): rules with features that cannot be represented, currently Azure rules with geo-location filters, are skipped with a warning; if deactivated, the import fails on such a rule
+- middleware REST API: `createTicket` rules accept an optional `logging` key naming the rule tracking (e.g. `log`, `none`, matched case-insensitively against the tracking types); omitted or `null` means `log`, unknown values are rejected at `rules[i].logging` (#5664)
 - performance: database indices for the foreign key columns of the request and modelling schemas that the workflow and modelling relationships filter on (e.g. ticket tasks, request and implementation elements, comments, connection objects and services, interface usage), speeding up ticket and requested interfaces pages (#5644)
   - requested interfaces page: loads a slim interface list incl. the using connections and all ticket states with one chunked query instead of one query per interface and per ticket; interface details are loaded when an interface is opened
   - owner report implementation state: reads ticket states in batches without task metadata and stops after finding the newest completed ticket

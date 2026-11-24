@@ -20,11 +20,13 @@ namespace FWO.Services.Modelling
         private NetworkObjectGroupFlatComparer networkObjectGroupComparer = new(new());
         private NetworkServiceComparer networkServiceComparer = new(new());
         private NetworkServiceGroupComparer networkServiceGroupComparer = new(new());
-        private bool FullAnalysis = false;
 
-        private void AnalyseRules(ModellingConnection conn, bool fullAnalysis)
+        /// <summary>
+        /// Compares all production rules carrying the marker of the connection with it. There is only one
+        /// comparison: the report, the connection status and the request all get the same verdict.
+        /// </summary>
+        private void AnalyseRules(ModellingConnection conn)
         {
-            FullAnalysis = fullAnalysis;
             GetAllowedSpecUserAreas();
             GetAllowedUpdatableObjAreas();
             networkObjectComparer = new(ruleRecognitionOption);
@@ -164,33 +166,22 @@ namespace FWO.Services.Modelling
             List<NetworkLocation> disregardedTos = [];
             List<NetworkService> disregardedServices = [];
             (List<NetworkService> normConnSvc, List<NetworkService> normConnSvcGrp, List<NetworkService> normRuleSvc) = NormalizeServices(rule, conn);
-            bool continueAnalysis = FullAnalysis || SpecialUserObjects.Count > 0 || UpdatableObjects.Count > 0 || conn.IsNat();
 
-            if (continueAnalysis)
+            isImpl &= IsNwImplementation(rule.Froms, SpecialUserObjects, UpdatableObjects, conn, true, ref disregardedFroms);
+            isImpl &= IsNwImplementation(rule.Tos, SpecialUserObjects, UpdatableObjects, conn, false, ref disregardedTos);
+            bool isSvcImpl = IsSvcImplementation(normRuleSvc, normConnSvc, normConnSvcGrp, disregardedServices);
+            isImpl &= isSvcImpl;
+            if (!isSvcImpl && ruleRecognitionOption.SvcSplitPortRanges)
             {
-                isImpl &= IsNwImplementation(rule.Froms, SpecialUserObjects, UpdatableObjects, conn, true, ref disregardedFroms, continueAnalysis);
-                isImpl &= IsNwImplementation(rule.Tos, SpecialUserObjects, UpdatableObjects, conn, false, ref disregardedTos, continueAnalysis);
-                bool isSvcImpl = IsSvcImplementation(normRuleSvc, normConnSvc, normConnSvcGrp, disregardedServices);
-                isImpl &= isSvcImpl;
-                if (!isSvcImpl && ruleRecognitionOption.SvcSplitPortRanges)
-                {
-                    disregardedServices = RebundlePortRanges(disregardedServices);
-                    rule.Services = [.. RebundlePortRanges(normRuleSvc).ConvertAll(s => new ServiceWrapper() { Content = s })];
-                }
-                rule.DisregardedFroms = [.. disregardedFroms];
-                rule.DisregardedTos = [.. disregardedTos];
-                rule.DisregardedServices = [.. disregardedServices];
-                rule.UnusedSpecialUserObjects = [.. SpecialUserObjects.Keys.Where(x => !SpecialUserObjects[x])];
-                rule.UnusedUpdatableObjects = [.. UpdatableObjects.Keys.Where(x => !UpdatableObjects[x])];
-                isImpl &= rule.UnusedSpecialUserObjects.Count == 0 && rule.UnusedUpdatableObjects.Count == 0;
+                disregardedServices = RebundlePortRanges(disregardedServices);
+                rule.Services = [.. RebundlePortRanges(normRuleSvc).ConvertAll(s => new ServiceWrapper() { Content = s })];
             }
-            else if (isImpl)
-            {
-                isImpl = IsNwImplementation(rule.Froms, SpecialUserObjects, UpdatableObjects, conn, true, ref disregardedFroms, continueAnalysis)
-                    && IsNwImplementation(rule.Tos, SpecialUserObjects, UpdatableObjects, conn, false, ref disregardedTos, continueAnalysis)
-                    && IsSvcImplementation(normRuleSvc, normConnSvc, normConnSvcGrp, [])
-                    && !SpecialUserObjects.Any(x => !x.Value);
-            }
+            rule.DisregardedFroms = [.. disregardedFroms];
+            rule.DisregardedTos = [.. disregardedTos];
+            rule.DisregardedServices = [.. disregardedServices];
+            rule.UnusedSpecialUserObjects = [.. SpecialUserObjects.Keys.Where(x => !SpecialUserObjects[x])];
+            rule.UnusedUpdatableObjects = [.. UpdatableObjects.Keys.Where(x => !UpdatableObjects[x])];
+            isImpl &= rule.UnusedSpecialUserObjects.Count == 0 && rule.UnusedUpdatableObjects.Count == 0;
             return isImpl;
         }
 
@@ -279,7 +270,7 @@ namespace FWO.Services.Modelling
         }
 
         private bool IsNwImplementation(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects,
-            Dictionary<string, bool> updatableObjects, ModellingConnection conn, bool source, ref List<NetworkLocation> disregardedLocations, bool continueAnalysis)
+            Dictionary<string, bool> updatableObjects, ModellingConnection conn, bool source, ref List<NetworkLocation> disregardedLocations)
         {
             (List<ModellingAppServerWrapper> appServers, List<ModellingAppRoleWrapper> appRoles,
                 List<ModellingNetworkAreaWrapper> areas, List<ModellingNwGroupWrapper> otherGroups) = GetNwImplementationConfiguration(conn, source);
@@ -287,10 +278,7 @@ namespace FWO.Services.Modelling
             int updatableObjectAreaCount = GetRelevantAreaCount(areas, source ? AllowedSrcUpdatableObjAreas : AllowedDestUpdatableObjAreas);
 
             ResetSurplusFlags(networkLocations);
-            if (!CompareNetworkLocations(networkLocations, appServers, appRoles, areas, otherGroups, disregardedLocations, continueAnalysis))
-            {
-                return false;
-            }
+            CompareNetworkLocations(networkLocations, appServers, appRoles, areas, otherGroups, disregardedLocations);
             AdjustWithSpecialUserObjects(networkLocations, specialUserObjects, source, specialUserAreaCount, ref disregardedLocations);
             AdjustWithUpdatableObjects(networkLocations, updatableObjects, source, updatableObjectAreaCount, ref disregardedLocations);
             return disregardedLocations.Count == 0 && networkLocations.Where(n => n.Object.IsSurplus).ToList().Count == 0;
@@ -330,23 +318,19 @@ namespace FWO.Services.Modelling
         }
 
         /// <summary>
-        /// Compares network areas, application servers, and optionally unresolved network groups.
+        /// Compares network areas, application servers, and unresolved network groups. Missing modelled objects
+        /// are collected in disregardedLocations, surplus production objects are marked with IsSurplus.
         /// </summary>
-        private bool CompareNetworkLocations(NetworkLocation[] networkLocations, List<ModellingAppServerWrapper> appServers,
+        private void CompareNetworkLocations(NetworkLocation[] networkLocations, List<ModellingAppServerWrapper> appServers,
             List<ModellingAppRoleWrapper> appRoles, List<ModellingNetworkAreaWrapper> areas, List<ModellingNwGroupWrapper> otherGroups,
-            List<NetworkLocation> disregardedLocations, bool continueAnalysis)
+            List<NetworkLocation> disregardedLocations)
         {
-            if (!CompareNwAreas(networkLocations, areas, disregardedLocations, continueAnalysis) && !continueAnalysis)
+            CompareNwAreas(networkLocations, areas, disregardedLocations);
+            CompareAppServers(networkLocations, appServers, appRoles, disregardedLocations);
+            if (!ruleRecognitionOption.NwResolveGroup)
             {
-                return false;
+                CompareRemainingNwGroups(networkLocations, appRoles, otherGroups, disregardedLocations);
             }
-            if (!CompareAppServers(networkLocations, appServers, appRoles, disregardedLocations, continueAnalysis) && !continueAnalysis)
-            {
-                return false;
-            }
-            return ruleRecognitionOption.NwResolveGroup
-                || CompareRemainingNwGroups(networkLocations, appRoles, otherGroups, disregardedLocations, continueAnalysis)
-                || continueAnalysis;
         }
 
         private void AdjustWithSpecialUserObjects(NetworkLocation[] networkLocations, Dictionary<string, bool> specialUserObjects, bool source,
@@ -423,12 +407,12 @@ namespace FWO.Services.Modelling
             return [.. disregardedLocations.Where(l => l.Object.Type.Name == ObjectType.Group && (source ? AllowedSrcUpdatableObjAreas.Contains(l.Object.Id) : AllowedDestUpdatableObjAreas.Contains(l.Object.Id)))];
         }
 
-        private bool CompareNwAreas(NetworkLocation[] networkLocations, List<ModellingNetworkAreaWrapper> areas, List<NetworkLocation> disregardedLocations, bool continueAnalysis)
+        private void CompareNwAreas(NetworkLocation[] networkLocations, List<ModellingNetworkAreaWrapper> areas, List<NetworkLocation> disregardedLocations)
         {
             List<NetworkObject> allProdNwAreas = networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && IsArea(n.Object)).ToList().ConvertAll(n => n.Object);
             List<NetworkObject> allModNwAreas = ModellingNetworkAreaWrapper.Resolve(areas).ToList().ConvertAll(a => a.ToNetworkObjectGroup(true));
             NetworkObjectComparer networkAreaComparer = new(new() { NwRegardName = true, NwRegardIp = false });
-            return CompareNwObjects(allModNwAreas, allProdNwAreas, networkLocations, disregardedLocations, networkAreaComparer, continueAnalysis);
+            CompareNwObjects(allModNwAreas, allProdNwAreas, networkLocations, disregardedLocations, networkAreaComparer);
         }
 
         private bool IsArea(NetworkObject nwGroup)
@@ -436,8 +420,8 @@ namespace FWO.Services.Modelling
             return nwGroup.Name.StartsWith(namingConvention.NetworkAreaPattern);
         }
 
-        private bool CompareAppServers(NetworkLocation[] networkLocations, List<ModellingAppServerWrapper> appServers,
-            List<ModellingAppRoleWrapper> appRoles, List<NetworkLocation> disregardedLocations, bool continueAnalysis)
+        private void CompareAppServers(NetworkLocation[] networkLocations, List<ModellingAppServerWrapper> appServers,
+            List<ModellingAppRoleWrapper> appRoles, List<NetworkLocation> disregardedLocations)
         {
             List<NetworkObject> allProdNwObjects = networkLocations.Where(n => n.Object.Type.Name != ObjectType.Group).ToList().ConvertAll(n => n.Object);
             List<NetworkObject> allModNwObjects = ModellingAppServerWrapper.Resolve(appServers).ToList().ConvertAll(a => ModellingAppServer.ToNetworkObject(a));
@@ -445,60 +429,73 @@ namespace FWO.Services.Modelling
             {
                 foreach (var nwGroup in networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && !IsArea(n.Object)))
                 {
-                    allProdNwObjects.AddRange([.. nwGroup.Object.ObjectGroupFlats.Where(g => g.Object != null).ToList().ConvertAll(g => g.Object!)]);
+                    allProdNwObjects.AddRange(GetResolvedGroupMembers(nwGroup.Object));
                 }
                 foreach (var appRole in ModellingAppRoleWrapper.Resolve(appRoles))
                 {
                     allModNwObjects.AddRange(ModellingAppServerWrapper.Resolve(appRole.AppServers).ToList().ConvertAll(a => ModellingAppServer.ToNetworkObject(a)));
                 }
             }
-            return CompareNwObjects(allModNwObjects, allProdNwObjects, networkLocations, disregardedLocations, networkObjectComparer, continueAnalysis);
+            CompareNwObjects(allModNwObjects, allProdNwObjects, networkLocations, disregardedLocations, networkObjectComparer);
         }
 
-        private bool CompareRemainingNwGroups(NetworkLocation[] networkLocations, List<ModellingAppRoleWrapper> appRoles, List<ModellingNwGroupWrapper> otherGroups, List<NetworkLocation> disregardedLocations, bool continueAnalysis)
+        /// <summary>
+        /// Gets the members of a resolved production group. The flat entries of a group also hold the group
+        /// itself and its nested groups, which are no members to compare with the modelled app servers.
+        /// </summary>
+        private static List<NetworkObject> GetResolvedGroupMembers(NetworkObject nwGroup)
+        {
+            return [.. nwGroup.ObjectGroupFlats
+                .Where(flat => flat.Object != null && flat.Object.Type.Name != ObjectType.Group)
+                .Select(flat => flat.Object!)];
+        }
+
+        private void CompareRemainingNwGroups(NetworkLocation[] networkLocations, List<ModellingAppRoleWrapper> appRoles, List<ModellingNwGroupWrapper> otherGroups, List<NetworkLocation> disregardedLocations)
         {
             List<NetworkObject> allProdNwGroups = networkLocations.Where(n => n.Object.Type.Name == ObjectType.Group && !IsArea(n.Object)).ToList().ConvertAll(n => n.Object);
             List<NetworkObject> allModNwGroups = ModellingAppRoleWrapper.Resolve(appRoles).ToList().ConvertAll(a => a.ToNetworkObjectGroup(true));
             allModNwGroups.AddRange(ModellingNwGroupWrapper.Resolve(otherGroups).ToList().ConvertAll(a => a.ToNetworkObjectGroup()));
-            return CompareNwObjects(allModNwGroups, allProdNwGroups, networkLocations, disregardedLocations, networkObjectGroupComparer, continueAnalysis);
+            CompareNwObjects(allModNwGroups, allProdNwGroups, networkLocations, disregardedLocations, networkObjectGroupComparer);
         }
 
-        private static bool CompareNwObjects(List<NetworkObject> allModGroups, List<NetworkObject> allProdGroups, NetworkLocation[] networkLocations,
-            List<NetworkLocation> disregardedLocations, IEqualityComparer<NetworkObject?> comparer, bool continueAnalysis = false)
+        /// <summary>
+        /// Compares modelled and production objects as sets: object multiplicity never counts as a variance,
+        /// so the deduplicating Except decides equality. Missing modelled objects are added to
+        /// disregardedLocations, surplus production objects are marked with IsSurplus.
+        /// </summary>
+        private static void CompareNwObjects(List<NetworkObject> allModGroups, List<NetworkObject> allProdGroups, NetworkLocation[] networkLocations,
+            List<NetworkLocation> disregardedLocations, IEqualityComparer<NetworkObject?> comparer)
         {
-            if (continueAnalysis)
+            List<NetworkObject> disregardedGroups = [.. allModGroups.Except(allProdGroups, comparer)];
+            List<NetworkObject> surplusGroups = [.. allProdGroups.Except(allModGroups, comparer)];
+            foreach (var obj in surplusGroups)
             {
-                List<NetworkObject> disregardedGroups = [.. allModGroups.Except(allProdGroups, comparer)];
-                List<NetworkObject> surplusGroups = [.. allProdGroups.Except(allModGroups, comparer)];
-                foreach (var obj in surplusGroups)
-                {
-                    NetworkLocation? extLoc = networkLocations.FirstOrDefault(n => n.Object.Id == obj.Id);
-                    if (extLoc != null)
-                    {
-                        extLoc.Object.IsSurplus = true;
-                    }
-                }
-                disregardedLocations.AddRange(disregardedGroups.ConvertAll(o => new NetworkLocation(new(), o)));
-                return disregardedGroups.Count == 0 && surplusGroups.Count == 0;
+                MarkSurplus(networkLocations, obj);
             }
+            disregardedLocations.AddRange(disregardedGroups.ConvertAll(o => new NetworkLocation(new(), o)));
+        }
 
-            // Compare as sets only: object multiplicity must never count as a variance,
-            // so the deduplicating Except checks decide equality without a raw count comparison.
-            return allModGroups.Except(allProdGroups, comparer).ToList().Count == 0
-                && allProdGroups.Except(allModGroups, comparer).ToList().Count == 0;
+        /// <summary>
+        /// Marks the rule location holding a surplus object. If the object is a member of a resolved group
+        /// (resolve groups option), the group itself is marked, so the surplus member is not lost.
+        /// </summary>
+        private static void MarkSurplus(NetworkLocation[] networkLocations, NetworkObject surplusObject)
+        {
+            NetworkLocation? directLocation = networkLocations.FirstOrDefault(n => n.Object.Id == surplusObject.Id);
+            if (directLocation != null)
+            {
+                directLocation.Object.IsSurplus = true;
+                return;
+            }
+            foreach (NetworkLocation groupLocation in networkLocations.Where(n => n.Object.ObjectGroupFlats.Any(f => f.Object?.Id == surplusObject.Id)))
+            {
+                groupLocation.Object.IsSurplus = true;
+            }
         }
 
         private bool IsSvcImplementation(List<NetworkService> prodServices, List<NetworkService> modServices, List<NetworkService> modServiceGroups, List<NetworkService> disregardedServices)
         {
-            bool isImpl = true;
-            if (!CompareServices(prodServices, modServices, modServiceGroups, disregardedServices))
-            {
-                if (!FullAnalysis)
-                {
-                    return false;
-                }
-                isImpl = false;
-            }
+            bool isImpl = CompareServices(prodServices, modServices, modServiceGroups, disregardedServices);
             return (ruleRecognitionOption.SvcResolveGroup || CompareSvcGroups(prodServices, modServiceGroups, disregardedServices)) && isImpl;
         }
 
@@ -510,7 +507,7 @@ namespace FWO.Services.Modelling
             {
                 foreach (var svc in prodServices.Where(n => n.Type.Name == ServiceType.Group))
                 {
-                    allProdServices.AddRange([.. svc.ServiceGroupFlats.ToList().ConvertAll(g => g.Object ?? new())]);
+                    allProdServices.AddRange(GetResolvedGroupMembers(svc));
                 }
                 foreach (var svcGrp in modServiceGroups)
                 {
@@ -520,6 +517,17 @@ namespace FWO.Services.Modelling
             return CompareSvcObjects(allModServices, allProdServices, prodServices, disregardedServices, networkServiceComparer);
         }
 
+        /// <summary>
+        /// Gets the members of a resolved production service group. The flat entries of a group also hold the
+        /// group itself and its nested groups, which are no members to compare with the modelled services.
+        /// </summary>
+        private static List<NetworkService> GetResolvedGroupMembers(NetworkService svcGroup)
+        {
+            return [.. svcGroup.ServiceGroupFlats
+                .Where(flat => flat.Object != null && flat.Object.Type.Name != ServiceType.Group)
+                .Select(flat => flat.Object!)];
+        }
+
         private bool CompareSvcGroups(List<NetworkService> prodServices, List<NetworkService> modServiceGroups, List<NetworkService> disregardedServices)
         {
             List<NetworkService> allProdSvcGroups = [.. prodServices.Where(n => n.Type.Name == ServiceType.Group)];
@@ -527,29 +535,25 @@ namespace FWO.Services.Modelling
             return CompareSvcObjects(allModSvcGroups, allProdSvcGroups, prodServices, disregardedServices, networkServiceGroupComparer);
         }
 
-        private bool CompareSvcObjects(List<NetworkService> allModSvcObjects, List<NetworkService> allProdSvcObjects, List<NetworkService> prodServices,
+        /// <summary>
+        /// Compares modelled and production services as sets: multiplicity never counts as a variance.
+        /// Missing modelled services are added to disregardedServices, surplus ones are marked with IsSurplus.
+        /// </summary>
+        private static bool CompareSvcObjects(List<NetworkService> allModSvcObjects, List<NetworkService> allProdSvcObjects, List<NetworkService> prodServices,
             List<NetworkService> disregardedServices, IEqualityComparer<NetworkService?> comparer)
         {
-            if (FullAnalysis)
+            List<NetworkService> disregardedSvcObjects = [.. allModSvcObjects.Except(allProdSvcObjects, comparer)];
+            List<NetworkService> surplusSvcObjects = [.. allProdSvcObjects.Except(allModSvcObjects, comparer)];
+            foreach (var svc in surplusSvcObjects)
             {
-                List<NetworkService> disregardedSvcObjects = [.. allModSvcObjects.Except(allProdSvcObjects, comparer)];
-                List<NetworkService> surplusSvcObjects = [.. allProdSvcObjects.Except(allModSvcObjects, comparer)];
-                foreach (var svc in surplusSvcObjects)
+                NetworkService? exSvc = prodServices.FirstOrDefault(n => n.Id == svc.Id && n.DestinationPort == svc.DestinationPort);
+                if (exSvc != null)
                 {
-                    NetworkService? exSvc = prodServices.FirstOrDefault(n => n.Id == svc.Id && n.DestinationPort == svc.DestinationPort);
-                    if (exSvc != null)
-                    {
-                        exSvc.IsSurplus = true;
-                    }
+                    exSvc.IsSurplus = true;
                 }
-                disregardedServices.AddRange(disregardedSvcObjects);
-                return disregardedSvcObjects.Count == 0 && surplusSvcObjects.Count == 0;
             }
-
-            // Compare as sets only: object multiplicity must never count as a variance,
-            // so the deduplicating Except checks decide equality without a raw count comparison.
-            return allModSvcObjects.Except(allProdSvcObjects, comparer).ToList().Count == 0
-                && allProdSvcObjects.Except(allModSvcObjects, comparer).ToList().Count == 0;
+            disregardedServices.AddRange(disregardedSvcObjects);
+            return disregardedSvcObjects.Count == 0 && surplusSvcObjects.Count == 0;
         }
     }
 }

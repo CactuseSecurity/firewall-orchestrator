@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
 namespace FWO.Ai.Client.ReasonChecks;
@@ -78,11 +79,11 @@ public sealed class ConnectionReasonCheck
     internal const string kCutMarker = "…";
 
     /// <summary>All argument names the check may send.</summary>
-    internal static readonly IReadOnlyList<string> kArgumentNames = new List<string>
-    {
+    internal static readonly IReadOnlyList<string> kArgumentNames =
+    [
         kReasonArgument, kKindArgument, kNameArgument, kAppArgument, kSourceArgument, kDestinationArgument,
         kServiceArgument, kLanguageArgument
-    };
+    ];
 
     /// <summary>Functional reason of the connection, or the description of an interface.</summary>
     public required string Reason { get; init; }
@@ -138,6 +139,7 @@ public sealed class ConnectionReasonCheck
     /// Returns the trimmed reason.
     /// </summary>
     /// <exception cref="ArgumentException">The reason is blank or too long.</exception>
+    [SuppressMessage("Usage", "CA2208", Justification = "The exception identifies the public Reason property.")]
     private static string ValidateReason(string? reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
@@ -201,6 +203,7 @@ public sealed class ConnectionReasonCheck
     /// Returns the trimmed language, or null if none is given.
     /// </summary>
     /// <exception cref="ArgumentException">The language is not a plain language name or too long.</exception>
+    [SuppressMessage("Usage", "CA2208", Justification = "The exception identifies the public Language property.")]
     internal static string? ValidateLanguage(string? language)
     {
         if (string.IsNullOrWhiteSpace(language))

@@ -411,7 +411,7 @@
                         {
                             AnchorNavToRSB?.ScrollToFragment();
                             return InvokeAsync(StateHasChanged);
-                        }, rule.Id, !string.IsNullOrEmpty(rule.NatData?.TranslatedSource));
+                        }, rule.Id, rule.NatRule);
                     break;
             }
             // a scroll to the linked object started while objects were still being added is cancelled by the next

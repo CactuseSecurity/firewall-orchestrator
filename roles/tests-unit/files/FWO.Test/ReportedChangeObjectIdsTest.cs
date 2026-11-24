@@ -26,7 +26,6 @@ namespace FWO.Test
             Assert.That(ids.NetworkObjectIds, Is.EquivalentTo(kAllNetworkObjectIds));
             Assert.That(ids.ServiceIds, Is.EquivalentTo(kAllServiceIds));
             Assert.That(ids.UserIds, Is.EquivalentTo(kAllUserIds));
-            Assert.That(ids.IsEmpty, Is.False);
         }
 
         [Test]
@@ -54,7 +53,7 @@ namespace FWO.Test
         {
             ReportedChangeObjectIds ids = ReportedChangeObjectIds.Collect(new ManagementReport());
 
-            Assert.That(ids.IsEmpty, Is.True);
+            AssertNoIds(ids);
         }
 
         [Test]
@@ -115,7 +114,7 @@ namespace FWO.Test
         {
             ManagementReport fetched = new() { ReportObjects = [new NetworkObject { Id = 10 }] };
 
-            Assert.That(ReportedChangeObjectIds.CollectMissingGroupMembers(fetched, new ReportedChangeObjectIds()).IsEmpty, Is.True);
+            AssertNoIds(ReportedChangeObjectIds.CollectMissingGroupMembers(fetched, new ReportedChangeObjectIds()));
         }
 
         [Test]
@@ -127,12 +126,28 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ObjectDetailsByIdsQueryRequiresIdLists()
+        public void ObjectDetailsByIdsQueriesRequireIdLists()
         {
-            // a missing (null) id list would make the api return all objects of the management
-            Assert.That(ObjectQueries.getObjectDetailsByIds, Does.Contain("$nwObjIds: [bigint!]!"));
-            Assert.That(ObjectQueries.getObjectDetailsByIds, Does.Contain("$svcIds: [bigint!]!"));
-            Assert.That(ObjectQueries.getObjectDetailsByIds, Does.Contain("$userIds: [bigint!]!"));
+            // a missing (null) id list would make the api return all visible objects
+            Assert.That(ObjectQueries.getNetworkObjectDetailsByIds, Does.Contain("$nwObjIds: [bigint!]!"));
+            Assert.That(ObjectQueries.getNetworkServiceDetailsByIds, Does.Contain("$svcIds: [bigint!]!"));
+            Assert.That(ObjectQueries.getUserDetailsByIds, Does.Contain("$userIds: [bigint!]!"));
+        }
+
+        [Test]
+        public void ObjectDetailsByIdsQueriesAreNotLimitedToOneManagement()
+        {
+            // rules of a sub management may reference objects owned by its super manager
+            string[] queries = [ObjectQueries.getNetworkObjectDetailsByIds, ObjectQueries.getNetworkServiceDetailsByIds, ObjectQueries.getUserDetailsByIds];
+
+            Assert.That(queries, Has.All.Not.Contain("mgm_id"));
+        }
+
+        private static void AssertNoIds(ReportedChangeObjectIds ids)
+        {
+            Assert.That(ids.NetworkObjectIds, Is.Empty);
+            Assert.That(ids.ServiceIds, Is.Empty);
+            Assert.That(ids.UserIds, Is.Empty);
         }
 
         private static int CountOccurrences(string text, string token)

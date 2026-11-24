@@ -55,5 +55,68 @@ namespace FWO.Test
 
             Assert.That(rule.NatData.TranslatedTos.Single().Object.Name, Is.EqualTo("detailed"));
         }
+
+        [Test]
+        public void MergeIntoACopiedRuleDoesNotChangeTheTranslationOfTheReportRule()
+        {
+            NetworkLocation reportedSource = new(new NetworkUser(), new NetworkObject { Id = 1, Name = "overview" });
+            NetworkLocation[] reportedDestinations = [new NetworkLocation(new NetworkUser(), new NetworkObject { Id = 2 })];
+            ServiceWrapper[] reportedServices = [new ServiceWrapper { Content = new NetworkService { Id = 3 } }];
+            Rule reportRule = new()
+            {
+                NatRule = true,
+                NatData = new NatData
+                {
+                    TranslatedSource = "src",
+                    TranslatedSourceNegated = true,
+                    TranslatedFroms = [reportedSource],
+                    TranslatedDestination = "dst",
+                    TranslatedDestinationNegated = true,
+                    TranslatedTos = reportedDestinations,
+                    TranslatedService = "svc",
+                    TranslatedServiceNegated = true,
+                    TranslatedServices = reportedServices
+                }
+            };
+            Rule ruleTabCopy = new(reportRule);
+            Rule detailed = new()
+            {
+                NatData = new NatData
+                {
+                    TranslatedFroms = [new NetworkLocation(new NetworkUser(), new NetworkObject { Id = 1, Name = "detailed" }), new NetworkLocation(new NetworkUser(), new NetworkObject { Id = 4 })],
+                    TranslatedTos = [new NetworkLocation(new NetworkUser(), new NetworkObject { Id = 5 })],
+                    TranslatedServices = [new ServiceWrapper { Content = new NetworkService { Id = 6 } }]
+                }
+            };
+
+            RuleTabDetailsMerger.Merge(ruleTabCopy, detailed);
+
+            Assert.That(reportRule.NatData.TranslatedFroms.Single(), Is.SameAs(reportedSource));
+            Assert.That(reportRule.NatData.TranslatedTos, Is.SameAs(reportedDestinations));
+            Assert.That(reportRule.NatData.TranslatedServices, Is.SameAs(reportedServices));
+            Assert.That(ruleTabCopy.NatData.TranslatedFroms, Has.Length.EqualTo(2));
+            Assert.That(ruleTabCopy.NatData.TranslatedTos, Has.Length.EqualTo(2));
+            Assert.That(ruleTabCopy.NatData.TranslatedServices, Has.Length.EqualTo(2));
+            Assert.That(ruleTabCopy.NatData.TranslatedSource, Is.EqualTo("src"));
+            Assert.That(ruleTabCopy.NatData.TranslatedSourceNegated, Is.True);
+            Assert.That(ruleTabCopy.NatData.TranslatedDestination, Is.EqualTo("dst"));
+            Assert.That(ruleTabCopy.NatData.TranslatedDestinationNegated, Is.True);
+            Assert.That(ruleTabCopy.NatData.TranslatedService, Is.EqualTo("svc"));
+            Assert.That(ruleTabCopy.NatData.TranslatedServiceNegated, Is.True);
+        }
+
+        [Test]
+        public void MissingTranslationsAreHandled()
+        {
+            Rule rule = new() { NatData = null! };
+            Rule detailed = new() { NatData = new NatData { TranslatedFroms = [new NetworkLocation(new NetworkUser(), new NetworkObject { Id = 4 })] } };
+            Rule ruleWithTranslation = new();
+
+            RuleTabDetailsMerger.Merge(rule, detailed);
+            RuleTabDetailsMerger.Merge(ruleWithTranslation, new Rule { NatData = null! });
+
+            Assert.That(rule.NatData.TranslatedFroms.Single().Object.Id, Is.EqualTo(4));
+            Assert.That(ruleWithTranslation.NatData.TranslatedFroms, Is.Empty);
+        }
     }
 }

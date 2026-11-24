@@ -135,6 +135,8 @@ namespace FWO.Report
         /// <summary>
         /// Fetches the details of the objects shown in the change report of one management (right sidebar report tab):
         /// the object versions referenced by the reported changes and the members of the fetched groups.
+        /// Group members are limited to the period the report was generated for. Given import ids are only used
+        /// if the report was not generated for the management.
         /// </summary>
         /// <param name="objQueryVariables">Query variables, must contain management id, limit and offset.</param>
         /// <param name="objects">Object category to fetch.</param>
@@ -144,15 +146,37 @@ namespace FWO.Report
         /// <returns>True if all objects could be fetched within maxFetchCycles.</returns>
         public override async Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
-            if (!objQueryVariables.TryGetValue(QueryVar.MgmIds, out object? mgmIdValue) || !objQueryVariables.ContainsKey(QueryVar.Limit) || !objQueryVariables.ContainsKey(QueryVar.Offset))
+            if (!objQueryVariables.TryGetValue(QueryVar.MgmIds, out object? mgmIdValue) || !objQueryVariables.TryGetValue(QueryVar.Limit, out object? limitValue) || !objQueryVariables.ContainsKey(QueryVar.Offset))
             {
                 throw new ArgumentException("Given objQueryVariables dictionary does not contain variable for management id, limit or offset");
             }
             int mgmId = (int)mgmIdValue;
             ManagementReport managementReport = ReportData.ManagementData.FirstOrDefault(m => m.Id == mgmId) ?? throw new ArgumentException("Given management id does not exist for this report");
 
-            ChangeReportObjectFetcher fetcher = new(apiConnection, objQueryVariables, objects, maxFetchCycles);
+            int elementsPerFetch = (int)limitValue;
+            Dictionary<string, object> importRangeVariables = GetImportRangeVariables(mgmId, objQueryVariables);
+            ChangeReportObjectFetcher fetcher = new(apiConnection, importRangeVariables, objects, elementsPerFetch, maxFetchCycles);
             return await fetcher.Fetch(managementReport, () => callback(ReportData));
+        }
+
+        private Dictionary<string, object> GetImportRangeVariables(int mgmId, Dictionary<string, object> objQueryVariables)
+        {
+            Dictionary<string, object> importRangeVariables = [];
+            if (GetImportRange(mgmId) is ImportRange importRange)
+            {
+                importRangeVariables[QueryVar.ImportIdStart] = importRange.Start;
+                importRangeVariables[QueryVar.ImportIdEnd] = importRange.End;
+                return importRangeVariables;
+            }
+            if (objQueryVariables.TryGetValue(QueryVar.ImportIdStart, out object? importIdStart))
+            {
+                importRangeVariables[QueryVar.ImportIdStart] = importIdStart;
+            }
+            if (objQueryVariables.TryGetValue(QueryVar.ImportIdEnd, out object? importIdEnd))
+            {
+                importRangeVariables[QueryVar.ImportIdEnd] = importIdEnd;
+            }
+            return importRangeVariables;
         }
 
         public override string SetDescription()

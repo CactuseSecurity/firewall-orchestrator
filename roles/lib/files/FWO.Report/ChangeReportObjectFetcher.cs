@@ -11,12 +11,13 @@ namespace FWO.Report
     /// first the objects referenced by the reported changes, then the members of the fetched groups, so the member
     /// links in the group details point to objects of the report tab as well.
     /// Objects are fetched by their ids, which identify one object version, so versions replaced or deleted later
-    /// in the report period are contained too.
+    /// in the report period are contained too. The ids are not limited to the reported management, because its rules
+    /// may reference objects of its super manager; the row permissions of the api limit them to visible managements.
     /// </summary>
     public sealed class ChangeReportObjectFetcher
     {
         private readonly ApiConnection apiConnection;
-        private readonly Dictionary<string, object> baseQueryVariables;
+        private readonly Dictionary<string, object> importRangeVariables;
         private readonly ObjCategory objects;
         private readonly int elementsPerFetch;
         private readonly ManagementReport fetchedObjects = new();
@@ -26,15 +27,17 @@ namespace FWO.Report
         /// Creates a fetcher for one management.
         /// </summary>
         /// <param name="apiConnection">Api connection.</param>
-        /// <param name="queryVariables">Query variables, must contain management id, limit and offset.</param>
+        /// <param name="importRangeVariables">Query variables limiting the group members to a range of imports, may be empty.</param>
         /// <param name="objects">Object category to fetch.</param>
+        /// <param name="elementsPerFetch">Maximum number of objects of one category fetched at once.</param>
         /// <param name="maxFetchCycles">Maximum number of fetches for referenced objects and group members together.</param>
-        public ChangeReportObjectFetcher(ApiConnection apiConnection, Dictionary<string, object> queryVariables, ObjCategory objects, int maxFetchCycles)
+        public ChangeReportObjectFetcher(ApiConnection apiConnection, Dictionary<string, object> importRangeVariables, ObjCategory objects,
+            int elementsPerFetch, int maxFetchCycles)
         {
             this.apiConnection = apiConnection;
-            baseQueryVariables = queryVariables;
+            this.importRangeVariables = importRangeVariables;
             this.objects = objects;
-            elementsPerFetch = (int)queryVariables[QueryVar.Limit];
+            this.elementsPerFetch = elementsPerFetch;
             remainingFetches = maxFetchCycles;
         }
 
@@ -57,51 +60,43 @@ namespace FWO.Report
 
         private async Task<bool> FetchByIds(ReportedChangeObjectIds ids, ManagementReport managementReport, Func<Task> onPageFetched)
         {
-            Dictionary<string, object> queryVariables = new(baseQueryVariables)
-            {
-                [QueryVar.NwObjIds] = ids.GetNetworkObjectIds(objects),
-                [QueryVar.SvcIds] = ids.GetServiceIds(objects),
-                [QueryVar.UserIds] = ids.GetUserIds(objects)
-            };
-            bool keepFetching = HasIdsToFetch(queryVariables);
-            while (keepFetching)
+            List<long[]> networkObjectIds = [.. ids.GetNetworkObjectIds(objects).Chunk(elementsPerFetch)];
+            List<long[]> serviceIds = [.. ids.GetServiceIds(objects).Chunk(elementsPerFetch)];
+            List<long[]> userIds = [.. ids.GetUserIds(objects).Chunk(elementsPerFetch)];
+            int fetchesNeeded = Math.Max(networkObjectIds.Count, Math.Max(serviceIds.Count, userIds.Count));
+            for (int fetch = 0; fetch < fetchesNeeded; fetch++)
             {
                 if (remainingFetches-- <= 0)
                 {
                     return false;
                 }
-                ManagementReport? page = (await apiConnection.SendQueryAsync<List<ManagementReport>>(ObjectQueries.getObjectDetailsByIds, queryVariables)).FirstOrDefault();
-                if (page == null)
-                {
-                    break;
-                }
-                keepFetching = AddPage(page);
+                List<NetworkObject> networkObjects = await FetchChunk<NetworkObject>(ObjectQueries.getNetworkObjectDetailsByIds, QueryVar.NwObjIds, networkObjectIds, fetch);
+                List<NetworkService> services = await FetchChunk<NetworkService>(ObjectQueries.getNetworkServiceDetailsByIds, QueryVar.SvcIds, serviceIds, fetch);
+                List<NetworkUser> users = await FetchChunk<NetworkUser>(ObjectQueries.getUserDetailsByIds, QueryVar.UserIds, userIds, fetch);
+                fetchedObjects.ReportObjects = [.. fetchedObjects.ReportObjects, .. networkObjects];
+                fetchedObjects.ReportServices = [.. fetchedObjects.ReportServices, .. services];
+                fetchedObjects.ReportUsers = [.. fetchedObjects.ReportUsers, .. users];
                 SetReportObjects(managementReport);
-                queryVariables[QueryVar.Offset] = (int)queryVariables[QueryVar.Offset] + elementsPerFetch;
                 await onPageFetched();
             }
             return true;
         }
 
-        private static bool HasIdsToFetch(Dictionary<string, object> queryVariables)
-        {
-            return ((List<long>)queryVariables[QueryVar.NwObjIds]).Count > 0
-                || ((List<long>)queryVariables[QueryVar.SvcIds]).Count > 0
-                || ((List<long>)queryVariables[QueryVar.UserIds]).Count > 0;
-        }
-
         /// <summary>
-        /// Adds a fetched page to the objects fetched so far.
+        /// Fetches the objects of one chunk of ids.
         /// </summary>
-        /// <returns>True if another page has to be fetched.</returns>
-        private bool AddPage(ManagementReport page)
+        /// <returns>The fetched objects, empty without a query if there is no such chunk.</returns>
+        private async Task<List<TObject>> FetchChunk<TObject>(string query, string idsVariable, List<long[]> idChunks, int chunkIndex)
         {
-            fetchedObjects.ReportObjects = [.. fetchedObjects.ReportObjects, .. page.ReportObjects];
-            fetchedObjects.ReportServices = [.. fetchedObjects.ReportServices, .. page.ReportServices];
-            fetchedObjects.ReportUsers = [.. fetchedObjects.ReportUsers, .. page.ReportUsers];
-            return page.ReportObjects.Length >= elementsPerFetch
-                || page.ReportServices.Length >= elementsPerFetch
-                || page.ReportUsers.Length >= elementsPerFetch;
+            if (chunkIndex >= idChunks.Count)
+            {
+                return [];
+            }
+            Dictionary<string, object> queryVariables = new(importRangeVariables)
+            {
+                [idsVariable] = idChunks[chunkIndex]
+            };
+            return await apiConnection.SendQueryAsync<List<TObject>>(query, queryVariables);
         }
 
         /// <summary>

@@ -150,6 +150,16 @@ namespace FWO.Report
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Returns the imports of a management this report was generated for.
+        /// </summary>
+        /// <param name="managementId">Management id.</param>
+        /// <returns>The range of imports, null if the report was not generated for the management.</returns>
+        public virtual ImportRange? GetImportRange(int managementId)
+        {
+            return null;
+        }
+
         public virtual bool NoRuleFound()
         {
             return true;
@@ -250,9 +260,8 @@ namespace FWO.Report
         /// <param name="type">Object category string.</param>
         /// <param name="chapterNumber">Chapter number.</param>
         /// <param name="id">Object id.</param>
-        /// <param name="reportType">Report type (kept for callers, all device reports link to the report tab).</param>
         /// <returns>The link address.</returns>
-        public static string GetLinkAddress(OutputLocation location, string reportId, string type, int chapterNumber, long id, ReportType reportType)
+        public static string GetLinkAddress(OutputLocation location, string reportId, string type, int chapterNumber, long id)
         {
             string page = location == OutputLocation.report ? PageName.ReportGeneration : PageName.Certification;
             string link = location == OutputLocation.export ? $"#" : $"{page}#goto-report-{reportId}-";

@@ -28,11 +28,6 @@ namespace FWO.Report
         public HashSet<long> UserIds { get; } = [];
 
         /// <summary>
-        /// True if the report shows no object at all.
-        /// </summary>
-        public bool IsEmpty => NetworkObjectIds.Count == 0 && ServiceIds.Count == 0 && UserIds.Count == 0;
-
-        /// <summary>
         /// Collects the ids of all objects shown in the change report of a management.
         /// </summary>
         /// <param name="management">Management with the reported changes.</param>

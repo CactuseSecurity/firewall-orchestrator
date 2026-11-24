@@ -160,8 +160,8 @@
     private string rsbTimeShortcut = "";
     private string rsbTimeStart = "";
     private string rsbTimeEnd = "";
-    private Dictionary<int, long> import_id_start = new(); // import id matching rsbTimeStart for each management
-    private Dictionary<int, long> import_id_end = new(); // import id matching rsbTimeEnd for each management
+    private Dictionary<int, long> import_id_start = new(); // import id matching rsbTimeStart for each management (all tab)
+    private Dictionary<int, long> import_id_end = new(); // import id matching rsbTimeEnd for each management (all tab)
     private List<ManagementReport>? previousReportData = null;
     private ReportBase? previousReport = null;
     private HashSet<long> previousSelectedRuleIds = [];
@@ -382,6 +382,22 @@
         return importIds;
     }
 
+    /// <summary>
+    /// Returns the imports the details of the report and rule tab are limited to: the ones the report was generated for.
+    /// The imports of the all tab are only a fallback, as they follow the current time filter and are not loaded without this tab.
+    /// </summary>
+    private ImportRange? GetImportRange(int mgmtId)
+    {
+        ImportRange? reportRange = CurrentReport?.GetImportRange(mgmtId);
+        if (reportRange != null)
+        {
+            return reportRange;
+        }
+        return import_id_start.TryGetValue(mgmtId, out long start) && import_id_end.TryGetValue(mgmtId, out long end)
+            ? new ImportRange(start, end)
+            : null;
+    }
+
     public async Task FetchContent(RsbTab rsbTab, ObjCategory objType, Func<Task> hasChangedCallback, long id = 0, bool nat = false)
     {
         Log.WriteDebug("Fetching Content..", $"nat: {nat}");
@@ -467,24 +483,48 @@
         var mgtReport = managementsReportObjects.FirstOrDefault(m => m.Id == id);
         if (mgtReport == null) return;
 
+        bool[] previouslyDetailed = [.. mgtReport.Detailed];
         if (objType == ObjCategory.all)
             mgtReport.Detailed = [true, true, true];
         else
             mgtReport.Detailed[(int)objType - 1] = true;
 
+        try
+        {
+            await FetchReportTabObjects(mgtReport, objType, hasChangedCallback);
+        }
+        catch
+        {
+            // the objects are kept as long as the report is shown, so a failed fetch must remain repeatable
+            ResetDetailed(mgtReport, objType, previouslyDetailed);
+            throw;
+        }
+    }
+
+    private static void ResetDetailed(ManagementReport mgtReport, ObjCategory objType, bool[] previouslyDetailed)
+    {
+        for (int index = 0; index < previouslyDetailed.Length; index++)
+        {
+            if (objType == ObjCategory.all || index == (int)objType - 1)
+            {
+                mgtReport.Detailed[index] = previouslyDetailed[index];
+            }
+        }
+    }
+
+    private async Task FetchReportTabObjects(ManagementReport mgtReport, ObjCategory objType, Func<Task> hasChangedCallback)
+    {
+        int id = mgtReport.Id;
         var queryVars = new Dictionary<string, object>
         {
             { QueryVar.Limit, userConfig.ElementsPerFetch },
             { QueryVar.Offset, 0 },
-            { QueryVar.MgmIds, (int)id }
+            { QueryVar.MgmIds, id }
         };
-        if (import_id_start.TryGetValue((int)id, out var importStart))
+        if (GetImportRange(id) is ImportRange importRange)
         {
-            queryVars[QueryVar.ImportIdStart] = importStart;
-        }
-        if (import_id_end.TryGetValue((int)id, out var importEnd))
-        {
-            queryVars[QueryVar.ImportIdEnd] = importEnd;
+            queryVars[QueryVar.ImportIdStart] = importRange.Start;
+            queryVars[QueryVar.ImportIdEnd] = importRange.End;
         }
 
         async Task<bool> FetchReportObjects()
@@ -541,13 +581,19 @@
         {
             return; // already fetched
         }
+        if (GetImportRange(rule.MgmtId) is not ImportRange importRange)
+        {
+            Log.WriteWarning("Fetch Rule Details", $"No imports known for management {rule.MgmtId} of rule {rule.Id}");
+            DisplayMessageInUi(null, userConfig.GetText("object_fetch"), userConfig.GetText("E0002"), true);
+            return;
+        }
 
         var queryVars = new Dictionary<string, object>
         {
             { QueryVar.Limit, userConfig.ElementsPerFetch },
             { QueryVar.Offset, 0 },
-            { QueryVar.ImportIdStart, import_id_start.GetValueOrDefault((int)rule.MgmtId, 0) },
-            { QueryVar.ImportIdEnd, import_id_end.GetValueOrDefault((int)rule.MgmtId, 0) },
+            { QueryVar.ImportIdStart, importRange.Start },
+            { QueryVar.ImportIdEnd, importRange.End },
             { QueryVar.RuleId, id }
         };
 

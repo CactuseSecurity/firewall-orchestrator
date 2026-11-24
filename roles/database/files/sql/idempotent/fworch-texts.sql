@@ -5994,7 +5994,9 @@ INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere R
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.
     Im Reiter "Regel" sind dann nur die Objekte der in der Reportausgabe ausgew&auml;hlten Regeln dargestellt.<br>
     In &Auml;nderungsreports zeigt der Reiter "Report" die Objekte der ge&auml;nderten Regeln in ihren Versionen vor und nach der &Auml;nderung sowie die ge&auml;nderten Objekte selbst.
-    Die Objekt-Links im Report verweisen auf diese Eintr&auml;ge.<br>
+    Die Objekt-Links im Report verweisen auf diese Eintr&auml;ge.
+    Wird eine ge&auml;nderte Regel im Report ausgew&auml;hlt, zeigt der Reiter "Regel" ihre Versionen vor und nach der &Auml;nderung.<br>
+    Die Reiter "Report" und "Regel" erscheinen erst, nachdem ein Report erstellt wurde.<br>
     ("Alle"- und "Regel"-Reiter werden mit derselben Funktionalit&auml;t auch im Rezertifizierungsdialog angeboten).<br>
     In eigent&uuml;merbasierten Reports erscheint der Reiter "Benutzte Objekte", in dem alle in den Verbindungen verwendeten Objekte aufgelistet werden.<br>
     Folgende Daten werden soweit verf&uuml;gbar dargestellt, gruppiert nach den ausgew&auml;hlten Devices:
@@ -6003,7 +6005,9 @@ INSERT INTO txt VALUES ('H1601', 'English', 'There are several tabs shown in the
     whereas in the "Report" tab only the objects of the rules of the report are shown.
     In the "Rule" tab only objects of rules selected in the report output are dispalyed.<br>
     In change reports the "Report" tab shows the objects of the changed rules in their versions before and after the change as well as the changed objects themselves.
-    The object links in the report point to these entries.<br>
+    The object links in the report point to these entries.
+    If a changed rule is selected in the report, the "Rule" tab shows its versions before and after the change.<br>
+    The "Report" and "Rule" tabs only appear after a report has been generated.<br>
     ("All" and "Rule" tab are also offered in the Recertification dialogue with the same functionality).<br>
     In owner based reports the Tab "Used Objects" is displayed, where all objects used in the connections are listed.<br>
     The following data are displayed if available, grouped by the selected devices:

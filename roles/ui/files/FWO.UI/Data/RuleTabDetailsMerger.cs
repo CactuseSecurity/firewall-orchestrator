@@ -21,10 +21,12 @@ namespace FWO.Ui.Data
             rule.Services = MergeServices(rule.Services, detailedRule.Services);
             if (detailedRule.NatData != null)
             {
-                rule.NatData ??= new();
-                rule.NatData.TranslatedFroms = MergeLocations(rule.NatData.TranslatedFroms, detailedRule.NatData.TranslatedFroms);
-                rule.NatData.TranslatedTos = MergeLocations(rule.NatData.TranslatedTos, detailedRule.NatData.TranslatedTos);
-                rule.NatData.TranslatedServices = MergeServices(rule.NatData.TranslatedServices, detailedRule.NatData.TranslatedServices);
+                // a copied rule shares its NatData with the rule of the report, which must not be changed
+                NatData mergedNatData = rule.NatData == null ? new() : new(rule.NatData);
+                mergedNatData.TranslatedFroms = MergeLocations(mergedNatData.TranslatedFroms, detailedRule.NatData.TranslatedFroms);
+                mergedNatData.TranslatedTos = MergeLocations(mergedNatData.TranslatedTos, detailedRule.NatData.TranslatedTos);
+                mergedNatData.TranslatedServices = MergeServices(mergedNatData.TranslatedServices, detailedRule.NatData.TranslatedServices);
+                rule.NatData = mergedNatData;
             }
         }
 

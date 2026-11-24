@@ -3,6 +3,7 @@ using AngleSharp.Dom;
 using Bunit;
 using Bunit.TestDoubles;
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
@@ -27,6 +28,7 @@ namespace FWO.Test
         };
         static readonly ApiConnection apiConnection = new UiRsbTestApiConn();
         static readonly ReportBase currentReport = SimulatedReport.DetailedReport();
+        private static readonly bool[] kOnlyNetworkObjectsDetailed = [true, false, false];
 
         [Test]
         public async Task ObjShouldBeVisibleAfterNavigation()
@@ -112,6 +114,67 @@ namespace FWO.Test
             Assert.That(cut.FindAll(elementSelector), Is.Empty, "a new report must not show the objects fetched for the previous one");
         }
 
+        [Test]
+        public async Task FailedReportTabFetchCanBeRepeated()
+        {
+            ReportChanges changeReport = BuildChangeReport();
+            int managementId = changeReport.ReportData.ManagementData[0].Id;
+            long objId = changeReport.ReportData.ManagementData[0].RuleChanges![0].NewRule.Tos[0].Object.Id;
+            UiRsbTestApiConn failingOnceApi = new() { FailObjectDetailQueries = 1 };
+            (IRenderedComponent<RightSidebar> cut, _) = RenderSidebarAtObjectLink(changeReport, ReportType.Changes, objId, [], true, failingOnceApi);
+            string elementSelector = $"#report-m{managementId}-{ObjCatString.NwObj}0x{objId}";
+            Task DoNothing() => Task.CompletedTask;
+
+            await cut.InvokeAsync(() => cut.Instance.FetchContent(RsbTab.report, ObjCategory.nobj, DoNothing, managementId));
+            ManagementReport shownManagement = ShownReportTabManagement(cut);
+            Assert.That(shownManagement.Detailed, Has.All.False, "a failed fetch must not mark the objects as fetched");
+            Assert.That(shownManagement.ReportObjects, Is.Empty);
+
+            await cut.InvokeAsync(() => cut.Instance.FetchContent(RsbTab.report, ObjCategory.nobj, DoNothing, managementId));
+            cut.Render();
+            Assert.That(shownManagement.Detailed[(int)ObjCategory.nobj - 1], Is.True);
+            Assert.That(shownManagement.Detailed[(int)ObjCategory.nsrv - 1], Is.False, "other categories are not affected");
+            cut.WaitForAssertion(() => Assert.That(cut.FindAll(elementSelector), Is.Not.Empty));
+        }
+
+        [Test]
+        public async Task FailedFetchOfAllCategoriesKeepsTheOnesFetchedBefore()
+        {
+            ReportChanges changeReport = BuildChangeReport();
+            int managementId = changeReport.ReportData.ManagementData[0].Id;
+            long objId = changeReport.ReportData.ManagementData[0].RuleChanges![0].NewRule.Tos[0].Object.Id;
+            UiRsbTestApiConn api = new();
+            (IRenderedComponent<RightSidebar> cut, _) = RenderSidebarAtObjectLink(changeReport, ReportType.Changes, objId, [], true, api);
+            Task DoNothing() => Task.CompletedTask;
+
+            await cut.InvokeAsync(() => cut.Instance.FetchContent(RsbTab.report, ObjCategory.nobj, DoNothing, managementId));
+            api.FailObjectDetailQueries = 1;
+            await cut.InvokeAsync(() => cut.Instance.FetchContent(RsbTab.report, ObjCategory.all, DoNothing, managementId));
+
+            Assert.That(ShownReportTabManagement(cut).Detailed, Is.EqualTo(kOnlyNetworkObjectsDetailed));
+        }
+
+        [Test]
+        public void DeletedNatRuleIsFetchedWithTheNatRuleQuery()
+        {
+            // no translated source: the NAT flag of the rule decides, not its translation
+            Rule deletedNatRule = new() { Id = 21, MgmtId = 1, NatRule = true, AccessRule = false };
+            Rule accessRule = new() { Id = 22, MgmtId = 1 };
+            UiRsbTestApiConn api = new();
+
+            RenderSidebarAtObjectLink(BuildChangeReport(), ReportType.Changes, 1, [deletedNatRule, accessRule], true, api);
+
+            Assert.That(api.QueryOfRule(deletedNatRule.Id), Is.EqualTo(RuleQueries.getNatRuleDetails));
+            Assert.That(api.QueryOfRule(accessRule.Id), Is.EqualTo(RuleQueries.getRuleDetails));
+        }
+
+        private static ManagementReport ShownReportTabManagement(IRenderedComponent<RightSidebar> cut)
+        {
+            return cut.FindComponents<ObjectGroup<ManagementReport>>()
+                .Select(group => group.Instance)
+                .Single(group => group.Tab == RsbTab.report).Content!;
+        }
+
         /// <summary>
         /// Navigates to the link the report builds for a network object and returns the id of the right sidebar
         /// element scrolled to, after asserting that this element exists and is visible.
@@ -141,7 +204,7 @@ namespace FWO.Test
         /// Renders the right sidebar while the browser is at the link the report builds for a network object.
         /// </summary>
         private (IRenderedComponent<RightSidebar>, JSRuntimeInvocationHandler<bool>) RenderSidebarAtObjectLink(ReportBase report,
-            ReportType selectedReportType, long objId, List<Rule> selectedRules, bool scrollFindsTarget)
+            ReportType selectedReportType, long objId, List<Rule> selectedRules, bool scrollFindsTarget, ApiConnection? api = null)
         {
             // Event Service
             DomEventService eventService = new DomEventService();
@@ -149,13 +212,13 @@ namespace FWO.Test
 
             // Arrange
             Services.AddSingleton(userConfig);
-            Services.AddSingleton(apiConnection);
+            Services.AddSingleton(api ?? apiConnection);
             Services.AddSingleton(eventService);
             Services.AddScoped(_ => JSInterop.JSRuntime);
             Services.AddLocalization();
 
             int mgmtId = report.ReportData.ManagementData[0].Id;
-            string hrefValue = ReportDevicesBase.GetReportDevicesLinkAddress(OutputLocation.report, mgmtId, ObjCatString.NwObj, 0, objId, report.ReportType);
+            string hrefValue = ReportDevicesBase.GetReportDevicesLinkAddress(OutputLocation.report, mgmtId, ObjCatString.NwObj, 0, objId);
             string link = $"https://localhost/{hrefValue}";
 
             BunitNavigationManager navigationManager = Services.GetRequiredService<BunitNavigationManager>();

@@ -251,17 +251,9 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetLinkAddressUsesReportPrefixForNonChangeReports()
+        public void GetLinkAddressUsesReportPrefixForReportLocation()
         {
-            string link = ReportBase.GetLinkAddress(OutputLocation.report, "rep42", "rule", 3, 99, ReportType.Rules);
-
-            Assert.That(link, Is.EqualTo($"{PageName.ReportGeneration}#goto-report-rep42-rule3x99"));
-        }
-
-        [Test]
-        public void GetLinkAddressUsesReportPrefixForChangeReports()
-        {
-            string link = ReportBase.GetLinkAddress(OutputLocation.report, "rep42", "rule", 3, 99, ReportType.Changes);
+            string link = ReportBase.GetLinkAddress(OutputLocation.report, "rep42", "rule", 3, 99);
 
             Assert.That(link, Is.EqualTo($"{PageName.ReportGeneration}#goto-report-rep42-rule3x99"));
         }
@@ -269,7 +261,7 @@ namespace FWO.Test
         [Test]
         public void GetLinkAddressUsesCertificationPageOutsideReportLocation()
         {
-            string link = ReportBase.GetLinkAddress(OutputLocation.certification, "rep42", "svc", 1, 5, ReportType.Rules);
+            string link = ReportBase.GetLinkAddress(OutputLocation.certification, "rep42", "svc", 1, 5);
 
             Assert.That(link, Is.EqualTo($"{PageName.Certification}#goto-report-rep42-svc1x5"));
         }
@@ -277,7 +269,7 @@ namespace FWO.Test
         [Test]
         public void GetLinkAddressUsesHashOnlyForExportLocation()
         {
-            string link = ReportBase.GetLinkAddress(OutputLocation.export, "rep42", "nwobj", 2, 7, ReportType.Changes);
+            string link = ReportBase.GetLinkAddress(OutputLocation.export, "rep42", "nwobj", 2, 7);
 
             Assert.That(link, Is.EqualTo("#nwobj2x7"));
         }

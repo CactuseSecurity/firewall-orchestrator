@@ -58,11 +58,11 @@ namespace FWO.Test
                 Name = "Owner A",
                 RecertInterval = 30
             };
-            List<Rule> rules = new()
-            {
+            List<Rule> rules =
+            [
                 CreateRule(101),
                 CreateRule(102)
-            };
+            ];
 
             FwoOwner recertifiedOwner = await handler.RecertifyOwnerWithRules(owner, rules, "comment");
 
@@ -127,8 +127,8 @@ namespace FWO.Test
 
         private sealed class RecordingRecertApiConnection : SimulatedApiConnection
         {
-            public List<(string Query, object? Variables)> Queries { get; } = new();
-            public List<OwnerRecertification> OwnerRecerts { get; } = new();
+            public List<(string Query, object? Variables)> Queries { get; } = [];
+            public List<OwnerRecertification> OwnerRecerts { get; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {

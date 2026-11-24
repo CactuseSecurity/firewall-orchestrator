@@ -77,7 +77,7 @@ namespace FWO.Middleware.Server
                 {
                     controlId = _importControlId,
                     stopTime = DateTime.UtcNow,
-                    successful = successful,
+                    successful,
                     rule_owner_mapping_done = false
                 });
 

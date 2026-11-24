@@ -1757,7 +1757,7 @@ public class CreationRuleNetworkInputResolverTest
     [Test]
     public async Task EmptyDeletedCrossTicketAndUnsupportedGroupReferences_FailClosed()
     {
-        WfReqTask empty = GroupCreate(1, 1, "empty", new List<WfReqElement>());
+        WfReqTask empty = GroupCreate(1, 1, "empty", []);
         WfReqTask deleted = new()
         {
             Id = 2,
@@ -1838,9 +1838,9 @@ public class CreationRuleNetworkInputResolverTest
         });
 
         CreationRuleNetworkResolutionFailureCategory invalidFailure = await ResolveGroupFailure(
-            invalid, new List<WfReqTask>(), groups);
+            invalid, [], groups);
         CreationRuleNetworkResolutionFailureCategory emptyFailure = await ResolveGroupFailure(
-            empty, new List<WfReqTask>(), groups);
+            empty, [], groups);
 
         Assert.Multiple(() =>
         {

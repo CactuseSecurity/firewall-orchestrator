@@ -85,7 +85,7 @@ namespace FWO.Test
                 .Add(p => p.CurrentReport, report)
                 .Add(p => p.SelectedReportType, reportType)
                 .Add(p => p.AllTabVisible, allTabVisible)
-                .Add(p => p.SelectedRules, new List<Data.Rule>()));
+                .Add(p => p.SelectedRules, []));
         }
 
         private static List<string> TabTitles(IRenderedComponent<RightSidebar> cut)

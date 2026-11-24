@@ -89,10 +89,10 @@ namespace FWO.Test
 
             List<Rule>[] ruleChunks =
             [
-                new List<Rule>(){ notAssessable },
-                new List<Rule>(){ abbreviated },
-                new List<Rule>(){ multiple },
-                new List<Rule>(){ singular }
+                [notAssessable],
+                [abbreviated],
+                [multiple],
+                [singular]
             ];
 
             string controlNotAssessable = CreateViolationDetailsControlString(foundDate, 1);
@@ -136,7 +136,7 @@ namespace FWO.Test
                     CreateMockComplianceViolation(10, 5, foundDate, type: ComplianceViolationType.MatrixViolation)
                 ]
             };
-            List<Rule>[] ruleChunks = [new List<Rule>() { partiallyAssessable }];
+            List<Rule>[] ruleChunks = [[partiallyAssessable]];
 
             // The real violation is printed first, so it survives the printed-violation limit; the assessability
             // note follows it.
@@ -169,12 +169,12 @@ namespace FWO.Test
             {
                 DiffReferenceInDays = 7
             };
-            List<ComplianceViolation> intervalViolations = new()
-            {
+            List<ComplianceViolation> intervalViolations =
+            [
                 CreateDiffViolation(1, 101, "rule-a"),
                 CreateDiffViolation(2, 102, "rule-a"),
                 CreateDiffViolation(3, 103, "rule-b", DateTime.Now.AddHours(-1))
-            };
+            ];
             DiffPipelineApiConnection apiConnection = new(intervalViolations);
 
             await report.Generate(2, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
@@ -209,15 +209,15 @@ namespace FWO.Test
                 DiffReferenceInDays = 7,
                 ShowNonImpactRules = true
             };
-            List<ComplianceViolation> intervalViolations = new()
-            {
+            List<ComplianceViolation> intervalViolations =
+            [
                 CreateDiffViolation(1, 101, "rule-a")
-            };
-            List<Rule> activeRules = new()
-            {
+            ];
+            List<Rule> activeRules =
+            [
                 CreateActiveRule("rule-a", CreateDiffViolation(11, 101, "rule-a")),
                 CreateActiveRule("rule-b", CreateDiffViolation(12, 102, "rule-b"))
-            };
+            ];
             DiffPipelineApiConnection apiConnection = new(intervalViolations, activeRules: activeRules);
 
             await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
@@ -244,11 +244,11 @@ namespace FWO.Test
                 DiffReferenceInDays = 7,
                 ShowNonImpactRules = true
             };
-            List<Rule> activeRules = new()
-            {
+            List<Rule> activeRules =
+            [
                 CreateActiveRule("rule-a")
-            };
-            DiffPipelineApiConnection apiConnection = new(new List<ComplianceViolation>(), activeRules: activeRules);
+            ];
+            DiffPipelineApiConnection apiConnection = new([], activeRules: activeRules);
 
             await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
 
@@ -273,17 +273,17 @@ namespace FWO.Test
             {
                 DiffReferenceInDays = 7
             };
-            List<ComplianceViolation> intervalViolations = new()
-            {
+            List<ComplianceViolation> intervalViolations =
+            [
                 CreateDiffViolation(1, 101, "rule-a"),
                 CreateDiffViolation(2, 102, "rule-b"),
                 CreateDiffViolation(3, 103, "rule-c")
-            };
-            List<ComplianceViolation> previousViolations = new()
-            {
+            ];
+            List<ComplianceViolation> previousViolations =
+            [
                 CreateDiffViolation(11, 11, "rule-a", foundDate: DateTime.Now.AddDays(-8)),
                 CreateDiffViolation(12, 12, "rule-c", foundDate: DateTime.Now.AddDays(-8))
-            };
+            ];
             DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations);
 
             await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
@@ -318,14 +318,14 @@ namespace FWO.Test
             {
                 DiffReferenceInDays = 7
             };
-            List<ComplianceViolation> intervalViolations = new()
-            {
+            List<ComplianceViolation> intervalViolations =
+            [
                 CreateDiffViolation(1, 101, "rule-a")
-            };
-            List<ComplianceViolation> previousViolations = new()
-            {
+            ];
+            List<ComplianceViolation> previousViolations =
+            [
                 CreateDiffViolation(11, 11, "rule-a", foundDate: DateTime.Now.AddDays(-8), isInitial: true)
-            };
+            ];
             DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations);
 
             await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
@@ -352,10 +352,10 @@ namespace FWO.Test
             {
                 DiffReferenceInDays = 7
             };
-            List<ComplianceViolation> intervalViolations = new()
-            {
+            List<ComplianceViolation> intervalViolations =
+            [
                 CreateDiffViolation(1, 101, "rule-a")
-            };
+            ];
             DiffPipelineApiConnection apiConnection = new(intervalViolations, failPreviousViolationFetch: true);
 
             await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
@@ -381,29 +381,29 @@ namespace FWO.Test
                 DiffReferenceInDays = 7,
                 ShowNonImpactRules = true
             };
-            List<ComplianceViolation> intervalViolations = new()
-            {
+            List<ComplianceViolation> intervalViolations =
+            [
                 CreateDiffViolation(1, 101, "rule-a"),
                 CreateDiffViolation(2, 102, "rule-b"),
                 CreateDiffViolation(3, 103, "rule-d"),
                 CreateDiffViolation(4, 104, "rule-e")
-            };
-            List<ComplianceViolation> previousViolations = new()
-            {
+            ];
+            List<ComplianceViolation> previousViolations =
+            [
                 CreateDiffViolation(11, 11, "rule-a", foundDate: DateTime.Now.AddDays(-8)),
                 CreateDiffViolation(13, 13, "rule-d", foundDate: DateTime.Now.AddDays(-8)),
                 CreateDiffViolation(14, 14, "rule-e", foundDate: DateTime.Now.AddDays(-8))
-            };
+            ];
             ComplianceViolation notAssessableViolation = CreateDiffViolation(15, 104, "rule-e");
             notAssessableViolation.Type = ComplianceViolationType.NotAssessable;
-            List<Rule> activeRules = new()
-            {
+            List<Rule> activeRules =
+            [
                 CreateActiveRule("rule-a", CreateDiffViolation(12, 101, "rule-a")),
                 CreateActiveRule("rule-b"),
                 CreateActiveRule("rule-c"),
                 CreateActiveRule("rule-d"),
                 CreateActiveRule("rule-e", notAssessableViolation)
-            };
+            ];
             DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations, activeRules);
 
             await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
@@ -454,14 +454,14 @@ namespace FWO.Test
                 DiffReferenceInDays = 7,
                 ShowNonImpactRules = true
             };
-            List<ComplianceViolation> intervalViolations = new()
-            {
+            List<ComplianceViolation> intervalViolations =
+            [
                 CreateDiffViolation(1, 101, "rule-a")
-            };
-            List<ComplianceViolation> previousViolations = new()
-            {
+            ];
+            List<ComplianceViolation> previousViolations =
+            [
                 CreateDiffViolation(11, 11, "rule-a", foundDate: DateTime.Now.AddDays(-8))
-            };
+            ];
             ComplianceViolation notAssessableViolation = CreateDiffViolation(13, 101, "rule-a");
             notAssessableViolation.Type = ComplianceViolationType.NotAssessable;
             notAssessableViolation.Criterion = new ComplianceCriterion
@@ -470,10 +470,10 @@ namespace FWO.Test
             };
             Rule activeRule = CreateActiveRule("rule-a", CreateDiffViolation(12, 101, "rule-a"));
             activeRule.Violations.Add(notAssessableViolation);
-            List<Rule> activeRules = new()
-            {
+            List<Rule> activeRules =
+            [
                 activeRule
-            };
+            ];
             DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations, activeRules);
 
             await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
@@ -508,26 +508,26 @@ namespace FWO.Test
                 DiffReferenceInDays = 7,
                 ShowNonImpactRules = true
             };
-            List<ComplianceViolation> intervalViolations = new()
-            {
+            List<ComplianceViolation> intervalViolations =
+            [
                 CreateDiffViolation(1, 101, "rule-a")
-            };
-            List<ComplianceViolation> previousViolations = new()
-            {
+            ];
+            List<ComplianceViolation> previousViolations =
+            [
                 CreateDiffViolation(11, 11, "rule-a", foundDate: DateTime.Now.AddDays(-8))
-            };
+            ];
             Rule activeRule = CreateActiveRule("rule-a", CreateDiffViolation(12, 101, "rule-a"));
             activeRule.Violations.Add(CreateDiffViolation(13, 101, "rule-a"));
             activeRule.Violations.Add(CreateDiffViolation(14, 101, "rule-a"));
             Rule comparisonRule = CreateActiveRule("rule-b", CreateDiffViolation(22, 102, "rule-b"));
             comparisonRule.Violations.Add(CreateDiffViolation(23, 102, "rule-b"));
             comparisonRule.Violations.Add(CreateDiffViolation(24, 102, "rule-b"));
-            List<Rule> activeRules = new()
-            {
+            List<Rule> activeRules =
+            [
                 activeRule
-            };
+            ];
             List<Rule>[] comparisonRuleChunks = new List<Rule>[1];
-            comparisonRuleChunks[0] = new List<Rule> { comparisonRule };
+            comparisonRuleChunks[0] = [comparisonRule];
             DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations, activeRules);
             MockReportCompliance baseReport = new(new(""), userConfig, Basics.ReportType.ComplianceReport);
 
@@ -558,24 +558,24 @@ namespace FWO.Test
                 DiffReferenceInDays = 7,
                 ShowNonImpactRules = true
             };
-            List<Management> managements = new()
-            {
+            List<Management> managements =
+            [
                 new Management { Id = 1, Uid = "mgmt-1", Name = "Management 1" },
                 new Management { Id = 2, Uid = "mgmt-2", Name = "Management 2" }
-            };
-            List<ComplianceViolation> intervalViolations = new()
-            {
+            ];
+            List<ComplianceViolation> intervalViolations =
+            [
                 CreateDiffViolation(1, 101, "rule-shared", mgmtUid: "mgmt-1")
-            };
-            List<ComplianceViolation> previousViolations = new()
-            {
+            ];
+            List<ComplianceViolation> previousViolations =
+            [
                 CreateDiffViolation(11, 11, "rule-shared", foundDate: DateTime.Now.AddDays(-8), mgmtUid: "mgmt-2")
-            };
-            List<Rule> activeRules = new()
-            {
+            ];
+            List<Rule> activeRules =
+            [
                 CreateActiveRule("rule-shared", mgmtId: 1),
                 CreateActiveRule("rule-shared", mgmtId: 2)
-            };
+            ];
             DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations, activeRules, managements: managements);
 
             await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
@@ -594,9 +594,9 @@ namespace FWO.Test
             private readonly bool _failPreviousViolationFetch;
             private readonly List<Management> _managements;
 
-            public List<string> Queries { get; } = new();
-            public List<string> RequestedRuleUids { get; } = new();
-            public List<int> RequestedViolationOffsets { get; } = new();
+            public List<string> Queries { get; } = [];
+            public List<string> RequestedRuleUids { get; } = [];
+            public List<int> RequestedViolationOffsets { get; } = [];
             public Dictionary<string, object>? IntervalViolationsWhere { get; private set; }
             public Dictionary<string, object>? PreviousViolationsWhere { get; private set; }
 
@@ -608,10 +608,10 @@ namespace FWO.Test
                 List<Management>? managements = null)
             {
                 _intervalViolations = intervalViolations;
-                _previousViolations = previousViolations ?? new List<ComplianceViolation>();
-                _activeRules = activeRules ?? new List<Rule>();
+                _previousViolations = previousViolations ?? [];
+                _activeRules = activeRules ?? [];
                 _failPreviousViolationFetch = failPreviousViolationFetch;
-                _managements = managements ?? new List<Management> { new Management { Id = 1, Uid = "mgmt-1", Name = "Management 1" } };
+                _managements = managements ?? [new Management { Id = 1, Uid = "mgmt-1", Name = "Management 1" }];
             }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)

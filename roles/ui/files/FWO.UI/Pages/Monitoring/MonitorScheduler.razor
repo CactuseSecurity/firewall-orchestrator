@@ -235,7 +235,7 @@ else
         {
             SchedulerJobExecutionStatus.Success => (MarkupString)$"<span class=\"text-success {Icons.Check}\"></span>",
             SchedulerJobExecutionStatus.Failed => (MarkupString)$"<span class=\"text-danger {Icons.Close}\"></span>",
-            _ or SchedulerJobExecutionStatus.None => (MarkupString)$"<span class=\"text-muted\">—</span>"
+            _ => (MarkupString)$"<span class=\"text-muted\">—</span>"
         };
     }
 

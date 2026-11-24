@@ -169,7 +169,7 @@ namespace FWO.Middleware.Server
             {
                 ReadFile(importfileName);
                 ModellingImportOwnerData? importedOwnerData = JsonSerializer.Deserialize<ModellingImportOwnerData>(importFile) ?? throw new JsonException("File could not be parsed.");
-                if (importedOwnerData != null && importedOwnerData.Owners != null)
+                if (importedOwnerData.Owners != null)
                 {
                     ImportedApps = importedOwnerData.Owners;
                     await ImportApps(importfileName, ownerChangeTracker, cancellationToken);
@@ -1136,19 +1136,13 @@ namespace FWO.Middleware.Server
                     // in case there are still active appservers from other sources (resulting e.g. from older revisions)
                     await AppServerHelper.DeactivateOtherSources(apiConnection, userConfig, existingAppServer);
                 }
-                if (!existingAppServer.Name.Equals(incomingAppServer.Name))
+                if (!existingAppServer.Name.Equals(incomingAppServer.Name) && !await UpdateAppServerName(existingAppServer, incomingAppServer.Name))
                 {
-                    if (!await UpdateAppServerName(existingAppServer, incomingAppServer.Name))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
-                if (existingAppServer.CustomType == null)
+                if (existingAppServer.CustomType == null && !await UpdateAppServerType(existingAppServer))
                 {
-                    if (!await UpdateAppServerType(existingAppServer))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
                 return true;
             }

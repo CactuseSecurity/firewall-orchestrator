@@ -36,7 +36,7 @@ public sealed class CheckPointSectionNameTemplate
         HashSet<CheckPointSectionNameVariable> requiredVariables)
     {
         this.parts = new ReadOnlyCollection<TemplatePart>(parts.ToList());
-        this.requiredVariables = new HashSet<CheckPointSectionNameVariable>(requiredVariables);
+        this.requiredVariables = [.. requiredVariables];
     }
 
     /// <summary>Parses fixed text and recognized placeholders without accepting malformed delimiters.</summary>

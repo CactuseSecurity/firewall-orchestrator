@@ -70,7 +70,7 @@ namespace FWO.Test
         {
             Rule rule = new() { CustomFields = "{'field-2':'CHG-7'}" };
 
-            string? result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, new List<string>(), out string? errorMessage);
+            string? result = CustomFieldResolver.ExtractCustomFieldValue<string>(rule, [], out string? errorMessage);
 
             Assert.That(result, Is.Null);
             Assert.That(errorMessage, Is.Null);

@@ -93,7 +93,7 @@ internal sealed class OpnSenseWriteClientTest
     public async Task MemberChanges_PreserveUpdatesAfterTheLastRead()
     {
         (FirewallWriter writer, FirewallSimulation simulation) = Writer();
-        HashSet<string> configured = new() { "10.0.0.1/32" };
+        HashSet<string> configured = ["10.0.0.1/32"];
         simulation.Handler = request =>
         {
             if (request.Resource == kLookupPath)
@@ -102,7 +102,7 @@ internal sealed class OpnSenseWriteClientTest
             }
             if (request.Resource == kItemPath)
             {
-                JsonObject content = new();
+                JsonObject content = [];
                 foreach (string member in configured)
                 {
                     content[member] = new JsonObject { ["selected"] = 1 };
@@ -186,11 +186,11 @@ internal sealed class OpnSenseWriteClientTest
     public async Task SingleAddresses_MatchExistingAliasEntries(string aliasType, string stored, string expectedAdded)
     {
         (FirewallWriter writer, FirewallSimulation simulation) = Writer();
-        HashSet<string> configured = new() { stored, "10.0.0.9" };
+        HashSet<string> configured = [stored, "10.0.0.9"];
         simulation.Handler = AliasHandler(configured, aliasType);
         ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, Member("10.0.0.3"),
             Member("10.0.0.2", RequestAction.delete)));
-        HashSet<string> expected = new() { "10.0.0.9", expectedAdded };
+        HashSet<string> expected = ["10.0.0.9", expectedAdded];
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Success, Is.True, result.Message);
@@ -206,11 +206,11 @@ internal sealed class OpnSenseWriteClientTest
     public async Task LeadingColonIpv6_KeepsFullLengthMask()
     {
         (FirewallWriter writer, FirewallSimulation simulation) = Writer();
-        HashSet<string> configured = new() { "::2/128", "10.0.0.9" };
+        HashSet<string> configured = ["::2/128", "10.0.0.9"];
         simulation.Handler = AliasHandler(configured, kNetwork);
         ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.group_modify, Member("::3"),
             Member("::2", RequestAction.delete)));
-        HashSet<string> expected = new() { "10.0.0.9", "::3/128" };
+        HashSet<string> expected = ["10.0.0.9", "::3/128"];
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Success, Is.True, result.Message);

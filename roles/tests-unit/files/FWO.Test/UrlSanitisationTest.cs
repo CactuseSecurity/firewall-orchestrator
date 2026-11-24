@@ -92,7 +92,7 @@ namespace FWO.Test
             // Normalize / decode
             var normalized = WebUtility.HtmlDecode(result);
             try { normalized = Uri.UnescapeDataString(normalized); } catch { /* ignore malformed escapes */ }
-            normalized = Regex.Replace(normalized, @"[\s\x00-\x1F]+", " "); // collapse whitespace and control chars
+            normalized = WhitespaceAndControlCharsRegex().Replace(normalized, " "); // collapse whitespace and control chars
             normalized = normalized.Trim();
 
             // checks (case-insensitive)
@@ -228,7 +228,7 @@ namespace FWO.Test
             var actionContext = new ActionContext(httpContext, new Microsoft.AspNetCore.Routing.RouteData(), new ActionDescriptor());
             var actionArguments = new Dictionary<string, object> { { "url", "http://evil.com" } };
             var mockController = new Moq.Mock<Controller>();
-            var ctx = new ActionExecutingContext(actionContext, new List<IFilterMetadata>(), (IDictionary<string, object?>)actionArguments, mockController.Object);
+            var ctx = new ActionExecutingContext(actionContext, [], (IDictionary<string, object?>)actionArguments, mockController.Object);
 
             filter.OnActionExecuting(ctx);
 

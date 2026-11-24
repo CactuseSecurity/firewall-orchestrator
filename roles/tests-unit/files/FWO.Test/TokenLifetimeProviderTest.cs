@@ -31,9 +31,9 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<ConfExpirationTime>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<ConfExpirationTime> { new() { ExpirationValue = 4 } });
+                .Returns([new() { ExpirationValue = 4 }]);
             apiConnection.SendQueryAsync<List<ConfigItem>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<ConfigItem> { new() { Value = "Hours" } });
+                .Returns([new() { Value = "Hours" }]);
             TokenLifetimeProvider provider = new();
 
             TimeSpan accessLifetime = await provider.GetUserAccessTokenLifetimeAsync(apiConnection);
@@ -46,9 +46,9 @@ namespace FWO.Test
         {
             ApiConnection apiConnection = Substitute.For<ApiConnection>();
             apiConnection.SendQueryAsync<List<ConfExpirationTime>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<ConfExpirationTime> { new() { ExpirationValue = 30 } });
+                .Returns([new() { ExpirationValue = 30 }]);
             apiConnection.SendQueryAsync<List<ConfigItem>>(Arg.Any<string>(), Arg.Any<object?>(), Arg.Any<string?>())
-                .Returns(new List<ConfigItem> { new() { Value = "Minutes" } });
+                .Returns([new() { Value = "Minutes" }]);
             TokenLifetimeProvider provider = new();
 
             TimeSpan accessLifetime = await provider.GetUserAccessTokenLifetimeAsync(apiConnection);

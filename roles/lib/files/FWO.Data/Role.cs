@@ -18,7 +18,7 @@ namespace FWO.Data
             Name = role.Name;
             Dn = role.Dn;
             Description = role.Description;
-            Users = new(role.Users);
+            Users = [.. role.Users];
         }
 
         private static string DisplayUserName(string name)

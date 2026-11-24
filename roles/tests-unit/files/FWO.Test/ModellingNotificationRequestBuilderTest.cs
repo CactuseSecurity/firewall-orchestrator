@@ -11,6 +11,8 @@ namespace FWO.Test
     [Parallelizable]
     internal class ModellingNotificationRequestBuilderTest
     {
+        private static readonly string[] kExpectedDestinationGroupNames = ["ARxx12345-050", "ARxx12345-100", "ARxx12345-200"];
+
         [Test]
         public void BuildRequestTasks_CreatesAccessTasksForConnectionsNotRequestedOnFw()
         {
@@ -369,7 +371,7 @@ namespace FWO.Test
                     .Where(element => element.Field == ElemFieldType.destination.ToString() && !string.IsNullOrEmpty(element.GroupName))
                     .Select(element => element.GroupName)
             ];
-            Assert.That(destinationGroupNames, Is.EqualTo(new[] { "ARxx12345-050", "ARxx12345-100", "ARxx12345-200" }));
+            Assert.That(destinationGroupNames, Is.EqualTo(kExpectedDestinationGroupNames));
         }
 
         private static ModellingConnection CreateConnection(int id, params string[] extraConfigTypes)

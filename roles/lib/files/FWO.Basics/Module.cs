@@ -14,7 +14,7 @@ namespace FWO.Basics
     {
         public static string AllModulesNumList()
         {
-            return $"[{string.Join(",", Enum.GetValues(typeof(Module)).Cast<Module>().Select(m => (int)m).ToList())}]";
+            return $"[{string.Join(",", Enum.GetValues<Module>().Select(m => (int)m).ToList())}]";
         }
     }
 }

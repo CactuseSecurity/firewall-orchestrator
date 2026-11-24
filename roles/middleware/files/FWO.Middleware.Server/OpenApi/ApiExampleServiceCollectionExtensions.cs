@@ -461,8 +461,8 @@ public sealed class ServiceObjectResponseExample : ApiExampleProvider<ServiceObj
 public sealed class ServiceObjectResponseListExample : ApiExampleProvider<List<ServiceObjectResponse>>
 {
     /// <inheritdoc />
-    public override List<ServiceObjectResponse> GetExample() => new()
-    {
+    public override List<ServiceObjectResponse> GetExample() =>
+    [
         new ServiceObjectResponse
         {
             Id = 3001,
@@ -483,7 +483,7 @@ public sealed class ServiceObjectResponseListExample : ApiExampleProvider<List<S
             State = "active",
             ShowInRequest = true
         }
-    };
+    ];
 }
 
 /// <summary>

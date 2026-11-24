@@ -27,7 +27,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     private readonly GlobalConfig globalConfig;
     private readonly ApiSubscription? configSubscription;
     private readonly SemaphoreSlim ipProtocolCacheLock = new(1, 1);
-    private readonly object zonePatternCacheLock = new();
+    private readonly Lock zonePatternCacheLock = new();
     private IpProtocolCache? ipProtocolCache;
     private IReadOnlyList<FlowZoneGroupPattern> zonePatterns = [];
     private string? parsedZonePatternConfig;
@@ -606,7 +606,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
         return response;
     }
 
-    private ServiceObjectResponse ToServiceObjectResponse(FlowSvcObject flowObject, IpProtocolCache protocolCache)
+    private static ServiceObjectResponse ToServiceObjectResponse(FlowSvcObject flowObject, IpProtocolCache protocolCache)
     {
         string protocol = string.Empty;
         if (protocolCache.Names.TryGetValue(flowObject.ProtoId, out string? protocolName))
@@ -633,7 +633,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <summary>
     /// Maps a service group and selects its compact or detailed member representation.
     /// </summary>
-    private ServiceGroupResponse ToServiceGroupResponse(FlowSvcGroup flowGroup, IpProtocolCache? protocolCache)
+    private static ServiceGroupResponse ToServiceGroupResponse(FlowSvcGroup flowGroup, IpProtocolCache? protocolCache)
     {
         return new ServiceGroupResponse
         {
@@ -650,7 +650,7 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <summary>
     /// Maps a service-group member with optional standalone-object details.
     /// </summary>
-    private ServiceGroupResponse.ServiceGroupMemberResponse ToServiceGroupMemberResponse(
+    private static ServiceGroupResponse.ServiceGroupMemberResponse ToServiceGroupMemberResponse(
         FlowSvcGroupMember member,
         IpProtocolCache? protocolCache)
     {

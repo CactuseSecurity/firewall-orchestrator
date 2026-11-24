@@ -214,9 +214,9 @@ namespace FWO.Services.Workflow
                 stateOut = LowestStartedState;
             }
 
-            if (DerivedStates.ContainsKey(stateOut))
+            if (DerivedStates.TryGetValue(stateOut, out int derivedState))
             {
-                return DerivedStates[stateOut];
+                return derivedState;
             }
             return stateOut;
         }
@@ -396,7 +396,7 @@ namespace FWO.Services.Workflow
         public async Task Init(WorkflowPhases phase, ApiConnection apiConnection, List<WfState> preloadedStates)
         {
             Dictionary<string, StateMatrix> matrices = [];
-            foreach (WfTaskType taskType in Enum.GetValues(typeof(WfTaskType)))
+            foreach (WfTaskType taskType in Enum.GetValues<WfTaskType>())
             {
                 StateMatrix stateMatrix = new();
                 matrices.Add(taskType.ToString(), stateMatrix);

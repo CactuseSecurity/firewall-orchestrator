@@ -137,7 +137,7 @@ namespace FWO.Test
 
             apiConnection = new RecordingConfigApiConnection();
             userConfig = new SimulatedUserConfig();
-            userConfig.User.Roles = new List<string> { role };
+            userConfig.User.Roles = [role];
             globalConfig = new SimulatedGlobalConfig();
 
             context.Services.AddSingleton<ApiConnection>(apiConnection);
@@ -154,7 +154,7 @@ namespace FWO.Test
         {
             apiConnection = new RecordingConfigApiConnection();
             SimulatedUserConfig userConfig = new();
-            userConfig.User.Roles = new List<string> { role };
+            userConfig.User.Roles = [role];
             SettingsPasswordPolicy component = new();
             SetMember(component, "apiConnection", apiConnection);
             SetMember(component, "globalConfig", globalConfig);

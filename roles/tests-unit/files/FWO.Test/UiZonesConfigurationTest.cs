@@ -79,7 +79,7 @@ namespace FWO.Test
             };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<NetworkZone> { normalZone, internetZone }
+                NetworkZones = [normalZone, internetZone]
             };
             ZonesConfigurationApiConnection apiConnection = new();
             apiConnection.NetworkZones.Add(normalZone);
@@ -124,7 +124,7 @@ namespace FWO.Test
             };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<NetworkZone> { normalZone, internetZone }
+                NetworkZones = [normalZone, internetZone]
             };
             ZonesConfigurationApiConnection apiConnection = new();
             apiConnection.NetworkZones.Add(normalZone);
@@ -161,7 +161,7 @@ namespace FWO.Test
             };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<NetworkZone> { internetZone }
+                NetworkZones = [internetZone]
             };
             await using BunitContext context = CreateContext(networkZoneService);
             IRenderedComponent<ZonesConfiguration> page = Render(context);
@@ -187,7 +187,7 @@ namespace FWO.Test
             };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<NetworkZone> { undefinedInternalZone }
+                NetworkZones = [undefinedInternalZone]
             };
             await using BunitContext context = CreateContext(networkZoneService);
             IRenderedComponent<ZonesConfiguration> page = Render(context);
@@ -209,7 +209,7 @@ namespace FWO.Test
             };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<NetworkZone> { undefinedInternalZone }
+                NetworkZones = [undefinedInternalZone]
             };
             ZonesConfigurationApiConnection apiConnection = new();
             apiConnection.NetworkZones.Add(undefinedInternalZone);
@@ -243,7 +243,7 @@ namespace FWO.Test
             NetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<NetworkZone> { normalZone }
+                NetworkZones = [normalZone]
             };
             SimulatedGlobalConfig globalConfig = new()
             {
@@ -269,7 +269,7 @@ namespace FWO.Test
             };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<NetworkZone> { internetZone }
+                NetworkZones = [internetZone]
             };
             ZonesConfigurationApiConnection apiConnection = new();
             apiConnection.NetworkZones.Add(internetZone);
@@ -298,7 +298,7 @@ namespace FWO.Test
             NetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<NetworkZone> { normalZone }
+                NetworkZones = [normalZone]
             };
             ZonesConfigurationApiConnection apiConnection = new()
             {
@@ -338,7 +338,7 @@ namespace FWO.Test
             NetworkZone normalZone = new() { Id = 1, CriterionId = 1, Name = "normal" };
             NetworkZoneService networkZoneService = new()
             {
-                NetworkZones = new List<NetworkZone> { normalZone }
+                NetworkZones = [normalZone]
             };
             ZonesConfigurationApiConnection apiConnection = new()
             {

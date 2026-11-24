@@ -34,7 +34,7 @@ namespace FWO.Test
             Data.NetworkObject objToFind = currentReport.ReportData.ManagementData[0].Objects[1];
             Rule selectedRule = currentReport.ReportData.ManagementData[0].Rulebases[0].Rules[0];
 
-            List<Rule> selectedRules = new() { selectedRule };
+            List<Rule> selectedRules = [selectedRule];
 
             string elementId = await NavigateToObjectLink(currentReport, currentReport.ReportType, objToFind.Id, selectedRules);
 
@@ -48,7 +48,7 @@ namespace FWO.Test
             Rule changedRule = changeReport.ReportData.ManagementData[0].RuleChanges![0].NewRule;
             long objId = changedRule.Tos[0].Object.Id;
 
-            string elementId = await NavigateToObjectLink(changeReport, ReportType.Changes, objId, new List<Rule>());
+            string elementId = await NavigateToObjectLink(changeReport, ReportType.Changes, objId, []);
 
             Assert.That(elementId, Is.EqualTo($"report-m{changedRule.MgmtId}-{ObjCatString.NwObj}0x{objId}"));
         }
@@ -59,7 +59,7 @@ namespace FWO.Test
             ReportChanges changeReport = BuildChangeReport();
             long objId = changeReport.ReportData.ManagementData[0].RuleChanges![0].NewRule.Tos[0].Object.Id;
             // the target is never reported as found, so every scroll attempt stays visible in the invocations
-            (IRenderedComponent<RightSidebar> cut, JSRuntimeInvocationHandler<bool> scrollHandler) = RenderSidebarAtObjectLink(changeReport, ReportType.Changes, objId, new List<Rule>(), false);
+            (IRenderedComponent<RightSidebar> cut, JSRuntimeInvocationHandler<bool> scrollHandler) = RenderSidebarAtObjectLink(changeReport, ReportType.Changes, objId, [], false);
 
             IRenderedComponent<AnchorNavToRSB> anchorNavToRSB = cut.FindComponent<AnchorNavToRSB>();
             await anchorNavToRSB.InvokeAsync(() => anchorNavToRSB.Instance.NavigateAndScrollToFragment());
@@ -77,7 +77,7 @@ namespace FWO.Test
         {
             ReportChanges changeReport = BuildChangeReport();
             long objId = changeReport.ReportData.ManagementData[0].RuleChanges![0].NewRule.Tos[0].Object.Id;
-            (IRenderedComponent<RightSidebar> cut, _) = RenderSidebarAtObjectLink(changeReport, ReportType.Changes, objId, new List<Rule>(), true);
+            (IRenderedComponent<RightSidebar> cut, _) = RenderSidebarAtObjectLink(changeReport, ReportType.Changes, objId, [], true);
 
             IRenderedComponent<AnchorNavToRSB> anchorNavToRSB = cut.FindComponent<AnchorNavToRSB>();
             await anchorNavToRSB.InvokeAsync(() => anchorNavToRSB.Instance.NavigateAndScrollToFragment());
@@ -89,7 +89,7 @@ namespace FWO.Test
         public async Task FetchedReportTabObjectsSurviveClearingTheRuleSelectionButNotANewReport()
         {
             Data.NetworkObject objToFind = currentReport.ReportData.ManagementData[0].Objects[1];
-            List<Rule> selectedRules = new() { currentReport.ReportData.ManagementData[0].Rulebases[0].Rules[0] };
+            List<Rule> selectedRules = [currentReport.ReportData.ManagementData[0].Rulebases[0].Rules[0]];
             (IRenderedComponent<RightSidebar> cut, _) = RenderSidebarAtObjectLink(currentReport, currentReport.ReportType, objToFind.Id, selectedRules, true);
             IRenderedComponent<AnchorNavToRSB> anchorNavToRSB = cut.FindComponent<AnchorNavToRSB>();
             await anchorNavToRSB.InvokeAsync(() => anchorNavToRSB.Instance.NavigateAndScrollToFragment());
@@ -100,14 +100,14 @@ namespace FWO.Test
             RenderedComponentRenderExtensions.Render(cut, parameters => parameters
                 .Add(p => p.CurrentReport, currentReport)
                 .Add(p => p.SelectedReportType, currentReport.ReportType)
-                .Add(p => p.SelectedRules, new List<Rule>()));
+                .Add(p => p.SelectedRules, []));
 
             Assert.That(cut.FindAll(elementSelector), Is.Not.Empty, "objects fetched into the report tab must be kept");
 
             RenderedComponentRenderExtensions.Render(cut, parameters => parameters
                 .Add(p => p.CurrentReport, SimulatedReport.DetailedReport())
                 .Add(p => p.SelectedReportType, currentReport.ReportType)
-                .Add(p => p.SelectedRules, new List<Rule>()));
+                .Add(p => p.SelectedRules, []));
 
             Assert.That(cut.FindAll(elementSelector), Is.Empty, "a new report must not show the objects fetched for the previous one");
         }
@@ -216,7 +216,7 @@ namespace FWO.Test
             };
         }
 
-        private bool IsElementVisible(IElement? element)
+        private static bool IsElementVisible(IElement? element)
         {
             while (element != null)
             {

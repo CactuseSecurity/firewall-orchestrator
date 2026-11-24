@@ -14,13 +14,13 @@ namespace FWO.Test
 
         private const string kExternalDn = "uid=tester,ou=people,dc=example,dc=org";
 
-        private static readonly List<string> TopologyHrefs = new() { "/settings/matrix", "/settings/internet" };
-        private static readonly List<string> AdminRoles = new() { Roles.Admin };
-        private static readonly List<string> AuditorRoles = new() { Roles.Auditor };
-        private static readonly List<string> RemovedFwAdminRoles = new() { "fw-admin" };
-        private static readonly List<string> ImporterRoles = new() { Roles.Importer };
-        private static readonly List<string> PersonalOnly = new() { "personal" };
-        private static readonly List<string> PasswordPolicyOnly = new() { "settings/passwordpolicy" };
+        private static readonly List<string> TopologyHrefs = ["/settings/matrix", "/settings/internet"];
+        private static readonly List<string> AdminRoles = [Roles.Admin];
+        private static readonly List<string> AuditorRoles = [Roles.Auditor];
+        private static readonly List<string> RemovedFwAdminRoles = ["fw-admin"];
+        private static readonly List<string> ImporterRoles = [Roles.Importer];
+        private static readonly List<string> PersonalOnly = ["personal"];
+        private static readonly List<string> PasswordPolicyOnly = ["settings/passwordpolicy"];
 
         private readonly SimulatedUserConfig userConfig = CreateUserConfig(AdminRoles, InternalDn());
 
@@ -251,7 +251,7 @@ namespace FWO.Test
                 User =
                 {
                     Dn = userDn,
-                    Roles = new(roles)
+                    Roles = [.. roles]
                 }
             };
         }
@@ -266,12 +266,12 @@ namespace FWO.Test
         /// </summary>
         private sealed class LabelledUserConfig : SimulatedUserConfig
         {
-            public Dictionary<string, string> Labels { get; } = new();
+            public Dictionary<string, string> Labels { get; } = [];
 
             public LabelledUserConfig(List<string> roles, string userDn)
             {
                 User.Dn = userDn;
-                User.Roles = new(roles);
+                User.Roles = [.. roles];
             }
 
             public override string GetText(string key)

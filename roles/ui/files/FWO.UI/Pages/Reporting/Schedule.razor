@@ -475,6 +475,11 @@
             DisplayMessageInUi(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("E2001"), true);
             return false;
         }
+        if (!reportScheduleInEdit.HasValidRepeatOffset())
+        {
+            DisplayMessageInUi(null, userConfig.GetText("edit_scheduled_report"), userConfig.GetText("E2003"), true);
+            return false;
+        }
         return true;
     }
 

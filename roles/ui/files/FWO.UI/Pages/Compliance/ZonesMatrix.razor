@@ -21,7 +21,7 @@
                         <th></th>
                         @foreach (var destinationZone in GetSortedNetworkzones())
                         {
-                            <th @onclick="() => ExecuteZoneAction(destinationZone)" class="zone-header-rotated">
+                            <th class="zone-header-rotated">
                                 <div class="zone-name text-rotated">@(destinationZone.Name)</div>
                             </th>
                         }
@@ -31,7 +31,7 @@
                     @foreach (var sourceZone in GetSortedNetworkzones())
                     {
                         <tr>
-                            <th @onclick="() => ExecuteZoneAction(sourceZone)" class="zone-header">
+                            <th class="zone-header">
                                 <div class="zone-name">@(sourceZone.Name)</div>
                             </th>
                             @foreach (var destinationZone in GetSortedNetworkzones())
@@ -72,40 +72,25 @@
 	[Parameter]
     public EventCallback<List<(NetworkZone, NetworkZone)>> DeleteCommunicationChanged { get; set; }
 	
-    private void ExecuteZoneAction(NetworkZone zone)
-    {
-        if (EditMode)
-        {
-
-        }
-        else
-        {
-            // Jump to zone
-        }
-    }
-
     private void ExecuteCommunicationAction(NetworkZone sourceZone, NetworkZone destinationZone)
     {
-        if(!sourceZone.IsAutoCalculatedUndefinedInternalZone && !destinationZone.IsAutoCalculatedUndefinedInternalZone)
+        if (EditMode && !sourceZone.IsAutoCalculatedUndefinedInternalZone && !destinationZone.IsAutoCalculatedUndefinedInternalZone)
         {
-            if (EditMode)
+            if (AddCommunication.Contains((sourceZone, destinationZone)))
             {
-                if (AddCommunication.Contains((sourceZone, destinationZone)))
-                {
-                    AddCommunication.Remove((sourceZone, destinationZone));
-                }
-                else if (DeleteCommunication.Contains((sourceZone, destinationZone)))
-                {
-                    DeleteCommunication.Remove((sourceZone, destinationZone));
-                }
-                else if (sourceZone.CommunicationAllowedTo(destinationZone))
-                {
-                    DeleteCommunication.Add((sourceZone, destinationZone));
-                }
-                else
-                {
-                    AddCommunication.Add((sourceZone, destinationZone));
-                }
+                AddCommunication.Remove((sourceZone, destinationZone));
+            }
+            else if (DeleteCommunication.Contains((sourceZone, destinationZone)))
+            {
+                DeleteCommunication.Remove((sourceZone, destinationZone));
+            }
+            else if (sourceZone.CommunicationAllowedTo(destinationZone))
+            {
+                DeleteCommunication.Add((sourceZone, destinationZone));
+            }
+            else
+            {
+                AddCommunication.Add((sourceZone, destinationZone));
             }
         }
     }

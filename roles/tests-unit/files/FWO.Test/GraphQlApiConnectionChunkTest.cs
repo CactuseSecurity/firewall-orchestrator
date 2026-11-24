@@ -20,6 +20,9 @@ namespace FWO.Test
     [TestFixture]
     public class GraphQlApiConnectionChunkTest
     {
+        private static readonly int[] kExpectedResultItems = [1, 2, 3];
+        private static readonly int[] kExpectedChunkedItems = [1, 2, 3, 4];
+
         private sealed class StubHttpMessageHandler : HttpMessageHandler
         {
             private readonly Queue<HttpResponseMessage> responses;
@@ -240,7 +243,7 @@ namespace FWO.Test
             JObject result = InvokePrivateStatic<JObject>("MergeChunkedResponse", mergedResponse, chunkData, options);
 
             Assert.That(result["items"], Is.TypeOf<JArray>());
-            Assert.That(result["items"]!.Values<int>().ToList(), Is.EqualTo(new[] { 1, 2, 3, 4 }));
+            Assert.That(result["items"]!.Values<int>().ToList(), Is.EqualTo(kExpectedChunkedItems));
         }
 
         [Test]
@@ -288,7 +291,7 @@ namespace FWO.Test
                     MergeMode = ChunkMergeMode.TopLevelArrayConcat
                 });
 
-            Assert.That(result, Is.EqualTo(new[] { 1, 2, 3 }));
+            Assert.That(result, Is.EqualTo(kExpectedResultItems));
             Assert.That(handler.RequestCount, Is.EqualTo(2));
         }
 

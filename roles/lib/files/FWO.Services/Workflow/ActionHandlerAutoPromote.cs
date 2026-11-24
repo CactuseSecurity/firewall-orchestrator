@@ -32,6 +32,17 @@ namespace FWO.Services.Workflow
             };
         }
 
+        private IRequestedRulePolicyChecker? ResolvePolicyChecker()
+        {
+            if (requestedRulePolicyChecker == null)
+            {
+                Log.WriteDebug("Policy Check", "No policy checker is attached to the action handler. Resolving the configured policy checker factory.");
+                requestedRulePolicyChecker = (ServiceProvider.Services?.GetService(typeof(IRequestedRulePolicyCheckerFactory))
+                    as IRequestedRulePolicyCheckerFactory)?.Create(wfHandler.userConfig, apiConnection, wfHandler.MiddlewareClient);
+            }
+            return requestedRulePolicyChecker;
+        }
+
         private async Task<bool> ExecutePolicyCheck(IEnumerable<int> selectedPolicyIds, string checkResultLabel, WfStatefulObject statefulObject, WfObjectScopes scope)
         {
             try
@@ -50,19 +61,15 @@ namespace FWO.Services.Workflow
                     return false;
                 }
 
-                if (requestedRulePolicyChecker == null)
-                {
-                    Log.WriteDebug("Policy Check", "No policy checker is attached to the action handler. Resolving the configured policy checker factory.");
-                    requestedRulePolicyChecker = (ServiceProvider.Services?.GetService(typeof(IRequestedRulePolicyCheckerFactory))
-                        as IRequestedRulePolicyCheckerFactory)?.Create(wfHandler.userConfig, apiConnection, wfHandler.MiddlewareClient);
-                }
-                if (requestedRulePolicyChecker == null)
+                IRequestedRulePolicyChecker? checker = ResolvePolicyChecker();
+                if (checker == null)
                 {
                     Log.WriteWarning("Policy Check", "No requested-rule policy checker factory is registered. Policy check cannot be executed.");
                     return false;
                 }
 
-                bool isCompliant = await requestedRulePolicyChecker.AreRequestTasksCompliant(selectedPolicyIds, policyCheckTasks);
+                List<int> policyIds = [.. selectedPolicyIds];
+                bool isCompliant = await CheckPolicyCheckTasks(checker, policyIds, policyCheckTasks);
                 Log.WriteDebug("Policy Check", $"Requested-rule policy check completed with result '{isCompliant}'.");
                 await AttachPolicyCheckResultLabel(requestedRuleTasks, checkResultLabel, isCompliant);
                 return isCompliant;
@@ -72,6 +79,29 @@ namespace FWO.Services.Workflow
                 Log.WriteError("Policy Check", "Conditional compliance evaluation failed.", exc);
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Checks the tasks per task, so that the result of each access task can be stored for the approval views:
+        /// the ticket is compliant if every access task is. Checkers without a per-task check use the overall check.
+        /// The results are only stored if the action checks all configured policies, as the approval views do.
+        /// </summary>
+        private async Task<bool> CheckPolicyCheckTasks(IRequestedRulePolicyChecker checker, List<int> selectedPolicyIds, List<WfReqTask> policyCheckTasks)
+        {
+            List<WfReqTask> checkedTasks = [.. policyCheckTasks.Where(RequestTaskCompliance.IsCheckedTask)];
+            IReadOnlyDictionary<long, RequestTaskComplianceResult> taskResults = checkedTasks.Count > 0
+                ? await checker.CheckRequestTasks(selectedPolicyIds, policyCheckTasks)
+                : new Dictionary<long, RequestTaskComplianceResult>();
+            if (taskResults.Count == 0 || !checkedTasks.All(task => taskResults.ContainsKey(task.Id)))
+            {
+                return await checker.AreRequestTasksCompliant(selectedPolicyIds, policyCheckTasks);
+            }
+
+            if (selectedPolicyIds.Where(policyId => policyId > 0).ToHashSet().SetEquals(GetConditionalPolicyCheckIds()))
+            {
+                await StoreComplianceResults(checkedTasks, taskResults);
+            }
+            return checkedTasks.All(task => taskResults[task.Id].IsCompliant);
         }
 
         private async Task AttachPolicyCheckResultLabel(IEnumerable<WfReqTask> requestTasks, string checkResultLabel, bool isCompliant)
@@ -87,11 +117,12 @@ namespace FWO.Services.Workflow
         private async Task<List<WfReqTask>> GetRequestedRuleTasksForCallingTicket(WfStatefulObject statefulObject, WfObjectScopes scope)
         {
             WfTicket? ticket = await GetCallingTicket(statefulObject, scope);
-            if (ticket == null)
-            {
-                return [];
-            }
+            return ticket == null ? [] : PolicyCheckTasks(ticket);
+        }
 
+        /// <summary>Returns the access tasks of the ticket together with the tasks defining the requested objects and groups.</summary>
+        private static List<WfReqTask> PolicyCheckTasks(WfTicket ticket)
+        {
             return ticket.Tasks
                 .Where(task => task.GetNwObjectElements(ElemFieldType.source).Count > 0)
                 .Where(task => task.GetNwObjectElements(ElemFieldType.destination).Count > 0)

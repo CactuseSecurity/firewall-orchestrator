@@ -101,7 +101,7 @@ namespace FWO.Test
             {
                 Id = 1,
                 IsInterface = true,
-                Props = new Dictionary<string, string>()
+                Props = []
             };
             ModellingConnection rejected = new()
             {

@@ -110,7 +110,7 @@ namespace FWO.Report
         /// <returns>The sorted ids.</returns>
         public List<long> GetNetworkObjectIds(ObjCategory category)
         {
-            return Includes(category, ObjCategory.nobj) ? [.. NetworkObjectIds.Order()] : new List<long>();
+            return Includes(category, ObjCategory.nobj) ? [.. NetworkObjectIds.Order()] : [];
         }
 
         /// <summary>
@@ -120,7 +120,7 @@ namespace FWO.Report
         /// <returns>The sorted ids.</returns>
         public List<long> GetServiceIds(ObjCategory category)
         {
-            return Includes(category, ObjCategory.nsrv) ? [.. ServiceIds.Order()] : new List<long>();
+            return Includes(category, ObjCategory.nsrv) ? [.. ServiceIds.Order()] : [];
         }
 
         /// <summary>
@@ -130,7 +130,7 @@ namespace FWO.Report
         /// <returns>The sorted ids.</returns>
         public List<long> GetUserIds(ObjCategory category)
         {
-            return Includes(category, ObjCategory.user) ? [.. UserIds.Order()] : new List<long>();
+            return Includes(category, ObjCategory.user) ? [.. UserIds.Order()] : [];
         }
 
         private static bool Includes(ObjCategory requested, ObjCategory category)

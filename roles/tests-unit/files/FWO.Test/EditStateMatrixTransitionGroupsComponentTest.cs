@@ -193,7 +193,7 @@ namespace FWO.Test
 
             Assert.That(rendered.FindAll("button.dropdown-item"), Is.Not.Empty);
             Assert.That(rendered.FindComponent<Dropdown<int?>>().Instance.ElementToString(99), Is.Empty);
-            Assert.That(rendered.FindComponents<Dropdown<int>>().First().Instance.ElementToString(99), Is.Empty);
+            Assert.That(rendered.FindComponents<Dropdown<int>>()[0].Instance.ElementToString(99), Is.Empty);
         }
 
         [Test]

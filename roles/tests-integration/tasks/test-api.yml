@@ -524,3 +524,136 @@
           the rows of the config checks could not be removed:
           {{ api_config_cleanup.content | default('') }} {{ api_config_global_restore.content | default('') }}
           {{ api_config_global_removal.content | default('') }}
+
+# Email priority (9.9.5): the notification mutations of the UI accept the three values of the C# enum EmailPriority,
+# getNotifications loads them, and the database rejects any other value, so a client's notifications stay loadable.
+# The checks use the mutation and query files of the application with the admin role and remove their rows afterwards.
+- name: "notification: email priority is limited to the values of the application"
+  vars:
+    api_notification_client: integration-test-email-priority
+    api_notification_valid_priorities:
+      - Normal
+      - Low
+      - High
+    api_notification_invalid_priority: Urgent
+    api_notification_add_mutation: >-
+      {{ lookup('file', role_path + '/../common/files/fwo-api-calls/notification/addNotification.graphql') | regex_replace('^﻿', '') }}
+    api_notification_get_query: >-
+      {{ lookup('file', role_path + '/../common/files/fwo-api-calls/notification/getNotifications.graphql') | regex_replace('^﻿', '') }}
+    api_notification_delete_mutation: >-
+      mutation deleteEmailPriorityCheckNotifications($client: String!) {
+      delete_notification(where: {notification_client: {_eq: $client}}) { affected_rows } }
+  block:
+    - name: "notification: add a notification for each valid email priority"
+      uri:
+        url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+        method: POST
+        headers:
+          Content-Type: application/json
+          x-hasura-role: admin
+          x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+        body: >-
+          {{ {'query': api_notification_add_mutation, 'variables': {'client': api_notification_client,
+              'channel': 'Email', 'name': item, 'layout': 'SimpleText', 'active': false, 'logging': 'send_only',
+              'emailPriority': item}} }}
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        client_cert: "{{ internalca_client_certificate }}"
+        client_key: "{{ internalca_client_private_key }}"
+        return_content: true
+      loop: "{{ api_notification_valid_priorities }}"
+      register: api_notification_valid_inserts
+      become: true
+      changed_when: false
+      environment: "{{ proxy_env }}"
+      no_log: true
+
+    - name: "notification: add a notification with an unknown email priority"
+      uri:
+        url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+        method: POST
+        headers:
+          Content-Type: application/json
+          x-hasura-role: admin
+          x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+        body: >-
+          {{ {'query': api_notification_add_mutation, 'variables': {'client': api_notification_client,
+              'channel': 'Email', 'name': 'rejected', 'layout': 'SimpleText', 'active': false, 'logging': 'send_only',
+              'emailPriority': api_notification_invalid_priority}} }}
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        client_cert: "{{ internalca_client_certificate }}"
+        client_key: "{{ internalca_client_private_key }}"
+        return_content: true
+      register: api_notification_invalid_insert
+      become: true
+      changed_when: false
+      environment: "{{ proxy_env }}"
+      no_log: true
+
+    - name: "notification: load the notifications of the client"
+      uri:
+        url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+        method: POST
+        headers:
+          Content-Type: application/json
+          x-hasura-role: admin
+          x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+        body: "{{ {'query': api_notification_get_query, 'variables': {'client': api_notification_client}} }}"
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        client_cert: "{{ internalca_client_certificate }}"
+        client_key: "{{ internalca_client_private_key }}"
+        return_content: true
+      register: api_notification_loaded
+      become: true
+      changed_when: false
+      environment: "{{ proxy_env }}"
+      no_log: true
+
+    - name: "notification: valid email priorities persist and load, an unknown one is rejected"
+      assert:
+        that:
+          - api_notification_valid_inserts.results | selectattr('json.errors', 'defined') | list | length == 0
+          - api_notification_invalid_insert.json.errors is defined
+          - api_notification_invalid_insert.content is search('check constraint|notification_email_priority_valid')
+          - api_notification_loaded.json.errors is not defined
+          - >-
+            api_notification_loaded.json.data.notification | map(attribute='email_priority') | list
+            == api_notification_valid_priorities
+        fail_msg: >-
+          the email priority checks failed: {{ api_notification_valid_inserts.results | map(attribute='content') | list }}
+          {{ api_notification_invalid_insert.content | default('') }} {{ api_notification_loaded.content | default('') }}
+
+  always:
+    - name: "notification: remove the notifications of the email priority checks"
+      uri:
+        url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+        method: POST
+        headers:
+          Content-Type: application/json
+          x-hasura-role: admin
+          x-hasura-admin-secret: "{{ api_hasura_admin_secret }}"
+        body: "{{ {'query': api_notification_delete_mutation, 'variables': {'client': api_notification_client}} }}"
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        client_cert: "{{ internalca_client_certificate }}"
+        client_key: "{{ internalca_client_private_key }}"
+        return_content: true
+      register: api_notification_cleanup
+      become: true
+      changed_when: false
+      failed_when: false
+      environment: "{{ proxy_env }}"
+      no_log: true
+
+    - name: "notification: rows of the email priority checks removed"
+      assert:
+        that:
+          - api_notification_cleanup.status | default(0) == 200
+          - api_notification_cleanup.json.errors is not defined
+        fail_msg: "the notifications of the email priority checks could not be removed: {{ api_notification_cleanup.content | default('') }}"

@@ -1,4 +1,5 @@
 using FWO.Api.Client.Queries;
+using FWO.Basics.Enums;
 using FWO.Data;
 using FWO.Ui.Services;
 using NUnit.Framework;
@@ -31,6 +32,8 @@ namespace FWO.Test
                 Assert.That(apiConnection.AddCalls[0].Name, Is.EqualTo(notification.Name));
                 Assert.That(apiConnection.AddCalls[0].BundleId, Is.EqualTo(notification.BundleId));
                 Assert.That(apiConnection.AddCalls[0].Logging, Is.EqualTo(notification.Logging));
+                Assert.That(persistedNotification.EmailPriority, Is.EqualTo(EmailPriority.High));
+                Assert.That(apiConnection.AddCalls[0].EmailPriority, Is.EqualTo(nameof(EmailPriority.High)));
             });
         }
 
@@ -54,7 +57,21 @@ namespace FWO.Test
                 Assert.That(apiConnection.UpdateCalls[0].Subject, Is.EqualTo("Updated Subject"));
                 Assert.That(apiConnection.UpdateCalls[0].Layout, Is.EqualTo(notification.Layout.ToString()));
                 Assert.That(apiConnection.UpdateCalls[0].Logging, Is.EqualTo(notification.Logging));
+                Assert.That(persistedNotification.EmailPriority, Is.EqualTo(EmailPriority.High));
+                Assert.That(apiConnection.UpdateCalls[0].EmailPriority, Is.EqualTo(nameof(EmailPriority.High)));
             });
+        }
+
+        [Test]
+        public async Task AddAsync_SendsNormalForUndefinedPriority()
+        {
+            RecordingNotificationApiConnection apiConnection = new();
+            FwoNotification notification = NewNotification();
+            notification.EmailPriority = (EmailPriority)42;
+
+            await NotificationMutationHelper.AddAsync(apiConnection, NotificationClient.Report, notification);
+
+            Assert.That(apiConnection.AddCalls[0].EmailPriority, Is.EqualTo(nameof(EmailPriority.Normal)));
         }
 
         [Test]
@@ -85,7 +102,8 @@ namespace FWO.Test
                 BundleId = "bundle-1",
                 Layout = NotificationLayout.PdfAsAttachment,
                 Deadline = NotificationDeadline.None,
-                Logging = NotificationLoggingMode.SendOnly
+                Logging = NotificationLoggingMode.SendOnly,
+                EmailPriority = EmailPriority.High
             };
         }
 
@@ -147,6 +165,7 @@ namespace FWO.Test
             internal string Layout { get; init; } = "";
             internal string? BundleId { get; init; }
             internal string Logging { get; init; } = "";
+            internal string EmailPriority { get; init; } = "";
 
             internal static NotificationMutationCall From(object? variables)
             {
@@ -158,7 +177,8 @@ namespace FWO.Test
                     Subject = ReadString(variables, "subject"),
                     Layout = ReadString(variables, "layout"),
                     BundleId = ReadNullableString(variables, "bundleId"),
-                    Logging = ReadString(variables, "logging")
+                    Logging = ReadString(variables, "logging"),
+                    EmailPriority = ReadString(variables, "emailPriority")
                 };
             }
 

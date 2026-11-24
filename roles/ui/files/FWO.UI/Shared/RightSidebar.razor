@@ -527,46 +527,51 @@
             queryVars[QueryVar.ImportIdEnd] = importRange.End;
         }
 
-        async Task<bool> FetchReportObjects()
-        {
-            return await CurrentReport!.GetObjectsForManagementInReport(
-                queryVars, objType,
-                userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar,
-                apiConnection,
-                async managementsUpdate =>
+        bool gotAllObjects = await FetchWithRoleForReport(() => CurrentReport!.GetObjectsForManagementInReport(
+            queryVars, objType,
+            userConfig.AutoFillRightSidebar ? int.MaxValue : userConfig.MaxInitialFetchesRightSidebar,
+            apiConnection,
+            async managementsUpdate =>
+            {
+                ManagementReport? mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
+                if (mgtUpdated != null)
                 {
-                    var mgtUpdated = managementsUpdate.ManagementData.FirstOrDefault(m => m.Id == id);
-                    if (mgtUpdated != null)
-                    {
-                        if (objType == ObjCategory.all || objType == ObjCategory.nobj)
-                            mgtReport.ReportObjects = mgtUpdated.ReportObjects;
-
-                        if (objType == ObjCategory.all || objType == ObjCategory.nsrv)
-                            mgtReport.ReportServices = mgtUpdated.ReportServices;
-
-                        if (objType == ObjCategory.all || objType == ObjCategory.user)
-                            mgtReport.ReportUsers = mgtUpdated.ReportUsers;
-                    }
-                    await hasChangedCallback();
-                });
-        }
-
-        bool gotAllObjects;
-        if (authenticationStateTask == null || CurrentReport is not ReportAppRules)
-        {
-            gotAllObjects = await FetchReportObjects();
-        }
-        else
-        {
-            // for ReportAppRules we need to make sure we use the correct role (esp. modeller instead of reporter)
-            AuthenticationState authenticationState = await authenticationStateTask;
-            gotAllObjects = await apiConnection.RunWithBestRoleForReport(authenticationState.User,
-                CurrentReport!.ReportType, FetchReportObjects, userConfig.GetExplicitlyDeniedRoles(CurrentReport!.ReportType));
-        }
+                    TakeOverReportObjects(mgtReport, mgtUpdated, objType);
+                }
+                await hasChangedCallback();
+            }));
 
         if (!gotAllObjects)
         {
             DisplayMessageInUi(null, userConfig.GetText("object_fetch_warning"), userConfig.GetText("E0021"), true);
+        }
+    }
+
+    private async Task<bool> FetchWithRoleForReport(Func<Task<bool>> fetchReportObjects)
+    {
+        if (authenticationStateTask == null || CurrentReport is not ReportAppRules)
+        {
+            return await fetchReportObjects();
+        }
+        // for ReportAppRules we need to make sure we use the correct role (esp. modeller instead of reporter)
+        AuthenticationState authenticationState = await authenticationStateTask;
+        return await apiConnection.RunWithBestRoleForReport(authenticationState.User,
+            CurrentReport.ReportType, fetchReportObjects, userConfig.GetExplicitlyDeniedRoles(CurrentReport.ReportType));
+    }
+
+    private static void TakeOverReportObjects(ManagementReport mgtReport, ManagementReport mgtUpdated, ObjCategory objType)
+    {
+        if (objType is ObjCategory.all or ObjCategory.nobj)
+        {
+            mgtReport.ReportObjects = mgtUpdated.ReportObjects;
+        }
+        if (objType is ObjCategory.all or ObjCategory.nsrv)
+        {
+            mgtReport.ReportServices = mgtUpdated.ReportServices;
+        }
+        if (objType is ObjCategory.all or ObjCategory.user)
+        {
+            mgtReport.ReportUsers = mgtUpdated.ReportUsers;
         }
     }
 

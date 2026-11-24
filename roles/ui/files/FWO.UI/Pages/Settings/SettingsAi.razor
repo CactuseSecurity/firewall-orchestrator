@@ -121,7 +121,7 @@
         </div>
         <label for="@($"dropdown-input-{kChatRolesDropdownId}")" class="col-sm-1 col-form-label col-form-label-sm"
                data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">@(userConfig.GetText("roles")):</label>
-        <div class="col-sm-6" data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">
+        <fieldset class="col-sm-6" disabled="@(!aiSettings.ChatEnabled)" data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">
             @if (rolesLoaded)
             {
                 <Dropdown Id="@kChatRolesDropdownId" ElementType="string" Elements="offeredRoles"
@@ -132,7 +132,7 @@
                     </ElementTemplate>
                 </Dropdown>
             }
-        </div>
+        </fieldset>
     </div>
     <div class="form-group row mt-2">
         <label for="aiReasonCheck" class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5386"))">@(userConfig.GetText("ai_reason_check")):</label>
@@ -141,7 +141,7 @@
         </div>
         <label for="@($"dropdown-input-{kReasonCheckRolesDropdownId}")" class="col-sm-1 col-form-label col-form-label-sm"
                data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">@(userConfig.GetText("roles")):</label>
-        <div class="col-sm-6" data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">
+        <fieldset class="col-sm-6" disabled="@(!aiSettings.ReasonCheckEnabled)" data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">
             @if (rolesLoaded)
             {
                 <Dropdown Id="@kReasonCheckRolesDropdownId" ElementType="string" Elements="offeredRoles"
@@ -152,7 +152,7 @@
                     </ElementTemplate>
                 </Dropdown>
             }
-        </div>
+        </fieldset>
     </div>
     <hr />
     <h5>@(userConfig.GetText("ai_agent_loop"))</h5>

@@ -469,6 +469,63 @@ internal class UiSettingsAiTest
     }
 
     /// <summary>
+    /// Verifies that each role filter is disabled exactly when its AI function is switched off.
+    /// </summary>
+    [TestCase(false, false)]
+    [TestCase(true, false)]
+    [TestCase(false, true)]
+    [TestCase(true, true)]
+    public async Task SettingsAi_DisablesRoleFiltersOfInactiveFunctions(bool chatEnabled, bool reasonCheckEnabled)
+    {
+        SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+        globalConfig.AiChatEnabled = chatEnabled;
+        globalConfig.AiReasonCheckEnabled = reasonCheckEnabled;
+        await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), globalConfig);
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+        wrapper.WaitForAssertion(() =>
+        {
+            Assert.That(wrapper.Find(kChatRolesInputSelector).Matches(":disabled"), Is.EqualTo(!chatEnabled));
+            Assert.That(wrapper.Find(kReasonCheckRolesInputSelector).Matches(":disabled"), Is.EqualTo(!reasonCheckEnabled));
+            Assert.That(wrapper.Find(kCredentialInputSelector).Matches(":disabled"), Is.False);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that toggling a function updates only its own role filter and preserves the stored selections.
+    /// </summary>
+    [TestCase("#aiChat", kChatRolesInputSelector, kReasonCheckRolesInputSelector)]
+    [TestCase("#aiReasonCheck", kReasonCheckRolesInputSelector, kChatRolesInputSelector)]
+    public async Task SettingsAi_TogglingFunctionPreservesRoles(string checkboxSelector, string rolesSelector, string otherRolesSelector)
+    {
+        SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+        globalConfig.AiChatEnabled = false;
+        globalConfig.AiReasonCheckEnabled = false;
+        globalConfig.AiChatRoles = AiFunctionRoles.Serialize(kModellerRoles);
+        globalConfig.AiReasonCheckRoles = AiFunctionRoles.Serialize(kModellerRoles);
+        await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), globalConfig);
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+        wrapper.WaitForState(() => wrapper.FindAll(rolesSelector).Count == 1);
+
+        wrapper.Find(checkboxSelector).Change(true);
+        Assert.Multiple(() =>
+        {
+            Assert.That(wrapper.Find(rolesSelector).Matches(":disabled"), Is.False);
+            Assert.That(wrapper.Find(otherRolesSelector).Matches(":disabled"), Is.True);
+        });
+
+        wrapper.Find(checkboxSelector).Change(false);
+        Assert.Multiple(() =>
+        {
+            Assert.That(wrapper.Find(rolesSelector).Matches(":disabled"), Is.True);
+            Assert.That(wrapper.Find(otherRolesSelector).Matches(":disabled"), Is.True);
+            Assert.That(GetAiSettings(wrapper).ChatRoles, Is.EqualTo(kModellerRoles));
+            Assert.That(GetAiSettings(wrapper).ReasonCheckRoles, Is.EqualTo(kModellerRoles));
+            Assert.That(GetInputText(wrapper, rolesSelector), Is.EqualTo(Roles.Modeller));
+        });
+    }
+
+    /// <summary>
     /// Verifies that the page shows the stored roles of each AI function in its dropdown, and "all" for a function
     /// without roles.
     /// </summary>
@@ -702,6 +759,7 @@ internal class UiSettingsAiTest
     private static async Task OpenChatRolesDropdown(IRenderedComponent<CascadingAuthenticationState> wrapper)
     {
         wrapper.WaitForState(() => wrapper.FindAll(kChatRolesInputSelector).Count == 1);
+        wrapper.Find("#aiChat").Change(true);
         await wrapper.InvokeAsync(() => wrapper.Find(kChatRolesInputSelector).Focus());
         wrapper.WaitForState(() => wrapper.FindAll(kChatRoleChoiceSelector).Count + wrapper.FindAll(kSelectedChatRoleSelector).Count > 0);
     }

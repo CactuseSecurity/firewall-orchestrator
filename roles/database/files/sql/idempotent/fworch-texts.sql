@@ -7591,8 +7591,10 @@ INSERT INTO txt VALUES ('H5386', 'German',  'KI-Pr&uuml;fung der Begr&uuml;ndung
 INSERT INTO txt VALUES ('H5386', 'English', 'AI check of reason: shows a button in the edit dialog of connections and interfaces in the modelling, with which the functional reason or interface
     description can be assessed by an AI. The reason and the elements of the connection are sent to the configured AI provider.');
 INSERT INTO txt VALUES ('H5387', 'German',  'Rollen: Beschr&auml;nkt die Funktion auf Nutzer mit mindestens einer der gew&auml;hlten Rollen. Ohne Auswahl (&quot;Alle&quot;) steht sie allen Nutzern zur Verf&uuml;gung, solange sie eingeschaltet ist.
+    Die Rollenauswahl ist nur bei eingeschalteter Funktion aktiv. Beim Ausschalten bleibt die Auswahl erhalten.
     Angeboten werden die Rollen des internen LDAP. Der KI-Server pr&uuml;ft die Rollen im Anmeldetoken des Nutzers; eine ge&auml;nderte Rollenzuordnung wirkt sich daher erst mit dem n&auml;chsten Token des Nutzers aus.');
 INSERT INTO txt VALUES ('H5387', 'English', 'Roles: restricts the function to users holding at least one of the selected roles. Without a selection (&quot;All&quot;) it is available to all users while it is switched on.
+    The role selection is only active while the function is switched on. Switching it off preserves the selection.
     The roles of the internal LDAP are offered. The AI server checks the roles in the login token of the user, so a changed role assignment only takes effect with the next token of the user.');
 INSERT INTO txt VALUES ('H5388', 'German',  'Zus&auml;tzliche HTTP-Header: Header, die der KI-Server bei jeder Anfrage an den Anbieter mitsendet, z.B. den Profilnamen, den ein API-Gateway vor dem Modell erwartet
     (Name ki-services-profile-name, Wert mein-profil); nicht an die Token-URL. Zeilen ohne Name und Wert werden nicht gespeichert, h&ouml;chstens 20 Header.

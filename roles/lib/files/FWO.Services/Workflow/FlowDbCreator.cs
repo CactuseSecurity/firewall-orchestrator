@@ -17,7 +17,6 @@ namespace FWO.Services.Workflow
         private readonly string timeObjectPrecision;
         private readonly string timeObjectOriginSuffixes;
         private readonly bool timeObjectEndOnly;
-        private const string kTimeObjectEndRequiredTextKey = "flow_creation_time_object_end_required";
 
         private readonly List<FlowCreationRefusal> refusals = [];
 

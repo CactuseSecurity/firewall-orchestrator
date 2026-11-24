@@ -47,5 +47,83 @@ namespace FWO.Test
             Assert.That(parsed.SelectTimeObjects, Is.EqualTo(FlowIntegrationObjectSelectionOptions.Both));
             Assert.That(parsed.TimeObjectPrecision, Is.EqualTo(FlowIntegrationTimePrecisionOptions.Minutes));
         }
+
+        [Test]
+        public void Parse_DefaultsToStartAndEnd_WhenTimeObjectBoundsAreMissing()
+        {
+            FlowIntegrationConfig config = FlowIntegrationConfig.Parse("{\"select_objects\":\"Both\",\"select_services\":\"Both\",\"select_time_objects\":\"Both\",\"time_object_precision\":\"date\"}");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(config.TimeObjectBounds, Is.EqualTo(FlowIntegrationTimeObjectBoundsOptions.StartAndEnd));
+                Assert.That(config.IsEndOnly, Is.False);
+                Assert.That(config.TimeObjectPrecision, Is.EqualTo(FlowIntegrationTimePrecisionOptions.Date));
+            });
+        }
+
+        [Test]
+        public void Parse_FallsBackToStartAndEnd_WhenTimeObjectBoundsAreUnsupported()
+        {
+            FlowIntegrationConfig config = FlowIntegrationConfig.Parse("{\"time_object_bounds\":\"start_only\"}");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(config.TimeObjectBounds, Is.EqualTo(FlowIntegrationTimeObjectBoundsOptions.StartAndEnd));
+                Assert.That(config.IsEndOnly, Is.False);
+            });
+        }
+
+        [Test]
+        public void Parse_ReadsEndOnlyTimeObjectBounds()
+        {
+            FlowIntegrationConfig config = FlowIntegrationConfig.Parse("{\"time_object_bounds\":\"end_only\"}");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(config.TimeObjectBounds, Is.EqualTo(FlowIntegrationTimeObjectBoundsOptions.EndOnly));
+                Assert.That(config.IsEndOnly, Is.True);
+            });
+        }
+
+        [Test]
+        public void ToConfigValue_RoundTripsEndOnlyWithoutSerializingDerivedFlag()
+        {
+            FlowIntegrationConfig config = new() { TimeObjectBounds = FlowIntegrationTimeObjectBoundsOptions.EndOnly };
+
+            string serialized = config.ToConfigValue();
+            FlowIntegrationConfig parsed = FlowIntegrationConfig.Parse(serialized);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(serialized, Does.Contain("\"time_object_bounds\":\"end_only\""));
+                Assert.That(serialized, Does.Not.Contain(nameof(FlowIntegrationConfig.IsEndOnly)));
+                Assert.That(parsed.IsEndOnly, Is.True);
+            });
+        }
+
+        [Test]
+        public void ToConfigValue_NormalizesUnsupportedTimeObjectBounds()
+        {
+            FlowIntegrationConfig config = new() { TimeObjectBounds = "unsupported" };
+
+            config.ToConfigValue();
+
+            Assert.That(config.TimeObjectBounds, Is.EqualTo(FlowIntegrationTimeObjectBoundsOptions.StartAndEnd));
+        }
+
+        [Test]
+        public void GetEffectiveStartTime_DropsStartOnlyWhenEndOnly()
+        {
+            DateTime requestedStart = new(2026, 6, 8, 8, 0, 0, DateTimeKind.Utc);
+            FlowIntegrationConfig startAndEnd = new();
+            FlowIntegrationConfig endOnly = new() { TimeObjectBounds = FlowIntegrationTimeObjectBoundsOptions.EndOnly };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(startAndEnd.GetEffectiveStartTime(requestedStart), Is.EqualTo(requestedStart));
+                Assert.That(startAndEnd.GetEffectiveStartTime(null), Is.Null);
+                Assert.That(endOnly.GetEffectiveStartTime(requestedStart), Is.Null);
+            });
+        }
     }
 }

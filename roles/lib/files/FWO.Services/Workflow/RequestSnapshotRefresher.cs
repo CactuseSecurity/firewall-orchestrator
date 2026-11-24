@@ -136,7 +136,7 @@ public static class RequestSnapshotRefresher
     }
 
     private static WfReqElement? CreateReplacement(WfReqElement target,
-        IReadOnlyDictionary<long, WfReqTask> tasksById)
+        Dictionary<long, WfReqTask> tasksById)
     {
         long objectTaskId = target.ObjectTaskId.GetValueOrDefault();
         if (!tasksById.TryGetValue(objectTaskId, out WfReqTask? referencedTask))

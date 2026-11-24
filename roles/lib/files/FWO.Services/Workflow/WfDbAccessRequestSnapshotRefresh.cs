@@ -52,7 +52,7 @@ public partial class WfDbAccess
     /// Describes every planned element in a failed batch proof so the workflow error log identifies partial success.
     /// </summary>
     private static InvalidOperationException InvalidSnapshotRefreshResult(RequestSnapshotRefreshPlan plan,
-        IReadOnlyList<ReturnId?>? results)
+        List<ReturnId?>? results)
     {
         if (results == null)
         {

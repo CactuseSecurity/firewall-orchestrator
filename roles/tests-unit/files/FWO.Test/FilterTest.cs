@@ -17,6 +17,8 @@ namespace FWO.Test
     [Parallelizable]
     public partial class FilterTest
     {
+        private static readonly int[] kExpectedSelectedOwnerIds = [1];
+
         [Test]
         public void RulebaseManagementListQueryHasNoUnusedParameters()
         {
@@ -820,7 +822,7 @@ namespace FWO.Test
             StringAssert.Contains("changelog_owners(where: {change_action: {_eq: \"I\"}}", query.FullQuery);
             StringAssert.Contains("order_by: {import_control: {stop_time: asc_nulls_last}, log_owner_id: asc}", query.FullQuery);
             StringAssert.Contains("time: stop_time", query.FullQuery);
-            Assert.That(query.QueryVariables["selectedOwners"], Is.EqualTo(new[] { 1 }));
+            Assert.That(query.QueryVariables["selectedOwners"], Is.EqualTo(kExpectedSelectedOwnerIds));
             Assert.That(query.QueryVariables.ContainsKey("refDate"), Is.True);
         }
 
@@ -1179,6 +1181,55 @@ namespace FWO.Test
             DynGraphqlQuery query = Compiler.Compile(template);
 
             string expected = new DateTime(DateTime.Now.Year, 1, 1, 0, 0, 0, DateTimeKind.Unspecified).ToString(DynGraphqlQuery.fullTimeFormat);
+            Assert.That(query.QueryVariables["lastHitLimit0"], Is.EqualTo(expected));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void RulesReport_LastHitEqualsLastYearUsesStartOfPreviousYear()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "lasthit=\"last year\""
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            string expected = new DateTime(DateTime.Now.Year - 1, 1, 1, 0, 0, 0, DateTimeKind.Local).ToString(DynGraphqlQuery.fullTimeFormat);
+            Assert.That(query.QueryVariables["lastHitLimit0"], Is.EqualTo(expected));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void RulesReport_LastHitEqualsThisMonthUsesStartOfCurrentMonth()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "lasthit=\"this month\""
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            string expected = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1, 0, 0, 0, DateTimeKind.Local).ToString(DynGraphqlQuery.fullTimeFormat);
+            Assert.That(query.QueryVariables["lastHitLimit0"], Is.EqualTo(expected));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void RulesReport_LastHitEqualsLastMonthUsesStartOfPreviousMonth()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "lasthit=\"last month\""
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            // AddMonths also covers January, where the month before is in the previous year
+            string expected = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1, 0, 0, 0, DateTimeKind.Local).AddMonths(-1).ToString(DynGraphqlQuery.fullTimeFormat);
             Assert.That(query.QueryVariables["lastHitLimit0"], Is.EqualTo(expected));
         }
 

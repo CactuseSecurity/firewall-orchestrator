@@ -6,23 +6,29 @@
 @inject UserConfig userConfig
 
 <div class="form-group row">
-    @ReadOnlyValue(userConfig.GetText("handler"), Handler)
-    @ReadOnlyValue(userConfig.GetText("assigned"), Assigned)
+    @if (ShowHandler)
+    {
+        @ReadOnlyValue(userConfig.GetText("handler"), Handler)
+    }
+    @if (ShowAssigned)
+    {
+        @ReadOnlyValue(userConfig.GetText("assigned"), Assigned)
+    }
     @if (ShowManagement)
     {
         @ReadOnlyValue(userConfig.GetText("management"), Management)
     }
     @if (ShowReason)
     {
-        @EditableValue(userConfig.GetText("reason"), Reason, CanEditReason, EditReason)
+        @EditableValue(userConfig.GetText("reason"), Reason, CanEditReason, EditReason, ReasonColumnClass)
     }
 </div>
 <div class="form-group row">
-    @EditableValue(userConfig.GetText(IsServiceGroup ? "service_group" : "network_group"), GroupName, CanEditName, EditName, "col-xl-6 col-lg-6 mb-2")
+    @EditableValue(userConfig.GetText(IsServiceGroup ? "service_group" : "network_group"), GroupName, CanEditName, EditName, ApprovalTaskFieldLayout.DoubleColumnClass)
 </div>
 <div class="form-group row">
     <div class="col-12 d-flex align-items-start">
-        <label class="col-form-label col-form-label-sm mr-2 mb-2 text-nowrap" style="min-width: 10rem;">@(userConfig.GetText("members")):</label>
+        <label class="col-form-label col-form-label-sm mr-2 mb-2 text-nowrap approval-task-field-label">@(userConfig.GetText("members")):</label>
         @if (CanEditMembers)
         {
             <button type="button" class="btn btn-sm btn-secondary mr-2" @onclick="EditMembers">
@@ -52,7 +58,9 @@
     [CascadingParameter] public ApprovalTaskViewContext Context { get; set; } = null!;
 
     private ApprovalTaskDisplayLogic DisplayLogic => Context.DisplayLogic;
-    private AccessTaskFieldVisibilityConfig Visibility => Context.Visibility;
+    private ObjectTaskFieldVisibilityConfig Visibility => Context.ObjectVisibility;
+    private bool ShowHandler => Visibility.ShowHandler;
+    private bool ShowAssigned => Visibility.ShowAssigned;
     private string Handler => DisplayLogic.Handlers(TaskGroup);
     private string Assigned => DisplayLogic.AssignedGroups(TaskGroup);
     private string Management => DisplayLogic.ManagementIds(TaskGroup);
@@ -66,6 +74,9 @@
     private IEnumerable<NwServiceElement> ServiceMembers => Task.GetServiceElements();
     private bool ShowManagement => Visibility.ShowManagement;
     private bool ShowReason => Visibility.ShowReason;
+    /// <summary>The reason takes the columns of hidden handler, assigned or management fields, up to double width.</summary>
+    private string ReasonColumnClass => ApprovalTaskFieldLayout.ColumnClass(
+        ApprovalTaskFieldLayout.ExtendableWidths((ShowHandler ? 1 : 0) + (ShowAssigned ? 1 : 0) + (ShowManagement ? 1 : 0), 1)[0]);
     private bool CanEditReason => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Reason);
     private bool CanEditName => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.Name);
     private bool CanEditMembers => Context.CanEdit(TaskGroup, WorkflowEditableFieldKeys.GroupMembers);
@@ -134,8 +145,7 @@
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", "col-xl-3 col-lg-6 mb-2 d-flex align-items-start");
         builder.OpenElement(2, "label");
-        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
-        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap approval-task-field-label");
         builder.AddContent(5, label + ":");
         builder.CloseElement();
         builder.OpenElement(6, "span");
@@ -150,8 +160,7 @@
         builder.OpenElement(0, "div");
         builder.AddAttribute(1, "class", $"{cssClass} d-flex align-items-start flex-nowrap");
         builder.OpenElement(2, "label");
-        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap");
-        builder.AddAttribute(4, "style", "min-width: 10rem;");
+        builder.AddAttribute(3, "class", "col-form-label col-form-label-sm mr-2 mb-0 text-nowrap approval-task-field-label");
         builder.AddContent(5, label + ":");
         builder.CloseElement();
         if (canEdit)

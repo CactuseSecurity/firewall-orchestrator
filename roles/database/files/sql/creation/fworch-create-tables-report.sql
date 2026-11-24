@@ -53,8 +53,8 @@ Create table "report_schedule"
 	"report_template_id" Integer, --FK
 	"report_schedule_owner" Integer NOT NULL, --FK
 	"report_schedule_start_time" Timestamp NOT NULL,  -- if day is bigger than 28, simply use the 1st of the next month, 00:00 am
-	"report_schedule_repeat" Integer Not NULL Default 0, -- 0 do not repeat, 1 daily, 2 weekly, 3 monthly, 4 yearly 
-	"report_schedule_every" Integer Not NULL Default 1, -- x - every x days/weeks/months/years
+	"report_schedule_repeat" Integer Not NULL Default 1, -- x - every x days/weeks/months/years, at least 1 unless the schedule is not repeated
+	"report_schedule_every" Integer Not NULL Default 1, -- interval (SchedulerInterval): 0 do not repeat, 2 days, 3 weeks, 4 months, 5 years
 	"report_schedule_active" Boolean Default TRUE,
 	"report_schedule_repetitions" Integer,
 	"report_schedule_counter" Integer Not NULL Default 0,

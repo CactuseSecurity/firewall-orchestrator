@@ -411,12 +411,12 @@ namespace FWO.Test
 
     internal sealed class MonitorTestApiConn : SimulatedApiConnection
     {
-        public List<LogEntry> LogEntries { get; } = new();
-        public List<NotificationLogEntry> NotificationLogEntries { get; } = new();
-        public List<Alert> Alerts { get; } = new();
-        public List<UiUser> UiUsers { get; } = new();
-        public List<Management> Managements { get; } = new();
-        public List<string> LastQueries { get; } = new();
+        public List<LogEntry> LogEntries { get; } = [];
+        public List<NotificationLogEntry> NotificationLogEntries { get; } = [];
+        public List<Alert> Alerts { get; } = [];
+        public List<UiUser> UiUsers { get; } = [];
+        public List<Management> Managements { get; } = [];
+        public List<string> LastQueries { get; } = [];
 
         public int LogQueryCount { get; private set; }
         public int NotificationLogQueryCount { get; private set; }

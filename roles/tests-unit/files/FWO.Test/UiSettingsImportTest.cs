@@ -72,7 +72,7 @@ namespace FWO.Test
             SetField(component, "ChangeIdKeysToAdd", new List<string> { "ChangeId" });
             SetField(component, "ChangeIdKeysToDelete", new List<string> { "obsolete" });
 
-            InvokeCommitChangeIdKeys(component, new List<string> { "field-2", "ChangeId" });
+            InvokeCommitChangeIdKeys(component, ["field-2", "ChangeId"]);
 
             Assert.That(GetField<List<string>>(component, "ChangeIdKeys"), Is.EqualTo(new List<string> { "field-2", "ChangeId" }));
             Assert.That(GetField<List<string>>(component, "ChangeIdKeysToAdd"), Is.Empty);

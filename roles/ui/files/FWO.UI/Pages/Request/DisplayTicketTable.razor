@@ -28,6 +28,14 @@
             </Template>
         </Column>
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
+        @if (PreWorkflowTicketReferenceDisplay.IsActive(userConfig.ReqPreWorkflowTicketReferenceLabel))
+        {
+            <Column TableItem="WfTicket" Title="@userConfig.ReqPreWorkflowTicketReferenceLabel" Field="@(x => x.PreWorkflowTicketReference)" Sortable="true" Filterable="true">
+                <Template>
+                    @(PreWorkflowTicketReferenceDisplay.DisplayValue(context.PreWorkflowTicketReference))
+                </Template>
+            </Column>
+        }
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("title"))" Field="@(x => x.Title)" Sortable="true" Filterable="true" />
         <Column TableItem="WfTicket" Title="@(userConfig.GetText("tasks"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" >
             <Template>
@@ -224,7 +232,7 @@
     }
 
     private bool UseTaskDetailsView => (Phase == WorkflowPhases.approval
-        && userConfig.ReqApprovalEditMode == ApprovalEditMode.AccessTaskView)
+        && userConfig.ReqApprovalEditMode != ApprovalEditMode.Classic)
         || (Phase == WorkflowPhases.planning
         && userConfig.ReqPlannerEditMode == PlannerEditMode.PlanningView);
 

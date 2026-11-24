@@ -77,37 +77,37 @@ namespace FWO.Test
         /// and they appear in a boolean expression only, never inside the comparison of a single column,
         /// which is what tells a relationship apart from a column.
         /// </summary>
-        private static readonly List<string> kLogicalOperators = new() { "_and", "_or", "_not" };
+        private static readonly List<string> kLogicalOperators = ["_and", "_or", "_not"];
 
         /// <summary>
         /// Suffixes Hasura appends to the name of a table for a root field addressing it in another way.
         /// They are cut off to arrive at the table the root field belongs to.
         /// </summary>
         private static readonly List<string> kRootFieldSuffixes =
-            new() { "_many", "_one", "_aggregate", "_stream" };
+            ["_many", "_one", "_aggregate", "_stream"];
 
         /// <summary>
         /// The kinds of relationship a table declares, which are read the same way.
         /// </summary>
         private static readonly List<string> kRelationshipKinds =
-            new() { "object_relationships", "array_relationships" };
+            ["object_relationships", "array_relationships"];
 
         /// <summary>
         /// Fields of a mutation response which are no columns of the table.
         /// </summary>
-        private static readonly List<string> kResponseMetaFields = new() { kAffectedRowsField, kTypeNameField };
+        private static readonly List<string> kResponseMetaFields = [kAffectedRowsField, kTypeNameField];
 
         /// <summary>
         /// Marks a role which may select every column of a table, which Hasura writes as "*" instead of
         /// listing the columns. Compared by reference, so it cannot collide with a real column set.
         /// </summary>
-        private static readonly HashSet<string> kAllColumns = new() { kAllColumnsMarker };
+        private static readonly HashSet<string> kAllColumns = [kAllColumnsMarker];
 
         /// <summary>
         /// Root field names two tables of kMetadataWithDistinctTableRoots reach, where the table of a
         /// schema other than public carries its schema and the one of public does not.
         /// </summary>
-        private static readonly List<string> kDistinctTableRoots = new() { "alert", "modelling_connection" };
+        private static readonly List<string> kDistinctTableRoots = ["alert", "modelling_connection"];
 
         /// <summary>
         /// A metadata document tracking two tables which reach two root field names, as the tracked tables
@@ -147,8 +147,8 @@ namespace FWO.Test
         /// unrelated call. ApiCalls_KnownPermissionGapsStillExist removes the risk of an entry outliving
         /// the mismatch it accepts.
         /// </summary>
-        private static readonly List<string> kKnownPermissionGaps = new()
-        {
+        private static readonly List<string> kKnownPermissionGaps =
+        [
             // The importer role holds insert permission on recertification but none of the three calls is
             // issued by the importer: FWO.Recert sends them under the role of the logged in user
             // (RecertRefresh.cs, RecertHandler.cs). Granting the importer select on recertification would
@@ -170,7 +170,7 @@ namespace FWO.Test
             // and its EditOwner.razor fails to load the rules of an owner. Which role should read the view
             // is a decision for the owner of the ownership workflow. Tracked as issue #5210.
             "v_rule_with_rule_owner_1|<any role>|owner_id"
-        };
+        ];
 
         /// <summary>
         /// Every column an API call filters a delete or update on has to be selectable by the roles which
@@ -206,9 +206,9 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(notificationLog.RolesByOperation["insert"],
-                    Is.EquivalentTo(new List<string> { "middleware-server" }));
+                    Is.EquivalentTo(["middleware-server"]));
                 Assert.That(notificationLog.RolesByOperation["update"],
-                    Is.EquivalentTo(new List<string> { "middleware-server" }));
+                    Is.EquivalentTo(["middleware-server"]));
                 Assert.That(notificationLog.RolesByOperation["insert"], Does.Not.Contain("modeller"));
                 Assert.That(notificationLog.RolesByOperation["update"], Does.Not.Contain("modeller"));
             });
@@ -274,10 +274,10 @@ namespace FWO.Test
         {
             SkipWithoutSources();
 
-            HashSet<string> existingGaps = new(CollectGaps(FindFilterGaps, false)
+            HashSet<string> existingGaps = [.. CollectGaps(FindFilterGaps, false)
                 .Concat(CollectGaps(FindReturnGaps, false))
                 .Concat(CollectGaps(FindUnrunnableQueryGaps, false))
-                .Select(gap => gap.Gap));
+                .Select(gap => gap.Gap)];
             List<string> repairedGaps = kKnownPermissionGaps.Where(gap => !existingGaps.Contains(gap)).ToList();
 
             Assert.That(repairedGaps, Is.Empty,
@@ -332,7 +332,7 @@ namespace FWO.Test
             ReportUncheckableCalls();
 
             Dictionary<string, TableMetadata> tables = ReadMetadata();
-            List<ReportedGap> gaps = new();
+            List<ReportedGap> gaps = [];
             foreach (ApiOperation operation in kApiCallSurvey.Value.Operations)
             {
                 if (tables.TryGetValue(operation.TableRoot, out TableMetadata? table))
@@ -415,7 +415,7 @@ namespace FWO.Test
         {
             if (!table.RolesByOperation.TryGetValue(operation.Operation, out List<string>? roles))
             {
-                return new List<string>();
+                return [];
             }
             return roles.Where(role => table.MayWrite(operation, role));
         }
@@ -463,7 +463,7 @@ namespace FWO.Test
         private static Dictionary<string, TableMetadata> ReadMetadata(string metadataJson)
         {
             using JsonDocument metadata = JsonDocument.Parse(metadataJson);
-            Dictionary<string, TableMetadata> tables = new();
+            Dictionary<string, TableMetadata> tables = [];
 
             foreach (JsonElement source in metadata.RootElement.GetProperty("args")
                 .GetProperty("metadata").GetProperty("sources").EnumerateArray())
@@ -554,7 +554,7 @@ namespace FWO.Test
         {
             if (!rolesByOperation.TryGetValue(operation, out List<string>? roles))
             {
-                roles = new();
+                roles = [];
                 rolesByOperation.Add(operation, roles);
             }
             roles.Add(role);
@@ -568,14 +568,14 @@ namespace FWO.Test
         {
             if (!permissionEntry.GetProperty("permission").TryGetProperty("columns", out JsonElement declared))
             {
-                return new();
+                return [];
             }
             if (declared.ValueKind == JsonValueKind.String)
             {
-                return declared.GetString() == kAllColumnsMarker ? kAllColumns : new();
+                return declared.GetString() == kAllColumnsMarker ? kAllColumns : [];
             }
 
-            HashSet<string> columns = new();
+            HashSet<string> columns = [];
             if (declared.ValueKind == JsonValueKind.Array)
             {
                 foreach (JsonElement column in declared.EnumerateArray())
@@ -617,8 +617,8 @@ namespace FWO.Test
         /// </summary>
         private sealed class ApiCallSurvey
         {
-            public List<ApiOperation> Operations { get; } = new();
-            public List<string> Uncheckable { get; } = new();
+            public List<ApiOperation> Operations { get; } = [];
+            public List<string> Uncheckable { get; } = [];
         }
 
         /// <summary>
@@ -627,10 +627,10 @@ namespace FWO.Test
         /// </summary>
         private sealed class TableMetadata
         {
-            public Dictionary<string, List<string>> RolesByOperation { get; } = new();
-            public Dictionary<string, HashSet<string>> SelectableColumns { get; } = new();
-            public Dictionary<(string Operation, string Role), HashSet<string>> WritableColumns { get; } = new();
-            public HashSet<string> Relationships { get; } = new();
+            public Dictionary<string, List<string>> RolesByOperation { get; } = [];
+            public Dictionary<string, HashSet<string>> SelectableColumns { get; } = [];
+            public Dictionary<(string Operation, string Role), HashSet<string>> WritableColumns { get; } = [];
+            public HashSet<string> Relationships { get; } = [];
 
             /// <summary>
             /// Whether a role may select a column, which a relationship never is.

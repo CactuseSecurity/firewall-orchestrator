@@ -6,12 +6,11 @@ using System.Security.Cryptography;
 
 namespace FWO.Config.File
 {
-    public class KeyImporter
+    public static class KeyImporter
     {
         public static RsaSecurityKey? ExtractKeyFromPem(string rawKey, bool isPrivateKey)
         {
             (string keyText, bool isRsaKey) = ExtractKeyFromPemAsString(rawKey);
-            RsaSecurityKey? rsaKey = null;
 
             try
             {
@@ -41,7 +40,7 @@ namespace FWO.Config.File
                     }
                 }
 
-                rsaKey = new RsaSecurityKey(provider);
+                return new RsaSecurityKey(provider);
             }
             catch (Exception exception)
             {
@@ -50,21 +49,19 @@ namespace FWO.Config.File
                 Log.WriteError("Extract Key", $"unexpected error while trying to extract rsa {keyKind} key from PEM formatted key.", exception);
                 throw;
             }
-
-            return rsaKey;
         }
 
         private static (string key, bool isRsa) ExtractKeyFromPemAsString(string rawKey)
         {
-            bool isRsaKey = true;
-            string keyText = "";
+            bool isRsaKey;
+            string keyText;
 
             rawKey = rawKey.Trim(); // remove trailing and leading empty lines
 
             try
             {
                 // removing armor of PEM file (first and last line)
-                List<string> lines = new List<string>(rawKey.Split('\n'));
+                List<string> lines = [.. rawKey.Split('\n')];
                 isRsaKey = lines[0].Contains("RSA");
                 keyText = string.Join("", lines.GetRange(1, lines.Count - 2).ToArray());
             }

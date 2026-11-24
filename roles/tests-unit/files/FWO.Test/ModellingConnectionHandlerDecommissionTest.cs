@@ -61,18 +61,18 @@ namespace FWO.Test
                 EmailSubject = $"Subject {Placeholder.INTERFACE_NAME}",
                 EmailBody = $"Body {Placeholder.INTERFACE_NAME} {Placeholder.NEW_INTERFACE_NAME} {Placeholder.NEW_INTERFACE_LINK} {Placeholder.REASON} {Placeholder.USER_NAME}"
             };
-            apiConnection.Notifications = new List<FwoNotification> { notification };
+            apiConnection.Notifications = [notification];
 
-            List<ModellingConnection> interfaceUsers = new()
-            {
+            List<ModellingConnection> interfaceUsers =
+            [
                 new ModellingConnection { Id = 20, AppId = 2, App = new FwoOwner { Id = 2, Name = "Owner2" }, Name = "Conn2" },
                 new ModellingConnection { Id = 21, AppId = 3, App = new FwoOwner { Id = 3, Name = "Owner3" }, Name = "Conn3" },
                 new ModellingConnection { Id = 22, AppId = 1, App = owner, Name = "ConnOwn" }
-            };
+            ];
             apiConnection.InterfaceUsers = interfaceUsers;
             apiConnection.ConnectionById = interfaceConn;
 
-            ModellingConnectionHandler handler = new(apiConnection, userConfig, owner, new List<ModellingConnection> { interfaceConn }, interfaceConn, addMode: false,
+            ModellingConnectionHandler handler = new(apiConnection, userConfig, owner, [interfaceConn], interfaceConn, addMode: false,
                 readOnly: false, DefaultInit.DoNothing, DefaultInit.DoNothing, isOwner: true)
             {
                 UsingConnections = interfaceUsers,
@@ -163,14 +163,14 @@ namespace FWO.Test
 
         private sealed class DecommissionTestApiConn : SimulatedApiConnection
         {
-            public List<int> AddedPermittedOwnerAppIds { get; } = new();
-            public List<int> AddedSelectedConnectionAppIds { get; } = new();
-            public List<(int AppId, int ConnectionId)> AddedSelectedConnections { get; } = new();
-            public List<int> RemovedSelectedConnections { get; } = new();
-            public List<int> UpdatedNotificationIds { get; } = new();
-            public List<ModellingConnection> InterfaceUsers { get; set; } = new();
-            public List<FwoOwner> PermittedOwners { get; set; } = new();
-            public List<FwoNotification> Notifications { get; set; } = new();
+            public List<int> AddedPermittedOwnerAppIds { get; } = [];
+            public List<int> AddedSelectedConnectionAppIds { get; } = [];
+            public List<(int AppId, int ConnectionId)> AddedSelectedConnections { get; } = [];
+            public List<int> RemovedSelectedConnections { get; } = [];
+            public List<int> UpdatedNotificationIds { get; } = [];
+            public List<ModellingConnection> InterfaceUsers { get; set; } = [];
+            public List<FwoOwner> PermittedOwners { get; set; } = [];
+            public List<FwoNotification> Notifications { get; set; } = [];
             public ModellingConnection? ConnectionById { get; set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)

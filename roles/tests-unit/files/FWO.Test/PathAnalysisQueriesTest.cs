@@ -17,6 +17,7 @@ namespace FWO.Test;
 [NonParallelizable]
 internal class PathAnalysisQueriesTest
 {
+#if DEBUG
     private const string kBaseDirectoryEnvironmentVariable = "FWO_BASE_DIR";
     private const string kQueryTypeName =
         "FWO.Api.Client.Queries.PathAnalysisQueries";
@@ -38,7 +39,6 @@ internal class PathAnalysisQueriesTest
     /// Verifies that a missing GraphQL file is logged and rethrown
     /// by the static query initialization.
     /// </summary>
-#if DEBUG
     [Test]
     public void Initialization_WhenQueryFileIsMissing_RethrowsException()
     {

@@ -215,8 +215,8 @@ namespace FWO.Test
 
         private sealed class SettingsRecertificationTestApiConnection : SimulatedApiConnection
         {
-            public List<ConfigItem> LastUpsertConfigItems { get; private set; } = new();
-            public List<WfState> States { get; set; } = new();
+            public List<ConfigItem> LastUpsertConfigItems { get; private set; } = [];
+            public List<WfState> States { get; set; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
@@ -229,7 +229,7 @@ namespace FWO.Test
                 {
                     PropertyInfo? configItemsProperty = variables?.GetType().GetProperty("config_items");
                     LastUpsertConfigItems = configItemsProperty == null
-                        ? new List<ConfigItem>()
+                        ? []
                         : ((IEnumerable<ConfigItem>)configItemsProperty.GetValue(variables)!).ToList();
                     return Task.FromResult(default(QueryResponseType)!);
                 }

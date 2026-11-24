@@ -78,7 +78,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(ApiReachability.IndicatesUnreachableApi(new InvalidOperationException("permission denied")), Is.False);
-                Assert.That(ApiReachability.IndicatesUnreachableApi(new Exception("boom")), Is.False);
+                Assert.That(ApiReachability.IndicatesUnreachableApi(new InvalidOperationException("boom")), Is.False);
             });
         }
 

@@ -273,6 +273,11 @@ internal class CheckPointRulePositioningStrategyTest
         RulePositioningResult result = await fixture.Strategy.CalculateAsync(context, CancellationToken.None);
 
         AssertFailure(result, RulePositioningFailureCategory.ConfigurationInvalid);
+        AssertKnownDiagnostic(
+            result,
+            "section-name resolution",
+            CheckPointLayerGuardSectionNameFailureCategory.ZoneCardinalityInvalid,
+            "The Check Point layer-guard section name could not be resolved.");
         Assert.Multiple(() =>
         {
             Assert.That(((RulePositioningFailure)result).Diagnostic, Does.Not.Contain("value="));
@@ -293,6 +298,11 @@ internal class CheckPointRulePositioningStrategyTest
         RulePositioningResult result = await fixture.Strategy.CalculateAsync(context, CancellationToken.None);
 
         AssertFailure(result, RulePositioningFailureCategory.ConfigurationInvalid);
+        AssertKnownDiagnostic(
+            result,
+            "section-name template",
+            CheckPointSectionNameTemplateFailureCategory.InvalidTemplate,
+            "The Check Point layer-guard section-name template is invalid.");
         RulePositioningFailure failure = (RulePositioningFailure)result;
         Assert.Multiple(() =>
         {
@@ -418,6 +428,7 @@ internal class CheckPointRulePositioningStrategyTest
         RulePositioningResult result = await fixture.Strategy.CalculateAsync(ValidContext(), CancellationToken.None);
 
         AssertFailure(result, expected);
+        AssertKnownDiagnostic(result, "rulebase graph", childCategory, childCategory.GetDiagnostic());
         AssertDownstream(fixture, graph: 1, matrix: 0, resolver: 0, selection: 0, execution: 0);
     }
 
@@ -435,6 +446,7 @@ internal class CheckPointRulePositioningStrategyTest
         RulePositioningResult result = await fixture.Strategy.CalculateAsync(ValidContext(), CancellationToken.None);
 
         AssertFailure(result, expected);
+        AssertKnownDiagnostic(result, "creation-rule networks", childCategory, childCategory.GetDiagnostic());
         Assert.Multiple(() =>
         {
             Assert.That(fixture.Network.CallCount, Is.EqualTo(1));
@@ -457,6 +469,7 @@ internal class CheckPointRulePositioningStrategyTest
         RulePositioningResult result = await fixture.Strategy.CalculateAsync(ValidContext(), CancellationToken.None);
 
         AssertFailure(result, expected);
+        AssertKnownDiagnostic(result, "layer guards", childCategory, childCategory.GetDiagnostic());
         Assert.Multiple(() =>
         {
             Assert.That(fixture.Guards.CallCount, Is.EqualTo(1));
@@ -478,6 +491,7 @@ internal class CheckPointRulePositioningStrategyTest
         RulePositioningResult result = await fixture.Strategy.CalculateAsync(ValidContext(), CancellationToken.None);
 
         AssertFailure(result, expected);
+        AssertKnownDiagnostic(result, "designated zone matrix", childCategory, childCategory.GetDiagnostic());
         AssertDownstream(fixture, graph: 1, matrix: 1, resolver: 0, selection: 0, execution: 0);
     }
 
@@ -500,6 +514,7 @@ internal class CheckPointRulePositioningStrategyTest
         RulePositioningResult result = await fixture.Strategy.CalculateAsync(ValidContext(), CancellationToken.None);
 
         AssertFailure(result, expected);
+        AssertKnownDiagnostic(result, "creation-rule zones", childCategory, childCategory.GetDiagnostic());
         AssertDownstream(fixture, graph: 1, matrix: 1, resolver: 1, selection: 0, execution: 0);
     }
 
@@ -516,6 +531,7 @@ internal class CheckPointRulePositioningStrategyTest
         RulePositioningResult result = await fixture.Strategy.CalculateAsync(ValidContext(), CancellationToken.None);
 
         AssertFailure(result, expected);
+        AssertKnownDiagnostic(result, "recipe selection", childCategory, childCategory.GetDiagnostic());
         AssertDownstream(fixture, graph: 1, matrix: 1, resolver: 1, selection: 1, execution: 0);
     }
 
@@ -538,6 +554,13 @@ internal class CheckPointRulePositioningStrategyTest
         RulePositioningResult result = await fixture.Strategy.CalculateAsync(ValidContext(), CancellationToken.None);
 
         AssertFailure(result, expected);
+        PositioningBlockFailure<CheckPointBlockValue> expectedFailure = new(childCategory, "test-only");
+        AssertKnownDiagnostic(
+            result,
+            "recipe execution",
+            childCategory,
+            expectedFailure.Diagnostic,
+            "test-only");
         Assert.Multiple(() =>
         {
             Assert.That(block.CallCount, Is.EqualTo(1));
@@ -854,6 +877,23 @@ internal class CheckPointRulePositioningStrategyTest
         {
             Assert.That(failure.Category, Is.EqualTo(expected));
             Assert.That(failure.Diagnostic, Is.EqualTo(new RulePositioningFailure(expected).Diagnostic));
+        });
+    }
+
+    private static void AssertKnownDiagnostic(
+        RulePositioningResult result,
+        string expectedStage,
+        Enum expectedSpecificCategory,
+        string expectedDiagnostic,
+        string? expectedBlockKind = null)
+    {
+        string block = expectedBlockKind == null ? "" : $" / {expectedBlockKind}";
+        string expected = $"{expectedStage}{block} / {expectedSpecificCategory}: {expectedDiagnostic}";
+        string? technicalDiagnostic = ((RulePositioningFailure)result).TechnicalDiagnostic;
+        Assert.Multiple(() =>
+        {
+            Assert.That(technicalDiagnostic, Is.EqualTo(expected));
+            Assert.That(technicalDiagnostic, Does.Not.Contain(kSentinel));
         });
     }
 

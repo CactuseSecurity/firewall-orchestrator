@@ -59,12 +59,12 @@ namespace FWO.Services
                 return (new List<Rule>(), new List<FwoOwner>(), new List<RuleOwner>());
             }
 
-            if (ownersToAdd.Any())
+            if (ownersToAdd.Count != 0)
             {
                 rulesToMap = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwnerCustomField);
             }
 
-            if (ownersToRemove.Any())
+            if (ownersToRemove.Count != 0)
             {
                 ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByOwner, new { ownerIds = ownersToRemove.Select(o => o.Id).ToList() });
             }

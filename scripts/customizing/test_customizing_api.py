@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import builtins
 import json
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar
 from unittest.mock import Mock
 
 import pytest
@@ -14,7 +14,10 @@ if TYPE_CHECKING:
     from pathlib import Path
     from types import TracebackType
 
+    from typing_extensions import Self
+
 EXPECTED_MODELLING_SERVICE_ID = 7
+EXPECTED_CONFIG_READ_COUNT = 2
 
 
 class FakeResponse:
@@ -174,6 +177,24 @@ def test_get_and_set_helpers_handle_success_and_missing_results(monkeypatch: pyt
         == EXPECTED_MODELLING_SERVICE_ID
     )
     assert customizing.set_config_values("https://fwo/graphql", "jwt") == -1
+
+
+def test_config_readers_read_only_global_values(monkeypatch: pytest.MonkeyPatch) -> None:
+    call_mock = Mock(
+        side_effect=[
+            {"data": {"config": [{"config_value": "50"}]}},
+            {"data": {"config": [{"config_key": "limit", "config_value": "50"}]}},
+        ]
+    )
+    monkeypatch.setattr(customizing, "call", call_mock)
+
+    customizing.get_config_value("https://fwo/graphql", "jwt", "limit")
+    customizing.get_config_values("https://fwo/graphql", "jwt", "lim")
+
+    sent_queries: list[str] = [call_args.args[2] for call_args in call_mock.call_args_list]
+    assert len(sent_queries) == EXPECTED_CONFIG_READ_COUNT
+    for sent_query in sent_queries:
+        assert "config_user: {_eq: 0}" in sent_query
 
 
 def test_get_and_set_helpers_return_none_or_minus_one_for_empty_payloads(monkeypatch: pytest.MonkeyPatch) -> None:

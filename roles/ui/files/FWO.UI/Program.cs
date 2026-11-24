@@ -1,5 +1,6 @@
 using BlazorTable;
 using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Compliance;
@@ -71,6 +72,7 @@ builder.Services.AddSingleton<IInternalCaCertificateProvider, InternalCaCertific
 
 // system usage monitoring: track the open circuits and sample the resource usage of this UI server
 builder.Services.AddSingleton<UiSessionTracker>();
+builder.Services.AddScoped<UiClientAddress>();
 builder.Services.AddScoped<CircuitHandler, UiSessionCircuitHandler>();
 builder.Services.AddSingleton<ISystemUsageSource, ProcSystemUsageSource>();
 builder.Services.AddSingleton<ISystemUsageCollector, SystemUsageCollector>();
@@ -137,6 +139,10 @@ FWO.Services.ServiceProvider.Services = app.Services;
 
 Log.WriteInfo("Environment", $"{app.Environment.ApplicationName} runs in {app.Environment.EnvironmentName} Mode.");
 
+// Has to run first, so that everything below sees the address of the browser instead of the local Apache
+// reverse proxy. Kestrel only listens on localhost, so nobody but that proxy can send the forwarded headers.
+app.UseForwardedHeaders(ReverseProxyForwardingOptions.Create());
+
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -144,11 +150,9 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    // app.UseHsts();
 }
 
-// app.UseHttpsRedirection();
+// HTTPS redirection is done by the Apache reverse proxy in front of the UI (roles/ui/templates/httpd.conf)
 app.UseMiddleware<ContentSecurityPolicyMiddleware>();
 app.UseStaticFiles();
 

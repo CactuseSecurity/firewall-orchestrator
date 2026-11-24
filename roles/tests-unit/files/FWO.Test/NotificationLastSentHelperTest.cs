@@ -14,7 +14,7 @@ namespace FWO.Test
         {
             RecordingApiConnection apiConnection = new();
 
-            int affectedRows = await NotificationLastSentHelper.UpdateAsync(apiConnection, new List<int> { 0, -1 });
+            int affectedRows = await NotificationLastSentHelper.UpdateAsync(apiConnection, [0, -1]);
 
             Assert.Multiple(() =>
             {
@@ -28,7 +28,7 @@ namespace FWO.Test
         {
             RecordingApiConnection apiConnection = new() { AffectedRows = 2 };
 
-            int affectedRows = await NotificationLastSentHelper.UpdateAsync(apiConnection, new List<int> { 7, 0, 7, -1, 9 });
+            int affectedRows = await NotificationLastSentHelper.UpdateAsync(apiConnection, [7, 0, 7, -1, 9]);
 
             Assert.Multiple(() =>
             {
@@ -42,7 +42,7 @@ namespace FWO.Test
         {
             RecordingApiConnection apiConnection = new() { AffectedRows = 1 };
 
-            int affectedRows = await NotificationLastSentHelper.UpdateAsync(apiConnection, new List<int> { 7, 9 });
+            int affectedRows = await NotificationLastSentHelper.UpdateAsync(apiConnection, [7, 9]);
 
             Assert.That(affectedRows, Is.EqualTo(1));
         }
@@ -52,7 +52,7 @@ namespace FWO.Test
         {
             RecordingApiConnection apiConnection = new() { ThrowOnUpdate = true };
 
-            int affectedRows = await NotificationLastSentHelper.UpdateAsync(apiConnection, new List<int> { 7 });
+            int affectedRows = await NotificationLastSentHelper.UpdateAsync(apiConnection, [7]);
 
             Assert.That(affectedRows, Is.Zero);
         }

@@ -1,0 +1,23 @@
+query getSectionLinks($managementId: Int!, $linkLimit: Int!) {
+  sectionLinks: firewall_rulebase_link(
+    limit: $linkLimit
+    where: {
+      is_section: { _eq: true }
+      removed: { _is_null: true }
+      rulebase: { mgm_id: { _eq: $managementId } }
+    }
+    order_by: { id: asc }
+  ) {
+    from_rulebase_id
+    rulebaseByFromRulebaseId {
+      id
+      uid
+      name
+    }
+    rulebase {
+      id
+      uid
+      name
+    }
+  }
+}

@@ -133,7 +133,7 @@
     private bool RequestInProcess = false;
     private bool SubscriptionsSetupComplete = false;
     private DateTime? LastRequestStartedAt = null;
-    private WfStateDict states = new();
+    private readonly WfStateDict states = new();
     private ExtStateHandler? extStateHandler;
     private List<GraphQlApiSubscription<List<WfReqTask>>> actTaskSubscriptions = [];
 

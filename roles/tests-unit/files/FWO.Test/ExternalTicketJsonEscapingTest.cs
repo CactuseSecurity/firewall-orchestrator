@@ -2,7 +2,6 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
-using FWO.ExternalSystems.CheckPoint;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using NUnit.Framework;
 using System.Text.Json;
@@ -24,7 +23,6 @@ namespace FWO.Test
         private const string kMultiLinePayload = "line one\r\nline \"two\"";
         private static readonly ExternalCertificateChecks CertificateChecks = new(FirewallConnections: true, TicketSystems: true);
         private static readonly List<IpProtocol> kIpProtos = [new() { Id = 6, Name = "TCP" }];
-        private static readonly List<IpProtocol> kNoIpProtos = [];
         private static readonly ModellingNamingConvention kNamingConvention = new() { AppServerPrefix = "net_" };
 
         [Test]
@@ -133,54 +131,6 @@ namespace FWO.Test
             });
         }
 
-        [Test]
-        public void CheckPointTask_KeepsRequesterTextInsideItsStrings()
-        {
-            WfReqTask task = CreateGroupCreateTask();
-            CheckPointTicketTask ticketTask = new(task, kNoIpProtos, kNamingConvention);
-            ExternalTicketTemplate template = new()
-            {
-                TasksTemplate = "{\"comment\":\"@@TASKCOMMENT@@\",\"reason\":\"@@REASON@@\",\"group\":\"@@GROUPNAME@@\",\"managementName\":\"@@MANAGEMENT_NAME@@\",\"members\":@@MEMBERS@@}"
-            };
-
-            ticketTask.FillTaskText(template);
-
-            Assert.Multiple(() =>
-            {
-                AssertNoInjectedProperty(ticketTask.TaskBody);
-                Assert.That(ticketTask.TaskBody["comment"]!.GetValue<string>(), Is.EqualTo(kPayload));
-                Assert.That(ticketTask.TaskBody["reason"]!.GetValue<string>(), Is.EqualTo(kPayload));
-                Assert.That(ticketTask.TaskBody["group"]!.GetValue<string>(), Is.EqualTo(kPayload));
-                Assert.That(ticketTask.TaskBody["managementName"]!.GetValue<string>(), Is.EqualTo(kPayload));
-            });
-        }
-
-        [Test]
-        public async Task CheckPointTicket_KeepsRequesterTextInsideItsStrings()
-        {
-            CheckPointTicket ticket = new(CreateCheckPointSystem(), CertificateChecks)
-            {
-                Subject = kPayload,
-                Requester = kPayload
-            };
-
-            List<WfReqTask> tasks = [CreateGroupCreateTask()];
-
-            await ticket.CreateRequestString(tasks, kNoIpProtos, kNamingConvention);
-
-            JsonNode root = JsonNode.Parse(ticket.TicketText)!;
-            JsonNode publishBody = FindObjectWithProperty(root, "publishReason")
-                ?? throw new AssertionException($"publish body not found in {ticket.TicketText}");
-            Assert.Multiple(() =>
-            {
-                AssertNoInjectedProperty(root);
-                Assert.That(publishBody["publishReason"]!.GetValue<string>(), Is.EqualTo(kPayload));
-                Assert.That(publishBody["subject"]!.GetValue<string>(), Is.EqualTo(kPayload));
-                Assert.That(publishBody["requester"]!.GetValue<string>(), Is.EqualTo(kPayload));
-                Assert.That(publishBody["group"]!.GetValue<string>(), Is.EqualTo(kPayload));
-            });
-        }
-
         private static ExternalTicketSystem CreateSecureChangeSystem()
         {
             return new()
@@ -208,31 +158,6 @@ namespace FWO.Test
                         NwObjGroupTemplate = "{\"@type\": \"Object\", \"object_name\": \"@@GROUPNAME@@\", \"management_name\": \"@@MANAGEMENT_NAME@@\"}",
                         ServiceTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"@@PROTOCOLNAME@@\", \"port\": @@PORT@@, \"name\": \"@@SERVICENAME@@\"}",
                         IcmpTemplate = "{\"@type\": \"PROTOCOL\", \"protocol\": \"ICMP\", \"name\": \"@@SERVICENAME@@\"}"
-                    }
-                ]
-            };
-        }
-
-        private static ExternalTicketSystem CreateCheckPointSystem()
-        {
-            return new()
-            {
-                Id = 2,
-                TypeId = 9,
-                Name = "CheckPoint",
-                Url = "https://checkpoint-test.example/web_api/",
-                Templates =
-                [
-                    new()
-                    {
-                        TaskType = WfTaskType.group_create.ToString(),
-                        TicketTemplate = "@@TASKS@@",
-                        TasksTemplate = "{\"name\":\"@@GROUPNAME@@\",\"members\":@@MEMBERS@@}"
-                    },
-                    new()
-                    {
-                        TaskType = CheckPointTaskTypes.Publish,
-                        TicketTemplate = "{\"publishReason\":\"@@REASON@@\",\"subject\":\"@@TICKET_SUBJECT@@\",\"requester\":\"@@REQUESTER@@\",\"group\":\"@@GROUPNAME@@\"}"
                     }
                 ]
             };

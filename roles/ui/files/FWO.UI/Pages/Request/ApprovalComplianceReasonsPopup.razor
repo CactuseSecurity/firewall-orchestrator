@@ -1,0 +1,29 @@
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+@* Small popup listing the compliance violations of a task; shown while Compliance is set. *@
+<PopUp Title="@(userConfig.GetText("approval_compliance_violations"))" Show="@(Compliance != null)" Size="PopupSize.Small" OnClose="() => _ = Close()">
+    <Body>
+        @if (Compliance != null)
+        {
+            <ul class="mb-0 approval-compliance-reasons">
+                @foreach (string reason in Compliance.Reasons)
+                {
+                    <li>@reason</li>
+                }
+            </ul>
+        }
+    </Body>
+    <Footer>
+        <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(userConfig.GetText("close"))</button>
+    </Footer>
+</PopUp>
+
+@code {
+    /// <summary>The compliance status whose reasons are shown; null hides the popup.</summary>
+    [Parameter] public ApprovalTaskCompliance? Compliance { get; set; }
+    [Parameter] public EventCallback<ApprovalTaskCompliance?> ComplianceChanged { get; set; }
+
+    private Task Close() => ComplianceChanged.InvokeAsync(null);
+}

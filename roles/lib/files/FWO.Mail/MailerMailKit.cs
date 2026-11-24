@@ -5,6 +5,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 using Microsoft.AspNetCore.Http;
+using FWO.Basics.Enums;
 using FWO.Encryption;
 using FWO.Logging;
 
@@ -33,6 +34,9 @@ namespace FWO.Mail
         public string? Body { get; set; }
 
         public IFormFileCollection? Attachments { get; set; }
+
+        // Priority headers, none for Normal
+        public EmailPriority Priority { get; set; } = EmailPriority.Normal;
     }
 
     public interface IMailService
@@ -44,7 +48,7 @@ namespace FWO.Mail
     {
         private const string kTlsLogCategory = "Email TLS";
         private static readonly HashSet<string> uncheckedServersWarned = [];
-        private static readonly object uncheckedServerLock = new();
+        private static readonly Lock uncheckedServerLock = new();
 
         /// <summary>
         /// Applies the certificate checking setting of the email connection to the SMTP client.
@@ -194,7 +198,8 @@ namespace FWO.Mail
                 ReplyTo = source.ReplyTo,
                 ReplyToName = source.ReplyToName,
                 Body = source.Body,
-                Attachments = source.Attachments
+                Attachments = source.Attachments,
+                Priority = source.Priority
             };
         }
 
@@ -306,6 +311,7 @@ namespace FWO.Mail
             var body = new BodyBuilder();
             // placeholder values in the subject are free text; a line break must not reach the header
             mail.Subject = mailData.Subject.ReplaceLineEndings(" ");
+            ApplyPriority(mail, mailData.Priority);
             if (mailFormatHtml)
             {
                 body.HtmlBody = mailData.Body;
@@ -318,6 +324,35 @@ namespace FWO.Mail
                 await AddAttachments(mailData, body);
             }
             mail.Body = body.ToMessageBody(); // correction compared to source code
+        }
+
+        /// <summary>
+        /// Sets the priority headers of the message. There is no single standard, so all three common headers are written:
+        /// Importance and Priority (RFC 2156 / RFC 4021) and the de-facto standard X-Priority. Normal writes none of them,
+        /// since a missing header means normal priority to all clients.
+        /// </summary>
+        /// <param name="mail">The message to set the headers on.</param>
+        /// <param name="priority">The requested priority.</param>
+        public static void ApplyPriority(MimeMessage mail, EmailPriority priority)
+        {
+            switch (priority)
+            {
+                case EmailPriority.High:
+                    mail.Importance = MessageImportance.High;
+                    mail.Priority = MessagePriority.Urgent;
+                    mail.XPriority = XMessagePriority.Highest;
+                    break;
+                case EmailPriority.Low:
+                    mail.Importance = MessageImportance.Low;
+                    mail.Priority = MessagePriority.NonUrgent;
+                    mail.XPriority = XMessagePriority.Lowest;
+                    break;
+                default:
+                    mail.Headers.Remove(HeaderId.Importance);
+                    mail.Headers.Remove(HeaderId.Priority);
+                    mail.Headers.Remove(HeaderId.XPriority);
+                    break;
+            }
         }
 
         private static async Task AddAttachments(MailData mailData, MimeKit.BodyBuilder body)

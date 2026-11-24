@@ -29,7 +29,7 @@ namespace FWO.Test;
 [TestFixture]
 internal class WorkflowChangeHistoryControllerTest
 {
-    private static readonly List<string> kControllerRoutes = new() { "api/workflow" };
+    private static readonly List<string> kControllerRoutes = ["api/workflow"];
     internal const int kMaxLimit = GlobalConst.kDefaultMaxRestResponseObjectLimit;
     private const int kRequesterId = 1;
     private const int kEditorId = 8;
@@ -123,7 +123,7 @@ internal class WorkflowChangeHistoryControllerTest
         List<string> paths = errors.Errors.Select(error => error.Path).ToList();
         Assert.Multiple(() =>
         {
-            Assert.That(paths, Is.EquivalentTo(new List<string> { "ticketId", "ticket_id", "options.limit", "options.offset", "options.sortBy", "options.filter.changer" }));
+            Assert.That(paths, Is.EquivalentTo(["ticketId", "ticket_id", "options.limit", "options.offset", "options.sortBy", "options.filter.changer"]));
             Assert.That(errors.Errors.Single(error => error.Path == "ticketId").Message,
                 Does.Contain("must be greater than 0"));
             Assert.That(errors.Errors.Single(error => error.Path == "options.filter.changer").Message,
@@ -140,7 +140,7 @@ internal class WorkflowChangeHistoryControllerTest
         Assert.Multiple(() =>
         {
             Assert.That(errors.Errors.Select(error => error.Path),
-                Is.EquivalentTo(new List<string> { "ticketId", "options.filter.changer" }));
+                Is.EquivalentTo(["ticketId", "options.filter.changer"]));
             Assert.That(errors.Errors.Single(error => error.Path == "ticketId").Message,
                 Does.Contain("is required"));
         });
@@ -471,7 +471,7 @@ internal class WorkflowChangeHistoryControllerTest
         Assert.Multiple(() =>
         {
             Assert.That(notFound.StatusCode, Is.EqualTo(404));
-            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(new List<string> { "ticketId" }));
+            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(["ticketId"]));
             Assert.That(errors.Errors[0].Message, Does.Contain("does not exist"));
             Assert.That(errors.Errors[0].Message, Does.Contain("999"));
         });
@@ -599,7 +599,7 @@ internal class WorkflowChangeHistoryControllerTest
         RequestValidationErrorResponse errors = (RequestValidationErrorResponse)badRequest.Value!;
         Assert.Multiple(() =>
         {
-            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(new List<string> { "ticketId" }));
+            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(["ticketId"]));
             Assert.That(apiConnection.Queries, Is.Empty);
         });
     }
@@ -624,11 +624,11 @@ internal class WorkflowChangeHistoryControllerTest
 
         // The audit query and task-history query select these columns and filter and order on the
         // ticket/module/audit markers. Hasura resolves all of them through this role's permission.
-        Assert.That(columns, Is.SupersetOf(new List<string>
-        {
+        Assert.That(columns, Is.SupersetOf(
+        [
             "id", "changer", "changer_id", "change_text", "change_time", "ticket_id", "module", "audit_proof_critical",
             "change_type", "object_type", "object_id", "old_data", "new_data"
-        }));
+        ]));
     }
 
     /// <summary>
@@ -941,7 +941,7 @@ internal class WorkflowChangeHistoryControllerTest
         /// Gets or sets the ticket ids the simulated API knows. Defaults to the ids the fixtures use,
         /// so a test that only cares about changes does not have to declare the ticket as well.
         /// </summary>
-        public List<long> ExistingTicketIds { get; set; } = new() { 1234, 4321 };
+        public List<long> ExistingTicketIds { get; set; } = [1234, 4321];
 
         public List<string> Queries { get; } = [];
 

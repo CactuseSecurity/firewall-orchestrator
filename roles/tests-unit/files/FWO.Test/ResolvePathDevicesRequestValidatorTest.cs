@@ -84,7 +84,7 @@ internal class ResolvePathDevicesRequestValidatorTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(PathsOf(result), Is.EquivalentTo(new List<string> { "sources", "destinations" }));
+            Assert.That(PathsOf(result), Is.EquivalentTo(["sources", "destinations"]));
             Assert.That(MessageAt(result, "sources"), Is.EqualTo("'sources' is required."));
             Assert.That(MessageAt(result, "destinations"), Is.EqualTo("'destinations' is required."));
         });
@@ -137,7 +137,7 @@ internal class ResolvePathDevicesRequestValidatorTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(PathsOf(result), Is.EquivalentTo(new List<string> { "sources[1]", "destinations[1]" }));
+            Assert.That(PathsOf(result), Is.EquivalentTo(["sources[1]", "destinations[1]"]));
             Assert.That(MessageAt(result, "sources[1]"), Does.Contain("must be an object"));
             Assert.That(MessageAt(result, "destinations[1]"),
                 Is.EqualTo("'destinations[1]' must order 'ipRange' from its lower to its upper address."));
@@ -334,7 +334,7 @@ internal class ResolvePathDevicesRequestValidatorTest
         RequestValidationErrorResponse result = Validate(
             Request(""","source":[],"options":{"algo":"x","filter":{"deviceName":"fw"}}"""));
 
-        Assert.That(PathsOf(result), Is.EquivalentTo(new List<string> { "source", "options.algo", "options.filter.deviceName" }));
+        Assert.That(PathsOf(result), Is.EquivalentTo(["source", "options.algo", "options.filter.deviceName"]));
     }
 
     /// <summary>Verifies every error of one request is reported together, each under its own path.</summary>
@@ -344,8 +344,8 @@ internal class ResolvePathDevicesRequestValidatorTest
         RequestValidationErrorResponse result = Validate(
             """{"sources":[],"destinations":[{"ipHost":"10.2.0.5/24"}],"extra":1,"options":{"algorithm":"none","matrixId":0,"filter":{"id":0,"name":""}}}""");
 
-        Assert.That(PathsOf(result), Is.EquivalentTo(new List<string>
-        {
+        Assert.That(PathsOf(result), Is.EquivalentTo(
+        [
             "sources",
             "destinations[0]",
             "extra",
@@ -354,7 +354,7 @@ internal class ResolvePathDevicesRequestValidatorTest
             "options.matrixId",
             "options.filter.id",
             "options.filter.name"
-        }));
+        ]));
     }
 
     /// <summary>Verifies the same invalid request always yields the same errors in the same order.</summary>
@@ -402,7 +402,7 @@ internal class ResolvePathDevicesRequestValidatorTest
             Assert.That(algorithm, Does.Contain(PathAnalysisAlgorithmNames.kNetworkZoneTree));
             Assert.That(matrixId, Does.Contain(PathAnalysisAlgorithmNames.kNetworkZoneTree));
             Assert.That(ResolvePathDevicesRequestValidationSchema.FilterKeys.Select(key => key.JsonName),
-                Is.EquivalentTo(new List<string> { "id", "name" }));
+                Is.EquivalentTo(["id", "name"]));
         });
     }
 

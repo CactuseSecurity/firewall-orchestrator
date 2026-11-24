@@ -37,6 +37,39 @@ namespace FWO.ExternalSystems.FirewallWrite
             SetServiceList(step, services, profile);
         }
 
+        /// <summary>
+        /// Ensures that a rule to modify names its complete target state. A rule is modified by setting its sources,
+        /// destinations and services as whole lists, for every vendor; a task without a current element on one side would
+        /// therefore empty that side of the rule, so it is refused before anything is sent.
+        /// </summary>
+        /// <param name="implTask">The rule_modify implementation task.</param>
+        /// <exception cref="FirewallWriteException">Thrown if a side has no current element.</exception>
+        public static void EnsureCompleteTargetState(WfImplTask implTask)
+        {
+            List<WfImplElement> sources = [.. implTask.ImplElements.Where(element => SourceFields.Contains(element.Field))];
+            List<WfImplElement> destinations = [.. implTask.ImplElements.Where(element => DestinationFields.Contains(element.Field))];
+            List<WfImplElement> services = [.. implTask.ImplElements.Where(FirewallElementValues.IsServiceElement)];
+            List<string> emptySides = [];
+            if (Current(sources).Count == 0)
+            {
+                emptySides.Add(kSourceSide);
+            }
+            if (Current(destinations).Count == 0)
+            {
+                emptySides.Add(kDestinationSide);
+            }
+            if (Current(services).Count == 0)
+            {
+                emptySides.Add(kServiceSide);
+            }
+            if (emptySides.Count > 0)
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                    $"A rule to modify is written as its complete target state, but the task has no current {string.Join(", ", emptySides)} " +
+                    "element; the rule would lose all of them. List every element the rule keeps, not only the changes.");
+            }
+        }
+
         private sealed record NetworkListPlaceholders(string Side, string Full, string ToAdd, string ToRemove, string NameObjects, string Csv,
             string Addresses);
 
@@ -136,12 +169,37 @@ namespace FWO.ExternalSystems.FirewallWrite
         private static List<WfImplElement> Removed(List<WfImplElement> elements) =>
             [.. elements.Where(element => element.ImplAction == nameof(RequestAction.delete))];
 
-        /// <summary>Names of network elements. Vendors referencing objects by address skip elements without name.</summary>
+        /// <summary>
+        /// Names of network elements. Vendors referencing objects by address skip elements without name; an element naming
+        /// an existing object without address, see <see cref="WfImplElement.KeepNameVerbatim"/>, cannot be written to them.
+        /// </summary>
+        /// <exception cref="FirewallWriteException">Thrown for an object without address on a vendor referencing objects by address.</exception>
         private static List<string> Names(List<WfImplElement> elements, FirewallVendorProfile profile)
         {
+            WfImplElement? verbatimElement = elements.FirstOrDefault(element => element.KeepNameVerbatim);
+            if (profile.ReferencesObjectsByAddress && verbatimElement != null)
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.Unsupported,
+                    $"The object '{verbatimElement.GroupName}' has no address, and rules of this firewall reference objects by address only.");
+            }
             return profile.ReferencesObjectsByAddress
                 ? [.. elements.Where(element => !string.IsNullOrWhiteSpace(element.Name)).Select(element => element.Name!.Trim()).Distinct()]
-                : [.. elements.Select(element => FirewallElementValues.RequireName(element, profile)).Distinct()];
+                : [.. elements.Select(element => ReferenceName(element, profile)).Distinct()];
+        }
+
+        /// <summary>
+        /// The name a rule references a network element by. An element without name but with a group name refers to the
+        /// whole group, as modelling requests do for app roles and network areas; any other element needs a name. The name
+        /// of an existing object kept verbatim, see <see cref="WfImplElement.KeepNameVerbatim"/>, is not normalized.
+        /// </summary>
+        private static string ReferenceName(WfImplElement element, FirewallVendorProfile profile)
+        {
+            if (string.IsNullOrWhiteSpace(element.Name) && !string.IsNullOrWhiteSpace(element.GroupName))
+            {
+                string groupName = element.GroupName.Trim();
+                return element.KeepNameVerbatim ? groupName : profile.NormalizeName(groupName);
+            }
+            return FirewallElementValues.RequireName(element, profile);
         }
 
         private static List<string> ServiceNames(List<WfImplElement> elements, FirewallVendorProfile profile) =>

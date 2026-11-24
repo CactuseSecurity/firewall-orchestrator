@@ -247,7 +247,7 @@
             VerifyRuleOwnerPreFilterCompleteness = true,
             AllowWaitForRuleOwnerMapping = true
         };
-        ModellingVarianceResult varianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, true, true);
+        ModellingVarianceResult varianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, analyseAppRoles: false);
         (bool appZoneModelled, List<ModellingAppZone?> mgmIdsWithDifferingAZ) = await varianceAnalysis.CheckExistingAppZone();
         (VarianceResult, AppZoneModelled, MgmIdsWithDifferingAZ) = (varianceResult, appZoneModelled, mgmIdsWithDifferingAZ);
         RulesFromDeletedConns = [];

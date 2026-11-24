@@ -6,12 +6,14 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, Self, cast
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import pytest
 
 if TYPE_CHECKING:
     from types import ModuleType, TracebackType
+
+    from typing_extensions import Self
 
 SAMPLE_CLIENT_CERT = "/etc/fworch/secrets/client/client.crt"
 SAMPLE_CLIENT_KEY = "/etc/fworch/secrets/client/client.key"

@@ -7,8 +7,8 @@ namespace FWO.Data
         public string Name = "";
         public string Dn = "";
         public bool OwnerGroup = false;
-        public List<UiUser> Users { get; set; } = new List<UiUser>();
-        public List<string> Roles { get; set; } = new List<string>();
+        public List<UiUser> Users { get; set; } = [];
+        public List<string> Roles { get; set; } = [];
 
         public UserGroup()
         { }
@@ -18,13 +18,13 @@ namespace FWO.Data
             Name = group.Name;
             Dn = group.Dn;
             OwnerGroup = group.OwnerGroup;
-            Users = new List<UiUser>(group.Users);
-            Roles = new List<string>(group.Roles);
+            Users = [.. group.Users];
+            Roles = [.. group.Roles];
         }
 
         public string UserList()
         {
-            List<string> userNames = new List<string>();
+            List<string> userNames = [];
             foreach (UiUser user in Users)
             {
                 userNames.Add(user.Name);

@@ -417,10 +417,10 @@ namespace FWO.Middleware.Server
                 var Variables = new
                 {
                     user = 0,
-                    source = source,
-                    severity = severity,
+                    source,
+                    severity,
                     suspectedCause = level,
-                    description = description
+                    description
                 };
                 ReturnId[]? returnIds = (await apiConnection.SendQueryAsync<ReturnIdWrapper>(MonitorQueries.addDataImportLogEntry, Variables)).ReturnIds;
                 if (returnIds == null)

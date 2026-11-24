@@ -1,0 +1,195 @@
+@using FWO.Data.Workflow
+@using FWO.Services.Workflow
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<div class="approval-task-list mt-3" data-table="@Table">
+    @* FancyTable appends columns added later at the end; a new key recreates it with the columns in their defined order. *@
+    <FancyTable @key="columnSignature" TItem="ApprovalTaskListRow"
+                Items="rows"
+                Columns="columns"
+                EnableColumnResizing="true"
+                PaginationEnabled="true"
+                PageSize="kSinglePageSize"
+                ShowPaginationSummary="false"
+                ShowPageSizeSelector="true"
+                PageSizeTemplate="TableTitle"
+                TopBarClass="align-items-center"
+                PageSizeContainerClass="flex-grow-1 me-2"
+                Texts="tableTexts" />
+</div>
+
+@code {
+    private const string kActionsColumn = "actions";
+    private const double kColumnMinWidth = 80;
+    // Pagination is only enabled to get the top-bar slot for the table title; all rows stay on one page.
+    private const int kSinglePageSize = 100000;
+
+    /// <summary>Task groups to display; bundled tasks displayed as one form one group and one row.</summary>
+    [Parameter] public IEnumerable<List<WfReqTask>> TaskGroups { get; set; } = [];
+    /// <summary>The table to display; only the task groups belonging to it are shown.</summary>
+    [Parameter] public ApprovalTaskListTable Table { get; set; }
+    [Parameter] public WfStateDict States { get; set; } = new();
+    /// <summary>Shows the actions column; only set when the promotion mode allows task-by-task promotion.</summary>
+    [Parameter] public bool ShowActions { get; set; }
+    [Parameter] public Func<WfReqTask, bool> CanPromoteTask { get; set; } = _ => false;
+    [Parameter] public Func<WfReqTask, Task> PromoteTask { get; set; } = _ => Task.CompletedTask;
+    /// <summary>Compliance status of the ticket's access tasks; the column is only shown if a policy check is configured.</summary>
+    [Parameter] public ApprovalTaskComplianceService? Compliance { get; set; }
+    /// <summary>Shows the violation reasons of a not compliant row.</summary>
+    [Parameter] public EventCallback<ApprovalTaskCompliance> ShowComplianceReasons { get; set; }
+    /// <summary>Buttons shown in the top bar, right-aligned just before the search field.</summary>
+    [Parameter] public RenderFragment? HeaderButtons { get; set; }
+    [CascadingParameter] public ApprovalTaskViewContext Context { get; set; } = null!;
+
+    private IReadOnlyList<ApprovalTaskListRow> rows = [];
+    private IReadOnlyList<FancyColumn<ApprovalTaskListRow>> columns = [];
+    private FancyTableTexts tableTexts = FancyTableTexts.Default;
+    private string columnSignature = "";
+
+    /// <summary>Initializes the localized table texts.</summary>
+    protected override void OnInitialized()
+    {
+        tableTexts = FancyTableTextFactory.Create(userConfig);
+    }
+
+    /// <summary>Rebuilds the rows and, if the visible fields changed, the columns.</summary>
+    protected override void OnParametersSet()
+    {
+        rows = new ApprovalTaskListRowBuilder(Context, userConfig, States) { ComplianceResults = Compliance?.Results }.Build(TaskGroups, Table);
+        List<ApprovalTaskListColumn> visibleColumns = ApprovalTaskListRowBuilder.VisibleColumns(Table, Context.Visibility, Compliance?.IsConfigured == true,
+            ApprovalTaskListRowBuilder.ObjectVisibilityFor(Table, TaskGroups, Context.ObjectVisibility));
+        string signature = $"{string.Join("|", visibleColumns.Select(column => column.Key))}|{ShowActions}";
+        if (signature != columnSignature)
+        {
+            columnSignature = signature;
+            columns = BuildColumns(visibleColumns);
+        }
+    }
+
+    /// <summary>Shows the table title and the header buttons in the top bar, on the same line as the search field.</summary>
+    private RenderFragment<FancyPaginationContext<ApprovalTaskListRow>> TableTitle => _ =>
+        @<div class="d-flex align-items-center w-100">
+            <h6 class="mb-0 approval-task-list-title">@(userConfig.GetText(TableTitleKey))</h6>
+            @if (HeaderButtons != null)
+            {
+                <div class="d-flex align-items-center ms-auto approval-task-list-header-buttons">@HeaderButtons</div>
+            }
+        </div>;
+
+    private string TableTitleKey => Table switch
+    {
+        ApprovalTaskListTable.Access => "approval_list_access_tasks",
+        ApprovalTaskListTable.Address => "approval_list_address_tasks",
+        ApprovalTaskListTable.Service => "approval_list_service_tasks",
+        _ => "approval_list_other_tasks"
+    };
+
+    private List<FancyColumn<ApprovalTaskListRow>> BuildColumns(List<ApprovalTaskListColumn> visibleColumns)
+    {
+        List<FancyColumn<ApprovalTaskListRow>> fancyColumns = [.. visibleColumns.Select(BuildColumn)];
+        if (!ShowActions)
+        {
+            return fancyColumns;
+        }
+        fancyColumns.Add(new FancyColumn<ApprovalTaskListRow>
+        {
+            Key = kActionsColumn,
+            Title = userConfig.GetText("actions"),
+            Sortable = false,
+            Searchable = false,
+            CellTemplate = ActionsCell
+        });
+        return fancyColumns;
+    }
+
+    private FancyColumn<ApprovalTaskListRow> BuildColumn(ApprovalTaskListColumn column)
+    {
+        if (column.Key == ApprovalTaskListRowBuilder.kCompliance)
+        {
+            return new FancyColumn<ApprovalTaskListRow>
+            {
+                Key = column.Key,
+                Title = userConfig.GetText(column.TextKey),
+                Sortable = true,
+                Searchable = true,
+                Filterable = true,
+                MinWidth = kColumnMinWidth,
+                CellClass = "approval-task-list-cell approval-task-list-compliance-cell",
+                SearchTextSelector = ComplianceText,
+                SortValueSelector = ComplianceText,
+                CellTemplate = ComplianceCell
+            };
+        }
+        bool isId = column.Key == ApprovalTaskListRowBuilder.kId;
+        return new FancyColumn<ApprovalTaskListRow>
+        {
+            Key = column.Key,
+            Title = userConfig.GetText(column.TextKey),
+            Sortable = true,
+            Searchable = true,
+            Filterable = true,
+            Hideable = !isId && column.Key != ApprovalTaskListRowBuilder.kTitle,
+            MinWidth = isId ? null : kColumnMinWidth,
+            CellClass = "approval-task-list-cell",
+            SearchTextSelector = row => row.Cell(column.Key).Text,
+            SortValueSelector = isId ? row => row.Task.Id : row => row.Cell(column.Key).Text,
+            CellTemplate = row => CellContent(row.Cell(column.Key))
+        };
+    }
+
+    private RenderFragment CellContent(ApprovalTaskListCell cell) =>
+        @<text>
+            @if (cell.CanEdit)
+            {
+                <button type="button" class="btn btn-link btn-sm p-0 text-start approval-task-list-edit"
+                        data-toggle="tooltip" title="@(userConfig.PureLine("edit"))" @onclick="cell.Edit!">
+                    @CellValues(cell)
+                </button>
+            }
+            else
+            {
+                @CellValues(cell)
+            }
+        </text>;
+
+    private static RenderFragment CellValues(ApprovalTaskListCell cell) =>
+        @<text>
+            @if (cell.Values.Count == 0)
+            {
+                <span>-</span>
+            }
+            else
+            {
+                @for (int index = 0; index < cell.Values.Count; index++)
+                {
+                    ApprovalTaskListBadge? badge = cell.Badge(index);
+                    <div class="approval-task-list-value">
+                        <span>@cell.Values[index]</span>
+                        @if (badge != null)
+                        {
+                            <span class="badge @badge.CssClass approval-task-list-badge">@badge.Text</span>
+                        }
+                    </div>
+                }
+            }
+        </text>;
+
+    private string ComplianceText(ApprovalTaskListRow row) => row.Compliance?.StatusText(userConfig) ?? "";
+
+    /// <summary>Colors the whole cell green (compliant) or red (not compliant, showing the reasons on hover and click).</summary>
+    private RenderFragment ComplianceCell(ApprovalTaskListRow row) =>
+        @<ApprovalComplianceButton Compliance="row.Compliance" Loading="@(Compliance?.IsLoading == true)" ShowNotChecked="true"
+                                   Class="approval-task-list-compliance" ShowReasons="ShowComplianceReasons" />;
+
+    private RenderFragment ActionsCell(ApprovalTaskListRow row) =>
+        @<text>
+            @if (CanPromoteTask(row.Task))
+            {
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => PromoteTask(row.Task)">
+                    @(DisplayService.DisplayButton(userConfig, "promote", Icons.ChangeState))
+                </button>
+            }
+        </text>;
+}

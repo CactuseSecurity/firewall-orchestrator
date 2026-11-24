@@ -60,13 +60,13 @@ namespace FWO.Services
                 return (new List<Rule>(), new List<ModellingConnection>(), new List<RuleOwner>());
             }
 
-            if (ownersToAdd.Any())
+            if (ownersToAdd.Count != 0)
             {
                 rulesToMap = await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesForRuleOwnerNameField);
                 connectionOwnersToAdd = await apiConnection.SendQueryAsync<List<ModellingConnection>>(ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner, new { ownerIds = ownersToAdd.Select(o => o.Id).ToList() });
             }
 
-            if (ownersToRemove.Any())
+            if (ownersToRemove.Count != 0)
             {
                 ruleOwnersToRemove = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByOwner, new { ownerIds = ownersToRemove.Select(o => o.Id).ToList() });
             }

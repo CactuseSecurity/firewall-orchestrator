@@ -36,12 +36,12 @@ public sealed class WorkflowChangeHistoryService
     /// request task differs from what was requested. The names are the camelCased keys the history
     /// serializer writes.
     /// </remarks>
-    private static readonly List<string> kNonContentRequestTaskFields = new() { "start", "stop", "additionalInfo" };
+    private static readonly List<string> kNonContentRequestTaskFields = ["start", "stop", "additionalInfo"];
 
     /// <summary>
     /// Stored request-task snapshot keys whose arrays carry no meaningful order.
     /// </summary>
-    private static readonly List<string> kUnorderedRequestTaskFields = new() { "owners", "elements" };
+    private static readonly List<string> kUnorderedRequestTaskFields = ["owners", "elements"];
 
     private readonly ApiConnection apiConnection;
 

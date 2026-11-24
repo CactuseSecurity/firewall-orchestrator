@@ -51,6 +51,10 @@ namespace FWO.Services.Workflow
                     Title = reqTask.Title,
                     TaskNumber = reqTask.TaskNumber,
                     TaskType = reqTask.TaskType,
+                    RequestAction = reqTask.RequestAction,
+                    RuleAction = reqTask.RuleAction,
+                    Tracking = reqTask.Tracking,
+                    SelectedDevices = reqTask.SelectedDevices,
                     Owners = [new() { Owner = owner }],
                     Reason = reqTask.Reason,
                     ManagementId = reqTask.ManagementId,
@@ -245,7 +249,7 @@ namespace FWO.Services.Workflow
             wfHandler.ActTicket = new WfTicket()
             {
                 StateId = stateId,
-                Title = ticketTitle + wfHandler.Devices.FirstOrDefault(x => x.Id == deviceId)?.Name ?? "",
+                Title = ticketTitle + wfHandler.Devices.FirstOrDefault(x => x.Id == deviceId)?.Name,
                 Requester = userConfig.User,
                 Reason = ticketReason,
                 Priority = priority,

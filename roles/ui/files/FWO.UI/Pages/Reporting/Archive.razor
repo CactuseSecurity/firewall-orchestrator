@@ -8,7 +8,7 @@
 @page "/report/archive"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
 
-<Sidebar @ref="archiveSidebar" Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
+<Sidebar Collapsible="true" Resizeable="true" PositionLeft="true" @bind-Width="sidebarLeftWidth" >
     <div class="p-3 mt-2">
         <h5 class="text-start">@(userConfig.GetText("report_type"))</h5>
         <Dropdown ElementType="ReportType" ElementToString="DisplayArchiveReportType" SelectedElement="selectedReportType"
@@ -112,7 +112,6 @@
     private FwoOwner? selectedOwner = null;
     private List<FwoOwner> availableOwnersList = [];
     private List<FwoOwner> ownerList = [];
-    private Sidebar? archiveSidebar;
     private int sidebarLeftWidth = GlobalConst.kSidebarLeftWidth;
     private ReportFile reportFileContext = new();
     private bool ShowDeleteReportFileDialog = false;

@@ -164,7 +164,7 @@ namespace FWO.Test
                 IpEnd = "10.0.0.1/32",
                 CustomType = 1
             };
-            List<ModellingAppServer> available = new List<ModellingAppServer>();
+            List<ModellingAppServer> available = [];
             ModellingAppServerHandler handler = new(
                 apiConn,
                 CreateUserConfig(),

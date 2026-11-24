@@ -114,7 +114,7 @@ namespace FWO.Services
         /// <param name="importId">Import identifier that scopes the data.</param>
         protected virtual Dictionary<string, object> CreateQueryVariables(int offset, int limit, string query, List<int>? relevantManagementIDs = null, long? importId = null)
         {
-            Dictionary<string, object> queryVariables = new();
+            Dictionary<string, object> queryVariables = [];
 
             if (query.Contains(QueryVar.ImportIdStart))
             {

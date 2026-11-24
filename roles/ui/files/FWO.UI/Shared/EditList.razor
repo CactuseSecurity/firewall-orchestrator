@@ -55,10 +55,10 @@
 	[Parameter]
     public EventCallback ElementsRemoved { get; set; }
 
-	private string StdClass = "bg-success-subtle list-group-item pb-2 pt-2";
-	private string AltClass = "draggable-selected pb-0 pt-0";
-	private string AltElemClass = "col-sm-11";
-	private string AltButtonClass = "col-sm-1 align-self-center";
+	private readonly string StdClass = "bg-success-subtle list-group-item pb-2 pt-2";
+	private readonly string AltClass = "draggable-selected pb-0 pt-0";
+	private readonly string AltElemClass = "col-sm-11";
+	private readonly string AltButtonClass = "col-sm-1 align-self-center";
 
 	private void ToggleRemoval(int index)
 	{

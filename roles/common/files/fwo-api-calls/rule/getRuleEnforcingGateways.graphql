@@ -1,0 +1,20 @@
+query getRuleEnforcingGateways($managementId: Int!, $ruleUids: [String!]!, $ruleLimit: Int!) {
+  firewall_rule(
+    limit: $ruleLimit
+    where: {
+      mgm_id: { _eq: $managementId }
+      rule_uid: { _in: $ruleUids }
+      removed: { _is_null: true }
+      access_rule: { _eq: true }
+    }
+    order_by: { rule_id: asc }
+  ) {
+    rule_uid
+    rule_enforced_on_gateways(where: { removed: { _is_null: true } }, order_by: { device: { dev_name: asc } }) {
+      device {
+        id: dev_id
+        name: dev_name
+      }
+    }
+  }
+}

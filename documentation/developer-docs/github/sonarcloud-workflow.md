@@ -13,6 +13,17 @@ The role-duration callback tests stub Ansible's callback base class, so they run
 Do not add Ansible to `scripts/requirements.txt`: the installer deploys that file into the
 customizing venv on every middleware host.
 
+Both workflows are the only place in CI where the C# unit tests (`FWO.Test`, `Debug`) run: Sonar
+needs their coverage, so the FWO Test Install workflow does not run them a second time (see
+[test-install-workflow.md](test-install-workflow.md#where-each-kind-of-test-runs)). A failing test
+fails the job before the analysis ends, so a red **SonarQube Analyze PR** is either a failed test or
+a failed quality gate; the log of the "Build and analyze pull request" step shows which.
+
+For a pull request from a fork whose owner is not in `SONAR_TRUSTED_FORK_OWNERS`, the job stops at
+"Gate trusted PR sources", before the build, so no C# unit test runs for it before the merge. The
+required check stays red for such a pull request, so a maintainer has to look at it in any case.
+Running the tests for untrusted forks would need an unprivileged workflow of its own.
+
 ## Branch analysis (`sonarcloud.yml`)
 
 Runs on pushes to `main` and `develop` and on manual dispatch. It analyzes the pushed branch and
@@ -35,6 +46,29 @@ the quality gate and is a required status check for `develop`, so the gate (amon
 Like every `pull_request_target` workflow, it runs the workflow file of the default branch `main`, not the version
 in the pull request or in `develop`. Changes to `sonarcloud-pr.yml` therefore take effect for pull requests only
 once they have reached `main`.
+
+### Rules enforced by the build
+
+Rules that the code base is free of are raised to `warning` in the root [`.editorconfig`](../../../.editorconfig).
+Because [`roles/Directory.Build.props`](../../../roles/Directory.Build.props) sets `TreatWarningsAsErrors` and
+`EnforceCodeStyleInBuild`, a new finding fails the local build instead of showing up in SonarCloud later.
+
+| Build rule | SonarCloud rule | Checks |
+| --- | --- | --- |
+| CA1822 | (imported) | members that can be `static` (private and internal members only) |
+| CA1825, CA1829, CA1854, CA1860, CA1861, CA2263, SYSLIB1045 | (imported) | performance and modernization rules of the .NET analyzers |
+| CA1052 | S1118 | classes with only static members are `static` or `sealed` |
+| CA2201 | S112 | no `throw new Exception(...)` |
+| CA2208 | S3928 | argument exceptions name a real parameter |
+| IDE0044 | S2933 | fields that are only set in the constructor are `readonly` |
+| IDE0051, IDE0052 | S1144, S4487 | no unused or never read private members |
+| IDE0060 | S1172 | no unused parameters in non-public methods |
+| IDE0028, IDE0037, IDE0059 | (imported) | collection expressions, inferred member names, no unnecessary assignments |
+
+`EnforceCodeStyleInBuild` makes the build report every IDE rule whose default severity is "suggestion", and SonarCloud
+imports these as `external_roslyn` issues. IDE0028, IDE0037 and IDE0059 are such rules, so they are locked as well.
+Only add a rule there once all its findings are fixed, otherwise the build breaks. The build does not check Razor
+markup and `@code` blocks, so SonarCloud still reports those findings there.
 
 ### Required Actions policy
 

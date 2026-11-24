@@ -6,6 +6,10 @@
   - the report job skips whole elapsed intervals of daily and weekly schedules instead of stepping through them one by one, so a start time far in the past no longer costs noticeable time on every check
   - the schedule page refuses to save a repeated schedule with an offset below 1
   - database: new constraint `report_schedule_repeat_positive` on `report_schedule`, default offset 1; the upgrade sets the offset of existing repeated schedules below 1 to 1 and deactivates them, so their owners review them before they run again
+- importer: the total time limit of a config file download (30 minutes) is also enforced while a read is blocked (#5415)
+  - covers the proxy and TLS handshakes, the response headers and the body, including compressed data that never decodes to any content
+  - a download cut off at the limit is reported as a failed import, never processed truncated
+  - a redirect is rejected without reading its body (GHSA-8xmf-c89r-584p)
 - notifications: new setting email priority (Low, Normal, High) per notification (`notification.email_priority`, default Normal); Low and High set the email headers Importance, Priority and X-Priority, Normal sets none; applies to all notifications edited in the notification editor, including workflow action emails; report schedule emails stay at Normal
 - UI: consistent settings layout, movable and resizable popups, login position
   - settings pages share a two-column row layout (new `SettingsRow` component): all inputs of a page are aligned, small Bootstrap controls with width presets, switches for yes/no settings, check box groups in a wrapping grid; migrated: defaults, personal, user, password, password policy, email, importer, logging, notifications, report, recertification, compliance, modelling notifications, modelling, workflow customizing, change trigger, app data import, internet, network matrix and the external request settings in workflow customizing; the edit dialogs behind list pages keep their layout for now

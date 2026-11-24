@@ -105,7 +105,7 @@ namespace FWO.Basics
         public const string kStyleDeleted = "color: red; text-decoration: line-through red;";
         public const string kStyleAdded = "color: green; text-decoration: bold;";
         public const string kStyleMissing = kStyleHighlightedRed;
-        public const string kStyleSurplus = "color: #b35900;";
+        public const string kStyleSurplus = "color: darkorange;";
 
         // root owned, outside the fworch home; keep in step with fworch_browser_dir (inventory/group_vars/all.yml)
         public const string ChromeBinPathLinux = "/usr/local/lib/fworch";

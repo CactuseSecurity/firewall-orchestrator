@@ -1,6 +1,11 @@
 # Firewall Orchestrator Revision History
 
-## 9.9.5 - 24.11.2026
+## 9.9.5 - 21.11.2026
+- security fix: a report schedule repeated with an offset below 1 (e.g. "every 0 days") made the scheduled report job loop endlessly, so no scheduled report ran any more (GHSA-6mh5-c5hj-qjwp)
+  - the report job skips such a schedule and logs an error; the other schedules of the run are processed
+  - the report job skips whole elapsed intervals of daily and weekly schedules instead of stepping through them one by one, so a start time far in the past no longer costs noticeable time on every check
+  - the schedule page refuses to save a repeated schedule with an offset below 1
+  - database: new constraint `report_schedule_repeat_positive` on `report_schedule`, default offset 1; the upgrade sets the offset of existing repeated schedules below 1 to 1 and deactivates them, so their owners review them before they run again
 - UI: consistent settings layout, movable and resizable popups, login position
   - settings pages share a two-column row layout (new `SettingsRow` component): all inputs of a page are aligned, small Bootstrap controls with width presets, switches for yes/no settings, check box groups in a wrapping grid; migrated: defaults, personal, user, password, password policy, email, importer, logging, notifications, report, recertification, compliance, modelling notifications, modelling, workflow customizing, change trigger, app data import, internet, network matrix and the external request settings in workflow customizing; the edit dialogs behind list pages keep their layout for now
   - popups can be moved by their top strip and resized by a handle in the lower right corner (not for full screen popups, extra small popups only movable); a moved or resized popup is kept inside the window when the window shrinks; title and round close button stay visible while the popup body scrolls

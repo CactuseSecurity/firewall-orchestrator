@@ -56,6 +56,15 @@ namespace FWO.Middleware.Server
         ];
 
         /// <summary>
+        /// External states that may stay without a mapping to an internal state: the request task then keeps its state
+        /// </summary>
+        private static readonly List<string> kOptionallyMappedStates =
+        [
+            ExtStates.ExtReqRequested.ToString(),
+            ExtStates.ExtReqInProgress.ToString()
+        ];
+
+        /// <summary>
         /// constructor for object with all data necessary for request handling
         /// </summary>
         public ExternalRequestHandler(UserConfig userConfig, ApiConnection apiConnection)
@@ -119,6 +128,28 @@ namespace FWO.Middleware.Server
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Takes over a state of a request that does not finish it, e.g. "in progress" reported by the external ticket
+        /// system, into its request tasks. Unlike HandleStateChange the request is neither acknowledged nor is the
+        /// provisioning continued. Requests of implementation tasks (firewall write) are not handled here
+        /// (called by scheduler after state change).
+        /// </summary>
+        public async Task HandleProgress(ExternalRequest externalRequest)
+        {
+            if (externalRequest.ImplTaskId != null)
+            {
+                return;
+            }
+            WfTicket? intTicket = await InitAndResolve(externalRequest.TicketId);
+            if (intTicket == null)
+            {
+                Log.WriteError("External Request Update", $"Ticket {externalRequest.TicketId} not found.");
+                return;
+            }
+            wfHandler.SetTicketEnv(intTicket);
+            await UpdateTicket(intTicket, externalRequest);
         }
 
         /// <summary>
@@ -416,7 +447,7 @@ namespace FWO.Middleware.Server
 
             if (internalStateId == null)
             {
-                if (extReqState == ExtStates.ExtReqRequested.ToString())
+                if (kOptionallyMappedStates.Contains(extReqState))
                 {
                     return false;
                 }

@@ -398,8 +398,14 @@ namespace FWO.Middleware.Server
                 ticketIdResponse.Content.Contains("Unable to rollback against JDBC Connection");
         }
 
+        /// <summary>
+        /// Polls the state of a request from the external ticket system. A finished request is handed to the workflow;
+        /// any other state only when it changed (e.g. from requested to in progress), so a request staying in progress
+        /// does not load and write its ticket in every cycle.
+        /// </summary>
         private async Task RefreshState(ExternalRequest request)
         {
+            string previousState = request.ExtRequestState;
             (request.ExtRequestState, request.LastMessage) = await PollState(request);
             await UpdateRequestProcess(request);
 
@@ -407,6 +413,27 @@ namespace FWO.Middleware.Server
             {
                 using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
                 await extReqHandler.HandleStateChange(request);
+            }
+            else if (request.ExtRequestState != previousState)
+            {
+                await SyncProgress(request);
+            }
+        }
+
+        /// <summary>
+        /// Takes over a changed state that does not finish the request into the workflow. A failure is only logged: the
+        /// request itself is processed further, the next finishing state updates the ticket again.
+        /// </summary>
+        private async Task SyncProgress(ExternalRequest request)
+        {
+            try
+            {
+                using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
+                await extReqHandler.HandleProgress(request);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(LogMessageTitle, $"{RequestInfo(request)}: state {request.ExtRequestState} could not be taken over into the ticket.", exception);
             }
         }
 

@@ -678,7 +678,8 @@ namespace FWO.Middleware.Server
             {
                 Body = body,
                 Bcc = bccs,
-                Cc = ccs
+                Cc = ccs,
+                Priority = notification.EmailPriority
             };
             if (attachment != null)
             {

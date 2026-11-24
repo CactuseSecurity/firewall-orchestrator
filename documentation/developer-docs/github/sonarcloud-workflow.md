@@ -19,6 +19,13 @@ needs their coverage, so the FWO Test Install workflow does not run them a secon
 fails the job before the analysis ends, so a red **SonarQube Analyze PR** is either a failed test or
 a failed quality gate; the log of the "Build and analyze pull request" step shows which.
 
+The C# coverage of the AI server projects under `roles/ai` comes from their own test project
+`FWO.Ai.Tests` (report `coverage-ai.xml`). The pull request analysis runs it only if the project
+exists in the checked-out pull request, because `pull_request_target` always takes this workflow
+file from the base branch, also for pull requests that do not contain the project. For the same
+reason, a change to the steps of `sonarcloud-pr.yml` only takes effect for pull requests once it is
+on the base branch.
+
 For a pull request from a fork whose owner is not in `SONAR_TRUSTED_FORK_OWNERS`, the job stops at
 "Gate trusted PR sources", before the build, so no C# unit test runs for it before the merge. The
 required check stays red for such a pull request, so a maintainer has to look at it in any case.

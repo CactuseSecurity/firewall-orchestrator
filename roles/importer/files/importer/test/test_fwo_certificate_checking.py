@@ -170,7 +170,7 @@ class TestResolveManagementVerify:
 class TestFileImportVerify:
     @staticmethod
     def read_remote_file(monkeypatch: pytest.MonkeyPatch) -> FakeSession:
-        monkeypatch.setattr(fwo_file_import.requests, "Session", FakeSession)
+        monkeypatch.setattr(fwo_file_import, "UnfollowedRedirectSession", FakeSession)
         import_state = ImportState()
         import_state.import_file_name = "https://config.example/config.json"
 

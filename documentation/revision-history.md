@@ -9,6 +9,7 @@
 - importer: the total time limit of a config file download (30 minutes) is also enforced while a read is blocked (#5415)
   - covers the proxy and TLS handshakes, the response headers and the body, including compressed data that never decodes to any content
   - a download cut off at the limit is reported as a failed import, never processed truncated
+  - a redirect is rejected without reading its body (GHSA-8xmf-c89r-584p)
 
 
 ## 9.9.4 - 17.11.2026

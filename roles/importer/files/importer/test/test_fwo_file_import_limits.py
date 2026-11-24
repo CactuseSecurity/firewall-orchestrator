@@ -39,7 +39,7 @@ GZIP_HEADER_WITH_FILE_NAME = bytes([0x1F, 0x8B, 0x08, 0x08, 0, 0, 0, 0, 0, 0xFF]
 ZLIB_HEADER = bytes([0x78, 0x9C])
 EMPTY_STORED_DEFLATE_BLOCK = bytes([0x00, 0x00, 0x00, 0xFF, 0xFF])
 TLS_HANDSHAKE_RECORD_HEADER = bytes([0x16, 0x03, 0x03, 0x40, 0x00])  # announces 16 KiB of handshake data
-REAL_SESSION = requests.Session
+REAL_SESSION = fwo_file_import.UnfollowedRedirectSession
 
 
 class FakeResponse:
@@ -154,7 +154,7 @@ class FakeSession:
 def fake_session(monkeypatch: pytest.MonkeyPatch) -> None:
     FakeSession.response = FakeResponse()
     FakeSession.get_kwargs = {}
-    monkeypatch.setattr(fwo_file_import.requests, "Session", FakeSession)
+    monkeypatch.setattr(fwo_file_import, "UnfollowedRedirectSession", FakeSession)
     monkeypatch.setattr(fwo_globals, "verify_certs", True)
 
 
@@ -282,7 +282,7 @@ class TestReceivedChunks:
 
 @pytest.fixture
 def real_session(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(fwo_file_import.requests, "Session", REAL_SESSION)
+    monkeypatch.setattr(fwo_file_import, "UnfollowedRedirectSession", REAL_SESSION)
     monkeypatch.setattr(fwo_file_import, "CONFIG_FILE_READ_TIMEOUT", SOCKET_TIMEOUT)
     monkeypatch.setattr(fwo_file_import, "FWO_HTTP_CONNECT_TIMEOUT", SOCKET_TIMEOUT)
     for variable in ("http_proxy", "https_proxy", "all_proxy", "no_proxy"):
@@ -398,6 +398,26 @@ class TestDownloadDeadline:
         monkeypatch.setenv(f"{scheme}_proxy", f"http://127.0.0.1:{port}")
 
         assert_download_aborts_at_deadline(f"{scheme}://config.example/config.json")
+
+        assert client_gone.wait(DEADLINE_TOLERANCE)
+
+
+@pytest.mark.usefixtures("real_session")
+class TestRedirect:
+    @pytest.mark.parametrize("status_code", [301, 302, 303, 307, 308])
+    def test_redirect_is_rejected_without_reading_its_body(self, status_code: int) -> None:
+        # the announced body is never sent, so reading any of it would run into the deadline
+        client_gone = threading.Event()
+        head = (
+            f"HTTP/1.1 {status_code} Redirect\r\nLocation: http://127.0.0.1:8880/\r\nContent-Length: 100\r\n\r\n"
+        ).encode()
+        port = serve_once(head, [], 0, client_gone)
+
+        with pytest.raises(
+            ConfigFileRejectedError,
+            match=re.escape(f"HTTP {status_code} redirect to http://127.0.0.1:8880/ is not followed"),
+        ):
+            fwo_file_import.download_config_file(f"http://127.0.0.1:{port}/", total_timeout=DEADLINE)
 
         assert client_gone.wait(DEADLINE_TOLERANCE)
 

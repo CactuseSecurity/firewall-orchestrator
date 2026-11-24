@@ -148,7 +148,7 @@ def fetch_config_file(url: str, deadline: "DownloadDeadline") -> bytes:
     A redirect is rejected rather than followed, so the importer only ever connects to the
     configured host; the configured URL has to point to the file itself.
     """
-    with requests.Session() as session:
+    with UnfollowedRedirectSession() as session:
         adapter = DeadlineAdapter(deadline)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
@@ -177,6 +177,18 @@ def fetch_config_file(url: str, deadline: "DownloadDeadline") -> bytes:
                     f"declared size of {declared_length} bytes exceeds the limit of {CONFIG_FILE_MAX_BYTES} bytes"
                 )
             return read_bounded(iter_received_chunks(response.raw), total_timeout=deadline.total_timeout)
+
+
+class UnfollowedRedirectSession(requests.Session):
+    """
+    Leaves a redirect to the caller, without reading its body.
+
+    With allow_redirects=False, requests still prepares the next request of a redirect, and reads and decompresses the
+    whole body for it. No limit of the caller applies to that, not even with stream=True.
+    """
+
+    def get_redirect_target(self, resp: requests.Response) -> str | None:  # noqa: ARG002
+        return None
 
 
 class DownloadDeadline:

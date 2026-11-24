@@ -320,11 +320,21 @@ namespace FWO.Middleware.Server.Controllers
                 GlobalConst.kWorkflow, AlertCode.WorkflowAlert, new AlertHelper.AdditionalAlertData());
         }
 
+        /// <summary>
+        /// Creates the workflow handler of an action request. It loads the whole ticket regardless of the
+        /// caller's visibility groups: the caller is authorized separately on the object that triggered the
+        /// request (phase role, ticket owner, visibility, offered action or persisted transition), and the
+        /// configured actions then act on behalf of the workflow engine. Loading the ticket as the caller
+        /// would hide request tasks from actions such as "Create implementation tasks".
+        /// </summary>
         private WfHandler CreateWorkflowHandler(ApiConnection actionApiConnection, UserConfig userConfig, WorkflowPhases phase, WorkflowActionResult result)
         {
             return new WfHandler(userConfig, actionApiConnection, phase, null, new ComplianceRequestedRulePolicyChecker(userConfig, actionApiConnection),
                 (exception, title, message, errorFlag) => AddWorkflowMessage(result, exception, title, message, errorFlag),
-                new WorkflowRecipientResolver(actionApiConnection, ldaps));
+                new WorkflowRecipientResolver(actionApiConnection, ldaps))
+            {
+                SystemContext = true
+            };
         }
 
         private static void AddWorkflowMessage(WorkflowActionResult result, Exception? exception, string title, string message, bool errorFlag)
@@ -552,13 +562,37 @@ namespace FWO.Middleware.Server.Controllers
                 return true;
             }
 
-            StateMatrix stateMatrix = scope == WfObjectScopes.Ticket ? wfHandler.MasterStateMatrix : wfHandler.ActStateMatrix;
             HashSet<int> visibilityGroupIds = GetClaimIds(user, "x-hasura-workflow-visibility-groups");
+            if (statefulObject is WfTicket ticket && ticket.Tasks.Count > 0)
+            {
+                return CallerCanAccessAnyTaskOfTicket(user, wfHandler, ticket, visibilityGroupIds);
+            }
+
+            StateMatrix stateMatrix = scope == WfObjectScopes.Ticket ? wfHandler.MasterStateMatrix : wfHandler.ActStateMatrix;
             if (WorkflowVisibilityHelper.CanAccessStatefulObject(statefulObject, stateMatrix, visibilityGroupIds, wfHandler.GetWorkflowExclusiveVisibilityGroupIds()))
             {
                 return true;
             }
             return await IsExplicitlyAssigned(user, actionApiConnection, statefulObject);
+        }
+
+        /// <summary>
+        /// Applies the rule of the ticket list to a ticket with request tasks: the ticket is visible as soon as one
+        /// of its request tasks, implementation tasks or approvals is, whatever state the ticket itself stands in.
+        /// A caller working on such a task moves the ticket state and triggers its actions, so the ticket scope has
+        /// to accept the same callers.
+        /// </summary>
+        private static bool CallerCanAccessAnyTaskOfTicket(ClaimsPrincipal user, WfHandler wfHandler, WfTicket ticket, HashSet<int> visibilityGroupIds)
+        {
+            return wfHandler.IsAnyTaskOfTicketVisible(ticket, visibilityGroupIds)
+                || ticket.Tasks.Any(reqTask => IsTaskDirectlyAssignedToCaller(user, reqTask));
+        }
+
+        private static bool IsTaskDirectlyAssignedToCaller(ClaimsPrincipal user, WfReqTask reqTask)
+        {
+            return IsExplicitlyAssignedToUserOrGroups(user, reqTask, kNoGroups)
+                || reqTask.ImplementationTasks.Any(implTask => IsExplicitlyAssignedToUserOrGroups(user, implTask, kNoGroups))
+                || reqTask.Approvals.Any(approval => IsExplicitlyAssignedToUserOrGroups(user, approval, kNoGroups));
         }
 
         /// <summary>

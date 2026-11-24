@@ -670,7 +670,9 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>UI und Middleware protokollieren bei An- und Abmeldungen die tats&auml;chliche Adresse des Clients statt 127.0.0.1 bzw. der Adresse des UI-Servers. Anmeldungen &uuml;ber die UI werden dadurch je Client-Adresse begrenzt (Standard: 30 Versuche pro Minute); Benutzer hinter einer gemeinsamen Adresse (NAT, Terminalserver, vorgeschalteter Reverse Proxy) teilen sich dieses Limit.</li>
     <li>Modellierung: Der Report &quot;Modell: Soll-Ist&quot;, der Verbindungsstatus (&quot;Status aktualisieren&quot; und die Hintergrund-Analyse) und die Beantragung analysieren nun dieselben Verbindungen auf dieselbe Weise und beachten einheitlich die Einstellung &quot;Gel&ouml;schte App Server ausrollen&quot;. Verbindungen mit Modellierungsproblemen (z.B. leere App-Rollen, gel&ouml;schte Objekte, nicht nutzbare Schnittstellen) f&uuml;hrt der Report mit Grund unter &quot;Nicht analysierte Verbindungen&quot; auf; ihr Verbindungsstatus zeigt kein Soll-Ist-Ergebnis mehr. Reine Dokumentations-Verbindungen werden im Report nicht mehr verglichen. Mit der Option &quot;Gruppen aufl&ouml;sen&quot; z&auml;hlt eine Gruppe in Produktion mit zus&auml;tzlichen Mitgliedern als Abweichung, eine Gruppe mit genau den modellierten Mitgliedern dagegen nicht.</li>
     <li>Ger&auml;tespezifische Einstellungen k&ouml;nnen von Administratoren als Datei exportiert, auf eine andere Installation importiert und als benannte Versionen gespeichert werden. Ebenen werden &uuml;ber Namen statt Datenbank-IDs angesprochen, Anmeldedaten &uuml;ber ihren Namen, Geheimnisse werden nie exportiert. Der Import pr&uuml;ft die ganze Datei, zeigt die &Auml;nderungen je Ebene als Vorschau und schreibt sie in einem Schritt (Zusammenf&uuml;hren oder Ersetzen). Dieselben Funktionen bietet die REST-Schnittstelle unter <code>/api/DeviceSpecificSettings</code>.</li>
+    <li>Benachrichtigungen: F&uuml;r jede Email-Benachrichtigung kann eine Email-Priorit&auml;t (Niedrig, Normal, Hoch) eingestellt werden. Niedrig und Hoch setzen die Header Importance, Priority und X-Priority, die g&auml;ngige Email-Programme als Markierung anzeigen.</li>
     <li>Workflow: Die Referenz auf ein Ticket eines vorgelagerten Workflows (z.B. bei Anlage &uuml;ber die API) kann angezeigt werden. Ist in den Workflow-Anpassungen eine Bezeichnung (z.B. &quot;ChangeId&quot;) eingetragen, erscheint die Referenz im Ticket-Dialog, als Spalte der Ticketliste und in der &Uuml;berschrift der Auftragsansichten.</li>
+    <li>Oberfl&auml;che: Dialoge lassen sich am oberen Rand verschieben und &uuml;ber die rechte untere Ecke in der Gr&ouml;&szlig;e &auml;ndern; Titel und Schlie&szlig;en-Knopf bleiben beim Scrollen sichtbar. Die Einstellungsseiten haben ein einheitliches Layout mit b&uuml;ndig ausgerichteten Eingabefeldern, Schaltern f&uuml;r Ja/Nein-Einstellungen und gruppierten Auswahlfeldern. Das Anmeldefeld steht im oberen Drittel der Seite.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -703,7 +705,9 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>UI and middleware log the real address of the client with logins and logouts instead of 127.0.0.1 or the address of the UI server. Logins through the UI are thereby limited per client address (default: 30 attempts per minute); users behind one shared address (NAT, terminal server, an upstream reverse proxy) share that limit.</li>
     <li>Modelling: the report &quot;Model: Variances&quot;, the connection state (&quot;Refresh State&quot; and the background analysis) and the request now analyse the same connections in the same way and all follow the setting &quot;Rollout removed App Servers&quot;. The report lists connections with modelling issues (e.g. empty app roles, deleted objects, unusable interfaces) with their reason under &quot;Connections not analysed&quot;; their connection state no longer shows a variance result. Documentation-only connections are no longer compared in the report. With the option &quot;Resolve Groups&quot;, a production group with additional members counts as a difference, while a group with exactly the modelled members does not.</li>
     <li>Admins can export the device specific settings as file, import them into another installation and store them as named snapshots. Levels are addressed by name instead of database IDs, credentials by their name, secrets are never exported. The import checks the whole file, previews the changes per level and writes them in one step (merge or replace). The REST interface offers the same functions under <code>/api/DeviceSpecificSettings</code>.</li>
+    <li>Notifications: an email priority (low, normal, high) can be set for each email notification. Low and high set the headers Importance, Priority and X-Priority, which common email clients display as a marker.</li>
     <li>Workflow: the reference to a ticket of a preceding workflow (e.g. when created via the API) can be displayed. If a label (e.g. &quot;ChangeId&quot;) is entered in Workflow Customizing, the reference is shown in the ticket dialog, as a column of the ticket list and in the headline of the task views.</li>
+    <li>User interface: dialogs can be moved by their top edge and resized by their lower right corner; title and close button stay visible while scrolling. The settings pages have a uniform layout with aligned input fields, switches for yes/no settings and grouped check boxes. The login form is placed in the upper third of the page.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3794,6 +3798,10 @@ INSERT INTO txt VALUES ('existing_violation_hidden_by_filter_not_assessable', 'G
 INSERT INTO txt VALUES ('existing_violation_hidden_by_filter_not_assessable', 'English', 'Not assessable (existing violation hidden by filter setting)');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','German', 'Relevante Managements');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','English','Relevant managements');
+INSERT INTO txt VALUES ('complianceCheckElementsPerFetch','German', 'Pro Abruf geladene Elemente');
+INSERT INTO txt VALUES ('complianceCheckElementsPerFetch','English','Elements per fetch');
+INSERT INTO txt VALUES ('complianceCheckAvailableProcessors','German', 'Verf&uuml;gbare Prozessoren');
+INSERT INTO txt VALUES ('complianceCheckAvailableProcessors','English','Available processors');
 INSERT INTO txt VALUES ('autoCalcInternetZone','German', 'Internetzone automatisch berechnen');
 INSERT INTO txt VALUES ('autoCalcInternetZone','English','Auto-calculate internet zone');
 INSERT INTO txt VALUES ('add_auto_calculated_internet_zone', 'German', 'Auto-berechnete Internetzone hinzuf&uuml;gen');
@@ -3903,6 +3911,14 @@ INSERT INTO txt VALUES ('send_and_log',         'German', 	'Senden und protokoll
 INSERT INTO txt VALUES ('send_and_log',         'English',  'Send and log');
 INSERT INTO txt VALUES ('log_only',             'German', 	'Nur protokollieren');
 INSERT INTO txt VALUES ('log_only',             'English',  'Log only');
+INSERT INTO txt VALUES ('email_priority',       'German', 	'Email-Priorit&auml;t');
+INSERT INTO txt VALUES ('email_priority',       'English',  'Email priority');
+INSERT INTO txt VALUES ('email_priority_low',   'German', 	'Niedrig');
+INSERT INTO txt VALUES ('email_priority_low',   'English',  'Low');
+INSERT INTO txt VALUES ('email_priority_normal','German', 	'Normal');
+INSERT INTO txt VALUES ('email_priority_normal','English',  'Normal');
+INSERT INTO txt VALUES ('email_priority_high',  'German', 	'Hoch');
+INSERT INTO txt VALUES ('email_priority_high',  'English',  'High');
 INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bearbeiten');
 INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
 INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
@@ -6580,6 +6596,8 @@ INSERT INTO txt VALUES ('H4110', 'German',  'Email-Inhalt: Text der Benachrichti
 INSERT INTO txt VALUES ('H4110', 'English', 'Email body: Text of the notification. For layouts without attachment, the @@CONTENT@@ placeholder can be used to insert caller-provided content, for example a rejection reason. The placeholders @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_NAME@@, @@INTERFACE_LINK@@, @@NEW_INTERFACE_NAME@@, @@NEW_INTERFACE_LINK@@, @@REASON@@, @@USER_NAME@@ and @@REQUESTDATE@@ are replaced when the caller provides the respective context.');
 INSERT INTO txt VALUES ('H4111', 'German',  'Protokollierungsmodus: Legt fest, ob eine Benachrichtigung nur gesendet, nur protokolliert oder beides gemacht wird.');
 INSERT INTO txt VALUES ('H4111', 'English', 'Logging mode: Defines whether a notification is sent only, logged only, or both.');
+INSERT INTO txt VALUES ('H4112', 'German',  'Email-Priorit&auml;t: Priorit&auml;t, mit der die Email verschickt wird. Bei "Hoch" oder "Niedrig" werden die Header Importance, Priority und X-Priority gesetzt, die g&auml;ngige Email-Programme (z.B. Outlook, Thunderbird, Apple Mail) als Markierung anzeigen; manche (z.B. Gmail) ignorieren sie. "Normal" setzt keine Header.');
+INSERT INTO txt VALUES ('H4112', 'English', 'Email priority: Priority with which the email is sent. With "High" or "Low" the headers Importance, Priority and X-Priority are set, which common email clients (e.g. Outlook, Thunderbird, Apple Mail) display as a marker; some (e.g. Gmail) ignore them. "Normal" sets no headers.');
 
 INSERT INTO txt VALUES ('H5001', 'German',  'In diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
     Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.

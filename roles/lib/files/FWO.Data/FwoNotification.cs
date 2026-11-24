@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using FWO.Basics.Enums;
 using Newtonsoft.Json;
 
 namespace FWO.Data
@@ -155,6 +156,7 @@ namespace FWO.Data
             LastSent = notification.LastSent;
             Logging = notification.Logging;
             Active = notification.Active;
+            EmailPriority = notification.EmailPriority;
         }
 
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -247,6 +249,9 @@ namespace FWO.Data
 
         [JsonProperty("active"), JsonPropertyName("active")]
         public bool Active { get; set; } = true;
+
+        [JsonProperty("email_priority"), JsonPropertyName("email_priority")]
+        public EmailPriority EmailPriority { get; set; } = EmailPriority.Normal;
 
 
         public static List<NotificationDeadline> OfferedDeadlineOptions(NotificationClient client)

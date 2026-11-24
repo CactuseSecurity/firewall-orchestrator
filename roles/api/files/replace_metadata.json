@@ -13049,7 +13049,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ]
                   },
                   "comment": ""
@@ -13086,7 +13087,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "set": {
                       "user_id": "x-hasura-user-id"
@@ -13126,7 +13128,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "set": {
                       "user_id": "x-hasura-user-id"
@@ -13166,7 +13169,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "set": {
                       "user_id": "x-hasura-user-id"
@@ -13206,7 +13210,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "set": {
                       "user_id": "x-hasura-user-id"
@@ -13247,7 +13252,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "notification_client": {
@@ -13288,7 +13294,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {}
                   },
@@ -13325,7 +13332,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "notification_client": {
@@ -13366,7 +13374,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {}
                   },
@@ -13403,7 +13412,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "_or": [
@@ -13453,7 +13463,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "notification_client": {
@@ -13494,7 +13505,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "_or": [
@@ -13544,7 +13556,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "_or": [
@@ -13594,7 +13607,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "_or": [
@@ -13644,7 +13658,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "notification_client": {
@@ -13685,7 +13700,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "notification_client": {
@@ -13728,7 +13744,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "_and": [
@@ -13785,7 +13802,8 @@
                     "columns": [
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {},
                     "check": {}
@@ -13823,7 +13841,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "_or": [
@@ -13887,7 +13906,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "_or": [
@@ -13951,7 +13971,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "_or": [
@@ -14015,7 +14036,8 @@
                       "user_id",
                       "last_sent",
                       "logging",
-                      "active"
+                      "active",
+                      "email_priority"
                     ],
                     "filter": {
                       "_or": [

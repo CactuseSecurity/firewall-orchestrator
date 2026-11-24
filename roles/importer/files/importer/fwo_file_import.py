@@ -2,12 +2,16 @@
 read config from file
 """
 
+import contextlib
 import json
+import socket
+import threading
 import time
 import traceback
 from collections.abc import Iterable, Iterator
 from pathlib import Path
-from typing import Any
+from types import TracebackType
+from typing import Any, cast
 
 import fwo_globals
 import requests
@@ -26,6 +30,8 @@ from model_controllers.fwconfigmanagerlist_controller import (
     FwConfigManagerListController,
 )
 from models.import_state import ImportState
+from requests.adapters import HTTPAdapter
+from urllib3.connection import HTTPConnection
 
 """
     supported input formats:
@@ -110,14 +116,42 @@ def read_file(fwo_api_call: FwoApiCall, import_state: ImportState) -> dict[str, 
         raise ConfigFileNotFoundError(f"unspecified error while reading config file {import_state.import_file_name}")
 
 
-def download_config_file(url: str) -> bytes:
+def download_config_file(url: str, total_timeout: float = CONFIG_FILE_TOTAL_TIMEOUT) -> bytes:
     """
     Download a config file without following redirects and within the size and time limits.
+
+    The total time limit covers the proxy and TLS handshakes, the response headers and the body, also while a read is
+    blocked, e.g. by a server that stops sending or by compressed data that never decodes to any content (urllib3 keeps
+    reading in that case without returning). Resolving the host name and establishing the TCP connection cannot be
+    interrupted: they are limited by the resolver and by FWO_HTTP_CONNECT_TIMEOUT per address, and a connection
+    established after the deadline is cut off at once.
+
+    A download cut off at the deadline is rejected rather than returned truncated, whatever error the interrupted read
+    raised.
+    """
+    with DownloadDeadline(total_timeout) as deadline:
+        try:
+            content = fetch_config_file(url, deadline)
+        except Exception as error:
+            if not deadline.expired.is_set():
+                raise
+            raise deadline.rejection() from error
+        if deadline.expired.is_set():
+            raise deadline.rejection()
+        return content
+
+
+def fetch_config_file(url: str, deadline: "DownloadDeadline") -> bytes:
+    """
+    Fetch a config file over connections the deadline can cut off.
 
     A redirect is rejected rather than followed, so the importer only ever connects to the
     configured host; the configured URL has to point to the file itself.
     """
-    with requests.Session() as session:
+    with UnfollowedRedirectSession() as session:
+        adapter = DeadlineAdapter(deadline)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
         session.headers.update({"Content-Type": "application/json"})
         # set per management by the import state; fail closed when it was never set
         session.verify = (
@@ -142,7 +176,122 @@ def download_config_file(url: str) -> bytes:
                 raise ConfigFileRejectedError(
                     f"declared size of {declared_length} bytes exceeds the limit of {CONFIG_FILE_MAX_BYTES} bytes"
                 )
-            return read_bounded(iter_received_chunks(response.raw))
+            return read_bounded(iter_received_chunks(response.raw), total_timeout=deadline.total_timeout)
+
+
+class UnfollowedRedirectSession(requests.Session):
+    """
+    Leaves a redirect to the caller, without reading its body.
+
+    With allow_redirects=False, requests still prepares the next request of a redirect, and reads and decompresses the
+    whole body for it. No limit of the caller applies to that, not even with stream=True.
+    """
+
+    def get_redirect_target(self, resp: requests.Response) -> str | None:  # noqa: ARG002
+        return None
+
+
+class DownloadDeadline:
+    """
+    Shuts the connections of a download down when its total time limit is exceeded.
+
+    Shutting a socket down wakes a read blocked on it in another thread, which closing it does not reliably do.
+    Duplicates of the sockets are shut down, as urllib3 and http.client hand the original over to the TLS layer or drop
+    it while the download is still running. The TLS state of a connection is left to the reading thread.
+    """
+
+    def __init__(self, total_timeout: float) -> None:
+        self.total_timeout = total_timeout
+        self.expired = threading.Event()
+        self._sockets: list[socket.socket] = []
+        self._lock = threading.Lock()
+        self._finished = False
+        self._timer = threading.Timer(total_timeout, self.expire)
+        self._timer.daemon = True
+
+    def __enter__(self) -> "DownloadDeadline":  # noqa: PYI034 - typing.Self needs Python 3.11
+        self._timer.start()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback_: TracebackType | None,
+    ) -> None:
+        # under the lock, so no socket is shut down after the download has finished with it
+        with self._lock:
+            self._finished = True
+            self._timer.cancel()
+            for sock in self._sockets:
+                sock.close()
+            self._sockets.clear()
+
+    def attach(self, sock: socket.socket) -> None:
+        """Cut the connection of this socket off at the deadline, or at once if the deadline has passed already."""
+        with self._lock:
+            if self._finished:
+                return
+            duplicate = socket.fromfd(sock.fileno(), sock.family, sock.type)
+            self._sockets.append(duplicate)
+            if self.expired.is_set():
+                shut_down(duplicate)
+
+    def expire(self) -> None:
+        """Cut the download off, unless it has finished already."""
+        with self._lock:
+            if self._finished:
+                return
+            self.expired.set()
+            for sock in self._sockets:
+                shut_down(sock)
+
+    def rejection(self) -> ConfigFileRejectedError:
+        return ConfigFileRejectedError(f"config file download exceeds the limit of {self.total_timeout} seconds")
+
+
+class DeadlineAdapter(HTTPAdapter):
+    """Attaches every connection of a session to a deadline, whether it goes to the server directly or via a proxy."""
+
+    def __init__(self, deadline: DownloadDeadline) -> None:
+        super().__init__()
+        self.deadline = deadline
+
+    def get_connection_with_tls_context(
+        self,
+        request: requests.PreparedRequest,
+        verify: bool | str,
+        proxies: dict[str, str] | None = None,
+        cert: tuple[str, str] | str | None = None,
+    ) -> urllib3.HTTPConnectionPool:
+        pool = super().get_connection_with_tls_context(request, verify, proxies, cert)
+        connection_class = cast("type[HTTPConnection]", pool.ConnectionCls)
+        # urllib3 types the attribute with a protocol its own connection classes do not match
+        pool.ConnectionCls = cast("Any", with_deadline(connection_class, self.deadline))
+        return pool
+
+
+def with_deadline(connection_class: type[HTTPConnection], deadline: DownloadDeadline) -> type[HTTPConnection]:
+    """
+    Return a connection class that attaches its socket to the deadline as soon as the TCP connection is established.
+
+    urllib3 has no public hook at this point: connect() only returns after the proxy and TLS handshakes, which the
+    server can delay as well.
+    """
+
+    class DeadlineConnection(connection_class):
+        def _new_conn(self) -> socket.socket:
+            sock = super()._new_conn()
+            deadline.attach(sock)
+            return sock
+
+    return DeadlineConnection
+
+
+def shut_down(sock: socket.socket) -> None:
+    # an OSError means the connection is closed already, so no read can be blocked on it
+    with contextlib.suppress(OSError):
+        sock.shutdown(socket.SHUT_RDWR)
 
 
 def iter_received_chunks(raw: urllib3.response.BaseHTTPResponse) -> Iterator[bytes]:

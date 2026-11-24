@@ -3674,6 +3674,8 @@ INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'German',   'Adresse
 INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'English',  'Address could not be read');
 INSERT INTO txt VALUES ('flow_creation_ineligible_flow_object', 'German',   'Flow-Objekt wird im Antragsmodul nicht mehr angeboten');
 INSERT INTO txt VALUES ('flow_creation_ineligible_flow_object', 'English',  'Flow object is no longer offered in the request module');
+INSERT INTO txt VALUES ('flow_creation_time_object_end_required', 'German',   'Zeitobjekte brauchen ein Enddatum, ein Startdatum allein wird nicht übernommen');
+INSERT INTO txt VALUES ('flow_creation_time_object_end_required', 'English',  'Time objects need an end date, a start date alone is not taken over');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'German',   ' Modellierungsobjekte aktualisiert');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'English',  ' modelling objects updated');
 INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');

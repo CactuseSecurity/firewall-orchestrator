@@ -17,6 +17,8 @@ namespace FWO.Services.Workflow
         private readonly string timeObjectPrecision;
         private readonly string timeObjectOriginSuffixes;
         private readonly bool timeObjectEndOnly;
+        private const string kTimeObjectEndRequiredTextKey = "flow_creation_time_object_end_required";
+
         private readonly List<FlowCreationRefusal> refusals = [];
 
         /// <summary>
@@ -109,6 +111,53 @@ namespace FWO.Services.Workflow
             accessTimeElement.Name = definingTimeElement.Name;
             accessTimeElement.StartTime = definingTimeElement.StartTime;
             accessTimeElement.EndTime = definingTimeElement.EndTime;
+        }
+
+        /// <summary>
+        /// With end-only time objects, refuses every flow-relevant task or time element that has a start but no
+        /// end date: dropping the start would leave no bound at all and create an unrestricted flow.
+        /// </summary>
+        /// <param name="statefulObject">The ticket or request task the flow is created for.</param>
+        /// <param name="scope">The scope of the workflow action.</param>
+        /// <returns>True when no time bound had to be refused.</returns>
+        private bool HasValidEndOnlyTimeBounds(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            if (!timeObjectEndOnly)
+            {
+                return true;
+            }
+
+            List<WfReqTask> tasks = scope switch
+            {
+                WfObjectScopes.Ticket when statefulObject is WfTicket ticket => [.. ticket.Tasks.Where(IsFlowRelevantTask)],
+                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => [reqTask],
+                _ => []
+            };
+
+            int refusalsBefore = refusals.Count;
+            foreach (WfReqTask task in tasks)
+            {
+                if (task.TargetBeginDate.HasValue && !task.TargetEndDate.HasValue)
+                {
+                    RefuseTimeBounds(task.Title, $"request task {task.Id} has a start but no end date");
+                }
+                foreach (WfReqElement element in task.Elements.Where(IsStartOnlyTimeElement))
+                {
+                    RefuseTimeBounds(element.Name ?? task.Title, $"time element {element.Id} has a start but no end date");
+                }
+            }
+            return refusals.Count == refusalsBefore;
+        }
+
+        private static bool IsStartOnlyTimeElement(WfReqElement element)
+        {
+            return element.Field == ElemFieldType.time.ToString() && element.StartTime.HasValue && !element.EndTime.HasValue;
+        }
+
+        private void RefuseTimeBounds(string refusedValue, string logDetail)
+        {
+            Log.WriteWarning(LogMessageTitle, $"Refused Flow creation: {logDetail}.");
+            refusals.Add(new FlowCreationRefusal { ReasonTextKey = kTimeObjectEndRequiredTextKey, RefusedValue = refusedValue });
         }
 
         private static FlowCreationPayload BuildRequestTaskFlowPayload(WfReqTask task, FwoOwner? owner, long? ticketId,

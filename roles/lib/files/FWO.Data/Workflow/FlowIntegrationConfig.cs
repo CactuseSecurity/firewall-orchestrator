@@ -135,11 +135,11 @@ namespace FWO.Data.Workflow
                 ? precision!
                 : FlowIntegrationTimePrecisionOptions.Seconds;
         }
-         private static string NormalizeTimeObjectBounds(string? bounds)
+        private static string NormalizeTimeObjectBounds(string? bounds)
         {
             return FlowIntegrationTimeObjectBoundsOptions.All.Contains(bounds ?? "")
                 ? bounds!
                 : FlowIntegrationTimeObjectBoundsOptions.StartAndEnd;
         }
-   }
+    }
 }

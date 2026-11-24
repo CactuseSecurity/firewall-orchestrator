@@ -7784,6 +7784,7 @@
                               "aiCompactionReserveTokens",
                               "aiAuthMethod",
                               "aiTokenUrl",
+                              "aiCustomHeaders",
                               "aiChat",
                               "aiReasonCheck",
                               "aiChatRoles",

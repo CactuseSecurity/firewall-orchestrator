@@ -53,6 +53,16 @@ internal class UiSettingsAiTest
     private static readonly List<string> kModellerAndAdminRoles = [Roles.Modeller, Roles.Admin];
     private static readonly List<string> kAdminAndModellerRoles = [Roles.Admin, Roles.Modeller];
     private static readonly List<string> kMarkupPayloadRoles = [kMarkupPayload];
+    private const string kSaveButtonSelector = "div.btn-group button";
+    private const string kCustomHeaderAddSelector = "#aiCustomHeaderAdd";
+    private const string kCustomHeaderNamePrefix = "aiCustomHeaderName";
+    private const string kCustomHeaderValuePrefix = "aiCustomHeaderValue";
+    private const string kCustomHeaderRemovePrefix = "aiCustomHeaderRemove";
+    private const string kProfileHeader = "ki-services-profile-name";
+    private const string kProfileValue = "com_1659_test";
+    private const string kIssuerHeader = "token-issuer";
+    private const string kIssuerValue = "keycloak";
+    private static readonly List<string> kProfileAndIssuerHeaders = [kProfileHeader, kIssuerHeader];
 
     /// <summary>
     /// Verifies that an admin can save.
@@ -63,7 +73,8 @@ internal class UiSettingsAiTest
         await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), CreateGlobalConfig());
         IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
 
-        wrapper.WaitForAssertion(() => Assert.That(wrapper.Find("button").HasAttribute("disabled"), Is.False));
+        wrapper.WaitForState(() => wrapper.FindAll(kSaveButtonSelector).Count == 1 && !wrapper.Find(kSaveButtonSelector).HasAttribute("disabled"));
+        Assert.That(wrapper.Find(kSaveButtonSelector).HasAttribute("disabled"), Is.False);
     }
 
     /// <summary>
@@ -75,7 +86,132 @@ internal class UiSettingsAiTest
         await using BunitContext context = CreateContext(Roles.Auditor, CreateApiConnection(), CreateGlobalConfig());
         IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
 
-        wrapper.WaitForAssertion(() => Assert.That(wrapper.Find("button").HasAttribute("disabled"), Is.True));
+        wrapper.WaitForState(() => wrapper.FindAll(kSaveButtonSelector).Count == 1 && wrapper.Find(kSaveButtonSelector).HasAttribute("disabled"));
+        Assert.That(wrapper.Find(kSaveButtonSelector).HasAttribute("disabled"), Is.True);
+    }
+
+    /// <summary>
+    /// Verifies that rows of additional headers can be added, edited and removed, the remaining row keeping its values.
+    /// </summary>
+    [Test]
+    public async Task SettingsAi_AddsEditsAndRemovesCustomHeaders()
+    {
+        await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), CreateGlobalConfig());
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+        wrapper.WaitForState(() => wrapper.FindAll(kChatRolesInputSelector).Count == 1);
+
+        wrapper.Find(kCustomHeaderAddSelector).Click();
+        wrapper.Find(kCustomHeaderAddSelector).Click();
+        wrapper.Find(GetCustomHeaderSelector(kCustomHeaderNamePrefix, 0)).Change(kProfileHeader);
+        wrapper.Find(GetCustomHeaderSelector(kCustomHeaderValuePrefix, 0)).Change(kProfileValue);
+        wrapper.Find(GetCustomHeaderSelector(kCustomHeaderNamePrefix, 1)).Change(kIssuerHeader);
+        wrapper.Find(GetCustomHeaderSelector(kCustomHeaderValuePrefix, 1)).Change(kIssuerValue);
+        List<string> namesBeforeRemoval = [.. GetAiSettings(wrapper).CustomHeaders.Select(header => header.Name)];
+        wrapper.Find(GetCustomHeaderSelector(kCustomHeaderRemovePrefix, 0)).Click();
+
+        List<AiCustomHeader> headers = GetAiSettings(wrapper).CustomHeaders;
+        Assert.Multiple(() =>
+        {
+            Assert.That(namesBeforeRemoval, Is.EqualTo(kProfileAndIssuerHeaders));
+            Assert.That(headers.Single().Name, Is.EqualTo(kIssuerHeader));
+            Assert.That(headers.Single().Value, Is.EqualTo(kIssuerValue));
+            Assert.That(wrapper.FindAll(GetCustomHeaderSelector(kCustomHeaderNamePrefix, 1)), Is.Empty);
+            Assert.That(wrapper.Find(GetCustomHeaderSelector(kCustomHeaderNamePrefix, 0)).GetAttribute("value"), Is.EqualTo(kIssuerHeader));
+            Assert.That(wrapper.Find(GetCustomHeaderSelector(kCustomHeaderValuePrefix, 0)).GetAttribute("value"), Is.EqualTo(kIssuerValue));
+        });
+    }
+
+    /// <summary>
+    /// Verifies that stored headers are shown in their inputs as text, so that markup in a value is not executed.
+    /// </summary>
+    [Test]
+    public async Task SettingsAi_ShowsStoredCustomHeadersAsText()
+    {
+        SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+        List<AiCustomHeader> storedHeaders = [new AiCustomHeader { Name = kIssuerHeader, Value = kMarkupPayload }];
+        globalConfig.AiCustomHeaders = AiCustomHeaderList.Serialize(storedHeaders);
+        await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), globalConfig);
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+        wrapper.WaitForState(() => wrapper.FindAll(GetCustomHeaderSelector(kCustomHeaderValuePrefix, 0)).Count == 1);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(wrapper.Find(GetCustomHeaderSelector(kCustomHeaderNamePrefix, 0)).GetAttribute("value"), Is.EqualTo(kIssuerHeader));
+            Assert.That(wrapper.Find(GetCustomHeaderSelector(kCustomHeaderValuePrefix, 0)).GetAttribute("value"), Is.EqualTo(kMarkupPayload));
+            Assert.That(wrapper.FindAll("img"), Is.Empty);
+            Assert.That(wrapper.Find(kCustomHeaderAddSelector).HasAttribute("disabled"), Is.False);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that no header can be added once the maximum number of headers is reached.
+    /// </summary>
+    [Test]
+    public async Task SettingsAi_WithMaximumOfCustomHeaders_DisablesAdd()
+    {
+        SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+        List<AiCustomHeader> storedHeaders = [.. Enumerable.Range(0, AiCustomHeaderList.kMaxHeaders)
+            .Select(index => new AiCustomHeader { Name = $"x-header-{index}", Value = kIssuerValue })];
+        globalConfig.AiCustomHeaders = AiCustomHeaderList.Serialize(storedHeaders);
+        await using BunitContext context = CreateContext(Roles.Admin, CreateApiConnection(), globalConfig);
+        IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+        string lastRowSelector = GetCustomHeaderSelector(kCustomHeaderNamePrefix, AiCustomHeaderList.kMaxHeaders - 1);
+        wrapper.WaitForState(() => wrapper.FindAll(lastRowSelector).Count == 1);
+
+        Assert.That(wrapper.Find(kCustomHeaderAddSelector).HasAttribute("disabled"), Is.True);
+    }
+
+    /// <summary>
+    /// Verifies that the additional headers are stored without the rows left blank.
+    /// </summary>
+    [Test]
+    public async Task Save_StoresCustomHeaders()
+    {
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+        RecordingSettingsApiConn apiConnection = CreateApiConnection();
+        SettingsAi component = CreateComponent(apiConnection, CreateGlobalConfig(), messages);
+        await InvokePrivateTask(component, "OnInitializedAsync");
+        AiSettings settings = CreateValidAnthropicSettings();
+        settings.CustomHeaders.Add(new AiCustomHeader { Name = $" {kProfileHeader} ", Value = kProfileValue });
+        settings.CustomHeaders.Add(new AiCustomHeader());
+        settings.CustomHeaders.Add(new AiCustomHeader { Name = kIssuerHeader, Value = kIssuerValue });
+        SetMember(component, "aiSettings", settings);
+
+        await InvokePrivateTask(component, "Save");
+
+        string? storedHeaders = apiConnection.LastUpsertConfigItems.Single(item => item.Key == AiSettings.kCustomHeadersKey).Value;
+        Assert.Multiple(() =>
+        {
+            Assert.That(messages.Single().IsError, Is.False);
+            Assert.That(AiCustomHeaderList.TryParse(storedHeaders, out List<AiCustomHeader> readHeaders), Is.True);
+            Assert.That(readHeaders.Select(header => header.Name), Is.EqualTo(kProfileAndIssuerHeaders));
+        });
+    }
+
+    /// <summary>
+    /// Verifies that a header carrying credentials is not stored, and that the problem is shown with its text.
+    /// </summary>
+    [Test]
+    public async Task Save_WithReservedCustomHeader_ShowsProblemAndStoresNothing()
+    {
+        List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+        RecordingSettingsApiConn apiConnection = CreateApiConnection();
+        SettingsAi component = CreateComponent(apiConnection, CreateGlobalConfig(), messages);
+        await InvokePrivateTask(component, "OnInitializedAsync");
+        AiSettings settings = CreateValidAnthropicSettings();
+        settings.CustomHeaders.Add(new AiCustomHeader { Name = "x-api-key", Value = kProfileValue });
+        SetMember(component, "aiSettings", settings);
+
+        await InvokePrivateTask(component, "Save");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(apiConnection.UpsertConfigCallCount, Is.Zero);
+            Assert.That(messages.Single().IsError, Is.True);
+            Assert.That(messages.Single().Message, Does.Contain(AiSettingsProblemTexts.GetTextKey(AiSettingsProblem.CustomHeaderNameReserved)));
+        });
     }
 
     /// <summary>
@@ -507,6 +643,28 @@ internal class UiSettingsAiTest
 
         Assert.That(InvokePrivate<string>(component, "GetProviderName", AiProvider.None), Is.EqualTo("None"));
         Assert.That(InvokePrivate<string>(component, "GetProviderName", AiProvider.Google), Is.EqualTo("Google"));
+    }
+
+    /// <summary>
+    /// Returns the CSS selector of an element of the row of an additional header.
+    /// </summary>
+    private static string GetCustomHeaderSelector(string idPrefix, int rowIndex)
+    {
+        return $"#{idPrefix}{rowIndex}";
+    }
+
+    /// <summary>
+    /// Creates valid settings of Anthropic with the API key credential of the tests.
+    /// </summary>
+    private static AiSettings CreateValidAnthropicSettings()
+    {
+        return new AiSettings
+        {
+            Provider = AiProvider.Anthropic,
+            Model = kModel,
+            CredentialId = kApiKeyCredentialId,
+            ContextWindowTokens = 200000
+        };
     }
 
     private static RecordingSettingsApiConn CreateApiConnection()

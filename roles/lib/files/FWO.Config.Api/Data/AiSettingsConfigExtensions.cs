@@ -10,7 +10,8 @@ namespace FWO.Config.Api.Data
     {
         /// <summary>
         /// Returns a copy of the AI settings of the config. A function with an unreadable role filter is returned switched
-        /// off, as the AI harness treats it, see <see cref="AiFunctionRoles.TryParse"/>.
+        /// off, as the AI harness treats it, see <see cref="AiFunctionRoles.TryParse"/>. Unreadable additional headers are
+        /// returned as none, so that storing the settings replaces them; the harness refuses them until then.
         /// </summary>
         /// <param name="config">Config holding the AI settings</param>
         /// <returns>The AI settings.</returns>
@@ -19,6 +20,7 @@ namespace FWO.Config.Api.Data
             ArgumentNullException.ThrowIfNull(config);
             bool chatRolesReadable = AiFunctionRoles.TryParse(config.AiChatRoles, out List<string> chatRoles);
             bool reasonCheckRolesReadable = AiFunctionRoles.TryParse(config.AiReasonCheckRoles, out List<string> reasonCheckRoles);
+            _ = AiCustomHeaderList.TryParse(config.AiCustomHeaders, out List<AiCustomHeader> customHeaders);
             return new AiSettings
             {
                 Provider = config.AiProvider,
@@ -27,6 +29,7 @@ namespace FWO.Config.Api.Data
                 CredentialId = config.AiCredentialId,
                 AuthMethod = config.AiAuthMethod,
                 TokenUrl = config.AiTokenUrl,
+                CustomHeaders = customHeaders,
                 ContextWindowTokens = config.AiContextWindowTokens,
                 MaxOutputTokens = config.AiMaxOutputTokens,
                 MaxIterationsPerRequest = config.AiMaxIterationsPerRequest,
@@ -40,7 +43,7 @@ namespace FWO.Config.Api.Data
         }
 
         /// <summary>
-        /// Sets the AI settings of the config; texts are stored trimmed.
+        /// Sets the AI settings of the config; texts are stored trimmed, additional headers without blank rows.
         /// </summary>
         /// <param name="config">Config to change</param>
         /// <param name="settings">AI settings to store</param>
@@ -54,6 +57,7 @@ namespace FWO.Config.Api.Data
             config.AiCredentialId = settings.CredentialId;
             config.AiAuthMethod = settings.AuthMethod;
             config.AiTokenUrl = settings.TokenUrl.Trim();
+            config.AiCustomHeaders = AiCustomHeaderList.Serialize(settings.CustomHeaders);
             config.AiContextWindowTokens = settings.ContextWindowTokens;
             config.AiMaxOutputTokens = settings.MaxOutputTokens;
             config.AiMaxIterationsPerRequest = settings.MaxIterationsPerRequest;

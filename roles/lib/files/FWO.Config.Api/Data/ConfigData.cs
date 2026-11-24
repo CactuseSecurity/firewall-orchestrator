@@ -406,6 +406,13 @@ namespace FWO.Config.Api.Data
         [JsonProperty(AiSettings.kTokenUrlKey), JsonPropertyName(AiSettings.kTokenUrlKey)]
         public string AiTokenUrl { get; set; } = "";
 
+        /// <summary>
+        /// Additional HTTP headers sent to the AI provider as JSON array of objects with name and value, none if empty, see
+        /// <see cref="AiSettings.CustomHeaders"/>.
+        /// </summary>
+        [JsonProperty(AiSettings.kCustomHeadersKey), JsonPropertyName(AiSettings.kCustomHeadersKey)]
+        public string AiCustomHeaders { get; set; } = AiCustomHeaderList.kNone;
+
         /// <summary>Context window of the AI model, see <see cref="AiSettings.ContextWindowTokens"/>.</summary>
         [JsonProperty(AiSettings.kContextWindowTokensKey), JsonPropertyName(AiSettings.kContextWindowTokensKey)]
         public int AiContextWindowTokens { get; set; } = 0;

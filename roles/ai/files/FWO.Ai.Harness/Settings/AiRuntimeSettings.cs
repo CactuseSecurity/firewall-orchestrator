@@ -61,10 +61,12 @@ public sealed class AiRuntimeSettings
     }
 
     /// <summary>
-    /// Returns the settings of the AI provider: with the API key, or with the client credentials of OAuth 2.0.
+    /// Returns the settings of the AI provider: with the API key, or with the client credentials of OAuth 2.0, and with
+    /// the additional headers.
     /// </summary>
     /// <exception cref="ArgumentException">
-    /// The endpoint or the token URL is not an absolute URI, or OAuth 2.0 lacks the client id or secret.
+    /// The endpoint or the token URL is not an absolute URI, OAuth 2.0 lacks the client id or secret, or two additional
+    /// headers have the same name.
     /// </exception>
     public AiProviderSettings ToProviderSettings()
     {
@@ -75,6 +77,7 @@ public sealed class AiRuntimeSettings
             ApiKey = Values.RequiresApiKey ? Secret : null,
             OAuthClient = Values.UsesOAuth ? CreateOAuthClient() : null,
             Endpoint = ParseAbsoluteUri(Values.Endpoint, kEndpointPurpose),
+            CustomHeaders = CreateCustomHeaders(),
             ContextWindowTokens = Values.ContextWindowTokens,
             MaxOutputTokens = Values.MaxOutputTokens > 0 ? Values.MaxOutputTokens : null
         };
@@ -110,6 +113,16 @@ public sealed class AiRuntimeSettings
     }
 
     /// <summary>
+    /// Returns the additional headers by name, trimmed and without blank rows.
+    /// </summary>
+    /// <exception cref="ArgumentException">Two headers have the same name, ignoring case.</exception>
+    private Dictionary<string, string> CreateCustomHeaders()
+    {
+        List<AiCustomHeader> customHeaders = AiCustomHeaderList.Normalize(Values.CustomHeaders);
+        return customHeaders.ToDictionary(header => header.Name, header => header.Value, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Returns an absolute URI, null for an empty text.
     /// </summary>
     /// <exception cref="ArgumentException">The text is not an absolute URI; the text is not part of the message.</exception>
@@ -126,14 +139,15 @@ public sealed class AiRuntimeSettings
 
     /// <summary>
     /// Returns all values that decide about the agent factory, for <see cref="HasSameValues"/>; the switches and role
-    /// filters of the AI functions too, as the factory hands them to its agents. The role filters are compared in their
-    /// normalized stored form, as lists compare by reference.
+    /// filters of the AI functions too, as the factory hands them to its agents. The role filters and the additional
+    /// headers are compared in their normalized stored form, as lists compare by reference.
     /// </summary>
-    private (AiProvider, string, string, int, int, int, int, int, int, AiAuthMethod, string, string?, string?, string?, bool, bool, string, string) GetComparableValues()
+    private (AiProvider, string, string, int, int, int, int, int, int, AiAuthMethod, string, string?, string?, string?, bool, bool, string, string, string) GetComparableValues()
     {
         return (Values.Provider, Values.Model, Values.Endpoint, Values.CredentialId, Values.ContextWindowTokens, Values.MaxOutputTokens,
             Values.MaxIterationsPerRequest, Values.MaxConsecutiveErrorsPerRequest, Values.CompactionReserveTokens, Values.AuthMethod,
             Values.TokenUrl, ClientId, Secret, Problem, Values.ChatEnabled, Values.ReasonCheckEnabled,
-            AiFunctionRoles.Serialize(Values.ChatRoles), AiFunctionRoles.Serialize(Values.ReasonCheckRoles));
+            AiFunctionRoles.Serialize(Values.ChatRoles), AiFunctionRoles.Serialize(Values.ReasonCheckRoles),
+            AiCustomHeaderList.Serialize(Values.CustomHeaders));
     }
 }

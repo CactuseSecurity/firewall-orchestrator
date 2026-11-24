@@ -6,6 +6,8 @@ using Microsoft.Extensions.AI;
 using OllamaSharp;
 using OpenAI;
 using System.ClientModel;
+using System.ClientModel.Primitives;
+using AnthropicClientOptions = Anthropic.Core.ClientOptions;
 using OllamaOption = OllamaSharp.Models.OllamaOption;
 
 namespace FWO.Ai.Harness.Providers;
@@ -59,6 +61,7 @@ public static class ChatClientFactory
             throw new ArgumentException("A model is required.", nameof(settings));
         }
         ValidateTokenLimits(settings);
+        ValidateCustomHeaders(settings);
         if (settings.OAuthClient != null)
         {
             ValidateOAuth(settings, settings.OAuthClient);
@@ -124,6 +127,22 @@ public static class ChatClientFactory
     }
 
     /// <summary>
+    /// Checks the additional headers like the AI settings do, so that they can neither replace the headers carrying the
+    /// API key or the access token nor end the header line.
+    /// </summary>
+    /// <exception cref="ArgumentException">The headers are invalid; the message names the problems, not the values.</exception>
+    private static void ValidateCustomHeaders(AiProviderSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings.CustomHeaders, nameof(settings));
+        List<AiCustomHeader> customHeaders = [.. settings.CustomHeaders.Select(header => new AiCustomHeader { Name = header.Key, Value = header.Value })];
+        List<AiSettingsProblem> problems = AiCustomHeaderList.FindProblems(customHeaders);
+        if (problems.Count > 0)
+        {
+            throw new ArgumentException($"The additional headers are invalid: {string.Join(", ", problems)}.", nameof(settings));
+        }
+    }
+
+    /// <summary>
     /// Adds the defaults every request gets unless it sets them itself: the maximum number of output tokens, if
     /// configured, and for Ollama the context window. Returns the provider client unchanged if there is no default.
     /// </summary>
@@ -176,17 +195,22 @@ public static class ChatClientFactory
     }
 
     /// <summary>
-    /// Creates an Ollama client; the OllamaSharp client is a chat client itself.
+    /// Creates an Ollama client with the additional headers; the OllamaSharp client is a chat client itself.
     /// </summary>
     private static IChatClient CreateOllamaClient(AiProviderSettings settings)
     {
         Uri endpoint = settings.Endpoint ?? new Uri(kDefaultOllamaEndpoint);
-        return new OllamaApiClient(endpoint, settings.Model);
+        OllamaApiClient ollamaClient = new(endpoint, settings.Model);
+        foreach (KeyValuePair<string, string> header in settings.CustomHeaders)
+        {
+            ollamaClient.DefaultRequestHeaders[header.Key] = header.Value;
+        }
+        return ollamaClient;
     }
 
     /// <summary>
-    /// Creates an OpenAI client, for a custom OpenAI compatible endpoint if one is given; with the access token of
-    /// OAuth 2.0 if configured, else with the API key.
+    /// Creates an OpenAI client with the additional headers, for a custom OpenAI compatible endpoint if one is given; with
+    /// the access token of OAuth 2.0 if configured, else with the API key.
     /// </summary>
     private static IChatClient CreateOpenAiClient(AiProviderSettings settings)
     {
@@ -194,6 +218,10 @@ public static class ChatClientFactory
         if (settings.Endpoint != null)
         {
             clientOptions.Endpoint = settings.Endpoint;
+        }
+        if (settings.CustomHeaders.Count > 0)
+        {
+            clientOptions.AddPolicy(new CustomHeadersPolicy(settings.CustomHeaders), PipelinePosition.PerCall);
         }
         if (settings.OAuthClient != null)
         {
@@ -221,31 +249,56 @@ public static class ChatClientFactory
     }
 
     /// <summary>
-    /// Creates an Anthropic client, for a custom base URL if one is given.
+    /// Creates an Anthropic client with the additional headers, for a custom base URL if one is given. The SDK adds the
+    /// headers after the authentication headers and never lets them replace these.
     /// </summary>
     private static IChatClient CreateAnthropicClient(AiProviderSettings settings)
     {
-        // BaseUrl is init-only and must only be set if a custom one is given, otherwise the SDK default applies
-        string apiKey = GetApiKey(settings);
-        AnthropicClient anthropicClient = settings.Endpoint == null
-            ? new AnthropicClient { ApiKey = apiKey }
-            : new AnthropicClient { ApiKey = apiKey, BaseUrl = settings.Endpoint.ToString() };
+        AnthropicClientOptions clientOptions = new()
+        {
+            ApiKey = GetApiKey(settings),
+            ExtraHeaders = new Dictionary<string, string>(settings.CustomHeaders)
+        };
+        // BaseUrl must only be set if a custom one is given, otherwise the SDK default applies
+        if (settings.Endpoint != null)
+        {
+            clientOptions.BaseUrl = settings.Endpoint.ToString();
+        }
+        AnthropicClient anthropicClient = new(clientOptions);
         IChatClient chatClient = anthropicClient.AsIChatClient(settings.Model, settings.MaxOutputTokens);
         return new ProviderChatClient(chatClient, anthropicClient);
     }
 
     /// <summary>
-    /// Creates a Google client for the Gemini Developer API (not Vertex AI), for a custom base URL if one is given.
+    /// Creates a Google client for the Gemini Developer API (not Vertex AI), for a custom base URL and with the additional
+    /// headers if given.
     /// </summary>
     private static IChatClient CreateGoogleClient(AiProviderSettings settings)
     {
-        HttpOptions? httpOptions = null;
-        if (settings.Endpoint != null)
-        {
-            httpOptions = new HttpOptions { BaseUrl = settings.Endpoint.ToString() };
-        }
-        Google.GenAI.Client googleClient = new(vertexAI: false, apiKey: GetApiKey(settings), httpOptions: httpOptions);
+        Google.GenAI.Client googleClient = new(vertexAI: false, apiKey: GetApiKey(settings), httpOptions: CreateGoogleHttpOptions(settings));
         IChatClient chatClient = googleClient.AsIChatClient(settings.Model);
         return new ProviderChatClient(chatClient, googleClient);
+    }
+
+    /// <summary>
+    /// Returns the HTTP options of the Google client: the custom base URL and the additional headers, each only if given,
+    /// so that the SDK defaults apply otherwise; null if neither is given.
+    /// </summary>
+    private static HttpOptions? CreateGoogleHttpOptions(AiProviderSettings settings)
+    {
+        if (settings.Endpoint == null && settings.CustomHeaders.Count == 0)
+        {
+            return null;
+        }
+        HttpOptions httpOptions = new();
+        if (settings.Endpoint != null)
+        {
+            httpOptions.BaseUrl = settings.Endpoint.ToString();
+        }
+        if (settings.CustomHeaders.Count > 0)
+        {
+            httpOptions.Headers = new Dictionary<string, string>(settings.CustomHeaders);
+        }
+        return httpOptions;
     }
 }

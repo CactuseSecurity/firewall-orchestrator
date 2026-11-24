@@ -41,7 +41,25 @@ namespace FWO.Data.Ai
         OAuthEndpointMissing,
 
         /// <summary>The token URL of OAuth 2.0 is missing, not absolute, or plain http to a host that is not a loopback address.</summary>
-        TokenUrlInvalid
+        TokenUrlInvalid,
+
+        /// <summary>The stored additional headers are not a JSON array of headers.</summary>
+        CustomHeadersUnreadable,
+
+        /// <summary>There are more additional headers than <see cref="AiCustomHeaderList.kMaxHeaders"/>.</summary>
+        CustomHeadersTooMany,
+
+        /// <summary>The name of an additional header is missing, too long or contains characters a header name must not contain.</summary>
+        CustomHeaderNameInvalid,
+
+        /// <summary>An additional header would set a header carrying credentials or framing the HTTP message, e.g. Authorization.</summary>
+        CustomHeaderNameReserved,
+
+        /// <summary>Two additional headers have the same name, ignoring case.</summary>
+        CustomHeaderNameDuplicate,
+
+        /// <summary>The value of an additional header is missing, too long or contains characters other than visible ASCII, spaces and tabs.</summary>
+        CustomHeaderValueInvalid
     }
 
     /// <summary>
@@ -91,6 +109,9 @@ namespace FWO.Data.Ai
         /// <summary>Config key of <see cref="TokenUrl"/>.</summary>
         public const string kTokenUrlKey = "aiTokenUrl";
 
+        /// <summary>Config key of <see cref="CustomHeaders"/>.</summary>
+        public const string kCustomHeadersKey = "aiCustomHeaders";
+
         /// <summary>Config key of <see cref="ChatEnabled"/>.</summary>
         public const string kChatKey = "aiChat";
 
@@ -125,8 +146,14 @@ namespace FWO.Data.Ai
         [
             kProviderKey, kModelKey, kEndpointKey, kCredentialIdKey, kContextWindowTokensKey, kMaxOutputTokensKey,
             kMaxIterationsPerRequestKey, kMaxConsecutiveErrorsPerRequestKey, kCompactionReserveTokensKey, kAuthMethodKey, kTokenUrlKey,
-            kChatKey, kReasonCheckKey, kChatRolesKey, kReasonCheckRolesKey
+            kCustomHeadersKey, kChatKey, kReasonCheckKey, kChatRolesKey, kReasonCheckRolesKey
         ];
+
+        /// <summary>
+        /// Whether the stored additional headers could not be read by <see cref="FromConfigValues"/>; reported by
+        /// <see cref="Validate"/>, so that the harness does not talk to the provider without the headers it needs.
+        /// </summary>
+        private bool customHeadersUnreadable;
 
         /// <summary>Provider to talk to; <see cref="AiProvider.None"/> if the AI functions are not available.</summary>
         public AiProvider Provider { get; set; } = AiProvider.None;
@@ -151,6 +178,12 @@ namespace FWO.Data.Ai
         /// used with <see cref="AiAuthMethod.OAuth2ClientCredentials"/>.
         /// </summary>
         public string TokenUrl { get; set; } = "";
+
+        /// <summary>
+        /// Additional HTTP headers sent with every request to the provider, e.g. the profile an API gateway in front of the
+        /// model needs; none by default. Not sent to the token URL. Stored in plain text, see <see cref="AiCustomHeaderList"/>.
+        /// </summary>
+        public List<AiCustomHeader> CustomHeaders { get; set; } = [];
 
         /// <summary>Context window of the model in tokens; required and positive.</summary>
         public int ContextWindowTokens { get; set; }
@@ -230,6 +263,8 @@ namespace FWO.Data.Ai
             settings.CredentialId = ReadNumber(configValues, kCredentialIdKey, settings.CredentialId);
             settings.AuthMethod = ReadEnum(configValues, kAuthMethodKey, settings.AuthMethod);
             settings.TokenUrl = ReadText(configValues, kTokenUrlKey);
+            settings.customHeadersUnreadable = !AiCustomHeaderList.TryParse(ReadText(configValues, kCustomHeadersKey), out List<AiCustomHeader> customHeaders);
+            settings.CustomHeaders = customHeaders;
             settings.ContextWindowTokens = ReadNumber(configValues, kContextWindowTokensKey, settings.ContextWindowTokens);
             settings.MaxOutputTokens = ReadNumber(configValues, kMaxOutputTokensKey, settings.MaxOutputTokens);
             settings.MaxIterationsPerRequest = ReadNumber(configValues, kMaxIterationsPerRequestKey, settings.MaxIterationsPerRequest);
@@ -282,9 +317,23 @@ namespace FWO.Data.Ai
             }
             AddEndpointProblem(problems);
             AddOAuthProblems(problems);
+            AddCustomHeaderProblems(problems);
             AddTokenLimitProblems(problems);
             AddAgentLoopProblems(problems);
             return problems;
+        }
+
+        /// <summary>
+        /// Adds the problems of the additional headers, checked as they are stored: trimmed and without blank rows.
+        /// </summary>
+        private void AddCustomHeaderProblems(List<AiSettingsProblem> problems)
+        {
+            if (customHeadersUnreadable)
+            {
+                problems.Add(AiSettingsProblem.CustomHeadersUnreadable);
+                return;
+            }
+            problems.AddRange(AiCustomHeaderList.FindProblems(AiCustomHeaderList.Normalize(CustomHeaders)));
         }
 
         /// <summary>

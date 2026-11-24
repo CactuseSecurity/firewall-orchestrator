@@ -680,7 +680,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>In der Genehmigungsphase gibt es eine neue Detailansicht f&uuml;r Tickets: Zugriffs-, Objekt-, Gruppen- und Zeitobjekt-Auftr&auml;ge werden als Karten mit aufgel&ouml;sten oder technischen Details angezeigt. Je nach erlaubten &Auml;nderungen k&ouml;nnen einzelne Felder &uuml;ber eigene Bearbeitungsdialoge ge&auml;ndert werden; Zeitobjekte werden aus der Flow DB oder aus demselben Ticket ausgew&auml;hlt und mit der konfigurierten Genauigkeit dargestellt.</li>
     <li>Neuer Report-Typ &quot;Changes: NAT&quot; zeigt &Auml;nderungen an NAT-Regeln mit urspr&uuml;nglicher und umgesetzter Quelle, Ziel und Dienst. In den FW-&Auml;nderungstrigger-Einstellungen k&ouml;nnen eigene Email-Benachrichtigungen &uuml;ber NAT-Regel&auml;nderungen (inklusive &Auml;nderungen an in NAT-Regeln verwendeten Objekten) mit diesem Report angelegt werden.</li>
     <li>Modellierung: Die fachliche Begr&uuml;ndung einer Verbindung, die Beschreibung einer Schnittstelle oder die Begr&uuml;ndung einer Schnittstellennutzung kann per Schaltfl&auml;che von einer KI bewertet werden (stichhaltig, unzureichend, nicht stichhaltig), mit R&uuml;ckfragen an den Antragsteller und einem Verbesserungsvorschlag. Die Funktion wird in den KI-Einstellungen eingeschaltet, kann dort auf bestimmte Rollen beschr&auml;nkt werden und ben&ouml;tigt den KI-Server mit einem konfigurierten KI-Anbieter.</li>
-    <li>KI-Anbieter, Modell, Endpunkt und die Grenzen der Agentenschleife des KI-Servers werden auf der neuen Seite Einstellungen - KI-Einstellungen gepflegt. Der API-Schl&uuml;ssel wird als Zugangsdaten in der Zugangsdatenverwaltung gespeichert. F&uuml;r einen OpenAI-kompatiblen Server kann sich der KI-Server auch mit OAuth 2.0 (Client Credentials) anmelden: er holt ein Zugriffstoken von der Token-URL und sendet es als Bearer-Token.</li>
+    <li>KI-Anbieter, Modell, Endpunkt und die Grenzen der Agentenschleife des KI-Servers werden auf der neuen Seite Einstellungen - KI-Einstellungen gepflegt. Der API-Schl&uuml;ssel wird als Zugangsdaten in der Zugangsdatenverwaltung gespeichert. F&uuml;r einen OpenAI-kompatiblen Server kann sich der KI-Server auch mit OAuth 2.0 (Client Credentials) anmelden: er holt ein Zugriffstoken von der Token-URL und sendet es als Bearer-Token. Zus&auml;tzliche HTTP-Header, z.B. ein Profilname f&uuml;r ein API-Gateway vor dem Modell, k&ouml;nnen bei jeder Anfrage an den KI-Anbieter mitgesendet werden.</li>
     <li>KI-Chat: Ein Chat mit der KI ist auf jeder Seite &uuml;ber die Navigationsleiste erreichbar. Er liegt rechts &uuml;ber der Seite, l&auml;sst sich in der Breite &auml;ndern und minimieren, und die KI arbeitet mit den Rollen des Benutzers. Aktionen, die Daten &auml;ndern, f&uuml;hrt sie erst nach Freigabe durch den Benutzer aus. Der Chat wird in den KI-Einstellungen eingeschaltet und kann dort auf bestimmte Rollen beschr&auml;nkt werden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
@@ -704,7 +704,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>The approval phase now provides a ticket details view: access, object, group, and time-object tasks are shown as cards with resolved or technical details. Depending on the allowed changes, individual fields can be edited through dedicated dialogs; time objects are selected from the Flow DB or from the same ticket and displayed with the configured precision.</li>
     <li>New report type &quot;Changes: NAT&quot; shows NAT rule changes with original and translated source, destination and service. Separate email notifications about NAT rule changes (including changes of objects used in NAT rules) with this report can be defined in the FW change trigger settings.</li>
     <li>Modelling: The functional reason of a connection, the description of an interface or the reason of an interface usage can be assessed by an AI at the push of a button (genuine, insufficient, not genuine), with questions to the requester and a proposal for improvement. The feature is switched on in the AI settings, can be restricted to certain roles there and needs the AI server with a configured AI provider.</li>
-    <li>The AI provider, model, endpoint and the limits of the agent loop of the AI server are maintained on the new page Settings - AI Settings. The API key is stored as a credential in the credential management. For an OpenAI compatible server the AI server can log in with OAuth 2.0 (client credentials) too: it gets an access token from the token URL and sends it as bearer token.</li>
+    <li>The AI provider, model, endpoint and the limits of the agent loop of the AI server are maintained on the new page Settings - AI Settings. The API key is stored as a credential in the credential management. For an OpenAI compatible server the AI server can log in with OAuth 2.0 (client credentials) too: it gets an access token from the token URL and sends it as bearer token. Additional HTTP headers, e.g. a profile name for an API gateway in front of the model, can be sent with every request to the AI provider.</li>
     <li>AI chat: a chat with the AI can be reached on every page from the navigation bar. It lies on the right over the page, can be resized and minimized, and the AI works with the roles of the user. Actions that change data only run after the user approved them. The chat is switched on in the AI settings and can be restricted to certain roles there.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
@@ -2547,6 +2547,8 @@ INSERT INTO txt VALUES ('ai_token_url',         'German', 	'Token-URL');
 INSERT INTO txt VALUES ('ai_token_url',         'English', 	'Token URL');
 INSERT INTO txt VALUES ('ai_credential',        'German', 	'Zugangsdaten');
 INSERT INTO txt VALUES ('ai_credential',        'English', 	'Credential');
+INSERT INTO txt VALUES ('ai_custom_headers',    'German', 	'Zus&auml;tzliche HTTP-Header');
+INSERT INTO txt VALUES ('ai_custom_headers',    'English', 	'Additional HTTP headers');
 INSERT INTO txt VALUES ('ai_context_window_tokens', 'German', 'Kontextfenster (Tokens)');
 INSERT INTO txt VALUES ('ai_context_window_tokens', 'English', 'Context window (tokens)');
 INSERT INTO txt VALUES ('ai_max_output_tokens', 'German', 	'Max. Ausgabe-Tokens');
@@ -5376,6 +5378,18 @@ INSERT INTO txt VALUES ('E5313', 'German',  'Bei OAuth 2.0 bitte die Endpunkt-UR
 INSERT INTO txt VALUES ('E5313', 'English', 'For OAuth 2.0 please enter the endpoint URL of the OpenAI compatible server.');
 INSERT INTO txt VALUES ('E5314', 'German',  'Die Token-URL muss eine absolute https-URL sein; http ist nur f&uuml;r eine Loopback-Adresse erlaubt.');
 INSERT INTO txt VALUES ('E5314', 'English', 'The token URL must be an absolute https URL; http is only allowed for a loopback address.');
+INSERT INTO txt VALUES ('E5315', 'German',  'Die gespeicherten zus&auml;tzlichen HTTP-Header sind nicht lesbar. Bitte die Header neu eintragen und speichern.');
+INSERT INTO txt VALUES ('E5315', 'English', 'The stored additional HTTP headers cannot be read. Please enter the headers again and save.');
+INSERT INTO txt VALUES ('E5316', 'German',  'Es sind h&ouml;chstens 20 zus&auml;tzliche HTTP-Header erlaubt.');
+INSERT INTO txt VALUES ('E5316', 'English', 'At most 20 additional HTTP headers are allowed.');
+INSERT INTO txt VALUES ('E5317', 'German',  'Jeder zus&auml;tzliche HTTP-Header braucht einen Namen aus h&ouml;chstens 128 Zeichen: Buchstaben a-z und A-Z, Ziffern und Sonderzeichen wie - _ . ohne Leerzeichen.');
+INSERT INTO txt VALUES ('E5317', 'English', 'Each additional HTTP header needs a name of at most 128 characters: letters a-z and A-Z, digits and special characters like - _ . without spaces.');
+INSERT INTO txt VALUES ('E5318', 'German',  'Header mit Zugangsdaten (Authorization, Proxy-Authorization, Cookie, x-api-key, api-key, x-goog-api-key) und Header, die den Aufbau der Nachricht bestimmen (z.B. Host, Content-Type, Content-Length), k&ouml;nnen nicht gesetzt werden. Der API-Schl&uuml;ssel geh&ouml;rt in die Zugangsdaten.');
+INSERT INTO txt VALUES ('E5318', 'English', 'Headers carrying credentials (Authorization, Proxy-Authorization, Cookie, x-api-key, api-key, x-goog-api-key) and headers framing the message (e.g. Host, Content-Type, Content-Length) cannot be set. The API key belongs into the credential.');
+INSERT INTO txt VALUES ('E5319', 'German',  'Jeder zus&auml;tzliche HTTP-Header darf nur einmal vorkommen (ohne Beachtung der Gro&szlig;-/Kleinschreibung).');
+INSERT INTO txt VALUES ('E5319', 'English', 'Each additional HTTP header may occur only once (ignoring case).');
+INSERT INTO txt VALUES ('E5320', 'German',  'Jeder zus&auml;tzliche HTTP-Header braucht einen Wert aus h&ouml;chstens 2048 sichtbaren ASCII-Zeichen und Leerzeichen (keine Umlaute, keine Zeilenumbr&uuml;che).');
+INSERT INTO txt VALUES ('E5320', 'English', 'Each additional HTTP header needs a value of at most 2048 visible ASCII characters and spaces (no umlauts, no line breaks).');
 
 INSERT INTO txt VALUES ('E5401', 'German',  'Bitte das alte Passwort eintragen');
 INSERT INTO txt VALUES ('E5401', 'English', 'Please insert the old password');
@@ -7580,6 +7594,14 @@ INSERT INTO txt VALUES ('H5387', 'German',  'Rollen: Beschr&auml;nkt die Funktio
     Angeboten werden die Rollen des internen LDAP. Der KI-Server pr&uuml;ft die Rollen im Anmeldetoken des Nutzers; eine ge&auml;nderte Rollenzuordnung wirkt sich daher erst mit dem n&auml;chsten Token des Nutzers aus.');
 INSERT INTO txt VALUES ('H5387', 'English', 'Roles: restricts the function to users holding at least one of the selected roles. Without a selection (&quot;All&quot;) it is available to all users while it is switched on.
     The roles of the internal LDAP are offered. The AI server checks the roles in the login token of the user, so a changed role assignment only takes effect with the next token of the user.');
+INSERT INTO txt VALUES ('H5388', 'German',  'Zus&auml;tzliche HTTP-Header: Header, die der KI-Server bei jeder Anfrage an den Anbieter mitsendet, z.B. den Profilnamen, den ein API-Gateway vor dem Modell erwartet
+    (Name ki-services-profile-name, Wert mein-profil); nicht an die Token-URL. Zeilen ohne Name und Wert werden nicht gespeichert, h&ouml;chstens 20 Header.
+    Name und Wert werden unverschl&uuml;sselt in der globalen Konfiguration gespeichert, die f&uuml;r alle Nutzer lesbar ist: bitte keine Geheimnisse eintragen.
+    Header mit Zugangsdaten (Authorization, Proxy-Authorization, Cookie, x-api-key, api-key, x-goog-api-key) und Header, die den Aufbau der Nachricht bestimmen (z.B. Host, Content-Type), k&ouml;nnen nicht gesetzt werden.');
+INSERT INTO txt VALUES ('H5388', 'English', 'Additional HTTP headers: headers the AI server sends with every request to the provider, e.g. the profile name an API gateway in front of the model expects
+    (name ki-services-profile-name, value my-profile); not to the token URL. Rows without name and value are not stored, at most 20 headers.
+    Name and value are stored unencrypted in the global configuration, which all users can read: please do not enter secrets.
+    Headers carrying credentials (Authorization, Proxy-Authorization, Cookie, x-api-key, api-key, x-goog-api-key) and headers framing the message (e.g. Host, Content-Type) cannot be set.');
 INSERT INTO txt VALUES ('H5401', 'German',  'Der Admin kann verschiedene Standardwerte definieren, die dann f&uuml;r alle Nutzer gelten.<br>
     Manche von ihnen k&ouml;nnen in den individuellen Nutzereinstellungen &uuml;berschrieben werden.
 ');

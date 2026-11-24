@@ -25,6 +25,11 @@ internal class AiSettingsTest
     private static readonly List<string> kModellerRoles = [Roles.Modeller];
     private static readonly List<string> kReporterRoles = [Roles.Reporter];
     private static readonly List<string> kAdminAndModellerRoles = [Roles.Admin, Roles.Modeller];
+    private const string kStoredCustomHeaders = """[{"name":"ki-services-profile-name","value":"com_1659_test"},{"name":"token-issuer","value":"keycloak"}]""";
+    private static readonly List<string> kCustomHeaderNames = ["ki-services-profile-name", "token-issuer"];
+    private static readonly List<string> kCustomHeaderValues = ["com_1659_test", "keycloak"];
+    private static readonly List<AiSettingsProblem> kCustomHeadersUnreadable = [AiSettingsProblem.CustomHeadersUnreadable];
+    private static readonly List<AiSettingsProblem> kCustomHeaderNameReserved = [AiSettingsProblem.CustomHeaderNameReserved];
 
     /// <summary>
     /// Verifies that all items are read, the provider ignoring case and the texts trimmed.
@@ -585,7 +590,113 @@ internal class AiSettingsTest
             Assert.That(fromConfig.ReasonCheckRoles, Is.Empty);
             Assert.That(defaults.ChatRoles, Is.Empty);
             Assert.That(defaults.ReasonCheckRoles, Is.Empty);
+            Assert.That(new ConfigData().AiCustomHeaders, Is.EqualTo(AiCustomHeaderList.kNone));
+            Assert.That(fromConfig.CustomHeaders, Is.Empty);
+            Assert.That(defaults.CustomHeaders, Is.Empty);
         });
+    }
+
+    /// <summary>
+    /// Verifies that the additional headers are read from their key, normalized, and that settings with them are valid.
+    /// </summary>
+    [Test]
+    public void FromConfigValues_ReadsCustomHeaders()
+    {
+        Dictionary<string, string?> configValues = CreateValidConfigValues();
+        configValues[AiSettings.kCustomHeadersKey] = kStoredCustomHeaders;
+
+        AiSettings settings = AiSettings.FromConfigValues(configValues);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(AiSettings.kKeys, Does.Contain(AiSettings.kCustomHeadersKey));
+            Assert.That(settings.CustomHeaders.Select(header => header.Name), Is.EqualTo(kCustomHeaderNames));
+            Assert.That(settings.CustomHeaders.Select(header => header.Value), Is.EqualTo(kCustomHeaderValues));
+            Assert.That(settings.Validate(), Is.Empty);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that stored additional headers the harness cannot read make the settings invalid, so that the harness does
+    /// not talk to the provider without them.
+    /// </summary>
+    [TestCase("{not json")]
+    [TestCase("null")]
+    public void FromConfigValues_WithUnreadableCustomHeaders_IsInvalid(string storedHeaders)
+    {
+        Dictionary<string, string?> configValues = CreateValidConfigValues();
+        configValues[AiSettings.kCustomHeadersKey] = storedHeaders;
+
+        AiSettings settings = AiSettings.FromConfigValues(configValues);
+
+        Assert.That(settings.CustomHeaders, Is.Empty);
+        Assert.That(settings.Validate(), Is.EqualTo(kCustomHeadersUnreadable));
+    }
+
+    /// <summary>
+    /// Verifies that the validation checks the additional headers as they are stored: rows left blank on the settings
+    /// page are ignored, refused headers are reported.
+    /// </summary>
+    [Test]
+    public void Validate_ChecksCustomHeaders()
+    {
+        AiSettings withBlankRow = CreateValidSettings(AiProvider.OpenAi);
+        withBlankRow.CustomHeaders.Add(new AiCustomHeader { Name = " ", Value = " " });
+        AiSettings withReservedHeader = CreateValidSettings(AiProvider.OpenAi);
+        withReservedHeader.CustomHeaders.Add(new AiCustomHeader { Name = "Authorization", Value = "Bearer secret" });
+        AiSettings withoutProvider = new();
+        withoutProvider.CustomHeaders.Add(new AiCustomHeader { Name = "Authorization", Value = "Bearer secret" });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(withBlankRow.Validate(), Is.Empty);
+            Assert.That(withReservedHeader.Validate(), Is.EqualTo(kCustomHeaderNameReserved));
+            Assert.That(withoutProvider.Validate(), Is.Empty);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the config stores the additional headers normalized and returns them as copies, which the harness
+    /// reads the same way.
+    /// </summary>
+    [Test]
+    public void ConfigExtensions_StoreAndReadCustomHeaders()
+    {
+        AiSettings settings = CreateValidSettings(AiProvider.OpenAi);
+        settings.CustomHeaders.Add(new AiCustomHeader { Name = " ki-services-profile-name ", Value = " com_1659_test " });
+        settings.CustomHeaders.Add(new AiCustomHeader());
+        settings.CustomHeaders.Add(new AiCustomHeader { Name = "token-issuer", Value = "keycloak" });
+        ConfigData config = new();
+
+        config.SetAiSettings(settings);
+        AiSettings readSettings = config.GetAiSettings();
+        Dictionary<string, string?> configValues = new() { [AiSettings.kCustomHeadersKey] = config.AiCustomHeaders };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(config.AiCustomHeaders, Is.EqualTo(kStoredCustomHeaders));
+            Assert.That(readSettings.CustomHeaders.Select(header => header.Name), Is.EqualTo(kCustomHeaderNames));
+            Assert.That(readSettings.CustomHeaders.Select(header => header.Value), Is.EqualTo(kCustomHeaderValues));
+            Assert.That(readSettings.CustomHeaders[0], Is.Not.SameAs(settings.CustomHeaders[0]));
+            Assert.That(AiSettings.FromConfigValues(configValues).CustomHeaders.Select(header => header.Name), Is.EqualTo(kCustomHeaderNames));
+        });
+    }
+
+    /// <summary>
+    /// Verifies that the settings page gets unreadable additional headers as none and without a problem, so that storing
+    /// the settings replaces them.
+    /// </summary>
+    [Test]
+    public void ConfigExtensions_WithUnreadableCustomHeaders_ReadNone()
+    {
+        ConfigData config = new();
+        config.SetAiSettings(CreateValidSettings(AiProvider.OpenAi));
+        config.AiCustomHeaders = "{not json";
+
+        AiSettings settings = config.GetAiSettings();
+
+        Assert.That(settings.CustomHeaders, Is.Empty);
+        Assert.That(settings.Validate(), Is.Empty);
     }
 
     /// <summary>
@@ -629,6 +740,20 @@ internal class AiSettingsTest
             Model = kModel,
             CredentialId = kCredentialId,
             ContextWindowTokens = kContextWindowTokens
+        };
+    }
+
+    /// <summary>
+    /// Creates the config values of valid settings of OpenAI, as the harness reads them.
+    /// </summary>
+    private static Dictionary<string, string?> CreateValidConfigValues()
+    {
+        return new Dictionary<string, string?>
+        {
+            [AiSettings.kProviderKey] = nameof(AiProvider.OpenAi),
+            [AiSettings.kModelKey] = kModel,
+            [AiSettings.kCredentialIdKey] = kCredentialId.ToString(),
+            [AiSettings.kContextWindowTokensKey] = kContextWindowTokens.ToString()
         };
     }
 

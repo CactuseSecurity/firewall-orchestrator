@@ -243,6 +243,7 @@ AI settings (`FWO.Data.Ai.AiSettings`, config keys in `AiSettings.kKeys`):
 | Endpoint | `aiEndpoint` | Optional base URL, e.g. of an OpenAI compatible server; Ollama defaults to `http://localhost:11434`. Must be https if an API key or access token is sent to a host other than the local one |
 | Authentication | `aiAuthMethod` | `ApiKey` (default) or `OAuth2ClientCredentials`, see [OAuth 2.0](#oauth-20) |
 | Token URL | `aiTokenUrl` | Full URL of the OAuth 2.0 token endpoint, e.g. `https://sso.example.com/realms/<realm>/protocol/openid-connect/token` for Keycloak; required for OAuth 2.0, https unless a loopback address |
+| Additional headers | `aiCustomHeaders` | JSON array of HTTP headers sent with every request to the provider (not to the token URL), e.g. `[{"name":"ki-services-profile-name","value":"my-profile"}]` for an API gateway in front of the model; `[]` (default) for none. See [Additional headers](#additional-headers) |
 | Credential | `aiCredentialId` | Id of the credential holding the API key as its secret, or for OAuth 2.0 the client id as user name and the client secret as secret; required except for Ollama. Key pairs are not offered |
 | Context window | `aiContextWindowTokens` | Context window of the model in tokens; required |
 | Max output tokens | `aiMaxOutputTokens` | 0 for the provider's default; must be smaller than the context window |
@@ -276,6 +277,22 @@ only):
   answers 401, the token is dropped and the request is sent once more with a new token.
 - The token provider belongs to the chat client, so a change of the AI settings, e.g. of the credential, starts with a
   new token.
+
+### Additional headers
+
+Some deployments put an API gateway in front of the model that needs headers of its own, e.g. the profile name of the
+caller (`ki-services-profile-name`) or the issuer of the bearer token (`token-issuer`). `aiCustomHeaders` adds such
+headers to every request of the chat client, for every provider: OpenAI through a per-call pipeline policy
+(`CustomHeadersPolicy`), Anthropic through `ClientOptions.ExtraHeaders`, Google through `HttpOptions.Headers` and
+Ollama through `OllamaApiClient.DefaultRequestHeaders`. They are not sent to the token URL of OAuth 2.0.
+
+The global config is readable by every role, so the headers are no place for secrets. `AiCustomHeaderList` (FWO.Data)
+refuses the headers carrying the credentials of the providers (`Authorization`, `Proxy-Authorization`, `Cookie`,
+`x-api-key`, `api-key`, `x-goog-api-key`) and those framing the message (`Host`, `Content-Type`, `Content-Length`,
+hop-by-hop headers, ...). Names must be RFC 9110 tokens of at most 128 characters and occur once (ignoring case); values
+consist of at most 2048 visible ASCII characters, spaces and tabs, so they cannot end the header line. At most 20
+headers. The settings page, `AiSettings.Validate` in the harness and `ChatClientFactory` check them; an unreadable stored
+value makes the settings unusable until it is saved again.
 
 ### Reading the AI settings
 

@@ -81,6 +81,7 @@ insert into config (config_key, config_value, config_user) VALUES ('aiMaxConsecu
 insert into config (config_key, config_value, config_user) VALUES ('aiCompactionReserveTokens', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiAuthMethod', 'ApiKey', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiTokenUrl', '', 0);
+insert into config (config_key, config_value, config_user) VALUES ('aiCustomHeaders', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiChat', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiReasonCheck', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('aiChatRoles', '[]', 0);

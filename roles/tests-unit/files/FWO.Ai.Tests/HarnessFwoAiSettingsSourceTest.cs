@@ -56,6 +56,31 @@ internal class HarnessFwoAiSettingsSourceTest
     }
 
     /// <summary>
+    /// Verifies that stored additional headers that cannot be read or would carry credentials make the settings unusable,
+    /// so that the harness does not talk to the provider without the headers it needs, and that valid ones are read.
+    /// </summary>
+    [TestCase("{not json", nameof(AiSettingsProblem.CustomHeadersUnreadable))]
+    [TestCase("[{\"name\":\"Authorization\",\"value\":\"Bearer x\"}]", nameof(AiSettingsProblem.CustomHeaderNameReserved))]
+    [TestCase("[{\"name\":\"token-issuer\",\"value\":\"keycloak\"}]", null)]
+    public async Task LoadAsync_ChecksCustomHeaders(string storedHeaders, string? expectedProblem)
+    {
+        FakeAiConfigReader reader = CreateReader(AiProvider.Ollama);
+        reader.ConfigValues[AiSettings.kCustomHeadersKey] = storedHeaders;
+
+        AiRuntimeSettings settings = await CreateSource(reader).LoadAsync(CancellationToken.None);
+
+        if (expectedProblem == null)
+        {
+            Assert.That(settings.Problem, Is.Null);
+            Assert.That(settings.ToProviderSettings().CustomHeaders, Has.Count.EqualTo(1));
+        }
+        else
+        {
+            Assert.That(settings.Problem, Does.Contain(expectedProblem));
+        }
+    }
+
+    /// <summary>
     /// Verifies that Ollama needs no credential, even if one is selected.
     /// </summary>
     [Test]

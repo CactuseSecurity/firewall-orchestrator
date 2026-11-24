@@ -20,7 +20,13 @@ namespace FWO.Ui.Pages.Settings
             [AiSettingsProblem.CompactionReserveInvalid] = "E5311",
             [AiSettingsProblem.OAuthNotSupported] = "E5312",
             [AiSettingsProblem.OAuthEndpointMissing] = "E5313",
-            [AiSettingsProblem.TokenUrlInvalid] = "E5314"
+            [AiSettingsProblem.TokenUrlInvalid] = "E5314",
+            [AiSettingsProblem.CustomHeadersUnreadable] = "E5315",
+            [AiSettingsProblem.CustomHeadersTooMany] = "E5316",
+            [AiSettingsProblem.CustomHeaderNameInvalid] = "E5317",
+            [AiSettingsProblem.CustomHeaderNameReserved] = "E5318",
+            [AiSettingsProblem.CustomHeaderNameDuplicate] = "E5319",
+            [AiSettingsProblem.CustomHeaderValueInvalid] = "E5320"
         };
 
         /// <summary>

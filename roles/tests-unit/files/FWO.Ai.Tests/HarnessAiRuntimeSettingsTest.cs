@@ -26,6 +26,11 @@ internal class HarnessAiRuntimeSettingsTest
     private const int kMaxConsecutiveErrors = 2;
     private const int kCompactionReserveTokens = 30000;
     private const int kCredentialId = 7;
+    private const string kProfileHeader = "ki-services-profile-name";
+    private const string kProfileValue = "com_1659_test";
+    private const string kOtherProfileValue = "com_1659_other";
+    private const string kIssuerHeader = "token-issuer";
+    private const string kIssuerValue = "keycloak";
 
     /// <summary>
     /// Verifies that all values are passed on to the provider and agent settings.
@@ -67,7 +72,54 @@ internal class HarnessAiRuntimeSettingsTest
         Assert.That(providerSettings.ApiKey, Is.Null);
         Assert.That(providerSettings.Endpoint, Is.Null);
         Assert.That(providerSettings.MaxOutputTokens, Is.Null);
+        Assert.That(providerSettings.CustomHeaders, Is.Empty);
         Assert.That(agentSettings.CompactionReserveTokens, Is.Null);
+    }
+
+    /// <summary>
+    /// Verifies that the additional headers are passed on by name, trimmed, without blank rows and found ignoring case.
+    /// </summary>
+    [Test]
+    public void ToProviderSettings_PassesCustomHeadersOn()
+    {
+        AiSettings settings = CreateSettings(AiProvider.OpenAi);
+        settings.CustomHeaders = CreateCustomHeaders(kProfileValue);
+        settings.CustomHeaders.Add(new AiCustomHeader { Name = " ", Value = "" });
+        AiRuntimeSettings runtimeSettings = new(settings, kApiKey);
+
+        IReadOnlyDictionary<string, string> customHeaders = runtimeSettings.ToProviderSettings().CustomHeaders;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(customHeaders, Has.Count.EqualTo(2));
+            Assert.That(customHeaders[kProfileHeader], Is.EqualTo(kProfileValue));
+            Assert.That(customHeaders[kIssuerHeader.ToUpperInvariant()], Is.EqualTo(kIssuerValue));
+        });
+    }
+
+    /// <summary>
+    /// Verifies that settings with the same additional headers in other objects have the same values, and that a changed
+    /// header value makes them differ, so that the agent factory sends the new headers.
+    /// </summary>
+    [Test]
+    public void HasSameValues_ComparesCustomHeaders()
+    {
+        AiSettings settings = CreateSettings(AiProvider.OpenAi);
+        settings.CustomHeaders = CreateCustomHeaders(kProfileValue);
+        AiSettings sameSettings = CreateSettings(AiProvider.OpenAi);
+        sameSettings.CustomHeaders = CreateCustomHeaders($" {kProfileValue} ");
+        AiSettings changedSettings = CreateSettings(AiProvider.OpenAi);
+        changedSettings.CustomHeaders = CreateCustomHeaders(kOtherProfileValue);
+        AiSettings settingsWithoutHeaders = CreateSettings(AiProvider.OpenAi);
+
+        AiRuntimeSettings runtimeSettings = new(settings, kApiKey);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(runtimeSettings.HasSameValues(new AiRuntimeSettings(sameSettings, kApiKey)), Is.True);
+            Assert.That(runtimeSettings.HasSameValues(new AiRuntimeSettings(changedSettings, kApiKey)), Is.False);
+            Assert.That(runtimeSettings.HasSameValues(new AiRuntimeSettings(settingsWithoutHeaders, kApiKey)), Is.False);
+        });
     }
 
     /// <summary>
@@ -248,6 +300,18 @@ internal class HarnessAiRuntimeSettingsTest
             MaxConsecutiveErrorsPerRequest = kMaxConsecutiveErrors,
             CompactionReserveTokens = kCompactionReserveTokens
         };
+    }
+
+    /// <summary>
+    /// Creates the additional headers of an API gateway: the profile with the given value and the token issuer.
+    /// </summary>
+    private static List<AiCustomHeader> CreateCustomHeaders(string profileValue)
+    {
+        return
+        [
+            new AiCustomHeader { Name = kProfileHeader, Value = profileValue },
+            new AiCustomHeader { Name = kIssuerHeader, Value = kIssuerValue }
+        ];
     }
 
     /// <summary>

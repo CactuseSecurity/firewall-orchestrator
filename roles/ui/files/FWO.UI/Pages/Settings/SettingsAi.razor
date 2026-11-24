@@ -73,6 +73,33 @@
             </Dropdown>
         </div>
     </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5388"))">
+        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_custom_headers")):</label>
+        <div class="col-sm-8">
+            @for (int index = 0; index < aiSettings.CustomHeaders.Count; index++)
+            {
+                AiCustomHeader header = aiSettings.CustomHeaders[index];
+                <div class="row mb-1" @key="header">
+                    <div class="col-sm-5">
+                        <input id="@($"{kCustomHeaderNameIdPrefix}{index}")" type="text" class="form-control form-control-sm"
+                               maxlength="@AiCustomHeaderList.kMaxNameLength" placeholder="@(userConfig.GetText("name"))"
+                               aria-label="@(userConfig.GetText("name"))" @bind="header.Name" />
+                    </div>
+                    <div class="col-sm-5">
+                        <input id="@($"{kCustomHeaderValueIdPrefix}{index}")" type="text" class="form-control form-control-sm"
+                               maxlength="@AiCustomHeaderList.kMaxValueLength" placeholder="@(userConfig.GetText("value"))"
+                               aria-label="@(userConfig.GetText("value"))" @bind="header.Value" />
+                    </div>
+                    <div class="col-sm-2">
+                        <button id="@($"{kCustomHeaderRemoveIdPrefix}{index}")" type="button" class="btn btn-sm btn-danger"
+                                @onclick="() => RemoveCustomHeader(header)">@(DisplayService.DisplayButton(userConfig, "remove", Icons.Delete))</button>
+                    </div>
+                </div>
+            }
+            <button id="@kCustomHeaderAddId" type="button" class="btn btn-sm btn-success" disabled="@(aiSettings.CustomHeaders.Count >= AiCustomHeaderList.kMaxHeaders)"
+                    @onclick="AddCustomHeader">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+        </div>
+    </div>
     <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5375"))">
         <label for="aiContextWindowTokens" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_context_window_tokens"))*:</label>
         <div class="col-sm-2">
@@ -171,6 +198,10 @@
     private const string kCredentialDropdownId = "aiCredential";
     private const string kChatRolesDropdownId = "aiChatRoles";
     private const string kReasonCheckRolesDropdownId = "aiReasonCheckRoles";
+    private const string kCustomHeaderNameIdPrefix = "aiCustomHeaderName";
+    private const string kCustomHeaderValueIdPrefix = "aiCustomHeaderValue";
+    private const string kCustomHeaderRemoveIdPrefix = "aiCustomHeaderRemove";
+    private const string kCustomHeaderAddId = "aiCustomHeaderAdd";
 
     private static readonly List<AiProvider> kProviders = [.. Enum.GetValues<AiProvider>()];
 
@@ -261,6 +292,23 @@
     private void OnReasonCheckRolesChanged(IEnumerable<string> roles)
     {
         aiSettings.ReasonCheckRoles = [.. roles];
+    }
+
+    /// <summary>
+    /// Adds an empty row for an additional HTTP header; a row left blank is not stored.
+    /// </summary>
+    private void AddCustomHeader()
+    {
+        aiSettings.CustomHeaders.Add(new AiCustomHeader());
+    }
+
+    /// <summary>
+    /// Removes an additional HTTP header.
+    /// </summary>
+    /// <param name="header">The header to remove</param>
+    private void RemoveCustomHeader(AiCustomHeader header)
+    {
+        aiSettings.CustomHeaders.Remove(header);
     }
 
     /// <summary>

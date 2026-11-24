@@ -32,6 +32,12 @@ public class AiProviderSettings
     public Uri? Endpoint { get; set; }
 
     /// <summary>
+    /// Additional HTTP headers sent with every request to the provider, by name; none if empty. They cannot replace the
+    /// headers carrying the API key or the access token, see <see cref="AiCustomHeaderList"/>.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> CustomHeaders { get; set; } = new Dictionary<string, string>();
+
+    /// <summary>
     /// Context window of the model in tokens; required and positive. The agent compacts its history by it, and every
     /// request to Ollama carries it as num_ctx, as Ollama otherwise cuts the prompt at its own, often much smaller, default.
     /// </summary>

@@ -275,12 +275,12 @@ namespace FWO.Basics
 
         public static List<ReportType> AllReportTypes()
         {
-            return [.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>().Where(r => r != ReportType.Undefined)];
+            return [.. Enum.GetValues<ReportType>().Where(r => r != ReportType.Undefined)];
         }
 
         public static List<ReportType> ReportTypeSelection(ReportVisibility? visibility = null)
         {
-            return CustomSortReportType([.. Enum.GetValues(typeof(ReportType)).Cast<ReportType>()], visibility ?? new(true, true, true, true, true));
+            return CustomSortReportType([.. Enum.GetValues<ReportType>()], visibility ?? new(true, true, true, true, true));
         }
 
         public static bool IsVisibleTemplateType(this ReportType reportType, ReportVisibility visibility, bool modellingOwnerAllowed = true)

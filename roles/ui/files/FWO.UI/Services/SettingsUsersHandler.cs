@@ -838,23 +838,6 @@ namespace FWO.Ui.Services
             }
         }
 
-        private async Task CleanUpUser(UiUser user)
-        {
-            try
-            {
-                var Variables = new { id = user.DbId };
-                int delId = (await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.deleteUser, Variables)).DeletedId;
-                if (delId == user.DbId)
-                {
-                    UiUsers.Remove(user);
-                }
-            }
-            catch (Exception exception)
-            {
-                displayMessageInUi(exception, userConfig.GetText("delete_user_local"), "", false);
-            }
-        }
-
         /// <summary>
         /// Validates and opens the password reset dialog for the given user.
         /// </summary>

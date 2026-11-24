@@ -266,24 +266,24 @@ namespace FWO.Test
             ModellingAppServer deleted = new() { Id = 3, Name = "Deleted", IsDeleted = true };
             ModellingAppRole role = new()
             {
-                AppServers = new List<ModellingAppServerWrapper>
-                {
+                AppServers =
+                [
                     new() { Content = existing }
-                }
+                ]
             };
             ModellingAppRoleHandler handler = new(
                 new ModellingHandlerTestApiConn(),
                 new SimulatedUserConfig { ModNamingConvention = userConfig.ModNamingConvention },
                 new FwoOwner { Id = 1 },
-                new List<ModellingAppRole>(),
+                [],
                 role,
-                new List<ModellingAppServer>(),
-                new List<KeyValuePair<int, long>>(),
+                [],
+                [],
                 false,
                 DisplayMessageInUi,
                 IsOwner);
 
-            handler.AppServerToAppRole(new List<ModellingAppServer> { existing, queued, queued, deleted });
+            handler.AppServerToAppRole([existing, queued, queued, deleted]);
 
             ClassicAssert.AreEqual(1, handler.AppServerToAdd.Count);
             ClassicAssert.AreEqual(2, handler.AppServerToAdd[0].Id);
@@ -292,8 +292,8 @@ namespace FWO.Test
         [Test]
         public async Task InitAppRole_WithAreaSelectsMembersAndProposesFreeNumber()
         {
-            List<ModellingAppRole> appRoles = new();
-            List<KeyValuePair<int, long>> nwElems = new();
+            List<ModellingAppRole> appRoles = [];
+            List<KeyValuePair<int, long>> nwElems = [];
             ModellingAppRoleHandler handler = new(apiConnection, userConfig, Application, appRoles, new ModellingAppRole(),
                 AvailableAppServers, nwElems, true, DisplayMessageInUi, IsOwner);
             ModellingNetworkArea area = new()
@@ -337,9 +337,9 @@ namespace FWO.Test
         [TestCase(4, "ARX", "E5602")]
         public void ApplyNamingConvention_WithInvalidConvention_ReportsItOnce(int fixedPartLength, string appRolePattern, string expectedMessage)
         {
-            List<(string Title, string Message, bool IsError)> messages = new();
+            List<(string Title, string Message, bool IsError)> messages = [];
             ModellingAppRoleHandler handler = new(apiConnection, InvalidConventionConfig(fixedPartLength, appRolePattern), Application,
-                new List<ModellingAppRole>(), new ModellingAppRole(), AvailableAppServers, new List<KeyValuePair<int, long>>(), true,
+                [], new ModellingAppRole(), AvailableAppServers, [], true,
                 (exception, title, message, isError) => messages.Add((title, message, isError)), IsOwner);
 
             Assert.Multiple(() =>
@@ -360,11 +360,11 @@ namespace FWO.Test
         [TestCase(false, true, "app_role")]
         public void ApplyNamingConvention_WithInvalidConvention_TitlesMessageByMode(bool addMode, bool readOnly, string expectedTitleKey)
         {
-            List<(string Title, string Message, bool IsError)> messages = new();
+            List<(string Title, string Message, bool IsError)> messages = [];
             SimulatedUserConfig config = InvalidConventionConfig(1, "AR");
             ModellingAppRole appRole = new() { Id = 1, IdString = "AR1234-001", Name = "AppRole1" };
             ModellingAppRoleHandler handler = new(apiConnection, config, Application,
-                new List<ModellingAppRole>(), appRole, AvailableAppServers, new List<KeyValuePair<int, long>>(), addMode,
+                [], appRole, AvailableAppServers, [], addMode,
                 (exception, title, message, isError) => messages.Add((title, message, isError)), IsOwner, readOnly);
 
             Assert.Multiple(() =>
@@ -382,9 +382,9 @@ namespace FWO.Test
         [Test]
         public async Task InitAppRole_WithInvalidConvention_DoesNotProposeId()
         {
-            List<(string Title, string Message, bool IsError)> messages = new();
+            List<(string Title, string Message, bool IsError)> messages = [];
             ModellingAppRoleHandler handler = new(apiConnection, InvalidConventionConfig(1, "AR"), Application,
-                new List<ModellingAppRole>(), new ModellingAppRole(), AvailableAppServers, new List<KeyValuePair<int, long>>(), true,
+                [], new ModellingAppRole(), AvailableAppServers, [], true,
                 (exception, title, message, isError) => messages.Add((title, message, isError)), IsOwner);
             ModellingNetworkArea area = new()
             {
@@ -410,10 +410,10 @@ namespace FWO.Test
         [Test]
         public void ApplyNamingConvention_InEditModeWithInvalidConvention_KeepsAreaUndetermined()
         {
-            List<(string Title, string Message, bool IsError)> messages = new();
+            List<(string Title, string Message, bool IsError)> messages = [];
             ModellingAppRole appRole = new() { Id = 1, IdString = "AR1234-001", Name = "AppRole1" };
             ModellingAppRoleHandler handler = new(apiConnection, InvalidConventionConfig(1, "AR"), Application,
-                new List<ModellingAppRole>(), appRole, AvailableAppServers, new List<KeyValuePair<int, long>>(), false,
+                [], appRole, AvailableAppServers, [], false,
                 (exception, title, message, isError) => messages.Add((title, message, isError)), IsOwner);
 
             Assert.Multiple(() =>
@@ -430,10 +430,10 @@ namespace FWO.Test
         [Test]
         public void ApplyNamingConvention_InEditModeWithValidConvention_DerivesArea()
         {
-            List<(string Title, string Message, bool IsError)> messages = new();
+            List<(string Title, string Message, bool IsError)> messages = [];
             ModellingAppRole appRole = new() { Id = 1, IdString = "AR1234-001", Name = "AppRole1" };
             ModellingAppRoleHandler handler = new(apiConnection, userConfig, Application,
-                new List<ModellingAppRole>(), appRole, AvailableAppServers, new List<KeyValuePair<int, long>>(), false,
+                [], appRole, AvailableAppServers, [], false,
                 (exception, title, message, isError) => messages.Add((title, message, isError)), IsOwner);
 
             Assert.Multiple(() =>
@@ -465,10 +465,10 @@ namespace FWO.Test
                 new ModellingHandlerTestApiConn(),
                 localUserConfig,
                 new FwoOwner { Id = 1 },
-                new List<ModellingAppRole>(),
+                [],
                 role,
-                new List<ModellingAppServer>(),
-                new List<KeyValuePair<int, long>>(),
+                [],
+                [],
                 true,
                 (_, _, text, _) => message = text,
                 IsOwner);
@@ -501,10 +501,10 @@ namespace FWO.Test
                 new ModellingHandlerTestApiConn(),
                 localUserConfig,
                 new FwoOwner { Id = 1 },
-                new List<ModellingAppRole>(),
+                [],
                 role,
-                new List<ModellingAppServer>(),
-                new List<KeyValuePair<int, long>>(),
+                [],
+                [],
                 false,
                 (_, _, text, _) => message = text,
                 IsOwner);
@@ -535,14 +535,14 @@ namespace FWO.Test
             {
                 Name = "Role",
                 IdString = "AR5000002",
-                AppServers = new List<ModellingAppServerWrapper>
-                {
+                AppServers =
+                [
                     new() { Content = appServer }
-                }
+                ]
             };
-            List<ModellingAppRole> appRoles = new();
-            List<ModellingAppServer> availableAppServers = new();
-            List<KeyValuePair<int, long>> availableNwElems = new();
+            List<ModellingAppRole> appRoles = [];
+            List<ModellingAppServer> availableAppServers = [];
+            List<KeyValuePair<int, long>> availableNwElems = [];
             ModellingAppRoleHandler handler = new(
                 apiConn,
                 localUserConfig,
@@ -579,21 +579,21 @@ namespace FWO.Test
             {
                 Name = "Role",
                 IdString = "AR5000002",
-                AppServers = new List<ModellingAppServerWrapper>
-                {
+                AppServers =
+                [
                     new() { Content = new ModellingAppServer { Id = 10, Name = "Srv10" } }
-                }
+                ]
             };
-            List<ModellingAppRole> appRoles = new();
-            List<KeyValuePair<int, long>> availableNwElems = new();
-            List<string> messages = new();
+            List<ModellingAppRole> appRoles = [];
+            List<KeyValuePair<int, long>> availableNwElems = [];
+            List<string> messages = [];
             ModellingAppRoleHandler handler = new(
                 apiConn,
                 localUserConfig,
                 new FwoOwner { Id = 1 },
                 appRoles,
                 role,
-                new List<ModellingAppServer>(),
+                [],
                 availableNwElems,
                 true,
                 (_, title, text, _) => messages.Add($"{title}:{text}"),
@@ -629,20 +629,20 @@ namespace FWO.Test
                 Id = 9,
                 Name = "Role",
                 IdString = "AR5000009",
-                AppServers = new List<ModellingAppServerWrapper>
-                {
+                AppServers =
+                [
                     new() { Content = removeServer }
-                }
+                ]
             };
-            List<ModellingAppRole> appRoles = new List<ModellingAppRole> { role };
+            List<ModellingAppRole> appRoles = [role];
             ModellingAppRoleHandler handler = new(
                 apiConn,
                 localUserConfig,
                 new FwoOwner { Id = 1 },
                 appRoles,
                 role,
-                new List<ModellingAppServer>(),
-                new List<KeyValuePair<int, long>>(),
+                [],
+                [],
                 false,
                 DisplayMessageInUi,
                 IsOwner);
@@ -885,10 +885,10 @@ namespace FWO.Test
             {
                 Name = "Role",
                 IdString = "AR5000002",
-                AppServers = new List<ModellingAppServerWrapper> { new() { Content = selectedServer } }
+                AppServers = [new() { Content = selectedServer }]
             };
             ModellingAppRoleHandler handler = new(apiConn, localUserConfig, new FwoOwner { Id = 1 }, appRoles, role,
-                new List<ModellingAppServer>(), availableNwElems, true, displayMessageInUi, IsOwner);
+                [], availableNwElems, true, displayMessageInUi, IsOwner);
             handler.ActAppRole.IdString = "AR5000002";
             return handler;
         }
@@ -901,7 +901,7 @@ namespace FWO.Test
                 Name = "Role",
                 Comment = "comment",
                 IdString = "AR5000009",
-                AppServers = new List<ModellingAppServerWrapper> { new() { Content = server } }
+                AppServers = [new() { Content = server }]
             };
         }
 
@@ -909,8 +909,8 @@ namespace FWO.Test
             Action<Exception?, string, string, bool>? displayMessageInUi = null)
         {
             SimulatedUserConfig localUserConfig = new() { ModNamingConvention = userConfig.ModNamingConvention };
-            return new ModellingAppRoleHandler(apiConn, localUserConfig, new FwoOwner { Id = 1 }, new List<ModellingAppRole> { role }, role,
-                new List<ModellingAppServer>(), new List<KeyValuePair<int, long>>(), false, displayMessageInUi ?? DisplayMessageInUi, IsOwner);
+            return new ModellingAppRoleHandler(apiConn, localUserConfig, new FwoOwner { Id = 1 }, [role], role,
+                [], [], false, displayMessageInUi ?? DisplayMessageInUi, IsOwner);
         }
 
         [Test]
@@ -919,7 +919,7 @@ namespace FWO.Test
             ModellingAppRole expected = new() { Id = 77, Name = "dummy" };
             ModellingHandlerTestApiConn apiConn = new()
             {
-                DummyAppRoles = new List<ModellingAppRole> { expected }
+                DummyAppRoles = [expected]
             };
             AppRoleHandler = new(apiConn, userConfig, Application, AvailableAppRoles, new ModellingAppRole(),
                 AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, IsOwner);
@@ -935,7 +935,7 @@ namespace FWO.Test
         {
             ModellingHandlerTestApiConn apiConn = new()
             {
-                DummyAppRoles = new List<ModellingAppRole>()
+                DummyAppRoles = []
             };
             AppRoleHandler = new(apiConn, userConfig, Application, AvailableAppRoles, new ModellingAppRole(),
                 AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, IsOwner);
@@ -950,8 +950,8 @@ namespace FWO.Test
         [Test]
         public void CleanUp_ResetsQueuedAppServerChanges()
         {
-            AppRoleHandler!.AppServerToAdd = new List<ModellingAppServer> { new() { Id = 1 } };
-            AppRoleHandler.AppServerToDelete = new List<ModellingAppServer> { new() { Id = 2 } };
+            AppRoleHandler!.AppServerToAdd = [new() { Id = 1 }];
+            AppRoleHandler.AppServerToDelete = [new() { Id = 2 }];
 
             AppRoleHandler.CleanUp();
 

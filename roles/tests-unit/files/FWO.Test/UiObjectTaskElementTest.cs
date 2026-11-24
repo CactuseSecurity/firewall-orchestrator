@@ -368,6 +368,8 @@ namespace FWO.Test
             {
                 Assert.That(component.Markup, Does.Contain("srv_web01"));
                 Assert.That(component.Markup, Does.Contain("10.1.1.5"));
+                Assert.That(component.FindAll("label.object-task-element-label"), Has.Count.EqualTo(1));
+                Assert.That(component.Markup, Does.Not.Contain("min-width: 10rem"));
                 Assert.That(component.Markup, Does.Not.Contain("requested_state"));
                 Assert.That(component.FindAll(".list-group-item"), Has.Count.EqualTo(1));
             });

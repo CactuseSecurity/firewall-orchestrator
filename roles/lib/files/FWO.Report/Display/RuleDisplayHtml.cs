@@ -251,7 +251,7 @@ namespace FWO.Ui.Display
         {
             int count = 0;
             return string.Join("", Array.ConvertAll<Recertification, string>(ruleMetadata.RuleRecertification.ToArray(),
-                recert => GetLastRecertifierDisplayString(CountString(ruleMetadata.RuleRecertification.Count > 1, ++count), recert).ToString()));
+                _ => GetLastRecertifierDisplayString(CountString(ruleMetadata.RuleRecertification.Count > 1, ++count))));
         }
 
         protected static string NetworkLocationToHtml(NetworkLocation networkLocation, int mgmtId, int chapterNumber, OutputLocation location, string style, ReportType reportType)
@@ -372,7 +372,7 @@ namespace FWO.Ui.Display
             return "<p>" + countString + (recert.IpMatch != null && recert.IpMatch != "" ? HtmlOutputEncoder.EncodeText(recert.IpMatch) : "&#8208;") + "</p>";
         }
 
-        private static string GetLastRecertifierDisplayString(string countString, Recertification recert)
+        private static string GetLastRecertifierDisplayString(string countString)
         {
             return "<p>" + countString + "</p>"; // TODO: fetch last recertifier
         }

@@ -66,7 +66,7 @@ namespace FWO.Test
 
         private static TenantController CreatePagingController(ApiConnection apiConnection, SimulatedGlobalConfig globalConfig)
         {
-            return new TenantController(new List<MiddlewareLdap>(), apiConnection, globalConfig)
+            return new TenantController([], apiConnection, globalConfig)
             {
                 ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
             };
@@ -89,7 +89,7 @@ namespace FWO.Test
                     }
                 ]
             };
-            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection, new SimulatedGlobalConfig());
+            TenantController controller = new([], apiConnection, new SimulatedGlobalConfig());
 
             List<TenantGetReturnParameters> result = (await controller.Get(new PagingParameters())).Value!;
 
@@ -107,7 +107,7 @@ namespace FWO.Test
         public async Task Post_ReturnsZeroWithoutWritableLdap()
         {
             TenantControllerTestApiConnection apiConnection = new();
-            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection, new SimulatedGlobalConfig());
+            TenantController controller = new([], apiConnection, new SimulatedGlobalConfig());
 
             int result = await controller.Post(new TenantAddParameters
             {
@@ -131,7 +131,7 @@ namespace FWO.Test
                     ReturnIds = new ReturnId[] { new() { NewId = 77 } }
                 }
             };
-            TenantController controller = new(new List<MiddlewareLdap> { ldap }, apiConnection, new SimulatedGlobalConfig());
+            TenantController controller = new([ldap], apiConnection, new SimulatedGlobalConfig());
 
             int result = await controller.Post(new TenantAddParameters
             {
@@ -156,7 +156,7 @@ namespace FWO.Test
             {
                 ThrowOnAddTenant = true
             };
-            TenantController controller = new(new List<MiddlewareLdap> { ldap }, apiConnection, new SimulatedGlobalConfig());
+            TenantController controller = new([ldap], apiConnection, new SimulatedGlobalConfig());
 
             int result = await controller.Post(new TenantAddParameters
             {
@@ -176,7 +176,7 @@ namespace FWO.Test
             {
                 UpdateResult = new ReturnId { UpdatedId = 7 }
             };
-            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection, new SimulatedGlobalConfig());
+            TenantController controller = new([], apiConnection, new SimulatedGlobalConfig());
 
             bool result = await controller.Change(new TenantEditParameters
             {
@@ -198,7 +198,7 @@ namespace FWO.Test
             {
                 UpdateResult = new ReturnId { UpdatedId = 6 }
             };
-            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection, new SimulatedGlobalConfig());
+            TenantController controller = new([], apiConnection, new SimulatedGlobalConfig());
 
             bool result = await controller.Change(new TenantEditParameters
             {
@@ -219,7 +219,7 @@ namespace FWO.Test
             {
                 DeleteResult = new ReturnId { DeletedId = 7 }
             };
-            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection, new SimulatedGlobalConfig());
+            TenantController controller = new([], apiConnection, new SimulatedGlobalConfig());
 
             bool result = await controller.Delete(new TenantDeleteParameters
             {
@@ -239,7 +239,7 @@ namespace FWO.Test
             {
                 DeleteResult = new ReturnId { DeletedId = 6 }
             };
-            TenantController controller = new(new List<MiddlewareLdap>(), apiConnection, new SimulatedGlobalConfig());
+            TenantController controller = new([], apiConnection, new SimulatedGlobalConfig());
 
             bool result = await controller.Delete(new TenantDeleteParameters
             {

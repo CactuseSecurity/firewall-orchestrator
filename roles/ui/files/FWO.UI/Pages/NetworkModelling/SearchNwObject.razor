@@ -111,7 +111,7 @@
 
     private bool SettingsMode => CommonAreaMode || SpecUserMode || UpdObjMode || ComSvcExcludedMode;
 
-    private List<ModellingTypes.ModObjectType> availableTypes = new(){ ModellingTypes.ModObjectType.NetworkArea };
+    private readonly List<ModellingTypes.ModObjectType> availableTypes = new(){ ModellingTypes.ModObjectType.NetworkArea };
     private ModellingTypes.ModObjectType selectedType = ModellingTypes.ModObjectType.NetworkArea;
     private bool singleType = false;
     private bool typeSelected = false;
@@ -183,7 +183,7 @@
                     var Variables = new
                     {
                         appId = Application.Id,
-                        nwGroupId = selectedObject?.Id
+                        nwGroupId = selectedObject.Id
                     };
                     await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addSelectedNwGroupObject, Variables);
                 }

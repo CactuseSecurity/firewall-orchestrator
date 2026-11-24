@@ -381,10 +381,10 @@
     {
         if(AllImplTasks != null)
         {
-            int? idx = AllImplTasks?.FindIndex(x => x.Id == WfHandler.ActImplTask.Id);
-            if(idx != null && idx >= 0)
+            int idx = AllImplTasks.FindIndex(x => x.Id == WfHandler.ActImplTask.Id);
+            if (idx >= 0)
             {
-                AllImplTasks![(int)idx] = WfHandler.ActImplTask;
+                AllImplTasks[idx] = WfHandler.ActImplTask;
             }
         }
     }

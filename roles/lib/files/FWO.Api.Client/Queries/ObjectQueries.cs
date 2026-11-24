@@ -8,6 +8,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string networkObjectDetailsForVarianceFragment;
         public static readonly string getNetworkObjectDetails;
         public static readonly string getNetworkObjectsForManagement;
+        public static readonly string getImportedObjectsOfTypes;
         public static readonly string networkServiceDetailsFragment;
         public static readonly string getNetworkServiceDetails;
         public static readonly string userDetailsFragment;
@@ -44,6 +45,10 @@ namespace FWO.Api.Client.Queries
                 getNetworkObjectsForManagement =
                     networkObjectDetailsForVarianceFragment +
                     GetQueryText("networkObject/getNetworkObjectsForManagement.graphql");
+
+                // imported objects of given types, e.g. the access roles a modelling placeholder may be substituted by
+                getImportedObjectsOfTypes =
+                    GetQueryText("networkObject/getImportedObjectsOfTypes.graphql");
 
                 networkServiceDetailsFragment =
                     GetQueryText("networkService/fragments/networkServiceDetails.graphql");

@@ -85,7 +85,7 @@ namespace FWO.Test
             await using BunitContext context = CreateContext(apiConnection, fullRollbackAllowed: false);
             ImportRollback component = RenderRollbackComponent(context);
 
-            await InvokePrivateAsync(component, "deleteLatestConfigOfManagement", 42);
+            await InvokePrivateAsync(component, "deleteLatestConfigOfManagement");
 
             Assert.That(apiConnection.DeleteLatestConfigCallCount, Is.Zero);
         }

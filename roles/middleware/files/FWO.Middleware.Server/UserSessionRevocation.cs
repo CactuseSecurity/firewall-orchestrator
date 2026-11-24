@@ -92,7 +92,7 @@ namespace FWO.Middleware.Server
         /// <returns>The number of revoked refresh tokens.</returns>
         public async Task<int> RevokeSessionsOfUser(int userId, string reason)
         {
-            List<int> userIds = new() { userId };
+            List<int> userIds = [userId];
             return await RevokeSessions(userIds, reason);
         }
 

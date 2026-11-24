@@ -1,0 +1,20 @@
+query getImportedObjectsOfTypes(
+  $mgmIds: [Int!]!
+  $objTypes: [String!]!
+) {
+  firewall_nw_object(
+    where: {
+      mgm_id: { _in: $mgmIds }
+      active: { _eq: true }
+      removed: { _is_null: true }
+      stm_obj_typ: { obj_typ_name: { _in: $objTypes } }
+    }
+    order_by: [{ obj_name: asc }, { obj_id: asc }]
+  ) {
+    obj_id
+    obj_name
+    type: stm_obj_typ {
+      name: obj_typ_name
+    }
+  }
+}

@@ -450,7 +450,7 @@ namespace FWO.Report
         private string BuildWorkflowFilterSummary()
         {
             List<string> filterParts = [];
-            int allRealTaskTypesCount = Enum.GetValues(typeof(WfTaskType)).Cast<WfTaskType>().Count(taskType => taskType != WfTaskType.master);
+            int allRealTaskTypesCount = Enum.GetValues<WfTaskType>().Count(taskType => taskType != WfTaskType.master);
 
             if (ReportType == ReportType.TicketChangeReport && ReportData.WorkflowFilter.ReferenceDate != WorkflowReferenceDate.AnyActivity)
             {

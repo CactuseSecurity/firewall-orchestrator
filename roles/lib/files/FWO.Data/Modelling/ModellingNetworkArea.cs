@@ -23,7 +23,7 @@ namespace FWO.Data.Modelling
             {
                 Id = Id,
                 Number = Number,
-                Name = IdAsName ? IdString : Name + " (" + IdString + ")" ?? IdString ?? "",
+                Name = IdAsName ? IdString : $"{Name} ({IdString})",
                 Type = new NetworkObjectType() { Name = ObjectType.Group },
                 ObjectGroups = objectGroups,
                 MemberNames = ListMembers ? string.Join("|", Array.ConvertAll(objectGroups, o => o.Object?.Name)) : "..."

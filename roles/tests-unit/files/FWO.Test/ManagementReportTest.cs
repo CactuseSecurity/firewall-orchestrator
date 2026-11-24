@@ -7,6 +7,8 @@ namespace FWO.Test
     [TestFixture]
     public class ManagementReportTest
     {
+        private static readonly long[] kExpectedRuleIds = [10L, 20L, 30L];
+
         [Test]
         public void GetAllRuleIdsReturnsDistinctRuleIds()
         {
@@ -35,7 +37,7 @@ namespace FWO.Test
 
             var result = managementReport.GetAllRuleIds();
 
-            Assert.That(result, Is.EquivalentTo(new[] { 10L, 20L, 30L }));
+            Assert.That(result, Is.EquivalentTo(kExpectedRuleIds));
         }
 
         [Test]

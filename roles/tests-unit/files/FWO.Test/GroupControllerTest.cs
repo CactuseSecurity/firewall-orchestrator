@@ -47,7 +47,7 @@ namespace FWO.Test
                         new LdapAttribute("businessCategory", kOwnerGroupValues)))
             };
             MiddlewareLdap ldap = CreateInternalGroupLdap(client);
-            GroupController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
+            GroupController controller = new([ldap], new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
 
             ActionResult<List<GroupGetReturnParameters>> result = await controller.Get(new PagingParameters());
 
@@ -70,7 +70,7 @@ namespace FWO.Test
                     new LdapAttribute("uniqueMember", kMembersValues))
             };
             MiddlewareLdap ldap = CreateInternalGroupLdap(client);
-            GroupController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
+            GroupController controller = new([ldap], new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
 
             List<string> result = (await controller.GetMembers(new GroupMemberGetParameters { GroupDn = kGroupDn })).Value!;
 
@@ -106,7 +106,7 @@ namespace FWO.Test
             ActionResult<List<GroupGetReturnParameters>> groups = await controller.Get(new PagingParameters { Limit = GlobalConst.kMinRestResponseObjectLimit + 1 });
             ActionResult<List<string>> members = await controller.GetMembers(new GroupMemberGetParameters { GroupDn = kGroupDn, Limit = GlobalConst.kMinRestResponseObjectLimit + 1 });
             ActionResult<List<string>> memberships = await controller.GetMemberships(new GroupMembershipGetParameters { UserDn = kUserDn, Offset = -1 });
-            ActionResult<List<string>> resolved = await controller.ResolveMembers(new GroupResolveParameters { Dns = new List<string> { kDirectUserDn }, Limit = 0 });
+            ActionResult<List<string>> resolved = await controller.ResolveMembers(new GroupResolveParameters { Dns = [kDirectUserDn], Limit = 0 });
 
             Assert.Multiple(() =>
             {
@@ -140,7 +140,7 @@ namespace FWO.Test
                     new LdapAttribute("memberOf", kGroupDn))
             };
             MiddlewareLdap ldap = CreateInternalGroupLdap(client);
-            GroupController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
+            GroupController controller = new([ldap], new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
 
             List<string> result = (await controller.GetMemberships(new GroupMembershipGetParameters
             {
@@ -165,14 +165,14 @@ namespace FWO.Test
                 }
             };
             MiddlewareLdap ldap = CreateInternalGroupLdap(client);
-            GroupController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
+            GroupController controller = new([ldap], new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
 
             List<string> result = (await controller.ResolveMembers(new GroupResolveParameters
             {
-                Dns = new List<string> { kGroupDn, kDirectUserDn }
+                Dns = [kGroupDn, kDirectUserDn]
             })).Value!;
 
-            Assert.That(result, Is.EquivalentTo(new List<string> { kGroupMemberDn, kDirectUserDn }));
+            Assert.That(result, Is.EquivalentTo([kGroupMemberDn, kDirectUserDn]));
             Assert.That(result, Has.Count.EqualTo(2));
         }
 
@@ -192,7 +192,7 @@ namespace FWO.Test
 
             ActionResult<List<string>> result = await controller.ResolveMembers(new GroupResolveParameters
             {
-                Dns = new List<string> { kGroupDn, kDirectUserDn },
+                Dns = [kGroupDn, kDirectUserDn],
                 Limit = 1
             });
 
@@ -215,7 +215,7 @@ namespace FWO.Test
 
         private static GroupController CreatePagingController(RecordingLdapClient client, SimulatedGlobalConfig globalConfig)
         {
-            return new GroupController(new List<MiddlewareLdap> { CreateInternalGroupLdap(client) }, new SessionRevocationApiConnection(), globalConfig)
+            return new GroupController([CreateInternalGroupLdap(client)], new SessionRevocationApiConnection(), globalConfig)
             {
                 ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
             };
@@ -234,7 +234,7 @@ namespace FWO.Test
                 ReadResult = LdapTestSupport.CreateEntry(kGroupDn)
             };
             MiddlewareLdap ldap = CreateInternalWritableGroupLdap(client);
-            GroupController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
+            GroupController controller = new([ldap], new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
 
             bool result = await controller.AddUser(new GroupAddDeleteUserParameters
             {
@@ -256,7 +256,7 @@ namespace FWO.Test
                     new LdapAttribute("uniqueMember", kUniqueMemberValues))
             };
             MiddlewareLdap ldap = CreateInternalWritableGroupLdap(client);
-            GroupController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
+            GroupController controller = new([ldap], new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
 
             bool result = await controller.RemoveUser(new GroupAddDeleteUserParameters
             {
@@ -273,7 +273,7 @@ namespace FWO.Test
         {
             RecordingLdapClient client = new();
             MiddlewareLdap ldap = CreateInternalWritableGroupLdap(client);
-            GroupController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
+            GroupController controller = new([ldap], new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
 
             string result = await controller.Create(new GroupAddDeleteParameters
             {
@@ -291,7 +291,7 @@ namespace FWO.Test
         {
             RecordingLdapClient client = new();
             MiddlewareLdap ldap = CreateInternalWritableGroupLdap(client);
-            GroupController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
+            GroupController controller = new([ldap], new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
 
             string result = await controller.Edit(new GroupEditParameters
             {
@@ -308,7 +308,7 @@ namespace FWO.Test
         {
             RecordingLdapClient client = new();
             MiddlewareLdap ldap = CreateInternalWritableGroupLdap(client);
-            GroupController controller = new(new List<MiddlewareLdap> { ldap }, new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
+            GroupController controller = new([ldap], new SessionRevocationApiConnection(), new SimulatedGlobalConfig());
 
             bool result = await controller.Delete(new GroupAddDeleteParameters
             {
@@ -367,7 +367,7 @@ namespace FWO.Test
             };
             SessionRevocationApiConnection apiConnection = new();
             apiConnection.LocalUsers.Add(new UiUser { DbId = 21, Dn = kUserDn });
-            GroupController controller = new(new List<MiddlewareLdap> { CreateInternalWritableGroupLdap(client) }, apiConnection, new SimulatedGlobalConfig());
+            GroupController controller = new([CreateInternalWritableGroupLdap(client)], apiConnection, new SimulatedGlobalConfig());
 
             bool result = await controller.RemoveUser(new GroupAddDeleteUserParameters { UserDn = kUserDn, GroupDn = kGroupDn });
 
@@ -388,7 +388,7 @@ namespace FWO.Test
             SessionRevocationApiConnection apiConnection = new();
             apiConnection.LocalUsers.Add(new UiUser { DbId = 22, Dn = kGroupMemberDn });
             apiConnection.LocalUsers.Add(new UiUser { DbId = 23, Dn = kDirectUserDn });
-            GroupController controller = new(new List<MiddlewareLdap> { CreateInternalWritableGroupLdap(client) }, apiConnection, new SimulatedGlobalConfig());
+            GroupController controller = new([CreateInternalWritableGroupLdap(client)], apiConnection, new SimulatedGlobalConfig());
 
             bool result = await controller.Delete(new GroupAddDeleteParameters { GroupName = "AppOwners" });
 
@@ -401,7 +401,7 @@ namespace FWO.Test
         {
             SessionRevocationApiConnection apiConnection = new();
             apiConnection.LocalUsers.Add(new UiUser { DbId = 22, Dn = kGroupMemberDn });
-            GroupController controller = new(new List<MiddlewareLdap> { CreateInternalGroupLdap(new RecordingLdapClient()) }, apiConnection, new SimulatedGlobalConfig());
+            GroupController controller = new([CreateInternalGroupLdap(new RecordingLdapClient())], apiConnection, new SimulatedGlobalConfig());
 
             bool result = await controller.Delete(new GroupAddDeleteParameters { GroupName = "AppOwners" });
 

@@ -25,11 +25,9 @@ namespace FWO.Test
 
         static readonly ModellingNetworkArea Area1 = new() { Id = 1, Name = "Area1", IdString = "NA01" };
         static readonly ModellingNetworkArea Area2 = new() { Id = 2, Name = "Area2", IdString = "NA02" };
-        static readonly ModellingNetworkArea Area3 = new() { Id = 3, Name = "Area3", IdString = "NA03" };
 
         static readonly ModellingAppRole Role1 = new() { Id = 10, Name = "Role1", IdString = "AR01" };
         static readonly ModellingAppRole Role2 = new() { Id = 11, Name = "Role2", IdString = "AR02" };
-        static readonly ModellingAppRole Role3 = new() { Id = 12, Name = "Role3", IdString = "AR03" };
 
         [SetUp]
         public void Initialize()

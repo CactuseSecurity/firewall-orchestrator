@@ -51,6 +51,15 @@ namespace FWO.Data.Report
         [JsonProperty("notifications"), JsonPropertyName("notifications")]
         public List<FwoNotification> Notifications { get; set; } = [];
 
+        /// <summary>
+        /// Checks that a repeating schedule advances: every interval except Never needs an offset of at least 1.
+        /// </summary>
+        /// <returns>True if the schedule is not repeated or is repeated with a positive offset.</returns>
+        public bool HasValidRepeatOffset()
+        {
+            return RepeatInterval == SchedulerInterval.Never || RepeatOffset > 0;
+        }
+
         public bool Sanitize()
         {
             bool shortened = false;

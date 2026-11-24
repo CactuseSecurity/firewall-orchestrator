@@ -27,10 +27,10 @@ namespace FWO.Test
         {
             MiddlewareServerServicesTestApiConnection apiConnection = new()
             {
-                ConnectedLdaps = new List<Ldap>
-                {
+                ConnectedLdaps =
+                [
                     CreateInternalGroupLdap()
-                }
+                ]
             };
 
             List<UserGroup> groups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
@@ -47,14 +47,14 @@ namespace FWO.Test
         {
             MiddlewareServerServicesTestApiConnection apiConnection = new()
             {
-                ConnectedLdaps = new List<Ldap>
-                {
+                ConnectedLdaps =
+                [
                     new Ldap
                     {
                         UserSearchPath = "ou=users,dc=external,dc=example",
                         GroupSearchPath = kGroupSearchPath
                     }
-                }
+                ]
             };
 
             KeyNotFoundException? exception = Assert.ThrowsAsync<KeyNotFoundException>(async () =>
@@ -88,7 +88,7 @@ namespace FWO.Test
 
         private sealed class MiddlewareServerServicesTestApiConnection : SimulatedApiConnection
         {
-            public List<Ldap> ConnectedLdaps { get; set; } = new();
+            public List<Ldap> ConnectedLdaps { get; set; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {

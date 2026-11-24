@@ -18,9 +18,6 @@ namespace FWO.Data.Workflow
         [JsonProperty("approver_group"), JsonPropertyName("approver_group")]
         public string? ApproverGroup { get; set; }
 
-        //        [JsonProperty("approver"), JsonPropertyName("approver")]
-        //        public UiUser? Approver { get; set; }
-
         [JsonProperty("approver"), JsonPropertyName("approver")]
         public string? ApproverDn { get; set; } = "";
 

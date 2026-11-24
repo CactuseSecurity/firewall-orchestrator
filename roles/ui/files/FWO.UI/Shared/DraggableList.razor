@@ -50,7 +50,7 @@
     public EventCallback OnDragEndCallback { get; set; }
 
     private int? lastSelected;
-    private List<int> lastSelectedRange = new();
+    private readonly List<int> lastSelectedRange = new();
 
     private void ToggleSelect(int index)
     {
@@ -61,7 +61,7 @@
         if (!Multiselect || (!shiftPressed && !ctrlPressed))
         {
             // if only one is selected deselect on click
-            if (SelectedElements.Contains(AllElements[index]) && SelectedElements.Count() == 1)
+            if (SelectedElements.Contains(AllElements[index]) && SelectedElements.Count == 1)
             {
                 Deselect(index);
             }
@@ -79,7 +79,7 @@
             }
             else
             {
-                if (SelectedElements.Contains(AllElements[index]) && SelectedElements.Count() == 1)
+                if (SelectedElements.Contains(AllElements[index]) && SelectedElements.Count == 1)
                 {
                     Deselect(index);
                 }
@@ -155,12 +155,6 @@
         lastSelected = null;
     }
 
-    private void DeselectRange()
-    {
-        SelectedElements.Clear();
-        lastSelected = null;
-    }
-
     /// <summary>
     /// Invokes OnDragEnd EventCallback (only if it has a delegate)
     /// </summary>
@@ -173,7 +167,10 @@
             {
                 await OnDragEndCallback.InvokeAsync();
             }
-            catch (Exception){ }
+            catch (Exception exception)
+            {
+                Log.WriteError("Drag and drop", "Drag end callback failed.", exception);
+            }
         }
     }
 

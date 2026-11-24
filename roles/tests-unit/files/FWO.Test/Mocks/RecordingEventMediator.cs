@@ -6,7 +6,7 @@ namespace FWO.Test.Mocks
 
     public sealed class RecordingEventMediator : IEventMediator
     {
-        public List<PublishedEventRecord> PublishedEvents { get; } = new List<PublishedEventRecord>();
+        public List<PublishedEventRecord> PublishedEvents { get; } = [];
 
         public void Subscribe<TEvent>(string name, Action<TEvent> handler) where TEvent : class, IEvent
         {

@@ -43,12 +43,12 @@ namespace FWO.Test
                 ChangeText = "created",
                 Changer = "tester"
             };
-            apiConn.HistoryForApp = new List<ModellingHistoryEntry> { historyEntry };
+            apiConn.HistoryForApp = [historyEntry];
 
             IRenderedComponent<ShowHistory> component = RenderShowHistory(
                 context,
                 display: true,
-                applications: new List<FwoOwner> { new FwoOwner { Id = 12, Name = "app12" } },
+                applications: [new FwoOwner { Id = 12, Name = "app12" }],
                 selectedApp: new FwoOwner { Id = 12, Name = "app12" });
 
             component.WaitForAssertion(() =>
@@ -72,7 +72,7 @@ namespace FWO.Test
             IRenderedComponent<ShowHistory> component = RenderShowHistory(
                 context,
                 display: true,
-                applications: new List<FwoOwner>(),
+                applications: [],
                 selectedApp: new FwoOwner { Id = 1, Name = "app" },
                 displayChanged: value => displayChanged = value);
 

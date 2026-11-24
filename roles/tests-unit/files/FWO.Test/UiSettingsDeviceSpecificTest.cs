@@ -380,7 +380,7 @@ internal sealed class UiSettingsDeviceSpecificTest
         api ??= CreateApi();
 
         SimulatedUserConfig userConfig = new();
-        userConfig.User.Roles = new List<string> { role };
+        userConfig.User.Roles = [role];
 
         BunitContext context = new();
         context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -395,7 +395,7 @@ internal sealed class UiSettingsDeviceSpecificTest
 
     private sealed class RoleAuthStateProvider(string role) : AuthenticationStateProvider
     {
-        private readonly List<Claim> claims = new() { new Claim(ClaimTypes.Role, role) };
+        private readonly List<Claim> claims = [new Claim(ClaimTypes.Role, role)];
 
         private AuthenticationState authenticationState => new(new ClaimsPrincipal(new ClaimsIdentity(
             claims, authenticationType: "Test", nameType: ClaimTypes.Name, roleType: ClaimTypes.Role)));

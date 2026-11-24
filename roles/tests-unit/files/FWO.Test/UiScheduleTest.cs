@@ -24,19 +24,17 @@ namespace FWO.Test
         public async Task Schedule_LoadsVisibleSchedulesAndAllowedTemplates()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>
-                {
+                [
                     CreateSchedule(1, "Own schedule", 50, ReportType.Rules, "Rules template"),
                     CreateSchedule(2, "Foreign schedule", 51, ReportType.Rules, "Rules template")
-                },
-                new List<ReportTemplate>
-                {
+                ],
+                [
                     CreateTemplate(11, "Rules template", ReportType.Rules),
                     CreateTemplate(12, "Connections template", ReportType.Connections)
-                },
-                new List<FwoOwner>());
+                ],
+                []);
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), new List<string> { Roles.Reporter }, apiConnection, out _);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), [Roles.Reporter], apiConnection, out _);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
 
             wrapper.WaitForAssertion(() =>
@@ -63,14 +61,13 @@ namespace FWO.Test
         public async Task Schedule_AddReportSchedule_UsesDefaultsAndSavesSchedule()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>(),
-                new List<ReportTemplate>
-                {
+                [],
+                [
                     CreateTemplate(21, "Rules template", ReportType.Rules)
-                },
-                new List<FwoOwner>());
+                ],
+                []);
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), new List<string> { Roles.Reporter }, apiConnection, out SimulatedUserConfig userConfig);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), [Roles.Reporter], apiConnection, out SimulatedUserConfig userConfig);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
             wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<List<ReportTemplate>>(wrapper.FindComponent<Schedule>().Instance, "reportTemplates"), Has.Count.EqualTo(1)));
 
@@ -89,10 +86,10 @@ namespace FWO.Test
             ReportSchedule reportScheduleInEdit = GetPrivateField<ReportSchedule>(component, "reportScheduleInEdit");
             reportScheduleInEdit.Name = "Nightly schedule";
             reportScheduleInEdit.Template = GetPrivateField<List<ReportTemplate>>(component, "reportTemplates")[0];
-            reportScheduleInEdit.OutputFormat = new List<FileFormat>
-            {
+            reportScheduleInEdit.OutputFormat =
+            [
                 new FileFormat { Name = GlobalConst.kJson }
-            };
+            ];
             SetPrivateField(component, "actDate", new DateTime(2026, 7, 27));
             SetPrivateField(component, "actTime", new DateTime(2026, 7, 27, 13, 45, 0));
 
@@ -115,15 +112,14 @@ namespace FWO.Test
         public async Task Schedule_AddReportSchedule_WithoutTemplate_ShowsValidationError()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>(),
-                new List<ReportTemplate>
-                {
+                [],
+                [
                     CreateTemplate(21, "Rules template", ReportType.Rules)
-                },
-                new List<FwoOwner>());
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new List<(Exception? Exception, string Title, string Message, bool IsError)>();
+                ],
+                []);
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), new List<string> { Roles.Reporter }, apiConnection, out SimulatedUserConfig userConfig);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), [Roles.Reporter], apiConnection, out SimulatedUserConfig userConfig);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, (exception, title, message, isError) => messages.Add((exception, title, message, isError)));
             wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<List<ReportTemplate>>(wrapper.FindComponent<Schedule>().Instance, "reportTemplates"), Has.Count.EqualTo(1)));
 
@@ -149,24 +145,90 @@ namespace FWO.Test
             });
         }
 
+        [TestCase(0)]
+        [TestCase(-1)]
+        public async Task Schedule_AddReportSchedule_WithNonPositiveRepeatOffset_ShowsValidationError(int repeatOffset)
+        {
+            TrackingScheduleApiConnection apiConnection = new(
+                [],
+                [
+                    CreateTemplate(21, "Rules template", ReportType.Rules)
+                ],
+                []);
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), [Roles.Reporter], apiConnection, out SimulatedUserConfig userConfig);
+            IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, (exception, title, message, isError) => messages.Add((exception, title, message, isError)));
+            wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<List<ReportTemplate>>(wrapper.FindComponent<Schedule>().Instance, "reportTemplates"), Has.Count.EqualTo(1)));
+
+            Schedule component = wrapper.FindComponent<Schedule>().Instance;
+            await (Task)InvokePrivateMethod(component, "OnAddReportScheduleButtonClick")!;
+            ReportSchedule reportScheduleInEdit = GetPrivateField<ReportSchedule>(component, "reportScheduleInEdit");
+            reportScheduleInEdit.Name = "Endless schedule";
+            reportScheduleInEdit.Template = GetPrivateField<List<ReportTemplate>>(component, "reportTemplates")[0];
+            reportScheduleInEdit.RepeatInterval = SchedulerInterval.Days;
+            reportScheduleInEdit.RepeatOffset = repeatOffset;
+
+            await (Task)InvokePrivateMethod(component, "AddReportSchedule")!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.AddScheduleCalls, Is.EqualTo(0));
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Message, Is.EqualTo(userConfig.GetText("E2003")));
+                Assert.That(messages[0].IsError, Is.True);
+                Assert.That(GetPrivateField<bool>(component, "ShowAddReportScheduleDialog"), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task Schedule_EditReportSchedule_WithZeroRepeatOffset_IsNotSaved()
+        {
+            TrackingScheduleApiConnection apiConnection = new(
+                [
+                    CreateSchedule(1, "Own schedule", 50, ReportType.Rules, "Rules template")
+                ],
+                [
+                    CreateTemplate(21, "Rules template", ReportType.Rules)
+                ],
+                []);
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), [Roles.Reporter], apiConnection, out SimulatedUserConfig userConfig);
+            IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, (exception, title, message, isError) => messages.Add((exception, title, message, isError)));
+            wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<List<ReportSchedule>>(wrapper.FindComponent<Schedule>().Instance, "reportSchedules"), Has.Count.EqualTo(1)));
+
+            Schedule component = wrapper.FindComponent<Schedule>().Instance;
+            await wrapper.InvokeAsync(() => wrapper.Find("button.btn.btn-sm.btn-warning").Click());
+            ReportSchedule reportScheduleInEdit = GetPrivateField<ReportSchedule>(component, "reportScheduleInEdit");
+            reportScheduleInEdit.RepeatInterval = SchedulerInterval.Weeks;
+            reportScheduleInEdit.RepeatOffset = 0;
+
+            await (Task)InvokePrivateMethod(component, "UpdateReportSchedule")!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpdateScheduleCalls, Is.EqualTo(0));
+                Assert.That(messages.Select(message => message.Message), Does.Contain(userConfig.GetText("E2003")));
+                Assert.That(GetPrivateField<bool>(component, "ShowEditReportScheduleDialog"), Is.True);
+            });
+        }
+
         [Test]
         public async Task Schedule_EditReportSchedule_ShowsAvailabilityAndUpdatesSchedule()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>
-                {
+                [
                     CreateSchedule(1, "Own schedule", 50, ReportType.Connections, "Connections template", true)
-                },
-                new List<ReportTemplate>
-                {
+                ],
+                [
                     CreateTemplate(31, "Connections template", ReportType.Connections)
-                },
-                new List<FwoOwner>
-                {
+                ],
+                [
                     new FwoOwner { Id = 0, Name = "All" }
-                });
+                ]);
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Admin), new List<string> { Roles.Admin }, apiConnection, out _);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Admin), [Roles.Admin], apiConnection, out _);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
             wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<List<ReportSchedule>>(wrapper.FindComponent<Schedule>().Instance, "reportSchedules"), Has.Count.EqualTo(1)));
 
@@ -210,17 +272,15 @@ namespace FWO.Test
         public async Task Schedule_DeleteReportSchedule_SendsDeleteAndClosesDialog()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>
-                {
+                [
                     CreateSchedule(1, "Own schedule", 50, ReportType.Rules, "Rules template")
-                },
-                new List<ReportTemplate>
-                {
+                ],
+                [
                     CreateTemplate(21, "Rules template", ReportType.Rules)
-                },
-                new List<FwoOwner>());
+                ],
+                []);
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), new List<string> { Roles.Reporter }, apiConnection, out _);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Reporter), [Roles.Reporter], apiConnection, out _);
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
             wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<List<ReportSchedule>>(wrapper.FindComponent<Schedule>().Instance, "reportSchedules"), Has.Count.EqualTo(1)));
 
@@ -243,17 +303,15 @@ namespace FWO.Test
         public async Task Schedule_AuditorCanOpenForeignScheduleButCannotSaveOrDeleteIt()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>
-                {
+                [
                     CreateSchedule(1, "Foreign schedule", 77, ReportType.Rules, "Rules template")
-                },
-                new List<ReportTemplate>
-                {
+                ],
+                [
                     CreateTemplate(21, "Rules template", ReportType.Rules)
-                },
-                new List<FwoOwner>());
+                ],
+                []);
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Auditor), new List<string> { Roles.Auditor }, apiConnection, out SimulatedUserConfig userConfig);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Auditor), [Roles.Auditor], apiConnection, out SimulatedUserConfig userConfig);
             userConfig.ModIconify = false;
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
             wrapper.WaitForAssertion(() => Assert.That(GetPrivateField<List<ReportSchedule>>(wrapper.FindComponent<Schedule>().Instance, "reportSchedules"), Has.Count.EqualTo(1)));
@@ -288,14 +346,13 @@ namespace FWO.Test
         public async Task Schedule_AuditorCanSaveNewSchedule()
         {
             TrackingScheduleApiConnection apiConnection = new(
-                new List<ReportSchedule>(),
-                new List<ReportTemplate>
-                {
+                [],
+                [
                     CreateTemplate(21, "Rules template", ReportType.Rules)
-                },
-                new List<FwoOwner>());
+                ],
+                []);
 
-            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Auditor), new List<string> { Roles.Auditor }, apiConnection, out SimulatedUserConfig userConfig);
+            await using BunitContext context = CreateContext(new MonitoringTestAuthStateProvider(Roles.Auditor), [Roles.Auditor], apiConnection, out SimulatedUserConfig userConfig);
             userConfig.ModIconify = false;
             IRenderedComponent<CascadingValue<Action<Exception?, string, string, bool>>> wrapper = RenderSchedule(context, null);
             Schedule component = wrapper.FindComponent<Schedule>().Instance;
@@ -324,7 +381,7 @@ namespace FWO.Test
             userConfig.User.DbId = 50;
             userConfig.User.Name = "report.user";
             userConfig.User.Language = "English";
-            userConfig.User.Roles = new List<string>(roles);
+            userConfig.User.Roles = [.. roles];
             context.Services.AddSingleton<UserConfig>(userConfig);
             return context;
         }
@@ -369,13 +426,13 @@ namespace FWO.Test
                 RepeatOffset = 2,
                 RepeatInterval = SchedulerInterval.Weeks,
                 Template = CreateTemplate(id + 100, templateName, reportType),
-                OutputFormat = new List<FileFormat>
-                {
+                OutputFormat =
+                [
                     new FileFormat { Name = GlobalConst.kHtml },
                     new FileFormat { Name = GlobalConst.kPdf },
                     new FileFormat { Name = GlobalConst.kJson },
                     new FileFormat { Name = GlobalConst.kCsv }
-                },
+                ],
                 Active = true,
                 Counter = 3,
                 Archive = false
@@ -383,8 +440,8 @@ namespace FWO.Test
 
             if (withNotification)
             {
-                schedule.Notifications = new List<FwoNotification>
-                {
+                schedule.Notifications =
+                [
                     new FwoNotification
                     {
                         Id = 77,
@@ -392,7 +449,7 @@ namespace FWO.Test
                         EmailSubject = "Subject",
                         EmailBody = "Body"
                     }
-                };
+                ];
             }
 
             return schedule;

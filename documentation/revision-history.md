@@ -6,6 +6,9 @@
   - the report job skips whole elapsed intervals of daily and weekly schedules instead of stepping through them one by one, so a start time far in the past no longer costs noticeable time on every check
   - the schedule page refuses to save a repeated schedule with an offset below 1
   - database: new constraint `report_schedule_repeat_positive` on `report_schedule`, default offset 1; the upgrade sets the offset of existing repeated schedules below 1 to 1 and deactivates them, so their owners review them before they run again
+- importer: the total time limit of a config file download (30 minutes) is also enforced while a read is blocked (#5415)
+  - covers the proxy and TLS handshakes, the response headers and the body, including compressed data that never decodes to any content
+  - a download cut off at the limit is reported as a failed import, never processed truncated
 
 
 ## 9.9.4 - 17.11.2026

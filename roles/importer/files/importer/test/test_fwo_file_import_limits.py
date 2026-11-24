@@ -20,6 +20,7 @@ from fwo_exceptions import ConfigFileNotFoundError, ConfigFileRejectedError
 from models.import_state import ImportState
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
 
 CONFIG_URL = "https://config.example/config.json"
@@ -30,11 +31,14 @@ TRICKLE_TOTAL_TIMEOUT = 0.5
 TRICKLE_MAX_SECONDS = 3.0
 DEADLINE = 0.5
 DEADLINE_TOLERANCE = 2.0
+SOCKET_TIMEOUT = 10  # for each connect or read, far beyond the deadline; ends a test that is not cut off
+LATE_DEADLINE = 60.0  # never reached, for tests that let the deadline expire themselves
 SLOW_PART_INTERVAL = 0.05
 SLOW_PARTS = 200  # 10 seconds of slow parts, far beyond the deadline
 GZIP_HEADER_WITH_FILE_NAME = bytes([0x1F, 0x8B, 0x08, 0x08, 0, 0, 0, 0, 0, 0xFF])
 ZLIB_HEADER = bytes([0x78, 0x9C])
 EMPTY_STORED_DEFLATE_BLOCK = bytes([0x00, 0x00, 0x00, 0xFF, 0xFF])
+TLS_HANDSHAKE_RECORD_HEADER = bytes([0x16, 0x03, 0x03, 0x40, 0x00])  # announces 16 KiB of handshake data
 REAL_SESSION = requests.Session
 
 
@@ -75,10 +79,6 @@ class FakeRaw:
 
     def __init__(self, chunks: list[bytes]) -> None:
         self.chunks = list(chunks)
-        self.closed = False
-
-    def close(self) -> None:
-        self.closed = True
 
     def read1(self, amt: int, decode_content: bool) -> bytes:  # noqa: ARG002
         return self.chunks.pop(0) if self.chunks else b""
@@ -90,14 +90,6 @@ class FailingRaw:
 
     def read1(self, amt: int, decode_content: bool) -> bytes:  # noqa: ARG002
         raise self.error
-
-
-class SlowRaw(FakeRaw):
-    """Blocks in read1 beyond any deadline, then reports the end of the content, like a connection cut off."""
-
-    def read1(self, amt: int, decode_content: bool) -> bytes:  # noqa: ARG002
-        time.sleep(DEADLINE)
-        return b""
 
 
 def serve_once(
@@ -143,6 +135,9 @@ class FakeSession:
     def __init__(self) -> None:
         self.verify: bool | str = True
         self.headers: dict[str, str] = {}
+
+    def mount(self, prefix: str, adapter: fwo_file_import.DeadlineAdapter) -> None:
+        pass
 
     def __enter__(self) -> FakeSession:  # noqa: PYI034
         return self
@@ -288,6 +283,11 @@ class TestReceivedChunks:
 @pytest.fixture
 def real_session(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(fwo_file_import.requests, "Session", REAL_SESSION)
+    monkeypatch.setattr(fwo_file_import, "CONFIG_FILE_READ_TIMEOUT", SOCKET_TIMEOUT)
+    monkeypatch.setattr(fwo_file_import, "FWO_HTTP_CONNECT_TIMEOUT", SOCKET_TIMEOUT)
+    for variable in ("http_proxy", "https_proxy", "all_proxy", "no_proxy"):
+        monkeypatch.delenv(variable, raising=False)
+        monkeypatch.delenv(variable.upper(), raising=False)
 
 
 def slow_server(parts: list[bytes], content_encoding: str = "") -> str:
@@ -352,17 +352,6 @@ class TestDownloadDeadline:
 
             assert fwo_file_import.download_config_file(f"http://127.0.0.1:{port}/") == SMALL_CONFIG
 
-    @pytest.mark.parametrize("connection_header", ["", "Connection: close\r\n"])
-    def test_streamed_response_provides_its_socket(self, connection_header: str) -> None:
-        head = f"HTTP/1.1 200 OK\r\n{connection_header}Content-Length: {len(SMALL_CONFIG)}\r\n\r\n".encode()
-        port = serve_once(head, [], 0, threading.Event())
-
-        with requests.get(f"http://127.0.0.1:{port}/", stream=True, timeout=(5, 5)) as response:
-            sock = fwo_file_import.duplicate_response_socket(response.raw)
-
-        assert isinstance(sock, socket.socket)
-        sock.close()
-
     def test_stalled_download_closed_by_server_after_response_is_cut_off(self) -> None:
         client_gone = threading.Event()
         head = f"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: {len(SMALL_CONFIG)}\r\n\r\n".encode()
@@ -372,59 +361,131 @@ class TestDownloadDeadline:
 
         assert client_gone.wait(DEADLINE_TOLERANCE)
 
+    def test_slow_response_headers_abort_at_deadline(self) -> None:
+        port = serve_once(b"HTTP/1.1 200 OK\r\nX-Slow: ", [b"x"] * SLOW_PARTS, SLOW_PART_INTERVAL)
+
+        assert_download_aborts_at_deadline(f"http://127.0.0.1:{port}/")
+
+    def test_headers_cut_off_at_deadline_are_not_taken_for_a_response(self) -> None:
+        client_gone = threading.Event()
+        head = b"HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1/\r\n"
+        port = serve_once(head, [], 0, client_gone)
+
+        assert_download_aborts_at_deadline(f"http://127.0.0.1:{port}/")
+
+        assert client_gone.wait(DEADLINE_TOLERANCE)
+
+    @pytest.mark.parametrize("scheme", ["http", "https"])
+    def test_server_that_never_answers_is_cut_off_at_deadline(self, scheme: str) -> None:
+        client_gone = threading.Event()
+        port = serve_once(b"", [], 0, client_gone)
+
+        assert_download_aborts_at_deadline(f"{scheme}://127.0.0.1:{port}/")
+
+        assert client_gone.wait(DEADLINE_TOLERANCE)
+
+    def test_slow_tls_handshake_aborts_at_deadline(self) -> None:
+        port = serve_once(TLS_HANDSHAKE_RECORD_HEADER, [b"x"] * SLOW_PARTS, SLOW_PART_INTERVAL)
+
+        assert_download_aborts_at_deadline(f"https://127.0.0.1:{port}/")
+
+    @pytest.mark.parametrize("scheme", ["http", "https"])
+    def test_proxy_that_never_answers_is_cut_off_at_deadline(
+        self, scheme: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        client_gone = threading.Event()
+        port = serve_once(b"", [], 0, client_gone)
+        monkeypatch.setenv(f"{scheme}_proxy", f"http://127.0.0.1:{port}")
+
+        assert_download_aborts_at_deadline(f"{scheme}://config.example/config.json")
+
+        assert client_gone.wait(DEADLINE_TOLERANCE)
+
+
+@pytest.fixture
+def socket_pair() -> Iterator[tuple[socket.socket, socket.socket]]:
+    own, peer = socket.socketpair()
+    with own, peer:
+        own.settimeout(DEADLINE_TOLERANCE)
+        peer.settimeout(DEADLINE_TOLERANCE)
+        yield own, peer
+
 
 class TestDeadlineWatchdog:
-    def test_finished_download_is_not_cut_off(self) -> None:
-        raw = FakeRaw([SMALL_CONFIG])
+    def test_attached_socket_is_shut_down_at_deadline(self, socket_pair: tuple[socket.socket, socket.socket]) -> None:
+        own, _ = socket_pair
 
-        assert fwo_file_import.read_within_deadline(raw, DEADLINE) == SMALL_CONFIG  # type: ignore[arg-type]
-        time.sleep(DEADLINE * 2)
+        with fwo_file_import.DownloadDeadline(0.01) as deadline:
+            deadline.attach(own)
 
-        assert not raw.closed
+            assert own.recv(1) == b""
+            assert deadline.expired.is_set()
 
-    def test_deadline_firing_after_download_finished_is_ignored(self) -> None:
-        raw = FakeRaw([])
+    def test_socket_attached_after_deadline_is_shut_down_at_once(
+        self, socket_pair: tuple[socket.socket, socket.socket]
+    ) -> None:
+        own, _ = socket_pair
 
-        with fwo_file_import.DownloadDeadline(raw, DEADLINE_TOLERANCE) as deadline:  # type: ignore[arg-type]
-            pass
+        with fwo_file_import.DownloadDeadline(LATE_DEADLINE) as deadline:
+            deadline.expire()
+            deadline.attach(own)
+
+            assert own.recv(1) == b""
+
+    def test_deadline_firing_after_download_finished_is_ignored(
+        self, socket_pair: tuple[socket.socket, socket.socket]
+    ) -> None:
+        own, peer = socket_pair
+
+        with fwo_file_import.DownloadDeadline(LATE_DEADLINE) as deadline:
+            deadline.attach(own)
         deadline.expire()
+        deadline.attach(own)
+        own.sendall(b"x")
 
+        assert peer.recv(1) == b"x"
         assert not deadline.expired.is_set()
-        assert not raw.closed
 
-    def test_response_read_from_a_file_has_no_socket(self, tmp_path: Path) -> None:
-        with (tmp_path / "body").open("wb") as body:
-            raw = MagicMock()
-            raw.fileno.return_value = body.fileno()
+    def test_finished_download_keeps_no_duplicate_of_the_socket(
+        self, socket_pair: tuple[socket.socket, socket.socket]
+    ) -> None:
+        own, peer = socket_pair
 
-            assert fwo_file_import.duplicate_response_socket(raw) is None
+        with fwo_file_import.DownloadDeadline(LATE_DEADLINE) as deadline:
+            deadline.attach(own)
+        own.close()
 
-    def test_response_without_socket_is_closed_at_deadline(self) -> None:
-        raw = FakeRaw([])
+        assert peer.recv(1) == b""
 
-        with fwo_file_import.DownloadDeadline(raw, 0.01) as deadline:  # type: ignore[arg-type]
+    def test_shutting_down_an_unconnected_socket_is_ignored(self) -> None:
+        with socket.socket() as sock:
+            fwo_file_import.shut_down(sock)
+
+    def test_content_ending_after_deadline_is_rejected_not_truncated(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        def fetch(_url: str, deadline: fwo_file_import.DownloadDeadline) -> bytes:
             assert deadline.expired.wait(DEADLINE_TOLERANCE)
+            return b"truncated"
 
-        assert raw.closed
+        monkeypatch.setattr(fwo_file_import, "fetch_config_file", fetch)
 
-    def test_content_ending_after_deadline_is_rejected_not_truncated(self) -> None:
         with pytest.raises(ConfigFileRejectedError, match=re.escape("exceeds the limit of 0.01 seconds")):
-            fwo_file_import.read_within_deadline(SlowRaw([]), 0.01)  # type: ignore[arg-type]
+            fwo_file_import.download_config_file(CONFIG_URL, 0.01)
 
-    def test_errors_before_deadline_are_raised_unchanged(self) -> None:
-        error = urllib3.exceptions.ProtocolError("connection broken")
+    def test_errors_after_deadline_are_raised_as_rejection(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        def fetch(_url: str, deadline: fwo_file_import.DownloadDeadline) -> bytes:
+            assert deadline.expired.wait(DEADLINE_TOLERANCE)
+            raise requests.exceptions.ConnectionError("connection shut down")
 
-        with pytest.raises(requests.exceptions.ChunkedEncodingError):
-            fwo_file_import.read_within_deadline(FailingRaw(error), DEADLINE)  # type: ignore[arg-type]
-
-    def test_errors_after_deadline_are_raised_as_rejection(self) -> None:
-        class FailingAfterDeadline(FakeRaw):
-            def read1(self, amt: int, decode_content: bool) -> bytes:  # noqa: ARG002
-                time.sleep(DEADLINE)
-                raise urllib3.exceptions.ProtocolError("connection shut down")
+        monkeypatch.setattr(fwo_file_import, "fetch_config_file", fetch)
 
         with pytest.raises(ConfigFileRejectedError, match="exceeds the limit"):
-            fwo_file_import.read_within_deadline(FailingAfterDeadline([]), 0.01)  # type: ignore[arg-type]
+            fwo_file_import.download_config_file(CONFIG_URL, 0.01)
+
+    def test_errors_before_deadline_are_raised_unchanged(self) -> None:
+        FakeSession.response = FakeResponse(status_code=404)
+
+        with pytest.raises(requests.exceptions.HTTPError, match="404"):
+            fwo_file_import.download_config_file(CONFIG_URL, LATE_DEADLINE)
 
 
 class TestLocalFile:

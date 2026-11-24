@@ -59,6 +59,9 @@ class FakeSession:
         self.headers: dict[str, str] = {}
         FakeSession.instances.append(self)
 
+    def mount(self, prefix: str, adapter: fwo_file_import.DeadlineAdapter) -> None:
+        pass
+
     def __enter__(self) -> FakeSession:  # noqa: PYI034
         return self
 

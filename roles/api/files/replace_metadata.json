@@ -7881,6 +7881,48 @@
               ],
               "select_permissions": [
                 {
+                  "role": "ai-harness",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "config_user"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "config_user": {
+                            "_eq": 0
+                          }
+                        },
+                        {
+                          "config_key": {
+                            "_in": [
+                              "aiProvider",
+                              "aiModel",
+                              "aiEndpoint",
+                              "aiCredentialId",
+                              "aiContextWindowTokens",
+                              "aiMaxOutputTokens",
+                              "aiRequestTimeoutSeconds",
+                              "aiMaxIterationsPerRequest",
+                              "aiMaxConsecutiveErrorsPerRequest",
+                              "aiCompactionReserveTokens",
+                              "aiAuthMethod",
+                              "aiTokenUrl",
+                              "aiCustomHeaders",
+                              "aiChat",
+                              "aiReasonCheck",
+                              "aiChatRoles",
+                              "aiReasonCheckRoles"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
                   "role": "anonymous",
                   "permission": {
                     "columns": [
@@ -30348,6 +30390,26 @@
                 "name": "v_active_access_allow_rules",
                 "schema": "public"
               }
+            },
+            {
+              "table": {
+                "name": "v_ai_provider_credential",
+                "schema": "public"
+              },
+              "select_permissions": [
+                {
+                  "role": "ai-harness",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "is_key_pair",
+                      "secret",
+                      "username"
+                    ],
+                    "filter": {}
+                  }
+                }
+              ]
             },
             {
               "table": {

@@ -391,6 +391,25 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task RequestDelete_ShowsAiSettingsUsage()
+        {
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+            await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin, messages);
+            Credential credential = GetMember<List<Credential>>(setup.Component, "credentials")[2];
+            GetMember<UserConfig>(setup.Component, "userConfig").AiCredentialId = credential.Id;
+
+            await setup.Rendered.InvokeAsync(() => InvokePrivateTask(setup.Component, "RequestDelete", credential));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages.Single().Message, Is.EqualTo($"Credential is used by the AI settings ({credential.Name})"));
+                Assert.That(messages.Single().IsError, Is.True);
+                Assert.That(GetMember<bool>(setup.Component, "DeleteMode"), Is.False);
+                Assert.That(setup.ApiConnection.Queries, Does.Not.Contain(DeviceQueries.deleteCredential));
+            });
+        }
+
         private static RecordingCredentialsApiConnection CreateApiConnection()
         {
             return new RecordingCredentialsApiConnection

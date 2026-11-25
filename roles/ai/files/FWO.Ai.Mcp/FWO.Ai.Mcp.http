@@ -1,0 +1,18 @@
+@HostAddress = https://localhost:5242
+# accessToken returned by POST /api/AuthenticationToken/GetTokenPair of the middleware server
+@AccessToken = <access token>
+
+POST {{HostAddress}}/mcp
+Accept: application/json, text/event-stream
+Content-Type: application/json
+MCP-Protocol-Version: 2025-11-25
+Authorization: Bearer {{AccessToken}}
+
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+        "name": "get_current_user"
+    }
+}

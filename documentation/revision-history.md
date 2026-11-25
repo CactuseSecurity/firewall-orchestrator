@@ -1,7 +1,21 @@
 # Firewall Orchestrator Revision History
 
 ## 9.9.6 - 25.11.2026
-
+- new AI MCP server (service `fworch-ai-mcp`, endpoint `/mcp` on the middleware host): offers FWO tools and prompts to MCP clients such as Claude Code or Codex, limited to what the roles of the calling user allow
+- new AI harness (service `fworch-ai-harness`, endpoint `/agui`): runs an AI agent (Ollama, OpenAI, Anthropic or Google) on the MCP tools over AG-UI with the rights of the calling user; tools that change data need the user's confirmation
+- both AI servers are installed by default on the middleware host; skip them with `install_ai_server=no`
+- the AI servers log to `/var/log/fworch/ai-mcp.log` and `/var/log/fworch/ai-harness.log`, rotated like the audit and alert logs
+- modelling: new button to let an AI assess the functional reason of a connection, an interface description or the reason of an interface usage (genuine, insufficient, not genuine), with questions to the requester and a proposal; activate it in the AI settings (`aiReasonCheck`)
+- new settings page `Settings > AI settings` (admin, auditor read-only) for AI provider, model, endpoint, API key and agent loop limits; replaces the environment variables `Harness__Provider__*` and `Harness__Agent__*`
+- the API key is stored as a credential; a credential the AI settings use cannot be deleted
+- the AI harness reads its settings with the new technical LDAP user and role `ai-harness`, which may only read these settings and the credential they reference
+- changes of the AI settings apply within `ai_harness_settings_refresh_seconds` (default 30) without a restart
+- the AI harness can log in at an OpenAI compatible server with OAuth 2.0 (client credentials) instead of an API key: new AI settings `aiAuthMethod` and `aiTokenUrl`, client id and secret are stored as credential; the access token is kept until shortly before it expires and renewed once if the server refuses it
+- the Azure logins of the autodiscovery and of the firewall write library use the same new OAuth 2.0 client of FWO.Basics
+- the AI settings switch the AI functions chat (`aiChat`) and reason check (`aiReasonCheck`, moved from the modelling settings) on and off, both off by default; the AI harness refuses runs of a function that is switched off, also from clients other than the UI
+- the AI settings can add HTTP headers to every request to the AI provider (`aiCustomHeaders`, JSON array of name and value, e.g. the profile name an API gateway in front of the model expects); not sent to the token URL, stored in plain text, so headers carrying credentials (`Authorization`, `x-api-key`, ...) or framing the message (`Host`, `Content-Type`, ...) are refused
+- the AI settings limit each AI function to roles selected in a dropdown (`aiChatRoles`, `aiReasonCheckRoles`, every user if none is selected); the UI hides the function from other users and the AI harness refuses their runs, checking the roles of the user's JWT
+- new AI chat in the UI: a navigation bar button opens a resizable panel docked on the right over every page, minimizes it and shows a badge for a running answer, a new answer or pending approvals; answers stream as plain text, tool calls that change data need the approval of the user, the conversation lasts until reload, logout or "New Chat"; the footer messages are shown left of the open panel; online help page `/help/ai`
 - dependencies: update NuGet packages (AngleSharp to 1.10.5, Microsoft.OpenApi to 2.13.1, Microsoft.Playwright to 1.65.1, Novell.Directory.Ldap.NETStandard to 4.1.0, PuppeteerSharp to 25.18.1, Quartz to 4.8.1, Scalar.AspNetCore to 3.2.0, SoPro.FancyTable to 1.7.1)
 - dependencies: update NuGet packages (AngleSharp to 1.11.0)
 - UI fix: object links in change reports work (#2506); they pointed to management id 0 because the change report rule queries did not select `mgm_id`
@@ -12,7 +26,6 @@
   - the Rule tab shows the group members of rule objects; the fetched details replace the overview objects of the report instead of being added as duplicates
   - "Clear all" in the Rule tab (and other re-renders) no longer discards the objects already loaded into the Report tab; a failed fetch can be repeated by expanding the category again
   - links jump to the object on the first click: the scroll is repeated once lazily fetched objects are rendered; it is instant while objects are being fetched and smooth otherwise
-
 
 ## 9.9.5 - 23.11.2026
 - security fix: a report schedule repeated with an offset below 1 (e.g. "every 0 days") made the scheduled report job loop endlessly, so no scheduled report ran any more (GHSA-6mh5-c5hj-qjwp)

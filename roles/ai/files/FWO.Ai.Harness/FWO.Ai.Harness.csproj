@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- experimental in Microsoft Agent Framework 1.26: the history compaction (SummarizationCompactionStrategy,
+         CompactionTriggers) -->
+    <NoWarn>$(NoWarn);MAAI001</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Anthropic" Version="13.3.0" />
+    <PackageReference Include="Google.GenAI" Version="1.27.0" />
+    <PackageReference Include="Microsoft.Agents.AI" Version="1.26.0" />
+    <!-- the AG-UI server of Microsoft Agent Framework; both hosting packages are only published as previews -->
+    <PackageReference Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="1.26.0-preview.261023.1" />
+    <PackageReference Include="Microsoft.Agents.AI.Hosting.AspNetCore" Version="1.26.0-preview.261023.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.11.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.11.0" />
+    <!-- has to stay in step with ModelContextProtocol.AspNetCore of the MCP server (FWO.Ai.Mcp) -->
+    <PackageReference Include="ModelContextProtocol.Core" Version="2.1.0" />
+    <PackageReference Include="OllamaSharp" Version="5.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\lib\files\FWO.Config.File\FWO.Config.File.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Encryption\FWO.Encryption.csproj" />
+    <ProjectReference Include="..\..\..\lib\files\FWO.Middleware.Client\FWO.Middleware.Client.csproj" />
+  </ItemGroup>
+
+</Project>

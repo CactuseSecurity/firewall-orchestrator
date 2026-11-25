@@ -150,6 +150,14 @@ e.g. if your hasura metadata file needs to be re-created from scratch, then use 
 ./scripts/run-playbook-with-sudo.sh site.yml -e "force_install=yes"
 ```
 
+### Parameter "apt_lock_timeout" to wait for background package updates (Debian, Ubuntu)
+
+On a freshly provisioned Debian or Ubuntu host, `apt-daily` and `unattended-upgrades` may hold the package manager lock for many minutes, and they can also start in the middle of an installation. Every apt task of the installer therefore waits up to `apt_lock_timeout` seconds (default 1800) for the lock instead of failing; `scripts/install-ansible-from-venv.sh` waits equally long. To fail sooner, e.g.:
+
+```console
+./scripts/run-playbook-with-sudo.sh site.yml -e "apt_lock_timeout=300"
+```
+
 ### Parameter "allow_unsupported_os" to install on an unsupported operating system release
 
 The installer stops before changing anything on an operating system release it does not support (supported are Red Hat 9+, Rocky 9+, Debian 12+ including Debian testing, and Ubuntu 22.04+ LTS). For development or for testing a new release, install anyway with a warning instead:
@@ -230,6 +238,8 @@ variables (already set in inventory):
 product_name: fworch
 middleware_server_syslog_id: "{{ product_name }}.middleware-server"
 ui_syslog_id: "{{ product_name }}-ui"
+ai_mcp_syslog_id: "{{ product_name }}-ai-mcp"
+ai_harness_syslog_id: "{{ product_name }}-ai-harness"
 ldap_syslog_id: slapd
 ```
 rsyslog config
@@ -254,6 +264,8 @@ rsyslog config
           if $programname == '{{ ldap_syslog_id }}' then /var/log/{{ product_name }}/ldap.log
           if $programname == '{{ product_name }}-api' then /var/log/{{ product_name }}/api.log
           if $programname startswith '{{ product_name }}-import' then /var/log/{{ product_name }}/importer.log
+          if $programname == '{{ ai_mcp_syslog_id }}' then /var/log/{{ product_name }}/ai-mcp.log
+          if $programname == '{{ ai_harness_syslog_id }}' then /var/log/{{ product_name }}/ai-harness.log
           if $programname startswith '{{ product_name }}-' and $msg contains "Audit" then /var/log/{{ product_name }}/audit.log
         }
   - name: edit logrotate
@@ -282,6 +294,21 @@ Generating a full hasura (all tables, etc. tracked) API documentation  currently
 ```
 
 api docu can then be accessed at <https://server/api_schema/index.html>
+
+### Parameter "install_ai_server" allows skipping the AI (MCP) server and AI harness installation
+
+Default value is install_ai_server=yes: the installer adds the MCP server (`roles/ai`), which offers FWO tools and prompts to AI clients. It is always installed on the middleware host, as its own service `fworch-ai-mcp` next to the middleware, and listens on the loopback interface only (port `ai_mcp_internal_port`, default 8890). AI clients reach it through the Apache endpoint of the middleware, under the path `/mcp`: `https://<middleware host>:8888/mcp` (port `middleware_web_listener_port`), with the same certificate as the middleware. It accepts the access tokens issued by the middleware, see [AI servers](../auth/README.md#ai-servers).
+
+With the same parameter, the installer adds the AI harness (`roles/ai`), which runs an AI agent on the tools of the MCP server and offers it to user interfaces over AG-UI. It is installed on the middleware host as well. It has its own service `fworch-ai-harness` and listens on the loopback interface only (port `ai_harness_internal_port`, default 8891) and is reached through the Apache endpoint of the middleware under the path `/agui`: `https://<middleware host>:8888/agui`. It accepts the same access tokens as the MCP server. The installer does not configure an AI provider (provider, model, API key): the harness starts without one, but every run fails until an admin sets one on the AI settings page of the UI (`Settings > AI settings`), with the API key stored as a credential in `Settings > Credentials`. The harness reads these settings with the technical LDAP user `ai-harness`, which the installer creates with a random password in `/usr/local/fworch/etc/secrets/ai_harness_pwd`; `ai_harness_settings_refresh_seconds` (default 30) sets how often it reads them.
+
+The MCP server logs to `/var/log/fworch/ai-mcp.log` and the AI harness to `/var/log/fworch/ai-harness.log` (with `install_syslog=yes`, otherwise see the sample rsyslog config above).
+
+run installation without the AI (MCP) server and the AI harness:
+```console
+./scripts/run-playbook-with-sudo.sh site.yml -e "install_ai_server=no"
+```
+
+Setting the parameter to no on an existing installation removes the `/mcp` and `/agui` paths from the Apache endpoint of the middleware, but leaves already installed services untouched; stop them with `sudo systemctl disable --now fworch-ai-mcp fworch-ai-harness`. An uninstallation (`installation_mode=uninstall`) removes both services.
 
 ## User interface 
 

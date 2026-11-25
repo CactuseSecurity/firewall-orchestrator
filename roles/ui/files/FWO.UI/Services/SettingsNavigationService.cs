@@ -111,6 +111,7 @@ namespace FWO.Ui.Services
         [
             new("standards", "settings/defaults", Icons.Settings, kAdminAuditor),
             new("email_settings", "settings/email", Icons.Email, kAdminAuditor),
+            new("ai_settings", "settings/ai", Icons.AiCheck, kAdminAuditor),
             new("importer_settings", "settings/importer", Icons.Import, kAdminAuditor),
             new("change_trigger", "settings/changetrigger", Icons.Check, kAdminAuditor),
             new("notifications", "settings/notifications", Icons.Email, kAdminAuditor),

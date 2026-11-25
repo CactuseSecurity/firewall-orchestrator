@@ -11,6 +11,9 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     internal class UiSidebarTest
     {
+        private const string kContent = "sidebar content";
+        private const int kNavbarHeight = 56;
+
         private static readonly FieldInfo NavbarHeightSubscribersField = typeof(DomEventService).GetField("_navbarHeightSubscribers", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new MissingFieldException(typeof(DomEventService).FullName, "_navbarHeightSubscribers");
 
@@ -37,6 +40,36 @@ namespace FWO.Test
             cut.Instance.Dispose();
 
             Assert.That(GetNavbarHeightSubscriberCount(eventService), Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task Sidebar_ContentShown_IsInvokedOnceWhenTheNavbarHeightIsKnown()
+        {
+            using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            DomEventService eventService = new();
+            context.Services.AddSingleton(eventService);
+            int shownCount = 0;
+
+            IRenderedComponent<Sidebar> cut = context.Render<Sidebar>(parameters => parameters
+                .Add(component => component.Width, 240)
+                .Add(component => component.ContentShown, () => shownCount++)
+                .AddChildContent(kContent));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(cut.Markup, Does.Not.Contain(kContent));
+                Assert.That(shownCount, Is.EqualTo(0));
+            });
+
+            await cut.InvokeAsync(() => eventService.InvokeNavbarHeightChanged(kNavbarHeight));
+            await cut.InvokeAsync(() => eventService.InvokeNavbarHeightChanged(kNavbarHeight + 1));
+
+            cut.WaitForAssertion(() =>
+            {
+                Assert.That(cut.Markup, Does.Contain(kContent));
+                Assert.That(shownCount, Is.EqualTo(1));
+            });
         }
 
         private static int GetNavbarHeightSubscriberCount(DomEventService eventService)

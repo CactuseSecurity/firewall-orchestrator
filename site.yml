@@ -107,8 +107,17 @@
 # failure on one host now stops the whole run rather than installing the rest. For an
 # installer that is the safer half of the trade - a partially prepared installation is
 # what the preflights in this play exist to prevent.
+#
+# module_defaults is defined once here and referenced by every play that runs a role. On a
+# freshly provisioned Debian/Ubuntu host, apt-daily and unattended-upgrades hold the dpkg
+# lock for minutes - and a systemd daemon-reload of the installer itself starts overdue apt
+# timers. The apt module waits only 60 seconds for the lock by default, so every apt and
+# package task waits apt_lock_timeout instead (package hands the defaults on to apt).
 - hosts: all
   any_errors_fatal: true
+  module_defaults: &fwo_module_defaults
+    ansible.builtin.apt:
+      lock_timeout: "{{ apt_lock_timeout }}"
   roles:
     - { role: common }
   tags:
@@ -129,6 +138,7 @@
 # without an identity while the services that need it are installed on the others.
 - hosts: all
   any_errors_fatal: true
+  module_defaults: *fwo_module_defaults
   roles:
     - { role: internalCA, when: "not installation_mode == 'uninstall'" }
   tags:
@@ -140,21 +150,25 @@
     - certificates
 
 - hosts: databaseserver
+  module_defaults: *fwo_module_defaults
   roles:
     - { role: database, when: "not installation_mode == 'uninstall'" }
   tags:
     - backend
 
 - hosts: middlewareserver
+  module_defaults: *fwo_module_defaults
   roles:
     - { role: openldap-server, when: "not installation_mode == 'uninstall'" }
     - { role: lib, when: "not installation_mode == 'uninstall'" }
     - { role: middleware, when: "not installation_mode == 'uninstall'" }
+    - { role: ai, when: "install_ai_server | bool and not installation_mode == 'uninstall'", tags: [ai] }
   tags:
     - backend
     - csharp
 
 - hosts: apiserver
+  module_defaults: *fwo_module_defaults
   roles:
     - { role: podman, when: "not installation_mode == 'uninstall'" }
   tags:
@@ -162,7 +176,8 @@
     - api
 
 # do not put this into the same play as podman (runtime needs to be installed first)
-- hosts: apiserver 
+- hosts: apiserver
+  module_defaults: *fwo_module_defaults
   roles:
     - { role: api, when: "not installation_mode == 'uninstall'" }
   tags:
@@ -170,6 +185,7 @@
     - api
 
 - hosts: frontends
+  module_defaults: *fwo_module_defaults
   roles:
     - { role: lib, when: "not installation_mode == 'uninstall'"}
     - { role: ui, when: "not installation_mode == 'uninstall'"}
@@ -179,6 +195,7 @@
     - ui
 
 - hosts: sampleserver
+  module_defaults: *fwo_module_defaults
   roles:
     - { role: sample-data, when: "add_demo_data|bool and not installation_mode == 'uninstall'" }
   tags:
@@ -187,6 +204,7 @@
     - importer
 
 - hosts: middlewareserver
+  module_defaults: *fwo_module_defaults
   roles:
     - { role: sample-auth-data, when: "add_demo_data|bool and not installation_mode == 'uninstall'" }
   tags:
@@ -194,6 +212,7 @@
     - backend
 
 - hosts: importers
+  module_defaults: *fwo_module_defaults
   roles:
     - { role: importer, when: "not installation_mode == 'uninstall'" }
   tags:
@@ -213,6 +232,7 @@
     - ui
 
 - hosts: all
+  module_defaults: *fwo_module_defaults
   roles:
     - { role: finalize, when: "not installation_mode == 'uninstall'" }
   tags:
@@ -223,6 +243,7 @@
     - ui
 
 - hosts: all
+  module_defaults: *fwo_module_defaults
   roles:
     - { role: sbom, when: "generate_sbom|bool and not installation_mode == 'uninstall'" }
   tags:
@@ -230,6 +251,7 @@
     - finalize
 
 - hosts: all
+  module_defaults: *fwo_module_defaults
   roles:
     - { role: tests-unit, when: not installation_mode == 'uninstall' }
   tags:
@@ -237,6 +259,7 @@
     - unittests
 
 - hosts: all
+  module_defaults: *fwo_module_defaults
   roles:
     - { role: tests-integration, when: not installation_mode == 'uninstall' }
   tags:

@@ -14,6 +14,14 @@ cn: importer
 sn: user
 
 
+dn: uid=ai-harness,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+objectClass: top
+objectclass: inetorgperson
+cn: ai-harness
+sn: user
+
+
 {% if audit_user is defined -%}
 dn: uid={{ audit_user }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
 changetype: {{ ldif_changetype }}
@@ -34,6 +42,12 @@ dn: cn=importer,ou=role,{{ openldap_path }}
 changetype: modify
 add: uniquemember
 uniquemember: uid=importer,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal
+
+
+dn: cn=ai-harness,ou=role,{{ openldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=ai-harness,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
 
 
 {% if audit_user is defined -%}

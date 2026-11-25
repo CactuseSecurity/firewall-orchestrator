@@ -1,0 +1,33 @@
+[Unit]
+Description={{ product_name }} AI Harness (AG-UI) Server
+Wants=network-online.target
+# capped so that a service which keeps crashing ends up in a visible failed state
+# instead of restarting forever
+StartLimitIntervalSec={{ fworch_systemd_start_limit_interval_sec }}
+StartLimitBurst={{ fworch_systemd_start_limit_burst }}
+After=network-online.target remote-fs.target nss-lookup.target
+
+[Service]
+WorkingDirectory={{ ai_harness_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}
+ExecStart={{ ai_harness_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}/FWO.Ai.Harness
+# the very url the installer configures, loopback only - see ai_native_listener_address
+Environment="ASPNETCORE_URLS={{ ai_harness_native_uri }}"
+# the MCP endpoint of the ai mcp server on this host, the very url its unit configures
+Environment="Harness__McpEndpoint={{ ai_mcp_native_mcp_uri }}"
+# the technical user the harness reads the ai settings of the ui and the api key credential with,
+# its password set by the middleware role
+Environment="Harness__TechnicalUser={{ ai_harness_user_name }}"
+Environment="Harness__TechnicalUserPasswordFile={{ ai_harness_password_file }}"
+Environment="Harness__SettingsRefreshSeconds={{ ai_harness_settings_refresh_seconds }}"
+SyslogIdentifier={{ ai_harness_syslog_id }}
+User={{ fworch_user }}
+# like the ai mcp server, the harness only needs the jwt public key - the middleware's signing key,
+# which can sign tokens for any user, is hidden here; "-" skips the path if it does not exist
+InaccessiblePaths=-{{ jwt_private_key_file }}
+Restart=on-failure
+RestartSec={{ fworch_systemd_restart_sec }}
+# bound a runaway inside this service's own cgroup, so the kernel does not get to pick the victim
+MemoryMax={{ fworch_ai_harness_memory_max }}
+OOMPolicy=stop
+[Install]
+WantedBy=multi-user.target

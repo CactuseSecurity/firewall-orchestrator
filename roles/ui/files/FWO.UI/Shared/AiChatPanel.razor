@@ -1,0 +1,337 @@
+@using FWO.Basics
+@using FWO.Config.Api.Data
+@implements IDisposable
+
+@inject AiChatSession chatSession
+@inject UserConfig userConfig
+@inject IJSRuntime jsRuntime
+
+@if (panelVisible)
+{
+    <Sidebar PositionLeft="false" Collapsible="false" Resizeable="true" Width="@chatSession.PanelWidth" WidthChanged="OnWidthChanged"
+             ContentShown="OnContentShown" SidebarContainerCssClass="ai-chat-sidebar" SidebarCssClass="ai-chat-content">
+        <div class="d-flex align-items-center border-bottom px-2 py-1 ai-chat-header">
+            <h5 class="mb-0 me-auto">@(userConfig.GetText(AiChatDisplay.kChatTextKey))</h5>
+            <HelpLink Page="@AiChatDisplay.kHelpPage" />
+            <button type="button" class="btn btn-sm btn-success ms-1 ai-chat-new" @onclick="StartNewChat">
+                @(DisplayService.DisplayButton(userConfig, AiChatDisplay.kNewChatTextKey, Icons.Add))
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary ms-1 ai-chat-minimize" @onclick="chatSession.Minimize">
+                @(DisplayService.DisplayButton(userConfig, AiChatDisplay.kMinimizeTextKey, Icons.CollapseRight))
+            </button>
+        </div>
+        <div id="@kMessagesElementId" class="p-2 ai-chat-messages">
+            @if (entries.Count == 0)
+            {
+                <div class="text-secondary small ai-chat-intro">@(userConfig.GetText(AiChatDisplay.kIntroTextKey))</div>
+            }
+            @foreach (AiChatEntry entry in entries)
+            {
+                @if (entry.Kind == AiChatEntryKind.User)
+                {
+                    <div @key="entry.Id" class="mb-2 ai-chat-user ai-chat-text">@entry.Text</div>
+                }
+                else
+                {
+                    <div @key="entry.Id" class="mb-2 ai-chat-answer">
+                        @if (!string.IsNullOrEmpty(entry.Text))
+                        {
+                            <div class="ai-chat-text">@entry.Text</div>
+                        }
+                        @if (entry.State == AiChatAnswerState.Running)
+                        {
+                            <div class="d-flex align-items-center text-secondary small ai-chat-running">
+                                <Loading CssClass="me-2" />
+                                <span>@(userConfig.GetText(AiChatDisplay.kAnsweringTextKey))</span>
+                            </div>
+                        }
+                        @if (entry.Approvals.Count > 0)
+                        {
+                            <div class="border rounded mt-2 p-2 ai-chat-approval">
+                                <div class="small fw-bold">@(userConfig.GetText(AiChatDisplay.kApprovalRequestTextKey))</div>
+                                @foreach (AiChatApproval approval in entry.Approvals)
+                                {
+                                    <div @key="approval.RequestId" class="mt-2">
+                                        <code class="ai-chat-tool">@approval.ToolName</code>
+                                        @if (!string.IsNullOrEmpty(approval.Arguments))
+                                        {
+                                            <pre class="small mb-1 ai-chat-arguments">@approval.Arguments</pre>
+                                        }
+                                        @if (approval.Approved == null && entry.State == AiChatAnswerState.WaitingForApproval && !chatSession.IsRunning)
+                                        {
+                                            <div>
+                                                <button type="button" class="btn btn-sm btn-primary ai-chat-approve" @onclick="() => AnswerApproval(approval, true)">
+                                                    @(DisplayService.DisplayButton(userConfig, AiChatDisplay.kApproveTextKey, Icons.Approve))
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-danger ms-1 ai-chat-reject" @onclick="() => AnswerApproval(approval, false)">
+                                                    @(DisplayService.DisplayButton(userConfig, AiChatDisplay.kRejectTextKey, Icons.Reject))
+                                                </button>
+                                            </div>
+                                        }
+                                        else if (approval.Approved != null)
+                                        {
+                                            <span class="@AiChatDisplay.ApprovalBadgeClass(approval) ai-chat-approval-answer">@(userConfig.GetText(AiChatDisplay.ApprovalTextKey(approval)))</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                        @if (entry.State == AiChatAnswerState.Cancelled || entry.State == AiChatAnswerState.Failed)
+                        {
+                            <div class="@AiChatDisplay.StateAlertClass(entry) small mt-2 mb-0 py-1 ai-chat-state" role="alert">@AiChatDisplay.StateMessage(userConfig, entry)</div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+        <div class="border-top p-2 ai-chat-input">
+            <textarea @ref="inputElement" id="ai-chat-input" class="form-control form-control-sm" rows="3" maxlength="@AiChatSession.kMaxMessageLength"
+                      placeholder="@(userConfig.PureLine(AiChatDisplay.kInputTextKey))" @bind="chatSession.Draft" @bind:event="oninput"
+                      @onkeydown="OnInputKeyDown"></textarea>
+            <div class="d-flex align-items-center mt-1">
+                <small class="text-secondary me-2">@(userConfig.GetText(AiChatDisplay.kDisclaimerTextKey))</small>
+                @if (chatSession.IsRunning)
+                {
+                    <button type="button" class="btn btn-sm btn-secondary ms-auto ai-chat-cancel" @onclick="chatSession.Cancel">
+                        @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
+                    </button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-sm btn-primary ms-auto ai-chat-send" disabled="@(!CanSendDraft)" @onclick="Send">
+                        @(DisplayService.DisplayButton(userConfig, AiChatDisplay.kSendTextKey, Icons.Use))
+                    </button>
+                }
+            </div>
+        </div>
+    </Sidebar>
+}
+
+@code
+{
+    /// <summary>Id of the scroll container of the entries.</summary>
+    internal const string kMessagesElementId = "ai-chat-messages";
+
+    /// <summary>JavaScript function scrolling to the newest entry, see window.js.</summary>
+    private const string kScrollFunction = "scrollToEndIfNear";
+
+    private const string kEnterKey = "Enter";
+    private const string kLogTitle = "AI Chat";
+
+    private List<AiChatEntry> entries = [];
+    private ElementReference inputElement;
+    private bool panelVisible;
+    private bool contentShown;
+    private bool focusPending;
+    private bool forceScroll;
+    private int renderedEntryCount;
+    private int renderedTextLength;
+    private bool disposed;
+
+    private bool CanSendDraft => chatSession.CanSend && !string.IsNullOrWhiteSpace(chatSession.Draft);
+
+    /// <summary>
+    /// Follows the chat and the AI settings.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        chatSession.Changed += OnChatChanged;
+        userConfig.OnChange += OnConfigChanged;
+        UpdateState();
+    }
+
+    /// <summary>
+    /// Focuses the input when the panel was opened or a message was sent, and scrolls to the newest entry when the
+    /// entries changed. Waits until the sidebar shows the content, see <see cref="OnContentShown"/>.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!panelVisible || !contentShown || disposed)
+        {
+            return;
+        }
+        await FocusInputIfPending();
+        await ScrollToEndIfChanged();
+    }
+
+    /// <summary>
+    /// Notes that the sidebar shows the content: the sidebar renders it only once it knows the height of the
+    /// navigation bar, i.e. after the first render of the panel. The callback re-renders the panel, whose
+    /// OnAfterRenderAsync then focuses the input and scrolls to the newest entry.
+    /// </summary>
+    private void OnContentShown()
+    {
+        contentShown = true;
+    }
+
+    /// <summary>
+    /// Takes over the state of the chat. Minimizes the panel when the chat is no longer offered, e.g. because it was
+    /// switched off in the AI settings.
+    /// </summary>
+    private void UpdateState()
+    {
+        bool available = AiChatDisplay.IsAvailable(userConfig);
+        if (!available && chatSession.IsOpen)
+        {
+            chatSession.Minimize();
+        }
+        bool visible = available && chatSession.IsOpen;
+        if (visible && !panelVisible)
+        {
+            contentShown = false;
+            focusPending = true;
+            forceScroll = true;
+        }
+        panelVisible = visible;
+        entries = chatSession.GetEntries();
+    }
+
+    /// <summary>
+    /// Re-renders on the dispatcher after a change of the chat, which may come from the thread of a run.
+    /// </summary>
+    private void OnChatChanged()
+    {
+        _ = RefreshAsync();
+    }
+
+    /// <summary>
+    /// Re-renders after a change of the config, e.g. of the AI settings.
+    /// </summary>
+    private void OnConfigChanged(Config config, ConfigItem[] configItems)
+    {
+        _ = RefreshAsync();
+    }
+
+    /// <summary>
+    /// Takes over the state of the chat and re-renders; failures are logged, as the caller does not wait.
+    /// </summary>
+    private async Task RefreshAsync()
+    {
+        if (disposed)
+        {
+            return;
+        }
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (!disposed)
+                {
+                    UpdateState();
+                    StateHasChanged();
+                }
+            });
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug(kLogTitle, $"Could not render the AI chat: {exception.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Sends the message the user wrote.
+    /// </summary>
+    private async Task Send()
+    {
+        if (!CanSendDraft)
+        {
+            return;
+        }
+        focusPending = true;
+        forceScroll = true;
+        await chatSession.SendAsync(chatSession.Draft);
+    }
+
+    /// <summary>
+    /// Sends the message on Ctrl+Enter (Cmd+Enter on macOS); Enter alone adds a line.
+    /// </summary>
+    private async Task OnInputKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == kEnterKey && (args.CtrlKey || args.MetaKey))
+        {
+            await Send();
+        }
+    }
+
+    /// <summary>
+    /// Approves or rejects a tool call the AI asked for.
+    /// </summary>
+    private async Task AnswerApproval(AiChatApproval approval, bool approved)
+    {
+        forceScroll = true;
+        await chatSession.AnswerApprovalAsync(approval.RequestId, approved);
+    }
+
+    /// <summary>
+    /// Starts a new conversation.
+    /// </summary>
+    private void StartNewChat()
+    {
+        focusPending = true;
+        chatSession.StartNewChat();
+    }
+
+    /// <summary>
+    /// Keeps the width the user dragged the panel to.
+    /// </summary>
+    private void OnWidthChanged(int width)
+    {
+        chatSession.PanelWidth = width;
+    }
+
+    /// <summary>
+    /// Focuses the message input once it is rendered.
+    /// </summary>
+    private async Task FocusInputIfPending()
+    {
+        if (!focusPending || inputElement.Context == null)
+        {
+            return;
+        }
+        focusPending = false;
+        try
+        {
+            await inputElement.FocusAsync();
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug(kLogTitle, $"Could not focus the input of the AI chat: {exception.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Scrolls to the newest entry when an entry was added or the last one grew: always after the user sent a message
+    /// or opened the panel, else only if the user has not scrolled up.
+    /// </summary>
+    private async Task ScrollToEndIfChanged()
+    {
+        int textLength = entries.Count > 0 ? entries[^1].Text.Length : 0;
+        bool changed = entries.Count != renderedEntryCount || textLength != renderedTextLength;
+        if (!changed && !forceScroll)
+        {
+            return;
+        }
+        bool force = forceScroll;
+        renderedEntryCount = entries.Count;
+        renderedTextLength = textLength;
+        forceScroll = false;
+        try
+        {
+            await jsRuntime.InvokeVoidAsync(kScrollFunction, kMessagesElementId, force);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug(kLogTitle, $"Could not scroll the AI chat: {exception.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Stops following the chat and the config; the conversation stays in the chat session.
+    /// </summary>
+    public void Dispose()
+    {
+        disposed = true;
+        chatSession.Changed -= OnChatChanged;
+        userConfig.OnChange -= OnConfigChanged;
+    }
+}

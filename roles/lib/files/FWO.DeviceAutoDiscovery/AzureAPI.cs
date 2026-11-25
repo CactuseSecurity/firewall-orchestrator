@@ -1,4 +1,6 @@
 using FWO.Api.Client;
+using FWO.Basics.Exceptions;
+using FWO.Basics.OAuth;
 using FWO.Logging;
 using MailKit.Security;
 using Newtonsoft.Json;
@@ -54,27 +56,38 @@ namespace FWO.DeviceAutoDiscovery
         /// <param name="clientId">The service principal application (client) id.</param>
         /// <param name="clientSecret">The service principal secret.</param>
         /// <returns>The bearer access token.</returns>
+        /// <exception cref="AuthenticationException">The credentials are incomplete, or Entra ID issued no token.</exception>
         public virtual async Task<string> GetAccessToken(string tenantId, string clientId, string clientSecret)
         {
-            RestRequest request = new($"{kLoginUrl}/{Uri.EscapeDataString(tenantId)}/oauth2/v2.0/token", Method.Post);
-            request.AddParameter("grant_type", "client_credentials");
-            request.AddParameter("client_id", clientId);
-            request.AddParameter("client_secret", clientSecret);
-            request.AddParameter("scope", kManagementScope);
-            RestResponse response = await restClient.ExecuteAsync(request);
-
-            string? accessToken = null;
-            if (response.StatusCode == HttpStatusCode.OK && !string.IsNullOrEmpty(response.Content))
+            Uri tokenUrl = new($"{kLoginUrl}/{Uri.EscapeDataString(tenantId)}/oauth2/v2.0/token");
+            if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
             {
-                accessToken = JsonConvert.DeserializeObject<AzureTokenResponse>(response.Content)?.AccessToken;
-            }
-            if (string.IsNullOrEmpty(accessToken))
-            {
-                // never log the request as it contains the client secret
-                Log.WriteWarning(kAutodiscovery, $"Azure login failed for client id {clientId}: {(int)response.StatusCode} {response.Content}");
+                Log.WriteWarning(kAutodiscovery, $"Azure login failed for client id {clientId}: client id or secret missing");
                 throw new AuthenticationException($"Azure login failed for client id {clientId}");
             }
-            return accessToken;
+            OAuthClientCredentials credentials = new(tokenUrl, clientId, clientSecret, kManagementScope);
+            using OAuthTokenClient tokenClient = CreateTokenClient();
+            try
+            {
+                OAuthAccessToken token = await tokenClient.RequestClientCredentialsTokenAsync(credentials, CancellationToken.None);
+                return token.Value;
+            }
+            catch (OAuthTokenException exception)
+            {
+                // the exception never contains the client secret
+                Log.WriteWarning(kAutodiscovery, $"Azure login failed for client id {clientId}: {exception.Message} {exception.ErrorDescription}");
+                throw new AuthenticationException($"Azure login failed for client id {clientId}", exception);
+            }
+        }
+
+        /// <summary>
+        /// Creates the client of the Entra ID token endpoint, whose certificate is always checked. Unit tests override
+        /// this to simulate the token endpoint.
+        /// </summary>
+        /// <returns>The token client; the caller disposes it.</returns>
+        protected virtual OAuthTokenClient CreateTokenClient()
+        {
+            return new OAuthTokenClient();
         }
 
         /// <summary>
@@ -230,12 +243,6 @@ namespace FWO.DeviceAutoDiscovery
     {
         [JsonProperty("id")]
         public string Id { get; set; } = "";
-    }
-
-    internal class AzureTokenResponse
-    {
-        [JsonProperty("access_token")]
-        public string? AccessToken { get; set; }
     }
 
     internal class AzureCloudError

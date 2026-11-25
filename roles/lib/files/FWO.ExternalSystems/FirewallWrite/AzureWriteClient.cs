@@ -1,7 +1,9 @@
 using FWO.Basics.Exceptions;
+using FWO.Basics.OAuth;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using RestSharp;
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -45,12 +47,19 @@ namespace FWO.ExternalSystems.FirewallWrite
         private static readonly HashSet<string> AzureThrottlingCodes = new(StringComparer.OrdinalIgnoreCase)
             { "TooManyRequests", "Throttled", "SubscriptionRequestsThrottled" };
 
+        private readonly TimeSpan? tokenRequestTimeout;
         private string? accessToken;
 
         /// <summary>Creates a client for Azure Resource Manager.</summary>
+        /// <param name="management">Management with tenant id and export credentials.</param>
+        /// <param name="checkCertificates">False accepts any server certificate of Resource Manager; the certificate of the
+        /// Entra ID login is always checked, as the client secret is sent there.</param>
+        /// <param name="responseTimeout">Request timeout in seconds, when configured.</param>
         public AzureWriteClient(Management management, bool checkCertificates, int? responseTimeout = null)
             : base(kArmBaseUrl, management, checkCertificates, responseTimeout)
-        { }
+        {
+            tokenRequestTimeout = responseTimeout is > 0 ? TimeSpan.FromSeconds(responseTimeout.Value) : null;
+        }
 
         /// <inheritdoc/>
         public override async Task Login()
@@ -60,17 +69,33 @@ namespace FWO.ExternalSystems.FirewallWrite
                 throw new FirewallWriteException(FirewallWriteErrorKind.Configuration, $"Azure management '{Management.Name}' has no tenant id.");
             }
             (string clientId, string clientSecret) = ExportCredentials();
-            RestRequest request = new(string.Format(System.Globalization.CultureInfo.InvariantCulture, kLoginUrl, Uri.EscapeDataString(Management.CloudTenantId)), Method.Post);
-            request.AddParameter("grant_type", "client_credentials");
-            request.AddParameter("client_id", clientId);
-            request.AddParameter("client_secret", clientSecret);
-            request.AddParameter("scope", kArmScope);
-            RestResponse response = await Send(request);
-            accessToken = ParseJson(response.Content)?["access_token"]?.GetValue<string>();
-            if (!response.IsSuccessful || string.IsNullOrWhiteSpace(accessToken))
+            if (string.IsNullOrWhiteSpace(clientId))
             {
-                throw LoginFailure(response, "Azure");
+                throw new FirewallWriteException(FirewallWriteErrorKind.Configuration, $"Export credentials of Azure management '{Management.Name}' have no client id.");
             }
+            Uri tokenUrl = new(string.Format(CultureInfo.InvariantCulture, kLoginUrl, Uri.EscapeDataString(Management.CloudTenantId)));
+            OAuthClientCredentials credentials = new(tokenUrl, clientId, clientSecret, kArmScope);
+            using OAuthTokenClient tokenClient = CreateTokenClient();
+            try
+            {
+                OAuthAccessToken token = await tokenClient.RequestClientCredentialsTokenAsync(credentials, CancellationToken.None);
+                accessToken = token.Value;
+            }
+            catch (OAuthTokenException exception)
+            {
+                throw TokenFailure(exception);
+            }
+        }
+
+        /// <summary>
+        /// Creates the client of the Entra ID token endpoint with this client's timeout. Its certificate is always
+        /// checked, whatever the certificate setting of the firewall write clients. Unit tests override this to simulate
+        /// the token endpoint.
+        /// </summary>
+        /// <returns>The token client; the caller disposes it.</returns>
+        protected virtual OAuthTokenClient CreateTokenClient()
+        {
+            return new OAuthTokenClient(requestTimeout: tokenRequestTimeout);
         }
 
         /// <inheritdoc/>
@@ -104,7 +129,15 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             JsonNode? error = content?["error"];
             string? code = error is JsonObject armError ? armError["code"]?.ToString() : error?.ToString();
-            FirewallWriteErrorKind? kind = code switch
+            return (ClassifyErrorCode(code), code);
+        }
+
+        /// <summary>
+        /// Maps an error code of Azure Resource Manager or of the Entra ID login; null for no or an unknown code.
+        /// </summary>
+        private static FirewallWriteErrorKind? ClassifyErrorCode(string? code)
+        {
+            return code switch
             {
                 null => null,
                 _ when AzureAuthenticationCodes.Any(part => code.Contains(part, StringComparison.OrdinalIgnoreCase)) => FirewallWriteErrorKind.Authentication,
@@ -113,7 +146,38 @@ namespace FWO.ExternalSystems.FirewallWrite
                 _ when AzureThrottlingCodes.Contains(code) => FirewallWriteErrorKind.RateLimited,
                 _ => null
             };
-            return (kind, code);
+        }
+
+        /// <summary>
+        /// The exception for a failed Entra ID login, classified like the other logins (see <see cref="FirewallWriteClient.LoginFailure"/>):
+        /// no answer is <see cref="FirewallWriteErrorKind.Unreachable"/>, a refused certificate a configuration error, and an
+        /// answer that refuses the credentials or has no token <see cref="FirewallWriteErrorKind.Authentication"/>.
+        /// </summary>
+        private FirewallWriteException TokenFailure(OAuthTokenException exception)
+        {
+            FirewallWriteErrorKind kind = exception.Failure switch
+            {
+                OAuthTokenFailure.Unreachable => FirewallWriteErrorKind.Unreachable,
+                OAuthTokenFailure.CertificateRejected => FirewallWriteErrorKind.Configuration,
+                OAuthTokenFailure.Rejected => ClassifyTokenRejection(exception),
+                _ => FirewallWriteErrorKind.Authentication
+            };
+            string nativeMessage = exception.ErrorDescription ?? exception.InnerException?.Message ?? exception.Message;
+            FirewallWriteError error = new(kind, nativeMessage, exception.StatusCode, exception.Error);
+            return new FirewallWriteException(error, $"Azure login to '{Management.Name}' failed ({kind}): {exception.StatusCode ?? 0}", exception);
+        }
+
+        /// <summary>
+        /// Classifies a token request the token endpoint answered with an HTTP error: by its error code, else by the HTTP
+        /// status; client errors refuse the credentials.
+        /// </summary>
+        private static FirewallWriteErrorKind ClassifyTokenRejection(OAuthTokenException exception)
+        {
+            FirewallWriteErrorKind kind = ClassifyErrorCode(exception.Error)
+                ?? FirewallWriteErrors.FromStatusCode((HttpStatusCode)(exception.StatusCode ?? 0));
+            return kind is FirewallWriteErrorKind.Rejected or FirewallWriteErrorKind.NotFound or FirewallWriteErrorKind.Unknown
+                ? FirewallWriteErrorKind.Authentication
+                : kind;
         }
 
         /// <inheritdoc/>

@@ -1,0 +1,402 @@
+@using System.Globalization
+@using FWO.Data.Ai
+@using FWO.Middleware.Client
+
+@page "/settings/ai"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("ai_settings"))</h3>
+    <HelpLink Page="settings/ai" />
+</div>
+@(userConfig.GetText("U5332"))
+<hr />
+
+<form>
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5371"))">
+        <label for="@($"dropdown-input-{kProviderDropdownId}")" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_provider")):</label>
+        <div class="col-sm-4">
+            <Dropdown Id="@kProviderDropdownId" ElementType="AiProvider" ElementToString="@(provider => GetProviderName(provider))"
+                      @bind-SelectedElement="aiSettings.Provider" Elements="kProviders">
+                <ElementTemplate Context="provider">
+                    @(GetProviderName(provider))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5372"))">
+        <label for="aiModel" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_model"))*:</label>
+        <div class="col-sm-8">
+            <input id="aiModel" type="text" class="form-control form-control-sm" maxlength="@kMaxModelLength" @bind="aiSettings.Model" />
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5373"))">
+        <label for="aiEndpoint" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_endpoint")):</label>
+        <div class="col-sm-8">
+            <input id="aiEndpoint" type="url" class="form-control form-control-sm" maxlength="@kMaxEndpointLength" @bind="aiSettings.Endpoint" />
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5382"))">
+        <label for="@($"dropdown-input-{kAuthMethodDropdownId}")" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_auth_method")):</label>
+        <div class="col-sm-4">
+            <Dropdown Id="@kAuthMethodDropdownId" ElementType="AiAuthMethod" ElementToString="@(authMethod => GetAuthMethodName(authMethod))"
+                      @bind-SelectedElement="aiSettings.AuthMethod" Elements="kAuthMethods">
+                <ElementTemplate Context="authMethod">
+                    @(GetAuthMethodName(authMethod))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+    @if (aiSettings.AuthMethod == AiAuthMethod.OAuth2ClientCredentials)
+    {
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5383"))">
+            <label for="aiTokenUrl" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_token_url"))*:</label>
+            <div class="col-sm-8">
+                <input id="aiTokenUrl" type="url" class="form-control form-control-sm" maxlength="@kMaxEndpointLength" @bind="aiSettings.TokenUrl" />
+            </div>
+        </div>
+    }
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5374"))">
+        <label for="@($"dropdown-input-{kCredentialDropdownId}")" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_credential")):</label>
+        <div class="col-sm-8">
+            <Dropdown Id="@kCredentialDropdownId" ElementType="Credential" ElementToString="@(credential => credential.Name)"
+                      SelectedElement="selectedCredential" SelectedElementChanged="OnCredentialChanged"
+                      Elements="credentials" Nullable="true" NoneSelectedText="@(userConfig.GetText("none"))">
+                <ElementTemplate Context="credential">
+                    @credential.Name
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5388"))">
+        <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_custom_headers")):</label>
+        <div class="col-sm-8">
+            @for (int index = 0; index < aiSettings.CustomHeaders.Count; index++)
+            {
+                AiCustomHeader header = aiSettings.CustomHeaders[index];
+                <div class="row mb-1" @key="header">
+                    <div class="col-sm-5">
+                        <input id="@($"{kCustomHeaderNameIdPrefix}{index}")" type="text" class="form-control form-control-sm"
+                               maxlength="@AiCustomHeaderList.kMaxNameLength" placeholder="@(userConfig.GetText("name"))"
+                               aria-label="@(userConfig.GetText("name"))" @bind="header.Name" />
+                    </div>
+                    <div class="col-sm-5">
+                        <input id="@($"{kCustomHeaderValueIdPrefix}{index}")" type="text" class="form-control form-control-sm"
+                               maxlength="@AiCustomHeaderList.kMaxValueLength" placeholder="@(userConfig.GetText("value"))"
+                               aria-label="@(userConfig.GetText("value"))" @bind="header.Value" />
+                    </div>
+                    <div class="col-sm-2">
+                        <button id="@($"{kCustomHeaderRemoveIdPrefix}{index}")" type="button" class="btn btn-sm btn-danger"
+                                @onclick="() => RemoveCustomHeader(header)">@(DisplayService.DisplayButton(userConfig, "remove", Icons.Delete))</button>
+                    </div>
+                </div>
+            }
+            <button id="@kCustomHeaderAddId" type="button" class="btn btn-sm btn-success" disabled="@(aiSettings.CustomHeaders.Count >= AiCustomHeaderList.kMaxHeaders)"
+                    @onclick="AddCustomHeader">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5375"))">
+        <label for="aiContextWindowTokens" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_context_window_tokens"))*:</label>
+        <div class="col-sm-2">
+            <input id="aiContextWindowTokens" type="number" min="1" class="form-control form-control-sm" @bind="aiSettings.ContextWindowTokens" />
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5376"))">
+        <label for="aiMaxOutputTokens" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_max_output_tokens")):</label>
+        <div class="col-sm-2">
+            <input id="aiMaxOutputTokens" type="number" min="0" class="form-control form-control-sm" @bind="aiSettings.MaxOutputTokens" />
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5389"))">
+        <label for="aiRequestTimeoutSeconds" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_request_timeout")):</label>
+        <div class="col-sm-2">
+            <input id="aiRequestTimeoutSeconds" type="number" min="@AiSettings.kMinRequestTimeoutSeconds" max="@AiSettings.kMaxRequestTimeoutSeconds"
+                   class="form-control form-control-sm" @bind="aiSettings.RequestTimeoutSeconds" />
+        </div>
+    </div>
+    <hr />
+    <h5>@(userConfig.GetText("ai_functions"))</h5>
+    <div class="form-group row mt-2">
+        <label for="aiChat" class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5385"))">@(userConfig.GetText("ai_chat")):</label>
+        <div class="col-sm-1 d-flex align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5385"))">
+            <input id="aiChat" type="checkbox" class="w-100" @bind="aiSettings.ChatEnabled" />
+        </div>
+        <label for="@($"dropdown-input-{kChatRolesDropdownId}")" class="col-sm-1 col-form-label col-form-label-sm"
+               data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">@(userConfig.GetText("roles")):</label>
+        <fieldset class="col-sm-6" disabled="@(!aiSettings.ChatEnabled)" data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">
+            @if (rolesLoaded)
+            {
+                <Dropdown Id="@kChatRolesDropdownId" ElementType="string" Elements="offeredRoles"
+                          SelectedElements="aiSettings.ChatRoles" SelectedElementsChanged="OnChatRolesChanged"
+                          Multiselect="true" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                    <ElementTemplate Context="role">
+                        @role
+                    </ElementTemplate>
+                </Dropdown>
+            }
+        </fieldset>
+    </div>
+    <div class="form-group row mt-2">
+        <label for="aiReasonCheck" class="col-sm-3 col-form-label col-form-label-sm" data-toggle="tooltip" title="@(userConfig.PureLine("H5386"))">@(userConfig.GetText("ai_reason_check")):</label>
+        <div class="col-sm-1 d-flex align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5386"))">
+            <input id="aiReasonCheck" type="checkbox" class="w-100" @bind="aiSettings.ReasonCheckEnabled" />
+        </div>
+        <label for="@($"dropdown-input-{kReasonCheckRolesDropdownId}")" class="col-sm-1 col-form-label col-form-label-sm"
+               data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">@(userConfig.GetText("roles")):</label>
+        <fieldset class="col-sm-6" disabled="@(!aiSettings.ReasonCheckEnabled)" data-toggle="tooltip" title="@(userConfig.PureLine("H5387"))">
+            @if (rolesLoaded)
+            {
+                <Dropdown Id="@kReasonCheckRolesDropdownId" ElementType="string" Elements="offeredRoles"
+                          SelectedElements="aiSettings.ReasonCheckRoles" SelectedElementsChanged="OnReasonCheckRolesChanged"
+                          Multiselect="true" Nullable="true" NoneSelectedText="@(userConfig.GetText("all"))">
+                    <ElementTemplate Context="role">
+                        @role
+                    </ElementTemplate>
+                </Dropdown>
+            }
+        </fieldset>
+    </div>
+    <hr />
+    <h5>@(userConfig.GetText("ai_agent_loop"))</h5>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5378"))">
+        <label for="aiMaxIterations" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_max_iterations")):</label>
+        <div class="col-sm-2">
+            <input id="aiMaxIterations" type="number" min="1" class="form-control form-control-sm" @bind="aiSettings.MaxIterationsPerRequest" />
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5379"))">
+        <label for="aiMaxConsecutiveErrors" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_max_consecutive_errors")):</label>
+        <div class="col-sm-2">
+            <input id="aiMaxConsecutiveErrors" type="number" min="0" class="form-control form-control-sm" @bind="aiSettings.MaxConsecutiveErrorsPerRequest" />
+        </div>
+    </div>
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5380"))">
+        <label for="aiCompactionReserveTokens" class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText("ai_compaction_reserve_tokens")):</label>
+        <div class="col-sm-2">
+            <input id="aiCompactionReserveTokens" type="number" min="0" class="form-control form-control-sm" @bind="aiSettings.CompactionReserveTokens" />
+        </div>
+    </div>
+</form>
+<hr />
+
+<div class="btn-group">
+    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+        <Authorized>
+            <button type="button" class="btn btn-sm btn-primary" @onclick="Save">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+        </Authorized>
+        <NotAuthorized>
+            <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+        </NotAuthorized>
+    </ExecutionModeAuthorizeView>
+</div>
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private const int kMaxModelLength = 256;
+    private const int kMaxEndpointLength = 2048;
+    private const string kProviderDropdownId = "aiProvider";
+    private const string kAuthMethodDropdownId = "aiAuthMethod";
+    private const string kCredentialDropdownId = "aiCredential";
+    private const string kChatRolesDropdownId = "aiChatRoles";
+    private const string kReasonCheckRolesDropdownId = "aiReasonCheckRoles";
+    private const string kCustomHeaderNameIdPrefix = "aiCustomHeaderName";
+    private const string kCustomHeaderValueIdPrefix = "aiCustomHeaderValue";
+    private const string kCustomHeaderRemoveIdPrefix = "aiCustomHeaderRemove";
+    private const string kCustomHeaderAddId = "aiCustomHeaderAdd";
+
+    private static readonly List<AiProvider> kProviders = [.. Enum.GetValues<AiProvider>()];
+
+    private static readonly Dictionary<AiAuthMethod, string> kAuthMethodTextKeys = new()
+    {
+        [AiAuthMethod.ApiKey] = "ai_auth_api_key",
+        [AiAuthMethod.OAuth2ClientCredentials] = "ai_auth_oauth2_client_credentials"
+    };
+
+    private static readonly List<AiAuthMethod> kAuthMethods = [.. kAuthMethodTextKeys.Keys];
+
+    private ConfigData? editableConfig;
+    private AiSettings aiSettings = new();
+    private List<Credential> credentials = [];
+    private Credential? selectedCredential;
+    private List<string> offeredRoles = [];
+    private bool rolesLoaded;
+
+    /// <summary>
+    /// Loads the AI settings, the credentials that can hold an API key or an OAuth client secret (no key pairs),
+    /// without their secrets, and the roles offered for the role filters of the AI functions.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSettingsAndCredentials();
+        await LoadOfferedRoles();
+    }
+
+    /// <summary>
+    /// Loads the AI settings and the credentials that can hold an API key or an OAuth client secret.
+    /// </summary>
+    private async Task LoadSettingsAndCredentials()
+    {
+        try
+        {
+            editableConfig = await globalConfig.GetEditableConfig();
+            aiSettings = editableConfig.GetAiSettings();
+            // the page is rendered while the credentials load, so the stored credential is shown by its id until then
+            selectedCredential = ResolveSelectedCredential();
+            List<Credential> allCredentials = await apiConnection.SendQueryAsync<List<Credential>>(DeviceQueries.getCredentialsWithoutSecrets);
+            credentials = [.. allCredentials.Where(credential => !credential.IsKeyPair).OrderBy(credential => credential.Name)];
+            selectedCredential = ResolveSelectedCredential();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    /// <summary>
+    /// Loads the roles offered for the role filters of the AI functions: the roles of the internal LDAP that are
+    /// neither technical nor anonymous, and the roles the settings already name, so that these stay visible and can be
+    /// removed even if the LDAP does not know them (any more) or cannot be read. The role dropdowns are rendered only
+    /// afterwards, as they show their selection as of their first rendering.
+    /// </summary>
+    private async Task LoadOfferedRoles()
+    {
+        List<string> userRoleNames = [];
+        try
+        {
+            List<Role> ldapRoles = await RoleAccess.GetRolesFromInternalLdap(middlewareClient);
+            userRoleNames = [.. ldapRoles.Select(role => role.Name).Where(roleName => !RoleGroups.IsTechnicalOrAnonymous(roleName))];
+            if (userRoleNames.Count == 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
+            }
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_roles"), "", true);
+        }
+        IEnumerable<string> roleNames = userRoleNames.Concat(aiSettings.ChatRoles).Concat(aiSettings.ReasonCheckRoles);
+        offeredRoles = [.. roleNames.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(roleName => roleName, StringComparer.OrdinalIgnoreCase)];
+        rolesLoaded = true;
+    }
+
+    /// <summary>
+    /// Sets the roles allowed to use the AI chat; none allows every user.
+    /// </summary>
+    /// <param name="roles">The selected roles</param>
+    private void OnChatRolesChanged(IEnumerable<string> roles)
+    {
+        aiSettings.ChatRoles = [.. roles];
+    }
+
+    /// <summary>
+    /// Sets the roles allowed to use the AI check of the reason; none allows every user.
+    /// </summary>
+    /// <param name="roles">The selected roles</param>
+    private void OnReasonCheckRolesChanged(IEnumerable<string> roles)
+    {
+        aiSettings.ReasonCheckRoles = [.. roles];
+    }
+
+    /// <summary>
+    /// Adds an empty row for an additional HTTP header; a row left blank is not stored.
+    /// </summary>
+    private void AddCustomHeader()
+    {
+        aiSettings.CustomHeaders.Add(new AiCustomHeader());
+    }
+
+    /// <summary>
+    /// Removes an additional HTTP header.
+    /// </summary>
+    /// <param name="header">The header to remove</param>
+    private void RemoveCustomHeader(AiCustomHeader header)
+    {
+        aiSettings.CustomHeaders.Remove(header);
+    }
+
+    /// <summary>
+    /// Checks the AI settings like the AI harness does and stores them; the harness applies them at its next reading.
+    /// </summary>
+    private async Task Save()
+    {
+        try
+        {
+            if (editableConfig == null || !CheckValues())
+            {
+                return;
+            }
+            editableConfig.SetAiSettings(aiSettings);
+            await globalConfig.WriteToDatabase(editableConfig, apiConnection);
+            DisplayMessageInUi(null, userConfig.GetText("save_ai_settings"), userConfig.GetText("U5301"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("save_ai_settings"), "", true);
+        }
+    }
+
+    /// <summary>
+    /// Shows the problems of the AI settings; true if there are none.
+    /// </summary>
+    private bool CheckValues()
+    {
+        List<AiSettingsProblem> problems = aiSettings.Validate();
+        if (problems.Count == 0)
+        {
+            return true;
+        }
+        IEnumerable<string> messages = problems.Select(problem => userConfig.GetText(AiSettingsProblemTexts.GetTextKey(problem)));
+        DisplayMessageInUi(null, userConfig.GetText("save_ai_settings"), string.Join(" ", messages), true);
+        return false;
+    }
+
+    /// <summary>
+    /// Returns the name shown for a provider; the localized "none" for no provider.
+    /// </summary>
+    private string GetProviderName(AiProvider provider)
+    {
+        return provider == AiProvider.None ? userConfig.GetText("none") : provider.ToString();
+    }
+
+    /// <summary>
+    /// Returns the localized name shown for an authentication method.
+    /// </summary>
+    private string GetAuthMethodName(AiAuthMethod authMethod)
+    {
+        return userConfig.GetText(kAuthMethodTextKeys[authMethod]);
+    }
+
+    /// <summary>
+    /// Selects the credential holding the API key or the OAuth client secret; null selects none.
+    /// </summary>
+    /// <param name="credential">The selected credential, null for none.</param>
+    private void OnCredentialChanged(Credential? credential)
+    {
+        selectedCredential = credential;
+        aiSettings.CredentialId = credential?.Id ?? 0;
+    }
+
+    /// <summary>
+    /// Returns the credential the settings reference. A credential that is not offered (e.g. a key pair) or not loaded
+    /// (yet) is returned as a stand-in named by its id, so that it stays visible.
+    /// </summary>
+    /// <returns>The referenced credential, null if the settings reference none.</returns>
+    private Credential? ResolveSelectedCredential()
+    {
+        int credentialId = aiSettings.CredentialId;
+        if (credentialId <= 0)
+        {
+            return null;
+        }
+        Credential? offeredCredential = credentials.FirstOrDefault(credential => credential.Id == credentialId);
+        return offeredCredential ?? new Credential { Id = credentialId, Name = credentialId.ToString(CultureInfo.InvariantCulture) };
+    }
+}

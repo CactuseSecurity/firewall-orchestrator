@@ -1,0 +1,43 @@
+/* The panel content is a column (see .ai-chat-content in site.css): the header and the input keep their height,
+    the entries take the rest and scroll. min-height: 0 lets the entries shrink below their content height. */
+.ai-chat-header,
+.ai-chat-input {
+    flex: 0 0 auto;
+}
+
+.ai-chat-messages {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.ai-chat-text,
+.ai-chat-arguments {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.ai-chat-user {
+    margin-left: 15%;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.5rem;
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.ai-chat-answer {
+    margin-right: 10%;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.5rem;
+    background-color: var(--bs-tertiary-bg);
+}
+
+.ai-chat-arguments {
+    max-height: 12rem;
+    overflow-y: auto;
+    padding: 0.25rem;
+    background-color: var(--bs-body-bg);
+}
+
+.ai-chat-input textarea {
+    resize: vertical;
+}

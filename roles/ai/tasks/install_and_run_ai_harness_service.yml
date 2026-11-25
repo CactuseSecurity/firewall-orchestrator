@@ -1,0 +1,58 @@
+- name: copy ai harness systemd service script
+  template:
+    src: fworch-ai-harness.service.j2
+    dest: "{{ fworch_systemd_unit_dir }}/{{ ai_harness_service_name }}.service"
+    mode: "0644"
+    owner: "root"
+  register: ai_harness_service_template
+  become: true
+
+- name: track ai harness deployment changes from systemd template
+  set_fact:
+    ai_harness_deploy_changed: "{{ (ai_harness_deploy_changed | default(false)) or ai_harness_service_template.changed }}"
+
+- name: publish ai harness
+  command: "dotnet publish --no-self-contained -c {{ dotnet_mode }} -o {{ ai_harness_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}"
+  args:
+    chdir: "{{ ai_harness_start_dir }}"
+  become: true
+  become_user: "{{ fworch_user }}"
+  environment: "{{ dotnet_env }}"
+  register: ai_harness_publish_result
+  when: ai_harness_deploy_changed | default(false)
+
+- name: fail if publish returned an error
+  fail:
+    msg: "could not publish ai harness successfully: {{ ai_harness_publish_result }}"
+  when: ai_harness_publish_result is defined and ai_harness_publish_result.rc is defined and ai_harness_publish_result.rc != 0
+
+- name: make ai harness run at host startup
+  systemd:
+    name: "{{ ai_harness_service_name }}"
+    enabled: true
+    daemon_reload: true
+  become: true
+
+# a service that exhausted its start rate limit stays failed and refuses to be restarted with
+# "start request repeated too quickly" until its state is cleared
+- name: clear any failed state of the ai harness
+  command: "systemctl reset-failed {{ ai_harness_service_name }}.service"
+  changed_when: false
+  failed_when: false
+  become: true
+  when: ai_harness_deploy_changed | default(false)
+
+- name: start ai harness
+  systemd:
+    name: "{{ ai_harness_service_name }}"
+    state: restarted
+    daemon_reload: true
+  become: true
+  when: ai_harness_deploy_changed | default(false)
+
+# a service that is not redeployed is still expected to run after an installer run
+- name: make sure the ai harness is running
+  systemd:
+    name: "{{ ai_harness_service_name }}"
+    state: started
+  become: true

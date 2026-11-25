@@ -49,6 +49,16 @@ namespace FWO.Test.Mocks
         public SessionCheckParameters? LastSessionCheckRequest { get; private set; }
 
         /// <summary>
+        /// Roles of the internal LDAP the role query answers with; none by default, as an LDAP without roles.
+        /// </summary>
+        public List<RoleGetReturnParameters> AllRoles { get; set; } = [];
+
+        /// <summary>
+        /// Thrown by the role query when set, as if its answer could not be read.
+        /// </summary>
+        public Exception? GetAllRolesException { get; set; }
+
+        /// <summary>
         /// Builds an answer of the session check that arrived with the given status and content.
         /// </summary>
         public static RestResponse<bool> CreateSessionCheckResponse(HttpStatusCode statusCode, string? content)
@@ -168,6 +178,33 @@ namespace FWO.Test.Mocks
             }
 
             return SessionCheckResponse;
+        }
+
+        /// <summary>
+        /// Answers the role query with <see cref="AllRoles"/>, or throws <see cref="GetAllRolesException"/>.
+        /// </summary>
+        public override Task<RestResponse<List<RoleGetReturnParameters>>> GetAllRoles()
+        {
+            if (GetAllRolesException != null)
+            {
+                throw GetAllRolesException;
+            }
+            return Task.FromResult(new RestResponse<List<RoleGetReturnParameters>>(new RestRequest())
+            {
+                StatusCode = HttpStatusCode.OK,
+                Data = AllRoles,
+                ResponseStatus = ResponseStatus.Completed,
+                IsSuccessStatusCode = true
+            });
+        }
+
+        /// <summary>
+        /// Creates the answer entry of a role of the internal LDAP, named by its distinguished name.
+        /// </summary>
+        /// <param name="roleName">Name of the role</param>
+        public static RoleGetReturnParameters CreateLdapRole(string roleName)
+        {
+            return new RoleGetReturnParameters { Role = $"cn={roleName},ou=roles,dc=fworch,dc=internal" };
         }
 
         public void Reset()

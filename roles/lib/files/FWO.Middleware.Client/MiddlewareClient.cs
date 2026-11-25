@@ -89,7 +89,7 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<string>(request);
         }
 
-        public async Task<RestResponse<List<RoleGetReturnParameters>>> GetAllRoles()
+        public virtual async Task<RestResponse<List<RoleGetReturnParameters>>> GetAllRoles()
         {
             RestRequest request = new("Role", Method.Get);
             return await restClient.ExecuteAsync<List<RoleGetReturnParameters>>(request);

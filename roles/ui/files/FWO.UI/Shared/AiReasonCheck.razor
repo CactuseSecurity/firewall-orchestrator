@@ -1,0 +1,318 @@
+@using System.Text
+@using FWO.Ai.Client
+@using FWO.Ai.Client.ReasonChecks
+@using FWO.Basics
+@using Microsoft.Extensions.AI
+@implements IDisposable
+
+@inject IFwoAgentChatClientFactory agentChatClientFactory
+@inject UserConfig userConfig
+@inject IAccessTokenSource accessTokenSource
+
+<div class="mt-1">
+    <button type="button" class="btn btn-sm btn-primary ai-check-button" disabled="@(Disabled || running)" @onclick="RunCheck">
+        @(DisplayService.DisplayButton(userConfig, AiReasonCheckDisplay.kCheckButtonTextKey, Icons.AiCheck))
+    </button>
+    @if (running)
+    {
+        <span class="spinner-border spinner-border-sm ms-2 ai-check-spinner" role="status"></span>
+        <span class="ms-1">@(userConfig.GetText(AiReasonCheckDisplay.kRunningTextKey))</span>
+        <button type="button" class="btn btn-sm btn-secondary ms-2 ai-check-cancel" @onclick="CancelRun">
+            @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
+        </button>
+    }
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="@messageClass mt-2 mb-0 ai-check-message" role="alert">@message</div>
+    }
+    @if (answerVisible)
+    {
+        <div class="border rounded mt-2 p-2 ai-check-result">
+            @if (!running)
+            {
+                <span class="badge @(AiReasonCheckDisplay.VerdictCssClass(verdict)) ai-check-verdict">@(userConfig.GetText(AiReasonCheckDisplay.VerdictTextKey(verdict)))</span>
+            }
+            <div class="ai-answer mt-1">@GetAnswer()</div>
+            @if (!running)
+            {
+                <div class="text-secondary small mt-2">@(userConfig.GetText(AiReasonCheckDisplay.kDisclaimerTextKey))</div>
+                <button type="button" class="btn btn-sm btn-secondary mt-2 ai-check-close" @onclick="CloseResult">
+                    @(DisplayService.DisplayButton(userConfig, "close", Icons.Close))
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code
+{
+    /// <summary>
+    /// Creates the prompt request at the time the check is started. May throw an <see cref="ArgumentException"/> for a
+    /// blank or too long reason, which is shown as message.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public Func<AgentPromptRequest>? CreateRequest { get; set; }
+
+    /// <summary>
+    /// Disables the check, e.g. while there is no reason to check.
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private const string kLogTitle = "AI Reason Check";
+
+    /// <summary>Shortest time between two renders of the streamed answer.</summary>
+    private const long kRenderIntervalMilliseconds = 150;
+
+    private readonly object answerLock = new();
+    private readonly StringBuilder answer = new();
+    private long lastRenderMilliseconds;
+    private CancellationTokenSource? runCancellation;
+    private bool running;
+    private bool answerVisible;
+    private bool disposed;
+    private ReasonVerdict verdict = ReasonVerdict.Unknown;
+    private string message = "";
+    private string messageClass = AiReasonCheckDisplay.kWarningAlertClass;
+
+    /// <summary>
+    /// Starts the check, unless one is running: creates the request and runs it with the user's access token.
+    /// </summary>
+    private async Task RunCheck()
+    {
+        if (running || Disabled || CreateRequest == null)
+        {
+            return;
+        }
+        ResetResult();
+        AgentPromptRequest? request = TryCreateRequest(CreateRequest);
+        if (request == null)
+        {
+            return;
+        }
+
+        running = true;
+        using CancellationTokenSource cancellation = new();
+        runCancellation = cancellation;
+        StateHasChanged();
+        try
+        {
+            await RunAgent(request, cancellation.Token);
+        }
+        catch (Exception) when (cancellation.IsCancellationRequested)
+        {
+            // cancelled by the user or because the component was removed
+            answerVisible = false;
+        }
+        catch (AgentClientException exception)
+        {
+            ShowFailure(exception);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError(kLogTitle, "The reason check failed.", exception);
+            ShowMessage(userConfig.GetText(AiReasonCheckDisplay.kFailedTextKey), AiReasonCheckDisplay.kErrorAlertClass);
+        }
+        finally
+        {
+            running = false;
+            runCancellation = null;
+        }
+    }
+
+    /// <summary>
+    /// Creates the prompt request; a blank or too long reason is shown as message.
+    /// </summary>
+    /// <returns>The request, or null if it could not be created</returns>
+    private AgentPromptRequest? TryCreateRequest(Func<AgentPromptRequest> createRequest)
+    {
+        try
+        {
+            return createRequest();
+        }
+        catch (ArgumentException)
+        {
+            ShowMessage(AiReasonCheckDisplay.InvalidReasonMessage(userConfig), AiReasonCheckDisplay.kWarningAlertClass);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Runs the prompt as a new conversation with the access token of the user and shows the result. A missing or
+    /// expired token ends the run with an <see cref="AgentClientException"/> of <see cref="AgentClientFailure.Unauthorized"/>.
+    /// </summary>
+    private async Task RunAgent(AgentPromptRequest request, CancellationToken cancellationToken)
+    {
+        answerVisible = true;
+        IChatClient chatClient = agentChatClientFactory.CreateChatClient(_ => accessTokenSource.GetAccessToken());
+        AiReasonCheckRun run = new();
+        await foreach (ChatResponseUpdate update in chatClient.GetStreamingResponseAsync(Enumerable.Empty<ChatMessage>(),
+            request.ToChatOptions(), cancellationToken))
+        {
+            AppendTextDelta(run.Apply(update));
+        }
+        ShowResult(run);
+    }
+
+    /// <summary>
+    /// Appends a piece of the streamed answer. Renders at most every <see cref="kRenderIntervalMilliseconds"/>; the
+    /// final answer is rendered when the run has ended.
+    /// </summary>
+    private void AppendTextDelta(string textDelta)
+    {
+        if (string.IsNullOrEmpty(textDelta))
+        {
+            return;
+        }
+        bool render;
+        lock (answerLock)
+        {
+            answer.Append(textDelta);
+            long now = Environment.TickCount64;
+            render = now - lastRenderMilliseconds >= kRenderIntervalMilliseconds;
+            if (render)
+            {
+                lastRenderMilliseconds = now;
+            }
+        }
+        if (render && !disposed)
+        {
+            _ = RenderStreamedAnswer();
+        }
+    }
+
+    /// <summary>
+    /// Renders the streamed answer on the dispatcher of the component.
+    /// </summary>
+    private async Task RenderStreamedAnswer()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug(kLogTitle, $"Could not render the streamed answer: {exception.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Shows the answer of a completed run, or the message of a failed run or of a run asking for tool approvals.
+    /// </summary>
+    private void ShowResult(AiReasonCheckRun run)
+    {
+        if (run.Error != null)
+        {
+            Log.WriteWarning(kLogTitle, $"The run on thread {run.ThreadId} failed: {run.Error.ErrorCode} {run.Error.Message}");
+            answerVisible = false;
+            ShowMessage(userConfig.GetText(AiReasonCheckDisplay.kFailedTextKey), AiReasonCheckDisplay.kErrorAlertClass);
+        }
+        else if (run.PendingApprovals > 0)
+        {
+            Log.WriteWarning(kLogTitle, $"The run on thread {run.ThreadId} asked to approve {run.PendingApprovals} tool call(s), which is not supported here.");
+            answerVisible = false;
+            ShowMessage(userConfig.GetText(AiReasonCheckDisplay.kInterruptedTextKey), AiReasonCheckDisplay.kWarningAlertClass);
+        }
+        else
+        {
+            ShowAnswer();
+        }
+    }
+
+    /// <summary>
+    /// Shows the answer of the run together with its verdict.
+    /// </summary>
+    private void ShowAnswer()
+    {
+        string answerText = GetAnswer();
+        if (string.IsNullOrWhiteSpace(answerText))
+        {
+            Log.WriteWarning(kLogTitle, "The run completed without an answer.");
+            answerVisible = false;
+            ShowMessage(userConfig.GetText(AiReasonCheckDisplay.kFailedTextKey), AiReasonCheckDisplay.kErrorAlertClass);
+            return;
+        }
+        verdict = ReasonVerdictParser.Parse(answerText);
+        answerVisible = true;
+    }
+
+    /// <summary>
+    /// Logs a run that could not be done and shows the message of its failure.
+    /// </summary>
+    private void ShowFailure(AgentClientException exception)
+    {
+        string logText = $"The run failed ({exception.Failure}, status {exception.StatusCode?.ToString() ?? "-"}): {exception.Message}";
+        bool userSolvable = AiReasonCheckDisplay.IsUserSolvable(exception.Failure);
+        if (userSolvable)
+        {
+            Log.WriteWarning(kLogTitle, logText);
+        }
+        else
+        {
+            Log.WriteError(kLogTitle, logText, exception);
+        }
+        answerVisible = false;
+        ShowMessage(AiReasonCheckDisplay.FailureMessage(userConfig, exception),
+            userSolvable ? AiReasonCheckDisplay.kWarningAlertClass : AiReasonCheckDisplay.kErrorAlertClass);
+    }
+
+    /// <summary>
+    /// Shows a message as alert of the given css classes.
+    /// </summary>
+    private void ShowMessage(string text, string alertClass)
+    {
+        message = text;
+        messageClass = alertClass;
+    }
+
+    /// <summary>
+    /// Returns the answer received so far.
+    /// </summary>
+    private string GetAnswer()
+    {
+        lock (answerLock)
+        {
+            return answer.ToString();
+        }
+    }
+
+    /// <summary>
+    /// Clears the answer, the verdict and the message.
+    /// </summary>
+    private void ResetResult()
+    {
+        lock (answerLock)
+        {
+            answer.Clear();
+            lastRenderMilliseconds = 0;
+        }
+        verdict = ReasonVerdict.Unknown;
+        answerVisible = false;
+        message = "";
+    }
+
+    /// <summary>
+    /// Cancels the running check.
+    /// </summary>
+    private void CancelRun()
+    {
+        runCancellation?.Cancel();
+    }
+
+    /// <summary>
+    /// Hides the result of the last check.
+    /// </summary>
+    private void CloseResult()
+    {
+        ResetResult();
+    }
+
+    /// <summary>
+    /// Cancels a running check when the component is removed, e.g. when the editor is closed or shows another connection.
+    /// </summary>
+    public void Dispose()
+    {
+        disposed = true;
+        runCancellation?.Cancel();
+    }
+}

@@ -56,7 +56,9 @@
     </div>
 </div>
 
-<div class="footer">
+<AiChatPanel />
+
+<AiChatFooterOffset>
     <div class="mx-2">
         @foreach (UIMessage uiMessage in UIMessages)
         {
@@ -68,7 +70,7 @@
             </div>
         }
     </div>
-</div>
+</AiChatFooterOffset>
 <PopUp Title="@(reloginDialogTitle)" Show="@(showReloginDialog)" Size=PopupSize.Auto OnClose="@(async () => await ((AuthStateProvider)authenticationProvider).Deauthenticate())">
 
     <Body>

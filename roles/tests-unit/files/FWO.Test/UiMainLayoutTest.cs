@@ -5,6 +5,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Ai;
 using FWO.Middleware.Client;
 using FWO.Services.EventMediator;
 using FWO.Services.EventMediator.Events;
@@ -85,6 +86,23 @@ namespace FWO.Test
                 ?? throw new MissingFieldException(typeof(NavigationManager).FullName, kLocationChangingHandlersFieldName);
             System.Collections.ICollection handlers = (System.Collections.ICollection)handlersField.GetValue(navigationManager)!;
             return handlers.Count;
+        }
+
+        [Test]
+        public async Task Layout_ShowsTheOpenAiChatPanelAndShiftsTheFooterBesideIt()
+        {
+            await using MainLayoutFixture fixture = new();
+            fixture.UserConfig.AiChatEnabled = true;
+            fixture.UserConfig.AiProvider = AiProvider.OpenAi;
+            Assert.That(fixture.Layout.FindAll(".ai-chat-sidebar"), Is.Empty);
+
+            fixture.ChatSession.Session.Open();
+
+            fixture.Layout.WaitForAssertion(() =>
+            {
+                Assert.That(fixture.Layout.FindAll(".ai-chat-sidebar"), Has.Count.EqualTo(1));
+                Assert.That(fixture.Layout.Find("div.footer").GetAttribute("style"), Does.StartWith("right: "));
+            });
         }
 
         [Test]
@@ -452,6 +470,7 @@ namespace FWO.Test
             public MainLayoutTokenRefreshCoordinatorStub TokenRefreshCoordinator { get; } = new();
             public NavigationManager NavigationManager { get; }
             public IRenderedComponent<MainLayout> Layout { get; }
+            public AiChatTestSession ChatSession { get; } = new(ScriptedChatClient.Returning(ScriptedChatClient.Text("answer")));
 
             public MainLayoutFixture(int maxMessages = 3, IEnumerable<string>? roles = null, string initialUri = "http://localhost/",
                 AuthenticationStateProvider? authenticationStateProvider = null)
@@ -482,6 +501,8 @@ namespace FWO.Test
                 context.Services.AddSingleton(new KeyboardInputService());
                 context.Services.AddSingleton((ProtectedSessionStorage)RuntimeHelpers.GetUninitializedObject(typeof(ProtectedSessionStorage)));
                 context.Services.AddSingleton<AuthenticationStateProvider>(authenticationStateProvider ?? new MainLayoutAuthStateProvider(UserConfig.User.Name, UserConfig.User.Dn, userRoles));
+                context.Services.AddSingleton(new DomEventService());
+                context.Services.AddSingleton(ChatSession.Session);
 
                 var authProvider = context.Services.GetRequiredService<AuthenticationStateProvider>();
                 authProvider.GetAuthenticationStateAsync();
@@ -496,6 +517,7 @@ namespace FWO.Test
             public async ValueTask DisposeAsync()
             {
                 await context.DisposeAsync();
+                ChatSession.Dispose();
             }
         }
 

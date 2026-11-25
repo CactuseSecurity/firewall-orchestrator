@@ -5,7 +5,7 @@ using System.Net;
 namespace FWO.Basics;
 
 /// <summary>
-/// Creates forwarding settings for the local Apache HTTPS reverse proxy in front of the UI and the middleware.
+/// Creates forwarding settings for the local Apache HTTPS reverse proxy in front of the UI, middleware and AI MCP server.
 /// </summary>
 public static class ReverseProxyForwardingOptions
 {
@@ -17,7 +17,7 @@ public static class ReverseProxyForwardingOptions
     /// (ForwardLimit 1), so a client cannot choose its own address by sending the header itself. The client
     /// address is logged with logins and keys the per-client login limit of the middleware.
     /// </remarks>
-    /// <returns>Forwarded-header options for the request pipeline of the UI or the middleware.</returns>
+    /// <returns>Forwarded-header options for the request pipeline.</returns>
     public static ForwardedHeadersOptions Create()
     {
         ForwardedHeadersOptions options = new()

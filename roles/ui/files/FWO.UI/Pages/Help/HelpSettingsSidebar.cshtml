@@ -121,6 +121,9 @@
                 <a class="nav-link" href="/help/settings/email/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Email"></span> @(userConfig.GetText("email_settings"))
                 </a>
+                <a class="nav-link" href="/help/settings/ai/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.AiCheck"></span> @(userConfig.GetText("ai_settings"))
+                </a>
                 <a class="nav-link" href="/help/settings/importer/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Import"></span> @(userConfig.GetText("importer_settings"))
                 </a>

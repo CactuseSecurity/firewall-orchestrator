@@ -13,6 +13,10 @@ namespace FWO.Test
     [TestFixture]
     public class InternalApiTokenServiceTest
     {
+        private static readonly TimeSpan kShortRefreshLeadTime = TimeSpan.FromSeconds(1);
+        private static readonly TimeSpan kNearExpiryPollInterval = TimeSpan.FromMilliseconds(50);
+        private static readonly TimeSpan kNearExpiryWaitLimit = TimeSpan.FromSeconds(30);
+
         private sealed class ShortInternalLifetimeProvider : TokenLifetimeProvider
         {
             public override TimeSpan GetInternalServiceTokenLifetime()
@@ -84,7 +88,7 @@ namespace FWO.Test
                 apiConnection,
                 new TokenRefreshOptions
                 {
-                    RefreshLeadTime = TimeSpan.FromSeconds(1),
+                    RefreshLeadTime = kShortRefreshLeadTime,
                     RefreshCheckInterval = TimeSpan.FromMilliseconds(200)
                 });
             JwtSecurityTokenHandler tokenHandler = new();
@@ -92,7 +96,7 @@ namespace FWO.Test
             string initialToken = tokenService.CreateInitialMiddlewareToken();
             JwtSecurityToken initialParsedToken = tokenHandler.ReadJwtToken(initialToken);
 
-            await Task.Delay(TimeSpan.FromMilliseconds(2300));
+            await WaitUntilWithinRefreshLeadTime(initialParsedToken.ValidTo, kShortRefreshLeadTime);
 
             string refreshedToken = await refreshService.EnsureFreshTokenAsync();
             JwtSecurityToken refreshedParsedToken = tokenHandler.ReadJwtToken(refreshedToken);
@@ -100,6 +104,20 @@ namespace FWO.Test
             Assert.That(refreshedParsedToken.ValidTo, Is.GreaterThan(initialParsedToken.ValidTo));
             Assert.That(refreshedParsedToken.Id, Is.Not.EqualTo(initialParsedToken.Id));
             await apiConnection.Received(1).ReconnectSubscriptionsAsync(refreshedToken, Arg.Any<CancellationToken>());
+        }
+
+        /// <summary>
+        /// Waits until the token expires within the refresh lead time, measured like the refresh service does: on the wall
+        /// clock (DateTime.UtcNow). A fixed delay measures monotonic time instead, so it is not enough where the wall
+        /// clock is stepped back while waiting, e.g. by the time synchronization of a test VM.
+        /// </summary>
+        private static async Task WaitUntilWithinRefreshLeadTime(DateTime expiresUtc, TimeSpan refreshLeadTime)
+        {
+            using CancellationTokenSource waitLimit = new(kNearExpiryWaitLimit);
+            while (expiresUtc > DateTime.UtcNow.Add(refreshLeadTime))
+            {
+                await Task.Delay(kNearExpiryPollInterval, waitLimit.Token);
+            }
         }
 
         private static InternalApiTokenService CreateTokenService(TokenLifetimeProvider? tokenLifetimeProvider = null)

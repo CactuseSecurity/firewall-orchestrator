@@ -64,6 +64,17 @@ description: T0006
 {%- endif %}
 
 
+dn: cn=ai-harness,ou=role,{{ openldap_path }}
+changetype: {{ ldif_changetype }}
+{% if ldif_changetype != 'delete' -%}
+objectClass: top
+objectClass: groupofuniquenames
+cn: ai-harness
+uniqueMember:
+description: T0010
+{%- endif %}
+
+
 dn: cn=auditor,ou=role,{{ openldap_path }}
 {% if ldif_changetype != 'delete' -%}
 changetype: {{ ldif_changetype }}

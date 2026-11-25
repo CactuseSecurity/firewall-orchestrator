@@ -235,6 +235,10 @@
   import_tasks: run-upgrades.yml
   when: installation_mode == "upgrade"
 
+- name: set the password of the ai harness user
+  import_tasks: set_ai_harness_password.yml
+  when: ai_server_on_host | bool
+
 - name: finalize handler for datarecovery
   set_fact:
     middleware_handler_guard: stop

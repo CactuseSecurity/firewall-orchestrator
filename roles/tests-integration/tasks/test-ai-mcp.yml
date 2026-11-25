@@ -1,0 +1,218 @@
+---
+# The unit tests run the MCP server pipeline in process. This proves the installed service:
+# the published binary runs under its unit, binds the configured loopback url, validates
+# tokens with the jwt key of this installation and is published by the middleware's Apache
+# vhost. It runs on the middleware host only, which also holds the test users and the jwt
+# signing key.
+- block:
+    # the address MCP clients use: the deployed middleware endpoint (fworch.json), not one
+    # derived from the inventory again
+    - name: set the public url of the ai mcp server
+      set_fact:
+        ai_mcp_test_public_uri: "{{ test_middleware_uri | regex_replace('/+$', '') }}{{ ai_mcp_path }}"
+
+    - name: wait for the ai mcp server to listen on its loopback url
+      wait_for:
+        host: "{{ ai_native_listener_address }}"
+        port: "{{ ai_mcp_internal_port }}"
+        timeout: 120
+
+    # positive control for the check below, which would pass trivially without a key file
+    - name: the jwt signing key must be readable outside the ai mcp server
+      command:
+        argv:
+          - grep
+          - --quiet
+          - PRIVATE KEY
+          - "{{ jwt_private_key_file }}"
+      changed_when: false
+      become: true
+
+    - name: read the main process id of the ai mcp server
+      command: "systemctl show {{ ai_mcp_service_name }}.service --property=MainPID --value"
+      register: ai_mcp_service_main_pid
+      changed_when: false
+      become: true
+
+    # InaccessiblePaths in the unit hides the key in the service's own mount namespace, so look
+    # into exactly that namespace: grep exits 0 only if the key is readable there
+    - name: try to read the jwt signing key from within the mount namespace of the ai mcp server
+      command:
+        argv:
+          - nsenter
+          - "--target={{ ai_mcp_service_main_pid.stdout | trim }}"
+          - --mount
+          - --
+          - grep
+          - --quiet
+          - PRIVATE KEY
+          - "{{ jwt_private_key_file }}"
+      register: ai_mcp_private_key_read
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: the ai mcp server must not be able to read the jwt signing key
+      assert:
+        that:
+          - ai_mcp_service_main_pid.stdout | trim | int > 0
+          - ai_mcp_private_key_read.rc != 0
+        fail_msg: >-
+          {{ jwt_private_key_file }} is readable inside the mount namespace of {{ ai_mcp_service_name }}
+          (main pid '{{ ai_mcp_service_main_pid.stdout | trim }}', rc {{ ai_mcp_private_key_read.rc }}).
+
+    - name: the ai mcp server must refuse requests without a token
+      ansible.builtin.uri:
+        url: "{{ ai_mcp_native_mcp_uri }}"
+        method: POST
+        status_code: 401
+        headers:
+          Accept: "application/json, text/event-stream"
+        body:
+          jsonrpc: "2.0"
+          id: 1
+          method: tools/list
+        body_format: json
+      changed_when: false
+
+    - name: apache must refuse requests to the ai mcp server without a token
+      ansible.builtin.uri:
+        url: "{{ ai_mcp_test_public_uri }}"
+        method: POST
+        status_code: 401
+        headers:
+          Accept: "application/json, text/event-stream"
+        body:
+          jsonrpc: "2.0"
+          id: 1
+          method: tools/list
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+      changed_when: false
+
+    # sample-auth-data gives the test users no role in test installs (see modify_ldap_tree.yml)
+    - name: get a token of a test user without an fwo role
+      ansible.builtin.uri:
+        url: "{{ test_middleware_uri }}api/AuthenticationToken/GetTokenPair/"
+        method: POST
+        status_code: 200
+        body:
+          Username: "user1{{ test_postfix }}"
+          Password: "{{ test_user1_pw }}"
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        return_content: true
+      register: ai_mcp_test_token_pair
+      changed_when: false
+      no_log: true
+
+    - name: the ai mcp server must refuse a user without an fwo role
+      ansible.builtin.uri:
+        url: "{{ ai_mcp_native_mcp_uri }}"
+        method: POST
+        status_code: 403
+        headers:
+          Accept: "application/json, text/event-stream"
+          Authorization: "Bearer {{ ai_mcp_test_token_pair.json.AccessToken }}"
+        body:
+          jsonrpc: "2.0"
+          id: 1
+          method: tools/list
+        body_format: json
+      changed_when: false
+
+    - name: read the ui admin password
+      slurp:
+        src: "{{ ui_admin_password_file }}"
+      register: ai_mcp_test_admin_password
+      become: true
+      no_log: true
+
+    - name: get a token of the admin
+      ansible.builtin.uri:
+        url: "{{ test_middleware_uri }}api/AuthenticationToken/GetTokenPair/"
+        method: POST
+        status_code: 200
+        body:
+          Username: admin
+          Password: "{{ ai_mcp_test_admin_password.content | b64decode | trim }}"
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        return_content: true
+      register: ai_mcp_test_admin_token_pair
+      changed_when: false
+      no_log: true
+
+    - name: list the tools the ai mcp server offers to the admin
+      ansible.builtin.uri:
+        url: "{{ ai_mcp_native_mcp_uri }}"
+        method: POST
+        status_code: 200
+        headers:
+          Accept: "application/json, text/event-stream"
+          Authorization: "Bearer {{ ai_mcp_test_admin_token_pair.json.AccessToken }}"
+        body:
+          jsonrpc: "2.0"
+          id: 1
+          method: tools/list
+        body_format: json
+        return_content: true
+      register: ai_mcp_test_tools_list
+      changed_when: false
+
+    - name: the ai mcp server must offer the admin its tools
+      assert:
+        that:
+          - "'get_current_user' in ai_mcp_test_tools_list.content"
+        fail_msg: "unexpected tools/list response for the admin: {{ ai_mcp_test_tools_list.content }}"
+
+    - name: list the tools the ai mcp server offers to the admin through apache
+      ansible.builtin.uri:
+        url: "{{ ai_mcp_test_public_uri }}"
+        method: POST
+        status_code: 200
+        headers:
+          Accept: "application/json, text/event-stream"
+          Authorization: "Bearer {{ ai_mcp_test_admin_token_pair.json.AccessToken }}"
+        body:
+          jsonrpc: "2.0"
+          id: 1
+          method: tools/list
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        return_content: true
+      register: ai_mcp_test_public_tools_list
+      changed_when: false
+
+    - name: apache must pass the ai mcp server's answer on unchanged
+      assert:
+        that:
+          - "'get_current_user' in ai_mcp_test_public_tools_list.content"
+        fail_msg: "unexpected tools/list response through apache: {{ ai_mcp_test_public_tools_list.content }}"
+
+  rescue:
+    - name: get ai mcp server service status
+      command: "systemctl status {{ ai_mcp_service_name }} --no-pager -l"
+      register: ai_mcp_service_status
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: get ai mcp server service journal
+      command: "journalctl -u {{ ai_mcp_service_name }} --no-pager -n 100"
+      register: ai_mcp_service_journal
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: fail ai mcp server check
+      fail:
+        msg:
+          - "ai mcp server check failed: {{ ansible_failed_task.name }}"
+          - "{{ ansible_failed_result.msg | default('') }}"
+          - "{{ ai_mcp_service_status.stdout_lines | default([]) }}"
+          - "{{ ai_mcp_service_journal.stdout_lines | default([]) }}"

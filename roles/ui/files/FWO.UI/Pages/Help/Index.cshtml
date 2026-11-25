@@ -221,6 +221,9 @@
                     <a href="/help/settings/email/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("email_settings")</a>
                 </li>
                 <li class="nav-item px-2">
+                    <a href="/help/settings/ai/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("ai_settings")</a>
+                </li>
+                <li class="nav-item px-2">
                     <a href="/help/settings/importer/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("importer_settings")</a>
                 </li>
                 <li class="nav-item px-2">
@@ -303,6 +306,21 @@
                     <a href="/help/settings/personal/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("personal_settings")</a>
                 </li>
             </ul>
+        </li>
+        <li class="nav-item px-2">
+            <a href="/help/ai/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("ai")</a>
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item px-2">
+                    <a href="/help/ai/chat/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("ai_chat")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/modelling/connections/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("ai_reason_check")</a>
+                </li>
+                <li class="nav-item px-2">
+                    <a href="/help/settings/ai/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("ai_settings")</a>
+                </li>
+            </ul>
+        </li>
          <li class="nav-item px-2">
             <a href="/help/API/?lang=@($"{userConfig.GetUserLanguage()}")">@userConfig.GetText("api")</a>
             <ul class="navbar-nav me-auto">

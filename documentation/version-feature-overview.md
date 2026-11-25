@@ -283,3 +283,7 @@ For a feature-centric, thematically grouped view see
 
 ### 9.9.5 - 23.11.2026
 - Notifications: an email priority (Low, Normal, High) can be set per notification; Low and High set the Importance, Priority and X-Priority headers, which common email clients show as a marker.
+
+### 9.9.6 - 24.11.2026
+- The AI MCP server and harness give AI clients access to Firewall Orchestrator tools and prompts with the calling user's permissions.
+- Administrators can configure the AI provider and enable the chat and modelling reason check for selected roles. The chat asks for approval before changing data.

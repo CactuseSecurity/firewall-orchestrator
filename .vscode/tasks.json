@@ -94,6 +94,18 @@
             "problemMatcher": "$msCompile"
         },
         {
+            "label": "test_ai",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "test",
+                "${workspaceFolder}/roles/tests-unit/files/FWO.Ai.Tests/FWO.Ai.Tests.csproj",
+                "--settings",
+                "${workspaceFolder}/FWO.default.runsettings"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
             "label": "test_jwt_integration_local",
             "command": "dotnet",
             "type": "process",

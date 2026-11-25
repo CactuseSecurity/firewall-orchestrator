@@ -1,0 +1,24 @@
+# the ai harness gets a technical user of its own: it reads the ai settings and the credential they reference
+# with the role ai-harness, see roles/ai and the ai settings page of the ui
+
+dn: cn=ai-harness,ou=role,{{ openldap_path }}
+changetype: add
+objectClass: top
+objectClass: groupofuniquenames
+cn: ai-harness
+uniqueMember:
+description: T0010
+
+
+dn: uid=ai-harness,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}
+changetype: add
+objectClass: top
+objectclass: inetorgperson
+cn: ai-harness
+sn: user
+
+
+dn: cn=ai-harness,ou=role,{{ openldap_path }}
+changetype: modify
+add: uniquemember
+uniquemember: uid=ai-harness,ou=tenant0,ou=operator,ou=user,{{ openldap_path }}

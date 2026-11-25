@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Config.File;
@@ -27,10 +28,26 @@ const string kApiStartupLogCategory = "Api startup";
 // EX_CONFIG from sysexits(3): the service was configured to reach an api it cannot reach.
 // Non-zero is what makes systemd's Restart=on-failure and its start rate limit apply at all.
 const int kApiUnavailableExitCode = 78;
+// EX_CONFIG as well: the service was configured to receive access tokens in clear text from the network.
+const int kInsecureListenerExitCode = 78;
+const string kListenerStartupLogCategory = "Middleware startup";
+const string kListenerPurpose = "middleware server listener (middleware_native_uri)";
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseUrls(ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup."));
+// Every caller sends its JWT to this listener, so it must not take them in clear text from the network. The installer
+// binds it to loopback behind the Apache reverse proxy, which terminates https.
+string middlewareNativeUri = ConfigFile.MiddlewareServerNativeUri ?? throw new ArgumentException("Missing middleware server url on startup.");
+try
+{
+    EndpointGuard.RequireHttpsOrLoopbackListener(middlewareNativeUri, kListenerPurpose);
+}
+catch (ArgumentException exception)
+{
+    Log.WriteError(kListenerStartupLogCategory, exception.Message);
+    return kInsecureListenerExitCode;
+}
+builder.WebHost.UseUrls(middlewareNativeUri);
 
 // Create Token Generator
 TokenLifetimeProvider tokenLifetimeProvider = new();

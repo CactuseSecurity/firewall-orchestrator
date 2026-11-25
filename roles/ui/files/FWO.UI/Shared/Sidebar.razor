@@ -74,6 +74,13 @@
     public bool StartCollapsed { get; set; } = false;
 
     /// <summary>
+    /// Is invoked once when the sidebar shows its content, which waits for the height of the navigation bar. The
+    /// receiver re-renders then, so that its OnAfterRender can use elements of the content, e.g. to focus an input.
+    /// </summary>
+    [Parameter]
+    public EventCallback ContentShown { get; set; }
+
+    /// <summary>
     /// Receives the width of a left sidebar, so that content outside the page layout can start after it.
     /// </summary>
     [CascadingParameter]
@@ -89,6 +96,8 @@
     private string overflowSidebar = "auto";
 
     private int topOffset = -1;
+
+    private bool contentShownReported;
 
     private bool _disposed;
 
@@ -106,6 +115,21 @@
                 eventService.OnNavbarHeightChanged += OnNavbarHeightChanged;
             }
         }
+        await ReportContentShown();
+    }
+
+    /// <summary>
+    /// Tells the receiver of <see cref="ContentShown"/> once that the content is shown. The content is rendered with
+    /// the known navbar height at the latest in the render the receiver starts by handling the callback.
+    /// </summary>
+    private async Task ReportContentShown()
+    {
+        if (topOffset == -1 || contentShownReported || _disposed)
+        {
+            return;
+        }
+        contentShownReported = true;
+        await ContentShown.InvokeAsync();
     }
 
     protected override void OnParametersSet()

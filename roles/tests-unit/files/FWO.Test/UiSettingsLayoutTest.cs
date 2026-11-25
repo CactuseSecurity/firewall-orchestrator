@@ -78,6 +78,7 @@ namespace FWO.Test
             "settings/flows/timeobjects",
             "settings/defaults",
             "settings/email",
+            "settings/ai",
             "settings/importer",
             "settings/changetrigger",
             "settings/notifications",

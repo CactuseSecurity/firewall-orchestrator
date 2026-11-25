@@ -266,6 +266,21 @@ h5 {
     height: 30px;
 }
 
+/* The AI chat panel (AiChatPanel.razor) lies over the page content and the right sidebars of the reports,
+    below the navigation bar (z-index 15) and the popups. */
+.sidebar-main.ai-chat-sidebar {
+    z-index: 14;
+}
+
+/* Content of the AI chat panel: a column of header, entries and input, see AiChatPanel.razor.css */
+.ai-chat-content {
+    display: flex;
+    flex-direction: column;
+    max-width: calc(100vw - 10px);
+    background-color: var(--bs-body-bg);
+    box-shadow: var(--bs-box-shadow);
+}
+
 .max {
     width: 10px;
     height: 10px;

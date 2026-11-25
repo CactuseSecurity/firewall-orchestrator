@@ -272,3 +272,24 @@ and LDAP group lists it uses, at most 1000 pages per list; a list with further p
 error instead of being shown incomplete. The LDAP lists are read completely from the directory for every page and
 cut in the middleware. `getFlowComplianceState` accepts at most 100 entries in each of `source`,
 `destination` and `service`, and at most 100 `policies`.
+
+### AI servers
+
+The MCP server (`roles/ai`, installed with `install_ai_server`) runs on the middleware host as its own service.
+AI clients connect to `https://<middleware host>:8888/mcp`, the Apache endpoint of the middleware, and send the
+access token returned by `POST /api/AuthenticationToken/GetTokenPair` as `Authorization: Bearer <token>`.
+It accepts only tokens of users holding at least one role other than `anonymous` and the
+technical roles (`middleware-server`, `importer`, `dbbackup`, `ai-harness`); other tokens get `403`. It reads the two settings
+above at startup as well, but counts on its own, separately from the middleware: every request of a user
+(identified by the `x-hasura-uuid` claim, otherwise by the user name) counts against at most
+`rate_limit_requests_per_minute` requests within any minute (the window moves on in steps of 10 seconds), and at
+most `rate_limit_concurrent_expensive_requests` requests of one user run at the same time; up to 4 further requests
+wait, the rest are rejected. Refused requests (`401`, `403`) do not count. Request bodies are limited to 1 MiB
+(`413` above), and rejected requests get `429` with `Retry-After: 60`.
+
+The AI harness (`roles/ai`, installed with the MCP server) offers an AI agent on the MCP tools at
+`https://<middleware host>:8888/agui`. It accepts the same tokens as the MCP server and calls the MCP server with the
+token of the request, so the agent has exactly the rights of the calling user. Only to read its AI settings (provider, model,
+API key; set on the AI settings page of the UI) it logs in as the technical user `ai-harness`, whose role may read
+only these config items and the one credential they reference (view `v_ai_provider_credential`). The installer creates
+the user with a random password in `/usr/local/fworch/etc/secrets/ai_harness_pwd`.

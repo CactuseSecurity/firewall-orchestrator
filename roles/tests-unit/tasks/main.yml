@@ -8,6 +8,18 @@
         mode: "0755"
       become: true
 
+    - name: create the runtime directory for dotnet commands run as {{ fworch_user }}
+      file:
+        path: "{{ dotnet_xdg_runtime_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0700"
+      become: true
+
+  when: "'frontends' in group_names or ai_server_on_host | bool"
+
+- block:
     - name: sync test files to frontend target
       ansible.posix.synchronize:
         src: FWO.Test
@@ -24,16 +36,6 @@
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
         mode: "0644"
-      become: true
-
-    # the lib role creates it as well, but the tests also run on their own (tag test)
-    - name: create the runtime directory for dotnet commands run as {{ fworch_user }}
-      file:
-        path: "{{ dotnet_xdg_runtime_dir }}"
-        state: directory
-        owner: "{{ fworch_user }}"
-        group: "{{ fworch_group }}"
-        mode: "0700"
       become: true
 
     # Tagged unittests_run, so "--skip-tags unittests_run" leaves the synced test project in
@@ -58,6 +60,35 @@
 
   when: "'frontends' in group_names"
   # run only once (on frontends)
+
+- block:
+    - name: sync ai test files to the middleware host
+      ansible.posix.synchronize:
+        src: FWO.Ai.Tests
+        dest: "{{ test_dir }}/csharp"
+        rsync_opts:
+          - "--chown={{ fworch_user }}:{{ fworch_group }}"
+          - "--delete"
+      become: true
+
+    - name: run ai csharp tests
+      command: dotnet test
+      args:
+        chdir: "{{ ai_test_start_dir }}"
+      become: true
+      become_user: "{{ fworch_user }}"
+      register: ai_csharp_tests
+      ignore_errors: false
+      environment: "{{ dotnet_env }}"
+      tags: unittests_run
+
+    - name: show ai csharp test results in case of errors
+      debug:
+        var: ai_csharp_tests
+      when: ai_csharp_tests.rc != 0
+      tags: unittests_run
+
+  when: ai_server_on_host | bool
 
 - block:
     - name: Run importer Python unit tests

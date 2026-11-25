@@ -10,6 +10,9 @@ main() {
     local python_bin="python3"
     local venv_dir="${FWORCH_INSTALLER_VENV:-$HOME/.fwo/installer-venv}"
     local -a pip_install_options=(--default-timeout 3600)
+    # apt-daily and unattended-upgrades may hold the dpkg lock for many minutes on a freshly
+    # provisioned host; wait as long as the installer does (apt_lock_timeout in inventory/group_vars/all.yml)
+    local -a apt_lock_options=(-o DPkg::Lock::Timeout=1800)
 
     if [[ ! -f /etc/os-release ]]; then
         echo "Could not detect operating system: /etc/os-release missing."
@@ -22,9 +25,9 @@ main() {
     # On RHEL/Rocky 9 the platform python3 is 3.9, so the venv must use python3.11 there.
     case "${ID_LIKE:-$ID}" in
         *debian*)
-            sudo apt update || return $?
+            sudo apt "${apt_lock_options[@]}" update || return $?
             # python3-dev supplies Python.h, which python-ldap needs to build its C extension.
-            sudo apt install python3-venv python3-dev build-essential libldap2-dev libsasl2-dev -y || return $?
+            sudo apt "${apt_lock_options[@]}" install python3-venv python3-dev build-essential libldap2-dev libsasl2-dev -y || return $?
             ;;
         *rhel*|*fedora*)
             sudo dnf install python3.11 python3.11-pip python3.11-devel gcc openldap-devel cyrus-sasl-devel -y || return $?

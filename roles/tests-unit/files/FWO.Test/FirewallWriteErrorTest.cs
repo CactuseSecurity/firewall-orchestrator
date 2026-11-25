@@ -181,6 +181,58 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Azure_LoginWithoutAnswer_IsClassifiedLikeOtherCalls()
+        {
+            ModifyFirewallResult timeout = await WriteHost(FirewallVendors.kAzure, _ => TimedOut());
+            ModifyFirewallResult unreachable = await WriteHost(FirewallVendors.kAzure, _ => NoAnswer(new HttpRequestException("No such host is known.")));
+            ModifyFirewallResult certificate = await WriteHost(FirewallVendors.kAzure,
+                _ => NoAnswer(new HttpRequestException("The SSL connection could not be established.", new AuthenticationException("bad certificate"))));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(timeout.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Unreachable), timeout.Message);
+                Assert.That(timeout.IsRetryable, Is.True);
+                Assert.That(unreachable.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Unreachable), unreachable.Message);
+                Assert.That(unreachable.Error?.StatusCode, Is.Null);
+                Assert.That(unreachable.Error?.NativeMessage, Does.Contain("No such host is known."));
+                Assert.That(certificate.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Configuration), certificate.Message);
+                Assert.That(certificate.IsRetryable, Is.False);
+            }
+        }
+
+        [TestCase(HttpStatusCode.TooManyRequests, "{\"error\":\"temporarily_unavailable\"}", FirewallWriteErrorKind.RateLimited)]
+        [TestCase(HttpStatusCode.InternalServerError, "", FirewallWriteErrorKind.FirewallError)]
+        [TestCase(HttpStatusCode.BadRequest, "{\"error\":\"invalid_request\"}", FirewallWriteErrorKind.Authentication)]
+        [TestCase(HttpStatusCode.NotFound, "", FirewallWriteErrorKind.Authentication)]
+        [TestCase(HttpStatusCode.OK, "{\"token_type\":\"Bearer\"}", FirewallWriteErrorKind.Authentication)]
+        public async Task Azure_LoginAnswers_AreClassified(HttpStatusCode statusCode, string content, FirewallWriteErrorKind kind)
+        {
+            ModifyFirewallResult result = await WriteHost(FirewallVendors.kAzure, _ => Response(statusCode, content));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Error?.Kind, Is.EqualTo(kind), result.Message);
+                Assert.That(result.Error?.StatusCode, Is.EqualTo((int)statusCode));
+                Assert.That(result.Message, Does.Contain("login"));
+            }
+        }
+
+        [Test]
+        public async Task Azure_LoginWithoutClientId_IsAConfigurationErrorWithoutRequest()
+        {
+            FirewallWriteContext context = Context(FirewallVendors.kAzure, configPath: "rg1");
+            context.Management.ExportCredential.ImportUser = "";
+            (FirewallWriter writer, FirewallSimulation simulation) = Writer(context);
+
+            ModifyFirewallResult result = await writer.ModifyFirewall(Task(WfTaskType.object_create, Network("h1", "10.0.0.1")));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.Configuration), result.Message);
+                Assert.That(simulation.Requests, Is.Empty);
+            }
+        }
+
+        [Test]
         public async Task Timeouts_AreRetried()
         {
             ModifyFirewallResult result = await WriteHost(FirewallVendors.kFortiOsGateway, _ => TimedOut());

@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics.OAuth;
 using FWO.Data;
 using FWO.DeviceAutoDiscovery;
 using NUnit.Framework;
@@ -405,6 +406,26 @@ namespace FWO.Test
             });
         }
 
+        [TestCase("", "client-secret")]
+        [TestCase("client-id", " ")]
+        public void GetAccessToken_WithoutClientIdOrSecret_FailsWithoutRequest(string clientId, string clientSecret)
+        {
+            StubHttpAzureClient client = new();
+
+            Assert.ThrowsAsync<MailKit.Security.AuthenticationException>(() => client.GetAccessToken("tenant-1", clientId, clientSecret));
+            Assert.That(client.Handler.Requests, Is.Empty);
+        }
+
+        [Test]
+        public void GetAccessToken_UnreachableTokenEndpoint_FailsAsAuthentication()
+        {
+            UnreachableTokenAzureClient client = new();
+
+            MailKit.Security.AuthenticationException? exception =
+                Assert.ThrowsAsync<MailKit.Security.AuthenticationException>(() => client.GetAccessToken("tenant-1", "client-id", "client-secret"));
+            Assert.That(exception!.InnerException, Is.TypeOf<FWO.Basics.Exceptions.OAuthTokenException>());
+        }
+
         [Test]
         public async Task GetPage_SendsBearerTokenAndFallsBackOnUnsupportedApiVersion()
         {
@@ -450,6 +471,21 @@ namespace FWO.Test
             {
                 RestClientOptions options = new(kManagementUrl + "/") { ConfigureMessageHandler = _ => Handler };
                 restClient = new RestClient(options);
+            }
+
+            protected override OAuthTokenClient CreateTokenClient() => new(Handler);
+        }
+
+        /// <summary>
+        /// Azure client whose token endpoint cannot be reached.
+        /// </summary>
+        private sealed class UnreachableTokenAzureClient : AzureClient
+        {
+            protected override OAuthTokenClient CreateTokenClient()
+            {
+                OAuthTestEndpoint endpoint = new();
+                endpoint.Fail(new HttpRequestException("No such host is known."));
+                return new OAuthTokenClient(endpoint);
             }
         }
 

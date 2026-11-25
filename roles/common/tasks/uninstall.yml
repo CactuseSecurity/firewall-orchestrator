@@ -95,6 +95,20 @@
     enabled: no
   ignore_errors: true
 
+- name: stop and disable {{ ai_mcp_service_name }}
+  service:
+    name: "{{ ai_mcp_service_name }}"
+    state: stopped
+    enabled: false
+  ignore_errors: true
+
+- name: stop and disable {{ ai_harness_service_name }}
+  service:
+    name: "{{ ai_harness_service_name }}"
+    state: stopped
+    enabled: false
+  ignore_errors: true
+
 - name: stop and disable current Hasura API service
   service:
     name: "{{ api_service_name }}"

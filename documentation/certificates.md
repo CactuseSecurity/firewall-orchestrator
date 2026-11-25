@@ -192,7 +192,10 @@ internal and their services only listen on loopback on a single-host installatio
 - `middleware_native_listener_address` - the address the middleware's own web server
   binds to, and the address its reverse proxy forwards to. Kestrel treats any host
   name other than `localhost` as a wildcard bind, so a routable name here would
-  publish the unauthenticated, plain-HTTP middleware port on every interface.
+  publish the unauthenticated, plain-HTTP middleware port on every interface. The
+  middleware therefore refuses to start if `middleware_native_uri` binds plain HTTP to
+  anything but `localhost` or a loopback address: it logs the reason and exits with
+  code 78.
 - `fworch_db_connect_host` - the address clients open PostgreSQL connections to.
   PostgreSQL listens on loopback and `pg_hba.conf` grants `127.0.0.0/8` and `::1/128`
   only, unless `distributed_install` is set.
@@ -541,6 +544,7 @@ checks on. Upgrades from versions before 9.7.1 keep a check off where it was off
 before. As long as a check is off, the installer prints a `SECURITY WARNING` at the
 end of an upgrade, admins see a warning at the top of every UI page, and the
 importer and middleware log a warning once per endpoint.
+The token endpoints of OAuth 2.0 logins are always checked.
 
 To switch a check on for a system that presents a self-signed certificate or one from
 a private CA, add the issuing CA (PEM) to the trust store of the hosts listed above

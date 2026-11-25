@@ -557,6 +557,28 @@ INSERT INTO txt VALUES ('filter_op_is_empty',   'German',   'Ist leer');
 INSERT INTO txt VALUES ('filter_op_is_empty',   'English',  'Is empty');
 INSERT INTO txt VALUES ('filter_op_is_not_empty','German',  'Ist nicht leer');
 INSERT INTO txt VALUES ('filter_op_is_not_empty','English', 'Is not empty');
+INSERT INTO txt VALUES ('minimize',             'German', 	'Minimieren');
+INSERT INTO txt VALUES ('minimize',             'English', 	'Minimize');
+INSERT INTO txt VALUES ('rejected',             'German', 	'Abgelehnt');
+INSERT INTO txt VALUES ('rejected',             'English', 	'Rejected');
+INSERT INTO txt VALUES ('ai',                   'German', 	'KI');
+INSERT INTO txt VALUES ('ai',                   'English', 	'AI');
+INSERT INTO txt VALUES ('ai_new_chat',          'German', 	'Neuer Chat');
+INSERT INTO txt VALUES ('ai_new_chat',          'English', 	'New Chat');
+INSERT INTO txt VALUES ('ai_send',              'German', 	'Senden');
+INSERT INTO txt VALUES ('ai_send',              'English', 	'Send');
+INSERT INTO txt VALUES ('ai_chat_input',        'German', 	'Nachricht an die KI (Strg+Enter sendet)');
+INSERT INTO txt VALUES ('ai_chat_input',        'English', 	'Message to the AI (Ctrl+Enter sends)');
+INSERT INTO txt VALUES ('ai_answering',         'German', 	'KI antwortet...');
+INSERT INTO txt VALUES ('ai_answering',         'English', 	'AI is answering...');
+INSERT INTO txt VALUES ('ai_new_answer',        'German', 	'Neue Antwort der KI');
+INSERT INTO txt VALUES ('ai_new_answer',        'English', 	'New answer of the AI');
+INSERT INTO txt VALUES ('ai_approval_pending',  'German', 	'Die KI wartet auf Ihre Freigabe');
+INSERT INTO txt VALUES ('ai_approval_pending',  'English', 	'The AI is waiting for your approval');
+INSERT INTO txt VALUES ('ai_approval_request',  'German', 	'Die KI m&ouml;chte eine Aktion ausf&uuml;hren, die Daten &auml;ndert:');
+INSERT INTO txt VALUES ('ai_approval_request',  'English', 	'The AI wants to run an action that changes data:');
+INSERT INTO txt VALUES ('ai_run_cancelled',     'German', 	'Abgebrochen');
+INSERT INTO txt VALUES ('ai_run_cancelled',     'English', 	'Cancelled');
 
 -- (re)login
 INSERT INTO txt VALUES ('login', 				'German',	'Anmelden');
@@ -672,6 +694,10 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Benachrichtigungen: F&uuml;r jede Email-Benachrichtigung kann eine Email-Priorit&auml;t (Niedrig, Normal, Hoch) eingestellt werden. Niedrig und Hoch setzen die Header Importance, Priority und X-Priority, die g&auml;ngige Email-Programme als Markierung anzeigen.</li>
     <li>Workflow: Die Referenz auf ein Ticket eines vorgelagerten Workflows (z.B. bei Anlage &uuml;ber die API) kann angezeigt werden. Ist in den Workflow-Anpassungen eine Bezeichnung (z.B. &quot;ChangeId&quot;) eingetragen, erscheint die Referenz im Ticket-Dialog, als Spalte der Ticketliste und in der &Uuml;berschrift der Auftragsansichten.</li>
     <li>Oberfl&auml;che: Dialoge lassen sich am oberen Rand verschieben und &uuml;ber die rechte untere Ecke in der Gr&ouml;&szlig;e &auml;ndern; Titel und Schlie&szlig;en-Knopf bleiben beim Scrollen sichtbar. Die Einstellungsseiten haben ein einheitliches Layout mit b&uuml;ndig ausgerichteten Eingabefeldern, Schaltern f&uuml;r Ja/Nein-Einstellungen und gruppierten Auswahlfeldern. Das Anmeldefeld steht im oberen Drittel der Seite.</li>
+    <li>Der KI-MCP-Server stellt Firewall-Orchestrator-Werkzeuge und Prompts f&uuml;r KI-Clients bereit. Der KI-Agent verwendet dieselben Werkzeuge mit den Rollen und Berechtigungen des angemeldeten Benutzers.</li>
+    <li>Modellierung: Die fachliche Begr&uuml;ndung einer Verbindung, die Beschreibung einer Schnittstelle oder die Begr&uuml;ndung einer Schnittstellennutzung kann per Schaltfl&auml;che von einer KI bewertet werden (stichhaltig, unzureichend, nicht stichhaltig), mit R&uuml;ckfragen an den Antragsteller und einem Verbesserungsvorschlag. Die Funktion wird in den KI-Einstellungen eingeschaltet, kann dort auf bestimmte Rollen beschr&auml;nkt werden und ben&ouml;tigt den KI-Server mit einem konfigurierten KI-Anbieter.</li>
+    <li>KI-Anbieter, Modell, Endpunkt und die Grenzen der Agentenschleife des KI-Servers werden auf der neuen Seite Einstellungen - KI-Einstellungen gepflegt. Der API-Schl&uuml;ssel wird als Zugangsdaten in der Zugangsdatenverwaltung gespeichert. F&uuml;r einen OpenAI-kompatiblen Server kann sich der KI-Server auch mit OAuth 2.0 (Client Credentials) anmelden: er holt ein Zugriffstoken von der Token-URL und sendet es als Bearer-Token. Zus&auml;tzliche HTTP-Header, z.B. ein Profilname f&uuml;r ein API-Gateway vor dem Modell, k&ouml;nnen bei jeder Anfrage an den KI-Anbieter mitgesendet werden.</li>
+    <li>KI-Chat: Ein Chat mit der KI ist auf jeder Seite &uuml;ber die Navigationsleiste erreichbar. Er liegt rechts &uuml;ber der Seite, l&auml;sst sich in der Breite &auml;ndern und minimieren, und die KI arbeitet mit den Rollen des Benutzers. Aktionen, die Daten &auml;ndern, f&uuml;hrt sie erst nach Freigabe durch den Benutzer aus. Der Chat wird in den KI-Einstellungen eingeschaltet und kann dort auf bestimmte Rollen beschr&auml;nkt werden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -706,6 +732,10 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>Notifications: an email priority (low, normal, high) can be set for each email notification. Low and high set the headers Importance, Priority and X-Priority, which common email clients display as a marker.</li>
     <li>Workflow: the reference to a ticket of a preceding workflow (e.g. when created via the API) can be displayed. If a label (e.g. &quot;ChangeId&quot;) is entered in Workflow Customizing, the reference is shown in the ticket dialog, as a column of the ticket list and in the headline of the task views.</li>
     <li>User interface: dialogs can be moved by their top edge and resized by their lower right corner; title and close button stay visible while scrolling. The settings pages have a uniform layout with aligned input fields, switches for yes/no settings and grouped check boxes. The login form is placed in the upper third of the page.</li>
+    <li>The AI MCP server exposes Firewall Orchestrator tools and prompts to AI clients. The AI agent uses the same tools with the signed-in user''s roles and permissions.</li>
+    <li>Modelling: The functional reason of a connection, the description of an interface or the reason of an interface usage can be assessed by an AI at the push of a button (genuine, insufficient, not genuine), with questions to the requester and a proposal for improvement. The feature is switched on in the AI settings, can be restricted to certain roles there and needs the AI server with a configured AI provider.</li>
+    <li>The AI provider, model, endpoint and the limits of the agent loop of the AI server are maintained on the new page Settings - AI Settings. The API key is stored as a credential in the credential management. For an OpenAI compatible server the AI server can log in with OAuth 2.0 (client credentials) too: it gets an access token from the token URL and sends it as bearer token. Additional HTTP headers, e.g. a profile name for an API gateway in front of the model, can be sent with every request to the AI provider.</li>
+    <li>AI chat: a chat with the AI can be reached on every page from the navigation bar. It lies on the right over the page, can be resized and minimized, and the AI works with the roles of the user. Actions that change data only run after the user approved them. The chat is switched on in the AI settings and can be restricted to certain roles there.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -2096,6 +2126,18 @@ INSERT INTO txt VALUES ('last_requested',		'German', 	'Letzte Beantragung');
 INSERT INTO txt VALUES ('last_requested',		'English', 	'Last Requested');
 INSERT INTO txt VALUES ('permitted_owners',		'German', 	'Berechtigte Applikationen');
 INSERT INTO txt VALUES ('permitted_owners',		'English', 	'Permitted Applications');
+INSERT INTO txt VALUES ('ai_check_reason',      'German', 	'Begr&uuml;ndung mit KI pr&uuml;fen');
+INSERT INTO txt VALUES ('ai_check_reason',      'English', 	'Check Reason with AI');
+INSERT INTO txt VALUES ('ai_checking',          'German', 	'KI pr&uuml;ft...');
+INSERT INTO txt VALUES ('ai_checking',          'English', 	'AI is checking...');
+INSERT INTO txt VALUES ('ai_verdict_genuine',   'German', 	'Stichhaltig');
+INSERT INTO txt VALUES ('ai_verdict_genuine',   'English', 	'Genuine');
+INSERT INTO txt VALUES ('ai_verdict_insufficient', 'German', 'Unzureichend');
+INSERT INTO txt VALUES ('ai_verdict_insufficient', 'English', 'Insufficient');
+INSERT INTO txt VALUES ('ai_verdict_not_genuine', 'German', 	'Nicht stichhaltig');
+INSERT INTO txt VALUES ('ai_verdict_not_genuine', 'English', 	'Not Genuine');
+INSERT INTO txt VALUES ('ai_verdict_unknown',   'German', 	'Ohne Bewertung');
+INSERT INTO txt VALUES ('ai_verdict_unknown',   'English', 	'No Verdict');
 
 -- compliance
 INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
@@ -2342,6 +2384,48 @@ INSERT INTO txt VALUES ('password_policy',      'German', 	'Passworteinstellunge
 INSERT INTO txt VALUES ('password_policy',      'English', 	'Password Policy');
 INSERT INTO txt VALUES ('email_settings',       'German', 	'Email-Einstellungen');
 INSERT INTO txt VALUES ('email_settings',       'English', 	'Email settings');
+INSERT INTO txt VALUES ('ai_settings',          'German', 	'KI-Einstellungen');
+INSERT INTO txt VALUES ('ai_settings',          'English', 	'AI Settings');
+INSERT INTO txt VALUES ('ai_provider',          'German', 	'KI-Anbieter');
+INSERT INTO txt VALUES ('ai_provider',          'English', 	'AI provider');
+INSERT INTO txt VALUES ('ai_model',             'German', 	'Modell');
+INSERT INTO txt VALUES ('ai_model',             'English', 	'Model');
+INSERT INTO txt VALUES ('ai_endpoint',          'German', 	'Endpunkt-URL');
+INSERT INTO txt VALUES ('ai_endpoint',          'English', 	'Endpoint URL');
+INSERT INTO txt VALUES ('ai_auth_method',       'German', 	'Authentifizierung');
+INSERT INTO txt VALUES ('ai_auth_method',       'English', 	'Authentication');
+INSERT INTO txt VALUES ('ai_auth_api_key',      'German', 	'API-Schl&uuml;ssel');
+INSERT INTO txt VALUES ('ai_auth_api_key',      'English', 	'API key');
+INSERT INTO txt VALUES ('ai_auth_oauth2_client_credentials', 'German', 'OAuth 2.0 (Client Credentials)');
+INSERT INTO txt VALUES ('ai_auth_oauth2_client_credentials', 'English', 'OAuth 2.0 (client credentials)');
+INSERT INTO txt VALUES ('ai_token_url',         'German', 	'Token-URL');
+INSERT INTO txt VALUES ('ai_token_url',         'English', 	'Token URL');
+INSERT INTO txt VALUES ('ai_credential',        'German', 	'Zugangsdaten');
+INSERT INTO txt VALUES ('ai_credential',        'English', 	'Credential');
+INSERT INTO txt VALUES ('ai_custom_headers',    'German', 	'Zus&auml;tzliche HTTP-Header');
+INSERT INTO txt VALUES ('ai_custom_headers',    'English', 	'Additional HTTP headers');
+INSERT INTO txt VALUES ('ai_context_window_tokens', 'German', 'Kontextfenster (Tokens)');
+INSERT INTO txt VALUES ('ai_context_window_tokens', 'English', 'Context window (tokens)');
+INSERT INTO txt VALUES ('ai_max_output_tokens', 'German', 	'Max. Ausgabe-Tokens');
+INSERT INTO txt VALUES ('ai_max_output_tokens', 'English', 	'Max. output tokens');
+INSERT INTO txt VALUES ('ai_request_timeout',   'German', 	'Zeitlimit pro Anfrage (Sekunden)');
+INSERT INTO txt VALUES ('ai_request_timeout',   'English', 	'Request timeout (seconds)');
+INSERT INTO txt VALUES ('ai_functions',         'German', 	'KI-Funktionen');
+INSERT INTO txt VALUES ('ai_functions',         'English', 	'AI functions');
+INSERT INTO txt VALUES ('ai_chat',              'German', 	'KI-Chat');
+INSERT INTO txt VALUES ('ai_chat',              'English', 	'AI chat');
+INSERT INTO txt VALUES ('ai_reason_check',      'German', 	'KI-Pr&uuml;fung der Begr&uuml;ndung');
+INSERT INTO txt VALUES ('ai_reason_check',      'English', 	'AI check of reason');
+INSERT INTO txt VALUES ('ai_agent_loop',        'German', 	'Agentenschleife');
+INSERT INTO txt VALUES ('ai_agent_loop',        'English', 	'Agent loop');
+INSERT INTO txt VALUES ('ai_max_iterations',    'German', 	'Max. Modellanfragen pro Frage');
+INSERT INTO txt VALUES ('ai_max_iterations',    'English', 	'Max. model requests per turn');
+INSERT INTO txt VALUES ('ai_max_consecutive_errors', 'German', 'Max. Werkzeugfehler in Folge');
+INSERT INTO txt VALUES ('ai_max_consecutive_errors', 'English', 'Max. consecutive tool errors');
+INSERT INTO txt VALUES ('ai_compaction_reserve_tokens', 'German', 'Reserve f&uuml;r Verlaufsverdichtung (Tokens)');
+INSERT INTO txt VALUES ('ai_compaction_reserve_tokens', 'English', 'Compaction reserve (tokens)');
+INSERT INTO txt VALUES ('save_ai_settings',     'German', 	'KI-Einstellungen speichern');
+INSERT INTO txt VALUES ('save_ai_settings',     'English', 	'Save AI settings');
 INSERT INTO txt VALUES ('importer_settings',    'German', 	'FW-Importer-Einstellungen');
 INSERT INTO txt VALUES ('importer_settings',    'English', 	'FW Importer Settings');
 INSERT INTO txt VALUES ('change_trigger',       'German', 	'FW-&Auml;nderungstrigger-Einstellungen');
@@ -4527,6 +4611,10 @@ INSERT INTO txt VALUES ('U0015', 'German',  'Das L&ouml;schen des Elements wurde
 INSERT INTO txt VALUES ('U0015', 'English', 'The deletion of the element has been completed successfully.');
 INSERT INTO txt VALUES ('U0016', 'German',  'Das Fenster kann geschlossen werden.');
 INSERT INTO txt VALUES ('U0016', 'English', 'Window can be closed.');
+INSERT INTO txt VALUES ('U0017', 'German',  'Stellen Sie der KI Fragen zu den Daten von Firewall Orchestrator. Die KI arbeitet mit Ihren Rollen und sieht nur, was Sie sehen d&uuml;rfen.');
+INSERT INTO txt VALUES ('U0017', 'English', 'Ask the AI about the data of Firewall Orchestrator. The AI works with your roles and only sees what you are permitted to see.');
+INSERT INTO txt VALUES ('U0018', 'German',  'Antworten der KI k&ouml;nnen falsch sein.');
+INSERT INTO txt VALUES ('U0018', 'English', 'Answers of the AI may be wrong.');
 
 INSERT INTO txt VALUES ('U1001', 'German',  'Filter (nur Verbindungen)');
 INSERT INTO txt VALUES ('U1001', 'English', 'Filter (connections only)');
@@ -4733,6 +4821,8 @@ INSERT INTO txt VALUES ('U5330', 'German',  'Flow-Datenbank zur&uuml;ckgesetzt.'
 INSERT INTO txt VALUES ('U5330', 'English', 'Flow database reset.');
 INSERT INTO txt VALUES ('U5331', 'German',  'Verwaltung der Internet Einstellungen f&uuml;r alle Nutzer');
 INSERT INTO txt VALUES ('U5331', 'English', 'Administration of internet settings for all users');
+INSERT INTO txt VALUES ('U5332', 'German',  'Verwaltung der Einstellungen des KI-Assistenten f&uuml;r alle Nutzer');
+INSERT INTO txt VALUES ('U5332', 'English', 'Administration of the AI assistant settings for all users');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -4911,6 +5001,8 @@ INSERT INTO txt VALUES ('U9046', 'German',  'Dieser Netzbereich darf nicht in Co
 INSERT INTO txt VALUES ('U9046', 'English', 'This network area must not be used in common services.');
 INSERT INTO txt VALUES ('U9047', 'German',  'Dieser Common Service enth&auml;lt Netzbereiche, die nicht in Common Services verwendet werden d&uuml;rfen: @@OBJECTNAME@@. Bitte entfernen Sie diese vor dem Speichern.');
 INSERT INTO txt VALUES ('U9047', 'English', 'This common service contains network areas which must not be used in common services: @@OBJECTNAME@@. Please remove them before saving.');
+INSERT INTO txt VALUES ('U9048', 'German',  'Diese Bewertung wurde von einer KI erstellt und kann falsch sein. Die Entscheidung liegt weiterhin bei der verantwortlichen Person.');
+INSERT INTO txt VALUES ('U9048', 'English', 'This assessment was generated by an AI and may be wrong. The decision remains with the responsible person.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -5033,6 +5125,8 @@ INSERT INTO txt VALUES ('E5130', 'German',  'Die ausgew&auml;hlte Gruppe enth&au
 INSERT INTO txt VALUES ('E5130', 'English', 'The selected group has too many members to edit.');
 INSERT INTO txt VALUES ('E5131', 'German',  'Der Name der Login-Daten darf nicht leer sein.');
 INSERT INTO txt VALUES ('E5131', 'English', 'Credentials name cannot be empty.');
+INSERT INTO txt VALUES ('E5132', 'German',  'Zugangsdaten werden von den KI-Einstellungen verwendet');
+INSERT INTO txt VALUES ('E5132', 'English', 'Credential is used by the AI settings');
 INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten Managements verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by the managements named. Change the credentials of these managements before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');
@@ -5181,6 +5275,44 @@ INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration konnte nicht gelesen 
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading or processing Config.');
 INSERT INTO txt VALUES ('E5302', 'German',  'Die Check-Point-LayerGuard-Sektionsnamensvorlage ist ung&uuml;ltig. Erlaubt sind fester Text und die Platzhalter @@SOURCE_ZONE@@ und @@DESTINATION_ZONE@@.');
 INSERT INTO txt VALUES ('E5302', 'English', 'The Check Point LayerGuard section name template is invalid. Use fixed text and the placeholders @@SOURCE_ZONE@@ and @@DESTINATION_ZONE@@.');
+INSERT INTO txt VALUES ('E5303', 'German',  'Bitte ein Modell angeben.');
+INSERT INTO txt VALUES ('E5303', 'English', 'Please enter a model.');
+INSERT INTO txt VALUES ('E5304', 'German',  'Dieser KI-Anbieter ben&ouml;tigt Zugangsdaten: mit dem API-Schl&uuml;ssel als Passwort, bei OAuth 2.0 mit der Client-ID als Benutzername und dem Client-Secret als Passwort.');
+INSERT INTO txt VALUES ('E5304', 'English', 'This AI provider needs a credential: with the API key as secret, for OAuth 2.0 with the client id as user name and the client secret as secret.');
+INSERT INTO txt VALUES ('E5305', 'German',  'Die Endpunkt-URL muss eine absolute http- oder https-URL sein.');
+INSERT INTO txt VALUES ('E5305', 'English', 'The endpoint URL must be an absolute http or https URL.');
+INSERT INTO txt VALUES ('E5306', 'German',  'Der API-Schl&uuml;ssel wird nur &uuml;ber https gesendet, au&szlig;er an eine Loopback-Adresse.');
+INSERT INTO txt VALUES ('E5306', 'English', 'The API key is only sent over https, unless to a loopback address.');
+INSERT INTO txt VALUES ('E5307', 'German',  'Das Kontextfenster muss gr&ouml;&szlig;er als 0 sein.');
+INSERT INTO txt VALUES ('E5307', 'English', 'The context window must be greater than 0.');
+INSERT INTO txt VALUES ('E5308', 'German',  'Die max. Ausgabe-Tokens d&uuml;rfen nicht negativ sein und m&uuml;ssen kleiner als das Kontextfenster sein.');
+INSERT INTO txt VALUES ('E5308', 'English', 'The max. output tokens must not be negative and must be smaller than the context window.');
+INSERT INTO txt VALUES ('E5309', 'German',  'Die max. Modellanfragen pro Frage m&uuml;ssen mindestens 1 sein.');
+INSERT INTO txt VALUES ('E5309', 'English', 'The max. model requests per turn must be at least 1.');
+INSERT INTO txt VALUES ('E5310', 'German',  'Die max. Werkzeugfehler in Folge d&uuml;rfen nicht negativ sein.');
+INSERT INTO txt VALUES ('E5310', 'English', 'The max. consecutive tool errors must not be negative.');
+INSERT INTO txt VALUES ('E5311', 'German',  'Die Reserve f&uuml;r die Verlaufsverdichtung muss kleiner als das Kontextfenster und gr&ouml;&szlig;er als die max. Ausgabe-Tokens sein.');
+INSERT INTO txt VALUES ('E5311', 'English', 'The compaction reserve must be smaller than the context window and larger than the max. output tokens.');
+INSERT INTO txt VALUES ('E5312', 'German',  'OAuth 2.0 wird nur f&uuml;r den Anbieter OpenAi (einen OpenAI-kompatiblen Server) unterst&uuml;tzt.');
+INSERT INTO txt VALUES ('E5312', 'English', 'OAuth 2.0 is only supported for the provider OpenAi (an OpenAI compatible server).');
+INSERT INTO txt VALUES ('E5313', 'German',  'Bei OAuth 2.0 bitte die Endpunkt-URL des OpenAI-kompatiblen Servers angeben.');
+INSERT INTO txt VALUES ('E5313', 'English', 'For OAuth 2.0 please enter the endpoint URL of the OpenAI compatible server.');
+INSERT INTO txt VALUES ('E5314', 'German',  'Die Token-URL muss eine absolute https-URL sein; http ist nur f&uuml;r eine Loopback-Adresse erlaubt.');
+INSERT INTO txt VALUES ('E5314', 'English', 'The token URL must be an absolute https URL; http is only allowed for a loopback address.');
+INSERT INTO txt VALUES ('E5315', 'German',  'Die gespeicherten zus&auml;tzlichen HTTP-Header sind nicht lesbar. Bitte die Header neu eintragen und speichern.');
+INSERT INTO txt VALUES ('E5315', 'English', 'The stored additional HTTP headers cannot be read. Please enter the headers again and save.');
+INSERT INTO txt VALUES ('E5316', 'German',  'Es sind h&ouml;chstens 20 zus&auml;tzliche HTTP-Header erlaubt.');
+INSERT INTO txt VALUES ('E5316', 'English', 'At most 20 additional HTTP headers are allowed.');
+INSERT INTO txt VALUES ('E5317', 'German',  'Jeder zus&auml;tzliche HTTP-Header braucht einen Namen aus h&ouml;chstens 128 Zeichen: Buchstaben a-z und A-Z, Ziffern und Sonderzeichen wie - _ . ohne Leerzeichen.');
+INSERT INTO txt VALUES ('E5317', 'English', 'Each additional HTTP header needs a name of at most 128 characters: letters a-z and A-Z, digits and special characters like - _ . without spaces.');
+INSERT INTO txt VALUES ('E5318', 'German',  'Header mit Zugangsdaten (Authorization, Proxy-Authorization, Cookie, x-api-key, api-key, x-goog-api-key) und Header, die den Aufbau der Nachricht bestimmen (z.B. Host, Content-Type, Content-Length), k&ouml;nnen nicht gesetzt werden. Der API-Schl&uuml;ssel geh&ouml;rt in die Zugangsdaten.');
+INSERT INTO txt VALUES ('E5318', 'English', 'Headers carrying credentials (Authorization, Proxy-Authorization, Cookie, x-api-key, api-key, x-goog-api-key) and headers framing the message (e.g. Host, Content-Type, Content-Length) cannot be set. The API key belongs into the credential.');
+INSERT INTO txt VALUES ('E5319', 'German',  'Jeder zus&auml;tzliche HTTP-Header darf nur einmal vorkommen (ohne Beachtung der Gro&szlig;-/Kleinschreibung).');
+INSERT INTO txt VALUES ('E5319', 'English', 'Each additional HTTP header may occur only once (ignoring case).');
+INSERT INTO txt VALUES ('E5320', 'German',  'Jeder zus&auml;tzliche HTTP-Header braucht einen Wert aus h&ouml;chstens 2048 sichtbaren ASCII-Zeichen und Leerzeichen (keine Umlaute, keine Zeilenumbr&uuml;che).');
+INSERT INTO txt VALUES ('E5320', 'English', 'Each additional HTTP header needs a value of at most 2048 visible ASCII characters and spaces (no umlauts, no line breaks).');
+INSERT INTO txt VALUES ('E5321', 'German',  'Das Zeitlimit pro Anfrage muss zwischen 1 und 3600 Sekunden liegen.');
+INSERT INTO txt VALUES ('E5321', 'English', 'The request timeout must be between 1 and 3600 seconds.');
 
 INSERT INTO txt VALUES ('E5401', 'German',  'Bitte das alte Passwort eintragen');
 INSERT INTO txt VALUES ('E5401', 'English', 'Please insert the old password');
@@ -5356,6 +5488,30 @@ INSERT INTO txt VALUES ('E9030', 'German',  'App Rollen dieser Applikation d&uum
 INSERT INTO txt VALUES ('E9030', 'English', 'Application roles of this application may only be changed by its owners with the modeller role.');
 INSERT INTO txt VALUES ('E9031', 'German',  'Nicht alle Benachrichtigungen an App-Verantwortliche konnten gesendet werden.');
 INSERT INTO txt VALUES ('E9031', 'English', 'Not all notifications could be sent to App responsibles.');
+INSERT INTO txt VALUES ('E9032', 'German',  'Die Begr&uuml;ndung ist leer oder l&auml;nger als @@MAX_LENGTH@@ Zeichen.');
+INSERT INTO txt VALUES ('E9032', 'English', 'The reason is empty or longer than @@MAX_LENGTH@@ characters.');
+INSERT INTO txt VALUES ('E9033', 'German',  'Die KI wollte eine Aktion ausf&uuml;hren, die Daten &auml;ndert. Das wird bei der Pr&uuml;fung der Begr&uuml;ndung nicht unterst&uuml;tzt.');
+INSERT INTO txt VALUES ('E9033', 'English', 'The AI wanted to run an action that changes data. This is not supported when checking the reason.');
+INSERT INTO txt VALUES ('E9034', 'German',  'Die KI konnte keine Antwort geben.');
+INSERT INTO txt VALUES ('E9034', 'English', 'The AI could not answer.');
+INSERT INTO txt VALUES ('E9035', 'German',  'Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.');
+INSERT INTO txt VALUES ('E9035', 'English', 'Your session has expired. Please log in again.');
+INSERT INTO txt VALUES ('E9036', 'German',  'Sie sind nicht berechtigt, den KI-Assistenten zu nutzen.');
+INSERT INTO txt VALUES ('E9036', 'English', 'You are not permitted to use the AI assistant.');
+INSERT INTO txt VALUES ('E9037', 'German',  'Zu viele KI-Anfragen. Bitte versuchen Sie es sp&auml;ter erneut.');
+INSERT INTO txt VALUES ('E9037', 'English', 'Too many AI requests. Please try again later.');
+INSERT INTO txt VALUES ('E9038', 'German',  'Zu viele KI-Anfragen. Bitte versuchen Sie es in @@SECONDS@@ Sekunden erneut.');
+INSERT INTO txt VALUES ('E9038', 'English', 'Too many AI requests. Please try again in @@SECONDS@@ seconds.');
+INSERT INTO txt VALUES ('E9040', 'German',  'Die Anfrage an den KI-Assistenten ist zu gro&szlig;.');
+INSERT INTO txt VALUES ('E9040', 'English', 'The request to the AI assistant is too large.');
+INSERT INTO txt VALUES ('E9041', 'German',  'Der KI-Assistent ist nicht erreichbar oder nicht installiert. Bitte wenden Sie sich an den Administrator.');
+INSERT INTO txt VALUES ('E9041', 'English', 'The AI assistant cannot be reached or is not installed. Please contact the administrator.');
+INSERT INTO txt VALUES ('E9042', 'German',  'Der KI-Assistent hat einen Fehler gemeldet, z.B. weil kein KI-Anbieter konfiguriert ist. Bitte wenden Sie sich an den Administrator.');
+INSERT INTO txt VALUES ('E9042', 'English', 'The AI assistant failed, e.g. because no AI provider is configured. Please contact the administrator.');
+INSERT INTO txt VALUES ('E9043', 'German',  'Der KI-Assistent hat nicht rechtzeitig geantwortet. Bitte versuchen Sie es sp&auml;ter erneut.');
+INSERT INTO txt VALUES ('E9043', 'English', 'The AI assistant did not answer in time. Please try again later.');
+INSERT INTO txt VALUES ('E9044', 'German',  'Die Antwort des KI-Assistenten war ung&uuml;ltig.');
+INSERT INTO txt VALUES ('E9044', 'English', 'The answer of the AI assistant was invalid.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -5417,6 +5573,8 @@ INSERT INTO txt VALUES ('T0008', 'German',  '(f&uuml;r zuk&uuml;nftige Anwendung
 INSERT INTO txt VALUES ('T0008', 'English', '(for future use) users who can request firewall changes');
 INSERT INTO txt VALUES ('T0009', 'German',  '(f&uuml;r zuk&uuml;nftige Anwendung) Nutzer zum Anlegen von change request workflows');
 INSERT INTO txt VALUES ('T0009', 'English', '(for future use) users who can create change request workflows');
+INSERT INTO txt VALUES ('T0010', 'German',  'Technischer Nutzer des KI-Servers: liest nur die KI-Einstellungen und die darin gew&auml;hlten Zugangsdaten');
+INSERT INTO txt VALUES ('T0010', 'English', 'technical user of the AI server: reads only the AI settings and the credential they reference');
 INSERT INTO txt VALUES ('T0011', 'German',  'Nutzer mit vollem Zugriff auf den Firewall Orchestrator');
 INSERT INTO txt VALUES ('T0011', 'English', 'users with full access rights to firewall orchestrator');
 INSERT INTO txt VALUES ('T0012', 'German',  'Nutzer mit Berechtigung zum Rezertifizieren von Regeln');
@@ -5560,6 +5718,66 @@ INSERT INTO txt VALUES ('H0001', 'English', 'Firewall Orchestrator is an applica
     The data is imported directly via APIs from the connected systems. There are several possibilities to customize the report creation by filters, templates and scheduling.
     The reports can be exported in different output formats. Additionally a recertification workflow is supported.
     Firewall Orchestrator has an internal user management, but is also able to connect to external user management systems.
+');
+INSERT INTO txt VALUES ('H0002', 'German',  'Der KI-Chat beantwortet Fragen zu den Daten von Firewall Orchestrator, z.B. zu Regeln, Objekten, Modellierung oder Antr&auml;gen.
+    Ein Administrator schaltet ihn in den <a href="/help/settings/ai">KI-Einstellungen</a> ein; er ben&ouml;tigt den KI-Server mit einem konfigurierten KI-Anbieter.
+    Dann erscheint in der Navigationsleiste die Schaltfl&auml;che "KI-Chat". Die KI arbeitet mit Ihren Rollen und Berechtigungen: sie sieht nur die Daten, die Sie auch in der Oberfl&auml;che sehen.
+');
+INSERT INTO txt VALUES ('H0002', 'English', 'The AI chat answers questions about the data of Firewall Orchestrator, e.g. about rules, objects, modelling or requests.
+    An administrator switches it on in the <a href="/help/settings/ai">AI settings</a>; it needs the AI server with a configured AI provider.
+    Then the button "AI chat" appears in the navigation bar. The AI works with your roles and permissions: it only sees the data you also see in the user interface.
+');
+INSERT INTO txt VALUES ('H0003', 'German',  'Fenster: Die Schaltfl&auml;che "KI-Chat" &ouml;ffnet den Chat rechts &uuml;ber der Seite und minimiert ihn wieder, ebenso die Schaltfl&auml;che "Minimieren" im Chat.
+    Die Breite l&auml;sst sich durch Ziehen am linken Rand &auml;ndern. Solange der Chat offen ist, erscheinen die Meldungen am unteren Rand links davon.
+');
+INSERT INTO txt VALUES ('H0003', 'English', 'Window: The button "AI chat" opens the chat on the right over the page and minimizes it again, as does the button "Minimize" in the chat.
+    Its width can be changed by dragging its left edge. While the chat is open, the messages at the bottom are shown to the left of it.
+');
+INSERT INTO txt VALUES ('H0004', 'German',  'Nachrichten: Geben Sie Ihre Frage ein und senden Sie sie mit "Senden" oder Strg+Enter. Die Antwort erscheint, w&auml;hrend die KI sie schreibt, und kann mit "Abbrechen" abgebrochen werden.
+    Eine Antwort l&auml;uft auch bei minimiertem Chat weiter. Ein Symbol an der Schaltfl&auml;che "KI-Chat" zeigt, dass die KI antwortet, dass eine neue Antwort vorliegt oder dass die KI auf Ihre Freigabe wartet.
+');
+INSERT INTO txt VALUES ('H0004', 'English', 'Messages: Enter your question and send it with "Send" or Ctrl+Enter. The answer appears while the AI writes it and can be stopped with "Cancel".
+    An answer goes on while the chat is minimized. A symbol at the button "AI chat" shows that the AI is answering, that a new answer has arrived, or that the AI is waiting for your approval.
+');
+INSERT INTO txt VALUES ('H0005', 'German',  'Freigaben: Bevor die KI eine Aktion ausf&uuml;hrt, die Daten &auml;ndert, zeigt sie die Aktion mit ihren Parametern an. Sie wird nur ausgef&uuml;hrt, wenn Sie sie genehmigen.
+    Erst wenn alle angezeigten Aktionen genehmigt oder abgelehnt sind, arbeitet die KI weiter; bis dahin kann keine neue Nachricht gesendet werden.
+');
+INSERT INTO txt VALUES ('H0005', 'English', 'Approvals: Before the AI runs an action that changes data, it shows the action with its parameters. The action only runs if you approve it.
+    The AI goes on once all actions shown are approved or rejected; until then no new message can be sent.
+');
+INSERT INTO txt VALUES ('H0006', 'German',  'Verlauf: Das Gespr&auml;ch bleibt erhalten, solange der Browser-Tab offen ist, auch beim Wechsel zwischen den Seiten. Es wird nicht gespeichert:
+    Neuladen der Seite, Abmelden oder "Neuer Chat" beenden es. Die KI kennt die vorherigen Nachrichten des Gespr&auml;chs. Antworten der KI k&ouml;nnen falsch sein, pr&uuml;fen Sie sie vor einer Entscheidung.
+');
+INSERT INTO txt VALUES ('H0006', 'English', 'History: The conversation is kept while the browser tab is open, also when changing between pages. It is not stored:
+    reloading the page, logging out or "New Chat" end it. The AI knows the previous messages of the conversation. Answers of the AI may be wrong, check them before taking a decision.
+');
+INSERT INTO txt VALUES ('H0007', 'German',  'In einigen Funktionen von Firewall Orchestrator hilft ein KI-Assistent. Er l&auml;uft auf dem KI-Server neben der Middleware und nutzt den KI-Anbieter,
+    den ein Administrator in den KI-Einstellungen festlegt, z.B. einen lokalen Ollama-Server oder einen Cloud-Anbieter. Der Assistent arbeitet mit den Rollen und Berechtigungen
+    des jeweiligen Nutzers und sieht nur die Daten, die dieser auch in der Oberfl&auml;che sieht. Die Daten, die eine Funktion nutzt, werden an den KI-Anbieter gesendet.<br>
+    Alle KI-Funktionen sind standardm&auml;&szlig;ig ausgeschaltet und werden einzeln eingeschaltet. Antworten der KI k&ouml;nnen falsch sein, pr&uuml;fen Sie sie vor einer Entscheidung.
+');
+INSERT INTO txt VALUES ('H0007', 'English', 'An AI assistant helps in some functions of Firewall Orchestrator. It runs on the AI server next to the middleware and uses the AI provider
+    an administrator sets in the AI settings, e.g. a local Ollama server or a cloud provider. The assistant works with the roles and permissions
+    of the respective user and only sees the data this user also sees in the user interface. The data a function uses is sent to the AI provider.<br>
+    All AI functions are switched off by default and are switched on one by one. Answers of the AI may be wrong, check them before taking a decision.
+');
+INSERT INTO txt VALUES ('H0008', 'German',  '<a href="/help/ai/chat">KI-Chat</a>: Ein Chatfenster rechts &uuml;ber jeder Seite, in dem Sie Fragen zu den Daten von Firewall Orchestrator stellen.
+    Aktionen, die Daten &auml;ndern, f&uuml;hrt die KI erst nach Ihrer Freigabe aus.
+');
+INSERT INTO txt VALUES ('H0008', 'English', '<a href="/help/ai/chat">AI chat</a>: a chat window on the right over every page, in which you ask questions about the data of Firewall Orchestrator.
+    Actions that change data only run after your approval.
+');
+INSERT INTO txt VALUES ('H0009', 'German',  '<a href="/help/modelling/connections">KI-Pr&uuml;fung der Begr&uuml;ndung</a>: Bewertet in der Modellierung die fachliche Begr&uuml;ndung einer Verbindung
+    bzw. die Beschreibung einer Schnittstelle und schl&auml;gt eine verbesserte Begr&uuml;ndung vor.
+');
+INSERT INTO txt VALUES ('H0009', 'English', '<a href="/help/modelling/connections">AI check of reason</a>: assesses the functional reason of a connection or the description of an interface
+    in the modelling and proposes an improved justification.
+');
+INSERT INTO txt VALUES ('H0010', 'German',  '<a href="/help/settings/ai">KI-Einstellungen</a>: Hier legt ein Administrator den KI-Anbieter, das Modell und die Grenzen des Assistenten fest
+    und schaltet die KI-Funktionen ein oder aus.
+');
+INSERT INTO txt VALUES ('H0010', 'English', '<a href="/help/settings/ai">AI settings</a>: here an administrator sets the AI provider, the model and the limits of the assistant
+    and switches the AI functions on or off.
 ');
 
 INSERT INTO txt VALUES ('H1001', 'German',  'Die erste Eingabezeile ist die Filterzeile, wo die Parameter f&uuml;r den Report definiert werden.
@@ -7261,8 +7479,94 @@ INSERT INTO txt VALUES ('H5362', 'German',  'Workflow: requester, approver, plan
 INSERT INTO txt VALUES ('H5362', 'English', 'Workflow: requester, approver, planner, implementer, reviewer');
 INSERT INTO txt VALUES ('H5363', 'German',  '&Uuml;bergeordnete Rollen: admin, auditor, (anonymous)');
 INSERT INTO txt VALUES ('H5363', 'English', 'Superordinate roles: admin, auditor, (anonymous)');
-INSERT INTO txt VALUES ('H5364', 'German',  'Technische Rollen: importer, dbbackup, middleware-server');
-INSERT INTO txt VALUES ('H5364', 'English', 'Technical roles: importer, dbbackup, middleware-server');
+INSERT INTO txt VALUES ('H5364', 'German',  'Technische Rollen: importer, dbbackup, middleware-server, ai-harness');
+INSERT INTO txt VALUES ('H5364', 'English', 'Technical roles: importer, dbbackup, middleware-server, ai-harness');
+INSERT INTO txt VALUES ('H5370', 'German',  'Der KI-Assistent l&auml;uft auf dem KI-Server neben der Middleware.
+    Hier wird eingestellt, welchen KI-Anbieter und welches Modell er verwendet. Solange kein Anbieter gew&auml;hlt ist, sind die KI-Funktionen nicht verf&uuml;gbar.
+');
+INSERT INTO txt VALUES ('H5370', 'English', 'The AI assistant runs on the AI server next to the middleware.
+    These settings define which AI provider and model it uses. As long as no provider is selected, the AI functions are not available.
+');
+INSERT INTO txt VALUES ('H5371', 'German',  'KI-Anbieter: Ollama (meist ein lokaler Modellserver, ohne API-Schl&uuml;ssel), OpenAi (OpenAI oder ein OpenAI-kompatibler Server),
+    Anthropic (Claude) oder Google (Gemini). Keine(r/s) schaltet die KI-Funktionen ab.');
+INSERT INTO txt VALUES ('H5371', 'English', 'AI provider: Ollama (usually a local model server, no API key), OpenAi (OpenAI or an OpenAI compatible server),
+    Anthropic (Claude) or Google (Gemini). None switches the AI functions off.');
+INSERT INTO txt VALUES ('H5372', 'German',  'Modell: Name des Modells, wie ihn der Anbieter in seiner Dokumentation nennt. Pflichtfeld, sobald ein Anbieter gew&auml;hlt ist.');
+INSERT INTO txt VALUES ('H5372', 'English', 'Model: name of the model as the provider names it in its documentation. Required once a provider is selected.');
+INSERT INTO txt VALUES ('H5373', 'German',  'Endpunkt-URL: Optionale Basis-URL des Anbieters, z.B. eines OpenAI-kompatiblen Servers; leer f&uuml;r die Standard-URL des Anbieters
+    (bei Ollama http://localhost:11434). Wird ein API-Schl&uuml;ssel oder ein Zugriffstoken gesendet, muss sie https verwenden, au&szlig;er bei einer Loopback-Adresse.
+    Bei OAuth 2.0 ist sie erforderlich.');
+INSERT INTO txt VALUES ('H5373', 'English', 'Endpoint URL: optional base URL of the provider, e.g. of an OpenAI compatible server; empty for the default URL of the provider
+    (for Ollama http://localhost:11434). If an API key or an access token is sent, it must use https unless it is a loopback address.
+    Required for OAuth 2.0.');
+INSERT INTO txt VALUES ('H5374', 'German',  'Zugangsdaten: Die Zugangsdaten aus der <a href="/help/settings/credentials">Zugangsdatenverwaltung</a>, deren Passwort
+    der API-Schl&uuml;ssel des Anbieters ist (der Benutzername wird nicht verwendet), bei OAuth 2.0 mit der Client-ID als Benutzername und dem Client-Secret als Passwort.
+    F&uuml;r alle Anbieter au&szlig;er Ollama erforderlich. Schl&uuml;sselpaare k&ouml;nnen nicht gew&auml;hlt werden.');
+INSERT INTO txt VALUES ('H5374', 'English', 'Credential: the credential from the <a href="/help/settings/credentials">credential management</a> whose secret
+    is the API key of the provider (the user name is not used), for OAuth 2.0 with the client id as user name and the client secret as secret.
+    Required for all providers but Ollama. Key pairs cannot be selected.');
+INSERT INTO txt VALUES ('H5375', 'German',  'Kontextfenster: Gr&ouml;&szlig;e des Kontextfensters des Modells in Tokens, laut Dokumentation des Anbieters. Der Assistent fasst
+    das bisherige Gespr&auml;ch zusammen, bevor es das Kontextfenster &uuml;berschreitet; Ollama erh&auml;lt den Wert als num_ctx. Pflichtfeld, sobald ein Anbieter gew&auml;hlt ist.');
+INSERT INTO txt VALUES ('H5375', 'English', 'Context window: size of the context window of the model in tokens, as documented by the provider. The assistant summarizes
+    the conversation so far before it exceeds the context window; Ollama gets the value as num_ctx. Required once a provider is selected.');
+INSERT INTO txt VALUES ('H5376', 'German',  'Max. Ausgabe-Tokens: Maximale L&auml;nge einer Antwort in Tokens; 0 f&uuml;r die Voreinstellung des Anbieters. Muss kleiner als das Kontextfenster sein.');
+INSERT INTO txt VALUES ('H5376', 'English', 'Max. output tokens: maximum length of an answer in tokens; 0 for the default of the provider. Must be smaller than the context window.');
+INSERT INTO txt VALUES ('H5377', 'German',  'Die folgenden Einstellungen begrenzen den Aufwand einer Frage an den Assistenten:');
+INSERT INTO txt VALUES ('H5377', 'English', 'The following settings bound the effort of a question to the assistant:');
+INSERT INTO txt VALUES ('H5378', 'German',  'Max. Modellanfragen pro Frage: Wie oft das Modell zu einer Frage aufgerufen wird, um Werkzeuge zu nutzen (mindestens 1, Voreinstellung 10).');
+INSERT INTO txt VALUES ('H5378', 'English', 'Max. model requests per turn: how often the model is called for one question to use tools (at least 1, default 10).');
+INSERT INTO txt VALUES ('H5379', 'German',  'Max. Werkzeugfehler in Folge: Nach so vielen fehlgeschlagenen Werkzeugaufrufen in Folge wird die Frage abgebrochen (Voreinstellung 3).');
+INSERT INTO txt VALUES ('H5379', 'English', 'Max. consecutive tool errors: after this many failed tool calls in a row the question is aborted (default 3).');
+INSERT INTO txt VALUES ('H5380', 'German',  'Reserve f&uuml;r Verlaufsverdichtung: Tokens des Kontextfensters, die f&uuml;r Anweisungen, Werkzeuge, neue Nachrichten und die Antwort frei bleiben;
+    das bisherige Gespr&auml;ch wird vorher zusammengefasst. 0 f&uuml;r ein Viertel des Kontextfensters. Muss kleiner als das Kontextfenster und gr&ouml;&szlig;er als die max. Ausgabe-Tokens sein.');
+INSERT INTO txt VALUES ('H5380', 'English', 'Compaction reserve: tokens of the context window kept free for instructions, tools, new messages and the answer;
+    the conversation so far is summarized before. 0 for a quarter of the context window. Must be smaller than the context window and larger than the max. output tokens.');
+INSERT INTO txt VALUES ('H5381', 'German',  'Der KI-Server liest die Einstellungen mit einem eigenen technischen Nutzer (Rolle ai-harness), der nur diese Einstellungen und die gew&auml;hlten
+    Zugangsdaten lesen darf, und &uuml;bernimmt &Auml;nderungen ohne Neustart nach sp&auml;testens 30 Sekunden. Hier gew&auml;hlte Zugangsdaten k&ouml;nnen nicht gel&ouml;scht werden.');
+INSERT INTO txt VALUES ('H5381', 'English', 'The AI server reads the settings with a technical user of its own (role ai-harness), which may only read these settings and the selected
+    credential, and applies changes without restart within 30 seconds. A credential selected here cannot be deleted.');
+INSERT INTO txt VALUES ('H5382', 'German',  'Authentifizierung: Wie sich der KI-Server beim Anbieter anmeldet. API-Schl&uuml;ssel sendet den API-Schl&uuml;ssel der Zugangsdaten.
+    OAuth 2.0 (Client Credentials) holt mit Client-ID und Client-Secret der Zugangsdaten ein Zugriffstoken von der Token-URL und sendet es statt eines API-Schl&uuml;ssels
+    als Bearer-Token; das Token wird bis kurz vor seinem Ablauf wiederverwendet. Nur f&uuml;r den Anbieter OpenAi mit der Endpunkt-URL eines OpenAI-kompatiblen Servers.');
+INSERT INTO txt VALUES ('H5382', 'English', 'Authentication: how the AI server logs in at the provider. API key sends the API key of the credential.
+    OAuth 2.0 (client credentials) gets an access token from the token URL with the client id and client secret of the credential and sends it as bearer token
+    instead of an API key; the token is reused until shortly before it expires. Only for the provider OpenAi with the endpoint URL of an OpenAI compatible server.');
+INSERT INTO txt VALUES ('H5383', 'German',  'Token-URL: Vollst&auml;ndige URL des Token-Endpunkts f&uuml;r OAuth 2.0, bei Keycloak z.B. https://sso.example.com/realms/&lt;Realm&gt;/protocol/openid-connect/token.
+    Pflichtfeld bei OAuth 2.0. Sie muss https verwenden, au&szlig;er bei einer Loopback-Adresse; das Zertifikat wird immer gepr&uuml;ft.');
+INSERT INTO txt VALUES ('H5383', 'English', 'Token URL: full URL of the token endpoint for OAuth 2.0, for Keycloak e.g. https://sso.example.com/realms/&lt;realm&gt;/protocol/openid-connect/token.
+    Required for OAuth 2.0. It must use https unless it is a loopback address; its certificate is always checked.');
+INSERT INTO txt VALUES ('H5384', 'German',  'Hier wird festgelegt, welche KI-Funktionen die Nutzer verwenden k&ouml;nnen und f&uuml;r welche Rollen; alle sind standardm&auml;&szlig;ig ausgeschaltet und ben&ouml;tigen einen konfigurierten KI-Anbieter.
+    Der KI-Server lehnt Anfragen an eine ausgeschaltete Funktion oder von Nutzern ohne eine der gew&auml;hlten Rollen ab, auch wenn sie nicht &uuml;ber die Oberfl&auml;che gestellt werden.');
+INSERT INTO txt VALUES ('H5384', 'English', 'These settings define which AI functions the users can use and for which roles; all of them are switched off by default and need a configured AI provider.
+    The AI server refuses requests to a function that is switched off or from users without one of the selected roles, also if they do not come from the user interface.');
+INSERT INTO txt VALUES ('H5385', 'German',  'KI-Chat: Erlaubt den Nutzern, dem KI-Assistenten eigene Fragen zu stellen und seine Werkzeugaufrufe zu best&auml;tigen. Der Assistent arbeitet mit den Rechten
+    des fragenden Nutzers; die Fragen und die Daten, die er dazu liest, werden an den konfigurierten KI-Anbieter gesendet. Siehe <a href="/help/ai/chat">KI-Chat</a>.');
+INSERT INTO txt VALUES ('H5385', 'English', 'AI chat: allows the users to ask the AI assistant questions of their own and to confirm its tool calls. The assistant works with the rights
+    of the asking user; the questions and the data it reads for them are sent to the configured AI provider. See <a href="/help/ai/chat">AI chat</a>.');
+INSERT INTO txt VALUES ('H5386', 'German',  'KI-Pr&uuml;fung der Begr&uuml;ndung: Zeigt im Bearbeiten-Dialog von Verbindungen und Schnittstellen der Modellierung eine Schaltfl&auml;che, mit der die fachliche
+    Begr&uuml;ndung bzw. Schnittstellenbeschreibung von einer KI bewertet werden kann. Die Begr&uuml;ndung und die Elemente der Verbindung werden dabei an den konfigurierten KI-Anbieter gesendet.');
+INSERT INTO txt VALUES ('H5386', 'English', 'AI check of reason: shows a button in the edit dialog of connections and interfaces in the modelling, with which the functional reason or interface
+    description can be assessed by an AI. The reason and the elements of the connection are sent to the configured AI provider.');
+INSERT INTO txt VALUES ('H5387', 'German',  'Rollen: Beschr&auml;nkt die Funktion auf Nutzer mit mindestens einer der gew&auml;hlten Rollen. Ohne Auswahl (&quot;Alle&quot;) steht sie allen Nutzern zur Verf&uuml;gung, solange sie eingeschaltet ist.
+    Die Rollenauswahl ist nur bei eingeschalteter Funktion aktiv. Beim Ausschalten bleibt die Auswahl erhalten.
+    Angeboten werden die Rollen des internen LDAP. Der KI-Server pr&uuml;ft die Rollen im Anmeldetoken des Nutzers; eine ge&auml;nderte Rollenzuordnung wirkt sich daher erst mit dem n&auml;chsten Token des Nutzers aus.');
+INSERT INTO txt VALUES ('H5387', 'English', 'Roles: restricts the function to users holding at least one of the selected roles. Without a selection (&quot;All&quot;) it is available to all users while it is switched on.
+    The role selection is only active while the function is switched on. Switching it off preserves the selection.
+    The roles of the internal LDAP are offered. The AI server checks the roles in the login token of the user, so a changed role assignment only takes effect with the next token of the user.');
+INSERT INTO txt VALUES ('H5388', 'German',  'Zus&auml;tzliche HTTP-Header: Header, die der KI-Server bei jeder Anfrage an den Anbieter mitsendet, z.B. den Profilnamen, den ein API-Gateway vor dem Modell erwartet
+    (Name x-gateway-profile, Wert mein-profil); nicht an die Token-URL. Zeilen ohne Name und Wert werden nicht gespeichert, h&ouml;chstens 20 Header.
+    Name und Wert werden unverschl&uuml;sselt in der globalen Konfiguration gespeichert, die f&uuml;r alle Nutzer lesbar ist: bitte keine Geheimnisse eintragen.
+    Header mit Zugangsdaten (Authorization, Proxy-Authorization, Cookie, x-api-key, api-key, x-goog-api-key) und Header, die den Aufbau der Nachricht bestimmen (z.B. Host, Content-Type), k&ouml;nnen nicht gesetzt werden.');
+INSERT INTO txt VALUES ('H5388', 'English', 'Additional HTTP headers: headers the AI server sends with every request to the provider, e.g. the profile name an API gateway in front of the model expects
+    (name x-gateway-profile, value my-profile); not to the token URL. Rows without name and value are not stored, at most 20 headers.
+    Name and value are stored unencrypted in the global configuration, which all users can read: please do not enter secrets.
+    Headers carrying credentials (Authorization, Proxy-Authorization, Cookie, x-api-key, api-key, x-goog-api-key) and headers framing the message (e.g. Host, Content-Type) cannot be set.');
+INSERT INTO txt VALUES ('H5389', 'German',  'Zeitlimit pro Anfrage: Wie lange der KI-Server h&ouml;chstens auf die Antwort des Anbieters auf eine Anfrage wartet, in Sekunden (1 bis 3600, Voreinstellung 600);
+    danach schl&auml;gt die Frage fehl. Gilt f&uuml;r alle Anbieter, auch f&uuml;r die Zusammenfassung eines langen Gespr&auml;chs, f&uuml;r die ein lokales Modell
+    (z.B. Ollama ohne Grafikkarte) mehrere Minuten brauchen kann.');
+INSERT INTO txt VALUES ('H5389', 'English', 'Request timeout: how long the AI server waits at most for the answer of the provider to a request, in seconds (1 to 3600, default 600);
+    after that the question fails. Applies to all providers, also to the summary of a long conversation, which a local model
+    (e.g. Ollama without graphics card) can take several minutes for.');
 INSERT INTO txt VALUES ('H5401', 'German',  'Der Admin kann verschiedene Standardwerte definieren, die dann f&uuml;r alle Nutzer gelten.<br>
     Manche von ihnen k&ouml;nnen in den individuellen Nutzereinstellungen &uuml;berschrieben werden.
 ');
@@ -10267,3 +10571,5 @@ INSERT INTO txt VALUES ('H9085', 'German',  'Kann ein Objekt keiner konfiguriert
 INSERT INTO txt VALUES ('H9085', 'English', 'When an object cannot be assigned to a configured network zone, scheduled compliance checks and reports mark that object as not assessable. This applies especially to IPv6 objects when no matching IPv6 zone is configured. A rule is labelled not assessable only when no real violation was found for it at all; otherwise its detected violations stay decisive and visible in the report, together with the note about the object that could not be assessed.');
 INSERT INTO txt VALUES ('H9086', 'German',  'Formatierung: Fachliche Begr&uuml;ndung und Schnittstellenbeschreibung d&uuml;rfen einfache Formatierungen enthalten: &lt;b&gt;, &lt;i&gt;, &lt;u&gt;, &lt;s&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;mark&gt;, &lt;small&gt;, &lt;sub&gt;, &lt;sup&gt;, &lt;br&gt;, &lt;hr&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;li&gt;, &lt;span&gt;, &lt;div&gt; und &lt;font&gt;. Farben werden &uuml;ber style=color:red, style=background-color:#ffff00, &lt;font color=green&gt; oder die Klassen text-* und bg-* (z.B. class=text-danger) gesetzt. Andere Tags werden als Text angezeigt, andere Attribute entfernt.');
 INSERT INTO txt VALUES ('H9086', 'English', 'Formatting: Functional reason and interface description may contain simple formatting: &lt;b&gt;, &lt;i&gt;, &lt;u&gt;, &lt;s&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;mark&gt;, &lt;small&gt;, &lt;sub&gt;, &lt;sup&gt;, &lt;br&gt;, &lt;hr&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;li&gt;, &lt;span&gt;, &lt;div&gt; and &lt;font&gt;. Colors are set with style=color:red, style=background-color:#ffff00, &lt;font color=green&gt; or the classes text-* and bg-* (e.g. class=text-danger). Other tags are shown as text, other attributes are removed.');
+INSERT INTO txt VALUES ('H9087', 'German',  'KI-Pr&uuml;fung der Begr&uuml;ndung: Ist sie vom Administrator aktiviert, l&auml;sst die Schaltfl&auml;che "Begr&uuml;ndung mit KI pr&uuml;fen" unter der fachlichen Begr&uuml;ndung bzw. Schnittstellenbeschreibung diese von einer KI bewerten. Die Antwort erscheint, w&auml;hrend sie entsteht, und kann abgebrochen werden. Die Bewertung lautet "Stichhaltig" (alle Kriterien einer stichhaltigen Begr&uuml;ndung sind erf&uuml;llt), "Unzureichend" (ein fachlicher Zweck ist erkennbar, aber nicht jedes Kriterium erf&uuml;llt) oder "Nicht stichhaltig" (kein fachlicher Zweck erkennbar). Dazu nennt die KI die gepr&uuml;ften Kriterien, R&uuml;ckfragen an den Antragsteller und einen Vorschlag f&uuml;r eine verbesserte Begr&uuml;ndung. Die KI bewertet nur und &auml;ndert nichts, die Entscheidung bleibt bei der verantwortlichen Person. Die Begr&uuml;ndung, der Name, die App sowie Quellen, Ziele und Dienste der Verbindung werden an den konfigurierten KI-Anbieter gesendet.');
+INSERT INTO txt VALUES ('H9087', 'English', 'AI check of the reason: If activated by the administrator, the button "Check Reason with AI" below the functional reason or interface description has it assessed by an AI. The answer appears while it is being written and can be cancelled. The verdict is "Genuine" (all criteria of a genuine justification are met), "Insufficient" (a business purpose is recognisable, but not every criterion is met) or "Not Genuine" (no business purpose is recognisable). In addition the AI names the criteria checked, questions to the requester and a proposal for an improved justification. The AI only assesses and changes nothing, the decision stays with the responsible person. The reason, the name, the app and the sources, destinations and services of the connection are sent to the configured AI provider.');

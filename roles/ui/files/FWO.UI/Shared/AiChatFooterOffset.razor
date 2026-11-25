@@ -1,0 +1,93 @@
+@implements IDisposable
+
+@inject AiChatSession chatSession
+@inject UserConfig userConfig
+
+@* the messages in the footer end left of the open AI chat panel, so that they do not cover its input *@
+<div class="footer" style="@offsetStyle">
+    @ChildContent
+</div>
+
+@code
+{
+    /// <summary>
+    /// Width of the sizer bar of the sidebar left of the content of the chat panel, see .sidebar-sizer in site.css.
+    /// </summary>
+    internal const int kSizerWidth = 10;
+
+    private const string kLogTitle = "AI Chat";
+
+    /// <summary>
+    /// The footer content, e.g. the UI messages.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string? offsetStyle;
+    private bool disposed;
+
+    /// <summary>
+    /// Follows the chat panel.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        chatSession.Changed += OnChatChanged;
+        offsetStyle = GetOffsetStyle();
+    }
+
+    /// <summary>
+    /// Returns the style ending the footer left of the open chat panel; null while the panel is minimized.
+    /// </summary>
+    internal string? GetOffsetStyle()
+    {
+        if (!chatSession.IsOpen || !AiChatDisplay.IsAvailable(userConfig))
+        {
+            return null;
+        }
+        return $"right: {chatSession.PanelWidth + kSizerWidth}px; width: auto;";
+    }
+
+    /// <summary>
+    /// Re-renders when the panel was opened, minimized or resized, not on every piece of a streamed answer.
+    /// </summary>
+    private void OnChatChanged()
+    {
+        _ = RefreshAsync();
+    }
+
+    /// <summary>
+    /// Re-renders on the dispatcher if the offset changed; failures are logged, as the caller does not wait.
+    /// </summary>
+    private async Task RefreshAsync()
+    {
+        if (disposed)
+        {
+            return;
+        }
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                string? newOffsetStyle = GetOffsetStyle();
+                if (!disposed && newOffsetStyle != offsetStyle)
+                {
+                    offsetStyle = newOffsetStyle;
+                    StateHasChanged();
+                }
+            });
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug(kLogTitle, $"Could not move the footer beside the AI chat: {exception.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Stops following the chat.
+    /// </summary>
+    public void Dispose()
+    {
+        disposed = true;
+        chatSession.Changed -= OnChatChanged;
+    }
+}

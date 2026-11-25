@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Ai;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Data.Enums;
@@ -392,6 +393,86 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("allowServiceInConn"), JsonPropertyName("allowServiceInConn")]
         public bool AllowServiceInConn { get; set; } = true;
+
+        /// <summary>AI provider of the AI harness, see <see cref="AiSettings.Provider"/>.</summary>
+        [JsonProperty(AiSettings.kProviderKey), JsonPropertyName(AiSettings.kProviderKey)]
+        public AiProvider AiProvider { get; set; } = AiProvider.None;
+
+        /// <summary>AI model, see <see cref="AiSettings.Model"/>.</summary>
+        [JsonProperty(AiSettings.kModelKey), JsonPropertyName(AiSettings.kModelKey)]
+        public string AiModel { get; set; } = "";
+
+        /// <summary>Custom base URL of the AI provider, see <see cref="AiSettings.Endpoint"/>.</summary>
+        [JsonProperty(AiSettings.kEndpointKey), JsonPropertyName(AiSettings.kEndpointKey)]
+        public string AiEndpoint { get; set; } = "";
+
+        /// <summary>Credential holding the API key of the AI provider, see <see cref="AiSettings.CredentialId"/>.</summary>
+        [JsonProperty(AiSettings.kCredentialIdKey), JsonPropertyName(AiSettings.kCredentialIdKey)]
+        public int AiCredentialId { get; set; } = 0;
+
+        /// <summary>Authentication at the AI provider, see <see cref="AiSettings.AuthMethod"/>.</summary>
+        [JsonProperty(AiSettings.kAuthMethodKey), JsonPropertyName(AiSettings.kAuthMethodKey)]
+        public AiAuthMethod AiAuthMethod { get; set; } = AiAuthMethod.ApiKey;
+
+        /// <summary>Token URL of OAuth 2.0, see <see cref="AiSettings.TokenUrl"/>.</summary>
+        [JsonProperty(AiSettings.kTokenUrlKey), JsonPropertyName(AiSettings.kTokenUrlKey)]
+        public string AiTokenUrl { get; set; } = "";
+
+        /// <summary>
+        /// Additional HTTP headers sent to the AI provider as JSON array of objects with name and value, none if empty, see
+        /// <see cref="AiSettings.CustomHeaders"/>.
+        /// </summary>
+        [JsonProperty(AiSettings.kCustomHeadersKey), JsonPropertyName(AiSettings.kCustomHeadersKey)]
+        public string AiCustomHeaders { get; set; } = AiCustomHeaderList.kNone;
+
+        /// <summary>Context window of the AI model, see <see cref="AiSettings.ContextWindowTokens"/>.</summary>
+        [JsonProperty(AiSettings.kContextWindowTokensKey), JsonPropertyName(AiSettings.kContextWindowTokensKey)]
+        public int AiContextWindowTokens { get; set; } = 0;
+
+        /// <summary>Maximum number of output tokens, see <see cref="AiSettings.MaxOutputTokens"/>.</summary>
+        [JsonProperty(AiSettings.kMaxOutputTokensKey), JsonPropertyName(AiSettings.kMaxOutputTokensKey)]
+        public int AiMaxOutputTokens { get; set; } = 0;
+
+        /// <summary>Timeout of a request to the AI provider in seconds, see <see cref="AiSettings.RequestTimeoutSeconds"/>.</summary>
+        [JsonProperty(AiSettings.kRequestTimeoutSecondsKey), JsonPropertyName(AiSettings.kRequestTimeoutSecondsKey)]
+        public int AiRequestTimeoutSeconds { get; set; } = AiSettings.kDefaultRequestTimeoutSeconds;
+
+        /// <summary>Maximum number of model requests per turn, see <see cref="AiSettings.MaxIterationsPerRequest"/>.</summary>
+        [JsonProperty(AiSettings.kMaxIterationsPerRequestKey), JsonPropertyName(AiSettings.kMaxIterationsPerRequestKey)]
+        public int AiMaxIterationsPerRequest { get; set; } = AiSettings.kDefaultMaxIterationsPerRequest;
+
+        /// <summary>Maximum number of consecutive failed tool call rounds, see <see cref="AiSettings.MaxConsecutiveErrorsPerRequest"/>.</summary>
+        [JsonProperty(AiSettings.kMaxConsecutiveErrorsPerRequestKey), JsonPropertyName(AiSettings.kMaxConsecutiveErrorsPerRequestKey)]
+        public int AiMaxConsecutiveErrorsPerRequest { get; set; } = AiSettings.kDefaultMaxConsecutiveErrorsPerRequest;
+
+        /// <summary>Compaction reserve of the agent, see <see cref="AiSettings.CompactionReserveTokens"/>.</summary>
+        [JsonProperty(AiSettings.kCompactionReserveTokensKey), JsonPropertyName(AiSettings.kCompactionReserveTokensKey)]
+        public int AiCompactionReserveTokens { get; set; } = 0;
+
+        /// <summary>Whether the users may chat with the AI assistant, see <see cref="AiSettings.ChatEnabled"/>.</summary>
+        [JsonProperty(AiSettings.kChatKey), JsonPropertyName(AiSettings.kChatKey)]
+        public bool AiChatEnabled { get; set; } = false;
+
+        /// <summary>
+        /// Whether modellers may let the AI assistant check the functional reason of a connection or interface, see
+        /// <see cref="AiSettings.ReasonCheckEnabled"/>.
+        /// </summary>
+        [JsonProperty(AiSettings.kReasonCheckKey), JsonPropertyName(AiSettings.kReasonCheckKey)]
+        public bool AiReasonCheckEnabled { get; set; } = false;
+
+        /// <summary>
+        /// Roles allowed to chat with the AI assistant as JSON array of role names, every user if empty, see
+        /// <see cref="AiSettings.ChatRoles"/>.
+        /// </summary>
+        [JsonProperty(AiSettings.kChatRolesKey), JsonPropertyName(AiSettings.kChatRolesKey)]
+        public string AiChatRoles { get; set; } = AiFunctionRoles.kNoRestriction;
+
+        /// <summary>
+        /// Roles allowed to let the AI assistant check the functional reason as JSON array of role names, every user if
+        /// empty, see <see cref="AiSettings.ReasonCheckRoles"/>.
+        /// </summary>
+        [JsonProperty(AiSettings.kReasonCheckRolesKey), JsonPropertyName(AiSettings.kReasonCheckRolesKey)]
+        public string AiReasonCheckRoles { get; set; } = AiFunctionRoles.kNoRestriction;
 
         [JsonProperty("overviewDisplayLines"), JsonPropertyName("overviewDisplayLines"), UserConfigData]
         public int OverviewDisplayLines { get; set; } = 3;

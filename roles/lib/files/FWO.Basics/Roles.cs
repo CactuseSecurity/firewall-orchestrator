@@ -25,13 +25,18 @@ namespace FWO.Basics
         public const string MiddlewareServer = "middleware-server";
         public const string Importer = "importer";
         public const string DbBackup = "dbbackup";
+        /// <summary>
+        /// Technical role of the AI harness (FWO.Ai.Harness): reads the AI settings and the credential they reference.
+        /// </summary>
+        public const string AiHarness = "ai-harness";
     }
 
     public static class RoleGroups
     {
         public static bool IsTechnicalOrAnonymous(string role)
         {
-            return role == Roles.MiddlewareServer || role == Roles.Importer || role == Roles.DbBackup || role == Roles.Anonymous;
+            return role == Roles.MiddlewareServer || role == Roles.Importer || role == Roles.DbBackup || role == Roles.AiHarness
+                || role == Roles.Anonymous;
         }
 
     }

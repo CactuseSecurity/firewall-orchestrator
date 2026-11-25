@@ -1,0 +1,67 @@
+---
+# The ai server belongs to the middleware host (see the middlewareserver play in site.yml):
+# it validates tokens with the jwt public key the middleware role creates there. These checks
+# keep the role from being run anywhere else, or before that key exists.
+- name: the ai server must be installed on the middleware host only
+  assert:
+    that:
+      - "'middlewareserver' in group_names"
+    fail_msg: >-
+      The ai role must run in the middlewareserver play of site.yml: the ai server validates
+      tokens with the jwt public key of the middleware host.
+
+- name: check for the jwt public key
+  stat:
+    path: "{{ jwt_public_key_file }}"
+  register: ai_jwt_public_key
+  become: true
+
+- name: the jwt public key must exist before the ai server is installed
+  assert:
+    that:
+      - ai_jwt_public_key.stat.exists
+    fail_msg: >-
+      {{ jwt_public_key_file }} is missing. The middleware role creates it, so the ai role
+      must run after the middleware role in the middlewareserver play of site.yml.
+
+# Copy AI directory
+- block:
+    - name: create ai dir
+      file:
+        dest: "{{ ai_dir }}"
+        state: directory
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+
+    - name: copy ai mcp files to the middleware host
+      ansible.posix.synchronize:
+        src: "FWO.Ai.Mcp"
+        dest: "{{ ai_dir }}"
+        rsync_opts:
+          - "--delete"
+          - "--chown={{ fworch_user }}:{{ fworch_group }}"
+      register: ai_mcp_sync_result
+      tags: [ 'test' ]
+
+    - name: copy ai harness files to the middleware host
+      ansible.posix.synchronize:
+        src: "FWO.Ai.Harness"
+        dest: "{{ ai_dir }}"
+        rsync_opts:
+          - "--delete"
+          - "--chown={{ fworch_user }}:{{ fworch_group }}"
+      register: ai_harness_sync_result
+      tags: [ 'test' ]
+
+    - name: track ai deployment changes
+      set_fact:
+        ai_mcp_deploy_changed: "{{ ai_mcp_sync_result.changed or installation_mode == 'new' }}"
+        ai_harness_deploy_changed: "{{ ai_harness_sync_result.changed or installation_mode == 'new' }}"
+
+  become: true
+
+- name: install and run ai mcp service
+  import_tasks: install_and_run_ai_mcp_service.yml
+
+- name: install and run ai harness service
+  import_tasks: install_and_run_ai_harness_service.yml

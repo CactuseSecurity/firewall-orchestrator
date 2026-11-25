@@ -1,9 +1,12 @@
+using FWO.Basics.OAuth;
 using FWO.Data;
 using FWO.Data.DeviceSpecificSettings;
 using FWO.Data.Workflow;
 using FWO.ExternalSystems.FirewallWrite;
 using RestSharp;
+using System.Collections.Specialized;
 using System.Net;
+using System.Web;
 
 namespace FWO.Test
 {
@@ -61,6 +64,36 @@ namespace FWO.Test
     internal sealed class SimulatedAzureWriteClient(Management management, FirewallSimulation simulation) : AzureWriteClient(management, true)
     {
         protected override Task<RestResponse> Send(RestRequest request) => Task.FromResult(simulation.Answer(request));
+
+        protected override OAuthTokenClient CreateTokenClient() => new(new SimulatedTokenEndpoint(simulation));
+    }
+
+    /// <summary>
+    /// Passes the token requests of the Entra ID login to the simulation as form post to the token URL, so that the tests
+    /// see and answer them like the other calls. A simulated answer without status is a connection failure.
+    /// </summary>
+    internal sealed class SimulatedTokenEndpoint(FirewallSimulation simulation) : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            RestRequest restRequest = new(request.RequestUri?.AbsoluteUri ?? "", Method.Post);
+            string body = request.Content == null ? "" : await request.Content.ReadAsStringAsync(cancellationToken);
+            NameValueCollection formParameters = HttpUtility.ParseQueryString(body);
+            foreach (string? name in formParameters.AllKeys)
+            {
+                restRequest.AddParameter(name ?? "", formParameters[name] ?? "");
+            }
+            RestResponse response = simulation.Answer(restRequest);
+            if (response.ResponseStatus == ResponseStatus.TimedOut)
+            {
+                throw new TaskCanceledException(response.ErrorMessage);
+            }
+            if (response.StatusCode == 0)
+            {
+                throw new HttpRequestException(response.ErrorMessage, response.ErrorException);
+            }
+            return new HttpResponseMessage(response.StatusCode) { Content = new StringContent(response.Content ?? "") };
+        }
     }
 
     /// <summary>Creates simulated clients for every vendor, all answering through one simulation.</summary>

@@ -37,6 +37,7 @@
 		<ProjectReference Include="..\..\..\lib\files\FWO.DeviceAutoDiscovery\FWO.DeviceAutoDiscovery.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Services\FWO.Services.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Compliance\FWO.Compliance.csproj" />
+		<ProjectReference Include="..\..\..\lib\files\FWO.Ai.Client\FWO.Ai.Client.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Encoders\FWO.Encoders.csproj" />
 	</ItemGroup>
 </Project>

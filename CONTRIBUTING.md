@@ -126,6 +126,7 @@ Typical commands:
 ```powershell
 dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --settings FWO.default.runsettings
 dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --settings FWO.local.runsettings
+dotnet test roles/tests-unit/files/FWO.Ai.Tests/FWO.Ai.Tests.csproj --settings FWO.default.runsettings
 ```
 
 This keeps the default test run safe for everyone while still making it easy to opt into the JWT integration tests locally when a prepared environment is available.

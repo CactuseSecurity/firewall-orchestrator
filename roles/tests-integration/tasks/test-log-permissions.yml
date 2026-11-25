@@ -4,6 +4,16 @@
 - debug:
     msg: starting log permission integration tests
 
+- name: define the ai services whose log messages rsyslog routes to files of their own
+  set_fact:
+    # unique per run, so a message left in a log file by an earlier run cannot pass the check
+    ai_log_routing_marker: "log routing integration test {{ now(fmt='%Y%m%dT%H%M%S%f') }}"
+    ai_log_routing_cases:
+      - syslog_id: "{{ ai_mcp_syslog_id }}"
+        log_file: ai-mcp.log
+      - syslog_id: "{{ ai_harness_syslog_id }}"
+        log_file: ai-harness.log
+
 # makes sure rsyslog has written at least one log file with the permissions it was configured with
 - name: send a test message to the fworch api log
   command: logger -t "{{ product_name }}-api" "log permission integration test"
@@ -14,6 +24,24 @@
     path: "{{ fworch_log_dir }}/api.log"
     search_regex: "log permission integration test"
     timeout: 30
+  become: true
+
+# the ai services log under their own syslog ids, which rsyslog routes to files of their own
+- name: send a test message under the syslog id of each ai service
+  command: logger -t "{{ item.syslog_id }}" "{{ ai_log_routing_marker }}"
+  changed_when: false
+  loop: "{{ ai_log_routing_cases }}"
+  loop_control:
+    label: "{{ item.syslog_id }}"
+
+- name: wait for rsyslog to write the test message to the log file of each ai service
+  wait_for:
+    path: "{{ fworch_log_dir }}/{{ item.log_file }}"
+    search_regex: '{{ item.syslog_id | regex_escape }}:\s+{{ ai_log_routing_marker | regex_escape }}'
+    timeout: 30
+  loop: "{{ ai_log_routing_cases }}"
+  loop_control:
+    label: "{{ item.log_file }}"
   become: true
 
 - name: check the fworch log directory

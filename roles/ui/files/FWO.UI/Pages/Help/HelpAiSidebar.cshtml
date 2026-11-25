@@ -1,0 +1,26 @@
+@using FWO.Config.Api
+@using FWO.Basics
+
+@inject UserConfig userConfig
+
+<nav class="bg-gray fixed sidebar-help shadow">
+    <div class="sidebar-help d-flex flex-row" style="left:0px;">
+        <div class="sidebar-help" style="width:250px; overflow-x:scroll;">
+            <ul class="me-auto">
+                <p></p>
+                <h5>@(userConfig.GetText("ai_functions"))</h5>
+                <a class="nav-link" href="/help/ai/chat/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.AiCheck"></span> @(userConfig.GetText("ai_chat"))
+                </a>
+                <a class="nav-link" href="/help/modelling/connections/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.AiCheck"></span> @(userConfig.GetText("ai_reason_check"))
+                </a>
+                <p></p>
+                <h5>@(userConfig.GetText("settings"))</h5>
+                <a class="nav-link" href="/help/settings/ai/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("ai_settings"))
+                </a>
+            </ul>
+        </div>
+    </div>
+</nav>

@@ -1,0 +1,82 @@
+@HostAddress = http://localhost:6297
+# accessToken returned by POST /api/AuthenticationToken/GetTokenPair of the middleware server
+@AccessToken = <access token>
+
+# a run starting a conversation; the harness keeps no conversation, its last event before RUN_FINISHED is a
+# MESSAGES_SNAPSHOT with the conversation to send with the next run
+POST {{HostAddress}}/agui
+Accept: text/event-stream
+Content-Type: application/json
+Authorization: Bearer {{AccessToken}}
+
+{
+    "threadId": "thread-1",
+    "runId": "run-1",
+    "messages": [
+        { "id": "message-1", "role": "user", "content": "Which roles do I have?" }
+    ]
+}
+
+###
+
+# the next run of the conversation: the messages of the snapshot of the previous run, followed by the new question
+POST {{HostAddress}}/agui
+Accept: text/event-stream
+Content-Type: application/json
+Authorization: Bearer {{AccessToken}}
+
+{
+    "threadId": "thread-1",
+    "runId": "run-2",
+    "messages": [
+        { "id": "message-1", "role": "user", "content": "Which roles do I have?" },
+        { "id": "message-2", "role": "assistant", "content": "You are a reporter." },
+        { "id": "message-3", "role": "user", "content": "Which of them may change owners?" }
+    ]
+}
+
+###
+
+# a run answering the tool approval request a run was interrupted with (RUN_FINISHED with outcome "interrupt"):
+# the messages of the snapshot of the interrupted run, and per interrupt a resume entry with the tool call it names
+POST {{HostAddress}}/agui
+Accept: text/event-stream
+Content-Type: application/json
+Authorization: Bearer {{AccessToken}}
+
+{
+    "threadId": "thread-1",
+    "runId": "run-3",
+    "messages": [
+        { "id": "message-1", "role": "user", "content": "Store the value 42." }
+    ],
+    "resume": [
+        {
+            "interruptId": "<id of the interrupt>",
+            "payload": {
+                "approved": true,
+                "toolCall": { "callId": "<call id>", "name": "<tool name>", "arguments": { "value": "42" } }
+            }
+        }
+    ]
+}
+
+###
+
+# a run sending an MCP prompt of the MCP server as the user's turn
+POST {{HostAddress}}/agui
+Accept: text/event-stream
+Content-Type: application/json
+Authorization: Bearer {{AccessToken}}
+
+{
+    "threadId": "thread-2",
+    "runId": "run-1",
+    "messages": [],
+    "forwardedProps": {
+        "prompt": {
+            "name": "check_access_request_reason",
+            "arguments": { "reason": "Needed for the monthly payroll export to the bank." }
+        }
+    }
+}

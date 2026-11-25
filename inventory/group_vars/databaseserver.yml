@@ -38,3 +38,4 @@ database_idempotent_files:
   - fworch-rule-recert.sql
   - fworch-texts.sql
   - fworch-views-changes.sql
+  - fworch-ai.sql

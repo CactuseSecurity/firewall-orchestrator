@@ -52,6 +52,11 @@
                     </a>
                 </li>
                 <li class="nav-item px-2">
+                    <a class="nav-link" href="/help/ai/?lang=@($"{userConfig.GetUserLanguage()}")">
+                        <span class="@Icons.AiCheck"></span> @userConfig.GetText("ai")
+                    </a>
+                </li>
+                <li class="nav-item px-2">
                     <a class="nav-link" href="/help/API/?lang=@($"{userConfig.GetUserLanguage()}")">
                         <span class="@Icons.Api"></span> @userConfig.GetText("api")
                     </a>

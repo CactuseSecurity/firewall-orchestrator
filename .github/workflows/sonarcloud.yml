@@ -87,7 +87,7 @@ jobs:
               /d:sonar.token="${SONAR_TOKEN}" \
               /d:sonar.host.url="https://sonarcloud.io" \
               /d:sonar.qualitygate.wait=true \
-              /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml \
+              /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml,coverage-ai.xml \
               /d:sonar.python.coverage.reportPaths=python-coverage.xml; then
               break
             else
@@ -106,6 +106,10 @@ jobs:
             "dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --configuration Debug --no-build --settings FWO.default.runsettings" \
             -f xml \
             -o coverage.xml
+          .sonar/scanner/dotnet-coverage collect --settings FWO.coverage.settings \
+            "dotnet test roles/tests-unit/files/FWO.Ai.Tests/FWO.Ai.Tests.csproj --configuration Debug --no-build --settings FWO.default.runsettings" \
+            -f xml \
+            -o coverage-ai.xml
           python -m coverage run -m pytest -q roles/importer/files/importer/test scripts
           python -m coverage xml -o python-coverage.xml
           for attempt in 1 2 3; do

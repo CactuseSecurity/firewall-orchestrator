@@ -16,6 +16,10 @@ namespace FWO.Test
         // apache rejects a single request header field larger than this by default (LimitRequestFieldSize)
         private const int kApacheHeaderFieldLimit = 8190;
 
+        private const string kMcpTestUserName = "test-user";
+        private static readonly List<string> kMcpTestUserNames = [kMcpTestUserName];
+        private static readonly List<string> kMcpTestUserRoles = [Roles.Reporter, Roles.Modeller];
+
         [Test]
         public void SetClaimsAddsVisibleScopeClaimsWhenTenantIsMissing()
         {
@@ -105,6 +109,27 @@ namespace FWO.Test
             string jwt = new JwtWriter(new RsaSecurityKey(RSA.Create(2048))).CreateJWT(user, TimeSpan.FromHours(1));
 
             Assert.That("Authorization: Bearer ".Length + jwt.Length, Is.LessThan(kApacheHeaderFieldLimit));
+        }
+
+        [Test]
+        public void CreateJwtWritesNameAndRolesUnderTheClaimNamesReadByOtherServices()
+        {
+            // the MCP server (FWO.Ai.Mcp) reads the user name from unique_name and the roles from role,
+            // its tests (FWO.Ai.Tests) create tokens with these names
+            UiUser user = new()
+            {
+                Name = kMcpTestUserName,
+                Roles = [.. kMcpTestUserRoles]
+            };
+
+            string jwt = new JwtWriter(new RsaSecurityKey(RSA.Create(2048))).CreateJWT(user, TimeSpan.FromHours(1));
+            JwtSecurityToken token = new JwtSecurityTokenHandler().ReadJwtToken(jwt);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(token.Claims.Where(claim => claim.Type == "unique_name").Select(claim => claim.Value), Is.EqualTo(kMcpTestUserNames));
+                Assert.That(token.Claims.Where(claim => claim.Type == "role").Select(claim => claim.Value), Is.EquivalentTo(kMcpTestUserRoles));
+            });
         }
 
         [TestCase(Roles.Admin, Roles.Admin)]

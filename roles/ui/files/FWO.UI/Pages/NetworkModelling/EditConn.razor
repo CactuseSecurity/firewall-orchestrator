@@ -59,6 +59,15 @@
                         title="@(ConnHandler.ActConn.IsRequested ? userConfig.PureLine("U9012") : "")" @bind="ConnHandler.ActConn.Reason" />
                     }
                 </div>
+                @if(userConfig.MayUseAiReasonCheck(userConfig.User.Roles))
+                {
+                    <div class="form-group row me-auto">
+                        <div class="col-sm-9 offset-sm-3 p-0">
+                            <AiReasonCheck @key="ConnHandler.ActConn" Disabled="ConnHandler.ReadOnly && string.IsNullOrWhiteSpace(ConnHandler.ActConn.Reason)"
+                                CreateRequest="() => ConnectionReasonCheckFactory.CreatePromptRequest(ConnHandler, userConfig.User.Language)"/>
+                        </div>
+                    </div>
+                }
                 @if(availableExtraConfigs.Count > 0)
                 {
                     <div class="form-group row mt-2 me-auto" data-toggle="tooltip" title="@(userConfig.PureLine("H9081"))">

@@ -1,0 +1,27 @@
+[Unit]
+Description={{ product_name }} AI MCP Server
+Wants=network-online.target
+# capped so that a service which keeps crashing ends up in a visible failed state
+# instead of restarting forever
+StartLimitIntervalSec={{ fworch_systemd_start_limit_interval_sec }}
+StartLimitBurst={{ fworch_systemd_start_limit_burst }}
+After=network-online.target remote-fs.target nss-lookup.target
+
+[Service]
+WorkingDirectory={{ ai_mcp_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}
+ExecStart={{ ai_mcp_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}/FWO.Ai.Mcp
+# the very url the installer configures, loopback only - see ai_native_listener_address
+Environment="ASPNETCORE_URLS={{ ai_mcp_native_uri }}"
+SyslogIdentifier={{ ai_mcp_syslog_id }}
+User={{ fworch_user }}
+# the ai mcp server only needs the jwt public key, but runs as the same user next to the middleware's
+# signing key, which can sign tokens for any user (and ConfigFile reads it whenever it can) -
+# hidden here; "-" skips the path if it does not exist
+InaccessiblePaths=-{{ jwt_private_key_file }}
+Restart=on-failure
+RestartSec={{ fworch_systemd_restart_sec }}
+# bound a runaway inside this service's own cgroup, so the kernel does not get to pick the victim
+MemoryMax={{ fworch_ai_mcp_memory_max }}
+OOMPolicy=stop
+[Install]
+WantedBy=multi-user.target

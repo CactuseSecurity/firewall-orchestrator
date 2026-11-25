@@ -1,12 +1,14 @@
 using System.Reflection;
 using System.Text.Json;
 using Bunit;
+using FWO.Ai.Client;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Ai;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
@@ -23,6 +25,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using NSubstitute;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -30,6 +33,8 @@ namespace FWO.Test
     [TestFixture]
     internal partial class UiEditNetworkModellingComponentsTest
     {
+        private static readonly List<string> kModellerRoles = [Roles.Modeller];
+
         private static readonly ReturnIdWrapper NewAppServerWrapper = new()
         {
             ReturnIds = [new ReturnId { NewIdLong = 77 }]
@@ -193,6 +198,104 @@ namespace FWO.Test
             _ = RenderEditConn(context, handler, display: true);
 
             Assert.That(handler.ActConn.InterfacePermission, Is.EqualTo("Private"));
+        }
+
+        [Test]
+        public async Task EditConn_AiReasonCheckOff_DoesNotShowTheCheck()
+        {
+            await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
+            ModellingConnection connection = new() { Name = "conn", Reason = "reason" };
+            ModellingConnectionHandler handler = CreateConnectionHandler(new SimulatedApiConnection(), userConfig, connection, readOnly: true);
+
+            IRenderedComponent<EditConn> component = RenderEditConn(context, handler, display: true);
+
+            Assert.That(component.FindComponents<AiReasonCheck>(), Is.Empty);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task EditConn_AiReasonCheckOn_ChecksTheReasonOfTheConnection(bool readOnly)
+        {
+            await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
+            userConfig.AiReasonCheckEnabled = true;
+            userConfig.User.Language = "German";
+            ScriptedChatClient chatClient = RegisterAiReasonCheckServices(context);
+            ModellingConnection connection = new() { Name = "conn", Reason = "nightly backup", IsInterface = true };
+            ModellingConnectionHandler handler = CreateConnectionHandler(new SimulatedApiConnection(), userConfig, connection, readOnly: readOnly);
+
+            IRenderedComponent<EditConn> component = RenderEditConn(context, handler, display: true);
+            component.Find("button.ai-check-button").Click();
+
+            component.WaitForState(() => chatClient.Calls.Count == 1);
+            Dictionary<string, string> arguments = ScriptedChatClient.GetPromptArguments(chatClient.Calls.Single().Options);
+            Assert.Multiple(() =>
+            {
+                Assert.That(arguments["reason"], Is.EqualTo("nightly backup"));
+                Assert.That(arguments["kind"], Is.EqualTo("interface"));
+                Assert.That(arguments["language"], Is.EqualTo("German"));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that the reason check limited to roles is shown only to a user holding one of them.
+        /// </summary>
+        [TestCase(Roles.Modeller, true)]
+        [TestCase(Roles.Reporter, false)]
+        public async Task EditConn_AiReasonCheckLimitedToRoles_ShowsTheCheckOnlyForThem(string userRole, bool expectedShown)
+        {
+            await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
+            userConfig.AiReasonCheckEnabled = true;
+            userConfig.AiReasonCheckRoles = AiFunctionRoles.Serialize(kModellerRoles);
+            userConfig.User.Roles = [userRole];
+            RegisterAiReasonCheckServices(context);
+            ModellingConnection connection = new() { Name = "conn", Reason = "reason" };
+            ModellingConnectionHandler handler = CreateConnectionHandler(new SimulatedApiConnection(), userConfig, connection, readOnly: true);
+
+            IRenderedComponent<EditConn> component = RenderEditConn(context, handler, display: true);
+
+            Assert.That(component.FindComponents<AiReasonCheck>(), Has.Count.EqualTo(expectedShown ? 1 : 0));
+        }
+
+        [Test]
+        public async Task EditConn_AiReasonCheckOnWithoutReason_DisablesTheCheck()
+        {
+            await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
+            userConfig.AiReasonCheckEnabled = true;
+            RegisterAiReasonCheckServices(context);
+            ModellingConnection connection = new() { Name = "conn", Reason = "" };
+            ModellingConnectionHandler handler = CreateConnectionHandler(new SimulatedApiConnection(), userConfig, connection, readOnly: true);
+
+            IRenderedComponent<EditConn> component = RenderEditConn(context, handler, display: true);
+
+            Assert.That(component.Find("button.ai-check-button").HasAttribute("disabled"), Is.True);
+        }
+
+        [Test]
+        public async Task EditConn_AiReasonCheckOnEditingWithoutReason_ShowsMessageInsteadOfRunning()
+        {
+            await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
+            userConfig.AiReasonCheckEnabled = true;
+            ScriptedChatClient chatClient = RegisterAiReasonCheckServices(context);
+            ModellingConnection connection = new() { Name = "conn", Reason = "" };
+            ModellingConnectionHandler handler = CreateConnectionHandler(new SimulatedApiConnection(), userConfig, connection, readOnly: false);
+
+            IRenderedComponent<EditConn> component = RenderEditConn(context, handler, display: true);
+            component.Find("button.ai-check-button").Click();
+
+            Assert.That(component.Find(".ai-check-message"), Is.Not.Null);
+            Assert.That(chatClient.Calls, Is.Empty);
+        }
+
+        private static ScriptedChatClient RegisterAiReasonCheckServices(BunitContext context)
+        {
+            ScriptedChatClient chatClient = ScriptedChatClient.Returning(ScriptedChatClient.Text("Verdict: GENUINE"));
+            IFwoAgentChatClientFactory chatClientFactory = Substitute.For<IFwoAgentChatClientFactory>();
+            chatClientFactory.CreateChatClient(Arg.Any<Func<CancellationToken, Task<string?>>>()).Returns(chatClient);
+            IAccessTokenSource accessTokenSource = Substitute.For<IAccessTokenSource>();
+            accessTokenSource.GetAccessToken().Returns("user.access.token");
+            context.Services.AddSingleton(chatClientFactory);
+            context.Services.AddSingleton(accessTokenSource);
+            return chatClient;
         }
 
         [Test]

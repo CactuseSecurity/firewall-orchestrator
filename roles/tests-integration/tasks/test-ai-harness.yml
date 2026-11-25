@@ -1,0 +1,255 @@
+---
+# The unit tests run the harness pipeline in process. This proves the installed service: the
+# published binary runs under its unit without a configured AI provider, binds the configured
+# loopback url, validates tokens with the jwt key of this installation and is published by the
+# middleware's Apache vhost. No run is sent with a valid token of an fwo user: it would reach the
+# AI provider once one is configured. It runs on the middleware host only, which also holds the
+# test users and the jwt signing key.
+- block:
+    # the address AG-UI clients use: the deployed middleware endpoint (fworch.json), not one
+    # derived from the inventory again
+    - name: set the public url of the ai harness
+      set_fact:
+        ai_harness_test_public_uri: "{{ test_middleware_uri | regex_replace('/+$', '') }}{{ ai_harness_agui_path }}"
+        ai_harness_test_run:
+          threadId: integration-test
+          runId: integration-test-run
+          messages:
+            - id: message-1
+              role: user
+              content: Which roles do I have?
+
+    - name: wait for the ai harness to listen on its loopback url
+      wait_for:
+        host: "{{ ai_native_listener_address }}"
+        port: "{{ ai_harness_internal_port }}"
+        timeout: 120
+
+    # positive control for the check below, which would pass trivially without a key file
+    - name: the jwt signing key must be readable outside the ai harness
+      command:
+        argv:
+          - grep
+          - --quiet
+          - PRIVATE KEY
+          - "{{ jwt_private_key_file }}"
+      changed_when: false
+      become: true
+
+    - name: read the main process id of the ai harness
+      command: "systemctl show {{ ai_harness_service_name }}.service --property=MainPID --value"
+      register: ai_harness_service_main_pid
+      changed_when: false
+      become: true
+
+    # InaccessiblePaths in the unit hides the key in the service's own mount namespace, so look
+    # into exactly that namespace: grep exits 0 only if the key is readable there
+    - name: try to read the jwt signing key from within the mount namespace of the ai harness
+      command:
+        argv:
+          - nsenter
+          - "--target={{ ai_harness_service_main_pid.stdout | trim }}"
+          - --mount
+          - --
+          - grep
+          - --quiet
+          - PRIVATE KEY
+          - "{{ jwt_private_key_file }}"
+      register: ai_harness_private_key_read
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: the ai harness must not be able to read the jwt signing key
+      assert:
+        that:
+          - ai_harness_service_main_pid.stdout | trim | int > 0
+          - ai_harness_private_key_read.rc != 0
+        fail_msg: >-
+          {{ jwt_private_key_file }} is readable inside the mount namespace of {{ ai_harness_service_name }}
+          (main pid '{{ ai_harness_service_main_pid.stdout | trim }}', rc {{ ai_harness_private_key_read.rc }}).
+
+    - name: the ai harness must refuse runs without a token
+      ansible.builtin.uri:
+        url: "{{ ai_harness_native_agui_uri }}"
+        method: POST
+        status_code: 401
+        headers:
+          Accept: "text/event-stream"
+        body: "{{ ai_harness_test_run }}"
+        body_format: json
+      changed_when: false
+
+    - name: apache must refuse runs of the ai harness without a token
+      ansible.builtin.uri:
+        url: "{{ ai_harness_test_public_uri }}"
+        method: POST
+        status_code: 401
+        headers:
+          Accept: "text/event-stream"
+        body: "{{ ai_harness_test_run }}"
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+      changed_when: false
+
+    # sample-auth-data gives the test users no role in test installs (see modify_ldap_tree.yml)
+    - name: get a token of a test user without an fwo role
+      ansible.builtin.uri:
+        url: "{{ test_middleware_uri }}api/AuthenticationToken/GetTokenPair/"
+        method: POST
+        status_code: 200
+        body:
+          Username: "user1{{ test_postfix }}"
+          Password: "{{ test_user1_pw }}"
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        return_content: true
+      register: ai_harness_test_token_pair
+      changed_when: false
+      no_log: true
+
+    # 403 rather than 401 proves that apache passes the token on and that the harness accepts the
+    # signature of this installation's middleware, without starting a run
+    - name: apache must pass the token on and the ai harness must refuse a user without an fwo role
+      ansible.builtin.uri:
+        url: "{{ ai_harness_test_public_uri }}"
+        method: POST
+        status_code: 403
+        headers:
+          Accept: "text/event-stream"
+          Authorization: "Bearer {{ ai_harness_test_token_pair.json.AccessToken }}"
+        body: "{{ ai_harness_test_run }}"
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+      changed_when: false
+
+    - name: read the state of the password file of the ai harness user
+      stat:
+        path: "{{ ai_harness_password_file }}"
+      register: ai_harness_password_file_state
+      become: true
+
+    - name: the password file of the ai harness user must be readable by the fworch user only
+      assert:
+        that:
+          - ai_harness_password_file_state.stat.exists
+          - ai_harness_password_file_state.stat.mode == '0600'
+          - ai_harness_password_file_state.stat.pw_name == fworch_user
+        fail_msg: "{{ ai_harness_password_file }} is missing or readable by others than {{ fworch_user }}."
+
+    - name: read the password of the ai harness user
+      slurp:
+        src: "{{ ai_harness_password_file }}"
+      register: ai_harness_password_content
+      become: true
+      no_log: true
+
+    - name: the ai harness user must be able to log in
+      ansible.builtin.uri:
+        url: "{{ test_middleware_uri }}api/AuthenticationToken/GetTokenPair/"
+        method: POST
+        status_code: 200
+        body:
+          Username: "{{ ai_harness_user_name }}"
+          Password: "{{ ai_harness_password_content.content | b64decode | trim }}"
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        return_content: true
+      register: ai_harness_user_token_pair
+      changed_when: false
+      no_log: true
+
+    - name: the ai harness must refuse runs with the token of its technical user
+      ansible.builtin.uri:
+        url: "{{ ai_harness_test_public_uri }}"
+        method: POST
+        status_code: 403
+        headers:
+          Accept: "text/event-stream"
+          Authorization: "Bearer {{ ai_harness_user_token_pair.json.AccessToken }}"
+        body: "{{ ai_harness_test_run }}"
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+      changed_when: false
+      no_log: true
+
+    - name: read config items with the token of the ai harness user
+      ansible.builtin.uri:
+        url: "{{ (test_fwo_config_file.content | b64decode | from_json).api_uri }}"
+        method: POST
+        status_code: 200
+        headers:
+          Authorization: "Bearer {{ ai_harness_user_token_pair.json.AccessToken }}"
+        body:
+          query: >-
+            query { aiItems: config(where: {config_key: {_eq: "aiProvider"}}) { config_key }
+            otherItems: config(where: {config_key: {_eq: "emailPassword"}}) { config_key } }
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        client_cert: "{{ internalca_client_certificate }}"
+        client_key: "{{ internalca_client_private_key }}"
+        return_content: true
+      register: ai_harness_user_config_items
+      become: true
+      changed_when: false
+      no_log: true
+
+    - name: read the credential table with the token of the ai harness user
+      ansible.builtin.uri:
+        url: "{{ (test_fwo_config_file.content | b64decode | from_json).api_uri }}"
+        method: POST
+        status_code: 200
+        headers:
+          Authorization: "Bearer {{ ai_harness_user_token_pair.json.AccessToken }}"
+        body:
+          query: "query { credential { id } }"
+        body_format: json
+        validate_certs: true
+        ca_path: "{{ internalca_trust_bundle }}"
+        client_cert: "{{ internalca_client_certificate }}"
+        client_key: "{{ internalca_client_private_key }}"
+        return_content: true
+      register: ai_harness_user_credentials
+      become: true
+      changed_when: false
+      no_log: true
+
+    - name: the ai harness user must read the ai items of the config only, and no credential table
+      assert:
+        that:
+          - ai_harness_user_config_items.json.data.aiItems | length == 1
+          - ai_harness_user_config_items.json.data.otherItems | length == 0
+          - ai_harness_user_credentials.json.errors is defined
+          - ai_harness_user_credentials.json.data is not defined
+        fail_msg: >-
+          The role ai-harness reads more than the ai settings: config {{ ai_harness_user_config_items.json | default({}) }},
+          credentials {{ 'readable' if ai_harness_user_credentials.json.data is defined else 'refused' }}.
+
+  rescue:
+    - name: get ai harness service status
+      command: "systemctl status {{ ai_harness_service_name }} --no-pager -l"
+      register: ai_harness_service_status
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: get ai harness service journal
+      command: "journalctl -u {{ ai_harness_service_name }} --no-pager -n 100"
+      register: ai_harness_service_journal
+      changed_when: false
+      failed_when: false
+      become: true
+
+    - name: fail ai harness check
+      fail:
+        msg:
+          - "ai harness check failed: {{ ansible_failed_task.name }}"
+          - "{{ ansible_failed_result.msg | default('') }}"
+          - "{{ ai_harness_service_status.stdout_lines | default([]) }}"
+          - "{{ ai_harness_service_journal.stdout_lines | default([]) }}"

@@ -10,6 +10,7 @@ namespace FWO.Test
     internal class UiSettingsNavigationTest
     {
         private const int kSectionCount = 11;
+        private const int kEntryCount = 41;
         private const string kUnmatchableTerm = "qqzzxx";
 
         private const string kExternalDn = "uid=tester,ou=people,dc=example,dc=org";
@@ -34,7 +35,7 @@ namespace FWO.Test
                 Assert.That(sections, Has.Count.EqualTo(kSectionCount));
                 Assert.That(sections[0].TextKey, Is.EqualTo("devices"));
                 Assert.That(sections[^1].TextKey, Is.EqualTo("personal"));
-                Assert.That(sections.Sum(section => section.Entries.Count), Is.EqualTo(40));
+                Assert.That(sections.Sum(section => section.Entries.Count), Is.EqualTo(kEntryCount));
             });
         }
 
@@ -130,7 +131,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(sections, Has.Count.EqualTo(kSectionCount));
-                Assert.That(sections.Sum(section => section.Entries.Count), Is.EqualTo(40));
+                Assert.That(sections.Sum(section => section.Entries.Count), Is.EqualTo(kEntryCount));
             });
         }
 

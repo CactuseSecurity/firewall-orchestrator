@@ -38,6 +38,13 @@ namespace FWO.Test
         public List<OwnerResponsibleType> OwnerResponsibleTypes { get; set; } = [];
         public List<ModellingNwGroup> ModellingGroups { get; set; } = [];
         public List<PathAnalysisAlgorithm> PathAnalysisAlgorithms { get; set; } = [];
+        public List<Credential> Credentials { get; set; } = [];
+
+        /// <summary>
+        /// The credential query answers once this task completes, so that a page renders while it loads, and fails
+        /// if it fails.
+        /// </summary>
+        public Task CredentialsReleased { get; set; } = Task.CompletedTask;
         public ReturnId UpdateServiceResult { get; set; } = new() { UpdatedId = 1 };
         public ReturnIdWrapper AddHistoryResult { get; set; } = new() { ReturnIds = [new ReturnId()] };
         public List<ConfigItem> LastUpsertConfigItems { get; private set; } = [];
@@ -112,7 +119,21 @@ namespace FWO.Test
                 return Task.FromResult((QueryResponseType)(object)new List<UiText>());
             }
 
+            if (query == DeviceQueries.getCredentialsWithoutSecrets && typeof(QueryResponseType) == typeof(List<Credential>))
+            {
+                return ReturnCredentialsWhenReleased<QueryResponseType>();
+            }
+
             throw new NotImplementedException($"Unhandled query {query} for {typeof(QueryResponseType).Name}");
+        }
+
+        /// <summary>
+        /// Returns the credentials once <see cref="CredentialsReleased"/> completes; at once by default.
+        /// </summary>
+        private async Task<QueryResponseType> ReturnCredentialsWhenReleased<QueryResponseType>()
+        {
+            await CredentialsReleased;
+            return (QueryResponseType)(object)Credentials;
         }
     }
 }

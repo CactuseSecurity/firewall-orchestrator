@@ -773,6 +773,7 @@ namespace FWO.Test
             {"delete_credential","Delete credential"},
             {"E5117","Credential is used by managements"},
             {"E5113","Credential is used by external ticket systems"},
+            {"E5132","Credential is used by the AI settings"},
             {"U5117","Delete credential "},
             {"U5108","Remove sample credentials"},
             {"U5214","Group settings"},

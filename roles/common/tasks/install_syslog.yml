@@ -89,6 +89,8 @@
         if $programname == '{{ ldap_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ldap.log" {{ fworch_omfile_params }})
         if $programname == '{{ product_name }}-api' then action(type="omfile" file="{{ fworch_log_dir }}/api.log" {{ fworch_omfile_params }})
         if $programname startswith '{{ product_name }}-importer-api' then action(type="omfile" file="{{ fworch_log_dir }}/importer-api.log" {{ fworch_omfile_params }})
+        if $programname == '{{ ai_mcp_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ai-mcp.log" {{ fworch_omfile_params }})
+        if $programname == '{{ ai_harness_syslog_id }}' then action(type="omfile" file="{{ fworch_log_dir }}/ai-harness.log" {{ fworch_omfile_params }})
         if $programname startswith '{{ product_name }}' and $msg contains "Audit" then action(type="omfile" file="{{ fworch_log_dir }}/audit.log" {{ fworch_omfile_params }})
         if $programname startswith '{{ product_name }}' and $msg contains "FWORCHAlert" then action(type="omfile" file="{{ fworch_log_dir }}/alert.log" {{ fworch_omfile_params }})
         if $programname == 'import-fworch-app-data' then action(type="omfile" file="{{ fworch_log_dir }}/import-fworch-app-data.log" {{ fworch_omfile_params }})
@@ -155,8 +157,10 @@
                 {{ fworch_home }}/scripts/release_lock.py {{ fworch_api_importer_lockfile }} >/dev/null 2>&1
               endscript
       }
-      {{ fworch_log_dir }}/audit.log 
-      {{ fworch_log_dir }}/alert.log 
+      {{ fworch_log_dir }}/audit.log
+      {{ fworch_log_dir }}/alert.log
+      {{ fworch_log_dir }}/ai-mcp.log
+      {{ fworch_log_dir }}/ai-harness.log
       {
           compress
           maxage 7

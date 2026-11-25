@@ -44,12 +44,15 @@
         </SettingsRow>
         <SettingsRow LabelKey="importLogDataSleepTime" TooltipKey="H5696" LabelFor="importLogDataSleepTime">
             <input id="importLogDataSleepTime" class="form-control form-control-sm settings-input-sm" type="number" min="0" @bind="configData.ImportLogDataSleepTime" />
-            <select class="form-select form-select-sm settings-input-sm" @bind="configData.ImportLogDataSleepTimeUnit">
-                @foreach (LogDataImportIntervalUnit unit in Enum.GetValues(typeof(LogDataImportIntervalUnit)))
-                {
-                    <option value="@unit">@unit.ToString(userConfig)</option>
-                }
-            </select>
+            <div class="settings-input-md">
+                <Dropdown ElementType="LogDataImportIntervalUnit" @bind-SelectedElement="configData.ImportLogDataSleepTimeUnit"
+                          Elements="Enum.GetValues<LogDataImportIntervalUnit>()" ElementToString="@(unit => unit.ToString(userConfig))"
+                          InputClass="form-control form-control-sm">
+                    <ElementTemplate Context="unit">
+                        @(unit.ToString(userConfig))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
         </SettingsRow>
         <SettingsRow LabelKey="importLogDataMaxEntries" TooltipKey="H5697" LabelFor="importLogDataMaxEntries">
             <input id="importLogDataMaxEntries" type="number" min="1" class="form-control form-control-sm settings-input-sm" @bind="configData.ImportLogDataMaxEntries" />
@@ -89,12 +92,15 @@
         </SettingsRow>
         <SettingsRow LabelKey="defaultLogTimeRange" TooltipKey="H5706" LabelFor="defaultLogTimeRange">
             <input id="defaultLogTimeRange" class="form-control form-control-sm settings-input-sm" type="number" min="1" @bind="logTimeRangeValue" @bind:after="ApplyLogTimeRange" />
-            <select class="form-select form-select-sm settings-input-sm" @bind="logTimeRangeUnit" @bind:after="ApplyLogTimeRange">
-                @foreach (LogTimeRangeUnit unit in Enum.GetValues<LogTimeRangeUnit>())
-                {
-                    <option value="@unit">@unit.ToString(userConfig)</option>
-                }
-            </select>
+            <div class="settings-input-md">
+                <Dropdown ElementType="LogTimeRangeUnit" SelectedElement="logTimeRangeUnit"
+                          SelectedElementChanged="ApplyLogTimeRangeUnit" Elements="Enum.GetValues<LogTimeRangeUnit>()"
+                          ElementToString="@(unit => unit.ToString(userConfig))" InputClass="form-control form-control-sm">
+                    <ElementTemplate Context="unit">
+                        @(unit.ToString(userConfig))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
         </SettingsRow>
     </form>
 
@@ -158,6 +164,21 @@ else
         {
             configData.DefaultLogTimeRangeInSeconds = LogTimeRange.ToSeconds(logTimeRangeValue, logTimeRangeUnit);
         }
+    }
+
+    /// <summary>
+    /// Updates the default log time range unit and recalculates the stored duration.
+    /// </summary>
+    /// <param name="unit">The selected log time range unit.</param>
+    private void ApplyLogTimeRangeUnit(LogTimeRangeUnit unit)
+    {
+        if (logTimeRangeUnit == unit)
+        {
+            return;
+        }
+
+        logTimeRangeUnit = unit;
+        ApplyLogTimeRange();
     }
 
     private void AddPath()

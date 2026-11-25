@@ -138,8 +138,6 @@ jobs:
           PRODUCT_VERSION: ${{ steps.product_version.outputs.version }}
         run: |
           set -o pipefail
-          # this workflow file comes from the base branch (pull_request_target), so it must also
-          # work for pull requests without the AI test project
           ai_tests_project=roles/tests-unit/files/FWO.Ai.Tests/FWO.Ai.Tests.csproj
           cs_coverage_reports=coverage.xml
           if [ -f "$ai_tests_project" ]; then

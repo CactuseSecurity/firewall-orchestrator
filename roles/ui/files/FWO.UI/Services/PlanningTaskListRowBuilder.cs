@@ -26,7 +26,7 @@ namespace FWO.Ui.Services
         public const string kRulePosition = "rule_position";
 
         /// <summary>Columns whose request-task cells are taken from the approval task list view.</summary>
-        private static readonly List<string> kRequestTaskKeys =
+        private static readonly IReadOnlyList<string> kRequestTaskKeys =
         [
             ApprovalTaskListRowBuilder.kId, ApprovalTaskListRowBuilder.kTitle, ApprovalTaskListRowBuilder.kTaskType,
             ApprovalTaskListRowBuilder.kState, ApprovalTaskListRowBuilder.kHandler, ApprovalTaskListRowBuilder.kAssigned,

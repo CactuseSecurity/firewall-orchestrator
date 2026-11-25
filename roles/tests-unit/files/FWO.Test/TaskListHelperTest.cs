@@ -144,6 +144,17 @@ internal sealed class TaskListHelperTest
     }
 
     [Test]
+    public void EmptyCell_SharedValuesCannotBeChanged()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(TaskListCell.Empty.Values, Is.Empty);
+            Assert.That(TaskListCell.Empty.Values, Is.Not.InstanceOf<List<string>>());
+            Assert.That(((ICollection<string>)TaskListCell.Empty.Values).IsReadOnly, Is.True);
+        });
+    }
+
+    [Test]
     public async Task TaskActions_DoNothingWithoutActionHandler()
     {
         WfReqTask requestTask = new() { Id = 1, TicketId = 7 };

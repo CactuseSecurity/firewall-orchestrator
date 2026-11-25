@@ -28,10 +28,8 @@ namespace FWO.Ui.Services
     /// <param name="Edit">Opens the editor of the cell, or null when the cell is read-only.</param>
     public sealed record TaskListCell(IReadOnlyList<string> Values, Func<Task>? Edit)
     {
-        private static readonly List<string> kNoValues = [];
-
-        /// <summary>An empty, read-only cell.</summary>
-        public static readonly TaskListCell Empty = new(kNoValues, null);
+        /// <summary>An empty, read-only cell; shared by all views, so its values must not be mutable.</summary>
+        public static readonly TaskListCell Empty = new(Array.Empty<string>(), null);
 
         /// <summary>Optional badges, one per value at the same index; null when the cell has no badges.</summary>
         public IReadOnlyList<TaskListBadge>? Badges { get; init; }

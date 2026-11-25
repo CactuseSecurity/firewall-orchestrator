@@ -148,12 +148,16 @@
   belongs to an owner of the request task, else the task fails; a marker is only found as a whole word, so a shortened
   marker matches no rule. The client lists the Allow rules carrying the marker, replaces the rule of
   each protocol (PUT on the rule path) unless it already is as requested, creates missing ones, deletes the other rules
-  of the connection (all of them for rule_delete) and publishes a policy revision only after a change. Labels in the
+  of the connection (all of them for rule_delete; POST on .../rules/delete/<rule id>, as the API offers no DELETE for
+  rules) and publishes a policy revision only after a change. Labels in the
   sides are named "key: value" and replaced by their ids; a missing label fails the task and is named. Addresses are
   written as CIDR subnets. New placeholders @@RULE_PORTS@@, @@RULE_PORT_RANGES@@ and the runtime placeholder
   @@RULE_ID@@; new shipped Guardicore operations RuleCreate, RuleDelete and Publish. Guardicore rules need no rule
   position (new vendor property NewRulesNeedPosition). If a task fails, the client undoes its rule changes before
-  anything is published (created rules are deleted, replaced ones restored, deleted ones created again)
+  anything is published (created rules are deleted, replaced ones restored, deleted ones undeleted with their ids)
+- Guardicore importer and firewall write: the label and rule lists are paged with start_at/max_results as the Centra API
+  v4.0 documents them, together with offset/limit for older releases; the importer fails instead of importing objects
+  twice if a page repeats objects read before, i.e. the management ignores the paging parameters
 - variance analysis: on managements that write labels the connection marker is read from the rule comment (their rule
   name is the ruleset) and the rule owner prefilter, which needs the marker in the rule name, is not used; app roles and
   network areas implemented as labels are requested by their label name, other network areas by their networks;

@@ -266,7 +266,7 @@ namespace FWO.Test
                 Assert.That(change.RuleTasks.Single().TaskType, Is.EqualTo(nameof(WfTaskType.rule_modify)), "one task for all rules of the connection");
                 Assert.That(tcp["id"]!.GetValue<string>(), Is.EqualTo(tcpRuleId), "the TCP rule is replaced, not created again");
                 Assert.That(Texts(tcp["ports"]), Is.EqualTo(kChangedTcpPorts));
-                Assert.That(chain.Guardicore.Simulation.Requests.Count(request => request.Method == Method.Delete), Is.EqualTo(1), "the UDP rule is deleted");
+                Assert.That(chain.Guardicore.DeletedRules, Has.Count.EqualTo(1), "the UDP rule is deleted");
                 Assert.That(chain.Guardicore.Revisions, Has.Count.EqualTo(2));
                 Assert.That(after.Requested, Is.Empty);
             });

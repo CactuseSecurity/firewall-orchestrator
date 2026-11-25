@@ -7,9 +7,23 @@ GC_LABELS_ENDPOINT = "/api/v4.0/labels"
 GC_LABEL_GROUPS_ENDPOINT = "/api/v4.0/label-groups"
 GC_RULES_ENDPOINT = "/api/v4.0/visibility/policy/rules"
 GC_ASSETS_ENDPOINT = "/api/v4.0/assets"
-GC_PAGE_SIZE = 1000
+GC_PAGE_SIZE = 1000  # the list endpoints return at most 1024 objects per page
 GC_MAX_PAGES = 10000  # guards against an endless paging loop if the API keeps returning full pages
 GC_TOKEN_KEYS = ("access_token", "token")
+
+
+class GcPaging(NamedTuple):
+    """The query parameters of a list endpoint that name the first object of a page and the page size."""
+
+    start_params: tuple[str, ...]
+    size_params: tuple[str, ...]
+
+
+# paging parameters as the Centra API v4 documents them per list endpoint; labels and rules also get offset/limit,
+# which older Centra releases read instead of start_at/max_results
+GC_PAGING_LABELS_AND_RULES = GcPaging(("start_at", "offset"), ("max_results", "limit"))
+GC_PAGING_ASSETS = GcPaging(("start_at",), ("max_results",))
+GC_PAGING_LABEL_GROUPS = GcPaging(("offset",), ("limit",))
 
 # dynamic label criteria that describe IP addresses, e.g. {"field": "numeric_ip_addresses", "op": "SUBNET", ...}
 GC_IP_CRITERIA_FIELD = "numeric_ip_addresses"

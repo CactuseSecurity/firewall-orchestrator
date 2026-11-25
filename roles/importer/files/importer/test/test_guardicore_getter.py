@@ -49,15 +49,41 @@ class TestPaging:
             build_response({"objects": [{"id": 1}, {"id": 2}], "total_count": 3}),
             build_response({"objects": [{"id": 3}, "noise"], "total_count": 3}),
         ]
-        objects = gc_getter.get_all_objects(session, "https://gc/x", "start_at", "max_results", {"expand": "labels"})
+        objects = gc_getter.get_all_objects(session, "https://gc/x", gc_const.GC_PAGING_ASSETS, {"expand": "labels"})
         assert [obj["id"] for obj in objects] == [1, 2, 3]
         second_params: dict[str, Any] = session.get.call_args_list[1].kwargs["params"]
         assert second_params == {"start_at": 2, "max_results": 2, "expand": "labels"}
 
+    def test_labels_and_rules_send_the_documented_and_the_legacy_paging_parameters(self, mocker: MockerFixture) -> None:
+        mocker.patch.object(gc_const, "GC_PAGE_SIZE", 2)
+        session = unittest.mock.MagicMock()
+        session.get.side_effect = [
+            build_response({"objects": [{"id": 1}, {"id": 2}], "total_count": 3}),
+            build_response({"objects": [{"id": 3}], "total_count": 3}),
+        ]
+        gc_getter.get_all_objects(session, "https://gc/x", gc_const.GC_PAGING_LABELS_AND_RULES)
+        second_params: dict[str, Any] = session.get.call_args_list[1].kwargs["params"]
+        assert second_params == {"start_at": 2, "offset": 2, "max_results": 2, "limit": 2}
+
+    def test_page_of_objects_read_before_raises(self, mocker: MockerFixture) -> None:
+        mocker.patch.object(gc_const, "GC_PAGE_SIZE", 2)
+        session = unittest.mock.MagicMock()
+        session.get.return_value = build_response({"objects": [{"id": 1}, {"id": 2}], "total_count": 5})
+        with pytest.raises(FwApiCallFailedError, match="ignores the paging parameters"):
+            gc_getter.get_all_objects(session, "https://gc/x", gc_const.GC_PAGING_LABELS_AND_RULES)
+        assert session.get.call_count == 2
+
+    def test_objects_without_id_are_not_checked_for_repetition(self) -> None:
+        seen_ids: set[str] = set()
+        assert gc_getter.has_new_objects([{"name": "x"}], seen_ids)
+        assert gc_getter.has_new_objects([{"name": "x"}], seen_ids)
+        assert gc_getter.has_new_objects([{"id": "a"}], seen_ids)
+        assert not gc_getter.has_new_objects([{"id": "a"}, {"name": "x"}], seen_ids)
+
     def test_stops_on_short_page_without_total(self) -> None:
         session = unittest.mock.MagicMock()
         session.get.return_value = build_response({"objects": [{"id": 1}]})
-        assert gc_getter.get_all_objects(session, "https://gc/x") == [{"id": 1}]
+        assert gc_getter.get_all_objects(session, "https://gc/x", gc_const.GC_PAGING_LABEL_GROUPS) == [{"id": 1}]
 
     def test_short_page_does_not_end_paging_before_total(self) -> None:
         session = unittest.mock.MagicMock()
@@ -65,7 +91,7 @@ class TestPaging:
             build_response({"objects": [{"id": 1}, {"id": 2}], "total": 3}),
             build_response({"objects": [{"id": 3}], "total": 3}),
         ]
-        objects = gc_getter.get_all_objects(session, "https://gc/x")
+        objects = gc_getter.get_all_objects(session, "https://gc/x", gc_const.GC_PAGING_LABEL_GROUPS)
         assert [obj["id"] for obj in objects] == [1, 2, 3]
         assert session.get.call_args_list[1].kwargs["params"]["offset"] == 2
 
@@ -75,15 +101,15 @@ class TestPaging:
             build_response({"objects": [{"id": 1}], "total": 5}),
             build_response({"objects": [], "total": 5}),
         ]
-        assert gc_getter.get_all_objects(session, "https://gc/x") == [{"id": 1}]
+        assert gc_getter.get_all_objects(session, "https://gc/x", gc_const.GC_PAGING_LABEL_GROUPS) == [{"id": 1}]
 
     def test_endless_paging_is_stopped(self, mocker: MockerFixture) -> None:
         mocker.patch.object(gc_const, "GC_PAGE_SIZE", 1)
         mocker.patch.object(gc_const, "GC_MAX_PAGES", 3)
         session = unittest.mock.MagicMock()
-        session.get.return_value = build_response({"objects": [{"id": 1}]})
-        with pytest.raises(FwApiCallFailedError):
-            gc_getter.get_all_objects(session, "https://gc/x")
+        session.get.side_effect = [build_response({"objects": [{"id": page}]}) for page in range(3)]
+        with pytest.raises(FwApiCallFailedError, match="exceeded 3 pages"):
+            gc_getter.get_all_objects(session, "https://gc/x", gc_const.GC_PAGING_LABEL_GROUPS)
 
     def test_invalid_page_raises(self) -> None:
         session = unittest.mock.MagicMock()
@@ -112,11 +138,14 @@ class TestGetNativeConfig:
 
         assert native_config == {"labels": [{"id": "l"}], "label_groups": [], "assets": [{"id": "a"}], "rules": []}
         assert session.headers["Authorization"] == "Bearer tok"
-        assert get_all.call_args_list[2].kwargs == {
-            "offset_param": "start_at",
-            "limit_param": "max_results",
-            "extra_params": {"expand": "labels"},
-        }
+        paging_per_call = [call.args[2] for call in get_all.call_args_list]
+        assert paging_per_call == [
+            gc_const.GC_PAGING_LABELS_AND_RULES,
+            gc_const.GC_PAGING_LABEL_GROUPS,
+            gc_const.GC_PAGING_ASSETS,
+            gc_const.GC_PAGING_LABELS_AND_RULES,
+        ]
+        assert get_all.call_args_list[2].kwargs == {"extra_params": {"expand": "labels"}}
 
     @pytest.mark.parametrize(
         ("verify_certs", "expected"),

@@ -19,7 +19,7 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// <item>publish creates a policy revision only if a rule was changed, so label changes and repeated requests publish nothing.</item>
     /// </list>
     /// Every rule change is recorded with the call that undoes it. If the task fails, <see cref="Discard"/> undoes the changes
-    /// made so far in reverse order (created rules are deleted, replaced ones restored, deleted ones created again), so no
+    /// made so far in reverse order (created rules are deleted, replaced ones restored, deleted ones undeleted), so no
     /// half-written connection waits unpublished for the next revision.
     /// </summary>
     public partial class GuardicoreWriteClient
@@ -60,7 +60,10 @@ namespace FWO.ExternalSystems.FirewallWrite
             undoSteps.Clear();
         }
 
-        private static string RulePath(string ruleId) => $"{GuardicoreWriteDefaults.kRulesPath}/{Uri.EscapeDataString(ruleId)}";
+        private static string RulePath(string ruleId) => RuleActionPath(GuardicoreWriteDefaults.kRulesPath, ruleId);
+
+        /// <summary>The path of a rule below a rules path, e.g. <see cref="GuardicoreWriteDefaults.kRuleDeletePath"/>.</summary>
+        private static string RuleActionPath(string rulesPath, string ruleId) => $"{rulesPath}/{Uri.EscapeDataString(ruleId)}";
 
         /// <summary>A rule as it can be created again: without its id.</summary>
         private static string WithoutId(JsonObject rule)
@@ -119,7 +122,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             string createdId = GuardicoreRules.Id(ParseJson(created.Message));
             if (createdId.Length > 0)
             {
-                undoSteps.Add(new RuleUndo(Method.Delete, RulePath(createdId), null, $"delete the created rule {createdId}"));
+                undoSteps.Add(new RuleUndo(Method.Post, RuleActionPath(GuardicoreWriteDefaults.kRuleDeletePath, createdId), null, $"delete the created rule {createdId}"));
             }
             else
             {
@@ -149,7 +152,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                     return result;
                 }
                 policyChanged = true;
-                undoSteps.Add(new RuleUndo(Method.Post, GuardicoreWriteDefaults.kRulesPath, WithoutId(rule), $"create the deleted rule {ruleId} again"));
+                undoSteps.Add(new RuleUndo(Method.Post, RuleActionPath(GuardicoreWriteDefaults.kRuleUndeletePath, ruleId), null, $"undelete the rule {ruleId}"));
             }
             return Succeeded(request, $"Deleted the rules {string.Join(", ", ruleIds)}.");
         }
@@ -175,8 +178,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             for (int page = 0; page < kMaxPages; page++)
             {
                 RestRequest listRequest = new(GuardicoreWriteDefaults.kRulesPath, Method.Get);
-                listRequest.AddQueryParameter("offset", readCount.ToString(CultureInfo.InvariantCulture));
-                listRequest.AddQueryParameter("limit", kPageSize.ToString(CultureInfo.InvariantCulture));
+                AddPaging(listRequest, readCount);
                 RestResponse response = await SendAuthenticated(listRequest);
                 if (!response.IsSuccessful)
                 {

@@ -163,7 +163,7 @@ namespace FWO.Test
             simulation.Handler = request => request.Resource switch
             {
                 kAuthenticatePath => FirewallWriteTestSupport.Ok("""{"access_token":"tok"}"""),
-                kLabelsPath => FirewallWriteTestSupport.Ok(request.QueryParameters["offset"] == "0" ? firstPage : secondPage),
+                kLabelsPath => FirewallWriteTestSupport.Ok(request.QueryParameters["start_at"] == "0" ? firstPage : secondPage),
                 _ => FirewallWriteTestSupport.Ok("{}")
             };
 
@@ -174,7 +174,10 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result.Success, Is.True, result.Message);
-                Assert.That(lookups.Select(lookup => lookup.QueryParameters["offset"]), Is.EqualTo(kLookupOffsets));
+                Assert.That(lookups.Select(lookup => lookup.QueryParameters["start_at"]), Is.EqualTo(kLookupOffsets));
+                Assert.That(lookups.Select(lookup => lookup.QueryParameters["offset"]), Is.EqualTo(kLookupOffsets), "the older name of start_at");
+                Assert.That(lookups.Select(lookup => lookup.QueryParameters["max_results"]), Is.All.EqualTo("1000"));
+                Assert.That(lookups.Select(lookup => lookup.QueryParameters["limit"]), Is.All.EqualTo("1000"), "the older name of max_results");
                 Assert.That(result.Steps[0].Message, Does.StartWith(FirewallWriteClient.kAlreadyPresentNote));
             });
         }

@@ -20,14 +20,17 @@ namespace FWO.Test
         private const string kLabelsPath = "/api/v4.0/labels";
         private const string kRulesPath = "/api/v4.0/visibility/policy/rules";
         private const string kRevisionsPath = "/api/v4.0/visibility/policy/revisions";
+        private const string kRuleDeletePath = kRulesPath + "/delete";
+        private const string kRuleUndeletePath = kRulesPath + "/undelete";
         private const string kMarker = "FWOC12";
         private const string kAppRole = "AR504711-001";
 
         private static readonly List<string> kLabelId = ["lab-1"];
         private static readonly List<string> kHost = ["10.0.0.5/32"];
         private static readonly List<string> kTcpAndUdp = ["TCP", "UDP"];
-        private static readonly List<string> kIcmpRuleDeleted = [$"{kRulesPath}/r-icmp"];
-        private static readonly List<string> kBothRulesDeleted = [$"{kRulesPath}/r-tcp", $"{kRulesPath}/r-udp"];
+        private static readonly List<string> kIcmpRuleDeleted = [$"{kRuleDeletePath}/r-icmp"];
+        private static readonly List<string> kBothRulesDeleted = [$"{kRuleDeletePath}/r-tcp", $"{kRuleDeletePath}/r-udp"];
+        private static readonly List<string> kBothRulesUndeletedInReverse = [$"{kRuleUndeletePath}/r-udp", $"{kRuleUndeletePath}/r-tcp"];
 
         private static FirewallWriteContext Context() =>
             FirewallWriteTestSupport.Context(FirewallVendors.kGuardicoreManagement) with { ConnectionMarker = kMarker, ExtAppId = "APP-1" };
@@ -85,6 +88,11 @@ namespace FWO.Test
 
         private static List<RecordedFirewallRequest> Calls(FirewallSimulation simulation, Method method, string resource) =>
             [.. simulation.Requests.Where(request => request.Method == method && request.Resource == resource)];
+
+        /// <summary>The paths of the POST calls below a rules path, e.g. the rule deletions.</summary>
+        private static List<string> RuleActions(FirewallSimulation simulation, string rulesPath) =>
+            [.. simulation.Requests.Where(request => request.Method == Method.Post && request.Resource.StartsWith(rulesPath + "/", StringComparison.Ordinal))
+                .Select(request => request.Resource)];
 
         [Test]
         public async Task NewConnection_CreatesOneRulePerProtocolAndPublishes()
@@ -149,8 +157,8 @@ namespace FWO.Test
                 Assert.That(result.Success, Is.True, result.Message);
                 Assert.That(JsonNode.Parse(Calls(simulation, Method.Put, $"{kRulesPath}/r-tcp").Single().Body!)!["ports"]!.ToJsonString(), Is.EqualTo("[443]"));
                 Assert.That(Calls(simulation, Method.Post, kRulesPath), Has.Count.EqualTo(1), "the UDP rule is created");
-                Assert.That(simulation.Requests.Where(request => request.Method == Method.Delete).Select(request => request.Resource),
-                    Is.EqualTo(kIcmpRuleDeleted), "only the rule of the connection in the Allow section");
+                Assert.That(RuleActions(simulation, kRuleDeletePath), Is.EqualTo(kIcmpRuleDeleted), "only the rule of the connection in the Allow section");
+                Assert.That(simulation.Requests.Exists(request => request.Method == Method.Delete), Is.False, "the API offers no DELETE for rules");
                 Assert.That(Calls(simulation, Method.Post, kRevisionsPath), Has.Count.EqualTo(1));
             });
         }
@@ -165,9 +173,46 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result.Success, Is.True, result.Message);
-                Assert.That(simulation.Requests.Where(request => request.Method == Method.Delete).Select(request => request.Resource),
-                    Is.EquivalentTo(kBothRulesDeleted));
+                Assert.That(RuleActions(simulation, kRuleDeletePath), Is.EquivalentTo(kBothRulesDeleted));
                 Assert.That(Calls(simulation, Method.Post, kRevisionsPath), Has.Count.EqualTo(1));
+            });
+        }
+
+        /// <summary>Rules deleted before a failure are undeleted in reverse order, keeping their ids, instead of being created again.</summary>
+        [Test]
+        public async Task FailedPublish_UndeletesTheDeletedRules()
+        {
+            FirewallSimulation simulation = Simulation([WrittenTcpRule("r-tcp"), OtherRule("r-udp", "UDP")]);
+            Func<RecordedFirewallRequest, RestResponse> answer = simulation.Handler;
+            simulation.Handler = request => request.Method == Method.Post && request.Resource == kRevisionsPath
+                ? FirewallWriteTestSupport.Response(System.Net.HttpStatusCode.InternalServerError, "{\"error\":\"failed\"}")
+                : answer(request);
+
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.rule_delete, FirewallWriteTestSupport.Rule("r-tcp")));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(RuleActions(simulation, kRuleDeletePath), Is.EquivalentTo(kBothRulesDeleted));
+                Assert.That(RuleActions(simulation, kRuleUndeletePath), Is.EqualTo(kBothRulesUndeletedInReverse));
+                Assert.That(Calls(simulation, Method.Post, kRulesPath), Is.Empty, "no rule is created again");
+            });
+        }
+
+        [Test]
+        public async Task RuleList_IsPagedWithTheDocumentedAndTheOlderParameters()
+        {
+            FirewallSimulation simulation = Simulation([WrittenTcpRule("r-tcp")]);
+
+            await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.rule_delete, FirewallWriteTestSupport.Rule("r-tcp")));
+
+            RecordedFirewallRequest list = Calls(simulation, Method.Get, kRulesPath).First();
+            Assert.Multiple(() =>
+            {
+                Assert.That(list.QueryParameters["start_at"], Is.EqualTo("0"));
+                Assert.That(list.QueryParameters["offset"], Is.EqualTo("0"));
+                Assert.That(list.QueryParameters["max_results"], Is.EqualTo("1000"));
+                Assert.That(list.QueryParameters["limit"], Is.EqualTo("1000"));
             });
         }
 
@@ -222,7 +267,7 @@ namespace FWO.Test
 
         /// <summary>
         /// A task that fails after rule changes undoes them before anything is published: created rules are deleted, replaced
-        /// ones restored and deleted ones created again, so no half-written connection waits for the next revision.
+        /// ones restored and deleted ones undeleted, so no half-written connection waits for the next revision.
         /// </summary>
         [Test]
         public async Task FailedTask_UndoesItsRuleChanges()
@@ -262,7 +307,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result.Success, Is.False);
-                Assert.That(Calls(simulation, Method.Delete, $"{kRulesPath}/new-rule"), Has.Count.EqualTo(1), "the created TCP rule is deleted again");
+                Assert.That(Calls(simulation, Method.Post, $"{kRuleDeletePath}/new-rule"), Has.Count.EqualTo(1), "the created TCP rule is deleted again");
                 Assert.That(Calls(simulation, Method.Post, kRevisionsPath), Is.Empty);
             });
         }

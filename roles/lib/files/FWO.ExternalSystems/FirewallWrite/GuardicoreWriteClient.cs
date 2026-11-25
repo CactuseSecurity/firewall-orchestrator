@@ -177,8 +177,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 RestRequest listRequest = new(GuardicoreWriteDefaults.kLabelsPath, Method.Get);
                 listRequest.AddQueryParameter("key", key);
                 listRequest.AddQueryParameter("value", value);
-                listRequest.AddQueryParameter("offset", readCount.ToString(CultureInfo.InvariantCulture));
-                listRequest.AddQueryParameter("limit", kPageSize.ToString(CultureInfo.InvariantCulture));
+                AddPaging(listRequest, readCount);
                 RestResponse response = await SendAuthenticated(listRequest);
                 if (!response.IsSuccessful)
                 {
@@ -196,6 +195,24 @@ namespace FWO.ExternalSystems.FirewallWrite
             }
             throw new FirewallWriteException(FirewallWriteErrorKind.FirewallError,
                 $"Looking up the label '{key}{DynamicIpLabel.kKeyValueSeparator}{value}' did not end after {kMaxPages} pages.");
+        }
+
+        /// <summary>
+        /// Asks a label or rule list for the page that starts after the objects read so far, with the documented and the
+        /// older parameter names (see <see cref="GuardicoreWriteDefaults.PageStartParameters"/>).
+        /// </summary>
+        private static void AddPaging(RestRequest listRequest, int readCount)
+        {
+            string start = readCount.ToString(CultureInfo.InvariantCulture);
+            string size = kPageSize.ToString(CultureInfo.InvariantCulture);
+            foreach (string parameter in GuardicoreWriteDefaults.PageStartParameters)
+            {
+                listRequest.AddQueryParameter(parameter, start);
+            }
+            foreach (string parameter in GuardicoreWriteDefaults.PageSizeParameters)
+            {
+                listRequest.AddQueryParameter(parameter, size);
+            }
         }
 
         /// <summary>Whether paging is done: a page is empty, the total is reached, or without a total a page is short.</summary>

@@ -203,7 +203,7 @@ namespace FWO.Test
                 Assert.That(FirewallWriteDefaults.GetEndpoint(FirewallVendors.kGuardicoreManagement, FirewallWriteOperation.RuleCreate),
                     Is.EqualTo("POST /api/v4.0/visibility/policy/rules"));
                 Assert.That(FirewallWriteDefaults.GetEndpoint(FirewallVendors.kGuardicoreManagement, FirewallWriteOperation.RuleDelete),
-                    Is.EqualTo("DELETE /api/v4.0/visibility/policy/rules/@@RULE_ID@@"));
+                    Is.EqualTo("POST /api/v4.0/visibility/policy/rules/delete/@@RULE_ID@@"));
                 Assert.That(FirewallWriteDefaults.GetEndpoint(FirewallVendors.kGuardicoreManagement, FirewallWriteOperation.Publish),
                     Is.EqualTo("POST /api/v4.0/visibility/policy/revisions"));
             }

@@ -9,8 +9,8 @@ namespace FWO.Test
 {
     /// <summary>
     /// A Guardicore that keeps its labels, segmentation rules and policy revisions in memory and answers the REST calls of
-    /// the Guardicore write client as the real API does: label lookup and bulk create/update, label delete, rule list,
-    /// create, replace and delete, and revisions. It also returns its state as the importer would import it: labels as
+    /// the Guardicore write client as the real API (v4.0) documents them: label lookup and bulk create/update, label delete,
+    /// rule list (paged by start_at and max_results only), create, replace, delete and undelete (by POST), and revisions. It also returns its state as the importer would import it: labels as
     /// groups of their addresses and rules with label groups, subnets and services.
     /// </summary>
     internal sealed class SimulatedGuardicore
@@ -19,6 +19,8 @@ namespace FWO.Test
         private const string kLabelsPath = "/api/v4.0/labels";
         private const string kLabelsBulkPath = "/api/v4.0/labels/bulk";
         private const string kRulesPath = "/api/v4.0/visibility/policy/rules";
+        private const string kRuleDeletePath = kRulesPath + "/delete/";
+        private const string kRuleUndeletePath = kRulesPath + "/undelete/";
         private const string kRevisionsPath = "/api/v4.0/visibility/policy/revisions";
         private const int kTcp = 6;
         private const int kUdp = 17;
@@ -31,6 +33,9 @@ namespace FWO.Test
 
         /// <summary>Segmentation rules by id, as written.</summary>
         public Dictionary<string, JsonObject> Rules { get; } = [];
+
+        /// <summary>Rules deleted by id, which an undelete brings back.</summary>
+        public Dictionary<string, JsonObject> DeletedRules { get; } = [];
 
         /// <summary>Published policy revisions, with their comments.</summary>
         public List<string> Revisions { get; } = [];
@@ -94,14 +99,11 @@ namespace FWO.Test
                 (Method.Get, kLabelsPath) => FirewallWriteTestSupport.Ok(FindLabels(request).ToJsonString()),
                 (Method.Post, kLabelsBulkPath) => FirewallWriteTestSupport.Ok(WriteLabels(request.Body).ToJsonString()),
                 (Method.Delete, _) when resource.StartsWith(kLabelsPath + "/", StringComparison.Ordinal) => Delete(Labels, resource[(kLabelsPath.Length + 1)..]),
-                (Method.Get, kRulesPath) => FirewallWriteTestSupport.Ok(new JsonObject
-                {
-                    ["objects"] = new JsonArray([.. Rules.Values.Select(rule => rule.DeepClone())]),
-                    ["total_count"] = Rules.Count
-                }.ToJsonString()),
+                (Method.Get, kRulesPath) => FirewallWriteTestSupport.Ok(RulePage(request).ToJsonString()),
                 (Method.Post, kRulesPath) => FirewallWriteTestSupport.Ok(CreateRule(request.Body).ToJsonString()),
+                (Method.Post, _) when resource.StartsWith(kRuleDeletePath, StringComparison.Ordinal) => MoveRule(Rules, DeletedRules, resource[kRuleDeletePath.Length..]),
+                (Method.Post, _) when resource.StartsWith(kRuleUndeletePath, StringComparison.Ordinal) => MoveRule(DeletedRules, Rules, resource[kRuleUndeletePath.Length..]),
                 (Method.Put, _) when resource.StartsWith(kRulesPath + "/", StringComparison.Ordinal) => ReplaceRule(resource[(kRulesPath.Length + 1)..], request.Body),
-                (Method.Delete, _) when resource.StartsWith(kRulesPath + "/", StringComparison.Ordinal) => Delete(Rules, resource[(kRulesPath.Length + 1)..]),
                 (Method.Post, kRevisionsPath) => Publish(request.Body),
                 _ => throw new InvalidOperationException($"Unexpected call {request.Method} {resource}")
             };
@@ -129,6 +131,29 @@ namespace FWO.Test
                 written.Add(id);
             }
             return new JsonObject { ["succeeded"] = written, ["failed"] = new JsonArray() };
+        }
+
+        /// <summary>A page of the rule list; like the documented API it reads start_at and max_results, not offset and limit.</summary>
+        private JsonObject RulePage(RecordedFirewallRequest request)
+        {
+            int start = int.Parse(request.QueryParameters.GetValueOrDefault("start_at") ?? "0", CultureInfo.InvariantCulture);
+            int size = int.Parse(request.QueryParameters.GetValueOrDefault("max_results") ?? "128", CultureInfo.InvariantCulture);
+            return new JsonObject
+            {
+                ["objects"] = new JsonArray([.. Rules.Values.Skip(start).Take(size).Select(rule => rule.DeepClone())]),
+                ["total_count"] = Rules.Count
+            };
+        }
+
+        /// <summary>Deletes or undeletes a rule by moving it between the rules and the deleted rules.</summary>
+        private static RestResponse MoveRule(Dictionary<string, JsonObject> from, Dictionary<string, JsonObject> to, string id)
+        {
+            if (!from.Remove(id, out JsonObject? rule))
+            {
+                return FirewallWriteTestSupport.Response(System.Net.HttpStatusCode.NotFound, """{"error":"not found"}""");
+            }
+            to[id] = rule;
+            return FirewallWriteTestSupport.Ok($$"""{"id":"{{id}}"}""");
         }
 
         private JsonObject CreateRule(string? body)

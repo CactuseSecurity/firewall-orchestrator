@@ -11,6 +11,13 @@
   - the Rule tab shows the group members of rule objects; the fetched details replace the overview objects of the report instead of being added as duplicates
   - "Clear all" in the Rule tab (and other re-renders) no longer discards the objects already loaded into the Report tab; a failed fetch can be repeated by expanding the category again
   - links jump to the object on the first click: the scroll is repeated once lazily fetched objects are rendered; it is instant while objects are being fetched and smooth otherwise
+- request workflow: start of the provisioning, so Tufin SecureChange no longer overtakes earlier tasks written to the firewall (#5750)
+  - behaviour change: the provisioning only starts by the state action "Create external requests", the rollout of the modelling no longer starts it directly; after the upgrade an administrator has to attach the action, recommended at the state "To Implement", otherwise nothing is handed to Tufin SecureChange or written to firewalls
+  - the state action "Create implementation tasks" is renamed to "Prepare implementation" (action type `CreateImplTasks` unchanged); it promotes approved request tasks handed to an external ticket system to a configurable state (default "To Implement", parameter `external_ticket_system_target_state_id`), as that system plans them itself, so they no longer hold the ticket in the planning; the editor refuses a state below the end of the last active phase before the implementation
+  - responses of Tufin SecureChange only move the state of a request task forward, except for a rejection
+  - the state "in progress" reported by Tufin SecureChange is taken over into the request tasks again (mapping of the external state `ExtReqInProgress`, optional); only a change of the state updates the ticket, a request staying in progress does not
+  - middleware REST API: `POST ExternalRequest` (reinit of the external requests of a ticket) is restricted to admins; modellers no longer start the provisioning directly
+  - with "Consider visibility" switched on, the state actions of a ticket (e.g. "Prepare implementation", "Create external requests") act on the whole ticket, including request tasks hidden from the user who triggers them; before, such tasks (e.g. object tasks hidden from a member of an exclusive visibility group) got no implementation tasks and were not provisioned, and the actions were refused when the ticket state itself was hidden from the user. The user still has to see at least one task of the ticket
 
 
 ## 9.9.5 - 23.11.2026
@@ -41,10 +48,6 @@
   - a request task of a management with the implementation mode external ticket system is handed to Tufin SecureChange as a whole; implementation tasks with mode automatic are written directly to the firewall with the firewall write library (`ext_request.impltask_id`)
   - offered as a button, implementation tasks on targets set to manual are written as well within the scope of the action (ticket or request task); on an implementation task it writes only this one task
   - tasks nobody implements (e.g. external ticket system without selected system, rule without position) raise a workflow alert
-  - behaviour change: the provisioning only starts by this action, the rollout of the modelling no longer starts it directly (#5750); after the upgrade an administrator has to attach the action, recommended at the state "To Implement", otherwise nothing is handed to Tufin SecureChange or written to firewalls
-  - the state action "Create implementation tasks" is renamed to "Prepare implementation" (action type `CreateImplTasks` unchanged); it promotes approved request tasks handed to an external ticket system to a configurable state (default "To Implement", parameter `external_ticket_system_target_state_id`), as that system plans them itself, so they no longer hold the ticket in the planning; the editor refuses a state below the end of the last active phase before the implementation
-  - responses of Tufin SecureChange only move the state of a request task forward, except for a rejection
-  - middleware REST API: `POST ExternalRequest` (reinit of the external requests of a ticket) is restricted to admins; modellers no longer start the provisioning directly
 - request workflow: the routing of firewall config changes moves from the setting "Firewall config changes - General" to the device specific settings: implementation mode for objects and for rules, external ticket system, Tufin SecureChange connection, response timeout and retries; the upgrade migrates the previous settings, the ticket system list page is removed
 - firewall write: rules are written to Check Point
   - new rules at the position calculated by the rule positioning and with install-on along the setting "Install on" (ANY = Policy Targets, gateways in path = the gateways of the tasks)

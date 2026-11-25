@@ -280,7 +280,9 @@ For a feature-centric, thematically grouped view see
 - Direct firewall write of rules on Check Point: new rules at the calculated position (also within sections) with install-on along the setting "Install on"; rules to modify or delete addressed in their imported layer; new rules of one request task in the same layer written once for all their gateways.
 - The routing of firewall config changes moves from "Firewall config changes - General" to the device specific settings (implementation modes for objects and rules, external ticket system, Tufin SecureChange connection, response timeout and retries); the ticket system list is removed.
 - Tasks nobody implements (e.g. no rule position, vendor without rule writing, inconsistent target management) raise a workflow alert; a rejected write rejects the open tasks of the ticket with the reason in their history.
-- The provisioning only starts by the state action "Create external requests", no longer directly by the modelling rollout; the action "Prepare implementation" (formerly "Create implementation tasks") promotes approved request tasks of an external ticket system to a configurable state (default "To Implement"), so Tufin can no longer overtake earlier tasks written to the firewall.
 
 ### 9.9.5 - 23.11.2026
 - Notifications: an email priority (Low, Normal, High) can be set per notification; Low and High set the Importance, Priority and X-Priority headers, which common email clients show as a marker.
+
+### 9.9.6 - 25.11.2026
+- The provisioning only starts by the state action "Create external requests", no longer directly by the modelling rollout; the action "Prepare implementation" (formerly "Create implementation tasks") promotes approved request tasks of an external ticket system to a configurable state (default "To Implement"), so Tufin can no longer overtake earlier tasks written to the firewall.

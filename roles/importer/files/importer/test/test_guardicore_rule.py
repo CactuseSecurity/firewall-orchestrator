@@ -79,6 +79,44 @@ class TestRuleAttributes:
 
 
 class TestNormalizeRules:
+    def test_common_service_rulesets_come_first_in_their_section(
+        self, management_controller: ManagementController
+    ) -> None:
+        rulesets = [
+            "Speiseplan (COM-1613)",
+            "ComSvc Speiseplan (COM-1613)",
+            "Adressbuch (COM-1600)",
+            "ComSvc Exchange (COM-1611)",
+        ]
+        rules = [
+            {"id": f"r{index}", "action": "ALLOW", "section_position": "ALLOW", "ruleset_name": ruleset}
+            for index, ruleset in enumerate(rulesets)
+        ]
+        rules.append({"id": "b1", "action": "BLOCK", "section_position": "BLOCK", "ruleset_name": "ComSvc Late"})
+        native_config = GuardicoreConfig.model_validate({"rules": rules})
+
+        rulebases = normalize_rules(native_config, GcNetworkObjectCollector(native_config), management_controller, {})
+        renamed_prefix = normalize_rules(
+            native_config,
+            GcNetworkObjectCollector(native_config),
+            management_controller,
+            {},
+            common_service_prefix="CS",
+        )
+
+        assert [rulebase.name for rulebase in rulebases] == [
+            "04 Allow ComSvc Exchange (COM-1611)",
+            "04 Allow ComSvc Speiseplan (COM-1613)",
+            "04 Allow Adressbuch (COM-1600)",
+            "04 Allow Speiseplan (COM-1613)",
+            "06 Block ComSvc Late",
+        ]
+        assert renamed_prefix[0].name == "04 Allow Adressbuch (COM-1600)", "the configured prefix decides"
+        assert [link.to_rulebase_uid for link in build_rulebase_links(rulebases)][:2] == [
+            "04 Allow ComSvc Exchange (COM-1611)",
+            "04 Allow ComSvc Speiseplan (COM-1613)",
+        ]
+
     def test_rules_are_split_into_sorted_rulebases(self, management_controller: ManagementController) -> None:
         native_config = GuardicoreConfig.model_validate(
             {

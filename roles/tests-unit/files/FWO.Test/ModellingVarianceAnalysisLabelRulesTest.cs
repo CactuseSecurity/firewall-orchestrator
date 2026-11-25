@@ -93,10 +93,12 @@ namespace FWO.Test
         private static readonly List<ConnectionLabel> kSourceLabels = [ConnLabel(0, "Stage", "Prod"), ConnLabel(0, "OS", "Linux"), ConnLabel(1, "Stage", "Test")];
 
         private static async Task<ModellingVarianceResult> Analyse(ModellingConnection connection, Rule rule, bool areasAsLabels = false,
-            int deviceTypeId = FirewallVendors.kGuardicoreManagement, bool labelBasedModelling = true, string groupLabelFormat = LabelValueFormat.kDefault)
+            int deviceTypeId = FirewallVendors.kGuardicoreManagement, bool labelBasedModelling = true, string groupLabelFormat = LabelValueFormat.kDefault,
+            ProvisioningPositioningAlgorithm positioningAlgorithm = ProvisioningPositioningAlgorithm.DefaultEndOfRulebase)
         {
             ModellingVarianceAnalysisTestApiConn api = new() { ManagementDeviceTypeId = deviceTypeId, Rules = [rule] };
             api.Settings.SetValue(1, DeviceSpecificSettingKeys.ModellingImplementNetworkAreaObjects, areasAsLabels);
+            api.Settings.SetValue(1, DeviceSpecificSettingKeys.PositioningAlgorithm, positioningAlgorithm);
             SimulatedUserConfig userConfig = new()
             {
                 RuleRecognitionOption = kRecognitionOption,
@@ -138,6 +140,45 @@ namespace FWO.Test
                 }),
                 ProdRule(Label(10, "AppRole: AR504711-001", Host32(11, "1.2.3.4/32")), Label(12, "NetworkArea: Former (NA50)", Host32(13, "10.50.0.0/16"))),
                 areasAsLabels: true, groupLabelFormat: kNameAndId);
+
+            Assert.That(result.RuleDifferences, Is.Empty);
+        }
+
+        private static ModellingConnection ExchangeConnection(bool isCommonService) => Connection(c =>
+        {
+            c.SourceAppRoles = [new() { Content = AppRole }];
+            c.App = new FwoOwner { Id = 1, Name = "Exchange", ExtAppId = "COM-1611" };
+            c.IsCommonService = isCommonService;
+        });
+
+        private static Rule RuleInRuleset(string rulesetName)
+        {
+            Rule rule = ProdRule(Label(10, "AppRole: AR504711-001", Host32(11, "1.2.3.4/32")));
+            rule.Rulebase = new() { Name = $"04 Allow {rulesetName}".TrimEnd() };
+            return rule;
+        }
+
+        /// <summary>
+        /// With the app ruleset algorithm a rule has to lie in the ruleset of its app (common services in the one with the
+        /// prefix); a rule in another ruleset differs, so that the connection is requested again and its rules are moved.
+        /// </summary>
+        [TestCase(false, "Exchange (COM-1611)", true)]
+        [TestCase(true, "ComSvc Exchange (COM-1611)", true)]
+        [TestCase(false, "COM-1611", false)]
+        [TestCase(true, "Exchange (COM-1611)", false)]
+        [TestCase(false, "", false)]
+        public async Task Rules_HaveToLieInTheRulesetOfTheirApp(bool isCommonService, string rulesetName, bool implemented)
+        {
+            ModellingVarianceResult result = await Analyse(ExchangeConnection(isCommonService), RuleInRuleset(rulesetName),
+                positioningAlgorithm: ProvisioningPositioningAlgorithm.GuardicoreEndOfAppRulesetDistinguishCommonServices);
+
+            Assert.That(result.RuleDifferences, implemented ? Is.Empty : Is.Not.Empty);
+        }
+
+        [Test]
+        public async Task Rules_InTheRulesetOfTheAppId_AreInPlaceByDefault()
+        {
+            ModellingVarianceResult result = await Analyse(ExchangeConnection(false), RuleInRuleset("COM-1611"));
 
             Assert.That(result.RuleDifferences, Is.Empty);
         }

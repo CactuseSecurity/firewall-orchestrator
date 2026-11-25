@@ -229,25 +229,7 @@ namespace FWO.Services.Modelling
         {
             if ((!userConfig.ModRequestOnlyOwnObjects || appRole.AppId == owner.Id) && !IsExcluded(mgt, ModellingTypes.ModObjectType.AppRole))
             {
-                if (ResolveProdAppRole(appRole, mgt) == null)
-                {
-                    if (TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("new_app_role") + appRole.IdString && x.OnManagement?.Id == mgt.Id) == null)
-                    {
-                        RequestNewAppRole(appRole, mgt);
-                    }
-                }
-                else if (AppRoleChanged(appRole, mgt))
-                {
-                    if (TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id) == null &&
-                        DeleteObjectTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id) == null)
-                    {
-                        RequestUpdateAppRole(appRole, mgt);
-                    }
-                }
-                else if (WritesLabels(mgt) && IsRenamed(existingAppRole, AppRoleLabel(appRole)))
-                {
-                    RequestLabelRename(AppRoleLabel(appRole), existingAppRole!, mgt, appRole.AppServers, AppRoleAddInfo(appRole, mgt));
-                }
+                RequestAppRoleChanges(appRole, mgt);
             }
 
             ReqElements.Add(new()
@@ -257,6 +239,37 @@ namespace FWO.Services.Modelling
                 GroupName = WritesLabels(mgt) ? ProdGroupName(appRole, mgt) : appRole.IdString
             });
         }
+
+        /// <summary>
+        /// Requests the app role on a management, if it is missing there, its members changed or its label is to be renamed,
+        /// unless the same task is requested already.
+        /// </summary>
+        private void RequestAppRoleChanges(ModellingAppRole appRole, Management mgt)
+        {
+            if (ResolveProdAppRole(appRole, mgt) == null)
+            {
+                if (!IsRequested(TaskList, userConfig.GetText("new_app_role") + appRole.IdString, mgt))
+                {
+                    RequestNewAppRole(appRole, mgt);
+                }
+            }
+            else if (AppRoleChanged(appRole, mgt))
+            {
+                string updateTitle = userConfig.GetText("update_app_role") + appRole.IdString;
+                if (!IsRequested(TaskList, updateTitle + userConfig.GetText("add_members"), mgt)
+                    && !IsRequested(DeleteObjectTasksList, updateTitle + userConfig.GetText("remove_members"), mgt))
+                {
+                    RequestUpdateAppRole(appRole, mgt);
+                }
+            }
+            else if (WritesLabels(mgt) && IsRenamed(existingAppRole, AppRoleLabel(appRole)))
+            {
+                RequestLabelRename(AppRoleLabel(appRole), existingAppRole!, mgt, appRole.AppServers, AppRoleAddInfo(appRole, mgt));
+            }
+        }
+
+        private static bool IsRequested(List<WfReqTask> tasks, string title, Management mgt) =>
+            tasks.Exists(task => task.Title == title && task.OnManagement?.Id == mgt.Id);
 
         private async Task AnalyseAppZoneForRequest(Management mgt)
         {

@@ -147,6 +147,21 @@ class TestFwCommon:
 
         fetch.assert_called_once_with("https://mock.example.com:443", "mock-user", "mock-secret")
 
+    @pytest.mark.parametrize(
+        ("configured", "expected"), [("CS", "CS"), (" Shared ", "Shared"), ("", "ComSvc"), (None, "ComSvc")]
+    )
+    def test_common_service_prefix_comes_from_the_config(
+        self,
+        import_state_controller: ImportStateController,
+        mocker: MockerFixture,
+        configured: str | None,
+        expected: str,
+    ) -> None:
+        get_value = mocker.patch.object(import_state_controller.api_call, "get_config_value", return_value=configured)
+
+        assert fwcommon.get_common_service_prefix(import_state_controller) == expected
+        get_value.assert_called_once_with(key="modComSvcSectionPrefix")
+
     def test_get_config_rejects_invalid_native_config(
         self, import_state_controller: ImportStateController, mocker: MockerFixture
     ) -> None:

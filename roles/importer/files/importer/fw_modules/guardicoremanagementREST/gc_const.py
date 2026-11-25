@@ -39,6 +39,9 @@ GC_ANY_OBJECT_NAME = "Any"
 GC_ANY_SERVICE_UID = "any"
 GC_ANY_SERVICE_NAME = "Any"
 GC_RULESET_NAME_NONE = ""
+# prefix of the rulesets FWO writes common services to (config modComSvcSectionPrefix); their rulebases come first in a section
+GC_COMMON_SERVICE_PREFIX_CONFIG_KEY = "modComSvcSectionPrefix"
+GC_DEFAULT_COMMON_SERVICE_PREFIX = "ComSvc"
 # rule side fields the importer cannot express as addresses (e.g. processes, domains) become an empty placeholder
 # group each, so that the side neither turns into "any" nor silently loses them
 GC_UNSUPPORTED_UID_PREFIX = "unsupported:"

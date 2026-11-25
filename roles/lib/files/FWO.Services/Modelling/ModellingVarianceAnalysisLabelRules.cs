@@ -68,6 +68,26 @@ namespace FWO.Services.Modelling
         }
 
         /// <summary>
+        /// Whether a rule of a management that writes labels lies in the ruleset the writer puts the rules of the connection
+        /// in by the positioning algorithm of the management (see <see cref="GuardicoreRulesets"/>), so that a rule in another
+        /// ruleset, e.g. after the algorithm changed, the app was renamed or the connection became a common service, is
+        /// requested again and moved. A rule whose ruleset is unknown (no rulebase name) or a connection whose app has no
+        /// external app id counts as in place.
+        /// </summary>
+        private bool IsInTargetRuleset(Rule rule, ModellingConnection conn, Management mgt)
+        {
+            string? ruleset = GuardicoreRulesets.RulesetOfRulebase(rule.Rulebase?.Name);
+            FwoOwner app = string.IsNullOrWhiteSpace(conn.App.ExtAppId) ? owner : conn.App;
+            if (ruleset == null || string.IsNullOrWhiteSpace(app.ExtAppId))
+            {
+                return true;
+            }
+            GuardicoreRulesetApp rulesetApp = new(app.Name, app.ExtAppId, conn.IsCommonService);
+            string targetRuleset = GuardicoreRulesets.Name(SettingsOf(mgt).PositioningAlgorithm, rulesetApp, userConfig.ModComSvcSectionPrefix);
+            return ruleset == targetRuleset;
+        }
+
+        /// <summary>
         /// Whether a management that writes labels has no rule of the connection. Such a management enforces on the hosts,
         /// so it needs every connection, unlike gateways, which only need the connections whose path leads through them.
         /// </summary>

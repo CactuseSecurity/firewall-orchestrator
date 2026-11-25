@@ -171,6 +171,14 @@
     rename (group task with additional info LabelName and FormerLabelName), and the Guardicore writer renames the label
     in place (PUT /api/v4.0/labels/<id> with key and value, criteria kept), so the rules keep it. Rule sides and
     obsolete labels are compared by this id as well
+- Guardicore rule positioning by app ruleset (issue #5829): new device specific positioning algorithm
+  gcEndOfAppRulesetCommonSvc. The writer puts the rules of a connection into the ruleset "<app name> (<app_id_external>)",
+  those of common services into "<prefix> <app name> (<app_id_external>)" with the new modelling setting
+  modComSvcSectionPrefix (default ComSvc); Guardicore creates a missing ruleset with its first rule and appends new rules
+  at its end. The default algorithm keeps the ruleset named by the app id. The variance analysis requests a connection
+  again if one of its rules lies in another ruleset (e.g. after switching the algorithm, renaming the app or turning the
+  connection into a common service), and the writer moves the rules there by replacing them. The importer orders the
+  rulebases of a section with the rulesets of common services (by the configured prefix) first, then alphabetically
 - Guardicore importer and firewall write: the label and rule lists are paged with start_at/max_results as the Centra API
   v4.0 documents them, together with offset/limit for older releases; the importer fails instead of importing objects
   twice if a page repeats objects read before, i.e. the management ignores the paging parameters. A label of a rule

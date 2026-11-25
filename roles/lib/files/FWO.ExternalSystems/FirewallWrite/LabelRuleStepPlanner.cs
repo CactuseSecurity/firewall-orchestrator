@@ -61,8 +61,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <summary>One rule step per protocol of the target services of the task.</summary>
         private static List<FirewallWriteStep> RuleSteps(WfImplTask implTask, FirewallWriteContext context, FirewallVendorProfile profile, string marker)
         {
-            string appId = context.ExtAppId ?? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
-                $"Implementation task {implTask.Id}: its request task names no app (external app id), which is the ruleset of the rule.");
+            string ruleset = Ruleset(implTask, context);
             List<WfImplElement> target = [.. implTask.ImplElements.Where(element => element.ImplAction != nameof(RequestAction.delete))];
             string sources = SideJson(target, nameof(ElemFieldType.source), implTask);
             string destinations = SideJson(target, nameof(ElemFieldType.destination), implTask);
@@ -70,7 +69,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             foreach ((string protocol, ProtocolPorts ports) in PortsByProtocol(target, implTask))
             {
                 FirewallWriteStep step = new(FirewallWriteOperation.RuleCreate) { TargetName = $"{marker} {protocol}" };
-                step.SetText(FirewallWritePlaceholders.RuleName, appId)
+                step.SetText(FirewallWritePlaceholders.RuleName, ruleset)
                     .SetText(FirewallWritePlaceholders.RuleComment, marker)
                     .SetText(FirewallWritePlaceholders.RuleAction, profile.AcceptAction)
                     .SetText(FirewallWritePlaceholders.RuleProtocol, protocol)
@@ -81,6 +80,19 @@ namespace FWO.ExternalSystems.FirewallWrite
                 steps.Add(step);
             }
             return steps;
+        }
+
+        /// <summary>The ruleset of the rules of the task by the positioning algorithm, see <see cref="GuardicoreRulesets"/>.</summary>
+        /// <exception cref="FirewallWriteException">Thrown if the request task names no app (external app id).</exception>
+        private static string Ruleset(WfImplTask implTask, FirewallWriteContext context)
+        {
+            if (string.IsNullOrWhiteSpace(context.ExtAppId))
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                    $"Implementation task {implTask.Id}: its request task names no app (external app id), which names the ruleset of the rule.");
+            }
+            GuardicoreRulesetApp app = new(context.AppName, context.ExtAppId, context.IsCommonService);
+            return GuardicoreRulesets.Name(context.Settings.PositioningAlgorithm, app, context.CommonServicePrefix);
         }
 
         /// <summary>

@@ -262,6 +262,8 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('appLabelKey'
 -- format of the values of the App labels and of the labels of app roles, app zones and network areas ({name}, {id})
 INSERT INTO config (config_key, config_value, config_user) VALUES ('appLabelValueFormat', '{id}', 0) ON CONFLICT DO NOTHING;
 INSERT INTO config (config_key, config_value, config_user) VALUES ('groupLabelValueFormat', '{id}', 0) ON CONFLICT DO NOTHING;
+-- prefix of the Guardicore rulesets of common services (positioning algorithm gcEndOfAppRulesetCommonSvc)
+INSERT INTO config (config_key, config_value, config_user) VALUES ('modComSvcSectionPrefix', 'ComSvc', 0) ON CONFLICT DO NOTHING;
 CREATE INDEX IF NOT EXISTS idx_labelling_label_value_owner ON labelling.label_value (owner_id) WHERE owner_id IS NOT NULL;
 -- App labels written before label values knew their owner: the value is the app id of the owner
 UPDATE labelling.label_value lv SET owner_id = o.id

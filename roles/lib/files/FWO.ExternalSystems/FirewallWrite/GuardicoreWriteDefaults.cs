@@ -66,7 +66,7 @@ namespace FWO.ExternalSystems.FirewallWrite
         private const string kLabelCreateBody = """[{"key":"@@LABEL_KEY@@","value":"@@LABEL_VALUE@@","criteria":@@LABEL_CRITERIA@@}]""";
 
         /// <summary>
-        /// A rule of one protocol in the Allow section: the ruleset is the app id, the comment the connection marker. The
+        /// A rule of one protocol in the Allow section: the ruleset names the app (see GuardicoreRulesets), the comment is the connection marker. The
         /// sides name labels by "key: value", which the client replaces by the label ids.
         /// </summary>
         private const string kRuleBody =

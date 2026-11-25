@@ -1,4 +1,4 @@
-from fw_modules.guardicoremanagementREST import gc_getter, gc_normalizer
+from fw_modules.guardicoremanagementREST import gc_const, gc_getter, gc_normalizer
 from fw_modules.guardicoremanagementREST.gc_gateway import ensure_policy_gateway
 from fw_modules.guardicoremanagementREST.gc_models import GuardicoreConfig
 from fwo_base import ensure_device_name, write_native_config_to_file
@@ -29,10 +29,19 @@ class GuardicoreManagementRESTCommon(FwCommon):
         ensure_policy_gateway(import_state)
         write_native_config_to_file(import_state.state, config_in.native_config)
 
-        config_in.ManagerSet[0].configs = [gc_normalizer.normalize_config(native_config, mgm_details)]
+        common_service_prefix = get_common_service_prefix(import_state)
+        config_in.ManagerSet[0].configs = [
+            gc_normalizer.normalize_config(native_config, mgm_details, common_service_prefix)
+        ]
         config_in.ManagerSet[0].manager_uid = mgm_details.uid
 
         return 0, config_in
+
+
+def get_common_service_prefix(import_state: ImportStateController) -> str:
+    """Return the configured prefix of the rulesets of common services, the default if it is not configured."""
+    prefix = import_state.api_call.get_config_value(key=gc_const.GC_COMMON_SERVICE_PREFIX_CONFIG_KEY)
+    return (prefix or "").strip() or gc_const.GC_DEFAULT_COMMON_SERVICE_PREFIX
 
 
 def ensure_manager_set(config_in: FwConfigManagerListController, import_state: ImportStateController) -> None:

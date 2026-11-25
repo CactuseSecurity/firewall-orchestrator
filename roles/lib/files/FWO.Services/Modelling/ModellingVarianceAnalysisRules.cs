@@ -160,7 +160,8 @@ namespace FWO.Services.Modelling
         /// Such a management splits a connection with services of different protocols into one rule per protocol, as all
         /// ports of a rule apply to all its protocols. So each rule has to implement the network part of the connection, and
         /// the services of all rules together its services. Service groups are compared resolved, as these managements know
-        /// no service groups. All rules get the same verdict.
+        /// no service groups. Each rule has to lie in the ruleset the writer puts the rules of the connection in. All rules
+        /// get the same verdict.
         /// </summary>
         private void CompareRuleSetToConn(List<Rule> rules, ModellingConnection conn, Management mgt)
         {
@@ -168,6 +169,7 @@ namespace FWO.Services.Modelling
             foreach (Rule rule in rules)
             {
                 isImpl &= IsNwPartImplementation(rule, conn, mgt);
+                isImpl &= IsInTargetRuleset(rule, conn, mgt);
             }
             isImpl &= IsSvcPartImplementation(rules, conn, true);
             RecordVerdict(rules, conn, isImpl);

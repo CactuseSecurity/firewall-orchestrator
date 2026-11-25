@@ -204,6 +204,8 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('appLabelKey'
 -- format of the values of the App labels and of the labels of app roles, app zones and network areas ({name}, {id})
 INSERT INTO config (config_key, config_value, config_user) VALUES ('appLabelValueFormat', '{id}', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('groupLabelValueFormat', '{id}', 0);
+-- prefix of the Guardicore rulesets of common services (positioning algorithm gcEndOfAppRulesetCommonSvc)
+INSERT INTO config (config_key, config_value, config_user) VALUES ('modComSvcSectionPrefix', 'ComSvc', 0);
 
 -- keys of personal settings (properties marked [UserConfigData] in ConfigData.cs)
 INSERT INTO config_user_key (config_key) VALUES ('maxMessages');

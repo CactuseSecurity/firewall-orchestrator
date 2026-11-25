@@ -3,6 +3,7 @@
 @using FWO.Basics
 @using FWO.Data
 @using FWO.Data.Labelling
+@using FWO.ExternalSystems.FirewallWrite
 @using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using FWO.Services
@@ -60,6 +61,10 @@
             <div class="row col-sm-8" data-toggle="tooltip" title="@(userConfig.PureLine("H5604b"))">
                 <label class="col-form-label col-sm-4">@(userConfig.GetText("groupLabelValueFormat")):</label>
                 <input type="text" maxlength="@LabelValueFormat.kMaxFormatLength" class="col-sm-3" @bind="configData!.GroupLabelValueFormat" />
+            </div>
+            <div class="row col-sm-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5604c"))">
+                <label class="col-form-label col-sm-8">@(userConfig.GetText("modComSvcSectionPrefix")):</label>
+                <input type="text" maxlength="@GuardicoreRulesets.kMaxCommonServicePrefixLength" class="col-sm-3" @bind="configData!.ModComSvcSectionPrefix" />
             </div>
         </div>
         <hr />
@@ -618,6 +623,8 @@ else
         configData!.VarianceAnalysisStartAt = varAnalysisDate.Date.Add(varAnalysisTime.TimeOfDay);
         configData!.RuleRecognitionOption = JsonSerializer.Serialize(ruleRecognitionOption);
         configData!.GroupLabelValueFormat = configData.GroupLabelValueFormat.Trim();
+        // an empty prefix would mix the rulesets of common services with those of the apps
+        configData!.ModComSvcSectionPrefix = GuardicoreRulesets.EffectivePrefix(configData.ModComSvcSectionPrefix);
     }
 
     private string PrepareAreas(List<CommonArea> areas, List<CommonArea> areasToDelete)

@@ -46,18 +46,37 @@ def get_rule_installon(mgm_details: ManagementController) -> str:
     raise FwoImporterError("Management details must contain a device name or management name/hostname.")
 
 
+def get_section(rule: GcRule) -> gc_const.GcSection:
+    section = gc_const.GC_SECTIONS.get(rule.section_position.upper())
+    if section is None:
+        raise FwoImporterError(f"Guardicore rule {rule.id} has unknown section position '{rule.section_position}'")
+    return section
+
+
+def get_ruleset_name(rule: GcRule) -> str:
+    return (rule.ruleset_name or gc_const.GC_RULESET_NAME_NONE).strip()
+
+
 def get_rulebase_name(rule: GcRule) -> str:
     """
     Name the rulebase of a rule after its section and ruleset (app), e.g. "04 Allow APP-1234".
 
-    The leading section number keeps the alphabetical order of the rulebases equal to the Guardicore evaluation order.
+    The leading section number keeps the order of the rulebases equal to the Guardicore evaluation order.
     """
-    section = gc_const.GC_SECTIONS.get(rule.section_position.upper())
-    if section is None:
-        raise FwoImporterError(f"Guardicore rule {rule.id} has unknown section position '{rule.section_position}'")
+    section = get_section(rule)
     name = f"{section.number:02d} {section.name}"
-    ruleset_name = (rule.ruleset_name or gc_const.GC_RULESET_NAME_NONE).strip()
+    ruleset_name = get_ruleset_name(rule)
     return f"{name} {ruleset_name}" if ruleset_name else name
+
+
+def get_rulebase_sort_key(rule: GcRule, common_service_prefix: str) -> tuple[int, bool, str]:
+    """
+    Order the rulebases by section, within a section the rulesets of common services (named with the prefix) first,
+    then alphabetically by ruleset, e.g. "04 Allow ComSvc Speiseplan (COM-1613)" before "04 Allow Exchange (COM-1611)".
+    """
+    ruleset_name = get_ruleset_name(rule)
+    is_common_service = ruleset_name.startswith(f"{common_service_prefix} ")
+    return get_section(rule).number, not is_common_service, ruleset_name
 
 
 def get_rule_action(rule: GcRule) -> RuleAction:
@@ -177,15 +196,18 @@ def normalize_rules(
     collector: GcNetworkObjectCollector,
     mgm_details: ManagementController,
     service_objects: dict[str, ServiceObject],
+    common_service_prefix: str = gc_const.GC_DEFAULT_COMMON_SERVICE_PREFIX,
 ) -> list[Rulebase]:
     """
-    Normalize the Guardicore segmentation rules into one rulebase per section and ruleset, sorted by name.
+    Normalize the Guardicore segmentation rules into one rulebase per section and ruleset, sorted by section, within a
+    section the rulesets of common services first and then by name (see get_rulebase_sort_key).
 
     Rules keep the order the API returns them in, which is the evaluation order within a section.
     The services used by the rules are added to service_objects.
     """
     rule_installon = get_rule_installon(mgm_details)
     rulebases: dict[str, Rulebase] = {}
+    sort_keys: dict[str, tuple[int, bool, str]] = {}
     for rule in native_config.rules:
         services = build_rule_services(rule)
         if len(services) == 0:
@@ -197,8 +219,9 @@ def normalize_rules(
         rulebase = rulebases.setdefault(
             rulebase_name, Rulebase(uid=rulebase_name, name=rulebase_name, mgm_uid=mgm_details.uid, rules={})
         )
+        sort_keys.setdefault(rulebase_name, get_rulebase_sort_key(rule, common_service_prefix))
         rulebase.rules[rule.id] = normalize_rule(rule, collector, services, rule_installon)
-    return [rulebases[name] for name in sorted(rulebases)]
+    return [rulebases[name] for name in sorted(rulebases, key=lambda name: sort_keys[name])]
 
 
 def build_rulebase_links(rulebases: list[Rulebase]) -> list[RulebaseLinkUidBased]:

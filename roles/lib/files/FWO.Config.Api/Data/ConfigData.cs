@@ -65,6 +65,10 @@ namespace FWO.Config.Api.Data
         [JsonProperty("groupLabelValueFormat"), JsonPropertyName("groupLabelValueFormat")]
         public string GroupLabelValueFormat { get; set; } = LabelValueFormat.kDefault;
 
+        /// <summary>Prefix of the Guardicore rulesets of common services, see the positioning algorithm gcEndOfAppRulesetCommonSvc.</summary>
+        [JsonProperty("modComSvcSectionPrefix"), JsonPropertyName("modComSvcSectionPrefix")]
+        public string ModComSvcSectionPrefix { get; set; } = "ComSvc";
+
         [JsonProperty("labelBasedModelling"), JsonPropertyName("labelBasedModelling")]
         public bool LabelBasedModelling { get; set; } = false;
 

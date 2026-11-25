@@ -23,7 +23,9 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// Loads the target through the API: the management with its export credentials and gateways, and the device
     /// specific settings resolved along Global, device type, management and gateway.
     /// </summary>
-    public sealed class ApiFirewallWriteDataSource(ApiConnection apiConnection) : IFirewallWriteDataSource
+    /// <param name="apiConnection">Api connection.</param>
+    /// <param name="commonServicePrefix">Configured prefix of the Guardicore rulesets of common services (modComSvcSectionPrefix).</param>
+    public sealed class ApiFirewallWriteDataSource(ApiConnection apiConnection, string? commonServicePrefix = null) : IFirewallWriteDataSource
     {
         private static readonly FrozenSet<string> kGroupTaskTypes =
             [nameof(WfTaskType.group_create), nameof(WfTaskType.group_modify), nameof(WfTaskType.group_delete)];
@@ -88,7 +90,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             FirewallGatewayRulebases rulebases = gateway == null ? FirewallGatewayRulebases.None : await LoadRulebases(gateway);
             Dictionary<string, string> ruleLayerUids = await LoadRuleLayers(implTask, management);
             WfReqTask? requestTask = await LoadRequestTaskInfo(implTask);
-            (string? connectionMarker, string? extAppId) = await LoadModelledConnection(implTask, requestTask, management);
+            (string? connectionMarker, GuardicoreRulesetApp? app) = await LoadModelledConnection(implTask, requestTask, management);
             bool isGroupTask = kGroupTaskTypes.Contains(implTask.TaskType);
             return new FirewallWriteContext
             {
@@ -103,7 +105,10 @@ namespace FWO.ExternalSystems.FirewallWrite
                 LabelName = isGroupTask ? NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.LabelName)) : null,
                 FormerLabelName = isGroupTask ? NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.FormerLabelName)) : null,
                 ConnectionMarker = connectionMarker,
-                ExtAppId = extAppId
+                ExtAppId = NonBlank(app?.ExtAppId),
+                AppName = NonBlank(app?.Name),
+                IsCommonService = app?.IsCommonService ?? false,
+                CommonServicePrefix = commonServicePrefix
             };
         }
 
@@ -126,13 +131,14 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <summary>
         /// Loads the modelled connection of a rule task of a management that writes labels, whose writer finds, replaces and
         /// deletes the rules of the connection by its marker: the marker of the request task (<c>ConnMarker</c>) and the
-        /// external app id of the owner of the connection, the ruleset of its rules. The request task data can be changed by
+        /// owner of the connection (name and external app id) and whether it is a common service, which name the ruleset of
+        /// its rules (see <see cref="GuardicoreRulesets"/>). The request task data can be changed by
         /// several roles, so the marker has to name exactly the connection of the request task (<c>ConnId</c>), and the
         /// connection has to belong to an owner of the request task. Other tasks and tasks without marker have none.
         /// </summary>
         /// <exception cref="FirewallWriteException">Thrown if the marker names another connection or the connection does not
         /// exist or belongs to none of the owners of the request task.</exception>
-        private async Task<(string? Marker, string? ExtAppId)> LoadModelledConnection(WfImplTask implTask, WfReqTask? requestTask, Management management)
+        private async Task<(string? Marker, GuardicoreRulesetApp? App)> LoadModelledConnection(WfImplTask implTask, WfReqTask? requestTask, Management management)
         {
             string? marker = NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.ConnMarker));
             if (requestTask == null || marker == null || !kRuleTaskTypes.Contains(implTask.TaskType) || !FirewallVendors.WritesLabels(management.DeviceType.Id))
@@ -156,7 +162,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
                     $"Implementation task {implTask.Id}: the connection {connectionId} belongs to none of the owners of its request task.");
             }
-            return (marker, NonBlank(connection.App.ExtAppId));
+            return (marker, new GuardicoreRulesetApp(connection.App.Name, connection.App.ExtAppId, connection.IsCommonService));
         }
 
         private static string? NonBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

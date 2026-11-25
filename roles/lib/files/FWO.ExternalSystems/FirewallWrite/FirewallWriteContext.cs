@@ -55,8 +55,17 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// </summary>
         public string? ConnectionMarker { get; init; }
 
-        /// <summary>External app id of the owner of the modelled connection of such a rule task (e.g. "APP-1234"), its ruleset.</summary>
+        /// <summary>External app id of the owner of the modelled connection of such a rule task (e.g. "APP-1234"), part of its ruleset.</summary>
         public string? ExtAppId { get; init; }
+
+        /// <summary>Name of the owner of the modelled connection of such a rule task, part of its ruleset (see <see cref="GuardicoreRulesets"/>).</summary>
+        public string? AppName { get; init; }
+
+        /// <summary>Whether the modelled connection of such a rule task is a common service, which may get a ruleset of its own.</summary>
+        public bool IsCommonService { get; init; }
+
+        /// <summary>Configured prefix of the rulesets of common services; null for the default.</summary>
+        public string? CommonServicePrefix { get; init; }
 
         /// <summary>Layer uid of each existing rule of the task by rule uid, from the imported configuration.</summary>
         public IReadOnlyDictionary<string, string> RuleLayerUids { get; init; } = new Dictionary<string, string>();

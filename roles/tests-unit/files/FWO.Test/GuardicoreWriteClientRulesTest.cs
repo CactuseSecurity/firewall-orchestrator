@@ -83,8 +83,70 @@ namespace FWO.Test
             return simulation;
         }
 
-        private static Task<ModifyFirewallResult> Write(FirewallSimulation simulation, WfImplTask task) =>
-            new FirewallWriter(new FixedFirewallWriteDataSource(Context()), new SimulatedFirewallWriteClientFactory(simulation)).ModifyFirewall(task);
+        private static Task<ModifyFirewallResult> Write(FirewallSimulation simulation, WfImplTask task, FirewallWriteContext? context = null) =>
+            new FirewallWriter(new FixedFirewallWriteDataSource(context ?? Context()), new SimulatedFirewallWriteClientFactory(simulation)).ModifyFirewall(task);
+
+        /// <summary>The context of a connection of the app Exchange with the positioning algorithm of app rulesets.</summary>
+        private static FirewallWriteContext AppRulesetContext(bool isCommonService = false, string? prefix = null) =>
+            Context() with
+            {
+                Settings = new GatewayDeviceSpecificSettings
+                {
+                    FwWriteDeleteObjects = true,
+                    PositioningAlgorithm = ProvisioningPositioningAlgorithm.GuardicoreEndOfAppRulesetDistinguishCommonServices
+                },
+                ExtAppId = "COM-1611",
+                AppName = "Exchange",
+                IsCommonService = isCommonService,
+                CommonServicePrefix = prefix
+            };
+
+        private static List<string> CreatedRulesets(FirewallSimulation simulation) =>
+            [.. Calls(simulation, Method.Post, kRulesPath).Select(request => JsonNode.Parse(request.Body!)!["ruleset_name"]!.GetValue<string>()).Distinct()];
+
+        [TestCase(false, null, "Exchange (COM-1611)")]
+        [TestCase(true, null, "ComSvc Exchange (COM-1611)")]
+        [TestCase(true, " CS ", "CS Exchange (COM-1611)")]
+        public async Task AppRulesets_NameTheAppAndSeparateCommonServices(bool isCommonService, string? prefix, string expectedRuleset)
+        {
+            FirewallSimulation simulation = Simulation([]);
+
+            ModifyFirewallResult result = await Write(simulation, AccessTask(), AppRulesetContext(isCommonService, prefix));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(CreatedRulesets(simulation), Is.EqualTo(new List<string> { expectedRuleset }));
+            });
+        }
+
+        [Test]
+        public async Task RulesInAnotherRuleset_AreMovedToTheAppRuleset()
+        {
+            JsonObject udp = WrittenTcpRule("r-udp");
+            udp["ip_protocols"] = new JsonArray("UDP");
+            udp["ports"] = new JsonArray(53);
+            FirewallSimulation simulation = Simulation([WrittenTcpRule("r-tcp"), udp]);
+
+            ModifyFirewallResult result = await Write(simulation, AccessTask(), AppRulesetContext());
+
+            List<string> movedTo = [.. simulation.Requests.Where(request => request.Method == Method.Put && request.Resource.StartsWith(kRulesPath + "/", StringComparison.Ordinal))
+                .Select(request => JsonNode.Parse(request.Body!)!["ruleset_name"]!.GetValue<string>())];
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(movedTo, Is.EqualTo(new List<string> { "Exchange (COM-1611)", "Exchange (COM-1611)" }), "both rules keep their ids");
+                Assert.That(Calls(simulation, Method.Post, kRulesPath), Is.Empty, "no rule is created");
+            });
+        }
+
+        [Test]
+        public async Task RulesWithoutAppId_AreInvalidTaskData()
+        {
+            ModifyFirewallResult result = await Write(Simulation([]), AccessTask(), AppRulesetContext() with { ExtAppId = " " });
+
+            Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+        }
 
         private static List<RecordedFirewallRequest> Calls(FirewallSimulation simulation, Method method, string resource) =>
             [.. simulation.Requests.Where(request => request.Method == method && request.Resource == resource)];

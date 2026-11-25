@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from fw_modules.guardicoremanagementREST import gc_const
 from fw_modules.guardicoremanagementREST.gc_network import GcNetworkObjectCollector
 from fw_modules.guardicoremanagementREST.gc_rule import build_rulebase_links, get_rule_installon, normalize_rules
 from fwo_log import FWOLogger
@@ -19,7 +20,11 @@ def normalize_labels(native_config: GuardicoreConfig) -> list[LabelNormalized]:
     return [LabelNormalized(key_name=label.key, value=label.value) for label in native_config.labels]
 
 
-def normalize_config(native_config: GuardicoreConfig, mgm_details: ManagementController) -> FwConfigNormalized:
+def normalize_config(
+    native_config: GuardicoreConfig,
+    mgm_details: ManagementController,
+    common_service_prefix: str = gc_const.GC_DEFAULT_COMMON_SERVICE_PREFIX,
+) -> FwConfigNormalized:
     """
     Normalize a Guardicore configuration.
 
@@ -30,6 +35,7 @@ def normalize_config(native_config: GuardicoreConfig, mgm_details: ManagementCon
     Args:
         native_config (GuardicoreConfig): The native Guardicore configuration.
         mgm_details (ManagementController): The management details object.
+        common_service_prefix (str): Prefix of the rulesets of common services, whose rulebases come first in a section.
 
     Returns:
         FwConfigNormalized: The normalized configuration.
@@ -40,7 +46,7 @@ def normalize_config(native_config: GuardicoreConfig, mgm_details: ManagementCon
     collector.add_label_groups()
 
     service_objects: dict[str, ServiceObject] = {}
-    rulebases = normalize_rules(native_config, collector, mgm_details, service_objects)
+    rulebases = normalize_rules(native_config, collector, mgm_details, service_objects, common_service_prefix)
 
     normalized_config.network_objects = collector.network_objects
     normalized_config.service_objects = service_objects

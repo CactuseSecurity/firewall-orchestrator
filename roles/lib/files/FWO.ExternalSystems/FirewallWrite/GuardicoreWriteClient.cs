@@ -100,27 +100,51 @@ namespace FWO.ExternalSystems.FirewallWrite
         private async Task<FirewallStepResult> WriteLabel(RenderedFirewallRequest request)
         {
             (string key, string value) = LabelOf(request);
+            LabelLookup lookup = await FindOrRenameLabel(request, key, value);
+            if (lookup.FailedRename != null)
+            {
+                return lookup.FailedRename;
+            }
+            return lookup.Label == null
+                ? await base.Execute(request)
+                : await WriteExistingLabel(request, key, value, lookup.Label, lookup.RenameNote);
+        }
+
+        /// <summary>The label of a label write, after renaming the label of its former value if needed.</summary>
+        /// <param name="Label">The existing label, null if the label is to be created.</param>
+        /// <param name="RenameNote">Note on the rename, empty if the label was not renamed.</param>
+        /// <param name="FailedRename">The result of a failed rename, which fails the step.</param>
+        private sealed record LabelLookup(JsonObject? Label, string RenameNote, FirewallStepResult? FailedRename);
+
+        /// <summary>
+        /// Looks the label up by its value; if it does not exist and the step names a former value, the label of the former
+        /// value is renamed in place.
+        /// </summary>
+        private async Task<LabelLookup> FindOrRenameLabel(RenderedFirewallRequest request, string key, string value)
+        {
             JsonObject? label = await FindLabel(request, key, value);
-            string renameNote = "";
             string? formerValue = request.Step.FormerLabelValue;
-            if (label == null && !string.IsNullOrWhiteSpace(formerValue))
+            if (label != null || string.IsNullOrWhiteSpace(formerValue))
             {
-                label = await FindLabel(request, key, formerValue);
-                if (label != null)
-                {
-                    FirewallStepResult renamed = await RenameLabel(request, label, key, value);
-                    if (!renamed.Success)
-                    {
-                        return renamed;
-                    }
-                    label["value"] = value;
-                    renameNote = $"Renamed from '{key}{DynamicIpLabel.kKeyValueSeparator}{formerValue}'.";
-                }
+                return new(label, "", null);
             }
-            if (label == null)
+            JsonObject? formerLabel = await FindLabel(request, key, formerValue);
+            if (formerLabel == null)
             {
-                return await base.Execute(request);
+                return new(null, "", null);
             }
+            FirewallStepResult renamed = await RenameLabel(request, formerLabel, key, value);
+            if (!renamed.Success)
+            {
+                return new(null, "", renamed);
+            }
+            formerLabel["value"] = value;
+            return new(formerLabel, $"Renamed from '{key}{DynamicIpLabel.kKeyValueSeparator}{formerValue}'.", null);
+        }
+
+        /// <summary>Sets the IP criteria of an existing label to the target addresses, if they differ.</summary>
+        private async Task<FirewallStepResult> WriteExistingLabel(RenderedFirewallRequest request, string key, string value, JsonObject label, string renameNote)
+        {
             bool ownsAssignments = new DynamicIpLabel(key, value).ObjectType != null;
             GuardicoreLabelUpdate update = GuardicoreLabelCriteria.PlanUpdate(label, GuardicoreLabelCriteria.ParseEntries(request.Step.MembersToAdd),
                 GuardicoreLabelCriteria.ParseEntries(request.Step.MembersToRemove), request.Step.ReplacesMembers, ownsAssignments);

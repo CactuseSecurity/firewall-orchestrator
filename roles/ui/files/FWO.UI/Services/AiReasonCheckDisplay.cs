@@ -1,12 +1,14 @@
 using FWO.Ai.Client;
 using FWO.Ai.Client.ReasonChecks;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
+using FWO.Data.Ai;
 
 namespace FWO.Ui.Services
 {
     /// <summary>
-    /// Texts and styles of the AI reason check (<c>AiReasonCheck</c> component): verdict badges and the messages shown
-    /// when a check cannot be done.
+    /// Texts, styles and availability of the AI reason check (<c>AiReasonCheck</c> component): verdict badges and the
+    /// messages shown when a check cannot be done.
     /// </summary>
     public static class AiReasonCheckDisplay
     {
@@ -83,6 +85,17 @@ namespace FWO.Ui.Services
             AgentClientFailure.RateLimited,
             AgentClientFailure.RequestTooLarge
         ];
+
+        /// <summary>
+        /// Returns whether the reason check is offered: it is switched on in the AI settings, allowed there for one of
+        /// the roles of the user, and an AI provider is configured. The AI harness refuses runs of the reason check while
+        /// it is switched off or not allowed for the roles of the user, whatever the UI shows.
+        /// </summary>
+        /// <param name="userConfig">Config of the user, holding the global AI settings and the roles of the user</param>
+        public static bool IsAvailable(UserConfig userConfig)
+        {
+            return userConfig.MayUseAiReasonCheck(userConfig.User.Roles) && userConfig.AiProvider != AiProvider.None;
+        }
 
         /// <summary>
         /// Returns the text key of the label of a verdict.

@@ -212,12 +212,30 @@ namespace FWO.Test
             Assert.That(component.FindComponents<AiReasonCheck>(), Is.Empty);
         }
 
+        /// <summary>
+        /// Verifies that the reason check is not shown while no AI provider is configured, even if it is switched on.
+        /// </summary>
+        [Test]
+        public async Task EditConn_AiReasonCheckOnWithoutProvider_DoesNotShowTheCheck()
+        {
+            await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
+            userConfig.AiReasonCheckEnabled = true;
+            userConfig.AiProvider = AiProvider.None;
+            RegisterAiReasonCheckServices(context);
+            ModellingConnection connection = new() { Name = "conn", Reason = "reason" };
+            ModellingConnectionHandler handler = CreateConnectionHandler(new SimulatedApiConnection(), userConfig, connection, readOnly: true);
+
+            IRenderedComponent<EditConn> component = RenderEditConn(context, handler, display: true);
+
+            Assert.That(component.FindComponents<AiReasonCheck>(), Is.Empty);
+        }
+
         [TestCase(true)]
         [TestCase(false)]
         public async Task EditConn_AiReasonCheckOn_ChecksTheReasonOfTheConnection(bool readOnly)
         {
             await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
-            userConfig.AiReasonCheckEnabled = true;
+            SwitchOnAiReasonCheck(userConfig);
             userConfig.User.Language = "German";
             ScriptedChatClient chatClient = RegisterAiReasonCheckServices(context);
             ModellingConnection connection = new() { Name = "conn", Reason = "nightly backup", IsInterface = true };
@@ -244,7 +262,7 @@ namespace FWO.Test
         public async Task EditConn_AiReasonCheckLimitedToRoles_ShowsTheCheckOnlyForThem(string userRole, bool expectedShown)
         {
             await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
-            userConfig.AiReasonCheckEnabled = true;
+            SwitchOnAiReasonCheck(userConfig);
             userConfig.AiReasonCheckRoles = AiFunctionRoles.Serialize(kModellerRoles);
             userConfig.User.Roles = [userRole];
             RegisterAiReasonCheckServices(context);
@@ -260,7 +278,7 @@ namespace FWO.Test
         public async Task EditConn_AiReasonCheckOnWithoutReason_DisablesTheCheck()
         {
             await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
-            userConfig.AiReasonCheckEnabled = true;
+            SwitchOnAiReasonCheck(userConfig);
             RegisterAiReasonCheckServices(context);
             ModellingConnection connection = new() { Name = "conn", Reason = "" };
             ModellingConnectionHandler handler = CreateConnectionHandler(new SimulatedApiConnection(), userConfig, connection, readOnly: true);
@@ -274,7 +292,7 @@ namespace FWO.Test
         public async Task EditConn_AiReasonCheckOnEditingWithoutReason_ShowsMessageInsteadOfRunning()
         {
             await using BunitContext context = CreateContext(out _, out SimulatedUserConfig userConfig);
-            userConfig.AiReasonCheckEnabled = true;
+            SwitchOnAiReasonCheck(userConfig);
             ScriptedChatClient chatClient = RegisterAiReasonCheckServices(context);
             ModellingConnection connection = new() { Name = "conn", Reason = "" };
             ModellingConnectionHandler handler = CreateConnectionHandler(new SimulatedApiConnection(), userConfig, connection, readOnly: false);
@@ -284,6 +302,15 @@ namespace FWO.Test
 
             Assert.That(component.Find(".ai-check-message"), Is.Not.Null);
             Assert.That(chatClient.Calls, Is.Empty);
+        }
+
+        /// <summary>
+        /// Switches the reason check on and configures an AI provider, both needed to show the check.
+        /// </summary>
+        private static void SwitchOnAiReasonCheck(SimulatedUserConfig userConfig)
+        {
+            userConfig.AiReasonCheckEnabled = true;
+            userConfig.AiProvider = AiProvider.OpenAi;
         }
 
         private static ScriptedChatClient RegisterAiReasonCheckServices(BunitContext context)

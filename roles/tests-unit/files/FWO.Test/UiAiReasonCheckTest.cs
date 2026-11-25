@@ -3,7 +3,9 @@ using AngleSharp.Dom;
 using Bunit;
 using FWO.Ai.Client;
 using FWO.Ai.Client.ReasonChecks;
+using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Data.Ai;
 using FWO.Ui.Services;
 using FWO.Ui.Shared;
 using Microsoft.Extensions.AI;
@@ -15,7 +17,7 @@ using System.Threading.Channels;
 namespace FWO.Test
 {
     /// <summary>
-    /// Tests of the AI reason check component: streaming, verdicts, output encoding, failures and cancelling.
+    /// Tests of the AI reason check component: availability, streaming, verdicts, output encoding, failures and cancelling.
     /// </summary>
     [TestFixture]
     internal class UiAiReasonCheckTest
@@ -58,6 +60,16 @@ namespace FWO.Test
             new TestCaseData("Verdict: NOT_GENUINE\nNo purpose", "bg-danger", "ai_verdict_not_genuine").SetName("Verdict_NotGenuine"),
             new TestCaseData("The answer names no verdict.", "bg-secondary", "ai_verdict_unknown").SetName("Verdict_Unknown")
         ];
+
+        private static readonly List<TestCaseData> kAvailabilityCases =
+        [
+            new TestCaseData(true, AiProvider.Ollama, true).SetName("IsAvailable_OnWithProvider"),
+            new TestCaseData(true, AiProvider.None, false).SetName("IsAvailable_OnWithoutProvider"),
+            new TestCaseData(false, AiProvider.Anthropic, false).SetName("IsAvailable_OffWithProvider"),
+            new TestCaseData(false, AiProvider.None, false).SetName("IsAvailable_OffWithoutProvider")
+        ];
+
+        private static readonly List<string> kModellerRoles = [Roles.Modeller];
 
         private static readonly List<TestCaseData> kFailureCases =
         [
@@ -412,6 +424,35 @@ namespace FWO.Test
 
             WaitUntil(check, () => check.FindAll(kVerdictBadge).Count == 1);
             Assert.That(check.FindAll(kMessage), Is.Empty);
+        }
+
+        /// <summary>
+        /// Verifies that the reason check is offered only while it is switched on and an AI provider is configured.
+        /// </summary>
+        [TestCaseSource(nameof(kAvailabilityCases))]
+        public void AiReasonCheckDisplay_IsAvailable_NeedsTheSwitchAndAProvider(bool reasonCheckEnabled, AiProvider provider, bool expected)
+        {
+            SimulatedUserConfig userConfig = new() { AiReasonCheckEnabled = reasonCheckEnabled, AiProvider = provider };
+
+            Assert.That(AiReasonCheckDisplay.IsAvailable(userConfig), Is.EqualTo(expected));
+        }
+
+        /// <summary>
+        /// Verifies that a reason check limited to roles is offered only to a user holding one of them.
+        /// </summary>
+        [TestCase(Roles.Modeller, true)]
+        [TestCase(Roles.Reporter, false)]
+        public void AiReasonCheckDisplay_IsAvailable_NeedsOneOfTheRolesOfTheCheck(string userRole, bool expected)
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                AiReasonCheckEnabled = true,
+                AiProvider = AiProvider.OpenAi,
+                AiReasonCheckRoles = AiFunctionRoles.Serialize(kModellerRoles)
+            };
+            userConfig.User.Roles = [userRole];
+
+            Assert.That(AiReasonCheckDisplay.IsAvailable(userConfig), Is.EqualTo(expected));
         }
 
         [Test]

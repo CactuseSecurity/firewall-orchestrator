@@ -678,7 +678,9 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
     <li>Die interne CA kann ohne Unterbrechung der Verbindungen zwischen den Firewall-Orchestrator-Komponenten ersetzt werden: ein Upgrade mit <code>internalca_ca_rotation=prepare</code> verteilt die neue CA an alle Hosts, ein zweites mit <code>internalca_ca_rotation=activate</code> stellt alle Zertifikate auf sie um und entzieht danach der bisherigen CA das Vertrauen.</li>
     <li>UI und Middleware protokollieren bei An- und Abmeldungen die tats&auml;chliche Adresse des Clients statt 127.0.0.1 bzw. der Adresse des UI-Servers. Anmeldungen &uuml;ber die UI werden dadurch je Client-Adresse begrenzt (Standard: 30 Versuche pro Minute); Benutzer hinter einer gemeinsamen Adresse (NAT, Terminalserver, vorgeschalteter Reverse Proxy) teilen sich dieses Limit.</li>
     <li>Modellierung: Der Report &quot;Modell: Soll-Ist&quot;, der Verbindungsstatus (&quot;Status aktualisieren&quot; und die Hintergrund-Analyse) und die Beantragung analysieren nun dieselben Verbindungen auf dieselbe Weise und beachten einheitlich die Einstellung &quot;Gel&ouml;schte App Server ausrollen&quot;. Verbindungen mit Modellierungsproblemen (z.B. leere App-Rollen, gel&ouml;schte Objekte, nicht nutzbare Schnittstellen) f&uuml;hrt der Report mit Grund unter &quot;Nicht analysierte Verbindungen&quot; auf; ihr Verbindungsstatus zeigt kein Soll-Ist-Ergebnis mehr. Reine Dokumentations-Verbindungen werden im Report nicht mehr verglichen. Mit der Option &quot;Gruppen aufl&ouml;sen&quot; z&auml;hlt eine Gruppe in Produktion mit zus&auml;tzlichen Mitgliedern als Abweichung, eine Gruppe mit genau den modellierten Mitgliedern dagegen nicht.</li>
+    <li>Benachrichtigungen: F&uuml;r jede Email-Benachrichtigung kann eine Email-Priorit&auml;t (Niedrig, Normal, Hoch) eingestellt werden. Niedrig und Hoch setzen die Header Importance, Priority und X-Priority, die g&auml;ngige Email-Programme als Markierung anzeigen.</li>
     <li>Workflow: Die Referenz auf ein Ticket eines vorgelagerten Workflows (z.B. bei Anlage &uuml;ber die API) kann angezeigt werden. Ist in den Workflow-Anpassungen eine Bezeichnung (z.B. &quot;ChangeId&quot;) eingetragen, erscheint die Referenz im Ticket-Dialog, als Spalte der Ticketliste und in der &Uuml;berschrift der Auftragsansichten.</li>
+    <li>Oberfl&auml;che: Dialoge lassen sich am oberen Rand verschieben und &uuml;ber die rechte untere Ecke in der Gr&ouml;&szlig;e &auml;ndern; Titel und Schlie&szlig;en-Knopf bleiben beim Scrollen sichtbar. Die Einstellungsseiten haben ein einheitliches Layout mit b&uuml;ndig ausgerichteten Eingabefeldern, Schaltern f&uuml;r Ja/Nein-Einstellungen und gruppierten Auswahlfeldern. Das Anmeldefeld steht im oberen Drittel der Seite.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -719,7 +721,9 @@ INSERT INTO txt VALUES ('whats_new_facts', 'English', '
     <li>The internal CA can be replaced without interrupting the connections between the Firewall Orchestrator components: an upgrade with <code>internalca_ca_rotation=prepare</code> distributes the new CA to every host, a second one with <code>internalca_ca_rotation=activate</code> switches all certificates to it and then withdraws trust in the previous CA.</li>
     <li>UI and middleware log the real address of the client with logins and logouts instead of 127.0.0.1 or the address of the UI server. Logins through the UI are thereby limited per client address (default: 30 attempts per minute); users behind one shared address (NAT, terminal server, an upstream reverse proxy) share that limit.</li>
     <li>Modelling: the report &quot;Model: Variances&quot;, the connection state (&quot;Refresh State&quot; and the background analysis) and the request now analyse the same connections in the same way and all follow the setting &quot;Rollout removed App Servers&quot;. The report lists connections with modelling issues (e.g. empty app roles, deleted objects, unusable interfaces) with their reason under &quot;Connections not analysed&quot;; their connection state no longer shows a variance result. Documentation-only connections are no longer compared in the report. With the option &quot;Resolve Groups&quot;, a production group with additional members counts as a difference, while a group with exactly the modelled members does not.</li>
+    <li>Notifications: an email priority (low, normal, high) can be set for each email notification. Low and high set the headers Importance, Priority and X-Priority, which common email clients display as a marker.</li>
     <li>Workflow: the reference to a ticket of a preceding workflow (e.g. when created via the API) can be displayed. If a label (e.g. &quot;ChangeId&quot;) is entered in Workflow Customizing, the reference is shown in the ticket dialog, as a column of the ticket list and in the headline of the task views.</li>
+    <li>User interface: dialogs can be moved by their top edge and resized by their lower right corner; title and close button stay visible while scrolling. The settings pages have a uniform layout with aligned input fields, switches for yes/no settings and grouped check boxes. The login form is placed in the upper third of the page.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -1018,6 +1022,10 @@ INSERT INTO txt VALUES ('rule_added',           'German', 	'Regel hinzugef&uuml;
 INSERT INTO txt VALUES ('rule_added',           'English', 	'Rule added');
 INSERT INTO txt VALUES ('rule_modified',        'German', 	'Regel modifiziert');
 INSERT INTO txt VALUES ('rule_modified',        'English', 	'Rule modified');
+INSERT INTO txt VALUES ('rule_version_before_change', 'German', 	'vor &Auml;nderung');
+INSERT INTO txt VALUES ('rule_version_before_change', 'English', 	'before change');
+INSERT INTO txt VALUES ('rule_version_after_change', 'German', 	'nach &Auml;nderung');
+INSERT INTO txt VALUES ('rule_version_after_change', 'English', 	'after change');
 INSERT INTO txt VALUES ('statistics',		    'German', 	'Statistik');
 INSERT INTO txt VALUES ('statistics',		    'English', 	'Statistics');
 INSERT INTO txt VALUES ('natrules',		        'German', 	'NAT-Regeln');
@@ -3809,6 +3817,10 @@ INSERT INTO txt VALUES ('existing_violation_hidden_by_filter_not_assessable', 'G
 INSERT INTO txt VALUES ('existing_violation_hidden_by_filter_not_assessable', 'English', 'Not assessable (existing violation hidden by filter setting)');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','German', 'Relevante Managements');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','English','Relevant managements');
+INSERT INTO txt VALUES ('complianceCheckElementsPerFetch','German', 'Pro Abruf geladene Elemente');
+INSERT INTO txt VALUES ('complianceCheckElementsPerFetch','English','Elements per fetch');
+INSERT INTO txt VALUES ('complianceCheckAvailableProcessors','German', 'Verf&uuml;gbare Prozessoren');
+INSERT INTO txt VALUES ('complianceCheckAvailableProcessors','English','Available processors');
 INSERT INTO txt VALUES ('autoCalcInternetZone','German', 'Internetzone automatisch berechnen');
 INSERT INTO txt VALUES ('autoCalcInternetZone','English','Auto-calculate internet zone');
 INSERT INTO txt VALUES ('add_auto_calculated_internet_zone', 'German', 'Auto-berechnete Internetzone hinzuf&uuml;gen');
@@ -3918,6 +3930,14 @@ INSERT INTO txt VALUES ('send_and_log',         'German', 	'Senden und protokoll
 INSERT INTO txt VALUES ('send_and_log',         'English',  'Send and log');
 INSERT INTO txt VALUES ('log_only',             'German', 	'Nur protokollieren');
 INSERT INTO txt VALUES ('log_only',             'English',  'Log only');
+INSERT INTO txt VALUES ('email_priority',       'German', 	'Email-Priorit&auml;t');
+INSERT INTO txt VALUES ('email_priority',       'English',  'Email priority');
+INSERT INTO txt VALUES ('email_priority_low',   'German', 	'Niedrig');
+INSERT INTO txt VALUES ('email_priority_low',   'English',  'Low');
+INSERT INTO txt VALUES ('email_priority_normal','German', 	'Normal');
+INSERT INTO txt VALUES ('email_priority_normal','English',  'Normal');
+INSERT INTO txt VALUES ('email_priority_high',  'German', 	'Hoch');
+INSERT INTO txt VALUES ('email_priority_high',  'English',  'High');
 INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bearbeiten');
 INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
 INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
@@ -5012,6 +5032,8 @@ INSERT INTO txt VALUES ('E2001', 'German',  'Bitte eine Vorlage ausw&auml;hlen')
 INSERT INTO txt VALUES ('E2001', 'English', 'Please select a template');
 INSERT INTO txt VALUES ('E2002', 'German',  'Reporttermin gespeichert, aber die Benachrichtigungs-Einstellungen konnten nicht aktualisiert werden.');
 INSERT INTO txt VALUES ('E2002', 'English', 'Report schedule saved, but notification settings could not be updated.');
+INSERT INTO txt VALUES ('E2003', 'German',  'Das Wiederholungsintervall muss mindestens 1 sein');
+INSERT INTO txt VALUES ('E2003', 'English', 'The repeat interval must be at least 1');
 
 INSERT INTO txt VALUES ('E4001', 'German',  'Bitte Kommentar hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('E4001', 'English', 'Please insert a comment');
@@ -6064,6 +6086,10 @@ INSERT INTO txt VALUES ('H1527', 'English', 'In the Rules report, Rules view cho
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.
     Im Reiter "Regel" sind dann nur die Objekte der in der Reportausgabe ausgew&auml;hlten Regeln dargestellt.<br>
+    In &Auml;nderungsreports zeigt der Reiter "Report" die Objekte der ge&auml;nderten Regeln in ihren Versionen vor und nach der &Auml;nderung sowie die ge&auml;nderten Objekte selbst.
+    Die Objekt-Links im Report verweisen auf diese Eintr&auml;ge.
+    Wird eine ge&auml;nderte Regel im Report ausgew&auml;hlt, zeigt der Reiter "Regel" ihre Versionen vor und nach der &Auml;nderung.<br>
+    Die Reiter "Report" und "Regel" erscheinen erst, nachdem ein Report erstellt wurde.<br>
     ("Alle"- und "Regel"-Reiter werden mit derselben Funktionalit&auml;t auch im Rezertifizierungsdialog angeboten).<br>
     In eigent&uuml;merbasierten Reports erscheint der Reiter "Benutzte Objekte", in dem alle in den Verbindungen verwendeten Objekte aufgelistet werden.<br>
     Folgende Daten werden soweit verf&uuml;gbar dargestellt, gruppiert nach den ausgew&auml;hlten Devices:
@@ -6071,6 +6097,10 @@ INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere R
 INSERT INTO txt VALUES ('H1601', 'English', 'There are several tabs shown in the right sidebar, depending on the report type: In rule based reports the "All" tab displays all currently fetched objects,
     whereas in the "Report" tab only the objects of the rules of the report are shown.
     In the "Rule" tab only objects of rules selected in the report output are dispalyed.<br>
+    In change reports the "Report" tab shows the objects of the changed rules in their versions before and after the change as well as the changed objects themselves.
+    The object links in the report point to these entries.
+    If a changed rule is selected in the report, the "Rule" tab shows its versions before and after the change.<br>
+    The "Report" and "Rule" tabs only appear after a report has been generated.<br>
     ("All" and "Rule" tab are also offered in the Recertification dialogue with the same functionality).<br>
     In owner based reports the Tab "Used Objects" is displayed, where all objects used in the connections are listed.<br>
     The following data are displayed if available, grouped by the selected devices:
@@ -6101,10 +6131,10 @@ INSERT INTO txt VALUES ('H2012', 'English', 'Start date and time: First executio
     Be aware of selecting some minutes ahead if execution should start by today, as there may be a timer delay of some minutes.
 ');
 INSERT INTO txt VALUES ('H2013', 'German',  'Wiederholungsintervall: Es k&ouml;nnen Abst&auml;nde in Tagen, Wochen, Monaten oder Jahren ausgew&auml;hlt werden.
-    Wenn "Niemals" gew&auml;hlt wird, wird der Auftrag nur einmal ausgef&uuml;hrt.
+    Die Anzahl muss mindestens 1 sein. Wenn "Niemals" gew&auml;hlt wird, wird der Auftrag nur einmal ausgef&uuml;hrt.
 ');
 INSERT INTO txt VALUES ('H2013', 'English', 'Repetition interval: Intervals in days, weeks, months or years can be selected.
-    If "Never" is selected, only one execution is scheduled.
+    The number must be at least 1. If "Never" is selected, only one execution is scheduled.
 ');
 INSERT INTO txt VALUES ('H2014', 'German',  'Vorlagen: Hier muss eine der vorbereiteten <a href="/help/reporting/templates">Vorlagen</a> ausgew&auml;hlt werden.');
 INSERT INTO txt VALUES ('H2014', 'English', 'Templates: Here one of the prepared <a href="/help/reporting/templates">Templates</a> has to be selected.');
@@ -6593,6 +6623,8 @@ INSERT INTO txt VALUES ('H4110', 'German',  'Email-Inhalt: Text der Benachrichti
 INSERT INTO txt VALUES ('H4110', 'English', 'Email body: Text of the notification. For layouts without attachment, the @@CONTENT@@ placeholder can be used to insert caller-provided content, for example a rejection reason. The placeholders @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_NAME@@, @@INTERFACE_LINK@@, @@NEW_INTERFACE_NAME@@, @@NEW_INTERFACE_LINK@@, @@REASON@@, @@USER_NAME@@ and @@REQUESTDATE@@ are replaced when the caller provides the respective context.');
 INSERT INTO txt VALUES ('H4111', 'German',  'Protokollierungsmodus: Legt fest, ob eine Benachrichtigung nur gesendet, nur protokolliert oder beides gemacht wird.');
 INSERT INTO txt VALUES ('H4111', 'English', 'Logging mode: Defines whether a notification is sent only, logged only, or both.');
+INSERT INTO txt VALUES ('H4112', 'German',  'Email-Priorit&auml;t: Priorit&auml;t, mit der die Email verschickt wird. Bei "Hoch" oder "Niedrig" werden die Header Importance, Priority und X-Priority gesetzt, die g&auml;ngige Email-Programme (z.B. Outlook, Thunderbird, Apple Mail) als Markierung anzeigen; manche (z.B. Gmail) ignorieren sie. "Normal" setzt keine Header.');
+INSERT INTO txt VALUES ('H4112', 'English', 'Email priority: Priority with which the email is sent. With "High" or "Low" the headers Importance, Priority and X-Priority are set, which common email clients (e.g. Outlook, Thunderbird, Apple Mail) display as a marker; some (e.g. Gmail) ignore them. "Normal" sets no headers.');
 
 INSERT INTO txt VALUES ('H5001', 'German',  'In diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
     Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.

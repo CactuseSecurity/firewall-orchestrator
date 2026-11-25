@@ -21,6 +21,9 @@ For a feature-centric, thematically grouped view see
 - Rule-based reports (rules, resolved/technical, unused, NAT, recertification, app rules and change reports) show rule labels in html, pdf, csv, json and the UI, configurable under Settings - Reporting.
 - Label-based modelling: labels can be used as source and destination of connections, interfaces and common services, switched on by the new global setting "Label-based Modelling".
 
+### 9.9.5 - 23.11.2026
+- Notifications: an email priority (Low, Normal, High) can be set per notification; Low and High set the Importance, Priority and X-Priority headers, which common email clients show as a marker.
+
 ### 9.9.4 - 17.11.2026
 - New state action **"Create external requests"** implements a ticket step by step: request tasks of a management with the implementation mode external ticket system go to Tufin SecureChange, implementation tasks with mode automatic are written directly to the firewall; manual targets are left to a person, can be released by button.
 - Direct firewall write of rules on Check Point: new rules at the calculated position (also within sections) with install-on along the setting "Install on"; rules to modify or delete addressed in their imported layer; new rules of one request task in the same layer written once for all their gateways.

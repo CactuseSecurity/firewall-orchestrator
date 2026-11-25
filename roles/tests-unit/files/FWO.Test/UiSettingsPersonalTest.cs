@@ -72,6 +72,8 @@ namespace FWO.Test
                 Assert.That(wrapper.Find("#elementsPerFetch"), Is.Not.Null);
                 Assert.That(wrapper.Find("#recertificationDisplayPeriod"), Is.Not.Null);
                 Assert.That(wrapper.Find("#overviewDisplayLines"), Is.Not.Null);
+                Assert.That(wrapper.Find("label[for='dropdown-input-defaultRulesView']"), Is.Not.Null);
+                Assert.That(wrapper.Find("#dropdown-input-defaultRulesView"), Is.Not.Null);
             });
         }
 

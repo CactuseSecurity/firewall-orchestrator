@@ -1,19 +1,24 @@
 @inject UserConfig userConfig
 
-@* A bool cannot be bound to a select with @bind (Blazor's bool binding only works for checkboxes),
-   so the value is rendered and parsed as "true"/"false" explicitly. *@
-<select id="@Id" class="form-select form-select-sm" value="@(ManagementRulebaseView ? kManagementView : kGatewayView)" @onchange="OnChange">
-    <option value="@kGatewayView">@(userConfig.GetText("gateway_rules_view"))</option>
-    <option value="@kManagementView">@(userConfig.GetText("management_rulebases_view"))</option>
-</select>
+<Dropdown Id="@(Id ?? generatedId)" ElementType="bool" SelectedElement="ManagementRulebaseView" SelectedElementChanged="OnChange" Elements="kViewOptions"
+          ElementToString="@(managementView => managementView
+              ? userConfig.GetText("management_rulebases_view")
+              : userConfig.GetText("gateway_rules_view"))"
+          InputClass="form-control form-control-sm">
+    <ElementTemplate Context="managementView">
+        @(managementView
+            ? userConfig.GetText("management_rulebases_view")
+            : userConfig.GetText("gateway_rules_view"))
+    </ElementTemplate>
+</Dropdown>
 
 @code
 {
-    private const string kGatewayView = "false";
-    private const string kManagementView = "true";
+    private static readonly IReadOnlyList<bool> kViewOptions = [false, true];
+    private readonly string generatedId = Guid.NewGuid().ToString();
 
     /// <summary>
-    /// Html id of the select element.
+    /// HTML id suffix used to identify the dropdown input element.
     /// </summary>
     [Parameter]
     public string? Id { get; set; }
@@ -28,11 +33,17 @@
     public EventCallback<bool> ManagementRulebaseViewChanged { get; set; }
 
     /// <summary>
-    /// Parses the selected option and reports the new view.
+    /// Applies a changed rulebase view and notifies the parent component.
     /// </summary>
-    private async Task OnChange(ChangeEventArgs args)
+    /// <param name="selectedView">Whether the management rulebase view is selected.</param>
+    private async Task OnChange(bool selectedView)
     {
-        ManagementRulebaseView = args.Value?.ToString() == kManagementView;
-        await ManagementRulebaseViewChanged.InvokeAsync(ManagementRulebaseView);
+        if (ManagementRulebaseView == selectedView)
+        {
+            return;
+        }
+
+        ManagementRulebaseView = selectedView;
+        await ManagementRulebaseViewChanged.InvokeAsync(selectedView);
     }
 }

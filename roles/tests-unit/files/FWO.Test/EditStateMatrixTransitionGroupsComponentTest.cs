@@ -1,8 +1,17 @@
+using Bunit;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Ui.Services;
 using FWO.Ui.Pages.Settings;
+using FWO.Ui.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using System.Reflection;
@@ -102,6 +111,17 @@ namespace FWO.Test
         }
 
         [Test]
+        public void AddTransition_DoesNothingWhenNoStatesAreAvailable()
+        {
+            EditStateMatrixTransitionGroups component = new();
+            SetProperty(component, nameof(EditStateMatrixTransitionGroups.States), new List<WfState>());
+
+            Invoke(component, "AddTransition");
+
+            Assert.That(GetField<StateMatrixTransitionGroup>(component, "editGroup").Transitions, Is.Empty);
+        }
+
+        [Test]
         public void AddAndEditGroup_InitializeIndependentEditorState()
         {
             EditStateMatrixTransitionGroups component = new();
@@ -122,6 +142,88 @@ namespace FWO.Test
                 Assert.That(source.Transitions[0].ToStateId, Is.EqualTo(2));
                 Assert.That(GetField<StateMatrixTransitionGroup>(component, "originalGroup").Transitions[0].ToStateId, Is.EqualTo(2));
             });
+        }
+
+        [Test]
+        public async Task Editor_RendersPhaseVisibilityAndTransitionDropdowns()
+        {
+            await using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<ApiConnection>(new RecordingWorkflowApiConnection());
+            context.Services.AddLocalization();
+
+            IRenderedComponent<EditStateMatrixTransitionGroups> rendered = context.Render<EditStateMatrixTransitionGroups>(parameters => parameters
+                .Add(parameter => parameter.States,
+                [
+                    new WfState { Id = 1, Name = "Open" },
+                    new WfState { Id = 2, Name = "Closed" }
+                ]));
+            EditStateMatrixTransitionGroups component = rendered.Instance;
+            SetField(component, "visibilityGroups", new List<WorkflowVisibilityGroup> { new() { Id = 7, Name = "Operators" } });
+            SetField(component, "editGroup", new StateMatrixTransitionGroup
+            {
+                Phase = WorkflowPhases.request.ToString(),
+                VisibilityGroupId = 7,
+                Transitions = [new() { FromStateId = 1, ToStateId = 2 }]
+            });
+            SetField(component, "EditMode", true);
+            rendered.Render();
+
+            Assert.That(rendered.FindComponents<Dropdown<string>>(), Has.Count.EqualTo(1));
+            Assert.That(rendered.FindComponents<Dropdown<int?>>(), Has.Count.EqualTo(1));
+            Assert.That(rendered.FindComponents<Dropdown<int>>(), Has.Count.EqualTo(2));
+
+            foreach (IRenderedComponent<Dropdown<string>> dropdown in rendered.FindComponents<Dropdown<string>>())
+            {
+                dropdown.Find("input").Focus();
+            }
+            foreach (IRenderedComponent<Dropdown<int?>> dropdown in rendered.FindComponents<Dropdown<int?>>())
+            {
+                dropdown.Find("input").Focus();
+            }
+            foreach (IRenderedComponent<Dropdown<int>> dropdown in rendered.FindComponents<Dropdown<int>>())
+            {
+                dropdown.Find("input").Focus();
+            }
+
+            Assert.That(rendered.FindAll("button.dropdown-item"), Is.Not.Empty);
+            Assert.That(rendered.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim()),
+                Does.Contain("request"));
+            Assert.That(rendered.FindComponent<Dropdown<int?>>().Instance.ElementToString(99), Is.Empty);
+            Assert.That(rendered.FindComponents<Dropdown<int>>()[0].Instance.ElementToString(99), Is.Empty);
+        }
+
+        [Test]
+        public async Task Display_RendersGroupsAndOpensTheEditor()
+        {
+            await using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(Roles.Admin));
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            RecordingWorkflowApiConnection api = new();
+            api.Respond(RequestQueries.getStateMatrixTransitionGroups,
+                new List<StateMatrixTransitionGroup> { new() { Id = 8, Name = "Approval" } });
+            api.Respond(RequestQueries.getWorkflowVisibilityGroups,
+                new List<WorkflowVisibilityGroup> { new() { Id = 7, Name = "Operators" } });
+            context.Services.AddSingleton<ApiConnection>(api);
+            context.Services.AddLocalization();
+
+            IRenderedComponent<EditStateMatrixTransitionGroups> rendered = context.Render<EditStateMatrixTransitionGroups>(parameters => parameters
+                .Add(parameter => parameter.Display, true)
+                .Add(parameter => parameter.States, [new WfState { Id = 1, Name = "Open" }]));
+
+            rendered.WaitForAssertion(() => Assert.That(rendered.Markup, Does.Contain("Approval")));
+            rendered.Find("button.btn-success").Click();
+
+            Assert.That(GetField<bool>(rendered.Instance, "EditMode"), Is.True);
         }
 
         [Test]
@@ -240,7 +342,11 @@ namespace FWO.Test
         [Test]
         public void StateDisplayName_ContainsNameAndId()
         {
-            Assert.That(InvokeStatic("StateDisplayName", new WfState { Id = 42, Name = "Done" }), Is.EqualTo("Done (42)"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(InvokeStatic("StateDisplayName", new WfState { Id = 42, Name = "Done" }), Is.EqualTo("Done (42)"));
+                Assert.That(InvokeStatic("StateDisplayName", new object?[] { null }), Is.Empty);
+            });
         }
 
         [Test]

@@ -148,30 +148,4 @@
 		return result;
 	}
 
-	private List<IPAddressRange> ParseIpRange(NetworkObject networkObject)
-	{
-		List<IPAddressRange> ranges = [];
-
-		if (networkObject.Type == new NetworkObjectType() { Name = ObjectType.IPRange })
-		{
-			ranges.Add(IPAddressRange.Parse($"{networkObject.IP}-{networkObject.IpEnd}"));
-		}
-		else if (networkObject.Type != new NetworkObjectType() { Name = ObjectType.Group })
-		{
-			for (int j = 0; j < networkObject.ObjectGroupFlats.Length; j++)
-			{
-				if (networkObject.ObjectGroupFlats[j].Object != null)
-				{
-					ranges.AddRange(ParseIpRange(networkObject.ObjectGroupFlats[j].Object!));
-				}
-			}
-		}
-		else
-		{
-			// CIDR notation or single (host) IP can be parsed directly
-			ranges.Add(IPAddressRange.Parse(networkObject.IP));
-		}
-
-		return ranges;
-	}
 }

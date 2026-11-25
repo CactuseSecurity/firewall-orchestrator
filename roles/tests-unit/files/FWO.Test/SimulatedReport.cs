@@ -92,12 +92,28 @@ namespace FWO.Test
             }
         };
 
+        /// <summary>
+        /// Imports the report was generated for per management id.
+        /// </summary>
+        public Dictionary<int, ImportRange> ImportRanges { get; } = [];
+
+        /// <summary>
+        /// Variables of the last object fetch of the right sidebar.
+        /// </summary>
+        public Dictionary<string, object> LastObjectQueryVariables { get; private set; } = [];
+
         public SimulatedReport(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType) : base(query, userConfig, reportType)
         {
         }
 
+        public override ImportRange? GetImportRange(int managementId)
+        {
+            return ImportRanges.TryGetValue(managementId, out ImportRange importRange) ? importRange : null;
+        }
+
         override public Task<bool> GetObjectsForManagementInReport(Dictionary<string, object> objQueryVariables, ObjCategory objects, int maxFetchCycles, ApiConnection apiConnection, Func<ReportData, Task> callback)
         {
+            LastObjectQueryVariables = new(objQueryVariables);
             callback(DetailedReport().ReportData);
             return Task.FromResult(true);
         }

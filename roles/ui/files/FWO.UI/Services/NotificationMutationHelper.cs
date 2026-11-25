@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics.Enums;
 using FWO.Data;
 
 namespace FWO.Ui.Services
@@ -98,7 +99,8 @@ namespace FWO.Ui.Services
                 RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline,
                 LastSent = notification.LastSent,
                 Logging = notification.Logging,
-                Active = notification.Active
+                Active = notification.Active,
+                EmailPriority = notification.EmailPriority
             };
         }
 
@@ -155,6 +157,8 @@ namespace FWO.Ui.Services
 
             public bool active { get; init; }
 
+            public string emailPriority { get; init; } = nameof(EmailPriority.Normal);
+
             protected NotificationMutationVariables()
             {
             }
@@ -185,6 +189,7 @@ namespace FWO.Ui.Services
                 repetitionsAfterDeadline = variables.repetitionsAfterDeadline;
                 logging = variables.logging;
                 active = variables.active;
+                emailPriority = variables.emailPriority;
             }
 
             public static NotificationMutationVariables Create(FwoNotification notification)
@@ -214,8 +219,20 @@ namespace FWO.Ui.Services
                     offsetAfterDeadline = notification.RepeatOffsetAfterDeadline,
                     repetitionsAfterDeadline = notification.RepetitionsAfterDeadline,
                     logging = notification.Logging,
-                    active = notification.Active
+                    active = notification.Active,
+                    emailPriority = ToPersistedPriority(notification.EmailPriority)
                 };
+            }
+
+            /// <summary>
+            /// Returns the stored name of a priority; an undefined enum value is sent as Normal,
+            /// because the database only accepts the defined priorities.
+            /// </summary>
+            /// <param name="priority">Priority of the notification.</param>
+            /// <returns>Name of the priority to store.</returns>
+            private static string ToPersistedPriority(EmailPriority priority)
+            {
+                return Enum.IsDefined(priority) ? priority.ToString() : nameof(EmailPriority.Normal);
             }
         }
 

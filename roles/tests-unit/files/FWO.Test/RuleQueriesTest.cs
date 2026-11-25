@@ -83,6 +83,34 @@ namespace FWO.Test
         [GeneratedRegex(@"\.\.\.\s*(\w+)")]
         private static partial Regex FragmentSpreadRegex();
 
+        [Test]
+        public void DetailQueriesOfTheRuleTabDeclareAllUsedVariables()
+        {
+            string[] queries =
+            [
+                RuleQueries.getRuleDetails, RuleQueries.getNatRuleDetails, ObjectQueries.getNetworkObjectDetailsByIds,
+                ObjectQueries.getNetworkServiceDetailsByIds, ObjectQueries.getUserDetailsByIds
+            ];
+
+            foreach (string query in queries)
+            {
+                HashSet<string> declared = [.. DeclaredVariableRegex().Matches(query).Select(match => match.Groups[1].Value)];
+                HashSet<string> used = [.. UsedVariableRegex().Matches(query).Select(match => match.Groups[1].Value)];
+                Assert.That(used, Is.Not.Empty);
+                Assert.That(used, Is.SubsetOf(declared), query);
+            }
+        }
+
+        [Test]
+        public void GetNatRuleDetails_ShouldReturnDeletedVersions()
+        {
+            string operation = RuleQueries.getNatRuleDetails[RuleQueries.getNatRuleDetails.IndexOf("query getNatRuleDetails", StringComparison.Ordinal)..];
+
+            Assert.That(operation, Does.Not.Contain("active: { _eq: true }"));
+            Assert.That(operation, Does.Contain("{ removed: { _gt: $import_id_start } }"));
+            Assert.That(operation, Does.Contain("nat_rule: { _eq: true }"));
+        }
+
         private static string ExtractObjectBlock(string query, string startMarker, string endMarker)
         {
             int startIndex = query.IndexOf(startMarker, StringComparison.Ordinal);
@@ -109,5 +137,11 @@ namespace FWO.Test
 
             return query.Substring(objectStart, endIndex - objectStart);
         }
+
+        [GeneratedRegex(@"\$(\w+)\s*:")]
+        private static partial Regex DeclaredVariableRegex();
+
+        [GeneratedRegex(@"\$(\w+)(?!\w|\s*:)")]
+        private static partial Regex UsedVariableRegex();
     }
 }

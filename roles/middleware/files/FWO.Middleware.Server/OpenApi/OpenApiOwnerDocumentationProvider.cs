@@ -76,6 +76,7 @@ Field behavior:
 - `name` and `appIdExternal` are case-insensitive text filters.
 - Plain text filters are matched as contains.
 - `exactMatch` defaults to `false`. Set it to `true` to match plain text in `name` and `appIdExternal` against the whole value (still case-insensitive) instead of as contains; `*` and `?` keep their wildcard meaning.
+- A blank `name` or `appIdExternal` is ignored without `exactMatch` and rejected with `400` when `exactMatch` is `true`.
 - `*` matches any character sequence and `?` matches one character.
 - Literal `%`, `_`, and `\` characters are matched verbatim.
 - Text filters must not exceed {{OwnersController.kMaxFilterTextLength}} characters and must not contain control characters.

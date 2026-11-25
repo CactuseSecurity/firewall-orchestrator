@@ -171,6 +171,7 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
             Assert.That(containsVariables, Does.Contain("\"name\":{\"_ilike\":\"%Accounting%\"}"));
             Assert.That(operation.Description, Does.Contain("`exactMatch` defaults to `false`"));
             Assert.That(operation.Description, Does.Contain("\"exactMatch\": true"));
+            Assert.That(operation.Description, Does.Contain("rejected with `400` when `exactMatch` is `true`"));
             Assert.That(exactVariables, Does.Contain("\"app_id_external\":{\"_ilike\":\"APP-4711\"}"));
             Assert.That(operation.Description, Does.Contain("`*` matches any character sequence"));
             Assert.That(wildcardVariables, Does.Contain("\"name\":{\"_ilike\":\"Finance%\"}"));

@@ -179,6 +179,46 @@ namespace FWO.Test
             Assert.That(variables, Does.Not.Contain("_ilike"));
         }
 
+        [TestCase("", null)]
+        [TestCase(null, "   ")]
+        public async Task GetReturnsBadRequestForBlankFilterWhenExactMatchIsSet(string? name, string? appIdExternal)
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest
+            {
+                Name = name,
+                AppIdExternal = appIdExternal,
+                ExactMatch = true
+            });
+
+            string expectedField = name is null ? "appIdExternal" : "name";
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+                Assert.That(((BadRequestObjectResult)result.Result!).Value,
+                    Is.EqualTo($"{expectedField} must not be blank when exactMatch is true."));
+                Assert.That(apiConnection.Query, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task GetIgnoresBlankFilterWithoutExactMatch()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { AppIdExternal = "   " });
+
+            string variables = SerializeVariables(apiConnection.Variables);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+                Assert.That(variables, Does.Not.Contain("_ilike"));
+            });
+        }
+
         [Test]
         public void RequestAcceptsTheExactMatchKey()
         {

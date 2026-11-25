@@ -123,8 +123,12 @@ A run cancelled by the caller's `CancellationToken` ends with an `OperationCance
 
 ## Security
 
-- The client sends the user's JWT only to an https endpoint or to http on a loopback address (like `EndpointGuard` of
-  the harness). Another uri is refused with an `ArgumentException` that does not name it.
+- The client accepts any absolute http or https middleware server uri; another uri is refused with an
+  `ArgumentException` that does not name it. It does not refuse plain http itself, because the UI sends the same JWT
+  to the same uri with every other middleware call, and because the chat is part of the layout, so a refusal would
+  make every page fail. Clear text is prevented on the receiving side instead: the middleware server refuses to start
+  on a plain http listener that is not loopback (`EndpointGuard.RequireHttpsOrLoopbackListener` in `FWO.Basics`), and
+  the installer addresses it over https through its Apache reverse proxy.
 - The token is only sent as bearer token; it is never logged and never part of an exception message.
 - An HTTP client of its own validates the server certificate against the trust store of the host, where the installer
   puts the FWO internal CA, does not follow redirects, so that the token reaches no other endpoint, and renews its

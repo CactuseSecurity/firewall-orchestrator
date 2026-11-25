@@ -46,7 +46,7 @@ public sealed class FwoAgentChatClientFactory : IFwoAgentChatClientFactory, IDis
     /// </summary>
     /// <param name="middlewareServerUri">Uri of the middleware server, e.g. https://host:8888/</param>
     /// <param name="runTimeout">Longest time a run may take; <see cref="kDefaultRunTimeout"/> if null</param>
-    /// <exception cref="ArgumentException">The uri is neither https nor http to a loopback address.</exception>
+    /// <exception cref="ArgumentException">The uri is relative or uses another scheme than http or https.</exception>
     public FwoAgentChatClientFactory(Uri middlewareServerUri, TimeSpan? runTimeout = null)
     {
         Endpoint = AgUiEndpoint.Create(middlewareServerUri);
@@ -61,7 +61,7 @@ public sealed class FwoAgentChatClientFactory : IFwoAgentChatClientFactory, IDis
     /// <param name="httpClient">HTTP client to send the runs with</param>
     /// <param name="middlewareServerUri">Uri of the middleware server, e.g. https://host:8888/</param>
     /// <param name="runTimeout">Longest time a run may take; <see cref="kDefaultRunTimeout"/> if null</param>
-    /// <exception cref="ArgumentException">The uri is neither https nor http to a loopback address.</exception>
+    /// <exception cref="ArgumentException">The uri is relative or uses another scheme than http or https.</exception>
     public FwoAgentChatClientFactory(HttpClient httpClient, Uri middlewareServerUri, TimeSpan? runTimeout = null)
     {
         ArgumentNullException.ThrowIfNull(httpClient);

@@ -132,7 +132,9 @@ The MCP server has no settings file of its own. It reads from the FWO config fil
   They are read at startup; missing or non-positive values fall back to the defaults. Both servers count separately.
 
 The URL it listens on is set by `ASPNETCORE_URLS`, which the installer puts into the unit. For development,
-`Properties/launchSettings.json` runs it on `http://localhost:6296` and `https://localhost:5242`.
+`Properties/launchSettings.json` runs it on `http://localhost:6296` and `https://localhost:5242`. As the JWT of the
+user arrives there, it refuses to start if that URL binds plain http to anything but `localhost` or a loopback
+address (`EndpointGuard.RequireHttpsOrLoopbackListener` in `FWO.Basics`): it logs the reason and exits with code 78.
 
 ## Security
 

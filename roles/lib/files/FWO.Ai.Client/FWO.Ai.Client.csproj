@@ -13,4 +13,8 @@
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.11.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\FWO.Basics\FWO.Basics.csproj" />
+  </ItemGroup>
+
 </Project>

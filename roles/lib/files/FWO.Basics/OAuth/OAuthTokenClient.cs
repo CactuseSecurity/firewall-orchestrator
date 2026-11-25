@@ -33,6 +33,7 @@ namespace FWO.Basics.OAuth
         private const string kGrantTypeClientCredentials = "client_credentials";
         private const string kBearerTokenType = "Bearer";
         private const string kJsonMediaType = "application/json";
+        private const string kTokenUrlPurpose = "token URL";
         private static readonly TimeSpan kPooledConnectionLifetime = TimeSpan.FromMinutes(5);
 
         private readonly HttpClient httpClient;
@@ -77,7 +78,7 @@ namespace FWO.Basics.OAuth
         public async Task<OAuthAccessToken> RequestClientCredentialsTokenAsync(OAuthClientCredentials credentials, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(credentials);
-            RequireSecureTokenUrl(credentials.TokenUrl);
+            EndpointGuard.RequireHttpsOrLoopback(credentials.TokenUrl, kTokenUrlPurpose);
             string host = credentials.TokenUrl.Host;
             using CancellationTokenSource timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutSource.CancelAfter(requestTimeout);
@@ -111,22 +112,6 @@ namespace FWO.Basics.OAuth
         public void Dispose()
         {
             httpClient.Dispose();
-        }
-
-        /// <summary>
-        /// Requires https, or plain http to a loopback address, as the client secret is sent to the token endpoint.
-        /// The URL is not part of the message, as it may contain user information.
-        /// </summary>
-        /// <exception cref="ArgumentException">The token URL is not secure.</exception>
-        private static void RequireSecureTokenUrl(Uri tokenUrl)
-        {
-            bool isHttps = tokenUrl.Scheme == Uri.UriSchemeHttps;
-            bool isLoopbackHttp = tokenUrl.Scheme == Uri.UriSchemeHttp && tokenUrl.IsLoopback;
-            if (!isHttps && !isLoopbackHttp)
-            {
-                throw new ArgumentException("The token URL must use https unless it is a loopback address, as the client secret is sent to it.",
-                    nameof(tokenUrl));
-            }
         }
 
         /// <summary>

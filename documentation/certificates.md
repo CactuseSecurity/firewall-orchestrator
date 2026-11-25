@@ -192,7 +192,10 @@ internal and their services only listen on loopback on a single-host installatio
 - `middleware_native_listener_address` - the address the middleware's own web server
   binds to, and the address its reverse proxy forwards to. Kestrel treats any host
   name other than `localhost` as a wildcard bind, so a routable name here would
-  publish the unauthenticated, plain-HTTP middleware port on every interface.
+  publish the unauthenticated, plain-HTTP middleware port on every interface. The
+  middleware therefore refuses to start if `middleware_native_uri` binds plain HTTP to
+  anything but `localhost` or a loopback address: it logs the reason and exits with
+  code 78.
 - `fworch_db_connect_host` - the address clients open PostgreSQL connections to.
   PostgreSQL listens on loopback and `pg_hba.conf` grants `127.0.0.0/8` and `::1/128`
   only, unless `distributed_install` is set.

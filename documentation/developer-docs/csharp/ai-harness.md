@@ -346,6 +346,9 @@ host and runs it as the service `fworch-ai-harness` (`roles/ai/templates/fworch-
 - It listens on `ai_harness_native_uri` (loopback, port `ai_harness_internal_port`, default 8891) and the Apache vhost
   of the middleware publishes the AG-UI endpoint under the same path (`ai_harness_agui_path`, `/agui`):
   `https://<middleware host>:8888/agui`. Keep `ai_harness_agui_path` in step with `HarnessServerSetup.kAgUiPath`.
+  As the JWT of the user arrives there, the harness refuses to start if `ASPNETCORE_URLS` binds plain http to anything
+  but `localhost` or a loopback address (`EndpointGuard.RequireHttpsOrLoopbackListener` in `FWO.Basics`): it logs the
+  reason and exits with code 78.
 - The unit sets `McpEndpoint` to `ai_mcp_native_mcp_uri` (`Harness__McpEndpoint`), the MCP server the installer deploys.
 - The installer does not configure the AI provider, so runs fail until an admin sets it on the AI settings page, see
   [Settings](#settings).

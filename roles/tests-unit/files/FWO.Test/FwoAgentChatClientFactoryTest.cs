@@ -44,7 +44,7 @@ internal class FwoAgentChatClientFactoryTest
     private const int kShortTimeoutMilliseconds = 100;
     private const string kUserInfoSecret = "s3cret";
     private const string kUserInfoHost = "fwo.example";
-    private const string kUriWithUserInfo = "http://admin:" + kUserInfoSecret + "@" + kUserInfoHost + ":8888/";
+    private const string kUriWithUserInfo = "ftp://admin:" + kUserInfoSecret + "@" + kUserInfoHost + ":8888/";
 
     private static readonly Uri kMiddlewareServerUri = new(kMiddlewareUri);
     private static readonly List<TimeSpan> kInvalidRunTimeouts = [TimeSpan.Zero, TimeSpan.FromSeconds(-1), TimeSpan.MaxValue];
@@ -65,7 +65,9 @@ internal class FwoAgentChatClientFactoryTest
     [TestCase("http://127.0.0.1:8891/", "http://127.0.0.1:8891/agui")]
     [TestCase("http://localhost/", "http://localhost/agui")]
     [TestCase("http://[::1]:8891/", "http://[::1]:8891/agui")]
-    public void Constructor_WithHttpsOrLoopback_UsesAgUiEndpoint(string middlewareServerUri, string expectedEndpoint)
+    [TestCase("http://fwo.example:8888/", "http://fwo.example:8888/agui")]
+    [TestCase("http://10.1.1.1:8888/", "http://10.1.1.1:8888/agui")]
+    public void Constructor_WithHttpOrHttps_UsesAgUiEndpoint(string middlewareServerUri, string expectedEndpoint)
     {
         using FwoAgentChatClientFactory factory = new(new HttpClient(), new Uri(middlewareServerUri));
 
@@ -73,14 +75,25 @@ internal class FwoAgentChatClientFactoryTest
     }
 
     /// <summary>
-    /// Verifies that both constructors refuse an endpoint the token would be sent to in clear text or that is no http
-    /// endpoint.
+    /// Verifies that plain http to a remote middleware server is accepted by both constructors, so that the UI, whose
+    /// layout contains the chat, keeps working with such a middleware server uri (the middleware server itself refuses
+    /// a plain http listener that is not loopback).
     /// </summary>
-    [TestCase("http://fwo.example:8888/")]
-    [TestCase("http://10.1.1.1:8888/")]
+    [Test]
+    public void Constructor_WithRemoteHttp_Accepts()
+    {
+        Uri uri = new("http://fwo.example:8888/");
+
+        Assert.DoesNotThrow(() => new FwoAgentChatClientFactory(uri).Dispose());
+        Assert.DoesNotThrow(() => new FwoAgentChatClientFactory(new HttpClient(), uri).Dispose());
+    }
+
+    /// <summary>
+    /// Verifies that both constructors refuse an endpoint that is no http endpoint.
+    /// </summary>
     [TestCase("ftp://fwo.example/")]
     [TestCase("file:///etc/fworch/")]
-    public void Constructor_WithInsecureOrOtherEndpoint_Throws(string middlewareServerUri)
+    public void Constructor_WithOtherScheme_Throws(string middlewareServerUri)
     {
         Uri uri = new(middlewareServerUri);
 
@@ -92,7 +105,7 @@ internal class FwoAgentChatClientFactoryTest
     /// Verifies that the refusal of an endpoint does not name it, as it may contain user information.
     /// </summary>
     [Test]
-    public void Constructor_WithInsecureEndpoint_DoesNotNameEndpoint()
+    public void Constructor_WithOtherScheme_DoesNotNameEndpoint()
     {
         ArgumentException? exception = Assert.Throws<ArgumentException>(() => new FwoAgentChatClientFactory(new Uri(kUriWithUserInfo)));
 

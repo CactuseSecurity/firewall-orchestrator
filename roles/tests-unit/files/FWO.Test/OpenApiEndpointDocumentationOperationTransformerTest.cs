@@ -158,6 +158,7 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
             AppIdExternal = "APP-?"
         });
         string containsVariables = SerializeOwnerQueryVariables(new GetOwnersRequest { Name = "Accounting" });
+        string exactVariables = SerializeOwnerQueryVariables(new GetOwnersRequest { AppIdExternal = "APP-4711", ExactMatch = true });
         string escapedVariables = SerializeOwnerQueryVariables(new GetOwnersRequest
         {
             Name = "APP_1",
@@ -168,6 +169,9 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         {
             Assert.That(operation.Description, Does.Contain("Plain text filters are matched as contains."));
             Assert.That(containsVariables, Does.Contain("\"name\":{\"_ilike\":\"%Accounting%\"}"));
+            Assert.That(operation.Description, Does.Contain("`exactMatch` defaults to `false`"));
+            Assert.That(operation.Description, Does.Contain("\"exactMatch\": true"));
+            Assert.That(exactVariables, Does.Contain("\"app_id_external\":{\"_ilike\":\"APP-4711\"}"));
             Assert.That(operation.Description, Does.Contain("`*` matches any character sequence"));
             Assert.That(wildcardVariables, Does.Contain("\"name\":{\"_ilike\":\"Finance%\"}"));
             Assert.That(operation.Description, Does.Contain("`?` matches one character"));

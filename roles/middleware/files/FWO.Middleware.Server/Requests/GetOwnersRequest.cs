@@ -41,6 +41,15 @@ public sealed class GetOwnersRequest
     public string? AppIdExternal { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the <c>name</c> and <c>appIdExternal</c> text filters match the whole
+    /// value instead of a part of it. When <c>null</c> or <c>false</c> (default) plain text without wildcards is
+    /// matched as a contains search. When <c>true</c> plain text must match the complete value, still ignoring case;
+    /// <c>*</c> and <c>?</c> keep their wildcard meaning.
+    /// </summary>
+    [JsonPropertyName("exactMatch")]
+    public bool? ExactMatch { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether all owner fields should be returned.
     /// When <c>null</c> or <c>false</c> (default) only the core fields are returned.
     /// </summary>

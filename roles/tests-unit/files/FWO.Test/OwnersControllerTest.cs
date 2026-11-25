@@ -114,6 +114,84 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetMatchesPlainTextFiltersExactlyWhenExactMatchIsSet()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            await controller.Get(new GetOwnersRequest
+            {
+                Name = " Accounting ",
+                AppIdExternal = "APP_42",
+                ExactMatch = true
+            });
+
+            string variables = SerializeVariables(apiConnection.Variables);
+            Assert.Multiple(() =>
+            {
+                Assert.That(variables, Does.Contain("\"name\":{\"_ilike\":\"Accounting\"}"));
+                Assert.That(variables, Does.Contain($"\"app_id_external\":{{\"_ilike\":{JsonSerializer.Serialize("APP\\_42")}}}"));
+            });
+        }
+
+        [Test]
+        public async Task GetKeepsWildcardsWhenExactMatchIsSet()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            await controller.Get(new GetOwnersRequest
+            {
+                Name = "Finance*",
+                AppIdExternal = "APP-?",
+                ExactMatch = true
+            });
+
+            string variables = SerializeVariables(apiConnection.Variables);
+            Assert.Multiple(() =>
+            {
+                Assert.That(variables, Does.Contain("\"name\":{\"_ilike\":\"Finance%\"}"));
+                Assert.That(variables, Does.Contain("\"app_id_external\":{\"_ilike\":\"APP-_\"}"));
+            });
+        }
+
+        [Test]
+        public async Task GetMatchesPlainTextAsContainsWhenExactMatchIsFalse()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            await controller.Get(new GetOwnersRequest { AppIdExternal = "APP-42", ExactMatch = false });
+
+            string variables = SerializeVariables(apiConnection.Variables);
+            Assert.That(variables, Does.Contain("\"app_id_external\":{\"_ilike\":\"%APP-42%\"}"));
+        }
+
+        [Test]
+        public async Task GetWithExactMatchButNoTextFilterAddsNoTextPredicate()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+
+            await controller.Get(new GetOwnersRequest { ExactMatch = true });
+
+            string variables = SerializeVariables(apiConnection.Variables);
+            Assert.That(variables, Does.Not.Contain("_ilike"));
+        }
+
+        [Test]
+        public void RequestAcceptsTheExactMatchKey()
+        {
+            GetOwnersRequest request = JsonSerializer.Deserialize<GetOwnersRequest>("{\"appIdExternal\":\"APP-4711\",\"exactMatch\":true}")!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(request.ExactMatch, Is.True);
+                Assert.That(new GetOwnersRequest().ExactMatch, Is.Null);
+            });
+        }
+
+        [Test]
         public async Task GetEscapesLiteralSqlWildcardsInFilters()
         {
             OwnersApiConnection apiConnection = new();

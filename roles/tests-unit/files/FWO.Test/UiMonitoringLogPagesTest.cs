@@ -141,11 +141,19 @@ namespace FWO.Test
             });
             Dropdown<string> typeDropdown = setup.Rendered.FindComponents<Dropdown<string>>()
                 .Single(dropdown => dropdown.Instance.Id == "notification-log-type").Instance;
+            Dropdown<string> statusDropdown = setup.Rendered.FindComponents<Dropdown<string>>()
+                .Single(dropdown => dropdown.Instance.Id == "notification-log-status").Instance;
             Assert.Multiple(() =>
             {
                 Assert.That(typeDropdown.Elements, Does.Contain("InterfaceRequest"));
                 Assert.That(typeDropdown.Elements, Does.Not.Contain("None"));
             });
+            setup.Rendered.Find("#dropdown-input-notification-log-type").Focus();
+            Assert.That(setup.Rendered.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim()),
+                Does.Contain("Interface notification"));
+            setup.Rendered.Find("#dropdown-input-notification-log-status").Focus();
+            Assert.That(setup.Rendered.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim()),
+                Does.Contain("Failed notification"));
             foreach (IRenderedComponent<Dropdown<string>> dropdown in setup.Rendered.FindComponents<Dropdown<string>>())
             {
                 dropdown.Find("input").Focus();

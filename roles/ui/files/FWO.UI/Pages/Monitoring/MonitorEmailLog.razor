@@ -22,13 +22,21 @@
             <label for="dropdown-input-notification-log-type" class="col-form-label col-form-label-sm">@(userConfig.GetText("notification_type"))</label>
             <Dropdown Id="notification-log-type" ElementType="string" @bind-SelectedElement="notificationTypeFilter"
                       Elements="NotificationTypes" ElementToString="@(type => userConfig.GetText(type))"
-                      NoneSelectedText="@(userConfig.GetText("all"))" Nullable="true" />
+                      NoneSelectedText="@(userConfig.GetText("all"))" Nullable="true">
+                <ElementTemplate Context="type">
+                    @(userConfig.GetText(type))
+                </ElementTemplate>
+            </Dropdown>
         </div>
         <div class="col-sm-3">
             <label for="dropdown-input-notification-log-status" class="col-form-label col-form-label-sm">@(userConfig.GetText("state"))</label>
             <Dropdown Id="notification-log-status" ElementType="string" @bind-SelectedElement="statusFilter"
                       Elements="NotificationStatuses" ElementToString="@(status => userConfig.GetText(status))"
-                      NoneSelectedText="@(userConfig.GetText("all"))" Nullable="true" />
+                      NoneSelectedText="@(userConfig.GetText("all"))" Nullable="true">
+                <ElementTemplate Context="status">
+                    @(userConfig.GetText(status))
+                </ElementTemplate>
+            </Dropdown>
         </div>
         <div class="col-sm-3">
             <label for="notification-log-error" class="col-form-label col-form-label-sm">@(userConfig.GetText("error"))</label>

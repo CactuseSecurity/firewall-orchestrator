@@ -44,9 +44,15 @@
         </SettingsRow>
         <SettingsRow LabelKey="importLogDataSleepTime" TooltipKey="H5696" LabelFor="importLogDataSleepTime">
             <input id="importLogDataSleepTime" class="form-control form-control-sm settings-input-sm" type="number" min="0" @bind="configData.ImportLogDataSleepTime" />
-            <Dropdown ElementType="LogDataImportIntervalUnit" @bind-SelectedElement="configData.ImportLogDataSleepTimeUnit"
-                      Elements="Enum.GetValues<LogDataImportIntervalUnit>()" ElementToString="@(unit => unit.ToString(userConfig))"
-                      InputClass="form-control form-control-sm settings-input-sm" />
+            <div class="settings-input-md">
+                <Dropdown ElementType="LogDataImportIntervalUnit" @bind-SelectedElement="configData.ImportLogDataSleepTimeUnit"
+                          Elements="Enum.GetValues<LogDataImportIntervalUnit>()" ElementToString="@(unit => unit.ToString(userConfig))"
+                          InputClass="form-control form-control-sm">
+                    <ElementTemplate Context="unit">
+                        @(unit.ToString(userConfig))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
         </SettingsRow>
         <SettingsRow LabelKey="importLogDataMaxEntries" TooltipKey="H5697" LabelFor="importLogDataMaxEntries">
             <input id="importLogDataMaxEntries" type="number" min="1" class="form-control form-control-sm settings-input-sm" @bind="configData.ImportLogDataMaxEntries" />
@@ -86,9 +92,15 @@
         </SettingsRow>
         <SettingsRow LabelKey="defaultLogTimeRange" TooltipKey="H5706" LabelFor="defaultLogTimeRange">
             <input id="defaultLogTimeRange" class="form-control form-control-sm settings-input-sm" type="number" min="1" @bind="logTimeRangeValue" @bind:after="ApplyLogTimeRange" />
-            <Dropdown ElementType="LogTimeRangeUnit" SelectedElement="logTimeRangeUnit"
-                      SelectedElementChanged="ApplyLogTimeRangeUnit" Elements="Enum.GetValues<LogTimeRangeUnit>()"
-                      ElementToString="@(unit => unit.ToString(userConfig))" InputClass="form-control form-control-sm settings-input-sm" />
+            <div class="settings-input-md">
+                <Dropdown ElementType="LogTimeRangeUnit" SelectedElement="logTimeRangeUnit"
+                          SelectedElementChanged="ApplyLogTimeRangeUnit" Elements="Enum.GetValues<LogTimeRangeUnit>()"
+                          ElementToString="@(unit => unit.ToString(userConfig))" InputClass="form-control form-control-sm">
+                    <ElementTemplate Context="unit">
+                        @(unit.ToString(userConfig))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
         </SettingsRow>
     </form>
 

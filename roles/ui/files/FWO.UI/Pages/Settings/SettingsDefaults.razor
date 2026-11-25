@@ -179,15 +179,27 @@
     <hr />
     <SettingsRow LabelKey="accesstoken_lifetime" TooltipKey="accesstoken_lifetime" LabelFor="accessTokenLifetime">
         <input id="accessTokenLifetime" type="number" min="@DynamicAccessTokenLifetimeMinValue" class="form-control form-control-sm settings-input-sm" @bind="accessTokenLifetimeValue" />
-        <Dropdown ElementType="TokenLifetimeUnit" SelectedElement="accessTokenLifetimeUnit"
-                  SelectedElementChanged="SetAccessTokenLifetimeUnit" Elements="Enum.GetValues<TokenLifetimeUnit>()"
-                  ElementToString="@(unit => unit.ToString(userConfig))" InputClass="form-control form-control-sm settings-input-sm" />
+        <div class="settings-input-md">
+            <Dropdown ElementType="TokenLifetimeUnit" SelectedElement="accessTokenLifetimeUnit"
+                      SelectedElementChanged="SetAccessTokenLifetimeUnit" Elements="Enum.GetValues<TokenLifetimeUnit>()"
+                      ElementToString="@(unit => unit.ToString(userConfig))" InputClass="form-control form-control-sm">
+                <ElementTemplate Context="unit">
+                    @(unit.ToString(userConfig))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
     </SettingsRow>
     <SettingsRow LabelKey="refreshtoken_lifetime" TooltipKey="refreshtoken_lifetime" LabelFor="refreshTokenLifetime">
         <input id="refreshTokenLifetime" type="number" min="@DynamicRefreshTokenLifetimeMinValue" class="form-control form-control-sm settings-input-sm" @bind="refreshTokenLifetimeValue" />
-        <Dropdown ElementType="TokenLifetimeUnit" SelectedElement="refreshTokenLifetimeUnit"
-                  SelectedElementChanged="SetRefreshTokenLifetimeUnit" Elements="Enum.GetValues<TokenLifetimeUnit>()"
-                  ElementToString="@(unit => unit.ToString(userConfig))" InputClass="form-control form-control-sm settings-input-sm" />
+        <div class="settings-input-md">
+            <Dropdown ElementType="TokenLifetimeUnit" SelectedElement="refreshTokenLifetimeUnit"
+                      SelectedElementChanged="SetRefreshTokenLifetimeUnit" Elements="Enum.GetValues<TokenLifetimeUnit>()"
+                      ElementToString="@(unit => unit.ToString(userConfig))" InputClass="form-control form-control-sm">
+                <ElementTemplate Context="unit">
+                    @(unit.ToString(userConfig))
+                </ElementTemplate>
+            </Dropdown>
+        </div>
     </SettingsRow>
     @if (!IsTokenLifetimeValid())
     {

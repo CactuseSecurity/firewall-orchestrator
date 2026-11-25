@@ -48,6 +48,12 @@ namespace FWO.Test
 
             Assert.That(rendered.FindComponents<Dropdown<LogDataImportIntervalUnit>>(), Has.Count.EqualTo(1));
             Assert.That(rendered.FindComponents<Dropdown<LogTimeRangeUnit>>(), Has.Count.EqualTo(1));
+            rendered.FindComponent<Dropdown<LogDataImportIntervalUnit>>().Find("input").Focus();
+            Assert.That(rendered.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim()),
+                Does.Contain("Minuten"));
+            rendered.FindComponent<Dropdown<LogTimeRangeUnit>>().Find("input").Focus();
+            Assert.That(rendered.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim()),
+                Does.Contain("Wochen"));
         }
 
         [Test]

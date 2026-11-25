@@ -41,6 +41,12 @@ namespace FWO.Test
                 Assert.That(wrapper.Find("#cbx_default_iconify"), Is.Not.Null);
                 Assert.That(wrapper.FindComponents<Dropdown<TokenLifetimeUnit>>(), Has.Count.EqualTo(2));
             });
+            foreach (IRenderedComponent<Dropdown<TokenLifetimeUnit>> dropdown in wrapper.FindComponents<Dropdown<TokenLifetimeUnit>>())
+            {
+                dropdown.Find("input").Focus();
+            }
+            Assert.That(wrapper.FindAll("button.dropdown-item").Select(item => item.TextContent.Trim()),
+                Does.Contain("Minuten"));
         }
 
         [Test]

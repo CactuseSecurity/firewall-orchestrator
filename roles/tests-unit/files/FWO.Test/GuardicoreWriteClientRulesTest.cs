@@ -329,9 +329,38 @@ namespace FWO.Test
                 Assert.That(GuardicoreRules.HasMarker("FWOC12", "FWOC"), Is.False);
                 Assert.That(GuardicoreRules.HasMarker("12", "12"), Is.False);
                 Assert.That(GuardicoreRules.HasMarker("FWO C12", "FWO C12"), Is.False);
-                Assert.That(GuardicoreRules.TryParseMarker("FWOC12", out string connectionId), Is.True);
-                Assert.That(connectionId, Is.EqualTo("12"));
-                Assert.That(GuardicoreRules.TryParseMarker("FWOC", out _), Is.False);
+            });
+        }
+
+        /// <summary>A configured marker may contain digits, as long as it does not end with one.</summary>
+        [Test]
+        public void MarkersWithDigitsInThePrefix_AreFound()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(GuardicoreRules.HasMarker("see FW1C12", "FW1C12"), Is.True);
+                Assert.That(GuardicoreRules.HasMarker("FW1C123", "FW1C12"), Is.False);
+                Assert.That(GuardicoreRules.FindConnectionId("see FW1C12", "FW1C"), Is.EqualTo("12"));
+            });
+        }
+
+        /// <summary>
+        /// The variance analysis reads the connection of a rule as the writer finds it: the first marker that is a whole word,
+        /// so a comment the writer never matches (e.g. "XFWOC12") names no connection.
+        /// </summary>
+        [Test]
+        public void ConnectionIds_AreReadFromWholeWordMarkersOnly()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(GuardicoreRules.FindConnectionId("FWOC12", "FWOC"), Is.EqualTo("12"));
+                Assert.That(GuardicoreRules.FindConnectionId("XFWOC12, see FWOC13", "FWOC"), Is.EqualTo("13"));
+                Assert.That(GuardicoreRules.FindConnectionId("FWOC, FWOC14", "FWOC"), Is.EqualTo("14"));
+                Assert.That(GuardicoreRules.FindConnectionId("XFWOC12", "FWOC"), Is.Null);
+                Assert.That(GuardicoreRules.FindConnectionId("FWOC12x", "FWOC"), Is.Null);
+                Assert.That(GuardicoreRules.FindConnectionId("FWOC", "FWOC"), Is.Null);
+                Assert.That(GuardicoreRules.FindConnectionId(null, "FWOC"), Is.Null);
+                Assert.That(GuardicoreRules.FindConnectionId("FWOC12", ""), Is.Null);
             });
         }
 

@@ -168,6 +168,7 @@ namespace FWO.Test
         [TestCase(false, "COM-1611", false)]
         [TestCase(true, "Exchange (COM-1611)", false)]
         [TestCase(false, "", false)]
+        [TestCase(false, "EXCHANGE (com-1611)", true)]
         public async Task Rules_HaveToLieInTheRulesetOfTheirApp(bool isCommonService, string rulesetName, bool implemented)
         {
             ModellingVarianceResult result = await Analyse(ExchangeConnection(isCommonService), RuleInRuleset(rulesetName),
@@ -362,6 +363,30 @@ namespace FWO.Test
                 Assert.That(outside.ConnsNotImplemented.Select(conn => conn.Id), Is.EqualTo(new List<int> { 1 }));
                 Assert.That(outside.UnModelledRules.Values.Single(), Has.Count.EqualTo(1));
                 Assert.That(inside.OkRules, Has.Count.EqualTo(1));
+            });
+        }
+
+        /// <summary>
+        /// On a management that writes labels the marker is read as the writer finds it, as a whole word: a rule whose comment
+        /// carries it only inside another word (e.g. "XFWOC1") is no rule of the connection, which the writer would never
+        /// replace, so that it is not requested again and again; a marker after other text is found.
+        /// </summary>
+        [Test]
+        public async Task MarkerInsideAnotherWord_IsNoMarkerOnLabelWriters()
+        {
+            Rule embedded = ProdRule(Host32(11, "1.2.3.4/32"));
+            embedded.Comment = "XFWOC1";
+            Rule afterText = ProdRule(Host32(11, "1.2.3.4/32"));
+            afterText.Comment = "see FWOC1, ComSvc";
+
+            ModellingVarianceResult embeddedResult = await Analyse(Connection(c => c.SourceAppServers = [new() { Content = Host }]), embedded);
+            ModellingVarianceResult afterTextResult = await Analyse(Connection(c => c.SourceAppServers = [new() { Content = Host }]), afterText);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(embeddedResult.ConnsNotImplemented.Select(conn => conn.Id), Is.EqualTo(new List<int> { 1 }));
+                Assert.That(embeddedResult.UnModelledRules.Values.Single(), Has.Count.EqualTo(1));
+                Assert.That(afterTextResult.OkRules, Has.Count.EqualTo(1));
             });
         }
 

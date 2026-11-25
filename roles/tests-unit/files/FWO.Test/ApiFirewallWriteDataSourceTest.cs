@@ -67,11 +67,12 @@ namespace FWO.Test
             return task;
         }
 
-        private static async Task<FirewallWriteErrorKind?> LoadError(InMemoryDeviceSpecificSettingsApiConnection api)
+        private static async Task<FirewallWriteErrorKind?> LoadError(InMemoryDeviceSpecificSettingsApiConnection api, ModelledObjectNaming? naming = null,
+            WfImplTask? task = null)
         {
             try
             {
-                await new ApiFirewallWriteDataSource(api).LoadContext(RuleTask());
+                await new ApiFirewallWriteDataSource(api, null, naming).LoadContext(task ?? RuleTask());
                 return null;
             }
             catch (FirewallWriteException exception)
@@ -130,8 +131,66 @@ namespace FWO.Test
                 Assert.That(await LoadError(GuardicoreApi(marker: "FWOC13")), Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData), "another connection");
                 Assert.That(await LoadError(GuardicoreApi(marker: "F")), Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData), "a shortened marker");
                 Assert.That(await LoadError(GuardicoreApi(marker: "12")), Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData), "no prefix");
+                Assert.That(await LoadError(GuardicoreApi(marker: "CHG12")), Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData), "another prefix");
                 Assert.That(await LoadError(GuardicoreApi(requestOwnerId: 6)), Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData), "another owner");
                 Assert.That(await LoadError(GuardicoreApi()), Is.Null);
+            }
+        }
+
+        /// <summary>
+        /// The marker has to be the configured one, which may contain digits: with the marker "FW1C" a task marked "FW1C12"
+        /// is accepted and one marked with the default "FWOC12" is refused.
+        /// </summary>
+        [Test]
+        public async Task RuleTasksOfLabelWriters_TakeTheConfiguredMarker()
+        {
+            ModelledObjectNaming naming = new("FW1C", null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(await LoadError(GuardicoreApi(marker: "FW1C12"), naming), Is.Null);
+                Assert.That(await LoadError(GuardicoreApi(), naming), Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+            }
+        }
+
+        private const long kGroupRequestTaskId = 11;
+
+        /// <summary>A Guardicore management with group request task 11 of app role AR1 naming the given labels.</summary>
+        private static InMemoryDeviceSpecificSettingsApiConnection GuardicoreGroupApi(string labelName, string? formerLabelName)
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = GuardicoreApi();
+            string former = formerLabelName == null ? "" : $",\"FormerLabelName\":\"{formerLabelName}\"";
+            api.RequestTaskAdditionalInfo[kGroupRequestTaskId] = $"{{\"GrpName\":\"AR1\",\"GrpType\":\"AppRole\",\"LabelName\":\"{labelName}\"{former}}}";
+            return api;
+        }
+
+        private static WfImplTask GroupTask()
+        {
+            WfImplTask task = Task(WfTaskType.group_modify);
+            task.ReqTaskId = kGroupRequestTaskId;
+            return task;
+        }
+
+        /// <summary>
+        /// A group task writes and renames only labels that stand for its group by the configured format: the request task
+        /// data can be changed by several roles, and a label of another group must not be renamed or rewritten this way.
+        /// </summary>
+        [Test]
+        public async Task GroupTasks_TakeOnlyLabelsOfTheirGroup()
+        {
+            ModelledObjectNaming naming = new(null, "{name} ({id})");
+            FirewallWriteContext context = await new ApiFirewallWriteDataSource(GuardicoreGroupApi("AppRole: Web (AR1)", "AppRole: AR1"), null, naming)
+                .LoadContext(GroupTask());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.LabelName, Is.EqualTo("AppRole: Web (AR1)"));
+                Assert.That(context.FormerLabelName, Is.EqualTo("AppRole: AR1"), "the label of the former default format stands for the group");
+                Assert.That(await LoadError(GuardicoreGroupApi("AppRole: Web (AR1)", "AppRole: AR9"), naming, GroupTask()),
+                    Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData), "the former label of another group");
+                Assert.That(await LoadError(GuardicoreGroupApi("AppRole: Other (AR9)", null), naming, GroupTask()),
+                    Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData), "the label of another group");
+                Assert.That(await LoadError(GuardicoreGroupApi("AppRole AR1", null), naming, GroupTask()),
+                    Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData), "no label name");
             }
         }
 

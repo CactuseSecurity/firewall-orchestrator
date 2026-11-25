@@ -37,21 +37,22 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         /// <summary>
         /// Name "key: value" of the label a group task writes (additional info <c>LabelName</c>, set by the variance analysis
-        /// for app roles, app zones and network areas in the configured value format); null for other tasks and for tasks
-        /// requested without it, whose label follows from the group name.
+        /// for app roles, app zones and network areas in the configured value format), checked to stand for the group of the
+        /// task (additional info <c>GrpName</c>); null for other tasks and for tasks requested without it, whose label follows
+        /// from the group name.
         /// </summary>
         public string? LabelName { get; init; }
 
         /// <summary>
         /// Name "key: value" of the existing label a group task renames to <see cref="LabelName"/> (additional info
-        /// <c>FormerLabelName</c>); null if the label keeps its name.
+        /// <c>FormerLabelName</c>), checked to stand for the group of the task as well; null if the label keeps its name.
         /// </summary>
         public string? FormerLabelName { get; init; }
 
         /// <summary>
         /// Marker of the modelled connection of a rule task of a vendor that writes labels (additional info <c>ConnMarker</c>,
-        /// e.g. "FWOC123"), by which the rules written for the connection are found again; checked to name the connection of
-        /// the request task, which belongs to an owner of the task. Null for other tasks.
+        /// e.g. "FWOC123"), by which the rules written for the connection are found again; checked to be the configured marker
+        /// followed by the connection of the request task, which belongs to an owner of the task. Null for other tasks.
         /// </summary>
         public string? ConnectionMarker { get; init; }
 

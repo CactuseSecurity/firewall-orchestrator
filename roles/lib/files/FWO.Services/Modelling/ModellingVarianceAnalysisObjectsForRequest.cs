@@ -51,7 +51,7 @@ namespace FWO.Services.Modelling
             HashSet<int> requestedConnIds = [];
             foreach (var rule in allModelledRules[mgt.Id].Where(r => !r.ModellFound))
             {
-                if (int.TryParse(FindModelledMarker(rule, MarkerLocationOf(mgt.Id)), out int connId) && RegardedDeletedConnectionIds.Contains(connId)
+                if (int.TryParse(FindConnectionMarker(rule, mgt.Id), out int connId) && RegardedDeletedConnectionIds.Contains(connId)
                     && (!WritesLabels(mgt) || requestedConnIds.Add(connId)))
                 {
                     ModellingConnection deletedConn = RegardedAsDeletedConns.FirstOrDefault(c => c.Id == connId) ?? throw new KeyNotFoundException("Connection not found.");
@@ -227,7 +227,8 @@ namespace FWO.Services.Modelling
 
         private void AnalyseAppRoleForRequest(ModellingAppRole appRole, Management mgt, bool isSource = false)
         {
-            if ((!userConfig.ModRequestOnlyOwnObjects || appRole.AppId == owner.Id) && !IsExcluded(mgt, ModellingTypes.ModObjectType.AppRole))
+            bool requestsAppRole = (!userConfig.ModRequestOnlyOwnObjects || appRole.AppId == owner.Id) && !IsExcluded(mgt, ModellingTypes.ModObjectType.AppRole);
+            if (requestsAppRole)
             {
                 RequestAppRoleChanges(appRole, mgt);
             }
@@ -236,7 +237,7 @@ namespace FWO.Services.Modelling
             {
                 RequestAction = RequestAction.create.ToString(),
                 Field = isSource ? ElemFieldType.source.ToString() : ElemFieldType.destination.ToString(),
-                GroupName = WritesLabels(mgt) ? ProdGroupName(appRole, mgt) : appRole.IdString
+                GroupName = WritesLabels(mgt) ? RuleLabelName(appRole, mgt, requestsAppRole) : appRole.IdString
             });
         }
 

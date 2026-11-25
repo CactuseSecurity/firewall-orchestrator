@@ -16,6 +16,8 @@ namespace FWO.Test
         [TestCase(kNameAndId)]
         [TestCase(" {id} - {name} ")]
         [TestCase("[{id}] {name}")]
+        [TestCase("{id}: {name}")]
+        [TestCase("{name} {id}")]
         public void ValidFormats_AreAccepted(string format)
         {
             Assert.That(LabelValueFormat.IsValid(format), Is.True);
@@ -28,6 +30,13 @@ namespace FWO.Test
         [TestCase("{name} {name} {id}")]
         [TestCase("{id} {other}")]
         [TestCase("{id} }")]
+        [TestCase("{name}-{id}")]
+        [TestCase("{id}-{name}")]
+        [TestCase("{name}{id}")]
+        [TestCase("{id}{name}")]
+        [TestCase("AR{id}")]
+        [TestCase("{id}_x {name}")]
+        [TestCase("{name}.{id}")]
         public void InvalidFormats_AreRejectedAndFallBackToTheDefault(string? format)
         {
             Assert.Multiple(() =>
@@ -40,7 +49,7 @@ namespace FWO.Test
         [Test]
         public void TooLongFormats_AreRejected()
         {
-            string format = "{id}" + new string('x', LabelValueFormat.kMaxFormatLength);
+            string format = "{id} " + new string('x', LabelValueFormat.kMaxFormatLength);
             Assert.That(LabelValueFormat.IsValid(format), Is.False);
         }
 
@@ -70,18 +79,39 @@ namespace FWO.Test
         }
 
         [Test]
-        public void IdCandidates_NameTheIdByFormatThenInTheLastParenthesesThenTheWholeValue()
+        public void IdCandidates_AreTheIdByFormatElseTheWholeValueAndTheLastParentheses()
         {
             LabelValueFormat nameAndId = new(kNameAndId);
             LabelValueFormat idFirst = new("{id} - {name}");
             Assert.Multiple(() =>
             {
-                Assert.That(nameAndId.IdCandidates("FWO (Prod) (AR1)"), Is.EqualTo(new List<string> { "AR1", "FWO (Prod) (AR1)" }));
-                Assert.That(nameAndId.IdCandidates("AR1"), Is.EqualTo(new List<string> { "AR1" }));
-                Assert.That(idFirst.IdCandidates("AR1 - Billing (old)"), Is.EqualTo(new List<string> { "AR1", "old", "AR1 - Billing (old)" }));
-                Assert.That(new LabelValueFormat("[{id}] {name}").IdCandidates("[AR1] Billing"), Is.EqualTo(new List<string> { "AR1", "[AR1] Billing" }));
+                Assert.That(nameAndId.IdCandidates("FWO (Prod) (AR1)"), Is.EqualTo(new List<string> { "AR1" }));
+                Assert.That(nameAndId.IdCandidates("AR1"), Is.EqualTo(new List<string> { "AR1" }), "a value of another format");
+                Assert.That(idFirst.IdCandidates("AR1 - Billing (old)"), Is.EqualTo(new List<string> { "AR1" }));
+                Assert.That(new LabelValueFormat("[{id}] {name}").IdCandidates("[AR1] Billing"), Is.EqualTo(new List<string> { "AR1" }));
+                Assert.That(new LabelValueFormat(LabelValueFormat.kDefault).IdCandidates("Proxy (AR1)"), Is.EqualTo(new List<string> { "Proxy (AR1)", "AR1" }),
+                    "the default format matches every value, so the last parentheses count as well");
+                Assert.That(idFirst.IdCandidates("Web (AR1)"), Is.EqualTo(new List<string> { "Web (AR1)", "AR1" }), "a value of another format");
                 Assert.That(nameAndId.IdCandidates(" "), Is.Empty);
                 Assert.That(nameAndId.IdCandidates(null), Is.Empty);
+            });
+        }
+
+        /// <summary>
+        /// A value of the format stands for its id only: the name of app role AR2 may end with the id of another group, or
+        /// two ids may share a part, without the value standing for that other group.
+        /// </summary>
+        [Test]
+        public void ValuesOfTheFormat_StandForTheirIdOnly()
+        {
+            LabelValueFormat idFirst = new("{id} {name}");
+            LabelValueFormat nameAndId = new(kNameAndId);
+            Assert.Multiple(() =>
+            {
+                Assert.That(idFirst.Matches("AR2 Web (AR1)", "AR2"), Is.True);
+                Assert.That(idFirst.Matches("AR2 Web (AR1)", "AR1"), Is.False);
+                Assert.That(nameAndId.Matches("Copy of (AR1) (AR2)", "AR1"), Is.False);
+                Assert.That(nameAndId.Matches("Prod (AR5003080-005)", "005"), Is.False);
             });
         }
 

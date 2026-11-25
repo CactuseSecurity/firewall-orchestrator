@@ -21,44 +21,69 @@ namespace FWO.ExternalSystems.FirewallWrite
         public static string Id(JsonNode? rule) => GuardicoreLabelCriteria.Text(rule?["id"]);
 
         /// <summary>
-        /// Reads a connection marker: a prefix without digits and whitespace (the configured marker, e.g. "FWOC") followed by
-        /// the id of the connection (e.g. "FWOC12").
+        /// A connection marker: the configured marker (e.g. "FWOC", which may contain digits but must not end with one)
+        /// followed by the id of the connection (e.g. "FWOC12"), without whitespace.
         /// </summary>
-        /// <returns>False if the marker has another form.</returns>
-        public static bool TryParseMarker(string? marker, out string connectionId)
-        {
-            Match match = MarkerPattern().Match(marker ?? "");
-            connectionId = match.Success ? match.Groups["id"].Value : "";
-            return match.Success;
-        }
-
-        [GeneratedRegex(@"^[^\d\s]+(?<id>\d+)$", RegexOptions.CultureInvariant)]
+        [GeneratedRegex(@"^\S*[^\d\s]\d+$", RegexOptions.CultureInvariant)]
         private static partial Regex MarkerPattern();
 
         /// <summary>
         /// Whether a comment names the marker of a connection (e.g. "FWOC12") as a whole word: "FWOC123", "XFWOC12" and
-        /// "FWOC12x" name other things. A marker that is not of the form of <see cref="TryParseMarker"/> is never found, so a
-        /// shortened marker cannot match the markers of other connections.
+        /// "FWOC12x" name other things. A marker without prefix or id (e.g. a shortened one) is never found, so it cannot
+        /// match the markers of other connections.
         /// </summary>
         public static bool HasMarker(string? comment, string marker)
         {
-            if (string.IsNullOrEmpty(comment) || !TryParseMarker(marker, out _))
+            if (string.IsNullOrEmpty(comment) || !MarkerPattern().IsMatch(marker))
             {
                 return false;
             }
             for (int index = comment.IndexOf(marker, StringComparison.Ordinal); index >= 0;
                 index = comment.IndexOf(marker, index + 1, StringComparison.Ordinal))
             {
-                int after = index + marker.Length;
-                bool startsToken = index == 0 || !char.IsLetterOrDigit(comment[index - 1]);
-                bool endsToken = after == comment.Length || !char.IsLetterOrDigit(comment[after]);
-                if (startsToken && endsToken)
+                if (IsWholeWord(comment, index, index + marker.Length))
                 {
                     return true;
                 }
             }
             return false;
         }
+
+        /// <summary>
+        /// Reads the id of the connection a comment names by its marker as a whole word (see <see cref="HasMarker"/>): the
+        /// digits following the first whole-word occurrence of the configured marker, e.g. "12" for "FWOC12" in "see FWOC12".
+        /// The variance analysis reads markers this way for the managements whose rules the writer finds by
+        /// <see cref="HasMarker"/>, so both count the same rules as rules of a connection.
+        /// </summary>
+        /// <param name="comment">Comment of a rule.</param>
+        /// <param name="markerPrefix">The configured marker, e.g. "FWOC".</param>
+        /// <returns>The id of the connection, null if the comment names none.</returns>
+        public static string? FindConnectionId(string? comment, string? markerPrefix)
+        {
+            if (string.IsNullOrEmpty(comment) || string.IsNullOrEmpty(markerPrefix))
+            {
+                return null;
+            }
+            for (int index = comment.IndexOf(markerPrefix, StringComparison.Ordinal); index >= 0;
+                index = comment.IndexOf(markerPrefix, index + 1, StringComparison.Ordinal))
+            {
+                int idStart = index + markerPrefix.Length;
+                int idEnd = idStart;
+                while (idEnd < comment.Length && char.IsAsciiDigit(comment[idEnd]))
+                {
+                    idEnd++;
+                }
+                if (idEnd > idStart && IsWholeWord(comment, index, idEnd))
+                {
+                    return comment[idStart..idEnd];
+                }
+            }
+            return null;
+        }
+
+        /// <summary>Whether the text between start and end is neither preceded nor followed by a letter or digit.</summary>
+        private static bool IsWholeWord(string text, int start, int end) =>
+            (start == 0 || !char.IsLetterOrDigit(text[start - 1])) && (end == text.Length || !char.IsLetterOrDigit(text[end]));
 
         /// <summary>Whether a rule lies in the given section and names the marker in its comment.</summary>
         public static bool BelongsTo(JsonNode? rule, string section, string marker) =>

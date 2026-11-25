@@ -56,6 +56,17 @@ namespace FWO.Services.Modelling
             RelevantManagements.Find(mgt => mgt.Id == mgtId) is Management mgt && WritesLabels(mgt) ? MarkerLocation.Comment : userConfig.ModModelledMarkerLocation;
 
         /// <summary>
+        /// The id of the connection whose marker a rule of a management carries. A management that writes labels is read as
+        /// its writer finds the rules of a connection: the marker as a whole word in the comment (see
+        /// <see cref="GuardicoreRules.FindConnectionId"/>), so that a rule the writer would never touch (e.g. "XFWOC12") is no
+        /// rule of the connection. Other managements are read where the marker location says.
+        /// </summary>
+        private string? FindConnectionMarker(Rule rule, int mgtId) =>
+            RelevantManagements.Find(mgt => mgt.Id == mgtId) is Management mgt && WritesLabels(mgt)
+                ? GuardicoreRules.FindConnectionId(rule.Comment, userConfig.ModModelledMarker)
+                : FindModelledMarker(rule, MarkerLocationOf(mgtId));
+
+        /// <summary>
         /// Whether a rule of a management that writes labels lies in another policy section than the one FWO writes its
         /// rules to (Guardicore: Allow), by the name the import gives its rulebase. FWO neither writes nor deletes such rules,
         /// so they are no implementation of a connection even if they carry its marker. A rule without rulebase name counts
@@ -85,7 +96,7 @@ namespace FWO.Services.Modelling
             GuardicoreRulesetApp rulesetApp = new(app.Name, app.ExtAppId, conn.IsCommonService);
             GuardicoreRulesetFormat format = new(userConfig.AppLabelValueFormat, userConfig.ModComSvcSectionPrefix);
             string targetRuleset = GuardicoreRulesets.Name(SettingsOf(mgt).PositioningAlgorithm, rulesetApp, format);
-            return ruleset == targetRuleset;
+            return GuardicoreRulesets.AreSame(ruleset, targetRuleset);
         }
 
         /// <summary>

@@ -41,6 +41,14 @@ namespace FWO.ExternalSystems.FirewallWrite
             return app.IsCommonService ? $"{EffectivePrefix(format?.CommonServicePrefix)} {name}" : name;
         }
 
+        /// <summary>
+        /// Whether two ruleset names name the same ruleset as the writer compares them (see <see cref="GuardicoreRules.Matches"/>):
+        /// ignoring case and surrounding whitespace, so that a rule whose ruleset differs only in case is not requested again
+        /// and again while the writer finds nothing to change.
+        /// </summary>
+        public static bool AreSame(string? ruleset, string? otherRuleset) =>
+            string.Equals(ruleset?.Trim(), otherRuleset?.Trim(), StringComparison.OrdinalIgnoreCase);
+
         /// <summary>The configured prefix of the rulesets of common services, trimmed, or the default if it is empty.</summary>
         public static string EffectivePrefix(string? commonServicePrefix)
         {

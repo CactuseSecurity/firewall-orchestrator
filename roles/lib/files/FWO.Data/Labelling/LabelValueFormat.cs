@@ -7,7 +7,8 @@ namespace FWO.Data.Labelling
     /// Format of the values of the labels FWO maintains for owners (App) and modelled groups (AppRole, AppZone, NetworkArea),
     /// with the placeholders {name} and {id}, e.g. "{name} ({id})" for "FWO-Produktion (AR5003080-005)". The default "{id}"
     /// keeps the bare id. A label is identified by its id, not by its value: <see cref="IdCandidates"/> reads the id back
-    /// from a value, so that a label is still found after the name or the format changed.
+    /// from a value, so that a label is still found after the name or the format changed. Therefore {id} has to be
+    /// delimited in the format, see <see cref="IsValid"/>.
     /// </summary>
     public sealed class LabelValueFormat
     {
@@ -62,7 +63,9 @@ namespace FWO.Data.Labelling
 
         /// <summary>
         /// True if a format can be used: it contains {id} exactly once, {name} at most once, no other braces and at most
-        /// <see cref="kMaxFormatLength"/> characters.
+        /// <see cref="kMaxFormatLength"/> characters. {id} must be delimited from the rest of the value: it may neither be
+        /// next to {name} nor next to a character that occurs in ids (letters, digits, '-', '_' and '.'), else the id could
+        /// not be read back from a value unambiguously (e.g. "{name}-{id}" for "Prod-AR5003080-005").
         /// </summary>
         /// <param name="format">Format to check.</param>
         public static bool IsValid(string? format)
@@ -73,8 +76,22 @@ namespace FWO.Data.Labelling
                 return false;
             }
             string literals = trimmed.Replace(kIdPlaceholder, "", StringComparison.Ordinal).Replace(kNamePlaceholder, "", StringComparison.Ordinal);
-            return !literals.Contains('{') && !literals.Contains('}');
+            return !literals.Contains('{') && !literals.Contains('}') && IsIdDelimited(trimmed);
         }
+
+        /// <summary>Whether {id} is at an end of the format or next to a character that cannot occur in ids, on both sides.</summary>
+        private static bool IsIdDelimited(string format)
+        {
+            int start = format.IndexOf(kIdPlaceholder, StringComparison.Ordinal);
+            int end = start + kIdPlaceholder.Length;
+            bool delimitedBefore = start == 0
+                || (!format[..start].EndsWith(kNamePlaceholder, StringComparison.Ordinal) && !CanOccurInIds(format[start - 1]));
+            bool delimitedAfter = end == format.Length
+                || (!format[end..].StartsWith(kNamePlaceholder, StringComparison.Ordinal) && !CanOccurInIds(format[end]));
+            return delimitedBefore && delimitedAfter;
+        }
+
+        private static bool CanOccurInIds(char character) => char.IsLetterOrDigit(character) || character is '-' or '_' or '.';
 
         /// <summary>
         /// Returns the label value of an owner or group. Without name the value is the id alone; a name that would make the
@@ -104,18 +121,25 @@ namespace FWO.Data.Labelling
         }
 
         /// <summary>
-        /// Returns the ids a label value may stand for, most specific first: the id by this format, the text in its last
-        /// parentheses (e.g. labels written with another format or by others) and the whole value (e.g. labels of the default
-        /// format). Empty candidates are left out.
+        /// Returns the ids a label value may stand for. A value of this format stands for its id by the format only, so that
+        /// a name that itself ends with an id in parentheses (e.g. "AR2 Web (AR1)" for "{id} {name}") names no other group.
+        /// Any other value - and every value of the default format "{id}", which matches all of them - stands, most specific
+        /// first, for the whole value (e.g. labels of the default format) and the text in its last parentheses (e.g. labels
+        /// written with another format or by others). Empty candidates are left out.
         /// </summary>
         /// <param name="value">Label value.</param>
         public List<string> IdCandidates(string? value)
         {
             string trimmed = value?.Trim() ?? "";
+            string? idByFormat = IdByFormat(trimmed);
             List<string> candidates = [];
-            AddCandidate(candidates, IdByFormat(trimmed));
-            AddCandidate(candidates, IdInLastParentheses(trimmed));
+            if (!string.IsNullOrEmpty(idByFormat) && Format != kDefault)
+            {
+                candidates.Add(idByFormat);
+                return candidates;
+            }
             AddCandidate(candidates, trimmed);
+            AddCandidate(candidates, IdInLastParentheses(trimmed));
             return candidates;
         }
 

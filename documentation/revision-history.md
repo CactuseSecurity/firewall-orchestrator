@@ -144,9 +144,10 @@
   written to the Allow section, one rule per protocol, as all ports of a Guardicore rule apply to all its protocols:
   ruleset = external app id of the owner of the connection, comment = connection marker (request task additional info
   ConnMarker, set by the variance analysis). As several roles can change the request task data, the write checks that
-  the marker is a prefix without digits followed by exactly the ConnId of the request task and that the connection
-  belongs to an owner of the request task, else the task fails; a marker is only found as a whole word, so a shortened
-  marker matches no rule. The client lists the Allow rules carrying the marker, replaces the rule of
+  the marker is exactly the configured marker (modModelledMarker, which may contain digits) followed by the ConnId of
+  the request task and that the connection belongs to an owner of the request task, else the task fails; a marker is
+  only found as a whole word, so a shortened marker matches no rule, and the variance analysis reads the markers of
+  such managements the same way (a comment like "XFWOC12" names no connection). The client lists the Allow rules carrying the marker, replaces the rule of
   each protocol (PUT on the rule path) unless it already is as requested, creates missing ones, deletes the other rules
   of the connection (all of them for rule_delete; POST on .../rules/delete/<rule id>, as the API offers no DELETE for
   rules) and publishes a policy revision only after a change. Labels in the
@@ -158,7 +159,9 @@
 - labelling: configurable label values (issue #5821). New global settings appLabelValueFormat (Settings - App Data
   Import) and groupLabelValueFormat (Settings - Modelling) with the placeholders {name} and {id}, e.g. "{name} ({id})"
   for "App: Billing (APP-4711)" or "AppRole: FWO-Produktion (AR5003080-005)"; the default {id} keeps the bare id.
-  {id} has to occur once, {name} at most once (E5603); a value longer than 250 characters gets a shortened name.
+  {id} has to occur once, {name} at most once, and {id} must be delimited: not directly next to {name}, a letter, a
+  digit, "-", "_" or "." (E5603), so that the id can be read back; a value longer than 250 characters gets a shortened
+  name.
   - App labels: the values record their owner in the new column labelling.label_value.owner_id (only the middleware
     and admins write it; the upgrade fills it for existing App labels whose value is the app id of an owner). Hasura
     lets modellers assign only App labels of their editable owners by this column instead of the former relationship
@@ -166,11 +169,16 @@
     and those of the rules with the next run of the rule owner mapping (full sync); if the format contains the name, a
     renamed owner is recorded as owner change in the owner settings and in the app data import
   - app roles, app zones and network areas: their labels get the value in the configured format. An existing label is
-    recognised by the id in its value (by the format, in its last parentheses or as the whole value), so a label of a
-    renamed group, of a former format or written by others stands for the group; the variance analysis then requests a
+    recognised by the id in its value (a value of the configured format by the id according to the format only, any
+    other value as the whole value or by its last parentheses), so a label of a renamed group, of a former format or
+    written by others stands for the group, but a name ending with the id of another group does not; the variance analysis then requests a
     rename (group task with additional info LabelName and FormerLabelName), and the Guardicore writer renames the label
     in place (PUT /api/v4.0/labels/<id> with key and value, criteria kept), so the rules keep it. Rule sides and
-    obsolete labels are compared by this id as well
+    obsolete labels are compared by this id as well. An access task names an app role whose label the analysis does
+    not rename (one of another owner while only own objects are requested, or while app roles are excluded from
+    provisioning) by its existing label, which keeps its former name until a request of its owner renames it. As the
+    request task data can be changed by several roles, the writer only writes and renames labels whose LabelName and
+    FormerLabelName stand for the group of the task (GrpName) by the configured format
 - Guardicore rule positioning by app ruleset (issue #5829): new device specific positioning algorithm
   gcEndOfAppRulesetCommonSvc. The writer puts the rules of a connection into the ruleset named like the App label of its
   owner by the App label value format of #5821 (e.g. "Exchange (COM-1611)" for "{name} ({id})", the bare app id for the
@@ -178,7 +186,8 @@
   modComSvcSectionPrefix (default ComSvc); Guardicore creates a missing ruleset with its first rule and appends new rules
   at its end. The default algorithm keeps the ruleset named by the app id. The variance analysis requests a connection
   again if one of its rules lies in another ruleset (e.g. after switching the algorithm, changing the App label value format, renaming the app or turning the
-  connection into a common service), and the writer moves the rules there by replacing them. The importer orders the
+  connection into a common service; compared ignoring case, as the writer does), and the writer moves the rules there
+  by replacing them. The importer orders the
   rulebases of a section with the rulesets of common services (by the configured prefix) first, then alphabetically
 - Guardicore importer and firewall write: the label and rule lists are paged with start_at/max_results as the Centra API
   v4.0 documents them, together with offset/limit for older releases; the importer fails instead of importing objects

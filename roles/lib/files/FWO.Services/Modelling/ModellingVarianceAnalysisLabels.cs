@@ -86,6 +86,18 @@ namespace FWO.Services.Modelling
             return DynamicIpLabel.ForModelledGroup(objectType, appRole.IdString, appRole.Name, GroupLabelFormat);
         }
 
+        /// <summary>
+        /// The label a rule names an app role by. If this analysis requests the app role (its creation, change or rename), its
+        /// label in the configured format. Otherwise (an app role of another owner while only own objects are requested, or
+        /// app roles excluded from provisioning) its existing label on the management, which keeps a former name or format
+        /// until it is renamed by a request of its owner; the label in the configured format if there is none.
+        /// </summary>
+        private string RuleLabelName(ModellingAppRole appRole, Management mgt, bool requestsAppRole)
+        {
+            DynamicIpLabel label = AppRoleLabel(appRole);
+            return requestsAppRole ? label.Name : FindProdLabel(mgt, label, appRole.IdString)?.Name ?? label.Name;
+        }
+
         /// <summary>The label of a network area, with the value in the configured format.</summary>
         private DynamicIpLabel AreaLabel(ModellingNetworkArea area)
         {

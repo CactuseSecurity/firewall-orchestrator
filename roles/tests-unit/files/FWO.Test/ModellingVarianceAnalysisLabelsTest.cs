@@ -438,6 +438,42 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// An app role whose label this analysis does not rename - one of another owner while only own objects are requested,
+        /// or any while app roles are excluded from provisioning - is named in the access task by its existing label, which
+        /// keeps the former format until a request of its owner renames it; else the access task would name a missing label.
+        /// </summary>
+        [Test]
+        public async Task Request_NamesAppRolesItDoesNotRenameByTheirExistingLabel()
+        {
+            List<ModellingConnection> connections = NamedConnections();
+            connections[0].SourceAppRoles[0].Content.AppId = Application.Id + 1;
+            ModellingVarianceAnalysis ownObjectsOnly = new(Api(), new ExtStateHandler(ExtStateApiConnection), new SimulatedUserConfig
+            {
+                ModNamingConvention = UserConfig.ModNamingConvention,
+                CreateAppZones = true,
+                RuleRecognitionOption = kRecognitionOption,
+                GroupLabelValueFormat = kNameAndId,
+                ModRequestOnlyOwnObjects = true
+            }, Application, DefaultInit.DoNothing);
+            GuardicoreVarianceTestApiConn excludingApi = Api();
+            excludingApi.Settings.SetValue(3, DeviceSpecificSettingKeys.ProvisioningExcludedObjectTypes, kExcludedAppRoles);
+
+            List<WfReqTask> foreignTasks = await ownObjectsOnly.AnalyseModelledConnectionsForRequest(connections);
+            List<WfReqTask> excludedTasks = await FormattedAnalysis(excludingApi).AnalyseModelledConnectionsForRequest(NamedConnections());
+
+            List<string?> foreignAccessGroups = [.. foreignTasks.Single(task => task.TaskType == nameof(WfTaskType.access)).Elements.Select(element => element.GroupName)];
+            List<string?> excludedAccessGroups = [.. excludedTasks.Single(task => task.TaskType == nameof(WfTaskType.access)).Elements.Select(element => element.GroupName)];
+            Assert.Multiple(() =>
+            {
+                Assert.That(foreignTasks.Exists(task => task.Title.StartsWith("Rename label: AppRole: AR504711-001")), Is.False);
+                Assert.That(foreignAccessGroups, Does.Contain("AppRole: AR504711-001").And.Not.Contain("AppRole: Billing (AR504711-001)"));
+                Assert.That(foreignAccessGroups, Does.Contain("AppRole: Payments (AR504711-003)"), "an own app role is renamed by its update");
+                Assert.That(excludedAccessGroups, Does.Contain("AppRole: AR504711-001").And.Contain("AppRole: AR504711-003"));
+                Assert.That(excludedAccessGroups, Does.Contain("AppRole: Missing (AR504711-002)"), "a missing label keeps the configured name");
+            });
+        }
+
         /// <summary>A label of the configured name is used as it is, even if a label of another name has the same id.</summary>
         [Test]
         public async Task Request_LeavesLabelsOfTheConfiguredNameAlone()

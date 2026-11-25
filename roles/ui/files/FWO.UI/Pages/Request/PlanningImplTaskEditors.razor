@@ -1,0 +1,16 @@
+@using FWO.Ui.Services
+
+@* The editors of management, device, free text and name of implementation tasks in the planning views. *@
+<ManagementEditor @bind-Display="Editor.DisplayManagementEditor" SelectedManagement="@Editor.SelectedManagement"
+    Managements="@Editor.Managements" Saved="Editor.SaveManagement" />
+<DeviceEditor @bind-Display="Editor.DisplayDeviceEditor" SelectedDevice="@Editor.SelectedDevice"
+    Devices="@Editor.AvailableDevices()" Saved="Editor.SaveDevice" />
+<TextEditor @bind-Display="Editor.DisplayFreeTextEditor" Text="@Editor.FreeText" TextKey="free_text"
+    Multiline="true" Saved="Editor.SaveFreeText" />
+<TextEditor @bind-Display="Editor.DisplayNameEditor" Text="@Editor.Name" TextKey="name"
+    Multiline="false" Saved="Editor.SaveName" />
+
+@code {
+    /// <summary>The editor state of the host view.</summary>
+    [Parameter, EditorRequired] public PlanningImplTaskEditor Editor { get; set; } = null!;
+}

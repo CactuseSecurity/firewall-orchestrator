@@ -609,33 +609,33 @@ div.modal-content .sticky-header thead {
     width: 50%;
 }
 
-.approval-task-list {
+.task-list {
     overflow-x: auto;
 }
 
-.approval-task-list .approval-task-list-cell {
+.task-list .task-list-cell {
     white-space: nowrap;
     vertical-align: top;
 }
 
-.approval-task-list .approval-task-list-value {
+.task-list .task-list-value {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
 }
 
-.approval-task-list .approval-task-list-badge {
+.task-list .task-list-badge {
     margin-left: 0.75rem;
 }
 
 /* The compliance status fills the whole cell with its color. */
-.approval-task-list td.approval-task-list-compliance-cell {
+.task-list td.approval-task-list-compliance-cell {
     position: relative;
     padding: 0;
     text-align: center;
 }
 
-.approval-task-list .approval-task-list-compliance {
+.task-list .approval-task-list-compliance {
     position: absolute;
     inset: 0;
     display: flex;
@@ -646,7 +646,7 @@ div.modal-content .sticky-header thead {
     white-space: nowrap;
 }
 
-.approval-task-list .approval-compliance-none {
+.task-list .approval-compliance-none {
     display: inline-block;
     padding: 0.5rem;
 }
@@ -661,9 +661,18 @@ div.modal-content .sticky-header thead {
     white-space: nowrap;
 }
 
-.approval-task-list .approval-task-list-edit {
+.task-list .task-list-edit {
     display: block;
     width: 100%;
     color: inherit;
     text-decoration: underline dotted;
+}
+
+/* With all tasks shown, implementation tasks are set off below their request task. */
+.planning-task-list tr.planning-task-list-impl-row > td {
+    background-color: var(--bs-tertiary-bg);
+}
+
+.planning-task-list tr.planning-task-list-impl-row > td:first-child {
+    padding-left: 1.5rem;
 }

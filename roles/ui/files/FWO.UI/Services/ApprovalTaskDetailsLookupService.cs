@@ -60,23 +60,7 @@ internal sealed class ApprovalTaskDetailsLookupService
                 || task.TaskType == WfTaskType.new_interface.ToString()
                 || WfObjectTaskHelper.IsManagementObjectTask(task.TaskType));
 
-        if (!context.UserConfig.ReqDisplayBundledTasksAsOne || !context.UserConfig.ReqConsiderBundling)
-        {
-            return tasks.Select(task => new List<WfReqTask> { task });
-        }
-
-        return tasks.GroupBy(task =>
-        {
-            if (WfObjectTaskHelper.IsManagementObjectTask(task.TaskType))
-            {
-                return $"task:{task.Id}";
-            }
-
-            string bundleId = task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
-            return string.IsNullOrWhiteSpace(bundleId)
-                ? $"task:{task.Id}"
-                : $"bundle:{bundleId}:state:{task.StateId}";
-        }).Select(group => group.OrderBy(task => task.Id).ToList());
+        return ApprovalTaskBundleHelper.GroupTasks(tasks, context.UserConfig);
     }
 
     internal List<FlowTimeObject> GetTicketTimeObjects()

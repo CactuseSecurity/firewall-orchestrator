@@ -24,6 +24,7 @@ namespace FWO.Test;
 internal sealed class UiPlanningDetailsViewTest
 {
     private static readonly object[] kNoArguments = [];
+    private static readonly List<string> kTitlesInExpectedOrder = ["first access", "second access", "generic first by id", "object task"];
 
     private static BunitContext CreateContext()
     {
@@ -215,6 +216,97 @@ internal sealed class UiPlanningDetailsViewTest
             Assert.That(cut.Markup, Does.Contain("Allow web"));
             Assert.That(cut.Markup, Does.Contain("implementation"));
             Assert.That(cut.Markup, Does.Contain("btn-light"));
+        });
+    }
+
+    [Test]
+    public static async Task PlanningDetailsView_ShowsAccessTasksFirst()
+    {
+        WfHandler handler = new()
+        {
+            ActTicket = new WfTicket
+            {
+                Id = 7,
+                Tasks =
+                [
+                    new WfReqTask { Id = 3, Title = "generic first by id", TaskType = WfTaskType.generic.ToString() },
+                    new WfReqTask { Id = 8, Title = "second access", TaskType = WfTaskType.access.ToString() },
+                    new WfReqTask { Id = 5, Title = "object task", TaskType = WfTaskType.object_create.ToString() },
+                    new WfReqTask { Id = 6, Title = "first access", TaskType = WfTaskType.access.ToString() }
+                ]
+            }
+        };
+
+        await using BunitContext context = CreateContext();
+        IRenderedComponent<PlanningDetailsView> cut = context.Render<PlanningDetailsView>(parameters => parameters
+            .Add(parameter => parameter.Display, true)
+            .Add(parameter => parameter.WfHandler, handler));
+
+        string markup = cut.Markup;
+        List<int> positions = [.. kTitlesInExpectedOrder.Select(title => markup.IndexOf(title, StringComparison.Ordinal))];
+        Assert.Multiple(() =>
+        {
+            Assert.That(positions, Has.All.GreaterThanOrEqualTo(0));
+            Assert.That(positions, Is.Ordered);
+        });
+    }
+
+    [Test]
+    public static async Task PlanningDetailsView_ShowsBundleAsOneCardWithImplementationTasksOfAllItsTasks()
+    {
+        string taskType = WfTaskType.access.ToString();
+        WfReqTask first = new()
+        {
+            Id = 11,
+            Title = "bundled access",
+            StateId = 1,
+            TaskType = taskType,
+            Elements = [new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "client-a", IpString = "10.0.0.1" }],
+            ImplementationTasks = [new WfImplTask { Id = 21, ReqTaskId = 11, StateId = 1, TaskType = taskType }]
+        };
+        WfReqTask second = new()
+        {
+            Id = 13,
+            Title = "bundled access 2",
+            StateId = 1,
+            TaskType = taskType,
+            Elements = [new WfReqElement { Field = ElemFieldType.source.ToString(), Name = "client-b", IpString = "10.0.0.2" }],
+            ImplementationTasks = [new WfImplTask { Id = 23, ReqTaskId = 13, StateId = 1, TaskType = taskType }]
+        };
+        first.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-1");
+        second.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "bundle-1");
+        WfHandler handler = UiRequestWorkflowTest.CreateWorkflowHandler(WorkflowPhases.planning, taskType,
+            new WfTicket { Id = 7, Tasks = [first, second] });
+
+        await using BunitContext context = CreateContext();
+        SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
+        userConfig.ReqConsiderBundling = true;
+        userConfig.ReqDisplayBundledTasksAsOne = true;
+        IRenderedComponent<PlanningDetailsView> cut = context.Render<PlanningDetailsView>(parameters => parameters
+            .Add(parameter => parameter.Display, true)
+            .Add(parameter => parameter.WfHandler, handler));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cut.Markup, Does.Contain(": 11, 13"));
+            Assert.That(cut.Markup, Does.Contain(": 21<"));
+            Assert.That(cut.Markup, Does.Contain(": 23<"));
+            Assert.That(cut.Markup, Does.Not.Contain("bundled access 2"));
+            Assert.That(cut.FindAll("span.badge-secondary").Select(badge => badge.TextContent), Does.Contain("2"));
+            Assert.That(cut.FindComponents<PlanningImplementationTaskDetails>(), Has.Count.EqualTo(2));
+        });
+
+        IElement addButton = cut.Find("button.btn-success.ml-2");
+        addButton.Click();
+
+        WfReqTask creationRequestTask = UiRequestWorkflowTest.GetMember<WfReqTask>(cut.Instance, "creationRequestTask");
+        Assert.Multiple(() =>
+        {
+            Assert.That(UiRequestWorkflowTest.GetMember<bool>(cut.Instance, "displayImplementationTaskCreation"), Is.True);
+            Assert.That(creationRequestTask.Id, Is.EqualTo(first.Id));
+            Assert.That(creationRequestTask.Elements, Has.Count.EqualTo(2));
+            Assert.That(handler.ActImplTask.ReqTaskId, Is.EqualTo(first.Id));
+            Assert.That(handler.ActImplTask.TaskNumber, Is.EqualTo(1));
         });
     }
 

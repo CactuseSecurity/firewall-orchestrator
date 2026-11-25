@@ -32,6 +32,7 @@
 - workflow UI: access task view opens full screen with access tasks first (other tasks start collapsed only next to access tasks); owner and management (access tasks) and reason (object and group tasks) use the space of fields hidden by the visibility settings, labels of all task types take less space
 - workflow UI: new Workflow Customizing setting "Object and Group Task Field Visibility" (handler, assigned, management, reason) for object and group tasks in the approval views; so far they followed the access task field visibility (management, reason) or were always shown (handler, assigned)
 - workflow UI: access task view, list view and planning view offer the configured task actions per task (card header, actions column; in the planning view also for implementation tasks), applied to all tasks of a bundle displayed as one; the action "Bundle tasks" is only offered on ticket level
+- workflow UI: new planning edit mode "List view" showing request and implementation tasks as table rows in the tables of the approval list view (without compliance); a header button switches between all tasks and only implementation tasks, adapting the columns; bundles displayed as one form one row (list view) or card (planning view) together with the implementation tasks of all their tasks
 
 
 ## 9.9.3 - 14.11.2026

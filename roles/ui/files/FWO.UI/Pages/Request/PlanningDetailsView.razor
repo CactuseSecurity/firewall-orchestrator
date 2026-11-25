@@ -6,15 +6,25 @@
 @inject UserConfig userConfig
 @inject ApiConnection apiConnection
 
-<PopUp Title="@PlanningViewTitle" Show="@Display" Size="PopupSize.XLarge" OnClose="ClosePopup">
+<PopUp Title="@PlanningViewTitle" Show="@Display" Size="@(ListView ? PopupSize.FullScreen : PopupSize.XLarge)" OnClose="ClosePopup">
     <Body>
-        @if (Display)
+        @if (Display && ListView)
         {
-            @foreach (WfReqTask requestTask in WfHandler.ActTicket.Tasks.OrderBy(task => task.Id))
+            <CascadingValue Value="@CreateTaskViewContext()">
+                <PlanningTaskListView WfHandler="WfHandler" States="States" ResetParent="Reset"
+                    AddImplementationTask="OpenImplementationTaskCreation"
+                    DeleteImplementationTask="OpenDeleteConfirmation"
+                    PerformRequestTaskAction="PerformRequestTaskGroupAction" />
+            </CascadingValue>
+        }
+        else if (Display)
+        {
+            @foreach (List<WfReqTask> taskGroup in TaskGroups())
             {
+                WfReqTask requestTask = taskGroup[0];
                 <div class="mb-1">
                     <Collapse @key="requestTask.Id" StartToggled="false" Style="secondary" UseHtmlTitle="true"
-                              TitleWithHtml="@RequestTaskHeader(requestTask)" ContentClass="p-1">
+                              TitleWithHtml="@RequestTaskHeader(taskGroup)" ContentClass="p-1">
                         <div>
                             @if (RequestTaskDetailsExpanded(requestTask))
                             {
@@ -22,32 +32,36 @@
                                     <CascadingValue Value="@CreateTaskViewContext()">
                                         @if (IsAccessTask(requestTask))
                                         {
-                                            <ApprovalTaskAccessBody Task="requestTask" TaskGroup="@(new List<WfReqTask> { requestTask })" />
+                                            <ApprovalTaskAccessBody Task="requestTask" TaskGroup="taskGroup" />
                                         }
                                         else if (IsGroupTask(requestTask))
                                         {
-                                            <ApprovalGroupTaskBody Task="requestTask" TaskGroup="@(new List<WfReqTask> { requestTask })" />
+                                            <ApprovalGroupTaskBody Task="requestTask" TaskGroup="taskGroup" />
                                         }
                                         else if (requestTask.TaskType == WfTaskType.generic.ToString())
                                         {
-                                            <ApprovalGenericTaskBody Task="requestTask" TaskGroup="@(new List<WfReqTask> { requestTask })" />
+                                            <ApprovalGenericTaskBody Task="requestTask" TaskGroup="taskGroup" />
                                         }
                                         else if (requestTask.TaskType == WfTaskType.new_interface.ToString())
                                         {
-                                            <ApprovalInterfaceTaskBody Task="requestTask" TaskGroup="@(new List<WfReqTask> { requestTask })" />
+                                            <ApprovalInterfaceTaskBody Task="requestTask" TaskGroup="taskGroup" />
                                         }
                                         else
                                         {
-                                            <ApprovalObjectTaskBody Task="requestTask" TaskGroup="@(new List<WfReqTask> { requestTask })" />
+                                            <ApprovalObjectTaskBody Task="requestTask" TaskGroup="taskGroup" />
                                         }
                                     </CascadingValue>
                                 </div>
                             }
-                            <div class="ms-2">
-                                <PlanningImplementationTaskDetails ImplementationTasks="requestTask.ImplementationTasks"
-                                    RequestTask="requestTask" WfHandler="WfHandler" States="States" Phase="@Phase" ResetParent="Reset"
-                                    DeleteImplementationTask="@OpenDeleteConfirmation" />
-                            </div>
+                            @* the implementation tasks of a bundle usually belong to its first task; each is edited on its own request task *@
+                            @foreach (WfReqTask implementedTask in ImplementedTasks(taskGroup))
+                            {
+                                <div class="ms-2" @key="implementedTask.Id">
+                                    <PlanningImplementationTaskDetails ImplementationTasks="implementedTask.ImplementationTasks"
+                                        RequestTask="implementedTask" WfHandler="WfHandler" States="States" Phase="@Phase" ResetParent="Reset"
+                                        DeleteImplementationTask="@OpenDeleteConfirmation" />
+                                </div>
+                            }
                         </div>
                     </Collapse>
                 </div>
@@ -86,6 +100,8 @@
     [Parameter] public bool ShowCancel { get; set; }
     [Parameter] public Func<Task> ResetParent { get; set; } = DefaultInit.DoNothing;
     [Parameter] public Func<Task> Closed { get; set; } = DefaultInit.DoNothing;
+    /// <summary>Shows every request and implementation task as one table row instead of one card per task.</summary>
+    [Parameter] public bool ListView { get; set; }
 
     private readonly ApprovalTaskDetailsEditorService editorService = new();
     private readonly HashSet<long> collapsedRequestTaskDetails = [];
@@ -139,14 +155,25 @@
             && (!WfHandler.ReadOnlyMode || WfStateAction.IsReadonlyType(action.ActionType));
     }
 
+    /// <summary>
+    /// The request tasks, bundled tasks displayed as one forming one group; as in the access task view, access tasks
+    /// come first, otherwise the tasks are in id order.
+    /// </summary>
+    private List<List<WfReqTask>> TaskGroups() => ApprovalTaskDetailsEditorService.AccessTasksFirst(
+        ApprovalTaskBundleHelper.GroupTasks(WfHandler.ActTicket.Tasks.OrderBy(task => task.Id), userConfig));
+
+    /// <summary>The tasks of a group whose implementation tasks are shown; a single task is always shown.</summary>
+    private static IEnumerable<WfReqTask> ImplementedTasks(List<WfReqTask> taskGroup) => taskGroup.Count == 1
+        ? taskGroup
+        : taskGroup.Where(task => task.ImplementationTasks.Count > 0);
+
     private static bool IsAccessTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsAccessTask(task);
 
     private static bool IsGroupTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsGroupTask(task);
 
     private bool RequestTaskDetailsExpanded(WfReqTask requestTask) => !collapsedRequestTaskDetails.Contains(requestTask.Id);
 
-    private bool CanMutateRequestTask(WfReqTask requestTask) =>
-        !WfHandler.ReadOnlyMode && WfHandler.CanActOnReqTaskInCurrentPhase(requestTask);
+    private bool CanMutateRequestTask(WfReqTask requestTask) => WorkflowTaskActions.CanChangeRequestTasks(WfHandler, [requestTask]);
 
     private void ToggleRequestTaskDetails(WfReqTask requestTask)
     {
@@ -164,16 +191,15 @@
 
     private void ClosePopup() => _ = Close();
 
-    private RenderFragment RequestTaskActionButtons(WfReqTask requestTask) =>
-        WorkflowTaskActions.Buttons(
-            WorkflowTaskActions.Visible(WfHandler, requestTask, WfObjectScopes.RequestTask, CanMutateRequestTask(requestTask)),
-            action => PerformRequestTaskAction(requestTask, action));
+    /// <summary>The configured request task actions; for a bundle displayed as one they apply to all its tasks.</summary>
+    private RenderFragment RequestTaskActionButtons(IReadOnlyList<WfReqTask> taskGroup) =>
+        WorkflowTaskActions.Buttons(WorkflowTaskActions.VisibleForRequestTasks(WfHandler, taskGroup),
+            action => PerformRequestTaskGroupAction(taskGroup, action));
 
-    /// <summary>Performs a configured action on a request task, then reloads the ticket and resets the view.</summary>
-    private async Task PerformRequestTaskAction(WfReqTask requestTask, WfStateAction action)
+    /// <summary>Performs a configured action on all tasks of a bundle displayed as one, then reloads the ticket and resets the view.</summary>
+    private async Task PerformRequestTaskGroupAction(IReadOnlyList<WfReqTask> taskGroup, WfStateAction action)
     {
-        await WorkflowTaskActions.Perform(WfHandler, action, WfObjectScopes.RequestTask,
-            [(requestTask, requestTask.Owners.FirstOrDefault()?.Owner, requestTask.TicketId)]);
+        await WorkflowTaskActions.PerformOnRequestTasks(WfHandler, action, taskGroup);
         await Reset();
     }
 
@@ -189,10 +215,12 @@
         {
             return;
         }
-        WfHandler.SelectReqTask(requestTask, ObjAction.display);
+        // a merged bundle request task is a transient copy; the new task belongs to the first bundled task with its id
+        WfReqTask ownerTask = WfHandler.ActTicket.Tasks.FirstOrDefault(task => task.Id == requestTask.Id) ?? requestTask;
+        WfHandler.SelectReqTask(ownerTask, ObjAction.display);
         WfImplTask implementationTask = new(requestTask, false)
         {
-            TaskNumber = requestTask.HighestImplTaskNumber() + 1,
+            TaskNumber = ownerTask.HighestImplTaskNumber() + 1,
             ManagementId = requestTask.ManagementId
         };
         WfHandler.SelectImplTask(implementationTask, ObjAction.add);
@@ -223,34 +251,29 @@
             && WfHandler.CanActOnImplTaskInCurrentPhase(implementationTask);
     }
 
-    private string PlanningViewTitle
-    {
-        get
-        {
-            string requester = WfHandler.ActTicket.Requester?.Name ?? "";
-            string metadata = $"{userConfig.GetText("id")}: {WfHandler.ActTicket.Id}, {userConfig.GetText("state")}: {States.GetName(WfHandler.ActTicket.StateId)}";
-            if (!string.IsNullOrWhiteSpace(requester))
-            {
-                metadata += $", {userConfig.GetText("requester")}: {requester}";
-            }
-            string headline = PreWorkflowTicketReferenceDisplay.TicketHeadline(userConfig.GetText("ticket"), userConfig.ReqPreWorkflowTicketReferenceLabel, WfHandler.ActTicket);
-            return $"{headline} ({metadata})";
-        }
-    }
+    private string PlanningViewTitle => TaskDetailsViewTitle.Build(userConfig, WfHandler.ActTicket, States);
 
-    private RenderFragment RequestTaskHeader(WfReqTask requestTask) => builder =>
+    private RenderFragment RequestTaskHeader(List<WfReqTask> taskGroup) => builder =>
     {
+        WfReqTask requestTask = taskGroup[0];
         builder.OpenElement(0, "span");
         builder.AddAttribute(1, "class", "d-flex align-items-center flex-wrap gap-2");
         builder.OpenElement(2, "small");
         builder.AddAttribute(3, "class", "text-dark mr-2 text-nowrap");
-        builder.AddContent(4, $"{userConfig.GetText("id")}: {requestTask.Id}");
+        builder.AddContent(4, $"{userConfig.GetText("id")}: {ApprovalTaskDetailsEditorService.TaskIds(taskGroup)}");
         builder.CloseElement();
-        builder.AddContent(5, RequestTaskActionButtons(requestTask));
+        builder.AddContent(5, RequestTaskActionButtons(taskGroup));
         builder.OpenElement(6, "strong");
         builder.AddAttribute(7, "class", "mr-2");
         builder.AddContent(8, string.IsNullOrWhiteSpace(requestTask.Title) ? userConfig.GetText("task") : requestTask.Title);
         builder.CloseElement();
+        if (taskGroup.Count > 1)
+        {
+            builder.OpenElement(24, "span");
+            builder.AddAttribute(25, "class", "badge badge-secondary");
+            builder.AddContent(26, taskGroup.Count);
+            builder.CloseElement();
+        }
         builder.OpenElement(9, "span");
         builder.AddAttribute(10, "class", "ms-auto");
         builder.AddContent(11, States.GetName(requestTask.StateId));
@@ -264,13 +287,13 @@
         builder.AddContent(17, DisplayService.DisplayButton(userConfig, "details",
             RequestTaskDetailsExpanded(requestTask) ? Icons.CollapseUp : Icons.CollapseDown));
         builder.CloseElement();
-        if (CanMutateRequestTask(requestTask))
+        if (WorkflowTaskActions.CanChangeRequestTasks(WfHandler, taskGroup))
         {
             builder.OpenElement(18, "button");
             builder.AddAttribute(19, "type", "button");
             builder.AddAttribute(20, "class", "btn btn-sm btn-success ml-2");
             builder.AddAttribute(21, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this,
-                () => OpenImplementationTaskCreation(requestTask)));
+                () => OpenImplementationTaskCreation(ApprovalTaskBundleHelper.CreationRequestTask(taskGroup))));
             builder.AddEventStopPropagationAttribute(22, "onclick", true);
             builder.AddContent(23, DisplayService.DisplayButtonWithTooltip(userConfig, "add", Icons.Add,
                 userConfig.GetText("implementation")));

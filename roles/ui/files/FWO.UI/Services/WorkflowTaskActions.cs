@@ -50,6 +50,66 @@ namespace FWO.Ui.Services
             await wfHandler.ReloadActTicket();
         }
 
+        /// <summary>Returns whether the user may change all request tasks of a group (a single task or a bundle displayed as one).</summary>
+        /// <param name="wfHandler">The workflow handler providing the read-only mode and the phase.</param>
+        /// <param name="taskGroup">The request tasks.</param>
+        public static bool CanChangeRequestTasks(WfHandler wfHandler, IReadOnlyList<WfReqTask> taskGroup)
+        {
+            return taskGroup.Count > 0 && !wfHandler.ReadOnlyMode && taskGroup.All(wfHandler.CanActOnReqTaskInCurrentPhase);
+        }
+
+        /// <summary>Returns whether the user may change an implementation task and its request task.</summary>
+        /// <param name="wfHandler">The workflow handler providing the read-only mode and the phase.</param>
+        /// <param name="implementationTask">The implementation task.</param>
+        /// <param name="requestTask">The request task the implementation task belongs to.</param>
+        public static bool CanChangeImplementationTask(WfHandler wfHandler, WfImplTask implementationTask, WfReqTask requestTask)
+        {
+            return !wfHandler.ReadOnlyMode
+                && wfHandler.CanActOnReqTaskInCurrentPhase(requestTask)
+                && wfHandler.CanActOnImplTaskInCurrentPhase(implementationTask);
+        }
+
+        /// <summary>Returns the actions offered for a group of request tasks, defined by the state of its first task.</summary>
+        /// <param name="wfHandler">The workflow handler providing the action handler and the phase.</param>
+        /// <param name="taskGroup">The request tasks: a single task or a bundle displayed as one.</param>
+        public static IReadOnlyList<WfStateAction> VisibleForRequestTasks(WfHandler wfHandler, IReadOnlyList<WfReqTask> taskGroup)
+        {
+            return taskGroup.Count == 0
+                ? []
+                : Visible(wfHandler, taskGroup[0], WfObjectScopes.RequestTask, CanChangeRequestTasks(wfHandler, taskGroup));
+        }
+
+        /// <summary>Returns the actions offered for an implementation task.</summary>
+        /// <param name="wfHandler">The workflow handler providing the action handler and the phase.</param>
+        /// <param name="implementationTask">The implementation task.</param>
+        /// <param name="requestTask">The request task the implementation task belongs to.</param>
+        public static IReadOnlyList<WfStateAction> VisibleForImplementationTask(WfHandler wfHandler, WfImplTask implementationTask, WfReqTask requestTask)
+        {
+            return Visible(wfHandler, implementationTask, WfObjectScopes.ImplementationTask,
+                CanChangeImplementationTask(wfHandler, implementationTask, requestTask));
+        }
+
+        /// <summary>Performs an action on every request task of a group and reloads the ticket afterwards.</summary>
+        /// <param name="wfHandler">The workflow handler providing the action handler.</param>
+        /// <param name="action">The action to perform.</param>
+        /// <param name="taskGroup">The request tasks: a single task or a bundle displayed as one.</param>
+        public static Task PerformOnRequestTasks(WfHandler wfHandler, WfStateAction action, IReadOnlyList<WfReqTask> taskGroup)
+        {
+            return Perform(wfHandler, action, WfObjectScopes.RequestTask,
+                taskGroup.Select(task => ((WfStatefulObject)task, task.Owners.FirstOrDefault()?.Owner, task.TicketId)));
+        }
+
+        /// <summary>Performs an action on an implementation task and reloads the ticket afterwards.</summary>
+        /// <param name="wfHandler">The workflow handler providing the action handler.</param>
+        /// <param name="action">The action to perform.</param>
+        /// <param name="implementationTask">The implementation task.</param>
+        /// <param name="requestTask">The request task providing owner and ticket.</param>
+        public static Task PerformOnImplementationTask(WfHandler wfHandler, WfStateAction action, WfImplTask implementationTask, WfReqTask requestTask)
+        {
+            return Perform(wfHandler, action, WfObjectScopes.ImplementationTask,
+                [(implementationTask, requestTask.Owners.FirstOrDefault()?.Owner, requestTask.TicketId)]);
+        }
+
         /// <summary>Renders the action buttons; renders nothing if no action is offered.</summary>
         /// <param name="actions">The actions to offer.</param>
         /// <param name="perform">Performs a selected action.</param>

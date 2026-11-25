@@ -130,6 +130,7 @@
                     {
                         <PlanningDetailsView @bind-Display="displayApprovalTaskDetailsView"
                             WfHandler="WfHandler" States="States" Phase="Phase"
+                            ListView="@(userConfig.ReqPlannerEditMode == PlannerEditMode.ListView)"
                             OfferedActions="offeredActions" PerformTicketAction="PerformAction"
                             CanPromoteTicket="@CanShowTicketPromotionButton()"
                             ShowCancel="@(!WfHandler.ReadOnlyMode && WfHandler.EditTicketMode)"
@@ -299,7 +300,7 @@
     private bool UseApprovalTaskDetailsView => Phase == WorkflowPhases.approval
         && userConfig.ReqApprovalEditMode != ApprovalEditMode.Classic;
     private bool UsePlanningDetailsView => Phase == WorkflowPhases.planning
-        && userConfig.ReqPlannerEditMode == PlannerEditMode.PlanningView
+        && userConfig.ReqPlannerEditMode != PlannerEditMode.Classic
         && !IsReadOnlyDisplay;
     private bool UseTaskDetailsView => UseApprovalTaskDetailsView || UsePlanningDetailsView;
 

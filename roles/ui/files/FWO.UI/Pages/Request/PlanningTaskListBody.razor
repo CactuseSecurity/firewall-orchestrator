@@ -1,0 +1,81 @@
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<TaskListGrid TItem="PlanningTaskListRow" Table="Table" CssClass="planning-task-list" Items="Rows" Columns="columns"
+    ColumnSignature="@columnSignature" HeaderButtons="HeaderButtons" RowClassSelector="RowClass" />
+
+@code {
+    private const string kImplementationTaskRowClass = "planning-task-list-impl-row";
+
+    /// <summary>The displayed table; its title is the one of the approval task list view.</summary>
+    [Parameter] public TaskListTable Table { get; set; }
+    /// <summary>The rows of the table.</summary>
+    [Parameter] public IReadOnlyList<PlanningTaskListRow> Rows { get; set; } = [];
+    /// <summary>The visible columns in display order.</summary>
+    [Parameter] public IReadOnlyList<TaskListColumn> Columns { get; set; } = [];
+    /// <summary>The shown tasks; with all tasks, implementation-task rows are highlighted below their request task.</summary>
+    [Parameter] public PlanningTaskListMode Mode { get; set; }
+    /// <summary>Returns whether a row offers actions; the actions column is only shown if a row does.</summary>
+    [Parameter] public Func<PlanningTaskListRow, bool> HasActions { get; set; } = _ => false;
+    /// <summary>The action buttons of a row.</summary>
+    [Parameter] public RenderFragment<PlanningTaskListRow>? RowActions { get; set; }
+    /// <summary>Buttons shown in the top bar, right-aligned just before the search field.</summary>
+    [Parameter] public RenderFragment? HeaderButtons { get; set; }
+
+    private IReadOnlyList<FancyColumn<PlanningTaskListRow>> columns = [];
+    private string columnSignature = "";
+
+    /// <summary>Rebuilds the columns if the visible fields or the actions column changed.</summary>
+    protected override void OnParametersSet()
+    {
+        bool showActions = Rows.Any(HasActions);
+        string signature = $"{Mode}|{string.Join("|", Columns.Select(column => column.Key))}|{showActions}";
+        if (signature != columnSignature)
+        {
+            columnSignature = signature;
+            columns = BuildColumns(showActions);
+        }
+    }
+
+    private string? RowClass(PlanningTaskListRow row) =>
+        Mode == PlanningTaskListMode.AllTasks && row.IsImplementationTask ? kImplementationTaskRowClass : null;
+
+    private List<FancyColumn<PlanningTaskListRow>> BuildColumns(bool showActions)
+    {
+        List<FancyColumn<PlanningTaskListRow>> fancyColumns = [.. Columns.Select(BuildColumn)];
+        if (showActions)
+        {
+            TaskListHelper.InsertActionsColumn(fancyColumns, ApprovalTaskListRowBuilder.kId, userConfig.GetText("actions"), ActionsCell);
+        }
+        return fancyColumns;
+    }
+
+    private FancyColumn<PlanningTaskListRow> BuildColumn(TaskListColumn column)
+    {
+        bool isId = column.Key == ApprovalTaskListRowBuilder.kId;
+        return new FancyColumn<PlanningTaskListRow>
+        {
+            Key = column.Key,
+            Title = userConfig.GetText(column.TextKey),
+            // sorting all tasks would separate the implementation tasks from their request task
+            Sortable = Mode == PlanningTaskListMode.ImplementationTasks,
+            Searchable = true,
+            Filterable = true,
+            Hideable = !isId,
+            MinWidth = isId ? null : TaskListHelper.kColumnMinWidth,
+            CellClass = "task-list-cell",
+            SearchTextSelector = row => row.Cell(column.Key).Text,
+            SortValueSelector = isId ? row => row.Id : row => row.Cell(column.Key).Text,
+            CellTemplate = row => TaskListHelper.CellContent(row.Cell(column.Key))
+        };
+    }
+
+    private RenderFragment ActionsCell(PlanningTaskListRow row) =>
+        @<div class="d-flex flex-nowrap gap-1">
+            @if (RowActions != null && HasActions(row))
+            {
+                @RowActions(row)
+            }
+        </div>;
+}

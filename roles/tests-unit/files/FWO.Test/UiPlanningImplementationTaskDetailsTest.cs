@@ -17,7 +17,6 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 using NUnit.Framework;
-using System.Reflection;
 using System.Text.Json.Nodes;
 
 namespace FWO.Test;
@@ -25,8 +24,6 @@ namespace FWO.Test;
 [TestFixture]
 internal sealed class UiPlanningImplementationTaskDetailsTest
 {
-    private static readonly string[] kGroupContents = ["one", "two", "three", "four", "five", "six"];
-
     private static BunitContext CreateContext()
     {
         BunitContext context = new();
@@ -35,38 +32,6 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
         context.Services.AddSingleton<DomEventService>();
         context.Services.AddSingleton<ApiConnection>(new SimulatedApiConnection());
         return context;
-    }
-
-    [Test]
-    public static void PlanningImplementationTaskDetails_SelectsOnlyRequestedObjectElement()
-    {
-        List<WfImplElement> elements =
-        [
-            new WfImplElement { Field = ElemFieldType.source.ToString(), Name = "existing", ImplAction = RequestAction.unchanged.ToString() },
-            new WfImplElement { Field = ElemFieldType.source.ToString(), Name = "created", ImplAction = RequestAction.create.ToString() },
-            new WfImplElement { Field = ElemFieldType.source.ToString(), Name = "second-created", ImplAction = RequestAction.create.ToString() }
-        ];
-        WfImplTask task = new() { TaskType = WfTaskType.object_create.ToString(), ImplElements = elements };
-
-        object[] elementArguments = [task, ElemFieldType.source];
-        IEnumerable<WfImplElement> result = (IEnumerable<WfImplElement>)UiRequestWorkflowTest.GetPrivateMethod(
-            typeof(PlanningImplementationTaskDetails), "ElementsForDisplay").Invoke(null, elementArguments)!;
-
-        Assert.That(result.Select(element => element.Name), Is.EqualTo(new List<string> { "created" }));
-    }
-
-    [Test]
-    public static void PlanningImplementationTaskDetails_TruncatesGroupContent()
-    {
-        object[] groupArguments = [kGroupContents];
-        string result = (string)UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "TruncatedGroupContent")
-            .Invoke(null, groupArguments)!;
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(result, Does.StartWith("one, two, three, four, five"));
-            Assert.That(result, Does.Contain("(+1)"));
-        });
     }
 
     [Test]
@@ -177,56 +142,6 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
     }
 
     [Test]
-    public static void PlanningImplementationTaskDetails_CoversTaskTypeAndDisplayHelpers()
-    {
-        PlanningImplementationTaskDetails component = new();
-        UiRequestWorkflowTest.SetMember(component, "userConfig", new SimulatedUserConfig());
-        WfReqTask requestTask = new() { TaskType = WfTaskType.group_create.ToString() };
-        requestTask.SetAddInfo(AdditionalInfoKeys.GrpName, "web-group");
-        UiRequestWorkflowTest.SetMember(component, nameof(PlanningImplementationTaskDetails.RequestTask), requestTask);
-
-        WfImplTask groupTask = new()
-        {
-            TaskType = WfTaskType.group_create.ToString(),
-            FreeText = "group text",
-            ImplElements = [new WfImplElement { Field = ElemFieldType.source.ToString(), GroupName = "fallback-group" }]
-        };
-        WfImplTask ruleDeleteTask = new()
-        {
-            TaskType = WfTaskType.rule_delete.ToString(),
-            ImplElements = [new WfImplElement { Field = ElemFieldType.rule.ToString(), RuleUid = "rule-1" }]
-        };
-        WfImplTask genericTask = new() { TaskType = WfTaskType.generic.ToString(), FreeText = "text" };
-        WfImplTask timeTask = new()
-        {
-            TaskType = WfTaskType.object_create.ToString(),
-            TargetBeginDate = new DateTime(2027, 12, 31),
-            TargetEndDate = new DateTime(2028, 1, 1),
-            ImplElements = [new WfImplElement { Field = ElemFieldType.time.ToString(), Name = "maintenance" }]
-        };
-        object[] groupArguments = [groupTask];
-        object[] ruleDeleteArguments = [ruleDeleteTask];
-        object[] timeArguments = [timeTask];
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(UiRequestWorkflowTest.InvokePrivateBool(component, "IsRuleImplementationTask", ruleDeleteTask), Is.True);
-            Assert.That(UiRequestWorkflowTest.InvokePrivateBool(component, "IsRuleTask", new WfImplTask { TaskType = WfTaskType.rule_modify.ToString() }), Is.True);
-            Assert.That(InvokeImplementationTaskBool(component, "IsGroupTask", groupTask), Is.True);
-            Assert.That(UiRequestWorkflowTest.InvokePrivateBool(component, "HasFreeText", genericTask), Is.True);
-            Assert.That(UiRequestWorkflowTest.InvokePrivateBool(component, "CanEditFreeText", new WfImplTask { TaskType = WfTaskType.access.ToString() }), Is.True);
-            Assert.That(UiRequestWorkflowTest.InvokePrivateBool(component, "CanEditFreeText", new WfImplTask { TaskType = WfTaskType.object_create.ToString() }), Is.False);
-            Assert.That(UiRequestWorkflowTest.InvokePrivateBool(component, "IsTimeObjectTask", timeTask), Is.True);
-            Assert.That(UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "GroupName")
-                .Invoke(component, groupArguments), Is.EqualTo("fallback-group"));
-            Assert.That(UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "RuleUid")
-                .Invoke(null, ruleDeleteArguments), Is.EqualTo("rule-1"));
-            Assert.That(UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "ObjectName")
-                .Invoke(component, timeArguments), Is.EqualTo("maintenance"));
-        });
-    }
-
-    [Test]
     public static void PlanningImplementationTaskDetails_MutationGateRequiresActionableRequestAndImplementationStates()
     {
         string taskType = WfTaskType.access.ToString();
@@ -276,17 +191,6 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
             Assert.That(cut.Markup, Does.Contain("bg-secondary-subtle"));
             Assert.That(cut.Markup, Does.Contain("free_text"));
         });
-    }
-
-    private static bool InvokeImplementationTaskBool(PlanningImplementationTaskDetails component, string methodName, WfImplTask task)
-    {
-        MethodInfo method = typeof(PlanningImplementationTaskDetails).GetMethods(
-                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
-            .Single(candidate => candidate.Name == methodName
-                && candidate.GetParameters().Length == 1
-                && candidate.GetParameters()[0].ParameterType == typeof(WfImplTask));
-        object[] taskArguments = [task];
-        return (bool)method.Invoke(component, taskArguments)!;
     }
 
     [Test]
@@ -375,9 +279,11 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
             .Add(parameter => parameter.WfHandler, handler)
             .Add(parameter => parameter.CreationMode, true));
 
-        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveFreeText", "planner text");
-        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveManagement", management);
-        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveDevice", device);
+        PlanningImplTaskEditor editor = Editor(cut);
+        await cut.InvokeAsync(() => editor.OpenFreeText(implementationTask, requestTask));
+        await editor.SaveFreeText("planner text");
+        await editor.SaveManagement(management);
+        await editor.SaveDevice(device);
 
         WfImplTask savedTask = implementationTasks.Single();
         Assert.Multiple(() =>
@@ -421,11 +327,10 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
             .Add(parameter => parameter.WfHandler, handler)
             .Add(parameter => parameter.CreationMode, true));
 
-        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveDevice", deviceB);
-        object[] availableDeviceArguments = [implementationTask];
-        object[] compatibilityArguments = [implementationTask, deviceB];
-        List<Device> availableDevices = (List<Device>)UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "AvailableDevices")
-            .Invoke(cut.Instance, availableDeviceArguments)!;
+        PlanningImplTaskEditor editor = Editor(cut);
+        await cut.InvokeAsync(() => editor.OpenDevice(implementationTask, requestTask));
+        await editor.SaveDevice(deviceB);
+        List<Device> availableDevices = editor.AvailableDevices();
 
         Assert.Multiple(() =>
         {
@@ -433,8 +338,7 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
             Assert.That(implementationTask.DeviceId, Is.EqualTo(deviceA.Id));
             Assert.That(availableDevices, Has.Count.EqualTo(1));
             Assert.That(availableDevices[0], Is.SameAs(deviceA));
-            Assert.That(UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "IsDeviceCompatible")
-                .Invoke(cut.Instance, compatibilityArguments), Is.EqualTo(false));
+            Assert.That(PlanningImplTaskDisplayLogic.IsDeviceCompatible(implementationTask, requestTask, deviceB), Is.False);
         });
     }
 
@@ -470,7 +374,9 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
             .Add(parameter => parameter.WfHandler, handler)
             .Add(parameter => parameter.CreationMode, true));
 
-        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveManagement", managementB);
+        PlanningImplTaskEditor editor = Editor(cut);
+        await cut.InvokeAsync(() => editor.OpenManagement(implementationTask, requestTask));
+        await editor.SaveManagement(managementB);
         WfImplTask savedTask = implementationTasks.Single();
 
         Assert.Multiple(() =>
@@ -510,18 +416,21 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
             .Add(parameter => parameter.WfHandler, handler)
             .Add(parameter => parameter.CreationMode, true));
 
-        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "OpenManagementEditor", implementationTask);
-        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "OpenFreeTextEditor", implementationTask);
-        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "OpenDeviceEditor", implementationTask);
+        await cut.InvokeAsync(() => UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "OpenManagementEditor", implementationTask));
+        await cut.InvokeAsync(() => UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "OpenFreeTextEditor", implementationTask));
+        await cut.InvokeAsync(() => UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "OpenDeviceEditor", implementationTask));
 
+        PlanningImplTaskEditor editor = Editor(cut);
         Assert.Multiple(() =>
         {
-            Assert.That(UiRequestWorkflowTest.GetMember<bool>(cut.Instance, "displayManagementEditor"), Is.True);
-            Assert.That(UiRequestWorkflowTest.GetMember<Management>(cut.Instance, "selectedManagement"), Is.SameAs(management));
-            Assert.That(UiRequestWorkflowTest.GetMember<bool>(cut.Instance, "displayTextEditor"), Is.True);
-            Assert.That(UiRequestWorkflowTest.GetMember<string>(cut.Instance, "textEditorValue"), Is.EqualTo("existing text"));
-            Assert.That(UiRequestWorkflowTest.GetMember<bool>(cut.Instance, "displayDeviceEditor"), Is.True);
-            Assert.That(UiRequestWorkflowTest.GetMember<Device>(cut.Instance, "selectedDevice"), Is.SameAs(device));
+            Assert.That(editor.DisplayManagementEditor, Is.True);
+            Assert.That(editor.SelectedManagement, Is.SameAs(management));
+            Assert.That(editor.DisplayFreeTextEditor, Is.True);
+            Assert.That(editor.FreeText, Is.EqualTo("existing text"));
+            Assert.That(editor.DisplayDeviceEditor, Is.True);
+            Assert.That(editor.SelectedDevice, Is.SameAs(device));
+            Assert.That(cut.FindComponent<ManagementEditor>().Instance.Display, Is.True);
+            Assert.That(cut.FindComponent<DeviceEditor>().Instance.Display, Is.True);
         });
     }
 
@@ -555,13 +464,16 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
             .Add(parameter => parameter.WfHandler, handler)
             .Add(parameter => parameter.CreationMode, true));
 
-        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveName", "new-group");
+        PlanningImplTaskEditor editor = Editor(cut);
+        await cut.InvokeAsync(() => editor.OpenName(groupTask, requestTask));
+        Assert.That(editor.Name, Is.EqualTo("old-group"));
+        await editor.SaveName("new-group");
         Assert.That(groupTasks.Single().ImplElements.All(element => element.GroupName == "new-group"), Is.True);
         cut.Render();
         Assert.That(cut.Markup, Does.Contain("new-group"));
         Assert.That(cut.Markup, Does.Not.Contain("request-group"));
-        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "OpenNameEditor", groupTask);
-        Assert.That(UiRequestWorkflowTest.GetMember<string>(cut.Instance, "nameEditorValue"), Is.EqualTo("new-group"));
+        await cut.InvokeAsync(() => UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "OpenNameEditor", groupTasks.Single()));
+        Assert.That(editor.Name, Is.EqualTo("new-group"));
 
         WfImplTask timeTask = new(requestTask, false)
         {
@@ -585,73 +497,14 @@ internal sealed class UiPlanningImplementationTaskDetailsTest
                 [nameof(PlanningImplementationTaskDetails.WfHandler)] = handler,
                 [nameof(PlanningImplementationTaskDetails.CreationMode)] = true
             })));
-        await UiRequestWorkflowTest.InvokePrivateTask(cut.Instance, "SaveName", "new-time");
+        await cut.InvokeAsync(() => editor.OpenName(timeTask, requestTask));
+        await editor.SaveName("new-time");
 
         Assert.That(timeTasks.Single().ImplElements.Single().Name, Is.EqualTo("new-time"));
     }
 
-    [Test]
-    public static void PlanningImplementationTaskDetails_ResolvesServiceRowsAndManagementFallbacks()
-    {
-        PlanningImplementationTaskDetails component = new();
-        Management management = new() { Id = 4, Name = "Management A" };
-        Device device = new() { Id = 8, Name = "Firewall A", Management = management };
-        WfReqTask requestTask = new() { ManagementId = 3 };
-        WfHandler handler = new() { Devices = [device] };
-        UiRequestWorkflowTest.SetMember(component, nameof(PlanningImplementationTaskDetails.WfHandler), handler);
-        UiRequestWorkflowTest.SetMember(component, nameof(PlanningImplementationTaskDetails.RequestTask), requestTask);
-        UiRequestWorkflowTest.SetMember(component, "ipProtocols", new List<IpProtocol> { new() { Id = 6, Name = "tcp" } });
-
-        WfImplTask serviceTask = new()
-        {
-            ImplElements = [new WfImplElement { Field = ElemFieldType.service.ToString(), Name = "https", Port = 443, ProtoId = 6 }]
-        };
-        object[] serviceArguments = [serviceTask];
-        List<(string Name, string Content, string Action)> rows = (List<(string Name, string Content, string Action)>)UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "GroupServiceDisplayRows")
-            .Invoke(component, serviceArguments)!;
-        object[] explicitManagementArguments = [new WfImplTask { ManagementId = 9 }];
-        object[] deviceManagementArguments = [new WfImplTask { DeviceId = 8 }];
-        object[] requestManagementArguments = [new WfImplTask()];
-        object explicitManagement = UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "EffectiveManagementId")
-            .Invoke(component, explicitManagementArguments)!;
-        object deviceManagement = UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "EffectiveManagementId")
-            .Invoke(component, deviceManagementArguments)!;
-        object requestManagement = UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "EffectiveManagementId")
-            .Invoke(component, requestManagementArguments)!;
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(rows.Single().Name, Is.EqualTo("https"));
-            Assert.That(rows.Single().Content, Does.Contain("443"));
-            Assert.That(explicitManagement, Is.EqualTo(9));
-            Assert.That(deviceManagement, Is.EqualTo(4));
-            Assert.That(requestManagement, Is.EqualTo(3));
-        });
-    }
-
-    [Test]
-    public static void PlanningImplementationTaskDetails_ConvertsServiceElements()
-    {
-        WfImplTask task = new()
-        {
-            ImplElements =
-            [
-                new WfImplElement { Field = ElemFieldType.source.ToString(), Name = "source" },
-                new WfImplElement { Field = ElemFieldType.source.ToString(), Name = "source-2" },
-                new WfImplElement { Field = ElemFieldType.service.ToString(), Name = "https", Port = 443, ProtoId = 6 }
-            ]
-        };
-
-        WfImplElement serviceElement = task.ImplElements.Single(element => element.Field == ElemFieldType.service.ToString());
-        object[] serviceElementArguments = [serviceElement];
-        NwServiceElement converted = (NwServiceElement)UiRequestWorkflowTest.GetPrivateMethod(typeof(PlanningImplementationTaskDetails), "ToServiceElement")
-            .Invoke(null, serviceElementArguments)!;
-        Assert.Multiple(() =>
-        {
-            Assert.That(converted.Name, Is.EqualTo("https"));
-            Assert.That(converted.Port, Is.EqualTo(443));
-        });
-    }
+    private static PlanningImplTaskEditor Editor(IRenderedComponent<PlanningImplementationTaskDetails> cut) =>
+        UiRequestWorkflowTest.GetMember<PlanningImplTaskEditor>(cut.Instance, "Editor");
 
     private sealed class PositioningUserConfig : UserConfig
     {

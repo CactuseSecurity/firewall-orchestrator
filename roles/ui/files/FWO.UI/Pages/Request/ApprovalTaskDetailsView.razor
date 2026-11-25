@@ -17,7 +17,7 @@
             List<List<WfReqTask>> shownListTaskGroups = [.. listTaskGroups.Where(IsShown)];
             <CascadingValue Value="@CreateTaskViewContext()">
                 @* the tables come from all tasks, so the access table and its filter button stay when no task matches the filter *@
-                @foreach (ApprovalTaskListTable table in ListTables(listTaskGroups))
+                @foreach (TaskListTable table in ApprovalTaskListRowBuilder.UsedTables(listTaskGroups))
                 {
                     <ApprovalTaskListBody @key="table" Table="table" TaskGroups="shownListTaskGroups" States="States"
                         ShowActions="@WfHandler.CanPromoteTaskInCurrentPhase()"
@@ -25,7 +25,7 @@
                         PromoteTask="@(task => RunWithProgress(() => OpenTaskPromotion(task)))"
                         TaskActions="VisibleTaskActions" PerformTaskAction="PerformTaskAction"
                         Compliance="compliance" ShowComplianceReasons="OpenComplianceReasons"
-                        HeaderButtons="@(table == ApprovalTaskListTable.Access ? AccessTaskButtons : null)" />
+                        HeaderButtons="@(table == TaskListTable.Access ? AccessTaskButtons : null)" />
                 }
             </CascadingValue>
         }
@@ -151,20 +151,7 @@
 
     private bool CanPerformTicketAction(WfStateAction action) => WfHandler.CanPerformActionOnActTicket(action);
 
-    private string ApprovalTaskViewTitle
-    {
-        get
-        {
-            string requester = WfHandler.ActTicket.Requester?.Name ?? "";
-            string metadata = $"{userConfig.GetText("id")}: {WfHandler.ActTicket.Id}, {userConfig.GetText("state")}: {States.GetName(WfHandler.ActTicket.StateId)}";
-            if (!string.IsNullOrWhiteSpace(requester))
-            {
-                metadata += $", {userConfig.GetText("requester")}: {requester}";
-            }
-            string headline = PreWorkflowTicketReferenceDisplay.TicketHeadline(userConfig.GetText("ticket"), userConfig.ReqPreWorkflowTicketReferenceLabel, WfHandler.ActTicket);
-            return $"{headline} ({metadata})";
-        }
-    }
+    private string ApprovalTaskViewTitle => TaskDetailsViewTitle.Build(userConfig, WfHandler.ActTicket, States);
 
     private string TaskDisplayTitle(WfReqTask task)
     {
@@ -242,21 +229,13 @@
     }
 
     /// <summary>The configured request task actions offered for a task or a bundle displayed as one.</summary>
-    private IReadOnlyList<WfStateAction> VisibleTaskActions(IReadOnlyList<WfReqTask> taskGroup)
-    {
-        if (taskGroup.Count == 0)
-        {
-            return [];
-        }
-        bool canChangeTasks = !WfHandler.ReadOnlyMode && taskGroup.All(WfHandler.CanActOnReqTaskInCurrentPhase);
-        return WorkflowTaskActions.Visible(WfHandler, taskGroup[0], WfObjectScopes.RequestTask, canChangeTasks);
-    }
+    private IReadOnlyList<WfStateAction> VisibleTaskActions(IReadOnlyList<WfReqTask> taskGroup) =>
+        WorkflowTaskActions.VisibleForRequestTasks(WfHandler, taskGroup);
 
     /// <summary>Performs a configured task action on every task of the group and reloads the ticket afterwards.</summary>
     private Task PerformTaskAction(IReadOnlyList<WfReqTask> taskGroup, WfStateAction action)
     {
-        return RunWithProgress(() => WorkflowTaskActions.Perform(WfHandler, action, WfObjectScopes.RequestTask,
-            taskGroup.Select(task => ((WfStatefulObject)task, task.Owners.FirstOrDefault()?.Owner, task.TicketId))));
+        return RunWithProgress(() => WorkflowTaskActions.PerformOnRequestTasks(WfHandler, action, taskGroup));
     }
 
     private RenderFragment TaskActionButtons(IReadOnlyList<WfReqTask> taskGroup) =>
@@ -613,15 +592,6 @@
     {
         ConfigureEditorService();
         return editorService.GetTaskGroups();
-    }
-
-    /// <summary>Returns the list-view tables that contain at least one task, in display order.</summary>
-    private static List<ApprovalTaskListTable> ListTables(List<List<WfReqTask>> taskGroups)
-    {
-        HashSet<ApprovalTaskListTable> usedTables = [.. taskGroups
-            .Where(taskGroup => taskGroup.Count > 0)
-            .Select(taskGroup => ApprovalTaskListRowBuilder.TableOf(taskGroup[0]))];
-        return [.. Enum.GetValues<ApprovalTaskListTable>().Where(usedTables.Contains)];
     }
 
     private static bool IsAccessTask(WfReqTask task) => ApprovalTaskDetailsEditorService.IsAccessTask(task);

@@ -234,7 +234,7 @@
     private bool UseTaskDetailsView => (Phase == WorkflowPhases.approval
         && userConfig.ReqApprovalEditMode != ApprovalEditMode.Classic)
         || (Phase == WorkflowPhases.planning
-        && userConfig.ReqPlannerEditMode == PlannerEditMode.PlanningView);
+        && userConfig.ReqPlannerEditMode != PlannerEditMode.Classic);
 
     private bool openApprovalTaskDetails;
 }

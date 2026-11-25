@@ -1,0 +1,13 @@
+# App label values with their owner; an existing value gets the owner, as only FWO assigns owners to label values
+mutation upsertAppLabelValues($values: [labelling_label_value_insert_input!]!) {
+    insert_labelling_label_value(
+        objects: $values
+        on_conflict: { constraint: labelling_label_value_key_id_value_unique, update_columns: [value, owner_id] }
+    ) {
+        returning {
+            label_id
+            value
+            owner_id
+        }
+    }
+}

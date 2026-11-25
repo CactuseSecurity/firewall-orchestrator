@@ -19,7 +19,10 @@ namespace FWO.Test
     internal class AppLabelTest
     {
         private const long kImportControlId = 4711;
-        private static readonly List<string?> kAppIdsWithGaps = ["APP-1", " APP-1 ", "", null, "APP-2"];
+        private static readonly List<AppLabelOwner> kOwnersWithGaps =
+            [new(1, "One", "APP-1"), new(1, "One", " APP-1 "), new(3, "Three", ""), new(4, "Four", null), new(2, "Two", "APP-2")];
+        private static readonly List<int> kOwnersOneAndTwo = [1, 2];
+        private static readonly List<string> kFormattedValues = ["Billing (APP-1)", "APP-2"];
         private static readonly List<string> kAppOneAndTwo = ["APP-1", "APP-2"];
         private static readonly List<long> kAffectedRules = [2, 2];
         private static readonly List<string> kAppKeyOnly = ["App"];
@@ -57,18 +60,41 @@ namespace FWO.Test
             AppLabelTestApiConnection api = new();
             AppLabelHandler handler = new(api, " App ");
 
-            Dictionary<string, long> labelIds = await handler.GetAppLabelIds(kAppIdsWithGaps);
-            await handler.GetAppLabelIds(kAppIdsWithGaps);
+            Dictionary<int, long> labelIds = await handler.GetAppLabelIds(kOwnersWithGaps);
+            await handler.GetAppLabelIds(kOwnersWithGaps);
 
             Assert.Multiple(() =>
             {
-                Assert.That(labelIds.Keys, Is.EquivalentTo(kAppOneAndTwo));
+                Assert.That(labelIds.Keys, Is.EquivalentTo(kOwnersOneAndTwo));
                 Assert.That(api.UpsertedKeys, Is.EqualTo(kAppKeyOnly));
                 Assert.That(api.UpsertedAppIds, Is.EqualTo(kAppOneAndTwo));
+                Assert.That(api.UpsertedOwnerIds, Is.EqualTo(kOwnersOneAndTwo));
+                Assert.That(LabellingQueries.upsertAppLabelValues, Does.Contain("update_columns: [value, owner_id]"));
                 Assert.That(LabellingQueries.upsertAppLabelKey, Does.Contain("update_columns: [key_source_internal, key_is_owner_scoped, allow_multiple_values]"));
                 Assert.That(LabellingQueries.upsertAppLabelKey, Does.Contain("key_source_internal: false, key_is_owner_scoped: false, allow_multiple_values: true"));
                 Assert.That(handler.IsAppKey("app"), Is.True);
                 Assert.That(handler.IsAppKey("Stage"), Is.False);
+            });
+        }
+
+        /// <summary>
+        /// The values have the configured format; an owner without name gets the bare app id, an invalid format falls back
+        /// to the default.
+        /// </summary>
+        [Test]
+        public async Task AppLabelValues_HaveTheConfiguredFormat()
+        {
+            AppLabelTestApiConnection api = new();
+            AppLabelHandler handler = new(api, "App", "{name} ({id})");
+            List<AppLabelOwner> owners = [new(1, " Billing ", "APP-1"), new(2, " ", "APP-2")];
+
+            Dictionary<int, long> labelIds = await handler.GetAppLabelIds(owners);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(api.UpsertedAppIds, Is.EqualTo(kFormattedValues));
+                Assert.That(labelIds[1], Is.EqualTo(api.LabelIdsByAppId["Billing (APP-1)"]));
+                Assert.That(new AppLabelHandler(api, "App", "{name}").ValueFormat.Format, Is.EqualTo(LabelValueFormat.kDefault));
             });
         }
 
@@ -343,11 +369,11 @@ namespace FWO.Test
             api.OwnersWithNetworks.Add(new FwoOwner { Id = 6, Name = "Inactive", Active = false, OwnerNetworks = [new()] });
             AppLabelKeyChange keyChange = new(api);
 
-            bool unchanged = await keyChange.Apply("App", " App ", NoLog);
+            bool unchanged = await keyChange.Apply(new("App", null), new(" App ", " {id} "), NoLog);
             int callsWhileUnchanged = api.Calls.Count;
-            bool changed = await keyChange.Apply("App", "Application", NoLog);
+            bool changed = await keyChange.Apply(new("App", null), new("Application", null), NoLog);
             int addedByChange = api.AddedServerLabels.Count;
-            bool switchedOff = await keyChange.Apply("Application", "", NoLog);
+            bool switchedOff = await keyChange.Apply(new("Application", null), new("", null), NoLog);
 
             Assert.Multiple(() =>
             {
@@ -359,6 +385,56 @@ namespace FWO.Test
                 Assert.That(addedByChange, Is.EqualTo(2), "both app servers of the active owner");
                 Assert.That(api.AddedServerLabels, Has.Count.EqualTo(addedByChange), "switching off adds nothing");
                 Assert.That(api.ChangeEvents.TrueForAll(changeEvent => changeEvent.importControlId == null && changeEvent.originIsUi), Is.True);
+            });
+        }
+
+        /// <summary>
+        /// A changed value format keeps the App key, but gives the app servers of all active owners the App label in the
+        /// new format, which closes the label in the former format.
+        /// </summary>
+        [Test]
+        public async Task ChangedValueFormat_MovesTheAppLabelsOfTheAppServers()
+        {
+            AppLabelTestApiConnection api = new();
+            api.LabelIdsByAppId["APP-1"] = 10;
+            api.Owners.Add(new OwnerAppServerAppLabels
+            {
+                Name = "Billing",
+                AppIdExternal = "APP-1",
+                AppServers = [new() { Id = 1, AppLabels = [new() { LabelId = 10 }] }]
+            });
+            api.OwnersWithNetworks.Add(new FwoOwner { Id = 5, Name = "Billing", Active = true, OwnerNetworks = [new()] });
+
+            bool changed = await new AppLabelKeyChange(api).Apply(new("App", "{id}"), new("App", "{name} ({id})"), NoLog);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(changed, Is.True);
+                Assert.That(api.ClosedKeys, Is.Empty, "the key stays");
+                Assert.That(api.UpsertedAppIds, Is.EqualTo(new List<string> { "Billing (APP-1)" }));
+                Assert.That(api.ClosedServerLabels.Select(label => (label.ownerNetworkId, label.labelId)), Is.EqualTo(new List<(long, long)> { (1, 10) }));
+                Assert.That(api.AddedServerLabels.Select(label => label.labelId), Is.EqualTo(new List<long> { api.LabelIdsByAppId["Billing (APP-1)"] }));
+            });
+        }
+
+        /// <summary>A changed value format makes the next sync compare all rules again, like a changed App key.</summary>
+        [Test]
+        public async Task ChangedValueFormat_SyncsAllRulesAgain()
+        {
+            AppLabelTestApiConnection api = new();
+            api.LabelIdsByAppId["APP-1"] = 10;
+            api.ActiveRuleOwnerApps.Add(Mapping(1, "APP-1"));
+            api.ActiveRuleAppLabels.Add(new RuleLabelRow { RuleId = 1, LabelId = 10 });
+
+            await new RuleAppLabelSync(api, new GlobalConfig { AppLabelKey = "App" }).Sync(kRuleTwo, kImportControlId);
+            await new RuleAppLabelSync(api, new GlobalConfig { AppLabelKey = "App", AppLabelValueFormat = "{name} ({id})" }).Sync(kRuleTwo, kImportControlId + 1);
+
+            long formattedLabel = api.LabelIdsByAppId["Owner APP-1 (APP-1)"];
+            Assert.Multiple(() =>
+            {
+                Assert.That(api.CallsOf(LabellingQueries.getAllActiveRuleOwnerApps), Is.EqualTo(2), "full sync first and after the format changed");
+                Assert.That(api.ClosedRuleLabels.Select(closed => (closed.ruleId, closed.labelId)), Is.EqualTo(new List<(long, long)> { (1, 10) }));
+                Assert.That(api.AddedRuleLabels.Select(added => (added.ruleId, added.labelId)), Is.EqualTo(new List<(long, long)> { (1, formattedLabel) }));
             });
         }
 
@@ -378,7 +454,8 @@ namespace FWO.Test
 
         private static RuleOwnerApp Mapping(long ruleId, string? appId)
         {
-            return new() { RuleId = ruleId, Owner = new() { AppIdExternal = appId } };
+            int ownerId = appId == null ? 0 : int.Parse(appId[(appId.LastIndexOf('-') + 1)..]);
+            return new() { RuleId = ruleId, Owner = new() { Id = ownerId, Name = $"Owner {appId}", AppIdExternal = appId } };
         }
     }
 }

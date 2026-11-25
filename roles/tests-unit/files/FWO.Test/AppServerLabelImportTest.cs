@@ -341,9 +341,9 @@ namespace FWO.Test
                 {
                     return new LabelKey { Id = 7 };
                 }
-                if (query == LabellingQueries.upsertLabelValues)
+                if (query == LabellingQueries.upsertAppLabelValues)
                 {
-                    return new LabelValueUpsertResult { Returning = [new LabelValue { Id = kAppLabelId, Value = "APP-1" }] };
+                    return new LabelValueUpsertResult { Returning = [new LabelValue { Id = kAppLabelId, Value = "APP-1", OwnerId = 5 }] };
                 }
                 if (query == LabellingQueries.getLabelIds)
                 {

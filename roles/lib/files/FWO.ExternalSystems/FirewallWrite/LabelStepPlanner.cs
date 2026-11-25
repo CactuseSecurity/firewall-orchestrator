@@ -9,7 +9,8 @@ namespace FWO.ExternalSystems.FirewallWrite
 {
     /// <summary>
     /// Plans the steps of vendors that write groups as labels with IP criteria (Guardicore). A group task writes the label
-    /// its group stands for (see <see cref="DynamicIpLabel.FromGroupName"/>): a new group gets exactly its members as IP
+    /// its request names (<see cref="FirewallWriteContext.LabelName"/>, renaming the label of a former name if it names one),
+    /// else the label its group stands for (see <see cref="DynamicIpLabel.FromGroupName"/>): a new group gets exactly its members as IP
     /// criteria, a changed group gets its members to remove taken out and its other members added, and a deleted group
     /// deletes the label value. Network objects exist only as criteria of labels, so object tasks write nothing. These vendors
     /// know no service groups either: the services are part of the rules, so service group tasks write nothing.
@@ -56,10 +57,20 @@ namespace FWO.ExternalSystems.FirewallWrite
             };
         }
 
-        /// <summary>Returns the label a group task writes.</summary>
-        /// <exception cref="FirewallWriteException">Thrown if the group is neither named "key: value" nor requested as app role, app zone or network area.</exception>
+        /// <summary>
+        /// Returns the label a group task writes: the label its request names for an app role, app zone or network area,
+        /// else the label its group stands for.
+        /// </summary>
+        /// <exception cref="FirewallWriteException">Thrown if the named label is no label of the object type of the group, or
+        /// if the group is neither named "key: value" nor requested as app role, app zone or network area.</exception>
         public static DynamicIpLabel Label(WfImplTask implTask, FirewallWriteContext context)
         {
+            ArgumentNullException.ThrowIfNull(implTask);
+            ArgumentNullException.ThrowIfNull(context);
+            if (context.LabelName != null)
+            {
+                return RequestedLabel(implTask, context, context.LabelName);
+            }
             string groupName = ImplTaskStepPlanner.GroupName(implTask);
             return DynamicIpLabel.FromGroupName(groupName, context.GroupObjectType)
                 ?? throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
@@ -67,14 +78,47 @@ namespace FWO.ExternalSystems.FirewallWrite
                     "nor requested as app role, app zone or network area.");
         }
 
+        /// <summary>
+        /// The label the request names for its group, which has to be a label of the object type of the group, so that a
+        /// request cannot write other labels this way.
+        /// </summary>
+        private static DynamicIpLabel RequestedLabel(WfImplTask implTask, FirewallWriteContext context, string labelName)
+        {
+            DynamicIpLabel? label = DynamicIpLabel.FromName(labelName);
+            if (label == null || label.ObjectType == null || label.ObjectType != context.GroupObjectType)
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                    $"Label '{labelName}' of implementation task {implTask.Id} is no label of its group type '{context.GroupObjectType}'.");
+            }
+            return label;
+        }
+
+        /// <summary>The former value of the label of a group task to rename, null if it keeps its value.</summary>
+        /// <exception cref="FirewallWriteException">Thrown if the former label has another key.</exception>
+        private static string? FormerValue(WfImplTask implTask, FirewallWriteContext context, DynamicIpLabel label)
+        {
+            if (context.LabelName == null || context.FormerLabelName == null)
+            {
+                return null;
+            }
+            DynamicIpLabel? former = DynamicIpLabel.FromName(context.FormerLabelName);
+            if (former == null || former.Key != label.Key)
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.InvalidTaskData,
+                    $"Former label '{context.FormerLabelName}' of implementation task {implTask.Id} has not the key of label '{label.Name}'.");
+            }
+            return former.Value == label.Value ? null : former.Value;
+        }
+
         private static FirewallWriteStep LabelWriteStep(WfImplTask implTask, FirewallWriteContext context, bool replace)
         {
             DynamicIpLabel label = Label(implTask, context);
+            string? formerValue = FormerValue(implTask, context, label);
             List<WfImplElement> members = ImplTaskStepPlanner.GroupMembers(implTask);
             List<IpInterval> keep = MemberIntervals(members.Where(member => member.ImplAction != nameof(RequestAction.delete)));
             List<IpInterval> remove = replace ? [] : MemberIntervals(members.Where(member => member.ImplAction == nameof(RequestAction.delete)));
 
-            FirewallWriteStep step = new(FirewallWriteOperation.LabelWrite) { TargetName = label.Name, ReplacesMembers = replace };
+            FirewallWriteStep step = new(FirewallWriteOperation.LabelWrite) { TargetName = label.Name, ReplacesMembers = replace, FormerLabelValue = formerValue };
             step.MembersToAdd.AddRange(keep.Select(IpAddressSet.Format));
             step.MembersToRemove.AddRange(remove.Select(IpAddressSet.Format));
             return SetLabel(step, label, implTask)

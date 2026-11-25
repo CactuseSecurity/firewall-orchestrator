@@ -83,7 +83,8 @@ namespace FWO.Services.Modelling
         }
 
         /// <summary>
-        /// True if the user may assign the label: not of a key that stays a group, and an App label only of an own app.
+        /// True if the user may assign the label: not of a key that stays a group, and an App label only of an own app,
+        /// i.e. a value FWO wrote for an owner the user may edit, as the API checks it.
         /// </summary>
         public bool IsSelectable(LabelValue label)
         {
@@ -92,13 +93,8 @@ namespace FWO.Services.Modelling
                 return false;
             }
             bool isAppLabel = string.Equals(label.Key.Name, userConfig.AppLabelKey.Trim(), StringComparison.OrdinalIgnoreCase);
-            return !isAppLabel || userConfig.User.Roles.Contains(Roles.Admin) || OwnAppIds().Contains(label.Value);
-        }
-
-        private HashSet<string> OwnAppIds()
-        {
-            return [.. AllApps.Where(app => userConfig.User.Ownerships.Contains(app.Id) && !string.IsNullOrWhiteSpace(app.ExtAppId))
-                .Select(app => app.ExtAppId!)];
+            bool isOwnAppLabel = label.OwnerId is int ownerId && userConfig.User.Ownerships.Contains(ownerId);
+            return !isAppLabel || userConfig.User.Roles.Contains(Roles.Admin) || isOwnAppLabel;
         }
 
         /// <summary>

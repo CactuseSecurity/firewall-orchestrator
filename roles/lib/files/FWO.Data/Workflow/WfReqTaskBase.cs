@@ -48,6 +48,16 @@ namespace FWO.Data.Workflow
         /// again (Guardicore: the rule comment).
         /// </summary>
         public const string ConnMarker = "ConnMarker";
+        /// <summary>
+        /// Name "key: value" of the label a group task of a management that writes labels writes (an app role, app zone or
+        /// network area with its value in the configured format), e.g. "AppRole: FWO-Produktion (AR5003080-005)".
+        /// </summary>
+        public const string LabelName = "LabelName";
+        /// <summary>
+        /// Name "key: value" of the existing label of the group under another value (former name or format), which the
+        /// firewall write renames to <see cref="LabelName"/>; absent if the label keeps its name.
+        /// </summary>
+        public const string FormerLabelName = "FormerLabelName";
     }
 
     public class WfReqTaskBase : WfTaskBase

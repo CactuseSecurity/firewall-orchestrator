@@ -2,6 +2,7 @@
 @using FWO.Api.Client.Queries
 @using FWO.Basics
 @using FWO.Data
+@using FWO.Data.Labelling
 @using FWO.Data.Middleware
 @using FWO.Middleware.Client
 @using FWO.Services
@@ -53,6 +54,12 @@
                 <div class="col-sm-2">
                     <input id="cbx_label_based_modelling" type="checkbox" class="w-100" @bind="configData!.LabelBasedModelling">
                 </div>
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <div class="row col-sm-8" data-toggle="tooltip" title="@(userConfig.PureLine("H5604b"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("groupLabelValueFormat")):</label>
+                <input type="text" maxlength="@LabelValueFormat.kMaxFormatLength" class="col-sm-3" @bind="configData!.GroupLabelValueFormat" />
             </div>
         </div>
         <hr />
@@ -556,6 +563,11 @@ else
             }
             if (configData != null)
             {
+                if (!LabelValueFormat.IsValid(configData.GroupLabelValueFormat))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("modelling_settings"), userConfig.GetText(LabelValueFormat.kInvalidFormatTextKey), true);
+                    return;
+                }
                 PrepareConfigData();
                 await globalConfig.WriteToDatabase(configData, apiConnection);
 
@@ -605,6 +617,7 @@ else
         configData!.ModComSvcExcludedAreas = PrepareAreas(ComSvcExcludedAreas, ComSvcExcludedAreasToDelete);
         configData!.VarianceAnalysisStartAt = varAnalysisDate.Date.Add(varAnalysisTime.TimeOfDay);
         configData!.RuleRecognitionOption = JsonSerializer.Serialize(ruleRecognitionOption);
+        configData!.GroupLabelValueFormat = configData.GroupLabelValueFormat.Trim();
     }
 
     private string PrepareAreas(List<CommonArea> areas, List<CommonArea> areasToDelete)

@@ -14,7 +14,9 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// Writes labels with IP criteria to Akamai Guardicore Segmentation. The client logs in with the export credentials
     /// (bearer token) and looks every label up by key and value first, so that repeated requests change nothing:
     /// <list type="bullet">
-    /// <item>a label that does not exist yet is created with the rendered <see cref="FirewallWriteOperation.LabelWrite"/> call,</item>
+    /// <item>a label that does not exist yet is created with the rendered <see cref="FirewallWriteOperation.LabelWrite"/> call,
+    /// unless the step names a former value of the label (a renamed app role or a changed value format): the label of the
+    /// former value is then renamed in place (PUT of key and value by label id), so that the rules keep referencing it,</item>
     /// <item>the IP criteria of an existing label are set to the target addresses (see <see cref="GuardicoreLabelCriteria.TargetIpCriteria"/>)
     /// by the bulk update, which replaces all criteria of the label, so the criteria FWO does not manage are written back
     /// unchanged; a label that already has the target addresses is left alone,</item>
@@ -99,6 +101,22 @@ namespace FWO.ExternalSystems.FirewallWrite
         {
             (string key, string value) = LabelOf(request);
             JsonObject? label = await FindLabel(request, key, value);
+            string renameNote = "";
+            string? formerValue = request.Step.FormerLabelValue;
+            if (label == null && !string.IsNullOrWhiteSpace(formerValue))
+            {
+                label = await FindLabel(request, key, formerValue);
+                if (label != null)
+                {
+                    FirewallStepResult renamed = await RenameLabel(request, label, key, value);
+                    if (!renamed.Success)
+                    {
+                        return renamed;
+                    }
+                    label["value"] = value;
+                    renameNote = $"Renamed from '{key}{DynamicIpLabel.kKeyValueSeparator}{formerValue}'.";
+                }
+            }
             if (label == null)
             {
                 return await base.Execute(request);
@@ -108,12 +126,38 @@ namespace FWO.ExternalSystems.FirewallWrite
                 GuardicoreLabelCriteria.ParseEntries(request.Step.MembersToRemove), request.Step.ReplacesMembers, ownsAssignments);
             if (update.WritesNothing && update.NotRemovable.Count == 0)
             {
-                return Succeeded(request, $"{kAlreadyPresentNote} The label already has the requested IP criteria.");
+                // a renamed label changed, so its note must not start with the note of an unchanged label
+                string unchangedNote = renameNote.Length > 0 ? renameNote : kAlreadyPresentNote;
+                return Succeeded(request, $"{unchangedNote} The label already has the requested IP criteria.");
             }
             FirewallStepResult result = update.WritesNothing
-                ? new FirewallStepResult(request.Operation, request.Step.TargetName, true, kStatusOk, "")
+                ? new FirewallStepResult(request.Operation, request.Step.TargetName, true, kStatusOk, renameNote)
                 : await UpdateLabel(request, key, value, label, update);
+            if (renameNote.Length > 0 && result.Success)
+            {
+                result = result with { Message = $"{renameNote} {result.Message}".Trim() };
+            }
             return result.Success && update.NotRemovable.Count > 0 ? NotRemovableFailure(request, result, update.NotRemovable) : result;
+        }
+
+        /// <summary>
+        /// Renames a label in place: key and value are set by the label id, its criteria are kept (append), so that rules and
+        /// assets keep the label.
+        /// </summary>
+        private async Task<FirewallStepResult> RenameLabel(RenderedFirewallRequest request, JsonObject label, string key, string value)
+        {
+            string labelId = GuardicoreLabelCriteria.Text(label["id"]);
+            if (labelId.Length == 0)
+            {
+                throw new FirewallWriteException(FirewallWriteErrorKind.FirewallError, $"The label to rename to '{request.Step.TargetName}' has no id.");
+            }
+            RestRequest renameRequest = new($"{GuardicoreWriteDefaults.kLabelsPath}/{Uri.EscapeDataString(labelId)}", Method.Put);
+            renameRequest.AddQueryParameter(kAppendParameter, "true");
+            JsonObject body = new() { ["key"] = key, ["value"] = value };
+            renameRequest.AddStringBody(body.ToJsonString(), ContentType.Json);
+            Log.WriteDebug(kLogCategory, $"{request.Operation}: renaming label {labelId} to '{request.Step.TargetName}'");
+            RestResponse response = await SendAuthenticated(renameRequest);
+            return ToResult(request, response, IsSuccess(response));
         }
 
         /// <summary>Replaces the criteria of a label by the bulk update (override, not append).</summary>

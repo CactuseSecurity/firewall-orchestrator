@@ -286,19 +286,27 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Modellers write the labels of connections of their own apps only, App labels (values that are the app id of an
-        /// owner) only of their own apps, and change events only from the UI for such connections.
+        /// Modellers write the labels of connections of their own apps only, App labels (values FWO wrote for an owner, see
+        /// owner_id) only of their own apps, and change events only from the UI for such connections. Only the middleware
+        /// assigns a label value to an owner.
         /// </summary>
         [Test]
         public void Metadata_LetsModellersLabelOwnConnectionsOnly()
         {
-            JsonNode? appIdRelationship = Nodes(FindTable("label_value")["array_relationships"])
-                .FirstOrDefault(relationship => relationship["name"]?.GetValue<string>() == "owners_by_app_id");
+            JsonNode labelValue = FindTable("label_value");
+            JsonNode? ownerRelationship = Nodes(labelValue["object_relationships"])
+                .FirstOrDefault(relationship => relationship["name"]?.GetValue<string>() == "owner");
             JsonNode? appKeyRelationship = Nodes(FindTable("label_key")["array_relationships"])
                 .FirstOrDefault(relationship => relationship["name"]?.GetValue<string>() == kAppKeyRelationship);
             Assert.Multiple(() =>
             {
-                Assert.That(appIdRelationship?["using"]?["manual_configuration"]?["column_mapping"]?["value"]?.GetValue<string>(), Is.EqualTo("app_id_external"));
+                Assert.That(ownerRelationship?["using"]?["foreign_key_constraint_on"]?.GetValue<string>(), Is.EqualTo("owner_id"));
+                Assert.That(Nodes(labelValue["array_relationships"]).Select(relationship => relationship?["name"]?.GetValue<string>()), Does.Not.Contain("owners_by_app_id"));
+                Assert.That(Columns(Permission(labelValue, "insert_permissions", "middleware-server")), Does.Contain("owner_id"));
+                Assert.That(Columns(Permission(labelValue, "update_permissions", "middleware-server")), Does.Contain("owner_id"));
+                Assert.That(Columns(Permission(labelValue, "insert_permissions", "importer")), Does.Not.Contain("owner_id"));
+                Assert.That(Columns(Permission(labelValue, "update_permissions", "importer")), Does.Not.Contain("owner_id"));
+                Assert.That(Permission(labelValue, "insert_permissions", "modeller"), Is.Null);
                 Assert.That(appKeyRelationship?["using"]?["manual_configuration"]?["column_mapping"]?["key_name"]?.GetValue<string>(), Is.EqualTo("config_value"));
                 Assert.That(appKeyRelationship?["using"]?["manual_configuration"]?["remote_table"]?["name"]?.GetValue<string>(), Is.EqualTo("config"));
                 foreach (string name in kConnectionSideTables)
@@ -306,10 +314,10 @@ namespace FWO.Test
                     string insertCheck = Permission(FindTable(name), "insert_permissions", "modeller")?["permission"]?["check"]?.ToJsonString() ?? "";
                     string updateFilter = Permission(FindTable(name), "update_permissions", "modeller")?["permission"]?["filter"]?.ToJsonString() ?? "";
                     Assert.That(insertCheck, Does.Contain("\"connection\":{\"_or\":[{\"app_id\":{\"_in\":\"x-hasura-editable-owners\"}}"), name);
-                    Assert.That(insertCheck, Does.Contain("\"owners_by_app_id\":{\"id\":{\"_in\":\"x-hasura-editable-owners\"}}"), name);
+                    Assert.That(insertCheck, Does.Contain("\"owner_id\":{\"_in\":\"x-hasura-editable-owners\"}"), name);
                     // only labels of the configured App key are restricted to own apps, whatever their value
                     Assert.That(insertCheck, Does.Contain(kNotAppKeyCheck), name);
-                    Assert.That(insertCheck, Does.Not.Contain("\"_not\":{\"owners_by_app_id\""), name);
+                    Assert.That(insertCheck, Does.Not.Contain("\"_not\":{\"owner_id\""), name);
                     Assert.That(updateFilter, Does.Contain("x-hasura-editable-owners"), name);
                 }
                 string eventCheck = Permission(FindTable(kChangeEventTable), "insert_permissions", "modeller")?["permission"]?["check"]?.ToJsonString() ?? "";

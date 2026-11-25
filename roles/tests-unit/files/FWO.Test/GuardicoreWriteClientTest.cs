@@ -21,6 +21,8 @@ namespace FWO.Test
         private const string kBulkPath = "/api/v4.0/labels/bulk";
         private const string kNoLabels = """{"objects":[]}""";
         private const string kAppRoleName = "AR4711-001";
+        private const string kFormattedValue = "Billing (AR4711-001)";
+        private const string kFormattedLabelName = "AppRole: " + kFormattedValue;
         private const string kIssueExampleBody =
             """[{"key":"AppRole","value":"AR4711-001","criteria":[{"field":"numeric_ip_addresses","op":"SUBNET","argument":"1.2.3.4/32"},""" +
             """{"field":"numeric_ip_addresses","op":"SUBNET","argument":"2.3.4.0/24"},""" +
@@ -392,6 +394,147 @@ namespace FWO.Test
                 Assert.That(untyped.Requests, Is.Empty);
                 Assert.That(body["key"]!.GetValue<string>(), Is.EqualTo("AppZone"));
                 Assert.That(body["value"]!.GetValue<string>(), Is.EqualTo("ARCHIVE_SRV"));
+            });
+        }
+
+        /// <summary>
+        /// The context of a group task for which the variance analysis names the label in the configured value format and
+        /// the existing label of the app role under its former value.
+        /// </summary>
+        private static FirewallWriteContext RenameContext(string? formerLabelName = "AppRole: " + kAppRoleName) =>
+            Context() with { LabelName = kFormattedLabelName, FormerLabelName = formerLabelName };
+
+        /// <summary>A management that has the app role label under its former value only and accepts the rename.</summary>
+        private static FirewallSimulation SimulationWithFormerLabel(params string[] subnets)
+        {
+            FirewallSimulation simulation = Simulation(kNoLabels);
+            simulation.Handler = request => request.Resource switch
+            {
+                kAuthenticatePath => FirewallWriteTestSupport.Ok("""{"access_token":"tok"}"""),
+                kLabelsPath => FirewallWriteTestSupport.Ok(request.QueryParameters["value"] == kAppRoleName ? ExistingLabel(subnets) : kNoLabels),
+                kBulkPath => FirewallWriteTestSupport.Ok("""{"succeeded":["lab-1"],"failed":[]}"""),
+                _ => FirewallWriteTestSupport.Ok("""{"id":"lab-1"}""")
+            };
+            return simulation;
+        }
+
+        [Test]
+        public async Task RenamedLabel_IsRenamedInPlaceInsteadOfCreated()
+        {
+            FirewallSimulation simulation = SimulationWithFormerLabel("10.0.0.1/32");
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged)), RenameContext());
+
+            RecordedFirewallRequest rename = simulation.Requests.Single(request => request.Method == Method.Put);
+            JsonNode body = JsonNode.Parse(rename.Body!)!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(rename.Resource, Is.EqualTo("/api/v4.0/labels/lab-1"));
+                Assert.That(rename.QueryParameters["append"], Is.EqualTo("true"));
+                Assert.That(body["key"]!.GetValue<string>(), Is.EqualTo("AppRole"));
+                Assert.That(body["value"]!.GetValue<string>(), Is.EqualTo(kFormattedValue));
+                Assert.That(body["criteria"], Is.Null, "the criteria are kept");
+                Assert.That(result.Steps[0].Message, Does.StartWith("Renamed from 'AppRole: AR4711-001'."));
+                Assert.That(simulation.Requests.Exists(request => request.Resource == kBulkPath), Is.False, "neither created nor changed");
+            });
+        }
+
+        [Test]
+        public async Task RenamedLabel_WithOtherMembers_IsRenamedThenUpdatedUnderItsNewValue()
+        {
+            FirewallSimulation simulation = SimulationWithFormerLabel("10.0.0.1/32");
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged), Member("10.0.0.3")), RenameContext());
+
+            List<RecordedFirewallRequest> writes = [.. simulation.Requests.Where(request => request.Method != Method.Get && request.Resource != kAuthenticatePath)];
+            JsonNode update = JsonNode.Parse(writes[1].Body!)![0]!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(writes[0].Method, Is.EqualTo(Method.Put));
+                Assert.That(writes[1].Resource, Is.EqualTo(kBulkPath));
+                Assert.That(update["value"]!.GetValue<string>(), Is.EqualTo(kFormattedValue));
+                Assert.That(update["criteria"]!.AsArray().Select(criterion => criterion!["argument"]!.GetValue<string>()), Is.EqualTo(kUpdatedCriteria));
+            });
+        }
+
+        [Test]
+        public async Task RenamedLabel_ThatExistsUnderItsNewValueAlready_IsNotRenamed()
+        {
+            FirewallSimulation simulation = Simulation(ExistingLabel("10.0.0.1/32"));
+            FirewallWriteContext context = Context() with { LabelName = "AppRole: " + kAppRoleName, FormerLabelName = "AppRole: Old (AR4711-001)" };
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged)), context);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(result.Steps[0].Message, Does.StartWith(FirewallWriteClient.kAlreadyPresentNote));
+                Assert.That(simulation.Requests.Exists(request => request.Method == Method.Put), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task FailedRename_FailsTheTaskWithoutCreating()
+        {
+            FirewallSimulation simulation = SimulationWithFormerLabel("10.0.0.1/32");
+            Func<RecordedFirewallRequest, RestResponse> answer = simulation.Handler;
+            simulation.Handler = request => request.Method == Method.Put ? FirewallWriteTestSupport.Response(HttpStatusCode.BadRequest, "{}") : answer(request);
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify,
+                Member("10.0.0.1", action: RequestAction.unchanged)), RenameContext());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.False);
+                Assert.That(simulation.Requests.Exists(request => request.Resource == kBulkPath), Is.False);
+            });
+        }
+
+        [Test]
+        public void RequestedLabelName_IsWrittenInsteadOfTheGroupName()
+        {
+            FirewallWriteContext context = RenameContext(null);
+            List<RenderedFirewallRequest> requests = new FirewallWriter(new FixedFirewallWriteDataSource(context))
+                .RenderAll(FirewallWriteTestSupport.Task(WfTaskType.group_create, Member("10.0.0.1")), context);
+            JsonNode body = JsonNode.Parse(LabelWriteOf(requests).Body!)![0]!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(body["key"]!.GetValue<string>(), Is.EqualTo("AppRole"));
+                Assert.That(body["value"]!.GetValue<string>(), Is.EqualTo(kFormattedValue));
+                Assert.That(LabelWriteOf(requests).Step.FormerLabelValue, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task GroupDelete_DeletesTheRequestedLabel()
+        {
+            FirewallSimulation simulation = SimulationWithFormerLabel("10.0.0.1/32");
+            FirewallWriteContext context = Context() with { LabelName = "AppRole: " + kAppRoleName };
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_delete,
+                Member("10.0.0.1", action: RequestAction.delete, groupName: "AppRole: Other")), context);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Success, Is.True, result.Message);
+                Assert.That(simulation.Requests.Exists(request => request.Method == Method.Delete && request.Resource == "/api/v4.0/labels/lab-1"), Is.True);
+            });
+        }
+
+        [TestCase("Stage: Prod", "AppRole: AR4711-001")]
+        [TestCase("AppZone: Billing (AR4711-001)", null)]
+        [TestCase(kFormattedLabelName, "AppZone: AR4711-001")]
+        [TestCase(kFormattedLabelName, "AR4711-001")]
+        public async Task RequestedLabelsOfAnotherKey_AreInvalidTaskData(string labelName, string? formerLabelName)
+        {
+            FirewallSimulation simulation = SimulationWithFormerLabel("10.0.0.1/32");
+            FirewallWriteContext context = Context() with { LabelName = labelName, FormerLabelName = formerLabelName };
+            ModifyFirewallResult result = await Write(simulation, FirewallWriteTestSupport.Task(WfTaskType.group_modify, Member("10.0.0.1")), context);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Error?.Kind, Is.EqualTo(FirewallWriteErrorKind.InvalidTaskData));
+                Assert.That(simulation.Requests.Exists(request => request.Method != Method.Get && request.Resource != kAuthenticatePath), Is.False);
             });
         }
 

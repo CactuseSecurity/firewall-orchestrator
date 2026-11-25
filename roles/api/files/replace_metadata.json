@@ -3511,24 +3511,15 @@
                   "using": {
                     "foreign_key_constraint_on": "key_id"
                   }
+                },
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
                 }
               ],
               "array_relationships": [
-                {
-                  "name": "owners_by_app_id",
-                  "using": {
-                    "manual_configuration": {
-                      "column_mapping": {
-                        "value": "app_id_external"
-                      },
-                      "insertion_order": null,
-                      "remote_table": {
-                        "name": "owner",
-                        "schema": "public"
-                      }
-                    }
-                  }
-                },
                 {
                   "name": "rule_source_labels",
                   "using": {
@@ -3646,6 +3637,7 @@
                     "columns": [
                       "is_imported",
                       "key_id",
+                      "owner_id",
                       "value"
                     ]
                   },
@@ -3660,6 +3652,7 @@
                       "is_imported",
                       "key_id",
                       "label_id",
+                      "owner_id",
                       "value"
                     ],
                     "filter": {}
@@ -3672,6 +3665,7 @@
                       "is_imported",
                       "key_id",
                       "label_id",
+                      "owner_id",
                       "value"
                     ],
                     "filter": {
@@ -3715,6 +3709,7 @@
                       "is_imported",
                       "key_id",
                       "label_id",
+                      "owner_id",
                       "value"
                     ],
                     "filter": {
@@ -3744,6 +3739,7 @@
                       "is_imported",
                       "key_id",
                       "label_id",
+                      "owner_id",
                       "value"
                     ],
                     "filter": {}
@@ -3756,6 +3752,7 @@
                       "is_imported",
                       "key_id",
                       "label_id",
+                      "owner_id",
                       "value"
                     ],
                     "filter": {}
@@ -3769,6 +3766,7 @@
                       "is_imported",
                       "key_id",
                       "label_id",
+                      "owner_id",
                       "value"
                     ],
                     "filter": {}
@@ -3782,6 +3780,7 @@
                       "is_imported",
                       "key_id",
                       "label_id",
+                      "owner_id",
                       "value"
                     ],
                     "filter": {}
@@ -3807,6 +3806,7 @@
                   "permission": {
                     "columns": [
                       "is_imported",
+                      "owner_id",
                       "value"
                     ],
                     "filter": {},
@@ -4556,10 +4556,8 @@
                                 }
                               },
                               {
-                                "owners_by_app_id": {
-                                  "id": {
-                                    "_in": "x-hasura-editable-owners"
-                                  }
+                                "owner_id": {
+                                  "_in": "x-hasura-editable-owners"
                                 }
                               }
                             ]
@@ -4838,10 +4836,8 @@
                                 }
                               },
                               {
-                                "owners_by_app_id": {
-                                  "id": {
-                                    "_in": "x-hasura-editable-owners"
-                                  }
+                                "owner_id": {
+                                  "_in": "x-hasura-editable-owners"
                                 }
                               }
                             ]

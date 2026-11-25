@@ -55,6 +55,9 @@ namespace FWO.Test
         /// <summary>Imported rules of the management; none unless a test sets them.</summary>
         public List<Rule> Rules { get; set; } = [];
 
+        /// <summary>The standard imported labels, for tests that change some of them.</summary>
+        public static List<NetworkObject> StandardLabels => Labels;
+
         /// <summary>Imported labels (groups "key: value") replacing the standard ones, if set.</summary>
         public List<NetworkObject>? ImportedLabels { get; set; }
 

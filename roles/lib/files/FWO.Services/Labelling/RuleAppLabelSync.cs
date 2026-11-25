@@ -17,11 +17,12 @@ namespace FWO.Services.Labelling
     /// label change event per import control the changes are stamped with: the relevant import of the management of the
     /// rule, so that the reports show the change from now on (see <see cref="RuleAppLabelImportStamps"/>). A full sync
     /// compares all rules; it runs after a full reinitialize, on the first run of the process (which fills the App labels
-    /// of existing mappings after the upgrade), after a failed sync and after the App key changed. The sync reads and
+    /// of existing mappings after the upgrade), after a failed sync and after the App key or the format of the App label
+    /// values changed. The sync reads and
     /// closes only the assignments it wrote itself (label source <see cref="RuleLabelSource.kAppSync"/>): labels of a former
     /// App key are closed, without App key all of its labels, while labels of rules written by others are kept.
-    /// A changed app id of an owner reaches the rules through the owner change it is recorded as (see
-    /// <see cref="OwnerChangeRecorder"/>). Errors are logged instead of failing the mapping run.
+    /// A changed app id of an owner (or a changed name, if the values contain it) reaches the rules through the owner
+    /// change it is recorded as (see <see cref="OwnerChangeRecorder"/>). Errors are logged instead of failing the mapping run.
     /// </remarks>
     /// <param name="apiConnection">Api connection with write access to the labelling tables.</param>
     /// <param name="globalConfig">Global config with the App key and the configured mapping source.</param>
@@ -30,10 +31,11 @@ namespace FWO.Services.Labelling
         private const string LogMessageTitle = "Rule App labels";
         private const int kChunkSize = 500;
         private static bool fullSyncDone;
-        // the App key the last full sync ran with: after a change of the App key all rules are compared again
+        // the App key and value format the last full sync ran with: after a change of either all rules are compared again
         private static string fullSyncKeyName = "";
+        private static string fullSyncValueFormat = "";
 
-        private readonly AppLabelHandler appLabels = new(apiConnection, globalConfig.AppLabelKey);
+        private readonly AppLabelHandler appLabels = new(apiConnection, globalConfig.AppLabelKey, globalConfig.AppLabelValueFormat);
         private readonly Dictionary<long, long> changeEventIds = [];
 
         /// <summary>
@@ -44,17 +46,21 @@ namespace FWO.Services.Labelling
             fullSyncDone = false;
         }
 
-        private static void MarkFullSyncDone(string keyName)
+        private static void MarkFullSyncDone(string keyName, string valueFormat)
         {
             fullSyncKeyName = keyName;
+            fullSyncValueFormat = valueFormat;
             fullSyncDone = true;
         }
 
         /// <summary>
-        /// True if all rules have to be compared: no full sync ran yet, the last sync failed or the App key changed since
-        /// the last full sync, as the labels of the former key are closed only by comparing all rules.
+        /// True if all rules have to be compared: no full sync ran yet, the last sync failed or the App key or the value
+        /// format changed since the last full sync, as the labels of the former key or format are closed only by comparing
+        /// all rules.
         /// </summary>
-        private bool FullSyncNeeded => !fullSyncDone || !string.Equals(fullSyncKeyName, appLabels.KeyName, StringComparison.Ordinal);
+        private bool FullSyncNeeded => !fullSyncDone
+            || !string.Equals(fullSyncKeyName, appLabels.KeyName, StringComparison.Ordinal)
+            || !string.Equals(fullSyncValueFormat, appLabels.ValueFormat.Format, StringComparison.Ordinal);
 
         /// <summary>
         /// Syncs the App labels of the rules whose mappings changed, or of all rules if no full sync ran yet with the
@@ -84,7 +90,7 @@ namespace FWO.Services.Labelling
         {
             if (await Run(null, importControlId))
             {
-                MarkFullSyncDone(appLabels.KeyName);
+                MarkFullSyncDone(appLabels.KeyName, appLabels.ValueFormat.Format);
             }
         }
 
@@ -115,15 +121,16 @@ namespace FWO.Services.Labelling
         }
 
         /// <summary>
-        /// The App labels the rules should carry: the App label of the app id of every owner they are mapped to.
+        /// The App labels the rules should carry: the App label of every owner with an app id they are mapped to.
         /// </summary>
         private async Task<HashSet<(long ruleId, long labelId)>> LoadWantedAppLabels(List<long>? ruleIds)
         {
             List<RuleOwnerApp> mappings = await LoadMappings(ruleIds);
-            Dictionary<string, long> appLabelIds = await appLabels.GetAppLabelIds(mappings.Select(mapping => mapping.Owner.AppIdExternal));
+            IEnumerable<AppLabelOwner> owners = mappings.Select(mapping => new AppLabelOwner(mapping.Owner.Id, mapping.Owner.Name, mapping.Owner.AppIdExternal));
+            Dictionary<int, long> appLabelIds = await appLabels.GetAppLabelIds(owners);
             return [.. mappings
-                .Where(mapping => !string.IsNullOrWhiteSpace(mapping.Owner.AppIdExternal))
-                .Select(mapping => (mapping.RuleId, appLabelIds[mapping.Owner.AppIdExternal!.Trim()]))];
+                .Where(mapping => appLabelIds.ContainsKey(mapping.Owner.Id))
+                .Select(mapping => (mapping.RuleId, appLabelIds[mapping.Owner.Id]))];
         }
 
         private async Task<List<RuleOwnerApp>> LoadMappings(List<long>? ruleIds)

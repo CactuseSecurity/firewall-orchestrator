@@ -34,6 +34,9 @@ namespace FWO.Test
         public List<(string query, object? variables)> Calls { get; } = [];
         public List<string> UpsertedKeys { get; } = [];
         public List<string> UpsertedAppIds { get; } = [];
+
+        /// <summary>The owners recorded with the upserted App label values, in order.</summary>
+        public List<int> UpsertedOwnerIds { get; } = [];
         public List<(long? importControlId, bool originIsUi)> ChangeEvents { get; } = [];
         public List<(long ruleId, long labelId, long eventId)> AddedRuleLabels { get; } = [];
         public List<(long ruleId, long labelId, long eventId)> ClosedRuleLabels { get; } = [];
@@ -113,7 +116,7 @@ namespace FWO.Test
                 UpsertedKeys.Add((string)Value(variables, "keyName")!);
                 return new LabelKey { Id = kKeyId };
             }
-            if (query == LabellingQueries.upsertLabelValues)
+            if (query == LabellingQueries.upsertAppLabelValues)
             {
                 return UpsertValues(variables);
             }
@@ -131,10 +134,12 @@ namespace FWO.Test
             LabelValueUpsertResult result = new();
             foreach (object value in (IEnumerable)Value(variables, "values")!)
             {
-                string appId = (string)Value(value, "value")!;
-                UpsertedAppIds.Add(appId);
-                LabelIdsByAppId.TryAdd(appId, 100 + LabelIdsByAppId.Count);
-                result.Returning.Add(new LabelValue { Id = LabelIdsByAppId[appId], Value = appId });
+                string labelValue = (string)Value(value, "value")!;
+                int ownerId = (int)Value(value, "owner_id")!;
+                UpsertedAppIds.Add(labelValue);
+                UpsertedOwnerIds.Add(ownerId);
+                LabelIdsByAppId.TryAdd(labelValue, 100 + LabelIdsByAppId.Count);
+                result.Returning.Add(new LabelValue { Id = LabelIdsByAppId[labelValue], Value = labelValue, OwnerId = ownerId });
             }
             return result;
         }

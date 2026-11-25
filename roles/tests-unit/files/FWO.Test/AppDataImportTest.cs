@@ -2086,6 +2086,26 @@ namespace FWO.Test
             Assert.That(apiConn.ChangelogActions, Is.EqualTo(new[] { ChangelogActionType.CHANGE }));
         }
 
+        /// <summary>
+        /// A renamed app gets another App label if the App label values contain the name, so its rules have to follow by an
+        /// owner change; with the default format (app id only) a rename is no change of the App label.
+        /// </summary>
+        [TestCase("{name} ({id})", 1)]
+        [TestCase("{id}", 0)]
+        public async Task AddOwnerChangeIfNeeded_LogsChange_WhenARenameChangesTheAppLabel(string appLabelValueFormat, int expectedChanges)
+        {
+            AppDataImportSaveAppApiConn apiConn = new();
+            AppDataImport import = new(apiConn, new GlobalConfig { AppLabelValueFormat = appLabelValueFormat });
+            SetExistingAppServers(import, []);
+            FwoOwner existingApp = new() { Id = 22, Name = "Billing", ExtAppId = "APP-22", Active = true };
+            ModellingImportAppData incomingApp = new() { Name = "Invoicing", ExtAppId = "APP-22", ImportSource = "SRC-22" };
+            OwnerChangeImportTracker tracker = new(apiConn);
+
+            await InvokeAddOwnerChangeIfNeeded(import, existingApp, incomingApp, tracker);
+
+            Assert.That(apiConn.UpdateChangelogOwnerCalls, Is.EqualTo(expectedChanges));
+        }
+
         [Test]
         public async Task SaveApp_LogsChangeAndReactivate_WhenAppServersChangeAndLifecycleStateBecomesActive()
         {

@@ -662,6 +662,7 @@ namespace FWO.Services.Modelling
         {
             int aRCount = 0;
             List<NetworkObject>? objGrpByMgt = await GetObjects(mgtId, [2]);
+            prodLabelsById.Remove(mgtId);
             if (objGrpByMgt != null)
             {
                 if (!allProdAppRoles.TryGetValue(mgtId, out List<ModellingAppRole>? aRList))

@@ -82,7 +82,7 @@
 - modelling: labels as source and destination of connections, interfaces and common services (issue #5552), while
   label-based modelling is switched on. A side may hold objects, labels or both; labels form AND-groups (∩), the
   groups and the objects of a side are ORed (∪). Labels of AppRole and AppZone are not offered, App labels only of
-  own apps (also enforced by Hasura via the new relationships label_value.owners_by_app_id and
+  own apps (also enforced by Hasura via the owner of the App label value, label_value.owner_id, and the relationship
   label_key.app_label_key_configs, which restrict only labels of the key stored in config entry appLabelKey; its
   default App is now stored on install and upgrade). Changes are stored in
   labelling.connection_source_label / connection_destination_label with the AND-group number and recorded as
@@ -155,6 +155,22 @@
   @@RULE_ID@@; new shipped Guardicore operations RuleCreate, RuleDelete and Publish. Guardicore rules need no rule
   position (new vendor property NewRulesNeedPosition). If a task fails, the client undoes its rule changes before
   anything is published (created rules are deleted, replaced ones restored, deleted ones undeleted with their ids)
+- labelling: configurable label values (issue #5821). New global settings appLabelValueFormat (Settings - App Data
+  Import) and groupLabelValueFormat (Settings - Modelling) with the placeholders {name} and {id}, e.g. "{name} ({id})"
+  for "App: Billing (APP-4711)" or "AppRole: FWO-Produktion (AR5003080-005)"; the default {id} keeps the bare id.
+  {id} has to occur once, {name} at most once (E5603); a value longer than 250 characters gets a shortened name.
+  - App labels: the values record their owner in the new column labelling.label_value.owner_id (only the middleware
+    and admins write it; the upgrade fills it for existing App labels whose value is the app id of an owner). Hasura
+    lets modellers assign only App labels of their editable owners by this column instead of the former relationship
+    label_value.owners_by_app_id, which is removed. A changed format moves the App labels of the app servers on saving
+    and those of the rules with the next run of the rule owner mapping (full sync); if the format contains the name, a
+    renamed owner is recorded as owner change in the owner settings and in the app data import
+  - app roles, app zones and network areas: their labels get the value in the configured format. An existing label is
+    recognised by the id in its value (by the format, in its last parentheses or as the whole value), so a label of a
+    renamed group, of a former format or written by others stands for the group; the variance analysis then requests a
+    rename (group task with additional info LabelName and FormerLabelName), and the Guardicore writer renames the label
+    in place (PUT /api/v4.0/labels/<id> with key and value, criteria kept), so the rules keep it. Rule sides and
+    obsolete labels are compared by this id as well
 - Guardicore importer and firewall write: the label and rule lists are paged with start_at/max_results as the Centra API
   v4.0 documents them, together with offset/limit for older releases; the importer fails instead of importing objects
   twice if a page repeats objects read before, i.e. the management ignores the paging parameters. A label of a rule

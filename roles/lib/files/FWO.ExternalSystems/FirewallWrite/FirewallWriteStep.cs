@@ -43,6 +43,12 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// </summary>
         public bool ReplacesMembers { get; init; }
 
+        /// <summary>
+        /// Former value of the label a label write writes (same key): if the label does not exist under its value yet, the
+        /// label of the former value is renamed instead of creating a new one, so that the rules keep referencing it.
+        /// </summary>
+        public string? FormerLabelValue { get; init; }
+
         /// <summary>Sets a placeholder to a text value.</summary>
         public FirewallWriteStep SetText(string placeholder, string? value)
         {

@@ -66,6 +66,47 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void ForModelledGroup_FormatsTheValue()
+        {
+            LabelValueFormat format = new("{name} ({id})");
+            Assert.Multiple(() =>
+            {
+                Assert.That(DynamicIpLabel.ForModelledGroup(ModellingTypes.ModObjectType.AppRole, "AR5003080-005", "FWO-Produktion", format).Name,
+                    Is.EqualTo("AppRole: FWO-Produktion (AR5003080-005)"));
+                Assert.That(DynamicIpLabel.ForModelledGroup(ModellingTypes.ModObjectType.NetworkArea, "NA50", null, format).Name, Is.EqualTo("NetworkArea: NA50"));
+                Assert.That(DynamicIpLabel.ForModelledGroup(ModellingTypes.ModObjectType.AppZone, "AZ1", "Zone", new LabelValueFormat(null)).Name, Is.EqualTo("AppZone: AZ1"));
+            });
+        }
+
+        [TestCase(" AppRole: Billing (AR1) ", "AppRole", "Billing (AR1)")]
+        [TestCase("Stage: Prod: A", "Stage", "Prod: A")]
+        public void FromName_SplitsAtTheFirstSeparator(string name, string key, string value)
+        {
+            Assert.That(DynamicIpLabel.FromName(name), Is.EqualTo(new DynamicIpLabel(key, value)));
+        }
+
+        [TestCase("AR1")]
+        [TestCase(": AR1")]
+        [TestCase(null)]
+        public void FromName_IsNullForNamesWithoutKeyAndValue(string? name)
+        {
+            Assert.That(DynamicIpLabel.FromName(name), Is.Null);
+        }
+
+        [TestCase("AppRole: AR1", true)]
+        [TestCase("AppRole: Old name (AR1)", true)]
+        [TestCase("AppRole: PostgreSQL (COM-1629) - Proxy (AR1)", true)]
+        [TestCase("AppZone: AR1", false)]
+        [TestCase("AppRole: AR10", false)]
+        [TestCase("AR1", false)]
+        public void IsSameGroup_MatchesTheIdOfLabelsOfTheSameKey(string labelName, bool expected)
+        {
+            LabelValueFormat format = new("{name} ({id})");
+            DynamicIpLabel label = DynamicIpLabel.ForModelledGroup(ModellingTypes.ModObjectType.AppRole, "AR1", "New name", format);
+            Assert.That(label.IsSameGroup(labelName, "AR1", format), Is.EqualTo(expected));
+        }
+
         [TestCase("AppRole", ModellingTypes.ModObjectType.AppRole)]
         [TestCase(" NetworkArea ", ModellingTypes.ModObjectType.NetworkArea)]
         [TestCase("ServiceGroup", ModellingTypes.ModObjectType.ServiceGroup)]

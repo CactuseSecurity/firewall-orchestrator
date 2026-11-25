@@ -6,8 +6,17 @@ using FWO.Data.Labelling;
 namespace FWO.Services.Labelling
 {
     /// <summary>
-    /// Maintains the App labels: the configured App key, its values (the app ids of the owners from the CMDB) and the
-    /// App label of the app servers of an owner.
+    /// Owner whose App label is wanted.
+    /// </summary>
+    /// <param name="Id">Id of the owner.</param>
+    /// <param name="Name">Name of the owner.</param>
+    /// <param name="AppId">External app id of the owner (from the CMDB), null or empty if it has none.</param>
+    public sealed record AppLabelOwner(int Id, string? Name, string? AppId);
+
+    /// <summary>
+    /// Maintains the App labels: the configured App key, its values (the app id of an owner from the CMDB, or name and
+    /// app id in the configured format, see <see cref="LabelValueFormat"/>) and the App label of the app servers of an
+    /// owner. Every App label value records its owner, which decides which modellers may assign it.
     /// </summary>
     /// <remarks>
     /// The App key is an imported key (its values come from the CMDB), global and allows several values. As label keys
@@ -16,15 +25,21 @@ namespace FWO.Services.Labelling
     /// </remarks>
     /// <param name="apiConnection">Api connection with write access to the labelling tables.</param>
     /// <param name="keyName">The configured name of the App key, empty to switch App labels off.</param>
-    public class AppLabelHandler(ApiConnection apiConnection, string? keyName)
+    /// <param name="valueFormat">The configured format of the App label values, empty for the bare app id.</param>
+    public class AppLabelHandler(ApiConnection apiConnection, string? keyName, string? valueFormat = null)
     {
-        private readonly Dictionary<string, long> labelIdsByAppId = [];
+        private readonly Dictionary<int, long> labelIdsByOwnerId = [];
         private int? keyId;
 
         /// <summary>
         /// The configured name of the App key, trimmed.
         /// </summary>
         public string KeyName { get; } = keyName?.Trim() ?? "";
+
+        /// <summary>
+        /// The configured format of the App label values.
+        /// </summary>
+        public LabelValueFormat ValueFormat { get; } = new(valueFormat);
 
         /// <summary>
         /// False if no App key is configured, then no App labels are written.
@@ -41,35 +56,39 @@ namespace FWO.Services.Labelling
         }
 
         /// <summary>
-        /// Returns the label id of the App label of every given app id, creating missing App labels.
-        /// Empty app ids are skipped.
+        /// Returns the label id of the App label of every given owner, creating missing App labels and recording the owner
+        /// of the values. Owners without app id are skipped.
         /// </summary>
-        /// <param name="appIds">External app ids of owners.</param>
-        /// <returns>The label ids by app id.</returns>
-        public async Task<Dictionary<string, long>> GetAppLabelIds(IEnumerable<string?> appIds)
+        /// <param name="owners">Owners with name and external app id.</param>
+        /// <returns>The label ids by owner id.</returns>
+        public async Task<Dictionary<int, long>> GetAppLabelIds(IEnumerable<AppLabelOwner> owners)
         {
-            List<string> unknownAppIds = [.. appIds
-                .Where(appId => !string.IsNullOrWhiteSpace(appId))
-                .Select(appId => appId!.Trim())
-                .Distinct()
-                .Where(appId => !labelIdsByAppId.ContainsKey(appId))];
-            if (unknownAppIds.Count > 0)
+            List<AppLabelOwner> unknownOwners = [.. owners
+                .Where(owner => !string.IsNullOrWhiteSpace(owner.AppId) && !labelIdsByOwnerId.ContainsKey(owner.Id))
+                .DistinctBy(owner => owner.Id)];
+            if (unknownOwners.Count > 0)
             {
                 int appKeyId = await GetKeyId();
-                var values = unknownAppIds.Select(appId => new { key_id = appKeyId, value = appId, is_imported = true }).ToList();
-                LabelValueUpsertResult result = await apiConnection.SendQueryAsync<LabelValueUpsertResult>(LabellingQueries.upsertLabelValues, new { values });
-                foreach (LabelValue label in result.Returning)
+                var values = unknownOwners.Select(owner => new
                 {
-                    labelIdsByAppId[label.Value] = label.Id;
+                    key_id = appKeyId,
+                    value = ValueFormat.Value(owner.Name, owner.AppId!),
+                    is_imported = true,
+                    owner_id = owner.Id
+                }).ToList();
+                LabelValueUpsertResult result = await apiConnection.SendQueryAsync<LabelValueUpsertResult>(LabellingQueries.upsertAppLabelValues, new { values });
+                foreach (LabelValue label in result.Returning.Where(label => label.OwnerId != null))
+                {
+                    labelIdsByOwnerId[label.OwnerId!.Value] = label.Id;
                 }
             }
-            return labelIdsByAppId;
+            return labelIdsByOwnerId;
         }
 
         /// <summary>
-        /// Brings the App labels of all active app servers of an owner in line with the app id of the owner: missing
-        /// App labels are added, other App labels (e.g. of a former app id) are closed. Without an app id all App
-        /// labels of the app servers are closed.
+        /// Brings the App labels of all active app servers of an owner in line with the App label of the owner: missing
+        /// App labels are added, other App labels (e.g. of a former app id, name or value format) are closed. Without an
+        /// app id all App labels of the app servers are closed.
         /// </summary>
         /// <param name="ownerId">Id of the owner.</param>
         /// <param name="getChangeEventId">Returns the label change event the changes are recorded with.</param>
@@ -87,7 +106,7 @@ namespace FWO.Services.Labelling
             {
                 return 0;
             }
-            long? appLabelId = await GetOwnerAppLabelId(owner.AppIdExternal);
+            long? appLabelId = await GetOwnerAppLabelId(new AppLabelOwner(ownerId, owner.Name, owner.AppIdExternal));
             int changes = 0;
             foreach (AppServerAppLabels appServer in owner.AppServers)
             {
@@ -96,15 +115,15 @@ namespace FWO.Services.Labelling
             return changes;
         }
 
-        private async Task<long?> GetOwnerAppLabelId(string? appId)
+        private async Task<long?> GetOwnerAppLabelId(AppLabelOwner owner)
         {
-            if (string.IsNullOrWhiteSpace(appId))
+            if (string.IsNullOrWhiteSpace(owner.AppId))
             {
                 return null;
             }
-            List<string> appIds = [appId];
-            Dictionary<string, long> appLabelIds = await GetAppLabelIds(appIds);
-            return appLabelIds.TryGetValue(appId.Trim(), out long labelId) ? labelId : null;
+            List<AppLabelOwner> owners = [owner];
+            Dictionary<int, long> appLabelIds = await GetAppLabelIds(owners);
+            return appLabelIds.TryGetValue(owner.Id, out long labelId) ? labelId : null;
         }
 
         private async Task<int> SyncAppServer(AppServerAppLabels appServer, long? appLabelId, Func<Task<long>> getChangeEventId)

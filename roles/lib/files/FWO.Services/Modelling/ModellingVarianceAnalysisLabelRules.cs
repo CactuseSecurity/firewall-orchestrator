@@ -35,8 +35,7 @@ namespace FWO.Services.Modelling
             List<NetworkObject> modelledAddresses = [.. ModellingAppServerWrapper.Resolve(appServers).Select(ModellingAppServer.ToNetworkObject)];
             if (areasAsLabels)
             {
-                modelledLabels.AddRange(modelledAreas.Select(area =>
-                    LabelObject(DynamicIpLabel.ForModelledGroup(ModellingTypes.ModObjectType.NetworkArea, area.IdString).Name)));
+                modelledLabels.AddRange(modelledAreas.Select(area => LabelObject(AreaLabel(area).Name)));
             }
             else
             {
@@ -112,7 +111,7 @@ namespace FWO.Services.Modelling
                     {
                         RequestAction = nameof(RequestAction.create),
                         Field = field,
-                        GroupName = DynamicIpLabel.ForModelledGroup(ModellingTypes.ModObjectType.NetworkArea, area.IdString).Name
+                        GroupName = AreaLabel(area).Name
                     });
                     continue;
                 }
@@ -194,17 +193,57 @@ namespace FWO.Services.Modelling
                 Type = new() { Name = ObjectType.Network }
             });
 
-        private static void CompareLabelNames(List<NetworkObject> modelledLabels, List<NetworkObject> prodLabels, NetworkLocation[] networkLocations,
+        /// <summary>
+        /// Compares the label names of a rule side. A production label of an app role, app zone or network area whose value
+        /// stands for the id of a modelled one counts as that label, even if it has another name or format: the rule
+        /// references the label by its id, which the rename of the label keeps.
+        /// </summary>
+        private void CompareLabelNames(List<NetworkObject> modelledLabels, List<NetworkObject> prodLabels, NetworkLocation[] networkLocations,
             List<NetworkLocation> disregardedLocations)
         {
-            HashSet<string> prodNames = [.. prodLabels.Select(label => label.Name)];
+            Dictionary<(string Key, string Id), string> modelledNamesById = ModelledLabelNamesById(modelledLabels);
+            HashSet<string> prodNames = [.. prodLabels.Select(label => ComparedLabelName(label.Name, modelledNamesById))];
             HashSet<string> modelledNames = [.. modelledLabels.Select(label => label.Name)];
             disregardedLocations.AddRange(modelledLabels.Where(label => !prodNames.Contains(label.Name))
                 .DistinctBy(label => label.Name).Select(label => new NetworkLocation(new(), label)));
-            foreach (NetworkObject surplus in prodLabels.Where(label => !modelledNames.Contains(label.Name)))
+            foreach (NetworkObject surplus in prodLabels.Where(label => !modelledNames.Contains(ComparedLabelName(label.Name, modelledNamesById))))
             {
                 MarkSurplus(networkLocations, surplus);
             }
+        }
+
+        /// <summary>The names of the modelled app role, app zone and network area labels by key and the id in their value.</summary>
+        private Dictionary<(string Key, string Id), string> ModelledLabelNamesById(List<NetworkObject> modelledLabels)
+        {
+            Dictionary<(string Key, string Id), string> namesById = [];
+            foreach (NetworkObject modelledLabel in modelledLabels)
+            {
+                DynamicIpLabel? label = DynamicIpLabel.FromName(modelledLabel.Name);
+                string? id = label?.ObjectType == null ? null : GroupLabelFormat.IdCandidates(label.Value).FirstOrDefault();
+                if (label != null && id != null)
+                {
+                    namesById.TryAdd((label.Key, id), modelledLabel.Name);
+                }
+            }
+            return namesById;
+        }
+
+        /// <summary>The name a production label is compared by: the name of the modelled label its value stands for, else its own name.</summary>
+        private string ComparedLabelName(string prodName, Dictionary<(string Key, string Id), string> modelledNamesById)
+        {
+            DynamicIpLabel? label = DynamicIpLabel.FromName(prodName);
+            if (label?.ObjectType == null || modelledNamesById.ContainsValue(prodName))
+            {
+                return prodName;
+            }
+            foreach (string id in GroupLabelFormat.IdCandidates(label.Value))
+            {
+                if (modelledNamesById.TryGetValue((label.Key, id), out string? modelledName))
+                {
+                    return modelledName;
+                }
+            }
+            return prodName;
         }
 
         /// <summary>

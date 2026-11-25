@@ -5,6 +5,7 @@
 @using FWO.Basics
 @using FWO.Config.File
 @using FWO.Data.Middleware
+@using FWO.Data.Labelling
 @using FWO.Logging
 @using FWO.Middleware.Client
 @using FWO.Services.Labelling
@@ -81,6 +82,10 @@
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5676a"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("appLabelKey")):</label>
             <input type="text" maxlength="100" class="col-sm-2" @bind="configData!.AppLabelKey" />
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5676b"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("appLabelValueFormat")):</label>
+            <input type="text" maxlength="@LabelValueFormat.kMaxFormatLength" class="col-sm-2" @bind="configData!.AppLabelValueFormat" />
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5673"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("set_roles_with_import")):</label>
@@ -308,15 +313,20 @@ OnCSVAppServerImportEvent(_.EventArgs));
         {
             if (configData != null)
             {
+                if (!LabelValueFormat.IsValid(configData.AppLabelValueFormat))
+                {
+                    DisplayMessageInUi(null, userConfig.GetText("import_app_data"), userConfig.GetText(LabelValueFormat.kInvalidFormatTextKey), true);
+                    return;
+                }
                 string oldAppDataPath = globalConfig.ImportAppDataPath;
                 string oldSubnetDataPath = globalConfig.ImportSubnetDataPath;
                 string oldScriptArgs = globalConfig.ImportAppDataScriptArgs;
-                string oldAppLabelKey = globalConfig.AppLabelKey;
+                AppLabelSettings oldAppLabels = new(globalConfig.AppLabelKey, globalConfig.AppLabelValueFormat);
                 PrepareConfigData();
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 WriteImporterSettingsAudit(oldAppDataPath, oldSubnetDataPath, oldScriptArgs);
-                // the App labels of the app servers move to the new key; those of the rules follow with the next rule owner mapping run
-                await new AppLabelKeyChange(apiConnection).Apply(oldAppLabelKey, configData.AppLabelKey, LogRejectedAppLabel);
+                // the App labels of the app servers move to the new key or format; those of the rules follow with the next rule owner mapping run
+                await new AppLabelKeyChange(apiConnection).Apply(oldAppLabels, new(configData.AppLabelKey, configData.AppLabelValueFormat), LogRejectedAppLabel);
 
                 PathsToDelete = [];
                 PathsToAdd = [];
@@ -352,6 +362,7 @@ OnCSVAppServerImportEvent(_.EventArgs));
         configData!.ImportSubnetDataStartAt = subnetDataDate.Date.Add(subnetDataTime.TimeOfDay);
         // stored trimmed, as Hasura compares the label key names with this entry exactly
         configData!.AppLabelKey = configData.AppLabelKey.Trim();
+        configData!.AppLabelValueFormat = configData.AppLabelValueFormat.Trim();
     }
 
     private void PrepareRoles()

@@ -16,7 +16,9 @@ namespace FWO.Services.Modelling
     /// Variance analysis of managements that segment by labels (Guardicore) and the device specific settings of the
     /// managements. App roles, app zones and network areas are written there as dynamic IP labels, which the import shows
     /// as groups named "key: value" with one member per CIDR block; they are compared by their addresses instead of their
-    /// members. Object types the settings exclude are left out of the analysis.
+    /// members. Object types the settings exclude are left out of the analysis. The label values have the configured
+    /// format (see <see cref="LabelValueFormat"/>); an existing label is found by the id in its value, so that a label of a
+    /// renamed group or of a former format is renamed instead of created again.
     /// </summary>
     public partial class ModellingVarianceAnalysis
     {
@@ -24,6 +26,12 @@ namespace FWO.Services.Modelling
         private static readonly GlobalDeviceSpecificSettings DefaultSettings = new();
         private readonly Dictionary<int, GlobalDeviceSpecificSettings> managementSettings = [];
         private readonly Dictionary<ModellingTypes.ModObjectType, HashSet<string>> currentIdStrings = [];
+        // the label groups of a management by label key and the ids their values may stand for
+        private readonly Dictionary<int, Dictionary<(string Key, string Id), List<ModellingAppRole>>> prodLabelsById = [];
+        private LabelValueFormat? groupLabelFormat;
+
+        /// <summary>The configured format of the values of app role, app zone and network area labels.</summary>
+        private LabelValueFormat GroupLabelFormat => groupLabelFormat ??= new(userConfig.GroupLabelValueFormat);
 
         /// <summary>
         /// Loads the device specific settings in effect for the relevant managements. If they cannot be loaded, the
@@ -66,14 +74,116 @@ namespace FWO.Services.Modelling
         private bool ResolvesServiceGroups(Management mgt) => WritesLabels(mgt) || SettingsOf(mgt).ResolveServiceGroups;
 
         /// <summary>Name of the production group of a modelled app role or app zone: its id string, or its label name.</summary>
-        private static string ProdGroupName(ModellingAppRole appRole, Management mgt)
+        private string ProdGroupName(ModellingAppRole appRole, Management mgt)
         {
-            if (!WritesLabels(mgt))
-            {
-                return appRole.IdString;
-            }
+            return WritesLabels(mgt) ? AppRoleLabel(appRole).Name : appRole.IdString;
+        }
+
+        /// <summary>The label of a modelled app role or app zone, with the value in the configured format.</summary>
+        private DynamicIpLabel AppRoleLabel(ModellingAppRole appRole)
+        {
             ModellingTypes.ModObjectType objectType = appRole is ModellingAppZone ? ModellingTypes.ModObjectType.AppZone : ModellingTypes.ModObjectType.AppRole;
-            return DynamicIpLabel.ForModelledGroup(objectType, appRole.IdString).Name;
+            return DynamicIpLabel.ForModelledGroup(objectType, appRole.IdString, appRole.Name, GroupLabelFormat);
+        }
+
+        /// <summary>The label of a network area, with the value in the configured format.</summary>
+        private DynamicIpLabel AreaLabel(ModellingNetworkArea area)
+        {
+            return DynamicIpLabel.ForModelledGroup(ModellingTypes.ModObjectType.NetworkArea, area.IdString, area.Name, GroupLabelFormat);
+        }
+
+        /// <summary>
+        /// The existing label of a modelled group on a management: the label of its name, else a label of its key whose
+        /// value stands for its id string (written with a former name or format, or by others), the first by name.
+        /// </summary>
+        private ModellingAppRole? FindProdLabel(Management mgt, DynamicIpLabel label, string idString)
+        {
+            List<ModellingAppRole> prodGroups = allProdAppRoles.GetValueOrDefault(mgt.Id) ?? [];
+            return prodGroups.FirstOrDefault(group => group.Name == label.Name)
+                ?? ProdLabelsById(mgt.Id).GetValueOrDefault((label.Key, idString.Trim()))?.FirstOrDefault();
+        }
+
+        /// <summary>All existing labels of a key on a management whose value stands for the id string, ordered by name.</summary>
+        private List<ModellingAppRole> FindProdLabels(Management mgt, string key, string idString)
+        {
+            return ProdLabelsById(mgt.Id).GetValueOrDefault((key, idString.Trim())) ?? [];
+        }
+
+        private Dictionary<(string Key, string Id), List<ModellingAppRole>> ProdLabelsById(int mgtId)
+        {
+            if (!prodLabelsById.TryGetValue(mgtId, out Dictionary<(string Key, string Id), List<ModellingAppRole>>? labelsById))
+            {
+                labelsById = [];
+                foreach (ModellingAppRole group in (allProdAppRoles.GetValueOrDefault(mgtId) ?? []).OrderBy(group => group.Name, StringComparer.Ordinal))
+                {
+                    DynamicIpLabel? label = DynamicIpLabel.FromName(group.Name);
+                    if (label?.ObjectType == null)
+                    {
+                        continue;
+                    }
+                    foreach (string id in GroupLabelFormat.IdCandidates(label.Value))
+                    {
+                        if (!labelsById.TryGetValue((label.Key, id), out List<ModellingAppRole>? groups))
+                        {
+                            groups = [];
+                            labelsById[(label.Key, id)] = groups;
+                        }
+                        groups.Add(group);
+                    }
+                }
+                prodLabelsById[mgtId] = labelsById;
+            }
+            return labelsById;
+        }
+
+        /// <summary>
+        /// The additional info naming the label a group task writes and, if the existing label has another name, the label
+        /// to rename.
+        /// </summary>
+        private static void AddLabelInfo(Dictionary<string, string> addInfo, DynamicIpLabel label, ModellingAppRole? prodLabel)
+        {
+            addInfo[AdditionalInfoKeys.LabelName] = label.Name;
+            if (prodLabel != null && prodLabel.Name != label.Name)
+            {
+                addInfo[AdditionalInfoKeys.FormerLabelName] = prodLabel.Name;
+            }
+        }
+
+        /// <summary>Whether an existing label has another name than the label of its modelled group, so that it is to be renamed.</summary>
+        private static bool IsRenamed(ModellingAppRole? prodLabel, DynamicIpLabel label) => prodLabel != null && prodLabel.Name != label.Name;
+
+        /// <summary>
+        /// A task that renames the label of a group whose members are unchanged: it names all members as unchanged, so that
+        /// the write only renames the label.
+        /// </summary>
+        private WfReqTask LabelRenameTask(DynamicIpLabel label, ModellingAppRole prodLabel, Management mgt, List<ModellingAppServerWrapper> members,
+            Dictionary<string, string> addInfo)
+        {
+            string idString = addInfo.GetValueOrDefault(AdditionalInfoKeys.GrpName, "");
+            AddLabelInfo(addInfo, label, prodLabel);
+            return new()
+            {
+                Title = RenameTitle(label, prodLabel),
+                TaskType = WfTaskType.group_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                ManagementId = mgt.Id,
+                OnManagement = mgt,
+                Elements = [.. LabelMembers(members, RequestAction.unchanged, idString)],
+                AdditionalInfo = JsonSerializer.Serialize(addInfo)
+            };
+        }
+
+        private string RenameTitle(DynamicIpLabel label, ModellingAppRole prodLabel) => $"{userConfig.GetText("rename_label")}{prodLabel.Name} -> {label.Name}";
+
+        /// <summary>Adds the rename task of a label, unless the same task is requested already.</summary>
+        private void RequestLabelRename(DynamicIpLabel label, ModellingAppRole prodLabel, Management mgt, List<ModellingAppServerWrapper> members,
+            Dictionary<string, string> addInfo)
+        {
+            string title = RenameTitle(label, prodLabel);
+            if (!TaskList.Exists(task => task.Title == title && task.OnManagement?.Id == mgt.Id))
+            {
+                TaskList.Add(LabelRenameTask(label, prodLabel, mgt, members, addInfo));
+            }
         }
 
         /// <summary>
@@ -144,6 +254,10 @@ namespace FWO.Services.Modelling
             {
                 RequestUpdateAppRole(appZone, mgt);
             }
+            else if (IsRenamed(prodAppZone, AppRoleLabel(appZone)))
+            {
+                RequestLabelRename(AppRoleLabel(appZone), prodAppZone, mgt, appZone.AppServers, AppRoleAddInfo(appZone, mgt));
+            }
         }
 
         /// <summary>
@@ -171,25 +285,38 @@ namespace FWO.Services.Modelling
         {
             List<ModellingAppServerWrapper> areaMembers = [.. NetworkDataWrapper.Resolve(area.IpData)
                 .Select(subnet => new ModellingAppServerWrapper { Content = new() { Name = subnet.Name, Ip = subnet.Ip ?? "", IpEnd = subnet.IpEnd ?? "" } })];
-            string labelName = DynamicIpLabel.ForModelledGroup(ModellingTypes.ModObjectType.NetworkArea, area.IdString).Name;
-            ModellingAppRole? prodGroup = allProdAppRoles.GetValueOrDefault(mgt.Id)?.FirstOrDefault(group => group.Name == labelName);
+            DynamicIpLabel label = AreaLabel(area);
+            ModellingAppRole? prodGroup = FindProdLabel(mgt, label, area.IdString);
             if (prodGroup == null)
             {
                 newAppServers = areaMembers;
                 deletedAppServers = [];
                 unchangedAppServers = [];
-                TaskList.Add(NetworkAreaLabelTask(area, mgt, WfTaskType.group_create, "new_nw_area_label"));
+                TaskList.Add(NetworkAreaLabelTask(area, mgt, WfTaskType.group_create, "new_nw_area_label", null));
             }
             else if (LabelMembersChanged(areaMembers, prodGroup))
             {
-                TaskList.Add(NetworkAreaLabelTask(area, mgt, WfTaskType.group_modify, "update_nw_area_label"));
+                TaskList.Add(NetworkAreaLabelTask(area, mgt, WfTaskType.group_modify, "update_nw_area_label", prodGroup));
             }
+            else if (IsRenamed(prodGroup, label))
+            {
+                RequestLabelRename(label, prodGroup, mgt, areaMembers, NetworkAreaAddInfo(area));
+            }
+        }
+
+        private static Dictionary<string, string> NetworkAreaAddInfo(ModellingNetworkArea area)
+        {
+            return new()
+            {
+                { AdditionalInfoKeys.GrpName, area.IdString },
+                { AdditionalInfoKeys.GrpType, nameof(ModellingTypes.ModObjectType.NetworkArea) }
+            };
         }
 
         /// <summary>
         /// One task with all members of a network area label: new and unchanged members to keep and deleted ones to remove.
         /// </summary>
-        private WfReqTask NetworkAreaLabelTask(ModellingNetworkArea area, Management mgt, WfTaskType taskType, string titleKey)
+        private WfReqTask NetworkAreaLabelTask(ModellingNetworkArea area, Management mgt, WfTaskType taskType, string titleKey, ModellingAppRole? prodLabel)
         {
             List<WfReqElement> members =
             [
@@ -197,11 +324,8 @@ namespace FWO.Services.Modelling
                 .. LabelMembers(unchangedAppServers, RequestAction.unchanged, area.IdString),
                 .. LabelMembers(deletedAppServers, RequestAction.delete, area.IdString)
             ];
-            Dictionary<string, string> addInfo = new()
-            {
-                { AdditionalInfoKeys.GrpName, area.IdString },
-                { AdditionalInfoKeys.GrpType, nameof(ModellingTypes.ModObjectType.NetworkArea) }
-            };
+            Dictionary<string, string> addInfo = NetworkAreaAddInfo(area);
+            AddLabelInfo(addInfo, AreaLabel(area), prodLabel);
             return new()
             {
                 Title = userConfig.GetText(titleKey) + area.IdString,
@@ -230,27 +354,30 @@ namespace FWO.Services.Modelling
         /// <summary>
         /// Requests the deletion of the app role, app zone and network area labels that were requested for the owner on a
         /// management that segments by labels and still exist there, but whose modelled object does not exist any more,
-        /// e.g. after it was deleted or got another id string. Label types the settings exclude or do not implement on the
-        /// management (app zones, network areas) are left alone.
+        /// e.g. after it was deleted or got another id string. The existing labels are found by the id in their value, so
+        /// labels of every name and format the id was written with are deleted. Label types the settings exclude or do not
+        /// implement on the management (app zones, network areas) are left alone.
         /// </summary>
         private async Task AnalyseObsoleteLabelsForRequest(Management mgt)
         {
             List<ModellingTypes.ModObjectType> labelTypes = ObsoleteLabelTypes(mgt);
-            if (labelTypes.Count == 0 || !allProdAppRoles.TryGetValue(mgt.Id, out List<ModellingAppRole>? prodGroups))
+            if (labelTypes.Count == 0 || !allProdAppRoles.ContainsKey(mgt.Id))
             {
                 return;
             }
             try
             {
-                HashSet<string> prodGroupNames = [.. prodGroups.Select(group => group.Name)];
                 List<DynamicIpLabel> requestedLabels = await LoadRequestedLabels(mgt);
                 foreach (ModellingTypes.ModObjectType labelType in labelTypes)
                 {
                     HashSet<string> current = await LoadCurrentIdStrings(labelType);
-                    List<DynamicIpLabel> obsoleteLabels = [.. requestedLabels
-                        .Where(label => label.ObjectType == labelType && !current.Contains(label.Value) && prodGroupNames.Contains(label.Name))
-                        .OrderBy(label => label.Value, StringComparer.Ordinal)];
-                    DeleteObjectTasksList.AddRange(obsoleteLabels.Select(label => ObsoleteLabelTask(label, mgt)));
+                    // the existing labels of the obsolete ids, whatever name or format they were written with
+                    List<(DynamicIpLabel Requested, ModellingAppRole Existing)> obsoleteLabels = [.. requestedLabels
+                        .Where(label => label.ObjectType == labelType && !current.Contains(label.Value))
+                        .SelectMany(label => FindProdLabels(mgt, label.Key, label.Value).Select(existing => (label, existing)))
+                        .DistinctBy(obsolete => obsolete.existing.Name)
+                        .OrderBy(obsolete => obsolete.existing.Name, StringComparer.Ordinal)];
+                    DeleteObjectTasksList.AddRange(obsoleteLabels.Select(obsolete => ObsoleteLabelTask(obsolete.Requested, obsolete.Existing, mgt)));
                 }
             }
             catch (Exception exception)
@@ -284,10 +411,10 @@ namespace FWO.Services.Modelling
             return labelTypes;
         }
 
-        private WfReqTask ObsoleteLabelTask(DynamicIpLabel label, Management mgt)
+        private WfReqTask ObsoleteLabelTask(DynamicIpLabel label, ModellingAppRole existingLabel, Management mgt)
         {
             string idString = label.Value;
-            string labelName = label.Name;
+            string labelName = existingLabel.Name;
             List<WfReqElement> elements =
             [
                 new() { RequestAction = RequestAction.delete.ToString(), Field = ElemFieldType.source.ToString(), Name = labelName, GroupName = labelName }
@@ -295,7 +422,8 @@ namespace FWO.Services.Modelling
             Dictionary<string, string> addInfo = new()
             {
                 { AdditionalInfoKeys.GrpName, idString },
-                { AdditionalInfoKeys.GrpType, label.ObjectType?.ToString() ?? "" }
+                { AdditionalInfoKeys.GrpType, label.ObjectType?.ToString() ?? "" },
+                { AdditionalInfoKeys.LabelName, labelName }
             };
             return new()
             {

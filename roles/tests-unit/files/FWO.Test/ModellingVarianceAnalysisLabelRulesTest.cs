@@ -25,7 +25,9 @@ namespace FWO.Test
             "{\"nwRegardIp\":true,\"nwRegardName\":false,\"nwRegardGroupName\":false,\"nwResolveGroup\":false,\"nwSeparateGroupAnalysis\":true," +
             "\"svcRegardPortAndProt\":true,\"svcRegardName\":false,\"svcRegardGroupName\":false,\"svcResolveGroup\":true,\"svcSplitPortRanges\":false}";
 
+        private const string kNameAndId = "{name} ({id})";
         private static readonly List<string> kAppRoleLabel = ["AppRole: AR504711-001"];
+        private static readonly List<string> kFormattedAppRoleLabel = ["AppRole: AppRole1 (AR504711-001)"];
         private static readonly List<string> kNetworkAreaLabel = ["NetworkArea: NA50"];
         private static readonly List<string> kStageLabel = ["Stage: Prod"];
 
@@ -91,11 +93,17 @@ namespace FWO.Test
         private static readonly List<ConnectionLabel> kSourceLabels = [ConnLabel(0, "Stage", "Prod"), ConnLabel(0, "OS", "Linux"), ConnLabel(1, "Stage", "Test")];
 
         private static async Task<ModellingVarianceResult> Analyse(ModellingConnection connection, Rule rule, bool areasAsLabels = false,
-            int deviceTypeId = FirewallVendors.kGuardicoreManagement, bool labelBasedModelling = true)
+            int deviceTypeId = FirewallVendors.kGuardicoreManagement, bool labelBasedModelling = true, string groupLabelFormat = LabelValueFormat.kDefault)
         {
             ModellingVarianceAnalysisTestApiConn api = new() { ManagementDeviceTypeId = deviceTypeId, Rules = [rule] };
             api.Settings.SetValue(1, DeviceSpecificSettingKeys.ModellingImplementNetworkAreaObjects, areasAsLabels);
-            SimulatedUserConfig userConfig = new() { RuleRecognitionOption = kRecognitionOption, ModRolloutNatHeuristic = false, LabelBasedModelling = labelBasedModelling };
+            SimulatedUserConfig userConfig = new()
+            {
+                RuleRecognitionOption = kRecognitionOption,
+                ModRolloutNatHeuristic = false,
+                LabelBasedModelling = labelBasedModelling,
+                GroupLabelValueFormat = groupLabelFormat
+            };
             ModellingVarianceAnalysis analysis = new(api, new ExtStateHandler(ExtStateApiConnection), userConfig, Application, DefaultInit.DoNothing);
             return await analysis.AnalyseRulesVsModelledConnections([connection], new());
         }
@@ -114,6 +122,38 @@ namespace FWO.Test
 
             Assert.That(result.RuleDifferences, Is.Empty);
             Assert.That(result.OkRules, Has.Count.EqualTo(1));
+        }
+
+        /// <summary>
+        /// A rule references a label by its id, which a rename keeps: a label of a former name or format stands for the app
+        /// role and network area whose id its value names.
+        /// </summary>
+        [Test]
+        public async Task Labels_OfAnotherNameOrFormat_StandForTheGroupsOfTheirId()
+        {
+            ModellingVarianceResult result = await Analyse(Connection(c =>
+                {
+                    c.SourceAppRoles = [new() { Content = AppRole }];
+                    c.SourceAreas = [new() { Content = Area }];
+                }),
+                ProdRule(Label(10, "AppRole: AR504711-001", Host32(11, "1.2.3.4/32")), Label(12, "NetworkArea: Former (NA50)", Host32(13, "10.50.0.0/16"))),
+                areasAsLabels: true, groupLabelFormat: kNameAndId);
+
+            Assert.That(result.RuleDifferences, Is.Empty);
+        }
+
+        [Test]
+        public async Task Labels_OfAnotherId_AreMissingAndSurplus()
+        {
+            ModellingVarianceResult result = await Analyse(Connection(c => c.SourceAppRoles = [new() { Content = AppRole }]),
+                ProdRule(Label(10, "AppRole: AppRole1 (AR504711-002)", Host32(11, "1.2.3.4/32"))), groupLabelFormat: kNameAndId);
+
+            Rule rule = DifferingRule(result);
+            Assert.Multiple(() =>
+            {
+                Assert.That(rule.DisregardedFroms.Select(location => location.Object.Name), Is.EqualTo(kFormattedAppRoleLabel));
+                Assert.That(rule.Froms.Single().Object.IsSurplus, Is.True);
+            });
         }
 
         [Test]

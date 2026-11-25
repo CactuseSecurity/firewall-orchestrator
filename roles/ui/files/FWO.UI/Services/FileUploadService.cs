@@ -294,7 +294,7 @@ namespace FWO.Ui.Services
             {
                 errors.Add(new() { EntryData = description, Message = description, MessageType = MessageType.Warning });
                 return Task.CompletedTask;
-            }, UserConfig.AppLabelKey);
+            }, UserConfig.AppLabelKey, UserConfig.AppLabelValueFormat);
             List<(long appServerId, int ownerId, CSVAppServerImportModel appServer)> withLabels = [.. uploadedAppServers.Where(uploaded => uploaded.appServer.Labels != null)];
             await labelImport.LoadActiveLabels(withLabels.Select(uploaded => uploaded.appServerId));
             foreach ((long appServerId, _, CSVAppServerImportModel appServer) in withLabels)

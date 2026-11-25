@@ -22,10 +22,22 @@ namespace FWO.Data.Labelling
     }
 
     /// <summary>
-    /// App id of the owner of a rule owner mapping.
+    /// Id, name and app id of the owner of a rule owner mapping.
     /// </summary>
     public class RuleOwnerAppOwner
     {
+        /// <summary>
+        /// Id of the owner.
+        /// </summary>
+        [JsonProperty("id"), JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Name of the owner.
+        /// </summary>
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+
         /// <summary>
         /// External app id of the owner (from the CMDB), null if the owner has none.
         /// </summary>
@@ -70,10 +82,16 @@ namespace FWO.Data.Labelling
     }
 
     /// <summary>
-    /// An owner with its app id and its active app servers with their active App labels.
+    /// An owner with its name, its app id and its active app servers with their active App labels.
     /// </summary>
     public class OwnerAppServerAppLabels
     {
+        /// <summary>
+        /// Name of the owner.
+        /// </summary>
+        [JsonProperty("name"), JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+
         /// <summary>
         /// External app id of the owner, null if the owner has none.
         /// </summary>

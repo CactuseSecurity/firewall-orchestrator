@@ -21,6 +21,12 @@ namespace FWO.Data.Labelling
         public string Value { get; set; } = "";
 
         /// <summary>
+        /// Owner of an App label value, set by FWO only; null for other labels.
+        /// </summary>
+        [JsonProperty("owner_id"), JsonPropertyName("owner_id")]
+        public int? OwnerId { get; set; }
+
+        /// <summary>
         /// Key of the label.
         /// </summary>
         [JsonProperty("label_key"), JsonPropertyName("label_key")]

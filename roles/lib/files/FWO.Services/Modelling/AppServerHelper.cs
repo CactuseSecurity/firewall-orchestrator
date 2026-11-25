@@ -229,7 +229,7 @@ namespace FWO.Services.Modelling
             }
             try
             {
-                AppLabelHandler appLabels = new(apiConnection, userConfig.AppLabelKey);
+                AppLabelHandler appLabels = new(apiConnection, userConfig.AppLabelKey, userConfig.AppLabelValueFormat);
                 long? changeEventId = null;
                 await appLabels.SyncAppServers(ownerId.Value, async () => changeEventId ??= await appLabels.CreateChangeEvent(null, true));
             }

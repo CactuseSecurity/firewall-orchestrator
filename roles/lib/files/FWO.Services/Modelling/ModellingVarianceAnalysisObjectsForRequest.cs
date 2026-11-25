@@ -236,11 +236,17 @@ namespace FWO.Services.Modelling
                         RequestNewAppRole(appRole, mgt);
                     }
                 }
-                else if (AppRoleChanged(appRole, mgt) &&
-                    TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id) == null &&
-                    DeleteObjectTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id) == null)
+                else if (AppRoleChanged(appRole, mgt))
                 {
-                    RequestUpdateAppRole(appRole, mgt);
+                    if (TaskList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("add_members") && x.OnManagement?.Id == mgt.Id) == null &&
+                        DeleteObjectTasksList.FirstOrDefault(x => x.Title == userConfig.GetText("update_app_role") + appRole.IdString + userConfig.GetText("remove_members") && x.OnManagement?.Id == mgt.Id) == null)
+                    {
+                        RequestUpdateAppRole(appRole, mgt);
+                    }
+                }
+                else if (WritesLabels(mgt) && IsRenamed(existingAppRole, AppRoleLabel(appRole)))
+                {
+                    RequestLabelRename(AppRoleLabel(appRole), existingAppRole!, mgt, appRole.AppServers, AppRoleAddInfo(appRole, mgt));
                 }
             }
 
@@ -296,11 +302,15 @@ namespace FWO.Services.Modelling
             bool shortened = false;
             string prodName = ProdGroupName(appRole, mgt);
             string sanitizedARName = appRole.IdString.SanitizeJsonFieldMand(ref shortened);
-            bool writesLabels = WritesLabels(mgt);
             existingAppRole = null;
-            if (allProdAppRoles.TryGetValue(mgt.Id, out List<ModellingAppRole>? prodAppRolesOfMgt))
+            if (WritesLabels(mgt))
             {
-                existingAppRole = prodAppRolesOfMgt.FirstOrDefault(a => a.Name == prodName || (!writesLabels && a.Name == sanitizedARName));
+                // a label of another name or format stands for the app role as well, it is renamed
+                existingAppRole = FindProdLabel(mgt, AppRoleLabel(appRole), appRole.IdString);
+            }
+            else if (allProdAppRoles.TryGetValue(mgt.Id, out List<ModellingAppRole>? prodAppRolesOfMgt))
+            {
+                existingAppRole = prodAppRolesOfMgt.FirstOrDefault(a => a.Name == prodName || a.Name == sanitizedARName);
             }
             if (existingAppRole != null)
             {
@@ -465,17 +475,24 @@ namespace FWO.Services.Modelling
 
         /// <summary>
         /// The additional info of a task of an app role or app zone: its id string, its object type, which the firewall
-        /// write takes instead of guessing it from the name, and its id.
+        /// write takes instead of guessing it from the name, and its id. For a management that writes labels also the label
+        /// the group is written as and, if the existing label found last (<see cref="existingAppRole"/>) has another name,
+        /// the label to rename.
         /// </summary>
-        private static Dictionary<string, string> AppRoleAddInfo(ModellingAppRole appRole)
+        private Dictionary<string, string> AppRoleAddInfo(ModellingAppRole appRole, Management mgt)
         {
             ModellingTypes.ModObjectType objectType = appRole is ModellingAppZone ? ModellingTypes.ModObjectType.AppZone : ModellingTypes.ModObjectType.AppRole;
-            return new()
+            Dictionary<string, string> addInfo = new()
             {
                 { AdditionalInfoKeys.GrpName, appRole.IdString },
                 { AdditionalInfoKeys.GrpType, objectType.ToString() },
                 { AdditionalInfoKeys.AppRoleId, appRole.Id.ToString() }
             };
+            if (WritesLabels(mgt))
+            {
+                AddLabelInfo(addInfo, AppRoleLabel(appRole), existingAppRole);
+            }
+            return addInfo;
         }
 
         private void RequestNewAppRole(ModellingAppRole appRole, Management mgt)
@@ -496,7 +513,7 @@ namespace FWO.Services.Modelling
                     NetworkId = networkId
                 });
             }
-            Dictionary<string, string>? addInfo = AppRoleAddInfo(appRole);
+            Dictionary<string, string>? addInfo = AppRoleAddInfo(appRole, mgt);
             TaskList.Add(new()
             {
                 Title = title + appRole.IdString,
@@ -513,7 +530,7 @@ namespace FWO.Services.Modelling
         {
             string title = appRole.GetType() == typeof(ModellingAppZone) ? userConfig.GetText("update_app_zone") : userConfig.GetText("update_app_role");
             FillGroupMembers(appRole.IdString, mgt);
-            Dictionary<string, string>? addInfo = AppRoleAddInfo(appRole);
+            Dictionary<string, string>? addInfo = AppRoleAddInfo(appRole, mgt);
             if (newGroupMembers.Count > 0)
             {
                 newGroupMembers.AddRange(unchangedGroupMembers);

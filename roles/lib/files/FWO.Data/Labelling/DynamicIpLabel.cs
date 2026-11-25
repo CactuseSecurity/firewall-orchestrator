@@ -5,8 +5,9 @@ namespace FWO.Data.Labelling
 {
     /// <summary>
     /// Label with IP criteria that stands for a group on firewalls that segment by labels (Guardicore). Modelled app roles,
-    /// app zones and network areas are written as labels of the keys AppRole, AppZone and NetworkArea with their id string
-    /// as value; their import shows them as groups named "key: value".
+    /// app zones and network areas are written as labels of the keys AppRole, AppZone and NetworkArea with a value in the
+    /// configured format (see <see cref="LabelValueFormat"/>, by default the id string); their import shows them as groups
+    /// named "key: value".
     /// </summary>
     /// <param name="Key">Label key, e.g. AppRole.</param>
     /// <param name="Value">Label value, e.g. AR4711-001.</param>
@@ -49,6 +50,41 @@ namespace FWO.Data.Labelling
             return KeyByObjectType.TryGetValue(objectType, out string? key)
                 ? new DynamicIpLabel(key, idString)
                 : throw new ArgumentOutOfRangeException(nameof(objectType), objectType, "Only app roles, app zones and network areas are dynamic IP labels.");
+        }
+
+        /// <summary>Returns the label of a modelled app role, app zone or network area with the value in the configured format.</summary>
+        /// <param name="objectType">App role, app zone or network area.</param>
+        /// <param name="idString">Id string of the group.</param>
+        /// <param name="name">Name of the group.</param>
+        /// <param name="valueFormat">Configured format of the label values.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown for other object types.</exception>
+        public static DynamicIpLabel ForModelledGroup(ModellingTypes.ModObjectType objectType, string idString, string? name, LabelValueFormat valueFormat)
+        {
+            ArgumentNullException.ThrowIfNull(valueFormat);
+            DynamicIpLabel label = ForModelledGroup(objectType, idString);
+            return label with { Value = valueFormat.Value(name, idString) };
+        }
+
+        /// <summary>Reads a label name "key: value"; null if it has no separator or an empty key or value.</summary>
+        /// <param name="name">Label name.</param>
+        public static DynamicIpLabel? FromName(string? name)
+        {
+            string trimmed = name?.Trim() ?? "";
+            return trimmed.Contains(kKeyValueSeparator, StringComparison.Ordinal) ? SplitKeyAndValue(trimmed) : null;
+        }
+
+        /// <summary>
+        /// True if a label name stands for the same modelled group as this label: same key, and its value stands for the id
+        /// of the group (see <see cref="LabelValueFormat.Matches"/>), even if the name of the group or the format changed.
+        /// </summary>
+        /// <param name="labelName">Name of an existing label "key: value".</param>
+        /// <param name="idString">Id string of the modelled group of this label.</param>
+        /// <param name="valueFormat">Configured format of the label values.</param>
+        public bool IsSameGroup(string? labelName, string idString, LabelValueFormat valueFormat)
+        {
+            ArgumentNullException.ThrowIfNull(valueFormat);
+            DynamicIpLabel? other = FromName(labelName);
+            return other != null && string.Equals(other.Key, Key, StringComparison.Ordinal) && valueFormat.Matches(other.Value, idString);
         }
 
         /// <summary>

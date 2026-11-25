@@ -4,6 +4,8 @@ query getActiveRuleOwnerApps($ruleIds: [bigint!]!, $mappingSourceId: smallint!) 
     ) {
         rule_id
         owner {
+            id
+            name
             app_id_external
         }
     }

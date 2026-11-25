@@ -281,6 +281,7 @@ namespace FWO.Test
             {"new_nw_area_label", "New NetworkArea: " },
             {"update_nw_area_label", "Update NetworkArea: " },
             {"delete_obsolete_label", "Delete obsolete label: " },
+            {"rename_label", "Rename label: " },
             { "E9301", "Template File not found!" },
             { "E9302", "HTML is invalid!" },
             { "tableofcontent", "Table of content" },

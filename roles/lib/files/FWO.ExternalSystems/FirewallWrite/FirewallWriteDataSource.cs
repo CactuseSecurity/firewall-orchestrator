@@ -89,6 +89,7 @@ namespace FWO.ExternalSystems.FirewallWrite
             Dictionary<string, string> ruleLayerUids = await LoadRuleLayers(implTask, management);
             WfReqTask? requestTask = await LoadRequestTaskInfo(implTask);
             (string? connectionMarker, string? extAppId) = await LoadModelledConnection(implTask, requestTask, management);
+            bool isGroupTask = kGroupTaskTypes.Contains(implTask.TaskType);
             return new FirewallWriteContext
             {
                 Management = management,
@@ -96,9 +97,11 @@ namespace FWO.ExternalSystems.FirewallWrite
                 Settings = settings[0],
                 Rulebases = rulebases,
                 RuleLayerUids = ruleLayerUids,
-                GroupObjectType = kGroupTaskTypes.Contains(implTask.TaskType)
+                GroupObjectType = isGroupTask
                     ? DynamicIpLabel.ParseObjectType(requestTask?.GetAddInfoValue(AdditionalInfoKeys.GrpType))
                     : null,
+                LabelName = isGroupTask ? NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.LabelName)) : null,
+                FormerLabelName = isGroupTask ? NonBlank(requestTask?.GetAddInfoValue(AdditionalInfoKeys.FormerLabelName)) : null,
                 ConnectionMarker = connectionMarker,
                 ExtAppId = extAppId
             };
@@ -106,7 +109,7 @@ namespace FWO.ExternalSystems.FirewallWrite
 
         /// <summary>
         /// Loads the additional info of the request task of a group or rule task: the modelling object type of a group
-        /// (<c>GrpType</c>), and the marker and app of the modelled connection of a rule (<c>ConnMarker</c>, <c>ExtAppId</c>);
+        /// (<c>GrpType</c>) and the label it is written as (<c>LabelName</c>, <c>FormerLabelName</c>), and the marker and app of the modelled connection of a rule (<c>ConnMarker</c>, <c>ExtAppId</c>);
         /// null for other tasks and tasks without request task.
         /// </summary>
         private async Task<WfReqTask?> LoadRequestTaskInfo(WfImplTask implTask)

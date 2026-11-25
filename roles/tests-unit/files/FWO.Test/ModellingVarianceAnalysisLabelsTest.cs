@@ -372,6 +372,109 @@ namespace FWO.Test
             });
         }
 
+        private const string kNameAndId = "{name} ({id})";
+
+        private static NetworkObject Renamed(NetworkObject label, string name) =>
+            new() { Id = label.Id, Name = name, Type = label.Type, ObjectGroupFlats = label.ObjectGroupFlats };
+
+        /// <summary>The connection of the standard test with named app roles and the value format "{name} ({id})".</summary>
+        private static ModellingVarianceAnalysis FormattedAnalysis(GuardicoreVarianceTestApiConn api) =>
+            new(api, new ExtStateHandler(ExtStateApiConnection), new SimulatedUserConfig
+            {
+                ModNamingConvention = UserConfig.ModNamingConvention,
+                CreateAppZones = true,
+                RuleRecognitionOption = kRecognitionOption,
+                GroupLabelValueFormat = kNameAndId
+            }, Application, DefaultInit.DoNothing);
+
+        private static List<ModellingConnection> NamedConnections()
+        {
+            ModellingAppRole Named(ModellingAppRole appRole, string name) => new(appRole) { Name = name, AppServers = appRole.AppServers };
+            return
+            [
+                new()
+                {
+                    Id = 1,
+                    Name = "Conn1",
+                    SourceAppRoles = [new() { Content = Named(UnchangedAppRole, "Billing") }, new() { Content = Named(ChangedAppRole, "Payments") }],
+                    SourceAreas = [new() { Content = Area }],
+                    DestinationAppRoles = [new() { Content = Named(MissingAppRole, "Missing") }],
+                    Services = [new() { Content = new() { Id = 1, Name = "Service1", Port = 443, ProtoId = 6 } }]
+                }
+            ];
+        }
+
+        /// <summary>
+        /// With the value format "{name} ({id})" the labels of the former format are found by their id and renamed: an
+        /// unchanged label by a rename task, a changed one by its update tasks, which name the label to rename.
+        /// </summary>
+        [Test]
+        public async Task Request_RenamesLabelsOfTheFormerFormatInsteadOfCreatingThem()
+        {
+            List<WfReqTask> tasks = await FormattedAnalysis(Api()).AnalyseModelledConnectionsForRequest(NamedConnections());
+
+            WfReqTask rename = Task(tasks, "Rename label: AppRole: AR504711-001 -> AppRole: Billing (AR504711-001)");
+            WfReqTask removeMembers = Task(tasks, "Update AppRole: AR504711-003: Remove Members");
+            WfReqTask newAppRole = Task(tasks, "New AppRole: AR504711-002");
+            WfReqTask area = Task(tasks, "Update NetworkArea: NA50");
+            WfReqTask access = tasks.Single(task => task.TaskType == nameof(WfTaskType.access));
+            Assert.Multiple(() =>
+            {
+                Assert.That(rename.TaskType, Is.EqualTo(nameof(WfTaskType.group_modify)));
+                Assert.That(rename.GetAddInfoValue(AdditionalInfoKeys.LabelName), Is.EqualTo("AppRole: Billing (AR504711-001)"));
+                Assert.That(rename.GetAddInfoValue(AdditionalInfoKeys.FormerLabelName), Is.EqualTo("AppRole: AR504711-001"));
+                Assert.That(rename.GetAddInfoValue(AdditionalInfoKeys.GrpType), Is.EqualTo("AppRole"));
+                Assert.That(rename.Elements, Is.Not.Empty);
+                Assert.That(rename.Elements.TrueForAll(element => element.RequestAction == nameof(RequestAction.unchanged)), Is.True);
+                Assert.That(removeMembers.GetAddInfoValue(AdditionalInfoKeys.LabelName), Is.EqualTo("AppRole: Payments (AR504711-003)"));
+                Assert.That(removeMembers.GetAddInfoValue(AdditionalInfoKeys.FormerLabelName), Is.EqualTo("AppRole: AR504711-003"));
+                Assert.That(tasks.Exists(task => task.Title.StartsWith("Rename label: AppRole: AR504711-003")), Is.False, "renamed by its update");
+                Assert.That(newAppRole.GetAddInfoValue(AdditionalInfoKeys.LabelName), Is.EqualTo("AppRole: Missing (AR504711-002)"));
+                Assert.That(newAppRole.GetAddInfoValue(AdditionalInfoKeys.FormerLabelName), Is.Empty);
+                Assert.That(area.GetAddInfoValue(AdditionalInfoKeys.LabelName), Is.EqualTo("NetworkArea: Area50 (NA50)"));
+                Assert.That(area.GetAddInfoValue(AdditionalInfoKeys.FormerLabelName), Is.EqualTo("NetworkArea: NA50"));
+                Assert.That(access.Elements.Select(element => element.GroupName), Does.Contain("AppRole: Billing (AR504711-001)"));
+                Assert.That(DeletedLabels(tasks), Is.EqualTo(kObsoleteLabels), "the renamed labels are no obsolete ones");
+            });
+        }
+
+        /// <summary>A label of the configured name is used as it is, even if a label of another name has the same id.</summary>
+        [Test]
+        public async Task Request_LeavesLabelsOfTheConfiguredNameAlone()
+        {
+            List<WfReqTask> tasks = await Analysis(Api()).AnalyseModelledConnectionsForRequest(Connections);
+
+            Assert.That(tasks.Exists(task => task.Title.StartsWith("Rename label")), Is.False);
+        }
+
+        /// <summary>
+        /// Labels written by others with the id in their last parentheses stand for the app role: they are renamed to the
+        /// configured value and, if their app role is gone, deleted under their own name.
+        /// </summary>
+        [Test]
+        public async Task Request_FindsLabelsOfOthersByTheIdInTheirValue()
+        {
+            GuardicoreVarianceTestApiConn api = Api();
+            api.ImportedLabels = [.. GuardicoreVarianceTestApiConn.StandardLabels.Select(label => label.Name switch
+            {
+                "AppRole: AR504711-001" => Renamed(label, "AppRole: PostgreSQL (COM-1629) - Proxy (AR504711-001)"),
+                "AppRole: AR504711-009" => Renamed(label, "AppRole: Gone (AR504711-009)"),
+                _ => label
+            })];
+
+            List<WfReqTask> tasks = await Analysis(api).AnalyseModelledConnectionsForRequest(Connections);
+
+            WfReqTask obsolete = Task(tasks, "Delete obsolete label: AppRole: Gone (AR504711-009)");
+            Assert.Multiple(() =>
+            {
+                Assert.That(Task(tasks, "Rename label: AppRole: PostgreSQL (COM-1629) - Proxy (AR504711-001) -> AppRole: AR504711-001").TaskType,
+                    Is.EqualTo(nameof(WfTaskType.group_modify)));
+                Assert.That(tasks.Exists(task => task.Title == "New AppRole: AR504711-001"), Is.False);
+                Assert.That(obsolete.GetAddInfoValue(AdditionalInfoKeys.LabelName), Is.EqualTo("AppRole: Gone (AR504711-009)"));
+                Assert.That(obsolete.Elements.Single().GroupName, Is.EqualTo("AppRole: Gone (AR504711-009)"));
+            });
+        }
+
         [Test]
         public async Task AppZoneCheck_ComparesTheLabelByAddresses()
         {

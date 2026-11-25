@@ -17,7 +17,7 @@ namespace FWO.Services.Labelling
     /// import control of the run. Unknown keys and values are created as imported. Labels are rejected (and logged)
     /// if they exceed the limits, use a key that stays a group (AppRole, AppZone) or the App key, or give a key that
     /// allows a single value only several values on one app server. The App label is not imported: every app server
-    /// gets the App label of its owner (the app id from the CMDB), see <see cref="SyncOwnerAppLabels"/>.
+    /// gets the App label of its owner (the app id from the CMDB in the configured format), see <see cref="SyncOwnerAppLabels"/>.
     /// </remarks>
     public class AppServerLabelImport
     {
@@ -73,14 +73,15 @@ namespace FWO.Services.Labelling
         /// <param name="originIsUi">True if the labels are imported in the UI (csv upload).</param>
         /// <param name="addLogEntry">Writes a data import log entry (severity, level, description).</param>
         /// <param name="appLabelKey">Configured name of the App key, empty to switch App labels off.</param>
+        /// <param name="appLabelValueFormat">Configured format of the App label values, empty for the bare app id.</param>
         public AppServerLabelImport(ApiConnection apiConnection, Func<Task<long?>> getImportControlId, bool originIsUi, Func<int, string, string, Task> addLogEntry,
-            string? appLabelKey = null)
+            string? appLabelKey = null, string? appLabelValueFormat = null)
         {
             this.apiConnection = apiConnection;
             this.getImportControlId = getImportControlId;
             this.originIsUi = originIsUi;
             this.addLogEntry = addLogEntry;
-            appLabels = new(apiConnection, appLabelKey);
+            appLabels = new(apiConnection, appLabelKey, appLabelValueFormat);
         }
 
         /// <summary>

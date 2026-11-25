@@ -201,6 +201,9 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRol
 INSERT INTO config (config_key, config_value, config_user) VALUES ('designatedZoneMatrix', '0', 0);
 -- key of the App label; Hasura restricts modellers to App labels of their own apps by this entry
 INSERT INTO config (config_key, config_value, config_user) VALUES ('appLabelKey', 'App', 0);
+-- format of the values of the App labels and of the labels of app roles, app zones and network areas ({name}, {id})
+INSERT INTO config (config_key, config_value, config_user) VALUES ('appLabelValueFormat', '{id}', 0);
+INSERT INTO config (config_key, config_value, config_user) VALUES ('groupLabelValueFormat', '{id}', 0);
 
 -- keys of personal settings (properties marked [UserConfigData] in ConfigData.cs)
 INSERT INTO config_user_key (config_key) VALUES ('maxMessages');

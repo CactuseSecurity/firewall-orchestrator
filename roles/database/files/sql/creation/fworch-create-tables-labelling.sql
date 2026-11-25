@@ -25,6 +25,8 @@ create table labelling.label_value
     key_id Integer NOT NULL,
     value Varchar NOT NULL,
     is_imported Boolean NOT NULL Default TRUE,
+    -- owner of an App label value, set by FWO only; decides which modellers may assign the label
+    owner_id Integer,
     constraint labelling_label_value_key_id_value_unique unique (key_id, value)
 );
 

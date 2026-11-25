@@ -38,8 +38,11 @@ create table if not exists labelling.label_value
     key_id Integer NOT NULL,
     value Varchar NOT NULL,
     is_imported Boolean NOT NULL Default TRUE,
+    -- owner of an App label value, set by FWO only; decides which modellers may assign the label
+    owner_id Integer,
     constraint labelling_label_value_key_id_value_unique unique (key_id, value)
 );
+ALTER TABLE labelling.label_value ADD COLUMN IF NOT EXISTS owner_id Integer;
 
 -- label history -----------------------------------------------------------
 
@@ -148,6 +151,8 @@ create table if not exists labelling.owner_network_label
 -- labelling foreign keys
 ALTER TABLE labelling.label_value DROP CONSTRAINT IF EXISTS labelling_label_value_label_key_fkey;
 ALTER TABLE labelling.label_value ADD CONSTRAINT labelling_label_value_label_key_fkey FOREIGN KEY (key_id) REFERENCES labelling.label_key(key_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.label_value DROP CONSTRAINT IF EXISTS labelling_label_value_owner_fkey;
+ALTER TABLE labelling.label_value ADD CONSTRAINT labelling_label_value_owner_fkey FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE SET NULL;
 ALTER TABLE labelling.label_change_event DROP CONSTRAINT IF EXISTS labelling_label_change_event_import_control_fkey;
 ALTER TABLE labelling.label_change_event ADD CONSTRAINT labelling_label_change_event_import_control_fkey FOREIGN KEY (import_control_id) REFERENCES import_control(control_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE labelling.label_change_event DROP CONSTRAINT IF EXISTS labelling_label_change_event_request_ticket_fkey;
@@ -254,6 +259,15 @@ CREATE INDEX IF NOT EXISTS idx_labelling_owner_network_label_removed_event ON la
 
 -- key of the App label; Hasura restricts modellers to App labels of their own apps by this entry
 INSERT INTO config (config_key, config_value, config_user) VALUES ('appLabelKey', 'App', 0) ON CONFLICT DO NOTHING;
+-- format of the values of the App labels and of the labels of app roles, app zones and network areas ({name}, {id})
+INSERT INTO config (config_key, config_value, config_user) VALUES ('appLabelValueFormat', '{id}', 0) ON CONFLICT DO NOTHING;
+INSERT INTO config (config_key, config_value, config_user) VALUES ('groupLabelValueFormat', '{id}', 0) ON CONFLICT DO NOTHING;
+CREATE INDEX IF NOT EXISTS idx_labelling_label_value_owner ON labelling.label_value (owner_id) WHERE owner_id IS NOT NULL;
+-- App labels written before label values knew their owner: the value is the app id of the owner
+UPDATE labelling.label_value lv SET owner_id = o.id
+FROM owner o, labelling.label_key lk, config c
+WHERE lv.owner_id IS NULL AND lv.key_id = lk.key_id AND lk.key_name = c.config_value AND c.config_key = 'appLabelKey' AND c.config_user = 0
+    AND o.app_id_external = lv.value;
 
 -- read-only database user: a new installation grants it every schema in db_schemata, an upgrade has to add labelling
 GRANT USAGE ON SCHEMA labelling TO fwo_ro;

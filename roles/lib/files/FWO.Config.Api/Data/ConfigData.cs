@@ -59,6 +59,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("appLabelKey"), JsonPropertyName("appLabelKey")]
         public string AppLabelKey { get; set; } = "App";
 
+        [JsonProperty("appLabelValueFormat"), JsonPropertyName("appLabelValueFormat")]
+        public string AppLabelValueFormat { get; set; } = LabelValueFormat.kDefault;
+
+        [JsonProperty("groupLabelValueFormat"), JsonPropertyName("groupLabelValueFormat")]
+        public string GroupLabelValueFormat { get; set; } = LabelValueFormat.kDefault;
+
         [JsonProperty("labelBasedModelling"), JsonPropertyName("labelBasedModelling")]
         public bool LabelBasedModelling { get; set; } = false;
 

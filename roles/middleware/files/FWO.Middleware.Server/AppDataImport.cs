@@ -4,6 +4,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Labelling;
 using FWO.Data.Modelling;
 using FWO.Logging;
 using FWO.Recert;
@@ -60,7 +61,8 @@ namespace FWO.Middleware.Server
 
         private AppServerLabelImport NewAppServerLabelImport(OwnerChangeImportTracker ownerChangeTracker)
         {
-            return new(apiConnection, async () => await ownerChangeTracker.EnsureAnCreateImportControl(), false, AddLogEntry, globalConfig.AppLabelKey);
+            return new(apiConnection, async () => await ownerChangeTracker.EnsureAnCreateImportControl(), false, AddLogEntry, globalConfig.AppLabelKey,
+                globalConfig.AppLabelValueFormat);
         }
 
         /// <summary>
@@ -350,7 +352,9 @@ namespace FWO.Middleware.Server
             ModellingImportAppData incomingApp,
             OwnerChangeImportTracker ownerChangeTracker)
         {
-            if (!existingApp.Active || HaveAppServerChanges(incomingApp) || appServerLabelImport.LabelsChanged)
+            // a renamed app gets another App label if the values contain the name, which its rules get by the owner change
+            bool appLabelRenamed = new LabelValueFormat(globalConfig.AppLabelValueFormat).NameChangeAltersValue(existingApp.Name, incomingApp.Name);
+            if (!existingApp.Active || HaveAppServerChanges(incomingApp) || appServerLabelImport.LabelsChanged || appLabelRenamed)
             {
                 await ownerChangeTracker.AddOwnerChange(existingApp.Id, existingApp.Id, ChangelogActionType.CHANGE, incomingApp.ImportSource);
             }

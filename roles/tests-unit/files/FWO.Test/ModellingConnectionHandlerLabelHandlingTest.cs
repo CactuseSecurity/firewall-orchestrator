@@ -27,10 +27,12 @@ namespace FWO.Test
         private static readonly LabelValue kLinux = Label(3, "OS", "Linux");
         private static readonly List<LabelValue> kSelectableCandidates =
         [
-            kProd, Label(4, "approle", "AR1"), Label(5, "AppZone", "AZ1"), Label(6, "App", "APP-1"), Label(7, "App", "APP-2")
+            kProd, Label(4, "approle", "AR1"), Label(5, "AppZone", "AZ1"), AppLabel(6, "App1 (APP-1)", 1), AppLabel(7, "APP-2", 2),
+            Label(8, "App", "APP-1")
         ];
+        // App labels by their owner, whatever their value: not an App label FWO did not write for an own app (8)
         private static readonly List<long> kSelectableForModeller = [1, 6];
-        private static readonly List<long> kSelectableForAdmin = [1, 6, 7];
+        private static readonly List<long> kSelectableForAdmin = [1, 6, 7, 8];
         private static readonly List<int> kOwnershipOfApp1 = [1];
         private static readonly List<string> kAdminRoles = [Roles.Admin];
         private static readonly List<(long, int)> kClosedProdGroup = [(1, 0)];
@@ -198,6 +200,11 @@ namespace FWO.Test
         private static LabelValue Label(long id, string key, string value)
         {
             return new() { Id = id, Value = value, Key = new() { Name = key } };
+        }
+
+        private static LabelValue AppLabel(long id, string value, int ownerId)
+        {
+            return new() { Id = id, Value = value, OwnerId = ownerId, Key = new() { Name = "App" } };
         }
 
         private static ConnectionLabel Assigned(LabelValue label, int andGroup)

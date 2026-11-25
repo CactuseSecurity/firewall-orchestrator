@@ -463,6 +463,7 @@ ALTER TABLE flow.svcgroup_member ADD CONSTRAINT flow_svcgroup_member_svcobject_f
 
 -- labelling
 ALTER TABLE labelling.label_value ADD CONSTRAINT labelling_label_value_label_key_fkey FOREIGN KEY (key_id) REFERENCES labelling.label_key(key_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE labelling.label_value ADD CONSTRAINT labelling_label_value_owner_fkey FOREIGN KEY (owner_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE SET NULL;
 
 ALTER TABLE labelling.label_change_event ADD CONSTRAINT labelling_label_change_event_import_control_fkey FOREIGN KEY (import_control_id) REFERENCES import_control(control_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE labelling.label_change_event ADD CONSTRAINT labelling_label_change_event_request_ticket_fkey FOREIGN KEY (request_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE SET NULL;

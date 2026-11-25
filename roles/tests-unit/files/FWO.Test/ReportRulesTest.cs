@@ -718,6 +718,7 @@ namespace FWO.Test
             Assert.That(apiConnection.StructureQueryVariables[0][QueryVar.MgmId], Is.EqualTo(ExpectedStandardManagementIds));
             Assert.That(apiConnection.StructureQueryVariables[0][QueryVar.ImportIdStart], Is.EqualTo(77));
             Assert.That(apiConnection.StructureQueryVariables[0][QueryVar.ImportIdEnd], Is.EqualTo(77));
+            Assert.That(reportRules.GetImportRange(1), Is.EqualTo(new ImportRange(77, 77)));
             Assert.That(apiConnection.RulePageOffsets, Is.EqualTo(ExpectedStandardRulePageOffsets));
             Assert.That(apiConnection.RulePageRulebaseIds, Has.Count.EqualTo(2));
             Assert.That(apiConnection.RulePageRulebaseIds[0], Is.EqualTo(ExpectedStandardRulebaseIds));

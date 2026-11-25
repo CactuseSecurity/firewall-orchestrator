@@ -19,6 +19,12 @@ namespace FWO.Report
     {
         private readonly DebugConfig _debugConfig;
 
+        /// <summary>
+        /// Imports this report was generated for per management id. Super managers are contained as well, because
+        /// the rules of their global rulebases carry the id of the super manager.
+        /// </summary>
+        private readonly Dictionary<int, ImportRange> importRanges = [];
+
         protected ReportDevicesBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType) : base(query, UserConfig, reportType)
         {
             if (userConfig.GlobalConfig is GlobalConfig globalConfig && !string.IsNullOrEmpty(globalConfig.DebugConfig))
@@ -29,6 +35,12 @@ namespace FWO.Report
             {
                 _debugConfig = new();
             }
+        }
+
+        /// <inheritdoc/>
+        public override ImportRange? GetImportRange(int managementId)
+        {
+            return importRanges.TryGetValue(managementId, out ImportRange importRange) ? importRange : null;
         }
 
         public async Task<List<ManagementReport>> GetRelevantImportIds(ApiConnection apiConnection, string? timestamp = null)
@@ -55,6 +67,7 @@ namespace FWO.Report
                     }
                 }
             }
+            StartImportRanges(managementReports);
             // filter out super managements
             managementReports = [.. managementReports.Where(m => m.IsSuperManager == false)];
 
@@ -87,9 +100,38 @@ namespace FWO.Report
                     }
                 }
             }
+            ExtendImportRanges(managementReports);
             managementReports = [.. managementReports.Where(r => r.SubManagements.Count == 0)]; // filter out super managements
 
             return managementReports;
+        }
+
+        /// <summary>
+        /// Starts the import ranges of a new report generation with the import valid at the (start) time of the report.
+        /// </summary>
+        private void StartImportRanges(List<ManagementReport> managements)
+        {
+            importRanges.Clear();
+            foreach (ManagementReport management in managements)
+            {
+                long importId = management.RelevantImportId ?? -1;
+                importRanges[management.Id] = new(importId, importId);
+            }
+        }
+
+        /// <summary>
+        /// Extends the import ranges to the last import found in the report period.
+        /// </summary>
+        private void ExtendImportRanges(List<ManagementReport> managementsWithImportsInPeriod)
+        {
+            foreach (ManagementReport management in managementsWithImportsInPeriod.Where(m => m.ImportControls.Count > 0))
+            {
+                if (importRanges.TryGetValue(management.Id, out ImportRange importRange))
+                {
+                    long lastImportId = management.ImportControls.Max(import => import.ControlId);
+                    importRanges[management.Id] = importRange with { End = Math.Max(importRange.End, lastImportId) };
+                }
+            }
         }
 
         public static async Task<(List<string> unsupportedList, DeviceFilter reducedDeviceFilter)> GetUsageDataUnsupportedDevices(ApiConnection apiConnection, DeviceFilter deviceFilter)
@@ -281,9 +323,18 @@ namespace FWO.Report
             return $"{report}";
         }
 
-        public static string GetReportDevicesLinkAddress(OutputLocation location, int mgmtId, string type, int chapterNumber, long id, ReportType reportType)
+        /// <summary>
+        /// Builds the link from an object shown in a report to its entry below a management in the report tab of the right sidebar.
+        /// </summary>
+        /// <param name="location">Output location of the report.</param>
+        /// <param name="mgmtId">Id of the management the object is listed for.</param>
+        /// <param name="type">Object category string.</param>
+        /// <param name="chapterNumber">Chapter number.</param>
+        /// <param name="id">Object id.</param>
+        /// <returns>The link address.</returns>
+        public static string GetReportDevicesLinkAddress(OutputLocation location, int mgmtId, string type, int chapterNumber, long id)
         {
-            return GetLinkAddress(location, $"m{mgmtId}", type, chapterNumber, id, reportType);
+            return GetLinkAddress(location, $"m{mgmtId}", type, chapterNumber, id);
         }
 
 

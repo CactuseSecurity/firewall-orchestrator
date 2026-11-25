@@ -59,6 +59,9 @@ class FakeSession:
         self.headers: dict[str, str] = {}
         FakeSession.instances.append(self)
 
+    def mount(self, prefix: str, adapter: fwo_file_import.DeadlineAdapter) -> None:
+        pass
+
     def __enter__(self) -> FakeSession:  # noqa: PYI034
         return self
 
@@ -167,7 +170,7 @@ class TestResolveManagementVerify:
 class TestFileImportVerify:
     @staticmethod
     def read_remote_file(monkeypatch: pytest.MonkeyPatch) -> FakeSession:
-        monkeypatch.setattr(fwo_file_import.requests, "Session", FakeSession)
+        monkeypatch.setattr(fwo_file_import, "UnfollowedRedirectSession", FakeSession)
         import_state = ImportState()
         import_state.import_file_name = "https://config.example/config.json"
 

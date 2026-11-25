@@ -3,6 +3,7 @@ import unittest.mock
 import pytest
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
+from fwo_exceptions import FwoImporterError
 from model_controllers.fwconfig_import_rule import FwConfigImportRule, RefType
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import ManagementController
@@ -99,13 +100,43 @@ class TestFwconfigImportRuleRefs:
             "_and": [{"rule_id": {"_eq": 100}}, {"obj_id": {"_eq": 11}}, {"user_id": {"_eq": 30}}]
         } in refs_to_remove[RefType.DST]
         assert {"_and": [{"rule_id": {"_eq": 100}}, {"svc_id": {"_eq": 20}}]} in refs_to_remove[RefType.SVC]
-        assert {"_and": [{"rule_id": {"_eq": 100}}, {"obj_id": {"_eq": 10}}]} in refs_to_remove[RefType.NWOBJ_RESOLVED]
-        assert {"_and": [{"rule_id": {"_eq": 100}}, {"obj_id": {"_eq": 11}}]} in refs_to_remove[RefType.NWOBJ_RESOLVED]
-        assert {"_and": [{"rule_id": {"_eq": 100}}, {"svc_id": {"_eq": 20}}]} in refs_to_remove[RefType.SVC_RESOLVED]
-        assert {"_and": [{"rule_id": {"_eq": 100}}, {"user_id": {"_eq": 30}}]} in refs_to_remove[RefType.USER_RESOLVED]
+        mgm_filter = {"mgm_id": {"_eq": fwconfig_import_rule.import_details.state.mgm_details.current_mgm_id}}
+        assert {"_and": [mgm_filter, {"rule_id": {"_eq": 100}}, {"obj_id": {"_eq": 10}}]} in refs_to_remove[
+            RefType.NWOBJ_RESOLVED
+        ]
+        assert {"_and": [mgm_filter, {"rule_id": {"_eq": 100}}, {"obj_id": {"_eq": 11}}]} in refs_to_remove[
+            RefType.NWOBJ_RESOLVED
+        ]
+        assert {"_and": [mgm_filter, {"rule_id": {"_eq": 100}}, {"svc_id": {"_eq": 20}}]} in refs_to_remove[
+            RefType.SVC_RESOLVED
+        ]
+        assert {"_and": [mgm_filter, {"rule_id": {"_eq": 100}}, {"user_id": {"_eq": 30}}]} in refs_to_remove[
+            RefType.USER_RESOLVED
+        ]
         assert {"_and": [{"rule_id": {"_eq": 100}}, {"zone_id": {"_eq": 40}}]} in refs_to_remove[RefType.SRC_ZONE]
         assert {"_and": [{"rule_id": {"_eq": 100}}, {"zone_id": {"_eq": 41}}]} in refs_to_remove[RefType.DST_ZONE]
         assert {"_and": [{"rule_id": {"_eq": 100}}, {"time_obj_id": {"_eq": 50}}]} in refs_to_remove[RefType.TIME]
+
+    def test_resolved_ref_remove_statement_filters_on_current_mgm_id(
+        self,
+        uid2id_mapper: Uid2IdMapper,
+        fwconfig_import_rule: FwConfigImportRule,
+    ):
+        # mgm_id leads the primary key of the resolved tables - without it the update scans the whole table
+        fwconfig_import_rule.import_details.state.mgm_details.current_mgm_id = 7
+        uid2id_mapper.get_rule_id = unittest.mock.MagicMock(return_value=100)
+        uid2id_mapper.get_network_object_id = unittest.mock.MagicMock(return_value=10)
+
+        statement = fwconfig_import_rule.get_ref_remove_statement(RefType.NWOBJ_RESOLVED, "rule-1", "obj-1")
+
+        assert statement == {"_and": [{"mgm_id": {"_eq": 7}}, {"rule_id": {"_eq": 100}}, {"obj_id": {"_eq": 10}}]}
+
+    def test_resolved_ref_remove_statement_rejects_unresolved_ref_type(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+    ):
+        with pytest.raises(FwoImporterError, match="not a resolved ref type"):
+            fwconfig_import_rule.get_resolved_ref_remove_statement(RefType.SVC, "rule-1", "svc-1")
 
     def test_add_new_refs_forces_all_refs_for_xlate_fk_repoint_uid(
         self,

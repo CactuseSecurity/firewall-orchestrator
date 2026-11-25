@@ -157,7 +157,8 @@
   anything is published (created rules are deleted, replaced ones restored, deleted ones undeleted with their ids)
 - Guardicore importer and firewall write: the label and rule lists are paged with start_at/max_results as the Centra API
   v4.0 documents them, together with offset/limit for older releases; the importer fails instead of importing objects
-  twice if a page repeats objects read before, i.e. the management ignores the paging parameters
+  twice if a page repeats objects read before, i.e. the management ignores the paging parameters. A label of a rule
+  side that is missing from the label list is named by the key and value the rule gives it instead of by its id
 - variance analysis: on managements that write labels the connection marker is read from the rule comment (their rule
   name is the ruleset) and the rule owner prefilter, which needs the marker in the rule name, is not used; app roles and
   network areas implemented as labels are requested by their label name, other network areas by their networks;

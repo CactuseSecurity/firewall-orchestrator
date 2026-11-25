@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import fwo_const
 from fw_modules.guardicoremanagementREST import gc_const
-from fw_modules.guardicoremanagementREST.gc_models import GcObjectRef
+from fw_modules.guardicoremanagementREST.gc_models import GcLabelRef, GcObjectRef
 from fwo_log import FWOLogger
 from models.networkobject import NetworkObject
 from netaddr import AddrFormatError, IPAddress, IPNetwork, IPRange, IPSet
@@ -15,7 +15,6 @@ if TYPE_CHECKING:
         GcAsset,
         GcLabel,
         GcLabelGroup,
-        GcLabelRef,
         GcOrLabels,
         GcRuleSide,
         GuardicoreConfig,
@@ -129,15 +128,24 @@ class GcNetworkObjectCollector:
     def add_label_groups(self) -> None:
         """Add one group per Guardicore label, also for labels without any IP address."""
         for label in self.labels_by_id.values():
-            self.add_label(label.id)
+            self.add_label(GcLabelRef(id=label.id))
 
-    def add_label(self, label_id: str) -> str:
-        label = self.labels_by_id.get(label_id)
-        name = f"{label.key}{gc_const.GC_LABEL_NAME_SEPARATOR}{label.value}" if label is not None else label_id
+    def add_label(self, label_ref: GcLabelRef) -> str:
+        """
+        Add the group of a label and return its uid.
+
+        A label missing from the label list keeps the IPs of the assets that carry it and is named by the key and value
+        of the reference (as rules name them), only without them by its id.
+        """
+        label = self.labels_by_id.get(label_ref.id)
         if label is None:
-            FWOLogger.warning(f"Guardicore label {label_id} is referenced but unknown, importing it without IPs")
+            FWOLogger.warning(
+                f"Guardicore label {label_ref.id} is referenced but not in the label list, "
+                "importing it with the IPs of its assets only"
+            )
         comment = label.comment if label is not None and label.comment else None
-        return self.add_group(label_id, name, self.label_ip_sets.get(label_id, IPSet()), comment)
+        name = get_label_name(label_ref, self.labels_by_id)
+        return self.add_group(label_ref.id, name, self.label_ip_sets.get(label_ref.id, IPSet()), comment)
 
     def add_and_labels(self, and_labels: GcAndLabels) -> str | None:
         """Add the group for an AND combination of labels and return its uid (None if it is empty)."""
@@ -145,7 +153,7 @@ class GcNetworkObjectCollector:
         if len(label_refs) == 0:
             return None
         if len(label_refs) == 1:
-            return self.add_label(label_refs[0].id)
+            return self.add_label(label_refs[0])
         ip_set = self.label_ip_sets.get(label_refs[0].id, IPSet())
         for label_ref in label_refs[1:]:
             ip_set &= self.label_ip_sets.get(label_ref.id, IPSet())

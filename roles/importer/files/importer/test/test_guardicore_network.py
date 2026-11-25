@@ -102,9 +102,27 @@ class TestCollector:
 
     def test_unknown_label_becomes_empty_group(self) -> None:
         collector = GcNetworkObjectCollector(build_config())
-        uid = collector.add_label("missing")
+        uid = collector.add_label(GcLabelRef(id="missing"))
         assert collector.network_objects[uid].obj_member_refs is None
         assert collector.network_objects[uid].obj_name == "missing"
+
+    def test_unknown_label_is_named_by_the_key_and_value_of_its_reference(self) -> None:
+        collector = GcNetworkObjectCollector(build_config())
+        uid = collector.add_label(GcLabelRef(id="missing", key="App", value="APP-4711"))
+        assert uid == "missing"
+        assert collector.network_objects[uid].obj_name == "App: APP-4711"
+
+    def test_single_label_of_a_rule_side_falls_back_to_its_reference(self) -> None:
+        collector = GcNetworkObjectCollector(build_config())
+        and_labels = GcAndLabels.model_validate({"and_labels": [{"id": "missing", "key": "App", "value": "APP-4711"}]})
+        uid = collector.add_and_labels(and_labels)
+        assert uid is not None
+        assert collector.network_objects[uid].obj_name == "App: APP-4711"
+
+    def test_known_label_keeps_the_name_of_the_label_list(self) -> None:
+        collector = GcNetworkObjectCollector(build_config())
+        uid = collector.add_label(GcLabelRef(id="l-prod", key="Stage", value="Old"))
+        assert collector.network_objects[uid].obj_name == "Stage: Prod"
 
     def test_and_labels_become_intersection_group(self) -> None:
         collector = GcNetworkObjectCollector(build_config())

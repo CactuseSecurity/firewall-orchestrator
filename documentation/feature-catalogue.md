@@ -159,11 +159,12 @@ For a chronological, version-by-version listing (8.0 onwards) see
 | Email recipients setting | 8.3 (8.2.4) |
 | Email notification fall-back to main owner if group empty | 8.4.1 |
 | Notification service | 8.8 (8.8.9) |
+| New notification parameters | 8.9.6 |
 | Configurable rule-expiry notification | 9.0 (9.0.12) |
 | Owner decommission notification | 9.0 (9.0.14) |
 | Extended notification handling | 9.0 (9.0.20) |
 | BCC on notifications | 9.0.23 |
-| New notification parameters | 8.9.6 |
+| Email priority on notifications (Importance, Priority, X-Priority headers) | 9.9.5 |
 
 ## Owner / application-data import
 

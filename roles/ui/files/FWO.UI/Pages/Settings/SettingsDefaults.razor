@@ -42,181 +42,119 @@
 @if (configData != null && InitComplete)
 {
     <form onsubmit="return false">
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5411"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("default_language"))*:</label>
-            <div class="col-sm-2">
+        <SettingsRow LabelKey="default_language" TooltipKey="H5411" Marked="true">
+            <div class="settings-input-md">
                 <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.UiLanguages">
                     <ElementTemplate Context="language">
                         @(userConfig.GetText(language.Name))
                     </ElementTemplate>
                 </Dropdown>
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("maxMessages"))">
-            <label for="maxMessages" class="col-form-label col-sm-4">@(userConfig.GetText("maxMessages"))*:</label>
-            <div class="col-sm-2">
-                <input id="maxMessages" type="number" @bind="configData!.MaxMessages">
+        </SettingsRow>
+        <SettingsRow LabelKey="maxMessages" TooltipKey="maxMessages" Marked="true" LabelFor="maxMessages">
+            <input id="maxMessages" type="number" class="form-control form-control-sm settings-input-sm" @bind="configData!.MaxMessages">
+        </SettingsRow>
+        <SettingsRow LabelKey="messageViewTime" TooltipKey="H5423" Marked="true" LabelFor="messageViewTime">
+            <input id="messageViewTime" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.MessageViewTime">
+        </SettingsRow>
+        <SettingsRow LabelKey="uiHostName" TooltipKey="H5425" LabelFor="uiHostName">
+            <input id="uiHostName" type="text" class="form-control form-control-sm settings-input-lg" @bind="configData!.UiHostName" />
+        </SettingsRow>
+        <SettingsRow LabelKey="welcomeMessage" TooltipKey="H5466" LabelFor="welcomeMessage" AlignTop="true">
+            <textarea id="welcomeMessage" rows="6" class="form-control form-control-sm settings-input-lg" @bind="@configData!.WelcomeMessage" placeholder="@(userConfig.GetText("welcomeMessage"))"></textarea>
+        </SettingsRow>
+        <SettingsRow LabelKey="useCustomLogo" LabelFor="cbx_customLogo" AlignTop="true">
+            <div class="form-check form-switch">
+                <input id="cbx_customLogo" type="checkbox" role="switch" class="form-check-input" @bind="configData!.UseCustomLogo">
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5423"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime"))*:</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.MessageViewTime">
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5425"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("uiHostName")):</label>
-            <div class="col-sm-4">
-                <input type="text" class="col-sm-12" @bind="configData!.UiHostName" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5466"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("welcomeMessage")):</label>
-            <div class="col-sm-4">
-                <textarea type="text" rows="10" @bind="@configData!.WelcomeMessage" class="col-sm-12" placeholder="@(userConfig.GetText("welcomeMessage"))" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("useCustomLogo")):</label>
-            <div class="col-sm-1">
-                <input id="cbx_customLogo" type="checkbox" @bind="configData!.UseCustomLogo">
-            </div>
-            <div class="col-sm-4">
+            <div>
                 <CustomLogoUpload AuthorizedRoles="@Roles.Admin" SupportedFileFormats=".png,.jpg,.jpeg"></CustomLogoUpload>
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5411a"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("color_scheme")):</label>
-            <div class="col-sm-3">
-                <Dropdown ElementType="ColorScheme" ElementToString="@(c => userConfig.GetText(c.Name ))" @bind-SelectedElement="selectedColorScheme" Elements="ColorScheme.AvailableSchemes">
+        </SettingsRow>
+        <SettingsRow LabelKey="color_scheme" TooltipKey="H5411a">
+            <div class="settings-input-md">
+                <Dropdown ElementType="ColorScheme" ElementToString="@(c => userConfig.GetText(c.Name))" @bind-SelectedElement="selectedColorScheme" Elements="ColorScheme.AvailableSchemes">
                     <ElementTemplate Context="colorScheme">
                         @(userConfig.GetText(colorScheme.Name))
                     </ElementTemplate>
                 </Dropdown>
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5618"))">
-            <label for="cbx_default_iconify" class="col-form-label col-sm-4">@(userConfig.GetText("modIconify")):</label>
-            <div class="col-sm-1">
-                <input id="cbx_default_iconify" type="checkbox" class="w-100" @bind="configData!.ModIconify">
+        </SettingsRow>
+        <SettingsRow LabelKey="modIconify" TooltipKey="H5618" LabelFor="cbx_default_iconify">
+            <div class="form-check form-switch">
+                <input id="cbx_default_iconify" type="checkbox" role="switch" class="form-check-input" @bind="configData!.ModIconify">
             </div>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.ElementsPerFetch" />
+        <SettingsRow LabelKey="elementsPerFetch" TooltipKey="H5412" Marked="true" LabelFor="elementsPerFetch">
+            <input id="elementsPerFetch" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.ElementsPerFetch" />
+        </SettingsRow>
+        <SettingsRow LabelKey="autoFillRightSidebar" TooltipKey="H5414" LabelFor="cbx_auto_fill_right_sidebar">
+            <div class="form-check form-switch">
+                <input id="cbx_auto_fill_right_sidebar" type="checkbox" role="switch" class="form-check-input" @bind="configData!.AutoFillRightSidebar">
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5414"))">
-            <label for="cbx_auto_fill_right_sidebar" class="col-form-label col-sm-4">@(userConfig.GetText("autoFillRightSidebar")):</label>
-            <div class="col-sm-1">
-                <input id="cbx_auto_fill_right_sidebar" type="checkbox" class="w-100" @bind="configData!.AutoFillRightSidebar">
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5413"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("maxInitialFetchesRightSidebar")):</label>
-            <div class="col-sm-2">
-                @if (configData!.AutoFillRightSidebar)
-                {
-                    <input disabled type="number" min="0" @bind="configData!.MaxInitialFetchesRightSidebar" />
-                }
-                else
-                {
-                    <input type="number" min="0" @bind="configData!.MaxInitialFetchesRightSidebar" />
-                }
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5422"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices"))*:</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.MinCollapseAllDevices">
-            </div>
-        </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="maxInitialFetchesRightSidebar" TooltipKey="H5413" LabelFor="maxInitialFetchesRightSidebar">
+            <input id="maxInitialFetchesRightSidebar" type="number" min="0" class="form-control form-control-sm settings-input-sm"
+                   disabled="@configData!.AutoFillRightSidebar" @bind="configData!.MaxInitialFetchesRightSidebar" />
+        </SettingsRow>
+        <SettingsRow LabelKey="minCollapseAllDevices" TooltipKey="H5422" Marked="true" LabelFor="minCollapseAllDevices">
+            <input id="minCollapseAllDevices" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.MinCollapseAllDevices">
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5415"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("dataRetentionTime")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.DataRetentionTime" />
-            </div>
-        </div>
+        <SettingsRow LabelKey="dataRetentionTime" TooltipKey="H5415" LabelFor="dataRetentionTime">
+            <input id="dataRetentionTime" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.DataRetentionTime" />
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5426"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverSleepTime")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.AutoDiscoverSleepTime" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5427"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("autoDiscoverStartAt")):</label>
-            <div class="col-sm-4">
-                <div class="row">
-                    <input type="time" step="60" class="ml-13 col-sm-5" @bind="autoDiscStartTime" />
-                    <input type="date" class="col-sm-5" @bind="autoDiscStartDate" />
-                </div>
-            </div>
-        </div>
+        <SettingsRow LabelKey="autoDiscoverSleepTime" TooltipKey="H5426" LabelFor="autoDiscoverSleepTime">
+            <input id="autoDiscoverSleepTime" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.AutoDiscoverSleepTime" />
+        </SettingsRow>
+        <SettingsRow LabelKey="autoDiscoverStartAt" TooltipKey="H5427" LabelFor="autoDiscoverStartTime">
+            <input id="autoDiscoverStartTime" type="time" step="60" class="form-control form-control-sm w-auto" @bind="autoDiscStartTime" />
+            <input type="date" class="form-control form-control-sm w-auto" @bind="autoDiscStartDate" />
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5424"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("dailyCheckStartAt")):</label>
-            <div class="col-sm-2">
-                <input type="time" step="60" @bind="configData!.DailyCheckStartAt" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5424a"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("dailyCheckModules")):</label>
-            <div class="form-group row col-sm-9">
+        <SettingsRow LabelKey="dailyCheckStartAt" TooltipKey="H5424" LabelFor="dailyCheckStartAt">
+            <input id="dailyCheckStartAt" type="time" step="60" class="form-control form-control-sm w-auto" @bind="configData!.DailyCheckStartAt" />
+        </SettingsRow>
+        <SettingsRow LabelKey="dailyCheckModules" TooltipKey="H5424a" AlignTop="true">
+            <div class="settings-check-grid">
                 @foreach (DailyCheckModule module in Enum.GetValues(typeof(DailyCheckModule)))
                 {
-                    <div class="form-group col-sm-3">
-                        <input id="cbx_daily_@module.ToString()" type="checkbox" @bind="dailyCheckModulesVisibleDict[module]" />
-                        <label for="cbx_daily_@module.ToString()" class="col-form-label">@(userConfig.GetText(module.ToString()))</label>
+                    <div class="form-check">
+                        <input id="cbx_daily_@module.ToString()" type="checkbox" class="form-check-input" @bind="dailyCheckModulesVisibleDict[module]" />
+                        <label for="cbx_daily_@module.ToString()" class="form-check-label">@(userConfig.GetText(module.ToString()))</label>
                     </div>
                 }
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5452"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("maxImportDuration")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.MaxImportDuration" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5453"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("maxImportInterval")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="0" @bind="configData!.MaxImportInterval" />
-            </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5453a"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("importScriptTimeout")):</label>
-            <div class="col-sm-2">
-                <input type="number" min="1" max="@GlobalConst.kMaxImportScriptTimeoutMinutes" @bind="configData!.ImportScriptTimeout" />
-            </div>
-        </div>
+        </SettingsRow>
+        <SettingsRow LabelKey="maxImportDuration" TooltipKey="H5452" LabelFor="maxImportDuration">
+            <input id="maxImportDuration" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.MaxImportDuration" />
+        </SettingsRow>
+        <SettingsRow LabelKey="maxImportInterval" TooltipKey="H5453" LabelFor="maxImportInterval">
+            <input id="maxImportInterval" type="number" min="0" class="form-control form-control-sm settings-input-sm" @bind="configData!.MaxImportInterval" />
+        </SettingsRow>
+        <SettingsRow LabelKey="importScriptTimeout" TooltipKey="H5453a" LabelFor="importScriptTimeout">
+            <input id="importScriptTimeout" type="number" min="1" max="@GlobalConst.kMaxImportScriptTimeoutMinutes" class="form-control form-control-sm settings-input-sm" @bind="configData!.ImportScriptTimeout" />
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5453b"))">
-            <label for="maxRestResponseObjectLimit" class="col-form-label col-sm-4">@(userConfig.GetText("maxRestResponseObjectLimit")):</label>
-            <div class="col-sm-2">
-                <input id="maxRestResponseObjectLimit" type="number" min="@GlobalConst.kMinRestResponseObjectLimit" max="@GlobalConst.kMaxRestResponseObjectLimitCeiling" @bind="configData!.MaxRestResponseObjectLimit" />
-            </div>
-        </div>
+        <SettingsRow LabelKey="maxRestResponseObjectLimit" TooltipKey="H5453b" LabelFor="maxRestResponseObjectLimit">
+            <input id="maxRestResponseObjectLimit" type="number" min="@GlobalConst.kMinRestResponseObjectLimit" max="@GlobalConst.kMaxRestResponseObjectLimitCeiling" class="form-control form-control-sm settings-input-sm" @bind="configData!.MaxRestResponseObjectLimit" />
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5853"))">
-            <label for="cbx_allow_full_rollback" class="col-form-label col-sm-4">@(userConfig.GetText("allowFullRollback")):</label>
-            <div class="col-sm-1">
-                <input id="cbx_allow_full_rollback" type="checkbox" class="w-100" @bind="configData!.AllowFullRollback">
+        <SettingsRow LabelKey="allowFullRollback" TooltipKey="H5853" LabelFor="cbx_allow_full_rollback">
+            <div class="form-check form-switch">
+                <input id="cbx_allow_full_rollback" type="checkbox" role="switch" class="form-check-input" @bind="configData!.AllowFullRollback">
             </div>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5565"))">
-            <label for="cbx_allow_manual_owner_admin" class="col-form-label col-sm-4">@(userConfig.GetText("reqAllowManualOwnerAdmin")):</label>
-            <div class="col-sm-1">
-                <input id="cbx_allow_manual_owner_admin" type="checkbox" class="w-100" @bind="configData!.AllowManualOwnerAdmin">
+        <SettingsRow LabelKey="reqAllowManualOwnerAdmin" TooltipKey="H5565" LabelFor="cbx_allow_manual_owner_admin">
+            <div class="form-check form-switch">
+                <input id="cbx_allow_manual_owner_admin" type="checkbox" role="switch" class="form-check-input" @bind="configData!.AllowManualOwnerAdmin">
             </div>
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5454"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("ruleOwnershipMode")):</label>
-            <div class="col-sm-2">
+        </SettingsRow>
+        <SettingsRow LabelKey="ruleOwnershipMode" TooltipKey="H5454">
+            <div class="settings-input-md">
                 <Dropdown ElementType="RuleOwnershipMode" @bind-SelectedElement="configData!.RuleOwnershipMode"
                           ElementToString="@(o => userConfig.GetText(o.ToString()))" Elements="Enum.GetValues(typeof(RuleOwnershipMode)).Cast<RuleOwnershipMode>()">
                     <ElementTemplate Context="opt">
@@ -224,66 +162,58 @@
                     </ElementTemplate>
                 </Dropdown>
             </div>
-        </div>
+        </SettingsRow>
         <hr />
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5457"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("availableModules")):</label>
-            <div class="form-group row col-sm-9">
+        <SettingsRow LabelKey="availableModules" TooltipKey="H5457" AlignTop="true">
+            <div class="settings-check-grid">
                 @foreach (Module module in Enum.GetValues(typeof(Module)))
                 {
-                    <div class="form-group col-sm-3">
-                        <input id="cbx_@module.ToString()" type="checkbox" @bind="modulesVisibleDict[module]" />
-                        <label for="cbx_@module.ToString()" class="col-form-label">@(module.ToString())</label>
+                    <div class="form-check">
+                        <input id="cbx_@module.ToString()" type="checkbox" class="form-check-input" @bind="modulesVisibleDict[module]" />
+                        <label for="cbx_@module.ToString()" class="form-check-label">@(module.ToString())</label>
                     </div>
                 }
             </div>
-        </div>
+        </SettingsRow>
     </form>
     <hr />
-    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("accesstoken_lifetime"))">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("accesstoken_lifetime")):</label>
-        <div class="col-sm-8 d-inline-flex">
-            <input class="me-3 form-control" style="max-width: 90px;" type="number" min="@DynamicAccessTokenLifetimeMinValue" @bind="accessTokenLifetimeValue" />
-            <select style="max-width: 130px;" class="form-select" value="@accessTokenLifetimeUnit" @onchange="@((e) => SetDynamicTokenLifetimeMinValue(e, ref DynamicAccessTokenLifetimeMinValue, ref accessTokenLifetimeValue, ref accessTokenLifetimeUnit))">
-                @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
-                {
-                    <option value="@unit">@unit.ToString(userConfig)</option>
-                }
-            </select>
-        </div>
-    </div>
-    <div class="pt-2 form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("refreshtoken_lifetime"))">
-        <label class="col-form-label col-sm-4">@(userConfig.GetText("refreshtoken_lifetime")):</label>
-        <div class="col-sm-8 d-inline-flex">
-            <input class="me-3 form-control" style="max-width: 90px;" type="number" min="@DynamicRefreshTokenLifetimeMinValue" @bind="refreshTokenLifetimeValue" />
-            <select style="max-width: 130px;" class="form-select" value="@refreshTokenLifetimeUnit" @onchange="@((e) => SetDynamicTokenLifetimeMinValue(e, ref DynamicRefreshTokenLifetimeMinValue, ref refreshTokenLifetimeValue, ref refreshTokenLifetimeUnit))">
-                @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
-                {
-                    <option value="@unit">@unit.ToString(userConfig)</option>
-                }
-            </select>
-        </div>
-    </div>
+    <SettingsRow LabelKey="accesstoken_lifetime" TooltipKey="accesstoken_lifetime" LabelFor="accessTokenLifetime">
+        <input id="accessTokenLifetime" type="number" min="@DynamicAccessTokenLifetimeMinValue" class="form-control form-control-sm settings-input-sm" @bind="accessTokenLifetimeValue" />
+        <select class="form-select form-select-sm settings-input-sm" value="@accessTokenLifetimeUnit" @onchange="@((e) => SetDynamicTokenLifetimeMinValue(e, ref DynamicAccessTokenLifetimeMinValue, ref accessTokenLifetimeValue, ref accessTokenLifetimeUnit))">
+            @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
+            {
+                <option value="@unit">@unit.ToString(userConfig)</option>
+            }
+        </select>
+    </SettingsRow>
+    <SettingsRow LabelKey="refreshtoken_lifetime" TooltipKey="refreshtoken_lifetime" LabelFor="refreshTokenLifetime">
+        <input id="refreshTokenLifetime" type="number" min="@DynamicRefreshTokenLifetimeMinValue" class="form-control form-control-sm settings-input-sm" @bind="refreshTokenLifetimeValue" />
+        <select class="form-select form-select-sm settings-input-sm" value="@refreshTokenLifetimeUnit" @onchange="@((e) => SetDynamicTokenLifetimeMinValue(e, ref DynamicRefreshTokenLifetimeMinValue, ref refreshTokenLifetimeValue, ref refreshTokenLifetimeUnit))">
+            @foreach (TokenLifetimeUnit unit in Enum.GetValues(typeof(TokenLifetimeUnit)))
+            {
+                <option value="@unit">@unit.ToString(userConfig)</option>
+            }
+        </select>
+    </SettingsRow>
     @if (!IsTokenLifetimeValid())
     {
-        <div class="pt-3 form-group row">
-            <div class="col-sm-8 offset-sm-4">
-                <span class="text-danger"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U9037"))</span>
-            </div>
+        <div class="settings-row">
+            <span></span>
+            <span class="text-danger"><span class="@Icons.Warning pe-1"></span>@(userConfig.GetText("U9037"))</span>
         </div>
     }
     <hr />
-    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
-        <Authorized>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
-        </Authorized>
-        <NotAuthorized>
-            <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
-        </NotAuthorized>
-    </ExecutionModeAuthorizeView>
-    <br>
-    <br>
-    <p>@(userConfig.GetText("U5303"))</p>
+    <div class="settings-actions">
+        <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+            <Authorized>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
+            </Authorized>
+            <NotAuthorized>
+                <button type="button" class="btn btn-sm btn-primary" disabled>@(userConfig.GetText("save"))</button>
+            </NotAuthorized>
+        </ExecutionModeAuthorizeView>
+    </div>
+    <p class="mt-4">@(userConfig.GetText("U5303"))</p>
 }
 else
 {

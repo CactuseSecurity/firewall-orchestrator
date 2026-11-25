@@ -79,6 +79,11 @@ WHERE (removed IS NULL);
 ALTER TABLE report_template
 ADD CONSTRAINT unique_report_template_name UNIQUE (report_template_name);
 
+--- report schedule
+-- a repeating schedule (every <> 0 = never) needs a positive offset, otherwise the report job cannot advance it
+ALTER TABLE report_schedule
+ADD CONSTRAINT report_schedule_repeat_positive CHECK (report_schedule_repeat > 0 OR report_schedule_every = 0);
+
 -- import_control
 ALTER TABLE import_control
 ADD CONSTRAINT import_control_mgm_id_required_for_import_type_1

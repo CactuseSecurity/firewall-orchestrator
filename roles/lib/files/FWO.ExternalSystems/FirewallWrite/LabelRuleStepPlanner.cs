@@ -92,7 +92,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                     $"Implementation task {implTask.Id}: its request task names no app (external app id), which names the ruleset of the rule.");
             }
             GuardicoreRulesetApp app = new(context.AppName, context.ExtAppId, context.IsCommonService);
-            return GuardicoreRulesets.Name(context.Settings.PositioningAlgorithm, app, context.CommonServicePrefix);
+            return GuardicoreRulesets.Name(context.Settings.PositioningAlgorithm, app, context.RulesetFormat);
         }
 
         /// <summary>

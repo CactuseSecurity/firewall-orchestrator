@@ -83,7 +83,8 @@ namespace FWO.Services.Modelling
                 return true;
             }
             GuardicoreRulesetApp rulesetApp = new(app.Name, app.ExtAppId, conn.IsCommonService);
-            string targetRuleset = GuardicoreRulesets.Name(SettingsOf(mgt).PositioningAlgorithm, rulesetApp, userConfig.ModComSvcSectionPrefix);
+            GuardicoreRulesetFormat format = new(userConfig.AppLabelValueFormat, userConfig.ModComSvcSectionPrefix);
+            string targetRuleset = GuardicoreRulesets.Name(SettingsOf(mgt).PositioningAlgorithm, rulesetApp, format);
             return ruleset == targetRuleset;
         }
 

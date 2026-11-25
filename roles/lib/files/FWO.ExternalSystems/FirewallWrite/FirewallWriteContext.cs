@@ -64,8 +64,8 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <summary>Whether the modelled connection of such a rule task is a common service, which may get a ruleset of its own.</summary>
         public bool IsCommonService { get; init; }
 
-        /// <summary>Configured prefix of the rulesets of common services; null for the default.</summary>
-        public string? CommonServicePrefix { get; init; }
+        /// <summary>Configured App label value format and prefix of the rulesets of common services, which name the ruleset; null for the defaults.</summary>
+        public GuardicoreRulesetFormat? RulesetFormat { get; init; }
 
         /// <summary>Layer uid of each existing rule of the task by rule uid, from the imported configuration.</summary>
         public IReadOnlyDictionary<string, string> RuleLayerUids { get; init; } = new Dictionary<string, string>();

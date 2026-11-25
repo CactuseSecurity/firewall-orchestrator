@@ -63,7 +63,8 @@ namespace FWO.Middleware.Server
             this.globalConfig = globalConfig;
             userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
             InjScClient = injScClient;
-            modifyFirewall = injFirewallWrite ?? ((implTask, installOnGatewayIds) => new FirewallWriter(new ApiFirewallWriteDataSource(apiConnection, globalConfig.ModComSvcSectionPrefix),
+            modifyFirewall = injFirewallWrite ?? ((implTask, installOnGatewayIds) => new FirewallWriter(new ApiFirewallWriteDataSource(apiConnection,
+                new GuardicoreRulesetFormat(globalConfig.AppLabelValueFormat, globalConfig.ModComSvcSectionPrefix)),
                 placementProvider: new RulePositionPlacementProvider()).ModifyFirewall(implTask, installOnGatewayIds));
         }
 

@@ -97,6 +97,28 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// The ruleset of the rules of a connection is named by the app name, its common service flag and the configured
+        /// App label value format and common service prefix, which the context passes on.
+        /// </summary>
+        [Test]
+        public async Task RuleTasksOfLabelWriters_TakeWhatNamesTheAppRuleset()
+        {
+            InMemoryDeviceSpecificSettingsApiConnection api = GuardicoreApi();
+            api.Connections[0].App.Name = " Exchange ";
+            api.Connections[0].IsCommonService = true;
+            GuardicoreRulesetFormat format = new("{name} ({id})", "CS");
+
+            FirewallWriteContext context = await new ApiFirewallWriteDataSource(api, format).LoadContext(RuleTask());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.AppName, Is.EqualTo("Exchange"));
+                Assert.That(context.IsCommonService, Is.True);
+                Assert.That(context.RulesetFormat, Is.EqualTo(format));
+            }
+        }
+
+        /// <summary>
         /// The request task data can be changed by several roles: a marker that does not name the connection of the request
         /// task, or a connection of another owner, must not let the writer change the rules of another connection.
         /// </summary>

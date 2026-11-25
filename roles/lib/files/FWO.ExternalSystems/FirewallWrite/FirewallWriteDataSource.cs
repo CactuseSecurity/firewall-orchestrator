@@ -24,8 +24,9 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// specific settings resolved along Global, device type, management and gateway.
     /// </summary>
     /// <param name="apiConnection">Api connection.</param>
-    /// <param name="commonServicePrefix">Configured prefix of the Guardicore rulesets of common services (modComSvcSectionPrefix).</param>
-    public sealed class ApiFirewallWriteDataSource(ApiConnection apiConnection, string? commonServicePrefix = null) : IFirewallWriteDataSource
+    /// <param name="rulesetFormat">Configured App label value format (appLabelValueFormat) and prefix of the Guardicore rulesets of
+    /// common services (modComSvcSectionPrefix), which name the Guardicore rulesets; null for the defaults.</param>
+    public sealed class ApiFirewallWriteDataSource(ApiConnection apiConnection, GuardicoreRulesetFormat? rulesetFormat = null) : IFirewallWriteDataSource
     {
         private static readonly FrozenSet<string> kGroupTaskTypes =
             [nameof(WfTaskType.group_create), nameof(WfTaskType.group_modify), nameof(WfTaskType.group_delete)];
@@ -108,7 +109,7 @@ namespace FWO.ExternalSystems.FirewallWrite
                 ExtAppId = NonBlank(app?.ExtAppId),
                 AppName = NonBlank(app?.Name),
                 IsCommonService = app?.IsCommonService ?? false,
-                CommonServicePrefix = commonServicePrefix
+                RulesetFormat = rulesetFormat
             };
         }
 

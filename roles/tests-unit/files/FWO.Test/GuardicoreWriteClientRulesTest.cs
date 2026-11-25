@@ -86,8 +86,13 @@ namespace FWO.Test
         private static Task<ModifyFirewallResult> Write(FirewallSimulation simulation, WfImplTask task, FirewallWriteContext? context = null) =>
             new FirewallWriter(new FixedFirewallWriteDataSource(context ?? Context()), new SimulatedFirewallWriteClientFactory(simulation)).ModifyFirewall(task);
 
-        /// <summary>The context of a connection of the app Exchange with the positioning algorithm of app rulesets.</summary>
-        private static FirewallWriteContext AppRulesetContext(bool isCommonService = false, string? prefix = null) =>
+        private const string kNameAndIdFormat = "{name} ({id})";
+
+        /// <summary>
+        /// The context of a connection of the app Exchange with the positioning algorithm of app rulesets, by default with
+        /// the App label value format "{name} ({id})".
+        /// </summary>
+        private static FirewallWriteContext AppRulesetContext(bool isCommonService = false, string? prefix = null, string? appValueFormat = kNameAndIdFormat) =>
             Context() with
             {
                 Settings = new GatewayDeviceSpecificSettings
@@ -98,20 +103,23 @@ namespace FWO.Test
                 ExtAppId = "COM-1611",
                 AppName = "Exchange",
                 IsCommonService = isCommonService,
-                CommonServicePrefix = prefix
+                RulesetFormat = new(appValueFormat, prefix)
             };
 
         private static List<string> CreatedRulesets(FirewallSimulation simulation) =>
             [.. Calls(simulation, Method.Post, kRulesPath).Select(request => JsonNode.Parse(request.Body!)!["ruleset_name"]!.GetValue<string>()).Distinct()];
 
-        [TestCase(false, null, "Exchange (COM-1611)")]
-        [TestCase(true, null, "ComSvc Exchange (COM-1611)")]
-        [TestCase(true, " CS ", "CS Exchange (COM-1611)")]
-        public async Task AppRulesets_NameTheAppAndSeparateCommonServices(bool isCommonService, string? prefix, string expectedRuleset)
+        [TestCase(false, null, kNameAndIdFormat, "Exchange (COM-1611)")]
+        [TestCase(true, null, kNameAndIdFormat, "ComSvc Exchange (COM-1611)")]
+        [TestCase(true, " CS ", kNameAndIdFormat, "CS Exchange (COM-1611)")]
+        [TestCase(false, null, null, "COM-1611")]
+        [TestCase(true, null, "{id}", "ComSvc COM-1611")]
+        [TestCase(false, null, "{id} - {name}", "COM-1611 - Exchange")]
+        public async Task AppRulesets_NameTheAppAndSeparateCommonServices(bool isCommonService, string? prefix, string? appValueFormat, string expectedRuleset)
         {
             FirewallSimulation simulation = Simulation([]);
 
-            ModifyFirewallResult result = await Write(simulation, AccessTask(), AppRulesetContext(isCommonService, prefix));
+            ModifyFirewallResult result = await Write(simulation, AccessTask(), AppRulesetContext(isCommonService, prefix, appValueFormat));
 
             Assert.Multiple(() =>
             {

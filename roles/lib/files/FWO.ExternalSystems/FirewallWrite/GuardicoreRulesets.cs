@@ -1,14 +1,16 @@
 using FWO.Data.DeviceSpecificSettings;
+using FWO.Data.Labelling;
 
 namespace FWO.ExternalSystems.FirewallWrite
 {
     /// <summary>
     /// Rulesets the Guardicore writer puts the rules of a modelled connection in, by positioning algorithm: by default the
     /// ruleset is the external app id of the owner of the connection (e.g. "APP-1234"); with
-    /// <see cref="ProvisioningPositioningAlgorithm.GuardicoreEndOfAppRulesetDistinguishCommonServices"/> it is the app name
-    /// with the app id in brackets (e.g. "Exchange (COM-1611)"), for common services with the configured prefix (e.g.
-    /// "ComSvc Exchange (COM-1611)"). A ruleset that does not exist yet is created with its first rule, and a new rule is
-    /// appended at its end. The importer shows each ruleset as rulebase "04 Allow &lt;ruleset&gt;", common service rulesets first.
+    /// <see cref="ProvisioningPositioningAlgorithm.GuardicoreEndOfAppRulesetDistinguishCommonServices"/> it is the value of
+    /// the App label of the owner by the configured App label value format (e.g. "Exchange (COM-1611)" for "{name} ({id})"),
+    /// for common services with the configured prefix (e.g. "ComSvc Exchange (COM-1611)"). A ruleset that does not exist
+    /// yet is created with its first rule, and a new rule is appended at its end. The importer shows each ruleset as rulebase
+    /// "04 Allow &lt;ruleset&gt;", common service rulesets first.
     /// </summary>
     public static class GuardicoreRulesets
     {
@@ -21,9 +23,9 @@ namespace FWO.ExternalSystems.FirewallWrite
         /// <summary>The ruleset of the rules of a modelled connection.</summary>
         /// <param name="algorithm">Positioning algorithm in effect for the management.</param>
         /// <param name="app">The app (owner) of the connection and whether the connection is a common service.</param>
-        /// <param name="commonServicePrefix">Configured prefix of the rulesets of common services; empty for the default.</param>
+        /// <param name="format">Configured App label value format and prefix of the rulesets of common services; null for the defaults.</param>
         /// <exception cref="ArgumentException">Thrown for an app without external app id.</exception>
-        public static string Name(ProvisioningPositioningAlgorithm algorithm, GuardicoreRulesetApp app, string? commonServicePrefix)
+        public static string Name(ProvisioningPositioningAlgorithm algorithm, GuardicoreRulesetApp app, GuardicoreRulesetFormat? format)
         {
             ArgumentNullException.ThrowIfNull(app);
             string appId = app.ExtAppId?.Trim() ?? "";
@@ -35,9 +37,8 @@ namespace FWO.ExternalSystems.FirewallWrite
             {
                 return appId;
             }
-            string appName = app.Name?.Trim() ?? "";
-            string name = appName.Length == 0 ? appId : $"{appName} ({appId})";
-            return app.IsCommonService ? $"{EffectivePrefix(commonServicePrefix)} {name}" : name;
+            string name = new LabelValueFormat(format?.AppValueFormat).Value(app.Name, appId);
+            return app.IsCommonService ? $"{EffectivePrefix(format?.CommonServicePrefix)} {name}" : name;
         }
 
         /// <summary>The configured prefix of the rulesets of common services, trimmed, or the default if it is empty.</summary>
@@ -67,4 +68,9 @@ namespace FWO.ExternalSystems.FirewallWrite
     /// <param name="ExtAppId">External app id of the app.</param>
     /// <param name="IsCommonService">Whether the connection is a common service of the app.</param>
     public sealed record GuardicoreRulesetApp(string? Name, string? ExtAppId, bool IsCommonService);
+
+    /// <summary>The settings that name the app rulesets, see <see cref="GuardicoreRulesets.Name"/>.</summary>
+    /// <param name="AppValueFormat">Configured format of the App label values (appLabelValueFormat), e.g. "{name} ({id})"; empty or invalid for the default "{id}".</param>
+    /// <param name="CommonServicePrefix">Configured prefix of the rulesets of common services (modComSvcSectionPrefix); empty for the default.</param>
+    public sealed record GuardicoreRulesetFormat(string? AppValueFormat, string? CommonServicePrefix);
 }

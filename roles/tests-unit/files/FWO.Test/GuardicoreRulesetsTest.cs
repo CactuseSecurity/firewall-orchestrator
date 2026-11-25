@@ -5,13 +5,14 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     /// <summary>
-    /// Rulesets of the Guardicore rules of a connection: the app id by default, "app name (app id)" with the app ruleset
-    /// algorithm, with the configured prefix for common services.
+    /// Rulesets of the Guardicore rules of a connection: the app id by default, the App label value of the app (e.g.
+    /// "app name (app id)") with the app ruleset algorithm, with the configured prefix for common services.
     /// </summary>
     [TestFixture]
     internal class GuardicoreRulesetsTest
     {
         private const ProvisioningPositioningAlgorithm kAppRulesets = ProvisioningPositioningAlgorithm.GuardicoreEndOfAppRulesetDistinguishCommonServices;
+        private const string kNameAndId = "{name} ({id})";
 
         [TestCase(ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "Exchange", false, "COM-1611")]
         [TestCase(ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "Exchange", true, "COM-1611")]
@@ -21,13 +22,29 @@ namespace FWO.Test
         [TestCase(kAppRulesets, null, true, "ComSvc COM-1611")]
         public void Name_FollowsThePositioningAlgorithm(ProvisioningPositioningAlgorithm algorithm, string? appName, bool isCommonService, string expected)
         {
-            Assert.That(GuardicoreRulesets.Name(algorithm, new(appName, " COM-1611 ", isCommonService), null), Is.EqualTo(expected));
+            Assert.That(GuardicoreRulesets.Name(algorithm, new(appName, " COM-1611 ", isCommonService), new(kNameAndId, null)), Is.EqualTo(expected));
+        }
+
+        [TestCase(null, false, "COM-1611")]
+        [TestCase("{id}", true, "ComSvc COM-1611")]
+        [TestCase("{id} {name}", false, "COM-1611 Exchange")]
+        [TestCase("{name} [{id}]", true, "ComSvc Exchange [COM-1611]")]
+        [TestCase("{name", false, "COM-1611")]
+        public void Name_FollowsTheAppLabelValueFormat(string? appValueFormat, bool isCommonService, string expected)
+        {
+            Assert.That(GuardicoreRulesets.Name(kAppRulesets, new("Exchange", "COM-1611", isCommonService), new(appValueFormat, null)), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void Name_WithoutFormat_TakesTheDefaults()
+        {
+            Assert.That(GuardicoreRulesets.Name(kAppRulesets, new("Exchange", "COM-1611", true), null), Is.EqualTo("ComSvc COM-1611"));
         }
 
         [Test]
         public void Name_TakesTheConfiguredPrefix()
         {
-            Assert.That(GuardicoreRulesets.Name(kAppRulesets, new("Exchange", "COM-1611", true), " CS "), Is.EqualTo("CS Exchange (COM-1611)"));
+            Assert.That(GuardicoreRulesets.Name(kAppRulesets, new("Exchange", "COM-1611", true), new(kNameAndId, " CS ")), Is.EqualTo("CS Exchange (COM-1611)"));
         }
 
         [TestCase(null)]

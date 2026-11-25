@@ -160,7 +160,7 @@
     /// come first, otherwise the tasks are in id order.
     /// </summary>
     private List<List<WfReqTask>> TaskGroups() => ApprovalTaskDetailsEditorService.AccessTasksFirst(
-        ApprovalTaskBundleHelper.GroupTasks(WfHandler.ActTicket.Tasks.OrderBy(task => task.Id), userConfig));
+        TaskBundleHelper.GroupTasks(WfHandler.ActTicket.Tasks.OrderBy(task => task.Id), userConfig));
 
     /// <summary>The tasks of a group whose implementation tasks are shown; a single task is always shown.</summary>
     private static IEnumerable<WfReqTask> ImplementedTasks(List<WfReqTask> taskGroup) => taskGroup.Count == 1
@@ -293,7 +293,7 @@
             builder.AddAttribute(19, "type", "button");
             builder.AddAttribute(20, "class", "btn btn-sm btn-success ml-2");
             builder.AddAttribute(21, "onclick", EventCallback.Factory.Create<MouseEventArgs>(this,
-                () => OpenImplementationTaskCreation(ApprovalTaskBundleHelper.CreationRequestTask(taskGroup))));
+                () => OpenImplementationTaskCreation(TaskBundleHelper.CreationRequestTask(taskGroup))));
             builder.AddEventStopPropagationAttribute(22, "onclick", true);
             builder.AddContent(23, DisplayService.DisplayButtonWithTooltip(userConfig, "add", Icons.Add,
                 userConfig.GetText("implementation")));

@@ -272,7 +272,7 @@ internal sealed class ApprovalTaskDetailsTimeObjectEditor
 
     internal IEnumerable<WfReqTask> GetTasksToUpdate(WfReqTask task)
     {
-        return ApprovalTaskBundleHelper.GetTasksToUpdate(context.WfHandler.ActTicket.Tasks, task, context.UserConfig);
+        return TaskBundleHelper.GetTasksToUpdate(context.WfHandler.ActTicket.Tasks, task, context.UserConfig);
     }
 
     internal void ApplyTimeObjectModel(TargetDatesEditorModel model)

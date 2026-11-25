@@ -60,7 +60,7 @@ internal sealed class ApprovalTaskDetailsLookupService
                 || task.TaskType == WfTaskType.new_interface.ToString()
                 || WfObjectTaskHelper.IsManagementObjectTask(task.TaskType));
 
-        return ApprovalTaskBundleHelper.GroupTasks(tasks, context.UserConfig);
+        return TaskBundleHelper.GroupTasks(tasks, context.UserConfig);
     }
 
     internal List<FlowTimeObject> GetTicketTimeObjects()

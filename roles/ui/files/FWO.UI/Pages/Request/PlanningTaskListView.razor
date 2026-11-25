@@ -5,7 +5,7 @@
 @inject ApiConnection apiConnection
 
 @{
-    List<List<WfReqTask>> taskGroups = [.. ApprovalTaskBundleHelper.GroupTasks(WfHandler.ActTicket.Tasks, userConfig)];
+    List<List<WfReqTask>> taskGroups = [.. TaskBundleHelper.GroupTasks(WfHandler.ActTicket.Tasks, userConfig)];
     List<TaskListTable> tables = ApprovalTaskListRowBuilder.UsedTables(taskGroups);
     PlanningTaskListRowBuilder rowBuilder = CreateRowBuilder();
 }
@@ -138,7 +138,7 @@
                     ActionRequested="action => PerformRequestTaskAction(row.TaskGroup, action)" />
                 @if (WorkflowTaskActions.CanChangeRequestTasks(WfHandler, row.TaskGroup))
                 {
-                    <button type="button" class="btn btn-sm btn-success planning-task-list-add" @onclick="() => AddImplementationTask(ApprovalTaskBundleHelper.CreationRequestTask(row.TaskGroup))">
+                    <button type="button" class="btn btn-sm btn-success planning-task-list-add" @onclick="() => AddImplementationTask(TaskBundleHelper.CreationRequestTask(row.TaskGroup))">
                         @(DisplayService.DisplayButtonWithTooltip(userConfig, "add", Icons.Add, userConfig.GetText("implementation")))
                     </button>
                 }

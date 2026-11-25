@@ -4,8 +4,11 @@ using FWO.Services.Workflow;
 
 namespace FWO.Ui.Services;
 
-/// <summary>Resolves the request tasks that form one editable approval bundle.</summary>
-internal static class ApprovalTaskBundleHelper
+/// <summary>
+/// Resolves bundled request tasks for the approval and planning views: the bundles displayed as one, the tasks that
+/// receive the same edit and the request task a new implementation task of a bundle is created from.
+/// </summary>
+internal static class TaskBundleHelper
 {
     /// <summary>
     /// Groups the tasks into the bundles displayed as one, each ordered by task id: if bundled tasks are displayed

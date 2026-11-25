@@ -12,6 +12,21 @@
   - admin: `POST /api/WorkflowConfiguration/Import` creates a new inactive configuration (`options.name`, default: name in the package) or merges into an existing one (`options.targetConfigurationId`); it writes with the caller's own admin rights, which are rebuilt from the directories, so the `middleware-server` role gets no write permissions on the workflow tables
   - all with the expensive rate-limit policy; packages with more than 10000 entries are not exported
 ## 9.9.5 - 21.11.2026
+## 9.9.6 - 25.11.2026
+
+- CI: the install jobs replace the Ubuntu mirror of AWS-hosted runners, which is often very slow, by `archive.ubuntu.com` (#5776), see documentation/developer-docs/github/test-install-workflow.md
+- dependencies: update NuGet packages (AngleSharp to 1.10.5, Microsoft.OpenApi to 2.13.1, Microsoft.Playwright to 1.65.1, Novell.Directory.Ldap.NETStandard to 4.1.0, PuppeteerSharp to 25.18.1, Quartz to 4.8.1, Scalar.AspNetCore to 3.2.0, SoPro.FancyTable to 1.7.1)
+- dependencies: update NuGet packages (AngleSharp to 1.11.0)
+- UI fix: object links in change reports work (#2506); they pointed to management id 0 because the change report rule queries did not select `mgm_id`
+  - change reports get a "Report" tab in the right sidebar listing the object versions of the reported changes (old and new rule versions, NAT translations, changed objects) and the members of their groups, fetched by id (new queries `getNetworkObjectDetailsByIds`, `getNetworkServiceDetailsByIds`, `getUserDetailsByIds`), including objects of a super manager; the links target this tab
+  - the Report and Rule tabs of rule and change reports show the objects and group members as of the generated report, independent of the current time filter; before, the imports of the All tab were used, so users without this tab (e.g. reporters, or after selecting a tenant) got no rule details in the Rule tab
+  - right sidebar tab order is All - Report - Rule; Report and Rule tab are only shown once a rule or change report has been generated
+  - clicking a change report row shows the rule versions in the Rule tab (added: new version, deleted: old version, modified: before and after); this also works for NAT rules, whose detail query `getNatRuleDetails` was rejected by the API
+  - the Rule tab shows the group members of rule objects; the fetched details replace the overview objects of the report instead of being added as duplicates
+  - "Clear all" in the Rule tab (and other re-renders) no longer discards the objects already loaded into the Report tab; a failed fetch can be repeated by expanding the category again
+  - links jump to the object on the first click: the scroll is repeated once lazily fetched objects are rendered; it is instant while objects are being fetched and smooth otherwise
+
+
 ## 9.9.5 - 23.11.2026
 - security fix: a report schedule repeated with an offset below 1 (e.g. "every 0 days") made the scheduled report job loop endlessly, so no scheduled report ran any more (GHSA-6mh5-c5hj-qjwp)
   - the report job skips such a schedule and logs an error; the other schedules of the run are processed

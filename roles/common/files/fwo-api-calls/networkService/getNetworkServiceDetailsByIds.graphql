@@ -1,0 +1,10 @@
+query getNetworkServiceDetailsByIds(
+  $svcIds: [bigint!]!
+  $active: Boolean
+  $import_id_start: bigint
+  $import_id_end: bigint
+) {
+  firewall_nw_service(where: { svc_id: { _in: $svcIds } }) {
+    ...networkServiceDetails
+  }
+}
